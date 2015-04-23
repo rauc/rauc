@@ -89,7 +89,7 @@ If the signature is valid, the service loopback-mounts the bundle to access its
 content and installs the update.
 
 Installing the update means either calling an *update handler* included in the
-bundle (if provided) or using a default updater script that performs the update
+bundle (if provided) or using a default handler script that performs the update
 based on information about the available slots and versions.
 
 
@@ -192,6 +192,8 @@ To install an update, the *handler* usually performs the following steps:
 
    4. Update slot status file
 
+   .. TODO: Write slot status file? (as it is not in the image, right?)
+
 4. Extract updated keyring (if supplied with the update)
 
 5. After successful update, set target slot as bootable for the *boot chooser*
@@ -250,19 +252,34 @@ Example configuration:
 
 This file is (currently) part of the root file system.
 
+The ``system``  section contains the ``compatible`` string which must describe
+the board and its function as distinctly as it is required to assure that
+only update bundles designed for this specific type can be installed.
+The ``boatloader`` entry gives a hint which boot chooser implementation is
+available.
+
 The ``keyring`` section refers to the trusted keyring used for signature
 verification.
+
+Each slot is identified by a section starting with ``slot.`` followed by
+the slot group name, and a slot number.
+``device`` points to the linux device name for this slot.
+`type`` provides a hint if and which filesystem the slot has.
+``bootname`` is the name the bootloader uses for this slot.
 
 A ``readonly`` slot cannot be a target slot.
 
 The ``parent`` entry is used to bind additional slots to a bootable root
 filesystem slot.
 
+.. TODO: where do we get the names from and to?
+.. TODO: slot groups clear?
+
 Update Manifest
 ---------------
 
-File located in each update as ``manifest.raucm``, describing update meta-data
-and slots to update (e.g. for the *update handler*)
+An update manifest file is located in each update as ``manifest.raucm``.
+It describes update meta-data and slots to update (e.g. for the *update handler*)
 
 Example manifest:
 
@@ -298,14 +315,19 @@ running system.
 
 Slot name suffix of images must match the slot group name (slot.group.#).
 
+The ``sha`` entry provides the slot images hash while the ``filename`` entry
+provides the name of the slots update image.
+The filename suffix should match the file system type.
+
+
+.. TODO: Some words how multi-bundle updates might work
+
 
 Slot status file
 ----------------
 
 A slot status file is placed in the root of every slot containing a file system.
 It describes the current version of the content in this slot.
-The updater compares the version to the one it provides and skips update if their
-version is identical to save time.
 
 Example:
 
@@ -316,24 +338,47 @@ Example:
   sha256=e437ab217356ee47cd338be0ffe33a3cb6dc1ce679475ea59ff8a8f7f6242b27
 
 
+The version of each image of an update is identified by a hash over this image,
+pre-calculated by rauc. Currently, SHA-256 is used as hash function.
+The Manifest file contains the hash for each slot.
+It is compared against the hash stored in a slots status file to
+determine if the version is equal.
+
+After installation of a slot the slots hash (as provided by the upate manifest)
+is used to write the new slot status file.
+
 Booting
 =======
 
-To determine from which device / slot the system is booted, the barebox *boot chooser* is used.
-This allows to maintain multiple potential systems with a *defined priority* and a *number of boot attempts*.
-If booting from the highest-priority system (typically the current productive system) fails for e.g. 3 times,
-the next lower priority boot source is chosen which could be the fallback system for example.
+To determine from which slot the system is booted, the bootloader must
+provide a *boot chooser* tool.
+This allows to maintain multiple boot sources with a
+*defined priority*, a *number of boot attempts*, and a flag to deactivate the source.
 
-As updates are always installed in the currently inactive slot set, the boot order must be changed
-after a successful update.
+If booting from the highest-priority system
+(typically the current productive system) fails for e.g. 3 times,
+the next lower priority boot source is chosen which could be the fallback system
+for example.
+
+As updates are always installed in the currently inactive slot set,
+the boot priority must be changed after a successful update.
+
+System Setup
+------------
+
+By default an updatable platform should provide 3 slots from which one is a
+fallback system and the other two are for productive systems.
+If possible, the fallback system slot along with the bootloaders
+should be placed in a different (read-only)
+storage than the productive system slots to prevent unintended overwriting.
 
 
 Signature and Verification
 ==========================
 
-To sign and verify updates, a X.509 PKI is used. While RAUC only requires
+To sign and verify updates, a X.509 Public key infrastructure (PKI) is used. While RAUC only requires
 images signed with a key which can be verified against the trusted keyring,
-PKI setup similar to the following is recommended:
+a PKI setup similar to the following is recommended:
 
 ::
 
@@ -362,8 +407,9 @@ Keyring Update
 Each update can optionally contain a new trusted keyring. The *handler*
 installs this keyring to the updated slot. If no new keyring is provided,
 the current keyring for the running system will be used instead. They keyring
-contains of one or more CA certificates and the corresponding CRLs, so that
-certificates can be verified even without network access.
+consists of one or more CA certificates and the corresponding 
+Certificate revocation lists (CRLs), so that certificates can be verified 
+even without network access.
 
 
 Image Resigning
@@ -380,8 +426,8 @@ Key Revocation
 --------------
 
 Using different keys for each purpose is recommended. If a key becomes
-compromised, it can be revoked and the new CRL (certificate revocation list)
-distributed using a update bundle.
+compromised, it can be revoked and the new CRL
+distributed using an update bundle.
 
 The certificate lifetimes should be configured to avoid problems due to invalid
 system time (broken/missing RTC).
@@ -414,6 +460,7 @@ Content of the system
   
   - default *update handler*
 
+  - trusted keyring
 
 Generating Updates
 ------------------
@@ -445,6 +492,8 @@ bundle signed by a development key.
 RAUC
 ====
 
+This section shortly summarizes parts of the command-line api for rauc.
+
 RAUC CLI
 --------
 
@@ -472,7 +521,7 @@ RAUC CLI
 RAUC Command API
 ----------------
 
-This can be used by the *handler* to reuse existing functionality in RAUC.
+This commands can be used by the *handler* to reuse existing functionality in RAUC.
 
 ::
 
@@ -490,14 +539,6 @@ This can be used by the *handler* to reuse existing functionality in RAUC.
 
   rauc-cmd umount <slot>
 
-
-System Setup
-------------
-
-By default an updatable platform should provide 3 slots from which one is the fallback system
-and the other two are for productive systems.
-If possible, the fallback system slot along with the bootloaders
-should be placed in a different (read-only) storage than the productive system slots.
 
 
 Future Improvements
@@ -523,3 +564,17 @@ version is available.
 
 *staged updates*
   avoid updating all systems at once
+
+
+Acronyms
+========
+
+CA
+  Certificate authority
+
+CRL
+  Certificate revocation list
+
+PKI
+  Public key infrastructure
+
