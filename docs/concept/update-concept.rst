@@ -3,82 +3,104 @@
 Robust Auto-Update Controller -- RAUC
 #####################################
 
-This document describes a generic update concept and toolchain for embedded linux systems.
+This document describes a generic update concept and toolchain for embedded Linux systems.
 
 Terminology
 ===========
 
 update controller
-  Controls update process, maybe started on demand or run as a daemon
+  This controls the update process and can be started on demand or run as a daemon.
 
 update handler
-  Determines how the update should be installed
-  Default implementation provided in update controller
-  Overridable by the manifest
+  The handler performs the actual update installation.
+  A default implementation is provided with the **update controller** and can
+  be overridden in the **update manifest**.
   
 update bundle
-  squashfs + signature appended
-  contains images, update handler, manifest
+  The bundle is a single file containing an update. It consists of a squashfs
+  with an appended cryptographic signature.
+  It contains the **update manifest**, one or more images and optionally an
+  **update handler**.
 
 update manifest
-  contains information about update compatibility, image hashes, possible custom update handler(s)
-  Either placed in a bundle or downloaded from a server
+  This contains information about update compatibility, image hashes and
+  references the optional **handler**.
+  It is either contained in a **bundle** or downloaded individually over the
+  network.
 
 slots
-  Possible targets for (parts of) updates
-  Contains status file (hash)
+  Slots are possible targets for (parts of) updates. Usually they are
+  partitions on a SD/eMMC, UBI volumes on NAND/NOR flash or raw block devices.
+  For filesystem slots, the **controller** stores status information in a file
+  in that filesystem.
 
 system configuration
- contains compatibility information, slot definitions
-  placed in each slot
+  This configures the **controller** and contains compatibility information
+  and slot definitions.
+  For now, this file is shipped as part of the root filesystem.
 
 boot chooser
-  Bootloader component that dertermines which slot to boot from
+  The bootloader component that determines which slot to boot from.
 
 recovery system
-  non-updatable initial (fatory default) system, capable of running update service
+  A non-updatable initial (fatory default) system, capable of running the
+  update service to recover the system if all other slots are damaged.
 
 
-Basic Requirements
-====================
+Objectives
+==========
 
-- The update system *should* be **flexible** and **generic**
+- The update system is intended to be **flexible** and **generic**, while
+  unnecessary complexity should be avoided.
 
-- The update system *must* allow both to **update a productive system** as well as **initializing a factory system**.
+- The update system *must* allow both to **update a running system** as well
+  as **initializing a factory system**.
 
-- If an update fails, a minimal (factory) **fallback system** *must* assure that new firmware still can be uploaded
+- If an update fails, a minimal (factory) **fallback system** *must* assure
+  that the system can be recovered by installing an update.
 
-- The update system *should* be able to **skip parts of an update** if the current version and the version contained
-  in an update are equal.
+- The update system *should* be able to **skip parts of an update** if the
+  current version and the version contained in an update are identical.
 
 - The update system *must* accept only **valid signed firmware**
 
-- An update may consist of **multiple firmware bundles**
+- An update may consist of **multiple firmware bundles**.
 
 
 Basic update procedure
 ======================
 
-An *update controller* either running on the currently active productive system or on a minimal fallback system 
-handles incoming update requests.
-An update request may be initiated manually or by a script that checks for example for insertion of an usb stick containing a *firmware bundle*.
-A firmware bundle is a squashfs-packed set of config files, scripts, and disk images with a signature appended that allows
-verifying that bundles origin and integrity.
+An *update controller* either running on the currently running system or on
+a minimal fallback system handles incoming update requests.
+An update request may be initiated manually from the command line or by a
+script that checks for example for insertion of an USB stick containing a
+*firmware bundle*.
+A firmware bundle is a squashfs-packed set of config files, scripts, and disk
+images with an appended signature that allows verifying the bundle's origin
+and integrity.
+For uploading a *bundle* to the system using a web interface, the required
+web server is out of scope for the update server. The web server needs to
+receive the bundle and trigger the *controller*.
 
-Once the update controller receives an update request instruction containing the source of a firmware bundle it
-verifies its signature based on a public key stored in the current rootfs.
-If the signature is valid, the service loopback-mounts the bundle to access its content and executes the update.
+Once the update controller receives an update request instruction containing
+the file path of a firmware bundle it verifies its signature based on a public
+key stored in the current rootfs.
+If the signature is valid, the service loopback-mounts the bundle to access its
+content and installs the update.
 
-Executing the update means either calling a specific update handler included in the bundle, if available, or
-a default updater script that performs the update based on information about the available slots and versions.
+Installing the update means either calling an *update handler* included in the
+bundle (if provided) or using a default updater script that performs the update
+based on information about the available slots and versions.
 
 
 Update Controller
 =================
 
-The update controller is written in C and runs in background on the currently active system.
-It provides a simple text-based interface to initiate update requests.
-This eases both manual invocation as well as writing caller scripts.
+The update controller is written in C using glib. It runs in background on the
+currently active system and can be controlled using a CLI or directly via D-Bus.
+The CLI provides a simple text-based interface to initiate and monitor update
+requests.
+This eases both manual invocation as well as writing scripts.
 
 ::
 
@@ -88,36 +110,31 @@ This eases both manual invocation as well as writing caller scripts.
 
   rauc install https://example.com/FoomaticSuperbarBazzer_1.2.raucm
 
-Update procedure
+Update Procedure
 ----------------
 
-0. opt. Copy firmware bundle
+1. Verify bundle integrity (using the signature)
 
-1. Verify integrity
+2. Mount squashfs
 
-2. Loopback mount squashfs
+3. Verify compatibility information
 
-3. Verify board type
+   - system compatibility is defined in the *system configuration*
+   - update compatibility is defined in the *update manifest*
+   - if the update is incompatible, reject the update (when running the
+     *fallback system*, allow overriding the compatibility by the user)
 
-   - ->  where info about our system? (e.g. 'Foomatic super BarBazzer', Revision 1.1) -> info file !?
+4. Check for update handler, use default if not configured
 
-   - reject invalid
-   - on fallback system, ask User
+5. Select target *slot*
 
-4. Check for update handler, use default if none provided
+6. Run the *update handler*
 
-5. Mark update slot as non-bootable
-
-6. Execute update
-
-7. After successful update, update bootchooser
-
-8. Reboot
+7. Reboot (depending on update success)
 
 
 Status Feedback
 ---------------
-
 
 A D-Bus interface provides status, errors, and progress information such as
 
@@ -133,35 +150,55 @@ A D-Bus interface provides status, errors, and progress information such as
   
 - ``update finished (100%)``
 
-(produced by handler, forwarded by controller)
-
+(produced by the *controller* and the *handler*, forwarded via D-Bus by controller)
 
 A frontend (e.g. a wep page) may use this to give user information about the update status.
 
 
-- TODO: required to RUN in background?
-
 Update Handler
 --------------
 
-An update bundle may come with a custom update handler included which is executed as root and
-potentially allows all kinds of modification to a system.
-If none is included, a default update handler located in the currenly running system is executed.
+An update bundle may come with a custom update handler included which is
+executed as root and has unlimited access to the system.
+If none is included, a default update handler located in the currently
+running system is executed.
 
 This default update handler handles the most common cases for updating a system.
 
+The *controller* provides the required information in environment variables:
 
-1. Load update list from info.ini
+SYSTEM_CONFIG
+  filesystem path to the *system configuration* file
+CURRENT_BOOTNAME
+  *bootname* of the currently running system
+TARGET_SLOT
+  name of the *slot* to be updated
+UPDATE_SOURCE
+  filesystem path to the *bundle* contents (images)
+MOUNT_PREFIX
+  filesystem path to be used for mounting slots
 
-2. For each:
+To install an update, the *handler* usually performs the following steps:
 
-   1. Find and check destination slot
+1. Load meta-data from ``$UPDATE_SOURCE/manifest.raucm``
 
-   2. Compare slot sha
+2. Mark target slot as non-bootable for the *boot chooser*
 
-   3. Skip if equal, write update if inequal
+3. For each image listed in the *manifest*:
 
-   4. Update slot info file
+   1. Find, check and mount destination slot (possibly creating the filesystem)
+
+   2. Compare slot status information
+
+   3. Skip if identical, install update otherwise
+
+   4. Update slot status file
+
+4. Extract updated keyring (if supplied with the update)
+
+5. After successful update, set target slot as bootable for the *boot chooser*
+
+6. Return to the *controller* (with update success status)
 
 
 Config file descriptions
@@ -170,7 +207,8 @@ Config file descriptions
 System Configuration File
 -------------------------
 
-A config file located in TODO describess the number and type of available slots.
+A configuration file located in ``/etc/rauc/system.conf`` describes the
+number and type of available slots.
 It is used to validate storage locations for update images.
 Each board type requires its special configuration.
 
@@ -179,7 +217,7 @@ Example configuration:
 ::
 
   [system]
-  compatible=Foomatic Super BarBazzer V1.0
+  compatible=Foomatic Super BarBazzer
   bootloader=barebox
 
   [keyring]
@@ -204,74 +242,92 @@ Example configuration:
   [slot.appfs.0]
   device=/dev/sda2
   type=ext4
+  parent=rootfs.0
 
   [slot.appfs.1]
   device=/dev/sda3
   type=ext4
+  parent=rootfs.1
 
 
 This file is (currently) part of the root file system.
 
+The ``keyring`` section refers to the trusted keyring used for signature
+verification.
+
+A ``readonly`` slot cannot be a target slot.
+
+The ``parent`` entry is used to bind additional slots to a bootable root
+filesystem slot.
 
 Update Manifest
 ---------------
 
-File located in each update, describing update version and slots to update (e.g. for update handler)
+File located in each update as ``manifest.raucm``, describing update meta-data
+and slots to update (e.g. for the *update handler*)
 
 Example manifest:
 
 ::
 
   [update]
-  compatible=Foomatic Super BarBazzer V1.0
+  compatible=Foomatic Super BarBazzer
+  version=2015.04-1
+  
+  [keyring]
+  archive=release.tar
 
   [handler]
-  filename=custom_handler
+  filename=custom_handler.sh
 
   [image.rootfs]
-  SHA256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
+  sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
   filename=rootfs.ext4
- 
+  
   [image.appfs]
-  SHA256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca
+  sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca
   filename=appfs.ext4
 
 
-The board compatible string is used to determine wheter the update image fits to the target board.
-An update is performed only if the update manifest string and the system information string match exactly.
+The ``compatible`` string is used to determine whether the update image is 
+An update is allowed only if the *update manifest* string and the system
+information string match exactly.
 
 If no handler section is present, the default handler is chosen.
 
-Section name suffix of images must match the slot group name (slot.group.nr).
+If no keyring section is present, the keyring is copied from the currently
+running system.
+
+Slot name suffix of images must match the slot group name (slot.group.#).
 
 
-Slot info file
---------------
+Slot status file
+----------------
 
-A  slot version file is placed in the root of every slot containing a file system.
+A slot status file is placed in the root of every slot containing a file system.
 It describes the current version of the content in this slot.
-The updater compares the version to the one it provides and skips update if their version is identical.
-This may save time.
+The updater compares the version to the one it provides and skips update if their
+version is identical to save time.
 
 Example:
 
 ::
 
-  SHA256=e437ab217356ee47cd338be0ffe33a3cb6dc1ce679475ea59ff8a8f7f6242b27
+  [slot]
+  status=ok
+  sha256=e437ab217356ee47cd338be0ffe33a3cb6dc1ce679475ea59ff8a8f7f6242b27
 
 
 Booting
 =======
 
-To determine from which device / slot the system should be booted barebox *bootchooser* is used.
+To determine from which device / slot the system is booted, the barebox *boot chooser* is used.
 This allows to maintain multiple potential systems with a *defined priority* and a *number of boot attempts*.
 If booting from the highest-priority system (typically the current productive system) fails for e.g. 3 times,
 the next lower priority boot source is chosen which could be the fallback system for example.
 
 As updates are always installed in the currently inactive slot set, the boot order must be changed
 after a successful update.
-
-- prefer booting an outdated system or the fallback system in case of boot failure of active system?
 
 
 Signature and Verification
@@ -329,37 +385,32 @@ Content of the system
   - default updater script
 
 - barebox bootloader
+
   - state, bootchoser framework
-
-
-The fallback system does not provide slot info!?
-
 
 
 Generate Update image
 ---------------------
 
 
-
-
-Therfor Yocto-generated slot images must include:
+Therefore, Yocto-generated slot images must include:
 
 
 - rootfs
 
   - typical content of rootfs
 
-  - update service
+  - update contoller
   
-  - system info file
+  - system configuration file
   
-  - default updater script
+  - default updater handler
 
-     - update handler (manually created or generated!?)
+  - trusted keyring
 
 - appfs
 
-  - typical content of aptfs
+  - application binaries
 
 
 Yocto must generate:
@@ -367,8 +418,6 @@ Yocto must generate:
 - slot image hashes
 
 - Update info (info.ini)
-  
-- optional: Update skript
 
 ::
 
