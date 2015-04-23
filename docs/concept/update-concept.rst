@@ -89,7 +89,7 @@ If the signature is valid, the service loopback-mounts the bundle to access its
 content and installs the update.
 
 Installing the update means either calling an *update handler* included in the
-bundle (if provided) or using a default handler script that performs the update
+bundle (if provided) or using a default handler that performs the update
 based on information about the available slots and versions.
 
 
@@ -129,6 +129,20 @@ Update Procedure
 6. Run the *update handler*
 
 7. Reboot (depending on update success)
+
+
+Target Slot Selection
+---------------------
+
+The *boot chooser* passes the name of the booted slot using the kernel command
+line. This allows the *controller* to identify the currently active slots.
+
+To select the target slot, the controller first looks for a slot marked as
+non-bootable. This could be caused by an interrupted update or repeated boot
+failures.
+
+If no non-bootable slot exists, the inactive slot with the lowest priority is
+selected.
 
 
 Status Feedback
@@ -191,8 +205,6 @@ To install an update, the *handler* usually performs the following steps:
    3. Skip if identical, install update otherwise
 
    4. Update slot status file
-
-   .. TODO: Write slot status file? (as it is not in the image, right?)
 
 4. Extract updated keyring (if supplied with the update)
 
@@ -263,17 +275,17 @@ verification.
 
 Each slot is identified by a section starting with ``slot.`` followed by
 the slot group name, and a slot number.
-``device`` points to the linux device name for this slot.
-`type`` provides a hint if and which filesystem the slot has.
+The group name is used in the *update manifest* to target the correct set of slots.
+``device`` points to the Linux device name for this slot.
+`type`` provides a hint if and which file system the slot has.
 ``bootname`` is the name the bootloader uses for this slot.
 
 A ``readonly`` slot cannot be a target slot.
 
 The ``parent`` entry is used to bind additional slots to a bootable root
-filesystem slot.
-
-.. TODO: where do we get the names from and to?
-.. TODO: slot groups clear?
+file system slot. This is used together with the ``bootname`` to identify the
+currently active slot, so that the inactive one can be selected as the update
+target.
 
 Update Manifest
 ---------------
@@ -317,7 +329,8 @@ Slot name suffix of images must match the slot group name (slot.group.#).
 
 The ``sha`` entry provides the slot images hash while the ``filename`` entry
 provides the name of the slots update image.
-The filename suffix should match the file system type.
+The filename suffix should either match the file system type (.ext4, .ubifs,
+...) or be .tar.* for an archive to be extracted into an empty file system.
 
 
 .. TODO: Some words how multi-bundle updates might work
@@ -521,7 +534,7 @@ RAUC CLI
 RAUC Command API
 ----------------
 
-This commands can be used by the *handler* to reuse existing functionality in RAUC.
+These commands can be used by the *handler* to reuse existing functionality in RAUC.
 
 ::
 
@@ -570,11 +583,11 @@ Acronyms
 ========
 
 CA
-  Certificate authority
+  Certificate Authority
 
 CRL
-  Certificate revocation list
+  Certificate Revocation List
 
 PKI
-  Public key infrastructure
+  Public Key Infrastructure
 
