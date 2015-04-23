@@ -104,11 +104,9 @@ This eases both manual invocation as well as writing scripts.
 
 ::
 
-  rauc install <url/file>
+  rauc install <file>
 
-  rauc install /mnt/sdcard0/FoomaticSuperbarBazzer_1.2.raucb
-
-  rauc install https://example.com/FoomaticSuperbarBazzer_1.2.raucm
+  rauc install /mnt/sdcard0/FooCorp_SuperBarBazzer_1.2.raucb
 
 Update Procedure
 ----------------
@@ -217,7 +215,7 @@ Example configuration:
 ::
 
   [system]
-  compatible=Foomatic Super BarBazzer
+  compatible=FooCorp Super BarBazzer
   bootloader=barebox
 
   [keyring]
@@ -271,7 +269,7 @@ Example manifest:
 ::
 
   [update]
-  compatible=Foomatic Super BarBazzer
+  compatible=FooCorp Super BarBazzer
   version=2015.04-1
   
   [keyring]
@@ -333,78 +331,107 @@ after a successful update.
 Signature and Verification
 ==========================
 
-- nss or x509 certificate verification
+To sign and verify updates, a X.509 PKI is used. While RAUC only requires
+images signed with a key which can be verified against the trusted keyring,
+PKI setup similar to the following is recommended:
 
-Key Update
-----------
+::
 
-TODO
+  * "FooCorp Firmware Update CA (root)" (kept offline)
+    - "FooCorp Firmware Update (development)" (kept offline)
+      + "FooCorp Auto-Builder (Super BarBazzer)" (on the build server for
+        automatic signing)
+    - "FooCorp Firmware Update (release)" (kept offline)
+      + "FooCorp Release (Super BarBazzer)" (for manual resigning of development
+        *bundles* for release)
+
+By having separate intermediate CAs for development and release, it is possible
+to safely perform automatic creation and signing of *update bundles* on the build
+servers. Development systems and systems in the factory are configured to trust
+both the "release" and the "development" CAs. Production systems instead only
+trust the "release" CA.
+
+This way development systems can be updated using the automatically generated
+updates. Also, the factory image will accept "release" updates, which allows
+them to be switched to the "release" keyring as described below.
+
+
+Keyring Update
+--------------
+
+Each update can optionally contain a new trusted keyring. The *handler*
+installs this keyring to the updated slot. If no new keyring is provided,
+the current keyring for the running system will be used instead. They keyring
+contains of one or more CA certificates and the corresponding CRLs, so that
+certificates can be verified even without network access.
+
+
+Image Resigning
+---------------
+
+To avoid having to rebuild a well-tested software version before releasing it
+to production systems, RAUC supports resigning an existing *bundle* with a new
+key. During resigning, the keyring contained in the bundle can be replaced with
+a different one (for example replacing "development" with "release" trusted
+keyring and signature).
 
 
 Key Revocation
 --------------
 
-TODO
+Using different keys for each purpose is recommended. If a key becomes
+compromised, it can be revoked and the new CRL (certificate revocation list)
+distributed using a update bundle.
+
+The certificate lifetimes should be configured to avoid problems due to invalid
+system time (broken/missing RTC).
 
 
-Generate systems and fimware images
-===================================
+Generating System and Firmware Images
+=====================================
 
-A build system is used to generat all the slot images required for an update bundle
+A build system is used to generate all the slot images required for an update
+bundle, which is then created and signed using the ``rauc bundle`` command.
 
-Then the ``rauc bundle`` tool can be used to generate a signed RAUC update bundle.
+Generating the Fallback System
+------------------------------
 
-::
-
-  rauc bundle <input-dir> <output-bundle>
-
-::
-
-  rauc bundle --key=<keyfile> <input-dir> <output-file>
-
-Generate Fallback System
-------------------------
-
-The fallback system is a minimal linux system which is generated with Yocto.
-It must be installed using conventional approaches such as manually copying disk images.
-
-::
-
-  bitbake fallback-system
+The fallback system is a minimal Linux system which contains a known-good
+RAUC installation. It must be installed using conventional approaches such as
+manually copying disk images.
 
 Content of the system
 
 - minimal kernel
   
-- miniml rootfs
+- minimal rootfs (or appended InitRAMFS)
 
-  - update service
+  - minimal Linux userspace
+
+  - *update controller*
   
-  - system info file (info.ini)
+  - *system configuration file*
   
-  - default updater script
-
-- barebox bootloader
-
-  - state, bootchoser framework
+  - default *update handler*
 
 
-Generate Update image
----------------------
+Generating Updates
+------------------
 
-
-Therefore, Yocto-generated slot images must include:
-
+The build system generates separate filesystems images or tar archives for each
+slot:
 
 - rootfs
 
-  - typical content of rootfs
+  - Linux kernel (in ``/boot``, optionally with InitRAMFS/DTB)
 
-  - update contoller
+  - Linux userspace
+
+  - *update controller*
   
-  - system configuration file
+  - *system configuration file*
   
-  - default updater handler
+  - default *updater handler*
 
   - trusted keyring
 
@@ -412,17 +439,8 @@ Therefore, Yocto-generated slot images must include:
 
   - application binaries
 
-
-Yocto must generate:
-
-- slot image hashes
-
-- Update info (info.ini)
-
-::
-
-  bitbake my-update-image
-
+Then, ``rauc bundle`` can be used by the build system to create an update
+bundle signed by a development key.
 
 RAUC
 ====
@@ -430,10 +448,9 @@ RAUC
 RAUC CLI
 --------
 
-
 ::
 
-  rauc publish --key=<keyfile> <input-dir> <output-dir>
+  rauc bundle --key=<keyfile> <input-dir> <output-file>
 
 ::
 
@@ -441,47 +458,41 @@ RAUC CLI
 
 ::
 
+  rauc info <bundle>
+
+::
+
+  rauc install <file>
+
+::
+
   rauc status
 
-RAUC command API
+
+RAUC Command API
 ----------------
 
-Used by the handler to control RAUC
+This can be used by the *handler* to reuse existing functionality in RAUC.
 
-  rauc-cmd boot <slot>
+::
+
+  rauc-cmd boot select <slot>
+
+::
+
+  rauc-cmd boot disable <slot>
+
+::
 
   rauc-cmd mount <slot>
+
+::
 
   rauc-cmd umount <slot>
 
 
-RAUC handler 
+System Setup
 ------------
-
-  - executable script
-  
-  - parameters passed as environment variables (e.g. active slot, target slot, mount path prefix, source directory)
-
-  - format slot (if needed)
-
-  - mount slot
-
-  - copy image to slot
-
-  - unmount slot
-
-  - select next boot source
-
-  - reboot?
-
-
-**Signing**
-
-To sign the image a separate tool is used as it might be required to do this step
-on an extra signing server.
-
-X. System Setup
----------------
 
 By default an updatable platform should provide 3 slots from which one is the fallback system
 and the other two are for productive systems.
@@ -489,28 +500,26 @@ If possible, the fallback system slot along with the bootloaders
 should be placed in a different (read-only) storage than the productive system slots.
 
 
-Future Tasks:
-=============
+Future Improvements
+===================
 
-RAUC handler CLI
+Fine-Grained Handler Hooks
+--------------------------
 
-::
+*rauc-handler prepare <device> <slot-mountpoint>*
+  check, mount, (format,)
 
-  rauc-handler prepare <device> <slot-mountpoint>
+*rauc-handler install <img> <slot-mountpoint>*
+  install image to mounted slot
 
-- mount, (format,)
+*rauc-handler finalize <slot-mountpoint>*
+  unmount, select next boot source
 
-::
+Network Updates
+---------------
 
-  rauc-handler install <img> <slot-mountpoint>
+RAUC should regularly contact an update server and download images if a new
+version is available.
 
-- install image to mounted slot
-
-::
-
-  rauc-handler finalize <slot-mountpoint>
-
-- unmount, select next boot source
-  (e.g. for 
-
-NOTE: rauc mounts! mount-hook?
+*staged updates*
+  avoid updating all systems at once
