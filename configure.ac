@@ -4,17 +4,38 @@
 AC_PREREQ([2.69])
 AC_INIT([rauc], [2015.04.0], [ejo@pengutronix.de])
 
+AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_AUX_DIR([build-aux])
+
+
 # Use subdir-object for single-Makefile build
 # Use foreign to prevent warnings for missing files
 # such as README, NEWS
-AM_INIT_AUTOMAKE([subdir-objects foreign])
-
+AM_INIT_AUTOMAKE([1.11 subdir-objects foreign no-dist-gzip dist-xz])
+AM_MAINTAINER_MODE([enable])
+AM_SILENT_RULES([yes])
 
 # Checks for programs.
+AC_USE_SYSTEM_EXTENSIONS
+AC_SYS_LARGEFILE
+
 AC_PROG_CC
+AC_PROG_CC_C99
+AM_PROG_CC_C_O
+
+AX_IS_RELEASE([git-directory])
+AX_COMPILER_FLAGS()
+
+LT_PREREQ(2.2)
+LT_INIT([disable-static])
+
+AX_CODE_COVERAGE
+AX_VALGRIND_CHECK
 
 # Checks for libraries.
-PKG_CHECK_MODULES([RAUCDEPS], glib-2.0)
+PKG_CHECK_MODULES([GLIB], [glib-2.0 gio-2.0])
+
+AX_CHECK_OPENSSL()
 
 # Checks for header files.
 
@@ -22,5 +43,5 @@ PKG_CHECK_MODULES([RAUCDEPS], glib-2.0)
 
 # Checks for library functions.
 
-AC_CONFIG_FILES(Makefile)
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
