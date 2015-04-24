@@ -35,10 +35,10 @@ slots
   in that filesystem.
 
 slot group
-  If a system consists of more than only the root files system, additional
+  If a system consists of more than only the root file system, additional
   slots are bound to one of the root file system slots.
   They form a *slot group*.
-  An update can be applied only to members of the respective group.
+  An update can be applied only to members of the same group.
 
 system configuration
   This configures the **controller** and contains compatibility information
@@ -86,7 +86,7 @@ Once the update was performed sucessfully, the system must tell the bootloader
 to boot from slot B from now on.
 To add more safety, a third bootable slot C may be used containing a minimal
 fallback system the bootloader may choose if booting from the other slots fails.
-This one might also be used to initially install a productive system on a
+This one might also be used to initially install a production system on a
 new device.
 
 In the following an overview of the basic concept for realizing such an
@@ -96,16 +96,15 @@ Booting
 -------
 
 To determine from which slot the system is booted, the bootloader must
-provide a *boot chooser* tool.
-This allows to maintain multiple boot sources with a
+provide a *boot chooser*.
+This allows maintaining multiple boot sources with a
 *defined priority*, a *number of boot attempts*, and a flag to deactivate the source.
 
 If booting from the highest-priority system
-(typically the current productive system) fails for e.g. 3 times,
-the next lower priority boot source is chosen which could be the fallback system
-for example.
+(typically the current production system) fails for e.g. 3 times,
+the next lower priority boot source is chosen (which could be the fallback system).
 
-As updates are always installed in the currently inactive slot set,
+As updates are always installed in a currently inactive slot group,
 the boot priority must be changed after a successful update.
 
 Basic update procedure
@@ -324,8 +323,8 @@ The group name is used in the *update manifest* to target the correct set of slo
 A ``readonly`` slot cannot be a target slot.
 
 The ``parent`` entry is used to bind additional slots to a bootable root
-file system slot. The roof file system and all slots bound to it
-form a fixed *slot set*.
+file system slot. The root file system and all slots bound to it
+form a fixed *slot group*.
 An update always can be applied only to slots of the respective *slot group*.
 This is used together with the ``bootname`` to identify the
 currently active slot, so that the inactive one can be selected as the update
@@ -524,7 +523,7 @@ bundle signed by a development key.
 RAUC
 ====
 
-This section shortly summarizes parts of the command-line api for rauc.
+This section shortly summarizes parts of the command-line api for RAUC.
 
 RAUC CLI
 --------
