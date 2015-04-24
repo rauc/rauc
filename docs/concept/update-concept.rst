@@ -34,6 +34,12 @@ slots
   For filesystem slots, the **controller** stores status information in a file
   in that filesystem.
 
+slot group
+  If a system consists of more than only the root files system, additional
+  slots are bound to one of the root file system slots.
+  They form a *slot group*.
+  An update can be applied only to members of the respective group.
+
 system configuration
   This configures the **controller** and contains compatibility information
   and slot definitions.
@@ -67,8 +73,43 @@ Objectives
 - An update may consist of **multiple firmware bundles**.
 
 
+Overview
+========
+
+Being able to safely update an entire system with pre-defined images
+normally requires more than one bootable device or partition available.
+A minimal setup would consist of a running system on slot A and an inactive
+system on slot B. A bootloader is responsible for booting the desired system.
+
+Now, the running system may perform an update on the inactive slot B.
+Once the update was performed sucessfully, the system must tell the bootloader
+to boot from slot B from now on.
+To add more safety, a third bootable slot C may be used containing a minimal
+fallback system the bootloader may choose if booting from the other slots fails.
+This one might also be used to initially install a productive system on a
+new device.
+
+In the following an overview of the basic concept for realizing such an
+update system is provided.
+
+Booting
+-------
+
+To determine from which slot the system is booted, the bootloader must
+provide a *boot chooser* tool.
+This allows to maintain multiple boot sources with a
+*defined priority*, a *number of boot attempts*, and a flag to deactivate the source.
+
+If booting from the highest-priority system
+(typically the current productive system) fails for e.g. 3 times,
+the next lower priority boot source is chosen which could be the fallback system
+for example.
+
+As updates are always installed in the currently inactive slot set,
+the boot priority must be changed after a successful update.
+
 Basic update procedure
-======================
+----------------------
 
 An *update controller* either running on the currently running system or on
 a minimal fallback system handles incoming update requests.
@@ -283,7 +324,10 @@ The group name is used in the *update manifest* to target the correct set of slo
 A ``readonly`` slot cannot be a target slot.
 
 The ``parent`` entry is used to bind additional slots to a bootable root
-file system slot. This is used together with the ``bootname`` to identify the
+file system slot. The roof file system and all slots bound to it
+form a fixed *slot set*.
+An update always can be applied only to slots of the respective *slot group*.
+This is used together with the ``bootname`` to identify the
 currently active slot, so that the inactive one can be selected as the update
 target.
 
@@ -352,38 +396,13 @@ Example:
 
 
 The version of each image of an update is identified by a hash over this image,
-pre-calculated by rauc. Currently, SHA-256 is used as hash function.
+pre-calculated by RAUC. Currently, SHA-256 is used as hash function.
 The Manifest file contains the hash for each slot.
 It is compared against the hash stored in a slots status file to
 determine if the version is equal.
 
 After installation of a slot the slots hash (as provided by the upate manifest)
 is used to write the new slot status file.
-
-Booting
-=======
-
-To determine from which slot the system is booted, the bootloader must
-provide a *boot chooser* tool.
-This allows to maintain multiple boot sources with a
-*defined priority*, a *number of boot attempts*, and a flag to deactivate the source.
-
-If booting from the highest-priority system
-(typically the current productive system) fails for e.g. 3 times,
-the next lower priority boot source is chosen which could be the fallback system
-for example.
-
-As updates are always installed in the currently inactive slot set,
-the boot priority must be changed after a successful update.
-
-System Setup
-------------
-
-By default an updatable platform should provide 3 slots from which one is a
-fallback system and the other two are for productive systems.
-If possible, the fallback system slot along with the bootloaders
-should be placed in a different (read-only)
-storage than the productive system slots to prevent unintended overwriting.
 
 
 Signature and Verification
