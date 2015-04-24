@@ -1,0 +1,19 @@
+# example update manifest
+
+[update]
+compatible=FooCorp Super BarBazzer
+version=2015.04-1
+
+[keyring]
+archive=release.tar
+
+[handler]
+filename=custom_handler.sh
+
+[image.rootfs]
+sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
+filename=rootfs.ext4
+
+[image.appfs]
+sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca
+filename=appfs.ext4
