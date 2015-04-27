@@ -26,6 +26,15 @@ AC_PROG_CC
 AC_PROG_CC_C99
 AM_PROG_CC_C_O
 
+AC_CHECK_PROGS([MKSQUASHFS], [mksquashfs])
+if test -z "$MKSQUASHFS";
+  then AC_MSG_ERROR([mksquashfs not found])
+fi
+AC_CHECK_PROGS([UNSQUASHFS], [unsquashfs])
+if test -z "$UNSQUASHFS";
+  then AC_MSG_ERROR([unsquashfs not found])
+fi
+
 AX_IS_RELEASE([git-directory])
 AX_COMPILER_FLAGS()
 
