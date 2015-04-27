@@ -3,10 +3,9 @@
 
 AC_PREREQ([2.69])
 AC_INIT([rauc], [2015.04.0], [ejo@pengutronix.de])
-
+AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
-
 
 # Use subdir-object for single-Makefile build
 # Use foreign to prevent warnings for missing files
