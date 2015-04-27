@@ -5,33 +5,39 @@
 #include "config_file.h"
 
 typedef struct {
-  GKeyFile *key_file;
+  RaucConfig *config;
 } ConfigFileFixture;
 
 static void config_file_fixture_set_up(ConfigFileFixture *fixture,
                                        gconstpointer user_data)
 {
-  fixture->key_file = g_key_file_new();
 }
 
 static void config_file_fixture_tear_down(ConfigFileFixture *fixture,
                                           gconstpointer user_data)
 {
-  g_key_file_free(fixture->key_file);
+  g_free(fixture->config);
 }
 
 static void config_file_test1(ConfigFileFixture *fixture,
                               gconstpointer user_data)
 {
-  load_config(NULL);
-  g_assert_null(user_data);
+  load_config("test/system.conf", &fixture->config);
+  g_assert_nonnull(fixture->config);
+  g_assert_cmpstr(fixture->config->system_compatible, ==, "FooCorp Super BarBazzer");
+  g_assert_cmpstr(fixture->config->system_bootloader, ==, "barebox");
 }
 
 static void config_file_test2(ConfigFileFixture *fixture,
                               gconstpointer user_data)
 {
-  load_config(NULL);
-  g_assert_null(user_data);
+  RaucSlotStatus *ss;
+  g_assert_true(load_slot_status("test/rootfs.raucs", &ss));
+  g_assert_nonnull(ss);
+  g_assert_cmpstr(ss->status, ==, "ok");
+  g_assert_cmpint(ss->checksum.type, ==, G_CHECKSUM_SHA256);
+  g_assert_cmpstr(ss->checksum.digest, ==,
+                  "e437ab217356ee47cd338be0ffe33a3cb6dc1ce679475ea59ff8a8f7f6242b27");
 }
 
 int main(int argc, char *argv[])

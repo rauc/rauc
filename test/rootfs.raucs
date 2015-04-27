@@ -1,0 +1,6 @@
+# example slot status file
+
+[slot]
+status=ok
+sha256=e437ab217356ee47cd338be0ffe33a3cb6dc1ce679475ea59ff8a8f7f6242b27
+
