@@ -41,6 +41,22 @@ static void signature_verify(void)
   g_bytes_unref(sig);
 }
 
+static void signature_loopback(void)
+{
+  GBytes *content = read_file("test/openssl-ca/manifest");
+  GBytes *sig = NULL;
+  g_assert_nonnull(content);
+  sig = cms_sign(content,
+		 "test/openssl-ca/rel/release-1.cert.pem",
+                 "test/openssl-ca/rel/private/release-1.pem");
+  g_assert_nonnull(sig);
+  g_assert_true(cms_verify(content, sig));
+  ((char *)g_bytes_get_data(content, NULL))[0] = 0x00;
+  g_assert_false(cms_verify(content, sig));
+  g_bytes_unref(content);
+  g_bytes_unref(sig);
+}
+
 int main(int argc, char *argv[])
 {
   setlocale(LC_ALL, "");
@@ -53,6 +69,7 @@ int main(int argc, char *argv[])
 
   g_test_add_func("/signature/sign", signature_sign);
   g_test_add_func("/signature/verify", signature_verify);
+  g_test_add_func("/signature/loopback", signature_loopback);
 
   return g_test_run ();
 }
