@@ -11,7 +11,19 @@ typedef struct {
 	gchar *system_compatible;
 	gchar *system_bootloader;
 
+	gchar *keyring_path;
+
+	GHashTable *slots;
 } RaucConfig;
+
+typedef struct _RaucSlot {
+	gchar *name;
+	gchar *device;
+	gchar *type;
+	gchar *bootname;
+	gboolean readonly;
+	struct _RaucSlot *parent;
+} RaucSlot;
 
 typedef struct {
 	gchar *system_compatible;
