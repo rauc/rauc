@@ -77,7 +77,7 @@ gboolean cms_verify(GByteArray *content, GByteArray *sig) {
 	if (!(lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file())))
 		goto out;
 	if (!X509_LOOKUP_load_file(lookup,
-				   "test/openssl-ca/provisioning-ca.pem",
+				   "test/openssl-ca/dev-ca.pem",
 				   X509_FILETYPE_PEM)) {
 		g_warning("failed to load CA file");
 		goto out;
