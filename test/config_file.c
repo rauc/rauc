@@ -89,6 +89,8 @@ static void config_file_test3(ConfigFileFixture *fixture,
 	g_assert_cmpint(ss->checksum.type, ==, G_CHECKSUM_SHA256);
 	g_assert_cmpstr(ss->checksum.digest, ==,
 			"e437ab217356ee47cd338be0ffe33a3cb6dc1ce679475ea59ff8a8f7f6242b27");
+
+	free_slot_status(ss);
 }
 
 int main(int argc, char *argv[])

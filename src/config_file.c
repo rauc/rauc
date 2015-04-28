@@ -12,13 +12,10 @@ static void free_image(gpointer data);
 static void free_slot (gpointer value) {
 	RaucSlot *slot = (RaucSlot*)value;
 
-	if (slot->device)
-		g_free(slot->device);
-	if (slot->type)
-		g_free(slot->type);
-	if (slot->name)
-		g_free(slot->name);
-	if (slot->bootname && slot->bootname != slot->name)
+	g_free(slot->device);
+	g_free(slot->type);
+	g_free(slot->name);
+	if (slot->bootname != slot->name)
 		g_free(slot->bootname);
 }
 
@@ -136,7 +133,12 @@ free:
 
 void free_config(RaucConfig *config) {
 
-	g_hash_table_destroy(config->slots);
+	g_free(config->system_compatible);
+	g_free(config->system_bootloader);
+	g_free(config->keyring_path);
+
+	if (config->slots)
+		g_hash_table_destroy(config->slots);
 
 }
 
@@ -198,37 +200,31 @@ gboolean load_manifest(const gchar *filename, RaucManifest **manifest) {
 	g_strfreev(groups);
 
 
-
 	res = TRUE;
 free:
+	g_key_file_free(key_file);
 	*manifest = raucm;
+
 	return res;
 }
 
 static void free_image(gpointer data) {
 	RaucImage *image = (RaucImage*) data;
 
-	if (image->slotclass)
-		g_free(image->slotclass);
-	if (image->checksum.digest)
-		g_free(image->checksum.digest);
-	if (image->filename)
-		g_free(image->filename);
+	g_free(image->slotclass);
+	g_free(image->checksum.digest);
+	g_free(image->filename);
+	g_free(image);
 }
 
 void free_manifest(RaucManifest *manifest) {
 
-	if (manifest->update_compatible)
-		g_free(manifest->update_compatible);
-	if (manifest->update_version)
-		g_free(manifest->update_version);
-	if (manifest->keyring)
-		g_free(manifest->keyring);
-	if (manifest->handler_name)
-		g_free(manifest->handler_name);
-
-	if (manifest->images)
-		g_list_free_full(manifest->images, free_image);
+	g_free(manifest->update_compatible);
+	g_free(manifest->update_version);
+	g_free(manifest->keyring);
+	g_free(manifest->handler_name);
+	g_list_free_full(manifest->images, free_image);
+	g_free(manifest);
 }
 
 gboolean load_slot_status(const gchar *filename, RaucSlotStatus **slotstatus) {
@@ -255,4 +251,12 @@ free:
 	g_key_file_free(key_file);
 	*slotstatus = ss;
 	return res;
+}
+
+
+void free_slot_status(RaucSlotStatus *slotstatus) {
+
+	g_free(slotstatus->status);
+	g_free(slotstatus->checksum.digest);
+	g_free(slotstatus);
 }
