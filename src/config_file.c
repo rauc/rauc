@@ -3,9 +3,11 @@
 #include "config_file.h"
 
 #define RAUC_SLOT_PREFIX	"slot"
+#define RAUC_IMAGE_PREFIX	"image"
 
 
 static void free_slot (gpointer value);
+static void free_image(gpointer data);
 
 static void free_slot (gpointer value) {
 	RaucSlot *slot = (RaucSlot*)value;
@@ -139,7 +141,94 @@ void free_config(RaucConfig *config) {
 }
 
 gboolean load_manifest(const gchar *filename, RaucManifest **manifest) {
-	return FALSE;
+	RaucManifest *raucm = g_new0(RaucManifest, 1);
+	gboolean res = FALSE;
+	GKeyFile *key_file = NULL;
+	gchar **groups;
+	gsize group_count;
+
+	key_file = g_key_file_new();
+
+	res = g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, NULL);
+	if (!res)
+		goto free;
+
+	/* parse [update] section */
+	raucm->update_compatible = g_key_file_get_string(key_file, "update", "compatible", NULL);
+	if (!raucm->update_compatible) {
+		goto free;
+	}
+	raucm->update_version = g_key_file_get_string(key_file, "update", "version", NULL);
+
+	/* parse [keyring] section */
+	raucm->keyring = g_key_file_get_string(key_file, "keyring", "archive", NULL);
+
+	/* parse [handler] section */
+	raucm->handler_name = g_key_file_get_string(key_file, "handler", "filename", NULL);
+
+	/* parse [image.*] sections */
+	groups = g_key_file_get_groups(key_file, &group_count);
+	for (gsize i = 0; i < group_count; i++) {
+		gchar **groupsplit;
+
+		groupsplit = g_strsplit(groups[i], ".", 2);
+		if (g_str_equal(groupsplit[0], RAUC_IMAGE_PREFIX)) {
+			RaucImage *image = g_new0(RaucImage, 1);
+			gchar *value;
+
+			image->slotclass = g_strdup(groupsplit[1]);
+
+			value = g_key_file_get_string(key_file, groups[i], "sha256", NULL);
+
+			if (!value) {
+				g_printerr("\tChecksum missing!\n");
+				goto free;
+			}
+			image->checksum.type = G_CHECKSUM_SHA256;
+			image->checksum.digest = value;
+
+			image->filename = g_key_file_get_string(key_file, groups[i], "filename", NULL);
+
+			raucm->images = g_list_append(raucm->images, image);
+
+		}
+		g_strfreev(groupsplit);
+	}
+
+	g_strfreev(groups);
+
+
+
+	res = TRUE;
+free:
+	*manifest = raucm;
+	return res;
+}
+
+static void free_image(gpointer data) {
+	RaucImage *image = (RaucImage*) data;
+
+	if (image->slotclass)
+		g_free(image->slotclass);
+	if (image->checksum.digest)
+		g_free(image->checksum.digest);
+	if (image->filename)
+		g_free(image->filename);
+}
+
+void free_manifest(RaucManifest *manifest) {
+
+	if (manifest->update_compatible)
+		g_free(manifest->update_compatible);
+	if (manifest->update_version)
+		g_free(manifest->update_version);
+	if (manifest->keyring)
+		g_free(manifest->keyring);
+	if (manifest->handler_name)
+		g_free(manifest->handler_name);
+
+	if (manifest->images)
+		g_list_free_full(manifest->images, free_image);
 }
 
 gboolean load_slot_status(const gchar *filename, RaucSlotStatus **slotstatus) {

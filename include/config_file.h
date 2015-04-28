@@ -26,9 +26,24 @@ typedef struct _RaucSlot {
 } RaucSlot;
 
 typedef struct {
-	gchar *system_compatible;
+} RaucSlotGroup;
 
+typedef struct {
+	gchar *update_compatible;
+	gchar *update_version;
+
+	gchar *keyring;
+
+	gchar *handler_name;
+
+	GList *images;
 } RaucManifest;
+
+typedef struct {
+	gchar* slotclass;
+	RaucChecksum checksum;
+	gchar* filename;
+} RaucImage;
 
 typedef struct {
 	gchar *status;

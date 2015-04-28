@@ -56,6 +56,32 @@ static void config_file_test1(ConfigFileFixture *fixture,
 static void config_file_test2(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
+	RaucManifest *rm;
+	GList *l;
+
+	g_assert_true(load_manifest("test/manifest.raucm", &rm));
+	g_assert_nonnull(rm);
+	g_assert_cmpstr(rm->update_compatible, ==, "FooCorp Super BarBazzer");
+	g_assert_cmpstr(rm->update_version, ==, "2015.04-1");
+	g_assert_cmpstr(rm->keyring, ==, "release.tar");
+	g_assert_cmpstr(rm->handler_name, ==, "custom_handler.sh");
+	g_assert_nonnull(rm->images);
+
+	for (l = rm->images; l != NULL; l = l->next) {
+		RaucImage *img = (RaucImage*) l->data;
+		g_assert_nonnull(img);
+		g_assert_nonnull(img->slotclass);
+		g_assert_nonnull(img->checksum.digest);
+		g_assert_nonnull(img->filename);
+	}
+
+	free_manifest(rm);
+
+}
+
+static void config_file_test3(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
 	RaucSlotStatus *ss;
 	g_assert_true(load_slot_status("test/rootfs.raucs", &ss));
 	g_assert_nonnull(ss);
@@ -77,6 +103,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/config-file/test2", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_test2,
+			config_file_fixture_tear_down);
+
+	g_test_add("/config-file/test3", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_test3,
 			config_file_fixture_tear_down);
 
 	return g_test_run ();
