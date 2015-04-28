@@ -602,6 +602,20 @@ version is available.
 *staged updates*
   avoid updating all systems at once
 
+Split Updates
+-------------
+
+For cases where RAM or other resource limitations make it impossible to update
+the whole system at once, it should be possible to apply an update with
+serveral steps.
+
+The manifest in the first bundle should contain enough information so that
+RAUC can request the required update parts from the user.
+The RAUC process stays active over the full install process and keeps track
+of the update progress.
+
+If the system is rebooted during a split update, the update is regarded as
+failed and needs to be reinstalled from the beginning.
 
 Acronyms
 ========
