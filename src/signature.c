@@ -43,33 +43,51 @@ out:
 	return res;
 }
 
-GByteArray *cms_sign(GByteArray *content, const gchar *certfile, const gchar *keyfile) {
-	GByteArray *res = g_byte_array_new();
-	BIO *content_bio = BIO_new_mem_buf(content->data, content->len);
+static GBytes *bytes_from_bio(BIO *bio) {
+	long size;
+	char *data;
+
+	size = BIO_get_mem_data(bio, &data);
+	return g_bytes_new(data, size);
+}
+
+GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile) {
+	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
+					 g_bytes_get_size(content));
+	BIO *outsig = BIO_new(BIO_s_mem());
 	X509 *signcert = load_cert(certfile);
 	EVP_PKEY *pkey = load_key(keyfile);
 	CMS_ContentInfo *cms = NULL;
+	GBytes *res = NULL;
+	int flags = CMS_DETACHED | CMS_BINARY;
 
-	cms = CMS_sign(signcert, pkey, NULL, content_bio, CMS_DETACHED | CMS_TEXT | CMS_PARTIAL);
+	cms = CMS_sign(signcert, pkey, NULL, incontent, flags);
 	if (cms == NULL) {
 		g_warning("failed to create signature");
 		goto out;
 	}
+	if (!i2d_CMS_bio(outsig, cms)) {
+		g_warning("failed to serialize signature");
+		goto out;
+	}
 
+	res = bytes_from_bio(outsig);
 out:
-	ERR_print_errors_fp(stderr);
-	BIO_free_all(content_bio);
+	BIO_free_all(incontent);
+	BIO_free_all(outsig);
 	return res;
 }
 
-gboolean cms_verify(GByteArray *content, GByteArray *sig) {
+gboolean cms_verify(GBytes *content, GBytes *sig) {
 	STACK_OF(X509) *other = NULL;
 	X509_STORE *store = NULL;
 	X509_LOOKUP *lookup = NULL;
 	CMS_ContentInfo *cms = NULL;
-	BIO *incontent = BIO_new_mem_buf(content->data, content->len);
-	BIO *insig = BIO_new_mem_buf(sig->data, sig->len);
-	BIO *out = BIO_new(BIO_s_mem());
+	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
+					 g_bytes_get_size(content));
+	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
+				     g_bytes_get_size(sig));
+	BIO *outcontent = BIO_new(BIO_s_mem());
 	gboolean res = FALSE;
 
 	if (!(store = X509_STORE_new()))
@@ -88,18 +106,16 @@ gboolean cms_verify(GByteArray *content, GByteArray *sig) {
 		goto out;
 	}
 
-	ERR_print_errors_fp(stderr);
-	if (!CMS_verify(cms, other, store, incontent, out, CMS_DETACHED)) {
-		g_print("signature invalid");
+	if (!CMS_verify(cms, other, store, incontent, outcontent, CMS_DETACHED)) {
+		/* g_print("signature invalid"); */
 		goto out;
 	}
 
 	res = TRUE;
 out:
-	ERR_print_errors_fp(stderr);
 	BIO_free_all(incontent);
 	BIO_free_all(insig);
-	BIO_free_all(out);
+	BIO_free_all(outcontent);
 	X509_STORE_free(store);
 	return res;
 }

@@ -9,33 +9,36 @@
 
 #include "signature.h"
 
-static GByteArray *read_file(const gchar *filename) {
+static GBytes *read_file(const gchar *filename) {
   gchar *contents;
   gsize length;
   if (!g_file_get_contents(filename, &contents, &length, NULL))
     return NULL;
-  return g_byte_array_new_take((guint8 *)contents, length);
+  return g_bytes_new_take(contents, length);
 }
 
 static void signature_sign(void)
 {
-  GByteArray *content = read_file("test/openssl-ca/manifest");
+  GBytes *content = read_file("test/openssl-ca/manifest");
+  GBytes *sig = NULL;
   g_assert_nonnull(content);
-  g_assert_nonnull(cms_sign(content,
-			    "test/openssl-ca/rel/release-1.cert.pem",
-                            "test/openssl-ca/rel/private/release-1.pem"));
-  g_byte_array_unref(content);
+  sig = cms_sign(content,
+		 "test/openssl-ca/rel/release-1.cert.pem",
+                 "test/openssl-ca/rel/private/release-1.pem");
+  g_assert_nonnull(sig);
+  g_bytes_unref(content);
+  g_bytes_unref(sig);
 }
 
 static void signature_verify(void)
 {
-  GByteArray *content = read_file("test/openssl-ca/manifest");
-  GByteArray *sig = read_file("test/openssl-ca/manifest-r1.sig");
+  GBytes *content = read_file("test/openssl-ca/manifest");
+  GBytes *sig = read_file("test/openssl-ca/manifest-r1.sig");
   g_assert_nonnull(content);
   g_assert_nonnull(sig);
   g_assert_true(cms_verify(content, sig));
-  g_byte_array_unref(content);
-  g_byte_array_unref(sig);
+  g_bytes_unref(content);
+  g_bytes_unref(sig);
 }
 
 int main(int argc, char *argv[])
