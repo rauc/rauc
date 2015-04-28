@@ -14,7 +14,7 @@ AM_CPPFLAGS = -I${top_srcdir}/include $(OPENSSL_INCLUDES)
 
 noinst_LTLIBRARIES = librauc.la
 
-librauc_la_SOURCES = src/config_file.c src/signature.c
+librauc_la_SOURCES = src/bundle.c src/config_file.c src/signature.c
 librauc_la_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 librauc_la_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
 librauc_la_LIBADD = $(GLIB_LIBS) $(OPENSSL_LIBS)
@@ -27,9 +27,12 @@ rauc_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 rauc_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
 rauc_LDADD = $(GLIB_LIBS) librauc.la
 
-check_PROGRAMS = test/config_file.test test/signature.test
+check_PROGRAMS = test/bundle.test test/config_file.test test/signature.test
 
-TESTS = rauc $(check_PROGRAMS)
+TESTS = $(check_PROGRAMS)
+
+test_bundle_test_SOURCES = test/bundle.c
+test_bundle_test_LDADD = librauc.la
 
 test_config_file_test_SOURCES = test/config_file.c
 test_config_file_test_LDADD = librauc.la
