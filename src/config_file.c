@@ -4,14 +4,31 @@
 
 #define RAUC_SLOT_PREFIX	"slot"
 
+
+static void free_slot (gpointer value);
+
+static void free_slot (gpointer value) {
+	RaucSlot *slot = (RaucSlot*)value;
+
+	if (slot->device)
+		g_free(slot->device);
+	if (slot->type)
+		g_free(slot->type);
+	if (slot->name)
+		g_free(slot->name);
+	if (slot->bootname && slot->bootname != slot->name)
+		g_free(slot->bootname);
+}
+
+
 gboolean load_config(const gchar *filename, RaucConfig **config) {
-	RaucConfig *c = g_new(RaucConfig, 1);
+	RaucConfig *c = g_new0(RaucConfig, 1);
 	gboolean res = FALSE;
 	GKeyFile *key_file = NULL;
 	gchar **groups;
 	gsize group_count;
 	GList *slotlist = NULL;
-	GHashTable *slots;
+	GHashTable *slots = NULL;
 	GList *l;
 
 	key_file = g_key_file_new();
@@ -23,7 +40,6 @@ gboolean load_config(const gchar *filename, RaucConfig **config) {
 	/* parse [system] section */
 	c->system_compatible = g_key_file_get_string(key_file, "system", "compatible", NULL);
 	if (!c->system_compatible) {
-		res = FALSE;
 		goto free;
 	}
 	c->system_bootloader = g_key_file_get_string(key_file, "system", "bootloader", NULL);
@@ -32,11 +48,11 @@ gboolean load_config(const gchar *filename, RaucConfig **config) {
 	c->keyring_path = g_key_file_get_string(key_file, "keyring", "path", NULL);
 
 	/* parse [slot.*.#] sections */
-	slots = g_hash_table_new(g_str_hash, g_str_equal);
+	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, free_slot);
 
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
-		RaucSlot *slot = g_new(RaucSlot, 1);
+		RaucSlot *slot = g_new0(RaucSlot, 1);
 		gchar **groupsplit;
 
 		groupsplit = g_strsplit(groups[i], ".", 2);
@@ -71,16 +87,14 @@ gboolean load_config(const gchar *filename, RaucConfig **config) {
 
 			slot->readonly = g_key_file_get_boolean(key_file, groups[i], "readonly", NULL);
 
-			slot->parent = NULL;
 			g_hash_table_insert(slots, slot->name, slot);
 
 		}
 		g_strfreev(groupsplit);
 	}
 
-	slotlist = g_hash_table_get_keys(slots);
-
 	/* Add parent pointers */
+	slotlist = g_hash_table_get_keys(slots);
 	for (l = slotlist; l != NULL; l = l->next) {
 		RaucSlot *s;
 		gchar* group_name;
@@ -101,19 +115,27 @@ gboolean load_config(const gchar *filename, RaucConfig **config) {
 		((RaucSlot*)g_hash_table_lookup(slots, l->data))->parent = s;
 
 	}
+	g_list_free(slotlist);
 
 	c->slots = slots;
 
-	g_list_free(slotlist);
-
 	g_strfreev(groups);
-
 
 	res = TRUE;
 free:
+	if (!res) {
+		free_config(c);
+		c = NULL;
+	}
 	g_key_file_free(key_file);
 	*config = c;
 	return res;
+}
+
+void free_config(RaucConfig *config) {
+
+	g_hash_table_destroy(config->slots);
+
 }
 
 gboolean load_manifest(const gchar *filename, RaucManifest **manifest) {

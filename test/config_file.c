@@ -48,6 +48,9 @@ static void config_file_test1(ConfigFileFixture *fixture,
 	}
 	g_list_free(slotlist);
 
+
+	free_config(fixture->config);
+
 }
 
 static void config_file_test2(ConfigFileFixture *fixture,
