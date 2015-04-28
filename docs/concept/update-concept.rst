@@ -34,10 +34,15 @@ slots
   For filesystem slots, the **controller** stores status information in a file
   in that filesystem.
 
-slot group
+slot class
+  All slots with the same purpose (such as rootfs, appfs) belong to the same
+  **slot class**.
+  Only one slot per class can be active at runtime.
+
+install group
   If a system consists of more than only the root file system, additional
   slots are bound to one of the root file system slots.
-  They form a *slot group*.
+  They form an **install group**.
   An update can be applied only to members of the same group.
 
 system configuration
@@ -104,7 +109,7 @@ If booting from the highest-priority system
 (typically the current production system) fails for e.g. 3 times,
 the next lower priority boot source is chosen (which could be the fallback system).
 
-As updates are always installed in a currently inactive slot group,
+As updates are always installed in a currently inactive slot,
 the boot priority must be changed after a successful update.
 
 Basic update procedure
@@ -314,8 +319,9 @@ The ``keyring`` section refers to the trusted keyring used for signature
 verification.
 
 Each slot is identified by a section starting with ``slot.`` followed by
-the slot group name, and a slot number.
-The group name is used in the *update manifest* to target the correct set of slots.
+the slot class name, and a slot number.
+The *slot class* name is used in the *update manifest* to target the correct
+set of slots.
 ``device`` points to the Linux device name for this slot.
 `type`` provides a hint if and which file system the slot has.
 ``bootname`` is the name the bootloader uses for this slot.
@@ -323,12 +329,12 @@ The group name is used in the *update manifest* to target the correct set of slo
 A ``readonly`` slot cannot be a target slot.
 
 The ``parent`` entry is used to bind additional slots to a bootable root
-file system slot. The root file system and all slots bound to it
-form a fixed *slot group*.
-An update always can be applied only to slots of the respective *slot group*.
-This is used together with the ``bootname`` to identify the
-currently active slot, so that the inactive one can be selected as the update
-target.
+file system slot.
+This is used together with the ``bootname`` to identify the currently active
+slot, so that the inactive one can be selected as the update target.
+The inactive root file system and all slots bound to it form the *install
+group*.
+An update is always applied only to slots of the *install group*.
 
 Update Manifest
 ---------------
@@ -368,7 +374,7 @@ If no handler section is present, the default handler is chosen.
 If no keyring section is present, the keyring is copied from the currently
 running system.
 
-Slot name suffix of images must match the slot group name (slot.group.#).
+Slot name suffix of images must match the slot class name (slot.class.#).
 
 The ``sha`` entry provides the slot images hash while the ``filename`` entry
 provides the name of the slots update image.
