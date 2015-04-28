@@ -30,6 +30,16 @@ static void signature_sign(void)
   g_bytes_unref(sig);
 }
 
+static void signature_sign_file(void)
+{
+  GBytes *sig = NULL;
+  sig = cms_sign_file("test/openssl-ca/manifest",
+		      "test/openssl-ca/rel/release-1.cert.pem",
+                      "test/openssl-ca/rel/private/release-1.pem");
+  g_assert_nonnull(sig);
+  g_bytes_unref(sig);
+}
+
 static void signature_verify(void)
 {
   GBytes *content = read_file("test/openssl-ca/manifest");
@@ -38,6 +48,14 @@ static void signature_verify(void)
   g_assert_nonnull(sig);
   g_assert_true(cms_verify(content, sig));
   g_bytes_unref(content);
+  g_bytes_unref(sig);
+}
+
+static void signature_verify_file(void)
+{
+  GBytes *sig = read_file("test/openssl-ca/manifest-r1.sig");
+  g_assert_nonnull(sig);
+  g_assert_true(cms_verify_file("test/openssl-ca/manifest", sig));
   g_bytes_unref(sig);
 }
 
@@ -68,7 +86,9 @@ int main(int argc, char *argv[])
   g_test_init(&argc, &argv, NULL);
 
   g_test_add_func("/signature/sign", signature_sign);
+  g_test_add_func("/signature/sign_file", signature_sign_file);
   g_test_add_func("/signature/verify", signature_verify);
+  g_test_add_func("/signature/verify_file", signature_verify_file);
   g_test_add_func("/signature/loopback", signature_loopback);
 
   return g_test_run ();

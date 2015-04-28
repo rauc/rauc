@@ -119,3 +119,41 @@ out:
 	X509_STORE_free(store);
 	return res;
 }
+
+GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar *keyfile) {
+	GMappedFile *file;
+	GBytes *content = NULL;
+	GBytes *sig = NULL;
+
+	file = g_mapped_file_new(filename, FALSE, NULL);
+	if (file == NULL) {
+		goto out;
+	}
+	content = g_mapped_file_get_bytes(file);
+
+	sig = cms_sign(content, certfile, keyfile);
+
+out:
+	g_bytes_unref(content);
+	g_mapped_file_unref(file);
+	return sig;
+}
+
+gboolean cms_verify_file(const gchar *filename, GBytes *sig) {
+	GMappedFile *file;
+	GBytes *content = NULL;
+	gboolean res = FALSE;
+
+	file = g_mapped_file_new(filename, FALSE, NULL);
+	if (file == NULL) {
+		goto out;
+	}
+	content = g_mapped_file_get_bytes(file);
+
+	res = cms_verify(content, sig);
+
+out:
+	g_bytes_unref(content);
+	g_mapped_file_unref(file);
+	return res;
+}
