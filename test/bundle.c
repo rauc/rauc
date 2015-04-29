@@ -33,7 +33,7 @@ static int prepare_dummy_file(const gchar *dirname, const gchar *filename, gsize
 		gchar buf[4096];
 		gsize bytes_to_read = size < sizeof(buf) ? size : sizeof(buf);
 		gsize bytes_read, bytes_written;
-		GError *error;
+		GError *error = NULL;
 
 		status = g_io_channel_read_chars(input, buf, bytes_to_read,
 						 &bytes_read, &error);
