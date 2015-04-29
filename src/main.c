@@ -31,6 +31,38 @@ static gboolean install_cleanup(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
+static gboolean bundle_start(gpointer data)
+{
+	GApplicationCommandLine *cmdline = data;
+
+	g_application_command_line_print(cmdline, "bundle start\n");
+	return G_SOURCE_REMOVE;
+}
+
+static gboolean info_start(gpointer data)
+{
+	GApplicationCommandLine *cmdline = data;
+
+	g_application_command_line_print(cmdline, "info start\n");
+	return G_SOURCE_REMOVE;
+}
+
+static gboolean status_start(gpointer data)
+{
+	GApplicationCommandLine *cmdline = data;
+
+	g_application_command_line_print(cmdline, "status start\n");
+	return G_SOURCE_REMOVE;
+}
+
+static gboolean unknown_start(gpointer data)
+{
+	GApplicationCommandLine *cmdline = data;
+
+	g_application_command_line_print(cmdline, "unknown start\n");
+	return G_SOURCE_REMOVE;
+}
+
 typedef enum  {
 	INSTALL,
 	BUNDLE,
@@ -43,6 +75,7 @@ typedef struct {
 	const RaucCommandType type;
 	const gchar* name;
 	const gchar* usage;
+	gboolean (*cmd_handler) (gpointer user_data);
 } RaucCommand;
 
 static gboolean cmdline_handler(gpointer data)
@@ -64,11 +97,11 @@ static gboolean cmdline_handler(gpointer data)
 	GError *error;
 
 	RaucCommand rcommands[] = {
-		{INSTALL, "install", "install <bundle>"},
-		{BUNDLE, "bundle", "bundle <file>"},
-		{INFO, "info", "info <file>"},
-		{STATUS, "status", "status"},
-		{UNKNOWN, NULL, "<command>"}
+		{INSTALL, "install", "install <bundle>", install_start},
+		{BUNDLE, "bundle", "bundle <file>", bundle_start},
+		{INFO, "info", "info <file>", info_start},
+		{STATUS, "status", "status", status_start},
+		{UNKNOWN, NULL, "<command>", unknown_start}
 	};
 	RaucCommand *rcommand = &rcommands[4];
 
@@ -84,6 +117,7 @@ static gboolean cmdline_handler(gpointer data)
 	}
 
 
+	/* Search for command (first option not starting with '-') */
 	for (gint i = 1; i <= argc; i++) {
 		RaucCommand *rc = rcommands;
 		if (!argv[i] || g_str_has_prefix (argv[i], "-")) {
@@ -131,7 +165,8 @@ static gboolean cmdline_handler(gpointer data)
 	} else if (version) {
 		g_application_command_line_print(cmdline, PACKAGE_STRING "\n");
 	} else {
-		g_idle_add(install_start, data);
+		if (rcommand->cmd_handler)
+			g_idle_add(rcommand->cmd_handler, data);
 		goto pending;
 	}
 
