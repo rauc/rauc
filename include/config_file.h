@@ -2,10 +2,7 @@
 
 #include <glib.h>
 
-typedef struct {
-	GChecksumType type;
-	gchar *digest;
-} RaucChecksum;
+#include <checksum.h>
 
 typedef struct {
 	gchar *system_compatible;

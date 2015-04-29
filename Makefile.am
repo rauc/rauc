@@ -16,6 +16,7 @@ noinst_LTLIBRARIES = librauc.la
 
 librauc_la_SOURCES = \
 	src/bundle.c \
+	src/checksum.c \
 	src/context.c \
 	src/config_file.c \
 	src/mount.c \
@@ -32,12 +33,19 @@ rauc_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 rauc_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
 rauc_LDADD = $(GLIB_LIBS) librauc.la
 
-check_PROGRAMS = test/bundle.test test/config_file.test test/signature.test
+check_PROGRAMS = \
+	test/bundle.test \
+	test/checksum.test \
+	test/config_file.test \
+	test/signature.test
 
 TESTS = $(check_PROGRAMS)
 
 test_bundle_test_SOURCES = test/bundle.c
 test_bundle_test_LDADD = librauc.la
+
+test_checksum_test_SOURCES = test/checksum.c
+test_checksum_test_LDADD = librauc.la
 
 test_config_file_test_SOURCES = test/config_file.c
 test_config_file_test_LDADD = librauc.la
