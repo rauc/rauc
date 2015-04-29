@@ -50,7 +50,7 @@ static void signature_verify_file(void)
 {
   GBytes *sig = read_file("test/openssl-ca/manifest-r1.sig");
   g_assert_nonnull(sig);
-  g_assert_true(cms_verify_file("test/openssl-ca/manifest", sig));
+  g_assert_true(cms_verify_file("test/openssl-ca/manifest", sig, 0));
   g_bytes_unref(sig);
 }
 

@@ -7,9 +7,9 @@
 #include "signature.h"
 
 void signature_init(void) {
-  OPENSSL_no_config();
-  OpenSSL_add_all_algorithms();
-  ERR_load_crypto_strings();
+	OPENSSL_no_config();
+	OpenSSL_add_all_algorithms();
+	ERR_load_crypto_strings();
 }
 
 static EVP_PKEY *load_key(const gchar *keyfile) {
@@ -150,7 +150,7 @@ out:
 	return sig;
 }
 
-gboolean cms_verify_file(const gchar *filename, GBytes *sig) {
+gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit) {
 	GMappedFile *file;
 	GBytes *content = NULL;
 	gboolean res = FALSE;
@@ -160,6 +160,12 @@ gboolean cms_verify_file(const gchar *filename, GBytes *sig) {
 		goto out;
 	}
 	content = g_mapped_file_get_bytes(file);
+
+	if (limit) {
+		GBytes *tmp = g_bytes_new_from_bytes(content, 0, limit);
+		g_bytes_unref(content);
+		content = tmp;
+	}
 
 	res = cms_verify(content, sig);
 
