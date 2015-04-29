@@ -74,6 +74,7 @@ static void bundle_fixture_set_up(BundleFixture *fixture,
 	g_assert_nonnull(fixture->tmpdir);
 	g_print("bundle tmpdir: %s\n", fixture->tmpdir);
 	g_assert(mkdir_relative(fixture->tmpdir, "content", 0777) == 0);
+	g_assert(mkdir_relative(fixture->tmpdir, "mount", 0777) == 0);
 	g_assert(prepare_dummy_file(fixture->tmpdir, "content/rootfs.img", 1024*1024) == 0);
 	g_assert(prepare_dummy_file(fixture->tmpdir, "content/appfs.img", 64*1024) == 0);
 }
@@ -103,6 +104,25 @@ static void bundle_test1(BundleFixture *fixture,
 	g_assert_true(extract_bundle(bundlename, outputdir));
 }
 
+static void bundle_test2(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *bundlename, *contentdir, *mountpoint;
+
+	bundlename = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_nonnull(bundlename);
+
+	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
+	g_assert_nonnull(contentdir);
+
+	mountpoint = g_build_filename(fixture->tmpdir, "mount", NULL);
+	g_assert_nonnull(mountpoint);
+
+	g_assert_true(create_bundle(bundlename, contentdir));
+	g_assert_true(mount_bundle(bundlename, mountpoint));
+	g_assert_true(umount_bundle(bundlename));
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "");
@@ -113,6 +133,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bundle/test1", BundleFixture, NULL,
 		   bundle_fixture_set_up, bundle_test1,
+		   bundle_fixture_tear_down);
+
+	g_test_add("/bundle/test2", BundleFixture, NULL,
+		   bundle_fixture_set_up, bundle_test2,
 		   bundle_fixture_tear_down);
 
 	return g_test_run ();

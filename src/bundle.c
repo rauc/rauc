@@ -2,6 +2,7 @@
 
 #include <config.h>
 #include <signature.h>
+#include <mount.h>
 #include "bundle.h"
 
 static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir) {
@@ -181,13 +182,13 @@ out:
 	return res;
 }
 
-gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir) {
+static gboolean check_bundle(const gchar *bundlename, gsize *size) {
 	GBytes *sig = NULL;
 	GFile *bundlefile = NULL;
 	GFileInputStream *bundlestream = NULL;
-	gboolean res = FALSE;
 	guint64 sigsize;
 	goffset offset;
+	gboolean res = FALSE;
 
 	bundlefile = g_file_new_for_path(bundlename);
 	bundlestream = g_file_read(bundlefile, NULL, NULL);
@@ -231,14 +232,58 @@ gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir) {
 	if (!res)
 		goto out;
 
-	res = unsquashfs(bundlename, outputdir);
-	if (!res)
-		goto out;
+	*size = offset;
 
 	res = TRUE;
 out:
 	g_clear_object(&bundlestream);
 	g_clear_object(&bundlefile);
 	g_clear_pointer(&sig, g_bytes_unref);
+	return res;
+}
+
+gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir) {
+	gsize size;
+	gboolean res = FALSE;
+
+	res = check_bundle(bundlename, &size);
+	if (!res)
+		goto out;
+
+	res = unsquashfs(bundlename, outputdir);
+	if (!res)
+		goto out;
+
+	res = TRUE;
+out:
+	return res;
+}
+
+gboolean mount_bundle(const gchar *bundlename, const gchar *mountpoint) {
+	gsize size;
+	gboolean res = FALSE;
+
+	res = check_bundle(bundlename, &size);
+	if (!res)
+		goto out;
+
+	res = mount_loop(bundlename, mountpoint, size);
+	if (!res)
+		goto out;
+
+	res = TRUE;
+out:
+	return res;
+}
+
+gboolean umount_bundle(const gchar *bundlename) {
+	gboolean res = FALSE;
+
+	res = umount_loop(bundlename);
+	if (!res)
+		goto out;
+
+	res = TRUE;
+out:
 	return res;
 }
