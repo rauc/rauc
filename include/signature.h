@@ -3,6 +3,8 @@
 #include <glib.h>
 #include <openssl/cms.h>
 
+void signature_init(void);
+
 GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile);
 gboolean cms_verify(GBytes *content, GBytes *sig);
 

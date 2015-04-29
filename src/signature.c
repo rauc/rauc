@@ -1,7 +1,16 @@
+#include <openssl/conf.h>
 #include <openssl/err.h>
+#include <openssl/evp.h>
 #include <openssl/pem.h>
 
+
 #include "signature.h"
+
+void signature_init(void) {
+  OPENSSL_no_config();
+  OpenSSL_add_all_algorithms();
+  ERR_load_crypto_strings();
+}
 
 static EVP_PKEY *load_key(const gchar *keyfile) {
         EVP_PKEY *res = NULL;

@@ -2,11 +2,6 @@
 #include <locale.h>
 #include <glib.h>
 
-
-#include <openssl/conf.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-
 #include "signature.h"
 
 static GBytes *read_file(const gchar *filename) {
@@ -79,9 +74,7 @@ int main(int argc, char *argv[])
 {
   setlocale(LC_ALL, "");
 
-  OPENSSL_no_config();
-  OpenSSL_add_all_algorithms();
-  ERR_load_crypto_strings();
+  signature_init();
 
   g_test_init(&argc, &argv, NULL);
 
