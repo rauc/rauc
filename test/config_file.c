@@ -120,7 +120,7 @@ static void config_file_test4(ConfigFileFixture *fixture,
 	img->filename = g_strdup("myappimg.ext4");
 	rm->images = g_list_append(rm->images, img);
 
-	g_assert_true(save_manifest("test/savedmanifest.raucm", &rm));
+	g_assert_true(save_manifest("test/savedmanifest.raucm", rm));
 
 	free_manifest(rm);
 
@@ -153,7 +153,7 @@ static void config_file_test5(ConfigFileFixture *fixture,
 	ss->checksum.type = G_CHECKSUM_SHA256;
 	ss->checksum.digest = g_strdup("dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551");
 
-	save_slot_status("test/savedslot.raucs", &ss);
+	save_slot_status("test/savedslot.raucs", ss);
 
 	free_slot_status(ss);
 

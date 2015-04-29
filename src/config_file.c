@@ -208,8 +208,7 @@ free:
 	return res;
 }
 
-gboolean save_manifest(const gchar *filename, RaucManifest **manifest) {
-	RaucManifest *mf= *manifest;
+gboolean save_manifest(const gchar *filename, RaucManifest *mf) {
 	GKeyFile *key_file = NULL;
 	gboolean res = FALSE;
 
@@ -302,8 +301,7 @@ free:
 	return res;
 }
 
-gboolean save_slot_status(const gchar *filename, RaucSlotStatus **slotstatus) {
-	RaucSlotStatus *ss = *slotstatus;
+gboolean save_slot_status(const gchar *filename, RaucSlotStatus *ss) {
 	GKeyFile *key_file = NULL;
 	gboolean res = FALSE;
 
