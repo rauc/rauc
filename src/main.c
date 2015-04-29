@@ -31,6 +31,20 @@ static gboolean install_cleanup(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
+typedef enum  {
+	INSTALL,
+	BUNDLE,
+	STATUS,
+	INFO,
+	UNKNOWN
+} RaucCommandType;
+
+typedef struct {
+	const RaucCommandType type;
+	const gchar* name;
+	const gchar* usage;
+} RaucCommand;
+
 static gboolean cmdline_handler(gpointer data)
 {
 	GApplicationCommandLine *cmdline = data;
@@ -48,7 +62,15 @@ static gboolean cmdline_handler(gpointer data)
 		{NULL}
 	};
 	GError *error;
-	gint i;
+
+	RaucCommand rcommands[] = {
+		{INSTALL, "install", "install <bundle>"},
+		{BUNDLE, "bundle", "bundle <file>"},
+		{INFO, "info", "info <file>"},
+		{STATUS, "status", "status"},
+		{UNKNOWN, NULL, "<command>"}
+	};
+	RaucCommand *rcommand = &rcommands[4];
 
 	g_print("handling command line %p\n", cmdline);
 
@@ -57,12 +79,43 @@ static gboolean cmdline_handler(gpointer data)
 	/* GOptionContext will modify argv, keep the original so we can free
 	 * the strings */
 	argv = g_new(gchar *, argc + 1);
-	for (i = 0; i <= argc; i++)
+	for (gint i = 0; i <= argc; i++) {
 		argv[i] = args[i];
+	}
 
-	context = g_option_context_new(NULL);
+
+	for (gint i = 1; i <= argc; i++) {
+		RaucCommand *rc = rcommands;
+		if (!argv[i] || g_str_has_prefix (argv[i], "-")) {
+			continue;
+		}
+
+		/* test if known command */
+		while (rc->name) {
+			if (g_strcmp0(rc->name, argv[i]) == 0) {
+				rcommand = rc;
+				break;
+			}
+			rc++;
+		}
+		break;
+	}
+
+	/* show command-specific usage output */
+	context = g_option_context_new(rcommand->usage);
+
 	g_option_context_set_help_enabled(context, FALSE);
 	g_option_context_add_main_entries(context, entries, NULL);
+
+	if (rcommand->type == UNKNOWN) {
+		g_option_context_set_description(context, 
+				"List of rauc commands:\n" \
+				"  bundle\tCreate a bundle\n" \
+				"  resign\tResign a bundle\n" \
+				"  install\tInstall a bundle\n" \
+				"  info\t\tShow file information\n" \
+				"  status\tShow status");
+	}
 
 	error = NULL;
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
@@ -108,22 +161,73 @@ static int command_line(GApplication *application, GApplicationCommandLine *cmdl
 	return 0;
 }
 
-int main(int argc, char **argv)
+/* Prevents from handling arguments locally as currently all arguments
+ * are processed by the remote instance */
+static gboolean
+handle_local_cmdline (GApplication   *application,
+                    gchar        ***arguments,
+                    gint           *exit_status)
 {
+	gchar **argv;
+
+	argv = *arguments;
+
+
+	/* If first option does not start wiht '-' it is assumed to be
+	 * a remote command line call */
+	if (argv[1] && !g_str_has_prefix (argv[1], "-")) {
+		return FALSE;
+	}
+
+	*exit_status = 0;
+
+	return FALSE;
+}
+
+typedef GApplication TestApplication;
+typedef GApplicationClass TestApplicationClass;
+
+static GType test_application_get_type (void);
+G_DEFINE_TYPE (TestApplication, test_application, G_TYPE_APPLICATION)
+
+static void
+test_application_finalize (GObject *object) {
+	G_OBJECT_CLASS (test_application_parent_class)->finalize (object);
+}
+
+static void
+test_application_init (TestApplication *app) {
+}
+
+static void
+test_application_class_init (TestApplicationClass *class) {
+	G_OBJECT_CLASS (class)->finalize = test_application_finalize;
+	G_APPLICATION_CLASS (class)->local_command_line = handle_local_cmdline;
+}
+
+static GApplication *
+test_application_new (const gchar       *application_id,
+                      GApplicationFlags  flags) {
+	g_return_val_if_fail (g_application_id_is_valid (application_id), NULL);
+
+	return g_object_new (test_application_get_type (),
+			"application-id", application_id,
+			"flags", flags,
+			NULL);
+}
+
+int
+main (int argc, char **argv) {
 	GApplication *app;
-	RaucConfig *config = NULL;
 	int status;
 
-	/* FIXME load only in the non-remote case */
-	load_config("/etc/rauc/system.conf", &config);
+	app = test_application_new ("de.pengutronix.rauc", 0);
+	//g_application_set_inactivity_timeout (app, 10000);
+	g_signal_connect (app, "command-line", G_CALLBACK (command_line), NULL);
 
-	app = g_application_new("de.pengutronix.rauc",
-				G_APPLICATION_HANDLES_COMMAND_LINE);
-	g_signal_connect(app, "command-line", G_CALLBACK(command_line), NULL);
+	status = g_application_run (app, argc, argv);
 
-	status = g_application_run(app, argc, argv);
-
-	g_object_unref(app);
+	g_object_unref (app);
 
 	return status;
 }
