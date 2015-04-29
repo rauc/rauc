@@ -20,7 +20,7 @@ static int prepare_dummy_file(const gchar *dirname, const gchar *filename, gsize
 	status = g_io_channel_set_encoding(input, NULL, NULL);
 	g_assert(status == G_IO_STATUS_NORMAL);
 
-	path = g_strdup_printf("%s/%s", dirname, filename);
+	path = g_build_filename(dirname, filename, NULL);
 	g_assert_nonnull(path);
 
 	output = g_io_channel_new_file(path, "w+", NULL);
@@ -54,6 +54,32 @@ static int prepare_dummy_file(const gchar *dirname, const gchar *filename, gsize
 	return 0;
 }
 
+static int prepare_manifest_file(const gchar *dirname, const gchar *filename) {
+	gchar *path = g_build_filename(dirname, filename, NULL);
+	RaucManifest *rm = g_new0(RaucManifest, 1);
+	RaucImage *img;
+
+	rm->update_compatible = g_strdup("Rauc Testsuite");
+	rm->update_version = g_strdup("2011.03-2");
+
+	img = g_new0(RaucImage, 1);
+
+	img->slotclass = g_strdup("rootfs");
+	img->filename = g_strdup("rootfs.img");
+	rm->images = g_list_append(rm->images, img);
+
+	img = g_new0(RaucImage, 1);
+
+	img->slotclass = g_strdup("appfs");
+	img->filename = g_strdup("appfs.img");
+	rm->images = g_list_append(rm->images, img);
+
+	g_assert_true(save_manifest(path, rm));
+
+	free_manifest(rm);
+	return 0;
+}
+
 static int mkdir_relative(const gchar *dirname, const gchar *filename, int mode) {
 	gchar *path;
 	int res;
@@ -77,6 +103,7 @@ static void bundle_fixture_set_up(BundleFixture *fixture,
 	g_assert(mkdir_relative(fixture->tmpdir, "mount", 0777) == 0);
 	g_assert(prepare_dummy_file(fixture->tmpdir, "content/rootfs.img", 1024*1024) == 0);
 	g_assert(prepare_dummy_file(fixture->tmpdir, "content/appfs.img", 64*1024) == 0);
+	g_assert(prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm") == 0);
 }
 
 static void bundle_fixture_tear_down(BundleFixture *fixture,
