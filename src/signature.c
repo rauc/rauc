@@ -3,7 +3,7 @@
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 
-
+#include <context.h>
 #include "signature.h"
 
 void signature_init(void) {
@@ -89,6 +89,7 @@ out:
 }
 
 gboolean cms_verify(GBytes *content, GBytes *sig) {
+	const gchar *capath = r_context()->config->keyring_path;
 	STACK_OF(X509) *other = NULL;
 	X509_STORE *store = NULL;
 	X509_LOOKUP *lookup = NULL;
@@ -104,9 +105,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig) {
 		goto out;
 	if (!(lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file())))
 		goto out;
-	if (!X509_LOOKUP_load_file(lookup,
-				   "test/openssl-ca/dev-ca.pem",
-				   X509_FILETYPE_PEM)) {
+	if (!X509_LOOKUP_load_file(lookup, capath, X509_FILETYPE_PEM)) {
 		g_warning("failed to load CA file");
 		goto out;
 	}

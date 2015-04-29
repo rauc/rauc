@@ -3,8 +3,8 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 
+#include <context.h>
 #include "bundle.h"
-#include "signature.h"
 
 typedef struct {
 	gchar *tmpdir;
@@ -127,7 +127,11 @@ int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "");
 
-	signature_init();
+	r_context_alloc();
+	r_context()->configpath = g_strdup("test/test.conf");
+	r_context()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
+	r_context()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	r_context_init();
 
 	g_test_init(&argc, &argv, NULL);
 

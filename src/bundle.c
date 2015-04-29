@@ -1,6 +1,7 @@
 #include <gio/gio.h>
 
 #include <config.h>
+#include <context.h>
 #include <signature.h>
 #include <mount.h>
 #include "bundle.h"
@@ -134,13 +135,16 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir) {
 	gboolean res = FALSE;
 	guint64 offset;
 
+	g_assert_nonnull(r_context()->certpath);
+	g_assert_nonnull(r_context()->keypath);
+
 	res = mksquashfs(bundlename, contentdir);
 	if (!res)
 		goto out;
 
 	sig = cms_sign_file(bundlename,
-			    "test/openssl-ca/rel/release-1.cert.pem",
-			    "test/openssl-ca/rel/private/release-1.pem");
+			    r_context()->certpath,
+			    r_context()->keypath);
 	if (sig == NULL)
 		goto out;
 
@@ -189,6 +193,8 @@ static gboolean check_bundle(const gchar *bundlename, gsize *size) {
 	guint64 sigsize;
 	goffset offset;
 	gboolean res = FALSE;
+
+	g_assert_nonnull(r_context()->config->keyring_path);
 
 	bundlefile = g_file_new_for_path(bundlename);
 	bundlestream = g_file_read(bundlefile, NULL, NULL);
