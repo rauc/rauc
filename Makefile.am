@@ -27,7 +27,7 @@ librauc_la_LIBADD = $(GLIB_LIBS) $(OPENSSL_LIBS)
 bin_PROGRAMS = rauc
 
 rauc_SOURCES = \
-	src/main.c
+	src/main.c src/install.c
 rauc_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 rauc_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
 rauc_LDADD = $(GLIB_LIBS) librauc.la

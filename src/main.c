@@ -4,6 +4,7 @@
 
 #include <config.h>
 #include <config_file.h>
+#include <install.h>
 
 static gboolean install_start(gpointer data);
 static gboolean install_cleanup(gpointer data);
@@ -14,6 +15,9 @@ static gboolean install_start(gpointer data)
 
 	g_application_command_line_print(cmdline, "install started\n");
 	g_timeout_add(2000, install_cleanup, data);
+
+
+	g_print("Active slot bootname: %s\n", get_active_slot_bootname());
 
 	return G_SOURCE_REMOVE;
 }
