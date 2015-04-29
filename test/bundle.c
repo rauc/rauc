@@ -4,6 +4,7 @@
 #include <glib/gstdio.h>
 
 #include "bundle.h"
+#include "signature.h"
 
 typedef struct {
 	gchar *tmpdir;
@@ -101,6 +102,8 @@ static void bundle_test1(BundleFixture *fixture,
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "");
+
+	signature_init();
 
 	g_test_init(&argc, &argv, NULL);
 
