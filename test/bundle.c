@@ -88,7 +88,7 @@ static void bundle_fixture_tear_down(BundleFixture *fixture,
 static void bundle_test1(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *bundlename, *contentdir;
+	gchar *bundlename, *contentdir, *outputdir;
 
 	bundlename = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlename);
@@ -96,7 +96,11 @@ static void bundle_test1(BundleFixture *fixture,
 	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
 	g_assert_nonnull(contentdir);
 
+	outputdir = g_build_filename(fixture->tmpdir, "output", NULL);
+	g_assert_nonnull(outputdir);
+
 	g_assert_true(create_bundle(bundlename, contentdir));
+	g_assert_true(extract_bundle(bundlename, outputdir));
 }
 
 int main(int argc, char *argv[])
