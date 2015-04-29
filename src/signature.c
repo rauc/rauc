@@ -82,6 +82,7 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile) {
 
 	res = bytes_from_bio(outsig);
 out:
+	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
 	BIO_free_all(outsig);
 	return res;
@@ -122,6 +123,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig) {
 
 	res = TRUE;
 out:
+	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
 	BIO_free_all(insig);
 	BIO_free_all(outcontent);
