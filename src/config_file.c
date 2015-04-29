@@ -208,6 +208,55 @@ free:
 	return res;
 }
 
+gboolean save_manifest(const gchar *filename, RaucManifest **manifest) {
+	RaucManifest *mf= *manifest;
+	GKeyFile *key_file = NULL;
+	gboolean res = FALSE;
+
+	key_file = g_key_file_new();
+
+	if (mf->update_compatible)
+		g_key_file_set_string(key_file, "update", "compatible", mf->update_compatible);
+
+	if (mf->update_version)
+		g_key_file_set_string(key_file, "update", "version", mf->update_version);
+
+	if (mf->keyring)
+		g_key_file_set_string(key_file, "keyring", "archive", mf->keyring);
+
+	if (mf->handler_name)
+		g_key_file_set_string(key_file, "handler", "filename", mf->handler_name);
+
+	for (GList *l = mf->images; l != NULL; l = l->next) {
+		RaucImage *image = (RaucImage*) l->data;
+		gchar *group;
+
+		if (!image || !image->slotclass)
+			continue;
+
+		group = g_strconcat(RAUC_IMAGE_PREFIX ".", image->slotclass, NULL);
+
+		if (image->checksum.type == G_CHECKSUM_SHA256)
+			g_key_file_set_string(key_file, group, "sha256", image->checksum.digest);
+
+		if (image->filename)
+			g_key_file_set_string(key_file, group, "filename", image->filename);
+
+		g_free(group);
+
+	}
+
+	res = g_key_file_save_to_file(key_file, filename, NULL);
+	if (!res)
+		goto free;
+
+free:
+	g_key_file_free(key_file);
+
+	return res;
+
+}
+
 static void free_image(gpointer data) {
 	RaucImage *image = (RaucImage*) data;
 
@@ -253,6 +302,29 @@ free:
 	return res;
 }
 
+gboolean save_slot_status(const gchar *filename, RaucSlotStatus **slotstatus) {
+	RaucSlotStatus *ss = *slotstatus;
+	GKeyFile *key_file = NULL;
+	gboolean res = FALSE;
+
+	key_file = g_key_file_new();
+
+	if (ss->status)
+		g_key_file_set_string(key_file, "slot", "status", ss->status);
+
+	if (ss->checksum.type == G_CHECKSUM_SHA256)
+		g_key_file_set_string(key_file, "slot", "sha256", ss->checksum.digest);
+
+
+	res = g_key_file_save_to_file(key_file, filename, NULL);
+	if (!res)
+		goto free;
+
+free:
+	g_key_file_free(key_file);
+
+	return res;
+}
 
 void free_slot_status(RaucSlotStatus *slotstatus) {
 
