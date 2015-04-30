@@ -39,6 +39,8 @@ static void config_file_test1(ConfigFileFixture *fixture,
 	g_assert_false(slot->readonly);
 	g_assert_null(slot->parent);
 
+	g_assert_cmpuint(g_list_length(slotlist), ==, 5);
+
 	for (l = slotlist; l != NULL; l = l->next) {
 		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(fixture->config->slots, l->data);
 		g_assert_nonnull(s->name);
@@ -66,6 +68,8 @@ static void config_file_test2(ConfigFileFixture *fixture,
 	g_assert_cmpstr(rm->keyring, ==, "release.tar");
 	g_assert_cmpstr(rm->handler_name, ==, "custom_handler.sh");
 	g_assert_nonnull(rm->images);
+
+	g_assert_cmpuint(g_list_length(rm->images), ==, 2);
 
 	for (l = rm->images; l != NULL; l = l->next) {
 		RaucImage *img = (RaucImage*) l->data;
@@ -131,6 +135,8 @@ static void config_file_test4(ConfigFileFixture *fixture,
 	g_assert_cmpstr(rm->update_version , ==, "2011.03-1");
 	g_assert_cmpstr(rm->keyring, ==, "mykeyring.tar");
 	g_assert_cmpstr(rm->handler_name, ==, "myhandler.sh");
+
+	g_assert_cmpuint(g_list_length(rm->images), ==, 2);
 
 	for (GList *l = rm->images; l != NULL; l = l->next) {
 		RaucImage *image = (RaucImage*) l->data;
