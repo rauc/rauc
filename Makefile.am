@@ -17,8 +17,9 @@ noinst_LTLIBRARIES = librauc.la
 librauc_la_SOURCES = \
 	src/bundle.c \
 	src/checksum.c \
-	src/context.c \
 	src/config_file.c \
+	src/context.c \
+	src/manifest.c \
 	src/mount.c \
 	src/signature.c \
 	src/utils.c

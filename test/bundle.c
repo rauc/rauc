@@ -4,6 +4,7 @@
 #include <glib/gstdio.h>
 
 #include <context.h>
+#include <manifest.h>
 #include "bundle.h"
 
 typedef struct {
@@ -127,8 +128,10 @@ static void bundle_test1(BundleFixture *fixture,
 	outputdir = g_build_filename(fixture->tmpdir, "output", NULL);
 	g_assert_nonnull(outputdir);
 
+	g_assert_true(update_manifest(contentdir, FALSE));
 	g_assert_true(create_bundle(bundlename, contentdir));
 	g_assert_true(extract_bundle(bundlename, outputdir));
+	g_assert_true(verify_manifest(outputdir, FALSE));
 }
 
 static void bundle_test2(BundleFixture *fixture,
@@ -145,9 +148,42 @@ static void bundle_test2(BundleFixture *fixture,
 	mountpoint = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountpoint);
 
+	g_assert_true(update_manifest(contentdir, FALSE));
 	g_assert_true(create_bundle(bundlename, contentdir));
 	g_assert_true(mount_bundle(bundlename, mountpoint));
+	g_assert_true(verify_manifest(mountpoint, FALSE));
 	g_assert_true(umount_bundle(bundlename));
+}
+
+static void bundle_test3(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *bundlename, *contentdir, *appfsimage;
+
+	bundlename = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_nonnull(bundlename);
+
+	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
+	g_assert_nonnull(contentdir);
+
+	appfsimage = g_build_filename(fixture->tmpdir, "content", "appfs.img", NULL);
+	g_assert_nonnull(appfsimage);
+
+	g_assert_true(update_manifest(contentdir, TRUE));
+	g_assert_true(verify_manifest(contentdir, FALSE));
+	g_assert_true(verify_manifest(contentdir, TRUE));
+
+	g_assert(prepare_dummy_file(fixture->tmpdir, "content/appfs.img", 64*1024) == 0);
+	g_assert_false(verify_manifest(contentdir, FALSE));
+	g_assert_false(verify_manifest(contentdir, TRUE));
+
+	g_assert_cmpint(g_unlink(appfsimage), ==, 0);
+	g_assert_false(verify_manifest(contentdir, FALSE));
+	g_assert_false(verify_manifest(contentdir, TRUE));
+
+	g_free(appfsimage);
+	g_free(contentdir);
+	g_free(bundlename);
 }
 
 int main(int argc, char *argv[])
@@ -168,6 +204,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bundle/test2", BundleFixture, NULL,
 		   bundle_fixture_set_up, bundle_test2,
+		   bundle_fixture_tear_down);
+
+	g_test_add("/bundle/test3", BundleFixture, NULL,
+		   bundle_fixture_set_up, bundle_test3,
 		   bundle_fixture_tear_down);
 
 	return g_test_run ();
