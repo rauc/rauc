@@ -9,9 +9,14 @@ static void checksum_test1(void)
 {
 	RaucChecksum checksum;
 
-	checksum.type = G_CHECKSUM_SHA256;
-	checksum.digest = g_strdup(MANIFEST_DIGEST);
+	checksum.type = 0;
+	checksum.digest = NULL;
+	g_assert_false(verify_checksum(&checksum, "test/manifest.raucm"));
 
+	checksum.type = G_CHECKSUM_SHA256;
+	g_assert_false(verify_checksum(&checksum, "test/manifest.raucm"));
+
+	checksum.digest = g_strdup(MANIFEST_DIGEST);
 	g_assert_true(verify_checksum(&checksum, "test/manifest.raucm"));
 	g_assert_false(verify_checksum(&checksum, "test/rootfs.raucs"));
 	g_assert_false(verify_checksum(&checksum, "test/_MISSING_"));
