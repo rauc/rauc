@@ -20,7 +20,8 @@ librauc_la_SOURCES = \
 	src/context.c \
 	src/config_file.c \
 	src/mount.c \
-	src/signature.c
+	src/signature.c \
+	src/utils.c
 librauc_la_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 librauc_la_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
 librauc_la_LIBADD = $(GLIB_LIBS) $(OPENSSL_LIBS)

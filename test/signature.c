@@ -3,15 +3,8 @@
 #include <glib.h>
 
 #include <context.h>
+#include <utils.h>
 #include "signature.h"
-
-static GBytes *read_file(const gchar *filename) {
-	gchar *contents;
-	gsize length;
-	if (!g_file_get_contents(filename, &contents, &length, NULL))
-		return NULL;
-	return g_bytes_new_take(contents, length);
-}
 
 static void signature_sign(void)
 {
