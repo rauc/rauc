@@ -1,7 +1,6 @@
 #pragma once
 
 #include <glib.h>
-#include <openssl/cms.h>
 
 void signature_init(void);
 
