@@ -35,10 +35,10 @@ rauc_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
 rauc_LDADD = $(GLIB_LIBS) librauc.la
 
 check_PROGRAMS = \
-	test/bundle.test \
 	test/checksum.test \
 	test/config_file.test \
-	test/signature.test
+	test/signature.test \
+	test/bundle.test
 
 TESTS = $(check_PROGRAMS)
 
