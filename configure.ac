@@ -47,6 +47,7 @@ AX_VALGRIND_CHECK
 
 # Checks for libraries.
 PKG_CHECK_MODULES([GLIB], [glib-2.0 gio-2.0])
+PKG_CHECK_MODULES([CURL], [libcurl])
 
 AX_CHECK_OPENSSL([],[AC_MSG_ERROR([OpenSSL not found])])
 

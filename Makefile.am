@@ -8,8 +8,8 @@ AUTOMAKE_OPTIONS = color-tests parallel-tests
 TEST_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/build-aux/tap-driver.sh
 TEST_LOG_COMPILER = $(top_srcdir)/tap-test
 
-AM_CFLAGS = $(WARN_CFLAGS) $(GLIB_CFLAGS)
-AM_LDFLAGS = $(WARN_LDFLAGS) $(GLIB_LDFLAGS) $(OPENSSL_LDFLAGS)
+AM_CFLAGS = $(WARN_CFLAGS) $(GLIB_CFLAGS) $(CURL_CFLAGS)
+AM_LDFLAGS = $(WARN_LDFLAGS) $(GLIB_LDFLAGS) $(CURL_LDFLAGS) $(OPENSSL_LDFLAGS)
 AM_CPPFLAGS = -I${top_srcdir}/include $(OPENSSL_INCLUDES)
 
 noinst_LTLIBRARIES = librauc.la
