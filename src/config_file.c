@@ -181,13 +181,10 @@ gboolean load_manifest(const gchar *filename, RaucManifest **manifest) {
 			image->slotclass = g_strdup(groupsplit[1]);
 
 			value = g_key_file_get_string(key_file, groups[i], "sha256", NULL);
-
-			if (!value) {
-				g_printerr("\tChecksum missing!\n");
-				goto free;
+			if (value) {
+				image->checksum.type = G_CHECKSUM_SHA256;
+				image->checksum.digest = value;
 			}
-			image->checksum.type = G_CHECKSUM_SHA256;
-			image->checksum.digest = value;
 
 			image->filename = g_key_file_get_string(key_file, groups[i], "filename", NULL);
 
@@ -198,7 +195,6 @@ gboolean load_manifest(const gchar *filename, RaucManifest **manifest) {
 	}
 
 	g_strfreev(groups);
-
 
 	res = TRUE;
 free:
