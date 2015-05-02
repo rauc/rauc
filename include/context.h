@@ -5,6 +5,10 @@
 #include "config_file.h"
 
 typedef struct {
+	/* a busy context must not be reconfigured */
+	gboolean busy;
+	gboolean pending;
+
 	/* system configuration data */
 	gchar *configpath;
 	RaucConfig *config;
@@ -14,7 +18,8 @@ typedef struct {
 	gchar *keypath;
 } RaucContext;
 
-void r_context_alloc(void);
-void r_context_init(void);
+gboolean r_context_get_busy(void);
+void r_context_set_busy(gboolean busy);
 
-RaucContext *r_context(void);
+RaucContext *r_context_conf(void);
+const RaucContext *r_context(void);

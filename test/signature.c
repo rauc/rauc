@@ -68,11 +68,10 @@ int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "");
 
-	r_context_alloc();
-	r_context()->configpath = g_strdup("test/test.conf");
-	r_context()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
-	r_context()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
-	r_context_init();
+	r_context_conf()->configpath = g_strdup("test/test.conf");
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	r_context();
 
 	g_test_init(&argc, &argv, NULL);
 

@@ -4,18 +4,40 @@
 
 #include <config.h>
 #include <config_file.h>
+#include <context.h>
 #include <install.h>
 
-static gboolean install_start(gpointer data);
 static gboolean install_cleanup(gpointer data);
 
-static gboolean install_start(gpointer data)
-{
+static gboolean install_notify(gpointer data) {
 	GApplicationCommandLine *cmdline = data;
 
-	g_application_command_line_print(cmdline, "install started\n");
-	g_timeout_add(2000, install_cleanup, data);
+	g_application_command_line_print(cmdline, "foo!\n");
 
+	return FALSE;
+
+}
+
+static gpointer install_thread(gpointer data) {
+	GApplicationCommandLine *cmdline = data;
+
+	g_usleep(2*G_USEC_PER_SEC);
+	g_application_command_line_print(cmdline, "foo?\n");
+	g_main_context_invoke(NULL, install_notify, data);
+	g_usleep(20*G_USEC_PER_SEC);
+	g_main_context_invoke(NULL, install_cleanup, data);
+
+	return NULL;
+}
+
+static gboolean install_start(GApplicationCommandLine *cmdline)
+{
+	GThread *thread;
+	r_context_set_busy(TRUE);
+	g_application_command_line_print(cmdline, "install started\n");
+
+	thread = g_thread_new("installer", install_thread, cmdline);
+	g_thread_unref(thread);
 
 	g_print("Active slot bootname: %s\n", get_active_slot_bootname());
 
@@ -32,38 +54,47 @@ static gboolean install_cleanup(gpointer data)
 	/* we are done handling this commandline */
 	g_object_unref(cmdline);
 
+	r_context_set_busy(FALSE);
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean bundle_start(gpointer data)
+static gboolean bundle_start(GApplicationCommandLine *cmdline)
 {
-	GApplicationCommandLine *cmdline = data;
-
 	g_application_command_line_print(cmdline, "bundle start\n");
+
+	/* we are done handling this commandline */
+	g_object_unref(cmdline);
+
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean info_start(gpointer data)
+static gboolean info_start(GApplicationCommandLine *cmdline)
 {
-	GApplicationCommandLine *cmdline = data;
-
 	g_application_command_line_print(cmdline, "info start\n");
+
+	/* we are done handling this commandline */
+	g_object_unref(cmdline);
+
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean status_start(gpointer data)
+static gboolean status_start(GApplicationCommandLine *cmdline)
 {
-	GApplicationCommandLine *cmdline = data;
-
 	g_application_command_line_print(cmdline, "status start\n");
+
+	/* we are done handling this commandline */
+	g_object_unref(cmdline);
+
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean unknown_start(gpointer data)
+static gboolean unknown_start(GApplicationCommandLine *cmdline)
 {
-	GApplicationCommandLine *cmdline = data;
-
 	g_application_command_line_print(cmdline, "unknown start\n");
+
+	/* we are done handling this commandline */
+	g_object_unref(cmdline);
+
 	return G_SOURCE_REMOVE;
 }
 
@@ -79,33 +110,34 @@ typedef struct {
 	const RaucCommandType type;
 	const gchar* name;
 	const gchar* usage;
-	gboolean (*cmd_handler) (gpointer user_data);
+	gboolean (*cmd_handler) (GApplicationCommandLine *cmdline);
+	gboolean while_busy;
 } RaucCommand;
 
 static gboolean cmdline_handler(gpointer data)
 {
 	GApplicationCommandLine *cmdline = data;
-	gchar **args, **argv;
+	gchar **args = NULL, **argv = NULL;
 	gint argc;
-	gint arg1 = 0;
-	gboolean arg2 = FALSE;
 	gboolean help = FALSE, version = FALSE;
-	GOptionContext *context;
+	gchar *confpath = NULL, *certpath = NULL, *keypath = NULL;
+	GOptionContext *context = NULL;
 	GOptionEntry entries[] = {
-		{"arg1", 0, 0, G_OPTION_ARG_INT, &arg1, NULL, NULL},
-		{"arg2", 0, 0, G_OPTION_ARG_NONE, &arg2, NULL, NULL},
+		{"conf", 'c', 0, G_OPTION_ARG_FILENAME, &confpath, "config file", "FILENAME"},
+		{"cert", '\0', 0, G_OPTION_ARG_FILENAME, &certpath, "cert file", "PEMFILE"},
+		{"key", '\0', 0, G_OPTION_ARG_FILENAME, &keypath, "key file", "PEMFILE"},
 		{"version", '\0', 0, G_OPTION_ARG_NONE, &version, "display version", NULL},
-		{"help", '?', 0, G_OPTION_ARG_NONE, &help, NULL, NULL},
+		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, NULL, NULL},
 		{NULL}
 	};
-	GError *error;
+	GError *error = NULL;
 
 	RaucCommand rcommands[] = {
-		{INSTALL, "install", "install <bundle>", install_start},
-		{BUNDLE, "bundle", "bundle <file>", bundle_start},
-		{INFO, "info", "info <file>", info_start},
-		{STATUS, "status", "status", status_start},
-		{UNKNOWN, NULL, "<command>", unknown_start}
+		{INSTALL, "install", "install <BUNDLE>", install_start, FALSE},
+		{BUNDLE, "bundle", "bundle <FILE>", bundle_start, FALSE},
+		{INFO, "info", "info <FILE>", info_start, FALSE},
+		{STATUS, "status", "status", status_start, TRUE},
+		{UNKNOWN, NULL, "<COMMAND>", unknown_start, TRUE}
 	};
 	RaucCommand *rcommand = &rcommands[4];
 
@@ -120,10 +152,35 @@ static gboolean cmdline_handler(gpointer data)
 		argv[i] = args[i];
 	}
 
+	/* show command-specific usage output */
+	context = g_option_context_new(rcommand->usage);
 
-	/* Search for command (first option not starting with '-') */
+	g_option_context_set_help_enabled(context, FALSE);
+	g_option_context_set_ignore_unknown_options(context, TRUE);
+	g_option_context_add_main_entries(context, entries, NULL);
+
+	if (rcommand->type == UNKNOWN) {
+		g_option_context_set_description(context, 
+				"List of rauc commands:\n" \
+				"  bundle\tCreate a bundle\n" \
+				"  resign\tResign a bundle\n" \
+				"  install\tInstall a bundle\n" \
+				"  info\t\tShow file information\n" \
+				"  status\tShow status");
+	}
+
+	if (!g_option_context_parse(context, &argc, &argv, &error)) {
+		g_application_command_line_printerr(cmdline, "%s\n",
+						    error->message);
+		g_error_free(error);
+		g_application_command_line_set_exit_status(cmdline, 1);
+		goto done;
+	}
+
+	/* search for command (first option not starting with '-') */
 	for (gint i = 1; i <= argc; i++) {
 		RaucCommand *rc = rcommands;
+
 		if (!argv[i] || g_str_has_prefix (argv[i], "-")) {
 			continue;
 		}
@@ -139,49 +196,54 @@ static gboolean cmdline_handler(gpointer data)
 		break;
 	}
 
-	/* show command-specific usage output */
-	context = g_option_context_new(rcommand->usage);
-
-	g_option_context_set_help_enabled(context, FALSE);
-	g_option_context_add_main_entries(context, entries, NULL);
-
-	if (rcommand->type == UNKNOWN) {
-		g_option_context_set_description(context, 
-				"List of rauc commands:\n" \
-				"  bundle\tCreate a bundle\n" \
-				"  resign\tResign a bundle\n" \
-				"  install\tInstall a bundle\n" \
-				"  info\t\tShow file information\n" \
-				"  status\tShow status");
-	}
-
-	error = NULL;
-	if (!g_option_context_parse(context, &argc, &argv, &error)) {
-		g_application_command_line_printerr(cmdline, "%s\n",
-						    error->message);
-		g_error_free(error);
-		g_application_command_line_set_exit_status(cmdline, 1);
-	} else if (help) {
+	if (version) {
+		g_application_command_line_print(cmdline, PACKAGE_STRING "\n");
+		goto done;
+	} else if (help || rcommand->type == UNKNOWN) {
 		gchar *text;
 		text = g_option_context_get_help(context, FALSE, NULL);
 		g_application_command_line_print(cmdline, "%s", text);
 		g_free(text);
-	} else if (version) {
-		g_application_command_line_print(cmdline, PACKAGE_STRING "\n");
-	} else {
-		if (rcommand->cmd_handler)
-			g_idle_add(rcommand->cmd_handler, data);
-		goto pending;
+		goto done;
 	}
 
-	g_free(argv);
-	g_strfreev(args);
+	/* configuration updates are handled here */
+	if (!r_context_get_busy()) {
+		r_context_conf()->configpath = confpath;
+		r_context_conf()->certpath = certpath;
+		r_context_conf()->keypath = keypath;
+	} else {
+		if (confpath != NULL ||
+		    certpath != NULL ||
+		    keypath != NULL) {
+			g_application_command_line_printerr(cmdline,
+							    "rauc busy, cannot reconfigure");
+			g_application_command_line_set_exit_status(cmdline, 1);
+			goto done;
+		}
+	}
 
-	g_option_context_free(context);
+	if (r_context_get_busy() && !rcommand->while_busy) {
+		g_application_command_line_printerr(cmdline,
+						    "rauc busy: cannot run %s",
+						    rcommand->name);
+		g_application_command_line_set_exit_status(cmdline, 1);
+		goto done;
+	}
 
+	/* real commands are handled here */
+	if (rcommand->cmd_handler) {
+		rcommand->cmd_handler(cmdline);
+		goto delegated;
+	}
+
+done:
 	/* we are done handling this commandline */
 	g_object_unref(cmdline);
-pending:
+delegated:
+	g_clear_pointer(&argv, g_free);
+	g_clear_pointer(&args, g_strfreev);
+	g_clear_pointer(&context, g_option_context_free);;
 	return G_SOURCE_REMOVE;
 }
 
@@ -260,7 +322,7 @@ main (int argc, char **argv) {
 	GApplication *app;
 	int status;
 
-	app = test_application_new ("de.pengutronix.rauc", 0);
+	app = test_application_new ("de.pengutronix.rauc", G_APPLICATION_HANDLES_COMMAND_LINE);
 	//g_application_set_inactivity_timeout (app, 10000);
 	g_signal_connect (app, "command-line", G_CALLBACK (command_line), NULL);
 

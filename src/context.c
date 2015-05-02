@@ -4,39 +4,55 @@
 #include "context.h"
 
 RaucContext *context = NULL;
-gboolean context_ready = FALSE;
 
-void r_context_alloc(void) {
-	g_assert_null(context);
-
-	context = g_new0(RaucContext, 1);
-}
-
-void r_context_init(void) {
+static void r_context_configure(void) {
 	gboolean res = TRUE;
 
-	g_assert_false(context_ready);
 	g_assert_nonnull(context);
+	g_assert_false(context->busy);
 
-	if (context->configpath == NULL)
-		context->configpath = g_strdup("/etc/rauc/system.conf");
-	if (context->config == NULL)
-		res = load_config(context->configpath, &context->config);
+	g_clear_pointer(&context->config, free_config);
+	res = load_config(context->configpath, &context->config);
 
 	if (!res)
 		g_error("failed to initialize context");
-
-	signature_init();
-
-	context_ready = TRUE;
 }
 
-RaucContext *r_context(void) {
-	if (context != NULL)
-		return context;
+gboolean r_context_get_busy(void) {
+	if (context == NULL) {
+		return FALSE;
+	}
 
-	r_context_alloc();
-	r_context_init();
+	return context->busy;
+}
+
+void r_context_set_busy(gboolean busy) {
+	g_assert_nonnull(context);
+	g_assert(context->busy != busy);
+
+	context->busy = busy;
+}
+
+RaucContext *r_context_conf(void) {
+	if (context == NULL) {
+		signature_init();
+
+		context = g_new0(RaucContext, 1);
+		context->configpath = g_strdup("/etc/rauc/system.conf");
+	}
+
+	g_assert_false(context->busy);
+
+	context->pending = TRUE;
+
+	return context;
+}
+
+const RaucContext *r_context(void) {
+	r_context_conf();
+
+	if (context->pending)
+		r_context_configure();
 
 	return context;
 }
