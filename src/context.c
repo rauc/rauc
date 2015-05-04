@@ -16,6 +16,8 @@ static void r_context_configure(void) {
 
 	if (!res)
 		g_error("failed to initialize context");
+
+	context->pending = FALSE;
 }
 
 gboolean r_context_get_busy(void) {
@@ -49,7 +51,7 @@ RaucContext *r_context_conf(void) {
 }
 
 const RaucContext *r_context(void) {
-	r_context_conf();
+	g_assert_nonnull(context);
 
 	if (context->pending)
 		r_context_configure();
