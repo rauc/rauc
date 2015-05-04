@@ -3,6 +3,7 @@
 #include <glib.h>
 
 #include "config_file.h"
+#include "manifest.h"
 
 typedef struct {
 	RaucConfig *config;
@@ -47,6 +48,14 @@ static void config_file_test1(ConfigFileFixture *fixture,
 		g_assert_nonnull(s->device);
 		g_assert_nonnull(s->type);
 		g_assert_nonnull(s->bootname);
+
+		g_print("slot: %s\n", s->name);
+		g_print("\tdevice:   %s\n", s->device);
+		g_print("\ttype:     %s\n", s->type);
+		g_print("\tbootname: %s\n", s->bootname);
+		g_print("\treadonly: %d\n", s->readonly);
+		if (s->parent)
+			g_print("\tparent: %s\n", ((RaucSlot*)s->parent)->name);
 	}
 	g_list_free(slotlist);
 
@@ -71,12 +80,28 @@ static void config_file_test2(ConfigFileFixture *fixture,
 
 	g_assert_cmpuint(g_list_length(rm->images), ==, 2);
 
+
+	g_print("Update Manifest\n");
+	g_print("\tCompatible: %s\n", rm->update_compatible);
+	g_print("\tVersion:    %s\n", rm->update_version);
+	if (rm->keyring)
+		g_print("\tKeyring:    %s\n", rm->keyring);
+	if (rm->handler_name)
+		g_print("\tHandler:    %s\n\n", rm->handler_name);
+
 	for (l = rm->images; l != NULL; l = l->next) {
 		RaucImage *img = (RaucImage*) l->data;
 		g_assert_nonnull(img);
 		g_assert_nonnull(img->slotclass);
 		g_assert_nonnull(img->checksum.digest);
 		g_assert_nonnull(img->filename);
+
+
+		g_print("\tSlotClass:  %s\n", img->slotclass);
+		g_print("\tDigest:     %s\n", img->checksum.digest);
+		if (img->filename)
+			g_print("\tFilename:   %s\n\n", img->filename);
+
 	}
 
 	free_manifest(rm);

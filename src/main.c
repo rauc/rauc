@@ -269,6 +269,9 @@ handle_local_cmdline (GApplication   *application,
                     gchar        ***arguments,
                     gint           *exit_status)
 {
+#if 0
+	gint i;
+#endif
 	gchar **argv;
 
 	argv = *arguments;
@@ -277,8 +280,20 @@ handle_local_cmdline (GApplication   *application,
 	/* If first option does not start wiht '-' it is assumed to be
 	 * a remote command line call */
 	if (argv[1] && !g_str_has_prefix (argv[1], "-")) {
+		//g_print("This is a REMOTE command\n");
 		return FALSE;
 	}
+
+	/* Do local handling here */
+
+#if 0
+	/* Dummy eater */
+	i = 1;
+	while (argv[i]) {
+		g_free (argv[i]);
+		i++;
+	}
+#endif
 
 	*exit_status = 0;
 

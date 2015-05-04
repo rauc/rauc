@@ -4,6 +4,7 @@
 
 #include <checksum.h>
 
+/* System configuration */
 typedef struct {
 	gchar *system_compatible;
 	gchar *system_bootloader;
@@ -26,17 +27,6 @@ typedef struct {
 } RaucSlotGroup;
 
 typedef struct {
-	gchar *update_compatible;
-	gchar *update_version;
-
-	gchar *keyring;
-
-	gchar *handler_name;
-
-	GList *images;
-} RaucManifest;
-
-typedef struct {
 	gchar* slotclass;
 	RaucChecksum checksum;
 	gchar* filename;
@@ -49,10 +39,6 @@ typedef struct {
 
 gboolean load_config(const gchar *filename, RaucConfig **config);
 void free_config(RaucConfig *config);
-
-gboolean load_manifest(const gchar *filename, RaucManifest **manifest);
-gboolean save_manifest(const gchar *filename, RaucManifest *manifest);
-void free_manifest(RaucManifest *manifest);
 
 gboolean load_slot_status(const gchar *filename, RaucSlotStatus **slotstatus);
 gboolean save_slot_status(const gchar *filename, RaucSlotStatus *slotstatus);
