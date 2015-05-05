@@ -217,7 +217,7 @@ static gboolean check_compatible(RaucManifest *manifest) {
 	return (g_strcmp0(r_context()->config->system_compatible, manifest->update_compatible) == 0);
 }
 
-gboolean verify_manifest(const gchar *dir, gboolean signature) {
+gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signature) {
 	gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
 	gchar* signaturepath = g_build_filename(dir, "manifest.raucm.sig", NULL);
 	RaucManifest *manifest = NULL;
@@ -249,6 +249,11 @@ gboolean verify_manifest(const gchar *dir, gboolean signature) {
 	res = check_compatible(manifest);
 	if (!res)
 		goto out;
+
+	if (output != NULL) {
+		*output = manifest;
+		manifest = NULL;
+	}
 
 out:
 	g_clear_pointer(&sig, g_bytes_unref);

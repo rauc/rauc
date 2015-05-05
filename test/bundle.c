@@ -131,7 +131,7 @@ static void bundle_test1(BundleFixture *fixture,
 	g_assert_true(update_manifest(contentdir, FALSE));
 	g_assert_true(create_bundle(bundlename, contentdir));
 	g_assert_true(extract_bundle(bundlename, outputdir));
-	g_assert_true(verify_manifest(outputdir, FALSE));
+	g_assert_true(verify_manifest(outputdir, NULL, FALSE));
 }
 
 static void bundle_test2(BundleFixture *fixture,
@@ -151,7 +151,7 @@ static void bundle_test2(BundleFixture *fixture,
 	g_assert_true(update_manifest(contentdir, FALSE));
 	g_assert_true(create_bundle(bundlename, contentdir));
 	g_assert_true(mount_bundle(bundlename, mountpoint));
-	g_assert_true(verify_manifest(mountpoint, FALSE));
+	g_assert_true(verify_manifest(mountpoint, NULL, FALSE));
 	g_assert_true(umount_bundle(bundlename));
 }
 
@@ -170,16 +170,16 @@ static void bundle_test3(BundleFixture *fixture,
 	g_assert_nonnull(appfsimage);
 
 	g_assert_true(update_manifest(contentdir, TRUE));
-	g_assert_true(verify_manifest(contentdir, FALSE));
-	g_assert_true(verify_manifest(contentdir, TRUE));
+	g_assert_true(verify_manifest(contentdir, NULL, FALSE));
+	g_assert_true(verify_manifest(contentdir, NULL, TRUE));
 
 	g_assert(prepare_dummy_file(fixture->tmpdir, "content/appfs.img", 64*1024) == 0);
-	g_assert_false(verify_manifest(contentdir, FALSE));
-	g_assert_false(verify_manifest(contentdir, TRUE));
+	g_assert_false(verify_manifest(contentdir, NULL, FALSE));
+	g_assert_false(verify_manifest(contentdir, NULL, TRUE));
 
 	g_assert_cmpint(g_unlink(appfsimage), ==, 0);
-	g_assert_false(verify_manifest(contentdir, FALSE));
-	g_assert_false(verify_manifest(contentdir, TRUE));
+	g_assert_false(verify_manifest(contentdir, NULL, FALSE));
+	g_assert_false(verify_manifest(contentdir, NULL, TRUE));
 
 	g_free(appfsimage);
 	g_free(contentdir);
