@@ -11,11 +11,17 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir) {
 	GError *error = NULL;
 	gboolean res = FALSE;
 
+	if (g_file_test (bundlename, G_FILE_TEST_EXISTS)) {
+		g_warning("bundle %s already exists, aborting.", bundlename);
+		goto out;
+	}
+
 	sproc = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE,
 				 &error, CMD_MKSQUASHFS,
 				 contentdir,
 				 bundlename,
 				 "-all-root",
+				 "-noappend",
 				 NULL);
 	if (sproc == NULL) {
 		g_warning("failed to start mksquashfs: %s\n", error->message);
