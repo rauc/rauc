@@ -169,7 +169,7 @@ Update Procedure
 
 4. Check for update handler, use default if not configured
 
-5. Select target *slot*
+5. Select target *install group*
 
 6. Run the *update handler*
 
@@ -228,8 +228,8 @@ SYSTEM_CONFIG
   filesystem path to the *system configuration* file
 CURRENT_BOOTNAME
   *bootname* of the currently running system
-TARGET_SLOT
-  name of the *slot* to be updated
+TARGET_SLOTS
+  list of the *slots* to be updated
 UPDATE_SOURCE
   filesystem path to the *bundle* contents (images)
 MOUNT_PREFIX
@@ -239,7 +239,7 @@ To install an update, the *handler* usually performs the following steps:
 
 1. Load meta-data from ``$UPDATE_SOURCE/manifest.raucm``
 
-2. Mark target slot as non-bootable for the *boot chooser*
+2. Mark target slots as non-bootable for the *boot chooser*
 
 3. For each image listed in the *manifest*:
 
