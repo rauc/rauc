@@ -60,7 +60,7 @@ static int prepare_manifest_file(const gchar *dirname, const gchar *filename) {
 	RaucManifest *rm = g_new0(RaucManifest, 1);
 	RaucImage *img;
 
-	rm->update_compatible = g_strdup("Rauc Testsuite");
+	rm->update_compatible = g_strdup("Test Config");
 	rm->update_version = g_strdup("2011.03-2");
 
 	img = g_new0(RaucImage, 1);
