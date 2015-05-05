@@ -8,6 +8,8 @@
 typedef struct {
 	gchar *system_compatible;
 	gchar *system_bootloader;
+	/* path prefix where rauc may create mount directories */
+	gchar *mount_prefix;
 
 	gchar *keyring_path;
 

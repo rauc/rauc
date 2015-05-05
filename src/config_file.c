@@ -41,6 +41,12 @@ gboolean load_config(const gchar *filename, RaucConfig **config) {
 	}
 	c->system_bootloader = g_key_file_get_string(key_file, "system", "bootloader", NULL);
 
+	c->mount_prefix = g_key_file_get_string(key_file, "system", "mountprefix", NULL);
+	if (!c->mount_prefix) {
+		g_warning("No mount prefix provided, using /mnt/rauc/ as default\n");
+		c->mount_prefix = g_strdup("/mnt/rauc/");
+	}
+
 	/* parse [keyring] section */
 	c->keyring_path = g_key_file_get_string(key_file, "keyring", "path", NULL);
 

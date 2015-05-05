@@ -30,6 +30,7 @@ static void config_file_test1(ConfigFileFixture *fixture,
 	g_assert_nonnull(fixture->config);
 	g_assert_cmpstr(fixture->config->system_compatible, ==, "FooCorp Super BarBazzer");
 	g_assert_cmpstr(fixture->config->system_bootloader, ==, "barebox");
+	g_assert_cmpstr(fixture->config->mount_prefix, ==, "/mnt/myrauc/");
 
 	g_assert_nonnull(fixture->config->slots);
 	slotlist = g_hash_table_get_keys(fixture->config->slots);
