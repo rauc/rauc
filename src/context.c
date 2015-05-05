@@ -1,4 +1,5 @@
 #include <config_file.h>
+#include <network.h>
 #include <signature.h>
 
 #include "context.h"
@@ -37,6 +38,7 @@ void r_context_set_busy(gboolean busy) {
 
 RaucContext *r_context_conf(void) {
 	if (context == NULL) {
+		network_init();
 		signature_init();
 
 		context = g_new0(RaucContext, 1);
