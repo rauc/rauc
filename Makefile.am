@@ -15,6 +15,7 @@ AM_CPPFLAGS = -I${top_srcdir}/include $(OPENSSL_INCLUDES)
 noinst_LTLIBRARIES = librauc.la
 
 librauc_la_SOURCES = \
+	src/install.c \
 	src/bundle.c \
 	src/checksum.c \
 	src/config_file.c \
@@ -39,6 +40,7 @@ check_PROGRAMS = \
 	test/checksum.test \
 	test/config_file.test \
 	test/signature.test \
+	test/install.test \
 	test/bundle.test
 
 TESTS = $(check_PROGRAMS)
@@ -54,3 +56,6 @@ test_config_file_test_LDADD = librauc.la
 
 test_signature_test_SOURCES = test/signature.c
 test_signature_test_LDADD = librauc.la
+
+test_install_test_SOURCES = test/install.c
+test_install_test_LDADD = librauc.la

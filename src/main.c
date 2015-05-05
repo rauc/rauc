@@ -39,7 +39,8 @@ static gboolean install_start(GApplicationCommandLine *cmdline)
 	thread = g_thread_new("installer", install_thread, cmdline);
 	g_thread_unref(thread);
 
-	g_print("Active slot bootname: %s\n", get_active_slot_bootname());
+	g_print("Active slot bootname: %s\n", get_cmdline_bootname());
+
 
 	return G_SOURCE_REMOVE;
 }

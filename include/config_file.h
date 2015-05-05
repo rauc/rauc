@@ -14,12 +14,19 @@ typedef struct {
 	GHashTable *slots;
 } RaucConfig;
 
+typedef enum {
+	ST_UNKNOWN,
+	ST_ACTIVE,
+	ST_INACTIVE
+} SlotState;
+
 typedef struct _RaucSlot {
 	gchar *name;
 	gchar *device;
 	gchar *type;
 	gchar *bootname;
 	gboolean readonly;
+	SlotState state;
 	struct _RaucSlot *parent;
 } RaucSlot;
 
