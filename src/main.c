@@ -121,12 +121,13 @@ static gboolean cmdline_handler(gpointer data)
 	gchar **args = NULL, **argv = NULL;
 	gint argc;
 	gboolean help = FALSE, version = FALSE;
-	gchar *confpath = NULL, *certpath = NULL, *keypath = NULL;
+	gchar *confpath = NULL, *certpath = NULL, *keypath = NULL, *mount = NULL;
 	GOptionContext *context = NULL;
 	GOptionEntry entries[] = {
 		{"conf", 'c', 0, G_OPTION_ARG_FILENAME, &confpath, "config file", "FILENAME"},
 		{"cert", '\0', 0, G_OPTION_ARG_FILENAME, &certpath, "cert file", "PEMFILE"},
 		{"key", '\0', 0, G_OPTION_ARG_FILENAME, &keypath, "key file", "PEMFILE"},
+		{"mount", '\0', 0, G_OPTION_ARG_FILENAME, &mount, "mount prefix", "PATH"},
 		{"version", '\0', 0, G_OPTION_ARG_NONE, &version, "display version", NULL},
 		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, NULL, NULL},
 		{NULL}
@@ -213,6 +214,7 @@ static gboolean cmdline_handler(gpointer data)
 		r_context_conf()->configpath = confpath;
 		r_context_conf()->certpath = certpath;
 		r_context_conf()->keypath = keypath;
+		r_context_conf()->mountprefix = mount;
 	} else {
 		if (confpath != NULL ||
 		    certpath != NULL ||

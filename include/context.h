@@ -16,6 +16,8 @@ typedef struct {
 	/* signing data */
 	gchar *certpath;
 	gchar *keypath;
+	/* optional global mount prefix overwrite */
+	gchar *mountprefix;
 } RaucContext;
 
 gboolean r_context_get_busy(void);
