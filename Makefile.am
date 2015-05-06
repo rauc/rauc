@@ -5,9 +5,6 @@ AUTOMAKE_OPTIONS = color-tests parallel-tests
 @CODE_COVERAGE_RULES@
 @VALGRIND_CHECK_RULES@
 
-TEST_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/build-aux/tap-driver.sh
-TEST_LOG_COMPILER = $(top_srcdir)/tap-test
-
 AM_CFLAGS = $(WARN_CFLAGS) $(GLIB_CFLAGS) $(CURL_CFLAGS)
 AM_LDFLAGS = $(WARN_LDFLAGS) $(GLIB_LDFLAGS) $(CURL_LDFLAGS) $(OPENSSL_LDFLAGS)
 AM_CPPFLAGS = -I${top_srcdir}/include $(OPENSSL_INCLUDES)
@@ -37,6 +34,12 @@ rauc_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 rauc_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
 rauc_LDADD = $(librauc_la_LIBADD) librauc.la
 
+TEST_EXTENSIONS = .t .test
+T_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/build-aux/tap-driver.sh
+T_LOG_COMPILER = $(top_srcdir)/tap-t
+TEST_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/build-aux/tap-driver.sh
+TEST_LOG_COMPILER = $(top_srcdir)/tap-test
+
 check_PROGRAMS = \
 	test/checksum.test \
 	test/config_file.test \
@@ -45,7 +48,7 @@ check_PROGRAMS = \
 	test/network.test \
 	test/bundle.test
 
-TESTS = $(check_PROGRAMS)
+TESTS = $(check_PROGRAMS) test/rauc.t
 
 test_bundle_test_SOURCES = test/bundle.c
 test_bundle_test_LDADD = librauc.la

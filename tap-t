@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# run a sharness test. The test binary is passed as $1
+
+cd "$(dirname "$1")"
+./$(basename "$1")
