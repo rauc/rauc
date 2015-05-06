@@ -30,7 +30,7 @@ static gpointer install_thread(gpointer data) {
 	return NULL;
 }
 
-static gboolean install_start(GApplicationCommandLine *cmdline)
+static gboolean install_start(GApplicationCommandLine *cmdline, int argc, char **argv)
 {
 	GThread *thread;
 	r_context_set_busy(TRUE);
@@ -59,7 +59,7 @@ static gboolean install_cleanup(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean bundle_start(GApplicationCommandLine *cmdline)
+static gboolean bundle_start(GApplicationCommandLine *cmdline, int argc, char **argv)
 {
 	g_application_command_line_print(cmdline, "bundle start\n");
 
@@ -69,7 +69,42 @@ static gboolean bundle_start(GApplicationCommandLine *cmdline)
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean info_start(GApplicationCommandLine *cmdline)
+static gboolean checksum_start(GApplicationCommandLine *cmdline, int argc, char **argv)
+{
+	gboolean sign = FALSE;
+	int exit_status = 0;
+
+	g_application_command_line_print(cmdline, "checksum start\n");
+
+	if (r_context()->certpath != NULL &&
+	    r_context()->keypath != NULL) {
+		sign = TRUE;
+	} else if (r_context()->certpath != NULL ||
+	    r_context()->keypath != NULL) {
+		g_error("either both or none of cert and key files must be provided");
+		goto out;
+	}
+
+	if (argc != 3) {
+		g_error("a directory name must be provided");
+	}
+
+	g_print("updating checksums for: %s\n", argv[2]);
+
+	if (!update_manifest(argv[2], sign)) {
+		exit_status = 1;
+	}
+
+out:
+	g_application_command_line_set_exit_status(cmdline, exit_status);
+
+	/* we are done handling this commandline */
+	g_object_unref(cmdline);
+
+	return G_SOURCE_REMOVE;
+}
+
+static gboolean info_start(GApplicationCommandLine *cmdline, int argc, char **argv)
 {
 	g_application_command_line_print(cmdline, "info start\n");
 
@@ -79,7 +114,7 @@ static gboolean info_start(GApplicationCommandLine *cmdline)
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean status_start(GApplicationCommandLine *cmdline)
+static gboolean status_start(GApplicationCommandLine *cmdline, int argc, char **argv)
 {
 	g_application_command_line_print(cmdline, "status start\n");
 
@@ -89,7 +124,7 @@ static gboolean status_start(GApplicationCommandLine *cmdline)
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean unknown_start(GApplicationCommandLine *cmdline)
+static gboolean unknown_start(GApplicationCommandLine *cmdline, int argc, char **argv)
 {
 	g_application_command_line_print(cmdline, "unknown start\n");
 
@@ -100,8 +135,9 @@ static gboolean unknown_start(GApplicationCommandLine *cmdline)
 }
 
 typedef enum  {
-	INSTALL,
+	INSTALL = 0,
 	BUNDLE,
+	CHECKSUM,
 	STATUS,
 	INFO,
 	UNKNOWN
@@ -111,7 +147,7 @@ typedef struct {
 	const RaucCommandType type;
 	const gchar* name;
 	const gchar* usage;
-	gboolean (*cmd_handler) (GApplicationCommandLine *cmdline);
+	gboolean (*cmd_handler) (GApplicationCommandLine *cmdline, int argc, char **argv);
 	gboolean while_busy;
 } RaucCommand;
 
@@ -137,11 +173,12 @@ static gboolean cmdline_handler(gpointer data)
 	RaucCommand rcommands[] = {
 		{INSTALL, "install", "install <BUNDLE>", install_start, FALSE},
 		{BUNDLE, "bundle", "bundle <FILE>", bundle_start, FALSE},
+		{CHECKSUM, "checksum", "checksum <DIRECTORY>", checksum_start, FALSE},
 		{INFO, "info", "info <FILE>", info_start, FALSE},
 		{STATUS, "status", "status", status_start, TRUE},
 		{UNKNOWN, NULL, "<COMMAND>", unknown_start, TRUE}
 	};
-	RaucCommand *rcommand = &rcommands[4];
+	RaucCommand *rcommand = &rcommands[UNKNOWN];
 
 	g_print("handling command line %p\n", cmdline);
 
@@ -165,6 +202,7 @@ static gboolean cmdline_handler(gpointer data)
 		g_option_context_set_description(context, 
 				"List of rauc commands:\n" \
 				"  bundle\tCreate a bundle\n" \
+				"  checksum\tUpdate a manifest with checksums (and optionally sign it)\n" \
 				"  resign\tResign a bundle\n" \
 				"  install\tInstall a bundle\n" \
 				"  info\t\tShow file information\n" \
@@ -236,7 +274,7 @@ static gboolean cmdline_handler(gpointer data)
 
 	/* real commands are handled here */
 	if (rcommand->cmd_handler) {
-		rcommand->cmd_handler(cmdline);
+		rcommand->cmd_handler(cmdline, argc, argv);
 		goto delegated;
 	}
 
