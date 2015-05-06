@@ -11,6 +11,13 @@ typedef struct {
 } RaucImage;
 
 typedef struct {
+	gchar* slotclass;
+	RaucChecksum checksum;
+	gchar* filename;
+	gchar* destname;
+} RaucFile;
+
+typedef struct {
 	gchar *update_compatible;
 	gchar *update_version;
 
@@ -19,6 +26,7 @@ typedef struct {
 	gchar *handler_name;
 
 	GList *images;
+	GList *files;
 } RaucManifest;
 
 gboolean load_manifest(const gchar *filename, RaucManifest **manifest);

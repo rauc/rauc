@@ -3,7 +3,7 @@
 
 #include "checksum.h"
 
-#define MANIFEST_DIGEST "fa285b828f53eabb4cb9003d28943ca33ea2234edcd93ac22b61659ffa41555a"
+#define TEST_DIGEST "c35020473aed1b4642cd726cad727b63fff2824ad68cedd7ffb73c7cbd890479"
 
 static void checksum_test1(void)
 {
@@ -11,14 +11,14 @@ static void checksum_test1(void)
 
 	checksum.type = 0;
 	checksum.digest = NULL;
-	g_assert_false(verify_checksum(&checksum, "test/manifest.raucm"));
+	g_assert_false(verify_checksum(&checksum, "test/install-content/appfs.img"));
 
 	checksum.type = G_CHECKSUM_SHA256;
-	g_assert_false(verify_checksum(&checksum, "test/manifest.raucm"));
+	g_assert_false(verify_checksum(&checksum, "test/install-content/appfs.img"));
 
-	checksum.digest = g_strdup(MANIFEST_DIGEST);
-	g_assert_true(verify_checksum(&checksum, "test/manifest.raucm"));
-	g_assert_false(verify_checksum(&checksum, "test/rootfs.raucs"));
+	checksum.digest = g_strdup(TEST_DIGEST);
+	g_assert_true(verify_checksum(&checksum, "test/install-content/appfs.img"));
+	g_assert_false(verify_checksum(&checksum, "tesinstall-content/rootfs.img"));
 	g_assert_false(verify_checksum(&checksum, "test/_MISSING_"));
 }
 

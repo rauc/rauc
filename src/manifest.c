@@ -7,6 +7,7 @@
 #include <utils.h>
 
 #define RAUC_IMAGE_PREFIX	"image"
+#define RAUC_FILE_PREFIX	"file"
 
 gboolean load_manifest(const gchar *filename, RaucManifest **manifest) {
 	RaucManifest *raucm = g_new0(RaucManifest, 1);
@@ -34,12 +35,15 @@ gboolean load_manifest(const gchar *filename, RaucManifest **manifest) {
 	/* parse [handler] section */
 	raucm->handler_name = g_key_file_get_string(key_file, "handler", "filename", NULL);
 
-	/* parse [image.*] sections */
+	/* parse [image.<slotclass>] and [file.<slotclass>/<destname>] sections */
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
-		gchar **groupsplit;
+		gchar **groupsplit = g_strsplit(groups[i], ".", 2);
+		if (groupsplit == NULL || g_strv_length(groupsplit) < 2) {
+			g_strfreev(groupsplit);
+			continue;
+		}
 
-		groupsplit = g_strsplit(groups[i], ".", 2);
 		if (g_str_equal(groupsplit[0], RAUC_IMAGE_PREFIX)) {
 			RaucImage *image = g_new0(RaucImage, 1);
 			gchar *value;
@@ -55,8 +59,32 @@ gboolean load_manifest(const gchar *filename, RaucManifest **manifest) {
 			image->filename = g_key_file_get_string(key_file, groups[i], "filename", NULL);
 
 			raucm->images = g_list_append(raucm->images, image);
+		} else if (g_str_equal(groupsplit[0], RAUC_FILE_PREFIX)) {
+			gchar **destsplit = g_strsplit(groupsplit[1], "/", 2);
+			RaucFile *file;
+			gchar *value;
 
+			if (destsplit == NULL || g_strv_length(destsplit) < 2) {
+				g_strfreev(destsplit);
+				continue;
+			}
+
+			file = g_new0(RaucFile, 1);
+
+			file->slotclass = g_strdup(destsplit[0]);
+			file->destname = g_strdup(destsplit[1]);
+
+			value = g_key_file_get_string(key_file, groups[i], "sha256", NULL);
+			if (value) {
+				file->checksum.type = G_CHECKSUM_SHA256;
+				file->checksum.digest = value;
+			}
+
+			file->filename = g_key_file_get_string(key_file, groups[i], "filename", NULL);
+
+			raucm->files = g_list_append(raucm->files, file);
 		}
+
 		g_strfreev(groupsplit);
 	}
 
@@ -89,7 +117,7 @@ gboolean save_manifest(const gchar *filename, RaucManifest *mf) {
 		g_key_file_set_string(key_file, "handler", "filename", mf->handler_name);
 
 	for (GList *l = mf->images; l != NULL; l = l->next) {
-		RaucImage *image = (RaucImage*) l->data;
+		RaucImage *image = l->data;
 		gchar *group;
 
 		if (!image || !image->slotclass)
@@ -104,7 +132,24 @@ gboolean save_manifest(const gchar *filename, RaucManifest *mf) {
 			g_key_file_set_string(key_file, group, "filename", image->filename);
 
 		g_free(group);
+	}
 
+	for (GList *l = mf->files; l != NULL; l = l->next) {
+		RaucFile *file = l->data;
+		gchar *group;
+
+		if (!file || !file->slotclass || !file->destname)
+			continue;
+
+		group = g_strconcat(RAUC_FILE_PREFIX ".", file->slotclass, "/", file->destname, NULL);
+
+		if (file->checksum.type == G_CHECKSUM_SHA256)
+			g_key_file_set_string(key_file, group, "sha256", file->checksum.digest);
+
+		if (file->filename)
+			g_key_file_set_string(key_file, group, "filename", file->filename);
+
+		g_free(group);
 	}
 
 	res = g_key_file_save_to_file(key_file, filename, NULL);
@@ -115,7 +160,6 @@ free:
 	g_key_file_free(key_file);
 
 	return res;
-
 }
 
 static void free_image(gpointer data) {
@@ -127,6 +171,16 @@ static void free_image(gpointer data) {
 	g_free(image);
 }
 
+static void free_file(gpointer data) {
+	RaucFile *file = (RaucFile*) data;
+
+	g_free(file->slotclass);
+	g_free(file->destname);
+	g_free(file->checksum.digest);
+	g_free(file->filename);
+	g_free(file);
+}
+
 void free_manifest(RaucManifest *manifest) {
 
 	g_free(manifest->update_compatible);
@@ -134,6 +188,7 @@ void free_manifest(RaucManifest *manifest) {
 	g_free(manifest->keyring);
 	g_free(manifest->handler_name);
 	g_list_free_full(manifest->images, free_image);
+	g_list_free_full(manifest->files, free_file);
 	g_free(manifest);
 }
 
@@ -150,6 +205,15 @@ static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *d
 			break;
 	}
 
+	for (GList *elem = manifest->files; elem != NULL; elem = elem->next) {
+		RaucFile *file = elem->data;
+		gchar *filename = g_build_filename(dir, file->filename, NULL);
+		res = update_checksum(&file->checksum, filename);
+		g_free(filename);
+		if (!res)
+			break;
+	}
+
 	return res;
 }
 
@@ -160,6 +224,15 @@ static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *d
 		RaucImage *image = elem->data;
 		gchar *filename = g_build_filename(dir, image->filename, NULL);
 		res = verify_checksum(&image->checksum, filename);
+		g_free(filename);
+		if (!res)
+			break;
+	}
+
+	for (GList *elem = manifest->files; elem != NULL; elem = elem->next) {
+		RaucFile *file = elem->data;
+		gchar *filename = g_build_filename(dir, file->filename, NULL);
+		res = verify_checksum(&file->checksum, filename);
 		g_free(filename);
 		if (!res)
 			break;
