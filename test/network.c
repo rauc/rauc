@@ -2,6 +2,7 @@
 #include <glib.h>
 
 #include <context.h>
+#include <utils.h>
 #include "network.h"
 
 typedef struct {
@@ -11,7 +12,7 @@ typedef struct {
 static void network_fixture_set_up(NetworkFixture *fixture,
 		gconstpointer user_data)
 {
-	fixture->tmpdir = g_dir_make_tmp(NULL, NULL);
+	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
 	g_print("network tmpdir: %s\n", fixture->tmpdir);
 }
@@ -19,7 +20,7 @@ static void network_fixture_set_up(NetworkFixture *fixture,
 static void network_fixture_tear_down(NetworkFixture *fixture,
 		gconstpointer user_data)
 {
-	// FIXME remove tmpdir
+	g_assert_true(rm_tree(fixture->tmpdir));
 	g_free(fixture->tmpdir);
 }
 

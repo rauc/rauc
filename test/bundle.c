@@ -5,6 +5,7 @@
 
 #include <context.h>
 #include <manifest.h>
+#include <utils.h>
 #include "bundle.h"
 
 typedef struct {
@@ -97,7 +98,7 @@ static int mkdir_relative(const gchar *dirname, const gchar *filename, int mode)
 static void bundle_fixture_set_up(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	fixture->tmpdir = g_dir_make_tmp(NULL, NULL);
+	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
 	g_print("bundle tmpdir: %s\n", fixture->tmpdir);
 	g_assert(mkdir_relative(fixture->tmpdir, "content", 0777) == 0);
@@ -110,7 +111,7 @@ static void bundle_fixture_set_up(BundleFixture *fixture,
 static void bundle_fixture_tear_down(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	// FIXME remove tmpdir
+	g_assert_true(rm_tree(fixture->tmpdir));
 	g_free(fixture->tmpdir);
 }
 
