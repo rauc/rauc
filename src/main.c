@@ -1,8 +1,10 @@
+#include <config.h>
+
 #include <stdio.h>
 #include <glib.h>
 #include <gio/gio.h>
 
-#include <config.h>
+#include <bundle.h>
 #include <config_file.h>
 #include <context.h>
 #include <install.h>
@@ -106,7 +108,27 @@ out:
 
 static gboolean info_start(GApplicationCommandLine *cmdline, int argc, char **argv)
 {
+	gsize size;
+	int exit_status = 0;
+
 	g_application_command_line_print(cmdline, "info start\n");
+
+	if (argc != 3) {
+		g_error("a file name must be provided");
+	}
+
+	g_print("checking manifest for: %s\n", argv[2]);
+
+	if (!check_bundle(argv[2], &size)) {
+		g_print("signature invalid (squashfs size: %"G_GSIZE_FORMAT")\n", size);
+		exit_status = 1;
+		goto out;
+	}
+
+	g_print("signature correct (squashfs size: %"G_GSIZE_FORMAT")\n", size);
+
+out:
+	g_application_command_line_set_exit_status(cmdline, exit_status);
 
 	/* we are done handling this commandline */
 	g_object_unref(cmdline);

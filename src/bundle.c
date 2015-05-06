@@ -192,7 +192,7 @@ out:
 	return res;
 }
 
-static gboolean check_bundle(const gchar *bundlename, gsize *size) {
+gboolean check_bundle(const gchar *bundlename, gsize *size) {
 	GBytes *sig = NULL;
 	GFile *bundlefile = NULL;
 	GFileInputStream *bundlestream = NULL;
@@ -244,7 +244,8 @@ static gboolean check_bundle(const gchar *bundlename, gsize *size) {
 	if (!res)
 		goto out;
 
-	*size = offset;
+	if (size)
+		*size = offset;
 
 	res = TRUE;
 out:
