@@ -5,6 +5,12 @@
 #include <config_file.h>
 
 typedef struct {
+	gchar* slotclass;
+	RaucChecksum checksum;
+	gchar* filename;
+} RaucImage;
+
+typedef struct {
 	gchar *update_compatible;
 	gchar *update_version;
 

@@ -36,12 +36,6 @@ typedef struct {
 } RaucSlotGroup;
 
 typedef struct {
-	gchar* slotclass;
-	RaucChecksum checksum;
-	gchar* filename;
-} RaucImage;
-
-typedef struct {
 	gchar *status;
 	RaucChecksum checksum;
 } RaucSlotStatus;
