@@ -175,8 +175,10 @@ gboolean update_manifest(const gchar *dir, gboolean signature) {
 	GBytes *sig = NULL;
 	gboolean res = FALSE;
 
-        g_assert_nonnull(r_context()->certpath);
-        g_assert_nonnull(r_context()->keypath);
+	if (signature) {
+		g_assert_nonnull(r_context()->certpath);
+		g_assert_nonnull(r_context()->keypath);
+	}
 
 	res = load_manifest(manifestpath, &manifest);
 	if (!res)
