@@ -226,9 +226,6 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signa
 	GBytes *sig = NULL;
 	gboolean res = FALSE;
 
-        g_assert_nonnull(r_context()->certpath);
-        g_assert_nonnull(r_context()->keypath);
-
 	if (signature) {
 		sig = read_file(signaturepath);
 		if (sig == NULL)
