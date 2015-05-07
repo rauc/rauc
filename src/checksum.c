@@ -41,6 +41,5 @@ gboolean verify_checksum(RaucChecksum *checksum, const gchar *filename) {
 	res = g_str_equal(checksum->digest, tmp.digest);
 
 out:
-	g_clear_pointer(&checksum->digest, g_free);
 	return res;
 }
