@@ -9,6 +9,8 @@
 
 #define BOOTNAME "root"
 
+static const gchar* (*bootname_provider)(void) = get_cmdline_bootname;
+
 const gchar* get_cmdline_bootname(void) {
 
 	GRegex *regex;
@@ -34,7 +36,7 @@ out:
 
 }
 
-gboolean determine_slot_states(const gchar* (*bootname_provider)(void)) {
+gboolean determine_slot_states(void) {
 	GList *slotlist, *l;
 	const gchar *bootname;
 	RaucSlot *booted = NULL;
@@ -297,6 +299,9 @@ out:
 	return res;
 }
 
+void set_bootname_provider(const gchar* (*provider)(void)) {
+	bootname_provider = provider;
+}
 static void print_hash_table(GHashTable *hash_table) {
 	GHashTableIter iter;
 	gpointer key, value;

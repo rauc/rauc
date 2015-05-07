@@ -39,7 +39,8 @@ static void install_test1(InstallFixture *fixture,
 
 	g_assert_true(load_manifest_file("test/manifest.raucm", &rm));
 
-	g_assert_true(determine_slot_states(dummy_bootname_provider));
+	set_bootname_provider(dummy_bootname_provider);
+	g_assert_true(determine_slot_states());
 
 	g_assert_nonnull(r_context()->config);
 	g_assert_nonnull(r_context()->config->slots);
