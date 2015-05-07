@@ -76,7 +76,7 @@ static int prepare_manifest_file(const gchar *dirname, const gchar *filename) {
 	img->filename = g_strdup("appfs.img");
 	rm->images = g_list_append(rm->images, img);
 
-	g_assert_true(save_manifest(path, rm));
+	g_assert_true(save_manifest_file(path, rm));
 
 	free_manifest(rm);
 	return 0;

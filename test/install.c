@@ -37,7 +37,7 @@ static void install_test1(InstallFixture *fixture,
 	RaucManifest *rm;
 	GHashTable *tgrp;
 
-	g_assert_true(load_manifest("test/manifest.raucm", &rm));
+	g_assert_true(load_manifest_file("test/manifest.raucm", &rm));
 
 	g_assert_true(determine_slot_states(dummy_bootname_provider));
 

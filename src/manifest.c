@@ -9,18 +9,11 @@
 #define RAUC_IMAGE_PREFIX	"image"
 #define RAUC_FILE_PREFIX	"file"
 
-gboolean load_manifest(const gchar *filename, RaucManifest **manifest) {
+static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest) {
 	RaucManifest *raucm = g_new0(RaucManifest, 1);
 	gboolean res = FALSE;
-	GKeyFile *key_file = NULL;
 	gchar **groups;
 	gsize group_count;
-
-	key_file = g_key_file_new();
-
-	res = g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, NULL);
-	if (!res)
-		goto free;
 
 	/* parse [update] section */
 	raucm->update_compatible = g_key_file_get_string(key_file, "update", "compatible", NULL);
@@ -92,13 +85,52 @@ gboolean load_manifest(const gchar *filename, RaucManifest **manifest) {
 
 	res = TRUE;
 free:
-	g_key_file_free(key_file);
 	*manifest = raucm;
 
 	return res;
 }
 
-gboolean save_manifest(const gchar *filename, RaucManifest *mf) {
+gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest) {
+	GKeyFile *key_file = NULL;
+	const gchar *data;
+	gsize length;
+	gboolean res = FALSE;
+
+	data = g_bytes_get_data(mem, &length);
+	if (data == NULL)
+		goto out;
+
+	key_file = g_key_file_new();
+
+	res = g_key_file_load_from_data(key_file, data, length, G_KEY_FILE_NONE, NULL);
+	if (!res)
+		goto out;
+
+	res = parse_manifest(key_file, manifest);
+
+out:
+	g_clear_pointer(&key_file, g_key_file_free);
+	return res;
+}
+
+gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest) {
+	GKeyFile *key_file = NULL;
+	gboolean res = FALSE;
+
+	key_file = g_key_file_new();
+
+	res = g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, NULL);
+	if (!res)
+		goto out;
+
+	res = parse_manifest(key_file, manifest);
+
+out:
+	g_clear_pointer(&key_file, g_key_file_free);
+	return res;
+}
+
+gboolean save_manifest_file(const gchar *filename, RaucManifest *mf) {
 	GKeyFile *key_file = NULL;
 	gboolean res = FALSE;
 
@@ -253,7 +285,7 @@ gboolean update_manifest(const gchar *dir, gboolean signature) {
 		g_assert_nonnull(r_context()->keypath);
 	}
 
-	res = load_manifest(manifestpath, &manifest);
+	res = load_manifest_file(manifestpath, &manifest);
 	if (!res)
 		goto out;
 
@@ -261,7 +293,7 @@ gboolean update_manifest(const gchar *dir, gboolean signature) {
 	if (!res)
 		goto out;
 
-	res = save_manifest(manifestpath, manifest);
+	res = save_manifest_file(manifestpath, manifest);
 	if (!res)
 		goto out;
 
@@ -310,7 +342,7 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signa
 
 	}
 
-	res = load_manifest(manifestpath, &manifest);
+	res = load_manifest_file(manifestpath, &manifest);
 	if (!res)
 		goto out;
 

@@ -4,6 +4,7 @@
 
 #include "config_file.h"
 #include "manifest.h"
+#include "utils.h"
 
 typedef struct {
 	RaucConfig *config;
@@ -63,12 +64,7 @@ static void config_file_test1(ConfigFileFixture *fixture,
 	free_config(fixture->config);
 }
 
-static void config_file_test2(ConfigFileFixture *fixture,
-		gconstpointer user_data)
-{
-	RaucManifest *rm;
-
-	g_assert_true(load_manifest("test/manifest.raucm", &rm));
+static void manifest_check_common(RaucManifest *rm) {
 	g_assert_nonnull(rm);
 	g_assert_cmpstr(rm->update_compatible, ==, "FooCorp Super BarBazzer");
 	g_assert_cmpstr(rm->update_version, ==, "2015.04-1");
@@ -114,6 +110,15 @@ static void config_file_test2(ConfigFileFixture *fixture,
 		g_print("\t Digest:     %s\n", file->checksum.digest);
 		g_print("\t Filename:   %s\n\n", file->filename);
 	}
+}
+
+static void config_file_test2(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucManifest *rm;
+
+	g_assert_true(load_manifest_file("test/manifest.raucm", &rm));
+	manifest_check_common(rm);
 
 	free_manifest(rm);
 }
@@ -172,11 +177,11 @@ static void config_file_test4(ConfigFileFixture *fixture,
 	g_assert_cmpuint(g_list_length(rm->images), ==, 2);
 	g_assert_cmpuint(g_list_length(rm->files), ==, 1);
 
-	g_assert_true(save_manifest("test/savedmanifest.raucm", rm));
+	g_assert_true(save_manifest_file("test/savedmanifest.raucm", rm));
 
 	free_manifest(rm);
 
-	g_assert_true(load_manifest("test/savedmanifest.raucm", &rm));
+	g_assert_true(load_manifest_file("test/savedmanifest.raucm", &rm));
 
 	g_assert_nonnull(rm);
 	g_assert_cmpstr(rm->update_compatible, ==, "BarCorp FooBazzer");
@@ -232,6 +237,18 @@ static void config_file_test5(ConfigFileFixture *fixture,
 	free_slot_status(ss);
 }
 
+static void config_file_test6(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	GBytes *data = NULL;
+	RaucManifest *rm;
+
+	data = read_file("test/manifest.raucm");
+	g_assert_true(load_manifest_mem(data, &rm));
+	manifest_check_common(rm);
+
+	free_manifest(rm);
+}
 
 int main(int argc, char *argv[])
 {
@@ -257,6 +274,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/config-file/test5", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_test5,
+			config_file_fixture_tear_down);
+
+	g_test_add("/config-file/test6", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_test6,
 			config_file_fixture_tear_down);
 
 	return g_test_run ();

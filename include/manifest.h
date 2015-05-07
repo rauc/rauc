@@ -29,8 +29,9 @@ typedef struct {
 	GList *files;
 } RaucManifest;
 
-gboolean load_manifest(const gchar *filename, RaucManifest **manifest);
-gboolean save_manifest(const gchar *filename, RaucManifest *manifest);
+gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest);
+gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest);
+gboolean save_manifest_file(const gchar *filename, RaucManifest *manifest);
 void free_manifest(RaucManifest *manifest);
 
 gboolean update_manifest(const gchar *dir, gboolean signature);
