@@ -281,7 +281,7 @@ gboolean mount_bundle(const gchar *bundlename, const gchar *mountpoint) {
 	if (!res)
 		goto out;
 
-	res = mount_loop(bundlename, mountpoint, size);
+	res = r_mount_loop(bundlename, mountpoint, size);
 	if (!res)
 		goto out;
 
@@ -293,7 +293,7 @@ out:
 gboolean umount_bundle(const gchar *bundlename) {
 	gboolean res = FALSE;
 
-	res = umount_loop(bundlename);
+	res = r_umount(bundlename);
 	if (!res)
 		goto out;
 
