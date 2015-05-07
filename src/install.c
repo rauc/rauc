@@ -285,7 +285,7 @@ out:
 }
 
 
-gboolean do_install(const gchar* bundlefile) {
+gboolean do_install_bundle(const gchar* bundlefile) {
 
 	gboolean res = FALSE;
 	gchar* mountpoint;

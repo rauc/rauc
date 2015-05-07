@@ -64,7 +64,7 @@ static void install_test2(InstallFixture *fixture,
 		gconstpointer user_data)
 {
 	g_assert_true(create_bundle("test/createdbundle.raucb", "test/install-content"));
-	g_assert_true(do_install("test/createdbundle.raucb"));
+	g_assert_true(do_install_bundle("test/createdbundle.raucb"));
 }
 
 int main(int argc, char *argv[])
