@@ -117,13 +117,26 @@ GList* get_slot_class_members(const gchar* slotclass) {
 
 GHashTable* determine_target_install_group(RaucManifest *manifest) {
 	RaucSlot *targetgroup_root = NULL;
+	GPtrArray *slotclasses = NULL;
 	GList *slotmembers;
 	GHashTable *targetgroup = NULL;
 
-	g_assert_nonnull(manifest->images->data);
+	/* collect referenced slot classes from manifest */
+	slotclasses = g_ptr_array_new();
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		const gchar *key = g_intern_string(((RaucImage*)l->data)->slotclass);
+		g_ptr_array_add(slotclasses, (gpointer)key);
+	}
+	for (GList *l = manifest->files; l != NULL; l = l->next) {
+		const gchar *key = g_intern_string(((RaucFile*)l->data)->slotclass);
+		g_ptr_array_remove_fast(slotclasses, (gpointer)key); /* avoid duplicates */
+		g_ptr_array_add(slotclasses, (gpointer)key);
+	}
+
+	g_assert_cmpuint(slotclasses->len, >, 0);
 
 	/* Determine slot class members for first image in manifest */
-	slotmembers = get_slot_class_members(((RaucImage*)manifest->images->data)->slotclass);
+	slotmembers = get_slot_class_members(slotclasses->pdata[0]);
 
 	/* Get the first inactive slot in slot group and determine root slot */
 	for (GList *l = slotmembers; l != NULL; l = l->next) {
@@ -144,11 +157,10 @@ GHashTable* determine_target_install_group(RaucManifest *manifest) {
 
 	targetgroup = g_hash_table_new(g_str_hash, g_str_equal);
 
-	for (GList *l = manifest->images; l != NULL; l = l->next) {
+	for (guint i = 0; i < slotclasses->len; i++) {
 		RaucSlot *image_target = NULL;
-		RaucImage *img = l->data;
 
-		slotmembers = get_slot_class_members(img->slotclass);
+		slotmembers = get_slot_class_members(slotclasses->pdata[i]);
 
 		for (GList *li = slotmembers; li != NULL; li = li->next) {
 			RaucSlot *s = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, li->data);
@@ -159,13 +171,14 @@ GHashTable* determine_target_install_group(RaucManifest *manifest) {
 		}
 
 		if (!image_target) {
-			g_warning("No target for class '%s' found!\n", img->slotclass);
+			g_warning("No target for class '%s' found!\n", (gchar *)slotclasses->pdata[i]);
 			return NULL;
 		}
 
-		g_hash_table_insert(targetgroup, img->slotclass, image_target->name);
+		g_hash_table_insert(targetgroup, slotclasses->pdata[i], image_target->name);
 	}
 
+	g_clear_pointer(&slotclasses, g_ptr_array_unref);
 	return targetgroup;
 }
 
@@ -284,6 +297,15 @@ out:
 	return res;
 }
 
+static void print_hash_table(GHashTable *hash_table) {
+	GHashTableIter iter;
+	gpointer key, value;
+
+	g_hash_table_iter_init(&iter, hash_table);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		g_print("  %s -> %s\n", (gchar *)key, (gchar *)value);
+	}
+}
 
 gboolean do_install_bundle(const gchar* bundlefile) {
 
@@ -328,6 +350,9 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 		g_warning("Could not determine target group");
 		goto umount;
 	}
+
+	g_print("Target Group:\n");
+	print_hash_table(target_group);
 
 	if (manifest->handler_name) {
 		g_print("Using custom handler: %s\n", manifest->handler_name);
