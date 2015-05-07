@@ -184,6 +184,29 @@ GHashTable* determine_target_install_group(RaucManifest *manifest) {
 	return targetgroup;
 }
 
+static void parse_handler_output(gchar* line) {
+	gchar **split = NULL;
+
+	g_assert_nonnull(line);
+
+	if (!g_str_has_prefix(line, "<< "))
+		goto out;
+
+	split = g_strsplit(line, " ", 5);
+
+	if (!split[1])
+		goto out;
+
+	if (g_strcmp0(split[1], "handler") == 0) {
+		g_print("Handler status: %s\n", split[2]);
+	} else if (g_strcmp0(split[1], "image") == 0) {
+		g_print("Image '%s' status: %s\n", split[2], split[3]);
+	}
+
+
+out:
+	g_strfreev(split);
+}
 
 static gboolean launch_and_wait_custom_handler(gchar* cwd, gchar* name) {
 	GSubprocessLauncher *handlelaunch = NULL;
@@ -191,10 +214,13 @@ static gboolean launch_and_wait_custom_handler(gchar* cwd, gchar* name) {
 	GError *error = NULL;
 	gboolean res = FALSE;
 	gchar* handler_name;
+	GInputStream *instream;
+	GDataInputStream *datainstream;
+	gchar* outline;
 
 	handler_name = g_build_filename(cwd, name, NULL);
 
-	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_NONE);
+	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE);
 
 	g_subprocess_launcher_setenv(handlelaunch, "SYSTEM_CONFIG", r_context()->configpath, TRUE);
 	g_subprocess_launcher_setenv(handlelaunch, "CURRENT_BOOTNAME", "TODO", TRUE);
@@ -207,6 +233,17 @@ static gboolean launch_and_wait_custom_handler(gchar* cwd, gchar* name) {
 			&error, handler_name,
 			NULL);
 
+	instream = g_subprocess_get_stdout_pipe(handleproc);
+	datainstream = g_data_input_stream_new(instream);
+
+	do {
+		outline = g_data_input_stream_read_line(datainstream, NULL, NULL, NULL);
+		if (!outline)
+			continue;
+
+		parse_handler_output(outline);
+	} while (outline);
+	
 
 	if (handleproc == NULL) {
 		g_warning("failed to start custom handler: %s\n", error->message);
