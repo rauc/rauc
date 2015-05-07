@@ -17,8 +17,7 @@ test_expect_success "rauc checksum without argument" "
 "
 
 test_expect_success "rauc checksum" "
-  cd $SHARNESS_BUILD_DIRECTORY
-  rauc -c test/test.conf info test/good-bundle.raucb
+  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info good-bundle.raucb
 "
 
 test_done

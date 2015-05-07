@@ -4,10 +4,29 @@
 
 #define RAUC_SLOT_PREFIX	"slot"
 
+static gchar *resolve_path(const gchar *basefile, gchar *path) {
+	gchar *cwd = NULL, *dir = NULL, *res = NULL;
 
-static void free_slot (gpointer value);
+	if (g_path_is_absolute(path))
+		return path;
 
-static void free_slot (gpointer value) {
+	dir = g_path_get_dirname(basefile);
+	if (g_path_is_absolute(dir)) {
+		res = g_build_filename(dir, path, NULL);
+		goto out;
+	}
+
+	cwd = g_get_current_dir();
+	res = g_build_filename(cwd, dir, path, NULL);
+
+out:
+	g_clear_pointer(&cwd, g_free);
+	g_clear_pointer(&dir, g_free);
+	g_clear_pointer(&path, g_free);
+	return res;
+}
+
+static void free_slot(gpointer value) {
 	RaucSlot *slot = (RaucSlot*)value;
 
 	g_free(slot->device);
@@ -16,7 +35,6 @@ static void free_slot (gpointer value) {
 	if (slot->bootname != slot->name)
 		g_free(slot->bootname);
 }
-
 
 gboolean load_config(const gchar *filename, RaucConfig **config) {
 	RaucConfig *c = g_new0(RaucConfig, 1);
@@ -48,7 +66,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config) {
 	}
 
 	/* parse [keyring] section */
-	c->keyring_path = g_key_file_get_string(key_file, "keyring", "path", NULL);
+	c->keyring_path = resolve_path(filename,
+		g_key_file_get_string(key_file, "keyring", "path", NULL));
 
 	/* parse [slot.*.#] sections */
 	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, free_slot);
