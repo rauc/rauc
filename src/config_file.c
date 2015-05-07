@@ -61,7 +61,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config) {
 
 	c->mount_prefix = g_key_file_get_string(key_file, "system", "mountprefix", NULL);
 	if (!c->mount_prefix) {
-		g_warning("No mount prefix provided, using /mnt/rauc/ as default\n");
+		g_print("No mount prefix provided, using /mnt/rauc/ as default\n");
 		c->mount_prefix = g_strdup("/mnt/rauc/");
 	}
 

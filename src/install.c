@@ -6,6 +6,8 @@
 #include "install.h"
 #include "manifest.h"
 #include "bundle.h"
+#include "mount.h"
+#include "utils.h"
 
 #define BOOTNAME "root"
 
@@ -295,10 +297,19 @@ out:
 	return mountpoint;
 }
 
-static gboolean launch_and_wait_default_handler(RaucManifest *manifest, GHashTable *target_group) {
+static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manifest, GHashTable *target_group) {
 
 	gboolean res = FALSE;
-	gchar *mountpoint;
+	GError *error = NULL;
+	gchar *mountpoint = NULL;
+	gchar *srcimagepath = NULL;
+	gchar *destdevicepath = NULL;
+	//gboolean require_mount = FALSE;
+	GFile *srcimagefile = NULL;
+	GFile *destdevicefile = NULL;
+
+	RaucSlotStatus *slot_state = NULL;
+	gchar *slotstatuspath = NULL;
 
 	mountpoint = create_mount_point("image");
 
@@ -317,13 +328,95 @@ static gboolean launch_and_wait_default_handler(RaucManifest *manifest, GHashTab
 		dest_slot_name = g_hash_table_lookup(target_group, mfimage->slotclass);
 		dest_slot = g_hash_table_lookup(r_context()->config->slots, dest_slot_name);
 
-		g_print("I will mount %s to %s and copy %s\n", dest_slot->device, mountpoint, mfimage->filename);
+		if (g_path_is_absolute(mfimage->filename)) {
+			srcimagepath = g_strdup(mfimage->filename);
+		} else {
+			srcimagepath = g_build_filename(cwd, mfimage->filename, NULL);
+		}
 
-		// TODO: check
+		if (!g_file_test(srcimagepath, G_FILE_TEST_EXISTS)) {
+			g_warning("Source image '%s' not found", srcimagepath);
+			goto out;
+		}
 
-		// TODO: copy
+		/* If device is relative, make it absolute relative to config path */
+		if (g_path_is_absolute(dest_slot->device)) {
+			destdevicepath = g_strdup(dest_slot->device);
+		} else {
+			gchar *base_path = get_parent_dir(r_context()->configpath);
+			destdevicepath = g_build_filename(base_path, dest_slot->device, NULL);
+			g_free(base_path);
+		}
 
-		// TODO: update slot
+		if (!g_file_test(destdevicepath, G_FILE_TEST_EXISTS)) {
+			g_warning("Destination device '%s' not found", destdevicepath);
+			goto out;
+		}
+
+		if (g_str_has_suffix(mfimage->filename, ".ext4")) {
+			g_print("Is an ext4 image\n");
+		} else if (g_str_has_suffix(mfimage->filename, ".img")) {
+			g_print("Is a raw image\n");
+		}
+
+		g_print(G_STRLOC " I will copy %s to %s\n", srcimagepath, destdevicepath);
+
+	
+		srcimagefile = g_file_new_for_path(srcimagepath);
+		destdevicefile = g_file_new_for_path(destdevicepath);
+
+		res = g_file_copy(
+			srcimagefile,
+			destdevicefile,
+			G_FILE_COPY_OVERWRITE,
+			NULL,
+			NULL,
+			NULL,
+			&error);
+
+		if (!res) {
+			g_warning("Failed copying image: %s", error->message);
+			g_clear_error(&error);
+		}
+
+		// TODO: status: copy done
+
+		g_print(G_STRLOC " I will mount %s to %s\n", destdevicepath, mountpoint);
+
+		res = r_mount_slot(dest_slot, mountpoint);
+		if (!res) {
+			g_warning("Mounting failed");
+			goto out;
+		}
+		g_print("filename: %s\n", mfimage->filename);
+		g_print("digest: %s\n", mfimage->checksum.digest);
+
+		slot_state = g_new0(RaucSlotStatus, 1);
+
+		slot_state->status = g_strdup("ok");
+		slot_state->checksum.type = mfimage->checksum.type;
+		slot_state->checksum.digest = g_strdup(mfimage->checksum.digest);
+		
+		slotstatuspath = g_build_filename(mountpoint, "slot.raucs", NULL);
+
+		g_print(G_STRLOC " I will update slot file %s\n", slotstatuspath);
+
+		res = save_slot_status(slotstatuspath, slot_state);
+
+		if (!res) {
+			g_warning("Failed writing status file");
+
+			r_umount(mountpoint);
+
+			goto out;
+		}
+		
+		g_print(G_STRLOC " I will unmount %s\n", mountpoint);
+		r_umount(mountpoint);
+		if (!res) {
+			g_warning("Unounting failed");
+			goto out;
+		}
 	}
 
 	// TODO: mark slots as non-bootable
@@ -332,6 +425,13 @@ static gboolean launch_and_wait_default_handler(RaucManifest *manifest, GHashTab
 
 out:
 	g_free(mountpoint);
+	g_free(srcimagepath);
+	g_free(destdevicepath);
+
+	g_object_unref(srcimagefile);
+	g_object_unref(destdevicefile);
+
+	free_slot_status(slot_state);
 
 	return res;
 }
@@ -354,7 +454,7 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 	gboolean res = FALSE;
 	gchar* mountpoint;
 	gchar* bundlelocation = NULL;
-	RaucManifest *manifest;
+	RaucManifest *manifest = NULL;
 	GHashTable *target_group;
 
 	g_assert_nonnull(bundlefile);
@@ -382,7 +482,14 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 	res = verify_manifest(mountpoint, &manifest, FALSE);
 
 	if (!res) {
-		g_warning("Failed veryfing manifest");
+		g_warning("Failed verifying manifest");
+		goto umount;
+	}
+
+	res = determine_slot_states();
+
+	if (!res) {
+		g_warning("Failed to determine slot states");
 		goto umount;
 	}
 
@@ -401,7 +508,7 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 		res = launch_and_wait_custom_handler(mountpoint, manifest->handler_name);
 	} else {
 		g_print("Using default handler\n");
-		res = launch_and_wait_default_handler(manifest, target_group);
+		res = launch_and_wait_default_handler(mountpoint, manifest, target_group);
 	}
 
 	if (!res) {
