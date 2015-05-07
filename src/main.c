@@ -17,7 +17,6 @@ static gboolean install_notify(gpointer data) {
 	g_application_command_line_print(cmdline, "foo!\n");
 
 	return FALSE;
-
 }
 
 static gpointer install_thread(gpointer data) {
@@ -43,7 +42,6 @@ static gboolean install_start(GApplicationCommandLine *cmdline, int argc, char *
 
 	g_print("Active slot bootname: %s\n", get_cmdline_bootname());
 
-
 	return G_SOURCE_REMOVE;
 }
 
@@ -63,7 +61,43 @@ static gboolean install_cleanup(gpointer data)
 
 static gboolean bundle_start(GApplicationCommandLine *cmdline, int argc, char **argv)
 {
+	int exit_status = 0;
+
 	g_application_command_line_print(cmdline, "bundle start\n");
+
+	if (r_context()->certpath == NULL ||
+	    r_context()->keypath == NULL) {
+		g_error("cert and key files must be provided");
+		goto out;
+	}
+
+	if (argc < 3) {
+		g_error("an input directory name must be provided");
+		goto out;
+	}
+
+	if (argc != 4) {
+		g_error("an output bundle name must be provided");
+		goto out;
+	}
+
+	g_print("input directory: %s\n", argv[2]);
+	g_print("output bundle: %s\n", argv[3]);
+
+	if (!update_manifest(argv[2], FALSE)) {
+		g_print("failed to update manifest\n");
+		exit_status = 1;
+		goto out;
+	}
+
+	if (!create_bundle(argv[3], argv[2])) {
+		g_print("failed to create bundle\n");
+		exit_status = 1;
+		goto out;
+	}
+
+out:
+	g_application_command_line_set_exit_status(cmdline, exit_status);
 
 	/* we are done handling this commandline */
 	g_object_unref(cmdline);
@@ -89,6 +123,7 @@ static gboolean checksum_start(GApplicationCommandLine *cmdline, int argc, char 
 
 	if (argc != 3) {
 		g_error("a directory name must be provided");
+		goto out;
 	}
 
 	g_print("updating checksums for: %s\n", argv[2]);
