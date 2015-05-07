@@ -4,6 +4,7 @@
 #include <string.h>
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <gio/gio.h>
 
 #include "utils.h"
 
@@ -52,4 +53,26 @@ gboolean rm_tree(const gchar *path) {
 	}
 
 	return TRUE;
+}
+
+
+gchar* get_parent_dir(const gchar* path) {
+	GFile *file;
+	GFile *parent;
+	gchar *base_path;
+
+	file = g_file_new_for_path(path);
+	if (!file)
+		return NULL;
+	parent = g_file_get_parent(file);
+	if (!parent)
+		return NULL;
+	base_path = g_file_get_path(parent);
+	if (!base_path)
+		return NULL;
+
+	g_object_unref(file);
+	g_object_unref(parent);
+
+	return base_path;
 }

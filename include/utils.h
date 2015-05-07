@@ -6,3 +6,5 @@ GBytes *read_file(const gchar *filename);
 gboolean write_file(const gchar *filename, GBytes *bytes);
 
 gboolean rm_tree(const gchar *path);
+
+gchar* get_parent_dir(const gchar* path);
