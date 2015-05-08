@@ -441,6 +441,19 @@ out:
 	return res;
 }
 
+static gboolean launch_and_wait_network_handler(const gchar* base_url,
+						RaucManifest *manifest,
+						GHashTable *target_group) {
+	gboolean res = FALSE;
+
+	(void)base_url;
+	(void)manifest;
+	(void)target_group;
+
+	res = TRUE;
+	return res;
+}
+
 void set_bootname_provider(const gchar* (*provider)(void)) {
 	bootname_provider = provider;
 }
@@ -528,4 +541,74 @@ out:
 
 	return res;
 
+}
+
+gboolean do_install_network(const gchar *url) {
+	gboolean res = FALSE;
+	gchar *base_url = NULL, *signature_url = NULL;
+	GBytes *manifest_data = NULL, *signature_data = NULL;
+	RaucManifest *manifest;
+	GHashTable *target_group;
+
+	g_assert_nonnull(url);
+
+	res = determine_slot_states();
+	if (!res) {
+		g_warning("Failed to determine slot states");
+		goto out;
+	}
+
+	res = download_mem(&manifest_data, url, 64*1024);
+	if (!res) {
+		g_warning("Failed to download manifest");
+		goto out;
+	}
+
+	signature_url = g_strconcat(url, ".sig", NULL);
+	res = download_mem(&signature_data, signature_url, 64*1024);
+	if (!res) {
+		g_warning("Failed to download manifest signature");
+		goto out;
+	}
+
+	res = cms_verify(manifest_data, signature_data);
+	if (!res) {
+		g_warning("Failed to verify manifest signature");
+		goto out;
+	}
+
+	res = load_manifest_mem(manifest_data, &manifest);
+	if (!res) {
+		g_warning("Failed to verify manifest signature");
+		goto out;
+	}
+
+	target_group = determine_target_install_group(manifest);
+	if (!target_group) {
+		g_warning("Could not determine target group");
+		goto out;
+	}
+
+	g_print("Target Group:\n");
+	print_hash_table(target_group);
+
+	base_url = g_path_get_dirname(url);
+
+	g_print("Using network handler for %s\n", base_url);
+	res = launch_and_wait_network_handler(base_url, manifest, target_group);
+	if (!res) {
+		g_warning("Starting handler failed");
+		goto out;
+	}
+
+	res = TRUE;
+
+out:
+	g_clear_pointer(&manifest, free_manifest);
+	g_clear_pointer(&base_url, g_free);
+	g_clear_pointer(&signature_url, g_free);
+	g_clear_pointer(&manifest_data, g_bytes_unref);
+	g_clear_pointer(&signature_data, g_bytes_unref);
+
+	return res;
 }

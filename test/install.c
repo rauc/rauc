@@ -82,6 +82,7 @@ static void install_fixture_set_up(InstallFixture *fixture,
 	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
 	g_assert_nonnull(contentdir);
 
+	/* Update checksums in manifest */
 	g_assert_true(update_manifest(contentdir, FALSE));
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -89,6 +90,9 @@ static void install_fixture_set_up(InstallFixture *fixture,
 
 	/* Create bundle */
 	g_assert_true(create_bundle(bundlepath, contentdir));
+
+	/* Create signed manifest (for do_install_network) */
+	g_assert_true(update_manifest(contentdir, TRUE));
 
 	/* Set dummy bootname provider */
 	set_bootname_provider(test_bootname_provider);
@@ -107,7 +111,7 @@ static void install_fixture_tear_down(InstallFixture *fixture,
 	//test_umount(fixture->tmpdir, "mount/bundle");
 }
 
-static void install_test1(InstallFixture *fixture,
+static void install_test_target(InstallFixture *fixture,
 		gconstpointer user_data)
 {
 	RaucManifest *rm;
@@ -136,7 +140,7 @@ static void install_test1(InstallFixture *fixture,
 	g_assert_cmpint(g_hash_table_size(tgrp), ==, 2);
 }
 
-static void install_test2(InstallFixture *fixture,
+static void install_test_bundle(InstallFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *bundlepath;
@@ -154,18 +158,40 @@ static void install_test2(InstallFixture *fixture,
 	g_assert_true(do_install_bundle(bundlepath));
 }
 
+static void install_test_network(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *manifesturl;
+	gchar *mountdir;
+
+	/* Set mount path to current temp dir */
+	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
+	g_assert_nonnull(mountdir);
+	r_context_conf()->mountprefix = g_strdup(mountdir);
+	r_context();
+
+	manifesturl = g_strconcat("file://", fixture->tmpdir,
+				  "/content/manifest.raucm", NULL);
+
+	g_assert_true(do_install_network(manifesturl));
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "");
 
 	g_test_init(&argc, &argv, NULL);
 
-	g_test_add("/install/test1", InstallFixture, NULL,
-		   install_fixture_set_up, install_test1,
+	g_test_add("/install/target", InstallFixture, NULL,
+		   install_fixture_set_up, install_test_target,
 		   install_fixture_tear_down);
 
-	g_test_add("/install/test2", InstallFixture, NULL,
-		   install_fixture_set_up, install_test2,
+	g_test_add("/install/bundle", InstallFixture, NULL,
+		   install_fixture_set_up, install_test_bundle,
+		   install_fixture_tear_down);
+
+	g_test_add("/install/network", InstallFixture, NULL,
+		   install_fixture_set_up, install_test_network,
 		   install_fixture_tear_down);
 
 	return g_test_run();

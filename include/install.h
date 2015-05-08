@@ -14,3 +14,4 @@ GHashTable* determine_target_install_group(RaucManifest *manifest);
 void set_bootname_provider(const gchar* (*provider)(void));
 
 gboolean do_install_bundle(const gchar* bundlelocation);
+gboolean do_install_network(const gchar *url);
