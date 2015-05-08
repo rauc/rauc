@@ -464,8 +464,13 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 
 	g_assert_nonnull(bundlefile);
 
-	mountpoint = create_mount_point("bundle");
+	res = determine_slot_states();
+	if (!res) {
+		g_warning("Failed to determine slot states");
+		goto out;
+	}
 
+	mountpoint = create_mount_point("bundle");
 	if (!mountpoint) {
 		goto out;
 	}
@@ -478,28 +483,18 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 
 	// TODO: mount info in context ?
 	res = mount_bundle(bundlelocation, mountpoint);
-
 	if (!res) {
 		g_warning("Failed mounting bundle");
 		goto umount;
 	}
 
 	res = verify_manifest(mountpoint, &manifest, FALSE);
-
 	if (!res) {
 		g_warning("Failed verifying manifest");
 		goto umount;
 	}
 
-	res = determine_slot_states();
-
-	if (!res) {
-		g_warning("Failed to determine slot states");
-		goto umount;
-	}
-
 	target_group = determine_target_install_group(manifest);
-
 	if (!target_group) {
 		g_warning("Could not determine target group");
 		goto umount;
@@ -527,9 +522,8 @@ umount:
 
 	umount_bundle(bundlelocation);
 	g_rmdir(mountpoint);
-
-out:
 	g_free(mountpoint);
+out:
 	g_free(bundlelocation);
 	free_manifest(manifest);
 
