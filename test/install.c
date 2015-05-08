@@ -21,8 +21,6 @@ typedef struct {
 static void install_fixture_set_up(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *contentdir;
-	gchar *bundlepath;
 	gchar *configpath;
 	gchar *certpath;
 	gchar *keypath;
@@ -65,6 +63,31 @@ static void install_fixture_set_up(InstallFixture *fixture,
 				         SLOT_SIZE, "/dev/zero") == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/appfs-1",
 					 SLOT_SIZE, "/dev/zero") == 0);
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/rootfs-1"));
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/appfs-1"));
+
+	/* Make images user-writable */
+	test_make_slot_user_writable(fixture->tmpdir, "images/rootfs-1");
+	test_make_slot_user_writable(fixture->tmpdir, "images/appfs-1");
+	
+	/* Set dummy bootname provider */
+	set_bootname_provider(test_bootname_provider);
+
+	g_free(configpath);
+	g_free(certpath);
+	g_free(keypath);
+	g_free(capath);
+}
+
+static void install_fixture_set_up_bundle(InstallFixture *fixture,
+		gconstpointer user_data) {
+	gchar *contentdir;
+	gchar *bundlepath;
+
+	install_fixture_set_up(fixture, user_data);
+
+	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
+	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 
 	/* Setup bundle content */
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.img",
@@ -75,34 +98,41 @@ static void install_fixture_set_up(InstallFixture *fixture,
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/appfs.img"));
 	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm") == 0);
 
-	/* make images user-writable */
+	/* Make images user-writable */
 	test_make_slot_user_writable(fixture->tmpdir, "content/rootfs.img");
 	test_make_slot_user_writable(fixture->tmpdir, "content/appfs.img");
-
-	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
-	g_assert_nonnull(contentdir);
 
 	/* Update checksums in manifest */
 	g_assert_true(update_manifest(contentdir, FALSE));
 
-	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
-	g_assert_nonnull(bundlepath);
-
 	/* Create bundle */
 	g_assert_true(create_bundle(bundlepath, contentdir));
+
+	g_free(bundlepath);
+	g_free(contentdir);
+}
+
+static void install_fixture_set_up_network(InstallFixture *fixture,
+		gconstpointer user_data) {
+	gchar *contentdir;
+
+	install_fixture_set_up(fixture, user_data);
+
+	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
+
+	/* Setup bundle content */
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.img",
+					 SLOT_SIZE, "/dev/zero") == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img",
+					 SLOT_SIZE, "/dev/zero") == 0);
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/rootfs.img"));
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/appfs.img"));
+	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm") == 0);
 
 	/* Create signed manifest (for do_install_network) */
 	g_assert_true(update_manifest(contentdir, TRUE));
 
-	/* Set dummy bootname provider */
-	set_bootname_provider(test_bootname_provider);
-
 	g_free(contentdir);
-	g_free(bundlepath);
-	g_free(configpath);
-	g_free(certpath);
-	g_free(keypath);
-	g_free(capath);
 }
 
 static void install_fixture_tear_down(InstallFixture *fixture,
@@ -129,7 +159,6 @@ static void install_test_target(InstallFixture *fixture,
 	g_assert_cmpint(((RaucSlot*) g_hash_table_lookup(r_context()->config->slots, "rootfs.1"))->state, ==, ST_INACTIVE);
 	g_assert_cmpint(((RaucSlot*) g_hash_table_lookup(r_context()->config->slots, "appfs.0"))->state, ==, ST_ACTIVE);
 	g_assert_cmpint(((RaucSlot*) g_hash_table_lookup(r_context()->config->slots, "appfs.1"))->state, ==, ST_INACTIVE);
-
 
 	tgrp = determine_target_install_group(rm);
 
@@ -187,11 +216,11 @@ int main(int argc, char *argv[])
 		   install_fixture_tear_down);
 
 	g_test_add("/install/bundle", InstallFixture, NULL,
-		   install_fixture_set_up, install_test_bundle,
+		   install_fixture_set_up_bundle, install_test_bundle,
 		   install_fixture_tear_down);
 
 	g_test_add("/install/network", InstallFixture, NULL,
-		   install_fixture_set_up, install_test_network,
+		   install_fixture_set_up_network, install_test_network,
 		   install_fixture_tear_down);
 
 	return g_test_run();
