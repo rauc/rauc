@@ -112,26 +112,81 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 	g_free(contentdir);
 }
 
+static void rename_manifest(const gchar *contentdir, const gchar *targetname) {
+	gchar *manifestpath1 = g_strconcat(contentdir,
+			"/manifest.raucm", NULL);
+	gchar *manifestpath2 = g_strconcat(contentdir,
+			"/", targetname, ".raucm", NULL);
+	gchar *signaturepath1 = g_strconcat(contentdir,
+			"/manifest.raucm.sig", NULL);
+	gchar *signaturepath2 = g_strconcat(contentdir,
+			"/", targetname, ".raucm.sig", NULL);
+
+	g_assert(g_rename(manifestpath1, manifestpath2) == 0);
+	g_assert(g_rename(signaturepath1, signaturepath2) == 0);
+
+	g_free(manifestpath1);
+	g_free(manifestpath2);
+	g_free(signaturepath1);
+	g_free(signaturepath2);
+}
+
 static void install_fixture_set_up_network(InstallFixture *fixture,
 		gconstpointer user_data) {
+	RaucManifest *rm = g_new0(RaucManifest, 1);
+	RaucFile *files;
 	gchar *contentdir;
+	gchar *manifestpath;
 
 	install_fixture_set_up(fixture, user_data);
 
 	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
+	manifestpath = g_build_filename(fixture->tmpdir, "content/manifest.raucm", NULL);
 
 	/* Setup bundle content */
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.img",
-					 SLOT_SIZE, "/dev/zero") == 0);
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img",
-					 SLOT_SIZE, "/dev/zero") == 0);
-	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/rootfs.img"));
-	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/appfs.img"));
-	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm") == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/vmlinuz-1",
+					 64*1024, "/dev/urandom") == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/vmlinuz-2",
+					 64*1024, "/dev/urandom") == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/initramfs-1",
+					 32*1024, "/dev/urandom") == 0);
 
-	/* Create signed manifest (for do_install_network) */
+	/* Prepare manifest */
+	rm->update_compatible = g_strdup("Test Config");
+	rm->update_version = g_strdup("2011.03-2");
+
+	files = g_new0(RaucFile, 2);
+
+	files[0].slotclass = g_strdup("rootfs");
+	files[0].filename = g_strdup("vmlinuz-1");
+	files[0].destname = g_strdup("vmlinuz");
+	rm->files = g_list_append(rm->files, &files[0]);
+
+	files[1].slotclass = g_strdup("rootfs");
+	files[1].filename = g_strdup("initramfs-1");
+	files[1].destname = g_strdup("initramfs");
+	rm->files = g_list_append(rm->files, &files[1]);
+
+	/* Create signed manifest */
+	g_assert_true(save_manifest_file(manifestpath, rm));
 	g_assert_true(update_manifest(contentdir, TRUE));
+	rename_manifest(contentdir, "manifest-1");
 
+	/* Modify manifest vmlinuz-1 -> vmlinuz-2 */
+	files[0].filename = g_strdup("vmlinuz-2");
+	g_assert_true(save_manifest_file(manifestpath, rm));
+	g_assert_true(update_manifest(contentdir, TRUE));
+	rename_manifest(contentdir, "manifest-2");
+
+	/* Modify manifest (no initramfs) */
+	files[0].filename = g_strdup("vmlinuz-2");
+	rm->files = g_list_remove(rm->files, &files[1]);
+	g_assert_true(save_manifest_file(manifestpath, rm));
+	g_assert_true(update_manifest(contentdir, TRUE));
+	rename_manifest(contentdir, "manifest-3");
+
+	free_manifest(rm);
+	g_free(manifestpath);
 	g_free(contentdir);
 }
 
@@ -200,9 +255,19 @@ static void install_test_network(InstallFixture *fixture,
 	r_context();
 
 	manifesturl = g_strconcat("file://", fixture->tmpdir,
-				  "/content/manifest.raucm", NULL);
-
+				  "/content/manifest-1.raucm", NULL);
 	g_assert_true(do_install_network(manifesturl));
+	g_free(manifesturl);
+
+	manifesturl = g_strconcat("file://", fixture->tmpdir,
+				  "/content/manifest-2.raucm", NULL);
+	g_assert_true(do_install_network(manifesturl));
+	g_free(manifesturl);
+
+	manifesturl = g_strconcat("file://", fixture->tmpdir,
+				  "/content/manifest-3.raucm", NULL);
+	g_assert_true(do_install_network(manifesturl));
+	g_free(manifesturl);
 }
 
 int main(int argc, char *argv[])
