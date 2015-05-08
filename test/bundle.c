@@ -3,97 +3,16 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 
+#include <bundle.h>
 #include <context.h>
 #include <manifest.h>
 #include <utils.h>
-#include "bundle.h"
+
+#include "common.h"
 
 typedef struct {
 	gchar *tmpdir;
 } BundleFixture;
-
-static int prepare_dummy_file(const gchar *dirname, const gchar *filename, gsize size) {
-	GIOChannel *input, *output;
-	GIOStatus status;
-	gchar *path;
-
-	input = g_io_channel_new_file("/dev/urandom", "r", NULL);
-	g_assert_nonnull(input);
-	status = g_io_channel_set_encoding(input, NULL, NULL);
-	g_assert(status == G_IO_STATUS_NORMAL);
-
-	path = g_build_filename(dirname, filename, NULL);
-	g_assert_nonnull(path);
-
-	output = g_io_channel_new_file(path, "w+", NULL);
-	g_assert_nonnull(output);
-	status = g_io_channel_set_encoding(output, NULL, NULL);
-	g_assert(status == G_IO_STATUS_NORMAL);
-	g_free(path);
-
-	while (size) {
-		gchar buf[4096];
-		gsize bytes_to_read = size < sizeof(buf) ? size : sizeof(buf);
-		gsize bytes_read, bytes_written;
-		GError *error = NULL;
-
-		status = g_io_channel_read_chars(input, buf, bytes_to_read,
-						 &bytes_read, &error);
-		g_assert_no_error(error);
-		g_assert(status == G_IO_STATUS_NORMAL);
-
-		status = g_io_channel_write_chars(output, buf, bytes_read,
-						  &bytes_written, &error);
-		g_assert_no_error(error);
-		g_assert(status == G_IO_STATUS_NORMAL);
-		g_assert(bytes_read == bytes_written);
-
-		size -= bytes_read;
-	}
-
-	g_io_channel_unref(input);
-	g_io_channel_unref(output);
-	return 0;
-}
-
-static int prepare_manifest_file(const gchar *dirname, const gchar *filename) {
-	gchar *path = g_build_filename(dirname, filename, NULL);
-	RaucManifest *rm = g_new0(RaucManifest, 1);
-	RaucImage *img;
-
-	rm->update_compatible = g_strdup("Test Config");
-	rm->update_version = g_strdup("2011.03-2");
-
-	img = g_new0(RaucImage, 1);
-
-	img->slotclass = g_strdup("rootfs");
-	img->filename = g_strdup("rootfs.img");
-	rm->images = g_list_append(rm->images, img);
-
-	img = g_new0(RaucImage, 1);
-
-	img->slotclass = g_strdup("appfs");
-	img->filename = g_strdup("appfs.img");
-	rm->images = g_list_append(rm->images, img);
-
-	g_assert_true(save_manifest_file(path, rm));
-
-	free_manifest(rm);
-	return 0;
-}
-
-static int mkdir_relative(const gchar *dirname, const gchar *filename, int mode) {
-	gchar *path;
-	int res;
-
-	path = g_strdup_printf("%s/%s", dirname, filename);
-	g_assert_nonnull(path);
-
-	res = g_mkdir(path, mode);
-
-	g_free(path);
-	return res;
-}
 
 static void bundle_fixture_set_up(BundleFixture *fixture,
 		gconstpointer user_data)
@@ -101,11 +20,11 @@ static void bundle_fixture_set_up(BundleFixture *fixture,
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
 	g_print("bundle tmpdir: %s\n", fixture->tmpdir);
-	g_assert(mkdir_relative(fixture->tmpdir, "content", 0777) == 0);
-	g_assert(mkdir_relative(fixture->tmpdir, "mount", 0777) == 0);
-	g_assert(prepare_dummy_file(fixture->tmpdir, "content/rootfs.img", 1024*1024) == 0);
-	g_assert(prepare_dummy_file(fixture->tmpdir, "content/appfs.img", 64*1024) == 0);
-	g_assert(prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm") == 0);
+	g_assert(test_mkdir_relative(fixture->tmpdir, "content", 0777) == 0);
+	g_assert(test_mkdir_relative(fixture->tmpdir, "mount", 0777) == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.img", 1024*1024) == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img", 64*1024) == 0);
+	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm") == 0);
 }
 
 static void bundle_fixture_tear_down(BundleFixture *fixture,
@@ -174,7 +93,7 @@ static void bundle_test3(BundleFixture *fixture,
 	g_assert_true(verify_manifest(contentdir, NULL, FALSE));
 	g_assert_true(verify_manifest(contentdir, NULL, TRUE));
 
-	g_assert(prepare_dummy_file(fixture->tmpdir, "content/appfs.img", 64*1024) == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img", 64*1024) == 0);
 	g_assert_false(verify_manifest(contentdir, NULL, FALSE));
 	g_assert_false(verify_manifest(contentdir, NULL, TRUE));
 
@@ -210,5 +129,5 @@ int main(int argc, char *argv[])
 		   bundle_fixture_set_up, bundle_test3,
 		   bundle_fixture_tear_down);
 
-	return g_test_run ();
+	return g_test_run();
 }

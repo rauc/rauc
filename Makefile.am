@@ -47,11 +47,16 @@ check_PROGRAMS = \
 	test/install.test \
 	test/network.test \
 	test/bundle.test
+check_LTLIBRARIES = librauctest.la
+
+librauctest_la_SOURCES = \
+	test/common.c
+librauctest_la_LIBADD = $(GLIB_LIBS)
 
 TESTS = $(check_PROGRAMS) test/rauc.t
 
 test_bundle_test_SOURCES = test/bundle.c
-test_bundle_test_LDADD = librauc.la
+test_bundle_test_LDADD = librauc.la librauctest.la
 
 test_checksum_test_SOURCES = test/checksum.c
 test_checksum_test_LDADD = librauc.la
@@ -63,7 +68,7 @@ test_signature_test_SOURCES = test/signature.c
 test_signature_test_LDADD = librauc.la
 
 test_install_test_SOURCES = test/install.c
-test_install_test_LDADD = librauc.la
+test_install_test_LDADD = librauc.la librauctest.la
 
 test_network_test_SOURCES = test/network.c
 test_network_test_LDADD = librauc.la
