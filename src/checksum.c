@@ -16,9 +16,14 @@ gboolean update_checksum(RaucChecksum *checksum, const gchar *filename) {
 		checksum->type = RAUC_DEFAULT_CHECKSUM;
 	g_clear_pointer(&checksum->digest, g_free);
 	checksum->digest = g_compute_checksum_for_bytes(checksum->type, content);
+	checksum->size = g_bytes_get_size(content);
 	
 	res = TRUE;
 out:
+	if (!res) {
+		g_clear_pointer(&checksum->digest, g_free);
+		checksum->size = 0;
+	}
 	g_clear_pointer(&content, g_bytes_unref);
 	g_clear_pointer(&file, g_mapped_file_unref);
 	return res;

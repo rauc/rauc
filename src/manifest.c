@@ -48,6 +48,8 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest) {
 				image->checksum.type = G_CHECKSUM_SHA256;
 				image->checksum.digest = value;
 			}
+			image->checksum.size = g_key_file_get_uint64(key_file,
+					groups[i], "size", NULL);
 
 			image->filename = g_key_file_get_string(key_file, groups[i], "filename", NULL);
 
@@ -72,6 +74,9 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest) {
 				file->checksum.type = G_CHECKSUM_SHA256;
 				file->checksum.digest = value;
 			}
+			file->checksum.size = g_key_file_get_uint64(key_file,
+					groups[i], "size", NULL);
+
 
 			file->filename = g_key_file_get_string(key_file, groups[i], "filename", NULL);
 
@@ -159,6 +164,8 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf) {
 
 		if (image->checksum.type == G_CHECKSUM_SHA256)
 			g_key_file_set_string(key_file, group, "sha256", image->checksum.digest);
+		if (image->checksum.size)
+			g_key_file_set_uint64(key_file, group, "size", image->checksum.size);
 
 		if (image->filename)
 			g_key_file_set_string(key_file, group, "filename", image->filename);
@@ -177,6 +184,8 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf) {
 
 		if (file->checksum.type == G_CHECKSUM_SHA256)
 			g_key_file_set_string(key_file, group, "sha256", file->checksum.digest);
+		if (file->checksum.size)
+			g_key_file_set_uint64(key_file, group, "size", file->checksum.size);
 
 		if (file->filename)
 			g_key_file_set_string(key_file, group, "filename", file->filename);
