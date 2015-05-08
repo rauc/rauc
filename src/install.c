@@ -492,7 +492,7 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 			gchar *tmpname = g_build_filename(mountpoint,
 							  ".tmp.XXX",
 							  NULL);
-			gsize size = 20*1024*1024; // TODO: get size from manifest
+			gsize size = mffile->checksum.size;
 			gchar *fileurl = g_strconcat(base_url, "/",
 						     mffile->filename, NULL);
 
