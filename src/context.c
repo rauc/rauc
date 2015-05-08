@@ -33,6 +33,9 @@ void r_context_set_busy(gboolean busy) {
 	g_assert_nonnull(context);
 	g_assert(context->busy != busy);
 
+	if (!context->busy && context->pending)
+		r_context_configure();
+
 	context->busy = busy;
 }
 
