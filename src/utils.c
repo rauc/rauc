@@ -56,23 +56,27 @@ gboolean rm_tree(const gchar *path) {
 }
 
 
-gchar* get_parent_dir(const gchar* path) {
-	GFile *file;
-	GFile *parent;
-	gchar *base_path;
+gchar *resolve_path(const gchar *basefile, gchar *path) {
+	gchar *cwd = NULL, *dir = NULL, *res = NULL;
 
-	file = g_file_new_for_path(path);
-	if (!file)
-		return NULL;
-	parent = g_file_get_parent(file);
-	if (!parent)
-		return NULL;
-	base_path = g_file_get_path(parent);
-	if (!base_path)
+	if (path == NULL)
 		return NULL;
 
-	g_object_unref(file);
-	g_object_unref(parent);
+	if (g_path_is_absolute(path))
+		return path;
 
-	return base_path;
+	dir = g_path_get_dirname(basefile);
+	if (g_path_is_absolute(dir)) {
+		res = g_build_filename(dir, path, NULL);
+		goto out;
+	}
+
+	cwd = g_get_current_dir();
+	res = g_build_filename(cwd, dir, path, NULL);
+
+out:
+	g_clear_pointer(&cwd, g_free);
+	g_clear_pointer(&dir, g_free);
+	g_clear_pointer(&path, g_free);
+	return res;
 }

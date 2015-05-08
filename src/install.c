@@ -303,7 +303,6 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 	GError *error = NULL;
 	gchar *mountpoint = NULL;
 	gchar *srcimagepath = NULL;
-	gchar *destdevicepath = NULL;
 	//gboolean require_mount = FALSE;
 	GFile *srcimagefile = NULL;
 	GFile *destdevicefile = NULL;
@@ -339,17 +338,8 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 			goto out;
 		}
 
-		/* If device is relative, make it absolute relative to config path */
-		if (g_path_is_absolute(dest_slot->device)) {
-			destdevicepath = g_strdup(dest_slot->device);
-		} else {
-			gchar *base_path = get_parent_dir(r_context()->configpath);
-			destdevicepath = g_build_filename(base_path, dest_slot->device, NULL);
-			g_free(base_path);
-		}
-
-		if (!g_file_test(destdevicepath, G_FILE_TEST_EXISTS)) {
-			g_warning("Destination device '%s' not found", destdevicepath);
+		if (!g_file_test(dest_slot->device, G_FILE_TEST_EXISTS)) {
+			g_warning("Destination device '%s' not found", dest_slot->device);
 			goto out;
 		}
 
@@ -359,11 +349,11 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 			g_print("Is a raw image\n");
 		}
 
-		g_print(G_STRLOC " I will copy %s to %s\n", srcimagepath, destdevicepath);
+		g_print(G_STRLOC " I will copy %s to %s\n", srcimagepath, dest_slot->device);
 
 	
 		srcimagefile = g_file_new_for_path(srcimagepath);
-		destdevicefile = g_file_new_for_path(destdevicepath);
+		destdevicefile = g_file_new_for_path(dest_slot->device);
 
 		res = g_file_copy(
 			srcimagefile,
@@ -381,7 +371,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 
 		// TODO: status: copy done
 
-		g_print(G_STRLOC " I will mount %s to %s\n", destdevicepath, mountpoint);
+		g_print(G_STRLOC " I will mount %s to %s\n", dest_slot->device, mountpoint);
 
 		res = r_mount_slot(dest_slot, mountpoint);
 		if (!res) {
@@ -426,7 +416,6 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 out:
 	g_free(mountpoint);
 	g_free(srcimagepath);
-	g_free(destdevicepath);
 
 	g_object_unref(srcimagefile);
 	g_object_unref(destdevicefile);

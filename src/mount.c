@@ -57,24 +57,14 @@ gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, gsize size
 }
 
 gboolean r_mount_slot(RaucSlot *slot, const gchar *mountpoint) {
-	gchar *destdevicepath;
-
 	g_assert_nonnull(slot);
 
-	if (g_path_is_absolute(slot->device)) {
-		destdevicepath = g_strdup(slot->device);
-	} else {
-		gchar *base_path = get_parent_dir(r_context()->configpath);
-		destdevicepath = g_build_filename(base_path, slot->device, NULL);
-		g_free(base_path);
-	}
-
-	if (!g_file_test(destdevicepath, G_FILE_TEST_EXISTS)) {
-		g_warning("Destination device '%s' not found", destdevicepath);
+	if (!g_file_test(slot->device, G_FILE_TEST_EXISTS)) {
+		g_warning("Destination device '%s' not found", slot->device);
 		return FALSE;
 	}
 
-	return mount_full(destdevicepath, mountpoint, NULL, 0);
+	return mount_full(slot->device, mountpoint, NULL, 0);
 }
 
 gboolean r_umount(const gchar *filename) {

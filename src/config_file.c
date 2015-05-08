@@ -2,29 +2,9 @@
 
 #include "config_file.h"
 
+#include <utils.h>
+
 #define RAUC_SLOT_PREFIX	"slot"
-
-static gchar *resolve_path(const gchar *basefile, gchar *path) {
-	gchar *cwd = NULL, *dir = NULL, *res = NULL;
-
-	if (g_path_is_absolute(path))
-		return path;
-
-	dir = g_path_get_dirname(basefile);
-	if (g_path_is_absolute(dir)) {
-		res = g_build_filename(dir, path, NULL);
-		goto out;
-	}
-
-	cwd = g_get_current_dir();
-	res = g_build_filename(cwd, dir, path, NULL);
-
-out:
-	g_clear_pointer(&cwd, g_free);
-	g_clear_pointer(&dir, g_free);
-	g_clear_pointer(&path, g_free);
-	return res;
-}
 
 static void free_slot(gpointer value) {
 	RaucSlot *slot = (RaucSlot*)value;
@@ -90,7 +70,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config) {
 			}
 			slot->name = g_strdup(value);
 
-			value = g_key_file_get_string(key_file, groups[i], "device", NULL);
+			value = resolve_path(filename,
+				g_key_file_get_string(key_file, groups[i], "device", NULL));
 			if (!value) {
 				g_printerr("Failed to parse device name\n");
 				goto free;
