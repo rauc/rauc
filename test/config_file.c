@@ -6,36 +6,21 @@
 #include "manifest.h"
 #include "utils.h"
 
-typedef struct {
-	RaucConfig *config;
-} ConfigFileFixture;
-
-static void config_file_fixture_set_up(ConfigFileFixture *fixture,
-		gconstpointer user_data)
-{
-}
-
-static void config_file_fixture_tear_down(ConfigFileFixture *fixture,
-		gconstpointer user_data)
-{
-	g_free(fixture->config);
-}
-
-static void config_file_test1(ConfigFileFixture *fixture,
-		gconstpointer user_data)
+static void config_file_test1(void)
 {
 	GList *slotlist, *l;
+	RaucConfig *config;
 	RaucSlot *slot;
 
-	load_config("test/system.conf", &fixture->config);
-	g_assert_nonnull(fixture->config);
-	g_assert_cmpstr(fixture->config->system_compatible, ==, "FooCorp Super BarBazzer");
-	g_assert_cmpstr(fixture->config->system_bootloader, ==, "barebox");
-	g_assert_cmpstr(fixture->config->mount_prefix, ==, "/mnt/myrauc/");
+	load_config("test/system.conf", &config);
+	g_assert_nonnull(config);
+	g_assert_cmpstr(config->system_compatible, ==, "FooCorp Super BarBazzer");
+	g_assert_cmpstr(config->system_bootloader, ==, "barebox");
+	g_assert_cmpstr(config->mount_prefix, ==, "/mnt/myrauc/");
 
-	g_assert_nonnull(fixture->config->slots);
-	slotlist = g_hash_table_get_keys(fixture->config->slots);
-	slot = g_hash_table_lookup(fixture->config->slots, "rootfs.0");
+	g_assert_nonnull(config->slots);
+	slotlist = g_hash_table_get_keys(config->slots);
+	slot = g_hash_table_lookup(config->slots, "rootfs.0");
 	g_assert_cmpstr(slot->name, ==, "rootfs.0");
 	g_assert_cmpstr(slot->device, ==, "/dev/sda0");
 	g_assert_cmpstr(slot->bootname, ==, "system0");
@@ -45,7 +30,7 @@ static void config_file_test1(ConfigFileFixture *fixture,
 	g_assert_cmpuint(g_list_length(slotlist), ==, 5);
 
 	for (l = slotlist; l != NULL; l = l->next) {
-		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(fixture->config->slots, l->data);
+		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(config->slots, l->data);
 		g_assert_nonnull(s->name);
 		g_assert_nonnull(s->device);
 		g_assert_nonnull(s->type);
@@ -61,7 +46,7 @@ static void config_file_test1(ConfigFileFixture *fixture,
 	}
 	g_list_free(slotlist);
 
-	free_config(fixture->config);
+	free_config(config);
 }
 
 static void manifest_check_common(RaucManifest *rm) {
@@ -112,8 +97,7 @@ static void manifest_check_common(RaucManifest *rm) {
 	}
 }
 
-static void config_file_test2(ConfigFileFixture *fixture,
-		gconstpointer user_data)
+static void config_file_test2(void)
 {
 	RaucManifest *rm;
 
@@ -123,8 +107,7 @@ static void config_file_test2(ConfigFileFixture *fixture,
 	free_manifest(rm);
 }
 
-static void config_file_test3(ConfigFileFixture *fixture,
-		gconstpointer user_data)
+static void config_file_test3(void)
 {
 	RaucSlotStatus *ss;
 	g_assert_true(load_slot_status("test/rootfs.raucs", &ss));
@@ -137,8 +120,7 @@ static void config_file_test3(ConfigFileFixture *fixture,
 	free_slot_status(ss);
 }
 
-static void config_file_test4(ConfigFileFixture *fixture,
-		gconstpointer user_data)
+static void config_file_test4(void)
 {
 	RaucManifest *rm = g_new0(RaucManifest, 1);
 	RaucImage *new_image;
@@ -213,8 +195,7 @@ static void config_file_test4(ConfigFileFixture *fixture,
 }
 
 
-static void config_file_test5(ConfigFileFixture *fixture,
-		gconstpointer user_data)
+static void config_file_test5(void)
 {
 	RaucSlotStatus *ss = g_new0(RaucSlotStatus, 1);
 
@@ -237,8 +218,7 @@ static void config_file_test5(ConfigFileFixture *fixture,
 	free_slot_status(ss);
 }
 
-static void config_file_test6(ConfigFileFixture *fixture,
-		gconstpointer user_data)
+static void config_file_test6(void)
 {
 	GBytes *data = NULL;
 	RaucManifest *rm;
@@ -256,29 +236,12 @@ int main(int argc, char *argv[])
 
 	g_test_init(&argc, &argv, NULL);
 
-	g_test_add("/config-file/test1", ConfigFileFixture, NULL,
-			config_file_fixture_set_up, config_file_test1,
-			config_file_fixture_tear_down);
-
-	g_test_add("/config-file/test2", ConfigFileFixture, NULL,
-			config_file_fixture_set_up, config_file_test2,
-			config_file_fixture_tear_down);
-
-	g_test_add("/config-file/test3", ConfigFileFixture, NULL,
-			config_file_fixture_set_up, config_file_test3,
-			config_file_fixture_tear_down);
-
-	g_test_add("/config-file/test4", ConfigFileFixture, NULL,
-			config_file_fixture_set_up, config_file_test4,
-			config_file_fixture_tear_down);
-
-	g_test_add("/config-file/test5", ConfigFileFixture, NULL,
-			config_file_fixture_set_up, config_file_test5,
-			config_file_fixture_tear_down);
-
-	g_test_add("/config-file/test6", ConfigFileFixture, NULL,
-			config_file_fixture_set_up, config_file_test6,
-			config_file_fixture_tear_down);
+	g_test_add_func("/config-file/test1", config_file_test1);
+	g_test_add_func("/config-file/test2", config_file_test2);
+	g_test_add_func("/config-file/test3", config_file_test3);
+	g_test_add_func("/config-file/test4", config_file_test4);
+	g_test_add_func("/config-file/test5", config_file_test5);
+	g_test_add_func("/config-file/test6", config_file_test6);
 
 	return g_test_run ();
 }
