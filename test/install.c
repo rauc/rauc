@@ -16,6 +16,8 @@ typedef struct {
 	gchar *tmpdir;
 } InstallFixture;
 
+#define SLOT_SIZE (10*1024*1024)
+
 static void install_fixture_set_up(InstallFixture *fixture,
 		gconstpointer user_data)
 {
@@ -59,12 +61,16 @@ static void install_fixture_set_up(InstallFixture *fixture,
 	g_assert_true(test_copy_file("test/openssl-ca/dev-ca.pem", capath));
 
 	/* Setup pseudo devices */
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/rootfs-1", 0) == 0);
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/appfs-1", 0) == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/rootfs-1",
+				         SLOT_SIZE, "/dev/zero") == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/appfs-1",
+					 SLOT_SIZE, "/dev/zero") == 0);
 
 	/* Setup bundle content */
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.img", 10*1024*1024) == 0);
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img", 10*1024*1024) == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.img",
+					 SLOT_SIZE, "/dev/zero") == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img",
+					 SLOT_SIZE, "/dev/zero") == 0);
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/rootfs.img"));
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/appfs.img"));
 	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm") == 0);

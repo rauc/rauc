@@ -22,8 +22,10 @@ static void bundle_fixture_set_up(BundleFixture *fixture,
 	g_print("bundle tmpdir: %s\n", fixture->tmpdir);
 	g_assert(test_mkdir_relative(fixture->tmpdir, "content", 0777) == 0);
 	g_assert(test_mkdir_relative(fixture->tmpdir, "mount", 0777) == 0);
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.img", 1024*1024) == 0);
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img", 64*1024) == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.img",
+					 1024*1024, "/dev/urandom") == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img",
+				         64*1024, "/dev/urandom") == 0);
 	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm") == 0);
 }
 
@@ -93,7 +95,8 @@ static void bundle_test3(BundleFixture *fixture,
 	g_assert_true(verify_manifest(contentdir, NULL, FALSE));
 	g_assert_true(verify_manifest(contentdir, NULL, TRUE));
 
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img", 64*1024) == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img",
+					 64*1024, "/dev/urandom") == 0);
 	g_assert_false(verify_manifest(contentdir, NULL, FALSE));
 	g_assert_false(verify_manifest(contentdir, NULL, TRUE));
 

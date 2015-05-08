@@ -13,12 +13,13 @@ typedef struct {
 	gchar *tmpdir;
 } InstallFixture;
 
-int test_prepare_dummy_file(const gchar *dirname, const gchar *filename, gsize size) {
+int test_prepare_dummy_file(const gchar *dirname, const gchar *filename,
+			    gsize size, const gchar *source) {
 	GIOChannel *input, *output;
 	GIOStatus status;
 	gchar *path;
 
-	input = g_io_channel_new_file("/dev/urandom", "r", NULL);
+	input = g_io_channel_new_file(source, "r", NULL);
 	g_assert_nonnull(input);
 	status = g_io_channel_set_encoding(input, NULL, NULL);
 	g_assert(status == G_IO_STATUS_NORMAL);
