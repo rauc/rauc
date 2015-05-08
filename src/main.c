@@ -9,21 +9,29 @@
 #include <context.h>
 #include <install.h>
 
+typedef struct {
+	GApplicationCommandLine *cmdline;
+	const gchar *bundlename;
+} RaucInstallArgs;
+
 static gboolean install_cleanup(gpointer data);
 
 static gboolean install_notify(gpointer data) {
-	GApplicationCommandLine *cmdline = data;
+	RaucInstallArgs *args = data;
 
-	g_application_command_line_print(cmdline, "foo!\n");
+	g_application_command_line_print(args->cmdline, "foo!\n");
 
 	return FALSE;
 }
 
 static gpointer install_thread(gpointer data) {
-	GApplicationCommandLine *cmdline = data;
+	RaucInstallArgs *args = data;
 
+	g_application_command_line_print(args->cmdline,
+					 "thread started for %s\n",
+					 args->bundlename);
 	g_usleep(2*G_USEC_PER_SEC);
-	g_application_command_line_print(cmdline, "foo?\n");
+	g_application_command_line_print(args->cmdline, "foo?\n");
 	g_main_context_invoke(NULL, install_notify, data);
 	g_usleep(20*G_USEC_PER_SEC);
 	g_main_context_invoke(NULL, install_cleanup, data);
@@ -33,27 +41,41 @@ static gpointer install_thread(gpointer data) {
 
 static gboolean install_start(GApplicationCommandLine *cmdline, int argc, char **argv)
 {
+	RaucInstallArgs *args = g_new0(RaucInstallArgs, 1);
 	GThread *thread;
+
 	r_context_set_busy(TRUE);
 	g_application_command_line_print(cmdline, "install started\n");
 
-	thread = g_thread_new("installer", install_thread, cmdline);
+	if (argc < 3) {
+		g_error("a bundle filename name must be provided");
+		goto out;
+	}
+
+	g_print("input bundle: %s\n", argv[2]);
+
+	args->cmdline = cmdline;
+	args->bundlename = g_strdup(argv[2]);
+
+	thread = g_thread_new("installer", install_thread, args);
 	g_thread_unref(thread);
 
 	g_print("Active slot bootname: %s\n", get_cmdline_bootname());
 
+out:
 	return G_SOURCE_REMOVE;
 }
 
 static gboolean install_cleanup(gpointer data)
 {
-	GApplicationCommandLine *cmdline = data;
+	RaucInstallArgs *args = data;
 
-	g_application_command_line_print(cmdline, "install done\n");
-	g_application_command_line_set_exit_status(cmdline, 0);
+	g_application_command_line_print(args->cmdline, "install done\n");
+	g_application_command_line_set_exit_status(args->cmdline, 0);
 
 	/* we are done handling this commandline */
-	g_object_unref(cmdline);
+	g_object_unref(args->cmdline);
+	g_free(args);
 
 	r_context_set_busy(FALSE);
 	return G_SOURCE_REMOVE;
