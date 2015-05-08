@@ -30,10 +30,8 @@ static gpointer install_thread(gpointer data) {
 	g_application_command_line_print(args->cmdline,
 					 "thread started for %s\n",
 					 args->bundlename);
-	g_usleep(2*G_USEC_PER_SEC);
-	g_application_command_line_print(args->cmdline, "foo?\n");
+	do_install_bundle(args->bundlename);
 	g_main_context_invoke(NULL, install_notify, data);
-	g_usleep(20*G_USEC_PER_SEC);
 	g_main_context_invoke(NULL, install_cleanup, data);
 
 	return NULL;
