@@ -425,7 +425,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 		}
 	}
 
-	// TODO: mark slots as non-bootable
+	// TODO: mark slots as bootable
 
 	res = TRUE;
 
@@ -445,12 +445,96 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 						RaucManifest *manifest,
 						GHashTable *target_group) {
 	gboolean res = FALSE;
+	GHashTableIter iter;
+	gchar *slotclass, *slotname;
 
 	(void)base_url;
 	(void)manifest;
-	(void)target_group;
+
+	// TODO: mark slots as non-bootable
+
+	// for slot in target_group
+	g_hash_table_iter_init(&iter, target_group);
+	while (g_hash_table_iter_next(&iter, (gpointer* )&slotclass,
+				      (gpointer *)&slotname)) {
+		gchar *mountpoint = create_mount_point(slotname);
+		gchar *slotstatuspath = NULL;
+		RaucSlot *slot = NULL;
+		RaucSlotStatus *slot_state = NULL;
+
+		if (!mountpoint) {
+			goto out;
+		}
+
+		slot = g_hash_table_lookup(r_context()->config->slots, slotname);
+		g_print(G_STRLOC " I will mount %s to %s\n", slot->device, mountpoint);
+		res = r_mount_slot(slot, mountpoint);
+		if (!res) {
+			g_warning("Mounting failed");
+			goto slot_out;
+		}
+
+		// read status
+		slotstatuspath = g_build_filename(mountpoint, "slot.raucs", NULL);
+		res = load_slot_status(slotstatuspath, &slot_state);
+		if (!res) {
+			g_print("Failed to load status file\n");
+			slot_state = g_new0(RaucSlotStatus, 1);
+			slot_state->status = g_strdup("update");
+		}
+
+		// for file targeting this slot
+		for (GList *l = manifest->files; l != NULL; l = l->next) {
+			RaucFile *mffile = l->data;
+			gchar *filename = g_build_filename(mountpoint,
+							 mffile->destname,
+							 NULL);
+			gchar *tmpname = g_build_filename(mountpoint,
+							  ".tmp.XXX",
+							  NULL);
+			gsize size = 20*1024*1024; // TODO: get size from manifest
+			gchar *fileurl = g_strconcat(base_url, "/",
+						     mffile->filename, NULL);
+
+			// TODO: check existing file
+
+			// TODO: download new file
+			res = download_file(filename, tmpname, fileurl, size);
+			if (!res) {
+				g_warning("Failed to download file from %s", fileurl);
+				goto slot_out;
+			}
+			// TODO: verify checksum
+			// TODO: move to final location
+			g_clear_pointer(&filename, g_free);
+			g_clear_pointer(&tmpname, g_free);
+			g_clear_pointer(&fileurl, g_free);
+		}
+
+		// write status
+		slot_state->status = g_strdup("ok");
+		res = save_slot_status(slotstatuspath, slot_state);
+		if (!res) {
+			g_warning("Failed to save status file");
+			goto slot_out;
+		}
+
+slot_out:
+		g_clear_pointer(&slotstatuspath, g_free);
+		g_clear_pointer(&slot_state, free_slot_status);
+		g_print(G_STRLOC " I will unmount %s\n", mountpoint);
+		res = r_umount(mountpoint);
+		g_free(mountpoint);
+		if (!res) {
+			g_warning("Unounting failed");
+			goto out;
+		}
+	}
+
+	// TODO: mark slots as bootable
 
 	res = TRUE;
+out:
 	return res;
 }
 
