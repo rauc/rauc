@@ -196,6 +196,11 @@ static void install_fixture_tear_down(InstallFixture *fixture,
 	//test_umount(fixture->tmpdir, "mount/bundle");
 }
 
+static void install_test_bootname(void)
+{
+	g_assert_nonnull(get_cmdline_bootname());
+}
+
 static void install_test_target(InstallFixture *fixture,
 		gconstpointer user_data)
 {
@@ -275,6 +280,8 @@ int main(int argc, char *argv[])
 	setlocale(LC_ALL, "");
 
 	g_test_init(&argc, &argv, NULL);
+
+	g_test_add_func("/install/bootname", install_test_bootname);
 
 	g_test_add("/install/target", InstallFixture, NULL,
 		   install_fixture_set_up, install_test_target,
