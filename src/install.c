@@ -3,43 +3,50 @@
 #include <glib/gstdio.h>
 
 #include <context.h>
+#include <network.h>
+#include <signature.h>
 #include "install.h"
 #include "manifest.h"
 #include "bundle.h"
 #include "mount.h"
 #include "utils.h"
 
-#define BOOTNAME "root"
-
 static const gchar* (*bootname_provider)(void) = get_cmdline_bootname;
 
 const gchar* get_cmdline_bootname(void) {
 
-	GRegex *regex;
-	GMatchInfo *match;
-	char *contents;
-	char *word = NULL;
+	GRegex *regex = NULL;
+	GMatchInfo *match = NULL;
+	char *contents = NULL;
+	char *res = NULL;
 
-	if (!g_file_get_contents ("/proc/cmdline", &contents, NULL, NULL))
+	if (!g_file_get_contents("/proc/cmdline", &contents, NULL, NULL))
 		return NULL;
 
-	regex = g_regex_new (BOOTNAME "=(\\S+)", 0, G_REGEX_MATCH_NOTEMPTY, NULL);
-	if (!g_regex_match (regex, contents, G_REGEX_MATCH_NOTEMPTY, &match))
+	regex = g_regex_new("rauc\\.slot=(\\S+)", 0, 0, NULL);
+	if (g_regex_match(regex, contents, 0, &match)) {
+		res = g_match_info_fetch(match, 1);
 		goto out;
+	}
+	g_clear_pointer(&match, g_match_info_free);
+	g_clear_pointer(&regex, g_regex_unref);
 
-	word = g_match_info_fetch (match, 1);
+	regex = g_regex_new("root=(\\S+)", 0, 0, NULL);
+	if (g_regex_match(regex, contents, 0, &match)) {
+		res = g_match_info_fetch(match, 1);
+		goto out;
+	}
 
 out:
-	g_match_info_free (match);
-	g_regex_unref (regex);
-	g_free (contents);
+	g_clear_pointer(&match, g_match_info_free);
+	g_clear_pointer(&regex, g_regex_unref);
+	g_clear_pointer(&contents, g_free);
 
-	return word;
-
+	return res;
 }
 
 gboolean determine_slot_states(void) {
-	GList *slotlist, *l;
+	GList *slotlist = NULL;
 	const gchar *bootname;
 	RaucSlot *booted = NULL;
 	gboolean res = FALSE;
@@ -48,17 +55,25 @@ gboolean determine_slot_states(void) {
 	g_assert_nonnull(r_context()->config->slots);
 
 	bootname = bootname_provider();
+	if (bootname == NULL) {
+		g_warning("Warning: No bootname found\n");
+		goto out;
+	}
 
 	slotlist = g_hash_table_get_keys(r_context()->config->slots);
 
-	for (l = slotlist; l != NULL; l = l->next) {
+	for (GList *l = slotlist; l != NULL; l = l->next) {
 		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, l->data);
-		if (!s->bootname) {
-			g_warning("Warning: No bootname given\n");
-			continue;
+		if (!s->bootname && s->parent) {
+			g_warning("Warning: No bootname configured for %s\n", s->name);
 		}
 
 		if (g_strcmp0(s->bootname, bootname) == 0) {
+			booted = s;
+			break;
+		}
+
+		if (g_strcmp0(s->device, bootname) == 0) {
 			booted = s;
 			break;
 		}
@@ -71,9 +86,10 @@ gboolean determine_slot_states(void) {
 
 	res = TRUE;
 	booted->state = ST_ACTIVE;
+	g_print("Found booted slot: %s on %s\n", booted->name, booted->device);
 
 	/* Determine active group members */
-	for (l = slotlist; l != NULL; l = l->next) {
+	for (GList *l = slotlist; l != NULL; l = l->next) {
 		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, l->data);
 
 		if (s->parent) {
@@ -90,7 +106,7 @@ gboolean determine_slot_states(void) {
 	}
 
 out:
-	g_list_free(slotlist);
+	g_clear_pointer(&slotlist, g_list_free);
 
 	return res;
 
