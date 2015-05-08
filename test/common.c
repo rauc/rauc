@@ -149,7 +149,7 @@ gboolean test_mount(const gchar *src, const gchar *dest) {
 
 	res = g_subprocess_wait_check(sub, NULL, &error);
 	if (!res) {
-		g_warning("mound failed: %s", error->message);
+		g_warning("mount failed: %s", error->message);
 		g_clear_error(&error);
 	}
 
