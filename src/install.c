@@ -519,13 +519,12 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 	res = TRUE;
 
 umount:
-
 	umount_bundle(bundlelocation);
 	g_rmdir(mountpoint);
-	g_free(mountpoint);
+	g_clear_pointer(&mountpoint, g_free);
 out:
-	g_free(bundlelocation);
-	free_manifest(manifest);
+	g_clear_pointer(&bundlelocation, g_free);
+	g_clear_pointer(&manifest, free_manifest);
 
 	return res;
 
