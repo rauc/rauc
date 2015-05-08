@@ -32,7 +32,7 @@ fi
 AC_DEFINE_UNQUOTED([CMD_MKSQUASHFS], ["$MKSQUASHFS"], [Define to the path of the mksquashfs executable])
 AC_CHECK_PROGS([UNSQUASHFS], [unsquashfs])
 if test -z "$UNSQUASHFS";
-  then AC_MSG_ERROR([unsquashfs not found])
+  then AC_MSG_WARN([unsquashfs not found])
 fi
 AC_DEFINE_UNQUOTED([CMD_UNSQUASHFS], ["$UNSQUASHFS"], [Define to the path of the unsquashfs executable])
 
