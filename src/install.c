@@ -412,7 +412,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 		}
 		
 		g_print(G_STRLOC " I will unmount %s\n", mountpoint);
-		r_umount(mountpoint);
+		res = r_umount(mountpoint);
 		if (!res) {
 			g_warning("Unounting failed");
 			goto out;
