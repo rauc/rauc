@@ -135,30 +135,35 @@ gboolean test_do_chmod(const gchar *path) {
 	GSubprocess *sub;
 	GError *error = NULL;
 	gboolean res = FALSE;
+	GPtrArray *args = g_ptr_array_new_full(10, g_free);
 	
-	sub = g_subprocess_new(
-			G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
-			&error,
-			"sudo",
-			"--non-interactive",
-			"chmod",
-			"777",
-			path,
-			NULL);
+	if (getuid() != 0) {
+		g_ptr_array_add(args, g_strdup("sudo"));
+		g_ptr_array_add(args, g_strdup("--non-interactive"));
+	}
+	g_ptr_array_add(args, g_strdup("chmod"));
+	g_ptr_array_add(args, g_strdup("777"));
+	g_ptr_array_add(args, g_strdup(path));
+	g_ptr_array_add(args, NULL);
 
+	sub = g_subprocess_newv((const gchar * const *)args->pdata,
+				  G_SUBPROCESS_FLAGS_NONE, &error);
 	if (!sub) {
 		g_warning("chmod failed: %s", error->message);
 		g_clear_error(&error);
-		return FALSE;
+		goto out;
 	}
 
 	res = g_subprocess_wait_check(sub, NULL, &error);
 	if (!res) {
 		g_warning("chmod failed: %s", error->message);
 		g_clear_error(&error);
+		goto out;
 	}
 
-	return TRUE;
+out:
+	g_ptr_array_unref(args);
+	return res;
 }
 
 gboolean test_umount(const gchar *dirname, const gchar *mountpoint) {
