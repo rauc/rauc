@@ -4,6 +4,8 @@
 
 #include "config_file.h"
 
+gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, gsize size);
+
 /**
  * Loopback mount a file.
  *

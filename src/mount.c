@@ -7,7 +7,7 @@
 #include "utils.h"
 #include "context.h"
 
-static gboolean mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, gsize size) {
+gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, gsize size) {
 	GSubprocess *sproc = NULL;
 	GError *error = NULL;
 	gboolean res = FALSE;
@@ -53,7 +53,7 @@ out:
 
 
 gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, gsize size) {
-	return mount_full(filename, mountpoint, "squashfs", size);
+	return r_mount_full(filename, mountpoint, "squashfs", size);
 }
 
 gboolean r_mount_slot(RaucSlot *slot, const gchar *mountpoint) {
@@ -64,7 +64,7 @@ gboolean r_mount_slot(RaucSlot *slot, const gchar *mountpoint) {
 		return FALSE;
 	}
 
-	return mount_full(slot->device, mountpoint, NULL, 0);
+	return r_mount_full(slot->device, mountpoint, NULL, 0);
 }
 
 gboolean r_umount(const gchar *filename) {

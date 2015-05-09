@@ -127,33 +127,7 @@ gboolean test_make_filesystem(const gchar *dirname, const gchar *filename) {
 }
 
 gboolean test_mount(const gchar *src, const gchar *dest) {
-	GSubprocess *sub;
-	GError *error = NULL;
-	gboolean res = FALSE;
-	
-	sub = g_subprocess_new(
-			G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
-			&error,
-			"sudo",
-			"--non-interactive",
-			"mount",
-			src,
-			dest,
-			NULL);
-
-	if (!sub) {
-		g_warning("mount failed: %s", error->message);
-		g_clear_error(&error);
-		return FALSE;
-	}
-
-	res = g_subprocess_wait_check(sub, NULL, &error);
-	if (!res) {
-		g_warning("mount failed: %s", error->message);
-		g_clear_error(&error);
-	}
-
-	return TRUE;
+	return r_mount_full(src, dest, NULL, 0);
 }
 
 
