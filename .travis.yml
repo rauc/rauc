@@ -1,0 +1,23 @@
+language: c
+sudo: required
+compiler: gcc
+before_install:
+  - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/
+    trusty main restricted universe multiverse" -y
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq autoconf automake libglib2.0-dev libssl-dev
+    libcurl4-openssl-dev squashfs-tools lcov slirp
+  - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/
+    utopic main restricted universe multiverse" -y
+  - sudo apt-get update -qq
+  - sudo apt-get install user-mode-linux
+  - sudo pip install cpp-coveralls
+script:
+  - ./autogen.sh
+  - ./configure --enable-code-coverage
+  - make
+  - make check TESTS= && sudo ./uml-test
+after_success:
+  - coveralls --build-root '.'
+after_failure:
+  - cat test/*.log

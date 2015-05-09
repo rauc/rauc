@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -ex
+
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+cat /etc/apt/sources.list
+
+mount -t proc none /proc
+mount -t sysfs none /sys
+mount -t tmpfs none /tmp
+
+mount --bind /usr/lib/uml/modules /lib/modules
+
+ip addr add 127.0.0.1 dev lo
+ip link set lo up
+ip addr add 10.1.1.1/24 dev eth0
+ip link set eth0 up
+ip route add default via 10.1.1.254
+
+modprobe loop
+
+cd $(dirname $0)
+make check && touch uml-test-ok || true
+poweroff -f

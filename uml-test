@@ -1,0 +1,8 @@
+#!/bin/sh
+
+rm -f uml-test-ok
+
+linux.uml init=$(pwd)/uml-test-init rootfstype=hostfs rw mem=3G \
+  eth0=slirp,,/usr/bin/slirp-fullbolt
+
+test -f uml-test-ok
