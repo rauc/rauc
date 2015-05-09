@@ -23,6 +23,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir) {
 				 "-all-root",
 				 "-noappend",
 				 "-no-progress",
+				 "-no-xattrs",
 				 NULL);
 	if (sproc == NULL) {
 		g_warning("failed to start mksquashfs: %s\n", error->message);
