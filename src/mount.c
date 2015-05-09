@@ -24,7 +24,7 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 	}
 	if (size != 0) {
 		g_ptr_array_add(args, g_strdup("-o"));
-		g_ptr_array_add(args, g_strdup_printf("loop,sizelimit=%"G_GSIZE_FORMAT, size));
+		g_ptr_array_add(args, g_strdup_printf("ro,loop,sizelimit=%"G_GSIZE_FORMAT, size));
 	}
 	g_ptr_array_add(args, g_strdup(source));
 	g_ptr_array_add(args, g_strdup(mountpoint));
