@@ -108,6 +108,7 @@ gboolean test_make_filesystem(const gchar *dirname, const gchar *filename) {
 			G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
 			&error,
 			"/sbin/mkfs.ext4",
+			"-F",
 			path,
 			NULL);
 
