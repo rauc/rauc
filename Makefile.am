@@ -17,6 +17,7 @@ librauc_la_SOURCES = \
 	src/config_file.c \
 	src/context.c \
 	src/install.c \
+	src/bootchooser.c \
 	src/manifest.c \
 	src/mount.c \
 	src/network.c \
