@@ -211,8 +211,9 @@ gboolean check_bundle(const gchar *bundlename, gsize *size) {
 		goto out;
 	}
 
+	offset = sizeof(sigsize);
 	res = g_seekable_seek(G_SEEKABLE(bundlestream),
-			      -sizeof(sigsize), G_SEEK_END, NULL, NULL);
+			      -offset, G_SEEK_END, NULL, NULL);
 	if (!res) {
 		g_warning("failed to seek to end of bundle");
 		goto out;
