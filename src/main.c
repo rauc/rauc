@@ -326,10 +326,15 @@ static gboolean cmdline_handler(gpointer data)
 
 	/* configuration updates are handled here */
 	if (!r_context_get_busy()) {
-		r_context_conf()->configpath = confpath;
-		r_context_conf()->certpath = certpath;
-		r_context_conf()->keypath = keypath;
-		r_context_conf()->mountprefix = mount;
+		r_context_conf();
+		if (confpath)
+			r_context_conf()->configpath = confpath;
+		if (certpath)
+			r_context_conf()->certpath = certpath;
+		if (keypath)
+			r_context_conf()->keypath = keypath;
+		if (mount)
+			r_context_conf()->mountprefix = mount;
 	} else {
 		if (confpath != NULL ||
 		    certpath != NULL ||
