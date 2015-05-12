@@ -616,7 +616,7 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 	res = TRUE;
 
 umount:
-	umount_bundle(bundlelocation);
+	umount_bundle(mountpoint);
 	g_rmdir(mountpoint);
 	g_clear_pointer(&mountpoint, g_free);
 out:
