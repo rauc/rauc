@@ -207,7 +207,7 @@ gboolean check_bundle(const gchar *bundlename, gsize *size) {
 	bundlefile = g_file_new_for_path(bundlename);
 	bundlestream = g_file_read(bundlefile, NULL, NULL);
 	if (bundlestream == NULL) {
-		g_warning("failed to open bundle for appending");
+		g_warning("failed to open bundle for reading");
 		goto out;
 	}
 
