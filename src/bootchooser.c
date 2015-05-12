@@ -3,6 +3,7 @@
 
 #include "bootchooser.h"
 #include "config_file.h"
+#include "context.h"
 
 #define BAREBOX_STATE_NAME "barebox-state"
 
@@ -98,6 +99,11 @@ gboolean r_boot_mark_bootable(RaucSlot *slot, gboolean bootable) {
 	gchar* varname = NULL;
 
 	g_assert_nonnull(slot);
+
+	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") != 0) {
+		g_print("Warning: Your bootloader '%s' is not supported yet\n", r_context()->config->system_bootloader);
+		return TRUE;
+	}
 
 	varname = g_strdup_printf("%s.%s.priority", BOOTSTATE_PREFIX, slot->bootname);
 	res = barebox_state_set_int(varname, bootable ? 30 : 0);

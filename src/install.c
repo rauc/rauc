@@ -10,6 +10,7 @@
 #include "bundle.h"
 #include "mount.h"
 #include "utils.h"
+#include "bootchooser.h"
 
 static const gchar* (*bootname_provider)(void) = get_cmdline_bootname;
 
@@ -368,14 +369,33 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 	RaucSlotStatus *slot_state = NULL;
 	gchar *slotstatuspath = NULL;
 
+	GHashTableIter iter;
+	gpointer class, member;
+
 	mountpoint = create_mount_point("image");
 
 	if (!mountpoint) {
 		goto out;
 	}
-	
-	// TODO: mark slots as non-bootable
 
+	/* Mark all parent destination slots non-bootable */
+	g_print("Marking slots as non-bootable...\n");
+	g_hash_table_iter_init(&iter, target_group);
+	while (g_hash_table_iter_next(&iter, &class, &member)) {
+		RaucSlot *dest_slot = g_hash_table_lookup(r_context()->config->slots, member);
+
+		if (dest_slot->parent)
+			continue;
+
+		res = r_boot_mark_bootable(dest_slot, FALSE);
+
+		if (!res) {
+			g_warning("Failed marking slot %s non-bootable", dest_slot->name);
+			goto out;
+		}
+	}
+
+	g_print("Updating slots...\n");
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		gchar *dest_slot_name;
 		RaucSlot  *dest_slot;
@@ -462,7 +482,22 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 		}
 	}
 
-	// TODO: mark slots as bootable
+	/* Mark all parent destination slots non-bootable */
+	g_print("Marking slots as bootable...\n");
+	g_hash_table_iter_init(&iter, target_group);
+	while (g_hash_table_iter_next(&iter, &class, &member)) {
+		RaucSlot *dest_slot = g_hash_table_lookup(r_context()->config->slots, member);
+
+		if (dest_slot->parent)
+			continue;
+
+		res = r_boot_mark_bootable(dest_slot, TRUE);
+
+		if (!res) {
+			g_warning("Failed marking slot %s bootable", dest_slot->name);
+			goto out;
+		}
+	}
 
 	res = TRUE;
 
