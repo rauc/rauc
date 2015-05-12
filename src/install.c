@@ -313,6 +313,48 @@ out:
 	return mountpoint;
 }
 
+
+static gboolean copy_image(GFile *src, GFile *dest) {
+	gboolean res = FALSE;
+	GError *error = NULL;
+	GFileInputStream *instream = NULL;
+	GFileIOStream *outstream = NULL;
+	gssize size;
+
+	instream = g_file_read(src, NULL, &error);
+	if (instream == NULL) {
+		g_warning("failed to open file for reading: %s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+	outstream = g_file_open_readwrite(dest, NULL, &error);
+	if (outstream == NULL) {
+		g_warning("failed to open file for writing: %s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+	size = g_output_stream_splice(
+			g_io_stream_get_output_stream((GIOStream*)outstream),
+			(GInputStream*)instream,
+			G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE | G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+			NULL,
+			&error);
+	if (size == -1) {
+		g_warning("failed splicing data: %s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+
+	res = TRUE;
+out:
+	g_clear_object(&instream);
+	g_clear_object(&outstream);
+	return res;
+}
+
 static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manifest, GHashTable *target_group) {
 
 	gboolean res = FALSE;
@@ -371,18 +413,13 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 		srcimagefile = g_file_new_for_path(srcimagepath);
 		destdevicefile = g_file_new_for_path(dest_slot->device);
 
-		res = g_file_copy(
+		res = copy_image(
 			srcimagefile,
-			destdevicefile,
-			G_FILE_COPY_OVERWRITE,
-			NULL,
-			NULL,
-			NULL,
-			&error);
+			destdevicefile);
 
 		if (!res) {
 			g_warning("Failed copying image: %s", error->message);
-			g_clear_error(&error);
+			goto out;
 		}
 
 		// TODO: status: copy done
