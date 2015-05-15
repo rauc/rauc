@@ -153,6 +153,7 @@ static gboolean checksum_start(GApplicationCommandLine *cmdline, int argc, char 
 	g_print("updating checksums for: %s\n", argv[2]);
 
 	if (!update_manifest(argv[2], sign)) {
+		g_print("failed to update manifest\n");
 		exit_status = 1;
 	}
 
