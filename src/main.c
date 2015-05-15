@@ -30,7 +30,11 @@ static gpointer install_thread(gpointer data) {
 	g_application_command_line_print(args->cmdline,
 					 "thread started for %s\n",
 					 args->bundlename);
-	do_install_bundle(args->bundlename);
+	if (g_str_has_suffix(args->bundlename, ".raucb")) {
+		do_install_bundle(args->bundlename);
+	} else {
+		do_install_network(args->bundlename);
+	}
 	g_main_context_invoke(NULL, install_notify, data);
 	g_main_context_invoke(NULL, install_cleanup, data);
 
