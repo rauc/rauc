@@ -29,7 +29,7 @@ out:
 	return res;
 }
 
-gboolean verify_checksum(RaucChecksum *checksum, const gchar *filename) {
+gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename) {
 	RaucChecksum tmp;
 	gboolean res = FALSE;
 

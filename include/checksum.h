@@ -9,4 +9,4 @@ typedef struct {
 } RaucChecksum;
 
 gboolean update_checksum(RaucChecksum *checksum, const gchar *filename);
-gboolean verify_checksum(RaucChecksum *checksum, const gchar *filename);
+gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename);
