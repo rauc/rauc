@@ -623,6 +623,31 @@ static void print_hash_table(GHashTable *hash_table) {
 	}
 }
 
+static gboolean post_install_handler(void) {
+	gboolean res = FALSE;
+	GHashTableIter iter;
+	gpointer name_, slot_;
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	/* Mark the active slot as non-bootable */
+	while (g_hash_table_iter_next(&iter, &name_, &slot_)) {
+		RaucSlot *slot = slot_;
+
+		if (slot->state == ST_ACTIVE) {
+			res = r_boot_mark_bootable(slot, FALSE);
+			if (!res) {
+				g_warning("Failed marking slot %s non-bootable", slot->name);
+				break;
+			}
+			g_print("Marked active slot %s as non-bootable\n", slot->name);
+			break;
+		}
+
+	}
+
+	return res;
+}
+
 gboolean do_install_bundle(const gchar* bundlefile) {
 
 	gboolean res = FALSE;
@@ -682,6 +707,12 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 
 	if (!res) {
 		g_warning("Starting handler failed");
+		goto umount;
+	}
+
+	res = post_install_handler();
+	if (!res) {
+		g_warning("Post-install handler failed");
 		goto umount;
 	}
 
