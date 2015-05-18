@@ -39,7 +39,7 @@ static X509 *load_cert(const gchar *certfile) {
 
 	cert = BIO_new_file(certfile, "r");
 	if (cert == NULL) {
-		g_warning("failed to load cert file");
+		g_warning("failed to load cert file '%s'", certfile);
 		goto out;
 	}
 
@@ -107,7 +107,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig) {
 	if (!(lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file())))
 		goto out;
 	if (!X509_LOOKUP_load_file(lookup, capath, X509_FILETYPE_PEM)) {
-		g_warning("failed to load CA file");
+		g_warning("failed to load CA file '%s'", capath);
 		goto out;
 	}
 

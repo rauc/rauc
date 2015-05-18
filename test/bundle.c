@@ -97,12 +97,26 @@ static void bundle_test3(BundleFixture *fixture,
 
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img",
 					 64*1024, "/dev/urandom") == 0);
+	g_test_expect_message (G_LOG_DOMAIN,
+			G_LOG_LEVEL_WARNING,
+			"Invalid checksums");
 	g_assert_false(verify_manifest(contentdir, NULL, FALSE));
+	g_test_expect_message (G_LOG_DOMAIN,
+			G_LOG_LEVEL_WARNING,
+			"Invalid checksums");
 	g_assert_false(verify_manifest(contentdir, NULL, TRUE));
 
 	g_assert_cmpint(g_unlink(appfsimage), ==, 0);
+
+	g_test_expect_message (G_LOG_DOMAIN,
+			G_LOG_LEVEL_WARNING,
+			"Invalid checksums");
 	g_assert_false(verify_manifest(contentdir, NULL, FALSE));
+	g_test_expect_message (G_LOG_DOMAIN,
+			G_LOG_LEVEL_WARNING,
+			"Invalid checksums");
 	g_assert_false(verify_manifest(contentdir, NULL, TRUE));
+	g_test_assert_expected_messages();
 
 	g_free(appfsimage);
 	g_free(contentdir);

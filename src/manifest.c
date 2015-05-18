@@ -352,21 +352,28 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signa
 	}
 
 	res = load_manifest_file(manifestpath, &manifest);
-	if (!res)
+	if (!res) {
+		g_warning("Failed opening manifest");
 		goto out;
+	}
 
 	res = verify_manifest_checksums(manifest, dir);
-	if (!res)
+	if (!res) {
+		g_warning("Invalid checksums");
 		goto out;
+	}
 
 	res = check_compatible(manifest);
-	if (!res)
+	if (!res) {
+		g_warning("Invalid compatible");
 		goto out;
+	}
 
 	if (output != NULL) {
 		*output = manifest;
 		manifest = NULL;
 	}
+
 
 out:
 	g_clear_pointer(&sig, g_bytes_unref);

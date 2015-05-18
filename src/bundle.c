@@ -204,6 +204,8 @@ gboolean check_bundle(const gchar *bundlename, gsize *size) {
 
 	g_assert_nonnull(r_context()->config->keyring_path);
 
+	g_print("Reading bundle: %s\n", bundlename);
+
 	bundlefile = g_file_new_for_path(bundlename);
 	bundlestream = g_file_read(bundlefile, NULL, NULL);
 	if (bundlestream == NULL) {

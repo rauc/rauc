@@ -45,6 +45,9 @@ gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename) {
 
 	res = g_str_equal(checksum->digest, tmp.digest);
 
+	if (!res)
+		g_print("Checksum mismatch: %s != %s\n", checksum->digest, tmp.digest);
+
 out:
 	return res;
 }
