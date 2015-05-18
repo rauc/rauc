@@ -13,14 +13,18 @@ AC_CONFIG_AUX_DIR([build-aux])
 AM_INIT_AUTOMAKE([1.11 subdir-objects foreign no-dist-gzip dist-xz])
 AM_MAINTAINER_MODE([enable])
 AM_SILENT_RULES([yes])
+AC_REQUIRE_AUX_FILE([tap-driver.sh])
 
-# Checks for programs.
+AX_IS_RELEASE([git-directory])
+AX_CHECK_ENABLE_DEBUG([yes])
+
 AC_USE_SYSTEM_EXTENSIONS
 AC_SYS_LARGEFILE
+AX_COMPILER_FLAGS
 
-AC_REQUIRE_AUX_FILE([tap-driver.sh])
+
+# Checks for programs.
 AC_PROG_AWK
-
 AC_PROG_CC
 AC_PROG_CC_C99
 AM_PROG_CC_C_O
@@ -35,9 +39,6 @@ if test -z "$UNSQUASHFS";
   then AC_MSG_WARN([unsquashfs not found])
 fi
 AC_DEFINE_UNQUOTED([CMD_UNSQUASHFS], ["$UNSQUASHFS"], [Define to the path of the unsquashfs executable])
-
-AX_IS_RELEASE([git-directory])
-AX_COMPILER_FLAGS()
 
 LT_PREREQ(2.2)
 LT_INIT([disable-static])
