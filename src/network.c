@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <curl/curl.h>
+#include <glib/gstdio.h>
 
 #include "network.h"
 
@@ -89,18 +90,16 @@ out:
 	return res;
 }
 
-gboolean download_file(const gchar *target, const gchar *tmpname,
-		       const gchar *url, gsize limit) {
+gboolean download_file(const gchar *target, const gchar *url, gsize limit) {
 	RaucTransfer xfer = {0};
 	gboolean res = FALSE;
 
 	xfer.url = url;
 	xfer.limit = limit;
 
-	/* TODO: download to temp file first */
 	/* TODO: resume incomplete downloads */
 
-	xfer.dl = fopen(target, "wb");
+	xfer.dl = fopen(target, "wbx");
 	if (xfer.dl == NULL) {
 		goto out;
 	}
@@ -111,6 +110,35 @@ gboolean download_file(const gchar *target, const gchar *tmpname,
 
 out:
 	g_clear_pointer(&xfer.dl, fclose);
+	return res;
+}
+
+gboolean download_file_checksum(const gchar *target, const gchar *url,
+				const RaucChecksum *checksum) {
+	gchar *tmpname = NULL, *dir = NULL, *tmppath = NULL;
+	gboolean res = FALSE;
+
+	tmpname = g_strdup_printf(".rauc_%s_%"G_GSIZE_FORMAT, checksum->digest,
+				  checksum->size);
+	dir = g_path_get_dirname(target);
+	tmppath = g_build_filename(dir, tmpname, NULL);
+
+	res = download_file(tmppath, url, checksum->size);
+	if (!res)
+		goto out;
+
+	res = verify_checksum(checksum, tmppath);
+	if (!res)
+		goto out;
+
+	res = (g_rename(tmppath, target) == 0);
+	if (!res)
+		goto out;
+
+out:
+	g_clear_pointer(&tmpname, g_free);
+	g_clear_pointer(&dir, g_free);
+	g_clear_pointer(&tmppath, g_free);
 	return res;
 }
 

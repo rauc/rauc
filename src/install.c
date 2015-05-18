@@ -561,26 +561,27 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 			gchar *filename = g_build_filename(mountpoint,
 							 mffile->destname,
 							 NULL);
-			gchar *tmpname = g_build_filename(mountpoint,
-							  ".tmp.XXX",
-							  NULL);
-			gsize size = mffile->checksum.size;
 			gchar *fileurl = g_strconcat(base_url, "/",
 						     mffile->filename, NULL);
 
-			// TODO: check existing file
+			res = verify_checksum(&mffile->checksum, filename);
+			if (res) {
+				g_message("Skipping download for correct file from %s",
+					  fileurl);
+				goto file_out;
+			}
 
-			// TODO: download new file
-			res = download_file(filename, tmpname, fileurl, size);
+			res = download_file_checksum(filename, fileurl, &mffile->checksum);
 			if (!res) {
 				g_warning("Failed to download file from %s", fileurl);
-				goto slot_out;
+				goto file_out;
 			}
-			// TODO: verify checksum
-			// TODO: move to final location
+
+file_out:
 			g_clear_pointer(&filename, g_free);
-			g_clear_pointer(&tmpname, g_free);
 			g_clear_pointer(&fileurl, g_free);
+			if (!res)
+				goto slot_out;
 		}
 
 		// write status

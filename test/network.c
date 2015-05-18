@@ -27,12 +27,11 @@ static void network_fixture_tear_down(NetworkFixture *fixture,
 static void test_download_file(NetworkFixture *fixture,
 			       gconstpointer user_data)
 {
-	const gchar *target, *tmpname;
+	const gchar *target;
 
 	target = g_build_filename(fixture->tmpdir, "target", NULL);
-	tmpname = ".tmp.0123456789ABCDEF";
 	
-	g_assert_true(download_file(target, tmpname, "http://example.com/", 0));
+	g_assert_true(download_file(target, "http://example.com/", 0));
 }
 
 static void test_download_mem(void)
