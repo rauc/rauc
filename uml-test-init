@@ -4,8 +4,6 @@ set -ex
 
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-cat /etc/apt/sources.list
-
 mount -t proc none /proc
 mount -t sysfs none /sys
 mount -t tmpfs none /tmp
