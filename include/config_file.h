@@ -23,11 +23,19 @@ typedef enum {
 } SlotState;
 
 typedef struct _RaucSlot {
-	gchar *name;
+	/** name of the slot. A glib intern string. */
+	const gchar *name;
+	/** slot class the slot belongs to. A glib intern string. */
+	const gchar *sclass;
+	/** device this slot uses */
 	gchar *device;
+	/** the slots partition type */
 	gchar *type;
+	/** the name this slot is known to the bootloader */
 	gchar *bootname;
+	/** flag indicating if the slot is updatable */
 	gboolean readonly;
+	/** current state of the slot (runtime) */
 	SlotState state;
 	struct _RaucSlot *parent;
 } RaucSlot;

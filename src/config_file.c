@@ -11,7 +11,6 @@ static void free_slot(gpointer value) {
 
 	g_clear_pointer(&slot->device, g_free);
 	g_clear_pointer(&slot->type, g_free);
-	g_clear_pointer(&slot->name, g_free);
 	g_clear_pointer(&slot->bootname, g_free);
 }
 
@@ -56,18 +55,27 @@ gboolean load_config(const gchar *filename, RaucConfig **config) {
 		RaucSlot *slot = g_new0(RaucSlot, 1);
 		gchar **groupsplit;
 
-		groupsplit = g_strsplit(groups[i], ".", 2);
+		groupsplit = g_strsplit(groups[i], ".", -1);
 
 		/* We treat sections starting with "slot." as slots */
 		if (g_str_equal(groupsplit[0], RAUC_SLOT_PREFIX)) {
 			gchar* value;
 
-			value = groupsplit[1];
+			/* Assure slot strings consist of 3 parts, delimited by dots */
+			if (g_strv_length(groupsplit) != 3) {
+				g_warning("Invalid slot name format");
+				goto free;
+			}
+
+			value = g_strconcat(groupsplit[1], ".", groupsplit[2], NULL);
 			if (!value) {
 				g_printerr("Invalid slot name\n");
 				goto free;
 			}
-			slot->name = g_strdup(value);
+			slot->name = g_intern_string(value);
+			g_free(value);
+
+			slot->sclass = g_intern_string(groupsplit[1]);
 
 			value = resolve_path(filename,
 				g_key_file_get_string(key_file, groups[i], "device", NULL));
@@ -89,7 +97,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config) {
 
 			slot->readonly = g_key_file_get_boolean(key_file, groups[i], "readonly", NULL);
 
-			g_hash_table_insert(slots, slot->name, slot);
+			g_hash_table_insert(slots, (gchar*)slot->name, slot);
 
 		}
 		g_strfreev(groupsplit);

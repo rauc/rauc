@@ -196,7 +196,7 @@ GHashTable* determine_target_install_group(RaucManifest *manifest) {
 			return NULL;
 		}
 
-		g_hash_table_insert(targetgroup, slotclasses->pdata[i], image_target->name);
+		g_hash_table_insert(targetgroup, slotclasses->pdata[i], (gchar *)image_target->name);
 	}
 
 	g_clear_pointer(&slotclasses, g_ptr_array_unref);
