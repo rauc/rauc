@@ -32,7 +32,7 @@ static void bundle_fixture_set_up(BundleFixture *fixture,
 static void bundle_fixture_tear_down(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	g_assert_true(rm_tree(fixture->tmpdir));
+	g_assert_true(rm_tree(fixture->tmpdir, NULL));
 	g_free(fixture->tmpdir);
 }
 

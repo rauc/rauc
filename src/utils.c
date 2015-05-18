@@ -8,23 +8,23 @@
 
 #include "utils.h"
 
-GBytes *read_file(const gchar *filename) {
+GBytes *read_file(const gchar *filename, GError **error) {
 	gchar *contents;
 	gsize length;
 
-	if (!g_file_get_contents(filename, &contents, &length, NULL))
+	if (!g_file_get_contents(filename, &contents, &length, error))
 		return NULL;
 
 	return g_bytes_new_take(contents, length);
 }
 
-gboolean write_file(const gchar *filename, GBytes *bytes) {
+gboolean write_file(const gchar *filename, GBytes *bytes, GError **error) {
 	const gchar *contents;
 	gsize length;
 
 	contents = g_bytes_get_data(bytes, &length);
 
-	return g_file_set_contents(filename, contents, length, NULL);
+	return g_file_set_contents(filename, contents, length, error);
 }
 
 static int rm_tree_cb(const char *fpath, const struct stat *sb,
@@ -40,15 +40,16 @@ static int rm_tree_cb(const char *fpath, const struct stat *sb,
 	}
 }
 
-gboolean rm_tree(const gchar *path) {
+gboolean rm_tree(const gchar *path, GError **error) {
 	int flags = FTW_DEPTH | FTW_MOUNT | FTW_PHYS;
 
-	g_assert_nonnull(path);
-	g_assert_cmpuint(strlen(path), >, 1);
-	g_assert(path[0] == '/');
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+	g_return_val_if_fail(path != NULL, FALSE);
+	g_return_val_if_fail(strlen(path) > 1, FALSE);
+	g_return_val_if_fail(path[0] == '/', FALSE);
 
 	if (nftw(path, &rm_tree_cb, 20, flags)) {
-		g_warning("failed to remote tree at %s", path);
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED, "failed to remove tree at %s", path);
 		return FALSE;
 	}
 

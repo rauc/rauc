@@ -223,7 +223,7 @@ static void config_file_test6(void)
 	GBytes *data = NULL;
 	RaucManifest *rm;
 
-	data = read_file("test/manifest.raucm");
+	data = read_file("test/manifest.raucm", NULL);
 	g_assert_true(load_manifest_mem(data, &rm));
 	manifest_check_common(rm);
 

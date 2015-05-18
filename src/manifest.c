@@ -313,7 +313,7 @@ gboolean update_manifest(const gchar *dir, gboolean signature) {
 		if (sig == NULL)
 			goto out;
 
-		res = write_file(signaturepath, sig);
+		res = write_file(signaturepath, sig, NULL);
 		if (!res)
 			goto out;
 	}
@@ -341,7 +341,7 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signa
 	gboolean res = FALSE;
 
 	if (signature) {
-		sig = read_file(signaturepath);
+		sig = read_file(signaturepath, NULL);
 		if (sig == NULL)
 			goto out;
 
