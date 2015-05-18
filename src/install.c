@@ -379,15 +379,16 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 	}
 
 	/* Mark all parent destination slots non-bootable */
-	g_print("Marking slots as non-bootable...\n");
+	g_print("Marking active slot as non-bootable...\n");
 	g_hash_table_iter_init(&iter, target_group);
 	while (g_hash_table_iter_next(&iter, &class, &member)) {
 		RaucSlot *dest_slot = g_hash_table_lookup(r_context()->config->slots, member);
 
-		if (dest_slot->parent)
-			continue;
+		if (dest_slot->state == ST_ACTIVE && !dest_slot->parent) {
+			break;
+		}
 
-		res = r_boot_mark_bootable(dest_slot, FALSE);
+		res = r_boot_disable(dest_slot);
 
 		if (!res) {
 			g_warning("Failed marking slot %s non-bootable", dest_slot->name);
@@ -491,7 +492,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 		if (dest_slot->parent)
 			continue;
 
-		res = r_boot_mark_bootable(dest_slot, TRUE);
+		res = r_boot_set_primary(dest_slot);
 
 		if (!res) {
 			g_warning("Failed marking slot %s bootable", dest_slot->name);
@@ -624,31 +625,6 @@ static void print_hash_table(GHashTable *hash_table) {
 	}
 }
 
-static gboolean post_install_handler(void) {
-	gboolean res = FALSE;
-	GHashTableIter iter;
-	gpointer name_, slot_;
-
-	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	/* Mark the active slot as non-bootable */
-	while (g_hash_table_iter_next(&iter, &name_, &slot_)) {
-		RaucSlot *slot = slot_;
-
-		if (slot->state == ST_ACTIVE) {
-			res = r_boot_mark_bootable(slot, FALSE);
-			if (!res) {
-				g_warning("Failed marking slot %s non-bootable", slot->name);
-				break;
-			}
-			g_print("Marked active slot %s as non-bootable\n", slot->name);
-			break;
-		}
-
-	}
-
-	return res;
-}
-
 gboolean do_install_bundle(const gchar* bundlefile) {
 
 	gboolean res = FALSE;
@@ -708,12 +684,6 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 
 	if (!res) {
 		g_warning("Starting handler failed");
-		goto umount;
-	}
-
-	res = post_install_handler();
-	if (!res) {
-		g_warning("Post-install handler failed");
 		goto umount;
 	}
 
