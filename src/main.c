@@ -8,6 +8,7 @@
 #include <config_file.h>
 #include <context.h>
 #include <install.h>
+#include <service.h>
 
 GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
@@ -165,6 +166,13 @@ static gboolean status_start(int argc, char **argv)
 	return TRUE;
 }
 
+static gboolean service_start(int argc, char **argv)
+{
+	g_message("service start\n");
+
+	return r_service_run();
+}
+
 static gboolean unknown_start(int argc, char **argv)
 {
 	g_message("unknown start\n");
@@ -178,6 +186,7 @@ typedef enum  {
 	CHECKSUM,
 	STATUS,
 	INFO,
+	SERVICE,
 	UNKNOWN
 } RaucCommandType;
 
@@ -211,6 +220,7 @@ static void cmdline_handler(int argc, char **argv)
 		{CHECKSUM, "checksum", "checksum <DIRECTORY>", checksum_start, FALSE},
 		{INFO, "info", "info <FILE>", info_start, FALSE},
 		{STATUS, "status", "status", status_start, TRUE},
+		{SERVICE, "service", "service", service_start, TRUE},
 		{UNKNOWN, NULL, "<COMMAND>", unknown_start, TRUE}
 	};
 	RaucCommand *rcommand = &rcommands[UNKNOWN];

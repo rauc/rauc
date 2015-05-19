@@ -33,15 +33,16 @@ $(gdbus_installer_generated): src/rauc-installer.xml
 noinst_LTLIBRARIES = librauc.la
 
 librauc_la_SOURCES = \
+	src/bootchooser.c \
 	src/bundle.c \
 	src/checksum.c \
 	src/config_file.c \
 	src/context.c \
 	src/install.c \
-	src/bootchooser.c \
 	src/manifest.c \
 	src/mount.c \
 	src/network.c \
+	src/service.c \
 	src/signature.c \
 	src/utils.c
 nodist_librauc_la_SOURCES = \
