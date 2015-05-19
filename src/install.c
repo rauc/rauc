@@ -705,8 +705,8 @@ gboolean do_install_network(const gchar *url) {
 	gboolean res = FALSE;
 	gchar *base_url = NULL, *signature_url = NULL;
 	GBytes *manifest_data = NULL, *signature_data = NULL;
-	RaucManifest *manifest;
-	GHashTable *target_group;
+	RaucManifest *manifest = NULL;
+	GHashTable *target_group = NULL;
 
 	g_assert_nonnull(url);
 
@@ -762,6 +762,7 @@ gboolean do_install_network(const gchar *url) {
 	res = TRUE;
 
 out:
+	g_clear_pointer(&target_group, g_hash_table_unref);
 	g_clear_pointer(&manifest, free_manifest);
 	g_clear_pointer(&base_url, g_free);
 	g_clear_pointer(&signature_url, g_free);
