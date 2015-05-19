@@ -162,21 +162,115 @@ out:
 	return res;
 }
 
-static gboolean grub_boot_disable(RaucSlot *slot) {
-	g_print("grub_boot_disable() is not implemented yet\n");
-	return TRUE;
+static gboolean grub_env_set(GPtrArray *pairs) {
+	GSubprocess *sub;
+	GError *error = NULL;
+	gboolean res = FALSE;
+
+	g_assert_cmpuint(pairs->len, >, 0);
+	g_assert_nonnull(r_context()->config->grubenv_path);
+
+	g_ptr_array_insert(pairs, 0, g_strdup("grub-editenv"));
+	g_ptr_array_insert(pairs, 1, g_strdup(r_context()->config->grubenv_path));
+	g_ptr_array_insert(pairs, 2, g_strdup("set"));
+	g_ptr_array_add(pairs, NULL);
+
+	sub = g_subprocess_newv((const gchar * const *)pairs->pdata,
+				  G_SUBPROCESS_FLAGS_NONE, &error);
+	if (!sub) {
+		g_warning("starting grub-editenv failed: %s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sub, NULL, &error);
+	if (!res) {
+		g_warning("grub-editenv failed: %s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+out:
+	g_ptr_array_remove_index(pairs, pairs->len-1);
+	g_ptr_array_remove_index(pairs, 2);
+	g_ptr_array_remove_index(pairs, 1);
+	g_ptr_array_remove_index(pairs, 0);
+	return res;
 }
 
+/* Set slot status values */
+static gboolean grub_set_state(RaucSlot *slot, gboolean good) {
+	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
+	gboolean res = FALSE;
+
+	g_assert_nonnull(slot);
+
+	if (good) {
+		g_ptr_array_add(pairs, g_strdup_printf("%s_OK=1", slot->bootname));
+		g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=0", slot->bootname));
+	} else {
+		g_ptr_array_add(pairs, g_strdup_printf("%s_OK=0", slot->bootname));
+		g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=0", slot->bootname));
+	}
+
+	res = grub_env_set(pairs);
+	if (!res) {
+		g_warning("failed marking as %s", good ? "good" : "bad");
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	g_ptr_array_unref(pairs);
+	return res;
+}
+
+/* Set slot as primary boot slot */
 static gboolean grub_set_primary(RaucSlot *slot) {
-	g_print("grub_set_primary() is not implemented yet\n");
-	return TRUE;
+	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
+	GString *order = g_string_sized_new(10);
+	gboolean res = FALSE;
+	GList *slots;
+
+	g_assert_nonnull(slot);
+
+	g_string_append(order, slot->bootname);
+
+	/* Iterate over class members */
+	slots = g_hash_table_get_values(r_context()->config->slots);
+	for (GList *l = slots; l != NULL; l = l->next) {
+		RaucSlot *s = l->data;
+		if (s == slot)
+			continue;
+		if (s->sclass != slot->sclass)
+			continue;
+
+		g_string_append_c(order, ' ');
+		g_string_append(order, s->bootname);
+	}
+
+	g_ptr_array_add(pairs, g_strdup_printf("%s_OK=%i", slot->bootname, 1));
+	g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=%i", slot->bootname, 0));
+	g_ptr_array_add(pairs, g_strdup_printf("ORDER=\"%s\"", order->str));
+
+	res = grub_env_set(pairs);
+	if (!res) {
+		g_warning("failed marking as primary");
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	g_string_free(order, TRUE);
+	g_ptr_array_unref(pairs);
+	return res;
 }
 
 gboolean r_boot_disable(RaucSlot *slot) {
 	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
 		return barebox_boot_disable(slot);
-	} else if (g_strcmp0(r_context()->config->system_bootloader, "grup") == 0) {
-		return grub_boot_disable(slot);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
+		return grub_set_state(slot, FALSE);
 	}
 
 	g_print("Warning: Your bootloader '%s' is not supported yet\n", r_context()->config->system_bootloader);
@@ -186,7 +280,7 @@ gboolean r_boot_disable(RaucSlot *slot) {
 gboolean r_boot_set_primary(RaucSlot *slot) {
 	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
 		return barebox_set_primary(slot);
-	} else if (g_strcmp0(r_context()->config->system_bootloader, "grup") == 0) {
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
 		return grub_set_primary(slot);
 	}
 

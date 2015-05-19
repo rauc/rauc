@@ -19,5 +19,12 @@ ip route add default via 10.1.1.254
 modprobe loop
 
 cd $(dirname $0)
+
+mkdir -p /tmp/boot/grub
+mount --bind /tmp/boot /boot
+grub-editenv test/grubenv.test create
+touch /tmp/boot/grub/grubenv
+mount --bind test/grubenv.test /tmp/boot/grub/grubenv
+
 make check && touch uml-test-ok || true
 poweroff -f

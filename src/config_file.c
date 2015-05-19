@@ -56,6 +56,15 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		c->mount_prefix = g_strdup("/mnt/rauc/");
 	}
 
+	if (g_strcmp0(c->system_bootloader, "grub") == 0) {
+		c->grubenv_path = resolve_path(filename,
+			g_key_file_get_string(key_file, "system", "grubenv", NULL));
+		if (!c->grubenv_path) {
+			g_print("No grubenv path provided, using /boot/grub/grubenv as default\n");
+			c->grubenv_path = g_strdup("/boot/grub/grubenv");
+		}
+	}
+
 	/* parse [keyring] section */
 	c->keyring_path = resolve_path(filename,
 		g_key_file_get_string(key_file, "keyring", "path", NULL));
