@@ -240,7 +240,7 @@ static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *d
 	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
 		RaucImage *image = elem->data;
 		gchar *filename = g_build_filename(dir, image->filename, NULL);
-		res = update_checksum(&image->checksum, filename);
+		res = update_checksum(&image->checksum, filename, NULL);
 		g_free(filename);
 		if (!res)
 			break;
@@ -249,7 +249,7 @@ static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *d
 	for (GList *elem = manifest->files; elem != NULL; elem = elem->next) {
 		RaucFile *file = elem->data;
 		gchar *filename = g_build_filename(dir, file->filename, NULL);
-		res = update_checksum(&file->checksum, filename);
+		res = update_checksum(&file->checksum, filename, NULL);
 		g_free(filename);
 		if (!res)
 			break;
@@ -264,7 +264,7 @@ static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *d
 	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
 		RaucImage *image = elem->data;
 		gchar *filename = g_build_filename(dir, image->filename, NULL);
-		res = verify_checksum(&image->checksum, filename);
+		res = verify_checksum(&image->checksum, filename, NULL);
 		g_free(filename);
 		if (!res)
 			break;
@@ -273,7 +273,7 @@ static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *d
 	for (GList *elem = manifest->files; elem != NULL; elem = elem->next) {
 		RaucFile *file = elem->data;
 		gchar *filename = g_build_filename(dir, file->filename, NULL);
-		res = verify_checksum(&file->checksum, filename);
+		res = verify_checksum(&file->checksum, filename, NULL);
 		g_free(filename);
 		if (!res)
 			break;

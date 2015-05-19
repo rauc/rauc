@@ -11,15 +11,15 @@ static void checksum_test1(void)
 
 	checksum.type = 0;
 	checksum.digest = NULL;
-	g_assert_false(verify_checksum(&checksum, "test/install-content/appfs.img"));
+	g_assert_false(verify_checksum(&checksum, "test/install-content/appfs.img", NULL));
 
 	checksum.type = G_CHECKSUM_SHA256;
-	g_assert_false(verify_checksum(&checksum, "test/install-content/appfs.img"));
+	g_assert_false(verify_checksum(&checksum, "test/install-content/appfs.img", NULL));
 
 	checksum.digest = g_strdup(TEST_DIGEST);
-	g_assert_true(verify_checksum(&checksum, "test/install-content/appfs.img"));
-	g_assert_false(verify_checksum(&checksum, "tesinstall-content/rootfs.img"));
-	g_assert_false(verify_checksum(&checksum, "test/_MISSING_"));
+	g_assert_true(verify_checksum(&checksum, "test/install-content/appfs.img", NULL));
+	g_assert_false(verify_checksum(&checksum, "tesinstall-content/rootfs.img", NULL));
+	g_assert_false(verify_checksum(&checksum, "test/_MISSING_", NULL));
 }
 
 int main(int argc, char *argv[])

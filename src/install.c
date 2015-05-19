@@ -565,7 +565,7 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 			gchar *fileurl = g_strconcat(base_url, "/",
 						     mffile->filename, NULL);
 
-			res = verify_checksum(&mffile->checksum, filename);
+			res = verify_checksum(&mffile->checksum, filename, NULL);
 			if (res) {
 				g_message("Skipping download for correct file from %s",
 					  fileurl);

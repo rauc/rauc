@@ -127,7 +127,7 @@ gboolean download_file_checksum(const gchar *target, const gchar *url,
 	if (!res)
 		goto out;
 
-	res = verify_checksum(checksum, tmppath);
+	res = verify_checksum(checksum, tmppath, NULL);
 	if (!res)
 		goto out;
 
