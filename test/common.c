@@ -71,13 +71,16 @@ int test_mkdir_relative(const gchar *dirname, const gchar *filename, int mode) {
 	return res;
 }
 
-int test_prepare_manifest_file(const gchar *dirname, const gchar *filename) {
+int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, gboolean custom_handler) {
 	gchar *path = g_build_filename(dirname, filename, NULL);
 	RaucManifest *rm = g_new0(RaucManifest, 1);
 	RaucImage *img;
 
 	rm->update_compatible = g_strdup("Test Config");
 	rm->update_version = g_strdup("2011.03-2");
+
+	if (custom_handler)
+		rm->handler_name = g_strdup("custom_handler.sh");
 
 	img = g_new0(RaucImage, 1);
 
@@ -177,14 +180,18 @@ gboolean test_umount(const gchar *dirname, const gchar *mountpoint) {
 	return TRUE;
 }
 
-gboolean test_copy_file(const gchar *srcfile, const gchar *dstfile) {
+gboolean test_copy_file(const gchar *srcfile, const gchar *dstprefix, const gchar *dstfile) {
 	gboolean res = FALSE;
 	GError *error = NULL;
+	gchar *destpath;
 	GFile *src;
 	GFile *dst;
 
+	destpath = g_build_filename(dstprefix, dstfile, NULL);
+	g_assert_nonnull(destpath);
+
 	src = g_file_new_for_path(srcfile);
-	dst = g_file_new_for_path(dstfile);
+	dst = g_file_new_for_path(destpath);
 	res = g_file_copy(
 				src,
 				dst,
@@ -204,6 +211,7 @@ out:
 
 	g_object_unref(src);
 	g_object_unref(dst);
+	g_clear_pointer(&destpath, g_free);
 
 	return TRUE;
 }
