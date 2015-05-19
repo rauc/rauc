@@ -236,7 +236,7 @@ out:
 	g_strfreev(split);
 }
 
-static gboolean launch_and_wait_custom_handler(gchar* cwd, gchar* name) {
+static gboolean launch_and_wait_custom_handler(gchar* cwd, gchar* name, GHashTable *target_group) {
 	GSubprocessLauncher *handlelaunch = NULL;
 	GSubprocess *handleproc = NULL;
 	GError *error = NULL;
@@ -246,13 +246,35 @@ static gboolean launch_and_wait_custom_handler(gchar* cwd, gchar* name) {
 	GDataInputStream *datainstream;
 	gchar* outline;
 
+	GPtrArray *targetlist = NULL;
+	GHashTableIter iter;
+	gpointer class, member;
+	gchar *liststring;
+	const gchar *delimiter = ":", *space = " ";
+
 	handler_name = g_build_filename(cwd, name, NULL);
 
 	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE);
 
 	g_subprocess_launcher_setenv(handlelaunch, "SYSTEM_CONFIG", r_context()->configpath, TRUE);
-	g_subprocess_launcher_setenv(handlelaunch, "CURRENT_BOOTNAME", "TODO", TRUE);
-	g_subprocess_launcher_setenv(handlelaunch, "TARGET_SLOTS", "TODO", TRUE);
+	g_subprocess_launcher_setenv(handlelaunch, "CURRENT_BOOTNAME", bootname_provider(), TRUE);
+
+	/* Make string list form hash table */
+	targetlist = g_ptr_array_new();
+	g_hash_table_iter_init(&iter, target_group);
+	while (g_hash_table_iter_next(&iter, &class, &member)) {
+		RaucSlot *dest_slot = g_hash_table_lookup(r_context()->config->slots, member);
+
+		g_ptr_array_add(targetlist, (gpointer)class);
+		g_ptr_array_add(targetlist, (gpointer)delimiter);
+		g_ptr_array_add(targetlist, (gpointer)dest_slot->name);
+		g_ptr_array_add(targetlist, (gpointer)space);
+	}
+	g_ptr_array_add(targetlist, NULL);
+
+	liststring = g_strjoinv("", (gchar**)targetlist->pdata);
+
+	g_subprocess_launcher_setenv(handlelaunch, "TARGET_SLOTS", liststring, TRUE);
 	g_subprocess_launcher_setenv(handlelaunch, "UPDATE_SOURCE", cwd, TRUE);
 	g_subprocess_launcher_setenv(handlelaunch, "MOUNT_PREFIX", r_context()->mountprefix ? r_context()->mountprefix : r_context()->config->mount_prefix , TRUE);
 
@@ -682,7 +704,7 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 
 	if (manifest->handler_name) {
 		g_print("Using custom handler: %s\n", manifest->handler_name);
-		res = launch_and_wait_custom_handler(mountpoint, manifest->handler_name);
+		res = launch_and_wait_custom_handler(mountpoint, manifest->handler_name, target_group);
 	} else {
 		g_print("Using default handler\n");
 		res = launch_and_wait_default_handler(mountpoint, manifest, target_group);

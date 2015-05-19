@@ -114,6 +114,42 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 	g_free(contentdir);
 }
 
+static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture,
+		gconstpointer user_data) {
+	gchar *contentdir;
+	gchar *bundlepath;
+
+	install_fixture_set_up(fixture, user_data);
+
+	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
+	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+
+	/* Setup bundle content */
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.img",
+					 64*1024*1024, "/dev/zero") == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img",
+					 32*1024*1024, "/dev/zero") == 0);
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/rootfs.img"));
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/appfs.img"));
+	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", TRUE) == 0);
+
+	/* Copy custom handler */
+	g_assert_true(test_copy_file("test/install-content/custom_handler.sh", fixture->tmpdir, "content/custom_handler.sh"));
+
+	/* Make images user-writable */
+	test_make_slot_user_writable(fixture->tmpdir, "content/rootfs.img");
+	test_make_slot_user_writable(fixture->tmpdir, "content/appfs.img");
+
+	/* Update checksums in manifest */
+	g_assert_true(update_manifest(contentdir, FALSE));
+
+	/* Create bundle */
+	g_assert_true(create_bundle(bundlepath, contentdir));
+
+	g_free(bundlepath);
+	g_free(contentdir);
+}
+
 static void rename_manifest(const gchar *contentdir, const gchar *targetname) {
 	gchar *manifestpath1 = g_strconcat(contentdir,
 			"/manifest.raucm", NULL);
@@ -383,6 +419,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/install/network-thread", InstallFixture, NULL,
 		   install_fixture_set_up_network, install_test_network_thread,
+		   install_fixture_tear_down);
+
+	g_test_add("/install/bundle-custom-handler", InstallFixture, NULL,
+		   install_fixture_set_up_bundle_custom_handler, install_test_bundle,
 		   install_fixture_tear_down);
 
 	return g_test_run();
