@@ -12,49 +12,35 @@
 GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
-typedef struct {
-	const gchar *bundlename;
-} RaucInstallArgs;
-
 static gboolean r_quit(gpointer data) {
 	if (r_loop)
 		g_main_loop_quit(r_loop);
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean install_cleanup(gpointer data);
-
 static gboolean install_notify(gpointer data) {
 	RaucInstallArgs *args = data;
 
-	g_message("foo!\n");
+	g_message("foo! %s=%d\n", args->name, args->result);
 
-	(void)args;
-
-	return FALSE;
+	return G_SOURCE_REMOVE;
 }
 
-static gpointer install_thread(gpointer data) {
+static gboolean install_cleanup(gpointer data)
+{
 	RaucInstallArgs *args = data;
 
-	g_message("thread started for %s\n", args->bundlename);
-	if (g_str_has_suffix(args->bundlename, ".raucb")) {
-		do_install_bundle(args->bundlename);
-	} else {
-		do_install_network(args->bundlename);
-	}
-	g_main_context_invoke(NULL, install_notify, data);
-	g_main_context_invoke(NULL, install_cleanup, data);
+	r_exit_status = args->result;
 
-	return NULL;
+	g_idle_add(r_quit, NULL);
+
+	return G_SOURCE_REMOVE;
 }
 
 static gboolean install_start(int argc, char **argv)
 {
 	RaucInstallArgs *args = g_new0(RaucInstallArgs, 1);
-	GThread *thread;
 
-	r_context_set_busy(TRUE);
 	g_message("install started\n");
 
 	if (argc < 3) {
@@ -64,30 +50,18 @@ static gboolean install_start(int argc, char **argv)
 
 	g_print("input bundle: %s\n", argv[2]);
 
-	args->bundlename = g_strdup(argv[2]);
+	args->name = g_strdup(argv[2]);
+	args->notify = install_notify;
+	args->cleanup = install_cleanup;
 
-	thread = g_thread_new("installer", install_thread, args);
-	g_thread_unref(thread);
+	r_loop = g_main_loop_new(NULL, FALSE);
+	install_run(args);
+	g_main_loop_run(r_loop);
+	g_main_loop_unref(r_loop);
 
-	g_print("Active slot bootname: %s\n", get_cmdline_bootname());
 
 out:
-	return G_SOURCE_REMOVE;
-}
-
-static gboolean install_cleanup(gpointer data)
-{
-	RaucInstallArgs *args = data;
-
-	g_message("install done\n");
-	r_exit_status = 0;
-
-	/* we are done handling this commandline */
-	g_free(args);
-
-	r_context_set_busy(FALSE);
-	g_idle_add(r_quit, NULL);
-	return G_SOURCE_REMOVE;
+	return TRUE;
 }
 
 static gboolean bundle_start(int argc, char **argv)
@@ -126,9 +100,7 @@ static gboolean bundle_start(int argc, char **argv)
 	}
 
 out:
-	/* we are done handling this commandline */
-	g_idle_add(r_quit, NULL);
-	return G_SOURCE_REMOVE;
+	return TRUE;
 }
 
 static gboolean checksum_start(int argc, char **argv)
@@ -159,9 +131,7 @@ static gboolean checksum_start(int argc, char **argv)
 	}
 
 out:
-	/* we are done handling this commandline */
-	g_idle_add(r_quit, NULL);
-	return G_SOURCE_REMOVE;
+	return TRUE;
 }
 
 static gboolean info_start(int argc, char **argv)
@@ -185,27 +155,21 @@ static gboolean info_start(int argc, char **argv)
 	g_print("signature correct (squashfs size: %"G_GSIZE_FORMAT")\n", size);
 
 out:
-	/* we are done handling this commandline */
-	g_idle_add(r_quit, NULL);
-	return G_SOURCE_REMOVE;
+	return TRUE;
 }
 
 static gboolean status_start(int argc, char **argv)
 {
 	g_message("status start\n");
 
-	/* we are done handling this commandline */
-	g_idle_add(r_quit, NULL);
-	return G_SOURCE_REMOVE;
+	return TRUE;
 }
 
 static gboolean unknown_start(int argc, char **argv)
 {
 	g_message("unknown start\n");
 
-	/* we are done handling this commandline */
-	g_idle_add(r_quit, NULL);
-	return G_SOURCE_REMOVE;
+	return TRUE;
 }
 
 typedef enum  {
@@ -336,24 +300,15 @@ static void cmdline_handler(int argc, char **argv)
 	/* real commands are handled here */
 	if (rcommand->cmd_handler) {
 		rcommand->cmd_handler(argc, argv);
-		goto delegated;
+		goto done;
 	}
 
 done:
-	/* we are done handling this commandline */
-	g_idle_add(r_quit, NULL);
-delegated:
 	g_clear_pointer(&context, g_option_context_free);;
 }
 
 int main(int argc, char **argv) {
-	r_loop = g_main_loop_new(NULL, FALSE);
-
 	cmdline_handler(argc, argv);
-
-	g_main_loop_run(r_loop);
-
-	g_main_loop_unref(r_loop);
 
 	return r_exit_status;
 }

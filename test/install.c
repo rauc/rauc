@@ -12,6 +12,8 @@
 
 #include "common.h"
 
+GMainLoop *r_loop = NULL;
+
 typedef struct {
 	gchar *tmpdir;
 } InstallFixture;
@@ -232,31 +234,31 @@ static void install_test_target(InstallFixture *fixture,
 static void install_test_bundle(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *bundlepath;
-	gchar* mountdir;
+	gchar *bundlepath, *mountdir;
 
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = g_strdup(mountdir);
+	r_context_conf()->mountprefix = mountdir;
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
 
 	g_assert_true(do_install_bundle(bundlepath));
+
+	g_free(bundlepath);
 }
 
 static void install_test_network(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *manifesturl;
-	gchar *mountdir;
+	gchar *manifesturl, *mountdir;
 
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = g_strdup(mountdir);
+	r_context_conf()->mountprefix = mountdir;
 	r_context();
 
 	manifesturl = g_strconcat("file://", fixture->tmpdir,
@@ -272,6 +274,86 @@ static void install_test_network(InstallFixture *fixture,
 	manifesturl = g_strconcat("file://", fixture->tmpdir,
 				  "/content/manifest-3.raucm", NULL);
 	g_assert_true(do_install_network(manifesturl));
+	g_free(manifesturl);
+}
+
+static gboolean r_quit(gpointer data) {
+	g_assert_nonnull(r_loop);
+	g_main_loop_quit(r_loop);
+
+	return G_SOURCE_REMOVE;
+}
+
+static gboolean install_notify(gpointer data) {
+	RaucInstallArgs *args = data;
+
+	g_assert_nonnull(args);
+
+	return G_SOURCE_REMOVE;
+}
+
+static gboolean install_cleanup(gpointer data)
+{
+	RaucInstallArgs *args = data;
+
+	g_assert_nonnull(args);
+	g_assert_true(args->result);
+
+	g_idle_add(r_quit, NULL);
+
+	return G_SOURCE_REMOVE;
+}
+
+static void install_test_bundle_thread(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucInstallArgs *args = g_new0(RaucInstallArgs, 1);
+	gchar *bundlepath, *mountdir;
+
+	/* Set mount path to current temp dir */
+	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
+	g_assert_nonnull(mountdir);
+	r_context_conf()->mountprefix = mountdir;
+	r_context();
+
+	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_nonnull(bundlepath);
+
+	args->name = g_strdup(bundlepath);
+	args->notify = install_notify;
+	args->cleanup = install_cleanup;
+
+	r_loop = g_main_loop_new(NULL, FALSE);
+	g_assert_true(install_run(args));
+	g_main_loop_run(r_loop);
+	g_clear_pointer(&r_loop, g_main_loop_unref);
+
+	g_free(bundlepath);
+}
+
+static void install_test_network_thread(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucInstallArgs *args = g_new0(RaucInstallArgs, 1);
+	gchar *manifesturl, *mountdir;
+
+	/* Set mount path to current temp dir */
+	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
+	g_assert_nonnull(mountdir);
+	r_context_conf()->mountprefix = mountdir;
+	r_context();
+
+	manifesturl = g_strconcat("file://", fixture->tmpdir,
+				  "/content/manifest-1.raucm", NULL);
+	g_assert_true(do_install_network(manifesturl));
+	args->name = g_strdup(manifesturl);
+	args->notify = install_notify;
+	args->cleanup = install_cleanup;
+
+	r_loop = g_main_loop_new(NULL, FALSE);
+	g_assert_true(install_run(args));
+	g_main_loop_run(r_loop);
+	g_clear_pointer(&r_loop, g_main_loop_unref);
 	g_free(manifesturl);
 }
 
@@ -293,6 +375,14 @@ int main(int argc, char *argv[])
 
 	g_test_add("/install/network", InstallFixture, NULL,
 		   install_fixture_set_up_network, install_test_network,
+		   install_fixture_tear_down);
+
+	g_test_add("/install/bundle-thread", InstallFixture, NULL,
+		   install_fixture_set_up_bundle, install_test_bundle_thread,
+		   install_fixture_tear_down);
+
+	g_test_add("/install/network-thread", InstallFixture, NULL,
+		   install_fixture_set_up_network, install_test_network_thread,
 		   install_fixture_tear_down);
 
 	return g_test_run();

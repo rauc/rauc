@@ -770,3 +770,48 @@ out:
 
 	return res;
 }
+
+static gboolean install_done(gpointer data) {
+	RaucInstallArgs *args = data;
+
+	args->cleanup(args);
+
+	g_free(args);
+
+	r_context_set_busy(FALSE);
+
+	return G_SOURCE_REMOVE;
+}
+
+static gpointer install_thread(gpointer data) {
+	RaucInstallArgs *args = data;
+
+	g_message("thread started for %s\n", args->name);
+	if (g_str_has_suffix(args->name, ".raucb")) {
+		args->result = do_install_bundle(args->name);
+	} else {
+		args->result = do_install_network(args->name);
+	}
+
+	g_main_context_invoke(NULL, args->notify, args);
+
+	g_message("thread finished for %s\n", args->name);
+
+	g_main_context_invoke(NULL, install_done, args);
+	return NULL;
+}
+
+gboolean install_run(RaucInstallArgs *args) {
+	GThread *thread = NULL;
+	r_context_set_busy(TRUE);
+
+	g_print("Active slot bootname: %s\n", get_cmdline_bootname());
+
+	thread = g_thread_new("installer", install_thread, args);
+	if (thread == NULL)
+		return FALSE;
+
+	g_thread_unref(thread);
+
+	return TRUE;
+}

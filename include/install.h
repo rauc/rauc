@@ -15,3 +15,12 @@ void set_bootname_provider(const gchar* (*provider)(void));
 
 gboolean do_install_bundle(const gchar* bundlelocation);
 gboolean do_install_network(const gchar *url);
+
+typedef struct {
+	const gchar *name;
+	GSourceFunc notify;
+	GSourceFunc cleanup;
+	gboolean result;
+} RaucInstallArgs;
+
+gboolean install_run(RaucInstallArgs *args);
