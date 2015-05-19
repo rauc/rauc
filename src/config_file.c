@@ -4,6 +4,15 @@
 
 #include <utils.h>
 
+#define R_CONFIG_ERROR r_config_error_quark ()
+
+static GQuark r_config_error_quark (void)
+{
+  return g_quark_from_static_string ("r_config_error_quark");
+}
+
+#define R_CONFIG_ERROR_INVALID_FORMAT	1
+
 #define RAUC_SLOT_PREFIX	"slot"
 
 static void free_slot(gpointer value) {
@@ -14,7 +23,8 @@ static void free_slot(gpointer value) {
 	g_clear_pointer(&slot->bootname, g_free);
 }
 
-gboolean load_config(const gchar *filename, RaucConfig **config) {
+gboolean load_config(const gchar *filename, RaucConfig **config, GError **error) {
+	GError *ierror = NULL;
 	RaucConfig *c = g_new0(RaucConfig, 1);
 	gboolean res = FALSE;
 	GKeyFile *key_file = NULL;
@@ -26,13 +36,16 @@ gboolean load_config(const gchar *filename, RaucConfig **config) {
 
 	key_file = g_key_file_new();
 
-	res = g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, NULL);
-	if (!res)
+	res = g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto free;
+	}
 
 	/* parse [system] section */
-	c->system_compatible = g_key_file_get_string(key_file, "system", "compatible", NULL);
+	c->system_compatible = g_key_file_get_string(key_file, "system", "compatible", &ierror);
 	if (!c->system_compatible) {
+		g_propagate_error(error, ierror);
 		goto free;
 	}
 	c->system_bootloader = g_key_file_get_string(key_file, "system", "bootloader", NULL);
@@ -63,13 +76,21 @@ gboolean load_config(const gchar *filename, RaucConfig **config) {
 
 			/* Assure slot strings consist of 3 parts, delimited by dots */
 			if (g_strv_length(groupsplit) != 3) {
-				g_warning("Invalid slot name format");
+				g_set_error(
+						error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_INVALID_FORMAT,
+						"Invalid slot name format");
 				goto free;
 			}
 
 			value = g_strconcat(groupsplit[1], ".", groupsplit[2], NULL);
 			if (!value) {
-				g_printerr("Invalid slot name\n");
+				g_set_error(
+						error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_INVALID_FORMAT,
+						"Invalid slot name");
 				goto free;
 			}
 			slot->name = g_intern_string(value);
@@ -78,9 +99,9 @@ gboolean load_config(const gchar *filename, RaucConfig **config) {
 			slot->sclass = g_intern_string(groupsplit[1]);
 
 			value = resolve_path(filename,
-				g_key_file_get_string(key_file, groups[i], "device", NULL));
+				g_key_file_get_string(key_file, groups[i], "device", &ierror));
 			if (!value) {
-				g_printerr("Failed to parse device name\n");
+				g_propagate_error(error, ierror);
 				goto free;
 			}
 			slot->device = value;
@@ -151,7 +172,8 @@ void free_config(RaucConfig *config) {
 	g_free(config);
 }
 
-gboolean load_slot_status(const gchar *filename, RaucSlotStatus **slotstatus) {
+gboolean load_slot_status(const gchar *filename, RaucSlotStatus **slotstatus, GError **error) {
+	GError *ierror = NULL;
 	RaucSlotStatus *ss = g_new0(RaucSlotStatus, 1);
 	gboolean res = FALSE;
 	GKeyFile *key_file = NULL;
@@ -159,9 +181,11 @@ gboolean load_slot_status(const gchar *filename, RaucSlotStatus **slotstatus) {
 
 	key_file = g_key_file_new();
 
-	res = g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, NULL);
-	if (!res)
+	res = g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto free;
+	}
 
 	ss->status = g_key_file_get_string(key_file, "slot", "status", NULL);
 	digest = g_key_file_get_string(key_file, "slot", "sha256", NULL);
@@ -181,7 +205,8 @@ free:
 	return res;
 }
 
-gboolean save_slot_status(const gchar *filename, RaucSlotStatus *ss) {
+gboolean save_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error) {
+	GError *ierror = NULL;
 	GKeyFile *key_file = NULL;
 	gboolean res = FALSE;
 
@@ -194,9 +219,11 @@ gboolean save_slot_status(const gchar *filename, RaucSlotStatus *ss) {
 		g_key_file_set_string(key_file, "slot", "sha256", ss->checksum.digest);
 
 
-	res = g_key_file_save_to_file(key_file, filename, NULL);
-	if (!res)
+	res = g_key_file_save_to_file(key_file, filename, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto free;
+	}
 
 free:
 	g_key_file_free(key_file);

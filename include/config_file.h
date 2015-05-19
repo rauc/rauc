@@ -48,9 +48,47 @@ typedef struct {
 	RaucChecksum checksum;
 } RaucSlotStatus;
 
-gboolean load_config(const gchar *filename, RaucConfig **config);
+/**
+ * Loads rauc system configuration from file.
+ *
+ * @param filename file to load
+ * @param config a location to place the loaded config
+ * @param error a GError, or NULL
+ *
+ * @return TRUE if the configuration was sucessfully loaded. FALSE if there were errors.
+ */
+gboolean load_config(const gchar *filename, RaucConfig **config, GError **error);
+
+/**
+ * Frees the memory allocated by the RaucConfig.
+ *
+ * @param config a RaucConfig
+ */
 void free_config(RaucConfig *config);
 
-gboolean load_slot_status(const gchar *filename, RaucSlotStatus **slotstatus);
-gboolean save_slot_status(const gchar *filename, RaucSlotStatus *slotstatus);
+/**
+ * Load slot status file.
+ *
+ * @param filename file to load
+ * @param slotstatus a location to place the slot status
+ * @param error a GError, or NULL
+ *
+ * @return TRUE if the slot status was sucessfully loaded. FALSE if there were errors.
+ */
+gboolean load_slot_status(const gchar *filename, RaucSlotStatus **slotstatus, GError **error);
+
+/**
+ * Save slot status file.
+ *
+ * @param filename name of destination file
+ * @param ss the slot status to save
+ * @param error a GError, or NULL
+ */
+gboolean save_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error);
+
+/**
+ * Frees the memory allocated by the RaucSlotStatus.
+ *
+ * @param slotstatus a RaucSlotStatus
+ */
 void free_slot_status(RaucSlotStatus *slotstatus);

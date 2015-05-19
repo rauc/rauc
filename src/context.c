@@ -13,7 +13,7 @@ static void r_context_configure(void) {
 	g_assert_false(context->busy);
 
 	g_clear_pointer(&context->config, free_config);
-	res = load_config(context->configpath, &context->config);
+	res = load_config(context->configpath, &context->config, NULL);
 
 	if (!res)
 		g_error("failed to initialize context");

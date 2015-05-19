@@ -465,7 +465,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 
 		g_print(G_STRLOC " I will update slot file %s\n", slotstatuspath);
 
-		res = save_slot_status(slotstatuspath, slot_state);
+		res = save_slot_status(slotstatuspath, slot_state, NULL);
 
 		if (!res) {
 			g_warning("Failed writing status file");
@@ -549,7 +549,7 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 
 		// read status
 		slotstatuspath = g_build_filename(mountpoint, "slot.raucs", NULL);
-		res = load_slot_status(slotstatuspath, &slot_state);
+		res = load_slot_status(slotstatuspath, &slot_state, NULL);
 		if (!res) {
 			g_print("Failed to load status file\n");
 			slot_state = g_new0(RaucSlotStatus, 1);
@@ -587,7 +587,7 @@ file_out:
 
 		// write status
 		slot_state->status = g_strdup("ok");
-		res = save_slot_status(slotstatuspath, slot_state);
+		res = save_slot_status(slotstatuspath, slot_state, NULL);
 		if (!res) {
 			g_warning("Failed to save status file");
 			goto slot_out;

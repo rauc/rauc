@@ -12,7 +12,7 @@ static void config_file_test1(void)
 	RaucConfig *config;
 	RaucSlot *slot;
 
-	load_config("test/system.conf", &config);
+	load_config("test/system.conf", &config, NULL);
 	g_assert_nonnull(config);
 	g_assert_cmpstr(config->system_compatible, ==, "FooCorp Super BarBazzer");
 	g_assert_cmpstr(config->system_bootloader, ==, "barebox");
@@ -110,7 +110,7 @@ static void config_file_test2(void)
 static void config_file_test3(void)
 {
 	RaucSlotStatus *ss;
-	g_assert_true(load_slot_status("test/rootfs.raucs", &ss));
+	g_assert_true(load_slot_status("test/rootfs.raucs", &ss, NULL));
 	g_assert_nonnull(ss);
 	g_assert_cmpstr(ss->status, ==, "ok");
 	g_assert_cmpint(ss->checksum.type, ==, G_CHECKSUM_SHA256);
@@ -203,11 +203,11 @@ static void config_file_test5(void)
 	ss->checksum.type = G_CHECKSUM_SHA256;
 	ss->checksum.digest = g_strdup("dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551");
 
-	save_slot_status("test/savedslot.raucs", ss);
+	save_slot_status("test/savedslot.raucs", ss, NULL);
 
 	free_slot_status(ss);
 
-	load_slot_status("test/savedslot.raucs", &ss);
+	load_slot_status("test/savedslot.raucs", &ss, NULL);
 
 	g_assert_nonnull(ss);
 	g_assert_cmpstr(ss->status, ==, "ok");
