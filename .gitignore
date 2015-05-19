@@ -1,6 +1,7 @@
 /autom4te.cache/
 /build-aux/
 /test/*.test
+/src/*-generated.[ch]
 Makefile
 Makefile.in
 aclocal.m4

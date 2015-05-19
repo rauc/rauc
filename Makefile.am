@@ -16,6 +16,20 @@ AM_CFLAGS = $(WARN_CFLAGS) $(GLIB_CFLAGS) $(CURL_CFLAGS)
 AM_LDFLAGS = $(WARN_LDFLAGS) $(GLIB_LDFLAGS) $(CURL_LDFLAGS) $(OPENSSL_LDFLAGS)
 AM_CPPFLAGS = -I${top_srcdir}/include $(OPENSSL_INCLUDES)
 
+gdbus_installer_generated = \
+	src/rauc-installer-generated.c \
+	src/rauc-installer-generated.h
+
+BUILT_SOURCES += $(gdbus_installer_generated)
+EXTRA_DIST += src/rauc-installer.xml
+
+$(gdbus_installer_generated): src/rauc-installer.xml
+	$(AM_V_GEN) gdbus-codegen \
+		--generate-c-code src/rauc-installer-generated \
+		--c-namespace R \
+		--interface-prefix de.pengutronix.rauc. \
+		$<
+
 noinst_LTLIBRARIES = librauc.la
 
 librauc_la_SOURCES = \
@@ -30,6 +44,8 @@ librauc_la_SOURCES = \
 	src/network.c \
 	src/signature.c \
 	src/utils.c
+nodist_librauc_la_SOURCES = \
+	$(gdbus_installer_generated)
 librauc_la_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 librauc_la_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
 librauc_la_LIBADD = $(GLIB_LIBS) $(CURL_LIBS) $(OPENSSL_LIBS)
@@ -80,3 +96,5 @@ test_install_test_LDADD = librauc.la librauctest.la
 
 test_network_test_SOURCES = test/network.c
 test_network_test_LDADD = librauc.la
+
+CLEANFILES = $(gdbus_installer_generated)

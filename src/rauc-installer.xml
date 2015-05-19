@@ -1,0 +1,10 @@
+<node>
+  <interface name="de.pengutronix.rauc.Installer">
+    <method name="Install">
+      <arg name="source" type="s"/>
+    </method>
+
+    <property name="Busy" type="b" access="read"/>
+    <property name="Operation" type="s" access="read"/>
+  </interface>
+</node>
