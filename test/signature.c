@@ -13,7 +13,8 @@ static void signature_sign(void)
 	g_assert_nonnull(content);
 	sig = cms_sign(content,
 		       r_context()->certpath,
-		       r_context()->keypath);
+		       r_context()->keypath,
+		       NULL);
 	g_assert_nonnull(sig);
 	g_bytes_unref(content);
 	g_bytes_unref(sig);
@@ -24,7 +25,8 @@ static void signature_sign_file(void)
 	GBytes *sig = NULL;
 	sig = cms_sign_file("test/openssl-ca/manifest",
 			    r_context()->certpath,
-			    r_context()->keypath);
+			    r_context()->keypath,
+			    NULL);
 	g_assert_nonnull(sig);
 	g_bytes_unref(sig);
 }
@@ -44,7 +46,7 @@ static void signature_verify_file(void)
 {
 	GBytes *sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
 	g_assert_nonnull(sig);
-	g_assert_true(cms_verify_file("test/openssl-ca/manifest", sig, 0));
+	g_assert_true(cms_verify_file("test/openssl-ca/manifest", sig, 0, NULL));
 	g_bytes_unref(sig);
 }
 
@@ -55,7 +57,8 @@ static void signature_loopback(void)
 	g_assert_nonnull(content);
 	sig = cms_sign(content,
 		       r_context()->certpath,
-		       r_context()->keypath);
+		       r_context()->keypath,
+		       NULL);
 	g_assert_nonnull(sig);
 	g_assert_true(cms_verify(content, sig));
 	((char *)g_bytes_get_data(content, NULL))[0] = 0x00;

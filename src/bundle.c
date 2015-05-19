@@ -152,7 +152,8 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir) {
 
 	sig = cms_sign_file(bundlename,
 			    r_context()->certpath,
-			    r_context()->keypath);
+			    r_context()->keypath,
+			    NULL);
 	if (sig == NULL)
 		goto out;
 
@@ -245,7 +246,7 @@ gboolean check_bundle(const gchar *bundlename, gsize *size) {
 	}
 
 	/* the squashfs image size is in offset */
-	res = cms_verify_file(bundlename, sig, offset);
+	res = cms_verify_file(bundlename, sig, offset, NULL);
 	if (!res)
 		goto out;
 

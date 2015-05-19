@@ -7,25 +7,48 @@
 #include <context.h>
 #include "signature.h"
 
+#define R_SIGNATURE_ERROR r_signature_error_quark ()
+
+static GQuark r_signature_error_quark (void)
+{
+  return g_quark_from_static_string ("r_signature_error_quark");
+}
+
+#define R_SIGNATURE_ERROR_UNKNOWN	0
+#define R_SIGNATURE_ERROR_LOAD_FAILED	1
+#define R_SIGNATURE_ERROR_PARSE_ERROR	2
+#define R_SIGNATURE_ERROR_CREATE_SIG	3
+#define R_SIGNATURE_ERROR_SERIALIZE_SIG	4
+
 void signature_init(void) {
 	OPENSSL_no_config();
 	OpenSSL_add_all_algorithms();
 	ERR_load_crypto_strings();
 }
 
-static EVP_PKEY *load_key(const gchar *keyfile) {
+static EVP_PKEY *load_key(const gchar *keyfile, GError **error) {
         EVP_PKEY *res = NULL;
 	BIO *key = NULL;
 
+	g_assert(error == NULL || *error == NULL);
+
 	key = BIO_new_file(keyfile, "r");
 	if (key == NULL) {
-		g_warning("failed to load key file");
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_LOAD_FAILED,
+				"failed to load key file '%s'", keyfile);
 		goto out;
 	}
 
 	res = PEM_read_bio_PrivateKey(key, NULL, NULL, NULL);
 	if (res == NULL) {
-		g_warning("failed to parse key file");
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE_ERROR,
+				"failed to parse key file '%s'", keyfile);
 		goto out;
 	}
 out:
@@ -33,19 +56,29 @@ out:
 	return res;
 }
 
-static X509 *load_cert(const gchar *certfile) {
+static X509 *load_cert(const gchar *certfile, GError **error) {
 	X509 *res = NULL;
 	BIO *cert = NULL;
 
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+
 	cert = BIO_new_file(certfile, "r");
 	if (cert == NULL) {
-		g_warning("failed to load cert file '%s'", certfile);
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_LOAD_FAILED,
+				"failed to load cert file '%s'", certfile);
 		goto out;
 	}
 
 	res = PEM_read_bio_X509(cert, NULL, NULL, NULL);
 	if (res == NULL) {
-		g_warning("failed to parse cert file");
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE_ERROR,
+				"failed to parse cert file '%s'", certfile);
 		goto out;
 	}
 out:
@@ -61,23 +94,44 @@ static GBytes *bytes_from_bio(BIO *bio) {
 	return g_bytes_new(data, size);
 }
 
-GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile) {
+GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, GError **error) {
+	GError *ierror = NULL;
 	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
 					 g_bytes_get_size(content));
 	BIO *outsig = BIO_new(BIO_s_mem());
-	X509 *signcert = load_cert(certfile);
-	EVP_PKEY *pkey = load_key(keyfile);
+	X509 *signcert = NULL;
+	EVP_PKEY *pkey = NULL;
 	CMS_ContentInfo *cms = NULL;
 	GBytes *res = NULL;
 	int flags = CMS_DETACHED | CMS_BINARY;
 
+	signcert = load_cert(certfile, &ierror);
+	if (signcert == NULL) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	pkey = load_key(keyfile, &ierror);
+	if (pkey == NULL) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
 	cms = CMS_sign(signcert, pkey, NULL, incontent, flags);
 	if (cms == NULL) {
-		g_warning("failed to create signature");
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_CREATE_SIG,
+				"failed to create signature");
 		goto out;
 	}
 	if (!i2d_CMS_bio(outsig, cms)) {
-		g_warning("failed to serialize signature");
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_SERIALIZE_SIG,
+				"failed to serialize signature");
 		goto out;
 	}
 
@@ -131,18 +185,24 @@ out:
 	return res;
 }
 
-GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar *keyfile) {
+GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar *keyfile, GError **error) {
+	GError *ierror = NULL;
 	GMappedFile *file;
 	GBytes *content = NULL;
 	GBytes *sig = NULL;
 
-	file = g_mapped_file_new(filename, FALSE, NULL);
+	file = g_mapped_file_new(filename, FALSE, &ierror);
 	if (file == NULL) {
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 	content = g_mapped_file_get_bytes(file);
 
-	sig = cms_sign(content, certfile, keyfile);
+	sig = cms_sign(content, certfile, keyfile, &ierror);
+	if (sig == NULL) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
 
 out:
 	g_bytes_unref(content);
@@ -150,13 +210,15 @@ out:
 	return sig;
 }
 
-gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit) {
+gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, GError **error) {
+	GError *ierror = NULL;
 	GMappedFile *file;
 	GBytes *content = NULL;
 	gboolean res = FALSE;
 
-	file = g_mapped_file_new(filename, FALSE, NULL);
+	file = g_mapped_file_new(filename, FALSE, &ierror);
 	if (file == NULL) {
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 	content = g_mapped_file_get_bytes(file);

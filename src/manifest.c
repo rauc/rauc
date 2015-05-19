@@ -309,7 +309,8 @@ gboolean update_manifest(const gchar *dir, gboolean signature) {
 	if (signature) {
 		sig = cms_sign_file(manifestpath,
 				    r_context()->certpath,
-				    r_context()->keypath);
+				    r_context()->keypath,
+				    NULL);
 		if (sig == NULL)
 			goto out;
 
@@ -345,7 +346,7 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signa
 		if (sig == NULL)
 			goto out;
 
-		res = cms_verify_file(manifestpath, sig, 0);
+		res = cms_verify_file(manifestpath, sig, 0, NULL);
 		if (!res)
 			goto out;
 
