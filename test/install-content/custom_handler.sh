@@ -1,22 +1,94 @@
 #!/bin/bash
 
+set -e
+
 echo "<< handler [STARTED]"
 
-echo "SYSTEM_CONFIG: $SYSTEM_CONFIG"
-echo "CURRENT_BOOTNAME: $CURRENT_BOOTNAME"
-echo "TARGET_SLOTS: $TARGET_SLOTS"
-echo "UPDATE_SOURCE: $UPDATE_SOURCE"
-echo "MOUNT_PREFIX: $MOUNT_PREFIX"
+function exit_if_empty {
+	if [ -z "$1" ]; then exit 1; fi
+}
 
-sleep 0.5
+rootrun=""
+if [ "$EUID" != 0 ]; then
+	rootrun="sudo"
+fi
 
-echo "<< image rootfs [DONE]"
+# Sanity check
+for i in $(env | grep "^RAUC_"); do
+	echo $i
+	exit_if_empty $i
+done
 
-sleep 0.5
 
-echo "<< image appfs [DONE]"
+# Create mount point
+exit_if_empty $RAUC_MOUNT_PREFIX
+mkdir -p $RAUC_MOUNT_PREFIX/image
 
-echo "<< image foofs [SKIPPED]"
+# deactivate current slot
+barebox-state -s bootstate.$RAUC_CURRENT_BOOTNAME.priority=0
+
+# Update slots
+exit_if_empty $RAUC_MOUNT_PREFIX
+for i in $RAUC_TARGET_SLOTS; do
+	eval RAUC_SLOT_DEVICE=\$RAUC_SLOT_DEVICE_${i}
+	eval RAUC_IMAGE_NAME=\$RAUC_IMAGE_NAME_${i}
+	eval RAUC_IMAGE_DIGEST=\$RAUC_IMAGE_DIGEST_${i}
+	exit_if_empty $RAUC_SLOT_DEVICE
+	exit_if_empty $RAUC_IMAGE_NAME
+	exit_if_empty $RAUC_IMAGE_DIGEST
+
+	# Get absolute image path
+	if [[ "$RAUC_IMAGE_NAME" = /* ]]; then
+		IMAGE_PATH=$RAUC_IMAGE_NAME
+	else
+		IMAGE_PATH=$RAUC_UPDATE_SOURCE/$RAUC_IMAGE_NAME
+	fi
+
+	# XXX skip up-to-date slots
+
+	# Copy image
+	echo "<< image $RAUC_IMAGE_NAME [START]"
+	cp $IMAGE_PATH $RAUC_SLOT_DEVICE
+	echo "<< image $RAUC_IMAGE_NAME [DONE]"
+
+	# Write slot status file
+	$rootrun mount $RAUC_SLOT_DEVICE $RAUC_MOUNT_PREFIX/image
+	echo [slot] > $RAUC_MOUNT_PREFIX/image/slot.raucs
+	echo status=ok >> $RAUC_MOUNT_PREFIX/image/slot.raucs
+	echo sha256=$RAUC_IMAGE_DIGEST >> $RAUC_MOUNT_PREFIX/image/slot.raucs
+	$rootrun umount $RAUC_MOUNT_PREFIX/image
+done
+
+# Update boot priority
+for i in $RAUC_SLOTS; do
+	eval RAUC_SLOT_PARENT=\$RAUC_SLOT_PARENT_${i}
+	eval RAUC_SLOT_CLASS=\$RAUC_SLOT_CLASS_${i}
+	eval RAUC_SLOT_BOOTNAME=\$RAUC_SLOT_BOOTNAME_${i}
+	eval RAUC_SLOT_NAME=\$RAUC_SLOT_NAME_${i}
+	# skip non-root slots
+	if [ -n "$RAUC_SLOT_PARENT" ]; then
+		continue
+	fi
+
+	# check if in target group
+	for j in $RAUC_TARGET_SLOTS; do
+		eval TARGET_CLASS=\$RAUC_SLOT_CLASS_${j}
+		eval TARGET_NAME=\$RAUC_SLOT_NAME_${j}
+
+		if [ "$RAUC_SLOT_CLASS" != "$TARGET_CLASS" ]; then
+			continue
+		fi
+
+		# Set highest priority for currently updated, set lower prio for other
+		if [ "$RAUC_SLOT_NAME" = "$TARGET_NAME" ]; then
+			barebox-state -s bootstate.$RAUC_SLOT_BOOTNAME.priority=20
+		else
+			barebox-state -s bootstate.$RAUC_SLOT_BOOTNAME.priority=10
+		fi
+	done
+done
+echo "<< bootloader [DONE]"
+
 
 echo "<< handler [DONE]"
 
