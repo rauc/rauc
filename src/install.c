@@ -268,7 +268,7 @@ static gboolean launch_and_wait_custom_handler(gchar* cwd, RaucManifest *manifes
 	g_subprocess_launcher_setenv(handlelaunch, "RAUC_SYSTEM_CONFIG", r_context()->configpath, TRUE);
 	g_subprocess_launcher_setenv(handlelaunch, "RAUC_CURRENT_BOOTNAME", bootname_provider(), TRUE);
 	g_subprocess_launcher_setenv(handlelaunch, "RAUC_UPDATE_SOURCE", cwd, TRUE);
-	g_subprocess_launcher_setenv(handlelaunch, "RAUC_MOUNT_PREFIX", r_context()->mountprefix ? r_context()->mountprefix : r_context()->config->mount_prefix , TRUE);
+	g_subprocess_launcher_setenv(handlelaunch, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, &sname, (gpointer) &slot)) {
@@ -381,7 +381,7 @@ static gchar* create_mount_point(const gchar *name) {
 	gchar* prefix;
 	gchar* mountpoint = NULL;
 
-	prefix = r_context()->mountprefix == NULL ? r_context()->config->mount_prefix : r_context()->mountprefix;
+	prefix = r_context()->config->mount_prefix;
 	if (!g_file_test (prefix, G_FILE_TEST_IS_DIR)) {
 		g_warning("mount prefix path %s does not exist", prefix);
 		goto out;

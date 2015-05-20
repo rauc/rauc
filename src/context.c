@@ -15,6 +15,11 @@ static void r_context_configure(void) {
 	g_clear_pointer(&context->config, free_config);
 	res = load_config(context->configpath, &context->config, NULL);
 
+	if (context->mountprefix) {
+		g_free(context->config->mount_prefix);
+		context->config->mount_prefix = g_strdup(context->mountprefix);
+	}
+
 	if (!res)
 		g_error("failed to initialize context");
 
