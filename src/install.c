@@ -96,7 +96,7 @@ gboolean determine_slot_states(void) {
 	}
 
 	res = TRUE;
-	booted->state = ST_ACTIVE;
+	booted->state = ST_BOOTED;
 	g_print("Found booted slot: %s on %s\n", booted->name, booted->device);
 
 	/* Determine active group members */
@@ -104,16 +104,15 @@ gboolean determine_slot_states(void) {
 		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, l->data);
 
 		if (s->parent) {
-			if (s->parent->state == ST_ACTIVE) {
-				s->state = ST_ACTIVE;
+			if (s->parent->state & ST_ACTIVE) {
+				s->state |= ST_ACTIVE;
 			} else {
-				s->state = ST_INACTIVE;
+				s->state |= ST_INACTIVE;
 			}
 		} else {
 			if (s->state == ST_UNKNOWN)
-				s->state = ST_INACTIVE;
+				s->state |= ST_INACTIVE;
 		}
-
 	}
 
 out:
@@ -394,7 +393,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 	while (g_hash_table_iter_next(&iter, &class, &member)) {
 		RaucSlot *dest_slot = g_hash_table_lookup(r_context()->config->slots, member);
 
-		if (dest_slot->state == ST_ACTIVE && !dest_slot->parent) {
+		if (dest_slot->state & ST_ACTIVE && !dest_slot->parent) {
 			break;
 		}
 

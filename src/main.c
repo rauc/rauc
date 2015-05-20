@@ -4,6 +4,7 @@
 #include <glib.h>
 #include <gio/gio.h>
 
+#include <bootchooser.h>
 #include <bundle.h>
 #include <config_file.h>
 #include <context.h>
@@ -161,8 +162,63 @@ out:
 
 static gboolean status_start(int argc, char **argv)
 {
+	GHashTableIter iter;
+	gpointer key, value;
+	gboolean res = FALSE;
+	RaucSlot *booted = NULL;
+
 	g_message("status start\n");
 
+	g_print("booted from: %s\n", get_bootname());
+
+	res = determine_slot_states();
+	if (!res) {
+		g_warning("Failed to determine slot states");
+		goto out;
+	}
+
+	g_print("slot states:\n");
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		gchar *name = key;
+		RaucSlot *slot = value;
+		const gchar *state = NULL;
+		switch (slot->state) {
+		case ST_ACTIVE:
+			state = "active";
+			break;
+		case ST_INACTIVE:
+			state = "inactive";
+			break;
+		case ST_BOOTED:
+			state = "booted";
+			booted = slot;
+			break;
+		case ST_UNKNOWN:
+		default:
+			g_error("invalid slot status");
+			break;
+		}
+		g_print("  %s: class=%s, device=%s, type=%s, bootname=%s, state=%s\n",
+			name, slot->sclass, slot->device, slot->type,
+			slot->bootname, state);
+	}
+
+	if (argc < 3) {
+		goto out;
+	}
+
+	if (g_strcmp0(argv[2], "mark-good") == 0) {
+		g_print("marking slot %s as good\n", booted->name);
+		r_boot_set_state(booted, TRUE);
+	} else if (g_strcmp0(argv[2], "mark-bad") == 0) {
+		g_print("marking slot %s as bad\n", booted->name);
+		r_boot_set_state(booted, FALSE);
+	} else {
+		g_print("unknown subcommand %s\n", argv[2]);
+	}
+
+out:
 	return TRUE;
 }
 

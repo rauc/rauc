@@ -17,9 +17,10 @@ typedef struct {
 } RaucConfig;
 
 typedef enum {
-	ST_UNKNOWN,
-	ST_ACTIVE,
-	ST_INACTIVE
+	ST_UNKNOWN = 0,
+	ST_ACTIVE = 1,
+	ST_INACTIVE = 2,
+	ST_BOOTED = 4 | ST_ACTIVE,
 } SlotState;
 
 typedef struct _RaucSlot {
