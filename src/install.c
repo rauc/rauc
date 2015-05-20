@@ -217,8 +217,10 @@ static void parse_handler_output(gchar* line) {
 
 	g_assert_nonnull(line);
 
-	if (!g_str_has_prefix(line, "<< "))
+	if (!g_str_has_prefix(line, "<< ")) {
+		g_print("# %s\n", line);
 		goto out;
+	}
 
 	split = g_strsplit(line, " ", 5);
 
@@ -229,6 +231,12 @@ static void parse_handler_output(gchar* line) {
 		g_print("Handler status: %s\n", split[2]);
 	} else if (g_strcmp0(split[1], "image") == 0) {
 		g_print("Image '%s' status: %s\n", split[2], split[3]);
+	} else if (g_strcmp0(split[1], "error") == 0) {
+		g_print("error: '%s'\n", split[2]);
+	} else if (g_strcmp0(split[1], "bootloader") == 0) {
+		g_print("error: '%s'\n", split[2]);
+	} else {
+		g_print("Unknown command: %s\n", split[1]);
 	}
 
 
