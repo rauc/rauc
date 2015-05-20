@@ -388,7 +388,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 			break;
 		}
 
-		res = r_boot_disable(dest_slot);
+		res = r_boot_set_state(dest_slot, FALSE);
 
 		if (!res) {
 			g_warning("Failed marking slot %s non-bootable", dest_slot->name);

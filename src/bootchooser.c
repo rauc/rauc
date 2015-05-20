@@ -65,18 +65,18 @@ out:
 #define BOOTSTATE_PREFIX "bootstate"
 
 /* names: list of gchar, values: list of gint */
-static gboolean barebox_state_set_int(GList* names, GList* values) {
+static gboolean barebox_state_set(GPtrArray *pairs) {
 	GSubprocess *sub;
 	GError *error = NULL;
 	gboolean res = FALSE;
-	GPtrArray *args = g_ptr_array_new_full(10, g_free);
+	GPtrArray *args = g_ptr_array_new_full(2*pairs->len+2, g_free);
 
-	g_assert_cmpint(g_list_length(names), ==, g_list_length(values));
+	g_assert_cmpuint(pairs->len, >, 0);
 	
 	g_ptr_array_add(args, g_strdup(BAREBOX_STATE_NAME));
-	for (GList *n = names, *v = values; n != NULL && v != NULL; n = n->next, v = v->next) {
+	for (guint i = 0; i < pairs->len; i++) {
 		g_ptr_array_add(args, g_strdup("-s"));
-		g_ptr_array_add(args, g_strdup_printf("%s=%i", (gchar*)n->data, *(gint*)v->data));
+		g_ptr_array_add(args, g_strdup(pairs->pdata[i]));
 	}
 	g_ptr_array_add(args, NULL);
 
@@ -100,60 +100,68 @@ out:
 	return res;
 }
 
-/* Sets slots bootstate priority to 0 */
-static gboolean barebox_boot_disable(RaucSlot *slot) {
+/* Set slot status values */
+static gboolean barebox_set_state(RaucSlot *slot, gboolean good) {
 	gboolean res = FALSE;
-	GList *names = NULL, *values = NULL;
-	int prio = 0;
+	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
+	int prio;
 
 	g_assert_nonnull(slot);
 
-	names = g_list_append(names, g_strdup_printf("%s.%s.priority", BOOTSTATE_PREFIX, slot->bootname));
-	values = g_list_append(values, &prio);
-	res = TRUE;//barebox_state_set_int(names, values);
+	if (good) {
+		prio = 20;
+	} else {
+		prio = 0;
+	}
 
+	g_ptr_array_add(pairs, g_strdup_printf("%s.%s.priority=%i",
+			BOOTSTATE_PREFIX, slot->bootname, prio));
+
+	res = barebox_state_set(pairs);
 	if (!res) {
-		g_warning("failed marking as bootable");
+		g_warning("failed marking as %s", good ? "good" : "bad");
 		goto out;
 	}
 
 	res = TRUE;
 out:
+	g_ptr_array_unref(pairs);
 	return res;
 }
 
-/* Set partition as primary boot partiton */
+/* Set slot as primary boot slot */
 static gboolean barebox_set_primary(RaucSlot *slot) {
-	gboolean res = FALSE;
-	GList *names = NULL, *values = NULL;
+	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
 	int prio1 = 20, prio2 = 10, ok = 1;
+	gboolean res = FALSE;
 	GList *slots;
 
 	g_assert_nonnull(slot);
 
-	slots = g_hash_table_get_values(r_context()->config->slots);
-
 	/* Iterate over class members */
+	slots = g_hash_table_get_values(r_context()->config->slots);
 	for (GList *l = slots; l != NULL; l = l->next) {
 		RaucSlot *s = l->data;
+		int prio;
+
 		if (s->sclass != slot->sclass)
 			continue;
 
-		names = g_list_append(names, g_strdup_printf("%s.%s.priority", BOOTSTATE_PREFIX, s->bootname));
 		if (s == slot) {
-			values = g_list_append(values, &prio1);
+			prio = prio1;
 		} else {
-			values = g_list_append(values, &prio2);
+			prio = prio2;
 		}
+		g_ptr_array_add(pairs, g_strdup_printf("%s.%s.priority=%i",
+				BOOTSTATE_PREFIX, s->bootname, prio));
 	}
 
-	names = g_list_append(names, g_strdup_printf("%s.%s.ok", BOOTSTATE_PREFIX, slot->bootname));
-	values = g_list_append(values, &ok);
+	g_ptr_array_add(pairs, g_strdup_printf("%s.%s.ok=%i",
+			BOOTSTATE_PREFIX, slot->bootname, ok));
 
-	res = barebox_state_set_int(names, values);
-
+	res = barebox_state_set(pairs);
 	if (!res) {
-		g_warning("failed marking as bootable");
+		g_warning("failed marking as primary");
 		goto out;
 	}
 
@@ -266,11 +274,11 @@ out:
 	return res;
 }
 
-gboolean r_boot_disable(RaucSlot *slot) {
+gboolean r_boot_set_state(RaucSlot *slot, gboolean good) {
 	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
-		return barebox_boot_disable(slot);
+		return barebox_set_state(slot, good);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
-		return grub_set_state(slot, FALSE);
+		return grub_set_state(slot, good);
 	}
 
 	g_print("Warning: Your bootloader '%s' is not supported yet\n", r_context()->config->system_bootloader);

@@ -5,13 +5,14 @@
 #include "config_file.h"
 
 /**
- * Mark slot as non-bootable.
+ * Mark slot as good or bad.
  *
  * @param slot Slot to mark
+ * @param good Whether to mark it as good (instead of bad)
  *
  * @return TRUE if successfull, FALSE if failed
  */
-gboolean r_boot_disable(RaucSlot *slot);
+gboolean r_boot_set_state(RaucSlot *slot, gboolean good);
 
 /**
  * Mark slot as primary boot option of its slot class.
