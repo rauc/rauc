@@ -465,7 +465,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 	}
 
 	/* Mark all parent destination slots non-bootable */
-	g_print("Marking active slot as non-bootable...\n");
+	g_message("Marking active slot as non-bootable...");
 	g_hash_table_iter_init(&iter, target_group);
 	while (g_hash_table_iter_next(&iter, &class, &member)) {
 		RaucSlot *dest_slot = g_hash_table_lookup(r_context()->config->slots, member);
@@ -482,8 +482,9 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 		}
 	}
 
-	g_print("Updating slots...\n");
+	g_message("Updating slots...");
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		GError *ierror = NULL;
 		gchar *dest_slot_name;
 		RaucSlot  *dest_slot;
 		RaucImage *mfimage;
@@ -519,8 +520,6 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 			g_print("Is a raw image\n");
 		}
 
-		g_print(G_STRLOC " I will copy %s to %s\n", srcimagepath, dest_slot->device);
-
 	
 		srcimagefile = g_file_new_for_path(srcimagepath);
 		destdevicefile = g_file_new_for_path(dest_slot->device);
@@ -536,10 +535,12 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 
 		slotstatuspath = g_build_filename(mountpoint, "slot.raucs", NULL);
 
-		res = load_slot_status(slotstatuspath, &slot_state, NULL);
+		res = load_slot_status(slotstatuspath, &slot_state, &ierror);
 
 		if (!res) {
-			g_message("Failed to load slot status file");
+			g_message("Failed to load slot status file: %s", ierror->message);
+			g_clear_error(&ierror);
+
 			slot_state = g_new0(RaucSlotStatus, 1);
 			slot_state->status = g_strdup("update");
 		} else {
@@ -561,7 +562,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 		}
 
 		/* update slot */
-		g_message("copying %s to %s", srcimagepath, dest_slot->device);
+		g_message("Copying %s to %s", srcimagepath, dest_slot->device);
 
 		res = copy_image(
 			srcimagefile,
@@ -572,29 +573,25 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 			goto out;
 		}
 
-		// TODO: status: copy done
-
-		g_print(G_STRLOC " I will mount %s to %s\n", dest_slot->device, mountpoint);
+		g_debug("Mounting %s to %s", dest_slot->device, mountpoint);
 
 		res = r_mount_slot(dest_slot, mountpoint);
 		if (!res) {
 			g_warning("Mounting failed");
 			goto out;
 		}
-		g_print("filename: %s\n", mfimage->filename);
-		g_print("digest: %s\n", mfimage->checksum.digest);
-
 
 		slot_state->status = g_strdup("ok");
 		slot_state->checksum.type = mfimage->checksum.type;
 		slot_state->checksum.digest = g_strdup(mfimage->checksum.digest);
 		
-		g_print(G_STRLOC " I will update slot file %s\n", slotstatuspath);
+		g_message("Updating slot file %s", slotstatuspath);
 
-		res = save_slot_status(slotstatuspath, slot_state, NULL);
+		res = save_slot_status(slotstatuspath, slot_state, &ierror);
 
 		if (!res) {
-			g_warning("Failed writing status file");
+			g_warning("Failed writing status file: %s", ierror->message);
+			g_clear_error(&ierror);
 
 			r_umount(mountpoint);
 
@@ -607,17 +604,18 @@ image_out:
 		g_clear_pointer(&srcimagefile, g_object_unref);
 		g_clear_pointer(&destdevicefile, g_object_unref);
 		g_clear_pointer(&slotstatuspath, g_free);
-		g_message("Unmounting %s", mountpoint);
+		g_debug("Unmounting %s", mountpoint);
 
 		res = r_umount(mountpoint);
 		if (!res) {
-			g_warning("Unounting failed");
+			g_warning("Unmounting failed");
 			goto out;
 		}
+
 	}
 
-	/* Mark all parent destination slots non-bootable */
-	g_print("Marking slots as bootable...\n");
+	/* Mark all parent destination slots bootable */
+	g_message("Marking slots as bootable...");
 	g_hash_table_iter_init(&iter, target_group);
 	while (g_hash_table_iter_next(&iter, &class, &member)) {
 		RaucSlot *dest_slot = g_hash_table_lookup(r_context()->config->slots, member);
@@ -777,6 +775,7 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 	}
 
 	// TODO: mount info in context ?
+	g_print("Mounting bundle '%s' to '%s'\n", bundlelocation, mountpoint);
 	res = mount_bundle(bundlelocation, mountpoint);
 	if (!res) {
 		g_warning("Failed mounting bundle");
