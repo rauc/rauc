@@ -2,8 +2,10 @@
 #include <locale.h>
 #include <glib.h>
 
-#include "config_file.h"
-#include "manifest.h"
+#include <config_file.h>
+#include <context.h>
+#include <manifest.h>
+
 #include "utils.h"
 
 static void config_file_test1(void)
@@ -55,6 +57,7 @@ static void manifest_check_common(RaucManifest *rm) {
 	g_assert_cmpstr(rm->update_version, ==, "2015.04-1");
 	g_assert_cmpstr(rm->keyring, ==, "release.tar");
 	g_assert_cmpstr(rm->handler_name, ==, "custom_handler.sh");
+	g_assert_cmpstr(rm->handler_args, ==, "--dummy1 --dummy2");
 	g_assert_nonnull(rm->images);
 
 	g_assert_cmpuint(g_list_length(rm->images), ==, 2);
@@ -130,6 +133,7 @@ static void config_file_test4(void)
 	rm->update_version = g_strdup("2011.03-1");
 	rm->keyring = g_strdup("mykeyring.tar");
 	rm->handler_name = g_strdup("myhandler.sh");
+	rm->handler_args = g_strdup("--foo");
 
 	new_image = g_new0(RaucImage, 1);
 
@@ -161,7 +165,7 @@ static void config_file_test4(void)
 
 	g_assert_true(save_manifest_file("test/savedmanifest.raucm", rm));
 
-	free_manifest(rm);
+	g_clear_pointer(&rm, free_manifest);
 
 	g_assert_true(load_manifest_file("test/savedmanifest.raucm", &rm));
 
@@ -170,6 +174,7 @@ static void config_file_test4(void)
 	g_assert_cmpstr(rm->update_version , ==, "2011.03-1");
 	g_assert_cmpstr(rm->keyring, ==, "mykeyring.tar");
 	g_assert_cmpstr(rm->handler_name, ==, "myhandler.sh");
+	g_assert_cmpstr(rm->handler_args, ==, "--foo --dummy1 --dummy2");
 
 	g_assert_cmpuint(g_list_length(rm->images), ==, 2);
 	g_assert_cmpuint(g_list_length(rm->files), ==, 1);
@@ -235,6 +240,10 @@ int main(int argc, char *argv[])
 	setlocale(LC_ALL, "");
 
 	g_test_init(&argc, &argv, NULL);
+
+	r_context_conf()->configpath = g_strdup("test/test.conf");
+	r_context_conf()->handlerextra = g_strdup("--dummy1 --dummy2");
+	r_context();
 
 	g_test_add_func("/config-file/test1", config_file_test1);
 	g_test_add_func("/config-file/test2", config_file_test2);

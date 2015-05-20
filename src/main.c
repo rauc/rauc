@@ -257,13 +257,15 @@ typedef struct {
 static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, version = FALSE;
-	gchar *confpath = NULL, *certpath = NULL, *keypath = NULL, *mount = NULL;
+	gchar *confpath = NULL, *certpath = NULL, *keypath = NULL, *mount = NULL,
+	      *handlerextra = NULL;
 	GOptionContext *context = NULL;
 	GOptionEntry entries[] = {
 		{"conf", 'c', 0, G_OPTION_ARG_FILENAME, &confpath, "config file", "FILENAME"},
 		{"cert", '\0', 0, G_OPTION_ARG_FILENAME, &certpath, "cert file", "PEMFILE"},
 		{"key", '\0', 0, G_OPTION_ARG_FILENAME, &keypath, "key file", "PEMFILE"},
 		{"mount", '\0', 0, G_OPTION_ARG_FILENAME, &mount, "mount prefix", "PATH"},
+		{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handlerextra, "extra handler arguments", "ARGS"},
 		{"version", '\0', 0, G_OPTION_ARG_NONE, &version, "display version", NULL},
 		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, NULL, NULL},
 		{NULL}
@@ -347,6 +349,8 @@ static void cmdline_handler(int argc, char **argv)
 			r_context_conf()->keypath = keypath;
 		if (mount)
 			r_context_conf()->mountprefix = mount;
+		if (handlerextra)
+			r_context_conf()->handlerextra = handlerextra;
 	} else {
 		if (confpath != NULL ||
 		    certpath != NULL ||

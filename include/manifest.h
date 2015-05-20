@@ -24,6 +24,7 @@ typedef struct {
 	gchar *keyring;
 
 	gchar *handler_name;
+	gchar *handler_args;
 
 	GList *images;
 	GList *files;

@@ -18,6 +18,9 @@ typedef struct {
 	gchar *keypath;
 	/* optional global mount prefix overwrite */
 	gchar *mountprefix;
+
+	/* optional custom handler extra arguments */
+	gchar *handlerextra;
 } RaucContext;
 
 gboolean r_context_get_busy(void);

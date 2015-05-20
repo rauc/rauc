@@ -27,6 +27,15 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest) {
 
 	/* parse [handler] section */
 	raucm->handler_name = g_key_file_get_string(key_file, "handler", "filename", NULL);
+	raucm->handler_args = g_key_file_get_string(key_file, "handler", "args", NULL);
+	if (r_context()->handlerextra) {
+		GString *str = g_string_new(raucm->handler_args);
+		if (str->len)
+			g_string_append_c(str, ' ');
+		g_string_append(str, r_context()->handlerextra);
+		g_free(raucm->handler_args);
+		raucm->handler_args = g_string_free(str, FALSE);
+	}
 
 	/* parse [image.<slotclass>] and [file.<slotclass>/<destname>] sections */
 	groups = g_key_file_get_groups(key_file, &group_count);
@@ -152,6 +161,9 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf) {
 
 	if (mf->handler_name)
 		g_key_file_set_string(key_file, "handler", "filename", mf->handler_name);
+
+	if (mf->handler_args)
+		g_key_file_set_string(key_file, "handler", "args", mf->handler_args);
 
 	for (GList *l = mf->images; l != NULL; l = l->next) {
 		RaucImage *image = l->data;
