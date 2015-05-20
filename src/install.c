@@ -236,7 +236,7 @@ out:
 	g_strfreev(split);
 }
 
-static gboolean launch_and_wait_custom_handler(gchar* cwd, gchar* name, GHashTable *target_group) {
+static gboolean launch_and_wait_custom_handler(gchar* cwd, RaucManifest *manifest, GHashTable *target_group) {
 	GSubprocessLauncher *handlelaunch = NULL;
 	GSubprocess *handleproc = NULL;
 	GError *error = NULL;
@@ -246,37 +246,87 @@ static gboolean launch_and_wait_custom_handler(gchar* cwd, gchar* name, GHashTab
 	GDataInputStream *datainstream;
 	gchar* outline;
 
-	GPtrArray *targetlist = NULL;
+	gchar *targetlist = NULL;
+	gchar *slotlist = NULL;
 	GHashTableIter iter;
-	gpointer class, member;
-	gchar *liststring;
-	const gchar *delimiter = ":", *space = " ";
+	gpointer sname;
+	RaucSlot *slot;
+	gint slotcnt = 0;
 
-	handler_name = g_build_filename(cwd, name, NULL);
+	handler_name = g_build_filename(cwd, manifest->handler_name, NULL);
 
 	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE);
 
-	g_subprocess_launcher_setenv(handlelaunch, "SYSTEM_CONFIG", r_context()->configpath, TRUE);
-	g_subprocess_launcher_setenv(handlelaunch, "CURRENT_BOOTNAME", bootname_provider(), TRUE);
+	g_subprocess_launcher_setenv(handlelaunch, "RAUC_SYSTEM_CONFIG", r_context()->configpath, TRUE);
+	g_subprocess_launcher_setenv(handlelaunch, "RAUC_CURRENT_BOOTNAME", bootname_provider(), TRUE);
+	g_subprocess_launcher_setenv(handlelaunch, "RAUC_UPDATE_SOURCE", cwd, TRUE);
+	g_subprocess_launcher_setenv(handlelaunch, "RAUC_MOUNT_PREFIX", r_context()->mountprefix ? r_context()->mountprefix : r_context()->config->mount_prefix , TRUE);
 
-	/* Make string list form hash table */
-	targetlist = g_ptr_array_new();
-	g_hash_table_iter_init(&iter, target_group);
-	while (g_hash_table_iter_next(&iter, &class, &member)) {
-		RaucSlot *dest_slot = g_hash_table_lookup(r_context()->config->slots, member);
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &sname, (gpointer) &slot)) {
+		gchar *varname;
+		gchar *tmp;
+		GHashTableIter iiter;
+		gpointer class, member;
 
-		g_ptr_array_add(targetlist, (gpointer)class);
-		g_ptr_array_add(targetlist, (gpointer)delimiter);
-		g_ptr_array_add(targetlist, (gpointer)dest_slot->name);
-		g_ptr_array_add(targetlist, (gpointer)space);
+		slotcnt++;
+
+		tmp = g_strdup_printf("%s%i ", slotlist ? slotlist : "", slotcnt);
+		g_clear_pointer(&slotlist, g_free);
+		slotlist = tmp;
+
+		g_hash_table_iter_init(&iiter, target_group);
+		while (g_hash_table_iter_next(&iiter, &class, &member)) {
+			if (slot->name != member) {
+				continue;
+			}
+
+			/* for target slots, get image name and add number to list */
+			for (GList *l = manifest->images; l != NULL; l = l->next) {
+				RaucImage *img = l->data;
+				if (g_str_equal(slot->sclass, img->slotclass)) {
+					varname = g_strdup_printf("RAUC_IMAGE_NAME_%i", slotcnt);
+					g_subprocess_launcher_setenv(handlelaunch, varname, img->filename, TRUE);
+					g_clear_pointer(&varname, g_free);
+
+					varname = g_strdup_printf("RAUC_IMAGE_DIGEST_%i", slotcnt);
+					g_subprocess_launcher_setenv(handlelaunch, varname, img->checksum.digest, TRUE);
+					g_clear_pointer(&varname, g_free);
+
+					varname = g_strdup_printf("RAUC_IMAGE_CLASS_%i", slotcnt);
+					g_subprocess_launcher_setenv(handlelaunch, varname, img->slotclass, TRUE);
+					g_clear_pointer(&varname, g_free);
+
+					break;
+				}
+			}
+
+			tmp = g_strdup_printf("%s%i ", targetlist ? targetlist : "", slotcnt);
+			g_clear_pointer(&targetlist, g_free);
+			targetlist = tmp;
+
+		}
+
+		varname = g_strdup_printf("RAUC_SLOT_NAME_%i", slotcnt);
+		g_subprocess_launcher_setenv(handlelaunch, varname, slot->name, TRUE);
+		g_clear_pointer(&varname, g_free);
+
+		varname = g_strdup_printf("RAUC_SLOT_CLASS_%i", slotcnt);
+		g_subprocess_launcher_setenv(handlelaunch, varname, slot->sclass, TRUE);
+		g_clear_pointer(&varname, g_free);
+
+		varname = g_strdup_printf("RAUC_SLOT_DEVICE_%i", slotcnt);
+		g_subprocess_launcher_setenv(handlelaunch, varname, slot->device, TRUE);
+		g_clear_pointer(&varname, g_free);
+
+		varname = g_strdup_printf("RAUC_SLOT_BOOTNAME_%i", slotcnt);
+		g_subprocess_launcher_setenv(handlelaunch, varname, slot->bootname, TRUE);
+		g_clear_pointer(&varname, g_free);
+
 	}
-	g_ptr_array_add(targetlist, NULL);
 
-	liststring = g_strjoinv("", (gchar**)targetlist->pdata);
-
-	g_subprocess_launcher_setenv(handlelaunch, "TARGET_SLOTS", liststring, TRUE);
-	g_subprocess_launcher_setenv(handlelaunch, "UPDATE_SOURCE", cwd, TRUE);
-	g_subprocess_launcher_setenv(handlelaunch, "MOUNT_PREFIX", r_context()->mountprefix ? r_context()->mountprefix : r_context()->config->mount_prefix , TRUE);
+	g_subprocess_launcher_setenv(handlelaunch, "RAUC_SLOTS", slotlist, TRUE);
+	g_subprocess_launcher_setenv(handlelaunch, "RAUC_TARGET_SLOTS", targetlist, TRUE);
 
 	handleproc = g_subprocess_launcher_spawn(
 			handlelaunch,
@@ -704,7 +754,7 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 
 	if (manifest->handler_name) {
 		g_print("Using custom handler: %s\n", manifest->handler_name);
-		res = launch_and_wait_custom_handler(mountpoint, manifest->handler_name, target_group);
+		res = launch_and_wait_custom_handler(mountpoint, manifest, target_group);
 	} else {
 		g_print("Using default handler\n");
 		res = launch_and_wait_default_handler(mountpoint, manifest, target_group);
