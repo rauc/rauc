@@ -323,6 +323,10 @@ static gboolean launch_and_wait_custom_handler(gchar* cwd, RaucManifest *manifes
 		g_subprocess_launcher_setenv(handlelaunch, varname, slot->bootname, TRUE);
 		g_clear_pointer(&varname, g_free);
 
+		varname = g_strdup_printf("RAUC_SLOT_PARENT_%i", slotcnt);
+		g_subprocess_launcher_setenv(handlelaunch, varname, slot->parent ? slot->parent->name : "", TRUE);
+		g_clear_pointer(&varname, g_free);
+
 	}
 
 	g_subprocess_launcher_setenv(handlelaunch, "RAUC_SLOTS", slotlist, TRUE);
