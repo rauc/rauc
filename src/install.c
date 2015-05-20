@@ -12,21 +12,21 @@
 #include "utils.h"
 #include "bootchooser.h"
 
-static const gchar* (*bootname_provider)(void) = get_cmdline_bootname;
-
-const gchar* get_cmdline_bootname(void) {
-
+static const gchar* get_cmdline_bootname(void) {
 	GRegex *regex = NULL;
 	GMatchInfo *match = NULL;
 	char *contents = NULL;
-	char *res = NULL;
+	static const char *bootname = NULL;
+
+	if (bootname != NULL)
+		return bootname;
 
 	if (!g_file_get_contents("/proc/cmdline", &contents, NULL, NULL))
 		return NULL;
 
 	regex = g_regex_new("rauc\\.slot=(\\S+)", 0, 0, NULL);
 	if (g_regex_match(regex, contents, 0, &match)) {
-		res = g_match_info_fetch(match, 1);
+		bootname = g_match_info_fetch(match, 1);
 		goto out;
 	}
 	g_clear_pointer(&match, g_match_info_free);
@@ -34,7 +34,7 @@ const gchar* get_cmdline_bootname(void) {
 
 	regex = g_regex_new("root=(\\S+)", 0, 0, NULL);
 	if (g_regex_match(regex, contents, 0, &match)) {
-		res = g_match_info_fetch(match, 1);
+		bootname = g_match_info_fetch(match, 1);
 		goto out;
 	}
 
@@ -43,7 +43,17 @@ out:
 	g_clear_pointer(&regex, g_regex_unref);
 	g_clear_pointer(&contents, g_free);
 
-	return res;
+	return bootname;
+}
+
+static const gchar* (*bootname_provider)(void) = get_cmdline_bootname;
+
+void set_bootname_provider(const gchar* (*provider)(void)) {
+	bootname_provider = provider;
+}
+
+const gchar* get_bootname(void) {
+	return bootname_provider();
 }
 
 gboolean determine_slot_states(void) {
@@ -612,9 +622,6 @@ out:
 	return res;
 }
 
-void set_bootname_provider(const gchar* (*provider)(void)) {
-	bootname_provider = provider;
-}
 static void print_hash_table(GHashTable *hash_table) {
 	GHashTableIter iter;
 	gpointer key, value;

@@ -200,7 +200,7 @@ static void install_fixture_tear_down(InstallFixture *fixture,
 
 static void install_test_bootname(void)
 {
-	g_assert_nonnull(get_cmdline_bootname());
+	g_assert_nonnull(get_bootname());
 }
 
 static void install_test_target(InstallFixture *fixture,
