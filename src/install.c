@@ -454,13 +454,6 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 	gboolean res = FALSE;
 	GError *error = NULL;
 	gchar *mountpoint = NULL;
-	gchar *srcimagepath = NULL;
-	//gboolean require_mount = FALSE;
-	GFile *srcimagefile = NULL;
-	GFile *destdevicefile = NULL;
-
-	RaucSlotStatus *slot_state = NULL;
-	gchar *slotstatuspath = NULL;
 
 	GHashTableIter iter;
 	gpointer class, member;
@@ -494,6 +487,11 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 		gchar *dest_slot_name;
 		RaucSlot  *dest_slot;
 		RaucImage *mfimage;
+		gchar *srcimagepath = NULL;
+		GFile *srcimagefile = NULL;
+		GFile *destdevicefile = NULL;
+		gchar *slotstatuspath = NULL;
+		RaucSlotStatus *slot_state = NULL;
 
 		mfimage = l->data;
 		dest_slot_name = g_hash_table_lookup(target_group, mfimage->slotclass);
@@ -527,6 +525,44 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 		srcimagefile = g_file_new_for_path(srcimagepath);
 		destdevicefile = g_file_new_for_path(dest_slot->device);
 
+		/* read slot status */
+		g_message("mounting %s to %s", dest_slot->device, mountpoint);
+
+		res = r_mount_slot(dest_slot, mountpoint);
+		if (!res) {
+			g_warning("Mounting failed");
+			goto out;
+		}
+
+		slotstatuspath = g_build_filename(mountpoint, "slot.raucs", NULL);
+
+		res = load_slot_status(slotstatuspath, &slot_state, NULL);
+
+		if (!res) {
+			g_message("Failed to load slot status file");
+			slot_state = g_new0(RaucSlotStatus, 1);
+			slot_state->status = g_strdup("update");
+		} else {
+
+			/* skip if slot is up-to-date */
+			res = g_str_equal(&mfimage->checksum.digest, slot_state->checksum.digest);
+			if (res) {
+				g_message("Skipping update for correct image %s", mfimage->filename);
+				goto image_out;
+			} else {
+				g_message("Slot needs to be updated with %s", mfimage->filename);
+			}
+		}
+
+		res = r_umount(mountpoint);
+		if (!res) {
+			g_warning("Unmounting failed");
+			goto out;
+		}
+
+		/* update slot */
+		g_message("copying %s to %s", srcimagepath, dest_slot->device);
+
 		res = copy_image(
 			srcimagefile,
 			destdevicefile);
@@ -548,14 +584,11 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 		g_print("filename: %s\n", mfimage->filename);
 		g_print("digest: %s\n", mfimage->checksum.digest);
 
-		slot_state = g_new0(RaucSlotStatus, 1);
 
 		slot_state->status = g_strdup("ok");
 		slot_state->checksum.type = mfimage->checksum.type;
 		slot_state->checksum.digest = g_strdup(mfimage->checksum.digest);
 		
-		slotstatuspath = g_build_filename(mountpoint, "slot.raucs", NULL);
-
 		g_print(G_STRLOC " I will update slot file %s\n", slotstatuspath);
 
 		res = save_slot_status(slotstatuspath, slot_state, NULL);
@@ -568,7 +601,14 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 			goto out;
 		}
 		
-		g_print(G_STRLOC " I will unmount %s\n", mountpoint);
+image_out:
+		g_clear_pointer(&slot_state, free_slot_status);
+		g_clear_pointer(&srcimagepath, g_free);
+		g_clear_pointer(&srcimagefile, g_object_unref);
+		g_clear_pointer(&destdevicefile, g_object_unref);
+		g_clear_pointer(&slotstatuspath, g_free);
+		g_message("Unmounting %s", mountpoint);
+
 		res = r_umount(mountpoint);
 		if (!res) {
 			g_warning("Unounting failed");
@@ -596,13 +636,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 	res = TRUE;
 
 out:
-	g_free(mountpoint);
-	g_free(srcimagepath);
-
-	g_object_unref(srcimagefile);
-	g_object_unref(destdevicefile);
-
-	free_slot_status(slot_state);
+	g_clear_pointer(&mountpoint, g_free);
 
 	return res;
 }
