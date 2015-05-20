@@ -10,7 +10,7 @@
  * @param slot Slot to mark
  * @param good Whether to mark it as good (instead of bad)
  *
- * @return TRUE if successfull, FALSE if failed
+ * @return TRUE if successful, FALSE if failed
  */
 gboolean r_boot_set_state(RaucSlot *slot, gboolean good);
 
@@ -19,6 +19,6 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good);
  *
  * @param slot Slot to mark
  *
- * @return TRUE if successfull, FALSE if failed
+ * @return TRUE if successful, FALSE if failed
  */
 gboolean r_boot_set_primary(RaucSlot *slot);
