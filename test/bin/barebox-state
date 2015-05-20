@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# List of valid variables
+varlist="bootstate.system0.remaining_attempts bootstate.system0.priority bootstate.system0.ok bootstate.system1.remaining_attempts bootstate.system1.priority bootstate.system1.ok bootstate.factory.remaining_attempts bootstate.factory.priority bootstate.factory.ok=0"
+
+# Command line parsing
+while [[ $# > 1 ]]; do
+	key="$1"
+	case $key in
+		-s)
+			SETVAR="$SETVAR$2 "
+			shift
+			;;
+		-g)
+			GETVAR="$GETVAR$2 "
+			shift
+			;;
+		*)
+			echo "Invalid key: $key"
+			exit 1
+			;;
+	esac
+shift
+done
+
+function check_var {
+	found=0
+	for l in $varlist; do
+		if [ "$1" = "$l" ]; then
+			found=1
+		fi
+	done
+	if [ "$found" -eq "0" ]; then
+		echo "Invalid variable: $1"
+		exit 1
+	fi
+}
+
+for i in $SETVAR; do
+	var="${i%=*}"
+	val="${i#*=}"
+
+	check_var $var
+
+done
+
+for i in $GETVAR; do
+	var="${i%=*}"
+	val="${i#*=}"
+
+	check_var $var
+
+done
+
+exit 0
