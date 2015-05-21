@@ -343,6 +343,7 @@ static gboolean launch_and_wait_custom_handler(gchar* cwd, RaucManifest *manifes
 	handleproc = g_subprocess_launcher_spawn(
 			handlelaunch,
 			&error, handler_name,
+			manifest->handler_args,
 			NULL);
 
 	instream = g_subprocess_get_stdout_pipe(handleproc);
