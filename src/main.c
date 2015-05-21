@@ -68,21 +68,21 @@ out:
 
 static gboolean bundle_start(int argc, char **argv)
 {
-	g_message("bundle start\n");
+	g_debug("bundle start");
 
 	if (r_context()->certpath == NULL ||
 	    r_context()->keypath == NULL) {
-		g_error("cert and key files must be provided");
+		g_warning("cert and key files must be provided");
 		goto out;
 	}
 
 	if (argc < 3) {
-		g_error("an input directory name must be provided");
+		g_warning("an input directory name must be provided");
 		goto out;
 	}
 
 	if (argc != 4) {
-		g_error("an output bundle name must be provided");
+		g_warning("an output bundle name must be provided");
 		goto out;
 	}
 
@@ -90,13 +90,13 @@ static gboolean bundle_start(int argc, char **argv)
 	g_print("output bundle: %s\n", argv[3]);
 
 	if (!update_manifest(argv[2], FALSE, NULL)) {
-		g_print("failed to update manifest\n");
+		g_warning("failed to update manifest");
 		r_exit_status = 1;
 		goto out;
 	}
 
 	if (!create_bundle(argv[3], argv[2])) {
-		g_print("failed to create bundle\n");
+		g_warning("failed to create bundle");
 		r_exit_status = 1;
 		goto out;
 	}
@@ -110,23 +110,23 @@ static gboolean checksum_start(int argc, char **argv)
 	GError *error = NULL;
 	gboolean sign = FALSE;
 
-	g_message("checksum start\n");
+	g_message("checksum start");
 
 	if (r_context()->certpath != NULL &&
 	    r_context()->keypath != NULL) {
 		sign = TRUE;
 	} else if (r_context()->certpath != NULL ||
 	    r_context()->keypath != NULL) {
-		g_error("either both or none of cert and key files must be provided");
+		g_warning("Either both or none of cert and key files must be provided");
 		goto out;
 	}
 
 	if (argc != 3) {
-		g_error("a directory name must be provided");
+		g_warning("A directory name must be provided");
 		goto out;
 	}
 
-	g_print("updating checksums for: %s\n", argv[2]);
+	g_message("updating checksums for: %s", argv[2]);
 
 	if (!update_manifest(argv[2], sign, &error)) {
 		g_warning("Failed to update manifest: %s", error->message);
@@ -142,21 +142,21 @@ static gboolean info_start(int argc, char **argv)
 {
 	gsize size;
 
-	g_message("info start\n");
+	g_message("info start");
 
 	if (argc != 3) {
-		g_error("a file name must be provided");
+		g_warning("a file name must be provided");
 	}
 
-	g_print("checking manifest for: %s\n", argv[2]);
+	g_message("checking manifest for: %s", argv[2]);
 
 	if (!check_bundle(argv[2], &size)) {
-		g_print("signature invalid (squashfs size: %"G_GSIZE_FORMAT")\n", size);
+		g_warning("signature invalid (squashfs size: %"G_GSIZE_FORMAT")", size);
 		r_exit_status = 1;
 		goto out;
 	}
 
-	g_print("signature correct (squashfs size: %"G_GSIZE_FORMAT")\n", size);
+	g_message("signature correct (squashfs size: %"G_GSIZE_FORMAT")", size);
 
 out:
 	return TRUE;
@@ -217,7 +217,7 @@ static gboolean status_start(int argc, char **argv)
 		g_print("marking slot %s as bad\n", booted->name);
 		r_boot_set_state(booted, FALSE);
 	} else {
-		g_print("unknown subcommand %s\n", argv[2]);
+		g_message("unknown subcommand %s", argv[2]);
 	}
 
 out:
@@ -226,14 +226,14 @@ out:
 
 static gboolean service_start(int argc, char **argv)
 {
-	g_message("service start\n");
+	g_message("service start");
 
 	return r_service_run();
 }
 
 static gboolean unknown_start(int argc, char **argv)
 {
-	g_message("unknown start\n");
+	g_message("unknown start");
 
 	return TRUE;
 }
