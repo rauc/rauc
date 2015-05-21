@@ -32,7 +32,7 @@ static gboolean install_cleanup(gpointer data)
 {
 	RaucInstallArgs *args = data;
 
-	r_exit_status = args->result;
+	r_exit_status = args->result ? 0 : 1;
 
 	g_idle_add(r_quit, NULL);
 
