@@ -10,20 +10,21 @@
 #include <context.h>
 #include <install.h>
 #include <service.h>
+#include "rauc-installer-generated.h"
 
 GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
-static gboolean r_quit(gpointer data) {
-	if (r_loop)
-		g_main_loop_quit(r_loop);
-	return G_SOURCE_REMOVE;
-}
-
 static gboolean install_notify(gpointer data) {
 	RaucInstallArgs *args = data;
 
-	g_message("foo! %s=%d\n", args->name, args->result);
+	g_mutex_lock(&args->status_mutex);
+	while (!g_queue_is_empty(&args->status_messages)) {
+		gchar *msg = g_queue_pop_head(&args->status_messages);
+		g_message("installing %s: %s\n", args->name, msg);
+	}
+	r_exit_status = args->status_result;
+	g_mutex_unlock(&args->status_mutex);
 
 	return G_SOURCE_REMOVE;
 }
@@ -32,16 +33,62 @@ static gboolean install_cleanup(gpointer data)
 {
 	RaucInstallArgs *args = data;
 
-	r_exit_status = args->result ? 0 : 1;
+	g_mutex_lock(&args->status_mutex);
+	g_message("installing %s done: %d\n", args->name, args->status_result);
+	r_exit_status = args->status_result;
+	g_mutex_unlock(&args->status_mutex);
 
-	g_idle_add(r_quit, NULL);
+	install_args_free(args);
+
+	g_main_loop_quit(r_loop);
 
 	return G_SOURCE_REMOVE;
 }
 
+static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
+				 const gchar* const *invalidated,
+				 gpointer data) {
+	RaucInstallArgs *args = data;
+	gchar *msg;
+
+	if (invalidated && invalidated[0]) {
+		g_warning("rauc service disappeared\n");
+		g_mutex_lock(&args->status_mutex);
+		args->status_result = 2;
+		g_mutex_unlock(&args->status_mutex);
+		args->cleanup(args);
+		return;
+	}
+
+	g_mutex_lock(&args->status_mutex);
+	if (g_variant_lookup(changed, "Operation", "s", &msg)) {
+		g_queue_push_tail(&args->status_messages, g_strdup(msg));
+	}
+	g_mutex_unlock(&args->status_mutex);
+
+	if (!g_queue_is_empty(&args->status_messages)) {
+		args->notify(args);
+	}
+}
+
+static void on_installer_completed(GDBusProxy *proxy, gint result,
+				   gpointer data) {
+	RaucInstallArgs *args = data;
+
+	g_mutex_lock(&args->status_mutex);
+	args->status_result = result;
+	g_mutex_unlock(&args->status_mutex);
+
+	if (result >= 0) {
+		args->cleanup(args);
+	}
+}
+
 static gboolean install_start(int argc, char **argv)
 {
-	RaucInstallArgs *args = g_new0(RaucInstallArgs, 1);
+	RInstaller *installer = NULL;
+	RaucInstallArgs *args = install_args_new();
+	GError *error = NULL;
 
 	g_message("install started\n");
 
@@ -57,12 +104,35 @@ static gboolean install_start(int argc, char **argv)
 	args->cleanup = install_cleanup;
 
 	r_loop = g_main_loop_new(NULL, FALSE);
+	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SYSTEM,
+		G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
+		"de.pengutronix.rauc", "/", NULL, NULL);
+	if (g_signal_connect(installer, "g-properties-changed",
+			     G_CALLBACK(on_installer_changed), args) <= 0) {
+		g_error("failed to connect properties-changed signal");
+		goto local;
+	}
+	if (g_signal_connect(installer, "completed",
+			     G_CALLBACK(on_installer_completed), args) <= 0) {
+		g_error("failed to connect completed signal");
+		goto local;
+	}
+	g_print("trying to contact rauc service\n");
+	if (!r_installer_call_install_sync(installer, argv[2], NULL, &error)) {
+		g_warning("failed %s", error->message);
+		goto local;
+	}
+	goto wait;
+local:
+	g_print("rauc service not running, installing directly\n");
 	install_run(args);
-	g_main_loop_run(r_loop);
-	g_main_loop_unref(r_loop);
 
-
+wait:
+	if (r_loop)
+		g_main_loop_run(r_loop);
 out:
+	g_clear_pointer(&r_loop, g_main_loop_unref);
+	g_clear_pointer(&installer, g_object_unref);
 	return TRUE;
 }
 

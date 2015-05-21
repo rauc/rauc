@@ -12,6 +12,13 @@
 #include "utils.h"
 #include "bootchooser.h"
 
+static void install_args_update(RaucInstallArgs *args, const gchar *msg) {
+	g_mutex_lock(&args->status_mutex);
+	g_queue_push_tail(&args->status_messages, g_strdup(msg));
+	g_mutex_unlock(&args->status_mutex);
+	g_main_context_invoke(NULL, args->notify, args);
+}
+
 static const gchar* get_cmdline_bootname(void) {
 	GRegex *regex = NULL;
 	GMatchInfo *match = NULL;
@@ -901,8 +908,6 @@ static gboolean install_done(gpointer data) {
 
 	args->cleanup(args);
 
-	g_free(args);
-
 	r_context_set_busy(FALSE);
 
 	return G_SOURCE_REMOVE;
@@ -910,20 +915,43 @@ static gboolean install_done(gpointer data) {
 
 static gpointer install_thread(gpointer data) {
 	RaucInstallArgs *args = data;
+	gint result;
 
-	g_message("thread started for %s\n", args->name);
+	g_debug("thread started for %s\n", args->name);
+	install_args_update(args, "started");
+
 	if (g_str_has_suffix(args->name, ".raucb")) {
-		args->result = do_install_bundle(args->name);
+		result = !do_install_bundle(args->name);
 	} else {
-		args->result = do_install_network(args->name);
+		result = !do_install_network(args->name);
 	}
 
-	g_main_context_invoke(NULL, args->notify, args);
-
-	g_message("thread finished for %s\n", args->name);
+	g_mutex_lock(&args->status_mutex);
+	args->status_result = result;
+	g_mutex_unlock(&args->status_mutex);
+	install_args_update(args, "finished");
+	g_debug("thread finished for %s\n", args->name);
 
 	g_main_context_invoke(NULL, install_done, args);
 	return NULL;
+}
+
+RaucInstallArgs *install_args_new(void) {
+	RaucInstallArgs *args = g_new0(RaucInstallArgs, 1);
+
+	g_mutex_init(&args->status_mutex);
+	g_queue_init(&args->status_messages);
+	args->status_result = -2;
+
+	return args;
+}
+
+void install_args_free(RaucInstallArgs *args) {
+	g_free(args->name);
+	g_mutex_clear(&args->status_mutex);
+	g_assert_cmpint(args->status_result, >=, 0);
+	g_assert_true(g_queue_is_empty(&args->status_messages));
+	g_free(args);
 }
 
 gboolean install_run(RaucInstallArgs *args) {

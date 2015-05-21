@@ -16,10 +16,15 @@ gboolean do_install_bundle(const gchar* bundlelocation);
 gboolean do_install_network(const gchar *url);
 
 typedef struct {
-	const gchar *name;
+	gchar *name;
 	GSourceFunc notify;
 	GSourceFunc cleanup;
-	gboolean result;
+	GMutex status_mutex;
+	GQueue status_messages;
+	gint status_result;
 } RaucInstallArgs;
+
+RaucInstallArgs *install_args_new(void);
+void install_args_free(RaucInstallArgs *args);
 
 gboolean install_run(RaucInstallArgs *args);

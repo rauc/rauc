@@ -4,7 +4,10 @@
       <arg name="source" type="s"/>
     </method>
 
-    <property name="Busy" type="b" access="read"/>
     <property name="Operation" type="s" access="read"/>
+
+    <signal name="Completed">
+      <arg name="result" type="i"/>
+    </signal>
   </interface>
 </node>

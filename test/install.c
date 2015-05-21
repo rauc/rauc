@@ -333,7 +333,11 @@ static gboolean install_cleanup(gpointer data)
 	RaucInstallArgs *args = data;
 
 	g_assert_nonnull(args);
-	g_assert_true(args->result);
+	g_assert_cmpint(args->status_result, ==, 0);
+	g_assert_false(g_queue_is_empty(&args->status_messages));
+
+	g_queue_clear(&args->status_messages);
+	install_args_free(args);
 
 	g_idle_add(r_quit, NULL);
 
@@ -343,7 +347,7 @@ static gboolean install_cleanup(gpointer data)
 static void install_test_bundle_thread(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucInstallArgs *args = g_new0(RaucInstallArgs, 1);
+	RaucInstallArgs *args = install_args_new();
 	gchar *bundlepath, *mountdir;
 
 	/* Set mount path to current temp dir */
@@ -370,7 +374,7 @@ static void install_test_bundle_thread(InstallFixture *fixture,
 static void install_test_network_thread(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucInstallArgs *args = g_new0(RaucInstallArgs, 1);
+	RaucInstallArgs *args = install_args_new();
 	gchar *manifesturl, *mountdir;
 
 	/* Set mount path to current temp dir */
