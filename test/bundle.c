@@ -50,10 +50,10 @@ static void bundle_test1(BundleFixture *fixture,
 	outputdir = g_build_filename(fixture->tmpdir, "output", NULL);
 	g_assert_nonnull(outputdir);
 
-	g_assert_true(update_manifest(contentdir, FALSE));
+	g_assert_true(update_manifest(contentdir, FALSE, NULL));
 	g_assert_true(create_bundle(bundlename, contentdir));
 	g_assert_true(extract_bundle(bundlename, outputdir));
-	g_assert_true(verify_manifest(outputdir, NULL, FALSE));
+	g_assert_true(verify_manifest(outputdir, NULL, FALSE, NULL));
 }
 
 static void bundle_test2(BundleFixture *fixture,
@@ -70,10 +70,10 @@ static void bundle_test2(BundleFixture *fixture,
 	mountpoint = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountpoint);
 
-	g_assert_true(update_manifest(contentdir, FALSE));
+	g_assert_true(update_manifest(contentdir, FALSE, NULL));
 	g_assert_true(create_bundle(bundlename, contentdir));
 	g_assert_true(mount_bundle(bundlename, mountpoint));
-	g_assert_true(verify_manifest(mountpoint, NULL, FALSE));
+	g_assert_true(verify_manifest(mountpoint, NULL, FALSE, NULL));
 	g_assert_true(umount_bundle(bundlename));
 }
 
@@ -91,31 +91,33 @@ static void bundle_test3(BundleFixture *fixture,
 	appfsimage = g_build_filename(fixture->tmpdir, "content", "appfs.img", NULL);
 	g_assert_nonnull(appfsimage);
 
-	g_assert_true(update_manifest(contentdir, TRUE));
-	g_assert_true(verify_manifest(contentdir, NULL, FALSE));
-	g_assert_true(verify_manifest(contentdir, NULL, TRUE));
+	g_assert_true(update_manifest(contentdir, TRUE, NULL));
+	g_assert_true(verify_manifest(contentdir, NULL, FALSE, NULL));
+	g_assert_true(verify_manifest(contentdir, NULL, TRUE, NULL));
 
+	/* Test with invalid checksum */
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img",
 					 64*1024, "/dev/urandom") == 0);
 	g_test_expect_message (G_LOG_DOMAIN,
 			G_LOG_LEVEL_WARNING,
-			"Invalid checksums");
-	g_assert_false(verify_manifest(contentdir, NULL, FALSE));
+			"Failed verifying checksum: Checksums do not match");
+	g_assert_false(verify_manifest(contentdir, NULL, FALSE, NULL));
 	g_test_expect_message (G_LOG_DOMAIN,
 			G_LOG_LEVEL_WARNING,
-			"Invalid checksums");
-	g_assert_false(verify_manifest(contentdir, NULL, TRUE));
+			"Failed verifying checksum: Checksums do not match");
+	g_assert_false(verify_manifest(contentdir, NULL, TRUE, NULL));
 
+	/* Test with non-existing image */
 	g_assert_cmpint(g_unlink(appfsimage), ==, 0);
 
 	g_test_expect_message (G_LOG_DOMAIN,
 			G_LOG_LEVEL_WARNING,
-			"Invalid checksums");
-	g_assert_false(verify_manifest(contentdir, NULL, FALSE));
+			"Failed verifying checksum: Failed to open file * No such file or directory");
+	g_assert_false(verify_manifest(contentdir, NULL, FALSE, NULL));
 	g_test_expect_message (G_LOG_DOMAIN,
 			G_LOG_LEVEL_WARNING,
-			"Invalid checksums");
-	g_assert_false(verify_manifest(contentdir, NULL, TRUE));
+			"Failed verifying checksum: Failed to open file * No such file or directory");
+	g_assert_false(verify_manifest(contentdir, NULL, TRUE, NULL));
 	g_test_assert_expected_messages();
 
 	g_free(appfsimage);

@@ -105,7 +105,7 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 	test_make_slot_user_writable(fixture->tmpdir, "content/appfs.img");
 
 	/* Update checksums in manifest */
-	g_assert_true(update_manifest(contentdir, FALSE));
+	g_assert_true(update_manifest(contentdir, FALSE, NULL));
 
 	/* Create bundle */
 	g_assert_true(create_bundle(bundlepath, contentdir));
@@ -141,7 +141,7 @@ static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture
 	test_make_slot_user_writable(fixture->tmpdir, "content/appfs.img");
 
 	/* Update checksums in manifest */
-	g_assert_true(update_manifest(contentdir, FALSE));
+	g_assert_true(update_manifest(contentdir, FALSE, NULL));
 
 	/* Create bundle */
 	g_assert_true(create_bundle(bundlepath, contentdir));
@@ -206,21 +206,21 @@ static void install_fixture_set_up_network(InstallFixture *fixture,
 	rm->files = g_list_append(rm->files, &files[1]);
 
 	/* Create signed manifest */
-	g_assert_true(save_manifest_file(manifestpath, rm));
-	g_assert_true(update_manifest(contentdir, TRUE));
+	g_assert_true(save_manifest_file(manifestpath, rm, NULL));
+	g_assert_true(update_manifest(contentdir, TRUE, NULL));
 	rename_manifest(contentdir, "manifest-1");
 
 	/* Modify manifest vmlinuz-1 -> vmlinuz-2 */
 	files[0].filename = g_strdup("vmlinuz-2");
-	g_assert_true(save_manifest_file(manifestpath, rm));
-	g_assert_true(update_manifest(contentdir, TRUE));
+	g_assert_true(save_manifest_file(manifestpath, rm, NULL));
+	g_assert_true(update_manifest(contentdir, TRUE, NULL));
 	rename_manifest(contentdir, "manifest-2");
 
 	/* Modify manifest (no initramfs) */
 	files[0].filename = g_strdup("vmlinuz-2");
 	rm->files = g_list_remove(rm->files, &files[1]);
-	g_assert_true(save_manifest_file(manifestpath, rm));
-	g_assert_true(update_manifest(contentdir, TRUE));
+	g_assert_true(save_manifest_file(manifestpath, rm, NULL));
+	g_assert_true(update_manifest(contentdir, TRUE, NULL));
 	rename_manifest(contentdir, "manifest-3");
 
 	free_manifest(rm);
@@ -245,7 +245,7 @@ static void install_test_target(InstallFixture *fixture,
 	RaucManifest *rm;
 	GHashTable *tgrp;
 
-	g_assert_true(load_manifest_file("test/manifest.raucm", &rm));
+	g_assert_true(load_manifest_file("test/manifest.raucm", &rm, NULL));
 
 	set_bootname_provider(test_bootname_provider);
 	g_assert_true(determine_slot_states());

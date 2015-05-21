@@ -104,7 +104,7 @@ static void config_file_test2(void)
 {
 	RaucManifest *rm;
 
-	g_assert_true(load_manifest_file("test/manifest.raucm", &rm));
+	g_assert_true(load_manifest_file("test/manifest.raucm", &rm, NULL));
 	manifest_check_common(rm);
 
 	free_manifest(rm);
@@ -163,11 +163,11 @@ static void config_file_test4(void)
 	g_assert_cmpuint(g_list_length(rm->images), ==, 2);
 	g_assert_cmpuint(g_list_length(rm->files), ==, 1);
 
-	g_assert_true(save_manifest_file("test/savedmanifest.raucm", rm));
+	g_assert_true(save_manifest_file("test/savedmanifest.raucm", rm, NULL));
 
 	g_clear_pointer(&rm, free_manifest);
 
-	g_assert_true(load_manifest_file("test/savedmanifest.raucm", &rm));
+	g_assert_true(load_manifest_file("test/savedmanifest.raucm", &rm, NULL));
 
 	g_assert_nonnull(rm);
 	g_assert_cmpstr(rm->update_compatible, ==, "BarCorp FooBazzer");
@@ -229,7 +229,7 @@ static void config_file_test6(void)
 	RaucManifest *rm;
 
 	data = read_file("test/manifest.raucm", NULL);
-	g_assert_true(load_manifest_mem(data, &rm));
+	g_assert_true(load_manifest_mem(data, &rm, NULL));
 	manifest_check_common(rm);
 
 	free_manifest(rm);

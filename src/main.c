@@ -89,7 +89,7 @@ static gboolean bundle_start(int argc, char **argv)
 	g_print("input directory: %s\n", argv[2]);
 	g_print("output bundle: %s\n", argv[3]);
 
-	if (!update_manifest(argv[2], FALSE)) {
+	if (!update_manifest(argv[2], FALSE, NULL)) {
 		g_print("failed to update manifest\n");
 		r_exit_status = 1;
 		goto out;
@@ -107,6 +107,7 @@ out:
 
 static gboolean checksum_start(int argc, char **argv)
 {
+	GError *error = NULL;
 	gboolean sign = FALSE;
 
 	g_message("checksum start\n");
@@ -127,8 +128,9 @@ static gboolean checksum_start(int argc, char **argv)
 
 	g_print("updating checksums for: %s\n", argv[2]);
 
-	if (!update_manifest(argv[2], sign)) {
-		g_print("failed to update manifest\n");
+	if (!update_manifest(argv[2], sign, &error)) {
+		g_warning("Failed to update manifest: %s", error->message);
+		g_clear_error(&error);
 		r_exit_status = 1;
 	}
 

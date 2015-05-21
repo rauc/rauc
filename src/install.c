@@ -782,7 +782,7 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 		goto umount;
 	}
 
-	res = verify_manifest(mountpoint, &manifest, FALSE);
+	res = verify_manifest(mountpoint, &manifest, FALSE, NULL);
 	if (!res) {
 		g_warning("Failed verifying manifest");
 		goto umount;
@@ -858,7 +858,7 @@ gboolean do_install_network(const gchar *url) {
 		goto out;
 	}
 
-	res = load_manifest_mem(manifest_data, &manifest);
+	res = load_manifest_mem(manifest_data, &manifest, NULL);
 	if (!res) {
 		g_warning("Failed to verify manifest signature");
 		goto out;

@@ -94,7 +94,7 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, gboo
 	img->filename = g_strdup("appfs.img");
 	rm->images = g_list_append(rm->images, img);
 
-	g_assert_true(save_manifest_file(path, rm));
+	g_assert_true(save_manifest_file(path, rm, NULL));
 
 	free_manifest(rm);
 	return 0;

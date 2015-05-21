@@ -30,12 +30,61 @@ typedef struct {
 	GList *files;
 } RaucManifest;
 
-gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest);
-gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest);
-gboolean save_manifest_file(const gchar *filename, RaucManifest *manifest);
+/**
+ * Loads a manifest from memory.
+ *
+ * Use free_manifest() to free the returned manifest.
+ *
+ * @param mem Input data
+ * @param manifest location to store manifest
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error);
+
+/**
+ * Loads a manifest file.
+ *
+ * Use free_manifest() to free the returned manifest.
+ *
+ * @param filename Name of manifest file to load
+ * @param manifest Location to store manifest
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GError **error);
+
+/**
+ * Creates a manifest file.
+ *
+ * @param filename Name of manifest file to save
+ * @param manifest location to store manifest
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean save_manifest_file(const gchar *filename, RaucManifest *manifest, GError **error);
+
+/**
+ * Frees the memory allocated by a RaucManifest.
+ */
 void free_manifest(RaucManifest *manifest);
 
-gboolean update_manifest(const gchar *dir, gboolean signature);
+/**
+ * Updates a manifest file in the given bundle directory.
+ *
+ * This means updating checksums for files and images listed in the manifestx
+ * and placed in the bundle directory
+ *
+ * @param dir Directory with the bundle content
+ * @param signature If true, a signature file is created
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean update_manifest(const gchar *dir, gboolean signature, GError **error);
 
 /**
  * Loads and verifies manifest in directory.
@@ -50,7 +99,8 @@ gboolean update_manifest(const gchar *dir, gboolean signature);
  * @param signature If true, manifest ist validated using the provided signature
  *        file.
  *        If false, no further signature validation is performed.
+ * @param error return location for a GError, or NULL
  *
- * @return True if successful, False if not sucessful
+ * @return TRUE on success, FALSE if an error occurred
  */
-gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signature);
+gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signature, GError **error);

@@ -47,8 +47,10 @@ gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename, GE
 	RaucChecksum tmp;
 	gboolean res = FALSE;
 
-	if (checksum->digest == NULL)
+	if (checksum->digest == NULL) {
+		g_set_error(error, R_CHECKSUM_ERROR, 0, "No digest provided");
 		goto out;
+	}
 
 	tmp.type = checksum->type;
 	tmp.digest = NULL;

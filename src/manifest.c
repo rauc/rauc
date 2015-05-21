@@ -9,15 +9,24 @@
 #define RAUC_IMAGE_PREFIX	"image"
 #define RAUC_FILE_PREFIX	"file"
 
-static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest) {
+#define R_MANIFEST_ERROR r_manifest_error_quark ()
+
+static GQuark r_manifest_error_quark (void)
+{
+  return g_quark_from_static_string ("r_manifest_error_quark");
+}
+
+static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GError **error) {
+	GError *ierror = NULL;
 	RaucManifest *raucm = g_new0(RaucManifest, 1);
 	gboolean res = FALSE;
 	gchar **groups;
 	gsize group_count;
 
 	/* parse [update] section */
-	raucm->update_compatible = g_key_file_get_string(key_file, "update", "compatible", NULL);
+	raucm->update_compatible = g_key_file_get_string(key_file, "update", "compatible", &ierror);
 	if (!raucm->update_compatible) {
+		g_propagate_error(error, ierror);
 		goto free;
 	}
 	raucm->update_version = g_key_file_get_string(key_file, "update", "version", NULL);
@@ -104,47 +113,63 @@ free:
 	return res;
 }
 
-gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest) {
+gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error) {
+	GError *ierror = NULL;
 	GKeyFile *key_file = NULL;
 	const gchar *data;
 	gsize length;
 	gboolean res = FALSE;
 
 	data = g_bytes_get_data(mem, &length);
-	if (data == NULL)
+	if (data == NULL) {
+		g_set_error(error, R_MANIFEST_ERROR, 2, "No data avaiable");
 		goto out;
+	}
 
 	key_file = g_key_file_new();
 
-	res = g_key_file_load_from_data(key_file, data, length, G_KEY_FILE_NONE, NULL);
-	if (!res)
+	res = g_key_file_load_from_data(key_file, data, length, G_KEY_FILE_NONE, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
+	}
 
-	res = parse_manifest(key_file, manifest);
+	res = parse_manifest(key_file, manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
 
 out:
 	g_clear_pointer(&key_file, g_key_file_free);
 	return res;
 }
 
-gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest) {
+gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GError **error) {
+	GError *ierror = NULL;
 	GKeyFile *key_file = NULL;
 	gboolean res = FALSE;
 
 	key_file = g_key_file_new();
 
-	res = g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, NULL);
-	if (!res)
+	res = g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
+	}
 
-	res = parse_manifest(key_file, manifest);
+	res = parse_manifest(key_file, manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
 
 out:
 	g_clear_pointer(&key_file, g_key_file_free);
 	return res;
 }
 
-gboolean save_manifest_file(const gchar *filename, RaucManifest *mf) {
+gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **error) {
 	GKeyFile *key_file = NULL;
 	gboolean res = FALSE;
 
@@ -246,55 +271,86 @@ void free_manifest(RaucManifest *manifest) {
 }
 
 
-static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *dir) {
+static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *dir, GError **error) {
+	GError *ierror = NULL;
 	gboolean res = TRUE;
+	gboolean had_errors = FALSE;
 
 	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
 		RaucImage *image = elem->data;
 		gchar *filename = g_build_filename(dir, image->filename, NULL);
-		res = update_checksum(&image->checksum, filename, NULL);
+		res = update_checksum(&image->checksum, filename, &ierror);
 		g_free(filename);
-		if (!res)
+		if (!res) {
+			g_warning("Failed updating checksum: %s", ierror->message);
+			g_clear_error(&ierror);
+			had_errors = TRUE;
 			break;
+		}
 	}
 
 	for (GList *elem = manifest->files; elem != NULL; elem = elem->next) {
 		RaucFile *file = elem->data;
 		gchar *filename = g_build_filename(dir, file->filename, NULL);
-		res = update_checksum(&file->checksum, filename, NULL);
+		res = update_checksum(&file->checksum, filename, &ierror);
 		g_free(filename);
-		if (!res)
+		if (!res) {
+			g_warning("Failed updating checksum: %s", ierror->message);
+			g_clear_error(&ierror);
+			had_errors = TRUE;
 			break;
+		}
+	}
+
+	if (had_errors) {
+		res = FALSE;
+		g_set_error(error, R_MANIFEST_ERROR, 1, "Failed updating all checksums");
 	}
 
 	return res;
 }
 
-static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *dir) {
+static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *dir, GError **error) {
+	GError *ierror = NULL;
 	gboolean res = TRUE;
+	gboolean had_errors = FALSE;
 
 	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
 		RaucImage *image = elem->data;
 		gchar *filename = g_build_filename(dir, image->filename, NULL);
-		res = verify_checksum(&image->checksum, filename, NULL);
+		res = verify_checksum(&image->checksum, filename, &ierror);
 		g_free(filename);
-		if (!res)
+		if (!res) {
+			g_warning("Failed verifying checksum: %s", ierror->message);
+			g_clear_error(&ierror);
+			had_errors = TRUE;
 			break;
+		}
 	}
 
 	for (GList *elem = manifest->files; elem != NULL; elem = elem->next) {
 		RaucFile *file = elem->data;
 		gchar *filename = g_build_filename(dir, file->filename, NULL);
-		res = verify_checksum(&file->checksum, filename, NULL);
+		res = verify_checksum(&file->checksum, filename, &ierror);
 		g_free(filename);
-		if (!res)
+		if (!res) {
+			g_warning("Failed verifying checksum: %s", ierror->message);
+			g_clear_error(&ierror);
+			had_errors = TRUE;
 			break;
+		}
+	}
+
+	if (had_errors) {
+		res = FALSE;
+		g_set_error(error, R_MANIFEST_ERROR, 1, "Failed updating all checksums");
 	}
 
 	return res;
 }
 
-gboolean update_manifest(const gchar *dir, gboolean signature) {
+gboolean update_manifest(const gchar *dir, gboolean signature, GError **error) {
+	GError *ierror = NULL;
 	gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
 	gchar* signaturepath = g_build_filename(dir, "manifest.raucm.sig", NULL);
 	RaucManifest *manifest = NULL;
@@ -306,29 +362,39 @@ gboolean update_manifest(const gchar *dir, gboolean signature) {
 		g_assert_nonnull(r_context()->keypath);
 	}
 
-	res = load_manifest_file(manifestpath, &manifest);
-	if (!res)
+	res = load_manifest_file(manifestpath, &manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
+	}
 
-	res = update_manifest_checksums(manifest, dir);
-	if (!res)
+	res = update_manifest_checksums(manifest, dir, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
+	}
 
-	res = save_manifest_file(manifestpath, manifest);
-	if (!res)
+	res = save_manifest_file(manifestpath, manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
+	}
 
 	if (signature) {
 		sig = cms_sign_file(manifestpath,
 				    r_context()->certpath,
 				    r_context()->keypath,
-				    NULL);
-		if (sig == NULL)
+				    &ierror);
+		if (sig == NULL) {
+			g_propagate_error(error, ierror);
 			goto out;
+		}
 
-		res = write_file(signaturepath, sig, NULL);
-		if (!res)
+		res = write_file(signaturepath, sig, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
 			goto out;
+		}
 	}
 
 out:
@@ -346,7 +412,8 @@ static gboolean check_compatible(RaucManifest *manifest) {
 	return (g_strcmp0(r_context()->config->system_compatible, manifest->update_compatible) == 0);
 }
 
-gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signature) {
+gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signature, GError **error) {
+	GError *ierror = NULL;
 	gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
 	gchar* signaturepath = g_build_filename(dir, "manifest.raucm.sig", NULL);
 	RaucManifest *manifest = NULL;
@@ -354,31 +421,35 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signa
 	gboolean res = FALSE;
 
 	if (signature) {
-		sig = read_file(signaturepath, NULL);
-		if (sig == NULL)
+		sig = read_file(signaturepath, &ierror);
+		if (sig == NULL) {
+			g_propagate_error(error, ierror);
 			goto out;
+		}
 
-		res = cms_verify_file(manifestpath, sig, 0, NULL);
-		if (!res)
+		res = cms_verify_file(manifestpath, sig, 0, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
 			goto out;
+		}
 
 	}
 
-	res = load_manifest_file(manifestpath, &manifest);
+	res = load_manifest_file(manifestpath, &manifest, &ierror);
 	if (!res) {
-		g_warning("Failed opening manifest");
+		g_propagate_prefixed_error(error, ierror, "Failed opening manifest: ");
 		goto out;
 	}
 
-	res = verify_manifest_checksums(manifest, dir);
+	res = verify_manifest_checksums(manifest, dir, &ierror);
 	if (!res) {
-		g_warning("Invalid checksums");
+		g_propagate_prefixed_error(error, ierror, "Invalid checksums: ");
 		goto out;
 	}
 
 	res = check_compatible(manifest);
 	if (!res) {
-		g_warning("Invalid compatible");
+		g_propagate_prefixed_error(error, ierror, "Invalid compatible: ");
 		goto out;
 	}
 
