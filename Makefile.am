@@ -18,15 +18,15 @@ AM_LDFLAGS = $(WARN_LDFLAGS) $(GLIB_LDFLAGS) $(CURL_LDFLAGS) $(OPENSSL_LDFLAGS)
 AM_CPPFLAGS = -I${top_srcdir}/include $(OPENSSL_INCLUDES)
 
 gdbus_installer_generated = \
-	src/rauc-installer-generated.c \
-	src/rauc-installer-generated.h
+	rauc-installer-generated.c \
+	rauc-installer-generated.h
 
 BUILT_SOURCES += $(gdbus_installer_generated)
 EXTRA_DIST += src/rauc-installer.xml
 
 $(gdbus_installer_generated): src/rauc-installer.xml
 	$(AM_V_GEN) gdbus-codegen \
-		--generate-c-code src/rauc-installer-generated \
+		--generate-c-code rauc-installer-generated \
 		--c-namespace R \
 		--interface-prefix de.pengutronix.rauc. \
 		$<
