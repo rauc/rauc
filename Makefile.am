@@ -9,7 +9,7 @@ $(top_srcdir)/.version:
 dist-hook:
 	echo $(VERSION) > $(distdir)/.tarball-version
 
-CODE_COVERAGE_IGNORE_PATTERN = "src/*-generated.c"
+CODE_COVERAGE_IGNORE_PATTERN = "*-generated.c"
 @CODE_COVERAGE_RULES@
 @VALGRIND_CHECK_RULES@
 
