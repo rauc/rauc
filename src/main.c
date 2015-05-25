@@ -94,6 +94,7 @@ static gboolean install_start(int argc, char **argv)
 
 	if (argc < 3) {
 		g_error("a bundle filename name must be provided");
+		r_exit_status = 1;
 		goto out;
 	}
 
@@ -143,16 +144,19 @@ static gboolean bundle_start(int argc, char **argv)
 	if (r_context()->certpath == NULL ||
 	    r_context()->keypath == NULL) {
 		g_warning("cert and key files must be provided");
+		r_exit_status = 1;
 		goto out;
 	}
 
 	if (argc < 3) {
 		g_warning("an input directory name must be provided");
+		r_exit_status = 1;
 		goto out;
 	}
 
 	if (argc != 4) {
 		g_warning("an output bundle name must be provided");
+		r_exit_status = 1;
 		goto out;
 	}
 
@@ -188,11 +192,13 @@ static gboolean checksum_start(int argc, char **argv)
 	} else if (r_context()->certpath != NULL ||
 	    r_context()->keypath != NULL) {
 		g_warning("Either both or none of cert and key files must be provided");
+		r_exit_status = 1;
 		goto out;
 	}
 
 	if (argc != 3) {
 		g_warning("A directory name must be provided");
+		r_exit_status = 1;
 		goto out;
 	}
 
@@ -246,6 +252,7 @@ static gboolean status_start(int argc, char **argv)
 	res = determine_slot_states();
 	if (!res) {
 		g_warning("Failed to determine slot states");
+		r_exit_status = 1;
 		goto out;
 	}
 
@@ -269,6 +276,7 @@ static gboolean status_start(int argc, char **argv)
 		case ST_UNKNOWN:
 		default:
 			g_error("invalid slot status");
+			r_exit_status = 1;
 			break;
 		}
 		g_print("  %s: class=%s, device=%s, type=%s, bootname=%s, state=%s\n",
@@ -277,17 +285,21 @@ static gboolean status_start(int argc, char **argv)
 	}
 
 	if (argc < 3) {
+		r_exit_status = 1;
 		goto out;
 	}
 
 	if (g_strcmp0(argv[2], "mark-good") == 0) {
 		g_print("marking slot %s as good\n", booted->name);
+		r_exit_status = 0;
 		r_boot_set_state(booted, TRUE);
 	} else if (g_strcmp0(argv[2], "mark-bad") == 0) {
 		g_print("marking slot %s as bad\n", booted->name);
+		r_exit_status = 0;
 		r_boot_set_state(booted, FALSE);
 	} else {
 		g_message("unknown subcommand %s", argv[2]);
+		r_exit_status = 1;
 	}
 
 out:
