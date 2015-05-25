@@ -4,6 +4,13 @@
 
 #include <checksum.h>
 
+typedef enum {
+	R_CONFIG_ERROR_INVALID_FORMAT
+} RConfigError;
+
+#define R_CONFIG_ERROR r_config_error_quark()
+GQuark r_config_error_quark(void);
+
 /* System configuration */
 typedef struct {
 	gchar *system_compatible;
@@ -59,6 +66,15 @@ typedef struct {
  * @return TRUE if the configuration was sucessfully loaded. FALSE if there were errors.
  */
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error);
+
+/**
+ * Creates a default rauc system configuration.
+ *
+ * @param config a location to place the new config
+ *
+ * @return TRUE if the configuration was sucessfully created. FALSE if there were errors.
+ */
+gboolean default_config(RaucConfig **config);
 
 /**
  * Frees the memory allocated by the RaucConfig.

@@ -8,20 +8,25 @@ RaucContext *context = NULL;
 
 static void r_context_configure(void) {
 	gboolean res = TRUE;
+	GError *error = NULL;
 
 	g_assert_nonnull(context);
 	g_assert_false(context->busy);
 
 	g_clear_pointer(&context->config, free_config);
-	res = load_config(context->configpath, &context->config, NULL);
+	res = load_config(context->configpath, &context->config, &error);
+	if (!res && error->domain==g_file_error_quark()) {
+		g_message("system config not found, using default values");
+		res = default_config(&context->config);
+	} else if (!res) {
+		g_error("failed to initialize context: %s", error->message);
+
+	}
 
 	if (context->mountprefix) {
 		g_free(context->config->mount_prefix);
 		context->config->mount_prefix = g_strdup(context->mountprefix);
 	}
-
-	if (!res)
-		g_error("failed to initialize context");
 
 	context->pending = FALSE;
 }

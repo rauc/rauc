@@ -4,14 +4,7 @@
 
 #include <utils.h>
 
-#define R_CONFIG_ERROR r_config_error_quark ()
-
-static GQuark r_config_error_quark (void)
-{
-  return g_quark_from_static_string ("r_config_error_quark");
-}
-
-#define R_CONFIG_ERROR_INVALID_FORMAT	1
+G_DEFINE_QUARK(r-config-error-quark, r_config_error)
 
 #define RAUC_SLOT_PREFIX	"slot"
 
@@ -21,6 +14,15 @@ static void free_slot(gpointer value) {
 	g_clear_pointer(&slot->device, g_free);
 	g_clear_pointer(&slot->type, g_free);
 	g_clear_pointer(&slot->bootname, g_free);
+}
+
+gboolean default_config(RaucConfig **config) {
+	RaucConfig *c = g_new0(RaucConfig, 1);
+
+	c->mount_prefix = g_strdup("/mnt/rauc/");
+
+	*config = c;
+	return TRUE;
 }
 
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error) {
