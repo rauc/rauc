@@ -657,7 +657,25 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 	(void)base_url;
 	(void)manifest;
 
-	// TODO: mark slots as non-bootable
+	/* Mark all parent destination slots non-bootable */
+	g_message("Marking active slot as non-bootable...");
+	g_hash_table_iter_init(&iter, target_group);
+	while (g_hash_table_iter_next(&iter, (gpointer* )&slotclass,
+				      (gpointer *)&slotname)) {
+		RaucSlot *dest_slot = g_hash_table_lookup(r_context()->config->slots, slotname);
+
+		if (dest_slot->state & ST_ACTIVE && !dest_slot->parent) {
+			break;
+		}
+
+		res = r_boot_set_state(dest_slot, FALSE);
+
+		if (!res) {
+			g_warning("Failed marking slot %s non-bootable", dest_slot->name);
+			goto out;
+		}
+	}
+
 
 	// for slot in target_group
 	g_hash_table_iter_init(&iter, target_group);
@@ -738,7 +756,23 @@ slot_out:
 		}
 	}
 
-	// TODO: mark slots as bootable
+	/* Mark all parent destination slots bootable */
+	g_message("Marking slots as bootable...");
+	g_hash_table_iter_init(&iter, target_group);
+	while (g_hash_table_iter_next(&iter, (gpointer* )&slotclass,
+				      (gpointer *)&slotname)) {
+		RaucSlot *dest_slot = g_hash_table_lookup(r_context()->config->slots, slotname);
+
+		if (dest_slot->parent)
+			continue;
+
+		res = r_boot_set_primary(dest_slot);
+
+		if (!res) {
+			g_warning("Failed marking slot %s bootable", dest_slot->name);
+			goto out;
+		}
+	}
 
 	res = TRUE;
 out:
