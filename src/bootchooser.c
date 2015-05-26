@@ -259,7 +259,7 @@ static gboolean grub_set_primary(RaucSlot *slot) {
 
 	g_ptr_array_add(pairs, g_strdup_printf("%s_OK=%i", slot->bootname, 1));
 	g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=%i", slot->bootname, 0));
-	g_ptr_array_add(pairs, g_strdup_printf("ORDER=\"%s\"", order->str));
+	g_ptr_array_add(pairs, g_strdup_printf("ORDER=%s", order->str));
 
 	res = grub_env_set(pairs);
 	if (!res) {
