@@ -650,7 +650,7 @@ out:
 static gboolean launch_and_wait_network_handler(const gchar* base_url,
 						RaucManifest *manifest,
 						GHashTable *target_group) {
-	gboolean res = FALSE;
+	gboolean res = FALSE, invalid = FALSE;
 	GHashTableIter iter;
 	gchar *slotclass, *slotname;
 
@@ -732,8 +732,10 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 file_out:
 			g_clear_pointer(&filename, g_free);
 			g_clear_pointer(&fileurl, g_free);
-			if (!res)
+			if (!res) {
+				invalid = TRUE;
 				goto slot_out;
+			}
 		}
 
 		// write status
@@ -741,6 +743,7 @@ file_out:
 		res = save_slot_status(slotstatuspath, slot_state, NULL);
 		if (!res) {
 			g_warning("Failed to save status file");
+			invalid = TRUE;
 			goto slot_out;
 		}
 
@@ -755,6 +758,9 @@ slot_out:
 			goto out;
 		}
 	}
+
+	if (invalid)
+		goto out;
 
 	/* Mark all parent destination slots bootable */
 	g_message("Marking slots as bootable...");
