@@ -833,6 +833,7 @@ gboolean do_install_bundle(const gchar* bundlefile, GError **error) {
 
 	mountpoint = create_mount_point("bundle", &ierror);
 	if (!mountpoint) {
+		res = FALSE;
 		g_propagate_prefixed_error(
 				error,
 				ierror,
@@ -860,6 +861,7 @@ gboolean do_install_bundle(const gchar* bundlefile, GError **error) {
 	target_group = determine_target_install_group(manifest);
 	if (!target_group) {
 		g_set_error_literal(error, R_INSTALL_ERROR, 3, "Could not determine target group");
+		res = FALSE;
 		goto umount;
 	}
 
