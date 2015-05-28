@@ -104,18 +104,22 @@ out:
 static gboolean barebox_set_state(RaucSlot *slot, gboolean good) {
 	gboolean res = FALSE;
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
-	int prio;
+	int prio, attempts;
 
 	g_assert_nonnull(slot);
 
 	if (good) {
 		prio = 20;
+		attempts = 3;
 	} else {
 		prio = 0;
+		attempts = 0;
 	}
 
 	g_ptr_array_add(pairs, g_strdup_printf("%s.%s.priority=%i",
 			BOOTSTATE_PREFIX, slot->bootname, prio));
+	g_ptr_array_add(pairs, g_strdup_printf("%s.%s.remaining_attempts=%i",
+			BOOTSTATE_PREFIX, slot->bootname, attempts));
 
 	res = barebox_state_set(pairs);
 	if (!res) {
@@ -132,7 +136,7 @@ out:
 /* Set slot as primary boot slot */
 static gboolean barebox_set_primary(RaucSlot *slot) {
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
-	int prio1 = 20, prio2 = 10, ok = 1;
+	int prio1 = 20, prio2 = 10;
 	gboolean res = FALSE;
 	GList *slots;
 
@@ -157,7 +161,9 @@ static gboolean barebox_set_primary(RaucSlot *slot) {
 	}
 
 	g_ptr_array_add(pairs, g_strdup_printf("%s.%s.ok=%i",
-			BOOTSTATE_PREFIX, slot->bootname, ok));
+			BOOTSTATE_PREFIX, slot->bootname, 1));
+	g_ptr_array_add(pairs, g_strdup_printf("%s.%s.remaining_attempts=%i",
+			BOOTSTATE_PREFIX, slot->bootname, 3));
 
 	res = barebox_state_set(pairs);
 	if (!res) {
