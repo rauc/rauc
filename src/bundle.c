@@ -6,9 +6,9 @@
 #include <mount.h>
 #include "bundle.h"
 
-static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir) {
+static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GError **error) {
 	GSubprocess *sproc = NULL;
-	GError *error = NULL;
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 
 	if (g_file_test (bundlename, G_FILE_TEST_EXISTS)) {
@@ -17,7 +17,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir) {
 	}
 
 	sproc = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
-				 &error, CMD_MKSQUASHFS,
+				 &ierror, CMD_MKSQUASHFS,
 				 contentdir,
 				 bundlename,
 				 "-all-root",
@@ -26,15 +26,19 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir) {
 				 "-no-xattrs",
 				 NULL);
 	if (sproc == NULL) {
-		g_warning("failed to start mksquashfs: %s\n", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start mksquashfs");
 		goto out;
 	}
 
-	res = g_subprocess_wait_check(sproc, NULL, &error);
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
 	if (!res) {
-		g_warning("failed to run mksquashfs: %s\n", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run mksquashfs");
 		goto out;
 	}
 
@@ -43,26 +47,30 @@ out:
 	return res;
 }
 
-static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir) {
+static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, GError **error) {
 	GSubprocess *sproc = NULL;
-	GError *error = NULL;
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 
 	sproc = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
-				 &error, CMD_UNSQUASHFS,
+				 &ierror, CMD_UNSQUASHFS,
 				 "-dest", contentdir,
 				 bundlename,
 				 NULL);
 	if (sproc == NULL) {
-		g_warning("failed to start unsquashfs: %s\n", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start unsquashfs");
 		goto out;
 	}
 
-	res = g_subprocess_wait_check(sproc, NULL, &error);
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
 	if (!res) {
-		g_warning("failed to run unsquashfs: %s\n", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run unsquashfs");
 		goto out;
 	}
 
@@ -136,7 +144,8 @@ static gboolean input_stream_read_bytes_all(GInputStream *stream,
 	return TRUE;
 }
 
-gboolean create_bundle(const gchar *bundlename, const gchar *contentdir) {
+gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error) {
+	GError *ierror = NULL;
 	GBytes *sig = NULL;
 	GFile *bundlefile = NULL;
 	GFileOutputStream *bundlestream = NULL;
@@ -146,43 +155,62 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir) {
 	g_assert_nonnull(r_context()->certpath);
 	g_assert_nonnull(r_context()->keypath);
 
-	res = mksquashfs(bundlename, contentdir);
-	if (!res)
+	res = mksquashfs(bundlename, contentdir, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
+	}
 
 	sig = cms_sign_file(bundlename,
 			    r_context()->certpath,
 			    r_context()->keypath,
-			    NULL);
-	if (sig == NULL)
+			    &ierror);
+	if (sig == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed signing bundle");
 		goto out;
+	}
 
 	bundlefile = g_file_new_for_path(bundlename);
-	bundlestream = g_file_append_to(bundlefile, G_FILE_CREATE_NONE, NULL, NULL);
+	bundlestream = g_file_append_to(bundlefile, G_FILE_CREATE_NONE, NULL, &ierror);
 	if (bundlestream == NULL) {
-		g_warning("failed to open bundle for appending");
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to open bundle for appending");
 		goto out;
 	}
 
 	res = g_seekable_seek(G_SEEKABLE(bundlestream),
-			      0, G_SEEK_END, NULL, NULL);
+			      0, G_SEEK_END, NULL, &ierror);
 	if (!res) {
-		g_warning("failed to seek to end of bundle");
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to seek to end of bundle");
 		goto out;
 	}
 
 	offset = g_seekable_tell((GSeekable *)bundlestream);
-	res = output_stream_write_bytes_all((GOutputStream *)bundlestream, sig, NULL, NULL);
+	res = output_stream_write_bytes_all((GOutputStream *)bundlestream, sig, NULL, &ierror);
 	if (!res) {
-		g_warning("failed to append signature to bundle");
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to append signature to bundle");
 		goto out;
 	}
 
 
 	offset = g_seekable_tell((GSeekable *)bundlestream) - offset;
-	res = output_stream_write_uint64_all((GOutputStream *)bundlestream, offset, NULL, NULL);
+	res = output_stream_write_uint64_all((GOutputStream *)bundlestream, offset, NULL, &ierror);
 	if (!res) {
-		g_warning("failed to append signature size to bundle");
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to append signature size to bundle");
 		goto out;
 	}
 
@@ -195,7 +223,8 @@ out:
 	return res;
 }
 
-gboolean check_bundle(const gchar *bundlename, gsize *size) {
+gboolean check_bundle(const gchar *bundlename, gsize *size, GError **error) {
+	GError *ierror = NULL;
 	GBytes *sig = NULL;
 	GFile *bundlefile = NULL;
 	GFileInputStream *bundlestream = NULL;
@@ -205,50 +234,68 @@ gboolean check_bundle(const gchar *bundlename, gsize *size) {
 
 	g_assert_nonnull(r_context()->config->keyring_path);
 
-	g_print("Reading bundle: %s\n", bundlename);
+	g_message("Reading bundle: %s", bundlename);
 
 	bundlefile = g_file_new_for_path(bundlename);
-	bundlestream = g_file_read(bundlefile, NULL, NULL);
+	bundlestream = g_file_read(bundlefile, NULL, &ierror);
 	if (bundlestream == NULL) {
-		g_warning("failed to open bundle for reading");
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to open bundle for reading");
 		goto out;
 	}
 
 	offset = sizeof(sigsize);
 	res = g_seekable_seek(G_SEEKABLE(bundlestream),
-			      -offset, G_SEEK_END, NULL, NULL);
+			      -offset, G_SEEK_END, NULL, &ierror);
 	if (!res) {
-		g_warning("failed to seek to end of bundle");
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to seek to end of bundle");
 		goto out;
 	}
 	offset = g_seekable_tell((GSeekable *)bundlestream);
 
 	res = input_stream_read_uint64_all(G_INPUT_STREAM(bundlestream),
-			                   &sigsize, NULL, NULL);
+			                   &sigsize, NULL, &ierror);
 	if (!res) {
-		g_warning("failed to read signature size from bundle");
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to read signature size from bundle");
 		goto out;
 	}
 
 	offset -= sigsize;
 	res = g_seekable_seek(G_SEEKABLE(bundlestream),
-			      offset, G_SEEK_SET, NULL, NULL);
+			      offset, G_SEEK_SET, NULL, &ierror);
 	if (!res) {
-		g_warning("failed to seek to start of bundle signature");
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to seek to start of bundle signature");
 		goto out;
 	}
 
 	res = input_stream_read_bytes_all(G_INPUT_STREAM(bundlestream),
-			                  &sig, sigsize, NULL, NULL);
+			                  &sig, sigsize, NULL, &ierror);
 	if (!res) {
-		g_warning("failed to read signature from bundle");
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to read signature from bundle");
 		goto out;
 	}
 
+	g_message("Verifying bundle... ");
 	/* the squashfs image size is in offset */
-	res = cms_verify_file(bundlename, sig, offset, NULL);
-	if (!res)
+	res = cms_verify_file(bundlename, sig, offset, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
+	}
 
 	if (size)
 		*size = offset;
@@ -261,46 +308,59 @@ out:
 	return res;
 }
 
-gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir) {
+gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir, GError **error) {
+	GError *ierror = NULL;
 	gsize size;
 	gboolean res = FALSE;
 
-	res = check_bundle(bundlename, &size);
-	if (!res)
+	res = check_bundle(bundlename, &size, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
+	}
 
-	res = unsquashfs(bundlename, outputdir);
-	if (!res)
+	res = unsquashfs(bundlename, outputdir, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
+	}
 
 	res = TRUE;
 out:
 	return res;
 }
 
-gboolean mount_bundle(const gchar *bundlename, const gchar *mountpoint) {
+gboolean mount_bundle(const gchar *bundlename, const gchar *mountpoint, GError **error) {
+	GError *ierror = NULL;
 	gsize size;
 	gboolean res = FALSE;
 
-	res = check_bundle(bundlename, &size);
-	if (!res)
+	res = check_bundle(bundlename, &size, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
+	}
 
-	res = r_mount_loop(bundlename, mountpoint, size, NULL);
-	if (!res)
+	res = r_mount_loop(bundlename, mountpoint, size, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
+	}
 
 	res = TRUE;
 out:
 	return res;
 }
 
-gboolean umount_bundle(const gchar *bundlename) {
+gboolean umount_bundle(const gchar *bundlename, GError **error) {
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 
-	res = r_umount(bundlename, NULL);
-	if (!res)
+	res = r_umount(bundlename, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
+	}
 
 	res = TRUE;
 out:

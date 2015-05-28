@@ -51,8 +51,8 @@ static void bundle_test1(BundleFixture *fixture,
 	g_assert_nonnull(outputdir);
 
 	g_assert_true(update_manifest(contentdir, FALSE, NULL));
-	g_assert_true(create_bundle(bundlename, contentdir));
-	g_assert_true(extract_bundle(bundlename, outputdir));
+	g_assert_true(create_bundle(bundlename, contentdir, NULL));
+	g_assert_true(extract_bundle(bundlename, outputdir, NULL));
 	g_assert_true(verify_manifest(outputdir, NULL, FALSE, NULL));
 }
 
@@ -71,10 +71,10 @@ static void bundle_test2(BundleFixture *fixture,
 	g_assert_nonnull(mountpoint);
 
 	g_assert_true(update_manifest(contentdir, FALSE, NULL));
-	g_assert_true(create_bundle(bundlename, contentdir));
-	g_assert_true(mount_bundle(bundlename, mountpoint));
+	g_assert_true(create_bundle(bundlename, contentdir, NULL));
+	g_assert_true(mount_bundle(bundlename, mountpoint, NULL));
 	g_assert_true(verify_manifest(mountpoint, NULL, FALSE, NULL));
-	g_assert_true(umount_bundle(bundlename));
+	g_assert_true(umount_bundle(bundlename, NULL));
 }
 
 static void bundle_test3(BundleFixture *fixture,

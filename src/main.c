@@ -169,7 +169,7 @@ static gboolean bundle_start(int argc, char **argv)
 		goto out;
 	}
 
-	if (!create_bundle(argv[3], argv[2])) {
+	if (!create_bundle(argv[3], argv[2], NULL)) {
 		g_warning("failed to create bundle");
 		r_exit_status = 1;
 		goto out;
@@ -226,7 +226,7 @@ static gboolean info_start(int argc, char **argv)
 
 	g_message("checking manifest for: %s", argv[2]);
 
-	if (!check_bundle(argv[2], &size)) {
+	if (!check_bundle(argv[2], &size, NULL)) {
 		g_warning("signature invalid (squashfs size: %"G_GSIZE_FORMAT")", size);
 		r_exit_status = 1;
 		goto out;

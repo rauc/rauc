@@ -108,7 +108,7 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 	g_assert_true(update_manifest(contentdir, FALSE, NULL));
 
 	/* Create bundle */
-	g_assert_true(create_bundle(bundlepath, contentdir));
+	g_assert_true(create_bundle(bundlepath, contentdir, NULL));
 
 	g_free(bundlepath);
 	g_free(contentdir);
@@ -144,7 +144,7 @@ static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture
 	g_assert_true(update_manifest(contentdir, FALSE, NULL));
 
 	/* Create bundle */
-	g_assert_true(create_bundle(bundlepath, contentdir));
+	g_assert_true(create_bundle(bundlepath, contentdir, NULL));
 
 	g_free(bundlepath);
 	g_free(contentdir);

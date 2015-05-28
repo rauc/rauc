@@ -824,7 +824,7 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 
 	// TODO: mount info in context ?
 	g_print("Mounting bundle '%s' to '%s'\n", bundlelocation, mountpoint);
-	res = mount_bundle(bundlelocation, mountpoint);
+	res = mount_bundle(bundlelocation, mountpoint, NULL);
 	if (!res) {
 		g_warning("Failed mounting bundle");
 		goto umount;
@@ -861,7 +861,7 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 	res = TRUE;
 
 umount:
-	umount_bundle(mountpoint);
+	umount_bundle(mountpoint, NULL);
 	g_rmdir(mountpoint);
 	g_clear_pointer(&mountpoint, g_free);
 out:
