@@ -131,7 +131,7 @@ gboolean test_make_filesystem(const gchar *dirname, const gchar *filename) {
 }
 
 gboolean test_mount(const gchar *src, const gchar *dest) {
-	return r_mount_full(src, dest, NULL, 0);
+	return r_mount_full(src, dest, NULL, 0, NULL);
 }
 
 
@@ -175,7 +175,7 @@ gboolean test_umount(const gchar *dirname, const gchar *mountpoint) {
 	
 	path = g_build_filename(dirname, mountpoint, NULL);
 
-	g_assert_true(r_umount(path));
+	g_assert_true(r_umount(path, NULL));
 
 	return TRUE;
 }
@@ -235,7 +235,7 @@ gboolean test_make_slot_user_writable(const gchar* path, const gchar* file) {
 
 	test_do_chmod(mountpath);
 
-	r_umount(mountpath);
+	r_umount(mountpath, NULL);
 
 	res = TRUE;
 

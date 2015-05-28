@@ -535,7 +535,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 		/* read slot status */
 		g_message("mounting %s to %s", dest_slot->device, mountpoint);
 
-		res = r_mount_slot(dest_slot, mountpoint);
+		res = r_mount_slot(dest_slot, mountpoint, NULL);
 		if (!res) {
 			g_warning("Mounting failed");
 			goto out;
@@ -563,7 +563,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 			}
 		}
 
-		res = r_umount(mountpoint);
+		res = r_umount(mountpoint, NULL);
 		if (!res) {
 			g_warning("Unmounting failed");
 			goto out;
@@ -583,7 +583,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 
 		g_debug("Mounting %s to %s", dest_slot->device, mountpoint);
 
-		res = r_mount_slot(dest_slot, mountpoint);
+		res = r_mount_slot(dest_slot, mountpoint, NULL);
 		if (!res) {
 			g_warning("Mounting failed");
 			goto out;
@@ -601,7 +601,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 			g_warning("Failed writing status file: %s", ierror->message);
 			g_clear_error(&ierror);
 
-			r_umount(mountpoint);
+			r_umount(mountpoint, NULL);
 
 			goto out;
 		}
@@ -614,7 +614,7 @@ image_out:
 		g_clear_pointer(&slotstatuspath, g_free);
 		g_debug("Unmounting %s", mountpoint);
 
-		res = r_umount(mountpoint);
+		res = r_umount(mountpoint, NULL);
 		if (!res) {
 			g_warning("Unmounting failed");
 			goto out;
@@ -692,7 +692,7 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 
 		slot = g_hash_table_lookup(r_context()->config->slots, slotname);
 		g_print(G_STRLOC " I will mount %s to %s\n", slot->device, mountpoint);
-		res = r_mount_slot(slot, mountpoint);
+		res = r_mount_slot(slot, mountpoint, NULL);
 		if (!res) {
 			g_warning("Mounting failed");
 			goto slot_out;
@@ -751,7 +751,7 @@ slot_out:
 		g_clear_pointer(&slotstatuspath, g_free);
 		g_clear_pointer(&slot_state, free_slot_status);
 		g_print(G_STRLOC " I will unmount %s\n", mountpoint);
-		res = r_umount(mountpoint);
+		res = r_umount(mountpoint, NULL);
 		g_free(mountpoint);
 		if (!res) {
 			g_warning("Unounting failed");

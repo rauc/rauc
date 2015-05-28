@@ -7,9 +7,9 @@
 #include "utils.h"
 #include "context.h"
 
-gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, gsize size) {
+gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, gsize size, GError **error) {
 	GSubprocess *sproc = NULL;
-	GError *error = NULL;
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(10, g_free);
 	
@@ -31,17 +31,21 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 	g_ptr_array_add(args, NULL);
 
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-				  G_SUBPROCESS_FLAGS_NONE, &error);
+				  G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
-		g_warning("failed to start mount: %s\n", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start mount");
 		goto out;
 	}
 
-	res = g_subprocess_wait_check(sproc, NULL, &error);
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
 	if (!res) {
-		g_warning("failed to run mount: %s\n", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run mount");
 		goto out;
 	}
 
@@ -52,11 +56,11 @@ out:
 }
 
 
-gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, gsize size) {
-	return r_mount_full(filename, mountpoint, "squashfs", size);
+gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, gsize size, GError **error) {
+	return r_mount_full(filename, mountpoint, "squashfs", size, error);
 }
 
-gboolean r_mount_slot(RaucSlot *slot, const gchar *mountpoint) {
+gboolean r_mount_slot(RaucSlot *slot, const gchar *mountpoint, GError **error) {
 	g_assert_nonnull(slot);
 
 	if (!g_file_test(slot->device, G_FILE_TEST_EXISTS)) {
@@ -64,12 +68,12 @@ gboolean r_mount_slot(RaucSlot *slot, const gchar *mountpoint) {
 		return FALSE;
 	}
 
-	return r_mount_full(slot->device, mountpoint, NULL, 0);
+	return r_mount_full(slot->device, mountpoint, NULL, 0, error);
 }
 
-gboolean r_umount(const gchar *filename) {
+gboolean r_umount(const gchar *filename, GError **error) {
 	GSubprocess *sproc = NULL;
-	GError *error = NULL;
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(10, g_free);
 	
@@ -82,17 +86,21 @@ gboolean r_umount(const gchar *filename) {
 	g_ptr_array_add(args, NULL);
 
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-				  G_SUBPROCESS_FLAGS_NONE, &error);
+				  G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
-		g_warning("failed to start umount: %s\n", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start umount");
 		goto out;
 	}
 
-	res = g_subprocess_wait_check(sproc, NULL, &error);
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
 	if (!res) {
-		g_warning("failed to run umount: %s\n", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run umount");
 		goto out;
 	}
 

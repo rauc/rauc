@@ -4,7 +4,7 @@
 
 #include "config_file.h"
 
-gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, gsize size);
+gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, gsize size, GError **error);
 
 /**
  * Loopback mount a file.
@@ -15,7 +15,7 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
  *
  * @return True if succeeded, False if failed
  */
-gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, gsize size);
+gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, gsize size, GError **error);
 
 /**
  * Mount a slot.
@@ -23,11 +23,11 @@ gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, gsize size
  * @param slot Slot to mount
  * @param mountpoint destination mount point
  */
-gboolean r_mount_slot(RaucSlot *slot, const gchar *mountpoint);
+gboolean r_mount_slot(RaucSlot *slot, const gchar *mountpoint, GError **error);
 
 /**
  * Unmount a slot or a file.
  *
  * @param dirdev directory or device to unmount
  */
-gboolean r_umount(const gchar *dirdev);
+gboolean r_umount(const gchar *dirdev, GError **error);
