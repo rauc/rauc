@@ -267,52 +267,6 @@ static void install_test_target(InstallFixture *fixture,
 	g_assert_cmpint(g_hash_table_size(tgrp), ==, 2);
 }
 
-static void install_test_bundle(InstallFixture *fixture,
-		gconstpointer user_data)
-{
-	gchar *bundlepath, *mountdir;
-
-	/* Set mount path to current temp dir */
-	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
-	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = mountdir;
-	r_context();
-
-	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
-	g_assert_nonnull(bundlepath);
-
-	g_assert_true(do_install_bundle(bundlepath, NULL));
-
-	g_free(bundlepath);
-}
-
-static void install_test_network(InstallFixture *fixture,
-		gconstpointer user_data)
-{
-	gchar *manifesturl, *mountdir;
-
-	/* Set mount path to current temp dir */
-	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
-	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = mountdir;
-	r_context();
-
-	manifesturl = g_strconcat("file://", fixture->tmpdir,
-				  "/content/manifest-1.raucm", NULL);
-	g_assert_true(do_install_network(manifesturl));
-	g_free(manifesturl);
-
-	manifesturl = g_strconcat("file://", fixture->tmpdir,
-				  "/content/manifest-2.raucm", NULL);
-	g_assert_true(do_install_network(manifesturl));
-	g_free(manifesturl);
-
-	manifesturl = g_strconcat("file://", fixture->tmpdir,
-				  "/content/manifest-3.raucm", NULL);
-	g_assert_true(do_install_network(manifesturl));
-	g_free(manifesturl);
-}
-
 static gboolean r_quit(gpointer data) {
 	g_assert_nonnull(r_loop);
 	g_main_loop_quit(r_loop);
@@ -342,6 +296,59 @@ static gboolean install_cleanup(gpointer data)
 	g_idle_add(r_quit, NULL);
 
 	return G_SOURCE_REMOVE;
+}
+
+static void install_test_bundle(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *bundlepath, *mountdir;
+	RaucInstallArgs *args;
+
+	/* Set mount path to current temp dir */
+	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
+	g_assert_nonnull(mountdir);
+	r_context_conf()->mountprefix = mountdir;
+	r_context();
+
+	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_nonnull(bundlepath);
+
+	args = install_args_new();
+	args->name = g_strdup(bundlepath);
+	args->notify = install_notify;
+	args->cleanup = install_cleanup;
+	g_assert_true(do_install_bundle(args, NULL));
+
+	args->status_result = 0;
+
+	g_free(bundlepath);
+}
+
+static void install_test_network(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *manifesturl, *mountdir;
+
+	/* Set mount path to current temp dir */
+	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
+	g_assert_nonnull(mountdir);
+	r_context_conf()->mountprefix = mountdir;
+	r_context();
+
+	manifesturl = g_strconcat("file://", fixture->tmpdir,
+				  "/content/manifest-1.raucm", NULL);
+	g_assert_true(do_install_network(manifesturl));
+	g_free(manifesturl);
+
+	manifesturl = g_strconcat("file://", fixture->tmpdir,
+				  "/content/manifest-2.raucm", NULL);
+	g_assert_true(do_install_network(manifesturl));
+	g_free(manifesturl);
+
+	manifesturl = g_strconcat("file://", fixture->tmpdir,
+				  "/content/manifest-3.raucm", NULL);
+	g_assert_true(do_install_network(manifesturl));
+	g_free(manifesturl);
 }
 
 static void install_test_bundle_thread(InstallFixture *fixture,

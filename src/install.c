@@ -258,7 +258,7 @@ out:
 	g_strfreev(split);
 }
 
-static gboolean launch_and_wait_custom_handler(gchar* cwd, RaucManifest *manifest, GHashTable *target_group) {
+static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd, RaucManifest *manifest, GHashTable *target_group) {
 	GSubprocessLauncher *handlelaunch = NULL;
 	GSubprocess *handleproc = NULL;
 	GError *error = NULL;
@@ -474,7 +474,7 @@ out:
 	return res;
 }
 
-static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manifest, GHashTable *target_group) {
+static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cwd, RaucManifest *manifest, GHashTable *target_group) {
 
 	gboolean res = FALSE;
 	gchar *mountpoint = NULL;
@@ -506,7 +506,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 		}
 	}
 
-	g_message("Updating slots...");
+	install_args_update(args, "Updating slots...");
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		GError *ierror = NULL;
 		gchar *dest_slot_name;
@@ -544,6 +544,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 			g_print("Is a raw image\n");
 		}
 
+		install_args_update(args, g_strdup_printf("Checking slot %s", dest_slot->name));
 	
 		srcimagefile = g_file_new_for_path(srcimagepath);
 		destdevicefile = g_file_new_for_path(dest_slot->device);
@@ -576,6 +577,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 			/* skip if slot is up-to-date */
 			res = g_str_equal(&mfimage->checksum.digest, slot_state->checksum.digest);
 			if (res) {
+				install_args_update(args, g_strdup_printf("Skipping update for correct image %s", mfimage->filename));
 				g_message("Skipping update for correct image %s", mfimage->filename);
 				goto image_out;
 			} else {
@@ -591,6 +593,9 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 		}
 
 copy:
+
+		install_args_update(args, g_strdup_printf("Updating slot %s", dest_slot->name));
+
 		/* update slot */
 		g_message("Copying %s to %s", srcimagepath, dest_slot->device);
 
@@ -618,6 +623,7 @@ copy:
 		slot_state->checksum.digest = g_strdup(mfimage->checksum.digest);
 		
 		g_message("Updating slot file %s", slotstatuspath);
+		install_args_update(args, g_strdup_printf("Updating slot %s status", dest_slot->name));
 
 		res = save_slot_status(slotstatuspath, slot_state, &ierror);
 
@@ -645,6 +651,8 @@ image_out:
 			goto out;
 		}
 
+		install_args_update(args, g_strdup_printf("Updating slot %s done", dest_slot->name));
+
 	}
 
 	/* Mark all parent destination slots bootable */
@@ -663,6 +671,8 @@ image_out:
 			goto out;
 		}
 	}
+
+	install_args_update(args, "All slots updated");
 
 	res = TRUE;
 
@@ -820,7 +830,8 @@ static void print_hash_table(GHashTable *hash_table) {
 	}
 }
 
-gboolean do_install_bundle(const gchar* bundlefile, GError **error) {
+gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
+	const gchar* bundlefile = args->name;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar* mountpoint;
@@ -847,6 +858,7 @@ gboolean do_install_bundle(const gchar* bundlefile, GError **error) {
 
 	// TODO: mount info in context ?
 	g_message("Mounting bundle '%s' to '%s'\n", bundlefile, mountpoint);
+	install_args_update(args, "Checking and mounting bundle...");
 	res = mount_bundle(bundlefile, mountpoint, NULL);
 	if (!res) {
 		g_set_error_literal(error, R_INSTALL_ERROR, 2, "Failed mounting bundle");
@@ -874,10 +886,10 @@ gboolean do_install_bundle(const gchar* bundlefile, GError **error) {
 
 	if (manifest->handler_name) {
 		g_print("Using custom handler: %s\n", manifest->handler_name);
-		res = launch_and_wait_custom_handler(mountpoint, manifest, target_group);
+		res = launch_and_wait_custom_handler(args, mountpoint, manifest, target_group);
 	} else {
 		g_print("Using default handler\n");
-		res = launch_and_wait_default_handler(mountpoint, manifest, target_group);
+		res = launch_and_wait_default_handler(args, mountpoint, manifest, target_group);
 	}
 
 	if (!res) {
@@ -988,7 +1000,7 @@ static gpointer install_thread(gpointer data) {
 	install_args_update(args, "started");
 
 	if (g_str_has_suffix(args->name, ".raucb")) {
-		result = !do_install_bundle(args->name, &ierror);
+		result = !do_install_bundle(args, &ierror);
 		if (result != 0) {
 			install_args_update(args, ierror->message);
 			g_clear_error(&ierror);
