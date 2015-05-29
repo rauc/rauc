@@ -12,6 +12,13 @@
 #include "utils.h"
 #include "bootchooser.h"
 
+#define R_INSTALL_ERROR r_install_error_quark ()
+
+static GQuark r_install_error_quark (void)
+{
+  return g_quark_from_static_string ("r_install_error_quark");
+}
+
 static void install_args_update(RaucInstallArgs *args, const gchar *msg) {
 	g_mutex_lock(&args->status_mutex);
 	g_queue_push_tail(&args->status_messages, g_strdup(msg));
@@ -385,13 +392,18 @@ out:
 }
 
 /* Creates a mount subdir in mount path prefix */
-static gchar* create_mount_point(const gchar *name) {
+static gchar* create_mount_point(const gchar *name, GError **error) {
 	gchar* prefix;
 	gchar* mountpoint = NULL;
 
 	prefix = r_context()->config->mount_prefix;
 	if (!g_file_test (prefix, G_FILE_TEST_IS_DIR)) {
-		g_warning("mount prefix path %s does not exist", prefix);
+		g_set_error(
+				error,
+				R_INSTALL_ERROR,
+				3,
+				"mount prefix path %s does not exist",
+				prefix);
 		goto out;
 	}
 
@@ -403,7 +415,12 @@ static gchar* create_mount_point(const gchar *name) {
 		ret = g_mkdir(mountpoint, 0777);
 
 		if (ret != 0) {
-			g_print("Failed creating mount path '%s'\n", mountpoint);
+			g_set_error(
+					error,
+					R_INSTALL_ERROR,
+					3,
+					"Failed creating mount path '%s'",
+					mountpoint);
 			g_free(mountpoint);
 			mountpoint = NULL;
 			goto out;
@@ -460,13 +477,12 @@ out:
 static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manifest, GHashTable *target_group) {
 
 	gboolean res = FALSE;
-	GError *error = NULL;
 	gchar *mountpoint = NULL;
 
 	GHashTableIter iter;
 	gpointer class, member;
 
-	mountpoint = create_mount_point("image");
+	mountpoint = create_mount_point("image", NULL);
 
 	if (!mountpoint) {
 		goto out;
@@ -535,9 +551,10 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 		/* read slot status */
 		g_message("mounting %s to %s", dest_slot->device, mountpoint);
 
-		res = r_mount_slot(dest_slot, mountpoint, NULL);
+		res = r_mount_slot(dest_slot, mountpoint, &ierror);
 		if (!res) {
-			g_warning("Mounting failed");
+			g_warning("Mounting failed: %s", ierror->message);
+			g_clear_error(&ierror);
 			goto out;
 		}
 
@@ -563,9 +580,10 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 			}
 		}
 
-		res = r_umount(mountpoint, NULL);
+		res = r_umount(mountpoint, &ierror);
 		if (!res) {
-			g_warning("Unmounting failed");
+			g_warning("Unmounting failed: %s", ierror->message);
+			g_clear_error(&ierror);
 			goto out;
 		}
 
@@ -577,15 +595,17 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 			destdevicefile);
 
 		if (!res) {
-			g_warning("Failed copying image: %s", error->message);
+			g_warning("Failed copying image: %s", ierror->message);
+			g_clear_error(&ierror);
 			goto out;
 		}
 
 		g_debug("Mounting %s to %s", dest_slot->device, mountpoint);
 
-		res = r_mount_slot(dest_slot, mountpoint, NULL);
+		res = r_mount_slot(dest_slot, mountpoint, &ierror);
 		if (!res) {
-			g_warning("Mounting failed");
+			g_warning("Mounting failed: %s", ierror->message);
+			g_clear_error(&ierror);
 			goto out;
 		}
 
@@ -614,9 +634,10 @@ image_out:
 		g_clear_pointer(&slotstatuspath, g_free);
 		g_debug("Unmounting %s", mountpoint);
 
-		res = r_umount(mountpoint, NULL);
+		res = r_umount(mountpoint, &ierror);
 		if (!res) {
-			g_warning("Unmounting failed");
+			g_warning("Unmounting failed: %s", ierror->message);
+			g_clear_error(&ierror);
 			goto out;
 		}
 
@@ -681,7 +702,7 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 	g_hash_table_iter_init(&iter, target_group);
 	while (g_hash_table_iter_next(&iter, (gpointer* )&slotclass,
 				      (gpointer *)&slotname)) {
-		gchar *mountpoint = create_mount_point(slotname);
+		gchar *mountpoint = create_mount_point(slotname, NULL);
 		gchar *slotstatuspath = NULL;
 		RaucSlot *slot = NULL;
 		RaucSlotStatus *slot_state = NULL;
@@ -795,8 +816,8 @@ static void print_hash_table(GHashTable *hash_table) {
 	}
 }
 
-gboolean do_install_bundle(const gchar* bundlefile) {
-
+gboolean do_install_bundle(const gchar* bundlefile, GError **error) {
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar* mountpoint;
 	gchar* bundlelocation = NULL;
@@ -807,12 +828,16 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 
 	res = determine_slot_states();
 	if (!res) {
-		g_warning("Failed to determine slot states");
+		g_set_error_literal(error, R_INSTALL_ERROR, 1, "Failed to determine slot states");
 		goto out;
 	}
 
-	mountpoint = create_mount_point("bundle");
+	mountpoint = create_mount_point("bundle", &ierror);
 	if (!mountpoint) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed creating mount point");
 		goto out;
 	}
 
@@ -826,19 +851,22 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 	g_print("Mounting bundle '%s' to '%s'\n", bundlelocation, mountpoint);
 	res = mount_bundle(bundlelocation, mountpoint, NULL);
 	if (!res) {
-		g_warning("Failed mounting bundle");
+		g_set_error_literal(error, R_INSTALL_ERROR, 2, "Failed mounting bundle");
 		goto umount;
 	}
 
-	res = verify_manifest(mountpoint, &manifest, FALSE, NULL);
+	res = verify_manifest(mountpoint, &manifest, FALSE, &ierror);
 	if (!res) {
-		g_warning("Failed verifying manifest");
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed verifying manifest");
 		goto umount;
 	}
 
 	target_group = determine_target_install_group(manifest);
 	if (!target_group) {
-		g_warning("Could not determine target group");
+		g_set_error_literal(error, R_INSTALL_ERROR, 3, "Could not determine target group");
 		goto umount;
 	}
 
@@ -854,7 +882,7 @@ gboolean do_install_bundle(const gchar* bundlefile) {
 	}
 
 	if (!res) {
-		g_warning("Starting handler failed");
+		g_set_error_literal(error, R_INSTALL_ERROR, 3, "Starting handler failed");
 		goto umount;
 	}
 
@@ -954,6 +982,7 @@ static gboolean install_done(gpointer data) {
 }
 
 static gpointer install_thread(gpointer data) {
+	GError *ierror = NULL;
 	RaucInstallArgs *args = data;
 	gint result;
 
@@ -961,7 +990,11 @@ static gpointer install_thread(gpointer data) {
 	install_args_update(args, "started");
 
 	if (g_str_has_suffix(args->name, ".raucb")) {
-		result = !do_install_bundle(args->name);
+		result = !do_install_bundle(args->name, &ierror);
+		if (result != 0) {
+			install_args_update(args, ierror->message);
+			g_clear_error(&ierror);
+		}
 	} else {
 		result = !do_install_network(args->name);
 	}

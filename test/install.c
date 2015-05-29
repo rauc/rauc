@@ -281,7 +281,7 @@ static void install_test_bundle(InstallFixture *fixture,
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
 
-	g_assert_true(do_install_bundle(bundlepath));
+	g_assert_true(do_install_bundle(bundlepath, NULL));
 
 	g_free(bundlepath);
 }
