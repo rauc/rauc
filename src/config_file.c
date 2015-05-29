@@ -54,7 +54,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 	c->mount_prefix = g_key_file_get_string(key_file, "system", "mountprefix", NULL);
 	if (!c->mount_prefix) {
-		g_print("No mount prefix provided, using /mnt/rauc/ as default\n");
+		g_debug("No mount prefix provided, using /mnt/rauc/ as default");
 		c->mount_prefix = g_strdup("/mnt/rauc/");
 	}
 
@@ -62,7 +62,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		c->grubenv_path = resolve_path(filename,
 			g_key_file_get_string(key_file, "system", "grubenv", NULL));
 		if (!c->grubenv_path) {
-			g_print("No grubenv path provided, using /boot/grub/grubenv as default\n");
+			g_debug("No grubenv path provided, using /boot/grub/grubenv as default");
 			c->grubenv_path = g_strdup("/boot/grub/grubenv");
 		}
 	}

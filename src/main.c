@@ -21,7 +21,7 @@ static gboolean install_notify(gpointer data) {
 	g_mutex_lock(&args->status_mutex);
 	while (!g_queue_is_empty(&args->status_messages)) {
 		gchar *msg = g_queue_pop_head(&args->status_messages);
-		g_message("installing %s: %s\n", args->name, msg);
+		g_message("installing %s: %s", args->name, msg);
 	}
 	r_exit_status = args->status_result;
 	g_mutex_unlock(&args->status_mutex);
@@ -34,7 +34,7 @@ static gboolean install_cleanup(gpointer data)
 	RaucInstallArgs *args = data;
 
 	g_mutex_lock(&args->status_mutex);
-	g_message("installing %s done: %d\n", args->name, args->status_result);
+	g_message("installing %s done: %d", args->name, args->status_result);
 	r_exit_status = args->status_result;
 	g_mutex_unlock(&args->status_mutex);
 

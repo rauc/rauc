@@ -103,7 +103,7 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 static void r_on_name_acquired(GDBusConnection *connection,
 			       const gchar     *name,
 			       gpointer         user_data) {
-	g_message("name acquired\n");
+	g_message("name acquired");
 	return;
 }
 

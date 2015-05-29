@@ -81,7 +81,7 @@ gboolean determine_slot_states(void) {
 
 	bootname = bootname_provider();
 	if (bootname == NULL) {
-		g_warning("Warning: No bootname found\n");
+		g_warning("Warning: No bootname found");
 		goto out;
 	}
 
@@ -90,7 +90,7 @@ gboolean determine_slot_states(void) {
 	for (GList *l = slotlist; l != NULL; l = l->next) {
 		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, l->data);
 		if (!s->bootname && s->parent) {
-			g_warning("Warning: No bootname configured for %s\n", s->name);
+			g_warning("Warning: No bootname configured for %s", s->name);
 		}
 
 		if (g_strcmp0(s->bootname, bootname) == 0) {
@@ -105,7 +105,7 @@ gboolean determine_slot_states(void) {
 	}
 
 	if (!booted) {
-		g_warning("Did not find booted slot\n");
+		g_warning("Did not find booted slot");
 		goto out;
 	}
 
@@ -195,7 +195,7 @@ GHashTable* determine_target_install_group(RaucManifest *manifest) {
 	}
 
 	if (!targetgroup_root) {
-		g_warning("Failed to determine target install group\n");
+		g_warning("Failed to determine target install group");
 		return NULL;
 	}
 
@@ -215,7 +215,7 @@ GHashTable* determine_target_install_group(RaucManifest *manifest) {
 		}
 
 		if (!image_target) {
-			g_warning("No target for class '%s' found!\n", (gchar *)slotclasses->pdata[i]);
+			g_warning("No target for class '%s' found!", (gchar *)slotclasses->pdata[i]);
 			return NULL;
 		}
 
@@ -373,14 +373,14 @@ static gboolean launch_and_wait_custom_handler(gchar* cwd, RaucManifest *manifes
 	
 
 	if (handleproc == NULL) {
-		g_warning("failed to start custom handler: %s\n", error->message);
+		g_warning("failed to start custom handler: %s", error->message);
 		g_clear_error(&error);
 		goto out;
 	}
 
 	res = g_subprocess_wait_check(handleproc, NULL, &error);
 	if (!res) {
-		g_warning("failed to run custom handler: %s\n", error->message);
+		g_warning("failed to run custom handler: %s", error->message);
 		g_clear_error(&error);
 		goto out;
 	}
@@ -842,7 +842,7 @@ gboolean do_install_bundle(const gchar* bundlefile, GError **error) {
 	}
 
 	// TODO: mount info in context ?
-	g_print("Mounting bundle '%s' to '%s'\n", bundlefile, mountpoint);
+	g_message("Mounting bundle '%s' to '%s'\n", bundlefile, mountpoint);
 	res = mount_bundle(bundlefile, mountpoint, NULL);
 	if (!res) {
 		g_set_error_literal(error, R_INSTALL_ERROR, 2, "Failed mounting bundle");
