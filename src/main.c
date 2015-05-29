@@ -89,6 +89,7 @@ static gboolean install_start(int argc, char **argv)
 	RInstaller *installer = NULL;
 	RaucInstallArgs *args = install_args_new();
 	GError *error = NULL;
+	gchar* bundlelocation = NULL;
 
 	g_message("install started\n");
 
@@ -98,9 +99,15 @@ static gboolean install_start(int argc, char **argv)
 		goto out;
 	}
 
-	g_print("input bundle: %s\n", argv[2]);
+	if (!g_path_is_absolute(argv[2])) {
+		bundlelocation = g_build_filename(g_get_current_dir(), argv[2], NULL);
+	} else {
+		bundlelocation = g_strdup(argv[2]);
+	}
+	g_debug("input bundle: %s", bundlelocation);
 
-	args->name = g_strdup(argv[2]);
+
+	args->name = bundlelocation;
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 
@@ -119,7 +126,7 @@ static gboolean install_start(int argc, char **argv)
 		goto local;
 	}
 	g_print("trying to contact rauc service\n");
-	if (!r_installer_call_install_sync(installer, argv[2], NULL, &error)) {
+	if (!r_installer_call_install_sync(installer, bundlelocation, NULL, &error)) {
 		g_warning("failed %s", error->message);
 		goto local;
 	}

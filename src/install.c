@@ -820,7 +820,6 @@ gboolean do_install_bundle(const gchar* bundlefile, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar* mountpoint;
-	gchar* bundlelocation = NULL;
 	RaucManifest *manifest = NULL;
 	GHashTable *target_group;
 
@@ -841,15 +840,9 @@ gboolean do_install_bundle(const gchar* bundlefile, GError **error) {
 		goto out;
 	}
 
-	if (!g_path_is_absolute(bundlefile)) {
-		bundlelocation = g_build_filename(g_get_current_dir(), bundlefile, NULL);
-	} else {
-		bundlelocation = g_strdup(bundlefile);
-	}
-
 	// TODO: mount info in context ?
-	g_print("Mounting bundle '%s' to '%s'\n", bundlelocation, mountpoint);
-	res = mount_bundle(bundlelocation, mountpoint, NULL);
+	g_print("Mounting bundle '%s' to '%s'\n", bundlefile, mountpoint);
+	res = mount_bundle(bundlefile, mountpoint, NULL);
 	if (!res) {
 		g_set_error_literal(error, R_INSTALL_ERROR, 2, "Failed mounting bundle");
 		goto umount;
@@ -893,7 +886,6 @@ umount:
 	g_rmdir(mountpoint);
 	g_clear_pointer(&mountpoint, g_free);
 out:
-	g_clear_pointer(&bundlelocation, g_free);
 	g_clear_pointer(&manifest, free_manifest);
 
 	return res;
