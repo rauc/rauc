@@ -12,7 +12,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 	gboolean res = FALSE;
 
 	if (g_file_test (bundlename, G_FILE_TEST_EXISTS)) {
-		g_warning("bundle %s already exists, aborting.", bundlename);
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "bundle %s already exists", bundlename);
 		goto out;
 	}
 

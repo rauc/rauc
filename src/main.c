@@ -146,6 +146,7 @@ out:
 
 static gboolean bundle_start(int argc, char **argv)
 {
+	GError *ierror = NULL;
 	g_debug("bundle start");
 
 	if (r_context()->certpath == NULL ||
@@ -170,14 +171,14 @@ static gboolean bundle_start(int argc, char **argv)
 	g_print("input directory: %s\n", argv[2]);
 	g_print("output bundle: %s\n", argv[3]);
 
-	if (!update_manifest(argv[2], FALSE, NULL)) {
-		g_warning("failed to update manifest");
+	if (!update_manifest(argv[2], FALSE, &ierror)) {
+		g_warning("failed to update manifest: %s", ierror->message);
 		r_exit_status = 1;
 		goto out;
 	}
 
-	if (!create_bundle(argv[3], argv[2], NULL)) {
-		g_warning("failed to create bundle");
+	if (!create_bundle(argv[3], argv[2], &ierror)) {
+		g_warning("failed to create bundle: %s", ierror->message);
 		r_exit_status = 1;
 		goto out;
 	}
