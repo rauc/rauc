@@ -489,13 +489,13 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 	}
 
 	/* Mark all parent destination slots non-bootable */
-	g_message("Marking active slot as non-bootable...");
+	g_message("Marking target slot as non-bootable...");
 	g_hash_table_iter_init(&iter, target_group);
 	while (g_hash_table_iter_next(&iter, &class, &member)) {
 		RaucSlot *dest_slot = g_hash_table_lookup(r_context()->config->slots, member);
 
-		if (dest_slot->state & ST_ACTIVE && !dest_slot->parent) {
-			break;
+		if (dest_slot->parent) {
+			continue;
 		}
 
 		res = r_boot_set_state(dest_slot, FALSE);
