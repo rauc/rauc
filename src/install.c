@@ -549,16 +549,19 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 		destdevicefile = g_file_new_for_path(dest_slot->device);
 
 		/* read slot status */
+		slotstatuspath = g_build_filename(mountpoint, "slot.raucs", NULL);
+
 		g_message("mounting %s to %s", dest_slot->device, mountpoint);
 
 		res = r_mount_slot(dest_slot, mountpoint, &ierror);
 		if (!res) {
-			g_warning("Mounting failed: %s", ierror->message);
+			g_message("Mounting failed: %s", ierror->message);
 			g_clear_error(&ierror);
-			goto out;
-		}
 
-		slotstatuspath = g_build_filename(mountpoint, "slot.raucs", NULL);
+			slot_state = g_new0(RaucSlotStatus, 1);
+			slot_state->status = g_strdup("update");
+			goto copy;
+		}
 
 		res = load_slot_status(slotstatuspath, &slot_state, &ierror);
 
@@ -587,6 +590,7 @@ static gboolean launch_and_wait_default_handler(gchar* cwd, RaucManifest *manife
 			goto out;
 		}
 
+copy:
 		/* update slot */
 		g_message("Copying %s to %s", srcimagepath, dest_slot->device);
 
