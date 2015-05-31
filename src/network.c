@@ -123,6 +123,14 @@ gboolean download_file_checksum(const gchar *target, const gchar *url,
 	dir = g_path_get_dirname(target);
 	tmppath = g_build_filename(dir, tmpname, NULL);
 
+	g_unlink(target);
+	g_unlink(tmppath);
+
+	if (g_file_test(target, G_FILE_TEST_EXISTS))
+		goto out;
+	if (g_file_test(tmppath, G_FILE_TEST_EXISTS))
+		goto out;
+
 	res = download_file(tmppath, url, checksum->size);
 	if (!res)
 		goto out;
