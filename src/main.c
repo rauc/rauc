@@ -89,7 +89,7 @@ static gboolean install_start(int argc, char **argv)
 	RInstaller *installer = NULL;
 	RaucInstallArgs *args = install_args_new();
 	GError *error = NULL;
-	gchar* bundlelocation = NULL;
+	gchar *bundlelocation = NULL, *bundlescheme = NULL;
 
 	g_message("install started\n");
 
@@ -99,11 +99,13 @@ static gboolean install_start(int argc, char **argv)
 		goto out;
 	}
 
-	if (!g_path_is_absolute(argv[2])) {
+	bundlescheme = g_uri_parse_scheme(argv[2]);
+	if (bundlescheme == NULL && !g_path_is_absolute(argv[2])) {
 		bundlelocation = g_build_filename(g_get_current_dir(), argv[2], NULL);
 	} else {
 		bundlelocation = g_strdup(argv[2]);
 	}
+	g_clear_pointer(&bundlescheme, g_free);
 	g_debug("input bundle: %s", bundlelocation);
 
 
