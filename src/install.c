@@ -794,8 +794,10 @@ slot_out:
 		}
 	}
 
-	if (invalid)
+	if (invalid) {
+		res = FALSE;
 		goto out;
+	}
 
 	/* Mark all parent destination slots bootable */
 	g_message("Marking slots as bootable...");
