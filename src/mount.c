@@ -68,7 +68,7 @@ gboolean r_mount_slot(RaucSlot *slot, const gchar *mountpoint, GError **error) {
 		return FALSE;
 	}
 
-	return r_mount_full(slot->device, mountpoint, NULL, 0, error);
+	return r_mount_full(slot->device, mountpoint, slot->type, 0, error);
 }
 
 gboolean r_umount(const gchar *filename, GError **error) {
