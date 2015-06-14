@@ -12,10 +12,20 @@ before_install:
   - sudo apt-get update -qq
   - sudo apt-get install user-mode-linux grub-common
   - sudo pip install cpp-coveralls
+addons:
+  coverity_scan:
+    project:
+      name: "jluebbe/rauc"
+      description: "Robust Auto-Update Controller"
+    notification_email: jluebbe@lasnet.de
+    build_command_prepend: "./autogen.sh && ./configure"
+    build_command: "make -j2"
+    branch_pattern: master
 script:
   - ./autogen.sh
   - ./configure --enable-code-coverage
-  - make
+  - make clean
+  - make -j2
   - make check TESTS= && sudo ./uml-test
 after_success:
   - coveralls --build-root '.' --exclude tests --exclude rauc-installer-generated.c
