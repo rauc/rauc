@@ -34,6 +34,16 @@ LT_INIT([disable-static])
 AX_CODE_COVERAGE
 AX_VALGRIND_CHECK
 
+# Check for features.
+AC_ARG_ENABLE([service],
+	AS_HELP_STRING([--disable-service], [Disable background service])
+)
+AS_IF([test "x$enable_service" != "xno"], [
+	AC_DEFINE([ENABLE_SERVICE], [1], [Define to 1 to enable background service])
+], [
+	AC_DEFINE([ENABLE_SERVICE], [0])
+])
+
 # Checks for libraries.
 PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.40 gio-2.0 gio-unix-2.0])
 PKG_CHECK_MODULES([CURL], [libcurl])

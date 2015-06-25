@@ -4,6 +4,7 @@
 #include <glib.h>
 #include <gio/gio.h>
 
+#include <config.h>
 #include <bootchooser.h>
 #include <bundle.h>
 #include <config_file.h>
@@ -114,32 +115,31 @@ static gboolean install_start(int argc, char **argv)
 	args->cleanup = install_cleanup;
 
 	r_loop = g_main_loop_new(NULL, FALSE);
-	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SYSTEM,
-		G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
-		"de.pengutronix.rauc", "/", NULL, NULL);
-	if (g_signal_connect(installer, "g-properties-changed",
-			     G_CALLBACK(on_installer_changed), args) <= 0) {
-		g_error("failed to connect properties-changed signal");
-		goto local;
+	if (ENABLE_SERVICE) {
+		installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SYSTEM,
+			G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
+			"de.pengutronix.rauc", "/", NULL, NULL);
+		if (g_signal_connect(installer, "g-properties-changed",
+				     G_CALLBACK(on_installer_changed), args) <= 0) {
+			g_error("failed to connect properties-changed signal");
+			goto out;
+		}
+		if (g_signal_connect(installer, "completed",
+				     G_CALLBACK(on_installer_completed), args) <= 0) {
+			g_error("failed to connect completed signal");
+			goto out;
+		}
+		g_print("trying to contact rauc service\n");
+		if (!r_installer_call_install_sync(installer, bundlelocation, NULL,
+						   &error)) {
+			g_warning("failed %s", error->message);
+			goto out;
+		}
+	} else {
+		install_run(args);
 	}
-	if (g_signal_connect(installer, "completed",
-			     G_CALLBACK(on_installer_completed), args) <= 0) {
-		g_error("failed to connect completed signal");
-		goto local;
-	}
-	g_print("trying to contact rauc service\n");
-	if (!r_installer_call_install_sync(installer, bundlelocation, NULL, &error)) {
-		g_warning("failed %s", error->message);
-		goto local;
-	}
-	goto wait;
-local:
-	g_print("rauc service not running, installing directly\n");
-	install_run(args);
 
-wait:
-	if (r_loop)
-		g_main_loop_run(r_loop);
+	g_main_loop_run(r_loop);
 out:
 	g_clear_pointer(&r_loop, g_main_loop_unref);
 	g_clear_pointer(&installer, g_object_unref);
@@ -322,12 +322,14 @@ out:
 	return TRUE;
 }
 
+#if ENABLE_SERVICE == 1
 static gboolean service_start(int argc, char **argv)
 {
 	g_message("service start");
 
 	return r_service_run();
 }
+#endif
 
 static gboolean unknown_start(int argc, char **argv)
 {
@@ -337,13 +339,13 @@ static gboolean unknown_start(int argc, char **argv)
 }
 
 typedef enum  {
-	INSTALL = 0,
+	UNKNOWN = 0,
+	INSTALL,
 	BUNDLE,
 	CHECKSUM,
 	STATUS,
 	INFO,
 	SERVICE,
-	UNKNOWN
 } RaucCommandType;
 
 typedef struct {
@@ -368,20 +370,23 @@ static void cmdline_handler(int argc, char **argv)
 		{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handlerextra, "extra handler arguments", "ARGS"},
 		{"version", '\0', 0, G_OPTION_ARG_NONE, &version, "display version", NULL},
 		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, NULL, NULL},
-		{NULL}
+		{0}
 	};
 	GError *error = NULL;
 
 	RaucCommand rcommands[] = {
+		{UNKNOWN, "help", "<COMMAND>", unknown_start, TRUE},
 		{INSTALL, "install", "install <BUNDLE>", install_start, FALSE},
 		{BUNDLE, "bundle", "bundle <FILE>", bundle_start, FALSE},
 		{CHECKSUM, "checksum", "checksum <DIRECTORY>", checksum_start, FALSE},
 		{INFO, "info", "info <FILE>", info_start, FALSE},
 		{STATUS, "status", "status", status_start, TRUE},
+#if ENABLE_SERVICE == 1
 		{SERVICE, "service", "service", service_start, TRUE},
-		{UNKNOWN, NULL, "<COMMAND>", unknown_start, TRUE}
+#endif
+		{0}
 	};
-	RaucCommand *rcommand = &rcommands[UNKNOWN];
+	RaucCommand *rcommand = &rcommands[0];
 
 	/* show command-specific usage output */
 	context = g_option_context_new(rcommand->usage);
