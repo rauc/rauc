@@ -17,7 +17,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 	}
 
 	sproc = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
-				 &ierror, CMD_MKSQUASHFS,
+				 &ierror, "mksquashfs",
 				 contentdir,
 				 bundlename,
 				 "-all-root",
@@ -53,7 +53,7 @@ static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 	gboolean res = FALSE;
 
 	sproc = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
-				 &ierror, CMD_UNSQUASHFS,
+				 &ierror, "unsquashfs",
 				 "-dest", contentdir,
 				 bundlename,
 				 NULL);

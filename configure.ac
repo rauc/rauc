@@ -22,23 +22,11 @@ AC_USE_SYSTEM_EXTENSIONS
 AC_SYS_LARGEFILE
 AX_COMPILER_FLAGS
 
-
 # Checks for programs.
 AC_PROG_AWK
 AC_PROG_CC
 AC_PROG_CC_C99
 AM_PROG_CC_C_O
-
-AC_CHECK_PROGS([MKSQUASHFS], [mksquashfs])
-if test -z "$MKSQUASHFS";
-  then AC_MSG_ERROR([mksquashfs not found])
-fi
-AC_DEFINE_UNQUOTED([CMD_MKSQUASHFS], ["$MKSQUASHFS"], [Define to the path of the mksquashfs executable])
-AC_CHECK_PROGS([UNSQUASHFS], [unsquashfs])
-if test -z "$UNSQUASHFS";
-  then AC_MSG_WARN([unsquashfs not found])
-fi
-AC_DEFINE_UNQUOTED([CMD_UNSQUASHFS], ["$UNSQUASHFS"], [Define to the path of the unsquashfs executable])
 
 LT_PREREQ(2.2)
 LT_INIT([disable-static])
