@@ -299,6 +299,12 @@ static gboolean status_start(int argc, char **argv)
 		goto out;
 	}
 
+	if (!booted) {
+		g_warning("Failed to determine booted slot");
+		r_exit_status = 1;
+		goto out;
+	}
+
 	if (g_strcmp0(argv[2], "mark-good") == 0) {
 		g_print("marking slot %s as good\n", booted->name);
 		r_exit_status = 0;
