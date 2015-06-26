@@ -275,7 +275,7 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd
 	GSubprocess *handleproc = NULL;
 	GError *error = NULL;
 	gboolean res = FALSE;
-	gchar* handler_name;
+	gchar* handler_name = NULL;
 	GInputStream *instream;
 	GDataInputStream *datainstream;
 	gchar* outline;
