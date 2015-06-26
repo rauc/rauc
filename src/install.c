@@ -259,7 +259,15 @@ out:
 }
 
 static gboolean verify_compatible(RaucManifest *manifest) {
-	return (g_strcmp(r_context()->config->system_compatible, manifest->update_compatible) == 0);
+	if (g_strcmp0(r_context()->config->system_compatible,
+		      manifest->update_compatible) == 0) {
+		return TRUE;
+	} else {
+		g_warning("incompatible manifest for this system (%s): %s",
+			  r_context()->config->system_compatible,
+			  manifest->update_compatible);
+		return FALSE;
+	}
 }
 
 static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd, RaucManifest *manifest, GHashTable *target_group) {
@@ -278,6 +286,11 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd
 	gpointer sname;
 	RaucSlot *slot;
 	gint slotcnt = 0;
+
+	if (!verify_compatible(manifest)) {
+		res = FALSE;
+		goto out;
+	}
 
 	handler_name = g_build_filename(cwd, manifest->handler_name, NULL);
 
@@ -486,8 +499,12 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 	GHashTableIter iter;
 	gpointer class, member;
 
-	mountpoint = create_mount_point("image", NULL);
+	if (!verify_compatible(manifest)) {
+		res = FALSE;
+		goto out;
+	}
 
+	mountpoint = create_mount_point("image", NULL);
 	if (!mountpoint) {
 		goto out;
 	}
@@ -693,8 +710,10 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 	GHashTableIter iter;
 	gchar *slotclass, *slotname;
 
-	(void)base_url;
-	(void)manifest;
+	if (!verify_compatible(manifest)) {
+		res = FALSE;
+		goto out;
+	}
 
 	/* Mark all parent destination slots non-bootable */
 	g_message("Marking active slot as non-bootable...");
