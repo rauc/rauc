@@ -16,7 +16,7 @@
 
 static GQuark r_install_error_quark (void)
 {
-  return g_quark_from_static_string ("r_install_error_quark");
+	return g_quark_from_static_string ("r_install_error_quark");
 }
 
 static void install_args_update(RaucInstallArgs *args, const gchar *msg) {
@@ -256,6 +256,10 @@ static void parse_handler_output(gchar* line) {
 
 out:
 	g_strfreev(split);
+}
+
+static gboolean verify_compatible(RaucManifest *manifest) {
+	return (g_strcmp(r_context()->config->system_compatible, manifest->update_compatible) == 0);
 }
 
 static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd, RaucManifest *manifest, GHashTable *target_group) {
