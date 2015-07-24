@@ -877,16 +877,19 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed creating mount point");
+				"Failed creating mount point: ");
 		goto out;
 	}
 
 	// TODO: mount info in context ?
 	g_message("Mounting bundle '%s' to '%s'\n", bundlefile, mountpoint);
 	install_args_update(args, "Checking and mounting bundle...");
-	res = mount_bundle(bundlefile, mountpoint, NULL);
+	res = mount_bundle(bundlefile, mountpoint, &ierror);
 	if (!res) {
-		g_set_error_literal(error, R_INSTALL_ERROR, 2, "Failed mounting bundle");
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed mounting bundle: ");
 		goto umount;
 	}
 
@@ -895,7 +898,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed verifying manifest");
+				"Failed verifying manifest: ");
 		goto umount;
 	}
 
@@ -1027,6 +1030,7 @@ static gpointer install_thread(gpointer data) {
 	if (g_str_has_suffix(args->name, ".raucb")) {
 		result = !do_install_bundle(args, &ierror);
 		if (result != 0) {
+			g_warning("%s", ierror->message);
 			install_args_update(args, ierror->message);
 			g_clear_error(&ierror);
 		}
