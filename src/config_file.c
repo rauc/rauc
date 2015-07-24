@@ -92,6 +92,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 						R_CONFIG_ERROR,
 						R_CONFIG_ERROR_INVALID_FORMAT,
 						"Invalid slot name format");
+				res = FALSE;
 				goto free;
 			}
 
@@ -102,6 +103,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 						R_CONFIG_ERROR,
 						R_CONFIG_ERROR_INVALID_FORMAT,
 						"Invalid slot name");
+				res = FALSE;
 				goto free;
 			}
 			slot->name = g_intern_string(value);
@@ -113,6 +115,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				g_key_file_get_string(key_file, groups[i], "device", &ierror));
 			if (!value) {
 				g_propagate_error(error, ierror);
+				res = FALSE;
 				goto free;
 			}
 			slot->device = value;
