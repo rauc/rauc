@@ -36,10 +36,11 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
  *
  * @param content content to verify against signature
  * @param sig signature used to verify
+ * @param error return location for a GError, or NULL
  *
  * @return TRUE if succeeded, FALSE if failed
  */
-gboolean cms_verify(GBytes *content, GBytes *sig);
+gboolean cms_verify(GBytes *content, GBytes *sig, GError **error);
 
 
 /**

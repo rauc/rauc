@@ -963,7 +963,7 @@ gboolean do_install_network(const gchar *url) {
 		goto out;
 	}
 
-	res = cms_verify(manifest_data, signature_data);
+	res = cms_verify(manifest_data, signature_data, NULL);
 	if (!res) {
 		g_warning("Failed to verify manifest signature");
 		goto out;
