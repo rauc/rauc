@@ -142,6 +142,15 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, G
 	}
 
 	res = bytes_from_bio(outsig);
+
+	if (!res) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_UNKNOWN,
+				"Read zero bytes");
+		goto out;
+	}
 out:
 	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
