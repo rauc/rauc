@@ -11,6 +11,10 @@
 
 #define R_MANIFEST_ERROR r_manifest_error_quark ()
 
+#define R_MANIFEST_ERROR_NO_DATA	0
+#define R_MANIFEST_ERROR_CHECKSUM	1
+#define R_MANIFEST_ERROR_COMPATIBLE	2
+
 static GQuark r_manifest_error_quark (void)
 {
   return g_quark_from_static_string ("r_manifest_error_quark");
@@ -122,7 +126,7 @@ gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)
 
 	data = g_bytes_get_data(mem, &length);
 	if (data == NULL) {
-		g_set_error(error, R_MANIFEST_ERROR, 2, "No data avaiable");
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_NO_DATA, "No data avaiable");
 		goto out;
 	}
 
@@ -304,7 +308,7 @@ static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *d
 
 	if (had_errors) {
 		res = FALSE;
-		g_set_error(error, R_MANIFEST_ERROR, 1, "Failed updating all checksums");
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_CHECKSUM, "Failed updating all checksums");
 	}
 
 	return res;
@@ -343,7 +347,7 @@ static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *d
 
 	if (had_errors) {
 		res = FALSE;
-		g_set_error(error, R_MANIFEST_ERROR, 1, "Failed updating all checksums");
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_CHECKSUM, "Failed updating all checksums");
 	}
 
 	return res;
@@ -412,7 +416,7 @@ static gboolean check_compatible(RaucManifest *manifest, GError **error) {
 
 	res = (g_strcmp0(r_context()->config->system_compatible, manifest->update_compatible) == 0);
 	if (!res) {
-		g_set_error(error, R_MANIFEST_ERROR, 2,
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_COMPATIBLE,
 				"'%s' (mf) does not match '%s' (sys)",
 				manifest->update_compatible,
 				r_context()->config->system_compatible);
