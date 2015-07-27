@@ -454,15 +454,15 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signa
 		goto out;
 	}
 
-	res = verify_manifest_checksums(manifest, dir, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(error, ierror, "Invalid checksums: ");
-		goto out;
-	}
-
 	res = check_compatible(manifest, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(error, ierror, "Invalid compatible: ");
+		goto out;
+	}
+
+	res = verify_manifest_checksums(manifest, dir, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(error, ierror, "Invalid checksums: ");
 		goto out;
 	}
 
