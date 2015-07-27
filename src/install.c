@@ -506,6 +506,8 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 
 	mountpoint = create_mount_point("image", NULL);
 	if (!mountpoint) {
+		res = FALSE;
+		g_warning("Failed to create image mount point");
 		goto out;
 	}
 
@@ -550,11 +552,13 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 		}
 
 		if (!g_file_test(srcimagepath, G_FILE_TEST_EXISTS)) {
+			res = FALSE;
 			g_warning("Source image '%s' not found", srcimagepath);
 			goto out;
 		}
 
 		if (!g_file_test(dest_slot->device, G_FILE_TEST_EXISTS)) {
+			res = FALSE;
 			g_warning("Destination device '%s' not found", dest_slot->device);
 			goto out;
 		}
