@@ -405,11 +405,20 @@ out:
 	return res;
 }
 
-static gboolean check_compatible(RaucManifest *manifest) {
+static gboolean check_compatible(RaucManifest *manifest, GError **error) {
+	gboolean res = FALSE;
 	g_assert_nonnull(r_context()->config);
 	g_assert_nonnull(r_context()->config->system_compatible);
 
-	return (g_strcmp0(r_context()->config->system_compatible, manifest->update_compatible) == 0);
+	res = (g_strcmp0(r_context()->config->system_compatible, manifest->update_compatible) == 0);
+	if (!res) {
+		g_set_error(error, R_MANIFEST_ERROR, 2,
+				"'%s' (mf) does not match '%s' (sys)",
+				manifest->update_compatible,
+				r_context()->config->system_compatible);
+	}
+
+	return res;
 }
 
 gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signature, GError **error) {
@@ -447,7 +456,7 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signa
 		goto out;
 	}
 
-	res = check_compatible(manifest);
+	res = check_compatible(manifest, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(error, ierror, "Invalid compatible: ");
 		goto out;
