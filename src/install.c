@@ -11,6 +11,7 @@
 #include "mount.h"
 #include "utils.h"
 #include "bootchooser.h"
+#include <sys/ioctl.h>
 #include <gio/gfiledescriptorbased.h>
 #include <gio/gunixoutputstream.h>
 #include <errno.h>
@@ -19,6 +20,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <mtd/ubi-user.h>
 
 #define R_INSTALL_ERROR r_install_error_quark ()
 
@@ -458,13 +460,14 @@ out:
 }
 
 
-static gboolean copy_image(GFile *src, GFile *dest) {
+static gboolean copy_image(GFile *src, GFile *dest, gchar* fs_type) {
 	gboolean res = FALSE;
 	GError *error = NULL;
 	GFileInputStream *instream = NULL;
 	GOutputStream *outstream = NULL;
 	gssize size;
 	int fd_out;
+	int ret;
 	goffset imgsize;
 
 	/* open source image and determine size */
@@ -510,6 +513,15 @@ static gboolean copy_image(GFile *src, GFile *dest) {
 		g_warning("failed to open file for writing: %s", error->message);
 		g_clear_error(&error);
 		goto out;
+	}
+
+	if (g_strcmp0(fs_type, "ubifs") == 0) {
+		/* set up ubi volume for image copy */
+		ret = ioctl(fd_out, UBI_IOCVOLUP, &imgsize);
+		if (ret == -1) {
+			g_warning("ubi volume update failed: %s", strerror(errno));
+			goto out;
+		}
 	}
 
 	size = g_output_stream_splice(
@@ -670,7 +682,8 @@ copy:
 
 		res = copy_image(
 			srcimagefile,
-			destdevicefile);
+			destdevicefile,
+			dest_slot->type);
 
 		if (!res) {
 			g_warning("Failed copying image: %s", ierror->message);
