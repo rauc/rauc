@@ -20,6 +20,12 @@ static GQuark r_signature_error_quark (void)
 #define R_SIGNATURE_ERROR_CREATE_SIG	3
 #define R_SIGNATURE_ERROR_SERIALIZE_SIG	4
 
+#define R_SIGNATURE_ERROR_X509_NEW	10
+#define R_SIGNATURE_ERROR_X509_LOOKUP	11
+#define R_SIGNATURE_ERROR_CA_LOAD	12
+#define R_SIGNATURE_ERROR_PARSE		13
+#define R_SIGNATURE_ERROR_INVALID	14
+
 void signature_init(void) {
 	OPENSSL_no_config();
 	OpenSSL_add_all_algorithms();
@@ -119,7 +125,7 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, G
 
 	cms = CMS_sign(signcert, pkey, NULL, incontent, flags);
 	if (cms == NULL) {
-		g_set_error(
+		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_CREATE_SIG,
@@ -127,7 +133,7 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, G
 		goto out;
 	}
 	if (!i2d_CMS_bio(outsig, cms)) {
-		g_set_error(
+		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_SERIALIZE_SIG,
@@ -143,7 +149,7 @@ out:
 	return res;
 }
 
-gboolean cms_verify(GBytes *content, GBytes *sig) {
+gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 	const gchar *capath = r_context()->config->keyring_path;
 	STACK_OF(X509) *other = NULL;
 	X509_STORE *store = NULL;
@@ -156,22 +162,46 @@ gboolean cms_verify(GBytes *content, GBytes *sig) {
 	BIO *outcontent = BIO_new(BIO_s_mem());
 	gboolean res = FALSE;
 
-	if (!(store = X509_STORE_new()))
+	if (!(store = X509_STORE_new())) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_X509_NEW,
+				"failed to allocate new X509 store");
 		goto out;
-	if (!(lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file())))
+	}
+	if (!(lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file()))) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_X509_LOOKUP,
+				"failed to add X509 store lookup");
 		goto out;
+	}
 	if (!X509_LOOKUP_load_file(lookup, capath, X509_FILETYPE_PEM)) {
-		g_warning("failed to load CA file '%s'", capath);
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_CA_LOAD,
+				"failed to load CA file '%s'", capath);
 		goto out;
 	}
 
 	if (!(cms = d2i_CMS_bio(insig, NULL))) {
-		g_warning("failed to parse signature");
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE,
+				"failed to parse signature");
 		goto out;
 	}
 
 	if (!CMS_verify(cms, other, store, incontent, outcontent, CMS_DETACHED)) {
-		/* g_print("signature invalid"); */
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_INVALID,
+				"invalid signature");
 		goto out;
 	}
 
@@ -229,7 +259,11 @@ gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, GError
 		content = tmp;
 	}
 
-	res = cms_verify(content, sig);
+	res = cms_verify(content, sig, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
 
 out:
 	g_bytes_unref(content);
