@@ -11,6 +11,14 @@
 #include "mount.h"
 #include "utils.h"
 #include "bootchooser.h"
+#include <gio/gfiledescriptorbased.h>
+#include <gio/gunixoutputstream.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
 
 #define R_INSTALL_ERROR r_install_error_quark ()
 
@@ -454,8 +462,9 @@ static gboolean copy_image(GFile *src, GFile *dest) {
 	gboolean res = FALSE;
 	GError *error = NULL;
 	GFileInputStream *instream = NULL;
-	GFileIOStream *outstream = NULL;
+	GOutputStream *outstream = NULL;
 	gssize size;
+	int fd_out;
 	goffset imgsize;
 
 	/* open source image and determine size */
@@ -490,7 +499,13 @@ static gboolean copy_image(GFile *src, GFile *dest) {
 		goto out;
 	}
 
-	outstream = g_file_open_readwrite(dest, NULL, &error);
+	fd_out = open(g_file_get_path(dest), O_WRONLY);
+	if (fd_out == -1) {
+		g_warning("opening output device failed: %s", strerror(errno));
+		goto out;
+	}
+
+	outstream = g_unix_output_stream_new(fd_out, TRUE);
 	if (outstream == NULL) {
 		g_warning("failed to open file for writing: %s", error->message);
 		g_clear_error(&error);
@@ -498,7 +513,7 @@ static gboolean copy_image(GFile *src, GFile *dest) {
 	}
 
 	size = g_output_stream_splice(
-			g_io_stream_get_output_stream((GIOStream*)outstream),
+			outstream,
 			(GInputStream*)instream,
 			G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE | G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
 			NULL,
