@@ -686,8 +686,7 @@ copy:
 			dest_slot->type);
 
 		if (!res) {
-			g_warning("Failed copying image: %s", ierror->message);
-			g_clear_error(&ierror);
+			g_warning("Failed copying image");
 			goto out;
 		}
 
