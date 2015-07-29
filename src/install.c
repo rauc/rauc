@@ -456,11 +456,37 @@ static gboolean copy_image(GFile *src, GFile *dest) {
 	GFileInputStream *instream = NULL;
 	GFileIOStream *outstream = NULL;
 	gssize size;
+	goffset imgsize;
 
+	/* open source image and determine size */
 	instream = g_file_read(src, NULL, &error);
 	if (instream == NULL) {
 		g_warning("failed to open file for reading: %s", error->message);
 		g_clear_error(&error);
+		goto out;
+	}
+
+	res = g_seekable_seek(G_SEEKABLE(instream),
+			      0, G_SEEK_END, NULL, &error);
+	if (!res) {
+		g_warning("src image seek failed: %s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+	imgsize = g_seekable_tell(G_SEEKABLE(instream));
+	res = g_seekable_seek(G_SEEKABLE(instream),
+			      0, G_SEEK_SET, NULL, &error);
+	if (!res) {
+		g_warning("src image seek failed: %s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+	res = FALSE;
+
+	g_debug("Input image size is %" G_GOFFSET_FORMAT " bytes", imgsize);
+
+	if (imgsize == 0) {
+		g_warning("Input image is empty");
 		goto out;
 	}
 
@@ -480,6 +506,9 @@ static gboolean copy_image(GFile *src, GFile *dest) {
 	if (size == -1) {
 		g_warning("failed splicing data: %s", error->message);
 		g_clear_error(&error);
+		goto out;
+	} else if (size != imgsize) {
+		g_warning("image size and written size differ!");
 		goto out;
 	}
 
