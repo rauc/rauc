@@ -619,12 +619,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 			goto out;
 		}
 
-		if (g_str_has_suffix(mfimage->filename, ".ext4")) {
-			g_print("Is an ext4 image\n");
-		} else if (g_str_has_suffix(mfimage->filename, ".img")) {
-			g_print("Is a raw image\n");
-		}
-
 		install_args_update(args, g_strdup_printf("Checking slot %s", dest_slot->name));
 	
 		srcimagefile = g_file_new_for_path(srcimagepath);
