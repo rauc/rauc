@@ -1,0 +1,13 @@
+# example update manifest
+
+[update]
+# compatible missing here!
+
+[keyring]
+archive=release.tar
+
+[handler]
+filename=custom_handler.sh
+
+[image.foo]
+bar=bazz

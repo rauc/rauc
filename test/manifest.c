@@ -34,11 +34,6 @@ static void manifest_check_common(RaucManifest *rm) {
 		g_assert_nonnull(img->slotclass);
 		g_assert_nonnull(img->checksum.digest);
 		g_assert_nonnull(img->filename);
-
-		g_print("\tImage:\n");
-		g_print("\t SlotClass:  %s\n", img->slotclass);
-		g_print("\t Digest:     %s\n", img->checksum.digest);
-		g_print("\t Filename:   %s\n\n", img->filename);
 	}
 
 	for (GList *l = rm->files; l != NULL; l = l->next) {
@@ -48,26 +43,41 @@ static void manifest_check_common(RaucManifest *rm) {
 		g_assert_nonnull(file->destname);
 		g_assert_nonnull(file->checksum.digest);
 		g_assert_nonnull(file->filename);
-
-		g_print("\tFile:\n");
-		g_print("\t SlotClass:  %s\n", file->slotclass);
-		g_print("\t DestName:   %s\n", file->destname);
-		g_print("\t Digest:     %s\n", file->checksum.digest);
-		g_print("\t Filename:   %s\n\n", file->filename);
 	}
 }
 
-static void config_file_test2(void)
+static void test_load_manifest(void)
 {
-	RaucManifest *rm;
+	RaucManifest *rm = NULL;
+	GError *error = NULL;
 
-	g_assert_true(load_manifest_file("test/manifest.raucm", &rm, NULL));
+	// Load valid manifest file
+	g_assert_true(load_manifest_file("test/manifest.raucm", &rm, &error));
+	g_assert_null(error);
 	manifest_check_common(rm);
 
-	free_manifest(rm);
+	g_clear_pointer(&rm, free_manifest);
+	g_assert_null(rm);
+
+	// Load non-existing manifest file
+	g_assert_false(load_manifest_file("test/nonexisting.raucm", &rm, &error));
+	g_assert_nonnull(error);
+
+	g_clear_pointer(&rm, free_manifest);
+	g_clear_error(&error);
+	g_assert_null(rm);
+
+	// Load broken manifest file
+	g_assert_false(load_manifest_file("test/broken-manifest.raucm", &rm, &error));
+	g_assert_nonnull(error);
+
+	g_clear_pointer(&rm, free_manifest);
+	g_clear_error(&error);
+	g_assert_null(rm);
+
 }
 
-static void config_file_test4(void)
+static void test_save_load_manifest(void)
 {
 	RaucManifest *rm = g_new0(RaucManifest, 1);
 	RaucImage *new_image;
@@ -144,7 +154,7 @@ static void config_file_test4(void)
 }
 
 
-static void config_file_test6(void)
+static void test_load_manifest_mem(void)
 {
 	GBytes *data = NULL;
 	RaucManifest *rm;
@@ -166,9 +176,9 @@ int main(int argc, char *argv[])
 	r_context_conf()->handlerextra = g_strdup("--dummy1 --dummy2");
 	r_context();
 
-	g_test_add_func("/config-file/test2", config_file_test2);
-	g_test_add_func("/config-file/test4", config_file_test4);
-	g_test_add_func("/config-file/test6", config_file_test6);
+	g_test_add_func("/manifest/load", test_load_manifest);
+	g_test_add_func("/manifest/save_load", test_save_load_manifest);
+	g_test_add_func("/manifest/load_mem", test_load_manifest_mem);
 
 	return g_test_run ();
 }
