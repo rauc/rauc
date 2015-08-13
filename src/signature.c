@@ -242,8 +242,8 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
 	}
 
 out:
-	g_bytes_unref(content);
-	g_mapped_file_unref(file);
+	g_clear_pointer(&content, g_bytes_unref);
+	g_clear_pointer(&file, g_mapped_file_unref);
 	return sig;
 }
 
@@ -273,7 +273,7 @@ gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, GError
 	}
 
 out:
-	g_bytes_unref(content);
-	g_mapped_file_unref(file);
+	g_clear_pointer(&content, g_bytes_unref);
+	g_clear_pointer(&file, g_mapped_file_unref);
 	return res;
 }
