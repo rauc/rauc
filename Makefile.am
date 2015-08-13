@@ -95,7 +95,7 @@ test_manifest_test_SOURCES = test/manifest.c
 test_manifest_test_LDADD = librauc.la
 
 test_signature_test_SOURCES = test/signature.c
-test_signature_test_LDADD = librauc.la
+test_signature_test_LDADD = librauctest.la librauc.la
 
 test_install_test_SOURCES = test/install.c
 test_install_test_LDADD = librauc.la librauctest.la
