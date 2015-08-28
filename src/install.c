@@ -11,6 +11,16 @@
 #include "mount.h"
 #include "utils.h"
 #include "bootchooser.h"
+#include <sys/ioctl.h>
+#include <gio/gfiledescriptorbased.h>
+#include <gio/gunixoutputstream.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <mtd/ubi-user.h>
 
 #define R_INSTALL_ERROR r_install_error_quark ()
 
@@ -450,13 +460,17 @@ out:
 }
 
 
-static gboolean copy_image(GFile *src, GFile *dest) {
+static gboolean copy_image(GFile *src, GFile *dest, gchar* fs_type) {
 	gboolean res = FALSE;
 	GError *error = NULL;
 	GFileInputStream *instream = NULL;
-	GFileIOStream *outstream = NULL;
+	GOutputStream *outstream = NULL;
 	gssize size;
+	int fd_out;
+	int ret;
+	goffset imgsize;
 
+	/* open source image and determine size */
 	instream = g_file_read(src, NULL, &error);
 	if (instream == NULL) {
 		g_warning("failed to open file for reading: %s", error->message);
@@ -464,15 +478,54 @@ static gboolean copy_image(GFile *src, GFile *dest) {
 		goto out;
 	}
 
-	outstream = g_file_open_readwrite(dest, NULL, &error);
+	res = g_seekable_seek(G_SEEKABLE(instream),
+			      0, G_SEEK_END, NULL, &error);
+	if (!res) {
+		g_warning("src image seek failed: %s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+	imgsize = g_seekable_tell(G_SEEKABLE(instream));
+	res = g_seekable_seek(G_SEEKABLE(instream),
+			      0, G_SEEK_SET, NULL, &error);
+	if (!res) {
+		g_warning("src image seek failed: %s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+	res = FALSE;
+
+	g_debug("Input image size is %" G_GOFFSET_FORMAT " bytes", imgsize);
+
+	if (imgsize == 0) {
+		g_warning("Input image is empty");
+		goto out;
+	}
+
+	fd_out = open(g_file_get_path(dest), O_WRONLY);
+	if (fd_out == -1) {
+		g_warning("opening output device failed: %s", strerror(errno));
+		goto out;
+	}
+
+	outstream = g_unix_output_stream_new(fd_out, TRUE);
 	if (outstream == NULL) {
 		g_warning("failed to open file for writing: %s", error->message);
 		g_clear_error(&error);
 		goto out;
 	}
 
+	if (g_strcmp0(fs_type, "ubifs") == 0) {
+		/* set up ubi volume for image copy */
+		ret = ioctl(fd_out, UBI_IOCVOLUP, &imgsize);
+		if (ret == -1) {
+			g_warning("ubi volume update failed: %s", strerror(errno));
+			goto out;
+		}
+	}
+
 	size = g_output_stream_splice(
-			g_io_stream_get_output_stream((GIOStream*)outstream),
+			outstream,
 			(GInputStream*)instream,
 			G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE | G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
 			NULL,
@@ -480,6 +533,9 @@ static gboolean copy_image(GFile *src, GFile *dest) {
 	if (size == -1) {
 		g_warning("failed splicing data: %s", error->message);
 		g_clear_error(&error);
+		goto out;
+	} else if (size != imgsize) {
+		g_warning("image size and written size differ!");
 		goto out;
 	}
 
@@ -506,6 +562,8 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 
 	mountpoint = create_mount_point("image", NULL);
 	if (!mountpoint) {
+		res = FALSE;
+		g_warning("Failed to create image mount point");
 		goto out;
 	}
 
@@ -550,19 +608,15 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 		}
 
 		if (!g_file_test(srcimagepath, G_FILE_TEST_EXISTS)) {
+			res = FALSE;
 			g_warning("Source image '%s' not found", srcimagepath);
 			goto out;
 		}
 
 		if (!g_file_test(dest_slot->device, G_FILE_TEST_EXISTS)) {
+			res = FALSE;
 			g_warning("Destination device '%s' not found", dest_slot->device);
 			goto out;
-		}
-
-		if (g_str_has_suffix(mfimage->filename, ".ext4")) {
-			g_print("Is an ext4 image\n");
-		} else if (g_str_has_suffix(mfimage->filename, ".img")) {
-			g_print("Is a raw image\n");
 		}
 
 		install_args_update(args, g_strdup_printf("Checking slot %s", dest_slot->name));
@@ -622,11 +676,11 @@ copy:
 
 		res = copy_image(
 			srcimagefile,
-			destdevicefile);
+			destdevicefile,
+			dest_slot->type);
 
 		if (!res) {
-			g_warning("Failed copying image: %s", ierror->message);
-			g_clear_error(&ierror);
+			g_warning("Failed copying image");
 			goto out;
 		}
 
