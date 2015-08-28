@@ -168,7 +168,6 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 					 g_bytes_get_size(content));
 	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
 				     g_bytes_get_size(sig));
-	BIO *outcontent = BIO_new(BIO_s_mem());
 	gboolean res = FALSE;
 
 	if (!(store = X509_STORE_new())) {
@@ -205,7 +204,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 		goto out;
 	}
 
-	if (!CMS_verify(cms, other, store, incontent, outcontent, CMS_DETACHED)) {
+	if (!CMS_verify(cms, other, store, incontent, NULL, CMS_DETACHED)) {
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
@@ -219,7 +218,6 @@ out:
 	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
 	BIO_free_all(insig);
-	BIO_free_all(outcontent);
 	X509_STORE_free(store);
 	return res;
 }

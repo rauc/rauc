@@ -269,6 +269,10 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, GError **error) {
 	}
 
 	offset -= sigsize;
+
+	if (size)
+		*size = offset;
+
 	res = g_seekable_seek(G_SEEKABLE(bundlestream),
 			      offset, G_SEEK_SET, NULL, &ierror);
 	if (!res) {
@@ -296,9 +300,6 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, GError **error) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
-
-	if (size)
-		*size = offset;
 
 	res = TRUE;
 out:
