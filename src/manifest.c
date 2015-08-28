@@ -11,6 +11,10 @@
 
 #define R_MANIFEST_ERROR r_manifest_error_quark ()
 
+#define R_MANIFEST_ERROR_NO_DATA	0
+#define R_MANIFEST_ERROR_CHECKSUM	1
+#define R_MANIFEST_ERROR_COMPATIBLE	2
+
 static GQuark r_manifest_error_quark (void)
 {
   return g_quark_from_static_string ("r_manifest_error_quark");
@@ -122,7 +126,7 @@ gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)
 
 	data = g_bytes_get_data(mem, &length);
 	if (data == NULL) {
-		g_set_error(error, R_MANIFEST_ERROR, 2, "No data avaiable");
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_NO_DATA, "No data avaiable");
 		goto out;
 	}
 
@@ -243,31 +247,31 @@ free:
 static void free_image(gpointer data) {
 	RaucImage *image = (RaucImage*) data;
 
-	g_free(image->slotclass);
-	g_free(image->checksum.digest);
-	g_free(image->filename);
-	g_free(image);
+	g_clear_pointer(&image->slotclass, g_free);
+	g_clear_pointer(&image->checksum.digest, g_free);
+	g_clear_pointer(&image->filename, g_free);
+	g_clear_pointer(&image, g_free);
 }
 
 static void free_file(gpointer data) {
 	RaucFile *file = (RaucFile*) data;
 
-	g_free(file->slotclass);
-	g_free(file->destname);
-	g_free(file->checksum.digest);
-	g_free(file->filename);
-	g_free(file);
+	g_clear_pointer(&file->slotclass, g_free);
+	g_clear_pointer(&file->destname, g_free);
+	g_clear_pointer(&file->checksum.digest, g_free);
+	g_clear_pointer(&file->filename, g_free);
+	g_clear_pointer(&file, g_free);
 }
 
 void free_manifest(RaucManifest *manifest) {
 
-	g_free(manifest->update_compatible);
-	g_free(manifest->update_version);
-	g_free(manifest->keyring);
-	g_free(manifest->handler_name);
+	g_clear_pointer(&manifest->update_compatible, g_free);
+	g_clear_pointer(&manifest->update_version, g_free);
+	g_clear_pointer(&manifest->keyring, g_free);
+	g_clear_pointer(&manifest->handler_name, g_free);
 	g_list_free_full(manifest->images, free_image);
 	g_list_free_full(manifest->files, free_file);
-	g_free(manifest);
+	g_clear_pointer(&manifest, g_free);
 }
 
 
@@ -304,7 +308,7 @@ static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *d
 
 	if (had_errors) {
 		res = FALSE;
-		g_set_error(error, R_MANIFEST_ERROR, 1, "Failed updating all checksums");
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_CHECKSUM, "Failed updating all checksums");
 	}
 
 	return res;
@@ -343,7 +347,7 @@ static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *d
 
 	if (had_errors) {
 		res = FALSE;
-		g_set_error(error, R_MANIFEST_ERROR, 1, "Failed updating all checksums");
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_CHECKSUM, "Failed updating all checksums");
 	}
 
 	return res;
@@ -405,11 +409,20 @@ out:
 	return res;
 }
 
-static gboolean check_compatible(RaucManifest *manifest) {
+static gboolean check_compatible(RaucManifest *manifest, GError **error) {
+	gboolean res = FALSE;
 	g_assert_nonnull(r_context()->config);
 	g_assert_nonnull(r_context()->config->system_compatible);
 
-	return (g_strcmp0(r_context()->config->system_compatible, manifest->update_compatible) == 0);
+	res = (g_strcmp0(r_context()->config->system_compatible, manifest->update_compatible) == 0);
+	if (!res) {
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_COMPATIBLE,
+				"'%s' (mf) does not match '%s' (sys)",
+				manifest->update_compatible,
+				r_context()->config->system_compatible);
+	}
+
+	return res;
 }
 
 gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signature, GError **error) {
@@ -447,7 +460,7 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signa
 		goto out;
 	}
 
-	res = check_compatible(manifest);
+	res = check_compatible(manifest, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(error, ierror, "Invalid compatible: ");
 		goto out;

@@ -69,6 +69,7 @@ TEST_LOG_COMPILER = $(top_srcdir)/tap-test
 check_PROGRAMS = \
 	test/checksum.test \
 	test/config_file.test \
+	test/manifest.test \
 	test/signature.test \
 	test/install.test \
 	test/network.test \
@@ -89,6 +90,9 @@ test_checksum_test_LDADD = librauc.la
 
 test_config_file_test_SOURCES = test/config_file.c
 test_config_file_test_LDADD = librauc.la
+
+test_manifest_test_SOURCES = test/manifest.c
+test_manifest_test_LDADD = librauc.la
 
 test_signature_test_SOURCES = test/signature.c
 test_signature_test_LDADD = librauc.la
