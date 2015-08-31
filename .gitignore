@@ -1,5 +1,6 @@
 /autom4te.cache/
-/build-aux/
+/build-aux/*
+!/build-aux/git-version-gen
 /test/*.test
 /src/*-generated.[ch]
 Makefile
