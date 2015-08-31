@@ -29,6 +29,13 @@ static GQuark r_install_error_quark (void)
 	return g_quark_from_static_string ("r_install_error_quark");
 }
 
+#define R_HANDLER_ERROR r_handler_error_quark ()
+
+static GQuark r_handler_error_quark (void)
+{
+	return g_quark_from_static_string ("r_handler_error_quark");
+}
+
 static void install_args_update(RaucInstallArgs *args, const gchar *msg) {
 	g_mutex_lock(&args->status_mutex);
 	g_queue_push_tail(&args->status_messages, g_strdup(msg));
@@ -280,10 +287,10 @@ static gboolean verify_compatible(RaucManifest *manifest) {
 	}
 }
 
-static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd, RaucManifest *manifest, GHashTable *target_group) {
+static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd, RaucManifest *manifest, GHashTable *target_group, GError **error) {
 	GSubprocessLauncher *handlelaunch = NULL;
 	GSubprocess *handleproc = NULL;
-	GError *error = NULL;
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar* handler_name = NULL;
 	GInputStream *instream;
@@ -299,6 +306,8 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd
 
 	if (!verify_compatible(manifest)) {
 		res = FALSE;
+		g_set_error_literal(error, R_HANDLER_ERROR, 0,
+				"Compatible mismatch");
 		goto out;
 	}
 
@@ -383,7 +392,7 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd
 
 	handleproc = g_subprocess_launcher_spawn(
 			handlelaunch,
-			&error, handler_name,
+			&ierror, handler_name,
 			manifest->handler_args,
 			NULL);
 
@@ -400,15 +409,13 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd
 	
 
 	if (handleproc == NULL) {
-		g_warning("failed to start custom handler: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 
-	res = g_subprocess_wait_check(handleproc, NULL, &error);
+	res = g_subprocess_wait_check(handleproc, NULL, &ierror);
 	if (!res) {
-		g_warning("failed to run custom handler: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 
@@ -460,9 +467,9 @@ out:
 }
 
 
-static gboolean copy_image(GFile *src, GFile *dest, gchar* fs_type) {
+static gboolean copy_image(GFile *src, GFile *dest, gchar* fs_type, GError **error) {
 	gboolean res = FALSE;
-	GError *error = NULL;
+	GError *ierror = NULL;
 	GFileInputStream *instream = NULL;
 	GOutputStream *outstream = NULL;
 	gssize size;
@@ -471,26 +478,26 @@ static gboolean copy_image(GFile *src, GFile *dest, gchar* fs_type) {
 	goffset imgsize;
 
 	/* open source image and determine size */
-	instream = g_file_read(src, NULL, &error);
+	instream = g_file_read(src, NULL, &ierror);
 	if (instream == NULL) {
-		g_warning("failed to open file for reading: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(error, ierror,
+				"failed to open file for reading: ");
 		goto out;
 	}
 
 	res = g_seekable_seek(G_SEEKABLE(instream),
-			      0, G_SEEK_END, NULL, &error);
+			      0, G_SEEK_END, NULL, &ierror);
 	if (!res) {
-		g_warning("src image seek failed: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(error, ierror,
+				"src image seek failed: ");
 		goto out;
 	}
 	imgsize = g_seekable_tell(G_SEEKABLE(instream));
 	res = g_seekable_seek(G_SEEKABLE(instream),
-			      0, G_SEEK_SET, NULL, &error);
+			      0, G_SEEK_SET, NULL, &ierror);
 	if (!res) {
-		g_warning("src image seek failed: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(error, ierror,
+				"src image seek failed: ");
 		goto out;
 	}
 	res = FALSE;
@@ -498,20 +505,22 @@ static gboolean copy_image(GFile *src, GFile *dest, gchar* fs_type) {
 	g_debug("Input image size is %" G_GOFFSET_FORMAT " bytes", imgsize);
 
 	if (imgsize == 0) {
-		g_warning("Input image is empty");
+		g_set_error_literal(error, R_HANDLER_ERROR, 0,
+				"Input image is empty");
 		goto out;
 	}
 
 	fd_out = open(g_file_get_path(dest), O_WRONLY);
 	if (fd_out == -1) {
-		g_warning("opening output device failed: %s", strerror(errno));
+		g_set_error(error, R_HANDLER_ERROR, 0,
+				"opening output device failed: %s", strerror(errno));
 		goto out;
 	}
 
 	outstream = g_unix_output_stream_new(fd_out, TRUE);
 	if (outstream == NULL) {
-		g_warning("failed to open file for writing: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(error, ierror,
+				"failed to open file for writing: ");
 		goto out;
 	}
 
@@ -519,7 +528,8 @@ static gboolean copy_image(GFile *src, GFile *dest, gchar* fs_type) {
 		/* set up ubi volume for image copy */
 		ret = ioctl(fd_out, UBI_IOCVOLUP, &imgsize);
 		if (ret == -1) {
-			g_warning("ubi volume update failed: %s", strerror(errno));
+			g_set_error(error, R_HANDLER_ERROR, 0,
+					"ubi volume update failed: %s", strerror(errno));
 			goto out;
 		}
 	}
@@ -529,13 +539,14 @@ static gboolean copy_image(GFile *src, GFile *dest, gchar* fs_type) {
 			(GInputStream*)instream,
 			G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE | G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
 			NULL,
-			&error);
+			&ierror);
 	if (size == -1) {
-		g_warning("failed splicing data: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(error, ierror,
+				"failed splicing data: ");
 		goto out;
 	} else if (size != imgsize) {
-		g_warning("image size and written size differ!");
+		g_set_error_literal(error, R_HANDLER_ERROR, 0,
+				"image size and written size differ!");
 		goto out;
 	}
 
@@ -547,7 +558,7 @@ out:
 	return res;
 }
 
-static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cwd, RaucManifest *manifest, GHashTable *target_group) {
+static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cwd, RaucManifest *manifest, GHashTable *target_group, GError **error) {
 
 	gboolean res = FALSE;
 	gchar *mountpoint = NULL;
@@ -557,13 +568,16 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 
 	if (!verify_compatible(manifest)) {
 		res = FALSE;
+		g_set_error_literal(error, R_HANDLER_ERROR, 0,
+				"Compatible mismatch");
 		goto out;
 	}
 
 	mountpoint = create_mount_point("image", NULL);
 	if (!mountpoint) {
 		res = FALSE;
-		g_warning("Failed to create image mount point");
+		g_set_error_literal(error, R_HANDLER_ERROR, 0,
+				"Failed to create image mount point");
 		goto out;
 	}
 
@@ -580,7 +594,8 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 		res = r_boot_set_state(dest_slot, FALSE);
 
 		if (!res) {
-			g_warning("Failed marking slot %s non-bootable", dest_slot->name);
+			g_set_error(error, R_HANDLER_ERROR, 0,
+					"Failed marking slot %s non-bootable", dest_slot->name);
 			goto out;
 		}
 	}
@@ -609,13 +624,15 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 
 		if (!g_file_test(srcimagepath, G_FILE_TEST_EXISTS)) {
 			res = FALSE;
-			g_warning("Source image '%s' not found", srcimagepath);
+			g_set_error(error, R_HANDLER_ERROR, 0,
+					"Source image '%s' not found", srcimagepath);
 			goto out;
 		}
 
 		if (!g_file_test(dest_slot->device, G_FILE_TEST_EXISTS)) {
 			res = FALSE;
-			g_warning("Destination device '%s' not found", dest_slot->device);
+			g_set_error(error, R_HANDLER_ERROR, 0,
+					"Destination device '%s' not found", dest_slot->device);
 			goto out;
 		}
 
@@ -662,8 +679,10 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 
 		res = r_umount(mountpoint, &ierror);
 		if (!res) {
-			g_warning("Unmounting failed: %s", ierror->message);
-			g_clear_error(&ierror);
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Unmounting failed: ");
 			goto out;
 		}
 
@@ -677,10 +696,12 @@ copy:
 		res = copy_image(
 			srcimagefile,
 			destdevicefile,
-			dest_slot->type);
+			dest_slot->type,
+			&ierror);
 
 		if (!res) {
-			g_warning("Failed copying image");
+			g_propagate_prefixed_error(error, ierror,
+					"Failed copying image: ");
 			goto out;
 		}
 
@@ -688,8 +709,8 @@ copy:
 
 		res = r_mount_slot(dest_slot, mountpoint, &ierror);
 		if (!res) {
-			g_warning("Mounting failed: %s", ierror->message);
-			g_clear_error(&ierror);
+			g_propagate_prefixed_error(error, ierror,
+					"Mounting failed: ");
 			goto out;
 		}
 
@@ -703,8 +724,10 @@ copy:
 		res = save_slot_status(slotstatuspath, slot_state, &ierror);
 
 		if (!res) {
-			g_warning("Failed writing status file: %s", ierror->message);
-			g_clear_error(&ierror);
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed writing status file: ");
 
 			r_umount(mountpoint, NULL);
 
@@ -721,8 +744,10 @@ image_out:
 
 		res = r_umount(mountpoint, &ierror);
 		if (!res) {
-			g_warning("Unmounting failed: %s", ierror->message);
-			g_clear_error(&ierror);
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Unmounting failed: ");
 			goto out;
 		}
 
@@ -742,7 +767,8 @@ image_out:
 		res = r_boot_set_primary(dest_slot);
 
 		if (!res) {
-			g_warning("Failed marking slot %s bootable", dest_slot->name);
+			g_set_error(error, R_HANDLER_ERROR, 0,
+					"Failed marking slot %s bootable", dest_slot->name);
 			goto out;
 		}
 	}
@@ -968,14 +994,14 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 
 	if (manifest->handler_name) {
 		g_print("Using custom handler: %s\n", manifest->handler_name);
-		res = launch_and_wait_custom_handler(args, mountpoint, manifest, target_group);
+		res = launch_and_wait_custom_handler(args, mountpoint, manifest, target_group, &ierror);
 	} else {
 		g_print("Using default handler\n");
-		res = launch_and_wait_default_handler(args, mountpoint, manifest, target_group);
+		res = launch_and_wait_default_handler(args, mountpoint, manifest, target_group, &ierror);
 	}
 
 	if (!res) {
-		g_set_error_literal(error, R_INSTALL_ERROR, 3, "Starting handler failed");
+		g_propagate_prefixed_error(error, ierror, "Handler error: ");
 		goto umount;
 	}
 
