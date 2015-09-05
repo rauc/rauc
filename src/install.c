@@ -88,6 +88,24 @@ const gchar* get_bootname(void) {
 	return bootname_provider();
 }
 
+static gchar *resolve_loop_device(const gchar *devicepath) {
+	gchar *devicename = NULL;
+	gchar *syspath = NULL;
+	gchar *res = NULL;
+
+	if (!g_str_has_prefix(devicepath, "/dev/loop"))
+		return g_strdup(devicepath);
+
+	devicename = g_path_get_basename(devicepath);
+	syspath = g_build_filename("/sys/block", devicename, "loop/backing_file", NULL);
+	res = g_strchomp(read_file_str(syspath, NULL));
+
+	g_free(syspath);
+	g_free(devicename);
+
+	return res;
+}
+
 gboolean determine_slot_states(void) {
 	GList *slotlist = NULL;
 	GList *mountlist = NULL;
@@ -102,11 +120,14 @@ gboolean determine_slot_states(void) {
 	mountlist = g_unix_mounts_get(NULL);
 	for (GList *l = mountlist; l != NULL; l = l->next) {
 		GUnixMountEntry *m = (GUnixMountEntry*)l->data;
+		gchar *devicepath = resolve_loop_device(g_unix_mount_get_device_path(m));
 		RaucSlot *s = find_config_slot_by_device(r_context()->config,
-				g_unix_mount_get_device_path(m));
+				devicepath);
 		if (s) {
 			s->mountpoint = g_strdup(g_unix_mount_get_mount_path(m));
+			g_debug("Found mountpoint for slot %s at %s", s->name, s->mountpoint);
 		}
+		g_free(devicepath);
 	}
 	g_list_free_full(mountlist, (GDestroyNotify)g_unix_mount_free);
 
