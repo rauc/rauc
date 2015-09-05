@@ -3,6 +3,7 @@
 #include <glib.h>
 
 GBytes *read_file(const gchar *filename, GError **error);
+gchar *read_file_str(const gchar *filename, GError **error);
 gboolean write_file(const gchar *filename, GBytes *bytes, GError **error);
 
 gboolean rm_tree(const gchar *path, GError **error);

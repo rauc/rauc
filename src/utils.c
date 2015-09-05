@@ -18,6 +18,20 @@ GBytes *read_file(const gchar *filename, GError **error) {
 	return g_bytes_new_take(contents, length);
 }
 
+gchar *read_file_str(const gchar *filename, GError **error) {
+	gchar *contents;
+	gsize length;
+	gchar *res = NULL;
+
+	if (!g_file_get_contents(filename, &contents, &length, error))
+		return NULL;
+
+	res = g_strndup(contents, length);
+	g_free(contents);
+
+	return res;
+}
+
 gboolean write_file(const gchar *filename, GBytes *bytes, GError **error) {
 	const gchar *contents;
 	gsize length;
