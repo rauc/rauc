@@ -77,6 +77,16 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 gboolean default_config(RaucConfig **config);
 
 /**
+ * Finds a config slot given the device path.
+ *
+ * @param config a RaucConfig
+ * @param device the device path to search for
+ *
+ * @return a RaucSlot pointer or NULL
+ */
+RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device);
+
+/**
  * Frees the memory allocated by the RaucConfig.
  *
  * @param config a RaucConfig

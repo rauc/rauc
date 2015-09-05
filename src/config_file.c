@@ -177,6 +177,23 @@ free:
 	return res;
 }
 
+RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device) {
+	GHashTableIter iter;
+	RaucSlot *slot;
+
+	g_hash_table_iter_init(&iter, config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
+		if (g_strcmp0(slot->device, device) == 0) {
+			goto out;
+		}
+	}
+
+	slot = NULL;
+
+out:
+	return slot;
+}
+
 void free_config(RaucConfig *config) {
 	g_assert_nonnull(config);
 	g_clear_pointer(&config->system_compatible, g_free);
