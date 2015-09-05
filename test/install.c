@@ -27,6 +27,8 @@ static void install_fixture_set_up(InstallFixture *fixture,
 	gchar *certpath;
 	gchar *keypath;
 	gchar *capath;
+	gchar *slotfile;
+	gchar *slotpath;
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
@@ -36,6 +38,7 @@ static void install_fixture_set_up(InstallFixture *fixture,
 	g_assert(test_mkdir_relative(fixture->tmpdir, "mount", 0777) == 0);
 	g_assert(test_mkdir_relative(fixture->tmpdir, "images", 0777) == 0);
 	g_assert(test_mkdir_relative(fixture->tmpdir, "openssl-ca", 0777) == 0);
+	g_assert(test_mkdir_relative(fixture->tmpdir, "slot", 0777) == 0);
 
 	/* copy system config to temp dir*/
 	configpath = g_build_filename(fixture->tmpdir, "system.conf", NULL);
@@ -62,20 +65,35 @@ static void install_fixture_set_up(InstallFixture *fixture,
 				fixture->tmpdir, "openssl-ca/dev-ca.pem"));
 
 	/* Setup pseudo devices */
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/rootfs-0",
+				         SLOT_SIZE, "/dev/zero") == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/appfs-0",
+					 SLOT_SIZE, "/dev/zero") == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/rootfs-1",
 				         SLOT_SIZE, "/dev/zero") == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/appfs-1",
 					 SLOT_SIZE, "/dev/zero") == 0);
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/rootfs-0"));
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/appfs-0"));
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/rootfs-1"));
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/appfs-1"));
 
 	/* Make images user-writable */
+	test_make_slot_user_writable(fixture->tmpdir, "images/rootfs-0");
+	test_make_slot_user_writable(fixture->tmpdir, "images/appfs-0");
 	test_make_slot_user_writable(fixture->tmpdir, "images/rootfs-1");
 	test_make_slot_user_writable(fixture->tmpdir, "images/appfs-1");
 	
 	/* Set dummy bootname provider */
 	set_bootname_provider(test_bootname_provider);
 
+	/* Provide active mounted slot */
+	slotfile = g_build_filename(fixture->tmpdir, "images/rootfs-0", NULL);
+	slotpath = g_build_filename(fixture->tmpdir, "slot", NULL);
+	g_assert(test_mount(slotfile, slotpath));
+
+	g_free(slotfile);
+	g_free(slotpath);
 	g_free(configpath);
 	g_free(certpath);
 	g_free(keypath);
@@ -191,6 +209,9 @@ static void install_fixture_set_up_network(InstallFixture *fixture,
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/initramfs-1",
 					 32*1024, "/dev/urandom") == 0);
 
+	g_assert_true(test_copy_file(fixture->tmpdir, "content/vmlinuz-2",
+				fixture->tmpdir, "slot/vmlinuz"));
+
 	/* Prepare manifest */
 	rm->update_compatible = g_strdup("Test Config");
 	rm->update_version = g_strdup("2011.03-2");
@@ -233,7 +254,7 @@ static void install_fixture_set_up_network(InstallFixture *fixture,
 static void install_fixture_tear_down(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	//test_umount(fixture->tmpdir, "mount/bundle");
+	test_umount(fixture->tmpdir, "slot");
 }
 
 static void install_test_bootname(void)
