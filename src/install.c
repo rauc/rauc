@@ -13,6 +13,7 @@
 #include "bootchooser.h"
 #include <sys/ioctl.h>
 #include <gio/gfiledescriptorbased.h>
+#include <gio/gunixmounts.h>
 #include <gio/gunixoutputstream.h>
 #include <errno.h>
 #include <string.h>
@@ -89,12 +90,25 @@ const gchar* get_bootname(void) {
 
 gboolean determine_slot_states(void) {
 	GList *slotlist = NULL;
+	GList *mountlist = NULL;
 	const gchar *bootname;
 	RaucSlot *booted = NULL;
 	gboolean res = FALSE;
 
 	g_assert_nonnull(r_context()->config);
 	g_assert_nonnull(r_context()->config->slots);
+
+	/* Determine active slot mount points */
+	mountlist = g_unix_mounts_get(NULL);
+	for (GList *l = mountlist; l != NULL; l = l->next) {
+		GUnixMountEntry *m = (GUnixMountEntry*)l->data;
+		RaucSlot *s = find_config_slot_by_device(r_context()->config,
+				g_unix_mount_get_device_path(m));
+		if (s) {
+			s->mountpoint = g_strdup(g_unix_mount_get_mount_path(m));
+		}
+	}
+	g_list_free_full(mountlist, (GDestroyNotify)g_unix_mount_free);
 
 	bootname = bootname_provider();
 	if (bootname == NULL) {

@@ -43,9 +43,11 @@ typedef struct _RaucSlot {
 	gchar *bootname;
 	/** flag indicating if the slot is updatable */
 	gboolean readonly;
+
 	/** current state of the slot (runtime) */
 	SlotState state;
 	struct _RaucSlot *parent;
+	gchar *mountpoint;
 } RaucSlot;
 
 typedef struct {
