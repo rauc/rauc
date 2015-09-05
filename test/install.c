@@ -40,25 +40,26 @@ static void install_fixture_set_up(InstallFixture *fixture,
 	/* copy system config to temp dir*/
 	configpath = g_build_filename(fixture->tmpdir, "system.conf", NULL);
 	g_assert_nonnull(configpath);
-	g_assert_true(test_copy_file("test/test.conf", configpath, NULL));
+	g_assert_true(test_copy_file("test/test.conf", NULL, configpath, NULL));
 	r_context_conf()->configpath = g_strdup(configpath);
 
 	/* copy cert */
 	certpath = g_build_filename(fixture->tmpdir, "openssl-ca/release-1.cert.pem", NULL);
 	g_assert_nonnull(certpath);
-	g_assert_true(test_copy_file("test/openssl-ca/rel/release-1.cert.pem", certpath, NULL));
+	g_assert_true(test_copy_file("test/openssl-ca/rel/release-1.cert.pem", NULL, certpath, NULL));
 	r_context_conf()->certpath = g_strdup(certpath);
 
 	/* copy key */
 	keypath = g_build_filename(fixture->tmpdir, "openssl-ca/release-1.pem", NULL);
 	g_assert_nonnull(keypath);
-	g_assert_true(test_copy_file("test/openssl-ca/rel/private/release-1.pem", keypath, NULL));
+	g_assert_true(test_copy_file("test/openssl-ca/rel/private/release-1.pem", NULL, keypath, NULL));
 	r_context_conf()->keypath = g_strdup(keypath);
 
 	/* copy ca */
 	capath = g_build_filename(fixture->tmpdir, "openssl-ca/dev-ca.pem", NULL);
 	g_assert_nonnull(capath);
-	g_assert_true(test_copy_file("test/openssl-ca/dev-ca.pem", fixture->tmpdir, "openssl-ca/dev-ca.pem"));
+	g_assert_true(test_copy_file("test/openssl-ca/dev-ca.pem", NULL,
+				fixture->tmpdir, "openssl-ca/dev-ca.pem"));
 
 	/* Setup pseudo devices */
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/rootfs-1",
@@ -134,7 +135,8 @@ static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture
 	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", TRUE) == 0);
 
 	/* Copy custom handler */
-	g_assert_true(test_copy_file("test/install-content/custom_handler.sh", fixture->tmpdir, "content/custom_handler.sh"));
+	g_assert_true(test_copy_file("test/install-content/custom_handler.sh", NULL,
+				fixture->tmpdir, "content/custom_handler.sh"));
 
 	/* Make images user-writable */
 	test_make_slot_user_writable(fixture->tmpdir, "content/rootfs.img");

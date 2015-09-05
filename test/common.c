@@ -180,18 +180,22 @@ gboolean test_umount(const gchar *dirname, const gchar *mountpoint) {
 	return TRUE;
 }
 
-gboolean test_copy_file(const gchar *srcfile, const gchar *dstprefix, const gchar *dstfile) {
+gboolean test_copy_file(const gchar *srcprefix, const gchar *srcfile, const gchar *dstprefix, const gchar *dstfile) {
 	gboolean res = FALSE;
 	GError *error = NULL;
-	gchar *destpath;
+	gchar *srcpath;
+	gchar *dstpath;
 	GFile *src;
 	GFile *dst;
 
-	destpath = g_build_filename(dstprefix, dstfile, NULL);
-	g_assert_nonnull(destpath);
+	srcpath = g_build_filename(srcprefix, srcfile, NULL);
+	g_assert_nonnull(srcpath);
 
-	src = g_file_new_for_path(srcfile);
-	dst = g_file_new_for_path(destpath);
+	dstpath = g_build_filename(dstprefix, dstfile, NULL);
+	g_assert_nonnull(dstpath);
+
+	src = g_file_new_for_path(srcpath);
+	dst = g_file_new_for_path(dstpath);
 	res = g_file_copy(
 				src,
 				dst,
@@ -211,7 +215,8 @@ out:
 
 	g_object_unref(src);
 	g_object_unref(dst);
-	g_clear_pointer(&destpath, g_free);
+	g_clear_pointer(&srcpath, g_free);
+	g_clear_pointer(&dstpath, g_free);
 
 	return TRUE;
 }
