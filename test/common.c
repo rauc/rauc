@@ -8,6 +8,7 @@
 
 #include <manifest.h>
 #include <mount.h>
+#include <utils.h>
 
 typedef struct {
 	gchar *tmpdir;
@@ -181,44 +182,7 @@ gboolean test_umount(const gchar *dirname, const gchar *mountpoint) {
 }
 
 gboolean test_copy_file(const gchar *srcprefix, const gchar *srcfile, const gchar *dstprefix, const gchar *dstfile) {
-	gboolean res = FALSE;
-	GError *error = NULL;
-	gchar *srcpath;
-	gchar *dstpath;
-	GFile *src;
-	GFile *dst;
-
-	srcpath = g_build_filename(srcprefix, srcfile, NULL);
-	g_assert_nonnull(srcpath);
-
-	dstpath = g_build_filename(dstprefix, dstfile, NULL);
-	g_assert_nonnull(dstpath);
-
-	src = g_file_new_for_path(srcpath);
-	dst = g_file_new_for_path(dstpath);
-	res = g_file_copy(
-				src,
-				dst,
-				G_FILE_COPY_NONE,
-				NULL,
-				NULL,
-				NULL,
-				&error);
-
-	if (!res) {
-		g_warning("Copy failed: %s", error->message);
-		g_clear_error(&error);
-		goto out;
-	}
-
-out:
-
-	g_object_unref(src);
-	g_object_unref(dst);
-	g_clear_pointer(&srcpath, g_free);
-	g_clear_pointer(&dstpath, g_free);
-
-	return TRUE;
+	return copy_file(srcprefix, srcfile, dstprefix, dstfile, NULL);
 }
 
 gboolean test_make_slot_user_writable(const gchar* path, const gchar* file) {
