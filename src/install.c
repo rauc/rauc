@@ -833,11 +833,7 @@ static gboolean reuse_existing_file_checksum(const RaucChecksum *checksum, const
 		srcname = g_build_filename(slot->mountpoint, basename, NULL);
 		if (!verify_checksum(checksum, srcname, NULL))
 			goto next;
-		res = g_unlink(filename) == 0;
-		if (!res) {
-			g_warning("Failed to remove file %s", filename);
-			goto next;
-		}
+		g_unlink(filename);
 		res = copy_file(srcname, NULL, filename, NULL, &error);
 		if (!res) {
 			g_warning("Failed to copy file from %s to %s: %s", srcname, filename, error->message);
