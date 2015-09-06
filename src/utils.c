@@ -18,6 +18,20 @@ GBytes *read_file(const gchar *filename, GError **error) {
 	return g_bytes_new_take(contents, length);
 }
 
+gchar *read_file_str(const gchar *filename, GError **error) {
+	gchar *contents;
+	gsize length;
+	gchar *res = NULL;
+
+	if (!g_file_get_contents(filename, &contents, &length, error))
+		return NULL;
+
+	res = g_strndup(contents, length);
+	g_free(contents);
+
+	return res;
+}
+
 gboolean write_file(const gchar *filename, GBytes *bytes, GError **error) {
 	const gchar *contents;
 	gsize length;
@@ -25,6 +39,30 @@ gboolean write_file(const gchar *filename, GBytes *bytes, GError **error) {
 	contents = g_bytes_get_data(bytes, &length);
 
 	return g_file_set_contents(filename, contents, length, error);
+}
+
+gboolean copy_file(const gchar *srcprefix, const gchar *srcfile,
+		const gchar *dstprefix, const gchar *dstfile, GError **error) {
+	gboolean res = FALSE;
+	GError *ierror = NULL;
+	gchar *srcpath = g_build_filename(srcprefix, srcfile, NULL);
+	gchar *dstpath = g_build_filename(dstprefix, dstfile, NULL);
+	GFile *src = g_file_new_for_path(srcpath);
+	GFile *dst = g_file_new_for_path(dstpath);
+
+	res = g_file_copy(src, dst, G_FILE_COPY_NONE, NULL, NULL, NULL,
+			&ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+out:
+	g_object_unref(src);
+	g_object_unref(dst);
+	g_clear_pointer(&srcpath, g_free);
+	g_clear_pointer(&dstpath, g_free);
+	return res;
 }
 
 static int rm_tree_cb(const char *fpath, const struct stat *sb,

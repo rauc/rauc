@@ -47,6 +47,9 @@ static void config_file_test1(void)
 	}
 	g_list_free(slotlist);
 
+	g_assert(find_config_slot_by_device(config, "/dev/sda0") == slot);
+	g_assert(find_config_slot_by_device(config, "/dev/xxx0") == NULL);
+
 	free_config(config);
 }
 

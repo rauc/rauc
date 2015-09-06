@@ -13,6 +13,7 @@
 #include "bootchooser.h"
 #include <sys/ioctl.h>
 #include <gio/gfiledescriptorbased.h>
+#include <gio/gunixmounts.h>
 #include <gio/gunixoutputstream.h>
 #include <errno.h>
 #include <string.h>
@@ -87,14 +88,48 @@ const gchar* get_bootname(void) {
 	return bootname_provider();
 }
 
+static gchar *resolve_loop_device(const gchar *devicepath) {
+	gchar *devicename = NULL;
+	gchar *syspath = NULL;
+	gchar *res = NULL;
+
+	if (!g_str_has_prefix(devicepath, "/dev/loop"))
+		return g_strdup(devicepath);
+
+	devicename = g_path_get_basename(devicepath);
+	syspath = g_build_filename("/sys/block", devicename, "loop/backing_file", NULL);
+	res = g_strchomp(read_file_str(syspath, NULL));
+
+	g_free(syspath);
+	g_free(devicename);
+
+	return res;
+}
+
 gboolean determine_slot_states(void) {
 	GList *slotlist = NULL;
+	GList *mountlist = NULL;
 	const gchar *bootname;
 	RaucSlot *booted = NULL;
 	gboolean res = FALSE;
 
 	g_assert_nonnull(r_context()->config);
 	g_assert_nonnull(r_context()->config->slots);
+
+	/* Determine active slot mount points */
+	mountlist = g_unix_mounts_get(NULL);
+	for (GList *l = mountlist; l != NULL; l = l->next) {
+		GUnixMountEntry *m = (GUnixMountEntry*)l->data;
+		gchar *devicepath = resolve_loop_device(g_unix_mount_get_device_path(m));
+		RaucSlot *s = find_config_slot_by_device(r_context()->config,
+				devicepath);
+		if (s) {
+			s->mountpoint = g_strdup(g_unix_mount_get_mount_path(m));
+			g_debug("Found mountpoint for slot %s at %s", s->name, s->mountpoint);
+		}
+		g_free(devicepath);
+	}
+	g_list_free_full(mountlist, (GDestroyNotify)g_unix_mount_free);
 
 	bootname = bootname_provider();
 	if (bootname == NULL) {
@@ -783,6 +818,42 @@ out:
 	return res;
 }
 
+static gboolean reuse_existing_file_checksum(const RaucChecksum *checksum, const gchar *filename) {
+	GError *error = NULL;
+	gboolean res = FALSE;
+	gchar *basename = g_path_get_basename(filename);
+	GHashTableIter iter;
+	RaucSlot *slot;
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer)&slot)) {
+		gchar *srcname = NULL;
+		if (!slot->mountpoint)
+			goto next;
+		srcname = g_build_filename(slot->mountpoint, basename, NULL);
+		if (!verify_checksum(checksum, srcname, NULL))
+			goto next;
+		res = g_unlink(filename) == 0;
+		if (!res) {
+			g_warning("Failed to remove file %s", filename);
+			goto next;
+		}
+		res = copy_file(srcname, NULL, filename, NULL, &error);
+		if (!res) {
+			g_warning("Failed to copy file from %s to %s: %s", srcname, filename, error->message);
+			goto next;
+		}
+
+next:
+		g_clear_pointer(&srcname, g_free);
+		if (res)
+			break;
+	}
+
+	g_clear_pointer(&basename, g_free);
+	return res;
+}
+
 static gboolean launch_and_wait_network_handler(const gchar* base_url,
 						RaucManifest *manifest,
 						GHashTable *target_group) {
@@ -860,6 +931,14 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 					  fileurl);
 				goto file_out;
 			}
+
+			res = reuse_existing_file_checksum(&mffile->checksum, filename);
+			if (res) {
+				g_message("Skipping download for reused file from %s",
+					  fileurl);
+				goto file_out;
+			}
+
 
 			res = download_file_checksum(filename, fileurl, &mffile->checksum);
 			if (!res) {

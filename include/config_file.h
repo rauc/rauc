@@ -43,9 +43,11 @@ typedef struct _RaucSlot {
 	gchar *bootname;
 	/** flag indicating if the slot is updatable */
 	gboolean readonly;
+
 	/** current state of the slot (runtime) */
 	SlotState state;
 	struct _RaucSlot *parent;
+	gchar *mountpoint;
 } RaucSlot;
 
 typedef struct {
@@ -75,6 +77,16 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
  * @return TRUE if the configuration was sucessfully created. FALSE if there were errors.
  */
 gboolean default_config(RaucConfig **config);
+
+/**
+ * Finds a config slot given the device path.
+ *
+ * @param config a RaucConfig
+ * @param device the device path to search for
+ *
+ * @return a RaucSlot pointer or NULL
+ */
+RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device);
 
 /**
  * Frees the memory allocated by the RaucConfig.

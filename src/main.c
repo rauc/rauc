@@ -289,9 +289,18 @@ static gboolean status_start(int argc, char **argv)
 			r_exit_status = 1;
 			break;
 		}
-		g_print("  %s: class=%s, device=%s, type=%s, bootname=%s, state=%s\n",
-			name, slot->sclass, slot->device, slot->type,
-			slot->bootname, state);
+		g_print("  %s: class=%s, device=%s, type=%s, bootname=%s\n",
+			name, slot->sclass, slot->device, slot->type, slot->bootname);
+		g_print("      state=%s", state);
+		if (slot->parent)
+			g_print(", parent=%s", slot->parent->name);
+		else
+			g_print(", parent=(none)");
+		if (slot->mountpoint)
+			g_print(", mountpoint=%s", slot->mountpoint);
+		else
+			g_print(", mountpoint=(none)");
+		g_print("\n");
 	}
 
 	if (argc < 3) {

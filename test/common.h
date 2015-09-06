@@ -11,6 +11,6 @@ gboolean test_make_filesystem(const gchar *dirname, const gchar *filename);
 gboolean test_mount(const gchar *src, const gchar *dest);
 gboolean test_umount(const gchar *dirname, const gchar *mountpoint);
 gboolean test_do_chmod(const gchar *path);
-gboolean test_copy_file(const gchar *srcfile, const gchar *dstprefix, const gchar *dstfile);
+gboolean test_copy_file(const gchar *srcprefix, const gchar *srcfile, const gchar *dstprefix, const gchar *dstfile);
 gboolean test_make_slot_user_writable(const gchar* path, const gchar* file);
 const gchar* test_bootname_provider(void);
