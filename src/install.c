@@ -818,6 +818,42 @@ out:
 	return res;
 }
 
+static gboolean reuse_existing_file_checksum(const RaucChecksum *checksum, const gchar *filename) {
+	GError *error = NULL;
+	gboolean res = FALSE;
+	gchar *basename = g_path_get_basename(filename);
+	GHashTableIter iter;
+	RaucSlot *slot;
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer)&slot)) {
+		gchar *srcname = NULL;
+		if (!slot->mountpoint)
+			goto next;
+		srcname = g_build_filename(slot->mountpoint, basename, NULL);
+		if (!verify_checksum(checksum, srcname, NULL))
+			goto next;
+		res = g_unlink(filename) == 0;
+		if (!res) {
+			g_warning("Failed to remove file %s", filename);
+			goto next;
+		}
+		res = copy_file(srcname, NULL, filename, NULL, &error);
+		if (!res) {
+			g_warning("Failed to copy file from %s to %s: %s", srcname, filename, error->message);
+			goto next;
+		}
+
+next:
+		g_clear_pointer(&srcname, g_free);
+		if (res)
+			break;
+	}
+
+	g_clear_pointer(&basename, g_free);
+	return res;
+}
+
 static gboolean launch_and_wait_network_handler(const gchar* base_url,
 						RaucManifest *manifest,
 						GHashTable *target_group) {
@@ -895,6 +931,14 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 					  fileurl);
 				goto file_out;
 			}
+
+			res = reuse_existing_file_checksum(&mffile->checksum, filename);
+			if (res) {
+				g_message("Skipping download for reused file from %s",
+					  fileurl);
+				goto file_out;
+			}
+
 
 			res = download_file_checksum(filename, fileurl, &mffile->checksum);
 			if (!res) {
