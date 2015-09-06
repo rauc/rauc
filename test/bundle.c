@@ -100,11 +100,11 @@ static void bundle_test3(BundleFixture *fixture,
 					 64*1024, "/dev/urandom") == 0);
 	g_test_expect_message (G_LOG_DOMAIN,
 			G_LOG_LEVEL_WARNING,
-			"Failed verifying checksum: Checksums do not match");
+			"Failed verifying checksum: Digests do not match");
 	g_assert_false(verify_manifest(contentdir, NULL, FALSE, NULL));
 	g_test_expect_message (G_LOG_DOMAIN,
 			G_LOG_LEVEL_WARNING,
-			"Failed verifying checksum: Checksums do not match");
+			"Failed verifying checksum: Digests do not match");
 	g_assert_false(verify_manifest(contentdir, NULL, TRUE, NULL));
 
 	/* Test with non-existing image */

@@ -2,13 +2,7 @@
 
 #define RAUC_DEFAULT_CHECKSUM G_CHECKSUM_SHA256
 
-
-#define R_CHECKSUM_ERROR r_checksum_error_quark ()
-
-static GQuark r_checksum_error_quark (void)
-{
-  return g_quark_from_static_string ("r_checksum_error_quark");
-}
+G_DEFINE_QUARK(r-checksum-error-quark, r_checksum_error)
 
 gboolean update_checksum(RaucChecksum *checksum, const gchar *filename, GError **error) {
 	GError *ierror = NULL;
@@ -44,30 +38,39 @@ out:
 
 gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename, GError **error) {
 	GError *ierror = NULL;
-	RaucChecksum tmp;
+	GMappedFile *file = NULL;
+	GBytes *content = NULL;
+	gchar *digest = NULL;
 	gboolean res = FALSE;
 
 	if (checksum->digest == NULL) {
-		g_set_error(error, R_CHECKSUM_ERROR, 0, "No digest provided");
+		g_set_error(error, R_CHECKSUM_ERROR, R_CHECKSUM_ERROR_FAILED, "No digest provided");
 		goto out;
 	}
 
-	tmp.type = checksum->type;
-	tmp.digest = NULL;
-
-	// TODO: add hint for empty checksum?
-	res = update_checksum(&tmp, filename, &ierror);
-	if (!res) {
+	file = g_mapped_file_new(filename, FALSE, &ierror);
+	if (file == NULL) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
 
-	res = g_str_equal(checksum->digest, tmp.digest);
+	content = g_mapped_file_get_bytes(file);
+	res = checksum->size == g_bytes_get_size(content);
 	if (!res) {
-		g_set_error(error, R_CHECKSUM_ERROR, 0, "Checksums do not match");
+		g_set_error(error, R_CHECKSUM_ERROR, R_CHECKSUM_ERROR_SIZE_MISMATCH, "Sizes do not match");
+		goto out;
+	}
+
+	digest = g_compute_checksum_for_bytes(checksum->type, content);
+	res = g_str_equal(checksum->digest, digest);
+	if (!res) {
+		g_set_error(error, R_CHECKSUM_ERROR, R_CHECKSUM_ERROR_DIGEST_MISMATCH, "Digests do not match");
 		goto out;
 	}
 
 out:
+	g_clear_pointer(&digest, g_free);
+	g_clear_pointer(&content, g_bytes_unref);
+	g_clear_pointer(&file, g_mapped_file_unref);
 	return res;
 }
