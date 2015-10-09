@@ -75,7 +75,7 @@ Objectives
 
 - The update system *must* accept only **valid signed firmware**
 
-- An update may consist of **multiple firmware bundles**.
+- An update *may* consist of **multiple firmware bundles**.
 
 
 Overview
