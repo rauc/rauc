@@ -312,7 +312,7 @@ This file is (currently) part of the root file system.
 The ``system``  section contains the ``compatible`` string which must describe
 the board and its function as distinctly as it is required to assure that
 only update bundles designed for this specific type can be installed.
-The ``boatloader`` entry gives a hint which boot chooser implementation is
+The ``bootloader`` entry gives a hint which boot chooser implementation is
 available.
 
 The ``keyring`` section refers to the trusted keyring used for signature
