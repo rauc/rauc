@@ -365,7 +365,8 @@ Example manifest:
   filename=appfs.ext4
 
 
-The ``compatible`` string is used to determine whether the update image is 
+The ``compatible`` string is used to determine whether the update image is
+compatible with the target system.
 An update is allowed only if the *update manifest* string and the system
 information string match exactly.
 
