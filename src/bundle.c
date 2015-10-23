@@ -232,7 +232,10 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, GError **error) {
 	goffset offset;
 	gboolean res = FALSE;
 
-	g_assert_nonnull(r_context()->config->keyring_path);
+	if (!r_context()->config->keyring_path) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "No keyring file provided");
+		goto out;
+	}
 
 	g_message("Reading bundle: %s", bundlename);
 
