@@ -309,15 +309,17 @@ out:
 	return res;
 }
 
-gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir, GError **error) {
+gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir, gboolean verify, GError **error) {
 	GError *ierror = NULL;
 	gsize size;
 	gboolean res = FALSE;
 
-	res = check_bundle(bundlename, &size, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
+	if (verify) {
+		res = check_bundle(bundlename, &size, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 	res = unsquashfs(bundlename, outputdir, &ierror);
@@ -331,15 +333,17 @@ out:
 	return res;
 }
 
-gboolean mount_bundle(const gchar *bundlename, const gchar *mountpoint, GError **error) {
+gboolean mount_bundle(const gchar *bundlename, const gchar *mountpoint, gboolean verify, GError **error) {
 	GError *ierror = NULL;
 	gsize size;
 	gboolean res = FALSE;
 
-	res = check_bundle(bundlename, &size, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
+	if (verify) {
+		res = check_bundle(bundlename, &size, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 	res = r_mount_loop(bundlename, mountpoint, size, &ierror);
