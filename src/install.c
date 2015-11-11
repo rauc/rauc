@@ -175,7 +175,7 @@ gboolean determine_slot_states(void) {
 
 	res = TRUE;
 	booted->state = ST_BOOTED;
-	g_print("Found booted slot: %s on %s\n", booted->name, booted->device);
+	g_debug("Found booted slot: %s on %s", booted->name, booted->device);
 
 	/* Determine active group members */
 	for (GList *l = slotlist; l != NULL; l = l->next) {
