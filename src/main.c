@@ -95,7 +95,7 @@ static gboolean install_start(int argc, char **argv)
 	GError *error = NULL;
 	gchar *bundlelocation = NULL, *bundlescheme = NULL;
 
-	g_message("install started\n");
+	g_debug("install started");
 
 	if (argc < 3) {
 		g_printerr("a bundle filename name must be provided\n");
@@ -197,7 +197,7 @@ static gboolean checksum_start(int argc, char **argv)
 	GError *error = NULL;
 	gboolean sign = FALSE;
 
-	g_message("checksum start");
+	g_debug("checksum start");
 
 	if (r_context()->certpath != NULL &&
 	    r_context()->keypath != NULL) {
@@ -305,7 +305,7 @@ static gboolean status_start(int argc, char **argv)
 	gboolean res = FALSE;
 	RaucSlot *booted = NULL;
 
-	g_message("status start\n");
+	g_debug("status start");
 
 	g_print("booted from: %s\n", get_bootname());
 
@@ -382,7 +382,7 @@ out:
 #if ENABLE_SERVICE == 1
 static gboolean service_start(int argc, char **argv)
 {
-	g_message("service start");
+	g_debug("service start");
 
 	return r_service_run();
 }
@@ -390,7 +390,7 @@ static gboolean service_start(int argc, char **argv)
 
 static gboolean unknown_start(int argc, char **argv)
 {
-	g_message("unknown start");
+	g_debug("unknown start");
 
 	return TRUE;
 }
