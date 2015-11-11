@@ -19,6 +19,12 @@ GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
 gboolean info_noverify = FALSE;
+gchar *status_format = NULL;
+
+enum output_formats {
+	readable,
+	shell
+};
 
 static gboolean install_notify(gpointer data) {
 	RaucInstallArgs *args = data;
@@ -348,10 +354,24 @@ static gboolean status_start(int argc, char **argv)
 	gboolean res = FALSE;
 	RaucSlot *booted = NULL;
 	GError *ierror = NULL;
+	enum output_formats output_format = readable;
+	gint slotcnt = 0;
+	gchar *slotlist = NULL;
+	gchar *tmp = NULL;
 
 	g_debug("status start");
 
-	g_print("booted from: %s\n", get_bootname());
+	if (g_strcmp0(status_format, "shell") == 0) {
+		output_format = shell;
+	} else {
+		output_format = readable;
+	}
+
+	if (output_format == shell) {
+		g_print("RAUC_SYSTEM_BOOTED_BOOTNAME=%s\n", get_bootname());
+	} else {
+		g_print("booted from: %s\n", get_bootname());
+	}
 
 	res = determine_slot_states(&ierror);
 	if (!res) {
@@ -361,12 +381,26 @@ static gboolean status_start(int argc, char **argv)
 		goto out;
 	}
 
-	g_print("slot states:\n");
+	if (output_format == shell) {
+		g_print("RAUC_SYSTEM_SLOTS=");
+		g_hash_table_iter_init(&iter, r_context()->config->slots);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			gchar *name = key;
+			g_print("%s ", name);
+		}
+		g_print("\n");
+	}
+
+	if (output_format == readable)
+		g_print("slot states:\n");
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		gchar *name = key;
 		RaucSlot *slot = value;
 		const gchar *state = NULL;
+
+		slotcnt++;
+
 		switch (slot->state) {
 		case ST_ACTIVE:
 			state = "active";
@@ -384,18 +418,38 @@ static gboolean status_start(int argc, char **argv)
 			r_exit_status = 1;
 			break;
 		}
-		g_print("  %s: class=%s, device=%s, type=%s, bootname=%s\n",
-			name, slot->sclass, slot->device, slot->type, slot->bootname);
-		g_print("      state=%s, description=%s", state, slot->description);
-		if (slot->parent)
-			g_print(", parent=%s", slot->parent->name);
-		else
-			g_print(", parent=(none)");
-		if (slot->mount_point)
-			g_print(", mountpoint=%s", slot->mount_point);
-		else
-			g_print(", mountpoint=(none)");
-		g_print("\n");
+
+		if (output_format == shell) {
+			g_print("RAUC_SLOT_STATE_%d=%s\n", slotcnt, state);
+			g_print("RAUC_SLOT_CLASS_%d=%s\n", slotcnt, slot->sclass);
+			g_print("RAUC_SLOT_DEVICE_%d=%s\n", slotcnt, slot->device);
+			g_print("RAUC_SLOT_TYPE_%d=%s\n", slotcnt, slot->type);
+			g_print("RAUC_SLOT_BOOTNAME_%d=%s\n", slotcnt, slot->bootname);
+			g_print("RAUC_SLOT_PARENT_%d=%s\n", slotcnt, slot->parent ? slot->parent->name : "(none)");
+			g_print("RAUC_SLOT_MOUNTPOINT_%d=%s\n", slotcnt, slot->mount_point ? slot->mount_point : "(none)");
+
+			tmp = g_strdup_printf("%s%i ", slotlist ? slotlist : "", slotcnt);
+			g_clear_pointer(&slotlist, g_free);
+			slotlist = tmp;
+		} else {
+			g_print("  %s: class=%s, device=%s, type=%s, bootname=%s\n",
+					name, slot->sclass, slot->device, slot->type, slot->bootname);
+			g_print("      state=%s, description=%s", state, slot->description);
+			if (slot->parent)
+				g_print(", parent=%s", slot->parent->name);
+			else
+				g_print(", parent=(none)");
+			if (slot->mount_point)
+				g_print(", mountpoint=%s", slot->mount_point);
+			else
+				g_print(", mountpoint=(none)");
+			g_print("\n");
+		}
+
+	}
+
+	if (output_format == shell) {
+		g_print("RAUC_SLOTS=%s\n", slotlist);
 	}
 
 	if (argc < 3) {
@@ -464,6 +518,11 @@ GOptionEntry entries_info[] = {
 	{0}
 };
 
+GOptionEntry entries_status[] = {
+	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &status_format, "output format", "FORMAT"},
+	{0}
+};
+
 static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, version = FALSE;
@@ -482,6 +541,7 @@ static void cmdline_handler(int argc, char **argv)
 		{0}
 	};
 	GOptionGroup *info_group = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
+	GOptionGroup *status_group = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
 
 	GError *error = NULL;
 	gchar *text;
@@ -492,7 +552,7 @@ static void cmdline_handler(int argc, char **argv)
 		{BUNDLE, "bundle", "bundle <FILE>", bundle_start, NULL, FALSE},
 		{CHECKSUM, "checksum", "checksum <DIRECTORY>", checksum_start, NULL, FALSE},
 		{INFO, "info", "info <FILE>", info_start, info_group, FALSE},
-		{STATUS, "status", "status", status_start, NULL, TRUE},
+		{STATUS, "status", "status", status_start, status_group, TRUE},
 #if ENABLE_SERVICE == 1
 		{SERVICE, "service", "service", service_start, NULL, TRUE},
 #endif
@@ -502,6 +562,7 @@ static void cmdline_handler(int argc, char **argv)
 	RaucCommand *rcommand = NULL;
 
 	g_option_group_add_entries(info_group, entries_info);
+	g_option_group_add_entries(status_group, entries_status);
 
 	context = g_option_context_new("<COMMAND>");
 	g_option_context_set_help_enabled(context, FALSE);
