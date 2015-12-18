@@ -47,16 +47,26 @@ out:
 	return res;
 }
 
-static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, GError **error) {
+static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, const gchar *extractfile, GError **error) {
 	GSubprocess *sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+	GPtrArray *args = g_ptr_array_new_full(7, g_free);
 
-	sproc = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
-				 &ierror, "unsquashfs",
-				 "-dest", contentdir,
-				 bundlename,
-				 NULL);
+	g_ptr_array_add(args, g_strdup("unsquashfs"));
+	g_ptr_array_add(args, g_strdup("-dest"));
+	g_ptr_array_add(args, g_strdup(contentdir));
+	g_ptr_array_add(args, g_strdup(bundlename));
+
+	if (extractfile) {
+		g_ptr_array_add(args, g_strdup("-e"));
+		g_ptr_array_add(args, g_strdup(extractfile));
+	}
+
+	g_ptr_array_add(args, NULL);
+
+	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
+				 G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -325,7 +335,37 @@ gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir, gboolea
 		}
 	}
 
-	res = unsquashfs(bundlename, outputdir, &ierror);
+	res = check_bundle(bundlename, &size, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = unsquashfs(bundlename, outputdir, NULL, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	return res;
+}
+
+gboolean extract_file_from_bundle(const gchar *bundlename, const gchar *outputdir, const gchar *file, gboolean verify, GError **error) {
+	GError *ierror = NULL;
+	gsize size;
+	gboolean res = FALSE;
+
+	if (verify) {
+		res = check_bundle(bundlename, &size, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	res = unsquashfs(bundlename, outputdir, file, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
