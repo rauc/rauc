@@ -370,6 +370,7 @@ static void cmdline_handler(int argc, char **argv)
 	gboolean help = FALSE, version = FALSE;
 	gchar *confpath = NULL, *certpath = NULL, *keypath = NULL, *mount = NULL,
 	      *handlerextra = NULL;
+	char *cmdarg = NULL;
 	GOptionContext *context = NULL;
 	GOptionEntry entries[] = {
 		{"conf", 'c', 0, G_OPTION_ARG_FILENAME, &confpath, "config file", "FILENAME"},
@@ -382,6 +383,7 @@ static void cmdline_handler(int argc, char **argv)
 		{0}
 	};
 	GError *error = NULL;
+	gchar *text;
 
 	RaucCommand rcommands[] = {
 		{UNKNOWN, "help", "<COMMAND>", unknown_start, TRUE},
@@ -395,25 +397,20 @@ static void cmdline_handler(int argc, char **argv)
 #endif
 		{0}
 	};
-	RaucCommand *rcommand = &rcommands[0];
+	RaucCommand *rc;
+	RaucCommand *rcommand = NULL;
 
-	/* show command-specific usage output */
-	context = g_option_context_new(rcommand->usage);
-
+	context = g_option_context_new("<COMMAND>");
 	g_option_context_set_help_enabled(context, FALSE);
-	g_option_context_set_ignore_unknown_options(context, TRUE);
 	g_option_context_add_main_entries(context, entries, NULL);
-
-	if (rcommand->type == UNKNOWN) {
-		g_option_context_set_description(context, 
-				"List of rauc commands:\n" \
-				"  bundle\tCreate a bundle\n" \
-				"  checksum\tUpdate a manifest with checksums (and optionally sign it)\n" \
-				"  resign\tResign a bundle\n" \
-				"  install\tInstall a bundle\n" \
-				"  info\t\tShow file information\n" \
-				"  status\tShow status");
-	}
+	g_option_context_set_description(context, 
+			"List of rauc commands:\n" \
+			"  bundle\tCreate a bundle\n" \
+			"  checksum\tUpdate a manifest with checksums (and optionally sign it)\n" \
+			"  resign\tResign a bundle\n" \
+			"  install\tInstall a bundle\n" \
+			"  info\t\tShow file information\n" \
+			"  status\tShow status");
 
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
 		g_printerr("%s\n", error->message);
@@ -422,34 +419,55 @@ static void cmdline_handler(int argc, char **argv)
 		goto done;
 	}
 
-	/* search for command (first option not starting with '-') */
+	/* get first parameter wihtout dashes */
 	for (gint i = 1; i <= argc; i++) {
-		RaucCommand *rc = rcommands;
-
-		if (!argv[i] || g_str_has_prefix (argv[i], "-")) {
-			continue;
+		if (argv[i] && !g_str_has_prefix (argv[i], "-")) {
+			cmdarg = argv[i];
+			break;
 		}
-
-		/* test if known command */
-		while (rc->name) {
-			if (g_strcmp0(rc->name, argv[i]) == 0) {
-				rcommand = rc;
-				break;
-			}
-			rc++;
-		}
-		break;
 	}
 
-	if (version) {
-		g_print(PACKAGE_STRING"\n");
-		goto done;
-	} else if (help || rcommand->type == UNKNOWN) {
-		gchar *text;
-		text = g_option_context_get_help(context, FALSE, NULL);
-		g_print("%s", text);
-		g_free(text);
-		goto done;
+	if (cmdarg == NULL) {
+		if (version) {
+			g_print(PACKAGE_STRING"\n");
+			goto done;
+		}
+
+		/* NO COMMAND given */
+
+		if (!help) {
+			r_exit_status = 1;
+		}
+		goto print_help;
+	}
+
+
+
+	/* try to get known command */
+	rc = rcommands;
+	while (rc->name) {
+		if (g_strcmp0(rc->name, cmdarg) == 0) {
+			rcommand = rc;
+			break;
+		}
+		rc++;
+	}
+
+	if (rcommand == NULL) {
+		/* INVALID COMMAND given */
+		g_message("Invalid command '%s' given\n", cmdarg);
+		r_exit_status = 1;
+		goto print_help;
+	}
+
+	/* re-setup option context for showing command-specific help */
+	g_clear_pointer(&context, g_option_context_free);
+	context = g_option_context_new(rcommand->usage);
+	g_option_context_set_help_enabled(context, FALSE);
+	g_option_context_add_main_entries(context, entries, NULL);
+
+	if (help) {
+		goto print_help;
 	}
 
 	/* configuration updates are handled here */
@@ -484,8 +502,13 @@ static void cmdline_handler(int argc, char **argv)
 	/* real commands are handled here */
 	if (rcommand->cmd_handler) {
 		rcommand->cmd_handler(argc, argv);
-		goto done;
 	}
+	goto done;
+
+print_help:
+	text = g_option_context_get_help(context, FALSE, NULL);
+	g_print("%s", text);
+	g_free(text);
 
 done:
 	g_clear_pointer(&context, g_option_context_free);;
