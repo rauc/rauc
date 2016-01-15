@@ -64,6 +64,18 @@ static const gchar* get_cmdline_bootname(void) {
 	g_clear_pointer(&match, g_match_info_free);
 	g_clear_pointer(&regex, g_regex_unref);
 
+	/* For barebox, we check if the bootstate code set the active slot name
+	 * in the command line */
+	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
+		regex = g_regex_new("bootstate\\.active=(\\S+)", 0, 0, NULL);
+		if (g_regex_match(regex, contents, 0, &match)) {
+			bootname = g_match_info_fetch(match, 1);
+			goto out;
+		}
+		g_clear_pointer(&match, g_match_info_free);
+		g_clear_pointer(&regex, g_regex_unref);
+	}
+
 	regex = g_regex_new("root=(\\S+)", 0, 0, NULL);
 	if (g_regex_match(regex, contents, 0, &match)) {
 		bootname = g_match_info_fetch(match, 1);
