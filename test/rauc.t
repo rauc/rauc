@@ -4,6 +4,28 @@ test_description="rauc binary tests"
 
 . ./sharness.sh
 
+test_expect_success "rauc noargs" "
+  test_must_fail rauc
+"
+
+test_expect_success "rauc invalid arg" "
+  test_must_fail rauc --foobar baz
+"
+
+test_expect_success "rauc invalid cmd" "
+  test_must_fail rauc dothis
+"
+
+test_expect_success "rauc missing arg" "
+  test_must_fail rauc install
+  test_must_fail rauc info
+  test_must_fail rauc bundle
+  test_must_fail rauc checksum
+  test_must_fail rauc resign
+  test_must_fail rauc install
+  test_must_fail rauc info
+"
+
 test_expect_success "rauc version" "
   rauc --version
 "
