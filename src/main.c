@@ -95,7 +95,7 @@ static gboolean install_start(int argc, char **argv)
 	g_message("install started\n");
 
 	if (argc < 3) {
-		g_error("a bundle filename name must be provided");
+		g_printerr("a bundle filename name must be provided\n");
 		r_exit_status = 1;
 		goto out;
 	}
@@ -416,7 +416,7 @@ static void cmdline_handler(int argc, char **argv)
 	}
 
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
-		g_error("%s\n", error->message);
+		g_printerr("%s\n", error->message);
 		g_error_free(error);
 		r_exit_status = 1;
 		goto done;
