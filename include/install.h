@@ -16,7 +16,7 @@ typedef struct {
 void set_bootname_provider(const gchar* (*provider)(void));
 const gchar* get_bootname(void);
 
-gboolean determine_slot_states(void);
+gboolean determine_slot_states(GError **error);
 
 GList* get_slot_class_members(const gchar* slotclass);
 GHashTable* determine_target_install_group(RaucManifest *manifest);

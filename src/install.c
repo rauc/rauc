@@ -23,6 +23,13 @@
 #include <stdio.h>
 #include <mtd/ubi-user.h>
 
+#define R_SLOT_ERROR r_slot_error_quark ()
+
+static GQuark r_slot_error_quark (void)
+{
+	return g_quark_from_static_string ("r_slot_error_quark");
+}
+
 #define R_INSTALL_ERROR r_install_error_quark ()
 
 static GQuark r_install_error_quark (void)
@@ -118,7 +125,7 @@ static gchar *resolve_loop_device(const gchar *devicepath) {
 	return res;
 }
 
-gboolean determine_slot_states(void) {
+gboolean determine_slot_states(GError **error) {
 	GList *slotlist = NULL;
 	GList *mountlist = NULL;
 	const gchar *bootname;
@@ -126,6 +133,15 @@ gboolean determine_slot_states(void) {
 	gboolean res = FALSE;
 
 	g_assert_nonnull(r_context()->config);
+
+	if (r_context()->config->slots == NULL) {
+		g_set_error_literal(
+				error,
+				R_SLOT_ERROR,
+				1,
+				"No slot configuration found");
+		goto out;
+	}
 	g_assert_nonnull(r_context()->config->slots);
 
 	/* Determine active slot mount points */
@@ -145,7 +161,11 @@ gboolean determine_slot_states(void) {
 
 	bootname = bootname_provider();
 	if (bootname == NULL) {
-		g_warning("Warning: No bootname found");
+		g_set_error_literal(
+				error,
+				R_SLOT_ERROR,
+				2,
+				"Bootname not found");
 		goto out;
 	}
 
@@ -169,7 +189,11 @@ gboolean determine_slot_states(void) {
 	}
 
 	if (!booted) {
-		g_warning("Did not find booted slot");
+		g_set_error_literal(
+				error,
+				R_SLOT_ERROR,
+				3,
+				"Did not find booted slot");
 		goto out;
 	}
 
@@ -1032,9 +1056,9 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 
 	g_assert_nonnull(bundlefile);
 
-	res = determine_slot_states();
+	res = determine_slot_states(&ierror);
 	if (!res) {
-		g_set_error_literal(error, R_INSTALL_ERROR, 1, "Failed to determine slot states");
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 
@@ -1107,6 +1131,7 @@ out:
 
 gboolean do_install_network(const gchar *url) {
 	gboolean res = FALSE;
+	GError *ierror = NULL;
 	gchar *base_url = NULL, *signature_url = NULL;
 	GBytes *manifest_data = NULL, *signature_data = NULL;
 	RaucManifest *manifest = NULL;
@@ -1114,9 +1139,9 @@ gboolean do_install_network(const gchar *url) {
 
 	g_assert_nonnull(url);
 
-	res = determine_slot_states();
+	res = determine_slot_states(&ierror);
 	if (!res) {
-		g_warning("Failed to determine slot states");
+		g_warning("%s", ierror->message);
 		goto out;
 	}
 

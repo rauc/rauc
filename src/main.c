@@ -304,14 +304,16 @@ static gboolean status_start(int argc, char **argv)
 	gpointer key, value;
 	gboolean res = FALSE;
 	RaucSlot *booted = NULL;
+	GError *ierror = NULL;
 
 	g_debug("status start");
 
 	g_print("booted from: %s\n", get_bootname());
 
-	res = determine_slot_states();
+	res = determine_slot_states(&ierror);
 	if (!res) {
-		g_warning("Failed to determine slot states");
+		g_printerr("Failed to determine slot states: %s\n", ierror->message);
+		g_clear_error(&ierror);
 		r_exit_status = 1;
 		goto out;
 	}

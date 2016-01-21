@@ -16,7 +16,7 @@ static void r_context_configure(void) {
 	g_clear_pointer(&context->config, free_config);
 	res = load_config(context->configpath, &context->config, &error);
 	if (!res && error->domain==g_file_error_quark()) {
-		g_message("system config not found, using default values");
+		g_debug("system config not found, using default values");
 		res = default_config(&context->config);
 	} else if (!res) {
 		g_error("failed to initialize context: %s", error->message);
