@@ -232,6 +232,8 @@ static gboolean info_start(int argc, char **argv)
 
 	if (argc != 3) {
 		g_warning("a file name must be provided");
+		r_exit_status = 1;
+		return FALSE;
 	}
 
 	g_message("checking manifest for: %s", argv[2]);
