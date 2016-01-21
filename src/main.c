@@ -17,6 +17,8 @@
 GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
+gboolean info_noverify = FALSE;
+
 static gboolean install_notify(gpointer data) {
 	RaucInstallArgs *args = data;
 
@@ -247,7 +249,7 @@ static gboolean info_start(int argc, char **argv)
 	bundledir = g_build_filename(tmpdir, "bundle-content", NULL);
 	manifestpath = g_build_filename(bundledir, "manifest.raucm", NULL);
 
-	res = extract_file_from_bundle(argv[2], bundledir, "manifest.raucm", TRUE, &error);
+	res = extract_file_from_bundle(argv[2], bundledir, "manifest.raucm", !info_noverify, &error);
 	if (!res) {
 		g_warning("%s", error->message);
 		g_clear_error(&error);
@@ -410,8 +412,14 @@ typedef struct {
 	const gchar* name;
 	const gchar* usage;
 	gboolean (*cmd_handler) (int argc, char **argv);
+	GOptionGroup* options;
 	gboolean while_busy;
 } RaucCommand;
+
+GOptionEntry entries_info[] = {
+	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &info_noverify, "disable bundle verification", NULL},
+	{0}
+};
 
 static void cmdline_handler(int argc, char **argv)
 {
@@ -430,26 +438,31 @@ static void cmdline_handler(int argc, char **argv)
 		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, NULL, NULL},
 		{0}
 	};
+	GOptionGroup *info_group = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
+
 	GError *error = NULL;
 	gchar *text;
 
 	RaucCommand rcommands[] = {
-		{UNKNOWN, "help", "<COMMAND>", unknown_start, TRUE},
-		{INSTALL, "install", "install <BUNDLE>", install_start, FALSE},
-		{BUNDLE, "bundle", "bundle <FILE>", bundle_start, FALSE},
-		{CHECKSUM, "checksum", "checksum <DIRECTORY>", checksum_start, FALSE},
-		{INFO, "info", "info <FILE>", info_start, FALSE},
-		{STATUS, "status", "status", status_start, TRUE},
+		{UNKNOWN, "help", "<COMMAND>", unknown_start, NULL, TRUE},
+		{INSTALL, "install", "install <BUNDLE>", install_start, NULL, FALSE},
+		{BUNDLE, "bundle", "bundle <FILE>", bundle_start, NULL, FALSE},
+		{CHECKSUM, "checksum", "checksum <DIRECTORY>", checksum_start, NULL, FALSE},
+		{INFO, "info", "info <FILE>", info_start, info_group, FALSE},
+		{STATUS, "status", "status", status_start, NULL, TRUE},
 #if ENABLE_SERVICE == 1
-		{SERVICE, "service", "service", service_start, TRUE},
+		{SERVICE, "service", "service", service_start, NULL, TRUE},
 #endif
 		{0}
 	};
 	RaucCommand *rc;
 	RaucCommand *rcommand = NULL;
 
+	g_option_group_add_entries(info_group, entries_info);
+
 	context = g_option_context_new("<COMMAND>");
 	g_option_context_set_help_enabled(context, FALSE);
+	g_option_context_set_ignore_unknown_options(context, TRUE);
 	g_option_context_add_main_entries(context, entries, NULL);
 	g_option_context_set_description(context, 
 			"List of rauc commands:\n" \
@@ -513,6 +526,16 @@ static void cmdline_handler(int argc, char **argv)
 	context = g_option_context_new(rcommand->usage);
 	g_option_context_set_help_enabled(context, FALSE);
 	g_option_context_add_main_entries(context, entries, NULL);
+	if (rcommand->options)
+		g_option_context_add_group(context, rcommand->options);
+
+	/* parse command-specific options */
+	if (!g_option_context_parse(context, &argc, &argv, &error)) {
+		g_printerr("%s\n", error->message);
+		g_error_free(error);
+		r_exit_status = 1;
+		goto print_help;
+	}
 
 	if (help) {
 		goto print_help;
