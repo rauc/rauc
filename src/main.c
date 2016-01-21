@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <gio/gio.h>
 
 #include <config.h>
@@ -226,9 +227,13 @@ out:
 
 static gboolean info_start(int argc, char **argv)
 {
-	gsize size;
-
-	g_message("info start");
+	gchar* tmpdir = NULL;
+	gchar* bundledir = NULL;
+	gchar* manifestpath = NULL;
+	RaucManifest *manifest = NULL;
+	GError *error = NULL;
+	gboolean res = FALSE;
+	gint cnt = 0;
 
 	if (argc != 3) {
 		g_warning("a file name must be provided");
@@ -238,15 +243,56 @@ static gboolean info_start(int argc, char **argv)
 
 	g_message("checking manifest for: %s", argv[2]);
 
-	if (!check_bundle(argv[2], &size, NULL)) {
-		g_warning("signature invalid (squashfs size: %"G_GSIZE_FORMAT")", size);
-		r_exit_status = 1;
+	tmpdir = g_dir_make_tmp("bundle-XXXXXX", NULL);
+	bundledir = g_build_filename(tmpdir, "bundle-content", NULL);
+	manifestpath = g_build_filename(bundledir, "manifest.raucm", NULL);
+
+	res = extract_file_from_bundle(argv[2], bundledir, "manifest.raucm", TRUE, &error);
+	if (!res) {
+		g_warning("%s", error->message);
+		g_clear_error(&error);
+ 		goto out;
+ 	}
+
+
+	res = load_manifest_file(manifestpath, &manifest, &error);
+	if (!res) {
+		g_warning("%s", error->message);
+		g_clear_error(&error);
 		goto out;
 	}
 
-	g_message("signature correct (squashfs size: %"G_GSIZE_FORMAT")", size);
+	g_message("Compatible String:\t'%s'", manifest->update_compatible);
+
+	cnt = g_list_length(manifest->images);
+	g_message("%d Image%s%s", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
+	cnt = 0;
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		RaucImage *img = l->data;
+		g_message("(%d)\t%s", ++cnt, img->filename);
+		g_message("\tSlotclass: %s", img->slotclass);
+		g_message("\tChecksum:  %s", img->checksum.digest);
+	}
+
+	cnt = g_list_length(manifest->files);
+	g_message("%d File%s%s", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
+	cnt = 0;
+	for (GList *l = manifest->files; l != NULL; l = l->next) {
+		RaucFile *file = l->data;
+		g_message("(%d)\t%s", ++cnt, file->filename);
+		g_message("\tSlotclass: %s", file->slotclass);
+		g_message("\tDest: 	%s", file->destname);
+		g_message("\tChecksum:  %s", file->checksum.digest);
+	}
 
 out:
+	r_exit_status = res ? 0 : 1;
+	if (tmpdir)
+		g_rmdir(tmpdir);
+
+	g_clear_pointer(&tmpdir, g_free);
+	g_clear_pointer(&bundledir, g_free);
+	g_clear_pointer(&manifestpath, g_free);
 	return TRUE;
 }
 
