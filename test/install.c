@@ -257,7 +257,8 @@ static void install_fixture_tear_down(InstallFixture *fixture,
 	test_umount(fixture->tmpdir, "slot");
 }
 
-static void install_test_bootname(void)
+static void install_test_bootname(InstallFixture *fixture,
+		gconstpointer user_data)
 {
 	g_assert_nonnull(get_bootname());
 }
@@ -438,7 +439,9 @@ int main(int argc, char *argv[])
 
 	g_test_init(&argc, &argv, NULL);
 
-	g_test_add_func("/install/bootname", install_test_bootname);
+	g_test_add("/install/bootname", InstallFixture, NULL,
+		   install_fixture_set_up, install_test_bootname,
+		   install_fixture_tear_down);
 
 	g_test_add("/install/target", InstallFixture, NULL,
 		   install_fixture_set_up, install_test_target,
