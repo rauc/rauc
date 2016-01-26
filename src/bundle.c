@@ -233,7 +233,7 @@ out:
 	return res;
 }
 
-gboolean check_bundle(const gchar *bundlename, gsize *size, GError **error) {
+gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GError **error) {
 	GError *ierror = NULL;
 	GBytes *sig = NULL;
 	GFile *bundlefile = NULL;
@@ -306,12 +306,14 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, GError **error) {
 		goto out;
 	}
 
-	g_message("Verifying bundle... ");
-	/* the squashfs image size is in offset */
-	res = cms_verify_file(bundlename, sig, offset, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
+	if (verify) {
+		g_message("Verifying bundle... ");
+		/* the squashfs image size is in offset */
+		res = cms_verify_file(bundlename, sig, offset, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 	res = TRUE;
@@ -327,15 +329,7 @@ gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir, gboolea
 	gsize size;
 	gboolean res = FALSE;
 
-	if (verify) {
-		res = check_bundle(bundlename, &size, &ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-	}
-
-	res = check_bundle(bundlename, &size, &ierror);
+	res = check_bundle(bundlename, &size, verify, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -358,7 +352,7 @@ gboolean extract_file_from_bundle(const gchar *bundlename, const gchar *outputdi
 	gboolean res = FALSE;
 
 	if (verify) {
-		res = check_bundle(bundlename, &size, &ierror);
+		res = check_bundle(bundlename, &size, verify, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -381,12 +375,10 @@ gboolean mount_bundle(const gchar *bundlename, const gchar *mountpoint, gboolean
 	gsize size;
 	gboolean res = FALSE;
 
-	if (verify) {
-		res = check_bundle(bundlename, &size, &ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
+	res = check_bundle(bundlename, &size, verify, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
 	}
 
 	res = r_mount_loop(bundlename, mountpoint, size, &ierror);
