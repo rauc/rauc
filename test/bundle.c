@@ -77,6 +77,30 @@ static void bundle_test2(BundleFixture *fixture,
 	g_assert_true(umount_bundle(bundlename, NULL));
 }
 
+
+static void bundle_test_extract_manifest(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *bundlename, *contentdir, *outputdir, *manifestpath;
+
+	bundlename = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_nonnull(bundlename);
+
+	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
+	g_assert_nonnull(contentdir);
+
+	outputdir = g_build_filename(fixture->tmpdir, "output", NULL);
+	g_assert_nonnull(outputdir);
+
+	manifestpath = g_build_filename(fixture->tmpdir, "/output/manifest.raucm", NULL);
+	g_assert_nonnull(manifestpath);
+
+	g_assert_true(update_manifest(contentdir, FALSE, NULL));
+	g_assert_true(create_bundle(bundlename, contentdir, NULL));
+	g_assert_true(extract_file_from_bundle(bundlename, outputdir, "manifest.raucm", TRUE, NULL));
+	g_assert_true(g_file_test(manifestpath, G_FILE_TEST_EXISTS));
+}
+
 static void bundle_test3(BundleFixture *fixture,
 		gconstpointer user_data)
 {
@@ -142,6 +166,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bundle/test2", BundleFixture, NULL,
 		   bundle_fixture_set_up, bundle_test2,
+		   bundle_fixture_tear_down);
+
+	g_test_add("/bundle/test_extract_manifest", BundleFixture, NULL,
+		   bundle_fixture_set_up, bundle_test_extract_manifest,
 		   bundle_fixture_tear_down);
 
 	g_test_add("/bundle/test3", BundleFixture, NULL,
