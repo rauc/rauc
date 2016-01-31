@@ -73,6 +73,8 @@ static void install_fixture_set_up_user(InstallFixture *fixture,
 				fixture->tmpdir, "openssl-ca/dev-ca.pem"));
 
 	/* Setup pseudo devices */
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/rescue-0",
+				         SLOT_SIZE, "/dev/zero") == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/rootfs-0",
 				         SLOT_SIZE, "/dev/zero") == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/appfs-0",
@@ -81,6 +83,7 @@ static void install_fixture_set_up_user(InstallFixture *fixture,
 				         SLOT_SIZE, "/dev/zero") == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/appfs-1",
 					 SLOT_SIZE, "/dev/zero") == 0);
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/rescue-0"));
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/rootfs-0"));
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/appfs-0"));
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/rootfs-1"));
