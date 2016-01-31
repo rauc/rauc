@@ -146,7 +146,7 @@ static void signature_loopback(void)
 
 int main(int argc, char *argv[])
 {
-	setlocale(LC_ALL, "");
+	setlocale(LC_ALL, "C");
 
 	r_context_conf()->configpath = g_strdup("test/test.conf");
 	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");

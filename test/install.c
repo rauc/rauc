@@ -431,7 +431,7 @@ static void install_test_network_thread(InstallFixture *fixture,
 int main(int argc, char *argv[])
 {
 	gchar *path;
-	setlocale(LC_ALL, "");
+	setlocale(LC_ALL, "C");
 
 	path = g_strdup_printf("%s:%s", g_getenv("PATH"), "test/bin");
 	g_setenv("PATH", path, TRUE);
