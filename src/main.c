@@ -518,9 +518,12 @@ static gboolean status_start(int argc, char **argv)
 			state = "booted";
 			booted = slot;
 			break;
+		case ST_NOTFOUND:
+			state = "not found";
+			break;
 		case ST_UNKNOWN:
 		default:
-			g_error("invalid slot status");
+			g_warning("invalid slot status (%d)", slot->state);
 			r_exit_status = 1;
 			break;
 		}

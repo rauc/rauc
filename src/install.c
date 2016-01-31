@@ -198,6 +198,12 @@ gboolean determine_slot_states(GError **error) {
 	for (GList *l = slotlist; l != NULL; l = l->next) {
 		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, l->data);
 
+		if (!g_file_test(s->device, G_FILE_TEST_EXISTS)) {
+			g_message("Device for slot %s not found (%s)", s->name, s->device);
+			s->state = ST_NOTFOUND;
+			continue;
+		}
+
 		if (s->parent) {
 			if (s->parent->state & ST_ACTIVE) {
 				s->state |= ST_ACTIVE;

@@ -35,6 +35,7 @@ typedef enum {
 	ST_ACTIVE = 1,
 	ST_INACTIVE = 2,
 	ST_BOOTED = 4 | ST_ACTIVE,
+	ST_NOTFOUND = 8,
 } SlotState;
 
 typedef struct _RaucSlot {
