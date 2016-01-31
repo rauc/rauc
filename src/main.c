@@ -366,12 +366,10 @@ static gboolean status_start(int argc, char **argv)
 
 	if (g_strcmp0(argv[2], "mark-good") == 0) {
 		g_print("marking slot %s as good\n", booted->name);
-		r_exit_status = 0;
-		r_boot_set_state(booted, TRUE);
+		r_exit_status = r_boot_set_state(booted, TRUE) ? 0 : 1;
 	} else if (g_strcmp0(argv[2], "mark-bad") == 0) {
 		g_print("marking slot %s as bad\n", booted->name);
-		r_exit_status = 0;
-		r_boot_set_state(booted, FALSE);
+		r_exit_status = r_boot_set_state(booted, FALSE) ? 0 : 1;
 	} else {
 		g_message("unknown subcommand %s", argv[2]);
 		r_exit_status = 1;
