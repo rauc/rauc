@@ -38,6 +38,8 @@ install group
   They form an **install group**.
   An update can be applied only to members of the same group.
 
+.. FIXME find a better term for this
+
 system configuration
   This configures the **controller** and contains compatibility information
   and slot definitions.
