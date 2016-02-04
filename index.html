@@ -1,0 +1,204 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Rauc by jluebbe</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-dark.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/respond.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="stylesheets/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="https://github.com/jluebbe/rauc">View On GitHub</a></li>
+          <li class="downloads"><a href="https://github.com/jluebbe/rauc/zipball/master">ZIP</a></li>
+          <li class="downloads"><a href="https://github.com/jluebbe/rauc/tarball/master">TAR</a></li>
+          <li class="title">DOWNLOADS</li>
+        </nav>
+      </div><!-- end header -->
+
+    <div class="wrapper">
+
+      <section>
+        <div id="title">
+          <h1>Rauc</h1>
+          <p>Robust Auto-Update Controller</p>
+          <hr>
+          <span class="credits left">Project maintained by <a href="https://github.com/jluebbe">jluebbe</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
+        </div>
+
+        <h1>
+<a id="rauc---robust-auto-update-controller" class="anchor" href="#rauc---robust-auto-update-controller" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>rauc - Robust Auto-Update Controller</h1>
+
+<p><a href="https://raw.githubusercontent.com/jluebbe/rauc/master/COPYING"><img src="https://img.shields.io/badge/license-LGPLv2.1-blue.svg" alt="LGPLv2.1"></a>
+<a href="https://travis-ci.org/jluebbe/rauc"><img src="https://img.shields.io/travis/jluebbe/rauc/master.svg" alt="Travis branch"></a>
+<a href="https://coveralls.io/r/jluebbe/rauc"><img src="https://img.shields.io/coveralls/jluebbe/rauc/master.svg" alt="Coveralls branch"></a>
+<a href="https://scan.coverity.com/projects/5085"><img src="https://img.shields.io/coverity/scan/5085.svg" alt="Coverity"></a>
+<a href="http://rauc.readthedocs.org/en/latest/?badge=latest"><img src="https://readthedocs.org/projects/rauc/badge/?version=latest" alt="Documentation"></a></p>
+
+<blockquote>
+<p>rauc controls the update process on embedded linux systems</p>
+</blockquote>
+
+<p>Source Code: <a href="https://github.com/jluebbe/rauc">https://github.com/jluebbe/rauc</a></p>
+
+<p>Documentation: <a href="https://rauc.readthedocs.org/">https://rauc.readthedocs.org/</a></p>
+
+<h2>
+<a id="features" class="anchor" href="#features" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Features</h2>
+
+<ul>
+<li>Supports whole-system updates using at least to redundant installations
+
+<ul>
+<li>Symmetric: Root-FS A &amp; Root-FS B</li>
+<li>Asymmetric: Recovery &amp; Normal</li>
+<li>also supports custom partition layouts</li>
+</ul>
+</li>
+<li>Fail-Safe: No change to the running system</li>
+<li>Two update modes:
+
+<ul>
+<li>Bundle: single file containing the whole update</li>
+<li>Network: separate manifest and component files</li>
+</ul>
+</li>
+<li>Bootloader support:
+
+<ul>
+<li><a href="https://www.gnu.org/software/grub/">grub</a></li>
+<li><a href="http://barebox.org/">barebox</a></li>
+</ul>
+</li>
+<li>Storage support:
+
+<ul>
+<li>raw (ext2/3/4, btrfs, squashfs, ...)</li>
+<li>ubi (using <a href="http://www.linux-mtd.infradead.org/doc/ubi.html#L_volupdate">UBI volume update</a>)</li>
+</ul>
+</li>
+<li>Network protocol support using libcurl (https, http, ftp, ssh, ...)</li>
+<li>Cryptographic verification using OpenSSL (signatures based on x.509
+certificates)</li>
+</ul>
+
+<h2>
+<a id="requirements" class="anchor" href="#requirements" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Requirements</h2>
+
+<ul>
+<li>Boot state storage
+
+<ul>
+<li>grub environment file on SD/eMMC/SSD/disk</li>
+<li>state partition EEPROM/FRAM/MRAM or NAND flash</li>
+<li>...</li>
+</ul>
+</li>
+<li>Boot target selection support in the bootloader</li>
+<li>Enough mass storage for 2 symmetric installations (or one + recovery image)</li>
+<li>For bundle mode:
+
+<ul>
+<li>Enough storage for the compressed bundle file (in memory, in a temporary
+partition or on an external storage device)</li>
+</ul>
+</li>
+<li>For network mode:
+
+<ul>
+<li>No additional storage needed</li>
+<li>Network interface</li>
+</ul>
+</li>
+<li>Hardware watchdog (optional, but recommended)</li>
+<li>RTC (optional, but recommended)</li>
+</ul>
+
+<h3>
+<a id="host-features" class="anchor" href="#host-features" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Host features</h3>
+
+<ul>
+<li>Create update bundles</li>
+<li>Sign / resign bundles</li>
+<li>Inspect bundle files</li>
+</ul>
+
+<h3>
+<a id="target-features" class="anchor" href="#target-features" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Target Features</h3>
+
+<ul>
+<li>Run as a system service (d-bus interface)</li>
+<li>Install bundles</li>
+<li>View system status information</li>
+<li>Change slot status</li>
+</ul>
+
+<h2>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Please see the <a href="https://rauc.readthedocs.org/">documentation</a> for details.</p>
+
+<h3>
+<a id="building-from-sources" class="anchor" href="#building-from-sources" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Building from sources</h3>
+
+<pre><code>git clone https://github.com/jluebbe/rauc
+cd rauc
+./autogen.sh
+./configure
+make
+</code></pre>
+
+<h3>
+<a id="testing" class="anchor" href="#testing" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Testing</h3>
+
+<pre><code>sudo apt-get install user-mode-linux slirp
+make check
+./uml-test
+</code></pre>
+
+<h3>
+<a id="creating-a-bundle" class="anchor" href="#creating-a-bundle" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Creating a bundle</h3>
+
+<pre><code>mkdir content-dir/
+cp $SOURCE/rootfs.ext4.img content-dir/
+cat &gt;&gt; content-dir/manifest &lt;&lt; EOF
+[update]
+compatible=FooCorp Super BarBazzer
+version=2015.04-1
+[image.rootfs]
+sha256=de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31
+size=24117248
+filename=rootfs.ext4.img
+EOF
+rauc --cert autobuilder.cert.pem --key autobuilder.key.pem bundle content-dir/ update.raucb
+</code></pre>
+
+<h3>
+<a id="installing-a-bundle" class="anchor" href="#installing-a-bundle" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installing a bundle</h3>
+
+<pre><code>rauc install update.raucb
+</code></pre>
+
+<h2>
+<a id="contributing" class="anchor" href="#contributing" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>Fork the repository and send us a pull request.</p>
+      </section>
+
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+    
+  </body>
+</html>
