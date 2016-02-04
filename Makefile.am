@@ -103,4 +103,18 @@ test_install_test_LDADD = librauc.la librauctest.la
 test_network_test_SOURCES = test/network.c
 test_network_test_LDADD = librauc.la
 
+SPHINXOPTS          =
+SPHINXBUILD         = sphinx-build
+PAPER               =
+DOCDIR              = docs
+SPHINXBUILDDIR      = $(DOCDIR)/build
+
+.PHONY: check-valgrind check-valgrind-tool
+
+doc:
+	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(DOCDIR) $(SPHINXBUILDDIR)/html
+	@echo
+	@echo "Build finished. The HTML pages are in $(SPHINXBUILDDIR)/html."
+
+
 CLEANFILES = $(gdbus_installer_generated)
