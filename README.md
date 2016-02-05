@@ -14,11 +14,11 @@ Documentation: https://rauc.readthedocs.org/
 
 ## Features
 
-* Supports whole-system updates using at least to redundant installations
+* Supports whole-system updates using at least two redundant installations
   * Symmetric: Root-FS A & Root-FS B
-  * Asymmetric: Recovery & Normal
-  * also supports custom partition layouts
-* Fail-Safe: No change to the running system
+  * Asymmetric: recovery & normal
+  * Also supports custom partition layouts
+* Fail-Safe: no change to the running system
 * Two update modes:
   * Bundle: single file containing the whole update
   * Network: separate manifest and component files
@@ -36,10 +36,10 @@ Documentation: https://rauc.readthedocs.org/
 
 * Boot state storage
   * grub environment file on SD/eMMC/SSD/disk
-  * state partition EEPROM/FRAM/MRAM or NAND flash
+  * State partition on EEPROM/FRAM/MRAM or NAND flash
   * ...
 * Boot target selection support in the bootloader
-* Enough mass storage for 2 symmetric installations (or one + recovery image)
+* Enough mass storage for two symmetric installations (or one + recovery image)
 * For bundle mode:
   * Enough storage for the compressed bundle file (in memory, in a temporary
     partition or on an external storage device)
@@ -51,7 +51,7 @@ Documentation: https://rauc.readthedocs.org/
 
 ### Host features
 * Create update bundles
-* Sign / resign bundles
+* Sign/resign bundles
 * Inspect bundle files
 
 ### Target Features
