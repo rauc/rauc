@@ -91,11 +91,11 @@ Please see the [documentation](https://rauc.readthedocs.org/) for details.
     size=24117248
     filename=rootfs.ext4.img
     EOF
-    rauc --cert autobuilder.cert.pem --key autobuilder.key.pem bundle content-dir/ update.raucb
+    rauc --cert autobuilder.cert.pem --key autobuilder.key.pem bundle content-dir/ update-2015.04-1.raucb
 
 ### Installing a bundle
 
-    rauc install update.raucb
+    rauc install update-2015.04-1.raucb
 
 ## Contributing
 
