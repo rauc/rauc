@@ -39,7 +39,7 @@ Documentation: https://rauc.readthedocs.org/
   * State partition on EEPROM/FRAM/MRAM or NAND flash
   * ...
 * Boot target selection support in the bootloader
-* Enough mass storage for two symmetric installations (or one + recovery image)
+* Enough mass storage for two symmetric/asymmetric/custom slots
 * For bundle mode:
   * Enough storage for the compressed bundle file (in memory, in a temporary
     partition or on an external storage device)
@@ -58,7 +58,7 @@ Documentation: https://rauc.readthedocs.org/
 * Run as a system service (d-bus interface)
 * Install bundles
 * View system status information
-* Change slot status
+* Change status of symmetric/asymmetric/custom slots
 
 ## Usage
 
