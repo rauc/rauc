@@ -21,7 +21,7 @@ This scenario can be easily reproduced using a QEMU_ virtual machine.
 PKI Setup
 ---------
 
-rauc uses a x.509 PKI (public key infrastructure) to sign and verify updates.
+rauc uses an x.509 PKI (public key infrastructure) to sign and verify updates.
 To create a simple key pair for testing, we can use ``openssl``::
 
   > openssl req -x509 -newkey rsa:4096 -nodes -keyout demo.key.pem -out demo.cert.pem -subj "/O=rauc Inc./CN=rauc-demo"
@@ -41,7 +41,7 @@ updated::
   [system]
   compatible=rauc-demo-x86
   bootloader=grub
-  mountprefix=/mnt/ruac
+  mountprefix=/mnt/rauc
 
   [keyring]
   path=demo.cert.pem
@@ -56,7 +56,7 @@ updated::
   type=ext4
   bootname=B
 
-In this case, we need to place signing certificate into
+In this case, we need to place the signing certificate into
 ``/etc/rauc/demo.cert.pem``, so that it is used by rauc for verification.
 
 GRUB Configuration
@@ -64,10 +64,10 @@ GRUB Configuration
 
 GRUB itself is stored on ``/dev/sda1``, separate from the root file system. To
 access GRUB's environment file, this partition should be mounted to ``/boot``
-(which means that the environment file is found at ``/boot/grub/grubenv``.
+(which means that the environment file is found at ``/boot/grub/grubenv``).
 
 GRUB does not provide the boot target selection logic as needed by rauc
-out-of-the-box. Instead we use a script to implement it::
+out of the box. Instead we use a script to implement it::
 
   default=0
   timeout=3
@@ -176,13 +176,13 @@ After copying ``update.raucb`` onto the target, we only need to run rauc::
 
   > rauc install /mnt/usb/update.raucb
 
-After cyptographically verifiying the bundle, rauc will now determine the
+After cyptographically verifying the bundle, rauc will now determine the
 active slots by looking at the ``rauc.slot`` variable. Then, it can select the
-target slot for the update images from the inactive slots.
+target slot for the update image from the inactive slots.
 
-When the update is installed completely, we just need reboot the system. GRUB
+When the update is installed completely, we just need to reboot the system. GRUB
 will then try to boot the newly installed rootfs. Finally, if the boot was
-successful, we need to tell inform the bootloader::
+successful, we need to inform the bootloader::
 
   > rauc status mark-good
 

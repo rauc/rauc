@@ -2,21 +2,21 @@ Overview
 ========
 
 * Motivation
-   * Updates required: Safety, Security, feature updates
+   * Updates required: safety, security, feature updates
    * Ensure defined and consistent system state
-   * Ensure the system can always boot to an updateable system
+   * Ensure the system can always boot to an updatable system
 * Features
-   * Remote via the Network
-   * Unattended/Automatic vs. Manual
-   * Local via USB-Memory-Stick
+   * Remote via the network
+   * Unattended/automatic vs. manual
+   * Local via USB memory stick
    * Protection against user errors
-   * Signed Updates
-   * image vs file updates
-   * support for different scenarios
-      * 2 symmetric slots
-      * 1 full + 1 rescue
-   * D-Bus Interface
+   * Signed updates
+   * Image vs. file updates
+   * Support for different scenarios
+      * two symmetric slots
+      * one full + one rescue slot
+   * D-Bus interface
 * Requirements
-   * System Watchdog (optional)
-   * Stage Storage
-* Out-of-Scope Cases
+   * System watchdog (optional)
+   * Stage storage
+* Out-of-scope cases
