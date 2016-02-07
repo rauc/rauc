@@ -14,5 +14,5 @@ Multiple Slots
 Additional Rescue Slot
 ----------------------
 * Two full + one rescue
-* Rescue slot is not updated by normal updates
+* Rescue slot is not touched by normal updates
 * Rescue slot is booted if both normal slots fail to boot

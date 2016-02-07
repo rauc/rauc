@@ -172,7 +172,7 @@ target system, in this case using a USB memory stick.
 Update Installation
 -------------------
 
-After copying ``update-2015.04-1.raucb`` onto the target, we only need to run rauc::
+Having copied ``update-2015.04-1.raucb`` onto the target, we only need to run rauc::
 
   > rauc install /mnt/usb/update-2015.04-1.raucb
 
@@ -180,7 +180,7 @@ After cyptographically verifying the bundle, rauc will now determine the
 active slots by looking at the ``rauc.slot`` variable. Then, it can select the
 target slot for the update image from the inactive slots.
 
-When the update is installed completely, we just need to reboot the system. GRUB
+When the update is installed completely, we just need to restart the system. GRUB
 will then try to boot the newly installed rootfs. Finally, if the boot was
 successful, we need to inform the bootloader::
 
