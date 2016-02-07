@@ -152,7 +152,7 @@ Next, to describe the bundle contents to rauc, we create a *manifest* file::
 
   > cat >> temp-dir/manifest << EOF
   [update]
-  compatible=rauc=demo
+  compatible=rauc-demo-x86
   version=2015.04-1
 
   [image.rootfs]
