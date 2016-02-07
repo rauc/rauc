@@ -163,18 +163,18 @@ Next, to describe the bundle contents to rauc, we create a *manifest* file::
 
 Finally, we run rauc to create the bundle::
 
-  > rauc --cert demo.cert.pem --key demo.key.pem bundle temp-dir/ update.raucb
+  > rauc --cert demo.cert.pem --key demo.key.pem bundle temp-dir/ update-2015.04-1.raucb
   > rm -r temp-dir
 
-We now have the ``update.raucb`` bundle file, which can be copied onto the
+We now have the ``update-2015.04-1.raucb`` bundle file, which can be copied onto the
 target system, in this case using a USB memory stick.
 
 Update Installation
 -------------------
 
-After copying ``update.raucb`` onto the target, we only need to run rauc::
+After copying ``update-2015.04-1.raucb`` onto the target, we only need to run rauc::
 
-  > rauc install /mnt/usb/update.raucb
+  > rauc install /mnt/usb/update-2015.04-1.raucb
 
 After cyptographically verifying the bundle, rauc will now determine the
 active slots by looking at the ``rauc.slot`` variable. Then, it can select the
