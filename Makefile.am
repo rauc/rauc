@@ -45,7 +45,8 @@ librauc_la_SOURCES = \
 	src/network.c \
 	src/service.c \
 	src/signature.c \
-	src/utils.c
+	src/utils.c \
+	src/update_handler.c
 nodist_librauc_la_SOURCES = \
 	$(gdbus_installer_generated)
 librauc_la_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
@@ -75,6 +76,7 @@ check_PROGRAMS = \
 	test/config_file.test \
 	test/manifest.test \
 	test/signature.test \
+	test/update_handler.test \
 	test/install.test \
 	test/network.test \
 	test/service.test \
@@ -109,6 +111,9 @@ test_service_test_LDADD = librauctest.la
 
 test_signature_test_SOURCES = test/signature.c
 test_signature_test_LDADD = librauctest.la
+
+test_update_handler_test_SOURCES = test/update_handler.c
+test_update_handler_test_LDADD = librauc.la librauctest.la
 
 test_install_test_SOURCES = test/install.c
 test_install_test_LDADD = librauctest.la

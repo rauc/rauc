@@ -12,6 +12,7 @@
 #include "utils.h"
 #include "bootchooser.h"
 #include "service.h"
+#include "update_handler.h"
 #include <sys/ioctl.h>
 #include <gio/gfiledescriptorbased.h>
 #include <gio/gunixmounts.h>
@@ -22,7 +23,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <mtd/ubi-user.h>
 
 #define R_SLOT_ERROR r_slot_error_quark ()
 
@@ -534,101 +534,9 @@ out:
 	return res;
 }
 
-static gboolean copy_image(GFile *src, GFile *dest, gchar* fs_type, GError **error) {
-	gboolean res = FALSE;
-	GError *ierror = NULL;
-	GFileInputStream *instream = NULL;
-	GOutputStream *outstream = NULL;
-	gssize size;
-	int fd_out;
-	int ret;
-	goffset imgsize;
-
-	r_context_begin_step("copy_image", "Copying image", 0);
-
-	/* open source image and determine size */
-	instream = g_file_read(src, NULL, &ierror);
-	if (instream == NULL) {
-		g_propagate_prefixed_error(error, ierror,
-				"failed to open file for reading: ");
-		goto out;
-	}
-
-	res = g_seekable_seek(G_SEEKABLE(instream),
-			      0, G_SEEK_END, NULL, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(error, ierror,
-				"src image seek failed: ");
-		goto out;
-	}
-	imgsize = g_seekable_tell(G_SEEKABLE(instream));
-	res = g_seekable_seek(G_SEEKABLE(instream),
-			      0, G_SEEK_SET, NULL, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(error, ierror,
-				"src image seek failed: ");
-		goto out;
-	}
-	res = FALSE;
-
-	g_debug("Input image size is %" G_GOFFSET_FORMAT " bytes", imgsize);
-
-	if (imgsize == 0) {
-		g_set_error_literal(error, R_HANDLER_ERROR, 0,
-				"Input image is empty");
-		goto out;
-	}
-
-	fd_out = open(g_file_get_path(dest), O_WRONLY);
-	if (fd_out == -1) {
-		g_set_error(error, R_HANDLER_ERROR, 0,
-				"opening output device failed: %s", strerror(errno));
-		goto out;
-	}
-
-	outstream = g_unix_output_stream_new(fd_out, TRUE);
-	if (outstream == NULL) {
-		g_propagate_prefixed_error(error, ierror,
-				"failed to open file for writing: ");
-		goto out;
-	}
-
-	if (g_strcmp0(fs_type, "ubifs") == 0) {
-		/* set up ubi volume for image copy */
-		ret = ioctl(fd_out, UBI_IOCVOLUP, &imgsize);
-		if (ret == -1) {
-			g_set_error(error, R_HANDLER_ERROR, 0,
-					"ubi volume update failed: %s", strerror(errno));
-			goto out;
-		}
-	}
-
-	size = g_output_stream_splice(
-			outstream,
-			(GInputStream*)instream,
-			G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE | G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
-			NULL,
-			&ierror);
-	if (size == -1) {
-		g_propagate_prefixed_error(error, ierror,
-				"failed splicing data: ");
-		goto out;
-	} else if (size != imgsize) {
-		g_set_error_literal(error, R_HANDLER_ERROR, 0,
-				"image size and written size differ!");
-		goto out;
-	}
-
-
-	res = TRUE;
-out:
-	g_clear_object(&instream);
-	g_clear_object(&outstream);
-	r_context_end_step("copy_image", res);
-	return res;
-}
 
 static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error) {
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GHashTableIter iter;
 	RaucSlot *dest_slot;
@@ -660,27 +568,26 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	r_context_begin_step("update_slots", "Updating slots", g_list_length(manifest->images)*2);
 	install_args_update(args, "Updating slots...");
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
-		GError *ierror = NULL;
 		RaucImage *mfimage;
-		gchar *srcimagepath = NULL;
-		GFile *srcimagefile = NULL;
 		GFile *destdevicefile = NULL;
 		gchar *slotstatuspath = NULL;
 		RaucSlotStatus *slot_state = NULL;
+		img_to_fs_handler update_handler = NULL;
 
 		mfimage = l->data;
 		dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
 
-		if (g_path_is_absolute(mfimage->filename)) {
-			srcimagepath = g_strdup(mfimage->filename);
-		} else {
-			srcimagepath = g_build_filename(bundledir, mfimage->filename, NULL);
+		/* if image filename is relative, make it absolute */
+		if (!g_path_is_absolute(mfimage->filename)) {
+			gchar *filename = g_build_filename(bundledir, mfimage->filename, NULL);
+			g_free(mfimage->filename);
+			mfimage->filename = filename;
 		}
 
-		if (!g_file_test(srcimagepath, G_FILE_TEST_EXISTS)) {
+		if (!g_file_test(mfimage->filename, G_FILE_TEST_EXISTS)) {
 			res = FALSE;
 			g_set_error(error, R_HANDLER_ERROR, 0,
-					"Source image '%s' not found", srcimagepath);
+					"Source image '%s' not found", mfimage->filename);
 			goto out;
 		}
 
@@ -691,11 +598,18 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			goto out;
 		}
 
+		/* determine whether update image type is compatible with destination slot type */
+		update_handler = get_update_handler(mfimage, dest_slot, &ierror);
+		if (update_handler == NULL) {
+			res = FALSE;
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
 		install_args_update(args, g_strdup_printf("Checking slot %s", dest_slot->name));
 
 		r_context_begin_step("check_slot", g_strdup_printf("Checking slot %s", dest_slot->name), 0);
 	
-		srcimagefile = g_file_new_for_path(srcimagepath);
 		destdevicefile = g_file_new_for_path(dest_slot->device);
 
 		/* read slot status */
@@ -749,20 +663,22 @@ copy:
 		install_args_update(args, g_strdup_printf("Updating slot %s", dest_slot->name));
 
 		/* update slot */
-		g_message("Copying %s to %s", srcimagepath, dest_slot->device);
+		g_message("Updating %s with %s", dest_slot->device, mfimage->filename);
 
-		res = copy_image(
-			srcimagefile,
-			destdevicefile,
-			dest_slot->type,
+		r_context_begin_step("copy_image", "Copying image", 0);
+
+		res = update_handler(
+			mfimage,
+			dest_slot,
 			&ierror);
-
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror,
 					"Failed updating slot: ");
+			r_context_end_step("copy_image", FALSE);
 			goto out;
 		}
 
+		r_context_end_step("copy_image", TRUE);
 		g_debug("mounting slot %s", dest_slot->device);
 		res = r_mount_slot(dest_slot, &ierror);
 		if (!res) {
@@ -779,7 +695,6 @@ copy:
 		install_args_update(args, g_strdup_printf("Updating slot %s status", dest_slot->name));
 
 		res = save_slot_status(slotstatuspath, slot_state, &ierror);
-
 		if (!res) {
 			g_propagate_prefixed_error(
 					error,
@@ -793,8 +708,6 @@ copy:
 		
 image_out:
 		g_clear_pointer(&slot_state, free_slot_status);
-		g_clear_pointer(&srcimagepath, g_free);
-		g_clear_pointer(&srcimagefile, g_object_unref);
 		g_clear_pointer(&destdevicefile, g_object_unref);
 		g_clear_pointer(&slotstatuspath, g_free);
 
@@ -809,7 +722,6 @@ image_out:
 		}
 
 		install_args_update(args, g_strdup_printf("Updating slot %s done", dest_slot->name));
-
 	}
 
 	/* Mark all parent destination slots bootable */
