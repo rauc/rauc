@@ -133,13 +133,13 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, gboo
 	img = g_new0(RaucImage, 1);
 
 	img->slotclass = g_strdup("rootfs");
-	img->filename = g_strdup("rootfs.img");
+	img->filename = g_strdup("rootfs.ext4");
 	rm->images = g_list_append(rm->images, img);
 
 	img = g_new0(RaucImage, 1);
 
 	img->slotclass = g_strdup("appfs");
-	img->filename = g_strdup("appfs.img");
+	img->filename = g_strdup("appfs.ext4");
 	rm->images = g_list_append(rm->images, img);
 
 	g_assert_true(save_manifest_file(path, rm, NULL));

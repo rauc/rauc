@@ -22,9 +22,9 @@ static void bundle_fixture_set_up(BundleFixture *fixture,
 	g_print("bundle tmpdir: %s\n", fixture->tmpdir);
 	g_assert(test_mkdir_relative(fixture->tmpdir, "content", 0777) == 0);
 	g_assert(test_mkdir_relative(fixture->tmpdir, "mount", 0777) == 0);
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.img",
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.ext4",
 					 1024*1024, "/dev/urandom") == 0);
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img",
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.ext4",
 				         64*1024, "/dev/urandom") == 0);
 	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE) == 0);
 }
@@ -116,7 +116,7 @@ static void bundle_test3(BundleFixture *fixture,
 	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
 	g_assert_nonnull(contentdir);
 
-	appfsimage = g_build_filename(fixture->tmpdir, "content", "appfs.img", NULL);
+	appfsimage = g_build_filename(fixture->tmpdir, "content", "appfs.ext4", NULL);
 	g_assert_nonnull(appfsimage);
 
 	g_assert_true(update_manifest(contentdir, TRUE, NULL));
@@ -124,7 +124,7 @@ static void bundle_test3(BundleFixture *fixture,
 	g_assert_true(verify_manifest(contentdir, NULL, TRUE, NULL));
 
 	/* Test with invalid checksum */
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img",
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.ext4",
 					 64*1024, "/dev/urandom") == 0);
 	g_test_expect_message (G_LOG_DOMAIN,
 			G_LOG_LEVEL_WARNING,
