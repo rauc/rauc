@@ -66,7 +66,7 @@ static void test_download_mem(void)
 
 int main(int argc, char *argv[])
 {
-	setlocale(LC_ALL, "");
+	setlocale(LC_ALL, "C");
 
 	r_context_conf()->configpath = g_strdup("test/test.conf");
 	r_context();

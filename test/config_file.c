@@ -93,7 +93,7 @@ static void config_file_test5(void)
 
 int main(int argc, char *argv[])
 {
-	setlocale(LC_ALL, "");
+	setlocale(LC_ALL, "C");
 
 	g_test_init(&argc, &argv, NULL);
 
