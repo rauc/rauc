@@ -71,6 +71,9 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	c->keyring_path = resolve_path(filename,
 		g_key_file_get_string(key_file, "keyring", "path", NULL));
 
+	c->autoinstall_path = resolve_path(filename,
+		g_key_file_get_string(key_file, "autoinstall", "path", NULL));
+
 	/* parse [slot.*.#] sections */
 	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, free_slot);
 
@@ -199,6 +202,7 @@ void free_config(RaucConfig *config) {
 	g_clear_pointer(&config->system_compatible, g_free);
 	g_clear_pointer(&config->system_bootloader, g_free);
 	g_clear_pointer(&config->keyring_path, g_free);
+	g_clear_pointer(&config->autoinstall_path, g_free);
 	g_clear_pointer(&config->slots, g_hash_table_destroy);
 	g_free(config);
 }

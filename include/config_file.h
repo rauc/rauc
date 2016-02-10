@@ -20,6 +20,8 @@ typedef struct {
 	gchar *grubenv_path;
 	gchar *keyring_path;
 
+	gchar *autoinstall_path;
+
 	GHashTable *slots;
 } RaucConfig;
 
