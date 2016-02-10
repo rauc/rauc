@@ -46,7 +46,6 @@ static gboolean r_on_handle_install(RInstaller *interface,
 				    GDBusMethodInvocation  *invocation,
 				    const gchar *source) {
 	RaucInstallArgs *args = install_args_new();
-	gchar *msg = NULL;
 	gboolean res;
 
 	g_print("input bundle: %s\n", source);
@@ -66,7 +65,6 @@ static gboolean r_on_handle_install(RInstaller *interface,
 	args = NULL;
 
 out:
-	g_clear_pointer(&msg, g_free);
 	g_clear_pointer(&args, g_free);
 	if (res) {
 		r_installer_complete_install(interface, invocation);
