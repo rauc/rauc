@@ -811,7 +811,7 @@ copy:
 
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror,
-					"Failed copying image: ");
+					"Failed updating slot: ");
 			goto out;
 		}
 

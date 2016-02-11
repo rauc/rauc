@@ -31,7 +31,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to start mksquashfs");
+				"Failed to start mksquashfs: ");
 		goto out;
 	}
 
@@ -40,7 +40,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to run mksquashfs");
+				"Failed to run mksquashfs: ");
 		goto out;
 	}
 
@@ -76,7 +76,7 @@ static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, con
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to start unsquashfs");
+				"Failed to start unsquashfs: ");
 		goto out;
 	}
 
@@ -85,7 +85,7 @@ static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, con
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to run unsquashfs");
+				"Failed to run unsquashfs: ");
 		goto out;
 	}
 
