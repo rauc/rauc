@@ -1,6 +1,7 @@
 #include <unistd.h>
 
 #include <gio/gio.h>
+#include <glib/gstdio.h>
 
 #include <config.h>
 #include "mount.h"
@@ -109,3 +110,46 @@ out:
 	g_ptr_array_unref(args);
 	return res;
 }
+
+
+/* Creates a mount subdir in mount path prefix */
+gchar* r_create_mount_point(const gchar *name, GError **error) {
+	gchar* prefix;
+	gchar* mountpoint = NULL;
+
+	prefix = r_context()->config->mount_prefix;
+	if (!g_file_test (prefix, G_FILE_TEST_IS_DIR)) {
+		g_set_error(
+				error,
+				G_FILE_ERROR,
+				3,
+				"mount prefix path %s does not exist",
+				prefix);
+		goto out;
+	}
+
+
+	mountpoint = g_build_filename(prefix, name, NULL);
+
+	if (!g_file_test (mountpoint, G_FILE_TEST_IS_DIR)) {
+		gint ret;
+		ret = g_mkdir(mountpoint, 0777);
+
+		if (ret != 0) {
+			g_set_error(
+					error,
+					G_FILE_ERROR,
+					3,
+					"Failed creating mount path '%s'",
+					mountpoint);
+			g_free(mountpoint);
+			mountpoint = NULL;
+			goto out;
+		}
+	}
+
+out:
+
+	return mountpoint;
+}
+

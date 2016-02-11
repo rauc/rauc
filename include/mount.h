@@ -31,3 +31,11 @@ gboolean r_mount_slot(RaucSlot *slot, const gchar *mountpoint, GError **error);
  * @param dirdev directory or device to unmount
  */
 gboolean r_umount(const gchar *dirdev, GError **error);
+
+/**
+ * Create a mount dir under mount prefix path.
+ *
+ * @param name
+ * @param error
+ */
+gchar* r_create_mount_point(const gchar *name, GError **error);
