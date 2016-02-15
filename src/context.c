@@ -89,6 +89,33 @@ static void r_context_configure(void) {
 
 	}
 
+	if (&context->config->systeminfo_handler &&
+		g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
+
+		GError *ierror = NULL;
+		GHashTable *vars = NULL;
+		GHashTableIter iter;
+		gchar *key = NULL;
+		gchar *value = NULL;
+
+		vars = g_hash_table_new(g_str_hash, g_str_equal);
+
+		g_print("Getting Systeminfo: %s\n", context->config->systeminfo_handler);
+		res = launch_and_wait_variables_handler(context->config->systeminfo_handler, vars, &ierror);
+		if (!res) {
+			g_error("Failed to read system-info variables%s", ierror->message);
+			g_clear_error(&ierror);
+		}
+
+		g_hash_table_iter_init(&iter, vars);
+		while (g_hash_table_iter_next(&iter, (gpointer)&key, (gpointer)&value)) {
+			if (g_strcmp0(key, "RAUC_SYSTEM_SERIAL") == 0)
+				r_context_conf()->system_serial = g_strdup(value);
+		}
+
+		g_clear_pointer(&vars, g_hash_table_unref);
+	}
+
 	if (context->mountprefix) {
 		g_free(context->config->mount_prefix);
 		context->config->mount_prefix = g_strdup(context->mountprefix);

@@ -91,6 +91,12 @@ static void config_file_test5(void)
 	free_slot_status(ss);
 }
 
+static void config_file_test6(void)
+{
+	g_assert_nonnull(r_context()->system_serial);
+	g_assert_cmpstr(r_context()->system_serial, ==, "1234");
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -104,6 +110,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/config-file/test1", config_file_test1);
 	g_test_add_func("/config-file/test3", config_file_test3);
 	g_test_add_func("/config-file/test5", config_file_test5);
+	g_test_add_func("/config-file/test6", config_file_test6);
 
 	return g_test_run ();
 }

@@ -22,6 +22,8 @@ typedef struct {
 
 	gchar *autoinstall_path;
 
+	gchar *systeminfo_handler;
+
 	GHashTable *slots;
 } RaucConfig;
 

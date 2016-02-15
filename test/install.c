@@ -34,6 +34,7 @@ static void install_fixture_set_up(InstallFixture *fixture,
 	g_assert_nonnull(fixture->tmpdir);
 	g_print("bundle tmpdir: %s\n", fixture->tmpdir);
 
+	g_assert(test_mkdir_relative(fixture->tmpdir, "bin", 0777) == 0);
 	g_assert(test_mkdir_relative(fixture->tmpdir, "content", 0777) == 0);
 	g_assert(test_mkdir_relative(fixture->tmpdir, "mount", 0777) == 0);
 	g_assert(test_mkdir_relative(fixture->tmpdir, "images", 0777) == 0);
@@ -45,6 +46,14 @@ static void install_fixture_set_up(InstallFixture *fixture,
 	g_assert_nonnull(configpath);
 	g_assert_true(test_copy_file("test/test.conf", NULL, configpath, NULL));
 	r_context_conf()->configpath = g_strdup(configpath);
+
+	/* copy systeminfo, preinstall and postinstall handler to temp dir*/
+	g_assert_true(test_copy_file("test/bin/systeminfo.sh", NULL,
+				fixture->tmpdir, "bin/systeminfo.sh"));
+	g_assert_true(test_copy_file("test/bin/preinstall.sh", NULL,
+				fixture->tmpdir, "bin/preinstall.sh"));
+	g_assert_true(test_copy_file("test/bin/postinstall.sh", NULL,
+				fixture->tmpdir, "bin/postinstall.sh"));
 
 	/* copy cert */
 	certpath = g_build_filename(fixture->tmpdir, "openssl-ca/release-1.cert.pem", NULL);
