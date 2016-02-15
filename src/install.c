@@ -1088,12 +1088,32 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 	g_print("Target Group:\n");
 	print_hash_table(target_group);
 
+	if (r_context()->config->preinstall_handler) {
+		g_print("Starting pre install handler: %s\n", r_context()->config->preinstall_handler);
+		res = launch_and_wait_handler(mountpoint, r_context()->config->preinstall_handler, manifest, target_group, &ierror);
+	}
+
+	if (!res) {
+		g_propagate_prefixed_error(error, ierror, "Handler error: ");
+		goto out;
+	}
+
 	if (manifest->handler_name) {
 		g_print("Using custom handler: %s\n", manifest->handler_name);
 		res = launch_and_wait_custom_handler(args, mountpoint, manifest, target_group, &ierror);
 	} else {
 		g_print("Using default handler\n");
 		res = launch_and_wait_default_handler(args, mountpoint, manifest, target_group, &ierror);
+	}
+
+	if (!res) {
+		g_propagate_prefixed_error(error, ierror, "Handler error: ");
+		goto umount;
+	}
+
+	if (r_context()->config->postinstall_handler) {
+		g_print("Starting post install handler: %s\n", r_context()->config->postinstall_handler);
+		res = launch_and_wait_handler(mountpoint, r_context()->config->postinstall_handler, manifest, target_group, &ierror);
 	}
 
 	if (!res) {
@@ -1165,10 +1185,30 @@ gboolean do_install_network(const gchar *url) {
 
 	base_url = g_path_get_dirname(url);
 
+	if (r_context()->config->preinstall_handler) {
+		g_print("Starting pre install handler: %s\n", r_context()->config->preinstall_handler);
+		res = launch_and_wait_handler(base_url, r_context()->config->preinstall_handler, manifest, target_group, NULL);
+	}
+
+	if (!res) {
+		g_print("Handler error: %s\n", r_context()->config->preinstall_handler);
+		goto out;
+	}
+
 	g_print("Using network handler for %s\n", base_url);
 	res = launch_and_wait_network_handler(base_url, manifest, target_group);
 	if (!res) {
 		g_warning("Starting handler failed");
+		goto out;
+	}
+
+	if (r_context()->config->postinstall_handler) {
+		g_print("Starting post install handler: %s\n", r_context()->config->postinstall_handler);
+		res = launch_and_wait_handler(base_url, r_context()->config->postinstall_handler, manifest, target_group, NULL);
+	}
+
+	if (!res) {
+		g_print("Handler error: %s\n", r_context()->config->postinstall_handler);
 		goto out;
 	}
 

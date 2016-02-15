@@ -77,6 +77,12 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	c->systeminfo_handler = resolve_path(filename,
 		g_key_file_get_string(key_file, "handlers", "system-info", NULL));
 
+	c->preinstall_handler = resolve_path(filename,
+		g_key_file_get_string(key_file, "handlers", "pre-install", NULL));
+
+	c->postinstall_handler = resolve_path(filename,
+		g_key_file_get_string(key_file, "handlers", "post-install", NULL));
+
 	/* parse [slot.*.#] sections */
 	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, free_slot);
 
@@ -207,6 +213,8 @@ void free_config(RaucConfig *config) {
 	g_clear_pointer(&config->keyring_path, g_free);
 	g_clear_pointer(&config->autoinstall_path, g_free);
 	g_clear_pointer(&config->systeminfo_handler, g_free);
+	g_clear_pointer(&config->preinstall_handler, g_free);
+	g_clear_pointer(&config->postinstall_handler, g_free);
 	g_clear_pointer(&config->slots, g_hash_table_destroy);
 	g_free(config);
 }

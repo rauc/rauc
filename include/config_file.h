@@ -21,6 +21,8 @@ typedef struct {
 	gchar *keyring_path;
 
 	gchar *autoinstall_path;
+	gchar *preinstall_handler;
+	gchar *postinstall_handler;
 
 	gchar *systeminfo_handler;
 
