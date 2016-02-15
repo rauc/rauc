@@ -1,10 +1,76 @@
 #include <config_file.h>
 #include <network.h>
 #include <signature.h>
+#include <gio/gio.h>
 
 #include "context.h"
 
 RaucContext *context = NULL;
+
+static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTable *variables, GError **error) {
+	GSubprocessLauncher *handlelaunch = NULL;
+	GSubprocess *handleproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	GHashTableIter iter;
+	gchar *key = NULL;
+	gchar *value = NULL;
+	GDataInputStream *datainstream;
+	GInputStream *instream;
+	gchar* outline;
+
+	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE);
+
+	/* we copy the variables from the hashtable and add them to the
+	   subprocess environment */
+	g_hash_table_iter_init(&iter, variables);
+	while (g_hash_table_iter_next(&iter, (gpointer)&key, (gpointer)&value)) {
+                g_subprocess_launcher_setenv(handlelaunch, g_strdup(key), g_strdup(value), 1);
+	}
+
+	handleproc = g_subprocess_launcher_spawn(
+			handlelaunch,
+			&ierror, handler_name,
+			NULL,
+			NULL);
+
+	if (!handleproc) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	instream = g_subprocess_get_stdout_pipe(handleproc);
+	datainstream = g_data_input_stream_new(instream);
+
+	do {
+		outline = g_data_input_stream_read_line(datainstream, NULL, NULL, NULL);
+		if (!outline)
+			continue;
+
+		if (g_str_has_prefix(outline, "RAUC_")) {
+			gchar **split = g_strsplit(outline, "=", 2);
+
+			if (g_strv_length(split) != 2)
+				continue;
+
+			g_hash_table_insert(variables, g_strdup(split[0]), g_strdup(split[1]));
+			g_strfreev(split);
+		}
+	} while (outline);
+
+	res = g_subprocess_wait_check(handleproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	g_clear_object(&datainstream);
+	g_clear_object(&handleproc);
+	g_clear_object(&handlelaunch);
+	return res;
+}
 
 static void r_context_configure(void) {
 	gboolean res = TRUE;
