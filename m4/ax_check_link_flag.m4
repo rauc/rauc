@@ -1,22 +1,28 @@
 # ===========================================================================
-#      http://www.gnu.org/software/autoconf-archive/ax_append_flag.html
+#    http://www.gnu.org/software/autoconf-archive/ax_check_link_flag.html
 # ===========================================================================
 #
 # SYNOPSIS
 #
-#   AX_APPEND_FLAG(FLAG, [FLAGS-VARIABLE])
+#   AX_CHECK_LINK_FLAG(FLAG, [ACTION-SUCCESS], [ACTION-FAILURE], [EXTRA-FLAGS], [INPUT])
 #
 # DESCRIPTION
 #
-#   FLAG is appended to the FLAGS-VARIABLE shell variable, with a space
-#   added in between.
+#   Check whether the given FLAG works with the linker or gives an error.
+#   (Warnings, however, are ignored)
 #
-#   If FLAGS-VARIABLE is not specified, the current language's flags (e.g.
-#   CFLAGS) is used.  FLAGS-VARIABLE is not changed if it already contains
-#   FLAG.  If FLAGS-VARIABLE is unset in the shell, it is set to exactly
-#   FLAG.
+#   ACTION-SUCCESS/ACTION-FAILURE are shell commands to execute on
+#   success/failure.
 #
-#   NOTE: Implementation based on AX_CFLAGS_GCC_OPTION.
+#   If EXTRA-FLAGS is defined, it is added to the linker's default flags
+#   when the check is done.  The check is thus made with the flags: "LDFLAGS
+#   EXTRA-FLAGS FLAG".  This can for example be used to force the linker to
+#   issue an error when a bad flag is given.
+#
+#   INPUT gives an alternative input source to AC_LINK_IFELSE.
+#
+#   NOTE: Implementation based on AX_CFLAGS_GCC_OPTION. Please keep this
+#   macro in sync with AX_CHECK_{PREPROC,COMPILE}_FLAG.
 #
 # LICENSE
 #
@@ -49,23 +55,20 @@
 #   modified version of the Autoconf Macro, you may extend this special
 #   exception to the GPL to apply to your modified version as well.
 
-#serial 6
+#serial 4
 
-AC_DEFUN([AX_APPEND_FLAG],
-[dnl
-AC_PREREQ(2.64)dnl for _AC_LANG_PREFIX and AS_VAR_SET_IF
-AS_VAR_PUSHDEF([FLAGS], [m4_default($2,_AC_LANG_PREFIX[FLAGS])])
-AS_VAR_SET_IF(FLAGS,[
-  AS_CASE([" AS_VAR_GET(FLAGS) "],
-    [*" $1 "*], [AC_RUN_LOG([: FLAGS already contains $1])],
-    [
-     AS_VAR_APPEND(FLAGS,[" $1"])
-     AC_RUN_LOG([: FLAGS="$FLAGS"])
-    ])
-  ],
-  [
-  AS_VAR_SET(FLAGS,[$1])
-  AC_RUN_LOG([: FLAGS="$FLAGS"])
-  ])
-AS_VAR_POPDEF([FLAGS])dnl
-])dnl AX_APPEND_FLAG
+AC_DEFUN([AX_CHECK_LINK_FLAG],
+[AC_PREREQ(2.64)dnl for _AC_LANG_PREFIX and AS_VAR_IF
+AS_VAR_PUSHDEF([CACHEVAR],[ax_cv_check_ldflags_$4_$1])dnl
+AC_CACHE_CHECK([whether the linker accepts $1], CACHEVAR, [
+  ax_check_save_flags=$LDFLAGS
+  LDFLAGS="$LDFLAGS $4 $1"
+  AC_LINK_IFELSE([m4_default([$5],[AC_LANG_PROGRAM()])],
+    [AS_VAR_SET(CACHEVAR,[yes])],
+    [AS_VAR_SET(CACHEVAR,[no])])
+  LDFLAGS=$ax_check_save_flags])
+AS_VAR_IF(CACHEVAR,yes,
+  [m4_default([$2], :)],
+  [m4_default([$3], :)])
+AS_VAR_POPDEF([CACHEVAR])dnl
+])dnl AX_CHECK_LINK_FLAGS

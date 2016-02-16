@@ -1,26 +1,29 @@
 # ===========================================================================
-#      http://www.gnu.org/software/autoconf-archive/ax_append_flag.html
+#   http://www.gnu.org/software/autoconf-archive/ax_append_link_flags.html
 # ===========================================================================
 #
 # SYNOPSIS
 #
-#   AX_APPEND_FLAG(FLAG, [FLAGS-VARIABLE])
+#   AX_APPEND_LINK_FLAGS([FLAG1 FLAG2 ...], [FLAGS-VARIABLE], [EXTRA-FLAGS])
 #
 # DESCRIPTION
 #
-#   FLAG is appended to the FLAGS-VARIABLE shell variable, with a space
-#   added in between.
+#   For every FLAG1, FLAG2 it is checked whether the linker works with the
+#   flag.  If it does, the flag is added FLAGS-VARIABLE
 #
-#   If FLAGS-VARIABLE is not specified, the current language's flags (e.g.
-#   CFLAGS) is used.  FLAGS-VARIABLE is not changed if it already contains
-#   FLAG.  If FLAGS-VARIABLE is unset in the shell, it is set to exactly
-#   FLAG.
+#   If FLAGS-VARIABLE is not specified, the linker's flags (LDFLAGS) is
+#   used. During the check the flag is always added to the linker's flags.
 #
-#   NOTE: Implementation based on AX_CFLAGS_GCC_OPTION.
+#   If EXTRA-FLAGS is defined, it is added to the linker's default flags
+#   when the check is done.  The check is thus made with the flags: "LDFLAGS
+#   EXTRA-FLAGS FLAG".  This can for example be used to force the linker to
+#   issue an error when a bad flag is given.
+#
+#   NOTE: This macro depends on the AX_APPEND_FLAG and AX_CHECK_LINK_FLAG.
+#   Please keep this macro in sync with AX_APPEND_COMPILE_FLAGS.
 #
 # LICENSE
 #
-#   Copyright (c) 2008 Guido U. Draheim <guidod@gmx.de>
 #   Copyright (c) 2011 Maarten Bosmans <mkbosmans@gmail.com>
 #
 #   This program is free software: you can redistribute it and/or modify it
@@ -49,23 +52,12 @@
 #   modified version of the Autoconf Macro, you may extend this special
 #   exception to the GPL to apply to your modified version as well.
 
-#serial 6
+#serial 4
 
-AC_DEFUN([AX_APPEND_FLAG],
-[dnl
-AC_PREREQ(2.64)dnl for _AC_LANG_PREFIX and AS_VAR_SET_IF
-AS_VAR_PUSHDEF([FLAGS], [m4_default($2,_AC_LANG_PREFIX[FLAGS])])
-AS_VAR_SET_IF(FLAGS,[
-  AS_CASE([" AS_VAR_GET(FLAGS) "],
-    [*" $1 "*], [AC_RUN_LOG([: FLAGS already contains $1])],
-    [
-     AS_VAR_APPEND(FLAGS,[" $1"])
-     AC_RUN_LOG([: FLAGS="$FLAGS"])
-    ])
-  ],
-  [
-  AS_VAR_SET(FLAGS,[$1])
-  AC_RUN_LOG([: FLAGS="$FLAGS"])
-  ])
-AS_VAR_POPDEF([FLAGS])dnl
-])dnl AX_APPEND_FLAG
+AC_DEFUN([AX_APPEND_LINK_FLAGS],
+[AX_REQUIRE_DEFINED([AX_CHECK_LINK_FLAG])
+AX_REQUIRE_DEFINED([AX_APPEND_FLAG])
+for flag in $1; do
+  AX_CHECK_LINK_FLAG([$flag], [AX_APPEND_FLAG([$flag], [m4_default([$2], [LDFLAGS])])], [], [$3])
+done
+])dnl AX_APPEND_LINK_FLAGS
