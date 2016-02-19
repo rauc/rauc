@@ -135,6 +135,40 @@ parent=rootfs.1\n";
 	free_config(config);
 }
 
+static void config_file_bootloaders(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
+
+	const gchar *boot_inval_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=superloader2000\n\
+mountprefix=/mnt/myrauc/\n";
+	const gchar *boot_missing_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+mountprefix=/mnt/myrauc/\n";
+
+
+	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", boot_inval_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_cmpstr(ierror->message, ==, "Unsupported bootloader 'superloader2000' selected in system config");
+	g_clear_error(&ierror);
+
+
+	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", boot_missing_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_cmpstr(ierror->message, ==, "No bootloader selected in system config");
+	g_clear_error(&ierror);
+}
+
 
 static void config_file_test3(void)
 {
@@ -185,6 +219,9 @@ int main(int argc, char *argv[])
 
 	g_test_add("/config-file/full-config", ConfigFileFixture, NULL,
 		   config_file_fixture_set_up, config_file_full_config,
+		   config_file_fixture_tear_down);
+	g_test_add("/config-file/bootloaders", ConfigFileFixture, NULL,
+		   config_file_fixture_set_up, config_file_bootloaders,
 		   config_file_fixture_tear_down);
 	g_test_add_func("/config-file/test3", config_file_test3);
 	g_test_add_func("/config-file/test5", config_file_test5);
