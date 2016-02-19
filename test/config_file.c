@@ -13,7 +13,7 @@ static void config_file_test1(void)
 	RaucConfig *config;
 	RaucSlot *slot;
 
-	load_config("test/system.conf", &config, NULL);
+	g_assert_true(load_config("test/system.conf", &config, NULL));
 	g_assert_nonnull(config);
 	g_assert_cmpstr(config->system_compatible, ==, "FooCorp Super BarBazzer");
 	g_assert_cmpstr(config->system_bootloader, ==, "barebox");
