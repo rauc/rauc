@@ -84,7 +84,8 @@ static void r_context_configure(void) {
 	if (!res && error->domain==g_file_error_quark()) {
 		g_debug("system config not found, using default values");
 		res = default_config(&context->config);
-	} else if (!res) {
+	}
+	if (!res) {
 		g_error("failed to initialize context: %s", error->message);
 
 	}
