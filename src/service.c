@@ -78,6 +78,35 @@ out:
 	return TRUE;
 }
 
+static gboolean auto_install(const gchar *source) {
+	RaucInstallArgs *args = install_args_new();
+	gboolean res = TRUE;
+
+	if (!g_file_test(r_context()->config->autoinstall_path, G_FILE_TEST_EXISTS))
+		return FALSE;
+
+	g_message("input bundle: %s\n", source);
+
+	res = !r_context_get_busy();
+	if (!res)
+		goto out;
+
+	args->name = g_strdup(source);
+	args->notify = service_install_notify;
+	args->cleanup = service_install_cleanup;
+
+	res = install_run(args);
+	if (!res) {
+		goto out;
+	}
+	args = NULL;
+
+out:
+	g_clear_pointer(&args, g_free);
+
+	return res;
+}
+
 static void r_on_bus_acquired(GDBusConnection *connection,
 			      const gchar     *name,
 			      gpointer         user_data) {
@@ -102,6 +131,10 @@ static void r_on_name_acquired(GDBusConnection *connection,
 			       const gchar     *name,
 			       gpointer         user_data) {
 	g_message("name acquired");
+
+	if (r_context()->config->autoinstall_path)
+		auto_install(r_context()->config->autoinstall_path);
+
 	return;
 }
 

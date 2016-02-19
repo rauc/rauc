@@ -358,12 +358,11 @@ static gboolean verify_compatible(RaucManifest *manifest) {
 	}
 }
 
-static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd, RaucManifest *manifest, GHashTable *target_group, GError **error) {
+static gboolean launch_and_wait_handler(gchar* update_source, gchar *handler_name, RaucManifest *manifest, GHashTable *target_group, GError **error) {
 	GSubprocessLauncher *handlelaunch = NULL;
 	GSubprocess *handleproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	gchar* handler_name = NULL;
 	GInputStream *instream;
 	GDataInputStream *datainstream;
 	gchar* outline;
@@ -375,20 +374,12 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd
 	RaucSlot *slot;
 	gint slotcnt = 0;
 
-	if (!verify_compatible(manifest)) {
-		res = FALSE;
-		g_set_error_literal(error, R_HANDLER_ERROR, 0,
-				"Compatible mismatch");
-		goto out;
-	}
-
-	handler_name = g_build_filename(cwd, manifest->handler_name, NULL);
 
 	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE);
 
 	g_subprocess_launcher_setenv(handlelaunch, "RAUC_SYSTEM_CONFIG", r_context()->configpath, TRUE);
 	g_subprocess_launcher_setenv(handlelaunch, "RAUC_CURRENT_BOOTNAME", bootname_provider(), TRUE);
-	g_subprocess_launcher_setenv(handlelaunch, "RAUC_UPDATE_SOURCE", cwd, TRUE);
+	g_subprocess_launcher_setenv(handlelaunch, "RAUC_UPDATE_SOURCE", update_source, TRUE);
 	g_subprocess_launcher_setenv(handlelaunch, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
@@ -491,7 +482,25 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd
 	}
 
 	res = TRUE;
+
 out:
+	return res;
+}
+
+static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd, RaucManifest *manifest, GHashTable *target_group, GError **error) {
+	gchar* handler_name = NULL;
+	gboolean res = FALSE;
+
+	if (!verify_compatible(manifest)) {
+		g_set_error_literal(error, R_HANDLER_ERROR, 0,
+				"Compatible mismatch");
+		return FALSE;
+	}
+
+	handler_name = g_build_filename(cwd, manifest->handler_name, NULL);
+
+	res = launch_and_wait_handler(cwd, handler_name, manifest, target_group, error);
+
 	g_free(handler_name);
 	return res;
 }
@@ -1103,12 +1112,32 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 	g_print("Target Group:\n");
 	print_hash_table(target_group);
 
+	if (r_context()->config->preinstall_handler) {
+		g_print("Starting pre install handler: %s\n", r_context()->config->preinstall_handler);
+		res = launch_and_wait_handler(mountpoint, r_context()->config->preinstall_handler, manifest, target_group, &ierror);
+	}
+
+	if (!res) {
+		g_propagate_prefixed_error(error, ierror, "Handler error: ");
+		goto out;
+	}
+
 	if (manifest->handler_name) {
 		g_print("Using custom handler: %s\n", manifest->handler_name);
 		res = launch_and_wait_custom_handler(args, mountpoint, manifest, target_group, &ierror);
 	} else {
 		g_print("Using default handler\n");
 		res = launch_and_wait_default_handler(args, mountpoint, manifest, target_group, &ierror);
+	}
+
+	if (!res) {
+		g_propagate_prefixed_error(error, ierror, "Handler error: ");
+		goto umount;
+	}
+
+	if (r_context()->config->postinstall_handler) {
+		g_print("Starting post install handler: %s\n", r_context()->config->postinstall_handler);
+		res = launch_and_wait_handler(mountpoint, r_context()->config->postinstall_handler, manifest, target_group, &ierror);
 	}
 
 	if (!res) {
@@ -1181,10 +1210,30 @@ gboolean do_install_network(const gchar *url) {
 
 	base_url = g_path_get_dirname(url);
 
+	if (r_context()->config->preinstall_handler) {
+		g_print("Starting pre install handler: %s\n", r_context()->config->preinstall_handler);
+		res = launch_and_wait_handler(base_url, r_context()->config->preinstall_handler, manifest, target_group, NULL);
+	}
+
+	if (!res) {
+		g_print("Handler error: %s\n", r_context()->config->preinstall_handler);
+		goto out;
+	}
+
 	g_print("Using network handler for %s\n", base_url);
 	res = launch_and_wait_network_handler(base_url, manifest, target_group);
 	if (!res) {
 		g_warning("Starting handler failed");
+		goto out;
+	}
+
+	if (r_context()->config->postinstall_handler) {
+		g_print("Starting post install handler: %s\n", r_context()->config->postinstall_handler);
+		res = launch_and_wait_handler(base_url, r_context()->config->postinstall_handler, manifest, target_group, NULL);
+	}
+
+	if (!res) {
+		g_print("Handler error: %s\n", r_context()->config->postinstall_handler);
 		goto out;
 	}
 
