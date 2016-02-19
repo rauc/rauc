@@ -7,13 +7,95 @@
 
 #include "utils.h"
 
-static void config_file_test1(void)
+/* Helper library that writes string to new file in path and tmpdir, returns
+ * entire pathname if successful. */
+static gchar* write_tmp_file(
+		const gchar* tmpdir,
+		const gchar* filename,
+		const gchar* content,
+		GError **error) {
+	gchar *pathname;
+	GError *ierror = NULL;
+
+	pathname = g_build_filename(tmpdir, filename, NULL);
+	g_assert_nonnull(pathname);
+
+	if (!g_file_set_contents(pathname, content, -1, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	return pathname;
+}
+
+
+typedef struct {
+	gchar *tmpdir;
+} ConfigFileFixture;
+
+static void config_file_fixture_set_up(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	fixture->tmpdir = g_dir_make_tmp("rauc-conf_file-XXXXXX", NULL);
+	g_assert_nonnull(fixture->tmpdir);
+}
+
+static void config_file_fixture_tear_down(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_assert_true(rm_tree(fixture->tmpdir, NULL));
+	g_free(fixture->tmpdir);
+}
+
+/* Test: Parse entire config file and check if derived slot / file structures
+ * are initialized correctly */
+static void config_file_full_config(ConfigFileFixture *fixture,
+		gconstpointer user_data)
 {
 	GList *slotlist, *l;
 	RaucConfig *config;
 	RaucSlot *slot;
 
-	load_config("test/system.conf", &config, NULL);
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[keyring]\n\
+path=/etc/rauc/keyring/\n\
+\n\
+[slot.rescue.0]\n\
+device=/dev/mtd4\n\
+type=raw\n\
+bootname=factory0\n\
+readonly=true\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/sda0\n\
+type=ext4\n\
+bootname=system0\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/sda1\n\
+type=ext4\n\
+bootname=system1\n\
+\n\
+[slot.appfs.0]\n\
+device=/dev/sda2\n\
+type=ext4\n\
+parent=rootfs.0\n\
+\n\
+[slot.appfs.1]\n\
+device=/dev/sda3\n\
+type=ext4\n\
+parent=rootfs.1\n";
+
+	gchar* pathname = write_tmp_file(fixture->tmpdir, "full_config.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_true(load_config(pathname, &config, NULL));
 	g_assert_nonnull(config);
 	g_assert_cmpstr(config->system_compatible, ==, "FooCorp Super BarBazzer");
 	g_assert_cmpstr(config->system_bootloader, ==, "barebox");
@@ -51,6 +133,40 @@ static void config_file_test1(void)
 	g_assert(find_config_slot_by_device(config, "/dev/xxx0") == NULL);
 
 	free_config(config);
+}
+
+static void config_file_bootloaders(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
+
+	const gchar *boot_inval_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=superloader2000\n\
+mountprefix=/mnt/myrauc/\n";
+	const gchar *boot_missing_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+mountprefix=/mnt/myrauc/\n";
+
+
+	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", boot_inval_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_cmpstr(ierror->message, ==, "Unsupported bootloader 'superloader2000' selected in system config");
+	g_clear_error(&ierror);
+
+
+	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", boot_missing_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_cmpstr(ierror->message, ==, "No bootloader selected in system config");
+	g_clear_error(&ierror);
 }
 
 
@@ -107,7 +223,12 @@ int main(int argc, char *argv[])
 	r_context_conf()->handlerextra = g_strdup("--dummy1 --dummy2");
 	r_context();
 
-	g_test_add_func("/config-file/test1", config_file_test1);
+	g_test_add("/config-file/full-config", ConfigFileFixture, NULL,
+		   config_file_fixture_set_up, config_file_full_config,
+		   config_file_fixture_tear_down);
+	g_test_add("/config-file/bootloaders", ConfigFileFixture, NULL,
+		   config_file_fixture_set_up, config_file_bootloaders,
+		   config_file_fixture_tear_down);
 	g_test_add_func("/config-file/test3", config_file_test3);
 	g_test_add_func("/config-file/test5", config_file_test5);
 	g_test_add_func("/config-file/test6", config_file_test6);

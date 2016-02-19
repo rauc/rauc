@@ -25,6 +25,8 @@ gboolean default_config(RaucConfig **config) {
 	return TRUE;
 }
 
+static const gchar *supported_bootloaders[] = {"barebox", "grub", NULL};
+
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error) {
 	GError *ierror = NULL;
 	RaucConfig *c = g_new0(RaucConfig, 1);
@@ -35,6 +37,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	GList *slotlist = NULL;
 	GHashTable *slots = NULL;
 	GList *l;
+	gchar *bootloader;
+	const gchar **pointer;
 
 	key_file = g_key_file_new();
 
@@ -48,9 +52,38 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	c->system_compatible = g_key_file_get_string(key_file, "system", "compatible", &ierror);
 	if (!c->system_compatible) {
 		g_propagate_error(error, ierror);
+		res = FALSE;
 		goto free;
 	}
-	c->system_bootloader = g_key_file_get_string(key_file, "system", "bootloader", NULL);
+	bootloader = g_key_file_get_string(key_file, "system", "bootloader", NULL);
+	if (!bootloader) {
+		g_set_error_literal (
+				error,
+				R_CONFIG_ERROR,
+				R_CONFIG_ERROR_BOOTLOADER,
+				"No bootloader selected in system config");
+		res = FALSE;
+		goto free;
+	}
+
+	pointer = &supported_bootloaders[0];
+	while (*pointer) {
+		if (g_strcmp0(bootloader, *pointer) == 0) {
+			c->system_bootloader = bootloader;
+			break;
+		}
+		pointer++;
+	}
+
+	if (!c->system_bootloader) {
+		g_set_error(
+				error,
+				R_CONFIG_ERROR,
+				R_CONFIG_ERROR_BOOTLOADER,
+				"Unsupported bootloader '%s' selected in system config", bootloader);
+		res = FALSE;
+		goto free;
+	}
 
 	c->mount_prefix = g_key_file_get_string(key_file, "system", "mountprefix", NULL);
 	if (!c->mount_prefix) {

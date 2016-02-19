@@ -287,8 +287,8 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good) {
 		return grub_set_state(slot, good);
 	}
 
-	g_print("Warning: Your bootloader '%s' is not supported yet\n", r_context()->config->system_bootloader);
-	return TRUE;
+	g_error("bootloader type '%s' not supported yet", r_context()->config->system_bootloader);
+	return FALSE;
 }
 
 gboolean r_boot_set_primary(RaucSlot *slot) {
@@ -298,7 +298,7 @@ gboolean r_boot_set_primary(RaucSlot *slot) {
 		return grub_set_primary(slot);
 	}
 
-	g_print("Warning: Your bootloader '%s' is not supported yet\n", r_context()->config->system_bootloader);
-	return TRUE;
+	g_error("bootloader type '%s' not supported yet", r_context()->config->system_bootloader);
+	return FALSE;
 }
 
