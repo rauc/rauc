@@ -56,5 +56,8 @@ AX_CHECK_OPENSSL([],[AC_MSG_ERROR([OpenSSL not found])])
 
 # Checks for library functions.
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([
+	Makefile
+	test/services/de.pengutronix.rauc.service
+])
 AC_OUTPUT

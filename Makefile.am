@@ -73,6 +73,7 @@ check_PROGRAMS = \
 	test/signature.test \
 	test/install.test \
 	test/network.test \
+	test/service.test \
 	test/bundle.test
 check_LTLIBRARIES = librauctest.la
 
@@ -93,6 +94,10 @@ test_config_file_test_LDADD = librauc.la
 
 test_manifest_test_SOURCES = test/manifest.c
 test_manifest_test_LDADD = librauc.la
+
+test_service_test_CFLAGS = $(AM_CFLAGS) -DTEST_SERVICES=\""$(abs_top_builddir)/test/services"\"
+test_service_test_SOURCES = test/service.c
+test_service_test_LDADD = librauctest.la librauc.la
 
 test_signature_test_SOURCES = test/signature.c
 test_signature_test_LDADD = librauctest.la librauc.la

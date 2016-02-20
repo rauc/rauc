@@ -160,12 +160,18 @@ static gboolean r_on_signal(gpointer user_data)
 }
 
 gboolean r_service_run(void) {
+	GBusType bus_type = G_BUS_TYPE_SYSTEM;
+
+	if (g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session") == 0) {
+		bus_type = G_BUS_TYPE_SESSION;
+	}
+
 	r_context();
 
 	service_loop = g_main_loop_new(NULL, FALSE);
 	g_unix_signal_add(SIGTERM, r_on_signal, NULL);
 
-	r_bus_name_id = g_bus_own_name(G_BUS_TYPE_SYSTEM,
+	r_bus_name_id = g_bus_own_name(bus_type,
 				       "de.pengutronix.rauc",
 				       G_BUS_NAME_OWNER_FLAGS_NONE,
 				       r_on_bus_acquired,
