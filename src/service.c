@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <glib.h>
+#include <glib-unix.h>
 #include <gio/gio.h>
 
 #include <context.h>
@@ -142,15 +143,27 @@ static void r_on_name_lost(GDBusConnection *connection,
 			   const gchar     *name,
 			   gpointer         user_data) {
 	g_message("name lost, stopping service\n");
-	g_main_loop_quit(service_loop);
+	if (service_loop) {
+		g_main_loop_quit(service_loop);
+	}
 
 	return;
+}
+
+static gboolean r_on_signal(gpointer user_data)
+{
+	g_message("stopping service\n");
+	if (service_loop) {
+		g_main_loop_quit(service_loop);
+	}
+	return G_SOURCE_REMOVE;
 }
 
 gboolean r_service_run(void) {
 	r_context();
 
 	service_loop = g_main_loop_new(NULL, FALSE);
+	g_unix_signal_add(SIGTERM, r_on_signal, NULL);
 
 	r_bus_name_id = g_bus_own_name(G_BUS_TYPE_SYSTEM,
 				       "de.pengutronix.rauc",
@@ -166,6 +179,7 @@ gboolean r_service_run(void) {
 		g_bus_unown_name(r_bus_name_id);
 
 	g_main_loop_unref(service_loop);
+	service_loop = NULL;
 
 	return TRUE;
 }
