@@ -72,6 +72,32 @@ int test_mkdir_relative(const gchar *dirname, const gchar *filename, int mode) {
 	return res;
 }
 
+int test_rmdir(const gchar *dirname, const gchar *filename) {
+	gchar *path;
+	int res;
+
+	path = g_build_filename(dirname, filename, NULL);
+	g_assert_nonnull(path);
+
+	res = g_rmdir(path);
+
+	g_free(path);
+	return res;
+}
+
+gboolean test_rm_tree(const gchar *dirname, const gchar *filename) {
+	gchar *path;
+	gboolean res;
+
+	path = g_build_filename(dirname, filename, NULL);
+	g_assert_nonnull(path);
+
+	res = rm_tree(path, NULL);
+
+	g_free(path);
+	return res;
+}
+
 int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, gboolean custom_handler) {
 	gchar *path = g_build_filename(dirname, filename, NULL);
 	RaucManifest *rm = g_new0(RaucManifest, 1);
@@ -173,12 +199,14 @@ out:
 
 gboolean test_umount(const gchar *dirname, const gchar *mountpoint) {
 	gchar *path;
+	gboolean res;
 	
 	path = g_build_filename(dirname, mountpoint, NULL);
+	g_assert_nonnull(path);
 
-	g_assert_true(r_umount(path, NULL));
+	res = r_umount(path, NULL);
 
-	return TRUE;
+	return res;
 }
 
 gboolean test_copy_file(const gchar *srcprefix, const gchar *srcfile, const gchar *dstprefix, const gchar *dstfile) {

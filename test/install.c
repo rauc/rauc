@@ -264,6 +264,8 @@ static void install_fixture_tear_down(InstallFixture *fixture,
 		gconstpointer user_data)
 {
 	test_umount(fixture->tmpdir, "slot");
+	test_umount(fixture->tmpdir, "mount");
+	test_rm_tree(fixture->tmpdir, "");
 }
 
 static void install_test_bootname(InstallFixture *fixture,

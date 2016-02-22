@@ -13,6 +13,7 @@
 #include <install.h>
 #include <service.h>
 #include "rauc-installer-generated.h"
+#include "utils.h"
 
 GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
@@ -290,7 +291,7 @@ static gboolean info_start(int argc, char **argv)
 out:
 	r_exit_status = res ? 0 : 1;
 	if (tmpdir)
-		g_rmdir(tmpdir);
+		rm_tree(tmpdir, NULL);
 
 	g_clear_pointer(&tmpdir, g_free);
 	g_clear_pointer(&bundledir, g_free);

@@ -6,6 +6,8 @@
 int test_prepare_dummy_file(const gchar *dirname, const gchar *filename,
 			    gsize size, const gchar *source);
 int test_mkdir_relative(const gchar *dirname, const gchar *filename, int mode);
+int test_rmdir(const gchar *dirname, const gchar *filename);
+gboolean test_rm_tree(const gchar *dirname, const gchar *filename);
 int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, gboolean custom_handler);
 gboolean test_make_filesystem(const gchar *dirname, const gchar *filename);
 gboolean test_mount(const gchar *src, const gchar *dest);
