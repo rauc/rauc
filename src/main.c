@@ -246,7 +246,13 @@ static gboolean info_start(int argc, char **argv)
 
 	g_message("checking manifest for: %s", argv[2]);
 
-	tmpdir = g_dir_make_tmp("bundle-XXXXXX", NULL);
+	tmpdir = g_dir_make_tmp("bundle-XXXXXX", &error);
+	if (!tmpdir) {
+		g_warning("%s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
 	bundledir = g_build_filename(tmpdir, "bundle-content", NULL);
 	manifestpath = g_build_filename(bundledir, "manifest.raucm", NULL);
 
