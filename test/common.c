@@ -199,12 +199,14 @@ out:
 
 gboolean test_umount(const gchar *dirname, const gchar *mountpoint) {
 	gchar *path;
+	gboolean res;
 	
 	path = g_build_filename(dirname, mountpoint, NULL);
+	g_assert_nonnull(path);
 
-	g_assert_true(r_umount(path, NULL));
+	res = r_umount(path, NULL);
 
-	return TRUE;
+	return res;
 }
 
 gboolean test_copy_file(const gchar *srcprefix, const gchar *srcfile, const gchar *dstprefix, const gchar *dstfile) {
