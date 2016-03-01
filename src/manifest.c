@@ -154,6 +154,8 @@ gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GErr
 	GKeyFile *key_file = NULL;
 	gboolean res = FALSE;
 
+	r_context_begin_step("load_manifest_file", "Loading manifest file", 0);
+
 	key_file = g_key_file_new();
 
 	res = g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror);
@@ -170,6 +172,7 @@ gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GErr
 
 out:
 	g_clear_pointer(&key_file, g_key_file_free);
+	r_context_end_step("load_manifest_file", res);
 	return res;
 }
 
@@ -319,6 +322,8 @@ static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *d
 	gboolean res = TRUE;
 	gboolean had_errors = FALSE;
 
+	r_context_begin_step("verify_manifest_checksums", "Verifying manifest checksums", 0);
+
 	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
 		RaucImage *image = elem->data;
 		gchar *filename = g_build_filename(dir, image->filename, NULL);
@@ -350,6 +355,7 @@ static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *d
 		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_CHECKSUM, "Failed updating all checksums");
 	}
 
+	r_context_end_step("verify_manifest_checksums", res);
 	return res;
 }
 
@@ -433,6 +439,9 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signa
 	GBytes *sig = NULL;
 	gboolean res = FALSE;
 
+	r_context_begin_step("verify_manifest", "Verifying manifest",
+			     2 + signature);
+
 	if (signature) {
 		sig = read_file(signaturepath, &ierror);
 		if (sig == NULL) {
@@ -477,5 +486,6 @@ out:
 	g_clear_pointer(&manifest, free_manifest);
 	g_free(signaturepath);
 	g_free(manifestpath);
+	r_context_end_step("verify_manifest", res);
 	return res;
 }

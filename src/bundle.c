@@ -11,6 +11,8 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
+	r_context_begin_step("mksquashfs", "Creating squashfs", 0);
+
 	if (g_file_test (bundlename, G_FILE_TEST_EXISTS)) {
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "bundle %s already exists", bundlename);
 		goto out;
@@ -44,6 +46,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 
 	res = TRUE;
 out:
+	r_context_end_step("mksquashfs", res);
 	return res;
 }
 
@@ -52,6 +55,8 @@ static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, con
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(7, g_free);
+
+	r_context_begin_step("unsquashfs", "Uncompressing squashfs", 0);
 
 	g_ptr_array_add(args, g_strdup("unsquashfs"));
 	g_ptr_array_add(args, g_strdup("-dest"));
@@ -86,6 +91,7 @@ static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, con
 
 	res = TRUE;
 out:
+	r_context_end_step("unsquashfs", res);
 	return res;
 }
 
@@ -242,6 +248,8 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 	goffset offset;
 	gboolean res = FALSE;
 
+	r_context_begin_step("check_bundle", "Checking bundle", verify);
+
 	if (!r_context()->config->keyring_path) {
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "No keyring file provided");
 		goto out;
@@ -321,6 +329,7 @@ out:
 	g_clear_object(&bundlestream);
 	g_clear_object(&bundlefile);
 	g_clear_pointer(&sig, g_bytes_unref);
+	r_context_end_step("check_bundle", res);
 	return res;
 }
 
@@ -328,6 +337,8 @@ gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir, gboolea
 	GError *ierror = NULL;
 	gsize size;
 	gboolean res = FALSE;
+
+	r_context_begin_step("extract_bundle", "Extracting bundle", 2);
 
 	res = check_bundle(bundlename, &size, verify, &ierror);
 	if (!res) {
@@ -343,6 +354,7 @@ gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir, gboolea
 
 	res = TRUE;
 out:
+	r_context_end_step("extract_bundle", res);
 	return res;
 }
 

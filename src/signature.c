@@ -170,6 +170,8 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 				     g_bytes_get_size(sig));
 	gboolean res = FALSE;
 
+	r_context_begin_step("cms_verify", "Verifying signature", 0);
+
 	if (!(store = X509_STORE_new())) {
 		g_set_error_literal(
 				error,
@@ -219,6 +221,7 @@ out:
 	BIO_free_all(incontent);
 	BIO_free_all(insig);
 	X509_STORE_free(store);
+	r_context_end_step("cms_verify", res);
 	return res;
 }
 

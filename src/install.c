@@ -144,6 +144,8 @@ gboolean determine_slot_states(GError **error) {
 	}
 	g_assert_nonnull(r_context()->config->slots);
 
+	r_context_begin_step("determine_slot_states", "Determining slot states", 0);
+
 	/* Determine active slot mount points */
 	mountlist = g_unix_mounts_get(NULL);
 	for (GList *l = mountlist; l != NULL; l = l->next) {
@@ -219,6 +221,7 @@ gboolean determine_slot_states(GError **error) {
 
 out:
 	g_clear_pointer(&slotlist, g_list_free);
+	r_context_end_step("determine_slot_states", res);
 
 	return res;
 
@@ -253,6 +256,8 @@ GHashTable* determine_target_install_group(RaucManifest *manifest) {
 	GList *slotmembers;
 	GHashTable *targetgroup = NULL;
 	gboolean res = FALSE;
+
+	r_context_begin_step("determine_target_install_group", "Determining target install group", 0);
 
 	/* collect referenced slot classes from manifest */
 	slotclasses = g_ptr_array_new();
@@ -319,6 +324,7 @@ out:
 	if (!res)
 		g_clear_pointer(&targetgroup, g_hash_table_unref);
 	g_clear_pointer(&slotclasses, g_ptr_array_unref);
+	r_context_end_step("determine_target_install_group", res);
 	return targetgroup;
 }
 
@@ -499,6 +505,8 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd
 	gchar* handler_name = NULL;
 	gboolean res = FALSE;
 
+	r_context_begin_step("launch_and_wait_custom_handler", "Launching update handler", 0);
+
 	if (!verify_compatible(manifest)) {
 		g_set_error_literal(error, R_HANDLER_ERROR, 0,
 				"Compatible mismatch");
@@ -512,6 +520,7 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd
 
 out:
 	g_free(handler_name);
+	r_context_end_step("launch_and_wait_custom_handler", res);
 	return res;
 }
 
@@ -566,6 +575,8 @@ static gboolean copy_image(GFile *src, GFile *dest, gchar* fs_type, GError **err
 	int fd_out;
 	int ret;
 	goffset imgsize;
+
+	r_context_begin_step("copy_image", "Copying image", 0);
 
 	/* open source image and determine size */
 	instream = g_file_read(src, NULL, &ierror);
@@ -645,6 +656,7 @@ static gboolean copy_image(GFile *src, GFile *dest, gchar* fs_type, GError **err
 out:
 	g_clear_object(&instream);
 	g_clear_object(&outstream);
+	r_context_end_step("copy_image", res);
 	return res;
 }
 
@@ -690,6 +702,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 		}
 	}
 
+	r_context_begin_step("update_slots", "Updating slots", g_list_length(manifest->images));
 	install_args_update(args, "Updating slots...");
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		GError *ierror = NULL;
@@ -866,10 +879,10 @@ image_out:
 	install_args_update(args, "All slots updated");
 
 	res = TRUE;
+	r_context_end_step("update_slots", res);
 
 out:
 	g_clear_pointer(&mountpoint, g_free);
-
 	return res;
 }
 
@@ -1075,6 +1088,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 
 	g_assert_nonnull(bundlefile);
 
+	r_context_begin_step("do_install_bundle", "Installing", 5);
 	res = determine_slot_states(&ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
@@ -1163,6 +1177,7 @@ umount:
 	g_clear_pointer(&mountpoint, g_free);
 out:
 	g_clear_pointer(&manifest, free_manifest);
+	r_context_end_step("do_install_bundle", res);
 
 	return res;
 
