@@ -502,13 +502,15 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd
 	if (!verify_compatible(manifest)) {
 		g_set_error_literal(error, R_HANDLER_ERROR, 0,
 				"Compatible mismatch");
-		return FALSE;
+		res = FALSE;
+		goto out;
 	}
 
 	handler_name = g_build_filename(cwd, manifest->handler_name, NULL);
 
 	res = launch_and_wait_handler(cwd, handler_name, manifest, target_group, error);
 
+out:
 	g_free(handler_name);
 	return res;
 }
