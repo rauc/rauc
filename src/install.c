@@ -252,6 +252,7 @@ GHashTable* determine_target_install_group(RaucManifest *manifest) {
 	GPtrArray *slotclasses = NULL;
 	GList *slotmembers;
 	GHashTable *targetgroup = NULL;
+	gboolean res = FALSE;
 
 	/* collect referenced slot classes from manifest */
 	slotclasses = g_ptr_array_new();
@@ -284,7 +285,8 @@ GHashTable* determine_target_install_group(RaucManifest *manifest) {
 
 	if (!targetgroup_root) {
 		g_warning("Failed to determine target install group");
-		return NULL;
+		res = FALSE;
+		goto out;
 	}
 
 	targetgroup = g_hash_table_new(g_str_hash, g_str_equal);
@@ -304,12 +306,18 @@ GHashTable* determine_target_install_group(RaucManifest *manifest) {
 
 		if (!image_target) {
 			g_warning("No target for class '%s' found!", (gchar *)slotclasses->pdata[i]);
-			return NULL;
+			res = FALSE;
+			goto out;
 		}
 
 		g_hash_table_insert(targetgroup, slotclasses->pdata[i], (gchar *)image_target->name);
 	}
 
+	res = TRUE;
+
+out:
+	if (!res)
+		g_clear_pointer(&targetgroup, g_hash_table_unref);
 	g_clear_pointer(&slotclasses, g_ptr_array_unref);
 	return targetgroup;
 }
