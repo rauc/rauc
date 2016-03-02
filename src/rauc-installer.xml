@@ -6,6 +6,12 @@
 
     <property name="Operation" type="s" access="read"/>
 
+    <signal name="ProgressUpdated">
+      <arg name="percentage" type="i"/>
+      <arg name="description" type="s"/>
+      <arg name="nesting_depth" type="i"/>
+    </signal>
+
     <signal name="Completed">
       <arg name="result" type="i"/>
     </signal>
