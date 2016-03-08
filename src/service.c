@@ -108,6 +108,14 @@ out:
 	return res;
 }
 
+static void send_progress_callback(gint percentage,
+				   const gchar *message,
+				   gint nesting_depth) {
+
+	r_installer_emit_progress_updated(r_installer, percentage, message,
+					  nesting_depth);
+}
+
 static void r_on_bus_acquired(GDBusConnection *connection,
 			      const gchar     *name,
 			      gpointer         user_data) {
@@ -117,6 +125,8 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 	g_signal_connect(r_installer, "handle-install",
 			 G_CALLBACK(r_on_handle_install),
 			 NULL);
+
+	r_context_register_progress_callback(send_progress_callback);
 
 	if (!g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(r_installer),
 					      connection,

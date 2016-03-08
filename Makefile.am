@@ -74,7 +74,8 @@ check_PROGRAMS = \
 	test/install.test \
 	test/network.test \
 	test/service.test \
-	test/bundle.test
+	test/bundle.test \
+	test/progress.test
 check_LTLIBRARIES = librauctest.la
 
 librauctest_la_SOURCES = \
@@ -107,6 +108,9 @@ test_install_test_LDADD = librauc.la librauctest.la
 
 test_network_test_SOURCES = test/network.c
 test_network_test_LDADD = librauc.la
+
+test_progress_test_SOURCES = test/progress.c
+test_progress_test_LDADD = librauc.la
 
 SPHINXOPTS          =
 SPHINXBUILD         = sphinx-build
