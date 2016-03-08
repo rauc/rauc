@@ -11,6 +11,7 @@
 #include "mount.h"
 #include "utils.h"
 #include "bootchooser.h"
+#include "service.h"
 #include <sys/ioctl.h>
 #include <gio/gfiledescriptorbased.h>
 #include <gio/gunixmounts.h>
@@ -1296,6 +1297,9 @@ static gpointer install_thread(gpointer data) {
 	RaucInstallArgs *args = data;
 	gint result;
 
+	/* clear LastError property */
+	set_last_error(g_strdup(""));
+
 	g_debug("thread started for %s\n", args->name);
 	install_args_update(args, "started");
 
@@ -1304,6 +1308,7 @@ static gpointer install_thread(gpointer data) {
 		if (result != 0) {
 			g_warning("%s", ierror->message);
 			install_args_update(args, ierror->message);
+			set_last_error(ierror->message);
 			g_clear_error(&ierror);
 		}
 	} else {

@@ -5,6 +5,7 @@
     </method>
 
     <property name="Operation" type="s" access="read"/>
+    <property name="LastError" type="s" access="read"/>
 
     <signal name="ProgressUpdated">
       <arg name="percentage" type="i"/>

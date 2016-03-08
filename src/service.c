@@ -110,6 +110,11 @@ out:
 	return res;
 }
 
+void set_last_error(gchar *message) {
+	if (r_installer)
+		r_installer_set_last_error(r_installer, message);
+}
+
 static void send_progress_callback(gint percentage,
 				   const gchar *message,
 				   gint nesting_depth) {
