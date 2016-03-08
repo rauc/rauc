@@ -702,7 +702,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 		}
 	}
 
-	r_context_begin_step("update_slots", "Updating slots", g_list_length(manifest->images));
+	r_context_begin_step("update_slots", "Updating slots", g_list_length(manifest->images)*2);
 	install_args_update(args, "Updating slots...");
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		GError *ierror = NULL;
@@ -740,6 +740,8 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 		}
 
 		install_args_update(args, g_strdup_printf("Checking slot %s", dest_slot->name));
+
+		r_context_begin_step("check_slot", g_strdup_printf("Checking slot %s", dest_slot->name), 0);
 	
 		srcimagefile = g_file_new_for_path(srcimagepath);
 		destdevicefile = g_file_new_for_path(dest_slot->device);
@@ -756,6 +758,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 
 			slot_state = g_new0(RaucSlotStatus, 1);
 			slot_state->status = g_strdup("update");
+			r_context_end_step("check_slot", FALSE);
 			goto copy;
 		}
 
@@ -786,8 +789,11 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 					error,
 					ierror,
 					"Unmounting failed: ");
+			r_context_end_step("check_slot", FALSE);
 			goto out;
 		}
+
+		r_context_end_step("check_slot", TRUE);
 
 copy:
 
