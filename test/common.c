@@ -242,3 +242,16 @@ gboolean test_make_slot_user_writable(const gchar* path, const gchar* file) {
 const gchar* test_bootname_provider(void) {
 	return "system0";
 }
+
+gboolean test_running_as_root(void) {
+	uid_t uid = getuid();
+	uid_t euid = geteuid();
+
+	if (uid == 0 && euid == 0)
+		return TRUE;
+
+	g_test_message("not running as root (uid=%lu euid=%lu)",
+			(unsigned long) uid, (unsigned long) euid);
+	g_test_skip("not running as root");
+	return FALSE;
+}

@@ -20,15 +20,13 @@ typedef struct {
 
 #define SLOT_SIZE (10*1024*1024)
 
-static void install_fixture_set_up(InstallFixture *fixture,
+static void install_fixture_set_up_user(InstallFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *configpath;
 	gchar *certpath;
 	gchar *keypath;
 	gchar *capath;
-	gchar *slotfile;
-	gchar *slotpath;
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
@@ -87,15 +85,33 @@ static void install_fixture_set_up(InstallFixture *fixture,
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/rootfs-1"));
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/appfs-1"));
 
+	/* Set dummy bootname provider */
+	set_bootname_provider(test_bootname_provider);
+
+	g_free(configpath);
+	g_free(certpath);
+	g_free(keypath);
+	g_free(capath);
+}
+
+static void install_fixture_set_up(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *slotfile;
+	gchar *slotpath;
+
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
+	install_fixture_set_up_user(fixture, user_data);
+
 	/* Make images user-writable */
 	test_make_slot_user_writable(fixture->tmpdir, "images/rootfs-0");
 	test_make_slot_user_writable(fixture->tmpdir, "images/appfs-0");
 	test_make_slot_user_writable(fixture->tmpdir, "images/rootfs-1");
 	test_make_slot_user_writable(fixture->tmpdir, "images/appfs-1");
 	
-	/* Set dummy bootname provider */
-	set_bootname_provider(test_bootname_provider);
-
 	/* Provide active mounted slot */
 	slotfile = g_build_filename(fixture->tmpdir, "images/rootfs-0", NULL);
 	slotpath = g_build_filename(fixture->tmpdir, "slot", NULL);
@@ -103,16 +119,16 @@ static void install_fixture_set_up(InstallFixture *fixture,
 
 	g_free(slotfile);
 	g_free(slotpath);
-	g_free(configpath);
-	g_free(certpath);
-	g_free(keypath);
-	g_free(capath);
 }
 
 static void install_fixture_set_up_bundle(InstallFixture *fixture,
 		gconstpointer user_data) {
 	gchar *contentdir;
 	gchar *bundlepath;
+
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
 
 	install_fixture_set_up(fixture, user_data);
 
@@ -146,6 +162,10 @@ static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture
 		gconstpointer user_data) {
 	gchar *contentdir;
 	gchar *bundlepath;
+
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
 
 	install_fixture_set_up(fixture, user_data);
 
@@ -205,6 +225,10 @@ static void install_fixture_set_up_network(InstallFixture *fixture,
 	gchar *contentdir;
 	gchar *manifestpath;
 
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
 	install_fixture_set_up(fixture, user_data);
 
 	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
@@ -263,6 +287,9 @@ static void install_fixture_set_up_network(InstallFixture *fixture,
 static void install_fixture_tear_down(InstallFixture *fixture,
 		gconstpointer user_data)
 {
+	if (!fixture->tmpdir)
+		return;
+
 	test_umount(fixture->tmpdir, "slot");
 	test_umount(fixture->tmpdir, "mount");
 	test_rm_tree(fixture->tmpdir, "");
@@ -282,7 +309,6 @@ static void install_test_target(InstallFixture *fixture,
 
 	g_assert_true(load_manifest_file("test/manifest.raucm", &rm, NULL));
 
-	set_bootname_provider(test_bootname_provider);
 	g_assert_true(determine_slot_states(NULL));
 
 	g_assert_nonnull(r_context()->config);
@@ -339,6 +365,10 @@ static void install_test_bundle(InstallFixture *fixture,
 	gchar *bundlepath, *mountdir;
 	RaucInstallArgs *args;
 
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
@@ -363,6 +393,10 @@ static void install_test_network(InstallFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *manifesturl, *mountdir;
+
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
 
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
@@ -392,6 +426,10 @@ static void install_test_bundle_thread(InstallFixture *fixture,
 	RaucInstallArgs *args = install_args_new();
 	gchar *bundlepath, *mountdir;
 
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
@@ -418,6 +456,10 @@ static void install_test_network_thread(InstallFixture *fixture,
 {
 	RaucInstallArgs *args = install_args_new();
 	gchar *manifesturl, *mountdir;
+
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
 
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
@@ -451,11 +493,11 @@ int main(int argc, char *argv[])
 	g_test_init(&argc, &argv, NULL);
 
 	g_test_add("/install/bootname", InstallFixture, NULL,
-		   install_fixture_set_up, install_test_bootname,
+		   install_fixture_set_up_user, install_test_bootname,
 		   install_fixture_tear_down);
 
 	g_test_add("/install/target", InstallFixture, NULL,
-		   install_fixture_set_up, install_test_target,
+		   install_fixture_set_up_user, install_test_target,
 		   install_fixture_tear_down);
 
 	g_test_add("/install/bundle", InstallFixture, NULL,

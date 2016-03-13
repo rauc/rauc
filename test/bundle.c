@@ -61,6 +61,10 @@ static void bundle_test2(BundleFixture *fixture,
 {
 	gchar *bundlename, *contentdir, *mountpoint;
 
+	/* mount needs to run as root */
+	if (!test_running_as_root())
+		return;
+
 	bundlename = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlename);
 
