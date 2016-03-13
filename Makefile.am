@@ -60,10 +60,13 @@ rauc_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 rauc_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
 rauc_LDADD = $(librauc_la_LIBADD) librauc.la
 
+AM_TESTS_ENVIRONMENT = \
+	AM_TAP_AWK='$(AWK)'; export AM_TAP_AWK; \
+	CATCHSEGV='$(CATCHSEGV)'; export CATCHSEGV;
 TEST_EXTENSIONS = .t .test
-T_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/build-aux/tap-driver.sh
+T_LOG_DRIVER = $(top_srcdir)/build-aux/tap-driver.sh
 T_LOG_COMPILER = $(top_srcdir)/tap-t
-TEST_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/build-aux/tap-driver.sh
+TEST_LOG_DRIVER = $(top_srcdir)/build-aux/tap-driver.sh
 TEST_LOG_COMPILER = $(top_srcdir)/tap-test
 
 check_PROGRAMS = \
