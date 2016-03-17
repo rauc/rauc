@@ -244,7 +244,7 @@ static gboolean info_start(int argc, char **argv)
 		return FALSE;
 	}
 
-	g_message("checking manifest for: %s", argv[2]);
+	g_print("checking manifest for: %s\n", argv[2]);
 
 	tmpdir = g_dir_make_tmp("bundle-XXXXXX", &error);
 	if (!tmpdir) {
@@ -271,27 +271,27 @@ static gboolean info_start(int argc, char **argv)
 		goto out;
 	}
 
-	g_message("Compatible String:\t'%s'", manifest->update_compatible);
+	g_print("Compatible String:\t'%s'\n", manifest->update_compatible);
 
 	cnt = g_list_length(manifest->images);
-	g_message("%d Image%s%s", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
+	g_print("%d Image%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
 	cnt = 0;
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		RaucImage *img = l->data;
-		g_message("(%d)\t%s", ++cnt, img->filename);
-		g_message("\tSlotclass: %s", img->slotclass);
-		g_message("\tChecksum:  %s", img->checksum.digest);
+		g_print("(%d)\t%s\n", ++cnt, img->filename);
+		g_print("\tSlotclass: %s\n", img->slotclass);
+		g_print("\tChecksum:  %s\n", img->checksum.digest);
 	}
 
 	cnt = g_list_length(manifest->files);
-	g_message("%d File%s%s", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
+	g_print("%d File%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
 	cnt = 0;
 	for (GList *l = manifest->files; l != NULL; l = l->next) {
 		RaucFile *file = l->data;
-		g_message("(%d)\t%s", ++cnt, file->filename);
-		g_message("\tSlotclass: %s", file->slotclass);
-		g_message("\tDest: 	%s", file->destname);
-		g_message("\tChecksum:  %s", file->checksum.digest);
+		g_print("(%d)\t%s\n", ++cnt, file->filename);
+		g_print("\tSlotclass: %s\n", file->slotclass);
+		g_print("\tDest: 	%s\n", file->destname);
+		g_print("\tChecksum:  %s\n", file->checksum.digest);
 	}
 
 out:
