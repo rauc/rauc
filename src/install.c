@@ -135,6 +135,8 @@ gboolean determine_slot_states(GError **error) {
 
 	g_assert_nonnull(r_context()->config);
 
+	r_context_begin_step("determine_slot_states", "Determining slot states", 0);
+
 	if (r_context()->config->slots == NULL) {
 		g_set_error_literal(
 				error,
@@ -144,8 +146,6 @@ gboolean determine_slot_states(GError **error) {
 		goto out;
 	}
 	g_assert_nonnull(r_context()->config->slots);
-
-	r_context_begin_step("determine_slot_states", "Determining slot states", 0);
 
 	/* Determine active slot mount points */
 	mountlist = g_unix_mounts_get(NULL);
