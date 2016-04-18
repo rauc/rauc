@@ -94,7 +94,7 @@ test_checksum_test_SOURCES = test/checksum.c
 test_checksum_test_LDADD = librauc.la
 
 test_config_file_test_SOURCES = test/config_file.c
-test_config_file_test_LDADD = librauc.la
+test_config_file_test_LDADD = librauctest.la librauc.la
 
 test_manifest_test_SOURCES = test/manifest.c
 test_manifest_test_LDADD = librauc.la

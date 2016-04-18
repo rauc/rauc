@@ -5,29 +5,8 @@
 #include <config_file.h>
 #include <context.h>
 
+#include "common.h"
 #include "utils.h"
-
-/* Helper library that writes string to new file in path and tmpdir, returns
- * entire pathname if successful. */
-static gchar* write_tmp_file(
-		const gchar* tmpdir,
-		const gchar* filename,
-		const gchar* content,
-		GError **error) {
-	gchar *pathname;
-	GError *ierror = NULL;
-
-	pathname = g_build_filename(tmpdir, filename, NULL);
-	g_assert_nonnull(pathname);
-
-	if (!g_file_set_contents(pathname, content, -1, &ierror)) {
-		g_propagate_error(error, ierror);
-		return NULL;
-	}
-
-	return pathname;
-}
-
 
 typedef struct {
 	gchar *tmpdir;

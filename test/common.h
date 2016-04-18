@@ -3,6 +3,7 @@
 #include <config.h>
 #include <glib.h>
 
+gchar* write_tmp_file(const gchar* tmpdir, const gchar* filename, const gchar* content, GError **error);
 int test_prepare_dummy_file(const gchar *dirname, const gchar *filename,
 			    gsize size, const gchar *source);
 int test_mkdir_relative(const gchar *dirname, const gchar *filename, int mode);
