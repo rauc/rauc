@@ -323,8 +323,8 @@ static void install_test_target(InstallFixture *fixture,
 
 	g_assert_true(g_hash_table_contains(tgrp, "rootfs"));
 	g_assert_true(g_hash_table_contains(tgrp, "appfs"));
-	g_assert_cmpstr(g_hash_table_lookup(tgrp, "rootfs"), ==, "rootfs.1");
-	g_assert_cmpstr(g_hash_table_lookup(tgrp, "appfs"), ==, "appfs.1");
+	g_assert_cmpstr(((RaucSlot *)g_hash_table_lookup(tgrp, "rootfs"))->name, ==, "rootfs.1");
+	g_assert_cmpstr(((RaucSlot *)g_hash_table_lookup(tgrp, "appfs"))->name, ==, "appfs.1");
 	g_assert_cmpint(g_hash_table_size(tgrp), ==, 2);
 }
 
