@@ -886,9 +886,9 @@ image_out:
 	install_args_update(args, "All slots updated");
 
 	res = TRUE;
-	r_context_end_step("update_slots", res);
 
 out:
+	r_context_end_step("update_slots", res);
 	g_clear_pointer(&mountpoint, g_free);
 	return res;
 }
