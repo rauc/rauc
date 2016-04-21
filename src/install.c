@@ -558,7 +558,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		res = FALSE;
 		g_set_error_literal(error, R_HANDLER_ERROR, 0,
 				"Compatible mismatch");
-		goto out;
+		goto early_out;
 	}
 
 	/* Mark all parent destination slots non-bootable */
@@ -574,7 +574,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		if (!res) {
 			g_set_error(error, R_HANDLER_ERROR, 0,
 					"Failed marking slot %s non-bootable", dest_slot->name);
-			goto out;
+			goto early_out;
 		}
 	}
 
@@ -775,6 +775,7 @@ image_out:
 
 out:
 	r_context_end_step("update_slots", res);
+early_out:
 	return res;
 }
 
