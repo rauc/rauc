@@ -36,7 +36,7 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to start mount");
+				"failed to start mount: ");
 		goto out;
 	}
 
@@ -45,7 +45,7 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to run mount");
+				"failed to run mount: ");
 		goto out;
 	}
 
