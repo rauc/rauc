@@ -690,7 +690,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 	while (g_hash_table_iter_next(&iter, &class, &member)) {
 		RaucSlot *dest_slot = g_hash_table_lookup(r_context()->config->slots, member);
 
-		if (dest_slot->parent) {
+		if (dest_slot->parent || !dest_slot->bootname) {
 			continue;
 		}
 
@@ -871,7 +871,7 @@ image_out:
 	while (g_hash_table_iter_next(&iter, &class, &member)) {
 		RaucSlot *dest_slot = g_hash_table_lookup(r_context()->config->slots, member);
 
-		if (dest_slot->parent)
+		if (dest_slot->parent || !dest_slot->bootname)
 			continue;
 
 		res = r_boot_set_primary(dest_slot);
@@ -1059,7 +1059,7 @@ slot_out:
 				      (gpointer *)&slotname)) {
 		RaucSlot *dest_slot = g_hash_table_lookup(r_context()->config->slots, slotname);
 
-		if (dest_slot->parent)
+		if (dest_slot->parent || !dest_slot->bootname)
 			continue;
 
 		res = r_boot_set_primary(dest_slot);
