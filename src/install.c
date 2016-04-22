@@ -914,6 +914,7 @@ static gboolean reuse_existing_file_checksum(const RaucChecksum *checksum, const
 		res = copy_file(srcname, NULL, filename, NULL, &error);
 		if (!res) {
 			g_warning("Failed to copy file from %s to %s: %s", srcname, filename, error->message);
+			g_clear_error(&error);
 			goto next;
 		}
 
@@ -929,13 +930,17 @@ next:
 
 static gboolean launch_and_wait_network_handler(const gchar* base_url,
 						RaucManifest *manifest,
-						GHashTable *target_group) {
+						GHashTable *target_group,
+						GError **error) {
 	gboolean res = FALSE, invalid = FALSE;
+	GError *ierror = NULL;
 	GHashTableIter iter;
 	RaucSlot *slot;
 
 	if (!verify_compatible(manifest)) {
 		res = FALSE;
+		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_COMPAT_MISMATCH,
+				"Compatible mismatch");
 		goto out;
 	}
 
@@ -950,7 +955,8 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 		res = r_boot_set_state(slot, FALSE);
 
 		if (!res) {
-			g_warning("Failed marking slot %s non-bootable", slot->name);
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_NONBOOTABLE,
+					"Failed marking slot %s non-bootable", slot->name);
 			goto out;
 		}
 	}
@@ -961,18 +967,22 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 		gchar *slotstatuspath = NULL;
 		RaucSlotStatus *slot_state = NULL;
 
-		res = r_mount_slot(slot, NULL);
+		res = r_mount_slot(slot, &ierror);
 		if (!res) {
-			g_warning("Mounting failed");
+			g_message("Mounting failed: %s", ierror->message);
+			g_clear_error(&ierror);
+
 			goto slot_out;
 		}
 		g_print(G_STRLOC " Mounted %s to %s\n", slot->device, slot->mount_point);
 
 		// read status
 		slotstatuspath = g_build_filename(slot->mount_point, "slot.raucs", NULL);
-		res = load_slot_status(slotstatuspath, &slot_state, NULL);
+		res = load_slot_status(slotstatuspath, &slot_state, &ierror);
 		if (!res) {
-			g_print("Failed to load status file\n");
+			g_message("Failed to load slot status file: %s", ierror->message);
+			g_clear_error(&ierror);
+
 			slot_state = g_new0(RaucSlotStatus, 1);
 			slot_state->status = g_strdup("update");
 		}
@@ -1018,9 +1028,11 @@ file_out:
 
 		// write status
 		slot_state->status = g_strdup("ok");
-		res = save_slot_status(slotstatuspath, slot_state, NULL);
+		res = save_slot_status(slotstatuspath, slot_state, &ierror);
 		if (!res) {
-			g_warning("Failed to save status file");
+			g_warning("Failed writing status file: %s", ierror->message);
+			g_clear_error(&ierror);
+
 			invalid = TRUE;
 			goto slot_out;
 		}
@@ -1028,9 +1040,13 @@ file_out:
 slot_out:
 		g_clear_pointer(&slotstatuspath, g_free);
 		g_clear_pointer(&slot_state, free_slot_status);
-		res = r_umount_slot(slot, NULL);
+		res = r_umount_slot(slot, &ierror);
 		if (!res) {
-			g_warning("Unounting failed");
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Unmounting failed: ");
+
 			goto out;
 		}
 		g_print(G_STRLOC " Unmounted %s from %s\n", slot->device, slot->mount_point);
@@ -1249,7 +1265,7 @@ gboolean do_install_network(const gchar *url, GError **error) {
 
 
 	g_print("Using network handler for %s\n", base_url);
-	res = launch_and_wait_network_handler(base_url, manifest, target_group);
+	res = launch_and_wait_network_handler(base_url, manifest, target_group, NULL);
 	if (!res) {
 		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_HANDLER,
 				"Handler error");
