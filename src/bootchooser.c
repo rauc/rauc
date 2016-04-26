@@ -104,20 +104,19 @@ out:
 static gboolean barebox_set_state(RaucSlot *slot, gboolean good) {
 	gboolean res = FALSE;
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
-	int prio, attempts;
+	int attempts;
 
 	g_assert_nonnull(slot);
 
 	if (good) {
-		prio = 20;
 		attempts = 3;
 	} else {
-		prio = 0;
+		/* for marking bad, also set priority to 0 */
 		attempts = 0;
+		g_ptr_array_add(pairs, g_strdup_printf("%s.%s.priority=%i",
+				BOOTSTATE_PREFIX, slot->bootname, 0));
 	}
 
-	g_ptr_array_add(pairs, g_strdup_printf("%s.%s.priority=%i",
-			BOOTSTATE_PREFIX, slot->bootname, prio));
 	g_ptr_array_add(pairs, g_strdup_printf("%s.%s.remaining_attempts=%i",
 			BOOTSTATE_PREFIX, slot->bootname, attempts));
 
