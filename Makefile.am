@@ -83,37 +83,37 @@ check_LTLIBRARIES = librauctest.la
 
 librauctest_la_SOURCES = \
 	test/common.c
-librauctest_la_LIBADD = $(GLIB_LIBS)
+librauctest_la_LIBADD = $(GLIB_LIBS) librauc.la
 
 TESTS = $(check_PROGRAMS) test/rauc.t
 
 test_bundle_test_SOURCES = test/bundle.c
-test_bundle_test_LDADD = librauc.la librauctest.la
+test_bundle_test_LDADD = librauctest.la
 
 test_checksum_test_SOURCES = test/checksum.c
-test_checksum_test_LDADD = librauc.la
+test_checksum_test_LDADD = librauctest.la
 
 test_config_file_test_SOURCES = test/config_file.c
-test_config_file_test_LDADD = librauctest.la librauc.la
+test_config_file_test_LDADD = librauctest.la
 
 test_manifest_test_SOURCES = test/manifest.c
-test_manifest_test_LDADD = librauc.la
+test_manifest_test_LDADD = librauctest.la
 
 test_service_test_CFLAGS = $(AM_CFLAGS) -DTEST_SERVICES=\""$(abs_top_builddir)/test/services"\"
 test_service_test_SOURCES = test/service.c
-test_service_test_LDADD = librauctest.la librauc.la
+test_service_test_LDADD = librauctest.la
 
 test_signature_test_SOURCES = test/signature.c
-test_signature_test_LDADD = librauctest.la librauc.la
+test_signature_test_LDADD = librauctest.la
 
 test_install_test_SOURCES = test/install.c
-test_install_test_LDADD = librauc.la librauctest.la
+test_install_test_LDADD = librauctest.la
 
 test_network_test_SOURCES = test/network.c
-test_network_test_LDADD = librauc.la
+test_network_test_LDADD = librauctest.la
 
 test_progress_test_SOURCES = test/progress.c
-test_progress_test_LDADD = librauc.la
+test_progress_test_LDADD = librauctest.la
 
 SPHINXOPTS          =
 SPHINXBUILD         = sphinx-build
