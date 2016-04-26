@@ -7,6 +7,7 @@
 #include "install.h"
 
 #define BAREBOX_STATE_NAME "barebox-state"
+#define UBOOT_FWSETENV_NAME "fw_setenv"
 
 #if 0
 static gboolean barebox_state_get_int(const gchar* name, int *value) {
@@ -279,11 +280,103 @@ out:
 	return res;
 }
 
+static gboolean uboot_env_set(const gchar *key, const gchar *value) {
+	GSubprocess *sub;
+	GError *error = NULL;
+	gboolean res = FALSE;
+
+	g_assert_nonnull(key);
+	g_assert_nonnull(value);
+
+	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &error, UBOOT_FWSETENV_NAME,
+			       key, value, NULL);
+	if (!sub) {
+		g_warning("starting fw_setenv failed: %s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sub, NULL, &error);
+	if (!res) {
+		g_warning("fw_setenv failed: %s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+out:
+	return res;
+}
+
+/* Set slot status values */
+static gboolean uboot_set_state(RaucSlot *slot, gboolean good) {
+	gboolean res = FALSE;
+	gchar *key = NULL;
+
+	g_assert_nonnull(slot);
+
+	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
+
+	res = uboot_env_set(key, good ? "3" : "0");
+	if (!res) {
+		g_warning("failed marking as %s", good ? "good" : "bad");
+		goto out;
+	}
+
+out:
+	g_free(key);
+	return res;
+}
+
+/* Set slot as primary boot slot */
+static gboolean uboot_set_primary(RaucSlot *slot) {
+	GString *order = g_string_sized_new(10);
+	gboolean res = FALSE;
+	gchar *key = NULL;
+	GList *slots;
+
+	g_assert_nonnull(slot);
+
+	g_string_append(order, slot->bootname);
+
+	/* Iterate over class members */
+	slots = g_hash_table_get_values(r_context()->config->slots);
+	for (GList *l = slots; l != NULL; l = l->next) {
+		RaucSlot *s = l->data;
+		if (s == slot)
+			continue;
+		if (s->sclass != slot->sclass)
+			continue;
+
+		g_string_append_c(order, ' ');
+		g_string_append(order, s->bootname);
+	}
+
+	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
+
+	res = uboot_env_set(key, "3");
+	if (!res) {
+		g_warning("failed marking as good");
+		goto out;
+	}
+	res = uboot_env_set("BOOT_ORDER", order->str);
+	if (!res) {
+		g_warning("failed marking as primary");
+		goto out;
+	}
+
+out:
+	g_string_free(order, TRUE);
+	g_free(key);
+	return res;
+}
+
 gboolean r_boot_set_state(RaucSlot *slot, gboolean good) {
 	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
 		return barebox_set_state(slot, good);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
 		return grub_set_state(slot, good);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
+		return uboot_set_state(slot, good);
 	}
 
 	g_error("bootloader type '%s' not supported yet", r_context()->config->system_bootloader);
@@ -295,6 +388,8 @@ gboolean r_boot_set_primary(RaucSlot *slot) {
 		return barebox_set_primary(slot);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
 		return grub_set_primary(slot);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
+		return uboot_set_primary(slot);
 	}
 
 	g_error("bootloader type '%s' not supported yet", r_context()->config->system_bootloader);

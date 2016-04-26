@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Command line checking
+if [ $# -ne 2 ]; then
+	echo "Invalid arguments $*"
+	exit 1
+fi
+
+if [ "$1" = "BOOT_ORDER" ]; then
+	if ! [ "$2" = "A B" -o "$2" = "B A" ]; then
+		echo "Invalid argument for BOOT_ORDER: '$2'"
+		exit 1
+	fi
+elif [ "$1" = "BOOT_A_LEFT" ]; then
+	if ! [ "$2" -ge 0 -a "$2" -le 3 ]; then
+		echo "Invalid argument for BOOT_A_LEFT: '$2'"
+		exit 1
+	fi
+elif [ "$1" = "BOOT_B_LEFT" ]; then
+	if ! [ "$2" -ge 0 -a "$2" -le 3 ]; then
+		echo "Invalid argument for BOOT_B_LEFT: '$2'"
+		exit 1
+	fi
+else
+	echo "Invalid key: '$1'"
+	exit 1
+fi
+
+exit 0

@@ -25,7 +25,7 @@ gboolean default_config(RaucConfig **config) {
 	return TRUE;
 }
 
-static const gchar *supported_bootloaders[] = {"barebox", "grub", NULL};
+static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", NULL};
 
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error) {
 	GError *ierror = NULL;
