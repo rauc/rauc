@@ -34,13 +34,14 @@ function check_var {
 		echo "Invalid variable: $1"
 		exit 1
 	fi
+	printf "$1=$2\n"
 }
 
 for i in $SETVAR; do
 	var="${i%=*}"
 	val="${i#*=}"
 
-	check_var $var
+	check_var "$var" "$val"
 
 done
 
@@ -48,7 +49,7 @@ for i in $GETVAR; do
 	var="${i%=*}"
 	val="${i#*=}"
 
-	check_var $var
+	check_var "$var"
 
 done
 
