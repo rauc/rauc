@@ -199,6 +199,80 @@ static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture
 	g_free(contentdir);
 }
 
+static void install_fixture_set_up_system_conf(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar* pathname = NULL;
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.rescue.0]\n\
+device=/path/to/rescue0\n\
+type=raw\n\
+bootname=factory0\n\
+readonly=true\n\
+\n\
+[slot.rescue.1]\n\
+device=/path/to/rescue1\n\
+type=raw\n\
+bootname=factory1\n\
+readonly=true\n\
+\n\
+[slot.rootfs.0]\n\
+device=/path/to/rootfs0\n\
+bootname=system0\n\
+\n\
+[slot.rootfs.1]\n\
+device=/path/to/rootfs1\n\
+bootname=system1\n\
+\n\
+[slot.rootfs.2]\n\
+device=/path/to/rootfs2\n\
+bootname=system2\n\
+\n\
+[slot.appfs.2]\n\
+device=/path/to/appfs1\n\
+parent=rootfs.2\n\
+\n\
+[slot.appfs.1]\n\
+device=/path/to/appfs1\n\
+parent=rootfs.1\n\
+\n\
+[slot.appfs.0]\n\
+device=/path/to/appfs0\n\
+parent=rootfs.0\n\
+\n\
+[slot.demofs.0]\n\
+device=/path/to/demofs0\n\
+parent=appfs.0\n\
+\n\
+[slot.demofs.1]\n\
+device=/path/to/demofs1\n\
+parent=appfs.1\n\
+\n\
+[slot.demofs.2]\n\
+device=/path/to/demofs2\n\
+parent=appfs.2\n\
+\n\
+[slot.bootloader.0]\n\
+device=/path/to/bootloader\n\
+\n\
+[slot.prebootloader.0]\n\
+device=/path/to/prebootloader";
+
+	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(fixture->tmpdir);
+	g_print("system conf tmpdir: %s\n", fixture->tmpdir);
+
+	pathname = write_tmp_file(fixture->tmpdir, "system.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+	r_context_conf()->configpath = g_strdup(pathname);
+
+	g_free(pathname);
+}
+
 static void rename_manifest(const gchar *contentdir, const gchar *targetname) {
 	gchar *manifestpath1 = g_strconcat(contentdir,
 			"/manifest.raucm", NULL);
@@ -307,7 +381,39 @@ static void install_test_target(InstallFixture *fixture,
 	RaucManifest *rm;
 	GHashTable *tgrp;
 
-	g_assert_true(load_manifest_file("test/manifest.raucm", &rm, NULL));
+
+	const gchar *manifest_file = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[image.rootfs]\n\
+sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3\n\
+filename=rootfs.ext4\n\
+\n\
+[image.appfs]\n\
+sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca\n\
+filename=appfs.ext4\n\
+\n\
+[image.demofs]\n\
+sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca\n\
+filename=appfs.ext4\n\
+\n\
+[file.rootfs/vmlinuz]\n\
+sha256=5fb50868cd1f2e34ff531d6680c9b734ba35ed4944072f396a50871e9c2d5155\n\
+filename=linux.img\n\
+\n\
+[file.rootfs/initramfs]\n\
+sha256=d37328d0d80779573b204762ee8aa011c22a5c43088f7541a8c1f591f8e3be6a\n\
+filename=initramfs.cpio.gz\n\
+\n\
+[image.bootloader]\n\
+sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca\n\
+filename=bootloader.img";
+	gchar* pathname = write_tmp_file(fixture->tmpdir, "manifest.raucm", manifest_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_true(load_manifest_file(pathname, &rm, NULL));
 
 	g_assert_true(determine_slot_states(NULL));
 
@@ -321,11 +427,15 @@ static void install_test_target(InstallFixture *fixture,
 
 	tgrp = determine_target_install_group(rm);
 
+	g_assert_nonnull(tgrp);
+
 	g_assert_true(g_hash_table_contains(tgrp, "rootfs"));
 	g_assert_true(g_hash_table_contains(tgrp, "appfs"));
-	g_assert_cmpstr(g_hash_table_lookup(tgrp, "rootfs"), ==, "rootfs.1");
-	g_assert_cmpstr(g_hash_table_lookup(tgrp, "appfs"), ==, "appfs.1");
-	g_assert_cmpint(g_hash_table_size(tgrp), ==, 2);
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rootfs"))->name, ==, "rootfs.1");
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "appfs"))->name, ==, "appfs.1");
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "demofs"))->name, ==, "demofs.1");
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "bootloader"))->name, ==, "bootloader.0");
+	g_assert_cmpint(g_hash_table_size(tgrp), ==, 4);
 }
 
 static gboolean r_quit(gpointer data) {
@@ -497,7 +607,7 @@ int main(int argc, char *argv[])
 		   install_fixture_tear_down);
 
 	g_test_add("/install/target", InstallFixture, NULL,
-		   install_fixture_set_up_user, install_test_target,
+		   install_fixture_set_up_system_conf, install_test_target,
 		   install_fixture_tear_down);
 
 	g_test_add("/install/bundle", InstallFixture, NULL,

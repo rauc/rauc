@@ -14,6 +14,27 @@ typedef struct {
 	gchar *tmpdir;
 } InstallFixture;
 
+/* Helper that writes string to new file in tmpdir/filename, returns entire
+ * pathname if successful. */
+gchar* write_tmp_file(
+		const gchar* tmpdir,
+		const gchar* filename,
+		const gchar* content,
+		GError **error) {
+	gchar *pathname;
+	GError *ierror = NULL;
+
+	pathname = g_build_filename(tmpdir, filename, NULL);
+	g_assert_nonnull(pathname);
+
+	if (!g_file_set_contents(pathname, content, -1, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	return pathname;
+}
+
 int test_prepare_dummy_file(const gchar *dirname, const gchar *filename,
 			    gsize size, const gchar *source) {
 	GIOChannel *input, *output;
