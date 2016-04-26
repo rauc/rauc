@@ -70,6 +70,7 @@ TEST_LOG_DRIVER = $(top_srcdir)/build-aux/tap-driver.sh
 TEST_LOG_COMPILER = $(top_srcdir)/tap-test
 
 check_PROGRAMS = \
+	test/bootchooser.test \
 	test/checksum.test \
 	test/config_file.test \
 	test/manifest.test \
@@ -86,6 +87,9 @@ librauctest_la_SOURCES = \
 librauctest_la_LIBADD = $(GLIB_LIBS) librauc.la
 
 TESTS = $(check_PROGRAMS) test/rauc.t
+
+test_bootchooser_test_SOURCES = test/bootchooser.c
+test_bootchooser_test_LDADD = librauctest.la
 
 test_bundle_test_SOURCES = test/bundle.c
 test_bundle_test_LDADD = librauctest.la

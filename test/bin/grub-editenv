@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Command line parsing
+if [ $# -le 2 ]; then
+	echo "Invalid arguments $*"
+	exit 1
+fi
+
+shift
+
+if ! [ "$1" = "set" ]; then
+	echo "Invalid command: '$1'"
+	exit 1
+fi 
+shift
+
+function check_var {
+	if [ "$1" = "ORDER" ]; then
+		if ! [ "$2" = "A B" -o "$2" = "B A" ]; then
+			echo "Invalid argument for ORDER: '$2'"
+			exit 1
+		fi
+	elif [ "$1" = "A_OK" ]; then
+		if ! [ "$2" -ge 0 -a "$2" -le 1 ]; then
+			echo "Invalid argument for A_OK: '$2'"
+			exit 1
+		fi
+	elif [ "$1" = "B_OK" ]; then
+		if ! [ "$2" -ge 0 -a "$2" -le 1 ]; then
+			echo "Invalid argument for B_OK: '$2'"
+			exit 1
+		fi
+	elif [ "$1" = "A_TRY" ]; then
+		if ! [ "$2" -ge 0 -a "$2" -le 1 ]; then
+			echo "Invalid argument for A_TRY: '$2'"
+			exit 1
+		fi
+	elif [ "$1" = "B_TRY" ]; then
+		if ! [ "$2" -ge 0 -a "$2" -le 1 ]; then
+			echo "Invalid argument for B_TRY: '$2'"
+			exit 1
+		fi
+	else
+		echo "Invalid key: '$1'"
+		exit 1
+	fi
+	printf "$1=$2\n"
+}
+
+for i in "$@"; do
+	var="${i%=*}"
+	val="${i#*=}"
+
+	check_var "$var" "$val"
+done
+
+exit 0
