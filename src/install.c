@@ -155,8 +155,8 @@ gboolean determine_slot_states(GError **error) {
 		RaucSlot *s = find_config_slot_by_device(r_context()->config,
 				devicepath);
 		if (s) {
-			s->mountpoint = g_strdup(g_unix_mount_get_mount_path(m));
-			g_debug("Found mountpoint for slot %s at %s", s->name, s->mountpoint);
+			s->mount_point = g_strdup(g_unix_mount_get_mount_path(m));
+			g_debug("Found mountpoint for slot %s at %s", s->name, s->mount_point);
 		}
 		g_free(devicepath);
 	}
@@ -630,8 +630,6 @@ out:
 
 static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error) {
 	gboolean res = FALSE;
-	gchar *mountpoint = NULL;
-
 	GHashTableIter iter;
 	RaucSlot *dest_slot;
 
@@ -639,14 +637,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		res = FALSE;
 		g_set_error_literal(error, R_HANDLER_ERROR, 0,
 				"Compatible mismatch");
-		goto out;
-	}
-
-	mountpoint = r_create_mount_point("image", NULL);
-	if (!mountpoint) {
-		res = FALSE;
-		g_set_error_literal(error, R_HANDLER_ERROR, 0,
-				"Failed to create image mount point");
 		goto out;
 	}
 
@@ -709,11 +699,8 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		destdevicefile = g_file_new_for_path(dest_slot->device);
 
 		/* read slot status */
-		slotstatuspath = g_build_filename(mountpoint, "slot.raucs", NULL);
-
-		g_message("mounting %s to %s", dest_slot->device, mountpoint);
-
-		res = r_mount_slot(dest_slot, mountpoint, &ierror);
+		g_message("mounting slot %s", dest_slot->device);
+		res = r_mount_slot(dest_slot, &ierror);
 		if (!res) {
 			g_message("Mounting failed: %s", ierror->message);
 			g_clear_error(&ierror);
@@ -724,6 +711,8 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			goto copy;
 		}
 
+		slotstatuspath = g_build_filename(dest_slot->mount_point, "slot.raucs", NULL);
+
 		res = load_slot_status(slotstatuspath, &slot_state, &ierror);
 
 		if (!res) {
@@ -733,7 +722,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			slot_state = g_new0(RaucSlotStatus, 1);
 			slot_state->status = g_strdup("update");
 		} else {
-
 			/* skip if slot is up-to-date */
 			res = g_str_equal(&mfimage->checksum.digest, slot_state->checksum.digest);
 			if (res) {
@@ -745,7 +733,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			}
 		}
 
-		res = r_umount(mountpoint, &ierror);
+		res = r_umount_slot(dest_slot, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(
 					error,
@@ -758,7 +746,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		r_context_end_step("check_slot", TRUE);
 
 copy:
-
 		install_args_update(args, g_strdup_printf("Updating slot %s", dest_slot->name));
 
 		/* update slot */
@@ -776,9 +763,8 @@ copy:
 			goto out;
 		}
 
-		g_debug("Mounting %s to %s", dest_slot->device, mountpoint);
-
-		res = r_mount_slot(dest_slot, mountpoint, &ierror);
+		g_debug("mounting slot %s", dest_slot->device);
+		res = r_mount_slot(dest_slot, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror,
 					"Mounting failed: ");
@@ -800,7 +786,7 @@ copy:
 					ierror,
 					"Failed writing status file: ");
 
-			r_umount(mountpoint, NULL);
+			r_umount_slot(dest_slot, NULL);
 
 			goto out;
 		}
@@ -811,9 +797,9 @@ image_out:
 		g_clear_pointer(&srcimagefile, g_object_unref);
 		g_clear_pointer(&destdevicefile, g_object_unref);
 		g_clear_pointer(&slotstatuspath, g_free);
-		g_debug("Unmounting %s", mountpoint);
 
-		res = r_umount(mountpoint, &ierror);
+		g_debug("unmounting slot %s", dest_slot->device);
+		res = r_umount_slot(dest_slot, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(
 					error,
@@ -848,7 +834,6 @@ image_out:
 
 out:
 	r_context_end_step("update_slots", res);
-	g_clear_pointer(&mountpoint, g_free);
 	return res;
 }
 
@@ -862,9 +847,9 @@ static gboolean reuse_existing_file_checksum(const RaucChecksum *checksum, const
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
 		gchar *srcname = NULL;
-		if (!slot->mountpoint)
+		if (!slot->mount_point)
 			goto next;
-		srcname = g_build_filename(slot->mountpoint, basename, NULL);
+		srcname = g_build_filename(slot->mount_point, basename, NULL);
 		if (!verify_checksum(checksum, srcname, NULL))
 			goto next;
 		g_unlink(filename);
@@ -916,23 +901,18 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 	// for slot in target_group
 	g_hash_table_iter_init(&iter, target_group);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
-		gchar *mountpoint = r_create_mount_point(slot->name, NULL);
 		gchar *slotstatuspath = NULL;
 		RaucSlotStatus *slot_state = NULL;
 
-		if (!mountpoint) {
-			goto out;
-		}
-
-		g_print(G_STRLOC " I will mount %s to %s\n", slot->device, mountpoint);
-		res = r_mount_slot(slot, mountpoint, NULL);
+		res = r_mount_slot(slot, NULL);
 		if (!res) {
 			g_warning("Mounting failed");
 			goto slot_out;
 		}
+		g_print(G_STRLOC " Mounted %s to %s\n", slot->device, slot->mount_point);
 
 		// read status
-		slotstatuspath = g_build_filename(mountpoint, "slot.raucs", NULL);
+		slotstatuspath = g_build_filename(slot->mount_point, "slot.raucs", NULL);
 		res = load_slot_status(slotstatuspath, &slot_state, NULL);
 		if (!res) {
 			g_print("Failed to load status file\n");
@@ -943,7 +923,7 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 		// for file targeting this slot
 		for (GList *l = manifest->files; l != NULL; l = l->next) {
 			RaucFile *mffile = l->data;
-			gchar *filename = g_build_filename(mountpoint,
+			gchar *filename = g_build_filename(slot->mount_point,
 							 mffile->destname,
 							 NULL);
 			gchar *fileurl = g_strconcat(base_url, "/",
@@ -991,13 +971,12 @@ file_out:
 slot_out:
 		g_clear_pointer(&slotstatuspath, g_free);
 		g_clear_pointer(&slot_state, free_slot_status);
-		g_print(G_STRLOC " I will unmount %s\n", mountpoint);
-		res = r_umount(mountpoint, NULL);
-		g_free(mountpoint);
+		res = r_umount_slot(slot, NULL);
 		if (!res) {
 			g_warning("Unounting failed");
 			goto out;
 		}
+		g_print(G_STRLOC " Unmounted %s from %s\n", slot->device, slot->mount_point);
 	}
 
 	if (invalid) {
