@@ -46,7 +46,9 @@ static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer
 int main(int argc, char *argv[])
 {
 	UpdateHandlerTestPair testpair_matrix[] = {
+		{"ext4", "tar.bz2", TRUE},
 		{"ext4", "ext4", TRUE},
+		{"ubifs", "tar.bz2", TRUE},
 		{"ubifs", "ext4", FALSE},
 		{0}
 	};
@@ -54,16 +56,30 @@ int main(int argc, char *argv[])
 
 	g_test_init(&argc, &argv, NULL);
 
-	g_test_add("/update_handler/get_handler/ext4_to_ext4",
+	g_test_add("/update_handler/get_handler/tar_to_ext4",
 			UpdateHandlerFixture,
 			&testpair_matrix[0],
 			NULL,
 			test_get_update_handler,
 			NULL);
 
-	g_test_add("/update_handler/get_handler/fail/ext4_to_ubifs",
+	g_test_add("/update_handler/get_handler/ext4_to_ext4",
 			UpdateHandlerFixture,
 			&testpair_matrix[1],
+			NULL,
+			test_get_update_handler,
+			NULL);
+
+	g_test_add("/update_handler/get_handler/tar.bz2_to_ubifs",
+			UpdateHandlerFixture,
+			&testpair_matrix[2],
+			NULL,
+			test_get_update_handler,
+			NULL);
+
+	g_test_add("/update_handler/get_handler/fail/ext4_to_ubifs",
+			UpdateHandlerFixture,
+			&testpair_matrix[3],
 			NULL,
 			test_get_update_handler,
 			NULL);

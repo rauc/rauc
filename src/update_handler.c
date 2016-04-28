@@ -99,6 +99,119 @@ out:
 	return TRUE;
 }
 
+static gboolean ubifs_format_slot(RaucSlot *dest_slot, GError **error)
+{
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	GPtrArray *args = g_ptr_array_new_full(3, g_free);
+
+	g_ptr_array_add(args, g_strdup("mkfs.ubifs"));
+	g_ptr_array_add(args, g_strdup("-y"));
+	g_ptr_array_add(args, g_strdup(dest_slot->device));
+	g_ptr_array_add(args, NULL);
+
+	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
+				  G_SUBPROCESS_FLAGS_NONE, &ierror);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start mkfs.ubifs: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run mkfs.ubifs: ");
+		goto out;
+	}
+
+out:
+	g_ptr_array_unref(args);
+	return res;
+}
+
+static gboolean ext4_format_slot(RaucSlot *dest_slot, GError **error)
+{
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	GPtrArray *args = g_ptr_array_new_full(4, g_free);
+
+	g_ptr_array_add(args, g_strdup("mkfs.ext4"));
+	if (strlen(dest_slot->name) <= 16) {
+		g_ptr_array_add(args, g_strdup("-L"));
+		g_ptr_array_add(args, g_strdup(dest_slot->name));
+	}
+	g_ptr_array_add(args, g_strdup(dest_slot->device));
+	g_ptr_array_add(args, NULL);
+
+	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
+				  G_SUBPROCESS_FLAGS_NONE, &ierror);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start mkfs.ext4: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run mkfs.ext4: ");
+		goto out;
+	}
+
+out:
+	g_ptr_array_unref(args);
+	return res;
+}
+
+static gboolean untar_image(RaucImage *image, gchar *dest, GError **error)
+{
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	GPtrArray *args = g_ptr_array_new_full(5, g_free);
+
+	g_ptr_array_add(args, g_strdup("tar"));
+	g_ptr_array_add(args, g_strdup("xf"));
+	g_ptr_array_add(args, g_strdup(image->filename));
+	g_ptr_array_add(args, g_strdup("-C"));
+	g_ptr_array_add(args, g_strdup(dest));
+	g_ptr_array_add(args, NULL);
+
+	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
+				  G_SUBPROCESS_FLAGS_NONE, &ierror);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start tar extract: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run tar extract: ");
+		goto out;
+	}
+
+out:
+	g_ptr_array_unref(args);
+	return res;
+}
+
 static gboolean ubifs_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, GError **error)
 {
 	GOutputStream *outstream = NULL;
@@ -131,6 +244,91 @@ static gboolean ubifs_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, GE
 
 out:
 	g_clear_object(&outstream);
+	return res;
+}
+
+static gboolean tar_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	/* format ubi volume */
+	g_message("Formatting ubifs slot %s", dest_slot->device);
+	res = ubifs_format_slot(dest_slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* mount ubi volume */
+	g_message("Mounting ubifs slot %s", dest_slot->device);
+	res = r_mount_slot(dest_slot, &ierror);
+	if (!res) {
+		g_message("Mounting failed: %s", ierror->message);
+		g_clear_error(&ierror);
+		goto unmount_out;
+	}
+
+	/* extract tar into mounted ubi volume */
+	g_message("Extracting %s to %s", image->filename, dest_slot->mount_point);
+	res = untar_image(image, dest_slot->mount_point, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto unmount_out;
+	}
+
+unmount_out:
+	/* finally umount ubi volume */
+	g_message("Unmounting ubifs slot %s", dest_slot->device);
+	if (!r_umount_slot(dest_slot, &ierror)) {
+		res = FALSE;
+		g_warning("Unmounting failed: %s", ierror->message);
+		g_clear_error(&ierror);
+	}
+
+out:
+	return res;
+}
+
+static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	/* format ext4 volume */
+	g_message("Formatting ext4 slot %s", dest_slot->device);
+	res = ext4_format_slot(dest_slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* mount ubi volume */
+	g_message("Mounting ext4 slot %s", dest_slot->device);
+	res = r_mount_slot(dest_slot, &ierror);
+	if (!res) {
+		g_message("Mounting failed: %s", ierror->message);
+		g_clear_error(&ierror);
+		goto unmount_out;
+	}
+
+	/* extract tar into mounted ubi volume */
+	g_message("Extracting %s to %s", image->filename, dest_slot->mount_point);
+	res = untar_image(image, dest_slot->mount_point, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto unmount_out;
+	}
+
+unmount_out:
+	/* finally umount ubi volume */
+	g_message("Unmounting ext4 slot %s", dest_slot->device);
+	if (!r_umount_slot(dest_slot, &ierror)) {
+		res = FALSE;
+		g_warning("Unmounting failed: %s", ierror->message);
+		g_clear_error(&ierror);
+	}
+
+out:
 	return res;
 }
 
@@ -170,6 +368,8 @@ RaucUpdatePair updatepairs[] = {
 	{"*.ext4", "ext4", img_to_raw_handler},
 	{"*.ext4", "raw", img_to_raw_handler},
 	{"*.vfat", "raw", img_to_raw_handler},
+	{"*.tar.*", "ext4", tar_to_ext4_handler},
+	{"*.tar.*", "ubifs", tar_to_ubifs_handler},
 	{"*.ubifs", "ubifs", ubifs_to_ubifs_handler},
 	{"*.img", "*", img_to_raw_handler}, /* fallback */
 	{0}
