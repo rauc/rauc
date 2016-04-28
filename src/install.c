@@ -511,7 +511,7 @@ out:
 	return res;
 }
 
-static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd, RaucManifest *manifest, GHashTable *target_group, GError **error) {
+static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error) {
 	gchar* handler_name = NULL;
 	gboolean res = FALSE;
 
@@ -524,9 +524,9 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* cwd
 		goto out;
 	}
 
-	handler_name = g_build_filename(cwd, manifest->handler_name, NULL);
+	handler_name = g_build_filename(bundledir, manifest->handler_name, NULL);
 
-	res = launch_and_wait_handler(cwd, handler_name, manifest, target_group, error);
+	res = launch_and_wait_handler(bundledir, handler_name, manifest, target_group, error);
 
 out:
 	g_free(handler_name);
@@ -670,8 +670,7 @@ out:
 	return res;
 }
 
-static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cwd, RaucManifest *manifest, GHashTable *target_group, GError **error) {
-
+static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error) {
 	gboolean res = FALSE;
 	gchar *mountpoint = NULL;
 
@@ -727,7 +726,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* cw
 		if (g_path_is_absolute(mfimage->filename)) {
 			srcimagepath = g_strdup(mfimage->filename);
 		} else {
-			srcimagepath = g_build_filename(cwd, mfimage->filename, NULL);
+			srcimagepath = g_build_filename(bundledir, mfimage->filename, NULL);
 		}
 
 		if (!g_file_test(srcimagepath, G_FILE_TEST_EXISTS)) {
