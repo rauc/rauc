@@ -31,7 +31,7 @@ static void config_file_fixture_tear_down(ConfigFileFixture *fixture,
 static void config_file_full_config(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	GList *slotlist, *l;
+	GList *slotlist;
 	RaucConfig *config;
 	RaucSlot *slot;
 
@@ -82,33 +82,56 @@ parent=rootfs.1\n";
 
 	g_assert_nonnull(config->slots);
 	slotlist = g_hash_table_get_keys(config->slots);
+
+	slot = g_hash_table_lookup(config->slots, "rescue.0");
+	g_assert_cmpstr(slot->name, ==, "rescue.0");
+	g_assert_cmpstr(slot->device, ==, "/dev/mtd4");
+	g_assert_cmpstr(slot->bootname, ==, "factory0");
+	g_assert_cmpstr(slot->type, ==, "raw");
+	g_assert_true(slot->readonly);
+	g_assert_null(slot->parent);
+	g_assert(find_config_slot_by_device(config, "/dev/mtd4") == slot);
+
 	slot = g_hash_table_lookup(config->slots, "rootfs.0");
 	g_assert_cmpstr(slot->name, ==, "rootfs.0");
 	g_assert_cmpstr(slot->device, ==, "/dev/sda0");
 	g_assert_cmpstr(slot->bootname, ==, "system0");
+	g_assert_cmpstr(slot->type, ==, "ext4");
 	g_assert_false(slot->readonly);
 	g_assert_null(slot->parent);
+	g_assert(find_config_slot_by_device(config, "/dev/sda0") == slot);
+
+	slot = g_hash_table_lookup(config->slots, "rootfs.1");
+	g_assert_cmpstr(slot->name, ==, "rootfs.1");
+	g_assert_cmpstr(slot->device, ==, "/dev/sda1");
+	g_assert_cmpstr(slot->bootname, ==, "system1");
+	g_assert_cmpstr(slot->type, ==, "ext4");
+	g_assert_false(slot->readonly);
+	g_assert_null(slot->parent);
+	g_assert(find_config_slot_by_device(config, "/dev/sda1") == slot);
+
+	slot = g_hash_table_lookup(config->slots, "appfs.0");
+	g_assert_cmpstr(slot->name, ==, "appfs.0");
+	g_assert_cmpstr(slot->device, ==, "/dev/sda2");
+	g_assert_null(slot->bootname);
+	g_assert_cmpstr(slot->type, ==, "ext4");
+	g_assert_false(slot->readonly);
+	g_assert_nonnull(slot->parent);
+	g_assert(find_config_slot_by_device(config, "/dev/sda2") == slot);
+
+	slot = g_hash_table_lookup(config->slots, "appfs.1");
+	g_assert_cmpstr(slot->name, ==, "appfs.1");
+	g_assert_cmpstr(slot->device, ==, "/dev/sda3");
+	g_assert_null(slot->bootname);
+	g_assert_cmpstr(slot->type, ==, "ext4");
+	g_assert_false(slot->readonly);
+	g_assert_nonnull(slot->parent);
+	g_assert(find_config_slot_by_device(config, "/dev/sda3") == slot);
 
 	g_assert_cmpuint(g_list_length(slotlist), ==, 5);
 
-	for (l = slotlist; l != NULL; l = l->next) {
-		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(config->slots, l->data);
-		g_assert_nonnull(s->name);
-		g_assert_nonnull(s->device);
-		g_assert_nonnull(s->type);
-		g_assert_nonnull(s->bootname);
-
-		g_print("slot: %s\n", s->name);
-		g_print("\tdevice:   %s\n", s->device);
-		g_print("\ttype:     %s\n", s->type);
-		g_print("\tbootname: %s\n", s->bootname);
-		g_print("\treadonly: %d\n", s->readonly);
-		if (s->parent)
-			g_print("\tparent: %s\n", ((RaucSlot*)s->parent)->name);
-	}
 	g_list_free(slotlist);
 
-	g_assert(find_config_slot_by_device(config, "/dev/sda0") == slot);
 	g_assert(find_config_slot_by_device(config, "/dev/xxx0") == NULL);
 
 	free_config(config);
