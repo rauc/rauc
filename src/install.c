@@ -176,8 +176,8 @@ gboolean determine_slot_states(GError **error) {
 
 	for (GList *l = slotlist; l != NULL; l = l->next) {
 		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, l->data);
-		if (!s->bootname && s->parent) {
-			g_warning("Warning: No bootname configured for %s", s->name);
+		if (!s->bootname) {
+			continue;
 		}
 
 		if (g_strcmp0(s->bootname, bootname) == 0) {
@@ -464,7 +464,7 @@ static gboolean launch_and_wait_handler(gchar* update_source, gchar *handler_nam
 		g_clear_pointer(&varname, g_free);
 
 		varname = g_strdup_printf("RAUC_SLOT_BOOTNAME_%i", slotcnt);
-		g_subprocess_launcher_setenv(handlelaunch, varname, slot->bootname, TRUE);
+		g_subprocess_launcher_setenv(handlelaunch, varname, slot->bootname ? slot->bootname : "", TRUE);
 		g_clear_pointer(&varname, g_free);
 
 		varname = g_strdup_printf("RAUC_SLOT_PARENT_%i", slotcnt);

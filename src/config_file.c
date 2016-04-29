@@ -171,8 +171,6 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			slot->type = value;
 
 			value = g_key_file_get_string(key_file, groups[i], "bootname", NULL);
-			if (!value)
-				value = g_strdup(slot->name);
 			slot->bootname = value;
 
 			slot->readonly = g_key_file_get_boolean(key_file, groups[i], "readonly", NULL);
