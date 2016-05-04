@@ -593,6 +593,9 @@ done:
 }
 
 int main(int argc, char **argv) {
+	/* disable remote VFS */
+	g_assert(g_setenv("GIO_USE_VFS", "local", TRUE));
+
 	cmdline_handler(argc, argv);
 
 	return r_exit_status;
