@@ -682,6 +682,12 @@ copy:
 		}
 
 		r_context_end_step("copy_image", TRUE);
+
+		if (g_strcmp0(dest_slot->type, "nand") == 0) {
+			g_message("Skipping slot status update for nand slot %s ", dest_slot->device);
+			goto image_out;
+		}
+
 		g_debug("mounting slot %s", dest_slot->device);
 		res = r_mount_slot(dest_slot, &ierror);
 		if (!res) {
@@ -714,14 +720,16 @@ image_out:
 		g_clear_pointer(&destdevicefile, g_object_unref);
 		g_clear_pointer(&slotstatuspath, g_free);
 
-		g_debug("unmounting slot %s", dest_slot->device);
-		res = r_umount_slot(dest_slot, &ierror);
-		if (!res) {
-			g_propagate_prefixed_error(
-					error,
-					ierror,
-					"Unmounting failed: ");
-			goto out;
+		if (dest_slot->mount_internal) {
+			g_debug("unmounting slot %s", dest_slot->device);
+			res = r_umount_slot(dest_slot, &ierror);
+			if (!res) {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Unmounting failed: ");
+				goto out;
+			}
 		}
 
 		install_args_update(args, g_strdup_printf("Updating slot %s done", dest_slot->name));
