@@ -136,17 +136,17 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 
 	/* Setup bundle content */
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.img",
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.ext4",
 					 SLOT_SIZE, "/dev/zero") == 0);
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img",
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.ext4",
 					 SLOT_SIZE, "/dev/zero") == 0);
-	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/rootfs.img"));
-	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/appfs.img"));
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/rootfs.ext4"));
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/appfs.ext4"));
 	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE) == 0);
 
 	/* Make images user-writable */
-	test_make_slot_user_writable(fixture->tmpdir, "content/rootfs.img");
-	test_make_slot_user_writable(fixture->tmpdir, "content/appfs.img");
+	test_make_slot_user_writable(fixture->tmpdir, "content/rootfs.ext4");
+	test_make_slot_user_writable(fixture->tmpdir, "content/appfs.ext4");
 
 	/* Update checksums in manifest */
 	g_assert_true(update_manifest(contentdir, FALSE, NULL));
@@ -173,12 +173,12 @@ static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 
 	/* Setup bundle content */
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.img",
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.ext4",
 					 64*1024*1024, "/dev/zero") == 0);
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.img",
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.ext4",
 					 32*1024*1024, "/dev/zero") == 0);
-	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/rootfs.img"));
-	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/appfs.img"));
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/rootfs.ext4"));
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/appfs.ext4"));
 	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", TRUE) == 0);
 
 	/* Copy custom handler */
@@ -186,8 +186,8 @@ static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture
 				fixture->tmpdir, "content/custom_handler.sh"));
 
 	/* Make images user-writable */
-	test_make_slot_user_writable(fixture->tmpdir, "content/rootfs.img");
-	test_make_slot_user_writable(fixture->tmpdir, "content/appfs.img");
+	test_make_slot_user_writable(fixture->tmpdir, "content/rootfs.ext4");
+	test_make_slot_user_writable(fixture->tmpdir, "content/appfs.ext4");
 
 	/* Update checksums in manifest */
 	g_assert_true(update_manifest(contentdir, FALSE, NULL));

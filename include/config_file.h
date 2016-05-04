@@ -54,7 +54,8 @@ typedef struct _RaucSlot {
 	/** current state of the slot (runtime) */
 	SlotState state;
 	struct _RaucSlot *parent;
-	gchar *mountpoint;
+	gchar *mount_point;
+	gboolean mount_internal;
 } RaucSlot;
 
 typedef struct {

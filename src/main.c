@@ -355,8 +355,8 @@ static gboolean status_start(int argc, char **argv)
 			g_print(", parent=%s", slot->parent->name);
 		else
 			g_print(", parent=(none)");
-		if (slot->mountpoint)
-			g_print(", mountpoint=%s", slot->mountpoint);
+		if (slot->mount_point)
+			g_print(", mountpoint=%s", slot->mount_point);
 		else
 			g_print(", mountpoint=(none)");
 		g_print("\n");

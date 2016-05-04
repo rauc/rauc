@@ -1,6 +1,7 @@
 #include <unistd.h>
 
 #include <gio/gio.h>
+#include <glib/gstdio.h>
 
 #include <config.h>
 #include "mount.h"
@@ -60,17 +61,6 @@ gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, gsize size
 	return r_mount_full(filename, mountpoint, "squashfs", size, error);
 }
 
-gboolean r_mount_slot(RaucSlot *slot, const gchar *mountpoint, GError **error) {
-	g_assert_nonnull(slot);
-
-	if (!g_file_test(slot->device, G_FILE_TEST_EXISTS)) {
-		g_warning("Destination device '%s' not found", slot->device);
-		return FALSE;
-	}
-
-	return r_mount_full(slot->device, mountpoint, slot->type, 0, error);
-}
-
 gboolean r_umount(const gchar *filename, GError **error) {
 	GSubprocess *sproc = NULL;
 	GError *ierror = NULL;
@@ -107,5 +97,119 @@ gboolean r_umount(const gchar *filename, GError **error) {
 	res = TRUE;
 out:
 	g_ptr_array_unref(args);
+	return res;
+}
+
+
+/* Creates a mount subdir in mount path prefix */
+gchar* r_create_mount_point(const gchar *name, GError **error) {
+	gchar* prefix;
+	gchar* mountpoint = NULL;
+
+	prefix = r_context()->config->mount_prefix;
+	if (!g_file_test (prefix, G_FILE_TEST_IS_DIR)) {
+		g_set_error(
+				error,
+				G_FILE_ERROR,
+				G_FILE_ERROR_NOTDIR,
+				"mount prefix path %s does not exist",
+				prefix);
+		goto out;
+	}
+
+
+	mountpoint = g_build_filename(prefix, name, NULL);
+
+	if (!g_file_test (mountpoint, G_FILE_TEST_IS_DIR)) {
+		gint ret;
+		ret = g_mkdir(mountpoint, 0777);
+
+		if (ret != 0) {
+			g_set_error(
+					error,
+					G_FILE_ERROR,
+					G_FILE_ERROR_FAILED,
+					"Failed creating mount path '%s'",
+					mountpoint);
+			g_free(mountpoint);
+			mountpoint = NULL;
+			goto out;
+		}
+	}
+
+out:
+
+	return mountpoint;
+}
+
+gboolean r_mount_slot(RaucSlot *slot, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	gchar *mount_point = NULL;
+
+	g_assert_nonnull(slot);
+	g_assert_null(slot->mount_point);
+	g_assert_false(slot->mount_internal);
+
+	if (!g_file_test(slot->device, G_FILE_TEST_EXISTS)) {
+		g_set_error(
+				error,
+				G_FILE_ERROR,
+				G_FILE_ERROR_NOENT,
+				"Slot device '%s' not found",
+				slot->device);
+		goto out;
+	}
+
+	mount_point = r_create_mount_point(slot->name, &ierror);
+	if (!mount_point) {
+		res = FALSE;
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to create mount point: ");
+		goto out;
+	}
+
+	res = r_mount_full(slot->device, mount_point, slot->type, 0, &ierror);
+	if (!res) {
+		res = FALSE;
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to mount slot: ");
+		goto out;
+	}
+
+	slot->mount_point = mount_point;
+	slot->mount_internal = TRUE;
+
+out:
+	return res;
+}
+
+gboolean r_umount_slot(RaucSlot *slot, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	g_assert_nonnull(slot);
+	g_assert_nonnull(slot->mount_point);
+	g_assert_true(slot->mount_internal);
+
+	res = r_umount(slot->mount_point, &ierror);
+	if (!res) {
+		res = FALSE;
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to unmount slot: ");
+		goto out;
+	}
+
+	g_rmdir(slot->mount_point);
+	g_clear_pointer(&slot->mount_point, g_free);
+	slot->mount_internal = FALSE;
+
+out:
 	return res;
 }
