@@ -281,6 +281,7 @@ static gboolean info_start(int argc, char **argv)
 		g_print("(%d)\t%s\n", ++cnt, img->filename);
 		g_print("\tSlotclass: %s\n", img->slotclass);
 		g_print("\tChecksum:  %s\n", img->checksum.digest);
+		g_print("\tSize:      %"G_GSIZE_FORMAT"\n", img->checksum.size);
 	}
 
 	cnt = g_list_length(manifest->files);
@@ -290,8 +291,9 @@ static gboolean info_start(int argc, char **argv)
 		RaucFile *file = l->data;
 		g_print("(%d)\t%s\n", ++cnt, file->filename);
 		g_print("\tSlotclass: %s\n", file->slotclass);
-		g_print("\tDest: 	%s\n", file->destname);
+		g_print("\tDest:      %s\n", file->destname);
 		g_print("\tChecksum:  %s\n", file->checksum.digest);
+		g_print("\tSize:      %"G_GSIZE_FORMAT"\n", file->checksum.size);
 	}
 
 out:
