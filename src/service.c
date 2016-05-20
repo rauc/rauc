@@ -132,7 +132,7 @@ static void send_progress_callback(gint percentage,
 	progress_update[2] = g_variant_new_int32(nesting_depth);
 
 	progress_update_tuple = g_variant_new_tuple(progress_update, 3);
-	r_installer_set_progress_updated(r_installer, progress_update_tuple);
+	r_installer_set_progress(r_installer, progress_update_tuple);
 }
 
 static void r_on_bus_acquired(GDBusConnection *connection,
