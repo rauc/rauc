@@ -466,7 +466,7 @@ out:
 typedef struct {
 	const gchar *src;
 	const gchar *dest;
-	img_to_fs_handler handler;
+	img_to_slot_handler handler;
 } RaucUpdatePair;
 
 RaucUpdatePair updatepairs[] = {
@@ -481,11 +481,11 @@ RaucUpdatePair updatepairs[] = {
 	{0}
 };
 
-img_to_fs_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, GError **error)
+img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, GError **error)
 {
 	const gchar *src = mfimage->filename;
 	const gchar *dest = dest_slot->type;
-	img_to_fs_handler handler = NULL;
+	img_to_slot_handler handler = NULL;
 
 	g_message("Checking image type for slot type: %s", dest);
 

@@ -574,7 +574,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		GFile *destdevicefile = NULL;
 		gchar *slotstatuspath = NULL;
 		RaucSlotStatus *slot_state = NULL;
-		img_to_fs_handler update_handler = NULL;
+		img_to_slot_handler update_handler = NULL;
 
 		mfimage = l->data;
 		dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
