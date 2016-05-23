@@ -225,7 +225,6 @@ out:
 	r_context_end_step("determine_slot_states", res);
 
 	return res;
-
 }
 
 /* Returns the inactive slots for a given slot class */
@@ -366,7 +365,6 @@ static void parse_handler_output(gchar* line) {
 		g_print("Unknown command: %s\n", split[1]);
 	}
 
-
 out:
 	g_strfreev(split);
 }
@@ -391,13 +389,11 @@ static gboolean launch_and_wait_handler(gchar* update_source, gchar *handler_nam
 	GInputStream *instream;
 	GDataInputStream *datainstream;
 	gchar* outline;
-
 	gchar *targetlist = NULL;
 	gchar *slotlist = NULL;
 	GHashTableIter iter;
 	RaucSlot *slot;
 	gint slotcnt = 0;
-
 
 	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE);
 
@@ -448,7 +444,6 @@ static gboolean launch_and_wait_handler(gchar* update_source, gchar *handler_nam
 			tmp = g_strdup_printf("%s%i ", targetlist ? targetlist : "", slotcnt);
 			g_clear_pointer(&targetlist, g_free);
 			targetlist = tmp;
-
 		}
 
 		varname = g_strdup_printf("RAUC_SLOT_NAME_%i", slotcnt);
@@ -470,7 +465,6 @@ static gboolean launch_and_wait_handler(gchar* update_source, gchar *handler_nam
 		varname = g_strdup_printf("RAUC_SLOT_PARENT_%i", slotcnt);
 		g_subprocess_launcher_setenv(handlelaunch, varname, slot->parent ? slot->parent->name : "", TRUE);
 		g_clear_pointer(&varname, g_free);
-
 	}
 
 	g_subprocess_launcher_setenv(handlelaunch, "RAUC_SLOTS", slotlist, TRUE);
@@ -493,7 +487,6 @@ static gboolean launch_and_wait_handler(gchar* update_source, gchar *handler_nam
 		parse_handler_output(outline);
 	} while (outline);
 	
-
 	if (handleproc == NULL) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -820,7 +813,6 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 		}
 	}
 
-
 	// for slot in target_group
 	g_hash_table_iter_init(&iter, target_group);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
@@ -923,6 +915,7 @@ slot_out:
 	}
 
 	res = TRUE;
+
 out:
 	return res;
 }
@@ -1035,12 +1028,12 @@ umount:
 	umount_bundle(mountpoint, NULL);
 	g_rmdir(mountpoint);
 	g_clear_pointer(&mountpoint, g_free);
+
 out:
 	g_clear_pointer(&manifest, free_manifest);
 	r_context_end_step("do_install_bundle", res);
 
 	return res;
-
 }
 
 gboolean do_install_network(const gchar *url) {
