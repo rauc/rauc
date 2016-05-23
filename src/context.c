@@ -258,10 +258,6 @@ void r_context_end_step(const gchar *name, gboolean success) {
 	if (!success)
 		step->substeps_done = step->substeps_total;
 
-	/* mark substeps/percentage as done/complete in case of an error */
-	if (!success)
-		step->substeps_done = step->substeps_total;
-
 	/* ensure that progress step nesting is done correctly */
 	g_assert_cmpstr(step->name, ==, name);
 
