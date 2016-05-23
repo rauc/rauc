@@ -148,7 +148,7 @@ static void set_up_bundle(InstallFixture *fixture,
 					 SLOT_SIZE, "/dev/zero") == 0);
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/rootfs.ext4"));
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/appfs.ext4"));
-	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE) == 0);
+	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE, FALSE) == 0);
 
 	/* Make images user-writable */
 	test_make_slot_user_writable(fixture->tmpdir, "content/rootfs.ext4");
@@ -187,6 +187,47 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture,
 		gconstpointer user_data) {
 	set_up_bundle(fixture, user_data, TRUE);
+}
+
+static void install_fixture_set_up_bundle_hook(InstallFixture *fixture,
+		gconstpointer user_data) {
+	gchar *contentdir;
+	gchar *bundlepath;
+
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
+	install_fixture_set_up(fixture, user_data);
+
+	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
+	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+
+	/* Setup bundle content */
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.ext4",
+					 64*1024*1024, "/dev/zero") == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.ext4",
+					 32*1024*1024, "/dev/zero") == 0);
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/rootfs.ext4"));
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/appfs.ext4"));
+	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE, TRUE) == 0);
+
+	/* Copy hook */
+	g_assert_true(test_copy_file("test/install-content/hook.sh", NULL,
+				fixture->tmpdir, "content/hook.sh"));
+
+	/* Make images user-writable */
+	test_make_slot_user_writable(fixture->tmpdir, "content/rootfs.ext4");
+	test_make_slot_user_writable(fixture->tmpdir, "content/appfs.ext4");
+
+	/* Update checksums in manifest */
+	g_assert_true(update_manifest(contentdir, FALSE, NULL));
+
+	/* Create bundle */
+	g_assert_true(create_bundle(bundlepath, contentdir, NULL));
+
+	g_free(bundlepath);
+	g_free(contentdir);
 }
 
 static void install_fixture_set_up_system_conf(InstallFixture *fixture,
@@ -359,7 +400,6 @@ static void install_fixture_tear_down(InstallFixture *fixture,
 		return;
 
 	test_umount(fixture->tmpdir, "slot");
-	test_umount(fixture->tmpdir, "mount");
 	test_rm_tree(fixture->tmpdir, "");
 }
 
@@ -606,6 +646,55 @@ static void install_test_network_thread(InstallFixture *fixture,
 	g_free(manifesturl);
 }
 
+static void install_test_bundle_hook(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *bundlepath, *mountdir, *slotfile, *testfilepath, *stamppath;
+	RaucInstallArgs *args;
+
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
+	/* Set mount path to current temp dir */
+	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
+	g_assert_nonnull(mountdir);
+	r_context_conf()->mountprefix = mountdir;
+	r_context();
+
+	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_nonnull(bundlepath);
+
+	args = install_args_new();
+	args->name = g_strdup(bundlepath);
+	args->notify = install_notify;
+	args->cleanup = install_cleanup;
+	g_assert_true(do_install_bundle(args, NULL));
+
+	slotfile = g_build_filename(fixture->tmpdir, "images/rootfs-1", NULL);
+	testfilepath = g_build_filename(mountdir, "verify.txt", NULL);
+	stamppath = g_build_filename(mountdir, "hook-stamp", NULL);
+	g_assert(test_mount(slotfile, mountdir));
+	g_assert(g_file_test(testfilepath, G_FILE_TEST_IS_REGULAR));
+	g_assert(g_file_test(stamppath, G_FILE_TEST_IS_REGULAR));
+	g_assert(test_umount(fixture->tmpdir, "mount"));
+	g_free(stamppath);
+	g_free(slotfile);
+	g_free(testfilepath);
+
+	slotfile = g_build_filename(fixture->tmpdir, "images/appfs-1", NULL);
+	stamppath = g_build_filename(mountdir, "hook-stamp", NULL);
+	g_assert(test_mount(slotfile, mountdir));
+	g_assert(!g_file_test(stamppath, G_FILE_TEST_IS_REGULAR));
+	g_assert(test_umount(fixture->tmpdir, "mount"));
+	g_free(stamppath);
+	g_free(slotfile);
+
+	args->status_result = 0;
+
+	g_free(bundlepath);
+}
+
 int main(int argc, char *argv[])
 {
 	gchar *path;
@@ -643,6 +732,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/install/bundle-custom-handler", InstallFixture, NULL,
 		   install_fixture_set_up_bundle_custom_handler, install_test_bundle,
+		   install_fixture_tear_down);
+
+	g_test_add("/install/bundle-hook", InstallFixture, NULL,
+		   install_fixture_set_up_bundle_hook, install_test_bundle_hook,
 		   install_fixture_tear_down);
 
 	return g_test_run();

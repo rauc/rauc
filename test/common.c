@@ -146,7 +146,7 @@ gboolean test_rm_tree(const gchar *dirname, const gchar *filename) {
 	return res;
 }
 
-int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, gboolean custom_handler) {
+int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, gboolean custom_handler, gboolean hook) {
 	gchar *path = g_build_filename(dirname, filename, NULL);
 	RaucManifest *rm = g_new0(RaucManifest, 1);
 	RaucImage *img;
@@ -156,6 +156,9 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, gboo
 
 	if (custom_handler)
 		rm->handler_name = g_strdup("custom_handler.sh");
+
+	if (hook)
+		rm->hook_name = g_strdup("hook.sh");
 
 	img = g_new0(RaucImage, 1);
 

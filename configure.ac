@@ -127,6 +127,7 @@ AC_CONFIG_LINKS([test/services/de.pengutronix.rauc.service.in:test/services/de.p
 AC_CONFIG_LINKS([test/sharness.sh:test/sharness.sh])
 AC_CONFIG_LINKS([test/install-content/appfs.img:test/install-content/appfs.img])
 AC_CONFIG_LINKS([test/install-content/rootfs.img:test/install-content/rootfs.img])
+AC_CONFIG_LINKS([test/install-content/hook.sh:test/install-content/hook.sh])
 AC_CONFIG_LINKS([test/install-content/custom_handler.sh:test/install-content/custom_handler.sh])
 AC_CONFIG_LINKS([test/install-content/manifest.raucm:test/install-content/manifest.raucm])
 

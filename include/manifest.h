@@ -28,6 +28,8 @@ typedef struct {
 	gchar *handler_name;
 	gchar *handler_args;
 
+	gchar *hook_name;
+
 	GList *images;
 	GList *files;
 } RaucManifest;

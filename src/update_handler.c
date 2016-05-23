@@ -293,7 +293,94 @@ out:
 	return res;
 }
 
-static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, GError **error)
+static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, RaucSlot *slot, GError **error) {
+	GSubprocessLauncher *launcher = NULL;
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	g_assert_nonnull(slot);
+	g_assert_nonnull(slot->name);
+	g_assert_nonnull(slot->sclass);
+	g_assert_nonnull(slot->mount_point);
+
+	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_NONE);
+
+	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_NAME", slot->name, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_CLASS", slot->sclass, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_MOUNT_POINT", slot->mount_point, TRUE);
+
+	sproc = g_subprocess_launcher_spawn(
+			launcher, &ierror,
+			hook_name,
+			hook_cmd,
+			NULL);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start slot hook: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run slot hook: ");
+		goto out;
+	}
+
+out:
+	g_clear_pointer(&launcher, g_object_unref);
+	g_clear_pointer(&sproc, g_object_unref);
+	return res;
+}
+
+static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, RaucSlot *slot, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	g_assert_nonnull(hook_cmd);
+
+	if (!hook_name) {
+		res = TRUE;
+		goto out;
+	}
+
+	/* mount slot */
+	g_message("Mounting slot %s", slot->device);
+	res = r_mount_slot(slot, &ierror);
+	if (!res) {
+		g_message("Mounting failed: %s", ierror->message);
+		g_clear_error(&ierror);
+		goto unmount_out;
+	}
+
+	/* run slot post install hook */
+	g_message("Running slot post install hook for %s", slot->name);
+	res = run_slot_hook(hook_name, hook_cmd, slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto unmount_out;
+	}
+
+unmount_out:
+	/* finally umount slot */
+	g_message("Unmounting slot %s", slot->device);
+	if (!r_umount_slot(slot, &ierror)) {
+		res = FALSE;
+		g_warning("Unmounting failed: %s", ierror->message);
+		g_clear_error(&ierror);
+	}
+
+out:
+	return res;
+}
+
+static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GOutputStream *outstream = NULL;
 	GError *ierror = NULL;
@@ -323,12 +410,18 @@ static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, GEr
 		goto out;
 	}
 
+	res = run_slot_hook(hook_name, "slot-post-install", dest_slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
 out:
 	g_clear_object(&outstream);
 	return res;
 }
 
-static gboolean tar_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, GError **error)
+static gboolean tar_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -358,6 +451,16 @@ static gboolean tar_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, GErr
 		goto unmount_out;
 	}
 
+	if (hook_name) {
+		/* run slot post install hook */
+		g_message("Running slot post install hook for %s", dest_slot->name);
+		res = mount_and_run_slot_hook(hook_name, "slot-post-install", dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto unmount_out;
+		}
+	}
+
 unmount_out:
 	/* finally umount ubi volume */
 	g_message("Unmounting ubifs slot %s", dest_slot->device);
@@ -371,7 +474,7 @@ out:
 	return res;
 }
 
-static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, GError **error) {
+static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -400,6 +503,16 @@ static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, GErro
 		goto unmount_out;
 	}
 
+	if (hook_name) {
+		/* run slot post install hook */
+		g_message("Running slot post install hook for %s", dest_slot->name);
+		res = run_slot_hook(hook_name, "slot-post-install", dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto unmount_out;
+		}
+	}
+
 unmount_out:
 	/* finally umount ubi volume */
 	g_message("Unmounting ext4 slot %s", dest_slot->device);
@@ -413,7 +526,7 @@ out:
 	return res;
 }
 
-static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, GError **error) {
+static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -437,7 +550,39 @@ out:
 	return res;
 }
 
-static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, GError **error) {
+static gboolean img_to_fs_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
+	GOutputStream *outstream = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	/* open */
+	g_message("opening slot device %s", dest_slot->device);
+	outstream = open_slot_device(dest_slot, NULL, &ierror);
+	if (outstream == NULL) {
+		res = FALSE;
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* copy */
+	res = copy_raw_image(image, outstream, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = mount_and_run_slot_hook(hook_name, "slot-post-install", dest_slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+out:
+	g_clear_object(&outstream);
+	return res;
+}
+
+static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
 	GOutputStream *outstream = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -470,7 +615,7 @@ typedef struct {
 } RaucUpdatePair;
 
 RaucUpdatePair updatepairs[] = {
-	{"*.ext4", "ext4", img_to_raw_handler},
+	{"*.ext4", "ext4", img_to_fs_handler},
 	{"*.ext4", "raw", img_to_raw_handler},
 	{"*.vfat", "raw", img_to_raw_handler},
 	{"*.tar.*", "ext4", tar_to_ext4_handler},

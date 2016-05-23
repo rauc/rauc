@@ -550,6 +550,7 @@ out:
 
 
 static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error) {
+	gchar *hook_name = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GHashTableIter iter;
@@ -578,6 +579,9 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			goto early_out;
 		}
 	}
+
+	if (manifest->hook_name)
+		hook_name = g_build_filename(bundledir, manifest->hook_name, NULL);
 
 	r_context_begin_step("update_slots", "Updating slots", g_list_length(manifest->images)*2);
 	install_args_update(args, "Updating slots...");
@@ -687,6 +691,7 @@ copy:
 		res = update_handler(
 			mfimage,
 			dest_slot,
+			hook_name,
 			&ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror,
@@ -775,6 +780,7 @@ image_out:
 	res = TRUE;
 
 out:
+	g_free(hook_name);
 	r_context_end_step("update_slots", res);
 early_out:
 	return res;
