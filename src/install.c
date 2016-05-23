@@ -381,26 +381,18 @@ static gboolean verify_compatible(RaucManifest *manifest) {
 	}
 }
 
-static gboolean launch_and_wait_handler(gchar* update_source, gchar *handler_name, RaucManifest *manifest, GHashTable *target_group, GError **error) {
-	GSubprocessLauncher *handlelaunch = NULL;
-	GSubprocess *handleproc = NULL;
-	GError *ierror = NULL;
-	gboolean res = FALSE;
-	GInputStream *instream;
-	GDataInputStream *datainstream;
-	gchar* outline;
-	gchar *targetlist = NULL;
-	gchar *slotlist = NULL;
+static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_source, RaucManifest *manifest, GHashTable *target_group)
+{
 	GHashTableIter iter;
 	RaucSlot *slot;
 	gint slotcnt = 0;
+	gchar *targetlist = NULL;
+	gchar *slotlist = NULL;
 
-	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE);
-
-	g_subprocess_launcher_setenv(handlelaunch, "RAUC_SYSTEM_CONFIG", r_context()->configpath, TRUE);
-	g_subprocess_launcher_setenv(handlelaunch, "RAUC_CURRENT_BOOTNAME", bootname_provider(), TRUE);
-	g_subprocess_launcher_setenv(handlelaunch, "RAUC_UPDATE_SOURCE", update_source, TRUE);
-	g_subprocess_launcher_setenv(handlelaunch, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_CONFIG", r_context()->configpath, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_CURRENT_BOOTNAME", bootname_provider(), TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_UPDATE_SOURCE", update_source, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
@@ -426,15 +418,15 @@ static gboolean launch_and_wait_handler(gchar* update_source, gchar *handler_nam
 				RaucImage *img = l->data;
 				if (g_str_equal(slot->sclass, img->slotclass)) {
 					varname = g_strdup_printf("RAUC_IMAGE_NAME_%i", slotcnt);
-					g_subprocess_launcher_setenv(handlelaunch, varname, img->filename, TRUE);
+					g_subprocess_launcher_setenv(launcher, varname, img->filename, TRUE);
 					g_clear_pointer(&varname, g_free);
 
 					varname = g_strdup_printf("RAUC_IMAGE_DIGEST_%i", slotcnt);
-					g_subprocess_launcher_setenv(handlelaunch, varname, img->checksum.digest, TRUE);
+					g_subprocess_launcher_setenv(launcher, varname, img->checksum.digest, TRUE);
 					g_clear_pointer(&varname, g_free);
 
 					varname = g_strdup_printf("RAUC_IMAGE_CLASS_%i", slotcnt);
-					g_subprocess_launcher_setenv(handlelaunch, varname, img->slotclass, TRUE);
+					g_subprocess_launcher_setenv(launcher, varname, img->slotclass, TRUE);
 					g_clear_pointer(&varname, g_free);
 
 					break;
@@ -447,34 +439,54 @@ static gboolean launch_and_wait_handler(gchar* update_source, gchar *handler_nam
 		}
 
 		varname = g_strdup_printf("RAUC_SLOT_NAME_%i", slotcnt);
-		g_subprocess_launcher_setenv(handlelaunch, varname, slot->name, TRUE);
+		g_subprocess_launcher_setenv(launcher, varname, slot->name, TRUE);
 		g_clear_pointer(&varname, g_free);
 
 		varname = g_strdup_printf("RAUC_SLOT_CLASS_%i", slotcnt);
-		g_subprocess_launcher_setenv(handlelaunch, varname, slot->sclass, TRUE);
+		g_subprocess_launcher_setenv(launcher, varname, slot->sclass, TRUE);
 		g_clear_pointer(&varname, g_free);
 
 		varname = g_strdup_printf("RAUC_SLOT_DEVICE_%i", slotcnt);
-		g_subprocess_launcher_setenv(handlelaunch, varname, slot->device, TRUE);
+		g_subprocess_launcher_setenv(launcher, varname, slot->device, TRUE);
 		g_clear_pointer(&varname, g_free);
 
 		varname = g_strdup_printf("RAUC_SLOT_BOOTNAME_%i", slotcnt);
-		g_subprocess_launcher_setenv(handlelaunch, varname, slot->bootname ? slot->bootname : "", TRUE);
+		g_subprocess_launcher_setenv(launcher, varname, slot->bootname ? slot->bootname : "", TRUE);
 		g_clear_pointer(&varname, g_free);
 
 		varname = g_strdup_printf("RAUC_SLOT_PARENT_%i", slotcnt);
-		g_subprocess_launcher_setenv(handlelaunch, varname, slot->parent ? slot->parent->name : "", TRUE);
+		g_subprocess_launcher_setenv(launcher, varname, slot->parent ? slot->parent->name : "", TRUE);
 		g_clear_pointer(&varname, g_free);
 	}
 
-	g_subprocess_launcher_setenv(handlelaunch, "RAUC_SLOTS", slotlist, TRUE);
-	g_subprocess_launcher_setenv(handlelaunch, "RAUC_TARGET_SLOTS", targetlist, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_SLOTS", slotlist, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_TARGET_SLOTS", targetlist, TRUE);
+	g_clear_pointer(&targetlist, g_free);
+	g_clear_pointer(&slotlist, g_free);
+}
+
+static gboolean launch_and_wait_handler(gchar *update_source, gchar *handler_name, RaucManifest *manifest, GHashTable *target_group, GError **error) {
+	GSubprocessLauncher *handlelaunch = NULL;
+	GSubprocess *handleproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	GInputStream *instream = NULL;
+	GDataInputStream *datainstream = NULL;
+	gchar *outline;
+
+	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE);
+
+	prepare_environment(handlelaunch, update_source, manifest, target_group);
 
 	handleproc = g_subprocess_launcher_spawn(
-			handlelaunch,
-			&ierror, handler_name,
+			handlelaunch, &ierror,
+			handler_name,
 			manifest->handler_args,
 			NULL);
+	if (handleproc == NULL) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
 
 	instream = g_subprocess_get_stdout_pipe(handleproc);
 	datainstream = g_data_input_stream_new(instream);
@@ -487,11 +499,6 @@ static gboolean launch_and_wait_handler(gchar* update_source, gchar *handler_nam
 		parse_handler_output(outline);
 	} while (outline);
 	
-	if (handleproc == NULL) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
 	res = g_subprocess_wait_check(handleproc, NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
@@ -501,6 +508,8 @@ static gboolean launch_and_wait_handler(gchar* update_source, gchar *handler_nam
 	res = TRUE;
 
 out:
+	g_clear_pointer(&handlelaunch, g_object_unref);
+	g_clear_pointer(&handleproc, g_object_unref);
 	return res;
 }
 
