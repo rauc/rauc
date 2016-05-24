@@ -174,6 +174,82 @@ out:
 	return res;
 }
 
+static gboolean nand_format_slot(const gchar *device, GError **error)
+{
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	GPtrArray *args = g_ptr_array_new_full(5, g_free);
+
+	g_ptr_array_add(args, g_strdup("flash_erase"));
+	g_ptr_array_add(args, g_strdup("--quiet"));
+	g_ptr_array_add(args, g_strdup(device));
+	g_ptr_array_add(args, g_strdup("0"));
+	g_ptr_array_add(args, g_strdup("0"));
+	g_ptr_array_add(args, NULL);
+
+	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
+				  G_SUBPROCESS_FLAGS_NONE, &ierror);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start flash_erase: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run flash_erase: ");
+		goto out;
+	}
+
+out:
+	g_ptr_array_unref(args);
+	return res;
+}
+
+static gboolean nand_write_slot(const gchar *image, const gchar *device, GError **error)
+{
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	GPtrArray *args = g_ptr_array_new_full(5, g_free);
+
+	g_ptr_array_add(args, g_strdup("nandwrite"));
+	g_ptr_array_add(args, g_strdup("--pad"));
+	g_ptr_array_add(args, g_strdup("--quiet"));
+	g_ptr_array_add(args, g_strdup(device));
+	g_ptr_array_add(args, g_strdup(image));
+	g_ptr_array_add(args, NULL);
+
+	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
+				  G_SUBPROCESS_FLAGS_NONE, &ierror);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start nandwrite: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run nandwrite: ");
+		goto out;
+	}
+
+out:
+	g_ptr_array_unref(args);
+	return res;
+}
+
 static gboolean untar_image(RaucImage *image, gchar *dest, GError **error)
 {
 	GSubprocess *sproc = NULL;
@@ -332,6 +408,30 @@ out:
 	return res;
 }
 
+static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	/* erase */
+	g_message("erasing slot device %s", dest_slot->device);
+	res = nand_format_slot(dest_slot->device, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* write */
+	g_message("writing slot device %s", dest_slot->device);
+	res = nand_write_slot(image->filename, dest_slot->device, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+out:
+	return res;
+}
+
 static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, GError **error) {
 	GOutputStream *outstream = NULL;
 	GError *ierror = NULL;
@@ -371,6 +471,7 @@ RaucUpdatePair updatepairs[] = {
 	{"*.tar.*", "ext4", tar_to_ext4_handler},
 	{"*.tar.*", "ubifs", tar_to_ubifs_handler},
 	{"*.ubifs", "ubifs", ubifs_to_ubifs_handler},
+	{"*.img", "nand", img_to_nand_handler},
 	{"*.img", "*", img_to_raw_handler}, /* fallback */
 	{0}
 };
