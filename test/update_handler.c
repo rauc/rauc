@@ -23,7 +23,7 @@ static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer
 {
 	RaucImage *image;
 	RaucSlot *targetslot;
-	img_to_fs_handler handler;
+	img_to_slot_handler handler;
 	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair*) user_data;
 
 	image = g_new0(RaucImage, 1);

@@ -132,6 +132,7 @@ static gboolean ubifs_format_slot(RaucSlot *dest_slot, GError **error)
 
 out:
 	g_ptr_array_unref(args);
+	g_clear_pointer(&sproc, g_object_unref);
 	return res;
 }
 
@@ -171,6 +172,7 @@ static gboolean ext4_format_slot(RaucSlot *dest_slot, GError **error)
 
 out:
 	g_ptr_array_unref(args);
+	g_clear_pointer(&sproc, g_object_unref);
 	return res;
 }
 
@@ -209,6 +211,7 @@ static gboolean nand_format_slot(const gchar *device, GError **error)
 
 out:
 	g_ptr_array_unref(args);
+	g_clear_pointer(&sproc, g_object_unref);
 	return res;
 }
 
@@ -247,6 +250,7 @@ static gboolean nand_write_slot(const gchar *image, const gchar *device, GError 
 
 out:
 	g_ptr_array_unref(args);
+	g_clear_pointer(&sproc, g_object_unref);
 	return res;
 }
 
@@ -285,6 +289,7 @@ static gboolean untar_image(RaucImage *image, gchar *dest, GError **error)
 
 out:
 	g_ptr_array_unref(args);
+	g_clear_pointer(&sproc, g_object_unref);
 	return res;
 }
 
@@ -461,7 +466,7 @@ out:
 typedef struct {
 	const gchar *src;
 	const gchar *dest;
-	img_to_fs_handler handler;
+	img_to_slot_handler handler;
 } RaucUpdatePair;
 
 RaucUpdatePair updatepairs[] = {
@@ -476,11 +481,11 @@ RaucUpdatePair updatepairs[] = {
 	{0}
 };
 
-img_to_fs_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, GError **error)
+img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, GError **error)
 {
 	const gchar *src = mfimage->filename;
 	const gchar *dest = dest_slot->type;
-	img_to_fs_handler handler = NULL;
+	img_to_slot_handler handler = NULL;
 
 	g_message("Checking image type for slot type: %s", dest);
 
