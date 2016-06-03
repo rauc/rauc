@@ -7,6 +7,8 @@
     <property name="Operation" type="s" access="read"/>
     <property name="LastError" type="s" access="read"/>
     <property name="ProgressUpdated" type="(isi)" access="read"/>
+    <property name="SlotStatus" type="a(sss)" access="read"/>
+    <property name="BootedSlot" type="s" access="read"/>
 
     <signal name="Completed">
       <arg name="result" type="i"/>
