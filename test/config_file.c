@@ -46,27 +46,32 @@ mountprefix=/mnt/myrauc/\n\
 path=/etc/rauc/keyring/\n\
 \n\
 [slot.rescue.0]\n\
+description=Rescue partition\n\
 device=/dev/mtd4\n\
 type=raw\n\
 bootname=factory0\n\
 readonly=true\n\
 \n\
 [slot.rootfs.0]\n\
+description=Root filesystem partition 0\n\
 device=/dev/sda0\n\
 type=ext4\n\
 bootname=system0\n\
 \n\
 [slot.rootfs.1]\n\
+description=Root filesystem partition 1\n\
 device=/dev/sda1\n\
 type=ext4\n\
 bootname=system1\n\
 \n\
 [slot.appfs.0]\n\
+description=Application filesystem partition 0\n\
 device=/dev/sda2\n\
 type=ext4\n\
 parent=rootfs.0\n\
 \n\
 [slot.appfs.1]\n\
+description=Application filesystem partition 1\n\
 device=/dev/sda3\n\
 type=ext4\n\
 parent=rootfs.1\n";
@@ -85,6 +90,7 @@ parent=rootfs.1\n";
 
 	slot = g_hash_table_lookup(config->slots, "rescue.0");
 	g_assert_cmpstr(slot->name, ==, "rescue.0");
+	g_assert_cmpstr(slot->description, ==, "Rescue partition");
 	g_assert_cmpstr(slot->device, ==, "/dev/mtd4");
 	g_assert_cmpstr(slot->bootname, ==, "factory0");
 	g_assert_cmpstr(slot->type, ==, "raw");
@@ -94,6 +100,7 @@ parent=rootfs.1\n";
 
 	slot = g_hash_table_lookup(config->slots, "rootfs.0");
 	g_assert_cmpstr(slot->name, ==, "rootfs.0");
+	g_assert_cmpstr(slot->description, ==, "Root filesystem partition 0");
 	g_assert_cmpstr(slot->device, ==, "/dev/sda0");
 	g_assert_cmpstr(slot->bootname, ==, "system0");
 	g_assert_cmpstr(slot->type, ==, "ext4");
@@ -103,6 +110,7 @@ parent=rootfs.1\n";
 
 	slot = g_hash_table_lookup(config->slots, "rootfs.1");
 	g_assert_cmpstr(slot->name, ==, "rootfs.1");
+	g_assert_cmpstr(slot->description, ==, "Root filesystem partition 1");
 	g_assert_cmpstr(slot->device, ==, "/dev/sda1");
 	g_assert_cmpstr(slot->bootname, ==, "system1");
 	g_assert_cmpstr(slot->type, ==, "ext4");
@@ -112,6 +120,7 @@ parent=rootfs.1\n";
 
 	slot = g_hash_table_lookup(config->slots, "appfs.0");
 	g_assert_cmpstr(slot->name, ==, "appfs.0");
+	g_assert_cmpstr(slot->description, ==, "Application filesystem partition 0");
 	g_assert_cmpstr(slot->device, ==, "/dev/sda2");
 	g_assert_null(slot->bootname);
 	g_assert_cmpstr(slot->type, ==, "ext4");
@@ -121,6 +130,7 @@ parent=rootfs.1\n";
 
 	slot = g_hash_table_lookup(config->slots, "appfs.1");
 	g_assert_cmpstr(slot->name, ==, "appfs.1");
+	g_assert_cmpstr(slot->description, ==, "Application filesystem partition 1");
 	g_assert_cmpstr(slot->device, ==, "/dev/sda3");
 	g_assert_null(slot->bootname);
 	g_assert_cmpstr(slot->type, ==, "ext4");

@@ -11,6 +11,7 @@ G_DEFINE_QUARK(r-config-error-quark, r_config_error)
 static void free_slot(gpointer value) {
 	RaucSlot *slot = (RaucSlot*)value;
 
+	g_clear_pointer(&slot->description, g_free);
 	g_clear_pointer(&slot->device, g_free);
 	g_clear_pointer(&slot->type, g_free);
 	g_clear_pointer(&slot->bootname, g_free);
@@ -153,6 +154,10 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			}
 			slot->name = g_intern_string(value);
 			g_free(value);
+
+			slot->description = g_key_file_get_string(key_file, groups[i], "description", NULL);
+			if (!slot->description)
+				slot->description = g_strdup("");
 
 			slot->sclass = g_intern_string(groupsplit[1]);
 

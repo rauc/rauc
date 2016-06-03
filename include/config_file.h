@@ -40,6 +40,8 @@ typedef enum {
 typedef struct _RaucSlot {
 	/** name of the slot. A glib intern string. */
 	const gchar *name;
+	/** user-friendly description of the slot. A glib intern string. */
+	gchar *description;
 	/** slot class the slot belongs to. A glib intern string. */
 	const gchar *sclass;
 	/** device this slot uses */
