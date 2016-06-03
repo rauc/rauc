@@ -154,6 +154,10 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			slot->name = g_intern_string(value);
 			g_free(value);
 
+			slot->description = g_intern_string(g_key_file_get_string(key_file, groups[i], "description", NULL));
+			if (!slot->description)
+				slot->description = g_strdup("");
+
 			slot->sclass = g_intern_string(groupsplit[1]);
 
 			value = resolve_path(filename,

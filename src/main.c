@@ -352,7 +352,7 @@ static gboolean status_start(int argc, char **argv)
 		}
 		g_print("  %s: class=%s, device=%s, type=%s, bootname=%s\n",
 			name, slot->sclass, slot->device, slot->type, slot->bootname);
-		g_print("      state=%s", state);
+		g_print("      state=%s, description=%s", state, slot->description);
 		if (slot->parent)
 			g_print(", parent=%s", slot->parent->name);
 		else
