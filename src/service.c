@@ -33,7 +33,11 @@ static gboolean service_install_cleanup(gpointer data)
 	RaucInstallArgs *args = data;
 
 	g_mutex_lock(&args->status_mutex);
-	g_message("installing %s done: %d\n", args->name, args->status_result);
+	if (args->status_result == 0) {
+		g_message("installing `%s` succeeded", args->name);
+	} else {
+		g_message("installing `%s` failed: %d", args->name, args->status_result);
+	}
 	r_installer_emit_completed(r_installer, args->status_result);
 	r_installer_set_operation(r_installer, "idle");
 	g_mutex_unlock(&args->status_mutex);

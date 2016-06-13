@@ -138,9 +138,22 @@ static gboolean install_start(int argc, char **argv)
 
 	g_main_loop_run(r_loop);
 
-	g_message("installing %s done: %d", args->name, args->status_result);
 
 out_loop:
+	switch (args->status_result) {
+		case 0:
+			g_print("installing `%s` succeeded\n", args->name);
+			break;
+		case 1:
+			g_printerr("installing `%s` failed\n", args->name);
+			break;
+		case 2:
+			g_printerr("D-Bus error while installing `%s`\n", args->name);
+			break;
+		default:
+			g_printerr("installing `%s` failed with unknown exit code: %d\n", args->name, args->status_result);
+			break;
+	}
 	r_exit_status = args->status_result;
 	g_clear_pointer(&r_loop, g_main_loop_unref);
 
