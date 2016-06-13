@@ -36,15 +36,6 @@ static gboolean install_notify(gpointer data) {
 
 static gboolean install_cleanup(gpointer data)
 {
-	RaucInstallArgs *args = data;
-
-	g_mutex_lock(&args->status_mutex);
-	g_message("installing %s done: %d", args->name, args->status_result);
-	r_exit_status = args->status_result;
-	g_mutex_unlock(&args->status_mutex);
-
-	install_args_free(args);
-
 	g_main_loop_quit(r_loop);
 
 	return G_SOURCE_REMOVE;
@@ -98,9 +89,10 @@ static gboolean install_start(int argc, char **argv)
 
 	g_debug("install started");
 
+	r_exit_status = 1;
+
 	if (argc < 3) {
 		g_printerr("a bundle filename name must be provided\n");
-		r_exit_status = 1;
 		goto out;
 	}
 
@@ -117,6 +109,7 @@ static gboolean install_start(int argc, char **argv)
 	args->name = bundlelocation;
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
+	args->status_result = 2;
 
 	r_loop = g_main_loop_new(NULL, FALSE);
 	if (ENABLE_SERVICE) {
@@ -126,27 +119,37 @@ static gboolean install_start(int argc, char **argv)
 		if (g_signal_connect(installer, "g-properties-changed",
 				     G_CALLBACK(on_installer_changed), args) <= 0) {
 			g_error("failed to connect properties-changed signal");
-			goto out;
+			goto out_loop;
 		}
 		if (g_signal_connect(installer, "completed",
 				     G_CALLBACK(on_installer_completed), args) <= 0) {
 			g_error("failed to connect completed signal");
-			goto out;
+			goto out_loop;
 		}
 		g_print("trying to contact rauc service\n");
 		if (!r_installer_call_install_sync(installer, bundlelocation, NULL,
 						   &error)) {
 			g_warning("failed %s", error->message);
-			goto out;
+			goto out_loop;
 		}
 	} else {
 		install_run(args);
 	}
 
 	g_main_loop_run(r_loop);
-out:
+
+	g_message("installing %s done: %d", args->name, args->status_result);
+
+out_loop:
+	r_exit_status = args->status_result;
 	g_clear_pointer(&r_loop, g_main_loop_unref);
+
+	g_signal_handlers_disconnect_by_data(installer, args);
 	g_clear_pointer(&installer, g_object_unref);
+
+out:
+	install_args_free(args);
+
 	return TRUE;
 }
 
