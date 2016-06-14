@@ -20,7 +20,7 @@ static gboolean service_install_notify(gpointer data) {
 	g_mutex_lock(&args->status_mutex);
 	while (!g_queue_is_empty(&args->status_messages)) {
 		gchar *msg = g_queue_pop_head(&args->status_messages);
-		g_message("installing %s: %s\n", args->name, msg);
+		g_message("installing %s: %s", args->name, msg);
 		g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
 	}
 	g_mutex_unlock(&args->status_mutex);
@@ -92,7 +92,7 @@ static gboolean auto_install(const gchar *source) {
 	if (!g_file_test(r_context()->config->autoinstall_path, G_FILE_TEST_EXISTS))
 		return FALSE;
 
-	g_message("input bundle: %s\n", source);
+	g_message("input bundle: %s", source);
 
 	res = !r_context_get_busy();
 	if (!res)
@@ -163,7 +163,7 @@ static void r_on_name_acquired(GDBusConnection *connection,
 static void r_on_name_lost(GDBusConnection *connection,
 			   const gchar     *name,
 			   gpointer         user_data) {
-	g_message("name lost, stopping service\n");
+	g_message("name lost, stopping service");
 	if (service_loop) {
 		g_main_loop_quit(service_loop);
 	}
@@ -173,7 +173,7 @@ static void r_on_name_lost(GDBusConnection *connection,
 
 static gboolean r_on_signal(gpointer user_data)
 {
-	g_message("stopping service\n");
+	g_message("stopping service");
 	if (service_loop) {
 		g_main_loop_quit(service_loop);
 	}

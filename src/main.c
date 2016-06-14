@@ -541,7 +541,7 @@ static void cmdline_handler(int argc, char **argv)
 
 	if (rcommand == NULL) {
 		/* INVALID COMMAND given */
-		g_message("Invalid command '%s' given\n", cmdarg);
+		g_message("Invalid command '%s' given", cmdarg);
 		r_exit_status = 1;
 		goto print_help;
 	}
