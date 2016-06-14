@@ -185,7 +185,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed signing bundle");
+				"failed signing bundle: ");
 		goto out;
 	}
 
@@ -195,7 +195,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to open bundle for appending");
+				"failed to open bundle for appending: ");
 		goto out;
 	}
 
@@ -205,7 +205,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to seek to end of bundle");
+				"failed to seek to end of bundle: ");
 		goto out;
 	}
 
@@ -215,7 +215,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to append signature to bundle");
+				"failed to append signature to bundle: ");
 		goto out;
 	}
 
@@ -226,7 +226,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to append signature size to bundle");
+				"failed to append signature size to bundle: ");
 		goto out;
 	}
 
@@ -263,7 +263,7 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to open bundle for reading");
+				"failed to open bundle for reading: ");
 		goto out;
 	}
 
@@ -274,7 +274,7 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to seek to end of bundle");
+				"failed to seek to end of bundle: ");
 		goto out;
 	}
 	offset = g_seekable_tell((GSeekable *)bundlestream);
@@ -285,7 +285,7 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to read signature size from bundle");
+				"failed to read signature size from bundle: ");
 		goto out;
 	}
 
@@ -300,7 +300,7 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to seek to start of bundle signature");
+				"failed to seek to start of bundle signature: ");
 		goto out;
 	}
 
@@ -310,7 +310,7 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to read signature from bundle");
+				"failed to read signature from bundle: ");
 		goto out;
 	}
 

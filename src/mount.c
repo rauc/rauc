@@ -81,7 +81,7 @@ gboolean r_umount(const gchar *filename, GError **error) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to start umount");
+				"failed to start umount: ");
 		goto out;
 	}
 
@@ -90,7 +90,7 @@ gboolean r_umount(const gchar *filename, GError **error) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to run umount");
+				"failed to run umount: ");
 		goto out;
 	}
 
