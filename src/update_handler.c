@@ -493,7 +493,7 @@ img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, 
 		//g_message("Checking for pattern: %s", (gchar*)l->data);
 		if (g_pattern_match_simple(updatepair->src, src) &&
 		    g_pattern_match_simple(updatepair->dest, dest)) {
-			g_message("Image detected as type: %s\n", updatepair->src);
+			g_message("Image detected as type: %s", updatepair->src);
 			handler = updatepair->handler;
 			break;
 		}
