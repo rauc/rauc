@@ -191,18 +191,11 @@ gboolean determine_slot_states(GError **error) {
 		}
 	}
 
-	if (!booted) {
-		g_set_error_literal(
-				error,
-				R_SLOT_ERROR,
-				3,
-				"Did not find booted slot");
-		goto out;
-	}
 
-	res = TRUE;
-	booted->state = ST_BOOTED;
-	g_debug("Found booted slot: %s on %s", booted->name, booted->device);
+	if (booted) {
+		booted->state = ST_BOOTED;
+		g_debug("Found booted slot: %s on %s", booted->name, booted->device);
+	}
 
 	/* Determine active group members */
 	for (GList *l = slotlist; l != NULL; l = l->next) {
@@ -219,6 +212,24 @@ gboolean determine_slot_states(GError **error) {
 				s->state |= ST_INACTIVE;
 		}
 	}
+
+	if (!booted) {
+
+		if (g_strcmp0(bootname, "/dev/nfs") == 0) {
+			g_message("Detected nfs boot, ignoring missing active slot");
+			res = TRUE;
+			goto out;
+		}
+
+		g_set_error_literal(
+				error,
+				R_SLOT_ERROR,
+				3,
+				"Did not find booted slot");
+		goto out;
+	}
+
+	res = TRUE;
 
 out:
 	g_clear_pointer(&slotlist, g_list_free);
