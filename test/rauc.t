@@ -77,4 +77,10 @@ test_expect_success "rauc status" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status mark-bad
 "
 
+test_expect_success "rauc install invalid local paths" "
+  test_must_fail rauc install foo &&
+  test_must_fail rauc install foo.raucb &&
+  test_must_fail rauc install /path/to/foo.raucb
+"
+
 test_done
