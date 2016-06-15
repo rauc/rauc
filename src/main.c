@@ -365,7 +365,7 @@ static gboolean status_start(int argc, char **argv)
 	}
 
 	if (argc < 3) {
-		r_exit_status = 1;
+		r_exit_status = 0;
 		goto out;
 	}
 

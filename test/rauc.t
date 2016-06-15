@@ -17,12 +17,12 @@ test_expect_success "rauc invalid cmd" "
 "
 
 test_expect_success "rauc missing arg" "
-  test_must_fail rauc install
-  test_must_fail rauc info
-  test_must_fail rauc bundle
-  test_must_fail rauc checksum
-  test_must_fail rauc resign
-  test_must_fail rauc install
+  test_must_fail rauc install &&
+  test_must_fail rauc info &&
+  test_must_fail rauc bundle &&
+  test_must_fail rauc checksum &&
+  test_must_fail rauc resign &&
+  test_must_fail rauc install &&
   test_must_fail rauc info
 "
 
@@ -64,7 +64,7 @@ test_expect_success "rauc bundle" "
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
-    bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb
+    bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info out.raucb
 "
 
@@ -72,8 +72,8 @@ test_expect_success "rauc bundle" "
 test_expect_success "rauc status" "
   cp $SHARNESS_TEST_DIRECTORY/test.conf $SHARNESS_TEST_DIRECTORY/test-temp.conf
   sed -i 's!bootname=system0!bootname=$(cat /proc/cmdline | sed 's/.*root=\([^ ]*\).*/\1/')!g' $SHARNESS_TEST_DIRECTORY/test-temp.conf
-  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status
-  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status mark-good
+  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status &&
+  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status mark-good &&
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status mark-bad
 "
 
