@@ -83,7 +83,7 @@ static void on_installer_completed(GDBusProxy *proxy, gint result,
 static gboolean install_start(int argc, char **argv)
 {
 	RInstaller *installer = NULL;
-	RaucInstallArgs *args = install_args_new();
+	RaucInstallArgs *args = NULL;
 	GError *error = NULL;
 	gchar *bundlelocation = NULL, *bundlescheme = NULL;
 
@@ -105,7 +105,7 @@ static gboolean install_start(int argc, char **argv)
 	g_clear_pointer(&bundlescheme, g_free);
 	g_debug("input bundle: %s", bundlelocation);
 
-
+	args = install_args_new();
 	args->name = bundlelocation;
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
@@ -159,9 +159,9 @@ out_loop:
 
 	g_signal_handlers_disconnect_by_data(installer, args);
 	g_clear_pointer(&installer, g_object_unref);
+	install_args_free(args);
 
 out:
-	install_args_free(args);
 
 	return TRUE;
 }
