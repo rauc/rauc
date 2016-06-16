@@ -701,6 +701,11 @@ copy:
 			goto image_out;
 		}
 
+		if (g_strcmp0(dest_slot->type, "ubivol") == 0) {
+			g_message("Skipping slot status update for ubi (static volume) slot %s ", dest_slot->device);
+			goto image_out;
+		}
+
 		g_debug("mounting slot %s", dest_slot->device);
 		res = r_mount_slot(dest_slot, &ierror);
 		if (!res) {

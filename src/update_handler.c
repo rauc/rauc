@@ -293,7 +293,7 @@ out:
 	return res;
 }
 
-static gboolean ubifs_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, GError **error)
+static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, GError **error)
 {
 	GOutputStream *outstream = NULL;
 	GError *ierror = NULL;
@@ -475,8 +475,9 @@ RaucUpdatePair updatepairs[] = {
 	{"*.vfat", "raw", img_to_raw_handler},
 	{"*.tar.*", "ext4", tar_to_ext4_handler},
 	{"*.tar.*", "ubifs", tar_to_ubifs_handler},
-	{"*.ubifs", "ubifs", ubifs_to_ubifs_handler},
+	{"*.ubifs", "ubifs", img_to_ubivol_handler},
 	{"*.img", "nand", img_to_nand_handler},
+	{"*.img", "ubivol", img_to_ubivol_handler},
 	{"*.img", "*", img_to_raw_handler}, /* fallback */
 	{0}
 };
