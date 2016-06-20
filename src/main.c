@@ -102,7 +102,23 @@ static gboolean install_start(int argc, char **argv)
 	} else {
 		bundlelocation = g_strdup(argv[2]);
 	}
-	g_clear_pointer(&bundlescheme, g_free);
+
+	/* If the URI parser returns NULL, assume bundle install with local path */
+	if (bundlescheme == NULL) {
+		/* A valid local bundle path name must end with `.raucb` */
+		if (!g_str_has_suffix(bundlelocation, ".raucb")) {
+			g_printerr("Bundle must have a .raucb extension: %s\n", bundlelocation);
+			g_clear_pointer(&bundlelocation, g_free);
+			goto out;
+		}
+
+		if (!g_file_test (bundlelocation, G_FILE_TEST_EXISTS)) {
+			g_printerr("No such file: %s\n", bundlelocation);
+			g_clear_pointer(&bundlelocation, g_free);
+			goto out;
+		}
+	}
+
 	g_debug("input bundle: %s", bundlelocation);
 
 	args = install_args_new();
@@ -162,6 +178,7 @@ out_loop:
 	install_args_free(args);
 
 out:
+	g_clear_pointer(&bundlescheme, g_free);
 
 	return TRUE;
 }
