@@ -207,11 +207,15 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 	}
 
 	if (!CMS_verify(cms, other, store, incontent, NULL, CMS_DETACHED)) {
+		unsigned long err;
+		const gchar *data;
+		int flags;
+		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_INVALID,
-				"invalid signature");
+				"signature verification failed: %s", (flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		goto out;
 	}
 
