@@ -6,12 +6,9 @@
 
     <property name="Operation" type="s" access="read"/>
     <property name="LastError" type="s" access="read"/>
-
-    <signal name="ProgressUpdated">
-      <arg name="percentage" type="i"/>
-      <arg name="description" type="s"/>
-      <arg name="nesting_depth" type="i"/>
-    </signal>
+    <property name="ProgressUpdated" type="(isi)" access="read"/>
+    <property name="SlotStatus" type="a(sss)" access="read"/>
+    <property name="BootedSlot" type="s" access="read"/>
 
     <signal name="Completed">
       <arg name="result" type="i"/>

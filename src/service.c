@@ -8,6 +8,7 @@
 #include <context.h>
 #include <install.h>
 #include <service.h>
+#include <mount.h>
 #include "rauc-installer-generated.h"
 
 GMainLoop *service_loop = NULL;
@@ -114,6 +115,69 @@ out:
 	return res;
 }
 
+/*
+ * Retrieves slot information from config and adds information from slot
+ * status files when possible
+ */
+static gboolean set_slot_status(void) {
+	GHashTableIter iter;
+	gpointer key, value;
+	RaucSlot *booted = NULL;
+	gboolean res = FALSE;
+	gint slot_number = g_hash_table_size(r_context()->config->slots);
+	GVariant **slot_status_tuples;
+	GVariant *slot_status_array;
+	gint slot_count = 0;
+
+	slot_status_tuples = g_new(GVariant*, slot_number);
+
+	res = determine_slot_states(NULL);
+	if (!res)
+		return FALSE;
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		gchar *name = key;
+		RaucSlot *slot = value;
+		gchar *slotstatuspath = NULL;
+		RaucSlotStatus *slot_state = NULL;
+		gchar *version = g_strdup("");
+		GVariant **slot_status;
+
+		res = r_mount_slot(slot, NULL);
+		if (res) {
+			slotstatuspath = g_build_filename(slot->mount_point, "slot.raucs", NULL);
+			res = load_slot_status(slotstatuspath, &slot_state, NULL);
+			if (res) {
+				version = g_strdup(slot_state->checksum.digest);
+				g_clear_pointer(&slot_state, free_slot_status);
+
+			}
+			r_umount_slot(slot, NULL);
+			g_clear_pointer(&slotstatuspath, g_free);
+		}
+
+		if (slot->state == ST_BOOTED)
+			booted = slot;
+
+		slot_status = g_new(GVariant*, 3);
+		slot_status[0] = g_variant_new_string(name);
+		slot_status[1] = g_variant_new_string(slot->description);
+		slot_status[2] = g_variant_new_string(version);
+		slot_status_tuples[slot_count] = g_variant_new_tuple(slot_status, 3);
+
+		slot_count++;
+	}
+
+	slot_status_array = g_variant_new_array(G_VARIANT_TYPE("(sss)"), slot_status_tuples, slot_number);
+	r_installer_set_slot_status(r_installer, slot_status_array);
+
+	if (booted)
+		r_installer_set_booted_slot(r_installer, g_strdup(booted->name));
+
+	return TRUE;
+}
+
 void set_last_error(gchar *message) {
 	if (r_installer)
 		r_installer_set_last_error(r_installer, message);
@@ -123,8 +187,16 @@ static void send_progress_callback(gint percentage,
 				   const gchar *message,
 				   gint nesting_depth) {
 
-	r_installer_emit_progress_updated(r_installer, percentage, message,
-					  nesting_depth);
+	GVariant **progress_update;
+	GVariant *progress_update_tuple;
+
+	progress_update = g_new(GVariant*, 3);
+	progress_update[0] = g_variant_new_int32(percentage);
+	progress_update[1] = g_variant_new_string(message);
+	progress_update[2] = g_variant_new_int32(nesting_depth);
+
+	progress_update_tuple = g_variant_new_tuple(progress_update, 3);
+	r_installer_set_progress_updated(r_installer, progress_update_tuple);
 }
 
 static void r_on_bus_acquired(GDBusConnection *connection,
@@ -156,6 +228,8 @@ static void r_on_name_acquired(GDBusConnection *connection,
 
 	if (r_context()->config->autoinstall_path)
 		auto_install(r_context()->config->autoinstall_path);
+
+	set_slot_status();
 
 	return;
 }
