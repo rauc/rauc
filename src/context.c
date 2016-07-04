@@ -1,6 +1,8 @@
 #include <config_file.h>
 #include <network.h>
 #include <signature.h>
+#include <mount.h>
+#include <install.h>
 #include <gio/gio.h>
 
 #include "context.h"
@@ -72,6 +74,49 @@ out:
 	return res;
 }
 
+/*
+ * Mounts slot (if necessary), tries to read status file and saves information
+ * in RaucSlot struct.
+ */
+static void set_slot_status(RaucSlot *slot) {
+	gboolean res = TRUE;
+	gchar *slot_status_path = NULL;
+	gboolean already_mounted = slot->mount_point != NULL;
+
+	if (!already_mounted)
+		res = r_mount_slot(slot, NULL);
+
+	if (res) {
+		slot_status_path = g_build_filename(slot->mount_point, "slot.raucs", NULL);
+		load_slot_status(slot_status_path, &slot->status, NULL);
+		if (!already_mounted)
+			r_umount_slot(slot, NULL);
+
+		g_clear_pointer(&slot_status_path, g_free);
+	}
+}
+
+/*
+ * Sets slot status information.
+ */
+static gboolean set_slots_status(void) {
+	GHashTableIter iter;
+	gpointer key, value;
+	gboolean res = FALSE;
+
+	res = determine_slot_states(NULL);
+	if (!res)
+		return FALSE;
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		set_slot_status(value);
+	}
+
+	return TRUE;
+}
+
+
 static void r_context_configure(void) {
 	gboolean res = TRUE;
 	GError *error = NULL;
@@ -123,6 +168,10 @@ static void r_context_configure(void) {
 	}
 
 	context->pending = FALSE;
+
+	if (!set_slots_status()) {
+		g_debug("could not determine slot states");
+	}
 }
 
 gboolean r_context_get_busy(void) {

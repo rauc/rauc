@@ -37,9 +37,16 @@ typedef enum {
 	ST_BOOTED = 4 | ST_ACTIVE,
 } SlotState;
 
+typedef struct {
+	gchar *status;
+	RaucChecksum checksum;
+} RaucSlotStatus;
+
 typedef struct _RaucSlot {
 	/** name of the slot. A glib intern string. */
 	const gchar *name;
+	/** user-friendly description of the slot. A glib intern string. */
+	gchar *description;
 	/** slot class the slot belongs to. A glib intern string. */
 	const gchar *sclass;
 	/** device this slot uses */
@@ -50,8 +57,9 @@ typedef struct _RaucSlot {
 	gchar *bootname;
 	/** flag indicating if the slot is updatable */
 	gboolean readonly;
-
-	/** current state of the slot (runtime) */
+	/** status of the slot */
+	RaucSlotStatus *status;
+	/** current state of the slot */
 	SlotState state;
 	struct _RaucSlot *parent;
 	gchar *mount_point;
@@ -60,11 +68,6 @@ typedef struct _RaucSlot {
 
 typedef struct {
 } RaucSlotGroup;
-
-typedef struct {
-	gchar *status;
-	RaucChecksum checksum;
-} RaucSlotStatus;
 
 /**
  * Loads rauc system configuration from file.
