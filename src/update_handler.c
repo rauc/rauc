@@ -752,6 +752,7 @@ RaucUpdatePair updatepairs[] = {
 	{"*.ubifs", "ubifs", img_to_ubivol_handler},
 	{"*.img", "nand", img_to_nand_handler},
 	{"*.img", "ubivol", img_to_ubivol_handler},
+	{"*.squashfs", "ubivol", img_to_ubivol_handler},
 	{"*.img", "*", img_to_raw_handler}, /* fallback */
 	{0}
 };
