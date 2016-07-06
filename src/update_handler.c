@@ -749,7 +749,7 @@ RaucUpdatePair updatepairs[] = {
 	{"*.vfat", "raw", img_to_raw_handler},
 	{"*.tar.*", "ext4", tar_to_ext4_handler},
 	{"*.tar.*", "ubifs", tar_to_ubifs_handler},
-	{"*.ubifs", "ubifs", img_to_ubivol_handler},
+	{"*.ubifs", "ubivol", img_to_ubivol_handler},
 	{"*.img", "nand", img_to_nand_handler},
 	{"*.img", "ubivol", img_to_ubivol_handler},
 	{"*.squashfs", "ubivol", img_to_ubivol_handler},
