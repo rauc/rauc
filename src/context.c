@@ -72,11 +72,14 @@ out:
 	return res;
 }
 
-static void r_context_configure(void) {
+void r_context_prepare(void) {
 	gboolean res = TRUE;
 	GError *error = NULL;
 
-	g_assert_nonnull(context);
+	if (!context) {
+		r_context_conf();
+	}
+
 	g_assert_false(context->busy);
 
 	g_clear_pointer(&context->config, free_config);
@@ -138,7 +141,7 @@ void r_context_set_busy(gboolean busy) {
 	g_assert(context->busy != busy);
 
 	if (!context->busy && context->pending)
-		r_context_configure();
+		r_context_prepare();
 
 	context->busy = busy;
 }
@@ -332,7 +335,6 @@ RaucContext *r_context_conf(void) {
 
 		context = g_new0(RaucContext, 1);
 		context->configpath = g_strdup("/etc/rauc/system.conf");
-		context->progress = NULL;
 	}
 
 	g_assert_false(context->busy);
@@ -344,9 +346,7 @@ RaucContext *r_context_conf(void) {
 
 const RaucContext *r_context(void) {
 	g_assert_nonnull(context);
-
-	if (context->pending)
-		r_context_configure();
+	g_assert(!context->pending);
 
 	return context;
 }

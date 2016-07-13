@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
 
 	r_context_conf()->configpath = g_strdup("test/test.conf");
 	r_context_conf()->handlerextra = g_strdup("--dummy1 --dummy2");
-	r_context();
+	r_context_prepare();
 
 	g_test_add_func("/manifest/load", test_load_manifest);
 	g_test_add_func("/manifest/save_load", test_save_load_manifest);

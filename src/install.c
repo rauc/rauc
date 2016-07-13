@@ -1216,6 +1216,7 @@ void install_args_free(RaucInstallArgs *args) {
 
 gboolean install_run(RaucInstallArgs *args) {
 	GThread *thread = NULL;
+	r_context_prepare();
 	r_context_set_busy(TRUE);
 
 	g_print("Active slot bootname: %s\n", get_cmdline_bootname());

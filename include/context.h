@@ -49,6 +49,7 @@ typedef struct {
 
 gboolean r_context_get_busy(void);
 void r_context_set_busy(gboolean busy);
+void r_context_prepare(void);
 
 /**
  * Call at the beginning of a relevant code block. Provides progress

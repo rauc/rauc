@@ -61,7 +61,7 @@ bootname=system1\n";
 
 	g_clear_pointer(&r_context_conf()->configpath, g_free);
 	r_context_conf()->configpath = pathname;
-	r_context();
+	r_context_prepare();
 
 	slot = find_config_slot_by_device(r_context()->config, "/dev/sda0");
 	g_assert_nonnull(slot);
@@ -111,7 +111,7 @@ bootname=B\n";
 
 	g_clear_pointer(&r_context_conf()->configpath, g_free);
 	r_context_conf()->configpath = pathname;
-	r_context();
+	r_context_prepare();
 
 	slot = find_config_slot_by_device(r_context()->config, "/dev/sda0");
 	g_assert_nonnull(slot);
@@ -160,7 +160,7 @@ bootname=B\n";
 
 	g_clear_pointer(&r_context_conf()->configpath, g_free);
 	r_context_conf()->configpath = pathname;
-	r_context();
+	r_context_prepare();
 
 	slot = find_config_slot_by_device(r_context()->config, "/dev/sda0");
 	g_assert_nonnull(slot);
