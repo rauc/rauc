@@ -160,8 +160,6 @@ static gboolean barebox_set_primary(RaucSlot *slot) {
 				BOOTSTATE_PREFIX, s->bootname, prio));
 	}
 
-	g_ptr_array_add(pairs, g_strdup_printf("%s.%s.ok=%i",
-			BOOTSTATE_PREFIX, slot->bootname, 1));
 	g_ptr_array_add(pairs, g_strdup_printf("%s.%s.remaining_attempts=%i",
 			BOOTSTATE_PREFIX, slot->bootname, 3));
 
