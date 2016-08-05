@@ -186,6 +186,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 				error,
 				ierror,
 				"failed signing bundle: ");
+		res = FALSE;
 		goto out;
 	}
 
@@ -196,6 +197,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 				error,
 				ierror,
 				"failed to open bundle for appending: ");
+		res = FALSE;
 		goto out;
 	}
 
@@ -230,8 +232,6 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		goto out;
 	}
 
-
-	res = TRUE;
 out:
 	g_clear_object(&bundlestream);
 	g_clear_object(&bundlefile);
