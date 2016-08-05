@@ -64,7 +64,15 @@ Documentation: https://rauc.readthedocs.org/
 
 Please see the [documentation](https://rauc.readthedocs.org/) for details.
 
-### Building from sources
+## Prerequisites
+
+    sudo apt-get install automake libtool libglib2.0-dev libcurl3-dev libssl-dev 
+
+### Optional Prerequisites
+
+    sudo apt-get install libjson-glib-dev
+
+## Building from sources
 
     git clone https://github.com/jluebbe/rauc
     cd rauc
@@ -72,13 +80,13 @@ Please see the [documentation](https://rauc.readthedocs.org/) for details.
     ./configure
     make
 
-### Testing
+## Testing
 
     sudo apt-get install user-mode-linux slirp
     make check
     ./uml-test
 
-### Creating a bundle
+## Creating a bundle
 
     mkdir content-dir/
     cp $SOURCE/rootfs.ext4.img content-dir/
@@ -93,7 +101,7 @@ Please see the [documentation](https://rauc.readthedocs.org/) for details.
     EOF
     rauc --cert autobuilder.cert.pem --key autobuilder.key.pem bundle content-dir/ update-2015.04-1.raucb
 
-### Installing a bundle
+## Installing a bundle
 
     rauc install update-2015.04-1.raucb
 
