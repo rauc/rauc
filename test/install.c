@@ -124,6 +124,7 @@ static void install_fixture_set_up(InstallFixture *fixture,
 
 static void set_up_bundle(InstallFixture *fixture,
 		gconstpointer user_data,
+		const gchar* manifest_content,
 		gboolean handler,
 		gboolean hook) {
 	gchar *contentdir;
@@ -149,7 +150,11 @@ static void set_up_bundle(InstallFixture *fixture,
 					 SLOT_SIZE, "/dev/zero") == 0);
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/rootfs.ext4"));
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/appfs.ext4"));
-	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE, hook) == 0);
+	if (manifest_content) {
+		g_assert_true(write_tmp_file(fixture->tmpdir, "content/manifest.raucm", manifest_content, NULL));
+	} else {
+		g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE, hook) == 0);
+	}
 
 	/* Make images user-writable */
 	test_make_slot_user_writable(fixture->tmpdir, "content/rootfs.ext4");
@@ -188,17 +193,32 @@ static void set_up_bundle(InstallFixture *fixture,
 
 static void install_fixture_set_up_bundle(InstallFixture *fixture,
 		gconstpointer user_data) {
-	set_up_bundle(fixture, user_data, FALSE, FALSE);
+	set_up_bundle(fixture, user_data, NULL, FALSE, FALSE);
 }
 
 static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture,
 		gconstpointer user_data) {
-	set_up_bundle(fixture, user_data, TRUE, FALSE);
+	set_up_bundle(fixture, user_data, NULL, TRUE, FALSE);
 }
 
 static void install_fixture_set_up_bundle_hook(InstallFixture *fixture,
 		gconstpointer user_data) {
-	set_up_bundle(fixture, user_data, FALSE, TRUE);
+	const gchar *manifest_file = "\
+[update]\n\
+compatible=Test Config\n\
+\n\
+[hooks]\n\
+filename=hook.sh\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.ext4\n\
+hooks=post-install\n\
+\n\
+[image.appfs]\n\
+filename=rootfs.ext4\n\
+hooks=post-install";
+
+	set_up_bundle(fixture, user_data, manifest_file, FALSE, TRUE);
 }
 
 static void install_fixture_set_up_system_conf(InstallFixture *fixture,
@@ -617,7 +637,7 @@ static void install_test_network_thread(InstallFixture *fixture,
 	g_free(manifesturl);
 }
 
-static void install_test_bundle_hook(InstallFixture *fixture,
+static void install_test_bundle_hook_post_install(InstallFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *bundlepath, *mountdir, *slotfile, *testfilepath, *stamppath;
@@ -705,8 +725,8 @@ int main(int argc, char *argv[])
 		   install_fixture_set_up_bundle_custom_handler, install_test_bundle,
 		   install_fixture_tear_down);
 
-	g_test_add("/install/bundle-hook", InstallFixture, NULL,
-		   install_fixture_set_up_bundle_hook, install_test_bundle_hook,
+	g_test_add("/install/bundle-hook/post_install", InstallFixture, NULL,
+		   install_fixture_set_up_bundle_hook, install_test_bundle_hook_post_install,
 		   install_fixture_tear_down);
 
 	return g_test_run();
