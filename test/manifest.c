@@ -38,6 +38,14 @@ static void manifest_check_common(RaucManifest *rm) {
 	}
 }
 
+/* Test manifest/load:
+ *
+ * Tests loading manifest from file: *
+ * Test cases:
+ * - load a valid manifest file
+ * - load a non-exisiting manifest file
+ * - load a broken manifest file
+ */
 static void test_load_manifest(void)
 {
 	RaucManifest *rm = NULL;
@@ -69,6 +77,13 @@ static void test_load_manifest(void)
 
 }
 
+/* Test manifest/save_load:
+ *
+ * Tests saving manifest structure to file and load again.
+ *
+ * Test cases:
+ * - save a valid manifest to file and load
+ */
 static void test_save_load_manifest(void)
 {
 	RaucManifest *rm = g_new0(RaucManifest, 1);
@@ -146,6 +161,13 @@ static void test_save_load_manifest(void)
 }
 
 
+/* Test manifest/load_mem:
+ *
+ * Tests loading manifest from memory.
+ *
+ * Test cases:
+ * - load a valid manifest from memory
+ */
 static void test_load_manifest_mem(void)
 {
 	GBytes *data = NULL;
