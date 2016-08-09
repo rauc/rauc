@@ -5,9 +5,16 @@
 #include <config_file.h>
 
 typedef struct {
+	gboolean pre_install;
+	gboolean install;
+	gboolean post_install;
+} SlotHooks;
+
+typedef struct {
 	gchar* slotclass;
 	RaucChecksum checksum;
 	gchar* filename;
+	SlotHooks hooks;
 } RaucImage;
 
 typedef struct {

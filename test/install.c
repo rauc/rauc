@@ -149,7 +149,7 @@ static void set_up_bundle(InstallFixture *fixture,
 					 SLOT_SIZE, "/dev/zero") == 0);
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/rootfs.ext4"));
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/appfs.ext4"));
-	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE, FALSE) == 0);
+	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE, hook) == 0);
 
 	/* Make images user-writable */
 	test_make_slot_user_writable(fixture->tmpdir, "content/rootfs.ext4");

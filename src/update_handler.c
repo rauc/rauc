@@ -11,6 +11,11 @@
 #include <errno.h>
 #include <mtd/ubi-user.h>
 
+
+#define R_SLOT_HOOK_PRE_INSTALL "slot-pre-install"
+#define R_SLOT_HOOK_POST_INSTALL "slot-post-install"
+#define R_SLOT_HOOK_INSTALL "slot-install"
+
 #define R_UPDATE_ERROR r_update_error_quark()
 
 static GQuark r_update_error_quark(void)
@@ -410,10 +415,13 @@ static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, con
 		goto out;
 	}
 
-	res = run_slot_hook(hook_name, "slot-post-install", dest_slot, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 out:
@@ -451,10 +459,9 @@ static gboolean tar_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 		goto unmount_out;
 	}
 
-	if (hook_name) {
-		/* run slot post install hook */
-		g_message("Running slot post install hook for %s", dest_slot->name);
-		res = mount_and_run_slot_hook(hook_name, "slot-post-install", dest_slot, &ierror);
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto unmount_out;
@@ -503,10 +510,9 @@ static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, const
 		goto unmount_out;
 	}
 
-	if (hook_name) {
-		/* run slot post install hook */
-		g_message("Running slot post install hook for %s", dest_slot->name);
-		res = run_slot_hook(hook_name, "slot-post-install", dest_slot, &ierror);
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto unmount_out;
@@ -571,10 +577,13 @@ static gboolean img_to_fs_handler(RaucImage *image, RaucSlot *dest_slot, const g
 		goto out;
 	}
 
-	res = mount_and_run_slot_hook(hook_name, "slot-post-install", dest_slot, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install)  {
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 out:
