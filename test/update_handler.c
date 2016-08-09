@@ -17,7 +17,9 @@ typedef struct {
 	gboolean success;
 } UpdateHandlerTestPair;
 
-/* Allows to test several source image / slot type combinations to either have
+/* Test update_handler/get_handler/<combination>:
+ *
+ * Allows to test several source image / slot type combinations to either have
  * a valid handler or not */
 static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer user_data)
 {
@@ -43,6 +45,11 @@ static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer
 		g_assert_null(handler);
 }
 
+/* Test update_handler/get_custom_handler:
+ *
+ * Tests for get_update_handler() returning hook script handler if 'install'
+ * hook is registered for image.
+ */
 static void test_get_custom_update_handler(UpdateHandlerFixture *fixture, gconstpointer user_data)
 {
 	RaucImage *image;
