@@ -122,7 +122,7 @@ gchar* r_create_mount_point(const gchar *name, GError **error) {
 
 	if (!g_file_test (mountpoint, G_FILE_TEST_IS_DIR)) {
 		gint ret;
-		ret = g_mkdir(mountpoint, 0777);
+		ret = g_mkdir(mountpoint, 0700);
 
 		if (ret != 0) {
 			g_set_error(
