@@ -43,6 +43,27 @@ static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer
 		g_assert_null(handler);
 }
 
+static void test_get_custom_update_handler(UpdateHandlerFixture *fixture, gconstpointer user_data)
+{
+	RaucImage *image;
+	RaucSlot *targetslot;
+	img_to_slot_handler handler;
+
+	image = g_new0(RaucImage, 1);
+	image->slotclass = g_strdup("rootfs");
+	image->filename = g_strdup("rootfs.custom");
+	image->hooks.install = TRUE;
+
+	targetslot = g_new0(RaucSlot, 1);
+	targetslot->name = g_strdup("rootfs.0");
+	targetslot->sclass = g_strdup("rootfs");
+	targetslot->device = g_strdup("/dev/null");
+	targetslot->type = g_strdup("nand");
+
+	handler = get_update_handler(image, targetslot, NULL);
+	g_assert_nonnull(handler);
+}
+
 int main(int argc, char *argv[])
 {
 	UpdateHandlerTestPair testpair_matrix[] = {
@@ -82,6 +103,13 @@ int main(int argc, char *argv[])
 			&testpair_matrix[3],
 			NULL,
 			test_get_update_handler,
+			NULL);
+
+	g_test_add("/update_handler/get_custom_handler",
+			UpdateHandlerFixture,
+			NULL,
+			NULL,
+			test_get_custom_update_handler,
 			NULL);
 
 	return g_test_run();
