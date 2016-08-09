@@ -617,6 +617,22 @@ out:
 	return res;
 }
 
+static gboolean hook_install_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	/* run slot install hook */
+	g_message("Running custom slot install hook for %s", dest_slot->name);
+	res = run_slot_hook(hook_name, R_SLOT_HOOK_INSTALL, dest_slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+out:
+	return res;
+}
+
 typedef struct {
 	const gchar *src;
 	const gchar *dest;
@@ -641,6 +657,11 @@ img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, 
 	const gchar *src = mfimage->filename;
 	const gchar *dest = dest_slot->type;
 	img_to_slot_handler handler = NULL;
+
+	/* If we have a custom install handler, use this instead of selecting an existing one */
+	if (mfimage->hooks.install) {
+		return hook_install_handler;
+	}
 
 	g_message("Checking image type for slot type: %s", dest);
 
