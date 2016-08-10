@@ -2,6 +2,7 @@
 #include <locale.h>
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <gio/gio.h>
 
 #include <bundle.h>
 #include <context.h>
@@ -34,6 +35,42 @@ static void bundle_fixture_tear_down(BundleFixture *fixture,
 {
 	g_assert_true(rm_tree(fixture->tmpdir, NULL));
 	g_free(fixture->tmpdir);
+}
+
+static void test_check_empty_bundle(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *bundlename;
+	gsize size;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	bundlename = write_random_file(fixture->tmpdir, "bundle.raucb", 0, 1234);
+	g_assert_nonnull(bundlename);
+
+	res = check_bundle(bundlename, &size, TRUE, &ierror);
+	g_assert_error(ierror, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
+	g_assert_false(res);
+
+	g_free(bundlename);
+}
+
+static void test_check_invalid_bundle(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *bundlename;
+	gsize size;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	bundlename = write_random_file(fixture->tmpdir, "bundle.raucb", 1024, 1234);
+	g_assert_nonnull(bundlename);
+
+	res = check_bundle(bundlename, &size, FALSE, &ierror);
+	g_assert_error(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE);
+	g_assert_false(res);
+
+	g_free(bundlename);
 }
 
 static void bundle_test1(BundleFixture *fixture,
@@ -163,6 +200,14 @@ int main(int argc, char *argv[])
 	r_context();
 
 	g_test_init(&argc, &argv, NULL);
+
+	g_test_add("/bundle/check/empty", BundleFixture, NULL,
+		   bundle_fixture_set_up, test_check_empty_bundle,
+		   bundle_fixture_tear_down);
+
+	g_test_add("/bundle/check/invalid", BundleFixture, NULL,
+		   bundle_fixture_set_up, test_check_invalid_bundle,
+		   bundle_fixture_tear_down);
 
 	g_test_add("/bundle/test1", BundleFixture, NULL,
 		   bundle_fixture_set_up, bundle_test1,
