@@ -107,22 +107,11 @@ gchar* r_create_mount_point(const gchar *name, GError **error) {
 	gchar* mountpoint = NULL;
 
 	prefix = r_context()->config->mount_prefix;
-	if (!g_file_test (prefix, G_FILE_TEST_IS_DIR)) {
-		g_set_error(
-				error,
-				G_FILE_ERROR,
-				G_FILE_ERROR_NOTDIR,
-				"mount prefix path %s does not exist",
-				prefix);
-		goto out;
-	}
-
-
 	mountpoint = g_build_filename(prefix, name, NULL);
 
 	if (!g_file_test (mountpoint, G_FILE_TEST_IS_DIR)) {
 		gint ret;
-		ret = g_mkdir(mountpoint, 0700);
+		ret = g_mkdir_with_parents(mountpoint, 0700);
 
 		if (ret != 0) {
 			g_set_error(
