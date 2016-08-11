@@ -9,15 +9,33 @@ die_error() {
 	exit 1
 }
 
-test "$1" = "slot-post-install" || exit 0
-
 test -n "$RAUC_SLOT_NAME" || die_error "missing RAUC_SLOT_NAME"
 test -n "$RAUC_SLOT_CLASS" || die_error "missing RAUC_SLOT_CLASS"
 
-# only rootfs needs to be handled
-test "$RAUC_SLOT_CLASS" = "rootfs" || exit 0
+case "$1" in
+	slot-post-install)
+		# only rootfs needs to be handled
+		test "$RAUC_SLOT_CLASS" = "rootfs" || exit 0
 
-test -d "$RAUC_SLOT_MOUNT_POINT" || die_error "missing RAUC_SLOT_MOUNT_POINT"
+		test -d "$RAUC_SLOT_MOUNT_POINT" || die_error "missing RAUC_SLOT_MOUNT_POINT"
 
-echo "$RAUC_SLOT_MOUNT_POINT/hook-stamp"
-touch "$RAUC_SLOT_MOUNT_POINT/hook-stamp"
+		echo "$RAUC_SLOT_MOUNT_POINT/hook-stamp"
+		touch "$RAUC_SLOT_MOUNT_POINT/hook-stamp"
+		;;
+	slot-install)
+		echo "RAUC_IMAGE_PATH: $RAUC_IMAGE_PATH"
+		echo "RAUC_SLOT_DEVICE: $RAUC_SLOT_DEVICE"
+		echo "RAUC_SLOT_MOUNT_POINT: $RAUC_SLOT_MOUNT_POINT"
+		echo "RAUC_MOUNT_PREFIX: $RAUC_MOUNT_PREFIX"
+		echo "$RAUC_MOUNT_PREFIX/hook-slot"
+		mkdir "$RAUC_MOUNT_PREFIX/hook-slot"
+		mount "$RAUC_SLOT_DEVICE" "$RAUC_MOUNT_PREFIX/hook-slot"
+		echo "$RAUC_MOUNT_PREFIX/hook-slot/hook-install"
+		touch "$RAUC_MOUNT_PREFIX/hook-slot/hook-install"
+		umount "$RAUC_MOUNT_PREFIX/hook-slot"
+		rmdir  "$RAUC_MOUNT_PREFIX/hook-slot"
+		;;
+	*)
+		exit 1
+		;;
+esac
