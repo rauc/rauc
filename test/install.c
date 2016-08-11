@@ -124,7 +124,8 @@ static void install_fixture_set_up(InstallFixture *fixture,
 
 static void set_up_bundle(InstallFixture *fixture,
 		gconstpointer user_data,
-		gboolean handler) {
+		gboolean handler,
+		gboolean hook) {
 	gchar *contentdir;
 	gchar *bundlepath;
 	gchar *mountdir;
@@ -167,6 +168,12 @@ static void set_up_bundle(InstallFixture *fixture,
 					fixture->tmpdir, "content/custom_handler.sh"));
 	}
 
+	/* Copy hook */
+	if (hook) {
+		g_assert_true(test_copy_file("test/install-content/hook.sh", NULL,
+					fixture->tmpdir, "content/hook.sh"));
+	}
+
 	/* Update checksums in manifest */
 	g_assert_true(update_manifest(contentdir, FALSE, NULL));
 
@@ -181,53 +188,17 @@ static void set_up_bundle(InstallFixture *fixture,
 
 static void install_fixture_set_up_bundle(InstallFixture *fixture,
 		gconstpointer user_data) {
-	set_up_bundle(fixture, user_data, FALSE);
+	set_up_bundle(fixture, user_data, FALSE, FALSE);
 }
 
 static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture,
 		gconstpointer user_data) {
-	set_up_bundle(fixture, user_data, TRUE);
+	set_up_bundle(fixture, user_data, TRUE, FALSE);
 }
 
 static void install_fixture_set_up_bundle_hook(InstallFixture *fixture,
 		gconstpointer user_data) {
-	gchar *contentdir;
-	gchar *bundlepath;
-
-	/* needs to run as root */
-	if (!test_running_as_root())
-		return;
-
-	install_fixture_set_up(fixture, user_data);
-
-	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
-	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
-
-	/* Setup bundle content */
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.ext4",
-					 64*1024*1024, "/dev/zero") == 0);
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.ext4",
-					 32*1024*1024, "/dev/zero") == 0);
-	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/rootfs.ext4"));
-	g_assert_true(test_make_filesystem(fixture->tmpdir, "content/appfs.ext4"));
-	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE, TRUE) == 0);
-
-	/* Copy hook */
-	g_assert_true(test_copy_file("test/install-content/hook.sh", NULL,
-				fixture->tmpdir, "content/hook.sh"));
-
-	/* Make images user-writable */
-	test_make_slot_user_writable(fixture->tmpdir, "content/rootfs.ext4");
-	test_make_slot_user_writable(fixture->tmpdir, "content/appfs.ext4");
-
-	/* Update checksums in manifest */
-	g_assert_true(update_manifest(contentdir, FALSE, NULL));
-
-	/* Create bundle */
-	g_assert_true(create_bundle(bundlepath, contentdir, NULL));
-
-	g_free(bundlepath);
-	g_free(contentdir);
+	set_up_bundle(fixture, user_data, FALSE, TRUE);
 }
 
 static void install_fixture_set_up_system_conf(InstallFixture *fixture,
