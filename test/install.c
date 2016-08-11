@@ -126,6 +126,8 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 		gconstpointer user_data) {
 	gchar *contentdir;
 	gchar *bundlepath;
+	gchar *mountdir;
+	gchar *testfilepath;
 
 	/* needs to run as root */
 	if (!test_running_as_root())
@@ -135,6 +137,8 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 
 	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	mountdir = g_build_filename(fixture->tmpdir, "mnt", NULL);
+	testfilepath = g_build_filename(mountdir, "verify.txt", NULL);
 
 	/* Setup bundle content */
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.ext4",
@@ -149,6 +153,14 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 	test_make_slot_user_writable(fixture->tmpdir, "content/rootfs.ext4");
 	test_make_slot_user_writable(fixture->tmpdir, "content/appfs.ext4");
 
+	/* Write test file to slot */
+	g_assert(test_mkdir_relative(fixture->tmpdir, "mnt", 0777) == 0);
+	g_assert_true(test_mount(g_build_filename(fixture->tmpdir, "content/rootfs.ext4", NULL), mountdir));
+	g_assert_true(g_file_set_contents(testfilepath, "0xdeadbeaf", -1, NULL));
+	g_assert_true(r_umount(mountdir, NULL));
+	g_assert(test_rmdir(fixture->tmpdir, "mnt") == 0);
+
+
 	/* Update checksums in manifest */
 	g_assert_true(update_manifest(contentdir, FALSE, NULL));
 
@@ -157,12 +169,16 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 
 	g_free(bundlepath);
 	g_free(contentdir);
+	g_free(mountdir);
+	g_free(testfilepath);
 }
 
 static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture,
 		gconstpointer user_data) {
 	gchar *contentdir;
 	gchar *bundlepath;
+	gchar *mountdir;
+	gchar *testfilepath;
 
 	/* needs to run as root */
 	if (!test_running_as_root())
@@ -172,6 +188,8 @@ static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture
 
 	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	mountdir = g_build_filename(fixture->tmpdir, "mnt", NULL);
+	testfilepath = g_build_filename(mountdir, "verify.txt", NULL);
 
 	/* Setup bundle content */
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.ext4",
@@ -190,6 +208,13 @@ static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture
 	test_make_slot_user_writable(fixture->tmpdir, "content/rootfs.ext4");
 	test_make_slot_user_writable(fixture->tmpdir, "content/appfs.ext4");
 
+	/* Write test file to slot */
+	g_assert(test_mkdir_relative(fixture->tmpdir, "mnt", 0777) == 0);
+	g_assert_true(test_mount(g_build_filename(fixture->tmpdir, "content/rootfs.ext4", NULL), mountdir));
+	g_assert_true(g_file_set_contents(testfilepath, "0xdeadbeaf", -1, NULL));
+	g_assert_true(r_umount(mountdir, NULL));
+	g_assert(test_rmdir(fixture->tmpdir, "mnt") == 0);
+
 	/* Update checksums in manifest */
 	g_assert_true(update_manifest(contentdir, FALSE, NULL));
 
@@ -198,6 +223,8 @@ static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture
 
 	g_free(bundlepath);
 	g_free(contentdir);
+	g_free(mountdir);
+	g_free(testfilepath);
 }
 
 static void install_fixture_set_up_system_conf(InstallFixture *fixture,
@@ -477,7 +504,7 @@ static gboolean install_cleanup(gpointer data)
 static void install_test_bundle(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *bundlepath, *mountdir;
+	gchar *bundlepath, *mountprefix, *slotfile, *testfilepath, *mountdir;
 	RaucInstallArgs *args;
 
 	/* needs to run as root */
@@ -485,9 +512,9 @@ static void install_test_bundle(InstallFixture *fixture,
 		return;
 
 	/* Set mount path to current temp dir */
-	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
-	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = mountdir;
+	mountprefix = g_build_filename(fixture->tmpdir, "mount", NULL);
+	g_assert_nonnull(mountprefix);
+	r_context_conf()->mountprefix = mountprefix;
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -499,9 +526,20 @@ static void install_test_bundle(InstallFixture *fixture,
 	args->cleanup = install_cleanup;
 	g_assert_true(do_install_bundle(args, NULL));
 
+	slotfile = g_build_filename(fixture->tmpdir, "images/rootfs-1", NULL);
+	mountdir = g_build_filename(fixture->tmpdir, "mnt", NULL);
+	g_assert(test_mkdir_relative(fixture->tmpdir, "mnt", 0777) == 0);
+	testfilepath = g_build_filename(mountdir, "verify.txt", NULL);
+	g_assert(test_mount(slotfile, mountdir));
+	g_assert(g_file_test(testfilepath, G_FILE_TEST_IS_REGULAR));
+	g_assert(test_umount(fixture->tmpdir, "mnt"));
+
 	args->status_result = 0;
 
 	g_free(bundlepath);
+	g_free(slotfile);
+	g_free(mountdir);
+	g_free(testfilepath);
 }
 
 static void install_test_network(InstallFixture *fixture,
