@@ -201,6 +201,25 @@ static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture
 	set_up_bundle(fixture, user_data, NULL, TRUE, FALSE);
 }
 
+static void install_fixture_set_up_bundle_install_check_hook(InstallFixture *fixture,
+		gconstpointer user_data) {
+	const gchar *manifest_file = "\
+[update]\n\
+compatible=Test Config\n\
+\n\
+[hooks]\n\
+filename=hook.sh\n\
+hooks=install-check\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.ext4\n\
+\n\
+[image.appfs]\n\
+filename=rootfs.ext4";
+
+	set_up_bundle(fixture, user_data, manifest_file, FALSE, TRUE);
+}
+
 static void install_fixture_set_up_bundle_install_hook(InstallFixture *fixture,
 		gconstpointer user_data) {
 	const gchar *manifest_file = "\
@@ -657,6 +676,39 @@ static void install_test_network_thread(InstallFixture *fixture,
 	g_free(manifesturl);
 }
 
+static void install_test_bundle_hook_install_check(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *bundlepath, *mountdir;
+	RaucInstallArgs *args;
+	GError *ierror = NULL;
+
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
+	/* Set mount path to current temp dir */
+	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
+	g_assert_nonnull(mountdir);
+	r_context_conf()->mountprefix = mountdir;
+	r_context();
+
+	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_nonnull(bundlepath);
+
+	args = install_args_new();
+	args->name = g_strdup(bundlepath);
+	args->notify = install_notify;
+	args->cleanup = install_cleanup;
+	g_assert_false(do_install_bundle(args, &ierror));
+	g_assert_cmpstr(ierror->message, ==, "Handler error: Bundle rejected: Hook returned: No, I won't install this!");
+
+	args->status_result = 0;
+
+	g_free(bundlepath);
+	g_free(mountdir);
+}
+
 static void install_test_bundle_hook_install(InstallFixture *fixture,
 		gconstpointer user_data)
 {
@@ -796,6 +848,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/install/bundle-custom-handler", InstallFixture, NULL,
 		   install_fixture_set_up_bundle_custom_handler, install_test_bundle,
+		   install_fixture_tear_down);
+
+	g_test_add("/install/bundle-hook/install-check", InstallFixture, NULL,
+		   install_fixture_set_up_bundle_install_check_hook, install_test_bundle_hook_install_check,
 		   install_fixture_tear_down);
 
 	g_test_add("/install/bundle-hook/slot-install", InstallFixture, NULL,

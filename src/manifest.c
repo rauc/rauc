@@ -93,6 +93,8 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	gboolean res = FALSE;
 	gchar **groups;
 	gsize group_count;
+	gchar **bundle_hooks;
+	gsize hook_entries;
 
 	g_assert_null(*manifest);
 
@@ -138,6 +140,19 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 
 	/* parse [hooks] section */
 	raucm->hook_name = manifest_consume_string(key_file, "hooks", "filename", NULL);
+	bundle_hooks = g_key_file_get_string_list(key_file, "hooks", "hooks", &hook_entries, NULL);
+	g_key_file_remove_key(key_file, "hooks", "hooks", NULL);
+	for (gsize j = 0; j < hook_entries; j++) {
+		if (g_strcmp0(bundle_hooks[j], "install-check") == 0) {
+			raucm->hooks.install_check = TRUE;
+		} else  {
+			g_warning("hook key %s not supported", bundle_hooks[j]);
+		}
+	}
+	if (!check_remaining_keys(key_file, "hooks", &ierror)) {
+		g_propagate_error(error, ierror);
+		goto free;
+	}
 	g_key_file_remove_group(key_file, "hooks", NULL);
 
 	/* parse [image.<slotclass>] and [file.<slotclass>/<destname>] sections */
@@ -309,6 +324,7 @@ out:
 gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **error) {
 	GKeyFile *key_file = NULL;
 	gboolean res = FALSE;
+	GPtrArray *hooks = g_ptr_array_new_full(3, g_free);
 
 	key_file = g_key_file_new();
 
@@ -335,6 +351,17 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **er
 
 	if (mf->hook_name)
 		g_key_file_set_string(key_file, "hooks", "filename", mf->hook_name);
+
+	if (mf->hooks.install_check == TRUE) {
+		g_ptr_array_add(hooks, g_strdup("install-check"));
+	}
+	g_ptr_array_add(hooks, NULL);
+	if (hooks->pdata && *hooks->pdata) {
+		g_key_file_set_string_list(key_file, "hooks", "hooks",
+				(const gchar **)hooks->pdata, hooks->len);
+	}
+
+	g_ptr_array_unref(hooks);
 
 	for (GList *l = mf->images; l != NULL; l = l->next) {
 		GPtrArray *hooklist = g_ptr_array_new_full(3, g_free);

@@ -525,13 +525,109 @@ out:
 	return res;
 }
 
+static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const gchar *hook_cmd, GError **error) {
+	gchar *hook_name = NULL;
+	GSubprocessLauncher *launcher = NULL;
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	GInputStream *instream = NULL;
+	GDataInputStream *datainstream = NULL;
+	gboolean res = FALSE;
+	gchar *outline, *hookreturnmsg = NULL;
+
+	g_assert_nonnull(manifest->hook_name);
+
+	hook_name = g_build_filename(bundledir, manifest->hook_name, NULL);
+
+	g_message("Running bundle hook %s", hook_cmd);
+
+	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDERR_PIPE);
+
+	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_COMPATIBLE", r_context()->config->system_compatible, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_MF_COMPATIBLE", manifest->update_compatible, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_MF_VERSION", manifest->update_version ?: "", TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
+
+	sproc = g_subprocess_launcher_spawn(
+			launcher, &ierror,
+			hook_name,
+			hook_cmd,
+			NULL);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start bundle hook: ");
+		goto out;
+	}
+
+	/* Read scripts stderr output */
+	instream = g_subprocess_get_stderr_pipe(sproc);
+	datainstream = g_data_input_stream_new(instream);
+
+	do {
+		outline = g_data_input_stream_read_line(datainstream, NULL, NULL, NULL);
+		if (outline) {
+			g_clear_pointer(&hookreturnmsg, g_free);
+			hookreturnmsg = outline;
+		}
+	} while (outline);
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		/* Subprocess exited with code 1 */
+		if (g_error_matches(ierror, G_SPAWN_EXIT_ERROR, 1)) {
+			if (hookreturnmsg) {
+				g_set_error(error, G_SPAWN_EXIT_ERROR, 1,
+						"Hook returned: %s", hookreturnmsg);
+			} else {
+				g_propagate_prefixed_error (
+						error,
+						ierror,
+						"Hook exited with exit code 1");
+			}
+		} else {
+			g_propagate_prefixed_error (
+					error,
+					ierror,
+					"failed to run bundle hook: ");
+		}
+		goto out;
+	}
+
+out:
+	g_clear_pointer(&launcher, g_object_unref);
+	g_clear_pointer(&sproc, g_object_unref);
+	g_clear_pointer(&hook_name, g_free);
+	return res;
+}
+
 static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error) {
 	gchar* handler_name = NULL;
 	gboolean res = FALSE;
 
 	r_context_begin_step("launch_and_wait_custom_handler", "Launching update handler", 0);
 
-	if (!verify_compatible(manifest)) {
+	/* Allow overriding compatible check by hook */
+	if (manifest->hooks.install_check) {
+		GError *ierror = NULL;
+		run_bundle_hook(manifest, bundledir, "install-check", &ierror);
+		if (ierror) {
+			if (g_error_matches(ierror, G_SPAWN_EXIT_ERROR, 1)) {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Bundle rejected: ");
+			} else {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Install-check hook failed: ");
+			}
+			res = FALSE;
+			goto out;
+		}
+	} else if (!verify_compatible(manifest)) {
 		g_set_error_literal(error, R_HANDLER_ERROR, 0,
 				"Compatible mismatch");
 		res = FALSE;
@@ -556,7 +652,25 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	GHashTableIter iter;
 	RaucSlot *dest_slot;
 
-	if (!verify_compatible(manifest)) {
+	/* Allow overriding compatible check by hook */
+	if (manifest->hooks.install_check) {
+		run_bundle_hook(manifest, bundledir, "install-check", &ierror);
+		if (ierror) {
+			if (g_error_matches(ierror, G_SPAWN_EXIT_ERROR, 1)) {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Bundle rejected: ");
+			} else {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Install-check hook failed: ");
+			}
+			res = FALSE;
+			goto early_out;
+		}
+	} else if (!verify_compatible(manifest)) {
 		res = FALSE;
 		g_set_error_literal(error, R_HANDLER_ERROR, 0,
 				"Compatible mismatch");
@@ -780,7 +894,7 @@ image_out:
 	res = TRUE;
 
 out:
-	g_free(hook_name);
+	//g_free(hook_name);
 	r_context_end_step("update_slots", res);
 early_out:
 	return res;

@@ -5,6 +5,10 @@
 #include <config_file.h>
 
 typedef struct {
+	gboolean install_check;
+} InstallHooks;
+
+typedef struct {
 	gboolean pre_install;
 	gboolean install;
 	gboolean post_install;
@@ -36,6 +40,7 @@ typedef struct {
 	gchar *handler_args;
 
 	gchar *hook_name;
+	InstallHooks hooks;
 
 	GList *images;
 	GList *files;

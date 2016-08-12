@@ -97,6 +97,7 @@ static void test_save_load_manifest(void)
 	rm->handler_name = g_strdup("myhandler.sh");
 	rm->handler_args = g_strdup("--foo");
 	rm->hook_name = g_strdup("hook.sh");
+	rm->hooks.install_check = TRUE;
 
 	new_image = g_new0(RaucImage, 1);
 
@@ -162,8 +163,11 @@ static void test_save_load_manifest(void)
 		g_assert_nonnull(file->filename);
 	}
 
+	g_assert_nonnull(g_list_nth_data(rm->images, 0));
 	g_assert_true(((RaucImage*)g_list_nth_data(rm->images, 0))->hooks.pre_install);
 	g_assert_true(((RaucImage*)g_list_nth_data(rm->images, 0))->hooks.post_install);
+
+	g_assert_true(rm->hooks.install_check);
 
 	free_manifest(rm);
 }

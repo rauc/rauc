@@ -6,14 +6,21 @@ NAME="$0"
 
 die_error() {
 	echo "$NAME ERROR: $1"
-	exit 1
+	exit 2
 }
 
-test -n "$RAUC_SLOT_NAME" || die_error "missing RAUC_SLOT_NAME"
-test -n "$RAUC_SLOT_CLASS" || die_error "missing RAUC_SLOT_CLASS"
 
 case "$1" in
+	install-check)
+		test -n "$RAUC_MF_COMPATIBLE" || die_error "missing RAUC_MF_COMPATIBLE"
+		test -n "$RAUC_SYSTEM_COMPATIBLE" || die_error "missing RAUC_SYSTEM_COMPATIBLE"
+		echo "No, I won't install this!" 1>&2
+		exit 1
+		;;
 	slot-post-install)
+		test -n "$RAUC_SLOT_NAME" || die_error "missing RAUC_SLOT_NAME"
+		test -n "$RAUC_SLOT_CLASS" || die_error "missing RAUC_SLOT_CLASS"
+
 		# only rootfs needs to be handled
 		test "$RAUC_SLOT_CLASS" = "rootfs" || exit 0
 
@@ -23,6 +30,9 @@ case "$1" in
 		touch "$RAUC_SLOT_MOUNT_POINT/hook-stamp"
 		;;
 	slot-install)
+		test -n "$RAUC_SLOT_NAME" || die_error "missing RAUC_SLOT_NAME"
+		test -n "$RAUC_SLOT_CLASS" || die_error "missing RAUC_SLOT_CLASS"
+
 		echo "RAUC_IMAGE_PATH: $RAUC_IMAGE_PATH"
 		echo "RAUC_SLOT_DEVICE: $RAUC_SLOT_DEVICE"
 		echo "RAUC_SLOT_MOUNT_POINT: $RAUC_SLOT_MOUNT_POINT"
