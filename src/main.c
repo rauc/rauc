@@ -305,6 +305,7 @@ static gboolean info_start(int argc, char **argv)
 	}
 
 	g_print("Compatible String:\t'%s'\n", manifest->update_compatible);
+	g_print("Update version:   \t'%s'\n", manifest->update_version);
 
 	cnt = g_list_length(manifest->images);
 	g_print("%d Image%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
