@@ -4,6 +4,18 @@
       <arg name="source" type="s"/>
     </method>
 
+   <!--
+    Info: D-Bus variant of rauc info <bundle>
+    @bundle: full path to the queried bundle.
+    @compatile: the compatible string from the bundle
+    @version: the version string from the bundle
+   -->
+   <method name="Info">
+      <arg name="bundle" type="s" direction="in" />
+      <arg name="compatible" type="s" direction="out" />
+      <arg name="version" type="s" direction="out" />
+    </method>
+
     <property name="Operation" type="s" access="read"/>
     <property name="LastError" type="s" access="read"/>
     <property name="Progress" type="(isi)" access="read"/>
