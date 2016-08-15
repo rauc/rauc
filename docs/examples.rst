@@ -148,18 +148,20 @@ of the update in a directory (in this case only the root file system image)::
   > mkdir temp-dir/
   > cp …/rootfs.ext4.img temp-dir/
 
-Next, to describe the bundle contents to rauc, we create a *manifest* file::
+Next, to describe the bundle contents to rauc, we create a *manifest* file.
+This must be named  ``manifest.raucm``::
 
-  > cat >> temp-dir/manifest << EOF
+  > cat >> temp-dir/manifest.raucm << EOF
   [update]
   compatible=rauc-demo-x86
   version=2015.04-1
 
   [image.rootfs]
-  sha256=de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31
-  size=24117248
   filename=rootfs.ext4.img
   EOF
+
+Note that we can omit the ``sha256`` and ``size`` parameters for the image
+here, as rauc will fill them out automatically when creating the bundle.
 
 Finally, we run rauc to create the bundle::
 
