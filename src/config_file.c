@@ -105,9 +105,11 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	c->keyring_path = resolve_path(filename,
 		g_key_file_get_string(key_file, "keyring", "path", NULL));
 
+	/* parse [autoinstall] section */
 	c->autoinstall_path = resolve_path(filename,
 		g_key_file_get_string(key_file, "autoinstall", "path", NULL));
 
+	/* parse [handlers] section */
 	c->systeminfo_handler = resolve_path(filename,
 		g_key_file_get_string(key_file, "handlers", "system-info", NULL));
 
