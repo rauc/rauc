@@ -75,6 +75,12 @@ rauc_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 rauc_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
 rauc_LDADD = $(librauc_la_LIBADD) librauc.la
 
+dbussystemdir = $(sysconfdir)/dbus-1/system-services
+dist_dbussystem_DATA = data/de.pengutronix.rauc.service
+
+dbuspolicydir = $(sysconfdir)/dbus-1/system.d
+dist_dbuspolicy_DATA = data/de.pengutronix.rauc.conf
+
 AM_TESTS_ENVIRONMENT = \
 	AM_TAP_AWK='$(AWK)'; export AM_TAP_AWK; \
 	CATCHSEGV='$(CATCHSEGV)'; export CATCHSEGV;
