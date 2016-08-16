@@ -98,6 +98,17 @@ check_PROGRAMS = \
 	test/progress.test
 check_LTLIBRARIES = librauctest.la
 
+EXTRA_DIST += tap-t \
+	      tap-test \
+	      test/bin \
+	      test/install-content \
+	      test/openssl-ca \
+	      test/manifest.raucm \
+	      test/rauc.t \
+	      test/rootfs.raucs \
+	      test/sharness.sh \
+	      test/test.conf
+
 librauctest_la_SOURCES = \
 	test/common.c \
 	test/common.h
