@@ -57,6 +57,31 @@ AX_CHECK_OPENSSL([],[AC_MSG_ERROR([OpenSSL not found])])
 
 # Checks for library functions.
 
+AC_CONFIG_LINKS([test/test.conf:test/test.conf])
+AC_CONFIG_LINKS([test/bin/postinstall.sh:test/bin/postinstall.sh])
+AC_CONFIG_LINKS([test/bin/fw_setenv:test/bin/fw_setenv])
+AC_CONFIG_LINKS([test/bin/grub-editenv:test/bin/grub-editenv])
+AC_CONFIG_LINKS([test/bin/barebox-state:test/bin/barebox-state])
+AC_CONFIG_LINKS([test/bin/preinstall.sh:test/bin/preinstall.sh])
+AC_CONFIG_LINKS([test/bin/systeminfo.sh:test/bin/systeminfo.sh])
+AC_CONFIG_LINKS([test/good-bundle.raucb:test/good-bundle.raucb])
+AC_CONFIG_LINKS([test/manifest.raucm:test/manifest.raucm])
+AC_CONFIG_LINKS([test/openssl-ca/manifest:test/openssl-ca/manifest])
+AC_CONFIG_LINKS([test/openssl-ca/dev/autobuilder-1.cert.pem:test/openssl-ca/dev/autobuilder-1.cert.pem])
+AC_CONFIG_LINKS([test/openssl-ca/dev/private/autobuilder-1.pem:test/openssl-ca/dev/private/autobuilder-1.pem])
+AC_CONFIG_LINKS([test/openssl-ca/dev-ca.pem:test/openssl-ca/dev-ca.pem])
+AC_CONFIG_LINKS([test/openssl-ca/rel/release-1.cert.pem:test/openssl-ca/rel/release-1.cert.pem])
+AC_CONFIG_LINKS([test/openssl-ca/rel/private/release-1.pem:test/openssl-ca/rel/private/release-1.pem])
+AC_CONFIG_LINKS([test/openssl-ca/manifest-r1.sig:test/openssl-ca/manifest-r1.sig])
+AC_CONFIG_LINKS([test/rauc.t:test/rauc.t])
+AC_CONFIG_LINKS([test/rootfs.raucs:test/rootfs.raucs])
+AC_CONFIG_LINKS([test/services/de.pengutronix.rauc.service.in:test/services/de.pengutronix.rauc.service.in])
+AC_CONFIG_LINKS([test/sharness.sh:test/sharness.sh])
+AC_CONFIG_LINKS([test/install-content/appfs.img:test/install-content/appfs.img])
+AC_CONFIG_LINKS([test/install-content/rootfs.img:test/install-content/rootfs.img])
+AC_CONFIG_LINKS([test/install-content/custom_handler.sh:test/install-content/custom_handler.sh])
+AC_CONFIG_LINKS([test/install-content/manifest.raucm:test/install-content/manifest.raucm])
+
 AC_CONFIG_FILES([
 	Makefile
 	test/services/de.pengutronix.rauc.service
