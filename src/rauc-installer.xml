@@ -1,5 +1,11 @@
 <node>
   <interface name="de.pengutronix.rauc.Installer">
+    <!--
+         Install:
+         @source: Path to bundle to be installed
+
+         Triggers an installation.
+    -->
     <method name="Install">
       <arg name="source" type="s"/>
     </method>
@@ -16,10 +22,21 @@
       <arg name="version" type="s" direction="out" />
     </method>
 
+    <!-- Operation: Represents the current (global) operation rauc performs -->
     <property name="Operation" type="s" access="read"/>
+    <!-- LastError: Holds a message describing the last error that occurred -->
     <property name="LastError" type="s" access="read"/>
+    <!-- Progress: Provides installation progress informations in the form
+         (percentage, message, nesting depth) -->
     <property name="Progress" type="(isi)" access="read"/>
 
+    <!--
+         Completed:
+         @result: return code (0 for success)
+
+         This signal is emitted when installation completed, either
+         successfully or with an error.
+    -->
     <signal name="Completed">
       <arg name="result" type="i"/>
     </signal>
