@@ -4,4 +4,4 @@ Description=Rauc Update Service
 [Service]
 Type=dbus
 BusName=de.pengutronix.rauc
-ExecStart=@BINDIR@/rauc service
+ExecStart=@bindir@/rauc service

@@ -84,6 +84,8 @@ dist_dbussystem_DATA = data/de.pengutronix.rauc.service
 dbuspolicydir = $(sysconfdir)/dbus-1/system.d
 dist_dbuspolicy_DATA = data/de.pengutronix.rauc.conf
 
+EXTRA_DIST += data/rauc.service.in
+
 AM_TESTS_ENVIRONMENT = \
 	AM_TAP_AWK='$(AWK)'; export AM_TAP_AWK; \
 	CATCHSEGV='$(CATCHSEGV)'; export CATCHSEGV;
@@ -159,6 +161,15 @@ test_network_test_LDADD = librauctest.la
 test_progress_test_SOURCES = test/progress.c
 test_progress_test_LDADD = librauctest.la
 
+SED_REPLACE = $(SED) \
+       -e 's|[@]bindir[@]|$(bindir)|g' \
+       -e 's|[@]datadir[@]|$(pkgdatadir)|g' \
+       -e 's|[@]prefix[@]|$(prefix)|g'
+
+data/%: data/%.in
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && \
+	$(SED_REPLACE) $< > $@
+
 SPHINXOPTS          =
 SPHINXBUILD         = sphinx-build
 PAPER               =
@@ -174,6 +185,8 @@ doc:
 
 
 CLEANFILES = $(gdbus_installer_generated) \
+	     $(dist_systemunit_DATA) \
+	     data/rauc.service \
 	     test/empty.dat \
 	     test/test-results/rauc.*.counts \
 	     test/savedmanifest.raucm \
