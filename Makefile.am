@@ -99,7 +99,8 @@ check_PROGRAMS = \
 check_LTLIBRARIES = librauctest.la
 
 librauctest_la_SOURCES = \
-	test/common.c
+	test/common.c \
+	test/common.h
 librauctest_la_LIBADD = $(GLIB_LIBS) librauc.la
 
 TESTS = $(check_PROGRAMS) test/rauc.t
@@ -120,7 +121,7 @@ test_manifest_test_SOURCES = test/manifest.c
 test_manifest_test_LDADD = librauctest.la
 
 test_service_test_CFLAGS = $(AM_CFLAGS) -DTEST_SERVICES=\""$(abs_top_builddir)/test/services"\"
-test_service_test_SOURCES = test/service.c
+test_service_test_SOURCES = test/service.c rauc-installer-generated.h
 test_service_test_LDADD = librauctest.la
 
 test_signature_test_SOURCES = test/signature.c
