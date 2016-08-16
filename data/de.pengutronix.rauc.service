@@ -2,4 +2,4 @@
 Name=de.pengutronix.rauc
 Exec=/usr/bin/rauc
 User=root
-SystemdService=dbus-de.pengutrinx.rauc.service
+SystemdService=rauc.service
