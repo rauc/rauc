@@ -84,7 +84,8 @@ dist_dbussystem_DATA = data/de.pengutronix.rauc.service
 dbuspolicydir = $(sysconfdir)/dbus-1/system.d
 dist_dbuspolicy_DATA = data/de.pengutronix.rauc.conf
 
-EXTRA_DIST += data/rauc.service.in
+EXTRA_DIST += data/rauc.service.in \
+	      data/de.pengutronix.rauc.service.in
 
 AM_TESTS_ENVIRONMENT = \
 	AM_TAP_AWK='$(AWK)'; export AM_TAP_AWK; \
@@ -186,6 +187,7 @@ doc:
 
 CLEANFILES = $(gdbus_installer_generated) \
 	     $(dist_systemunit_DATA) \
+	     $(dist_dbussystem_DATA) \
 	     data/rauc.service \
 	     test/empty.dat \
 	     test/test-results/rauc.*.counts \
