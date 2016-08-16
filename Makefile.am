@@ -46,7 +46,21 @@ librauc_la_SOURCES = \
 	src/service.c \
 	src/signature.c \
 	src/utils.c \
-	src/update_handler.c
+	src/update_handler.c \
+	include/bootchooser.h \
+	include/bundle.h \
+	include/checksum.h \
+	include/config_file.h \
+	include/context.h \
+	include/install.h \
+	include/manifest.h \
+	include/mount.h \
+	include/network.h \
+	include/service.h \
+	include/signature.h \
+	include/update_handler.h \
+	include/utils.h
+
 nodist_librauc_la_SOURCES = \
 	$(gdbus_installer_generated)
 librauc_la_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
