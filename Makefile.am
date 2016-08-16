@@ -164,4 +164,11 @@ doc:
 	@echo "Build finished. The HTML pages are in $(SPHINXBUILDDIR)/html."
 
 
-CLEANFILES = $(gdbus_installer_generated)
+CLEANFILES = $(gdbus_installer_generated) \
+	     test/empty.dat \
+	     test/test-results/rauc.*.counts \
+	     test/savedmanifest.raucm \
+	     test/savedslot.raucs \
+	     test/grubenv.test \
+	     test/random.dat \
+	     test/test-temp.conf
