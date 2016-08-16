@@ -1,0 +1,7 @@
+[Unit]
+Description=Rauc Update Service
+
+[Service]
+Type=dbus
+BusName=de.pengutronix.rauc
+ExecStart=@BINDIR@/rauc service
