@@ -53,6 +53,29 @@ PKG_CHECK_MODULES([CURL], [libcurl])
 
 AX_CHECK_OPENSSL([],[AC_MSG_ERROR([OpenSSL not found])])
 
+AC_ARG_WITH([systemdunitdir], AC_HELP_STRING([--with-systemdunitdir=DIR],
+	[path to systemd service directory]), [with_systemdunitdir=${withval}],
+		[with_systemdunitdir="`$PKG_CONFIG --variable=systemdsystemunitdir systemd`"])
+if (test -n "${with_systemdunitdir}"); then
+	SYSTEMD_UNITDIR="${with_systemdunitdir}"
+	AC_SUBST(SYSTEMD_UNITDIR)
+fi
+AM_CONDITIONAL(SYSTEMD, test -n "${with_systemdunitdir}")
+
+AC_ARG_WITH([dbuspolicydir],
+        AS_HELP_STRING([--with-dbuspolicydir=DIR], [D-Bus policy directory]),
+        [],
+        [with_dbuspolicydir=${datadir}/dbus-1/system.d])
+DBUS_POLICYDIR="${with_dbuspolicydir}"
+AC_SUBST(DBUS_POLICYDIR)
+
+AC_ARG_WITH([dbussystemservicedir],
+        AS_HELP_STRING([--with-dbussystemservicedir=DIR], [D-Bus system service directory]),
+        [],
+        [with_dbussystemservicedir=${datadir}/dbus-1/system-services])
+DBUS_SYSTEMSERVICEDIR="${with_dbussystemservicedir}"
+AC_SUBST(DBUS_SYSTEMSERVICEDIR)
+
 # Checks for header files.
 
 # Checks for typedefs, structures, and compiler characteristics.

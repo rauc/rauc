@@ -75,13 +75,15 @@ rauc_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 rauc_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
 rauc_LDADD = $(librauc_la_LIBADD) librauc.la
 
-systemdunitdir=$(libdir)/systemd/system
+if SYSTEMD
+systemdunitdir=$(SYSTEMD_UNITDIR)
 dist_systemdunit_DATA = data/rauc.service
+endif
 
-dbussystemdir = $(sysconfdir)/dbus-1/system-services
+dbussystemdir = $(DBUS_SYSTEMSERVICEDIR)
 dist_dbussystem_DATA = data/de.pengutronix.rauc.service
 
-dbuspolicydir = $(sysconfdir)/dbus-1/system.d
+dbuspolicydir = $(DBUS_POLICYDIR)
 dist_dbuspolicy_DATA = data/de.pengutronix.rauc.conf
 
 EXTRA_DIST += data/rauc.service.in \
