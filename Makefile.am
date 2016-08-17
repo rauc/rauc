@@ -186,6 +186,7 @@ doc:
 	@echo
 	@echo "Build finished. The HTML pages are in $(SPHINXBUILDDIR)/html."
 
+AM_DISTCHECK_CONFIGURE_FLAGS = "--without-systemdunitdir"
 
 CLEANFILES = $(gdbus_installer_generated) \
 	     $(dist_systemunit_DATA) \
