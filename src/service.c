@@ -8,6 +8,8 @@
 #include <context.h>
 #include <install.h>
 #include <service.h>
+#include <bundle.h>
+#include <utils.h>
 #include "rauc-installer-generated.h"
 
 GMainLoop *service_loop = NULL;
@@ -85,6 +87,73 @@ out:
 	return TRUE;
 }
 
+
+static gboolean r_on_handle_info(RInstaller *interface,
+				 GDBusMethodInvocation  *invocation,
+				 const gchar *arg_bundle)
+{
+	gchar* tmpdir = NULL;
+	gchar* bundledir = NULL;
+	gchar* manifestpath = NULL;
+	RaucManifest *manifest = NULL;
+	GError *error = NULL;
+	gboolean res = TRUE;
+
+	g_print("bundle: %s\n", arg_bundle);
+
+	res = !r_context_get_busy();
+	if (!res)
+		goto out;
+
+	tmpdir = g_dir_make_tmp("bundle-XXXXXX", &error);
+	if (!tmpdir) {
+		g_warning("%s", error->message);
+		g_clear_error(&error);
+		res = FALSE;
+		goto out;
+	}
+
+	bundledir = g_build_filename(tmpdir, "bundle-content", NULL);
+	manifestpath = g_build_filename(bundledir, "manifest.raucm", NULL);
+
+	res = extract_file_from_bundle(arg_bundle, bundledir, "manifest.raucm", TRUE, &error);
+	if (!res) {
+		g_warning("%s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+	res = load_manifest_file(manifestpath, &manifest, &error);
+	if (!res) {
+		g_warning("%s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+	g_print("compatible: %s\n", manifest->update_compatible);
+	g_print("version:    %s\n", manifest->update_version);
+
+out:
+	if (tmpdir)
+		rm_tree(tmpdir, NULL);
+
+	g_clear_pointer(&tmpdir, g_free);
+	g_clear_pointer(&bundledir, g_free);
+	g_clear_pointer(&manifestpath, g_free);
+
+	if (res) {
+		r_installer_complete_info(interface, invocation, manifest->update_compatible, manifest->update_version);
+	} else {
+		g_dbus_method_invocation_return_error(invocation,
+						      G_IO_ERROR,
+						      G_IO_ERROR_FAILED_HANDLED,
+						      "rauc info error");
+	}
+
+	return TRUE;
+}
+
+
 static gboolean auto_install(const gchar *source) {
 	RaucInstallArgs *args = install_args_new();
 	gboolean res = TRUE;
@@ -143,6 +212,10 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 
 	g_signal_connect(r_installer, "handle-install",
 			 G_CALLBACK(r_on_handle_install),
+			 NULL);
+
+	g_signal_connect(r_installer, "handle-info",
+			 G_CALLBACK(r_on_handle_info),
 			 NULL);
 
 	r_context_register_progress_callback(send_progress_callback);
