@@ -166,6 +166,94 @@ static void test_load_manifest_mem(void)
 	free_manifest(rm);
 }
 
+/* Test manifest/invalid_data:
+ *
+ * Tests parsing invalid data: *
+ * Test cases:
+ * - file does not start with a group
+ * - compatible is mising
+ * - compatible has no value
+ * - invalid key
+ * - invalid group
+ */
+static void test_invalid_data(void)
+{
+	GBytes *data = NULL;
+	GError *error = NULL;
+	RaucManifest *rm = NULL;
+
+	// file does not start with a group
+#define MANIFEST1 "\
+compatible=SuperBazzer\n\
+"
+
+	// compatible is mising
+#define MANIFEST2 "\
+[update]\n\
+"
+
+	// compatible has no value
+#define MANIFEST3 "\
+[update]\n\
+compatible=\n\
+"
+
+	// invalid key
+#define MANIFEST4 "\
+[update]\n\
+compatible=SuperBazzer\n\
+evilkey=foo\n\
+"
+
+	// invalid group
+#define MANIFEST5 "\
+[update]\n\
+compatible=SuperBazzer\n\
+\n\
+[evilgroup]\n\
+"
+
+	data = g_bytes_new_static(MANIFEST1, sizeof(MANIFEST1));
+	g_assert_false(load_manifest_mem(data, &rm, &error));
+	g_assert_nonnull(error);
+	g_assert_cmpstr("Key file does not start with a group", ==, error->message);
+	g_clear_error(&error);
+	g_assert_null(rm);
+	g_clear_pointer(&data, g_byte_array_free);
+
+	data = g_bytes_new_static(MANIFEST2, sizeof(MANIFEST2));
+	g_assert_false(load_manifest_mem(data, &rm, &error));
+	g_assert_nonnull(error);
+	g_assert_cmpstr("Key file does not have key 'compatible'", ==, error->message);
+	g_clear_error(&error);
+	g_assert_null(rm);
+	g_clear_pointer(&data, g_byte_array_free);
+
+	data = g_bytes_new_static(MANIFEST3, sizeof(MANIFEST3));
+	g_assert_false(load_manifest_mem(data, &rm, &error));
+	g_assert_nonnull(error);
+	g_assert_cmpstr("Missing value for key 'compatible'", ==, error->message);
+	g_clear_error(&error);
+	g_assert_null(rm);
+	g_clear_pointer(&data, g_byte_array_free);
+
+	data = g_bytes_new_static(MANIFEST4, sizeof(MANIFEST4));
+	g_assert_false(load_manifest_mem(data, &rm, &error));
+	g_assert_nonnull(error);
+	g_assert_cmpstr("Invalid key 'evilkey' in group '[update]'", ==, error->message);
+	g_clear_error(&error);
+	g_assert_null(rm);
+	g_clear_pointer(&data, g_byte_array_free);
+
+	data = g_bytes_new_static(MANIFEST5, sizeof(MANIFEST5));
+	g_assert_false(load_manifest_mem(data, &rm, &error));
+	g_assert_nonnull(error);
+	g_assert_cmpstr("Invalid group '[evilgroup]'", ==, error->message);
+	g_clear_error(&error);
+	g_assert_null(rm);
+	g_clear_pointer(&data, g_byte_array_free);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -179,6 +267,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/manifest/load", test_load_manifest);
 	g_test_add_func("/manifest/save_load", test_save_load_manifest);
 	g_test_add_func("/manifest/load_mem", test_load_manifest_mem);
+	g_test_add_func("/manifest/invalid_data", test_invalid_data);
 
 	return g_test_run ();
 }
