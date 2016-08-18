@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
 	r_context_conf()->configpath = g_strdup("test/test.conf");
 	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
 	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
-	r_context();
+	r_context_prepare();
 
 	g_assert(test_prepare_dummy_file("test/", "random.dat",
 				         256 * 1024, "/dev/urandom") == 0);

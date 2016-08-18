@@ -233,7 +233,7 @@ int main(int argc, char *argv[])
 
 	r_context_conf()->configpath = g_strdup("test/test.conf");
 	r_context_conf()->handlerextra = g_strdup("--dummy1 --dummy2");
-	r_context();
+	r_context_prepare();
 
 	g_test_add("/config-file/full-config", ConfigFileFixture, NULL,
 		   config_file_fixture_set_up, config_file_full_config,

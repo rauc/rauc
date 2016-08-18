@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
 
 	/* set up config/context */
 	r_context_conf()->configpath = g_strdup("test/test.conf");
-	r_context();
+	r_context_prepare();
 
 	r_context_register_progress_callback(test_progress_callback);
 

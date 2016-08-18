@@ -187,6 +187,7 @@ static gboolean bundle_start(int argc, char **argv)
 {
 	GError *ierror = NULL;
 	g_debug("bundle start");
+	r_context_prepare();
 
 	if (r_context()->certpath == NULL ||
 	    r_context()->keypath == NULL) {
@@ -232,6 +233,7 @@ static gboolean checksum_start(int argc, char **argv)
 	gboolean sign = FALSE;
 
 	g_debug("checksum start");
+	r_context_prepare();
 
 	if (r_context()->certpath != NULL &&
 	    r_context()->keypath != NULL) {
@@ -270,6 +272,8 @@ static gboolean info_start(int argc, char **argv)
 	GError *error = NULL;
 	gboolean res = FALSE;
 	gint cnt = 0;
+
+	r_context_prepare();
 
 	if (argc != 3) {
 		g_warning("a file name must be provided");
@@ -349,6 +353,7 @@ static gboolean status_start(int argc, char **argv)
 	GError *ierror = NULL;
 
 	g_debug("status start");
+	r_context_prepare();
 
 	g_print("booted from: %s\n", get_bootname());
 
@@ -582,6 +587,8 @@ static void cmdline_handler(int argc, char **argv)
 	if (help) {
 		goto print_help;
 	}
+
+	r_context_prepare();
 
 	/* configuration updates are handled here */
 	if (!r_context_get_busy()) {

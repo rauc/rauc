@@ -8,6 +8,7 @@
 #include <context.h>
 #include <install.h>
 #include <service.h>
+#include <mount.h>
 #include "rauc-installer-generated.h"
 
 GMainLoop *service_loop = NULL;
@@ -114,6 +115,57 @@ out:
 	return res;
 }
 
+/*
+ * Builds GVariant structure from slot info.
+ */
+static GVariant** get_slot_status(RaucSlot *slot) {
+	GVariant **g_slot_status;
+	gchar *version = g_strdup("");
+
+	if (slot->status) {
+		version = g_strdup(slot->status->checksum.digest);
+	}
+
+	g_slot_status = g_new(GVariant*, 3);
+	g_slot_status[0] = g_variant_new_string(slot->name);
+	g_slot_status[1] = g_variant_new_string(slot->description);
+	g_slot_status[2] = g_variant_new_string(version);
+	return g_slot_status;
+}
+
+/*
+ * Makes slot status information available via DBUS.
+ */
+static void set_slot_status_dbus(void) {
+	GHashTableIter iter;
+	gpointer key, value;
+	gint slot_number = g_hash_table_size(r_context()->config->slots);
+	GVariant **slot_status_tuples;
+	GVariant *slot_status_array;
+	gint slot_count = 0;
+
+	slot_status_tuples = g_new(GVariant*, slot_number);
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		RaucSlot *slot = value;
+		GVariant **slot_status;
+		slot_status = get_slot_status(value);
+		slot_status_tuples[slot_count] = g_variant_new_tuple(
+			slot_status, 3);
+		if (slot->state == ST_BOOTED) {
+			r_installer_set_booted_slot(r_installer,
+						    g_strdup(slot->name));
+		}
+		slot_count++;
+	}
+
+	slot_status_array = g_variant_new_array(G_VARIANT_TYPE("(sss)"),
+						slot_status_tuples,
+						slot_number);
+	r_installer_set_slot_status(r_installer, slot_status_array);
+}
+
 void set_last_error(gchar *message) {
 	if (r_installer)
 		r_installer_set_last_error(r_installer, message);
@@ -165,6 +217,8 @@ static void r_on_name_acquired(GDBusConnection *connection,
 	if (r_context()->config->autoinstall_path)
 		auto_install(r_context()->config->autoinstall_path);
 
+	set_slot_status_dbus();
+
 	return;
 }
 
@@ -195,7 +249,7 @@ gboolean r_service_run(void) {
 		bus_type = G_BUS_TYPE_SESSION;
 	}
 
-	r_context();
+	r_context_prepare();
 
 	service_loop = g_main_loop_new(NULL, FALSE);
 	g_unix_signal_add(SIGTERM, r_on_signal, NULL);
