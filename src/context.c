@@ -90,7 +90,7 @@ static void r_context_configure(void) {
 
 	}
 
-	if (&context->config->systeminfo_handler &&
+	if (context->config->systeminfo_handler &&
 		g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
 
 		GError *ierror = NULL;
