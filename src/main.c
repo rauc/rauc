@@ -136,7 +136,12 @@ static gboolean install_start(int argc, char **argv)
 	if (ENABLE_SERVICE) {
 		installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SYSTEM,
 			G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
-			"de.pengutronix.rauc", "/", NULL, NULL);
+			"de.pengutronix.rauc", "/", NULL, &error);
+		if (installer == NULL) {
+			g_printerr("Error creating proxy: %s\n", error->message);
+			g_error_free (error);
+			goto out_loop;
+		}
 		if (g_signal_connect(installer, "g-properties-changed",
 				     G_CALLBACK(on_installer_changed), args) <= 0) {
 			g_printerr("failed to connect properties-changed signal\n");
