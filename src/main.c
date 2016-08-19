@@ -481,6 +481,30 @@ out:
 	return TRUE;
 }
 
+/* returns string representation of slot state */
+static gchar* slotstate_to_str(SlotState slotstate)
+{
+	gchar *state = NULL;
+
+	switch (slotstate) {
+	case ST_ACTIVE:
+		state = g_strdup("active");
+		break;
+	case ST_INACTIVE:
+		state = g_strdup("inactive");
+		break;
+	case ST_BOOTED:
+		state = g_strdup("booted");
+		break;
+	case ST_UNKNOWN:
+	default:
+		g_error("invalid slot status %d", slotstate);
+		break;
+	}
+
+	return state;
+}
+
 static gboolean status_start(int argc, char **argv)
 {
 	GHashTableIter iter;
@@ -506,27 +530,13 @@ static gboolean status_start(int argc, char **argv)
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		gchar *name = key;
 		RaucSlot *slot = value;
-		const gchar *state = NULL;
-		switch (slot->state) {
-		case ST_ACTIVE:
-			state = "active";
-			break;
-		case ST_INACTIVE:
-			state = "inactive";
-			break;
-		case ST_BOOTED:
-			state = "booted";
+
+		if (slot->state == ST_BOOTED) {
 			booted = slot;
-			break;
-		case ST_UNKNOWN:
-		default:
-			g_error("invalid slot status");
-			r_exit_status = 1;
-			break;
 		}
 		g_print("  %s: class=%s, device=%s, type=%s, bootname=%s\n",
 			name, slot->sclass, slot->device, slot->type, slot->bootname);
-		g_print("      state=%s, description=%s", state, slot->description);
+		g_print("      state=%s, description=%s", slotstate_to_str(slot->state), slot->description);
 		if (slot->parent)
 			g_print(", parent=%s", slot->parent->name);
 		else
