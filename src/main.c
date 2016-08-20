@@ -4,6 +4,8 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gio/gio.h>
+#include <json-glib/json-glib.h>
+#include <json-glib/json-gobject.h>
 
 #include <config.h>
 #include <bootchooser.h>
@@ -19,6 +21,12 @@ GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
 gboolean info_noverify = FALSE;
+gchar *status_format = NULL;
+
+enum output_formats {
+	readable,
+	shell
+};
 
 static gboolean install_notify(gpointer data) {
 	RaucInstallArgs *args = data;
@@ -341,17 +349,183 @@ out:
 	return TRUE;
 }
 
+/* returns string representation of slot state */
+static gchar* slotstate_to_str(SlotState slotstate)
+{
+	gchar *state = NULL;
+
+	switch (slotstate) {
+	case ST_ACTIVE:
+		state = g_strdup("active");
+		break;
+	case ST_INACTIVE:
+		state = g_strdup("inactive");
+		break;
+	case ST_BOOTED:
+		state = g_strdup("booted");
+		break;
+	case ST_UNKNOWN:
+	default:
+		g_error("invalid slot status %d", slotstate);
+		break;
+	}
+
+	return state;
+}
+
+
+static gchar* r_status_formatter_readable(void)
+{
+	GHashTableIter iter;
+	gpointer key, value;
+	gint slotcnt = 0;
+	GString *text = g_string_new(NULL);
+
+	g_string_append_printf(text, "booted from: %s\n", get_bootname());
+
+	g_string_append(text, "slot states:\n");
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		gchar *name = key;
+		RaucSlot *slot = value;
+
+		slotcnt++;
+
+
+		g_string_append_printf(text, "  %s: class=%s, device=%s, type=%s, bootname=%s\n",
+				name, slot->sclass, slot->device, slot->type, slot->bootname);
+		g_string_append_printf(text, "      state=%s, description=%s", slotstate_to_str(slot->state), slot->description);
+		if (slot->parent)
+			g_string_append_printf(text, ", parent=%s", slot->parent->name);
+		else
+			g_string_append(text, ", parent=(none)");
+		if (slot->mount_point)
+			g_string_append_printf(text, ", mountpoint=%s", slot->mount_point);
+		else
+			g_string_append(text, ", mountpoint=(none)");
+		g_string_append_c(text, '\n');
+
+	}
+
+	return g_string_free(text, FALSE);
+}
+
+static gchar* r_status_formatter_shell(void)
+{
+	GHashTableIter iter;
+	gpointer key, value;
+	gchar *slotlist = NULL;
+	gchar *tmp = NULL;
+	gint slotcnt = 0;
+	GString *text = g_string_new(NULL);
+
+	g_string_append_printf(text, "RAUC_SYSTEM_BOOTED_BOOTNAME=%s\n", get_bootname());
+
+	g_string_append(text, "RAUC_SYSTEM_SLOTS=");
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		gchar *name = key;
+		g_string_append(text, name);
+		g_string_append_c(text, ' ');
+	}
+	g_string_append_c(text, '\n');
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		RaucSlot *slot = value;
+
+		slotcnt++;
+
+
+		g_string_append_printf(text, "RAUC_SLOT_STATE_%d=%s\n", slotcnt, slotstate_to_str(slot->state));
+		g_string_append_printf(text, "RAUC_SLOT_CLASS_%d=%s\n", slotcnt, slot->sclass);
+		g_string_append_printf(text, "RAUC_SLOT_DEVICE_%d=%s\n", slotcnt, slot->device);
+		g_string_append_printf(text, "RAUC_SLOT_TYPE_%d=%s\n", slotcnt, slot->type);
+		g_string_append_printf(text, "RAUC_SLOT_BOOTNAME_%d=%s\n", slotcnt, slot->bootname);
+		g_string_append_printf(text, "RAUC_SLOT_PARENT_%d=%s\n", slotcnt, slot->parent ? slot->parent->name : "(none)");
+		g_string_append_printf(text, "RAUC_SLOT_MOUNTPOINT_%d=%s\n", slotcnt, slot->mount_point ? slot->mount_point : "(none)");
+
+		tmp = g_strdup_printf("%s%i ", slotlist ? slotlist : "", slotcnt);
+		g_clear_pointer(&slotlist, g_free);
+		slotlist = tmp;
+
+	}
+
+	g_string_append_printf(text, "RAUC_SLOTS=%s\n", slotlist);
+
+	return g_string_free(text, FALSE);
+}
+
+static gchar* r_status_formatter_json(gboolean pretty)
+{
+	JsonGenerator *gen;
+	JsonNode * root;
+	GHashTableIter iter;
+	gpointer key, value;
+	gchar *str;
+	JsonBuilder *builder = json_builder_new ();
+
+	json_builder_begin_object (builder);
+
+	json_builder_set_member_name (builder, "booted");
+	json_builder_add_string_value (builder, get_bootname());
+
+	json_builder_set_member_name (builder, "slots");
+	json_builder_begin_array (builder);
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		RaucSlot *slot = value;
+
+		json_builder_begin_object (builder);
+		json_builder_set_member_name (builder, slot->name);
+		json_builder_begin_object (builder);
+		json_builder_set_member_name (builder, "class");
+		json_builder_add_string_value (builder, slot->sclass);
+		json_builder_set_member_name (builder, "device");
+		json_builder_add_string_value (builder, slot->device);
+		json_builder_set_member_name (builder, "type");
+		json_builder_add_string_value (builder, slot->type);
+		json_builder_set_member_name (builder, "bootname");
+		json_builder_add_string_value (builder, slot->bootname);
+		json_builder_set_member_name (builder, "state");
+		json_builder_add_string_value (builder, slotstate_to_str(slot->state));
+		json_builder_set_member_name (builder, "parent");
+		json_builder_add_string_value (builder, slot->parent ? slot->parent->name : NULL);
+		json_builder_set_member_name (builder, "mountpint");
+		json_builder_add_string_value (builder, slot->mount_point);
+		json_builder_end_object (builder);
+		json_builder_end_object (builder);
+
+	}
+
+	json_builder_end_array (builder);
+
+	json_builder_end_object (builder);
+
+	gen = json_generator_new ();
+	root = json_builder_get_root (builder);
+	json_generator_set_root (gen, root);
+	json_generator_set_pretty (gen, pretty);
+	str = json_generator_to_data (gen, NULL);
+
+	json_node_free (root);
+	g_object_unref (gen);
+	g_object_unref (builder);
+
+	return str;
+}
+
 static gboolean status_start(int argc, char **argv)
 {
 	GHashTableIter iter;
 	gpointer key, value;
-	gboolean res = FALSE;
 	RaucSlot *booted = NULL;
+	gchar *text = NULL;
 	GError *ierror = NULL;
+	gboolean res = FALSE;
 
 	g_debug("status start");
-
-	g_print("booted from: %s\n", get_bootname());
 
 	res = determine_slot_states(&ierror);
 	if (!res) {
@@ -361,46 +535,29 @@ static gboolean status_start(int argc, char **argv)
 		goto out;
 	}
 
-	g_print("slot states:\n");
-	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		gchar *name = key;
-		RaucSlot *slot = value;
-		const gchar *state = NULL;
-		switch (slot->state) {
-		case ST_ACTIVE:
-			state = "active";
-			break;
-		case ST_INACTIVE:
-			state = "inactive";
-			break;
-		case ST_BOOTED:
-			state = "booted";
-			booted = slot;
-			break;
-		case ST_UNKNOWN:
-		default:
-			g_error("invalid slot status");
-			r_exit_status = 1;
-			break;
-		}
-		g_print("  %s: class=%s, device=%s, type=%s, bootname=%s\n",
-			name, slot->sclass, slot->device, slot->type, slot->bootname);
-		g_print("      state=%s, description=%s", state, slot->description);
-		if (slot->parent)
-			g_print(", parent=%s", slot->parent->name);
-		else
-			g_print(", parent=(none)");
-		if (slot->mount_point)
-			g_print(", mountpoint=%s", slot->mount_point);
-		else
-			g_print(", mountpoint=(none)");
-		g_print("\n");
+	if (g_strcmp0(status_format, "shell") == 0) {
+		text = r_status_formatter_shell();
+	} else if (g_strcmp0(status_format, "json") == 0) {
+		text = r_status_formatter_json(FALSE);
+	} else if (g_strcmp0(status_format, "json-pretty") == 0) {
+		text = r_status_formatter_json(TRUE);
+	} else {
+		text = r_status_formatter_readable();
 	}
+
+	g_print("%s\n", text);
 
 	if (argc < 3) {
 		r_exit_status = 0;
 		goto out;
+	}
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		RaucSlot *slot = value;
+		if (slot->state == ST_BOOTED) {
+			booted = slot;
+		}
 	}
 
 	if (!booted) {
@@ -464,6 +621,11 @@ GOptionEntry entries_info[] = {
 	{0}
 };
 
+GOptionEntry entries_status[] = {
+	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &status_format, "output format", "FORMAT"},
+	{0}
+};
+
 static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, version = FALSE;
@@ -482,6 +644,7 @@ static void cmdline_handler(int argc, char **argv)
 		{0}
 	};
 	GOptionGroup *info_group = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
+	GOptionGroup *status_group = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
 
 	GError *error = NULL;
 	gchar *text;
@@ -492,7 +655,7 @@ static void cmdline_handler(int argc, char **argv)
 		{BUNDLE, "bundle", "bundle <FILE>", bundle_start, NULL, FALSE},
 		{CHECKSUM, "checksum", "checksum <DIRECTORY>", checksum_start, NULL, FALSE},
 		{INFO, "info", "info <FILE>", info_start, info_group, FALSE},
-		{STATUS, "status", "status", status_start, NULL, TRUE},
+		{STATUS, "status", "status", status_start, status_group, TRUE},
 #if ENABLE_SERVICE == 1
 		{SERVICE, "service", "service", service_start, NULL, TRUE},
 #endif
@@ -502,6 +665,7 @@ static void cmdline_handler(int argc, char **argv)
 	RaucCommand *rcommand = NULL;
 
 	g_option_group_add_entries(info_group, entries_info);
+	g_option_group_add_entries(status_group, entries_status);
 
 	context = g_option_context_new("<COMMAND>");
 	g_option_context_set_help_enabled(context, FALSE);

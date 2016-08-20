@@ -48,6 +48,7 @@ AS_IF([test "x$enable_service" != "xno"], [
 # Checks for libraries.
 PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.40 gio-2.0 gio-unix-2.0])
 PKG_CHECK_MODULES([CURL], [libcurl])
+PKG_CHECK_MODULES([JSON_GLIB], [json-glib-1.0])
 
 AX_CHECK_OPENSSL([],[AC_MSG_ERROR([OpenSSL not found])])
 
