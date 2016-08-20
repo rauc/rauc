@@ -371,31 +371,99 @@ static gchar* slotstate_to_str(SlotState slotstate)
 	return state;
 }
 
+
+static gchar* r_status_formatter_readable(void)
+{
+	GHashTableIter iter;
+	gpointer key, value;
+	gint slotcnt = 0;
+	GString *text = g_string_new(NULL);
+
+	g_string_append_printf(text, "booted from: %s\n", get_bootname());
+
+	g_string_append(text, "slot states:\n");
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		gchar *name = key;
+		RaucSlot *slot = value;
+
+		slotcnt++;
+
+
+		g_string_append_printf(text, "  %s: class=%s, device=%s, type=%s, bootname=%s\n",
+				name, slot->sclass, slot->device, slot->type, slot->bootname);
+		g_string_append_printf(text, "      state=%s, description=%s", slotstate_to_str(slot->state), slot->description);
+		if (slot->parent)
+			g_string_append_printf(text, ", parent=%s", slot->parent->name);
+		else
+			g_string_append(text, ", parent=(none)");
+		if (slot->mount_point)
+			g_string_append_printf(text, ", mountpoint=%s", slot->mount_point);
+		else
+			g_string_append(text, ", mountpoint=(none)");
+		g_string_append_c(text, '\n');
+
+	}
+
+	return g_string_free(text, FALSE);
+}
+
+static gchar* r_status_formatter_shell(void)
+{
+	GHashTableIter iter;
+	gpointer key, value;
+	gchar *slotlist = NULL;
+	gchar *tmp = NULL;
+	gint slotcnt = 0;
+	GString *text = g_string_new(NULL);
+
+	g_string_append_printf(text, "RAUC_SYSTEM_BOOTED_BOOTNAME=%s\n", get_bootname());
+
+	g_string_append(text, "RAUC_SYSTEM_SLOTS=");
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		gchar *name = key;
+		g_string_append(text, name);
+		g_string_append_c(text, ' ');
+	}
+	g_string_append_c(text, '\n');
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		RaucSlot *slot = value;
+
+		slotcnt++;
+
+
+		g_string_append_printf(text, "RAUC_SLOT_STATE_%d=%s\n", slotcnt, slotstate_to_str(slot->state));
+		g_string_append_printf(text, "RAUC_SLOT_CLASS_%d=%s\n", slotcnt, slot->sclass);
+		g_string_append_printf(text, "RAUC_SLOT_DEVICE_%d=%s\n", slotcnt, slot->device);
+		g_string_append_printf(text, "RAUC_SLOT_TYPE_%d=%s\n", slotcnt, slot->type);
+		g_string_append_printf(text, "RAUC_SLOT_BOOTNAME_%d=%s\n", slotcnt, slot->bootname);
+		g_string_append_printf(text, "RAUC_SLOT_PARENT_%d=%s\n", slotcnt, slot->parent ? slot->parent->name : "(none)");
+		g_string_append_printf(text, "RAUC_SLOT_MOUNTPOINT_%d=%s\n", slotcnt, slot->mount_point ? slot->mount_point : "(none)");
+
+		tmp = g_strdup_printf("%s%i ", slotlist ? slotlist : "", slotcnt);
+		g_clear_pointer(&slotlist, g_free);
+		slotlist = tmp;
+
+	}
+
+	g_string_append_printf(text, "RAUC_SLOTS=%s\n", slotlist);
+
+	return g_string_free(text, FALSE);
+}
+
 static gboolean status_start(int argc, char **argv)
 {
 	GHashTableIter iter;
 	gpointer key, value;
-	gboolean res = FALSE;
 	RaucSlot *booted = NULL;
+	gchar *text = NULL;
 	GError *ierror = NULL;
-	enum output_formats output_format = readable;
-	gint slotcnt = 0;
-	gchar *slotlist = NULL;
-	gchar *tmp = NULL;
+	gboolean res = FALSE;
 
 	g_debug("status start");
-
-	if (g_strcmp0(status_format, "shell") == 0) {
-		output_format = shell;
-	} else {
-		output_format = readable;
-	}
-
-	if (output_format == shell) {
-		g_print("RAUC_SYSTEM_BOOTED_BOOTNAME=%s\n", get_bootname());
-	} else {
-		g_print("booted from: %s\n", get_bootname());
-	}
 
 	res = determine_slot_states(&ierror);
 	if (!res) {
@@ -405,63 +473,25 @@ static gboolean status_start(int argc, char **argv)
 		goto out;
 	}
 
-	if (output_format == shell) {
-		g_print("RAUC_SYSTEM_SLOTS=");
-		g_hash_table_iter_init(&iter, r_context()->config->slots);
-		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			gchar *name = key;
-			g_print("%s ", name);
-		}
-		g_print("\n");
+	if (g_strcmp0(status_format, "shell") == 0) {
+		text = r_status_formatter_shell();
+	} else {
+		text = r_status_formatter_readable();
 	}
 
-	if (output_format == readable)
-		g_print("slot states:\n");
-	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		gchar *name = key;
-		RaucSlot *slot = value;
-		const gchar *state = NULL;
-
-		slotcnt++;
-
-
-		if (output_format == shell) {
-			g_print("RAUC_SLOT_STATE_%d=%s\n", slotcnt, slotstate_to_str(state));
-			g_print("RAUC_SLOT_CLASS_%d=%s\n", slotcnt, slot->sclass);
-			g_print("RAUC_SLOT_DEVICE_%d=%s\n", slotcnt, slot->device);
-			g_print("RAUC_SLOT_TYPE_%d=%s\n", slotcnt, slot->type);
-			g_print("RAUC_SLOT_BOOTNAME_%d=%s\n", slotcnt, slot->bootname);
-			g_print("RAUC_SLOT_PARENT_%d=%s\n", slotcnt, slot->parent ? slot->parent->name : "(none)");
-			g_print("RAUC_SLOT_MOUNTPOINT_%d=%s\n", slotcnt, slot->mount_point ? slot->mount_point : "(none)");
-
-			tmp = g_strdup_printf("%s%i ", slotlist ? slotlist : "", slotcnt);
-			g_clear_pointer(&slotlist, g_free);
-			slotlist = tmp;
-		} else {
-			g_print("  %s: class=%s, device=%s, type=%s, bootname=%s\n",
-					name, slot->sclass, slot->device, slot->type, slot->bootname);
-			g_print("      state=%s, description=%s", state, slot->description);
-			if (slot->parent)
-				g_print(", parent=%s", slot->parent->name);
-			else
-				g_print(", parent=(none)");
-			if (slot->mount_point)
-				g_print(", mountpoint=%s", slot->mount_point);
-			else
-				g_print(", mountpoint=(none)");
-			g_print("\n");
-		}
-
-	}
-
-	if (output_format == shell) {
-		g_print("RAUC_SLOTS=%s\n", slotlist);
-	}
+	g_print("%s\n", text);
 
 	if (argc < 3) {
 		r_exit_status = 0;
 		goto out;
+	}
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		RaucSlot *slot = value;
+		if (slot->state == ST_BOOTED) {
+			booted = slot;
+		}
 	}
 
 	if (!booted) {
