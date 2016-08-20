@@ -4,6 +4,8 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gio/gio.h>
+#include <json-glib/json-glib.h>
+#include <json-glib/json-gobject.h>
 
 #include <config.h>
 #include <bootchooser.h>
@@ -454,6 +456,66 @@ static gchar* r_status_formatter_shell(void)
 	return g_string_free(text, FALSE);
 }
 
+static gchar* r_status_formatter_json(gboolean pretty)
+{
+	JsonGenerator *gen;
+	JsonNode * root;
+	GHashTableIter iter;
+	gpointer key, value;
+	gchar *str;
+	JsonBuilder *builder = json_builder_new ();
+
+	json_builder_begin_object (builder);
+
+	json_builder_set_member_name (builder, "booted");
+	json_builder_add_string_value (builder, get_bootname());
+
+	json_builder_set_member_name (builder, "slots");
+	json_builder_begin_array (builder);
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		RaucSlot *slot = value;
+
+		json_builder_begin_object (builder);
+		json_builder_set_member_name (builder, slot->name);
+		json_builder_begin_object (builder);
+		json_builder_set_member_name (builder, "class");
+		json_builder_add_string_value (builder, slot->sclass);
+		json_builder_set_member_name (builder, "device");
+		json_builder_add_string_value (builder, slot->device);
+		json_builder_set_member_name (builder, "type");
+		json_builder_add_string_value (builder, slot->type);
+		json_builder_set_member_name (builder, "bootname");
+		json_builder_add_string_value (builder, slot->bootname);
+		json_builder_set_member_name (builder, "state");
+		json_builder_add_string_value (builder, slotstate_to_str(slot->state));
+		json_builder_set_member_name (builder, "parent");
+		json_builder_add_string_value (builder, slot->parent ? slot->parent->name : NULL);
+		json_builder_set_member_name (builder, "mountpint");
+		json_builder_add_string_value (builder, slot->mount_point);
+		json_builder_end_object (builder);
+		json_builder_end_object (builder);
+
+	}
+
+	json_builder_end_array (builder);
+
+	json_builder_end_object (builder);
+
+	gen = json_generator_new ();
+	root = json_builder_get_root (builder);
+	json_generator_set_root (gen, root);
+	json_generator_set_pretty (gen, pretty);
+	str = json_generator_to_data (gen, NULL);
+
+	json_node_free (root);
+	g_object_unref (gen);
+	g_object_unref (builder);
+
+	return str;
+}
+
 static gboolean status_start(int argc, char **argv)
 {
 	GHashTableIter iter;
@@ -475,6 +537,10 @@ static gboolean status_start(int argc, char **argv)
 
 	if (g_strcmp0(status_format, "shell") == 0) {
 		text = r_status_formatter_shell();
+	} else if (g_strcmp0(status_format, "json") == 0) {
+		text = r_status_formatter_json(FALSE);
+	} else if (g_strcmp0(status_format, "json-pretty") == 0) {
+		text = r_status_formatter_json(TRUE);
 	} else {
 		text = r_status_formatter_readable();
 	}

@@ -74,6 +74,8 @@ test_expect_success "rauc status" "
   sed -i 's!bootname=system0!bootname=$(cat /proc/cmdline | sed 's/.*root=\([^ ]*\).*/\1/')!g' $SHARNESS_TEST_DIRECTORY/test-temp.conf
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status &&
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=shell &&
+  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=json &&
+  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=json-pretty &&
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status mark-good &&
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status mark-bad
 "
