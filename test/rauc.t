@@ -92,12 +92,26 @@ test_expect_success "rauc bundle" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info out.raucb
 "
 
+cp $SHARNESS_TEST_DIRECTORY/test.conf $SHARNESS_TEST_DIRECTORY/test-temp.conf
+sed -i "s!bootname=system0!bootname=$(cat /proc/cmdline | sed 's/.*root=\([^ ]*\).*/\1/')!g" $SHARNESS_TEST_DIRECTORY/test-temp.conf
 
 test_expect_success "rauc status" "
-  cp $SHARNESS_TEST_DIRECTORY/test.conf $SHARNESS_TEST_DIRECTORY/test-temp.conf
-  sed -i 's!bootname=system0!bootname=$(cat /proc/cmdline | sed 's/.*root=\([^ ]*\).*/\1/')!g' $SHARNESS_TEST_DIRECTORY/test-temp.conf
-  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status &&
-  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status mark-good &&
+  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status
+"
+
+test_expect_success "rauc status readable" "
+  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=readable
+"
+
+test_expect_success "rauc status invalid" "
+  test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=invalid
+"
+
+test_expect_success "rauc status mark-good" "
+  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status mark-good
+"
+
+test_expect_success "rauc status mark-bad" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status mark-bad
 "
 

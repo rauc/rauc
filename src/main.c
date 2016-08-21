@@ -561,7 +561,13 @@ static gboolean status_start(int argc, char **argv)
 		goto out;
 	}
 
-	text = r_status_formatter_readable();
+	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
+		text = r_status_formatter_readable();
+	} else {
+		g_printerr("Unknown output format: '%s'\n", output_format);
+		r_exit_status = 1;
+		goto out;
+	}
 
 	g_print("%s\n", text);
 
@@ -640,6 +646,11 @@ GOptionEntry entries_info[] = {
 	{0}
 };
 
+GOptionEntry entries_status[] = {
+	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
+	{0}
+};
+
 static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, version = FALSE;
@@ -658,6 +669,7 @@ static void cmdline_handler(int argc, char **argv)
 		{0}
 	};
 	GOptionGroup *info_group = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
+	GOptionGroup *status_group = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
 
 	GError *error = NULL;
 	gchar *text;
@@ -668,7 +680,7 @@ static void cmdline_handler(int argc, char **argv)
 		{BUNDLE, "bundle", "bundle <FILE>", bundle_start, NULL, FALSE},
 		{CHECKSUM, "checksum", "checksum <DIRECTORY>", checksum_start, NULL, FALSE},
 		{INFO, "info", "info <FILE>", info_start, info_group, FALSE},
-		{STATUS, "status", "status", status_start, NULL, TRUE},
+		{STATUS, "status", "status", status_start, status_group, TRUE},
 #if ENABLE_SERVICE == 1
 		{SERVICE, "service", "service", service_start, NULL, TRUE},
 #endif
@@ -678,6 +690,7 @@ static void cmdline_handler(int argc, char **argv)
 	RaucCommand *rcommand = NULL;
 
 	g_option_group_add_entries(info_group, entries_info);
+	g_option_group_add_entries(status_group, entries_status);
 
 	context = g_option_context_new("<COMMAND>");
 	g_option_context_set_help_enabled(context, FALSE);
