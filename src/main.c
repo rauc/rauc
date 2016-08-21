@@ -505,17 +505,53 @@ static gchar* slotstate_to_str(SlotState slotstate)
 	return state;
 }
 
+
+static gchar* r_status_formatter_readable(void)
+{
+	GHashTableIter iter;
+	gpointer key, value;
+	gint slotcnt = 0;
+	GString *text = g_string_new(NULL);
+
+	g_string_append_printf(text, "booted from: %s\n", get_bootname());
+
+	g_string_append(text, "slot states:\n");
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		gchar *name = key;
+		RaucSlot *slot = value;
+
+		slotcnt++;
+
+
+		g_string_append_printf(text, "  %s: class=%s, device=%s, type=%s, bootname=%s\n",
+				name, slot->sclass, slot->device, slot->type, slot->bootname);
+		g_string_append_printf(text, "      state=%s, description=%s", slotstate_to_str(slot->state), slot->description);
+		if (slot->parent)
+			g_string_append_printf(text, ", parent=%s", slot->parent->name);
+		else
+			g_string_append(text, ", parent=(none)");
+		if (slot->mount_point)
+			g_string_append_printf(text, ", mountpoint=%s", slot->mount_point);
+		else
+			g_string_append(text, ", mountpoint=(none)");
+		g_string_append_c(text, '\n');
+
+	}
+
+	return g_string_free(text, FALSE);
+}
+
 static gboolean status_start(int argc, char **argv)
 {
 	GHashTableIter iter;
 	gpointer key, value;
-	gboolean res = FALSE;
 	RaucSlot *booted = NULL;
+	gchar *text = NULL;
 	GError *ierror = NULL;
+	gboolean res = FALSE;
 
 	g_debug("status start");
-
-	g_print("booted from: %s\n", get_bootname());
 
 	res = determine_slot_states(&ierror);
 	if (!res) {
@@ -525,32 +561,21 @@ static gboolean status_start(int argc, char **argv)
 		goto out;
 	}
 
-	g_print("slot states:\n");
-	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		gchar *name = key;
-		RaucSlot *slot = value;
+	text = r_status_formatter_readable();
 
-		if (slot->state == ST_BOOTED) {
-			booted = slot;
-		}
-		g_print("  %s: class=%s, device=%s, type=%s, bootname=%s\n",
-			name, slot->sclass, slot->device, slot->type, slot->bootname);
-		g_print("      state=%s, description=%s", slotstate_to_str(slot->state), slot->description);
-		if (slot->parent)
-			g_print(", parent=%s", slot->parent->name);
-		else
-			g_print(", parent=(none)");
-		if (slot->mount_point)
-			g_print(", mountpoint=%s", slot->mount_point);
-		else
-			g_print(", mountpoint=(none)");
-		g_print("\n");
-	}
+	g_print("%s\n", text);
 
 	if (argc < 3) {
 		r_exit_status = 0;
 		goto out;
+	}
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		RaucSlot *slot = value;
+		if (slot->state == ST_BOOTED) {
+			booted = slot;
+		}
 	}
 
 	if (!booted) {
