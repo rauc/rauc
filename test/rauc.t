@@ -107,6 +107,14 @@ test_expect_success "rauc status shell" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=shell
 "
 
+test_expect_success JSON "rauc status json" "
+  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=json
+"
+
+test_expect_success JSON "rauc status json-pretty" "
+  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=json-pretty
+"
+
 test_expect_success "rauc status invalid" "
   test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=invalid
 "
