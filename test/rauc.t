@@ -103,6 +103,10 @@ test_expect_success "rauc status readable" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=readable
 "
 
+test_expect_success "rauc status shell" "
+  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=shell
+"
+
 test_expect_success "rauc status invalid" "
   test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=invalid
 "

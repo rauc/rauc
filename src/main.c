@@ -542,6 +542,52 @@ static gchar* r_status_formatter_readable(void)
 	return g_string_free(text, FALSE);
 }
 
+static gchar* r_status_formatter_shell(void)
+{
+	GHashTableIter iter;
+	gpointer key, value;
+	gchar *slotlist = NULL;
+	gchar *tmp = NULL;
+	gint slotcnt = 0;
+	GString *text = g_string_new(NULL);
+
+	g_string_append_printf(text, "RAUC_SYSTEM_BOOTED_BOOTNAME=%s\n", get_bootname());
+
+	g_string_append(text, "RAUC_SYSTEM_SLOTS=");
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		gchar *name = key;
+		g_string_append(text, name);
+		g_string_append_c(text, ' ');
+	}
+	g_string_append_c(text, '\n');
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		RaucSlot *slot = value;
+
+		slotcnt++;
+
+
+		g_string_append_printf(text, "RAUC_SLOT_STATE_%d=%s\n", slotcnt, slotstate_to_str(slot->state));
+		g_string_append_printf(text, "RAUC_SLOT_CLASS_%d=%s\n", slotcnt, slot->sclass);
+		g_string_append_printf(text, "RAUC_SLOT_DEVICE_%d=%s\n", slotcnt, slot->device);
+		g_string_append_printf(text, "RAUC_SLOT_TYPE_%d=%s\n", slotcnt, slot->type);
+		g_string_append_printf(text, "RAUC_SLOT_BOOTNAME_%d=%s\n", slotcnt, slot->bootname);
+		g_string_append_printf(text, "RAUC_SLOT_PARENT_%d=%s\n", slotcnt, slot->parent ? slot->parent->name : "(none)");
+		g_string_append_printf(text, "RAUC_SLOT_MOUNTPOINT_%d=%s\n", slotcnt, slot->mount_point ? slot->mount_point : "(none)");
+
+		tmp = g_strdup_printf("%s%i ", slotlist ? slotlist : "", slotcnt);
+		g_clear_pointer(&slotlist, g_free);
+		slotlist = tmp;
+
+	}
+
+	g_string_append_printf(text, "RAUC_SLOTS=%s\n", slotlist);
+
+	return g_string_free(text, FALSE);
+}
+
 static gboolean status_start(int argc, char **argv)
 {
 	GHashTableIter iter;
@@ -563,6 +609,8 @@ static gboolean status_start(int argc, char **argv)
 
 	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
 		text = r_status_formatter_readable();
+	} else if (g_strcmp0(output_format, "shell") == 0) {
+		text = r_status_formatter_shell();
 	} else {
 		g_printerr("Unknown output format: '%s'\n", output_format);
 		r_exit_status = 1;
