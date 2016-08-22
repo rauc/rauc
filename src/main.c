@@ -19,6 +19,7 @@ GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
 gboolean info_noverify = FALSE;
+gchar *output_format = NULL;
 
 static gboolean install_notify(gpointer data) {
 	RaucInstallArgs *args = data;
@@ -261,10 +262,46 @@ out:
 	return TRUE;
 }
 
+static gchar *info_formatter_shell(RaucManifest *manifest)
+{
+	GString *text = g_string_new(NULL);
+	gint cnt;
+
+	g_string_append_printf(text, "RAUC_MF_COMPATIBLE=%s\n", manifest->update_compatible);
+	g_string_append_printf(text, "RAUC_MF_VERSION=%s\n", manifest->update_version ?: "");
+	g_string_append_printf(text, "RAUC_MF_DESCRIPTION=%s\n", manifest->update_description ?: "");
+	g_string_append_printf(text, "RAUC_MF_BUILD=%s\n", manifest->update_build ?: "");
+	g_string_append_printf(text, "RAUC_MF_IMAGES=%d\n", g_list_length(manifest->images));
+	g_string_append_printf(text, "RAUC_MF_FILES=%d\n", g_list_length(manifest->files));
+
+	cnt = 0;
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		RaucImage *img = l->data;
+		g_string_append_printf(text, "RAUC_IMAGE_NAME_%d=%s\n", cnt, img->filename);
+		g_string_append_printf(text, "RAUC_IMAGE_CLASS_%d=%s\n", cnt, img->slotclass);
+		g_string_append_printf(text, "RAUC_IMAGE_DIGEST_%d=%s\n", cnt, img->checksum.digest);
+		g_string_append_printf(text, "RAUC_IMAGE_SIZE_%d=%"G_GSIZE_FORMAT"\n", cnt, img->checksum.size);
+		cnt++;
+	}
+
+	cnt = 0;
+	for (GList *l = manifest->files; l != NULL; l = l->next) {
+		RaucFile *file = l->data;
+		g_string_append_printf(text, "RAUC_FILE_NAME_%d=%s\n", cnt, file->filename);
+		g_string_append_printf(text, "RAUC_FILE_CLASS_%d=%s\n", cnt, file->slotclass);
+		g_string_append_printf(text, "RAUC_FILE_DEST_%d=%s\n", cnt, file->destname);
+		g_string_append_printf(text, "RAUC_FILE_DIGEST_%d=%s\n", cnt, file->checksum.digest);
+		g_string_append_printf(text, "RAUC_FILE_SIZE_%d=%"G_GSIZE_FORMAT"\n", cnt, file->checksum.size);
+		cnt++;
+	}
+
+	return g_string_free(text, FALSE);
+}
+
 static gchar *info_formatter_readable(RaucManifest *manifest)
 {
 	GString *text = g_string_new(NULL);
-	gint cnt = 0;
+	gint cnt;
 
 	g_string_append_printf(text, "Compatible: \t'%s'\n", manifest->update_compatible);
 	g_string_append_printf(text, "Version:    \t'%s'\n", manifest->update_version);
@@ -273,25 +310,27 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 
 	cnt = g_list_length(manifest->images);
 	g_string_append_printf(text, "%d Image%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
-	cnt = 0;
+	cnt = 1;
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		RaucImage *img = l->data;
-		g_string_append_printf(text, "(%d)\t%s\n", ++cnt, img->filename);
+		g_string_append_printf(text, "(%d)\t%s\n", cnt, img->filename);
 		g_string_append_printf(text, "\tSlotclass: %s\n", img->slotclass);
 		g_string_append_printf(text, "\tChecksum:  %s\n", img->checksum.digest);
 		g_string_append_printf(text, "\tSize:      %"G_GSIZE_FORMAT"\n", img->checksum.size);
+		cnt++;
 	}
 
 	cnt = g_list_length(manifest->files);
 	g_string_append_printf(text, "%d File%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
-	cnt = 0;
+	cnt = 1;
 	for (GList *l = manifest->files; l != NULL; l = l->next) {
 		RaucFile *file = l->data;
-		g_string_append_printf(text, "(%d)\t%s\n", ++cnt, file->filename);
+		g_string_append_printf(text, "(%d)\t%s\n", cnt, file->filename);
 		g_string_append_printf(text, "\tSlotclass: %s\n", file->slotclass);
 		g_string_append_printf(text, "\tDest:      %s\n", file->destname);
 		g_string_append_printf(text, "\tChecksum:  %s\n", file->checksum.digest);
 		g_string_append_printf(text, "\tSize:      %"G_GSIZE_FORMAT"\n", file->checksum.size);
+		cnt++;
 	}
 
 	return g_string_free(text, FALSE);
@@ -305,11 +344,21 @@ static gboolean info_start(int argc, char **argv)
 	RaucManifest *manifest = NULL;
 	GError *error = NULL;
 	gboolean res = FALSE;
+	gchar* (*formatter)(RaucManifest *manifest) = NULL;
 
 	if (argc != 3) {
 		g_warning("a file name must be provided");
 		r_exit_status = 1;
 		return FALSE;
+	}
+
+	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
+		formatter = info_formatter_readable;
+	} else if (g_strcmp0(output_format, "shell") == 0) {
+		formatter = info_formatter_shell;
+	} else {
+		g_printerr("Unknown output format: '%s'\n", output_format);
+		goto out;
 	}
 
 	g_print("checking manifest for: %s\n", argv[2]);
@@ -331,7 +380,6 @@ static gboolean info_start(int argc, char **argv)
  		goto out;
  	}
 
-
 	res = load_manifest_file(manifestpath, &manifest, &error);
 	if (!res) {
 		g_warning("%s", error->message);
@@ -339,8 +387,7 @@ static gboolean info_start(int argc, char **argv)
 		goto out;
 	}
 
-
-	g_print("%s\n", info_formatter_readable(manifest));
+	g_print("%s\n", formatter(manifest));
 
 out:
 	r_exit_status = res ? 0 : 1;
@@ -473,6 +520,7 @@ typedef struct {
 
 GOptionEntry entries_info[] = {
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &info_noverify, "disable bundle verification", NULL},
+	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
 	{0}
 };
 
