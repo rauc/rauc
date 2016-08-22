@@ -71,9 +71,9 @@ bin_PROGRAMS = rauc
 
 rauc_SOURCES = \
 	src/main.c
-rauc_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
-rauc_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
-rauc_LDADD = $(librauc_la_LIBADD) librauc.la
+rauc_CFLAGS = $(AM_CFLAGS) $(JSON_GLIB_CFLAGS) $(CODE_COVERAGE_CFLAGS)
+rauc_LDFLAGS = $(AM_LDFLAGS) $(JSON_GLIB_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
+rauc_LDADD = $(JSON_GLIB_LIBS) $(librauc_la_LIBADD) librauc.la
 
 if SYSTEMD
 systemdunitdir=$(SYSTEMD_UNITDIR)

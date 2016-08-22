@@ -4,6 +4,10 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gio/gio.h>
+#if ENABLE_JSON
+#include <json-glib/json-glib.h>
+#include <json-glib/json-gobject.h>
+#endif
 
 #include <config.h>
 #include <bootchooser.h>
@@ -336,6 +340,80 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	return g_string_free(text, FALSE);
 }
 
+
+static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
+{
+#if ENABLE_JSON
+	JsonGenerator *gen;
+	JsonNode * root;
+	gchar *str;
+	JsonBuilder *builder = json_builder_new ();
+
+	json_builder_begin_object (builder);
+
+	json_builder_set_member_name (builder, "compatible");
+	json_builder_add_string_value (builder, manifest->update_compatible);
+
+	json_builder_set_member_name (builder, "version");
+	json_builder_add_string_value (builder, manifest->update_version);
+
+	json_builder_set_member_name (builder, "description");
+	json_builder_add_string_value (builder, manifest->update_description);
+
+	json_builder_set_member_name (builder, "build");
+	json_builder_add_string_value (builder, manifest->update_build);
+
+	json_builder_set_member_name (builder, "images");
+	json_builder_begin_array (builder);
+
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		RaucImage *img = l->data;
+
+		json_builder_begin_object (builder);
+		json_builder_set_member_name (builder, img->slotclass);
+		json_builder_begin_object (builder);
+		json_builder_set_member_name (builder, "filename");
+		json_builder_add_string_value (builder, img->filename);
+		json_builder_set_member_name (builder, "checksum");
+		json_builder_add_string_value (builder, img->checksum.digest);
+		json_builder_set_member_name (builder, "size");
+		json_builder_add_int_value (builder, img->checksum.size);
+		json_builder_end_object (builder);
+		json_builder_end_object (builder);
+
+	}
+
+	json_builder_end_array (builder);
+
+	json_builder_end_object (builder);
+
+	gen = json_generator_new ();
+	root = json_builder_get_root (builder);
+	json_generator_set_root (gen, root);
+	json_generator_set_pretty (gen, pretty);
+	str = json_generator_to_data (gen, NULL);
+
+	json_node_free (root);
+	g_object_unref (gen);
+	g_object_unref (builder);
+
+	return str;
+#else
+	g_error("json support is disabled");
+	return NULL;
+#endif
+}
+
+static gchar* info_formatter_json(RaucManifest *manifest)
+{
+	return info_formatter_json_base(manifest, FALSE);
+}
+
+static gchar* info_formatter_json_pretty(RaucManifest *manifest)
+{
+	return info_formatter_json_base(manifest, TRUE);
+}
+
 static gboolean info_start(int argc, char **argv)
 {
 	gchar* tmpdir = NULL;
@@ -356,6 +434,10 @@ static gboolean info_start(int argc, char **argv)
 		formatter = info_formatter_readable;
 	} else if (g_strcmp0(output_format, "shell") == 0) {
 		formatter = info_formatter_shell;
+	} else if (ENABLE_JSON && g_strcmp0(output_format, "json") == 0) {
+		formatter = info_formatter_json;
+	} else if (ENABLE_JSON && g_strcmp0(output_format, "json-pretty") == 0) {
+		formatter = info_formatter_json_pretty;
 	} else {
 		g_printerr("Unknown output format: '%s'\n", output_format);
 		goto out;
