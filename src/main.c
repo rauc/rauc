@@ -261,6 +261,40 @@ out:
 	return TRUE;
 }
 
+static gchar *info_formatter_readable(RaucManifest *manifest)
+{
+	GString *text = g_string_new(NULL);
+	gint cnt = 0;
+
+	g_string_append_printf(text, "Compatible String:\t'%s'\n", manifest->update_compatible);
+	g_string_append_printf(text, "Update version:   \t'%s'\n", manifest->update_version);
+
+	cnt = g_list_length(manifest->images);
+	g_string_append_printf(text, "%d Image%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
+	cnt = 0;
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		RaucImage *img = l->data;
+		g_string_append_printf(text, "(%d)\t%s\n", ++cnt, img->filename);
+		g_string_append_printf(text, "\tSlotclass: %s\n", img->slotclass);
+		g_string_append_printf(text, "\tChecksum:  %s\n", img->checksum.digest);
+		g_string_append_printf(text, "\tSize:      %"G_GSIZE_FORMAT"\n", img->checksum.size);
+	}
+
+	cnt = g_list_length(manifest->files);
+	g_string_append_printf(text, "%d File%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
+	cnt = 0;
+	for (GList *l = manifest->files; l != NULL; l = l->next) {
+		RaucFile *file = l->data;
+		g_string_append_printf(text, "(%d)\t%s\n", ++cnt, file->filename);
+		g_string_append_printf(text, "\tSlotclass: %s\n", file->slotclass);
+		g_string_append_printf(text, "\tDest:      %s\n", file->destname);
+		g_string_append_printf(text, "\tChecksum:  %s\n", file->checksum.digest);
+		g_string_append_printf(text, "\tSize:      %"G_GSIZE_FORMAT"\n", file->checksum.size);
+	}
+
+	return g_string_free(text, FALSE);
+}
+
 static gboolean info_start(int argc, char **argv)
 {
 	gchar* tmpdir = NULL;
@@ -269,7 +303,6 @@ static gboolean info_start(int argc, char **argv)
 	RaucManifest *manifest = NULL;
 	GError *error = NULL;
 	gboolean res = FALSE;
-	gint cnt = 0;
 
 	if (argc != 3) {
 		g_warning("a file name must be provided");
@@ -304,31 +337,8 @@ static gboolean info_start(int argc, char **argv)
 		goto out;
 	}
 
-	g_print("Compatible String:\t'%s'\n", manifest->update_compatible);
-	g_print("Update version:   \t'%s'\n", manifest->update_version);
 
-	cnt = g_list_length(manifest->images);
-	g_print("%d Image%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
-	cnt = 0;
-	for (GList *l = manifest->images; l != NULL; l = l->next) {
-		RaucImage *img = l->data;
-		g_print("(%d)\t%s\n", ++cnt, img->filename);
-		g_print("\tSlotclass: %s\n", img->slotclass);
-		g_print("\tChecksum:  %s\n", img->checksum.digest);
-		g_print("\tSize:      %"G_GSIZE_FORMAT"\n", img->checksum.size);
-	}
-
-	cnt = g_list_length(manifest->files);
-	g_print("%d File%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
-	cnt = 0;
-	for (GList *l = manifest->files; l != NULL; l = l->next) {
-		RaucFile *file = l->data;
-		g_print("(%d)\t%s\n", ++cnt, file->filename);
-		g_print("\tSlotclass: %s\n", file->slotclass);
-		g_print("\tDest:      %s\n", file->destname);
-		g_print("\tChecksum:  %s\n", file->checksum.digest);
-		g_print("\tSize:      %"G_GSIZE_FORMAT"\n", file->checksum.size);
-	}
+	g_print("%s\n", info_formatter_readable(manifest));
 
 out:
 	r_exit_status = res ? 0 : 1;
