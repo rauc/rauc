@@ -4,6 +4,10 @@ test_description="rauc binary tests"
 
 . ./sharness.sh
 
+# Prerequisite: JSON support enabled [JSON]
+grep -q "ENABLE_JSON 1" $SHARNESS_TEST_DIRECTORY/../config.h && \
+  test_set_prereq JSON
+
 test_expect_success "rauc noargs" "
   test_must_fail rauc
 "
@@ -57,6 +61,26 @@ test_expect_success "rauc checksum with extra args" "
 
 test_expect_success "rauc info" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf \
+    info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
+"
+
+test_expect_success "rauc info shell" "
+  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --output-format=shell \
+    info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
+"
+
+test_expect_success JSON "rauc info json" "
+  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --output-format=json \
+    info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
+"
+
+test_expect_success JSON "rauc info json-pretty" "
+  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --output-format=json-pretty \
+    info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
+"
+
+test_expect_success "rauc info invalid" "
+  test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --output-format=invalid \
     info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
 "
 
