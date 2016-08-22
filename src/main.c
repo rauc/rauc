@@ -266,10 +266,10 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	GString *text = g_string_new(NULL);
 	gint cnt = 0;
 
-	g_string_append_printf(text, "Compatible String:\t'%s'\n", manifest->update_compatible);
-	g_string_append_printf(text, "Update version:   \t'%s'\n", manifest->update_version);
-	g_string_append_printf(text, "Description:      \t'%s'\n", manifest->update_description);
-	g_string_append_printf(text, "Build:            \t'%s'\n", manifest->update_build);
+	g_string_append_printf(text, "Compatible: \t'%s'\n", manifest->update_compatible);
+	g_string_append_printf(text, "Version:    \t'%s'\n", manifest->update_version);
+	g_string_append_printf(text, "Description:\t'%s'\n", manifest->update_description);
+	g_string_append_printf(text, "Build:      \t'%s'\n", manifest->update_build);
 
 	cnt = g_list_length(manifest->images);
 	g_string_append_printf(text, "%d Image%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
