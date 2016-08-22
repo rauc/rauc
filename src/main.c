@@ -173,7 +173,8 @@ out_loop:
 	r_exit_status = args->status_result;
 	g_clear_pointer(&r_loop, g_main_loop_unref);
 
-	g_signal_handlers_disconnect_by_data(installer, args);
+	if (installer)
+		g_signal_handlers_disconnect_by_data(installer, args);
 	g_clear_pointer(&installer, g_object_unref);
 	install_args_free(args);
 

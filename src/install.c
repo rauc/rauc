@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <config.h>
 
 #define R_SLOT_ERROR r_slot_error_quark ()
 
@@ -779,6 +780,7 @@ early_out:
 	return res;
 }
 
+#if ENABLE_NETWORK
 static gboolean reuse_existing_file_checksum(const RaucChecksum *checksum, const gchar *filename) {
 	GError *error = NULL;
 	gboolean res = FALSE;
@@ -945,6 +947,7 @@ slot_out:
 out:
 	return res;
 }
+#endif
 
 static void print_slot_hash_table(GHashTable *hash_table) {
 	GHashTableIter iter;
@@ -1063,6 +1066,7 @@ out:
 }
 
 gboolean do_install_network(const gchar *url, GError **error) {
+#if ENABLE_NETWORK
 	gboolean res = FALSE;
 	GError *ierror = NULL;
 	gchar *base_url = NULL, *signature_url = NULL;
@@ -1159,6 +1163,14 @@ out:
 	g_clear_pointer(&signature_data, g_bytes_unref);
 
 	return res;
+#else
+	g_set_error_literal(
+			error,
+			R_HANDLER_ERROR,
+			255,
+			"Compiled without network support");
+	return FALSE;
+#endif
 }
 
 static gboolean install_done(gpointer data) {

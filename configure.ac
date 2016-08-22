@@ -49,7 +49,18 @@ AS_IF([test "x$enable_service" != "xno"], [
 
 # Checks for libraries.
 PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.40 gio-2.0 gio-unix-2.0])
-PKG_CHECK_MODULES([CURL], [libcurl])
+
+AC_ARG_ENABLE([network],
+       AS_HELP_STRING([--disable-network], [Disable network update mode])
+)
+AM_CONDITIONAL([WANT_NETWORK], [test x$enable_network != xno])
+AS_IF([test "x$enable_network" != "xno"], [
+       AC_DEFINE([ENABLE_NETWORK], [1], [Define to 1 to enable building with JSON support])
+       PKG_CHECK_MODULES([CURL], [libcurl])
+], [
+       AC_DEFINE([ENABLE_NETWORK], [0])
+])
+
 
 AX_CHECK_OPENSSL([],[AC_MSG_ERROR([OpenSSL not found])])
 
