@@ -1062,7 +1062,7 @@ out:
 	return res;
 }
 
-gboolean do_install_network(const gchar *url) {
+gboolean do_install_network(const gchar *url, GError **error) {
 	gboolean res = FALSE;
 	GError *ierror = NULL;
 	gchar *base_url = NULL, *signature_url = NULL;
@@ -1074,13 +1074,13 @@ gboolean do_install_network(const gchar *url) {
 
 	res = determine_slot_states(&ierror);
 	if (!res) {
-		g_warning("%s", ierror->message);
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 
 	res = download_mem(&manifest_data, url, 64*1024);
 	if (!res) {
-		g_warning("Failed to download manifest");
+		g_set_error_literal(error, R_INSTALL_ERROR, 4, "Failed to download manifest");
 		goto out;
 	}
 
@@ -1091,21 +1091,27 @@ gboolean do_install_network(const gchar *url) {
 		goto out;
 	}
 
-	res = cms_verify(manifest_data, signature_data, NULL);
+	res = cms_verify(manifest_data, signature_data, &ierror);
 	if (!res) {
-		g_warning("Failed to verify manifest signature");
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed verifying manifest: ");
 		goto out;
 	}
 
-	res = load_manifest_mem(manifest_data, &manifest, NULL);
+	res = load_manifest_mem(manifest_data, &manifest, &ierror);
 	if (!res) {
-		g_warning("Failed to verify manifest signature");
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed loading manifest: ");
 		goto out;
 	}
 
 	target_group = determine_target_install_group(manifest);
 	if (!target_group) {
-		g_warning("Could not determine target group");
+		g_set_error_literal(error, R_INSTALL_ERROR, 3, "Could not determine target group");
 		goto out;
 	}
 
@@ -1116,28 +1122,29 @@ gboolean do_install_network(const gchar *url) {
 
 	if (r_context()->config->preinstall_handler) {
 		g_print("Starting pre install handler: %s\n", r_context()->config->preinstall_handler);
-		res = launch_and_wait_handler(base_url, r_context()->config->preinstall_handler, manifest, target_group, NULL);
+		res = launch_and_wait_handler(base_url, r_context()->config->preinstall_handler, manifest, target_group, &ierror);
 	}
 
 	if (!res) {
-		g_print("Handler error: %s\n", r_context()->config->preinstall_handler);
+		g_propagate_prefixed_error(error, ierror, "Handler error: ");
 		goto out;
 	}
 
 	g_print("Using network handler for %s\n", base_url);
 	res = launch_and_wait_network_handler(base_url, manifest, target_group);
 	if (!res) {
-		g_warning("Starting handler failed");
+		g_set_error_literal(error, R_HANDLER_ERROR, 0,
+				"Handler error");
 		goto out;
 	}
 
 	if (r_context()->config->postinstall_handler) {
 		g_print("Starting post install handler: %s\n", r_context()->config->postinstall_handler);
-		res = launch_and_wait_handler(base_url, r_context()->config->postinstall_handler, manifest, target_group, NULL);
+		res = launch_and_wait_handler(base_url, r_context()->config->postinstall_handler, manifest, target_group, &ierror);
 	}
 
 	if (!res) {
-		g_print("Handler error: %s\n", r_context()->config->postinstall_handler);
+		g_propagate_prefixed_error(error, ierror, "Handler error: ");
 		goto out;
 	}
 
@@ -1184,7 +1191,13 @@ static gpointer install_thread(gpointer data) {
 			g_clear_error(&ierror);
 		}
 	} else {
-		result = !do_install_network(args->name);
+		result = !do_install_network(args->name, &ierror);
+		if (result != 0) {
+			g_warning("%s", ierror->message);
+			install_args_update(args, ierror->message);
+			set_last_error(ierror->message);
+			g_clear_error(&ierror);
+		}
 	}
 
 	g_mutex_lock(&args->status_mutex);
