@@ -28,6 +28,7 @@ script:
   - make clean
   - make -j2
   - make check TESTS= && sudo ./uml-test
+  - make distcheck
 after_success:
   - coveralls --build-root '.' --exclude tests --exclude rauc-installer-generated.c
 after_failure:

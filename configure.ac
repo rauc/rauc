@@ -24,6 +24,8 @@ AX_COMPILER_FLAGS
 
 # Checks for programs.
 AC_PROG_AWK
+AC_PROG_MKDIR_P
+AC_PROG_SED
 AC_PROG_CC
 AC_PROG_CC_C99
 AM_PROG_CC_C_O
@@ -51,11 +53,59 @@ PKG_CHECK_MODULES([CURL], [libcurl])
 
 AX_CHECK_OPENSSL([],[AC_MSG_ERROR([OpenSSL not found])])
 
+AC_ARG_WITH([systemdunitdir], AC_HELP_STRING([--with-systemdunitdir=DIR],
+	[path to systemd service directory]), [with_systemdunitdir=${withval}],
+		[with_systemdunitdir="`$PKG_CONFIG --variable=systemdsystemunitdir systemd`"])
+if (test -n "${with_systemdunitdir}"); then
+	SYSTEMD_UNITDIR="${with_systemdunitdir}"
+	AC_SUBST(SYSTEMD_UNITDIR)
+fi
+AM_CONDITIONAL(SYSTEMD, test -n "${with_systemdunitdir}")
+
+AC_ARG_WITH([dbuspolicydir],
+        AS_HELP_STRING([--with-dbuspolicydir=DIR], [D-Bus policy directory]),
+        [],
+        [with_dbuspolicydir=${datadir}/dbus-1/system.d])
+DBUS_POLICYDIR="${with_dbuspolicydir}"
+AC_SUBST(DBUS_POLICYDIR)
+
+AC_ARG_WITH([dbussystemservicedir],
+        AS_HELP_STRING([--with-dbussystemservicedir=DIR], [D-Bus system service directory]),
+        [],
+        [with_dbussystemservicedir=${datadir}/dbus-1/system-services])
+DBUS_SYSTEMSERVICEDIR="${with_dbussystemservicedir}"
+AC_SUBST(DBUS_SYSTEMSERVICEDIR)
+
 # Checks for header files.
 
 # Checks for typedefs, structures, and compiler characteristics.
 
 # Checks for library functions.
+
+AC_CONFIG_LINKS([test/test.conf:test/test.conf])
+AC_CONFIG_LINKS([test/bin/postinstall.sh:test/bin/postinstall.sh])
+AC_CONFIG_LINKS([test/bin/fw_setenv:test/bin/fw_setenv])
+AC_CONFIG_LINKS([test/bin/grub-editenv:test/bin/grub-editenv])
+AC_CONFIG_LINKS([test/bin/barebox-state:test/bin/barebox-state])
+AC_CONFIG_LINKS([test/bin/preinstall.sh:test/bin/preinstall.sh])
+AC_CONFIG_LINKS([test/bin/systeminfo.sh:test/bin/systeminfo.sh])
+AC_CONFIG_LINKS([test/good-bundle.raucb:test/good-bundle.raucb])
+AC_CONFIG_LINKS([test/manifest.raucm:test/manifest.raucm])
+AC_CONFIG_LINKS([test/openssl-ca/manifest:test/openssl-ca/manifest])
+AC_CONFIG_LINKS([test/openssl-ca/dev/autobuilder-1.cert.pem:test/openssl-ca/dev/autobuilder-1.cert.pem])
+AC_CONFIG_LINKS([test/openssl-ca/dev/private/autobuilder-1.pem:test/openssl-ca/dev/private/autobuilder-1.pem])
+AC_CONFIG_LINKS([test/openssl-ca/dev-ca.pem:test/openssl-ca/dev-ca.pem])
+AC_CONFIG_LINKS([test/openssl-ca/rel/release-1.cert.pem:test/openssl-ca/rel/release-1.cert.pem])
+AC_CONFIG_LINKS([test/openssl-ca/rel/private/release-1.pem:test/openssl-ca/rel/private/release-1.pem])
+AC_CONFIG_LINKS([test/openssl-ca/manifest-r1.sig:test/openssl-ca/manifest-r1.sig])
+AC_CONFIG_LINKS([test/rauc.t:test/rauc.t])
+AC_CONFIG_LINKS([test/rootfs.raucs:test/rootfs.raucs])
+AC_CONFIG_LINKS([test/services/de.pengutronix.rauc.service.in:test/services/de.pengutronix.rauc.service.in])
+AC_CONFIG_LINKS([test/sharness.sh:test/sharness.sh])
+AC_CONFIG_LINKS([test/install-content/appfs.img:test/install-content/appfs.img])
+AC_CONFIG_LINKS([test/install-content/rootfs.img:test/install-content/rootfs.img])
+AC_CONFIG_LINKS([test/install-content/custom_handler.sh:test/install-content/custom_handler.sh])
+AC_CONFIG_LINKS([test/install-content/manifest.raucm:test/install-content/manifest.raucm])
 
 AC_CONFIG_FILES([
 	Makefile

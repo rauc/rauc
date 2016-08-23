@@ -46,7 +46,21 @@ librauc_la_SOURCES = \
 	src/service.c \
 	src/signature.c \
 	src/utils.c \
-	src/update_handler.c
+	src/update_handler.c \
+	include/bootchooser.h \
+	include/bundle.h \
+	include/checksum.h \
+	include/config_file.h \
+	include/context.h \
+	include/install.h \
+	include/manifest.h \
+	include/mount.h \
+	include/network.h \
+	include/service.h \
+	include/signature.h \
+	include/update_handler.h \
+	include/utils.h
+
 nodist_librauc_la_SOURCES = \
 	$(gdbus_installer_generated)
 librauc_la_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
@@ -60,6 +74,20 @@ rauc_SOURCES = \
 rauc_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 rauc_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
 rauc_LDADD = $(librauc_la_LIBADD) librauc.la
+
+if SYSTEMD
+systemdunitdir=$(SYSTEMD_UNITDIR)
+dist_systemdunit_DATA = data/rauc.service
+endif
+
+dbussystemdir = $(DBUS_SYSTEMSERVICEDIR)
+dist_dbussystem_DATA = data/de.pengutronix.rauc.service
+
+dbuspolicydir = $(DBUS_POLICYDIR)
+dist_dbuspolicy_DATA = data/de.pengutronix.rauc.conf
+
+EXTRA_DIST += data/rauc.service.in \
+	      data/de.pengutronix.rauc.service.in
 
 AM_TESTS_ENVIRONMENT = \
 	AM_TAP_AWK='$(AWK)'; export AM_TAP_AWK; \
@@ -84,8 +112,20 @@ check_PROGRAMS = \
 	test/progress.test
 check_LTLIBRARIES = librauctest.la
 
+EXTRA_DIST += tap-t \
+	      tap-test \
+	      test/bin \
+	      test/install-content \
+	      test/openssl-ca \
+	      test/manifest.raucm \
+	      test/rauc.t \
+	      test/rootfs.raucs \
+	      test/sharness.sh \
+	      test/test.conf
+
 librauctest_la_SOURCES = \
-	test/common.c
+	test/common.c \
+	test/common.h
 librauctest_la_LIBADD = $(GLIB_LIBS) librauc.la
 
 TESTS = $(check_PROGRAMS) test/rauc.t
@@ -106,7 +146,7 @@ test_manifest_test_SOURCES = test/manifest.c
 test_manifest_test_LDADD = librauctest.la
 
 test_service_test_CFLAGS = $(AM_CFLAGS) -DTEST_SERVICES=\""$(abs_top_builddir)/test/services"\"
-test_service_test_SOURCES = test/service.c
+test_service_test_SOURCES = test/service.c rauc-installer-generated.h
 test_service_test_LDADD = librauctest.la
 
 test_signature_test_SOURCES = test/signature.c
@@ -124,6 +164,15 @@ test_network_test_LDADD = librauctest.la
 test_progress_test_SOURCES = test/progress.c
 test_progress_test_LDADD = librauctest.la
 
+SED_REPLACE = $(SED) \
+       -e 's|[@]bindir[@]|$(bindir)|g' \
+       -e 's|[@]datadir[@]|$(pkgdatadir)|g' \
+       -e 's|[@]prefix[@]|$(prefix)|g'
+
+data/%: data/%.in
+	$(AM_V_GEN)$(MKDIR_P) $(dir $@) && \
+	$(SED_REPLACE) $< > $@
+
 SPHINXOPTS          =
 SPHINXBUILD         = sphinx-build
 PAPER               =
@@ -137,5 +186,16 @@ doc:
 	@echo
 	@echo "Build finished. The HTML pages are in $(SPHINXBUILDDIR)/html."
 
+AM_DISTCHECK_CONFIGURE_FLAGS = "--without-systemdunitdir"
 
-CLEANFILES = $(gdbus_installer_generated)
+CLEANFILES = $(gdbus_installer_generated) \
+	     $(dist_systemunit_DATA) \
+	     $(dist_dbussystem_DATA) \
+	     data/rauc.service \
+	     test/empty.dat \
+	     test/test-results/rauc.*.counts \
+	     test/savedmanifest.raucm \
+	     test/savedslot.raucs \
+	     test/grubenv.test \
+	     test/random.dat \
+	     test/test-temp.conf
