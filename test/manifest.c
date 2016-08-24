@@ -20,14 +20,6 @@ static void manifest_check_common(RaucManifest *rm) {
 	g_assert_cmpuint(g_list_length(rm->images), ==, 2);
 	g_assert_cmpuint(g_list_length(rm->files), ==, 2);
 
-	g_print("Update Manifest\n");
-	g_print("\tCompatible: %s\n", rm->update_compatible);
-	g_print("\tVersion:    %s\n", rm->update_version);
-	if (rm->keyring)
-		g_print("\tKeyring:    %s\n", rm->keyring);
-	if (rm->handler_name)
-		g_print("\tHandler:    %s\n\n", rm->handler_name);
-
 	for (GList *l = rm->images; l != NULL; l = l->next) {
 		RaucImage *img = l->data;
 		g_assert_nonnull(img);
