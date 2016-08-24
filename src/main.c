@@ -443,8 +443,6 @@ static gboolean info_start(int argc, char **argv)
 		goto out;
 	}
 
-	g_print("checking manifest for: %s\n", argv[2]);
-
 	tmpdir = g_dir_make_tmp("bundle-XXXXXX", &error);
 	if (!tmpdir) {
 		g_warning("%s", error->message);
