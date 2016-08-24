@@ -6,6 +6,7 @@
 
 #include <bundle.h>
 #include <context.h>
+#include <config.h>
 #include <install.h>
 #include <manifest.h>
 #include <mount.h>
@@ -299,6 +300,10 @@ static void install_fixture_set_up_network(InstallFixture *fixture,
 	gchar *contentdir;
 	gchar *manifestpath;
 
+#if !ENABLE_NETWORK
+	return;
+#endif
+
 	/* needs to run as root */
 	if (!test_running_as_root())
 		return;
@@ -504,6 +509,11 @@ static void install_test_network(InstallFixture *fixture,
 {
 	gchar *manifesturl, *mountdir;
 
+#if !ENABLE_NETWORK
+	g_test_skip("Compiled without network support");
+	return;
+#endif
+
 	/* needs to run as root */
 	if (!test_running_as_root())
 		return;
@@ -516,17 +526,17 @@ static void install_test_network(InstallFixture *fixture,
 
 	manifesturl = g_strconcat("file://", fixture->tmpdir,
 				  "/content/manifest-1.raucm", NULL);
-	g_assert_true(do_install_network(manifesturl));
+	g_assert_true(do_install_network(manifesturl, NULL));
 	g_free(manifesturl);
 
 	manifesturl = g_strconcat("file://", fixture->tmpdir,
 				  "/content/manifest-2.raucm", NULL);
-	g_assert_true(do_install_network(manifesturl));
+	g_assert_true(do_install_network(manifesturl, NULL));
 	g_free(manifesturl);
 
 	manifesturl = g_strconcat("file://", fixture->tmpdir,
 				  "/content/manifest-3.raucm", NULL);
-	g_assert_true(do_install_network(manifesturl));
+	g_assert_true(do_install_network(manifesturl, NULL));
 	g_free(manifesturl);
 }
 
@@ -567,6 +577,11 @@ static void install_test_network_thread(InstallFixture *fixture,
 	RaucInstallArgs *args = install_args_new();
 	gchar *manifesturl, *mountdir;
 
+#if !ENABLE_NETWORK
+	g_test_skip("Compiled without network support");
+	return;
+#endif
+
 	/* needs to run as root */
 	if (!test_running_as_root())
 		return;
@@ -579,7 +594,7 @@ static void install_test_network_thread(InstallFixture *fixture,
 
 	manifesturl = g_strconcat("file://", fixture->tmpdir,
 				  "/content/manifest-1.raucm", NULL);
-	g_assert_true(do_install_network(manifesturl));
+	g_assert_true(do_install_network(manifesturl, NULL));
 	args->name = g_strdup(manifesturl);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;

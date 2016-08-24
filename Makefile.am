@@ -42,7 +42,6 @@ librauc_la_SOURCES = \
 	src/install.c \
 	src/manifest.c \
 	src/mount.c \
-	src/network.c \
 	src/service.c \
 	src/signature.c \
 	src/utils.c \
@@ -55,12 +54,14 @@ librauc_la_SOURCES = \
 	include/install.h \
 	include/manifest.h \
 	include/mount.h \
-	include/network.h \
 	include/service.h \
 	include/signature.h \
 	include/update_handler.h \
 	include/utils.h
 
+if WANT_NETWORK
+librauc_la_SOURCES += src/network.c include/network.h
+endif
 nodist_librauc_la_SOURCES = \
 	$(gdbus_installer_generated)
 librauc_la_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
@@ -106,10 +107,14 @@ check_PROGRAMS = \
 	test/signature.test \
 	test/update_handler.test \
 	test/install.test \
-	test/network.test \
 	test/service.test \
 	test/bundle.test \
 	test/progress.test
+
+if WANT_NETWORK
+check_PROGRAMS += test/network.test
+endif
+
 check_LTLIBRARIES = librauctest.la
 
 EXTRA_DIST += tap-t \
