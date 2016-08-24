@@ -77,6 +77,16 @@ static gchar * manifest_consume_string(
 	return result;
 }
 
+/* Parses key_file into RaucManifest structure
+ *
+ * key_file - input key file
+ * manifest - address of manifest pointer, pointer must be NULL and will be set
+ *            to point to a newly allocated RaucManifest if parsing succeeded.
+ *            Otherwise it will remain untouched.
+ * error    - Return location for GError
+ *
+ * Returns TRUE if manifest was parsed without error, otherwise FALSE
+ */
 static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GError **error) {
 	GError *ierror = NULL;
 	RaucManifest *raucm = g_new0(RaucManifest, 1);
