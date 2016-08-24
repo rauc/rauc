@@ -14,12 +14,79 @@
 #define R_MANIFEST_ERROR_NO_DATA	0
 #define R_MANIFEST_ERROR_CHECKSUM	1
 #define R_MANIFEST_ERROR_COMPATIBLE	2
+#define R_MANIFEST_PARSE_ERROR 		3
+#define R_MANIFEST_EMPTY_STRING		4
 
 static GQuark r_manifest_error_quark (void)
 {
   return g_quark_from_static_string ("r_manifest_error_quark");
 }
 
+static gboolean check_remaining_groups(GKeyFile *key_file, GError **error) {
+	gsize rem_num_groups;
+	gchar **rem_groups;
+
+	rem_groups = g_key_file_get_groups(key_file, &rem_num_groups);
+	if (rem_num_groups != 0) {
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_PARSE_ERROR,
+				"Invalid group '[%s]'", rem_groups[0]);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static gboolean check_remaining_keys(GKeyFile *key_file, const gchar *groupname, GError **error) {
+	gsize rem_num_keys;
+	gchar **rem_keys;
+
+	rem_keys = g_key_file_get_keys(key_file, groupname, &rem_num_keys, NULL);
+	if (rem_keys && rem_num_keys != 0) {
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_PARSE_ERROR,
+				"Invalid key '%s' in group '[%s]'", rem_keys[0],
+				groupname);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/* get string argument from key and remove key from key_file */
+static gchar * manifest_consume_string(
+		GKeyFile *key_file,
+		const gchar *group_name,
+		const gchar *key,
+		GError **error) {
+	gchar *result = NULL;
+	GError *ierror = NULL;
+
+	result = g_key_file_get_string(key_file, group_name, key, &ierror);
+	if (!result) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	g_key_file_remove_key(key_file, group_name, key, NULL);
+
+	if (result[0] == '\0') {
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_EMPTY_STRING,
+				"Missing value for key '%s'", key);
+		return NULL;
+	}
+
+	return result;
+}
+
+/* Parses key_file into RaucManifest structure
+ *
+ * key_file - input key file
+ * manifest - address of manifest pointer, pointer must be NULL and will be set
+ *            to point to a newly allocated RaucManifest if parsing succeeded.
+ *            Otherwise it will remain untouched.
+ * error    - Return location for GError
+ *
+ * Returns TRUE if manifest was parsed without error, otherwise FALSE
+ */
 static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GError **error) {
 	GError *ierror = NULL;
 	RaucManifest *raucm = g_new0(RaucManifest, 1);
@@ -27,22 +94,34 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	gchar **groups;
 	gsize group_count;
 
+	g_assert_null(*manifest);
+
 	/* parse [update] section */
-	raucm->update_compatible = g_key_file_get_string(key_file, "update", "compatible", &ierror);
+	raucm->update_compatible = manifest_consume_string(key_file, "update", "compatible", &ierror);
 	if (!raucm->update_compatible) {
 		g_propagate_error(error, ierror);
 		goto free;
 	}
-	raucm->update_version = g_key_file_get_string(key_file, "update", "version", NULL);
-	raucm->update_description = g_key_file_get_string(key_file, "update", "description", NULL);
-	raucm->update_build = g_key_file_get_string(key_file, "update", "build", NULL);
+	raucm->update_version = manifest_consume_string(key_file, "update", "version", NULL);
+	raucm->update_description = manifest_consume_string(key_file, "update", "description", NULL);
+	raucm->update_build = manifest_consume_string(key_file, "update", "build", NULL);
+	if (!check_remaining_keys(key_file, "update", &ierror)) {
+		g_propagate_error(error, ierror);
+		goto free;
+	}
+	g_key_file_remove_group(key_file, "update", NULL);
 
 	/* parse [keyring] section */
-	raucm->keyring = g_key_file_get_string(key_file, "keyring", "archive", NULL);
+	raucm->keyring = manifest_consume_string(key_file, "keyring", "archive", NULL);
+	if (!check_remaining_keys(key_file, "keyring", &ierror)) {
+		g_propagate_error(error, ierror);
+		goto free;
+	}
+	g_key_file_remove_group(key_file, "keyring", NULL);
 
 	/* parse [handler] section */
-	raucm->handler_name = g_key_file_get_string(key_file, "handler", "filename", NULL);
-	raucm->handler_args = g_key_file_get_string(key_file, "handler", "args", NULL);
+	raucm->handler_name = manifest_consume_string(key_file, "handler", "filename", NULL);
+	raucm->handler_args = manifest_consume_string(key_file, "handler", "args", NULL);
 	if (r_context()->handlerextra) {
 		GString *str = g_string_new(raucm->handler_args);
 		if (str->len)
@@ -51,6 +130,11 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 		g_free(raucm->handler_args);
 		raucm->handler_args = g_string_free(str, FALSE);
 	}
+	if (!check_remaining_keys(key_file, "handler", &ierror)) {
+		g_propagate_error(error, ierror);
+		goto free;
+	}
+	g_key_file_remove_group(key_file, "handler", NULL);
 
 	/* parse [image.<slotclass>] and [file.<slotclass>/<destname>] sections */
 	groups = g_key_file_get_groups(key_file, &group_count);
@@ -67,17 +151,25 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 
 			image->slotclass = g_strdup(groupsplit[1]);
 
-			value = g_key_file_get_string(key_file, groups[i], "sha256", NULL);
+			value = manifest_consume_string(key_file, groups[i], "sha256", NULL);
 			if (value) {
 				image->checksum.type = G_CHECKSUM_SHA256;
 				image->checksum.digest = value;
 			}
 			image->checksum.size = g_key_file_get_uint64(key_file,
 					groups[i], "size", NULL);
+			g_key_file_remove_key(key_file, groups[i], "size", NULL);
 
-			image->filename = g_key_file_get_string(key_file, groups[i], "filename", NULL);
+			image->filename = manifest_consume_string(key_file, groups[i], "filename", NULL);
 
 			raucm->images = g_list_append(raucm->images, image);
+
+			if (!check_remaining_keys(key_file, groups[i], &ierror)) {
+				g_propagate_error(error, ierror);
+				goto free;
+			}
+			g_key_file_remove_group(key_file, groups[i], NULL);
+
 		} else if (g_str_equal(groupsplit[0], RAUC_FILE_PREFIX)) {
 			gchar **destsplit = g_strsplit(groupsplit[1], "/", 2);
 			RaucFile *file;
@@ -93,28 +185,44 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 			file->slotclass = g_strdup(destsplit[0]);
 			file->destname = g_strdup(destsplit[1]);
 
-			value = g_key_file_get_string(key_file, groups[i], "sha256", NULL);
+			value = manifest_consume_string(key_file, groups[i], "sha256", NULL);
 			if (value) {
 				file->checksum.type = G_CHECKSUM_SHA256;
 				file->checksum.digest = value;
 			}
 			file->checksum.size = g_key_file_get_uint64(key_file,
 					groups[i], "size", NULL);
+			g_key_file_remove_key(key_file, groups[i], "size", NULL);
 
 
-			file->filename = g_key_file_get_string(key_file, groups[i], "filename", NULL);
+			file->filename = manifest_consume_string(key_file, groups[i], "filename", NULL);
 
 			raucm->files = g_list_append(raucm->files, file);
+
+			if (!check_remaining_keys(key_file, groups[i], &ierror)) {
+				g_propagate_error(error, ierror);
+				goto free;
+			}
+			g_key_file_remove_group(key_file, groups[i], NULL);
 		}
 
 		g_strfreev(groupsplit);
+	}
+
+	if (!check_remaining_groups(key_file, &ierror)) {
+		g_propagate_error(error, ierror);
+		goto free;
 	}
 
 	g_strfreev(groups);
 
 	res = TRUE;
 free:
-	*manifest = raucm;
+	if (res) {
+		*manifest = raucm;
+	} else {
+		free_manifest(raucm);
+	}
 
 	return res;
 }

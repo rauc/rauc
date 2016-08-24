@@ -383,7 +383,7 @@ static void install_test_bootname(InstallFixture *fixture,
 static void install_test_target(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucManifest *rm;
+	RaucManifest *rm = NULL;
 	GHashTable *tgrp;
 
 
