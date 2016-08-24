@@ -4,6 +4,10 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gio/gio.h>
+#if ENABLE_JSON
+#include <json-glib/json-glib.h>
+#include <json-glib/json-gobject.h>
+#endif
 
 #include <config.h>
 #include <bootchooser.h>
@@ -19,6 +23,7 @@ GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
 gboolean info_noverify = FALSE;
+gchar *output_format = NULL;
 
 static gboolean install_notify(gpointer data) {
 	RaucInstallArgs *args = data;
@@ -262,6 +267,154 @@ out:
 	return TRUE;
 }
 
+static gchar *info_formatter_shell(RaucManifest *manifest)
+{
+	GString *text = g_string_new(NULL);
+	gint cnt;
+
+	g_string_append_printf(text, "RAUC_MF_COMPATIBLE=%s\n", manifest->update_compatible);
+	g_string_append_printf(text, "RAUC_MF_VERSION=%s\n", manifest->update_version ?: "");
+	g_string_append_printf(text, "RAUC_MF_DESCRIPTION=%s\n", manifest->update_description ?: "");
+	g_string_append_printf(text, "RAUC_MF_BUILD=%s\n", manifest->update_build ?: "");
+	g_string_append_printf(text, "RAUC_MF_IMAGES=%d\n", g_list_length(manifest->images));
+	g_string_append_printf(text, "RAUC_MF_FILES=%d\n", g_list_length(manifest->files));
+
+	cnt = 0;
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		RaucImage *img = l->data;
+		g_string_append_printf(text, "RAUC_IMAGE_NAME_%d=%s\n", cnt, img->filename);
+		g_string_append_printf(text, "RAUC_IMAGE_CLASS_%d=%s\n", cnt, img->slotclass);
+		g_string_append_printf(text, "RAUC_IMAGE_DIGEST_%d=%s\n", cnt, img->checksum.digest);
+		g_string_append_printf(text, "RAUC_IMAGE_SIZE_%d=%"G_GSIZE_FORMAT"\n", cnt, img->checksum.size);
+		cnt++;
+	}
+
+	cnt = 0;
+	for (GList *l = manifest->files; l != NULL; l = l->next) {
+		RaucFile *file = l->data;
+		g_string_append_printf(text, "RAUC_FILE_NAME_%d=%s\n", cnt, file->filename);
+		g_string_append_printf(text, "RAUC_FILE_CLASS_%d=%s\n", cnt, file->slotclass);
+		g_string_append_printf(text, "RAUC_FILE_DEST_%d=%s\n", cnt, file->destname);
+		g_string_append_printf(text, "RAUC_FILE_DIGEST_%d=%s\n", cnt, file->checksum.digest);
+		g_string_append_printf(text, "RAUC_FILE_SIZE_%d=%"G_GSIZE_FORMAT"\n", cnt, file->checksum.size);
+		cnt++;
+	}
+
+	return g_string_free(text, FALSE);
+}
+
+static gchar *info_formatter_readable(RaucManifest *manifest)
+{
+	GString *text = g_string_new(NULL);
+	gint cnt;
+
+	g_string_append_printf(text, "Compatible: \t'%s'\n", manifest->update_compatible);
+	g_string_append_printf(text, "Version:    \t'%s'\n", manifest->update_version);
+	g_string_append_printf(text, "Description:\t'%s'\n", manifest->update_description);
+	g_string_append_printf(text, "Build:      \t'%s'\n", manifest->update_build);
+
+	cnt = g_list_length(manifest->images);
+	g_string_append_printf(text, "%d Image%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
+	cnt = 1;
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		RaucImage *img = l->data;
+		g_string_append_printf(text, "(%d)\t%s\n", cnt, img->filename);
+		g_string_append_printf(text, "\tSlotclass: %s\n", img->slotclass);
+		g_string_append_printf(text, "\tChecksum:  %s\n", img->checksum.digest);
+		g_string_append_printf(text, "\tSize:      %"G_GSIZE_FORMAT"\n", img->checksum.size);
+		cnt++;
+	}
+
+	cnt = g_list_length(manifest->files);
+	g_string_append_printf(text, "%d File%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
+	cnt = 1;
+	for (GList *l = manifest->files; l != NULL; l = l->next) {
+		RaucFile *file = l->data;
+		g_string_append_printf(text, "(%d)\t%s\n", cnt, file->filename);
+		g_string_append_printf(text, "\tSlotclass: %s\n", file->slotclass);
+		g_string_append_printf(text, "\tDest:      %s\n", file->destname);
+		g_string_append_printf(text, "\tChecksum:  %s\n", file->checksum.digest);
+		g_string_append_printf(text, "\tSize:      %"G_GSIZE_FORMAT"\n", file->checksum.size);
+		cnt++;
+	}
+
+	return g_string_free(text, FALSE);
+}
+
+
+static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
+{
+#if ENABLE_JSON
+	JsonGenerator *gen;
+	JsonNode * root;
+	gchar *str;
+	JsonBuilder *builder = json_builder_new ();
+
+	json_builder_begin_object (builder);
+
+	json_builder_set_member_name (builder, "compatible");
+	json_builder_add_string_value (builder, manifest->update_compatible);
+
+	json_builder_set_member_name (builder, "version");
+	json_builder_add_string_value (builder, manifest->update_version);
+
+	json_builder_set_member_name (builder, "description");
+	json_builder_add_string_value (builder, manifest->update_description);
+
+	json_builder_set_member_name (builder, "build");
+	json_builder_add_string_value (builder, manifest->update_build);
+
+	json_builder_set_member_name (builder, "images");
+	json_builder_begin_array (builder);
+
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		RaucImage *img = l->data;
+
+		json_builder_begin_object (builder);
+		json_builder_set_member_name (builder, img->slotclass);
+		json_builder_begin_object (builder);
+		json_builder_set_member_name (builder, "filename");
+		json_builder_add_string_value (builder, img->filename);
+		json_builder_set_member_name (builder, "checksum");
+		json_builder_add_string_value (builder, img->checksum.digest);
+		json_builder_set_member_name (builder, "size");
+		json_builder_add_int_value (builder, img->checksum.size);
+		json_builder_end_object (builder);
+		json_builder_end_object (builder);
+
+	}
+
+	json_builder_end_array (builder);
+
+	json_builder_end_object (builder);
+
+	gen = json_generator_new ();
+	root = json_builder_get_root (builder);
+	json_generator_set_root (gen, root);
+	json_generator_set_pretty (gen, pretty);
+	str = json_generator_to_data (gen, NULL);
+
+	json_node_free (root);
+	g_object_unref (gen);
+	g_object_unref (builder);
+
+	return str;
+#else
+	g_error("json support is disabled");
+	return NULL;
+#endif
+}
+
+static gchar* info_formatter_json(RaucManifest *manifest)
+{
+	return info_formatter_json_base(manifest, FALSE);
+}
+
+static gchar* info_formatter_json_pretty(RaucManifest *manifest)
+{
+	return info_formatter_json_base(manifest, TRUE);
+}
+
 static gboolean info_start(int argc, char **argv)
 {
 	gchar* tmpdir = NULL;
@@ -270,7 +423,7 @@ static gboolean info_start(int argc, char **argv)
 	RaucManifest *manifest = NULL;
 	GError *error = NULL;
 	gboolean res = FALSE;
-	gint cnt = 0;
+	gchar* (*formatter)(RaucManifest *manifest) = NULL;
 
 	if (argc != 3) {
 		g_warning("a file name must be provided");
@@ -278,7 +431,18 @@ static gboolean info_start(int argc, char **argv)
 		return FALSE;
 	}
 
-	g_print("checking manifest for: %s\n", argv[2]);
+	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
+		formatter = info_formatter_readable;
+	} else if (g_strcmp0(output_format, "shell") == 0) {
+		formatter = info_formatter_shell;
+	} else if (ENABLE_JSON && g_strcmp0(output_format, "json") == 0) {
+		formatter = info_formatter_json;
+	} else if (ENABLE_JSON && g_strcmp0(output_format, "json-pretty") == 0) {
+		formatter = info_formatter_json_pretty;
+	} else {
+		g_printerr("Unknown output format: '%s'\n", output_format);
+		goto out;
+	}
 
 	tmpdir = g_dir_make_tmp("bundle-XXXXXX", &error);
 	if (!tmpdir) {
@@ -297,7 +461,6 @@ static gboolean info_start(int argc, char **argv)
  		goto out;
  	}
 
-
 	res = load_manifest_file(manifestpath, &manifest, &error);
 	if (!res) {
 		g_warning("%s", error->message);
@@ -305,31 +468,7 @@ static gboolean info_start(int argc, char **argv)
 		goto out;
 	}
 
-	g_print("Compatible String:\t'%s'\n", manifest->update_compatible);
-	g_print("Update version:   \t'%s'\n", manifest->update_version);
-
-	cnt = g_list_length(manifest->images);
-	g_print("%d Image%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
-	cnt = 0;
-	for (GList *l = manifest->images; l != NULL; l = l->next) {
-		RaucImage *img = l->data;
-		g_print("(%d)\t%s\n", ++cnt, img->filename);
-		g_print("\tSlotclass: %s\n", img->slotclass);
-		g_print("\tChecksum:  %s\n", img->checksum.digest);
-		g_print("\tSize:      %"G_GSIZE_FORMAT"\n", img->checksum.size);
-	}
-
-	cnt = g_list_length(manifest->files);
-	g_print("%d File%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
-	cnt = 0;
-	for (GList *l = manifest->files; l != NULL; l = l->next) {
-		RaucFile *file = l->data;
-		g_print("(%d)\t%s\n", ++cnt, file->filename);
-		g_print("\tSlotclass: %s\n", file->slotclass);
-		g_print("\tDest:      %s\n", file->destname);
-		g_print("\tChecksum:  %s\n", file->checksum.digest);
-		g_print("\tSize:      %"G_GSIZE_FORMAT"\n", file->checksum.size);
-	}
+	g_print("%s\n", formatter(manifest));
 
 out:
 	r_exit_status = res ? 0 : 1;
@@ -462,6 +601,7 @@ typedef struct {
 
 GOptionEntry entries_info[] = {
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &info_noverify, "disable bundle verification", NULL},
+	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
 	{0}
 };
 

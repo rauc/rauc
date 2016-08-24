@@ -20,6 +20,8 @@ typedef struct {
 typedef struct {
 	gchar *update_compatible;
 	gchar *update_version;
+	gchar *update_description;
+	gchar *update_build;
 
 	gchar *keyring;
 

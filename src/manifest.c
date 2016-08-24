@@ -34,6 +34,8 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 		goto free;
 	}
 	raucm->update_version = g_key_file_get_string(key_file, "update", "version", NULL);
+	raucm->update_description = g_key_file_get_string(key_file, "update", "description", NULL);
+	raucm->update_build = g_key_file_get_string(key_file, "update", "build", NULL);
 
 	/* parse [keyring] section */
 	raucm->keyring = g_key_file_get_string(key_file, "keyring", "archive", NULL);
@@ -187,6 +189,12 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **er
 
 	if (mf->update_version)
 		g_key_file_set_string(key_file, "update", "version", mf->update_version);
+
+	if (mf->update_description)
+		g_key_file_set_string(key_file, "update", "description", mf->update_description);
+
+	if (mf->update_build)
+		g_key_file_set_string(key_file, "update", "build", mf->update_build);
 
 	if (mf->keyring)
 		g_key_file_set_string(key_file, "keyring", "archive", mf->keyring);

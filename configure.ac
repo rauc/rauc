@@ -62,6 +62,18 @@ AS_IF([test "x$enable_network" != "xno"], [
 ])
 
 
+AC_ARG_ENABLE([json],
+       AS_HELP_STRING([--disable-json], [Disable JSON support])
+)
+AM_CONDITIONAL([WANT_JSON], [test x$enable_json != xno])
+AS_IF([test "x$enable_json" != "xno"], [
+       AC_DEFINE([ENABLE_JSON], [1], [Define to 1 to enable building with JSON support])
+       PKG_CHECK_MODULES([JSON_GLIB], [json-glib-1.0])
+], [
+       AC_DEFINE([ENABLE_JSON], [0])
+])
+
+
 AX_CHECK_OPENSSL([],[AC_MSG_ERROR([OpenSSL not found])])
 
 AC_ARG_WITH([systemdunitdir], AC_HELP_STRING([--with-systemdunitdir=DIR],
