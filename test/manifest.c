@@ -149,7 +149,7 @@ static void test_save_load_manifest(void)
 static void test_load_manifest_mem(void)
 {
 	GBytes *data = NULL;
-	RaucManifest *rm;
+	RaucManifest *rm = NULL;
 
 	data = read_file("test/manifest.raucm", NULL);
 	g_assert_true(load_manifest_mem(data, &rm, NULL));
