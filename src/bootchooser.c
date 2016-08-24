@@ -84,7 +84,7 @@ static gboolean barebox_state_set(GPtrArray *pairs) {
 	sub = g_subprocess_newv((const gchar * const *)args->pdata,
 				  G_SUBPROCESS_FLAGS_NONE, &error);
 	if (!sub) {
-		g_warning("getting state failed: %s", error->message);
+		g_warning("starting " BAREBOX_STATE_NAME " failed: %s", error->message);
 		g_clear_error(&error);
 		goto out;
 	}

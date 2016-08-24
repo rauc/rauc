@@ -35,6 +35,9 @@ void signature_init(void) {
 static EVP_PKEY *load_key(const gchar *keyfile, GError **error) {
         EVP_PKEY *res = NULL;
 	BIO *key = NULL;
+	unsigned long err;
+	const gchar *data;
+	int flags;
 
 	g_assert(error == NULL || *error == NULL);
 
@@ -50,11 +53,13 @@ static EVP_PKEY *load_key(const gchar *keyfile, GError **error) {
 
 	res = PEM_read_bio_PrivateKey(key, NULL, NULL, NULL);
 	if (res == NULL) {
+		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE_ERROR,
-				"failed to parse key file '%s'", keyfile);
+				"failed to parse key file '%s': %s", keyfile,
+					(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		goto out;
 	}
 out:
@@ -65,6 +70,9 @@ out:
 static X509 *load_cert(const gchar *certfile, GError **error) {
 	X509 *res = NULL;
 	BIO *cert = NULL;
+	unsigned long err;
+	const gchar *data;
+	int flags;
 
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
@@ -80,11 +88,13 @@ static X509 *load_cert(const gchar *certfile, GError **error) {
 
 	res = PEM_read_bio_X509(cert, NULL, NULL, NULL);
 	if (res == NULL) {
+		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE_ERROR,
-				"failed to parse cert file '%s'", certfile);
+				"failed to parse cert file '%s': %s", certfile,
+					(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		goto out;
 	}
 out:
