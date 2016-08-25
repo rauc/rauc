@@ -411,6 +411,15 @@ static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, con
 	int out_fd;
 	gboolean res = FALSE;
 
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
 	/* open */
 	g_message("opening slot device %s", dest_slot->device);
 	outstream = open_slot_device(dest_slot, &out_fd, &ierror);
@@ -452,6 +461,15 @@ static gboolean tar_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
 
 	/* format ubi volume */
 	g_message("Formatting ubifs slot %s", dest_slot->device);
@@ -503,6 +521,15 @@ out:
 static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
 
 	/* format ext4 volume */
 	g_message("Formatting ext4 slot %s", dest_slot->device);
@@ -579,6 +606,15 @@ static gboolean img_to_fs_handler(RaucImage *image, RaucSlot *dest_slot, const g
 	GOutputStream *outstream = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
 
 	/* open */
 	g_message("opening slot device %s", dest_slot->device);
