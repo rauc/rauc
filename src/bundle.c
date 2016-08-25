@@ -6,6 +6,12 @@
 #include <mount.h>
 #include "bundle.h"
 
+GQuark
+r_bundle_error_quark (void)
+{
+  return g_quark_from_static_string ("r-bundle-error-quark");
+}
+
 static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GError **error) {
 	GSubprocess *sproc = NULL;
 	GError *ierror = NULL;
@@ -286,6 +292,21 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 				error,
 				ierror,
 				"failed to read signature size from bundle: ");
+		goto out;
+	}
+
+	/* sanity check: signature should be smaller than bundle size */
+	if (sigsize > (guint64)offset) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
+				"signature size sanity check failed: %"G_GSIZE_FORMAT" exceeds bundle size", sigsize);
+		res = FALSE;
+		goto out;
+	}
+	/* sanity check: signature should be smaller than 64kiB */
+	if (sigsize > 0x4000000) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
+				"signature size sanity check failed: %"G_GSIZE_FORMAT" exceeds 64KiB", sigsize);
+		res = FALSE;
 		goto out;
 	}
 
