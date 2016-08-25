@@ -14,6 +14,33 @@ typedef struct {
 	gchar *tmpdir;
 } InstallFixture;
 
+gchar* random_bytes(gsize size, guint32 seed) {
+	gchar *str = g_new0(gchar, size + 1);
+	GRand *rand = g_rand_new_with_seed(seed);
+	for (gsize i = 0; i < size; i++) {
+		str[i] = (gchar) g_rand_int(rand) & 0xFF;
+	}
+	return str;
+}
+
+gchar* write_random_file(const gchar *tmpdir, const gchar *filename,
+			    gsize size, const guint32 seed) {
+	gchar *pathname;
+	gchar *content;
+
+	pathname = g_build_filename(tmpdir, filename, NULL);
+	g_assert_nonnull(pathname);
+
+	content = random_bytes(size, seed);
+
+	if (!g_file_set_contents(pathname, content, size, NULL)) {
+		return NULL;
+	}
+
+	g_free(content);
+	return pathname;
+}
+
 /* Helper that writes string to new file in tmpdir/filename, returns entire
  * pathname if successful. */
 gchar* write_tmp_file(

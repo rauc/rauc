@@ -2,6 +2,13 @@
 
 #include <glib.h>
 
+#define R_BUNDLE_ERROR r_bundle_error_quark ()
+GQuark r_bundle_error_quark(void);
+
+typedef enum {
+	R_BUNDLE_ERROR_SIGNATURE
+} RBundleError;
+
 gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error);
 gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GError **error);
 gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir, gboolean verify, GError **error);
