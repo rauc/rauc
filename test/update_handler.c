@@ -27,6 +27,7 @@ static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer
 	RaucSlot *targetslot;
 	img_to_slot_handler handler;
 	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair*) user_data;
+	GError *ierror = NULL;
 
 	image = g_new0(RaucImage, 1);
 	image->slotclass = g_strdup("rootfs");
@@ -38,11 +39,14 @@ static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer
 	targetslot->device = g_strdup("/dev/null");
 	targetslot->type = g_strdup(test_pair->slottype);
 
-	handler = get_update_handler(image, targetslot, NULL);
-	if (test_pair->success)
+	handler = get_update_handler(image, targetslot, &ierror);
+	if (test_pair->success) {
+		g_assert_no_error(ierror);
 		g_assert_nonnull(handler);
-	else
+	} else {
+		g_assert_error(ierror, R_UPDATE_ERROR, R_UPDATE_ERROR_NO_HANDLER);
 		g_assert_null(handler);
+	}
 }
 
 /* Test update_handler/get_custom_handler:
@@ -55,6 +59,7 @@ static void test_get_custom_update_handler(UpdateHandlerFixture *fixture, gconst
 	RaucImage *image;
 	RaucSlot *targetslot;
 	img_to_slot_handler handler;
+	GError *ierror = NULL;
 
 	image = g_new0(RaucImage, 1);
 	image->slotclass = g_strdup("rootfs");
@@ -67,7 +72,8 @@ static void test_get_custom_update_handler(UpdateHandlerFixture *fixture, gconst
 	targetslot->device = g_strdup("/dev/null");
 	targetslot->type = g_strdup("nand");
 
-	handler = get_update_handler(image, targetslot, NULL);
+	handler = get_update_handler(image, targetslot, &ierror);
+	g_assert_no_error(ierror);
 	g_assert_nonnull(handler);
 }
 

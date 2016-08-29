@@ -17,9 +17,7 @@
 #define R_SLOT_HOOK_POST_INSTALL "slot-post-install"
 #define R_SLOT_HOOK_INSTALL "slot-install"
 
-#define R_UPDATE_ERROR r_update_error_quark()
-
-static GQuark r_update_error_quark(void)
+GQuark r_update_error_quark(void)
 {
 	return g_quark_from_static_string("r_update_error_quark");
 }
@@ -37,7 +35,7 @@ static GOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **error)
 	fd_out = open(g_file_get_path(destslotfile), O_WRONLY);
 
 	if (fd_out == -1) {
-		g_set_error(error, R_UPDATE_ERROR, 0,
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"opening output device failed: %s", strerror(errno));
 		goto out;
 	}
@@ -64,7 +62,7 @@ static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 	/* set up ubi volume for image copy */
 	ret = ioctl(fd, UBI_IOCVOLUP, &size);
 	if (ret == -1) {
-		g_set_error(error, R_UPDATE_ERROR, 0,
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"ubi volume update failed: %s", strerror(errno));
 		return FALSE;
 	}
@@ -94,7 +92,7 @@ static gboolean copy_raw_image(RaucImage *image, GOutputStream *outstream, GErro
 				"failed splicing data: ");
 		goto out;
 	} else if (size != (gssize)image->checksum.size) {
-		g_set_error_literal(error, R_UPDATE_ERROR, 0,
+		g_set_error_literal(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"image size and written size differ!");
 		goto out;
 	}
@@ -731,7 +729,7 @@ img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, 
 	}
 
 	if (handler == NULL)  {
-		g_set_error(error, R_UPDATE_ERROR, 1, "Unsupported image %s for slot type %s",
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_NO_HANDLER, "Unsupported image %s for slot type %s",
 			    mfimage->filename, dest);
 		goto out;
 	}
