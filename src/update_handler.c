@@ -93,8 +93,8 @@ static gboolean copy_raw_image(RaucImage *image, GOutputStream *outstream, GErro
 				"failed splicing data: ");
 		goto out;
 	} else if (size != (gssize)image->checksum.size) {
-		g_set_error_literal(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"image size and written size differ!");
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"written size (%"G_GSIZE_FORMAT") != image size (%"G_GSIZE_FORMAT")", size, (gssize)image->checksum.size);
 		goto out;
 	}
 
