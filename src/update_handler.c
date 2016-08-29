@@ -75,6 +75,7 @@ static gboolean copy_raw_image(RaucImage *image, GOutputStream *outstream, GErro
 	GError *ierror = NULL;
 	gssize size;
 	GFile *srcimagefile = g_file_new_for_path(image->filename);
+	gboolean res = FALSE;
 
 	GInputStream *instream = (GInputStream*)g_file_read(srcimagefile, NULL, &ierror);
 	if (instream == NULL) {
@@ -97,10 +98,12 @@ static gboolean copy_raw_image(RaucImage *image, GOutputStream *outstream, GErro
 		goto out;
 	}
 
+	res = TRUE;
+
 out:
 	g_clear_object(&instream);
 	g_clear_object(&srcimagefile);
-	return TRUE;
+	return res;
 }
 
 static gboolean ubifs_format_slot(RaucSlot *dest_slot, GError **error)
