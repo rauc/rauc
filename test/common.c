@@ -133,6 +133,19 @@ int test_rmdir(const gchar *dirname, const gchar *filename) {
 	return res;
 }
 
+int test_remove(const gchar *dirname, const gchar *filename) {
+	gchar *path;
+	int res;
+
+	path = g_build_filename(dirname, filename, NULL);
+	g_assert_nonnull(path);
+
+	res = g_remove(path);
+
+	g_free(path);
+	return res;
+}
+
 gboolean test_rm_tree(const gchar *dirname, const gchar *filename) {
 	gchar *path;
 	gboolean res;
