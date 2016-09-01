@@ -431,7 +431,7 @@ free:
 	return res;
 }
 
-static void free_image(gpointer data) {
+void r_free_image(gpointer data) {
 	RaucImage *image = (RaucImage*) data;
 
 	g_clear_pointer(&image->slotclass, g_free);
@@ -440,7 +440,7 @@ static void free_image(gpointer data) {
 	g_clear_pointer(&image, g_free);
 }
 
-static void free_file(gpointer data) {
+void r_free_file(gpointer data) {
 	RaucFile *file = (RaucFile*) data;
 
 	g_clear_pointer(&file->slotclass, g_free);
@@ -456,8 +456,8 @@ void free_manifest(RaucManifest *manifest) {
 	g_clear_pointer(&manifest->update_version, g_free);
 	g_clear_pointer(&manifest->keyring, g_free);
 	g_clear_pointer(&manifest->handler_name, g_free);
-	g_list_free_full(manifest->images, free_image);
-	g_list_free_full(manifest->files, free_file);
+	g_list_free_full(manifest->images, r_free_image);
+	g_list_free_full(manifest->files, r_free_file);
 	g_clear_pointer(&manifest, g_free);
 }
 
