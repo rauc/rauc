@@ -540,7 +540,7 @@ static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, const
 		goto out;
 	}
 
-	/* mount ubi volume */
+	/* mount ext4 volume */
 	g_message("Mounting ext4 slot %s", dest_slot->device);
 	res = r_mount_slot(dest_slot, &ierror);
 	if (!res) {
@@ -549,7 +549,7 @@ static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, const
 		goto unmount_out;
 	}
 
-	/* extract tar into mounted ubi volume */
+	/* extract tar into mounted ext4 volume */
 	g_message("Extracting %s to %s", image->filename, dest_slot->mount_point);
 	res = untar_image(image, dest_slot->mount_point, &ierror);
 	if (!res) {
@@ -567,7 +567,7 @@ static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, const
 	}
 
 unmount_out:
-	/* finally umount ubi volume */
+	/* finally umount ext4 volume */
 	g_message("Unmounting ext4 slot %s", dest_slot->device);
 	if (!r_umount_slot(dest_slot, &ierror)) {
 		res = FALSE;
@@ -722,7 +722,6 @@ img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, 
 	g_message("Checking image type for slot type: %s", dest);
 
 	for (RaucUpdatePair *updatepair = updatepairs; updatepair->handler != NULL; updatepair++) {
-		//g_message("Checking for pattern: %s", (gchar*)l->data);
 		if (g_pattern_match_simple(updatepair->src, src) &&
 		    g_pattern_match_simple(updatepair->dest, dest)) {
 			g_message("Image detected as type: %s", updatepair->src);
