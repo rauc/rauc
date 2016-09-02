@@ -106,6 +106,9 @@ static void update_handler_fixture_set_up(UpdateHandlerFixture *fixture,
 	if (!(test_pair->params & TEST_UPDATE_HANDLER_NO_TARGET_DEV)) {
 		g_assert(test_prepare_dummy_file(fixture->tmpdir, "rootfs-0",
 					SLOT_SIZE, "/dev/zero") == 0);
+		if (g_strcmp0(test_pair->slottype, "ext4") == 0) {
+			g_assert(test_make_filesystem(fixture->tmpdir, "rootfs-0"));
+		}
 	}
 }
 
@@ -264,6 +267,10 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	if (g_strcmp0(test_pair->imagetype, "img") == 0) {
 		g_assert(test_prepare_dummy_file(fixture->tmpdir, "image.img",
 					IMAGE_SIZE, "/dev/zero") == 0);
+	} else if (g_strcmp0(test_pair->imagetype, "ext4") == 0) {
+		g_assert(test_prepare_dummy_file(fixture->tmpdir, "image.ext4",
+					IMAGE_SIZE, "/dev/zero") == 0);
+		g_assert(test_make_filesystem(fixture->tmpdir, "image.ext4"));
 	} else if (g_strcmp0(test_pair->imagetype, "tar.bz2") == 0) {
 		g_assert_true(test_prepare_dummy_archive(fixture->tmpdir, "image.tar.bz2", "testfile.txt"));
 	} else {
@@ -305,6 +312,10 @@ no_image:
 	/* Sanity check updated slot */
 	if (g_strcmp0(test_pair->imagetype, "img") == 0) {
 		g_assert_cmpint(get_file_size(imagepath, NULL), ==, IMAGE_SIZE);
+	} else if (g_strcmp0(test_pair->imagetype, "ext4") == 0) {
+		g_assert_cmpint(get_file_size(imagepath, NULL), ==, IMAGE_SIZE);
+		g_assert(test_mount(slotpath, mountprefix));
+		g_assert(r_umount(slotpath, NULL));
 	} else if (g_strcmp0(test_pair->imagetype, "tar.bz2") == 0) {
 		gchar *testpath = g_build_filename(mountprefix, "testfile.txt", NULL);
 		g_assert(test_mount(slotpath, mountprefix));
@@ -340,13 +351,22 @@ int main(int argc, char *argv[])
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 		{"ubifs", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 		{"ubifs", "ext4", TEST_UPDATE_HANDLER_EXPECT_FAIL, 0, 0},
+
 		{"raw", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 		{"ext4", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0},
+		{"raw", "ext4", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+
 		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 2},
 		{"raw", "img", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_IO_ERROR, G_IO_ERROR_NOT_FOUND},
-		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_NO_TARGET_DEV| TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+		{"raw", "ext4", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_IO_ERROR, G_IO_ERROR_NOT_FOUND},
+		{"ext4", "ext4", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_IO_ERROR, G_IO_ERROR_NOT_FOUND},
+
+		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_NO_TARGET_DEV | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"raw", "img", TEST_UPDATE_HANDLER_NO_TARGET_DEV | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
+		{"raw", "ext4", TEST_UPDATE_HANDLER_NO_TARGET_DEV | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
+		{"ext4", "ext4", TEST_UPDATE_HANDLER_NO_TARGET_DEV | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
+
 		{0}
 	};
 	setlocale(LC_ALL, "C");
@@ -359,21 +379,18 @@ int main(int argc, char *argv[])
 			NULL,
 			test_get_update_handler,
 			NULL);
-
 	g_test_add("/update_handler/get_handler/ext4_to_ext4",
 			UpdateHandlerFixture,
 			&testpair_matrix[1],
 			NULL,
 			test_get_update_handler,
 			NULL);
-
 	g_test_add("/update_handler/get_handler/tar.bz2_to_ubifs",
 			UpdateHandlerFixture,
 			&testpair_matrix[2],
 			NULL,
 			test_get_update_handler,
 			NULL);
-
 	g_test_add("/update_handler/get_handler/fail/ext4_to_ubifs",
 			UpdateHandlerFixture,
 			&testpair_matrix[3],
@@ -394,45 +411,71 @@ int main(int argc, char *argv[])
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
-
 	g_test_add("/update_handler/update_handler/img_to_ext4",
 			UpdateHandlerFixture,
 			&testpair_matrix[5],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
-
 	g_test_add("/update_handler/update_handler/tar_to_ext4",
 			UpdateHandlerFixture,
 			&testpair_matrix[6],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
-
-	g_test_add("/update_handler/update_handler/tar_to_ext4/no-image",
+	g_test_add("/update_handler/update_handler/ext4_to_raw",
 			UpdateHandlerFixture,
 			&testpair_matrix[7],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
 
-	g_test_add("/update_handler/update_handler/img_to_ext4/no-image",
+	g_test_add("/update_handler/update_handler/tar_to_ext4/no-image",
 			UpdateHandlerFixture,
 			&testpair_matrix[8],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/img_to_raw/no-image",
+			UpdateHandlerFixture,
+			&testpair_matrix[9],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/ext4_to_raw/no-image",
+			UpdateHandlerFixture,
+			&testpair_matrix[10],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/ext4_to_ext4/no-image",
+			UpdateHandlerFixture,
+			&testpair_matrix[11],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
 
 	g_test_add("/update_handler/update_handler/tar_to_ext4/no-slot",
 			UpdateHandlerFixture,
-			&testpair_matrix[9],
+			&testpair_matrix[12],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
-
-	g_test_add("/update_handler/update_handler/img_to_ext4/no-slot",
+	g_test_add("/update_handler/update_handler/img_to_raw/no-slot",
 			UpdateHandlerFixture,
-			&testpair_matrix[10],
+			&testpair_matrix[13],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/ext4_to_raw/no-slot",
+			UpdateHandlerFixture,
+			&testpair_matrix[14],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/ext4_to_ext4/no-slot",
+			UpdateHandlerFixture,
+			&testpair_matrix[15],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
