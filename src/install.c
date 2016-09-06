@@ -34,16 +34,9 @@ static GQuark r_slot_error_quark (void)
 
 #define R_INSTALL_ERROR r_install_error_quark ()
 
-static GQuark r_install_error_quark (void)
+GQuark r_install_error_quark (void)
 {
 	return g_quark_from_static_string ("r_install_error_quark");
-}
-
-#define R_HANDLER_ERROR r_handler_error_quark ()
-
-static GQuark r_handler_error_quark (void)
-{
-	return g_quark_from_static_string ("r_handler_error_quark");
 }
 
 static void install_args_update(RaucInstallArgs *args, const gchar *msg) {
@@ -628,7 +621,7 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bun
 			goto out;
 		}
 	} else if (!verify_compatible(manifest)) {
-		g_set_error_literal(error, R_HANDLER_ERROR, 0,
+		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_COMPAT_MISMATCH,
 				"Compatible mismatch");
 		res = FALSE;
 		goto out;
@@ -672,7 +665,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		}
 	} else if (!verify_compatible(manifest)) {
 		res = FALSE;
-		g_set_error_literal(error, R_HANDLER_ERROR, 0,
+		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_COMPAT_MISMATCH,
 				"Compatible mismatch");
 		goto early_out;
 	}
@@ -688,7 +681,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		res = r_boot_set_state(dest_slot, FALSE);
 
 		if (!res) {
-			g_set_error(error, R_HANDLER_ERROR, 0,
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_NONBOOTABLE,
 					"Failed marking slot %s non-bootable", dest_slot->name);
 			goto early_out;
 		}
@@ -718,14 +711,14 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 		if (!g_file_test(mfimage->filename, G_FILE_TEST_EXISTS)) {
 			res = FALSE;
-			g_set_error(error, R_HANDLER_ERROR, 0,
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NOSRC,
 					"Source image '%s' not found", mfimage->filename);
 			goto out;
 		}
 
 		if (!g_file_test(dest_slot->device, G_FILE_TEST_EXISTS)) {
 			res = FALSE;
-			g_set_error(error, R_HANDLER_ERROR, 0,
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NODST,
 					"Destination device '%s' not found", dest_slot->device);
 			goto out;
 		}
@@ -883,7 +876,7 @@ image_out:
 		res = r_boot_set_primary(dest_slot);
 
 		if (!res) {
-			g_set_error(error, R_HANDLER_ERROR, 0,
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
 					"Failed marking slot %s bootable", dest_slot->name);
 			goto out;
 		}
@@ -1130,7 +1123,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 
 	target_group = determine_target_install_group(manifest);
 	if (!target_group) {
-		g_set_error_literal(error, R_INSTALL_ERROR, 3, "Could not determine target group");
+		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_TARGET_GROUP, "Could not determine target group");
 		res = FALSE;
 		goto umount;
 	}
@@ -1204,7 +1197,7 @@ gboolean do_install_network(const gchar *url, GError **error) {
 
 	res = download_mem(&manifest_data, url, 64*1024);
 	if (!res) {
-		g_set_error_literal(error, R_INSTALL_ERROR, 4, "Failed to download manifest");
+		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_DOWNLOAD_MF, "Failed to download manifest");
 		goto out;
 	}
 
@@ -1235,7 +1228,7 @@ gboolean do_install_network(const gchar *url, GError **error) {
 
 	target_group = determine_target_install_group(manifest);
 	if (!target_group) {
-		g_set_error_literal(error, R_INSTALL_ERROR, 3, "Could not determine target group");
+		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_TARGET_GROUP, "Could not determine target group");
 		goto out;
 	}
 
@@ -1257,7 +1250,7 @@ gboolean do_install_network(const gchar *url, GError **error) {
 	g_print("Using network handler for %s\n", base_url);
 	res = launch_and_wait_network_handler(base_url, manifest, target_group);
 	if (!res) {
-		g_set_error_literal(error, R_HANDLER_ERROR, 0,
+		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_HANDLER,
 				"Handler error");
 		goto out;
 	}
@@ -1286,8 +1279,8 @@ out:
 #else
 	g_set_error_literal(
 			error,
-			R_HANDLER_ERROR,
-			255,
+			R_INSTALL_ERROR,
+			R_INSTALL_ERROR_NO_SUPPORTED,
 			"Compiled without network support");
 	return FALSE;
 #endif
