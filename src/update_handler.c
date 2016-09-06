@@ -380,28 +380,31 @@ static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hoo
 	g_message("Mounting slot %s", slot->device);
 	res = r_mount_slot(slot, &ierror);
 	if (!res) {
-		g_message("Mounting failed: %s", ierror->message);
-		g_clear_error(&ierror);
-		goto unmount_out;
+		g_propagate_error(error, ierror);
+		goto out;
 	}
 
-	/* run slot post install hook */
-	g_message("Running slot post install hook for %s", slot->name);
+	/* run slot install hook */
+	g_message("Running slot '%s' hook for %s", hook_cmd, slot->name);
 	res = run_slot_hook(hook_name, hook_cmd, NULL, slot, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto unmount_out;
 	}
 
-unmount_out:
 	/* finally umount slot */
 	g_message("Unmounting slot %s", slot->device);
 	if (!r_umount_slot(slot, &ierror)) {
 		res = FALSE;
-		g_warning("Unmounting failed: %s", ierror->message);
-		g_clear_error(&ierror);
+		if (error) {
+			/* the slot hook error is more relevant here */
+			g_warning("Ignoring umount error after slot hook error: %s", ierror->message);
+			g_clear_error(&ierror);
+		} else {
+			g_propagate_error(error, ierror);
+		}
 	}
 
+out:
 	return res;
 }
 
@@ -484,9 +487,8 @@ static gboolean tar_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 	g_message("Mounting ubifs slot %s", dest_slot->device);
 	res = r_mount_slot(dest_slot, &ierror);
 	if (!res) {
-		g_message("Mounting failed: %s", ierror->message);
-		g_clear_error(&ierror);
-		goto unmount_out;
+		g_propagate_error(error, ierror);
+		goto out;
 	}
 
 	/* extract tar into mounted ubi volume */
@@ -511,8 +513,13 @@ unmount_out:
 	g_message("Unmounting ubifs slot %s", dest_slot->device);
 	if (!r_umount_slot(dest_slot, &ierror)) {
 		res = FALSE;
-		g_warning("Unmounting failed: %s", ierror->message);
-		g_clear_error(&ierror);
+		if (error) {
+			/* the previous error is more relevant here */
+			g_warning("Ignoring umount error after previous error: %s", ierror->message);
+			g_clear_error(&ierror);
+		} else {
+			g_propagate_error(error, ierror);
+		}
 	}
 
 out:
@@ -544,9 +551,8 @@ static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, const
 	g_message("Mounting ext4 slot %s", dest_slot->device);
 	res = r_mount_slot(dest_slot, &ierror);
 	if (!res) {
-		g_message("Mounting failed: %s", ierror->message);
-		g_clear_error(&ierror);
-		goto unmount_out;
+		g_propagate_error(error, ierror);
+		goto out;
 	}
 
 	/* extract tar into mounted ext4 volume */
@@ -571,8 +577,13 @@ unmount_out:
 	g_message("Unmounting ext4 slot %s", dest_slot->device);
 	if (!r_umount_slot(dest_slot, &ierror)) {
 		res = FALSE;
-		g_warning("Unmounting failed: %s", ierror->message);
-		g_clear_error(&ierror);
+		if (error) {
+			/* the previous error is more relevant here */
+			g_warning("Ignoring umount error after previous error: %s", ierror->message);
+			g_clear_error(&ierror);
+		} else {
+			g_propagate_error(error, ierror);
+		}
 	}
 
 out:
