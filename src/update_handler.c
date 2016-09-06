@@ -594,6 +594,15 @@ static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, const
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
 	/* erase */
 	g_message("erasing slot device %s", dest_slot->device);
 	res = nand_format_slot(dest_slot->device, &ierror);
@@ -608,6 +617,15 @@ static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, const
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
+	}
+
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 out:
@@ -663,6 +681,15 @@ static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const 
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
 	/* open */
 	g_message("opening slot device %s", dest_slot->device);
 	outstream = open_slot_device(dest_slot, NULL, &ierror);
@@ -677,6 +704,15 @@ static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const 
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
+	}
+
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 out:
