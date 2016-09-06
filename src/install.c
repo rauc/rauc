@@ -25,6 +25,9 @@
 #include <stdio.h>
 #include <config.h>
 
+/* All exit codes of hook script above this mean 'rejected' */
+#define INSTALL_HOOK_REJECT_CODE 10
+
 #define R_SLOT_ERROR r_slot_error_quark ()
 
 static GQuark r_slot_error_quark (void)
@@ -569,15 +572,15 @@ static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const 
 	res = g_subprocess_wait_check(sproc, NULL, &ierror);
 	if (!res) {
 		/* Subprocess exited with code 1 */
-		if (g_error_matches(ierror, G_SPAWN_EXIT_ERROR, 1)) {
+		if ((ierror->domain == G_SPAWN_EXIT_ERROR) && (ierror->code >= INSTALL_HOOK_REJECT_CODE)) {
 			if (hookreturnmsg) {
-				g_set_error(error, G_SPAWN_EXIT_ERROR, 1,
+				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED,
 						"Hook returned: %s", hookreturnmsg);
 			} else {
 				g_propagate_prefixed_error (
 						error,
 						ierror,
-						"Hook exited with exit code 1");
+						"Hook returned with exit code %d: ", ierror->code);
 			}
 		} else {
 			g_propagate_prefixed_error (
@@ -606,17 +609,7 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bun
 		GError *ierror = NULL;
 		run_bundle_hook(manifest, bundledir, "install-check", &ierror);
 		if (ierror) {
-			if (g_error_matches(ierror, G_SPAWN_EXIT_ERROR, 1)) {
-				g_propagate_prefixed_error(
-						error,
-						ierror,
-						"Bundle rejected: ");
-			} else {
-				g_propagate_prefixed_error(
-						error,
-						ierror,
-						"Install-check hook failed: ");
-			}
+			g_propagate_error(error, ierror);
 			res = FALSE;
 			goto out;
 		}
@@ -649,7 +642,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	if (manifest->hooks.install_check) {
 		run_bundle_hook(manifest, bundledir, "install-check", &ierror);
 		if (ierror) {
-			if (g_error_matches(ierror, G_SPAWN_EXIT_ERROR, 1)) {
+			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED)) {
 				g_propagate_prefixed_error(
 						error,
 						ierror,

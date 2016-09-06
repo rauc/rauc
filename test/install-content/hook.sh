@@ -15,7 +15,7 @@ case "$1" in
 		test -n "$RAUC_MF_COMPATIBLE" || die_error "missing RAUC_MF_COMPATIBLE"
 		test -n "$RAUC_SYSTEM_COMPATIBLE" || die_error "missing RAUC_SYSTEM_COMPATIBLE"
 		echo "No, I won't install this!" 1>&2
-		exit 1
+		exit 10
 		;;
 	slot-post-install)
 		test -n "$RAUC_SLOT_NAME" || die_error "missing RAUC_SLOT_NAME"
