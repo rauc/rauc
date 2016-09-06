@@ -255,6 +255,10 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
 	/* prepare image and slot information */
 	imagename = g_strconcat("image.", test_pair->imagetype, NULL);
 	slotpath = g_build_filename(fixture->tmpdir, "rootfs-0", NULL);
