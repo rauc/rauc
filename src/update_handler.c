@@ -151,6 +151,7 @@ static gboolean ext4_format_slot(RaucSlot *dest_slot, GError **error)
 	GPtrArray *args = g_ptr_array_new_full(4, g_free);
 
 	g_ptr_array_add(args, g_strdup("mkfs.ext4"));
+	g_ptr_array_add(args, g_strdup("-F"));
 	if (strlen(dest_slot->name) <= 16) {
 		g_ptr_array_add(args, g_strdup("-L"));
 		g_ptr_array_add(args, g_strdup(dest_slot->name));
