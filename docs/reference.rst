@@ -9,6 +9,8 @@ number and type of available slots.
 It is used to validate storage locations for update images.
 Each board type requires its special configuration.
 
+This file is part of the root file system.
+
 Example configuration:
 
 .. code-block:: cfg
@@ -18,13 +20,11 @@ Example configuration:
   bootloader=barebox
 
   [keyring]
-  path=/etc/rauc/keyring/
+  path=/etc/rauc/keyring.pem
 
-  [slot.rescue.0]
-  device=/dev/mtd4
-  type=raw
-  bootname=factory0
-  readonly=true
+  [handlers]
+  system-info=/usr/lib/rauc/info-provider.sh
+  post-install=/usr/lib/rauc/postinst.sh
 
   [slot.rootfs.0]
   device=/dev/sda0
@@ -36,95 +36,166 @@ Example configuration:
   type=ext4
   bootname=system1
 
-  [slot.appfs.0]
-  device=/dev/sda2
-  type=ext4
-  parent=rootfs.0
 
-  [slot.appfs.1]
-  device=/dev/sda3
-  type=ext4
-  parent=rootfs.1
+**[system] section**
 
+``compatible``
+  A user-defined compatible string that describes the target hardware as
+  specific enough as required to prevent faulty updating systems with the wrong
+  firmware. It will be matched again the ``compatible`` string defined in the
+  update manifest.
 
-This file is (currently) part of the root file system.
+``bootloader``
+  The bootloader implementation rauc should use for its slot switching
+  mechanic. Currently supported values (and bootloaders) are ``barebox``,
+  ``grub``, ``u-boot``.
 
-The ``system``  section contains the ``compatible`` string which must describe
-the board and its function as distinctly as it is required to assure that
-only update bundles designed for this specific type can be installed.
-The ``bootloader`` entry gives a hint which boot chooser implementation is
-available.
+**[keyring] section**
 
 The ``keyring`` section refers to the trusted keyring used for signature
 verification.
+
+``path``
+  Path to the keyring file in PEM format. Either absolute or relative to the
+  system.conf file.
+
+
+**[handlers] section**
+
+Handlers allow to customize rauc by placing scripts in the system that rauc can
+call for different purposes. All parameters expect pathnames to the script to
+be executed. Path names are either absolute or relative to the system.conf file
+location.
+
+Rauc passes a set of environment variables to handler script. See details about
+using handlers in :ref:`Custom Handlers (Interface)`.
+
+``system-info``
+  This script will be called ...
+
+``pre-install``
+  This script will be called ...
+
+``post-install``
+  This script will be called ...
+
+
+**[slot.<slot-class>.<idx>] section**
 
 Each slot is identified by a section starting with ``slot.`` followed by
 the slot class name, and a slot number.
 The *slot class* name is used in the *update manifest* to target the correct
 set of slots.
-``device`` points to the Linux device name for this slot.
-`type`` provides a hint if and which file system the slot has.
-``bootname`` is the name the bootloader uses for this slot.
 
-A ``readonly`` slot cannot be a target slot.
+``device``
+  The slots device path.
 
-The ``parent`` entry is used to bind additional slots to a bootable root
-file system slot.
-This is used together with the ``bootname`` to identify the currently active
-slot, so that the inactive one can be selected as the update target.
-The inactive root file system and all slots bound to it form the *install
-group*.
-An update is always applied only to slots of the *install group*.
+``type``
+  The type describing the slot. Currently supported values are ``raw``,
+  ``nand``, ``ubivol``, ``ubifs``, ``ext4``. See table :ref:`todo` for a more
+  detailed list about these different types.
+
+``bootname``
+  For bootable slots, the name the bootloader uses to identify it. The real
+  meaning of this depends on the bootloader implemenation used.
+
+``parent``
+  The ``parent`` entry is used to bind additional slots to a bootable root
+  file system slot.
+  This is used together with the ``bootname`` to identify the set currently
+  active slots, so that the inactive one can be selected as the update target.
+  The parent slot is referenced using the form ``<slot-class>.<idx>``.
+
+``readonly``
+  Marks the slot as existing but not updateable. Maybe used for sanity checking
+  or informative purpose. A ``readonly`` slot cannot be a target slot.
 
 
 Manifest
 --------
 
+A valid manifest file must have the file extension ``.raucm``.
+
 .. code-block:: cfg
 
   [update]
   compatible=FooCorp Super BarBazzer
-  version=2015.04-1
+  version=2016.08-1
   
-  [keyring]
-  archive=release.tar
-
-  [handler]
-  filename=custom_handler.sh
-
   [image.rootfs]
-  sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
   filename=rootfs.ext4
+  size=419430400
+  sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
   
   [image.appfs]
-  sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca
   filename=appfs.ext4
+  size=219430400
+  sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca
 
 
-The ``compatible`` string is used to determine whether the update image is
-compatible with the target system.
-An update is allowed only if the *update manifest* string and the system
-information string match exactly.
+**[update] section**
 
-If no handler section is present, the default handler is chosen.
+``compatible``
+  A user-defined compatible string that must match the compatible string of the
+  system the bundle should be installed on.
 
-If no keyring section is present, the keyring is copied from the currently
-running system.
+``version``
+  A free version field that can be used to provide and track version
+  information. No checks will be performed on this version by rauc itself,
+  although a handler can use this information to reject updates.
 
-Slot name suffix of images must match the slot class name (slot.class.#).
+``description``
+  A free-form description field that can be used to provide human-readable
+  bundle information.
 
-The ``sha`` entry provides the slot images hash while the ``filename`` entry
-provides the name of the slot's update image.
-The filename suffix should either match the file system type (.ext4, .ubifs,
-...) or be .tar.* for an archive to be extracted into an empty file system.
+``build``
+  A build id that would typically hold the build date or some build
+  information provided by the bundle creation environment. This can help to
+  determine the date and origin of the built bundle.
+
+
+**[hooks] section**
+
+``filename``
+  Hook script path name, relative to the bundle content.
+
+``hooks``
+  List of hook enabled for this bundle.
+
+
+**[image.<slot-class>] section**
+
+``filename``
+  Name of the image file (relative to bundle content).
+
+``sha256``
+  sha256 of image file. rauc Determines this value automatically when creating
+  a bundle, thus it is not required to set this by hand.
+
+``size``
+  size of image file. rauc Determines this value automatically when creating a
+  bundle, thus it is not required to set this by hand.
+
+``hooks``
+  List of per-slot hooks enabled for this image.
+
+
+**[file.<slot-class>] section**
 
 Slot Status File
 ----------------
 
-File Formats
-------------
+A slot status file is generated by rauc after having updated a slot. If the
+slot is writeable for rauc (because it contains a filesystem), it will place a
+small file named ``slot.raucs`` in its root directory, containing the sha25 of
+the installed image.
 
-(images "raucb", manifest signatures "raucm")
+.. code-block:: cfg
+
+  [slot]
+  status=ok
+  sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
+
 
 Command Line Tool
 -----------------
@@ -167,10 +238,10 @@ variables.
     Bootname of the slot the system is currently booted from
 
   ``RAUC_UPDATE_SOURCE``
-    Path to mounted update rauc bundle, e.g. ``/mnt/rauc/bundle``
+    Path to mounted update bundle, e.g. ``/mnt/rauc/bundle``
 
   ``RAUC_MOUNT_PREFIX``
-    Provides the path prefix that may be used for rauc mounting points
+    Provides the path prefix that may be used for rauc mount points
 
   ``RAUC_SLOTS``
     An iterator list to loop over all existing slots. Each item in the list is
@@ -213,3 +284,106 @@ Signatures
 
 D-Bus API
 ---------
+
+Rauc provides a D-Bus API that allows other applications to easily communicate
+with rauc for installing new firmware.
+
+
+de.pengutronix.rauc.Installer
+
+Methods
+~~~~~~~
+:ref:`Install <gdbus-method-de-pengutronix-rauc-Installer.Install>` (IN  s source);
+
+Signals
+~~~~~~~
+:ref:`Completed <gdbus-signal-de-pengutronix-rauc-Installer.Completed>` (i result);
+
+Properties
+~~~~~~~~~~
+:ref:`Operation <gdbus-property-de-pengutronix-rauc-Installer.Operation>` readable   s
+
+:ref:`LastError <gdbus-property-de-pengutronix-rauc-Installer.LastError>` readable   s
+
+:ref:`Progress <gdbus-property-de-pengutronix-rauc-Installer.Progress>` readable   (isi)
+
+Description
+~~~~~~~~~~~
+
+Method Details
+~~~~~~~~~~~~~~
+
+.. _gdbus-method-de-pengutronix-rauc-Installer.Install:
+
+The Install() method
+^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer.Install()
+  Install (IN  s source);
+
+Triggers an installation.
+
+IN s *source*:
+    Path to bundle to be installed
+
+Signal Details
+~~~~~~~~~~~~~~
+
+.. _gdbus-signal-de-pengutronix-rauc-Installer.Completed:
+
+The "Completed" signal
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer::Completed
+  Completed (i result);
+
+This signal is emitted when installation completed, either
+successfully or with an error.
+
+i *result*:
+    return code (0 for success)
+
+Property Details
+~~~~~~~~~~~~~~~~
+
+.. _gdbus-property-de-pengutronix-rauc-Installer.Operation:
+
+The "Operation" property
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer:Operation
+  Operation  readable   s
+
+Represents the current (global) operation rauc performs
+
+.. _gdbus-property-de-pengutronix-rauc-Installer.LastError:
+
+The "LastError" property
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer:LastError
+  LastError  readable   s
+
+Holds the last message of the last error that occured
+
+.. _gdbus-property-de-pengutronix-rauc-Installer.Progress:
+
+The "Progress" property
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer:Progress
+  Progress  readable   (isi)
+
+Provides installation progress informations in the form
+
+(percentage, message, nesting depth)
