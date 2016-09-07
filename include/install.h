@@ -4,6 +4,23 @@
 
 #include "manifest.h"
 
+#define R_INSTALL_ERROR r_install_error_quark ()
+GQuark r_install_error_quark (void);
+
+typedef enum {
+	R_INSTALL_ERROR_FAILED,
+	R_INSTALL_ERROR_NOSRC,
+	R_INSTALL_ERROR_NODST,
+	R_INSTALL_ERROR_COMPAT_MISMATCH,
+	R_INSTALL_ERROR_REJECTED,
+	R_INSTALL_ERROR_MARK_BOOTABLE,
+	R_INSTALL_ERROR_MARK_NONBOOTABLE,
+	R_INSTALL_ERROR_TARGET_GROUP,
+	R_INSTALL_ERROR_DOWNLOAD_MF,
+	R_INSTALL_ERROR_HANDLER,
+	R_INSTALL_ERROR_NO_SUPPORTED
+} RInstallError;
+
 typedef struct {
 	gchar *name;
 	GSourceFunc notify;

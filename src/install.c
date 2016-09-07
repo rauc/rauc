@@ -25,6 +25,9 @@
 #include <stdio.h>
 #include <config.h>
 
+/* All exit codes of hook script above this mean 'rejected' */
+#define INSTALL_HOOK_REJECT_CODE 10
+
 #define R_SLOT_ERROR r_slot_error_quark ()
 
 static GQuark r_slot_error_quark (void)
@@ -34,16 +37,9 @@ static GQuark r_slot_error_quark (void)
 
 #define R_INSTALL_ERROR r_install_error_quark ()
 
-static GQuark r_install_error_quark (void)
+GQuark r_install_error_quark (void)
 {
 	return g_quark_from_static_string ("r_install_error_quark");
-}
-
-#define R_HANDLER_ERROR r_handler_error_quark ()
-
-static GQuark r_handler_error_quark (void)
-{
-	return g_quark_from_static_string ("r_handler_error_quark");
 }
 
 static void install_args_update(RaucInstallArgs *args, const gchar *msg) {
@@ -525,14 +521,100 @@ out:
 	return res;
 }
 
+static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const gchar *hook_cmd, GError **error) {
+	gchar *hook_name = NULL;
+	GSubprocessLauncher *launcher = NULL;
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	GInputStream *instream = NULL;
+	GDataInputStream *datainstream = NULL;
+	gboolean res = FALSE;
+	gchar *outline, *hookreturnmsg = NULL;
+
+	g_assert_nonnull(manifest->hook_name);
+
+	hook_name = g_build_filename(bundledir, manifest->hook_name, NULL);
+
+	g_message("Running bundle hook %s", hook_cmd);
+
+	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDERR_PIPE);
+
+	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_COMPATIBLE", r_context()->config->system_compatible, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_MF_COMPATIBLE", manifest->update_compatible, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_MF_VERSION", manifest->update_version ?: "", TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
+
+	sproc = g_subprocess_launcher_spawn(
+			launcher, &ierror,
+			hook_name,
+			hook_cmd,
+			NULL);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start bundle hook: ");
+		goto out;
+	}
+
+	/* Read scripts stderr output */
+	instream = g_subprocess_get_stderr_pipe(sproc);
+	datainstream = g_data_input_stream_new(instream);
+
+	do {
+		outline = g_data_input_stream_read_line(datainstream, NULL, NULL, NULL);
+		if (outline) {
+			g_clear_pointer(&hookreturnmsg, g_free);
+			hookreturnmsg = outline;
+		}
+	} while (outline);
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		/* Subprocess exited with code 1 */
+		if ((ierror->domain == G_SPAWN_EXIT_ERROR) && (ierror->code >= INSTALL_HOOK_REJECT_CODE)) {
+			if (hookreturnmsg) {
+				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED,
+						"Hook returned: %s", hookreturnmsg);
+			} else {
+				g_propagate_prefixed_error (
+						error,
+						ierror,
+						"Hook returned with exit code %d: ", ierror->code);
+			}
+		} else {
+			g_propagate_prefixed_error (
+					error,
+					ierror,
+					"failed to run bundle hook: ");
+		}
+		goto out;
+	}
+
+out:
+	g_clear_pointer(&launcher, g_object_unref);
+	g_clear_pointer(&sproc, g_object_unref);
+	g_clear_pointer(&hook_name, g_free);
+	return res;
+}
+
 static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error) {
 	gchar* handler_name = NULL;
 	gboolean res = FALSE;
 
 	r_context_begin_step("launch_and_wait_custom_handler", "Launching update handler", 0);
 
-	if (!verify_compatible(manifest)) {
-		g_set_error_literal(error, R_HANDLER_ERROR, 0,
+	/* Allow overriding compatible check by hook */
+	if (manifest->hooks.install_check) {
+		GError *ierror = NULL;
+		run_bundle_hook(manifest, bundledir, "install-check", &ierror);
+		if (ierror) {
+			g_propagate_error(error, ierror);
+			res = FALSE;
+			goto out;
+		}
+	} else if (!verify_compatible(manifest)) {
+		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_COMPAT_MISMATCH,
 				"Compatible mismatch");
 		res = FALSE;
 		goto out;
@@ -550,14 +632,33 @@ out:
 
 
 static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error) {
+	gchar *hook_name = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GHashTableIter iter;
 	RaucSlot *dest_slot;
 
-	if (!verify_compatible(manifest)) {
+	/* Allow overriding compatible check by hook */
+	if (manifest->hooks.install_check) {
+		run_bundle_hook(manifest, bundledir, "install-check", &ierror);
+		if (ierror) {
+			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED)) {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Bundle rejected: ");
+			} else {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Install-check hook failed: ");
+			}
+			res = FALSE;
+			goto early_out;
+		}
+	} else if (!verify_compatible(manifest)) {
 		res = FALSE;
-		g_set_error_literal(error, R_HANDLER_ERROR, 0,
+		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_COMPAT_MISMATCH,
 				"Compatible mismatch");
 		goto early_out;
 	}
@@ -573,11 +674,14 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		res = r_boot_set_state(dest_slot, FALSE);
 
 		if (!res) {
-			g_set_error(error, R_HANDLER_ERROR, 0,
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_NONBOOTABLE,
 					"Failed marking slot %s non-bootable", dest_slot->name);
 			goto early_out;
 		}
 	}
+
+	if (manifest->hook_name)
+		hook_name = g_build_filename(bundledir, manifest->hook_name, NULL);
 
 	r_context_begin_step("update_slots", "Updating slots", g_list_length(manifest->images)*2);
 	install_args_update(args, "Updating slots...");
@@ -600,14 +704,14 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 		if (!g_file_test(mfimage->filename, G_FILE_TEST_EXISTS)) {
 			res = FALSE;
-			g_set_error(error, R_HANDLER_ERROR, 0,
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NOSRC,
 					"Source image '%s' not found", mfimage->filename);
 			goto out;
 		}
 
 		if (!g_file_test(dest_slot->device, G_FILE_TEST_EXISTS)) {
 			res = FALSE;
-			g_set_error(error, R_HANDLER_ERROR, 0,
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NODST,
 					"Destination device '%s' not found", dest_slot->device);
 			goto out;
 		}
@@ -687,6 +791,7 @@ copy:
 		res = update_handler(
 			mfimage,
 			dest_slot,
+			hook_name,
 			&ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror,
@@ -764,7 +869,7 @@ image_out:
 		res = r_boot_set_primary(dest_slot);
 
 		if (!res) {
-			g_set_error(error, R_HANDLER_ERROR, 0,
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
 					"Failed marking slot %s bootable", dest_slot->name);
 			goto out;
 		}
@@ -775,6 +880,7 @@ image_out:
 	res = TRUE;
 
 out:
+	//g_free(hook_name);
 	r_context_end_step("update_slots", res);
 early_out:
 	return res;
@@ -1010,7 +1116,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 
 	target_group = determine_target_install_group(manifest);
 	if (!target_group) {
-		g_set_error_literal(error, R_INSTALL_ERROR, 3, "Could not determine target group");
+		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_TARGET_GROUP, "Could not determine target group");
 		res = FALSE;
 		goto umount;
 	}
@@ -1084,7 +1190,7 @@ gboolean do_install_network(const gchar *url, GError **error) {
 
 	res = download_mem(&manifest_data, url, 64*1024);
 	if (!res) {
-		g_set_error_literal(error, R_INSTALL_ERROR, 4, "Failed to download manifest");
+		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_DOWNLOAD_MF, "Failed to download manifest");
 		goto out;
 	}
 
@@ -1115,7 +1221,7 @@ gboolean do_install_network(const gchar *url, GError **error) {
 
 	target_group = determine_target_install_group(manifest);
 	if (!target_group) {
-		g_set_error_literal(error, R_INSTALL_ERROR, 3, "Could not determine target group");
+		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_TARGET_GROUP, "Could not determine target group");
 		goto out;
 	}
 
@@ -1137,7 +1243,7 @@ gboolean do_install_network(const gchar *url, GError **error) {
 	g_print("Using network handler for %s\n", base_url);
 	res = launch_and_wait_network_handler(base_url, manifest, target_group);
 	if (!res) {
-		g_set_error_literal(error, R_HANDLER_ERROR, 0,
+		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_HANDLER,
 				"Handler error");
 		goto out;
 	}
@@ -1166,8 +1272,8 @@ out:
 #else
 	g_set_error_literal(
 			error,
-			R_HANDLER_ERROR,
-			255,
+			R_INSTALL_ERROR,
+			R_INSTALL_ERROR_NO_SUPPORTED,
 			"Compiled without network support");
 	return FALSE;
 #endif

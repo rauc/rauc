@@ -131,3 +131,8 @@ gboolean save_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **er
  * @param slotstatus a RaucSlotStatus
  */
 void free_slot_status(RaucSlotStatus *slotstatus);
+
+/**
+ * Frees the memory allocated by a RaucSlot
+ */
+void r_free_slot(gpointer value);

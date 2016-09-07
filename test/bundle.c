@@ -27,7 +27,7 @@ static void bundle_fixture_set_up(BundleFixture *fixture,
 					 1024*1024, "/dev/urandom") == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.ext4",
 				         64*1024, "/dev/urandom") == 0);
-	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE) == 0);
+	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE, FALSE) == 0);
 }
 
 static void bundle_fixture_tear_down(BundleFixture *fixture,

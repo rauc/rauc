@@ -5,9 +5,20 @@
 #include <config_file.h>
 
 typedef struct {
+	gboolean install_check;
+} InstallHooks;
+
+typedef struct {
+	gboolean pre_install;
+	gboolean install;
+	gboolean post_install;
+} SlotHooks;
+
+typedef struct {
 	gchar* slotclass;
 	RaucChecksum checksum;
 	gchar* filename;
+	SlotHooks hooks;
 } RaucImage;
 
 typedef struct {
@@ -27,6 +38,9 @@ typedef struct {
 
 	gchar *handler_name;
 	gchar *handler_args;
+
+	gchar *hook_name;
+	InstallHooks hooks;
 
 	GList *images;
 	GList *files;
@@ -106,3 +120,13 @@ gboolean update_manifest(const gchar *dir, gboolean signature, GError **error);
  * @return TRUE on success, FALSE if an error occurred
  */
 gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signature, GError **error);
+
+/**
+ * Frees a rauc image
+ */
+void r_free_image(gpointer data);
+
+/**
+ * Frees a rauc file
+ */
+void r_free_file(gpointer data);

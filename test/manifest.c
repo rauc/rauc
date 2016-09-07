@@ -15,6 +15,7 @@ static void manifest_check_common(RaucManifest *rm) {
 	g_assert_cmpstr(rm->keyring, ==, "release.tar");
 	g_assert_cmpstr(rm->handler_name, ==, "custom_handler.sh");
 	g_assert_cmpstr(rm->handler_args, ==, "--dummy1 --dummy2");
+	g_assert_cmpstr(rm->hook_name, ==, "hook.sh");
 	g_assert_nonnull(rm->images);
 
 	g_assert_cmpuint(g_list_length(rm->images), ==, 2);
@@ -95,6 +96,8 @@ static void test_save_load_manifest(void)
 	rm->keyring = g_strdup("mykeyring.tar");
 	rm->handler_name = g_strdup("myhandler.sh");
 	rm->handler_args = g_strdup("--foo");
+	rm->hook_name = g_strdup("hook.sh");
+	rm->hooks.install_check = TRUE;
 
 	new_image = g_new0(RaucImage, 1);
 
@@ -102,6 +105,8 @@ static void test_save_load_manifest(void)
 	new_image->checksum.type = G_CHECKSUM_SHA256;
 	new_image->checksum.digest = g_strdup("c8af04e62bad4ab75dafd22119026e5e3943f385bdcbe7731a4938102453754c");
 	new_image->filename = g_strdup("myrootimg.ext4");
+	new_image->hooks.pre_install = TRUE;
+	new_image->hooks.post_install = TRUE;
 	rm->images = g_list_append(rm->images, new_image);
 
 	new_image = g_new0(RaucImage, 1);
@@ -136,6 +141,7 @@ static void test_save_load_manifest(void)
 	g_assert_cmpstr(rm->keyring, ==, "mykeyring.tar");
 	g_assert_cmpstr(rm->handler_name, ==, "myhandler.sh");
 	g_assert_cmpstr(rm->handler_args, ==, "--foo --dummy1 --dummy2");
+	g_assert_cmpstr(rm->hook_name, ==, "hook.sh");
 
 	g_assert_cmpuint(g_list_length(rm->images), ==, 2);
 	g_assert_cmpuint(g_list_length(rm->files), ==, 1);
@@ -156,6 +162,12 @@ static void test_save_load_manifest(void)
 		g_assert_nonnull(file->checksum.digest);
 		g_assert_nonnull(file->filename);
 	}
+
+	g_assert_nonnull(g_list_nth_data(rm->images, 0));
+	g_assert_true(((RaucImage*)g_list_nth_data(rm->images, 0))->hooks.pre_install);
+	g_assert_true(((RaucImage*)g_list_nth_data(rm->images, 0))->hooks.post_install);
+
+	g_assert_true(rm->hooks.install_check);
 
 	free_manifest(rm);
 }

@@ -1,5 +1,6 @@
 #include "update_handler.h"
 #include "mount.h"
+#include "context.h"
 
 #include <gio/gunixoutputstream.h>
 
@@ -11,9 +12,12 @@
 #include <errno.h>
 #include <mtd/ubi-user.h>
 
-#define R_UPDATE_ERROR r_update_error_quark()
 
-static GQuark r_update_error_quark(void)
+#define R_SLOT_HOOK_PRE_INSTALL "slot-pre-install"
+#define R_SLOT_HOOK_POST_INSTALL "slot-post-install"
+#define R_SLOT_HOOK_INSTALL "slot-install"
+
+GQuark r_update_error_quark(void)
 {
 	return g_quark_from_static_string("r_update_error_quark");
 }
@@ -31,7 +35,7 @@ static GOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **error)
 	fd_out = open(g_file_get_path(destslotfile), O_WRONLY);
 
 	if (fd_out == -1) {
-		g_set_error(error, R_UPDATE_ERROR, 0,
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"opening output device failed: %s", strerror(errno));
 		goto out;
 	}
@@ -58,7 +62,7 @@ static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 	/* set up ubi volume for image copy */
 	ret = ioctl(fd, UBI_IOCVOLUP, &size);
 	if (ret == -1) {
-		g_set_error(error, R_UPDATE_ERROR, 0,
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"ubi volume update failed: %s", strerror(errno));
 		return FALSE;
 	}
@@ -71,6 +75,7 @@ static gboolean copy_raw_image(RaucImage *image, GOutputStream *outstream, GErro
 	GError *ierror = NULL;
 	gssize size;
 	GFile *srcimagefile = g_file_new_for_path(image->filename);
+	gboolean res = FALSE;
 
 	GInputStream *instream = (GInputStream*)g_file_read(srcimagefile, NULL, &ierror);
 	if (instream == NULL) {
@@ -88,15 +93,17 @@ static gboolean copy_raw_image(RaucImage *image, GOutputStream *outstream, GErro
 				"failed splicing data: ");
 		goto out;
 	} else if (size != (gssize)image->checksum.size) {
-		g_set_error_literal(error, R_UPDATE_ERROR, 0,
-				"image size and written size differ!");
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"written size (%"G_GSIZE_FORMAT") != image size (%"G_GSIZE_FORMAT")", size, (gssize)image->checksum.size);
 		goto out;
 	}
+
+	res = TRUE;
 
 out:
 	g_clear_object(&instream);
 	g_clear_object(&srcimagefile);
-	return TRUE;
+	return res;
 }
 
 static gboolean ubifs_format_slot(RaucSlot *dest_slot, GError **error)
@@ -144,6 +151,7 @@ static gboolean ext4_format_slot(RaucSlot *dest_slot, GError **error)
 	GPtrArray *args = g_ptr_array_new_full(4, g_free);
 
 	g_ptr_array_add(args, g_strdup("mkfs.ext4"));
+	g_ptr_array_add(args, g_strdup("-F"));
 	if (strlen(dest_slot->name) <= 16) {
 		g_ptr_array_add(args, g_strdup("-L"));
 		g_ptr_array_add(args, g_strdup(dest_slot->name));
@@ -293,12 +301,129 @@ out:
 	return res;
 }
 
-static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, GError **error)
+/**
+ * Executes the per-slot hook script.
+ *
+ * @param hook_name file name of the hook script
+ * @param hook_cmd first argument to the hook script
+ * @param image image to be installed (optional)
+ * @param slot target slot
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, RaucImage *image, RaucSlot *slot, GError **error) {
+	GSubprocessLauncher *launcher = NULL;
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	g_assert_nonnull(slot);
+	g_assert_nonnull(slot->name);
+	g_assert_nonnull(slot->sclass);
+
+	g_message("Running slot hook %s for %s", hook_cmd, slot->name);
+
+	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_NONE);
+
+	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_NAME", slot->name, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_CLASS", slot->sclass, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_DEVICE", slot->device, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_BOOTNAME", slot->bootname ?: "", TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_PARENT", slot->parent ? slot->parent->name : "", TRUE);
+	if (slot->mount_point) {
+		g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_MOUNT_POINT", slot->mount_point, TRUE);
+	}
+	if (image) {
+		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_NAME", image->filename, TRUE);
+		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_DIGEST", image->checksum.digest, TRUE);
+		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_CLASS", image->slotclass, TRUE);
+	}
+	g_subprocess_launcher_setenv(launcher, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
+
+	sproc = g_subprocess_launcher_spawn(
+			launcher, &ierror,
+			hook_name,
+			hook_cmd,
+			NULL);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start slot hook: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run slot hook: ");
+		goto out;
+	}
+
+out:
+	g_clear_pointer(&launcher, g_object_unref);
+	g_clear_pointer(&sproc, g_object_unref);
+	return res;
+}
+
+static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, RaucSlot *slot, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	g_assert_nonnull(hook_name);
+	g_assert_nonnull(hook_cmd);
+
+	/* mount slot */
+	g_message("Mounting slot %s", slot->device);
+	res = r_mount_slot(slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* run slot install hook */
+	g_message("Running slot '%s' hook for %s", hook_cmd, slot->name);
+	res = run_slot_hook(hook_name, hook_cmd, NULL, slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+	}
+
+	/* finally umount slot */
+	g_message("Unmounting slot %s", slot->device);
+	if (!r_umount_slot(slot, &ierror)) {
+		res = FALSE;
+		if (error) {
+			/* the slot hook error is more relevant here */
+			g_warning("Ignoring umount error after slot hook error: %s", ierror->message);
+			g_clear_error(&ierror);
+		} else {
+			g_propagate_error(error, ierror);
+		}
+	}
+
+out:
+	return res;
+}
+
+static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GOutputStream *outstream = NULL;
 	GError *ierror = NULL;
 	int out_fd;
 	gboolean res = FALSE;
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
 
 	/* open */
 	g_message("opening slot device %s", dest_slot->device);
@@ -323,15 +448,33 @@ static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, GEr
 		goto out;
 	}
 
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
 out:
 	g_clear_object(&outstream);
 	return res;
 }
 
-static gboolean tar_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, GError **error)
+static gboolean tar_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
 
 	/* format ubi volume */
 	g_message("Formatting ubifs slot %s", dest_slot->device);
@@ -345,9 +488,8 @@ static gboolean tar_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, GErr
 	g_message("Mounting ubifs slot %s", dest_slot->device);
 	res = r_mount_slot(dest_slot, &ierror);
 	if (!res) {
-		g_message("Mounting failed: %s", ierror->message);
-		g_clear_error(&ierror);
-		goto unmount_out;
+		g_propagate_error(error, ierror);
+		goto out;
 	}
 
 	/* extract tar into mounted ubi volume */
@@ -358,22 +500,45 @@ static gboolean tar_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, GErr
 		goto unmount_out;
 	}
 
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto unmount_out;
+		}
+	}
+
 unmount_out:
 	/* finally umount ubi volume */
 	g_message("Unmounting ubifs slot %s", dest_slot->device);
 	if (!r_umount_slot(dest_slot, &ierror)) {
 		res = FALSE;
-		g_warning("Unmounting failed: %s", ierror->message);
-		g_clear_error(&ierror);
+		if (error) {
+			/* the previous error is more relevant here */
+			g_warning("Ignoring umount error after previous error: %s", ierror->message);
+			g_clear_error(&ierror);
+		} else {
+			g_propagate_error(error, ierror);
+		}
 	}
 
 out:
 	return res;
 }
 
-static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, GError **error) {
+static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
 
 	/* format ext4 volume */
 	g_message("Formatting ext4 slot %s", dest_slot->device);
@@ -383,16 +548,15 @@ static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, GErro
 		goto out;
 	}
 
-	/* mount ubi volume */
+	/* mount ext4 volume */
 	g_message("Mounting ext4 slot %s", dest_slot->device);
 	res = r_mount_slot(dest_slot, &ierror);
 	if (!res) {
-		g_message("Mounting failed: %s", ierror->message);
-		g_clear_error(&ierror);
-		goto unmount_out;
+		g_propagate_error(error, ierror);
+		goto out;
 	}
 
-	/* extract tar into mounted ubi volume */
+	/* extract tar into mounted ext4 volume */
 	g_message("Extracting %s to %s", image->filename, dest_slot->mount_point);
 	res = untar_image(image, dest_slot->mount_point, &ierror);
 	if (!res) {
@@ -400,22 +564,45 @@ static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, GErro
 		goto unmount_out;
 	}
 
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto unmount_out;
+		}
+	}
+
 unmount_out:
-	/* finally umount ubi volume */
+	/* finally umount ext4 volume */
 	g_message("Unmounting ext4 slot %s", dest_slot->device);
 	if (!r_umount_slot(dest_slot, &ierror)) {
 		res = FALSE;
-		g_warning("Unmounting failed: %s", ierror->message);
-		g_clear_error(&ierror);
+		if (error) {
+			/* the previous error is more relevant here */
+			g_warning("Ignoring umount error after previous error: %s", ierror->message);
+			g_clear_error(&ierror);
+		} else {
+			g_propagate_error(error, ierror);
+		}
 	}
 
 out:
 	return res;
 }
 
-static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, GError **error) {
+static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
 
 	/* erase */
 	g_message("erasing slot device %s", dest_slot->device);
@@ -433,14 +620,32 @@ static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, GErro
 		goto out;
 	}
 
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
 out:
 	return res;
 }
 
-static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, GError **error) {
+static gboolean img_to_fs_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
 	GOutputStream *outstream = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
 
 	/* open */
 	g_message("opening slot device %s", dest_slot->device);
@@ -458,8 +663,77 @@ static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, GError
 		goto out;
 	}
 
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install)  {
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
 out:
 	g_clear_object(&outstream);
+	return res;
+}
+
+static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
+	GOutputStream *outstream = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	/* open */
+	g_message("opening slot device %s", dest_slot->device);
+	outstream = open_slot_device(dest_slot, NULL, &ierror);
+	if (outstream == NULL) {
+		res = FALSE;
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* copy */
+	res = copy_raw_image(image, outstream, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+out:
+	g_clear_object(&outstream);
+	return res;
+}
+
+static gboolean hook_install_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	/* run slot install hook */
+	g_message("Running custom slot install hook for %s", dest_slot->name);
+	res = run_slot_hook(hook_name, R_SLOT_HOOK_INSTALL, image, dest_slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+out:
 	return res;
 }
 
@@ -470,7 +744,7 @@ typedef struct {
 } RaucUpdatePair;
 
 RaucUpdatePair updatepairs[] = {
-	{"*.ext4", "ext4", img_to_raw_handler},
+	{"*.ext4", "ext4", img_to_fs_handler},
 	{"*.ext4", "raw", img_to_raw_handler},
 	{"*.vfat", "raw", img_to_raw_handler},
 	{"*.tar.*", "ext4", tar_to_ext4_handler},
@@ -488,10 +762,14 @@ img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, 
 	const gchar *dest = dest_slot->type;
 	img_to_slot_handler handler = NULL;
 
+	/* If we have a custom install handler, use this instead of selecting an existing one */
+	if (mfimage->hooks.install) {
+		return hook_install_handler;
+	}
+
 	g_message("Checking image type for slot type: %s", dest);
 
 	for (RaucUpdatePair *updatepair = updatepairs; updatepair->handler != NULL; updatepair++) {
-		//g_message("Checking for pattern: %s", (gchar*)l->data);
 		if (g_pattern_match_simple(updatepair->src, src) &&
 		    g_pattern_match_simple(updatepair->dest, dest)) {
 			g_message("Image detected as type: %s", updatepair->src);
@@ -501,7 +779,7 @@ img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, 
 	}
 
 	if (handler == NULL)  {
-		g_set_error(error, R_UPDATE_ERROR, 1, "Unsupported image %s for slot type %s",
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_NO_HANDLER, "Unsupported image %s for slot type %s",
 			    mfimage->filename, dest);
 		goto out;
 	}

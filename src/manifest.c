@@ -93,6 +93,8 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	gboolean res = FALSE;
 	gchar **groups;
 	gsize group_count;
+	gchar **bundle_hooks;
+	gsize hook_entries;
 
 	g_assert_null(*manifest);
 
@@ -136,6 +138,23 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	}
 	g_key_file_remove_group(key_file, "handler", NULL);
 
+	/* parse [hooks] section */
+	raucm->hook_name = manifest_consume_string(key_file, "hooks", "filename", NULL);
+	bundle_hooks = g_key_file_get_string_list(key_file, "hooks", "hooks", &hook_entries, NULL);
+	g_key_file_remove_key(key_file, "hooks", "hooks", NULL);
+	for (gsize j = 0; j < hook_entries; j++) {
+		if (g_strcmp0(bundle_hooks[j], "install-check") == 0) {
+			raucm->hooks.install_check = TRUE;
+		} else  {
+			g_warning("hook key %s not supported", bundle_hooks[j]);
+		}
+	}
+	if (!check_remaining_keys(key_file, "hooks", &ierror)) {
+		g_propagate_error(error, ierror);
+		goto free;
+	}
+	g_key_file_remove_group(key_file, "hooks", NULL);
+
 	/* parse [image.<slotclass>] and [file.<slotclass>/<destname>] sections */
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
@@ -148,6 +167,8 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 		if (g_str_equal(groupsplit[0], RAUC_IMAGE_PREFIX)) {
 			RaucImage *image = g_new0(RaucImage, 1);
 			gchar *value;
+			gchar **hooks;
+			gsize entries;
 
 			image->slotclass = g_strdup(groupsplit[1]);
 
@@ -161,6 +182,20 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 			g_key_file_remove_key(key_file, groups[i], "size", NULL);
 
 			image->filename = manifest_consume_string(key_file, groups[i], "filename", NULL);
+
+			hooks = g_key_file_get_string_list(key_file, groups[i], "hooks", &entries, NULL);
+			for (gsize j = 0; j < entries; j++) {
+				if (g_strcmp0(hooks[j], "pre-install") == 0) {
+					image->hooks.pre_install = TRUE;
+				} else if (g_strcmp0(hooks[j], "install") == 0) {
+					image->hooks.install = TRUE;
+				} else if (g_strcmp0(hooks[j], "post-install") == 0) {
+					image->hooks.post_install = TRUE;
+				} else  {
+					g_warning("hook key %s not supported", hooks[i]);
+				}
+			}
+			g_key_file_remove_key(key_file, groups[i], "hooks", NULL);
 
 			raucm->images = g_list_append(raucm->images, image);
 
@@ -289,6 +324,7 @@ out:
 gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **error) {
 	GKeyFile *key_file = NULL;
 	gboolean res = FALSE;
+	GPtrArray *hooks = g_ptr_array_new_full(3, g_free);
 
 	key_file = g_key_file_new();
 
@@ -313,7 +349,22 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **er
 	if (mf->handler_args)
 		g_key_file_set_string(key_file, "handler", "args", mf->handler_args);
 
+	if (mf->hook_name)
+		g_key_file_set_string(key_file, "hooks", "filename", mf->hook_name);
+
+	if (mf->hooks.install_check == TRUE) {
+		g_ptr_array_add(hooks, g_strdup("install-check"));
+	}
+	g_ptr_array_add(hooks, NULL);
+	if (hooks->pdata && *hooks->pdata) {
+		g_key_file_set_string_list(key_file, "hooks", "hooks",
+				(const gchar **)hooks->pdata, hooks->len);
+	}
+
+	g_ptr_array_unref(hooks);
+
 	for (GList *l = mf->images; l != NULL; l = l->next) {
+		GPtrArray *hooklist = g_ptr_array_new_full(3, g_free);
 		RaucImage *image = l->data;
 		gchar *group;
 
@@ -330,6 +381,23 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **er
 		if (image->filename)
 			g_key_file_set_string(key_file, group, "filename", image->filename);
 
+		if (image->hooks.pre_install == TRUE) {
+			g_ptr_array_add(hooklist, g_strdup("pre-install"));
+		}
+		if (image->hooks.install == TRUE) {
+			g_ptr_array_add(hooklist, g_strdup("install"));
+		}
+		if (image->hooks.post_install == TRUE) {
+			g_ptr_array_add(hooklist, g_strdup("post-install"));
+		}
+		g_ptr_array_add(hooklist, NULL);
+
+		if (hooklist->pdata && *hooklist->pdata) {
+			g_key_file_set_string_list(key_file, group, "hooks",
+					(const gchar **)hooklist->pdata, hooklist->len);
+		}
+
+		g_ptr_array_unref(hooklist);
 		g_free(group);
 	}
 
@@ -363,7 +431,7 @@ free:
 	return res;
 }
 
-static void free_image(gpointer data) {
+void r_free_image(gpointer data) {
 	RaucImage *image = (RaucImage*) data;
 
 	g_clear_pointer(&image->slotclass, g_free);
@@ -372,7 +440,7 @@ static void free_image(gpointer data) {
 	g_clear_pointer(&image, g_free);
 }
 
-static void free_file(gpointer data) {
+void r_free_file(gpointer data) {
 	RaucFile *file = (RaucFile*) data;
 
 	g_clear_pointer(&file->slotclass, g_free);
@@ -388,8 +456,8 @@ void free_manifest(RaucManifest *manifest) {
 	g_clear_pointer(&manifest->update_version, g_free);
 	g_clear_pointer(&manifest->keyring, g_free);
 	g_clear_pointer(&manifest->handler_name, g_free);
-	g_list_free_full(manifest->images, free_image);
-	g_list_free_full(manifest->files, free_file);
+	g_list_free_full(manifest->images, r_free_image);
+	g_list_free_full(manifest->files, r_free_file);
 	g_clear_pointer(&manifest, g_free);
 }
 

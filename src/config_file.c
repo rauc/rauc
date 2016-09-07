@@ -8,7 +8,7 @@ G_DEFINE_QUARK(r-config-error-quark, r_config_error)
 
 #define RAUC_SLOT_PREFIX	"slot"
 
-static void free_slot(gpointer value) {
+void r_free_slot(gpointer value) {
 	RaucSlot *slot = (RaucSlot*)value;
 
 	g_clear_pointer(&slot->description, g_free);
@@ -105,9 +105,11 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	c->keyring_path = resolve_path(filename,
 		g_key_file_get_string(key_file, "keyring", "path", NULL));
 
+	/* parse [autoinstall] section */
 	c->autoinstall_path = resolve_path(filename,
 		g_key_file_get_string(key_file, "autoinstall", "path", NULL));
 
+	/* parse [handlers] section */
 	c->systeminfo_handler = resolve_path(filename,
 		g_key_file_get_string(key_file, "handlers", "system-info", NULL));
 
@@ -118,7 +120,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_key_file_get_string(key_file, "handlers", "post-install", NULL));
 
 	/* parse [slot.*.#] sections */
-	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, free_slot);
+	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_free_slot);
 
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
