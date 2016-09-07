@@ -36,7 +36,9 @@ rauc Configuration
 ------------------
 
 We need a rauc system configuration file to describe the slots which can be
-updated::
+updated
+
+.. code-block:: cfg
 
   [system]
   compatible=rauc-demo-x86
@@ -67,7 +69,9 @@ access GRUB's environment file, this partition should be mounted to ``/boot``
 (which means that the environment file is found at ``/boot/grub/grubenv``).
 
 GRUB does not provide the boot target selection logic as needed by rauc
-out of the box. Instead we use a script to implement it::
+out of the box. Instead we use a script to implement it
+
+.. code-block:: sh
 
   default=0
   timeout=3
