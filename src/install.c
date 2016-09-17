@@ -823,6 +823,9 @@ copy:
 		slot_state->status = g_strdup("ok");
 		slot_state->checksum.type = mfimage->checksum.type;
 		slot_state->checksum.digest = g_strdup(mfimage->checksum.digest);
+
+		if (!slotstatuspath)
+			slotstatuspath = g_build_filename(dest_slot->mount_point, "slot.raucs", NULL);
 		
 		g_message("Updating slot file %s", slotstatuspath);
 		install_args_update(args, g_strdup_printf("Updating slot %s status", dest_slot->name));
