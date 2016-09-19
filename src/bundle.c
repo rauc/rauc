@@ -308,14 +308,14 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 	/* sanity check: signature should be smaller than bundle size */
 	if (sigsize > (guint64)offset) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
-				"signature size sanity check failed: %"G_GUINT64_FORMAT" exceeds bundle size", sigsize);
+				"signature size (%"G_GUINT64_FORMAT") exceeds bundle size", sigsize);
 		res = FALSE;
 		goto out;
 	}
 	/* sanity check: signature should be smaller than 64kiB */
 	if (sigsize > 0x4000000) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
-				"signature size sanity check failed: %"G_GUINT64_FORMAT" exceeds 64KiB", sigsize);
+				"signature size (%"G_GUINT64_FORMAT") exceeds 64KiB", sigsize);
 		res = FALSE;
 		goto out;
 	}
@@ -373,7 +373,11 @@ gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir, gboolea
 
 	res = check_bundle(bundlename, &size, verify, &ierror);
 	if (!res) {
-		g_propagate_error(error, ierror);
+		if (g_error_matches(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE)) {
+			g_propagate_prefixed_error(error, ierror, "Invalid Bundle: ");
+		} else {
+			g_propagate_error(error, ierror);
+		}
 		goto out;
 	}
 
@@ -397,7 +401,11 @@ gboolean extract_file_from_bundle(const gchar *bundlename, const gchar *outputdi
 	if (verify) {
 		res = check_bundle(bundlename, &size, verify, &ierror);
 		if (!res) {
-			g_propagate_error(error, ierror);
+			if (g_error_matches(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE)) {
+				g_propagate_prefixed_error(error, ierror, "Invalid Bundle: ");
+			} else {
+				g_propagate_error(error, ierror);
+			}
 			goto out;
 		}
 	}
