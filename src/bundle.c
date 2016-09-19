@@ -299,6 +299,12 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 		goto out;
 	}
 
+	if (sigsize == 0) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
+				"signature size is 0");
+		res = FALSE;
+		goto out;
+	}
 	/* sanity check: signature should be smaller than bundle size */
 	if (sigsize > (guint64)offset) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
