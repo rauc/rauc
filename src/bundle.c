@@ -151,9 +151,13 @@ static gboolean input_stream_read_bytes_all(GInputStream *stream,
                                             GCancellable *cancellable,
                                             GError **error)
 {
-	void *buffer = g_malloc0(count);
+	void *buffer = NULL;
 	gsize bytes_read;
 	gboolean res;
+
+	g_assert_cmpint(count, !=, 0);
+
+	buffer = g_malloc0(count);
 
 	res = g_input_stream_read_all(stream, buffer, count, &bytes_read,
 		                      cancellable, error);
