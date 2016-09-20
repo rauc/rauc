@@ -30,6 +30,23 @@ static void bundle_fixture_set_up(BundleFixture *fixture,
 	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE, FALSE) == 0);
 }
 
+static void bundle_fixture_set_up_hook(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(fixture->tmpdir);
+	g_print("bundle tmpdir: %s\n", fixture->tmpdir);
+	g_assert(test_mkdir_relative(fixture->tmpdir, "content", 0777) == 0);
+	g_assert(test_mkdir_relative(fixture->tmpdir, "mount", 0777) == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.ext4",
+					 1024*1024, "/dev/urandom") == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.ext4",
+				         64*1024, "/dev/urandom") == 0);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/hook.sh",
+				         1024, "/dev/urandom") == 0);
+	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE, TRUE) == 0);
+}
+
 static void bundle_fixture_tear_down(BundleFixture *fixture,
 		gconstpointer user_data)
 {
@@ -190,6 +207,54 @@ static void bundle_test3(BundleFixture *fixture,
 	g_free(bundlename);
 }
 
+static void bundle_test4(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *bundlename, *contentdir, *hookimage;
+
+	bundlename = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_nonnull(bundlename);
+
+	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
+	g_assert_nonnull(contentdir);
+
+	hookimage = g_build_filename(fixture->tmpdir, "content", "hook.sh", NULL);
+	g_assert_nonnull(hookimage);
+
+	g_assert_true(update_manifest(contentdir, TRUE, NULL));
+	g_assert_true(verify_manifest(contentdir, NULL, FALSE, NULL));
+	g_assert_true(verify_manifest(contentdir, NULL, TRUE, NULL));
+
+	/* Test with invalid checksum */
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/hook.sh",
+					 1024, "/dev/urandom") == 0);
+	g_test_expect_message (G_LOG_DOMAIN,
+			G_LOG_LEVEL_WARNING,
+			"Failed verifying checksum: Digests do not match");
+	g_assert_false(verify_manifest(contentdir, NULL, FALSE, NULL));
+	g_test_expect_message (G_LOG_DOMAIN,
+			G_LOG_LEVEL_WARNING,
+			"Failed verifying checksum: Digests do not match");
+	g_assert_false(verify_manifest(contentdir, NULL, TRUE, NULL));
+
+	/* Test with non-existing image */
+	g_assert_cmpint(g_unlink(hookimage), ==, 0);
+
+	g_test_expect_message (G_LOG_DOMAIN,
+			G_LOG_LEVEL_WARNING,
+			"Failed verifying checksum: Failed to open file * No such file or directory");
+	g_assert_false(verify_manifest(contentdir, NULL, FALSE, NULL));
+	g_test_expect_message (G_LOG_DOMAIN,
+			G_LOG_LEVEL_WARNING,
+			"Failed verifying checksum: Failed to open file * No such file or directory");
+	g_assert_false(verify_manifest(contentdir, NULL, TRUE, NULL));
+	g_test_assert_expected_messages();
+
+	g_free(hookimage);
+	g_free(contentdir);
+	g_free(bundlename);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -224,6 +289,11 @@ int main(int argc, char *argv[])
 	g_test_add("/bundle/test3", BundleFixture, NULL,
 		   bundle_fixture_set_up, bundle_test3,
 		   bundle_fixture_tear_down);
+
+	g_test_add("/bundle/test4", BundleFixture, NULL,
+		   bundle_fixture_set_up_hook, bundle_test4,
+		   bundle_fixture_tear_down);
+
 
 	return g_test_run();
 }

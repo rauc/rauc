@@ -49,6 +49,7 @@ typedef struct {
 	gchar *handler_args;
 
 	gchar *hook_name;
+	RaucChecksum hook_checksum;
 	InstallHooks hooks;
 
 	GList *images;

@@ -142,6 +142,11 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 			g_warning("hook key %s not supported", bundle_hooks[j]);
 		}
 	}
+	raucm->hook_checksum.digest = manifest_consume_string(key_file, "hooks", "sha256", NULL);
+	if (raucm->hook_checksum.digest)
+		raucm->hook_checksum.type = G_CHECKSUM_SHA256;
+	raucm->hook_checksum.size = g_key_file_get_uint64(key_file, "hooks", "size", NULL);
+	g_key_file_remove_key(key_file, "hooks", "size", NULL);
 	if (!check_remaining_keys(key_file, "hooks", &ierror)) {
 		g_propagate_error(error, ierror);
 		goto free;
@@ -342,6 +347,10 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **er
 	if (mf->handler_args)
 		g_key_file_set_string(key_file, "handler", "args", mf->handler_args);
 
+	if (mf->hook_checksum.type == G_CHECKSUM_SHA256)
+		g_key_file_set_string(key_file, "hooks", "sha256", mf->hook_checksum.digest);
+	if (mf->hook_checksum.size)
+		g_key_file_set_uint64(key_file, "hooks", "size", mf->hook_checksum.size);
 	if (mf->hook_name)
 		g_key_file_set_string(key_file, "hooks", "filename", mf->hook_name);
 
@@ -449,6 +458,8 @@ void free_manifest(RaucManifest *manifest) {
 	g_clear_pointer(&manifest->update_version, g_free);
 	g_clear_pointer(&manifest->keyring, g_free);
 	g_clear_pointer(&manifest->handler_name, g_free);
+	g_clear_pointer(&manifest->hook_name, g_free);
+	g_clear_pointer(&manifest->hook_checksum.digest, g_free);
 	g_list_free_full(manifest->images, r_free_image);
 	g_list_free_full(manifest->files, r_free_file);
 	g_clear_pointer(&manifest, g_free);
@@ -459,6 +470,17 @@ static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *d
 	GError *ierror = NULL;
 	gboolean res = TRUE;
 	gboolean had_errors = FALSE;
+
+	if (manifest->hook_name) {
+		gchar *filename = g_build_filename(dir, manifest->hook_name, NULL);
+		res = update_checksum(&manifest->hook_checksum, filename, &ierror);
+		g_free(filename);
+		if (!res) {
+			g_warning("Failed updating checksum: %s", ierror->message);
+			g_clear_error(&ierror);
+			had_errors = TRUE;
+		}
+	}
 
 	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
 		RaucImage *image = elem->data;
@@ -500,6 +522,17 @@ static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *d
 	gboolean had_errors = FALSE;
 
 	r_context_begin_step("verify_manifest_checksums", "Verifying manifest checksums", 0);
+
+	if (manifest->hook_name) {
+		gchar *filename = g_build_filename(dir, manifest->hook_name, NULL);
+		res = verify_checksum(&manifest->hook_checksum, filename, &ierror);
+		g_free(filename);
+		if (!res) {
+			g_warning("Failed verifying checksum: %s", ierror->message);
+			g_clear_error(&ierror);
+			had_errors = TRUE;
+		}
+	}
 
 	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
 		RaucImage *image = elem->data;
