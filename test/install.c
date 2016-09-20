@@ -73,6 +73,8 @@ static void install_fixture_set_up_user(InstallFixture *fixture,
 				fixture->tmpdir, "openssl-ca/dev-ca.pem"));
 
 	/* Setup pseudo devices */
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/rescue-0",
+				         SLOT_SIZE, "/dev/zero") == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/rootfs-0",
 				         SLOT_SIZE, "/dev/zero") == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/appfs-0",
@@ -81,6 +83,7 @@ static void install_fixture_set_up_user(InstallFixture *fixture,
 				         SLOT_SIZE, "/dev/zero") == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "images/appfs-1",
 					 SLOT_SIZE, "/dev/zero") == 0);
+	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/rescue-0"));
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/rootfs-0"));
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/appfs-0"));
 	g_assert_true(test_make_filesystem(fixture->tmpdir, "images/rootfs-1"));
@@ -270,58 +273,58 @@ compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 \n\
 [slot.rescue.0]\n\
-device=/path/to/rescue0\n\
+device=/dev/null\n\
 type=raw\n\
 bootname=factory0\n\
 readonly=true\n\
 \n\
 [slot.rescue.1]\n\
-device=/path/to/rescue1\n\
+device=/dev/null\n\
 type=raw\n\
 bootname=factory1\n\
 readonly=true\n\
 \n\
 [slot.rootfs.0]\n\
-device=/path/to/rootfs0\n\
+device=/dev/null\n\
 bootname=system0\n\
 \n\
 [slot.rootfs.1]\n\
-device=/path/to/rootfs1\n\
+device=/dev/null\n\
 bootname=system1\n\
 \n\
 [slot.rootfs.2]\n\
-device=/path/to/rootfs2\n\
+device=/does/not/exist\n\
 bootname=system2\n\
 \n\
 [slot.appfs.2]\n\
-device=/path/to/appfs1\n\
+device=/does/not/exist\n\
 parent=rootfs.2\n\
 \n\
 [slot.appfs.1]\n\
-device=/path/to/appfs1\n\
+device=/dev/null\n\
 parent=rootfs.1\n\
 \n\
 [slot.appfs.0]\n\
-device=/path/to/appfs0\n\
+device=/dev/null\n\
 parent=rootfs.0\n\
 \n\
 [slot.demofs.0]\n\
-device=/path/to/demofs0\n\
+device=/dev/null\n\
 parent=appfs.0\n\
 \n\
 [slot.demofs.1]\n\
-device=/path/to/demofs1\n\
+device=/dev/null\n\
 parent=appfs.1\n\
 \n\
 [slot.demofs.2]\n\
-device=/path/to/demofs2\n\
+device=/dev/null\n\
 parent=appfs.2\n\
 \n\
 [slot.bootloader.0]\n\
-device=/path/to/bootloader\n\
+device=/dev/null\n\
 \n\
 [slot.prebootloader.0]\n\
-device=/path/to/prebootloader";
+device=/dev/null";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
@@ -488,6 +491,8 @@ filename=bootloader.img";
 	g_assert_cmpint(((RaucSlot*) g_hash_table_lookup(r_context()->config->slots, "rootfs.1"))->state, ==, ST_INACTIVE);
 	g_assert_cmpint(((RaucSlot*) g_hash_table_lookup(r_context()->config->slots, "appfs.0"))->state, ==, ST_ACTIVE);
 	g_assert_cmpint(((RaucSlot*) g_hash_table_lookup(r_context()->config->slots, "appfs.1"))->state, ==, ST_INACTIVE);
+	g_assert_cmpint(((RaucSlot*) g_hash_table_lookup(r_context()->config->slots, "rootfs.2"))->state, ==, ST_NOTFOUND);
+	g_assert_cmpint(((RaucSlot*) g_hash_table_lookup(r_context()->config->slots, "appfs.2"))->state, ==, ST_NOTFOUND);
 
 	tgrp = determine_target_install_group(rm);
 

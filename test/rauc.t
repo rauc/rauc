@@ -93,9 +93,19 @@ test_expect_success "rauc bundle" "
 "
 
 
+TMPDIR=$(mktemp -d)
+export TMPDIR
+mkdir $TMPDIR/images
+touch $TMPDIR/images/rescue-0
+touch $TMPDIR/images/rootfs-0
+touch $TMPDIR/images/rootfs-1
+touch $TMPDIR/images/appfs-0
+touch $TMPDIR/images/appfs-1
+
 test_expect_success "rauc status" "
   cp $SHARNESS_TEST_DIRECTORY/test.conf $SHARNESS_TEST_DIRECTORY/test-temp.conf
   sed -i 's!bootname=system0!bootname=$(cat /proc/cmdline | sed 's/.*root=\([^ ]*\).*/\1/')!g' $SHARNESS_TEST_DIRECTORY/test-temp.conf
+  sed -i 's!images!$TMPDIR/images!g' $SHARNESS_TEST_DIRECTORY/test-temp.conf
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status &&
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status mark-good &&
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status mark-bad
@@ -106,5 +116,7 @@ test_expect_success "rauc install invalid local paths" "
   test_must_fail rauc install foo.raucb &&
   test_must_fail rauc install /path/to/foo.raucb
 "
+
+rm -r $TMPDIR
 
 test_done
