@@ -4,10 +4,11 @@ Design Decisions
 Bundle Mode
 -----------
 * squashfs
-   * mountable
-   * avoids copies
-   * signature location
-   * easy to use for USB memory sticks or upload via a web interface
+
+  * mountable
+  * avoids copies
+  * signature location
+  * easy to use for USB memory sticks or upload via a web interface
 
 Network Mode
 ------------
@@ -21,6 +22,7 @@ Custom Handlers
 ---------------
 * a handler can override default rauc behaviour to handle special cases (which
   were not anticipated during the initial project development)
-   * sanity checks
-   * modifications to the partition layout
-   * bootloader updates
+
+  * sanity checks
+  * modifications to the partition layout
+  * bootloader updates
