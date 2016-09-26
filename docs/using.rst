@@ -345,6 +345,7 @@ An example on how to use a post-install hook:
                   test "$RAUC_SLOT_CLASS" = "rootfs" || exit 0
 
                   touch "$RAUC_SLOT_MOUNT_POINT/extra-file"
+                  ;;
           *)
                   exit 1
                   ;;
