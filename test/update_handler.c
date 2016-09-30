@@ -625,19 +625,19 @@ int main(int argc, char *argv[])
 			test_update_handler,
 			update_handler_fixture_tear_down);
 
-	g_test_add("/update_handler/update_handler/ext4_to_ext4/pre-hook/fail",
+	g_test_add("/update_handler/update_handler/tar_to_ext4/pre-hook/fail",
 			UpdateHandlerFixture,
 			&testpair_matrix[28],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
-	g_test_add("/update_handler/update_handler/ext4_to_ext4/pre-hook/fail",
+	g_test_add("/update_handler/update_handler/img_to_raw/pre-hook/fail",
 			UpdateHandlerFixture,
 			&testpair_matrix[29],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
-	g_test_add("/update_handler/update_handler/ext4_to_ext4/pre-hook/fail",
+	g_test_add("/update_handler/update_handler/ext4_to_raw/pre-hook/fail",
 			UpdateHandlerFixture,
 			&testpair_matrix[30],
 			update_handler_fixture_set_up,
@@ -650,19 +650,19 @@ int main(int argc, char *argv[])
 			test_update_handler,
 			update_handler_fixture_tear_down);
 
-	g_test_add("/update_handler/update_handler/ext4_to_ext4/post-hook/fail",
+	g_test_add("/update_handler/update_handler/tar_to_ext4/post-hook/fail",
 			UpdateHandlerFixture,
 			&testpair_matrix[32],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
-	g_test_add("/update_handler/update_handler/ext4_to_ext4/post-hook/fail",
+	g_test_add("/update_handler/update_handler/img_to_raw/post-hook/fail",
 			UpdateHandlerFixture,
 			&testpair_matrix[33],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
-	g_test_add("/update_handler/update_handler/ext4_to_ext4/post-hook/fail",
+	g_test_add("/update_handler/update_handler/ext4_to_raw/post-hook/fail",
 			UpdateHandlerFixture,
 			&testpair_matrix[34],
 			update_handler_fixture_set_up,
@@ -675,19 +675,19 @@ int main(int argc, char *argv[])
 			test_update_handler,
 			update_handler_fixture_tear_down);
 
-	g_test_add("/update_handler/update_handler/ext4_to_ext4/install-hook/fail",
+	g_test_add("/update_handler/update_handler/tar_to_ext4/install-hook/fail",
 			UpdateHandlerFixture,
 			&testpair_matrix[36],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
-	g_test_add("/update_handler/update_handler/ext4_to_ext4/install-hook/fail",
+	g_test_add("/update_handler/update_handler/img_to_raw/install-hook/fail",
 			UpdateHandlerFixture,
 			&testpair_matrix[37],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
-	g_test_add("/update_handler/update_handler/ext4_to_ext4/install-hook/fail",
+	g_test_add("/update_handler/update_handler/ext4_to_raw/install-hook/fail",
 			UpdateHandlerFixture,
 			&testpair_matrix[38],
 			update_handler_fixture_set_up,
