@@ -10,14 +10,7 @@
 #define RAUC_FILE_PREFIX	"file"
 
 #define R_MANIFEST_ERROR r_manifest_error_quark ()
-
-#define R_MANIFEST_ERROR_NO_DATA	0
-#define R_MANIFEST_ERROR_CHECKSUM	1
-#define R_MANIFEST_ERROR_COMPATIBLE	2
-#define R_MANIFEST_PARSE_ERROR 		3
-#define R_MANIFEST_EMPTY_STRING		4
-
-static GQuark r_manifest_error_quark (void)
+GQuark r_manifest_error_quark (void)
 {
   return g_quark_from_static_string ("r_manifest_error_quark");
 }
