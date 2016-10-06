@@ -716,6 +716,13 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			goto out;
 		}
 
+		if (dest_slot->mount_point) {
+			res = FALSE;
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
+					"Destination device '%s' already mounted", dest_slot->device);
+			goto out;
+		}
+
 		/* determine whether update image type is compatible with destination slot type */
 		update_handler = get_update_handler(mfimage, dest_slot, &ierror);
 		if (update_handler == NULL) {
