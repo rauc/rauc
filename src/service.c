@@ -236,7 +236,7 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 static void r_on_name_acquired(GDBusConnection *connection,
 			       const gchar     *name,
 			       gpointer         user_data) {
-	g_message("name acquired");
+	g_debug("name '%s' acquired", name);
 
 	if (r_context()->config->autoinstall_path)
 		auto_install(r_context()->config->autoinstall_path);
@@ -247,7 +247,12 @@ static void r_on_name_acquired(GDBusConnection *connection,
 static void r_on_name_lost(GDBusConnection *connection,
 			   const gchar     *name,
 			   gpointer         user_data) {
-	g_message("name lost, stopping service");
+	if (connection == NULL) {
+		g_message("Connection to the bus can't be made for %s", name);
+	} else {
+		g_message("Failed to obtain name %s", name);
+	}
+
 	if (service_loop) {
 		g_main_loop_quit(service_loop);
 	}
