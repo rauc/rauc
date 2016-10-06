@@ -208,6 +208,7 @@ static void send_progress_callback(gint percentage,
 static void r_on_bus_acquired(GDBusConnection *connection,
 			      const gchar     *name,
 			      gpointer         user_data) {
+	GError *ierror = NULL;
 
 	r_installer = r_installer_skeleton_new();
 
@@ -224,8 +225,9 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 	if (!g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(r_installer),
 					      connection,
 					      "/",
-					      NULL)) {
-		g_error("Failed to export interface");
+					      &ierror)) {
+		g_error("Failed to export interface: %s", ierror->message);
+		g_error_free (ierror);
 	}
 
 	return;
