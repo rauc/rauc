@@ -41,9 +41,9 @@ Features
   * Network: separate manifest and component files
 * Bootloader support:
 
-  * [grub](https://www.gnu.org/software/grub/)
-  * [barebox](http://barebox.org/)
-  * [u-boot](http://www.denx.de/wiki/U-Boot)
+  * `grub <https://www.gnu.org/software/grub/>`_
+  * `barebox <http://barebox.org/>`_
+  * `u-boot <http://www.denx.de/wiki/U-Boot>`_
 * Storage support:
 
   * raw (ext2/3/4, btrfs, squashfs, ...)
