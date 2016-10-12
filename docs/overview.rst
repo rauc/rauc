@@ -47,10 +47,15 @@ Features
 * Storage support:
 
   * raw (ext2/3/4, btrfs, squashfs, ...)
-  * ubi (using [UBI volume update](http://www.linux-mtd.infradead.org/doc/ubi.html#L_volupdate))
+  * NAND
+  * UBI (using `UBI volume update <http://www.linux-mtd.infradead.org/doc/ubi.html#L_volupdate>`_)
+  * UBIFS
+  * ext2/3/4
 * Network protocol support using libcurl (https, http, ftp, ssh, ...)
 * Cryptographic verification using OpenSSL (signatures based on x.509
   certificates)
+* Update-specific extensions by hooks
+* System-specific extensions by handlers
 
 Redundancy
 ----------
