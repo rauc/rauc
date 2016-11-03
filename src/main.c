@@ -612,6 +612,7 @@ static gchar* r_status_formatter_readable(void)
 	gint slotcnt = 0;
 	GString *text = g_string_new(NULL);
 
+	g_string_append_printf(text, "Compatible:  %s\n", r_context()->config->system_compatible);
 	g_string_append_printf(text, "booted from: %s\n", get_bootname());
 
 	g_string_append(text, "slot states:\n");
@@ -650,6 +651,7 @@ static gchar* r_status_formatter_shell(void)
 	gint slotcnt = 0;
 	GString *text = g_string_new(NULL);
 
+	g_string_append_printf(text, "RAUC_SYSTEM_COMPATIBLE=%s\n", r_context()->config->system_compatible);
 	g_string_append_printf(text, "RAUC_SYSTEM_BOOTED_BOOTNAME=%s\n", get_bootname());
 
 	g_string_append(text, "RAUC_SYSTEM_SLOTS=");
@@ -698,6 +700,9 @@ static gchar* r_status_formatter_json(gboolean pretty)
 	JsonBuilder *builder = json_builder_new ();
 
 	json_builder_begin_object (builder);
+
+	json_builder_set_member_name (builder, "compatible");
+	json_builder_add_string_value (builder, r_context()->config->system_compatible);
 
 	json_builder_set_member_name (builder, "booted");
 	json_builder_add_string_value (builder, get_bootname());
