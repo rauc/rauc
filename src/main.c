@@ -770,7 +770,7 @@ GOptionEntry entries_status[] = {
 
 static void cmdline_handler(int argc, char **argv)
 {
-	gboolean help = FALSE, version = FALSE;
+	gboolean help = FALSE, debug = FALSE, version = FALSE;
 	gchar *confpath = NULL, *certpath = NULL, *keypath = NULL, *mount = NULL,
 	      *handlerextra = NULL;
 	char *cmdarg = NULL;
@@ -781,6 +781,7 @@ static void cmdline_handler(int argc, char **argv)
 		{"key", '\0', 0, G_OPTION_ARG_FILENAME, &keypath, "key file", "PEMFILE"},
 		{"mount", '\0', 0, G_OPTION_ARG_FILENAME, &mount, "mount prefix", "PATH"},
 		{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handlerextra, "extra handler arguments", "ARGS"},
+		{"debug", 'd', 0, G_OPTION_ARG_NONE, &debug, "enable debug output", NULL},
 		{"version", '\0', 0, G_OPTION_ARG_NONE, &version, "display version", NULL},
 		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, NULL, NULL},
 		{0}
@@ -827,6 +828,19 @@ static void cmdline_handler(int argc, char **argv)
 		g_error_free(error);
 		r_exit_status = 1;
 		goto done;
+	}
+
+	if (debug) {
+		const gchar *domains = g_getenv("G_MESSAGES_DEBUG");
+		if (!domains) {
+			g_assert(g_setenv("G_MESSAGES_DEBUG", G_LOG_DOMAIN, TRUE));
+		} else if (!g_str_equal(domains, "all") && !g_strrstr(domains, G_LOG_DOMAIN)) {
+			gchar *newdomains = g_strdup_printf("%s %s", domains, G_LOG_DOMAIN);
+			g_setenv("G_MESSAGES_DEBUG", newdomains, TRUE);
+			g_free(newdomains);
+		}
+		domains = g_getenv("G_MESSAGES_DEBUG");
+		g_print("Domains: '%s'\n", domains);
 	}
 
 	/* get first parameter wihtout dashes */
