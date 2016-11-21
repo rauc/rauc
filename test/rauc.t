@@ -104,7 +104,8 @@ test_expect_success "rauc status readable" "
 "
 
 test_expect_success "rauc status shell" "
-  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=shell
+  rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=shell \
+  | sh
 "
 
 test_expect_success JSON "rauc status json" "
