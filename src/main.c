@@ -646,23 +646,35 @@ static gchar* r_status_formatter_shell(void)
 {
 	GHashTableIter iter;
 	gpointer key, value;
-	gchar *slotlist = NULL;
-	gchar *tmp = NULL;
 	gint slotcnt = 0;
 	GString *text = g_string_new(NULL);
+	GPtrArray *slotnames, *slotnumbers = NULL;
+	gchar* slotstring = NULL;
 
-	g_string_append_printf(text, "RAUC_SYSTEM_COMPATIBLE=%s\n", r_context()->config->system_compatible);
-	g_string_append_printf(text, "RAUC_SYSTEM_BOOTED_BOOTNAME=%s\n", get_bootname());
+	formatter_shell_append(text, "RAUC_SYSTEM_COMPATIBLE", r_context()->config->system_compatible);
+	formatter_shell_append(text, "RAUC_SYSTEM_BOOTED_BOOTNAME", get_bootname());
 
-	g_string_append(text, "RAUC_SYSTEM_SLOTS=");
+	slotnames = g_ptr_array_new();
+	slotnumbers = g_ptr_array_new();
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		gchar *name = key;
-		g_string_append(text, name);
-		g_string_append_c(text, ' ');
+		g_ptr_array_add(slotnames, (gchar*) key);
+		g_ptr_array_add(slotnumbers, g_strdup_printf("%i", ++slotcnt));
 	}
-	g_string_append_c(text, '\n');
+	g_ptr_array_add(slotnames, NULL);
+	g_ptr_array_add(slotnumbers, NULL);
 
+	slotstring = g_strjoinv(" ", (gchar**) slotnames->pdata);
+	formatter_shell_append(text, "RAUC_SYSTEM_SLOTS", slotstring);
+	g_free(slotstring);
+	slotstring = g_strjoinv(" ", (gchar**) slotnumbers->pdata);
+	formatter_shell_append(text, "RAUC_SLOTS", slotstring);
+	g_free(slotstring);
+
+	g_ptr_array_unref(slotnumbers);
+	g_ptr_array_unref(slotnames);
+
+	slotcnt = 0;
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		RaucSlot *slot = value;
@@ -670,21 +682,14 @@ static gchar* r_status_formatter_shell(void)
 		slotcnt++;
 
 
-		g_string_append_printf(text, "RAUC_SLOT_STATE_%d=%s\n", slotcnt, slotstate_to_str(slot->state));
-		g_string_append_printf(text, "RAUC_SLOT_CLASS_%d=%s\n", slotcnt, slot->sclass);
-		g_string_append_printf(text, "RAUC_SLOT_DEVICE_%d=%s\n", slotcnt, slot->device);
-		g_string_append_printf(text, "RAUC_SLOT_TYPE_%d=%s\n", slotcnt, slot->type);
-		g_string_append_printf(text, "RAUC_SLOT_BOOTNAME_%d=%s\n", slotcnt, slot->bootname);
-		g_string_append_printf(text, "RAUC_SLOT_PARENT_%d=%s\n", slotcnt, slot->parent ? slot->parent->name : "(none)");
-		g_string_append_printf(text, "RAUC_SLOT_MOUNTPOINT_%d=%s\n", slotcnt, slot->mount_point ? slot->mount_point : "(none)");
-
-		tmp = g_strdup_printf("%s%i ", slotlist ? slotlist : "", slotcnt);
-		g_clear_pointer(&slotlist, g_free);
-		slotlist = tmp;
-
+		formatter_shell_append_n(text, "RAUC_SLOT_STATE", slotcnt, slotstate_to_str(slot->state));
+		formatter_shell_append_n(text, "RAUC_SLOT_CLASS", slotcnt, slot->sclass);
+		formatter_shell_append_n(text, "RAUC_SLOT_DEVICE", slotcnt, slot->device);
+		formatter_shell_append_n(text, "RAUC_SLOT_TYPE", slotcnt, slot->type);
+		formatter_shell_append_n(text, "RAUC_SLOT_BOOTNAME", slotcnt, slot->bootname);
+		formatter_shell_append_n(text, "RAUC_SLOT_PARENT", slotcnt, slot->parent ? slot->parent->name : NULL);
+		formatter_shell_append_n(text, "RAUC_SLOT_MOUNTPOINT", slotcnt, slot->mount_point);
 	}
-
-	g_string_append_printf(text, "RAUC_SLOTS=%s\n", slotlist);
 
 	return g_string_free(text, FALSE);
 }
