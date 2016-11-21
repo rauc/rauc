@@ -269,14 +269,14 @@ out:
 
 /* Takes a shell variable and its desired argument as input and appends it to
  * the provided text with taking care of correct shell quoting */
-static void info_formatter_shell_append(GString* text, const gchar* varname, const gchar* argument) {
+static void formatter_shell_append(GString* text, const gchar* varname, const gchar* argument) {
 	gchar* quoted = g_shell_quote (argument ?: "");
 	g_string_append_printf(text, "%s=%s\n", varname, quoted);
 	g_clear_pointer(&quoted, g_free);
 }
 /* Same as above, expect that it has a cnt argument to add per-slot-number
  * strings */
-static void info_formatter_shell_append_n(GString* text, const gchar* varname, gint cnt, const gchar* argument) {
+static void formatter_shell_append_n(GString* text, const gchar* varname, gint cnt, const gchar* argument) {
 	gchar* quoted = g_shell_quote (argument ?: "");
 	g_string_append_printf(text, "%s_%d=%s\n", varname, cnt, quoted);
 	g_clear_pointer(&quoted, g_free);
@@ -289,10 +289,10 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 	gchar *hookstring = NULL;
 	gint cnt;
 
-	info_formatter_shell_append(text, "RAUC_MF_COMPATIBLE", manifest->update_compatible);
-	info_formatter_shell_append(text, "RAUC_MF_VERSION", manifest->update_version ?: "");
-	info_formatter_shell_append(text, "RAUC_MF_DESCRIPTION", manifest->update_description);
-	info_formatter_shell_append(text, "RAUC_MF_BUILD", manifest->update_build);
+	formatter_shell_append(text, "RAUC_MF_COMPATIBLE", manifest->update_compatible);
+	formatter_shell_append(text, "RAUC_MF_VERSION", manifest->update_version);
+	formatter_shell_append(text, "RAUC_MF_DESCRIPTION", manifest->update_description);
+	formatter_shell_append(text, "RAUC_MF_BUILD", manifest->update_build);
 	g_string_append_printf(text, "RAUC_MF_IMAGES=%d\n", g_list_length(manifest->images));
 	g_string_append_printf(text, "RAUC_MF_FILES=%d\n", g_list_length(manifest->files));
 
@@ -303,7 +303,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 	g_ptr_array_add(hooks, NULL);
 
 	hookstring = g_strjoinv(" ", (gchar**) hooks->pdata);
-	info_formatter_shell_append(text, "RAUC_MF_HOOKS", hookstring);
+	formatter_shell_append(text, "RAUC_MF_HOOKS", hookstring);
 	g_free(hookstring);
 
 	g_ptr_array_unref(hooks);
@@ -311,9 +311,9 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 	cnt = 0;
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		RaucImage *img = l->data;
-		info_formatter_shell_append_n(text, "RAUC_IMAGE_NAME", cnt, img->filename);
-		info_formatter_shell_append_n(text, "RAUC_IMAGE_CLASS", cnt, img->slotclass);
-		info_formatter_shell_append_n(text, "RAUC_IMAGE_DIGEST", cnt, img->checksum.digest);
+		formatter_shell_append_n(text, "RAUC_IMAGE_NAME", cnt, img->filename);
+		formatter_shell_append_n(text, "RAUC_IMAGE_CLASS", cnt, img->slotclass);
+		formatter_shell_append_n(text, "RAUC_IMAGE_DIGEST", cnt, img->checksum.digest);
 		g_string_append_printf(text, "RAUC_IMAGE_SIZE_%d=%"G_GSIZE_FORMAT"\n", cnt, img->checksum.size);
 
 		hooks = g_ptr_array_new();
@@ -329,7 +329,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 		g_ptr_array_add(hooks, NULL);
 
 		hookstring = g_strjoinv(" ", (gchar**) hooks->pdata);
-		info_formatter_shell_append_n(text, "RAUC_IMAGE_HOOKS", cnt, hookstring);
+		formatter_shell_append_n(text, "RAUC_IMAGE_HOOKS", cnt, hookstring);
 		g_free(hookstring);
 
 		g_ptr_array_unref(hooks);
