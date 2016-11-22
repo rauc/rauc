@@ -66,7 +66,7 @@ test_expect_success "rauc info" "
 
 test_expect_success "rauc info shell" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --output-format=shell \
-    info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
+    info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb | sh
 "
 
 test_expect_success JSON "rauc info json" "

@@ -267,25 +267,72 @@ out:
 	return TRUE;
 }
 
+/* Takes a shell variable and its desired argument as input and appends it to
+ * the provided text with taking care of correct shell quoting */
+static void info_formatter_shell_append(GString* text, const gchar* varname, const gchar* argument) {
+	gchar* quoted = g_shell_quote (argument ?: "");
+	g_string_append_printf(text, "%s=%s\n", varname, quoted);
+	g_clear_pointer(&quoted, g_free);
+}
+/* Same as above, expect that it has a cnt argument to add per-slot-number
+ * strings */
+static void info_formatter_shell_append_n(GString* text, const gchar* varname, gint cnt, const gchar* argument) {
+	gchar* quoted = g_shell_quote (argument ?: "");
+	g_string_append_printf(text, "%s_%d=%s\n", varname, cnt, quoted);
+	g_clear_pointer(&quoted, g_free);
+}
+
 static gchar *info_formatter_shell(RaucManifest *manifest)
 {
 	GString *text = g_string_new(NULL);
+	GPtrArray *hooks = NULL;
+	gchar *hookstring = NULL;
 	gint cnt;
 
-	g_string_append_printf(text, "RAUC_MF_COMPATIBLE=%s\n", manifest->update_compatible);
-	g_string_append_printf(text, "RAUC_MF_VERSION=%s\n", manifest->update_version ?: "");
-	g_string_append_printf(text, "RAUC_MF_DESCRIPTION=%s\n", manifest->update_description ?: "");
-	g_string_append_printf(text, "RAUC_MF_BUILD=%s\n", manifest->update_build ?: "");
+	info_formatter_shell_append(text, "RAUC_MF_COMPATIBLE", manifest->update_compatible);
+	info_formatter_shell_append(text, "RAUC_MF_VERSION", manifest->update_version ?: "");
+	info_formatter_shell_append(text, "RAUC_MF_DESCRIPTION", manifest->update_description);
+	info_formatter_shell_append(text, "RAUC_MF_BUILD", manifest->update_build);
 	g_string_append_printf(text, "RAUC_MF_IMAGES=%d\n", g_list_length(manifest->images));
 	g_string_append_printf(text, "RAUC_MF_FILES=%d\n", g_list_length(manifest->files));
+
+	hooks = g_ptr_array_new();
+	if (manifest->hooks.install_check == TRUE) {
+		g_ptr_array_add(hooks, g_strdup("install-check"));
+	}
+	g_ptr_array_add(hooks, NULL);
+
+	hookstring = g_strjoinv(" ", (gchar**) hooks->pdata);
+	info_formatter_shell_append(text, "RAUC_MF_HOOKS", hookstring);
+	g_free(hookstring);
+
+	g_ptr_array_unref(hooks);
 
 	cnt = 0;
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		RaucImage *img = l->data;
-		g_string_append_printf(text, "RAUC_IMAGE_NAME_%d=%s\n", cnt, img->filename);
-		g_string_append_printf(text, "RAUC_IMAGE_CLASS_%d=%s\n", cnt, img->slotclass);
-		g_string_append_printf(text, "RAUC_IMAGE_DIGEST_%d=%s\n", cnt, img->checksum.digest);
+		info_formatter_shell_append_n(text, "RAUC_IMAGE_NAME", cnt, img->filename);
+		info_formatter_shell_append_n(text, "RAUC_IMAGE_CLASS", cnt, img->slotclass);
+		info_formatter_shell_append_n(text, "RAUC_IMAGE_DIGEST", cnt, img->checksum.digest);
 		g_string_append_printf(text, "RAUC_IMAGE_SIZE_%d=%"G_GSIZE_FORMAT"\n", cnt, img->checksum.size);
+
+		hooks = g_ptr_array_new();
+		if (img->hooks.pre_install == TRUE) {
+			g_ptr_array_add(hooks, g_strdup("pre-install"));
+		}
+		if (img->hooks.install == TRUE) {
+			g_ptr_array_add(hooks, g_strdup("install"));
+		}
+		if (img->hooks.post_install == TRUE) {
+			g_ptr_array_add(hooks, g_strdup("post-install"));
+		}
+		g_ptr_array_add(hooks, NULL);
+
+		hookstring = g_strjoinv(" ", (gchar**) hooks->pdata);
+		info_formatter_shell_append_n(text, "RAUC_IMAGE_HOOKS", cnt, hookstring);
+		g_free(hookstring);
+
+		g_ptr_array_unref(hooks);
 		cnt++;
 	}
 
@@ -306,12 +353,26 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 static gchar *info_formatter_readable(RaucManifest *manifest)
 {
 	GString *text = g_string_new(NULL);
+	GPtrArray *hooks = NULL;
+	gchar *hookstring = NULL;
 	gint cnt;
 
 	g_string_append_printf(text, "Compatible: \t'%s'\n", manifest->update_compatible);
 	g_string_append_printf(text, "Version:    \t'%s'\n", manifest->update_version);
 	g_string_append_printf(text, "Description:\t'%s'\n", manifest->update_description);
 	g_string_append_printf(text, "Build:      \t'%s'\n", manifest->update_build);
+
+	hooks = g_ptr_array_new();
+	if (manifest->hooks.install_check == TRUE) {
+		g_ptr_array_add(hooks, g_strdup("install-check"));
+	}
+	g_ptr_array_add(hooks, NULL);
+
+	hookstring = g_strjoinv(" ", (gchar**) hooks->pdata);
+	g_string_append_printf(text, "Hooks:      \t'%s'\n", hookstring);
+	g_free(hookstring);
+
+	g_ptr_array_unref(hooks);
 
 	cnt = g_list_length(manifest->images);
 	g_string_append_printf(text, "%d Image%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
@@ -322,6 +383,25 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		g_string_append_printf(text, "\tSlotclass: %s\n", img->slotclass);
 		g_string_append_printf(text, "\tChecksum:  %s\n", img->checksum.digest);
 		g_string_append_printf(text, "\tSize:      %"G_GSIZE_FORMAT"\n", img->checksum.size);
+
+		hooks = g_ptr_array_new();
+		if (img->hooks.pre_install == TRUE) {
+			g_ptr_array_add(hooks, g_strdup("pre-install"));
+		}
+		if (img->hooks.install == TRUE) {
+			g_ptr_array_add(hooks, g_strdup("install"));
+		}
+		if (img->hooks.post_install == TRUE) {
+			g_ptr_array_add(hooks, g_strdup("post-install"));
+		}
+		g_ptr_array_add(hooks, NULL);
+
+		hookstring = g_strjoinv(" ", (gchar**) hooks->pdata);
+		g_string_append_printf(text, "\tHooks:     %s\n", hookstring);
+		g_free(hookstring);
+
+		g_ptr_array_unref(hooks);
+
 		cnt++;
 	}
 
@@ -364,6 +444,13 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 	json_builder_set_member_name (builder, "build");
 	json_builder_add_string_value (builder, manifest->update_build);
 
+	json_builder_set_member_name (builder, "hooks");
+	json_builder_begin_array (builder);
+	if (manifest->hooks.install_check == TRUE) {
+		json_builder_add_string_value (builder, "install-check");
+	}
+	json_builder_end_array (builder);
+
 	json_builder_set_member_name (builder, "images");
 	json_builder_begin_array (builder);
 
@@ -379,6 +466,18 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 		json_builder_add_string_value (builder, img->checksum.digest);
 		json_builder_set_member_name (builder, "size");
 		json_builder_add_int_value (builder, img->checksum.size);
+		json_builder_set_member_name (builder, "hooks");
+		json_builder_begin_array (builder);
+		if (img->hooks.pre_install == TRUE) {
+			json_builder_add_string_value (builder, "pre-install");
+		}
+		if (img->hooks.install == TRUE) {
+			json_builder_add_string_value (builder, "install");
+		}
+		if (img->hooks.post_install == TRUE) {
+			json_builder_add_string_value (builder, "post-install");
+		}
+		json_builder_end_array (builder);
 		json_builder_end_object (builder);
 		json_builder_end_object (builder);
 
