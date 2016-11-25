@@ -8,8 +8,8 @@ Updating an embedded system is always a crucial step during the life cycle of
 an embedded hardware product. Updates are important to either fix system bugs,
 solve security problems or simply for adding new features to a platform.
 
-As embedded hardware often is placed in location that make it difficult or
-costly to gain access the board itself, an update must be performed unattended;
+As embedded hardware often is placed in locations that make it difficult or
+costly to gain access to the board itself, an update must be performed unattended;
 for example either by plugging in a special USB stick or by some network
 roll-out strategy.
 
@@ -18,18 +18,18 @@ procedure crashes, the underlying storage fails with a write error, or someone
 accidentally switches the power off, etc. All this may occur but should not
 lead to having an unbootable hardware at the end.
 
-Another point beside safe upgrades are security considerations. You would like
+Another point besides safe upgrades are security considerations. You would like
 to prevent that someone unauthorized is able to load modified firmware onto the
 system.
 
-When designing the rauc update tool, all of this requirements were taken into
+When designing the rauc update tool, all of these requirements were taken into
 consideration. In the following, we provide a short overview of basic concepts,
 principles and solutions rauc provides for updating an embedded system.
 
 Features
 --------
 
-* Supports whole-system updates using at least two redundant installations
+* Supports whole-system updates using at least two redundant installations:
 
   * Symmetric: Root-FS A & Root-FS B
   * Asymmetric: recovery & normal
@@ -76,7 +76,7 @@ Slots
 
 Rauc's view of the target system it is running on is described using so-called
 slots. Slots are possible targets for (parts of) updates. Usually, they are
-partitions on a SD/eMMC, UBI volumes on NAND/NOR flash or raw block devices.
+partitions on an SD/eMMC, UBI volumes on NAND/NOR flash or raw block devices.
 The system designer must provide a configuration file that lists all slots that
 rauc should use and describe which device they are stored on, how the
 bootloader may detect them, etc.
@@ -84,7 +84,7 @@ bootloader may detect them, etc.
 Bundles
 -------
 
-A update bundle is a squashfs-packed set of config files, scripts, and disk
+An update bundle is a squashfs-packed set of config files, scripts, and disk
 images with an appended signature that allows verifying the bundle's origin and
 integrity.
 
@@ -103,7 +103,7 @@ system) fails for e.g. 3 times, the next lower priority boot source is chosen
 As updates are always installed in a currently inactive slot, the boot priority
 must be changed after a successful update.
 
-Basic update procedure
+Basic Update Procedure
 ----------------------
 
 The rauc service that runs on the target will perform an update when being
@@ -113,34 +113,34 @@ by a script that checks for example for insertion of an USB stick containing a
 firmware bundle. Then the default (and simplified) update behavior will be the
 following:
 
-1. Rauc verifies the bundles by checking its signature against the keyring
+1. Rauc verifies the bundle by checking its signature against the keyring
    located in the root file system. A bundle with an invalid signature will be
    rejected.
 
 2. Rauc mounts the bundle (which simply is a squashfs image)
 
-3. Verification of bundle compatibility
+3. Verify bundle compatibility:
 
-   - the compatible string in the manifest is compared against the compatible
-     string stored in the system configuration file
-   - if the strings are different, the bundle will be rejected to prevent
-     installing an incompatible bundle
+   - The compatible string in the manifest is compared against the compatible
+     string stored in the system configuration file.
+   - If the strings are different, the bundle will be rejected to prevent
+     installing an incompatible bundle.
 
 4. Determine the target *install group*, i.e. which slots an update will be
-   installed to
+   installed to.
 
-7. Mark target slots as non-bootable for bootloader
+7. Mark target slots as non-bootable for bootloader.
 
 6. Iterate over each image specified in the manifest
 
-   * Try to read slot status informations
+   * Try to read slot status informations.
    * If the provided slot image is different from the installed one:
-     Update slot with a method determined by the type of slot and the image type
-   * Try to write slot status informations
+     Update slot with a method determined by the type of slot and the image type.
+   * Try to write slot status informations.
 
-7. Mark target slots as new primary boot source for the bootloader
+7. Mark target slots as new primary boot source for the bootloader.
 
-8. Terminate successfully if no error occurred
+8. Terminate successfully if no error occurred.
 
 Once the update controller receives an update request instruction containing
 the file path of a firmware bundle it verifies its signature based on a public

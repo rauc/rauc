@@ -2,37 +2,39 @@ Using Rauc
 ==========
 
 For using rauc in your embedded project, you will need to build at least two
-instances of it.
+instances of it:
 
 * One for your host (development) system, where you create new updates.
 * One that will run on the target for performing updates.
 
 
-Creating bundles
+Creating Bundles
 ----------------
 
 To create an update bundle on your build host, rauc provides the `bundle`
-command::
+command:
+
+.. code-block:: sh
 
   rauc bundle --cert=<certfile> --key=<keyfile> <input-dir> <output-file>
 
 Where `<input-dir>` must be a directory containing all images and scripts the
-bundle should contain, as well as a Manifest file that describes the content of
-the bundle in a way the rauc updater on the target can handle them and knows
-which image to install to which slot, which scripts to execute, etc.
+bundle should include, as well as a manifest file that describes the content of
+the bundle in a way the rauc updater on the target can handle it and knows
+which image to install to which slot, which scripts to execute etc.
 
-Resigning bundles
-------------------
+Resigning Bundles
+-----------------
 
 Rauc allows to resign a bundle from your build host, e.g. for making a testing
 bundle a productive bundle that should have a key that is accepted by
-non-debugging platforms.
+non-debugging platforms:
 
 .. code-block:: sh
 
   rauc resign --cert=<certfile> --key=<keyfile> <input-file> <output-file>
 
-Obtaining bundle information
+Obtaining Bundle Information
 ----------------------------
 
 .. code-block:: sh
@@ -44,7 +46,7 @@ default it will print a human readable representation of the bundle.
 Alternatively you can obtain a shell-parsable description, or a json
 representation of the bundle content.
 
-Installing bundles
+Installing Bundles
 ------------------
 
 To install an update bundle on your target hardware, rauc provides the
@@ -54,9 +56,9 @@ To install an update bundle on your target hardware, rauc provides the
 
   rauc install <input-file>
 
-Alternatively you can trigger a bundle installation via dbus.
+Alternatively you can trigger a bundle installation via D-Bus.
 
-See system status
+See System Status
 -----------------
 
 For debugging purposes and for scripts maybe it can be helpful to gain an
@@ -75,20 +77,21 @@ representation of the system status.
 Customizing the Update
 ----------------------
 
-rauc provides several ways to customize the update process. Some allow to add
+Rauc provides several ways to customize the update process. Some allow to add
 and extend details more fine-grained, some allow to replace major parts of the
 default behavior of rauc.
 
 In general, there exist three major types of customization: configuration,
-handlers, and hooks.
+handlers and hooks.
 
 The first is configuration through pre-defined variables. This allows to
 control the update on a predefined way.
 
-The second type is using `handlers`. Handlers allow to extend or replace
-installation process. They are scripts located in the root filesystem and
-configured in the system's configuration file. They control static behavior of
-the system that should remain the same over all future updates.
+The second type is using `handlers`. Handlers allow to extend or replace the
+installation process. They are executables (most likely shell scripts) located
+in the root filesystem and configured in the system's configuration file. They
+control static behavior of the system that should remain the same over all
+future updates.
 
 The last type are `hooks`. They are much like `handlers`, except that they are
 contained in the update bundle. Thus they allow to flexibly extend or customize
@@ -100,7 +103,7 @@ previously deployed version.
 
 In the following, handlers and hooks will be explained in more detail.
 
-System-based Customization: Handlers
+System-Based Customization: Handlers
 ------------------------------------
 
 * system.conf
@@ -109,13 +112,13 @@ System-based Customization: Handlers
 For a detailed list of all environment variables exported for the handler
 scripts, see ...
 
-Pre-install Handler
+Pre-Install Handler
 ~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: cfg
 
   [handlers]
-  pre-install=/usr/lib/rauc/pre-install.sh
+  pre-install=/usr/lib/rauc/pre-install
 
 Rauc will call the pre-install handler (if given) during the bundle
 installation process, right before calling the default or custom installation
@@ -131,9 +134,9 @@ Install Handler
 .. code-block:: cfg
 
   [handlers]
-  install=/usr/lib/rauc/install.sh
+  install=/usr/lib/rauc/install
 
-The install handler is the most powerful one rauc provides. If you provide
+The install handler is the most powerful one rauc has. If you provide
 this, you replace the entire default update procedure of rauc. It will be
 executed right after the pre-install handler and right before the post-install
 handler.
@@ -141,13 +144,13 @@ handler.
 If calling the handler fails or the handler returns a non-zero exit code, rauc
 will abort installation with an error.
 
-Post-install Handler
+Post-Install Handler
 ~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: cfg
 
   [handlers]
-  post-install=/usr/lib/rauc/post-install.sh
+  post-install=/usr/lib/rauc/post-install
 
 The post install handler will be called right after rauc successfully performed
 a system update. If any error occurred during installation, the post-install
@@ -160,13 +163,13 @@ performed update anymore.
 A possible usage for the post-install handler could be to trigger an automatic
 restart of the system.
 
-System-info Handler
+System-Info Handler
 ~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: cfg
 
   [handlers]
-  system-info=/usr/lib/rauc/system-info.sh
+  system-info=/usr/lib/rauc/system-info
 
 The system-info handler is called after loading the configuration file. This
 way it can collect additional variables from the system, like the system's
@@ -176,24 +179,24 @@ The handler script must return a system serial number by echoing
 `RAUC_SYSTEM_SERIAL=<value>` to standard out.
 
 
-Bundle-based Customization: Hooks
+Bundle-Based Customization: Hooks
 ---------------------------------
 
 Unlike handlers, hooks allow the author of a bundle to add or replace
 functionality for the installation of a specific bundle. This can be useful for
 performing additional migration steps, checking for specific previously
-installed bundle versions, or for manually handling updates of images rauc
+installed bundle versions or for manually handling updates of images rauc
 cannot handle natively.
 
 To reduce the complexity and number of files in a bundle, all hooks must be
-handled by a single script that is registered in the bundles manifest:
+handled by a single executable that is registered in the bundle's manifest:
 
 .. code-block:: cfg
 
   [hooks]
-  filename=hook.sh
+  filename=hook
 
-Each hook must be activated explicitly and leads to a call of the hook script
+Each hook must be activated explicitly and leads to a call of the hook executable
 with a specific argument that allows to distinguish between the different hook
 types. Multiple hooks must be separated with a ``;``.
 
@@ -206,7 +209,7 @@ Install Hooks
 
 Install hooks operate globally on the bundle installation.
 
-The following environment variables will be passed to the executed hook script.
+The following environment variables will be passed to the hook executable:
 
 .. glossary::
 
@@ -219,13 +222,13 @@ The following environment variables will be passed to the executed hook script.
   ``RAUC_MOUNT_PREFIX``
     The global rauc mount prefix path
 
-Install-check Hook
+Install-Check Hook
 ^^^^^^^^^^^^^^^^^^
 
 .. code-block:: cfg
 
   [hooks]
-  filename=hook.sh
+  filename=hook
   hooks=install-check
 
 This hook will be executed instead of the normal compatible check in order to
@@ -235,8 +238,8 @@ information.
 To indicate that a bundle should be rejected, the script must return with an
 exit code >= 10.
 
-If available, Rauc will use that last string printed to standard error by
-the hook script as the rejection reason message and provide it to the user.
+If available, rauc will use the last line printed to standard error by
+the hook executable as the rejection reason message and provide it to the user:
 
 .. code-block:: sh
 
@@ -256,18 +259,18 @@ the hook script as the rejection reason message and provide it to the user.
 
   exit 0
 
-Slot hooks
+Slot Hooks
 ~~~~~~~~~~
 
 Slot hooks are called for each slot an image will be installed to. In order to
 enable them, you have to specify them in the ``hooks`` key under the respective
 ``image`` section.
 
-Note that Hook slot operations will be passed to the script with the prefix
+Note that hook slot operations will be passed to the executable with the prefix
 ``slot-``. Thus if you intend to check for the pre-install hook, you have to
 check for the argument to be ``slot-pre-install``.
 
-The following environment variables will be passed to the executed hook script.
+The following environment variables will be passed to the hook executable:
 
 .. glossary::
 
@@ -303,7 +306,7 @@ system, the hook will be executed with having the file system mounted.
 .. code-block:: cfg
 
   [hooks]
-  filename=hook.sh
+  filename=hook
 
   [image.rootfs]
   filename=rootfs.img
@@ -325,7 +328,7 @@ installed slot, for example to preserve application configuration data.
 .. code-block:: cfg
 
   [hooks]
-  filename=hook.sh
+  filename=hook
 
   [image.rootfs]
   filename=rootfs.img
@@ -368,7 +371,7 @@ migrating configuration settings.
 .. code-block:: cfg
 
   [hooks]
-  filename=hook.sh
+  filename=hook
 
   [image.rootfs]
   filename=rootfs.img
