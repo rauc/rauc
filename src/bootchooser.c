@@ -171,6 +171,7 @@ static gboolean barebox_set_primary(RaucSlot *slot) {
 
 	res = TRUE;
 out:
+	g_ptr_array_unref(pairs);
 	return res;
 }
 
