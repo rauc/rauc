@@ -18,7 +18,7 @@ Slot configuration
 
 The most important step is to describe the slots that rauc should use
 when performing updates. Which slots are required and what you have to take
-care of when designing you system will be covered in the chapter :ref:`todo`.
+care of when designing your system will be covered in the chapter :ref:`todo`.
 This section assumes, you have already decided on a setup and want to describe
 it for rauc.
 
@@ -33,8 +33,8 @@ class names used in the system config match those in the update manifests.
 
 The mandatory settings for each slot are, the ``device`` that holds the
 (device) path describing *where* the slot is located, the ``type`` that
-provides defines *how* to update the target device, and the ``bootname``
-which is the name the bootloader uses to refer to this slot device.
+defines *how* to update the target device, and the ``bootname`` which is
+the name the bootloader uses to refer to this slot device.
 
 Type
 ^^^^
@@ -47,7 +47,7 @@ A list of common types supported by rauc:
 | raw      | A partition holding no (known) file system. Only raw image copies |
 |          | may be performed.                                                 |
 +----------+-------------------------------------------------------------------+
-| ext4     | A partition holing an ext4 filesystem.                            |
+| ext4     | A partition holding an ext4 filesystem.                           |
 +----------+-------------------------------------------------------------------+
 | nand     | A NAND partition.                                                 |
 +----------+-------------------------------------------------------------------+
@@ -64,7 +64,7 @@ Yocto support for using rauc is provided by the `meta-ptx
 
 The layer supports building rauc both for the target as well as a host tool.
 With the `bundle.bbclass` it provides a mechanism to specify and build bundles
-directly with of Yocto.
+directly with the help of Yocto.
 
 Target system setup
 ~~~~~~~~~~~~~~~~~~~
@@ -119,7 +119,7 @@ tool, or by using the ``bundle.bbclass`` that handles most of the basic steps,
 automatically.
 
 First, create a bundle recipe in your BSP layer. A possible location for this
-could be ``meta-your-pbsp/recipes/core/bundles/update-bundle.bb``.
+could be ``meta-your-pbsp/recipes-core/bundles/update-bundle.bb``.
 
 To create your bundle you first have to inherit the bundle class::
 
@@ -136,13 +136,13 @@ For using the built-in bundle generation, you need to specify some variables:
   target platform you intend to install this bundle on.
 
 ``RAUC_BUNDLE_SLOTS``
-  Use this to list all slot classes for which bundle should contain images. A
-  value of ``"rootfs appfs"`` for example will create a manifest with images
+  Use this to list all slot classes for which the bundle should contain images.
+  A value of ``"rootfs appfs"`` for example will create a manifest with images
   for two slot classes; rootfs and appfs.
 
 ``RAUC_SLOT_<slotclass>``
-  For each slot class, set this to the image (recipe) name which build artifact
-  you intend to place in it.
+  For each slot class, set this to the image (recipe) name which builds the
+  artifact you intend to place in the slot class.
 
 ``RAUC_SLOT_<slotclass>[type]``
   For each slot class, set this to the *type* of image you intend to place in

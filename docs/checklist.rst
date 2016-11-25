@@ -17,7 +17,7 @@ Configuration
 -------------
 
 Most systems require a location for storing configuration data. Unlike for
-example the root or application filesystems which are often mounted as
+example the root or application filesystems which are often mounted
 read-only, a configuration partition would be writable to allow modifying
 configuration data.
 
