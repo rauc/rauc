@@ -139,18 +139,19 @@ static gboolean install_start(int argc, char **argv)
 			"de.pengutronix.rauc", "/", NULL, NULL);
 		if (g_signal_connect(installer, "g-properties-changed",
 				     G_CALLBACK(on_installer_changed), args) <= 0) {
-			g_error("failed to connect properties-changed signal");
+			g_printerr("failed to connect properties-changed signal\n");
 			goto out_loop;
 		}
 		if (g_signal_connect(installer, "completed",
 				     G_CALLBACK(on_installer_completed), args) <= 0) {
-			g_error("failed to connect completed signal");
+			g_printerr("failed to connect completed signal\n");
 			goto out_loop;
 		}
 		g_print("trying to contact rauc service\n");
 		if (!r_installer_call_install_sync(installer, bundlelocation, NULL,
 						   &error)) {
-			g_warning("failed %s", error->message);
+			g_printerr("failed %s\n", error->message);
+			g_error_free (error);
 			goto out_loop;
 		}
 	} else {
