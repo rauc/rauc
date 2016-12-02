@@ -760,8 +760,8 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 				install_args_update(args, g_strdup_printf("Skipping update for correct image %s", mfimage->filename));
 				g_message("Skipping update for correct image %s", mfimage->filename);
 				r_context_end_step("check_slot", TRUE);
-				r_context_begin_step("copy_image", "Copying image", 0);
-				r_context_end_step("copy_image", TRUE);
+				r_context_begin_step("skip_image", "Copying image skipped", 0);
+				r_context_end_step("skip_image", TRUE);
 				goto image_out;
 			} else {
 				g_message("Slot needs to be updated with %s", mfimage->filename);
