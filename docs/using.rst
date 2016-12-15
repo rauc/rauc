@@ -316,7 +316,7 @@ system, the hook will be executed with having the file system mounted.
 
 
 Post-Install Hook
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
 
 The post-install hook will be called right after the update procedure for the
 respective slot was finished successfully. For slot types that represent a
@@ -358,7 +358,7 @@ An example on how to use a post-install hook:
 
 
 Install Hook
-~~~~~~~~~~~~
+^^^^^^^^^^^^
 
 The install hook will replace the entire default installation process for the
 target slot of the image it was specified for. Note that when having the install
