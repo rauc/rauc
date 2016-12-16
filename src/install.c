@@ -802,6 +802,11 @@ copy:
 
 		r_context_end_step("copy_image", TRUE);
 
+		if (g_strcmp0(dest_slot->type, "raw") == 0) {
+			g_message("Skipping slot status update for raw slot %s ", dest_slot->device);
+			goto image_out;
+		}
+
 		if (g_strcmp0(dest_slot->type, "nand") == 0) {
 			g_message("Skipping slot status update for nand slot %s ", dest_slot->device);
 			goto image_out;
