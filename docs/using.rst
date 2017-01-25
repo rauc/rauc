@@ -378,3 +378,34 @@ migrating configuration settings.
   size=...
   sha256=...
   hooks=install
+
+Using the D-Bus API
+-------------------
+
+Examples Using ``busctl`` Command
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Triggering an installation:
+
+.. code-block:: sh
+
+  busctl call de.pengutronix.rauc / de.pengutronix.rauc.installer install s "/path/to/bundle"
+
+Get the `operation` property containing the current operation:
+
+.. code-block:: sh
+
+  busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.installer operation
+
+Get the `lasterror` property, which contains the last Error that occured during
+an installation.
+
+.. code-block:: sh
+
+  busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.installer lasterror
+
+Monitor the D-Bus interface
+
+.. code-block:: sh
+
+  busctl monitor de.pengutronix.rauc
