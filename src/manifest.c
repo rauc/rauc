@@ -530,7 +530,11 @@ static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *d
 		if (!res) {
 			g_warning("Failed verifying checksum: %s", ierror->message);
 			g_clear_error(&ierror);
+			/* Do not abort on verification warnin for now to not
+			 * break existing hook support, but keep this as an
+			 * option for later.
 			had_errors = TRUE;
+			*/
 		}
 	}
 
