@@ -1,8 +1,8 @@
 Overview
 ========
 
-Introduction
-------------
+The Need for Updating
+---------------------
 
 Updating an embedded system is always a crucial step during the life cycle of
 an embedded hardware product. Updates are important to either fix system bugs,
@@ -22,43 +22,84 @@ Another point besides safe upgrades are security considerations. You would like
 to prevent that someone unauthorized is able to load modified firmware onto the
 system.
 
+What is RAUC?
+-------------
+
+RAUC is a lightweight update client that runs on your embedded device and
+reliably controls the procedure of updating your device with a new firmware
+revision. RAUC is also the tool on your host system that lets you create, inspect
+and modify update artifacts for your device.
+
+The decision to design was made after having worked on several custom update
+solutions for different projects again and again while always facing different
+issues and unexpected quirks and pitfalls that were not taken into
+consideration before.
+
+Thus, the aim of RAUC is to provide a well-proven, solid and generic base for
+the different custom requirements and restrictions an update concept for a
+specfic platform must deal with.
+
 When designing the rauc update tool, all of these requirements were taken into
 consideration. In the following, we provide a short overview of basic concepts,
-principles and solutions rauc provides for updating an embedded system.
+principles and solutions RAUC provides for updating an embedded system.
 
-Features
---------
+Key Features of RAUC
+--------------------
 
-* Supports whole-system updates using at least two redundant installations:
+* **Fail-Safe & Atomic**:
 
-  * Symmetric: Root-FS A & Root-FS B
-  * Asymmetric: recovery & normal
-  * Also supports custom partition layouts
-* Fail-Safe: no change to the running system
-* Two update modes:
+  * An update may be interrupted at any point without breaking the running
+    system.
+  * Update compatibility check
 
-  * Bundle: single file containing the whole update
-  * Network: separate manifest and component files
-* Bootloader support:
+* **Cryptographic signing and verification** of updates using OpenSSL (signatures
+  based on x.509 certificates)
+
+* **Flexible and customizable** redundancy/storage setup
+
+  * **Symmetric** setup (Root-FS A & B)
+  * **Asymmetric** setup (recovery & normal)
+  * Application partition, Data Partitions, ...
+  * Allows **grouping** of multiple slots (rootfs, appfs) as update targets
+
+* Supports common bootloaders
 
   * `grub <https://www.gnu.org/software/grub/>`_
   * `barebox <http://barebox.org/>`_
+
+    * Well integrated with `bootchooser <http://barebox.de/doc/latest/user/bootchooser.html?highlight=bootchooser>`_ framework
   * `u-boot <http://www.denx.de/wiki/U-Boot>`_
+
 * Storage support:
 
-  * raw (ext2/3/4, btrfs, squashfs, ...)
-  * NAND
-  * UBI (using `UBI volume update <http://www.linux-mtd.infradead.org/doc/ubi.html#L_volupdate>`_)
+  * ext2/3/4 filesystem
+  * UBI volumes
   * UBIFS
-  * ext2/3/4
-* Network protocol support using libcurl (https, http, ftp, ssh, ...)
-* Cryptographic verification using OpenSSL (signatures based on x.509
-  certificates)
-* Update-specific extensions by hooks
-* System-specific extensions by handlers
+  * raw NAND (using nandwrite)
+  * squashfs
 
-Redundancy
-----------
+* Independent from updates source
+
+  * **USB Stick**
+  * Software provisioning server (e.g. **Hawkbit**)
+
+* Controllable via **D-Bus** interface
+
+* Supports Data migration
+
+* Network protocol support using libcurl (https, http, ftp, ssh, ...)
+
+* Several layers of update customization
+
+  * Update-specific extensions (hooks)
+  * System-specific extensions (handlers)
+  * fully custom update script
+
+* Yocto support in meta-ptx
+
+
+Redundant Updates
+-----------------
 
 Being able to safely update an entire system with pre-defined images
 normally requires more than one bootable device or partition available.
@@ -171,24 +212,3 @@ failures.
 
 If no non-bootable slot exists, the inactive slot with the lowest priority is
 selected.
-
-
-* Motivation
-   * Updates required: safety, security, feature updates
-   * Ensure defined and consistent system state
-   * Ensure the system can always boot to an updatable system
-* Features
-   * Remote via the network
-   * Unattended/automatic vs. manual
-   * Local via USB memory stick
-   * Protection against user errors
-   * Signed updates
-   * Image vs. file updates
-   * Support for different scenarios
-      * two symmetric slots
-      * one full + one rescue slot
-   * D-Bus interface
-* Requirements
-   * System watchdog (optional)
-   * Stage storage
-* Out-of-scope cases
