@@ -409,3 +409,26 @@ Monitor the D-Bus interface
 .. code-block:: sh
 
   busctl monitor de.pengutronix.rauc
+
+Migrating to an Updated Bundle Version
+--------------------------------------
+
+RAUC will be constantly extended and new features or enhancementa will make its
+way in to RAUC. Thus, also the information contained in the bundle, or, more
+precise, in the manifest may extend.
+
+Now, current RAUC versions check each option contained in the manifest and will
+reject the bundle if an entry in the manifest is not known. This is
+necessary and important to assure that the actual installation behavior does
+not differ from the description in the manifest.
+
+Despite the fact, that installing bundles that use newly added features an will
+*not work*, it is (of course) still possible to update your device to this new
+version.
+
+For this you have to follow a simple **2 step process**
+
+1. Create a bundle not containing the new RAUC features in the manifest but
+   include the new RAUC version itself in the rootfs image.
+2. Now you can proceed updating your board with bundles that use the latest
+   RAUC features.
