@@ -8,7 +8,8 @@ Rauc expects the file ``/etc/rauc/system.conf`` to describe the system it runs
 on in a way that all relevant information for performing updates and making
 decisions are given.
 
-.. note:: For a full reference off the system.conf file, see :ref:`todo`.
+.. note:: For a full reference of the system.conf file refert to section
+  :ref:`sec_ref_slot_config`
 
 Similar to other configuration files used by rauc, the system configuration
 uses a key-value syntax (similar to those known from .ini files).

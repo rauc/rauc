@@ -1,6 +1,8 @@
 Reference
 =========
 
+.. _sec_ref_slot_config:
+
 System Configuration File
 -------------------------
 
