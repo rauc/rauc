@@ -14,23 +14,40 @@ Documentation: https://rauc.readthedocs.org/
 
 ## Features
 
-* Supports whole-system updates using at least two redundant installations
-  * Symmetric: Root-FS A & Root-FS B
-  * Asymmetric: recovery & normal
-  * Also supports custom partition layouts
-* Fail-Safe: no change to the running system
+* **Fail-Safe & Atomic**:
+  * An update may be interrupted at any point without breaking the running
+    system.
+  * Update compatibility check
+* **Cryptographic signing and verification** of updates using OpenSSL (signatures
+  based on x.509 certificates)
+* **Flexible and customizable** redundancy/storage setup
+  * **Symmetric** setup (Root-FS A & B)
+  * **Asymmetric** setup (recovery & normal)
+  * Application partition, Data Partitions, ...
+  * Allows **grouping** of multiple slots (rootfs, appfs) as update targets
 * Two update modes:
   * Bundle: single file containing the whole update
   * Network: separate manifest and component files
-* Bootloader support:
+* **Bootloader support**:
   * [grub](https://www.gnu.org/software/grub/)
   * [barebox](http://barebox.org/)
+  * [u-boot](http://www.denx.de/wiki/U-Boot)
 * Storage support:
-  * raw (ext2/3/4, btrfs, squashfs, ...)
-  * ubi (using [UBI volume update](http://www.linux-mtd.infradead.org/doc/ubi.html#L_volupdate))
+  * ext2/3/4 filesystem
+  * UBI volumes
+  * UBIFS
+  * raw NAND (using nandwrite)
+  * squashfs
+* Independent from updates source
+  * **USB Stick**
+  * Software provisioning server (e.g. **Hawkbit**)
+* Controllable via **D-Bus** interface
+* Supports Data migration
 * Network protocol support using libcurl (https, http, ftp, ssh, ...)
-* Cryptographic verification using OpenSSL (signatures based on x.509
-  certificates)
+* Several layers of update customization
+  * Update-specific extensions (hooks)
+  * System-specific extensions (handlers)
+  * fully custom update script
 
 ## Requirements
 
