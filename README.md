@@ -49,7 +49,7 @@ Documentation: https://rauc.readthedocs.org/
 * Hardware watchdog (optional, but recommended)
 * RTC (optional, but recommended)
 
-### Host features
+### Host Features
 * Create update bundles
 * Sign/resign bundles
 * Inspect bundle files
@@ -92,7 +92,7 @@ following Busybox feature:
 
   * `CONFIG_FEATURE_TAR_AUTODETECT=y`
 
-## Building from sources
+## Building from Sources
 
     git clone https://github.com/jluebbe/rauc
     cd rauc
@@ -106,7 +106,7 @@ following Busybox feature:
     make check
     ./uml-test
 
-## Creating a bundle
+## Creating a Bundle
 
     mkdir content-dir/
     cp $SOURCE/rootfs.ext4.img content-dir/
@@ -121,7 +121,7 @@ following Busybox feature:
     EOF
     rauc --cert autobuilder.cert.pem --key autobuilder.key.pem bundle content-dir/ update-2015.04-1.raucb
 
-## Installing a bundle
+## Installing a Bundle
 
     rauc install update-2015.04-1.raucb
 
