@@ -56,6 +56,41 @@ A list of common types supported by rauc:
 | ubifs    | A NAND partition holding an UBI volume containing an UBIFS.       |
 +----------+-------------------------------------------------------------------+
 
+Kernel Configuration
+--------------------
+
+The kernel used on the target device must support both loop devices and the
+SquashFS file system to allow installing bundles.
+
+In kernel Kconfig you have to enable the following options:
+
+  * `CONFIG_BLK_DEV_LOOP=y`
+  * `CONFIG_SQUASHFS=y`
+
+Required Target Tools
+---------------------
+
+RAUC requires and uses a set of target tools depending on the type of supported
+storage and used image type.
+
+Note that build systems may handle parts of these dependencies automatically,
+but also in this case you will have to select some of them manually as RAUC
+cannot fully know how you intend to use your system.
+
+:NAND Flash: nandwrite (from `mtd-utils
+             <git://git.infradead.org/mtd-utils.git>`_)
+:UBIFS: mkfs.ubifs (from `mtd-utils
+                  <git://git.infradead.org/mtd-utils.git>`_)
+:TAR archives: You may either use `GNU tar <http://www.gnu.org/software/tar/>`_
+  or `Busybox tar <http://www.busybox.net>`_.
+
+  If you intend to use Busybox tar, make sure format autodetection is enabled:
+
+    * ``CONFIG_FEATURE_TAR_AUTODETECT=y``
+:ext2/3/4: mkfs.ext2/3/4 (from `e2fsprogs
+  <git://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git>`_)
+
+
 Yocto
 -----
 
