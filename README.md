@@ -51,23 +51,6 @@ Documentation: https://rauc.readthedocs.org/
   * System-specific extensions (handlers)
   * fully custom update script
 
-## Requirements
-
-* Boot state storage
-  * grub environment file on SD/eMMC/SSD/disk
-  * State partition on EEPROM/FRAM/MRAM or NAND flash
-  * ...
-* Boot target selection support in the bootloader
-* Enough mass storage for two symmetric/asymmetric/custom slots
-* For bundle mode:
-  * Enough storage for the compressed bundle file (in memory, in a temporary
-    partition or on an external storage device)
-* For network mode:
-  * No additional storage needed
-  * Network interface
-* Hardware watchdog (optional, but recommended)
-* RTC (optional, but recommended)
-
 ### Host Features
 * Create update bundles
 * Sign/resign bundles
@@ -78,6 +61,24 @@ Documentation: https://rauc.readthedocs.org/
 * Install bundles
 * View system status information
 * Change status of symmetric/asymmetric/custom slots
+
+
+## Target Requirements
+
+* Boot state storage
+  * GRUB: environment file on SD/eMMC/SSD/disk
+  * Barebox: State partition on EEPROM/FRAM/MRAM or NAND flash
+  * U-Boot: environment variable
+* Boot target selection support in the bootloader
+* Enough mass storage for two symmetric/asymmetric/custom slots
+* For bundle mode:
+  * Enough storage for the compressed bundle file (in memory, in a temporary
+    partition or on an external storage device)
+* For network mode:
+  * No additional storage needed
+  * Network interface
+* Hardware watchdog (optional, but recommended)
+* RTC (optional, but recommended)
 
 ## Usage
 
