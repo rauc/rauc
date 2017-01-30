@@ -6,7 +6,9 @@
 [![Coverity](https://img.shields.io/coverity/scan/5085.svg)](https://scan.coverity.com/projects/5085)
 [![Documentation](https://readthedocs.org/projects/rauc/badge/?version=latest)](http://rauc.readthedocs.org/en/latest/?badge=latest)
 
-> rauc controls the update process on embedded linux systems
+RAUC controls the update process on embedded linux systems. It is both a target
+application that runs as an update client and a host/target tool
+that allows you to create, inspect and modify installation artifacts.
 
 Source Code: https://github.com/jluebbe/rauc
 
