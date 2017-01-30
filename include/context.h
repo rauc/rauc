@@ -32,6 +32,8 @@ typedef struct {
 
 	/* optional custom handler extra arguments */
 	gchar *handlerextra;
+	/* ignore compatible check */
+	gboolean ignore_compatible;
 } RaucContext;
 
 typedef struct {

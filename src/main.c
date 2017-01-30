@@ -22,6 +22,7 @@
 GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
+gboolean install_ignore_compatible = FALSE;
 gboolean info_noverify = FALSE;
 gchar *output_format = NULL;
 
@@ -131,6 +132,8 @@ static gboolean install_start(int argc, char **argv)
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 	args->status_result = 2;
+
+	r_context_conf()->ignore_compatible = install_ignore_compatible;
 
 	r_loop = g_main_loop_new(NULL, FALSE);
 	if (ENABLE_SERVICE) {
@@ -866,6 +869,11 @@ typedef struct {
 	gboolean while_busy;
 } RaucCommand;
 
+GOptionEntry entries_install[] = {
+	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
+	{0}
+};
+
 GOptionEntry entries_info[] = {
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &info_noverify, "disable bundle verification", NULL},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
@@ -895,6 +903,7 @@ static void cmdline_handler(int argc, char **argv)
 		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, NULL, NULL},
 		{0}
 	};
+	GOptionGroup *install_group = g_option_group_new("install", "Install options:", "help dummy", NULL, NULL);
 	GOptionGroup *info_group = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
 	GOptionGroup *status_group = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
 
@@ -903,7 +912,7 @@ static void cmdline_handler(int argc, char **argv)
 
 	RaucCommand rcommands[] = {
 		{UNKNOWN, "help", "<COMMAND>", unknown_start, NULL, TRUE},
-		{INSTALL, "install", "install <BUNDLE>", install_start, NULL, FALSE},
+		{INSTALL, "install", "install <BUNDLE>", install_start, install_group, FALSE},
 		{BUNDLE, "bundle", "bundle <FILE>", bundle_start, NULL, FALSE},
 		{CHECKSUM, "checksum", "checksum <DIRECTORY>", checksum_start, NULL, FALSE},
 		{INFO, "info", "info <FILE>", info_start, info_group, FALSE},
@@ -916,6 +925,7 @@ static void cmdline_handler(int argc, char **argv)
 	RaucCommand *rc;
 	RaucCommand *rcommand = NULL;
 
+	g_option_group_add_entries(install_group, entries_install);
 	g_option_group_add_entries(info_group, entries_info);
 	g_option_group_add_entries(status_group, entries_status);
 
