@@ -66,11 +66,31 @@ Please see the [documentation](https://rauc.readthedocs.org/) for details.
 
 ## Prerequisites
 
+### Host (Build) Prerequisites
+
+* automake
+* libtool
+* libglib2.0-dev
+* libcurl3-dev
+* libssl-dev
+
     sudo apt-get install automake libtool libglib2.0-dev libcurl3-dev libssl-dev 
 
-### Optional Prerequisites
+If you intend to use json-support you also need
 
     sudo apt-get install libjson-glib-dev
+
+### Target Prerequisites
+
+Required kernel options:
+
+  * `CONFIG_BLK_DEV_LOOP=y`
+  * `CONFIG_SQUASHFS=y`
+
+For using tar archive in RAUC bundles with Busybox tar, you have to enable the
+following Busybox feature:
+
+  * `CONFIG_FEATURE_TAR_AUTODETECT=y`
 
 ## Building from sources
 
