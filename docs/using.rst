@@ -11,17 +11,21 @@ instances of it:
 Creating Bundles
 ----------------
 
-To create an update bundle on your build host, RAUC provides the `bundle`
-command:
+To create an update bundle on your build host, RAUC provides the ``bundle``
+sub-command:
 
 .. code-block:: sh
 
   rauc bundle --cert=<certfile> --key=<keyfile> <input-dir> <output-file>
 
-Where `<input-dir>` must be a directory containing all images and scripts the
-bundle should include, as well as a manifest file that describes the content of
-the bundle in a way the RAUC updater on the target can handle it and knows
-which image to install to which slot, which scripts to execute etc.
+Where ``<input-dir>`` must be a directory containing all images and scripts the
+bundle should include, as well as a manifest file ``manifest.raucm`` that
+describes the content of the bundle in a way the RAUC updater on the target can
+handle it and knows which image to install to which slot, which scripts to
+execute etc.
+``<output-file>`` must be the path of the bundle file to create. Note that RAUC
+bundle must always have a ``.raucb`` file name suffix in order to make RAUC
+treat them as bundles.
 
 Resigning Bundles
 -----------------
