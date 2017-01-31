@@ -39,7 +39,7 @@ Thus, the aim of RAUC is to provide a well-proven, solid and generic base for
 the different custom requirements and restrictions an update concept for a
 specfic platform must deal with.
 
-When designing the rauc update tool, all of these requirements were taken into
+When designing the RAUC update tool, all of these requirements were taken into
 consideration. In the following, we provide a short overview of basic concepts,
 principles and solutions RAUC provides for updating an embedded system.
 
@@ -114,17 +114,17 @@ fall-back system the bootloader may choose if booting from the other slots fails
 This one might also be used to initially install a production system on a
 new device.
 
-In the following an overview of the basic concept rauc uses for realizing such
+In the following an overview of the basic concept RAUC uses for realizing such
 an update system is provided.
 
 Slots
 -----
 
-Rauc's view of the target system it is running on is described using so-called
+RAUC's view of the target system it is running on is described using so-called
 slots. Slots are possible targets for (parts of) updates. Usually, they are
 partitions on an SD/eMMC, UBI volumes on NAND/NOR flash or raw block devices.
 The system designer must provide a configuration file that lists all slots that
-rauc should use and describe which device they are stored on, how the
+RAUC should use and describe which device they are stored on, how the
 bootloader may detect them, etc.
 
 Bundles
@@ -152,18 +152,18 @@ must be changed after a successful update.
 Basic Update Procedure
 ----------------------
 
-The rauc service that runs on the target will perform an update when being
+The RAUC service that runs on the target will perform an update when being
 triggered by an install command providing an update bundle.
 An update request may be initiated manually from the command line, via D-Bus or
 by a script that checks for example for insertion of an USB stick containing a
 firmware bundle. Then the default (and simplified) update behavior will be the
 following:
 
-1. Rauc verifies the bundle by checking its signature against the keyring
+1. RAUC verifies the bundle by checking its signature against the keyring
    located in the root file system. A bundle with an invalid signature will be
    rejected.
 
-2. Rauc mounts the bundle (which simply is a squashfs image)
+2. RAUC mounts the bundle (which simply is a squashfs image)
 
 3. Verify bundle compatibility:
 

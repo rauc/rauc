@@ -1,7 +1,7 @@
 Examples
 ========
 
-This chapter aims to explain the basic concepts needed for rauc using a simple
+This chapter aims to explain the basic concepts needed for RAUC using a simple
 but realistic scenario.
 
 The system is a x86 system with 1GiB of disk space and 1GiB of RAM. GRUB_ was
@@ -21,7 +21,7 @@ This scenario can be easily reproduced using a QEMU_ virtual machine.
 PKI Setup
 ---------
 
-rauc uses an x.509 PKI (public key infrastructure) to sign and verify updates.
+RAUC uses an x.509 PKI (public key infrastructure) to sign and verify updates.
 To create a simple key pair for testing, we can use ``openssl``::
 
   > openssl req -x509 -newkey rsa:4096 -nodes -keyout demo.key.pem -out demo.cert.pem -subj "/O=rauc Inc./CN=rauc-demo"
@@ -32,10 +32,10 @@ easy-rsa_ is a good first step.
 
 .. _easy-rsa: https://github.com/OpenVPN/easy-rsa
 
-rauc Configuration
+RAUC Configuration
 ------------------
 
-We need a rauc system configuration file to describe the slots which can be
+We need a RAUC system configuration file to describe the slots which can be
 updated
 
 .. code-block:: cfg
@@ -59,7 +59,7 @@ updated
   bootname=B
 
 In this case, we need to place the signing certificate into
-``/etc/rauc/demo.cert.pem``, so that it is used by rauc for verification.
+``/etc/rauc/demo.cert.pem``, so that it is used by RAUC for verification.
 
 GRUB Configuration
 ------------------
@@ -68,7 +68,7 @@ GRUB itself is stored on ``/dev/sda1``, separate from the root file system. To
 access GRUB's environment file, this partition should be mounted to ``/boot``
 (which means that the environment file is found at ``/boot/grub/grubenv``).
 
-GRUB does not provide the boot target selection logic as needed by rauc
+GRUB does not provide the boot target selection logic as needed by RAUC
 out of the box. Instead we use a script to implement it
 
 .. code-block:: sh
@@ -139,7 +139,7 @@ by GRUB. It can also be used to inspect the current contents::
   B_TRY=0
 
 The initial installation of the bootloader and rootfs on the system is out of
-scope for rauc. A common approach is to generate a complete disk image
+scope for RAUC. A common approach is to generate a complete disk image
 (including the partition table) using a build system such as
 OpenEmbedded/Yocto, PTXdist or buildroot.
 
@@ -152,7 +152,7 @@ of the update in a directory (in this case only the root file system image)::
   > mkdir temp-dir/
   > cp …/rootfs.ext4.img temp-dir/
 
-Next, to describe the bundle contents to rauc, we create a *manifest* file.
+Next, to describe the bundle contents to RAUC, we create a *manifest* file.
 This must be named  ``manifest.raucm``::
 
   > cat >> temp-dir/manifest.raucm << EOF
@@ -165,9 +165,9 @@ This must be named  ``manifest.raucm``::
   EOF
 
 Note that we can omit the ``sha256`` and ``size`` parameters for the image
-here, as rauc will fill them out automatically when creating the bundle.
+here, as RAUC will fill them out automatically when creating the bundle.
 
-Finally, we run rauc to create the bundle::
+Finally, we run RAUC to create the bundle::
 
   > rauc --cert demo.cert.pem --key demo.key.pem bundle temp-dir/ update-2015.04-1.raucb
   > rm -r temp-dir
@@ -178,11 +178,11 @@ target system, in this case using a USB memory stick.
 Update Installation
 -------------------
 
-Having copied ``update-2015.04-1.raucb`` onto the target, we only need to run rauc::
+Having copied ``update-2015.04-1.raucb`` onto the target, we only need to run RAUC::
 
   > rauc install /mnt/usb/update-2015.04-1.raucb
 
-After cyptographically verifying the bundle, rauc will now determine the
+After cyptographically verifying the bundle, RAUC will now determine the
 active slots by looking at the ``rauc.slot`` variable. Then, it can select the
 target slot for the update image from the inactive slots.
 

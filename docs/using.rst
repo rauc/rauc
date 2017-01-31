@@ -1,7 +1,7 @@
-Using Rauc
+Using RAUC
 ==========
 
-For using rauc in your embedded project, you will need to build at least two
+For using RAUC in your embedded project, you will need to build at least two
 instances of it:
 
 * One for your host (development) system, where you create new updates.
@@ -11,7 +11,7 @@ instances of it:
 Creating Bundles
 ----------------
 
-To create an update bundle on your build host, rauc provides the `bundle`
+To create an update bundle on your build host, RAUC provides the `bundle`
 command:
 
 .. code-block:: sh
@@ -20,13 +20,13 @@ command:
 
 Where `<input-dir>` must be a directory containing all images and scripts the
 bundle should include, as well as a manifest file that describes the content of
-the bundle in a way the rauc updater on the target can handle it and knows
+the bundle in a way the RAUC updater on the target can handle it and knows
 which image to install to which slot, which scripts to execute etc.
 
 Resigning Bundles
 -----------------
 
-Rauc allows to resign a bundle from your build host, e.g. for making a testing
+RAUC allows to resign a bundle from your build host, e.g. for making a testing
 bundle a productive bundle that should have a key that is accepted by
 non-debugging platforms:
 
@@ -41,7 +41,7 @@ Obtaining Bundle Information
 
   rauc info [--output-format=<format>] <input-file>
 
-You can control the output type of rauc info depending on your needs. By
+You can control the output type of RAUC info depending on your needs. By
 default it will print a human readable representation of the bundle.
 Alternatively you can obtain a shell-parsable description, or a json
 representation of the bundle content.
@@ -49,7 +49,7 @@ representation of the bundle content.
 Installing Bundles
 ------------------
 
-To install an update bundle on your target hardware, rauc provides the
+To install an update bundle on your target hardware, RAUC provides the
 `install` command:
 
 .. code-block:: sh
@@ -62,14 +62,14 @@ See System Status
 -----------------
 
 For debugging purposes and for scripts maybe it can be helpful to gain an
-overview over the current system as rauc sees it. The `status` command allows
+overview over the current system as RAUC sees it. The `status` command allows
 this:
 
 .. code-block:: sh
 
   rauc status [--output-format=<format>]
 
-You can choose the output style of rauc status depending on your needs. By
+You can choose the output style of RAUC status depending on your needs. By
 default it will print a human readable representation of your system.
 Alternatively you can obtain a shell-parsable description, or a JSON
 representation of the system status.
@@ -77,9 +77,9 @@ representation of the system status.
 Customizing the Update
 ----------------------
 
-Rauc provides several ways to customize the update process. Some allow to add
+RAUC provides several ways to customize the update process. Some allow to add
 and extend details more fine-grained, some allow to replace major parts of the
-default behavior of rauc.
+default behavior of RAUC.
 
 In general, there exist three major types of customization: configuration,
 handlers and hooks.
@@ -120,12 +120,12 @@ Pre-Install Handler
   [handlers]
   pre-install=/usr/lib/rauc/pre-install
 
-Rauc will call the pre-install handler (if given) during the bundle
+RAUC will call the pre-install handler (if given) during the bundle
 installation process, right before calling the default or custom installation
 process. At this stage, the bundle is mounted and its content accessible, the
 target group was determined successfully.
 
-If calling the handler fails or the handler returns a non-zero exit code, rauc
+If calling the handler fails or the handler returns a non-zero exit code, RAUC
 will abort installation with an error.
 
 Install Handler
@@ -136,12 +136,12 @@ Install Handler
   [handlers]
   install=/usr/lib/rauc/install
 
-The install handler is the most powerful one rauc has. If you provide
-this, you replace the entire default update procedure of rauc. It will be
+The install handler is the most powerful one RAUC has. If you provide
+this, you replace the entire default update procedure of RAUC. It will be
 executed right after the pre-install handler and right before the post-install
 handler.
 
-If calling the handler fails or the handler returns a non-zero exit code, rauc
+If calling the handler fails or the handler returns a non-zero exit code, RAUC
 will abort installation with an error.
 
 Post-Install Handler
@@ -152,7 +152,7 @@ Post-Install Handler
   [handlers]
   post-install=/usr/lib/rauc/post-install
 
-The post install handler will be called right after rauc successfully performed
+The post install handler will be called right after RAUC successfully performed
 a system update. If any error occurred during installation, the post-install
 handler will not be called.
 
@@ -185,7 +185,7 @@ Bundle-Based Customization: Hooks
 Unlike handlers, hooks allow the author of a bundle to add or replace
 functionality for the installation of a specific bundle. This can be useful for
 performing additional migration steps, checking for specific previously
-installed bundle versions or for manually handling updates of images rauc
+installed bundle versions or for manually handling updates of images RAUC
 cannot handle natively.
 
 To reduce the complexity and number of files in a bundle, all hooks must be
@@ -223,7 +223,7 @@ The following environment variables will be passed to the hook executable:
     The value of the version field as provided by the current bundle
 
   ``RAUC_MOUNT_PREFIX``
-    The global rauc mount prefix path
+    The global RAUC mount prefix path
 
 Install-Check Hook
 ^^^^^^^^^^^^^^^^^^
@@ -241,7 +241,7 @@ information.
 To indicate that a bundle should be rejected, the script must return with an
 exit code >= 10.
 
-If available, rauc will use the last line printed to standard error by
+If available, RAUC will use the last line printed to standard error by
 the hook executable as the rejection reason message and provide it to the user:
 
 .. code-block:: sh
@@ -305,7 +305,7 @@ The following environment variables will be passed to the hook executable:
     If set, the target class of the image currently to be installed
 
   ``RAUC_MOUNT_PREFIX``
-    The global rauc mount prefix path
+    The global RAUC mount prefix path
 
 Pre-Install Hook
 ^^^^^^^^^^^^^^^^
@@ -376,7 +376,7 @@ target slot of the image it was specified for. Note that when having the install
 hook enabled, pre- and post-install hooks will *not* be executed.
 The install hook allows to fully customize the way an image is installed. This
 allows performing special installation methods that are not natively supported
-by rauc, for example to upgrade the bootloader to a new version while also
+by RAUC, for example to upgrade the bootloader to a new version while also
 migrating configuration settings.
 
 .. code-block:: cfg
