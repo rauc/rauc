@@ -6,7 +6,9 @@
 [![Coverity](https://img.shields.io/coverity/scan/5085.svg)](https://scan.coverity.com/projects/5085)
 [![Documentation](https://readthedocs.org/projects/rauc/badge/?version=latest)](http://rauc.readthedocs.org/en/latest/?badge=latest)
 
-> rauc controls the update process on embedded linux systems
+RAUC controls the update process on embedded linux systems. It is both a target
+application that runs as an update client and a host/target tool
+that allows you to create, inspect and modify installation artifacts.
 
 Source Code: https://github.com/jluebbe/rauc
 
@@ -14,30 +16,59 @@ Documentation: https://rauc.readthedocs.org/
 
 ## Features
 
-* Supports whole-system updates using at least two redundant installations
-  * Symmetric: Root-FS A & Root-FS B
-  * Asymmetric: recovery & normal
-  * Also supports custom partition layouts
-* Fail-Safe: no change to the running system
+* **Fail-Safe & Atomic**:
+  * An update may be interrupted at any point without breaking the running
+    system.
+  * Update compatibility check
+* **Cryptographic signing and verification** of updates using OpenSSL (signatures
+  based on x.509 certificates)
+* **Flexible and customizable** redundancy/storage setup
+  * **Symmetric** setup (Root-FS A & B)
+  * **Asymmetric** setup (recovery & normal)
+  * Application partition, Data Partitions, ...
+  * Allows **grouping** of multiple slots (rootfs, appfs) as update targets
 * Two update modes:
   * Bundle: single file containing the whole update
   * Network: separate manifest and component files
-* Bootloader support:
+* **Bootloader support**:
   * [grub](https://www.gnu.org/software/grub/)
   * [barebox](http://barebox.org/)
+  * [u-boot](http://www.denx.de/wiki/U-Boot)
 * Storage support:
-  * raw (ext2/3/4, btrfs, squashfs, ...)
-  * ubi (using [UBI volume update](http://www.linux-mtd.infradead.org/doc/ubi.html#L_volupdate))
+  * ext2/3/4 filesystem
+  * UBI volumes
+  * UBIFS
+  * raw NAND (using nandwrite)
+  * squashfs
+* Independent from updates source
+  * **USB Stick**
+  * Software provisioning server (e.g. **Hawkbit**)
+* Controllable via **D-Bus** interface
+* Supports Data migration
 * Network protocol support using libcurl (https, http, ftp, ssh, ...)
-* Cryptographic verification using OpenSSL (signatures based on x.509
-  certificates)
+* Several layers of update customization
+  * Update-specific extensions (hooks)
+  * System-specific extensions (handlers)
+  * fully custom update script
 
-## Requirements
+### Host Features
+* Create update bundles
+* Sign/resign bundles
+* Inspect bundle files
+
+### Target Features
+* Run as a system service (d-bus interface)
+* Install bundles
+* View system status information
+* Change status of symmetric/asymmetric/custom slots
+
+
+## Target Requirements
 
 * Boot state storage
-  * grub environment file on SD/eMMC/SSD/disk
-  * State partition on EEPROM/FRAM/MRAM or NAND flash
-  * ...
+  * GRUB: environment file on SD/eMMC/SSD/disk
+  * Barebox: State partition on EEPROM/FRAM/MRAM or NAND flash
+  * U-Boot: environment variable
 * Boot target selection support in the bootloader
 * Enough mass storage for two symmetric/asymmetric/custom slots
 * For bundle mode:
@@ -49,30 +80,39 @@ Documentation: https://rauc.readthedocs.org/
 * Hardware watchdog (optional, but recommended)
 * RTC (optional, but recommended)
 
-### Host features
-* Create update bundles
-* Sign/resign bundles
-* Inspect bundle files
-
-### Target Features
-* Run as a system service (d-bus interface)
-* Install bundles
-* View system status information
-* Change status of symmetric/asymmetric/custom slots
-
 ## Usage
 
 Please see the [documentation](https://rauc.readthedocs.org/) for details.
 
 ## Prerequisites
 
+### Host (Build) Prerequisites
+
+* automake
+* libtool
+* libglib2.0-dev
+* libcurl3-dev
+* libssl-dev
+
     sudo apt-get install automake libtool libglib2.0-dev libcurl3-dev libssl-dev 
 
-### Optional Prerequisites
+If you intend to use json-support you also need
 
     sudo apt-get install libjson-glib-dev
 
-## Building from sources
+### Target Prerequisites
+
+Required kernel options:
+
+  * `CONFIG_BLK_DEV_LOOP=y`
+  * `CONFIG_SQUASHFS=y`
+
+For using tar archive in RAUC bundles with Busybox tar, you have to enable the
+following Busybox feature:
+
+  * `CONFIG_FEATURE_TAR_AUTODETECT=y`
+
+## Building from Sources
 
     git clone https://github.com/jluebbe/rauc
     cd rauc
@@ -86,7 +126,7 @@ Please see the [documentation](https://rauc.readthedocs.org/) for details.
     make check
     ./uml-test
 
-## Creating a bundle
+## Creating a Bundle
 
     mkdir content-dir/
     cp $SOURCE/rootfs.ext4.img content-dir/
@@ -101,7 +141,7 @@ Please see the [documentation](https://rauc.readthedocs.org/) for details.
     EOF
     rauc --cert autobuilder.cert.pem --key autobuilder.key.pem bundle content-dir/ update-2015.04-1.raucb
 
-## Installing a bundle
+## Installing a Bundle
 
     rauc install update-2015.04-1.raucb
 
