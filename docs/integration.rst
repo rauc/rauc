@@ -1,6 +1,11 @@
 Integration
 ===========
 
+When integrating RAUC (and in general) we recommend using a Linux system build
+tool like Yocto / OpenEmbedded or PTXdist. For information about how
+to integrate RAUC using these tools, refer to section :ref:`sec_int_yocto` or
+:ref:`sec_int_ptxdist`.
+
 System configuration
 --------------------
 
@@ -91,6 +96,123 @@ cannot fully know how you intend to use your system.
 :ext2/3/4: mkfs.ext2/3/4 (from `e2fsprogs
   <git://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git>`_)
 
+
+Interfacing with the Bootloader
+-------------------------------
+
+RAUC provides support for interfacing with different types of bootloaders. To
+select the bootloader you have or intend to use on your system, set the
+``bootloader`` key in the ``[system]`` section of your devices ``system.conf``.
+
+.. note::
+
+  If in doubt about choosing the right bootloader, we recommend to use Barebox
+  as it provides a dedicated boot handling framework, called `bootchooser`.
+
+To allow RAUC handling a bootable slot, you have to mark it bootable in your
+system.conf and configure the name under which the bootloader is able to
+identify this distinct slot. This is both done by setting the ``bootname``
+property.
+
+.. code-block:: cfg
+
+  [slot.rootfs.0]
+  ...
+  bootname=system0
+
+Barebox
+~~~~~~~
+
+.. code-block:: cfg
+
+  [system]
+  ...
+  bootloader=barebox
+
+Barebox support requires you to have the **bootchooser framework** with
+**barebox state** backend enabled. In Barebox Kconfig you can enable this by
+setting:
+
+.. code-block:: cfg
+
+  CONIFG_BOOTCHOOSER=y
+  CONIFG_STATE=y
+
+To enable write reading and writing the required state variables, you also have
+to add the ``barebox-state`` tool from the `dt-utils
+<https://git.pengutronix.de/cgit/tools/dt-utils/>`_ repository to your
+systems rootfs.
+
+.. note::
+  For details on how to set it up, which storage backend to use, etc. refer to
+  the Barebox `bootchooser documentation
+  <http://barebox.org/doc/latest/user/bootchooser.html>`_.
+
+U-Boot
+~~~~~~
+
+.. code-block:: cfg
+
+  [system]
+  ...
+  bootloader=uboot
+
+To enable handling of redundant booting in U-Boot, manual scripting is required.
+
+The U-Boot bootloader interface of RAUC will rely on setting the U-Boot
+environment variables ``BOOT_<bootname>_LEFT`` which should mark the number of
+remaining boot attempts for the respective slot in your bootloader script.
+
+To enable reading and writing the U-Boot environment, you need to have the
+U-Boot target tool ``fw_setenv`` available on your devices rootfs.
+
+An example U-Boot script for handling redundant boot setups is located in the
+``contrib/`` folder of the RAUC source repository (``uboot.sh``).
+
+
+GRUB
+~~~~
+
+.. code-block:: cfg
+
+  [system]
+  ...
+  bootloader=grub
+
+To enable handling of redundant booting in GRUB, manual scripting is required.
+
+The GRUB bootloader interface of RAUC uses the GRUB environment variables
+``<bootname>_OK``, ``<bootname>_TRY`` and ``ORDER``.
+
+To enable reading and writing the GRUB environment, you need to have the tool
+``grub-editenv`` available on your target.
+
+An example GRUB configuration for handling redundant boot setups is located in the
+``contrib/`` folder of the RAUC source repository (``grub.conf``). As the GRUB
+shell only has limited support for scripting, this example uses only one try
+per enabled slot.
+
+Others
+~~~~~~
+
+System Boot
+-----------
+   * Watchdog vs. Confirmation
+   * Kernel Command Line: booted slot
+   * D-Bus-Service vs. Single Binary
+   * Cron
+
+Backend
+-------
+
+Persistent Data
+---------------
+
+   * SSH-Keys?
+
+Feel free to extend RAUC with support for your bootloader.
+
+.. _sec_int_yocto:
 
 Yocto
 -----
@@ -189,33 +311,36 @@ Based on this information, your bundle recipe will build all required
 components and generate a bundle from this. The created bundle can be found in
 ``tmp/deploy/images/<machine>/bundles`` in your build directory.
 
+.. _sec_int_ptxdist:
 
 PTXdist
 -------
-   * System setup (system conf, keys, ...)
-   * Bundle creation
 
-System Boot
------------
-   * Watchdog vs. Confirmation
-   * Kernel Command Line: booted slot
-   * D-Bus-Service vs. Single Binary
-   * Cron
+.. warning:: The steps described here base on a non-mainline pre-version of
+  RAUC support for PTXdist as posted to the PTXdist mailing list. Handling may
+  still change!
 
-Barebox
--------
-   * State/Bootchooser
+Integration into your RootFS Build
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-GRUB
-----
+To enable building RAUC for your target, set::
 
-   * Grub-Environment
-   * Scripting
+  CONFIG_RAUC=y
 
-Backend
--------
+in your ptxconfig (by selection ``RAUC`` via ``ptxdist menuconfig``).
 
-Persistent Data
----------------
+Place your system configuration in
+``configs/platform-<yourplatform>/projectroot/etc/rauc/system.conf`` to let the
+RAUC recipe install it into the rootfs you build.
+Also place the keyring for your device in
+``configs/platform-<yourplatform>/projectroot/etc/rauc/ca.cert.pem``.
 
-   * SSH-Keys?
+Create Update Bundles
+~~~~~~~~~~~~~~~~~~~~~
+
+To enable building RAUC bundles, set::
+
+  CONFIG_IMAGE_RAUC=y
+
+in your platformconfig. This will build a simple bundle for your rootfs and
+place it under ``bundle.raucb`` in your image build directory.
