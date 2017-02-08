@@ -289,6 +289,9 @@ gboolean r_service_run(void) {
 				       r_on_name_lost,
 				       NULL, NULL);
 
+	// Set initial Operation status to "idle"
+	r_installer_set_operation(r_installer, "idle");
+
 	g_main_loop_run(service_loop);
 
 	if (r_bus_name_id)
