@@ -1,8 +1,8 @@
 # RAUC - Robust Auto-Update Controller
 
-[![LGPLv2.1](https://img.shields.io/badge/license-LGPLv2.1-blue.svg)](https://raw.githubusercontent.com/jluebbe/rauc/master/COPYING)
-[![Travis branch](https://img.shields.io/travis/jluebbe/rauc/master.svg)](https://travis-ci.org/jluebbe/rauc)
-[![Coveralls branch](https://img.shields.io/coveralls/jluebbe/rauc/master.svg)](https://coveralls.io/r/jluebbe/rauc)
+[![LGPLv2.1](https://img.shields.io/badge/license-LGPLv2.1-blue.svg)](https://raw.githubusercontent.com/rauc/rauc/master/COPYING)
+[![Travis branch](https://img.shields.io/travis/rauc/rauc/master.svg)](https://travis-ci.org/rauc/rauc)
+[![Coveralls branch](https://img.shields.io/coveralls/rauc/rauc/master.svg)](https://coveralls.io/r/rauc/rauc)
 [![Coverity](https://img.shields.io/coverity/scan/5085.svg)](https://scan.coverity.com/projects/5085)
 [![Documentation](https://readthedocs.org/projects/rauc/badge/?version=latest)](http://rauc.readthedocs.org/en/latest/?badge=latest)
 
@@ -10,7 +10,7 @@ RAUC controls the update process on embedded linux systems. It is both a target
 application that runs as an update client and a host/target tool
 that allows you to create, inspect and modify installation artifacts.
 
-Source Code: https://github.com/jluebbe/rauc
+Source Code: https://github.com/rauc/rauc
 
 Documentation: https://rauc.readthedocs.org/
 
@@ -114,7 +114,7 @@ following Busybox feature:
 
 ## Building from Sources
 
-    git clone https://github.com/jluebbe/rauc
+    git clone https://github.com/rauc/rauc
     cd rauc
     ./autogen.sh
     ./configure
