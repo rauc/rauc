@@ -222,6 +222,9 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 
 	r_context_register_progress_callback(send_progress_callback);
 
+	// Set initial Operation status to "idle"
+	r_installer_set_operation(r_installer, "idle");
+
 	if (!g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(r_installer),
 					      connection,
 					      "/",
@@ -288,9 +291,6 @@ gboolean r_service_run(void) {
 				       r_on_name_acquired,
 				       r_on_name_lost,
 				       NULL, NULL);
-
-	// Set initial Operation status to "idle"
-	r_installer_set_operation(r_installer, "idle");
 
 	g_main_loop_run(service_loop);
 
