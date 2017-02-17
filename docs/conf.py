@@ -47,7 +47,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'rauc'
+project = u'RAUC'
 copyright = u'2016-2017, Jan Luebbe, Enrico Joerns, Juergen Borleis'
 
 # The version info for the project you're documenting, acts as replacement for
