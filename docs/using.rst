@@ -404,20 +404,20 @@ Triggering an installation:
 
 .. code-block:: sh
 
-  busctl call de.pengutronix.rauc / de.pengutronix.rauc.installer install s "/path/to/bundle"
+  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer Install s "/path/to/bundle"
 
 Get the `operation` property containing the current operation:
 
 .. code-block:: sh
 
-  busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.installer operation
+  busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.Installer Operation
 
 Get the `lasterror` property, which contains the last Error that occured during
 an installation.
 
 .. code-block:: sh
 
-  busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.installer lasterror
+  busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.Installer LastError
 
 Monitor the D-Bus interface
 
