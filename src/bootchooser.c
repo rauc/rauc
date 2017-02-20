@@ -7,6 +7,10 @@
 #include "install.h"
 
 #define BAREBOX_STATE_NAME "barebox-state"
+#define BAREBOX_STATE_DEFAULT_ATTEMPS	3
+#define BAREBOX_STATE_ATTEMPS_PRIMARY	3
+#define BAREBOX_STATE_DEFAULT_PRIORITY	10
+#define BAREBOX_STATE_PRIORITY_PRIMARY	20
 #define UBOOT_FWSETENV_NAME "fw_setenv"
 
 #if 0
@@ -110,7 +114,7 @@ static gboolean barebox_set_state(RaucSlot *slot, gboolean good) {
 	g_assert_nonnull(slot);
 
 	if (good) {
-		attempts = 3;
+		attempts = BAREBOX_STATE_DEFAULT_ATTEMPS;
 	} else {
 		/* for marking bad, also set priority to 0 */
 		attempts = 0;
@@ -136,7 +140,6 @@ out:
 /* Set slot as primary boot slot */
 static gboolean barebox_set_primary(RaucSlot *slot) {
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
-	int prio1 = 20, prio2 = 10;
 	gboolean res = FALSE;
 	GList *slots;
 
@@ -152,16 +155,16 @@ static gboolean barebox_set_primary(RaucSlot *slot) {
 			continue;
 
 		if (s == slot) {
-			prio = prio1;
+			prio = BAREBOX_STATE_PRIORITY_PRIMARY;
 		} else {
-			prio = prio2;
+			prio = BAREBOX_STATE_DEFAULT_PRIORITY;
 		}
 		g_ptr_array_add(pairs, g_strdup_printf("%s.%s.priority=%i",
 				BOOTSTATE_PREFIX, s->bootname, prio));
 	}
 
 	g_ptr_array_add(pairs, g_strdup_printf("%s.%s.remaining_attempts=%i",
-			BOOTSTATE_PREFIX, slot->bootname, 3));
+			BOOTSTATE_PREFIX, slot->bootname, BAREBOX_STATE_ATTEMPS_PRIMARY));
 
 	res = barebox_state_set(pairs);
 	if (!res) {
