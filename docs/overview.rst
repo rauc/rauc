@@ -95,7 +95,7 @@ Key Features of RAUC
   * System-specific extensions (handlers)
   * fully custom update script
 
-* Yocto support in meta-ptx
+* Yocto support in `meta-rauc <https://github.com/rauc/meta-rauc>`_
 
 
 Redundant Updates

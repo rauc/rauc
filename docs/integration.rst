@@ -217,19 +217,21 @@ Feel free to extend RAUC with support for your bootloader.
 Yocto
 -----
 
-Yocto support for using RAUC is provided by the `meta-ptx
-<http://git-public.pengutronix.de/?p=meta-ptx.git>`_ layer.
+Yocto support for using RAUC is provided by the `meta-rauc
+<https://github.com/rauc/meta-rauc>`_ layer.
 
 The layer supports building RAUC both for the target as well as a host tool.
 With the `bundle.bbclass` it provides a mechanism to specify and build bundles
 directly with the help of Yocto.
 
+For more information on how to use the layer, also see the layers README file.
+
 Target system setup
 ~~~~~~~~~~~~~~~~~~~
 
-Add the `meta-ptx` layer to your setup::
+Add the `meta-rauc` layer to your setup::
 
-  git submodule add http://git-public.pengutronix.de/git-public/meta-ptx.git
+  git submodule add git@github.com:rauc/meta-rauc.git
 
 Add the RAUC tool to your image recipe (or package group)::
 
