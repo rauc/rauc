@@ -1162,7 +1162,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 		res = launch_and_wait_handler(mountpoint, r_context()->config->preinstall_handler, manifest, target_group, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror, "Handler error: ");
-			goto out;
+			goto umount;
 		}
 	}
 
