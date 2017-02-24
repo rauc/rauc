@@ -943,7 +943,6 @@ static void cmdline_handler(int argc, char **argv)
 			"List of rauc commands:\n" \
 			"  bundle\tCreate a bundle\n" \
 			"  checksum\tUpdate a manifest with checksums (and optionally sign it)\n" \
-			"  resign\tResign a bundle\n" \
 			"  install\tInstall a bundle\n" \
 			"  info\t\tShow file information\n" \
 			"  status\tShow status");
