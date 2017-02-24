@@ -43,20 +43,24 @@ test_expect_success "rauc checksum without argument" "
 "
 
 test_expect_success "rauc checksum with signing" "
-  cp -a $SHARNESS_TEST_DIRECTORY/install-content/ tmp/
+  mkdir $SHARNESS_TEST_DIRECTORY/tmp
+  cp -t $SHARNESS_TEST_DIRECTORY/tmp -a $SHARNESS_TEST_DIRECTORY/install-content/*
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
-    checksum tmp/
-  test -f tmp/manifest.raucm.sig
+    checksum $SHARNESS_TEST_DIRECTORY/tmp
+  test -f $SHARNESS_TEST_DIRECTORY/tmp/manifest.raucm.sig
+  rm -r $SHARNESS_TEST_DIRECTORY/tmp
 "
 
 test_expect_success "rauc checksum with extra args" "
-  cp -a $SHARNESS_TEST_DIRECTORY/install-content/ tmp/
+  mkdir $SHARNESS_TEST_DIRECTORY/tmp
+  cp -t $SHARNESS_TEST_DIRECTORY/tmp -a $SHARNESS_TEST_DIRECTORY/install-content/*
   rauc \
     --handler-args '--dummy'\
-    checksum tmp/
-  grep args tmp/manifest.raucm | grep dummy
+    checksum $SHARNESS_TEST_DIRECTORY/tmp
+  grep args $SHARNESS_TEST_DIRECTORY/tmp/manifest.raucm | grep dummy
+  rm -r $SHARNESS_TEST_DIRECTORY/tmp
 "
 
 test_expect_success "rauc info" "
