@@ -219,7 +219,6 @@ Command Line Tool
   List of rauc commands:
     bundle        Create a bundle
     checksum      Update a manifest with checksums (and optionally sign it)
-    resign        Resign a bundle
     install       Install a bundle
     info          Show file information
     status        Show status

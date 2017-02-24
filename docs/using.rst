@@ -30,6 +30,8 @@ treat them as bundles.
 Resigning Bundles
 -----------------
 
+.. note:: This feature is not fully implemented yet
+
 RAUC allows to resign a bundle from your build host, e.g. for making a testing
 bundle a productive bundle that should have a key that is accepted by
 non-debugging platforms:
