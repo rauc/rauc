@@ -1,5 +1,5 @@
 [D-BUS Service]
 Name=de.pengutronix.rauc
-Exec=@bindir@/rauc
+Exec=@bindir@/rauc service
 User=root
 SystemdService=rauc.service
