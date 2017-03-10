@@ -135,8 +135,8 @@ setting:
 
 .. code-block:: cfg
 
-  CONIFG_BOOTCHOOSER=y
-  CONIFG_STATE=y
+  CONFIG_BOOTCHOOSER=y
+  CONFIG_STATE=y
 
 To enable write reading and writing the required state variables, you also have
 to add the ``barebox-state`` tool from the `dt-utils
