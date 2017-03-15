@@ -15,7 +15,7 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 	GHashTableIter iter;
 	gchar *key = NULL;
 	gchar *value = NULL;
-	GDataInputStream *datainstream;
+	GDataInputStream *datainstream = NULL;
 	GInputStream *instream;
 	gchar* outline;
 
