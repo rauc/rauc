@@ -14,6 +14,7 @@ AM_INIT_AUTOMAKE([1.11 subdir-objects foreign no-dist-gzip dist-xz])
 AM_MAINTAINER_MODE([enable])
 AM_SILENT_RULES([yes])
 AC_REQUIRE_AUX_FILE([tap-driver.sh])
+AC_REQUIRE_AUX_FILE([git-version-gen])
 
 AX_IS_RELEASE([git-directory])
 AX_CHECK_ENABLE_DEBUG([yes])
