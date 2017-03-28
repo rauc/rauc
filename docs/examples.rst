@@ -4,7 +4,7 @@ Examples
 This chapter aims to explain the basic concepts needed for RAUC using a simple
 but realistic scenario.
 
-The system is a x86 system with 1GiB of disk space and 1GiB of RAM. GRUB_ was
+The system is x86-based with 1GiB of disk space and 1GiB of RAM. GRUB_ was
 selected as the bootloader and we want to have two symmetric installations.
 Each installation consists of an ext4 root file system only (which contains the
 matching kernel image).
@@ -199,7 +199,7 @@ process and declare dependencies on the main application(s).
 
 If the boot is not marked as successful, GRUB will try the other installation
 on the next boot. By configuring the kernel and systemd to reboot on
-critical errors and using a (software) watchdog, hangs in a non-working
+critical errors and by using a (software) watchdog, hangs in a non-working
 installation can be avoided.
 
 Example BSPs
