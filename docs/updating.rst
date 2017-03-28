@@ -20,7 +20,7 @@ the design of your updatable embedded system.
 
 If the available storage is not much larger than the space required by your
 devices rootfs, a full redundant symmetric A/B setup will not be an option.
-In this case, you might need use a rescue system consisting of a minimal kernel
+In this case, you might need to use a rescue system consisting of a minimal kernel
 with an appended initramfs to install your updates.
 
 If you can choose the storage technology for your system, *DO NOT* choose raw
@@ -60,7 +60,7 @@ where you can freely create and modify variables the bootloader may read.
 Boot logic often can be implemented by a simple boot script.
 
 Some others have distinct redundancy boot interfaces with redundant state
-storage. These often provide more features then simply switching boot
+storage. These often provide more features than simply switching boot
 partitions and are less prone to errors when used.
 The Barebox bootloader with its bootchooser framework is a good example for
 this.
