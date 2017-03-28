@@ -24,7 +24,7 @@ describes the content of the bundle in a way the RAUC updater on the target can
 handle it and knows which image to install to which slot, which scripts to
 execute etc.
 ``<output-file>`` must be the path of the bundle file to create. Note that RAUC
-bundle must always have a ``.raucb`` file name suffix in order to make RAUC
+bundles must always have a ``.raucb`` file name suffix in order to make RAUC
 treat them as bundles.
 
 Resigning Bundles
@@ -49,7 +49,7 @@ Obtaining Bundle Information
 
 You can control the output type of RAUC info depending on your needs. By
 default it will print a human readable representation of the bundle.
-Alternatively you can obtain a shell-parsable description, or a json
+Alternatively you can obtain a shell-parsable description, or a JSON
 representation of the bundle content.
 
 Installing Bundles
@@ -84,14 +84,14 @@ Customizing the Update
 ----------------------
 
 RAUC provides several ways to customize the update process. Some allow to add
-and extend details more fine-grained, some allow to replace major parts of the
+and extend details more fine-grainedly, some allow to replace major parts of the
 default behavior of RAUC.
 
 In general, there exist three major types of customization: configuration,
 handlers and hooks.
 
 The first is configuration through pre-defined variables. This allows to
-control the update on a predefined way.
+control the update in a predefined way.
 
 The second type is using `handlers`. Handlers allow to extend or replace the
 installation process. They are executables (most likely shell scripts) located
@@ -101,7 +101,7 @@ future updates.
 
 The last type are `hooks`. They are much like `handlers`, except that they are
 contained in the update bundle. Thus they allow to flexibly extend or customize
-a single (or multiple) updates by some special behavior.
+one or more updates by some special behavior.
 A common example would be using a per-slot post-install hook that handles
 configuration migration for a new system version. Hooks are especially useful
 to handle details of installing an update which were not considered in the
@@ -129,7 +129,7 @@ Pre-Install Handler
 RAUC will call the pre-install handler (if given) during the bundle
 installation process, right before calling the default or custom installation
 process. At this stage, the bundle is mounted and its content accessible, the
-target group was determined successfully.
+target group has been determined successfully.
 
 If calling the handler fails or the handler returns a non-zero exit code, RAUC
 will abort installation with an error.
@@ -414,7 +414,7 @@ Get the `operation` property containing the current operation:
 
   busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.Installer Operation
 
-Get the `lasterror` property, which contains the last Error that occured during
+Get the `lasterror` property, which contains the last error that occured during
 an installation.
 
 .. code-block:: sh
@@ -430,8 +430,8 @@ Monitor the D-Bus interface
 Migrating to an Updated Bundle Version
 --------------------------------------
 
-RAUC will be constantly extended and new features or enhancementa will make its
-way in to RAUC. Thus, also the information contained in the bundle, or, more
+RAUC will be constantly extended and new features or enhancements will make their
+way into RAUC. Thus, also the information contained in the bundle, or, more
 precise, in the manifest may extend.
 
 Now, current RAUC versions check each option contained in the manifest and will
@@ -439,7 +439,7 @@ reject the bundle if an entry in the manifest is not known. This is
 necessary and important to assure that the actual installation behavior does
 not differ from the description in the manifest.
 
-Despite the fact, that installing bundles that use newly added features an will
+Despite the fact, that installing bundles that use newly added features will
 *not work*, it is (of course) still possible to update your device to this new
 version.
 
