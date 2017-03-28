@@ -6,26 +6,26 @@ tool like Yocto / OpenEmbedded or PTXdist. For information about how
 to integrate RAUC using these tools, refer to section :ref:`sec_int_yocto` or
 :ref:`sec_int_ptxdist`.
 
-System configuration
+System Configuration
 --------------------
 
 RAUC expects the file ``/etc/rauc/system.conf`` to describe the system it runs
 on in a way that all relevant information for performing updates and making
 decisions are given.
 
-.. note:: For a full reference of the system.conf file refert to section
+.. note:: For a full reference of the system.conf file refer to section
   :ref:`sec_ref_slot_config`
 
 Similar to other configuration files used by RAUC, the system configuration
 uses a key-value syntax (similar to those known from .ini files).
 
-Slot configuration
+Slot Configuration
 ~~~~~~~~~~~~~~~~~~
 
 The most important step is to describe the slots that RAUC should use
 when performing updates. Which slots are required and what you have to take
 care of when designing your system will be covered in the chapter :ref:`todo`.
-This section assumes, you have already decided on a setup and want to describe
+This section assumes that you have already decided on a setup and want to describe
 it for RAUC.
 
 A slot is defined by a slot section. The naming of the section must follow a
@@ -37,7 +37,7 @@ If you have two rootfs slots, for example, one slot section will be named
 RAUC does not have predefined class names. The only requirement is that the
 class names used in the system config match those in the update manifests.
 
-The mandatory settings for each slot are, the ``device`` that holds the
+The mandatory settings for each slot are: the ``device`` that holds the
 (device) path describing *where* the slot is located, the ``type`` that
 defines *how* to update the target device, and the ``bootname`` which is
 the name the bootloader uses to refer to this slot device.
@@ -138,7 +138,7 @@ setting:
   CONFIG_BOOTCHOOSER=y
   CONFIG_STATE=y
 
-To enable write reading and writing the required state variables, you also have
+To enable reading and writing of the required state variables, you also have
 to add the ``barebox-state`` tool from the `dt-utils
 <https://git.pengutronix.de/cgit/tools/dt-utils/>`_ repository to your
 systems rootfs.
@@ -163,10 +163,10 @@ The U-Boot bootloader interface of RAUC will rely on setting the U-Boot
 environment variables ``BOOT_<bootname>_LEFT`` which should mark the number of
 remaining boot attempts for the respective slot in your bootloader script.
 
-To enable reading and writing the U-Boot environment, you need to have the
+To enable reading and writing of the U-Boot environment, you need to have the
 U-Boot target tool ``fw_setenv`` available on your devices rootfs.
 
-An example U-Boot script for handling redundant boot setups is located in the
+An examplary U-Boot script for handling redundant boot setups is located in the
 ``contrib/`` folder of the RAUC source repository (``uboot.sh``).
 
 
@@ -184,10 +184,10 @@ To enable handling of redundant booting in GRUB, manual scripting is required.
 The GRUB bootloader interface of RAUC uses the GRUB environment variables
 ``<bootname>_OK``, ``<bootname>_TRY`` and ``ORDER``.
 
-To enable reading and writing the GRUB environment, you need to have the tool
+To enable reading and writing of the GRUB environment, you need to have the tool
 ``grub-editenv`` available on your target.
 
-An example GRUB configuration for handling redundant boot setups is located in the
+An examplary GRUB configuration for handling redundant boot setups is located in the
 ``contrib/`` folder of the RAUC source repository (``grub.conf``). As the GRUB
 shell only has limited support for scripting, this example uses only one try
 per enabled slot.
@@ -220,13 +220,13 @@ Yocto
 Yocto support for using RAUC is provided by the `meta-rauc
 <https://github.com/rauc/meta-rauc>`_ layer.
 
-The layer supports building RAUC both for the target as well as a host tool.
+The layer supports building RAUC both for the target as well as as a host tool.
 With the `bundle.bbclass` it provides a mechanism to specify and build bundles
 directly with the help of Yocto.
 
 For more information on how to use the layer, also see the layers README file.
 
-Target system setup
+Target System Setup
 ~~~~~~~~~~~~~~~~~~~
 
 Add the `meta-rauc` layer to your setup::
@@ -255,14 +255,14 @@ For a reference of allowed configuration options in system.conf, see `system
 configuration file`_.
 For a more detailed instruction on how to write a system.conf, see `chapter`_.
 
-Using RAUC on the Host system
+Using RAUC on the Host System
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The RAUC recipe allows to compile and use RAUC on your host system.
 Having RAUC available as a host tool is useful for debugging, testing or for
 creating bundles manually.
-For the preferred way to creating bundles automatically, see the chapter
-`Bundle generation`_. In order to compile RAUC for you host system, simply run::
+For the preferred way of creating bundles automatically, see the chapter
+`Bundle Generation`_. In order to compile RAUC for your host system, simply run::
 
   bitbake rauc-native
 
@@ -271,7 +271,7 @@ current build folder. To test it, try::
 
   tmp/deploy/tools/rauc --version
 
-Bundle generation
+Bundle Generation
 ~~~~~~~~~~~~~~~~~
 
 Bundles can be created either manually by building and using RAUC as a native
@@ -292,7 +292,7 @@ For using the built-in bundle generation, you need to specify some variables:
 
 ``RAUC_BUNDLE_COMPATIBLE``
   Sets the compatible string for the bundle. This should match the compatible
-  you specified in your ``system.conf`` or, more general, the compatible of the
+  you specified in your ``system.conf`` or, more generally, the compatible of the
   target platform you intend to install this bundle on.
 
 ``RAUC_BUNDLE_SLOTS``
@@ -322,7 +322,7 @@ PTXdist
   RAUC support for PTXdist as posted to the PTXdist mailing list. Handling may
   still change!
 
-Integration into your RootFS Build
+Integration into Your RootFS Build
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To enable building RAUC for your target, set::
