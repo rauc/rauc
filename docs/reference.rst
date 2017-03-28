@@ -109,7 +109,7 @@ set of slots.
   The parent slot is referenced using the form ``<slot-class>.<idx>``.
 
 ``readonly``
-  Marks the slot as existing but not updatable. Maybe used for sanity checking
+  Marks the slot as existing but not updatable. May be used for sanity checking
   or informative purpose. A ``readonly`` slot cannot be a target slot.
 
 
