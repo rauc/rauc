@@ -59,7 +59,7 @@ Key Features of RAUC
 
   * **Symmetric** setup (Root-FS A & B)
   * **Asymmetric** setup (recovery & normal)
-  * Application partition, Data Partitions, ...
+  * Application partition, data partitions, ...
   * Allows **grouping** of multiple slots (rootfs, appfs) as update targets
 
 * Supports common bootloaders
@@ -85,7 +85,7 @@ Key Features of RAUC
 
 * Controllable via **D-Bus** interface
 
-* Supports Data migration
+* Supports data migration
 
 * Network protocol support using libcurl (https, http, ftp, ssh, ...)
 
@@ -93,7 +93,7 @@ Key Features of RAUC
 
   * Update-specific extensions (hooks)
   * System-specific extensions (handlers)
-  * fully custom update script
+  * Fully custom update script
 
 * Yocto support in `meta-rauc <https://github.com/rauc/meta-rauc>`_
 
