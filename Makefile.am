@@ -130,7 +130,9 @@ EXTRA_DIST += tap-t \
 
 librauctest_la_SOURCES = \
 	test/common.c \
-	test/common.h
+	test/common.h \
+	test/install-fixtures.c \
+	test/install-fixtures.h
 librauctest_la_LIBADD = $(GLIB_LIBS) librauc.la
 
 TESTS = $(check_PROGRAMS) test/rauc.t
