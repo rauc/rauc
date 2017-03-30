@@ -18,11 +18,13 @@ GMainLoop *r_loop = NULL;
 
 static void install_fixture_set_up_bundle(InstallFixture *fixture,
 		gconstpointer user_data) {
+	install_fixture_set_up(fixture, user_data);
 	set_up_bundle(fixture, user_data, NULL, FALSE, FALSE);
 }
 
 static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture,
 		gconstpointer user_data) {
+	install_fixture_set_up(fixture, user_data);
 	set_up_bundle(fixture, user_data, NULL, TRUE, FALSE);
 }
 
@@ -42,6 +44,7 @@ filename=rootfs.ext4\n\
 [image.appfs]\n\
 filename=rootfs.ext4";
 
+	install_fixture_set_up(fixture, user_data);
 	set_up_bundle(fixture, user_data, manifest_file, FALSE, TRUE);
 }
 
@@ -62,6 +65,7 @@ hooks=install\n\
 filename=rootfs.ext4\n\
 hooks=install";
 
+	install_fixture_set_up(fixture, user_data);
 	set_up_bundle(fixture, user_data, manifest_file, FALSE, TRUE);
 }
 
@@ -82,6 +86,7 @@ hooks=post-install\n\
 filename=rootfs.ext4\n\
 hooks=post-install";
 
+	install_fixture_set_up(fixture, user_data);
 	set_up_bundle(fixture, user_data, manifest_file, FALSE, TRUE);
 }
 

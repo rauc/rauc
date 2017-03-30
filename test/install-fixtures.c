@@ -121,8 +121,6 @@ void set_up_bundle(InstallFixture *fixture,
 	if (!test_running_as_root())
 		return;
 
-	install_fixture_set_up(fixture, user_data);
-
 	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	mountdir = g_build_filename(fixture->tmpdir, "mnt", NULL);
