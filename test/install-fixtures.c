@@ -6,7 +6,7 @@
 #include "install-fixtures.h"
 #include "common.h"
 
-void install_fixture_set_up_user(InstallFixture *fixture,
+void fixture_helper_fixture_set_up_system_user(InstallFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *configpath;
@@ -80,7 +80,7 @@ void install_fixture_set_up_user(InstallFixture *fixture,
 	g_free(capath);
 }
 
-void install_fixture_set_up(InstallFixture *fixture,
+void fixture_helper_set_up_system(InstallFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *slotfile;
@@ -90,7 +90,7 @@ void install_fixture_set_up(InstallFixture *fixture,
 	if (!test_running_as_root())
 		return;
 
-	install_fixture_set_up_user(fixture, user_data);
+	fixture_helper_fixture_set_up_system_user(fixture, user_data);
 
 	/* Make images user-writable */
 	test_make_slot_user_writable(fixture->tmpdir, "images/rootfs-0");
@@ -107,7 +107,7 @@ void install_fixture_set_up(InstallFixture *fixture,
 	g_free(slotpath);
 }
 
-void set_up_bundle(InstallFixture *fixture,
+void fixture_helper_set_up_bundle(InstallFixture *fixture,
 		gconstpointer user_data,
 		const gchar* manifest_content,
 		gboolean handler,

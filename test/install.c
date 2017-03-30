@@ -18,14 +18,14 @@ GMainLoop *r_loop = NULL;
 
 static void install_fixture_set_up_bundle(InstallFixture *fixture,
 		gconstpointer user_data) {
-	install_fixture_set_up(fixture, user_data);
-	set_up_bundle(fixture, user_data, NULL, FALSE, FALSE);
+	fixture_helper_set_up_system(fixture, user_data);
+	fixture_helper_set_up_bundle(fixture, user_data, NULL, FALSE, FALSE);
 }
 
 static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture,
 		gconstpointer user_data) {
-	install_fixture_set_up(fixture, user_data);
-	set_up_bundle(fixture, user_data, NULL, TRUE, FALSE);
+	fixture_helper_set_up_system(fixture, user_data);
+	fixture_helper_set_up_bundle(fixture, user_data, NULL, TRUE, FALSE);
 }
 
 static void install_fixture_set_up_bundle_install_check_hook(InstallFixture *fixture,
@@ -44,8 +44,8 @@ filename=rootfs.ext4\n\
 [image.appfs]\n\
 filename=rootfs.ext4";
 
-	install_fixture_set_up(fixture, user_data);
-	set_up_bundle(fixture, user_data, manifest_file, FALSE, TRUE);
+	fixture_helper_set_up_system(fixture, user_data);
+	fixture_helper_set_up_bundle(fixture, user_data, manifest_file, FALSE, TRUE);
 }
 
 static void install_fixture_set_up_bundle_install_hook(InstallFixture *fixture,
@@ -65,8 +65,8 @@ hooks=install\n\
 filename=rootfs.ext4\n\
 hooks=install";
 
-	install_fixture_set_up(fixture, user_data);
-	set_up_bundle(fixture, user_data, manifest_file, FALSE, TRUE);
+	fixture_helper_set_up_system(fixture, user_data);
+	fixture_helper_set_up_bundle(fixture, user_data, manifest_file, FALSE, TRUE);
 }
 
 static void install_fixture_set_up_bundle_post_hook(InstallFixture *fixture,
@@ -86,8 +86,8 @@ hooks=post-install\n\
 filename=rootfs.ext4\n\
 hooks=post-install";
 
-	install_fixture_set_up(fixture, user_data);
-	set_up_bundle(fixture, user_data, manifest_file, FALSE, TRUE);
+	fixture_helper_set_up_system(fixture, user_data);
+	fixture_helper_set_up_bundle(fixture, user_data, manifest_file, FALSE, TRUE);
 }
 
 static void install_fixture_set_up_system_conf(InstallFixture *fixture,
@@ -198,7 +198,7 @@ static void install_fixture_set_up_network(InstallFixture *fixture,
 	if (!test_running_as_root())
 		return;
 
-	install_fixture_set_up(fixture, user_data);
+	fixture_helper_set_up_system(fixture, user_data);
 
 	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
 	manifestpath = g_build_filename(fixture->tmpdir, "content/manifest.raucm", NULL);
@@ -653,7 +653,7 @@ int main(int argc, char *argv[])
 	g_test_init(&argc, &argv, NULL);
 
 	g_test_add("/install/bootname", InstallFixture, NULL,
-		   install_fixture_set_up_user, install_test_bootname,
+		   fixture_helper_fixture_set_up_system_user, install_test_bootname,
 		   install_fixture_tear_down);
 
 	g_test_add("/install/target", InstallFixture, NULL,

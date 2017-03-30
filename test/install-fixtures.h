@@ -8,14 +8,14 @@ typedef struct {
 	gchar *tmpdir;
 } InstallFixture;
 
-void set_up_bundle(InstallFixture *fixture,
+void fixture_helper_set_up_bundle(InstallFixture *fixture,
 		gconstpointer user_data,
 		const gchar* manifest_content,
 		gboolean handler,
 		gboolean hook);
 
-void install_fixture_set_up(InstallFixture *fixture,
+void fixture_helper_set_up_system(InstallFixture *fixture,
 		gconstpointer user_data);
 
-void install_fixture_set_up_user(InstallFixture *fixture,
+void fixture_helper_fixture_set_up_system_user(InstallFixture *fixture,
 		gconstpointer user_data);
