@@ -318,9 +318,7 @@ components and generate a bundle from this. The created bundle can be found in
 PTXdist
 -------
 
-.. warning:: The steps described here base on a non-mainline pre-version of
-  RAUC support for PTXdist as posted to the PTXdist mailing list. Handling may
-  still change!
+.. note:: RAUC support in PTXdist is available since version 2017.04.0.
 
 Integration into Your RootFS Build
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -331,18 +329,53 @@ To enable building RAUC for your target, set::
 
 in your ptxconfig (by selection ``RAUC`` via ``ptxdist menuconfig``).
 
-Place your system configuration in
+You should also customize the compatible RAUC uses for your System. For this
+set ``CONFIG_RAUC_COMPATIBLE`` to a string that uniquely identifies your device
+type. The default value will be ``"${PTXCONF_PROJECT_VENDOR}\ ${PTXCONF_PROJECT}"``.
+
+Place your system configuration file in
 ``configs/platform-<yourplatform>/projectroot/etc/rauc/system.conf`` to let the
 RAUC recipe install it into the rootfs you build.
 Also place the keyring for your device in
 ``configs/platform-<yourplatform>/projectroot/etc/rauc/ca.cert.pem``.
 
-Create Update Bundles
-~~~~~~~~~~~~~~~~~~~~~
+.. note:: You should use your local PKI infrastructure for generating valid
+  certificates and keys for your target. For debugging and testing purpose,
+  PTXdist provides a script that generates a set of example certificates. It is
+  named ``rauc-gen-test-certs.sh`` and located in PTXdist's ``scripts`` folder.
+
+If using systemd, the recipes install both the default ``systemd.service`` file
+for RAUC as well as a ``rauc-mark-good.service`` file.
+This additional good-marking-service runs after user space is brought up and
+notifies the underlying bootloader implementation about a successful boot of
+the system.  This is typically used in conjunction with a boot attempts counter
+in the bootloader that is decremented before starting the systemd and reset by
+`rauc status mark-good` to indicate a successful system startup.
+
+
+Create Update Bundles from your RootFS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To enable building RAUC bundles, set::
 
   CONFIG_IMAGE_RAUC=y
 
-in your platformconfig. This will build a simple bundle for your rootfs and
-place it under ``bundle.raucb`` in your image build directory.
+in your platformconfig (by using ``ptxdist platformconfig``).
+
+This adds a default image recipe for building a RAUC update Bundle out of the
+systems rootfs. As for all image recipes, the `genimage` tool is used to
+configure and generate the update Bundle.
+
+PTXdist's default bundle configuration is placed in
+`config/images/rauc.config`. You may also copy this to your platform directory
+to use this as a base for custom bundle configuration.
+
+In order to sign your update (mandatory) you also need to place a valid
+certificate and key file in your BSP at the following paths:
+
+  $(PTXDIST_PLATFORMCONFIGDIR)/config/rauc/rauc.key.pem (key)
+  $(PTXDIST_PLATFORMCONFIGDIR)/config/rauc/rauc.cert.pem (cert)
+
+Once you are done with you setup, PTXdist will automatically create a RAUC
+update Bundle for you during the run of ``ptxdist images``.  It will be placed
+under ``<platform-builddir>/images/update.raucb``.
