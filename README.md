@@ -1,3 +1,5 @@
+<p align="center"><img src=rauc_logo.png width=425 height=200 /></p>
+
 # RAUC - Robust Auto-Update Controller
 
 [![LGPLv2.1](https://img.shields.io/badge/license-LGPLv2.1-blue.svg)](https://raw.githubusercontent.com/rauc/rauc/master/COPYING)
