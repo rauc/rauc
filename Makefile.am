@@ -78,11 +78,11 @@ rauc_LDADD = $(JSON_GLIB_LIBS) $(librauc_la_LIBADD) librauc.la
 
 if SYSTEMD
 systemdunitdir=$(SYSTEMD_UNITDIR)
-dist_systemdunit_DATA = data/rauc.service
+nodist_systemdunit_DATA = data/rauc.service
 endif
 
 dbussystemdir = $(DBUS_SYSTEMSERVICEDIR)
-dist_dbussystem_DATA = data/de.pengutronix.rauc.service
+nodist_dbussystem_DATA = data/de.pengutronix.rauc.service
 
 dbuspolicydir = $(DBUS_POLICYDIR)
 dist_dbuspolicy_DATA = data/de.pengutronix.rauc.conf
@@ -194,8 +194,8 @@ doc:
 AM_DISTCHECK_CONFIGURE_FLAGS = "--without-systemdunitdir"
 
 CLEANFILES = $(gdbus_installer_generated) \
-	     $(dist_systemdunit_DATA) \
-	     $(dist_dbussystem_DATA) \
+	     $(nodist_systemdunit_DATA) \
+	     $(nodist_dbussystem_DATA) \
 	     data/rauc.service \
 	     test/empty.dat \
 	     test/test-results/rauc.*.counts \
