@@ -194,7 +194,7 @@ doc:
 AM_DISTCHECK_CONFIGURE_FLAGS = "--without-systemdunitdir"
 
 CLEANFILES = $(gdbus_installer_generated) \
-	     $(dist_systemunit_DATA) \
+	     $(dist_systemdunit_DATA) \
 	     $(dist_dbussystem_DATA) \
 	     data/rauc.service \
 	     test/empty.dat \
