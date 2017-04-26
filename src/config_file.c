@@ -128,6 +128,17 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		}
 	}
 
+	c->activate_installed = g_key_file_get_boolean(key_file, "system", "activate-installed", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		c->activate_installed = TRUE;
+		g_clear_error(&ierror);
+	}
+	else if (ierror) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
+
 	/* parse [keyring] section */
 	c->keyring_path = resolve_path(filename,
 		g_key_file_get_string(key_file, "keyring", "path", NULL));

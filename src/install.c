@@ -760,20 +760,24 @@ image_out:
 		install_args_update(args, g_strdup_printf("Updating slot %s done", dest_slot->name));
 	}
 
-	/* Mark all parent destination slots bootable */
-	g_message("Marking slots as bootable...");
-	g_hash_table_iter_init(&iter, target_group);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&dest_slot)) {
-		if (dest_slot->parent || !dest_slot->bootname)
-			continue;
+	if (r_context()->config->activate_installed) {
+		/* Mark all parent destination slots bootable */
+		g_message("Marking slots as bootable...");
+		g_hash_table_iter_init(&iter, target_group);
+		while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&dest_slot)) {
+			if (dest_slot->parent || !dest_slot->bootname)
+				continue;
 
-		res = r_boot_set_primary(dest_slot);
+			res = r_boot_set_primary(dest_slot);
 
-		if (!res) {
-			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
-					"Failed marking slot %s bootable", dest_slot->name);
-			goto out;
+			if (!res) {
+				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
+						"Failed marking slot %s bootable", dest_slot->name);
+				goto out;
+			}
 		}
+	} else {
+		g_message("Leaving target slot non-bootable as requested by activate_installed == false.");
 	}
 
 	install_args_update(args, "All slots updated");
@@ -950,19 +954,23 @@ slot_out:
 		goto out;
 	}
 
-	/* Mark all parent destination slots bootable */
-	g_message("Marking slots as bootable...");
-	g_hash_table_iter_init(&iter, target_group);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
-		if (slot->parent || !slot->bootname)
-			continue;
+	if (r_context()->config->activate_installed) {
+		/* Mark all parent destination slots bootable */
+		g_message("Marking slots as bootable...");
+		g_hash_table_iter_init(&iter, target_group);
+		while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
+			if (slot->parent || !slot->bootname)
+				continue;
 
-		res = r_boot_set_primary(slot);
+			res = r_boot_set_primary(slot);
 
-		if (!res) {
-			g_warning("Failed marking slot %s bootable", slot->name);
-			goto out;
+			if (!res) {
+				g_warning("Failed marking slot %s bootable", slot->name);
+				goto out;
+			}
 		}
+	} else {
+		g_message("Leaving target slot non-bootable as requested by activate_installed == false.");
 	}
 
 	res = TRUE;

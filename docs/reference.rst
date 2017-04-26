@@ -64,6 +64,13 @@ Example configuration:
   Only valid when ``bootloader`` is set to ``grub``.
   Specifies the path under which the GRUB environment can be accessed.
 
+``activate-installed``
+  This boolean value controls if a freshly installed slot is automatically
+  marked active with respect to the used bootloader. Its default value is
+  ``true`` which means that this slot is going to be started the next time the
+  system boots. If the value of this parameter is ``false`` the slot has to be
+  activated manually in order to be booted.
+
 **[keyring] section**
 
 The ``keyring`` section refers to the trusted keyring used for signature
