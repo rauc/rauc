@@ -57,12 +57,14 @@ description=Root filesystem partition 0\n\
 device=/dev/sda0\n\
 type=ext4\n\
 bootname=system0\n\
+readonly=false\n\
 \n\
 [slot.rootfs.1]\n\
 description=Root filesystem partition 1\n\
 device=/dev/sda1\n\
 type=ext4\n\
 bootname=system1\n\
+readonly=false\n\
 \n\
 [slot.appfs.0]\n\
 description=Application filesystem partition 0\n\
@@ -181,6 +183,35 @@ mountprefix=/mnt/myrauc/\n";
 	g_clear_error(&ierror);
 }
 
+static void config_file_typo_in_boolean_readonly_key(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[slot.rescue.0]\n\
+description=Rescue partition\n\
+device=/dev/mtd4\n\
+type=raw\n\
+bootname=factory0\n\
+readonly=typo\n";
+
+
+	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
+	g_clear_error(&ierror);
+}
+
 
 static void config_file_test3(void)
 {
@@ -240,6 +271,9 @@ int main(int argc, char *argv[])
 		   config_file_fixture_tear_down);
 	g_test_add("/config-file/bootloaders", ConfigFileFixture, NULL,
 		   config_file_fixture_set_up, config_file_bootloaders,
+		   config_file_fixture_tear_down);
+	g_test_add("/config-file/typo-in-boolean-readonly-key", ConfigFileFixture, NULL,
+		   config_file_fixture_set_up, config_file_typo_in_boolean_readonly_key,
 		   config_file_fixture_tear_down);
 	g_test_add_func("/config-file/test3", config_file_test3);
 	g_test_add_func("/config-file/test5", config_file_test5);
