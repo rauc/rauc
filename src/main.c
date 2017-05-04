@@ -743,7 +743,7 @@ static gchar* r_status_formatter_json(gboolean pretty)
 		json_builder_add_string_value (builder, slotstate_to_str(slot->state));
 		json_builder_set_member_name (builder, "parent");
 		json_builder_add_string_value (builder, slot->parent ? slot->parent->name : NULL);
-		json_builder_set_member_name (builder, "mountpint");
+		json_builder_set_member_name (builder, "mountpoint");
 		json_builder_add_string_value (builder, slot->mount_point);
 		json_builder_end_object (builder);
 		json_builder_end_object (builder);
