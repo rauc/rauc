@@ -19,7 +19,7 @@ typedef struct {
  * @param hook If true, the hook script
  *        test/install-content/hook.sh will be added to the bundle
  */
-void fixture_helper_set_up_bundle(InstallFixture *fixture,
+void fixture_helper_set_up_bundle(gchar *tmpdir,
 		gconstpointer user_data,
 		const gchar* manifest_content,
 		gboolean handler,
@@ -34,7 +34,7 @@ void fixture_helper_set_up_bundle(InstallFixture *fixture,
  * @param fixture the test fixture
  * @param user_data the test fixture user data
  */
-void fixture_helper_set_up_system(InstallFixture *fixture,
+void fixture_helper_set_up_system(gchar *tmpdir,
 		gconstpointer user_data);
 
 /**
@@ -43,5 +43,5 @@ void fixture_helper_set_up_system(InstallFixture *fixture,
  * @param fixture the test fixture
  * @param user_data the test fixture user data
  */
-void fixture_helper_fixture_set_up_system_user(InstallFixture *fixture,
+void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 		gconstpointer user_data);
