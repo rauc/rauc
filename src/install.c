@@ -1161,7 +1161,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 		g_print("Starting pre install handler: %s\n", r_context()->config->preinstall_handler);
 		res = launch_and_wait_handler(mountpoint, r_context()->config->preinstall_handler, manifest, target_group, &ierror);
 		if (!res) {
-			g_propagate_prefixed_error(error, ierror, "Handler error: ");
+			g_propagate_prefixed_error(error, ierror, "Pre-install handler error: ");
 			goto umount;
 		}
 	}
@@ -1184,7 +1184,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 		g_print("Starting post install handler: %s\n", r_context()->config->postinstall_handler);
 		res = launch_and_wait_handler(mountpoint, r_context()->config->postinstall_handler, manifest, target_group, &ierror);
 		if (!res) {
-			g_propagate_prefixed_error(error, ierror, "Handler error: ");
+			g_propagate_prefixed_error(error, ierror, "Post-install handler error: ");
 			goto umount;
 		}
 	}
@@ -1267,7 +1267,7 @@ gboolean do_install_network(const gchar *url, GError **error) {
 		g_print("Starting pre install handler: %s\n", r_context()->config->preinstall_handler);
 		res = launch_and_wait_handler(base_url, r_context()->config->preinstall_handler, manifest, target_group, &ierror);
 		if (!res) {
-			g_propagate_prefixed_error(error, ierror, "Handler error: ");
+			g_propagate_prefixed_error(error, ierror, "Pre-install handler error: ");
 			goto out;
 		}
 	}
@@ -1285,7 +1285,7 @@ gboolean do_install_network(const gchar *url, GError **error) {
 		g_print("Starting post install handler: %s\n", r_context()->config->postinstall_handler);
 		res = launch_and_wait_handler(base_url, r_context()->config->postinstall_handler, manifest, target_group, &ierror);
 		if (!res) {
-			g_propagate_prefixed_error(error, ierror, "Handler error: ");
+			g_propagate_prefixed_error(error, ierror, "Post-install handler error: ");
 			goto out;
 		}
 	}
