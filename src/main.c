@@ -895,7 +895,7 @@ static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, debug = FALSE, version = FALSE;
 	gchar *confpath = NULL, *certpath = NULL, *keypath = NULL, *mount = NULL,
-	      *handlerextra = NULL;
+	      *handlerextra = NULL, *bootslot = NULL;
 	char *cmdarg = NULL;
 	GOptionContext *context = NULL;
 	GOptionEntry entries[] = {
@@ -903,6 +903,7 @@ static void cmdline_handler(int argc, char **argv)
 		{"cert", '\0', 0, G_OPTION_ARG_FILENAME, &certpath, "cert file", "PEMFILE"},
 		{"key", '\0', 0, G_OPTION_ARG_FILENAME, &keypath, "key file", "PEMFILE"},
 		{"mount", '\0', 0, G_OPTION_ARG_FILENAME, &mount, "mount prefix", "PATH"},
+		{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "SLOTNAME"},
 		{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handlerextra, "extra handler arguments", "ARGS"},
 		{"debug", 'd', 0, G_OPTION_ARG_NONE, &debug, "enable debug output", NULL},
 		{"version", '\0', 0, G_OPTION_ARG_NONE, &version, "display version", NULL},
@@ -1039,6 +1040,8 @@ static void cmdline_handler(int argc, char **argv)
 			r_context_conf()->keypath = keypath;
 		if (mount)
 			r_context_conf()->mountprefix = mount;
+		if (bootslot)
+			r_context_conf()->bootslot = bootslot;
 		if (handlerextra)
 			r_context_conf()->handlerextra = handlerextra;
 	} else {

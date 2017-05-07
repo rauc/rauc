@@ -159,7 +159,12 @@ gboolean determine_slot_states(GError **error) {
 	}
 	g_list_free_full(mountlist, (GDestroyNotify)g_unix_mount_free);
 
-	bootname = bootname_provider();
+	if (r_context()->bootslot) {
+		bootname = r_context()->bootslot;
+	} else {
+		bootname = bootname_provider();
+	}
+
 	if (bootname == NULL) {
 		g_set_error_literal(
 				error,
