@@ -165,6 +165,16 @@ A valid manifest file must have the file extension ``.raucm``.
   List of hooks enabled for this bundle.
 
 
+**[handler] section**
+
+``filename``
+  Handler script path name, relative to the bundle content. Used to fully
+  replace default update process.
+
+``args``
+  Arguments to pass to the handler script, such as ``args=--verbose``
+
+
 **[image.<slot-class>] section**
 
 ``filename``
