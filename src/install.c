@@ -49,62 +49,6 @@ static void install_args_update(RaucInstallArgs *args, const gchar *msg) {
 	g_main_context_invoke(NULL, args->notify, args);
 }
 
-static const gchar* get_cmdline_bootname(void) {
-	GRegex *regex = NULL;
-	GMatchInfo *match = NULL;
-	char *contents = NULL;
-	static const char *bootname = NULL;
-
-	if (bootname != NULL)
-		return bootname;
-
-	if (!g_file_get_contents("/proc/cmdline", &contents, NULL, NULL))
-		return NULL;
-
-	regex = g_regex_new("rauc\\.slot=(\\S+)", 0, 0, NULL);
-	if (g_regex_match(regex, contents, 0, &match)) {
-		bootname = g_match_info_fetch(match, 1);
-		goto out;
-	}
-	g_clear_pointer(&match, g_match_info_free);
-	g_clear_pointer(&regex, g_regex_unref);
-
-	/* For barebox, we check if the bootstate code set the active slot name
-	 * in the command line */
-	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
-		regex = g_regex_new("(?:bootstate|bootchooser)\\.active=(\\S+)", 0, 0, NULL);
-		if (g_regex_match(regex, contents, 0, &match)) {
-			bootname = g_match_info_fetch(match, 1);
-			goto out;
-		}
-		g_clear_pointer(&match, g_match_info_free);
-		g_clear_pointer(&regex, g_regex_unref);
-	}
-
-	regex = g_regex_new("root=(\\S+)", 0, 0, NULL);
-	if (g_regex_match(regex, contents, 0, &match)) {
-		bootname = g_match_info_fetch(match, 1);
-		goto out;
-	}
-
-out:
-	g_clear_pointer(&match, g_match_info_free);
-	g_clear_pointer(&regex, g_regex_unref);
-	g_clear_pointer(&contents, g_free);
-
-	return bootname;
-}
-
-static const gchar* (*bootname_provider)(void) = get_cmdline_bootname;
-
-void set_bootname_provider(const gchar* (*provider)(void)) {
-	bootname_provider = provider;
-}
-
-const gchar* get_bootname(void) {
-	return bootname_provider();
-}
-
 static gchar *resolve_loop_device(const gchar *devicepath) {
 	gchar *devicename = NULL;
 	gchar *syspath = NULL;
@@ -126,7 +70,6 @@ static gchar *resolve_loop_device(const gchar *devicepath) {
 gboolean determine_slot_states(GError **error) {
 	GList *slotlist = NULL;
 	GList *mountlist = NULL;
-	const gchar *bootname;
 	RaucSlot *booted = NULL;
 	gboolean res = FALSE;
 
@@ -159,13 +102,7 @@ gboolean determine_slot_states(GError **error) {
 	}
 	g_list_free_full(mountlist, (GDestroyNotify)g_unix_mount_free);
 
-	if (r_context()->bootslot) {
-		bootname = r_context()->bootslot;
-	} else {
-		bootname = bootname_provider();
-	}
-
-	if (bootname == NULL) {
+	if (r_context()->bootslot == NULL) {
 		g_set_error_literal(
 				error,
 				R_SLOT_ERROR,
@@ -182,12 +119,12 @@ gboolean determine_slot_states(GError **error) {
 			continue;
 		}
 
-		if (g_strcmp0(s->bootname, bootname) == 0) {
+		if (g_strcmp0(s->bootname, r_context()->bootslot) == 0) {
 			booted = s;
 			break;
 		}
 
-		if (g_strcmp0(s->device, bootname) == 0) {
+		if (g_strcmp0(s->device, r_context()->bootslot) == 0) {
 			booted = s;
 			break;
 		}
@@ -217,7 +154,7 @@ gboolean determine_slot_states(GError **error) {
 
 	if (!booted) {
 
-		if (g_strcmp0(bootname, "/dev/nfs") == 0) {
+		if (g_strcmp0(r_context()->bootslot, "/dev/nfs") == 0) {
 			g_message("Detected nfs boot, ignoring missing active slot");
 			res = TRUE;
 			goto out;
@@ -405,7 +342,7 @@ static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_sou
 	gchar *slotlist = NULL;
 
 	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_CONFIG", r_context()->configpath, TRUE);
-	g_subprocess_launcher_setenv(launcher, "RAUC_CURRENT_BOOTNAME", bootname_provider(), TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_CURRENT_BOOTNAME", r_context()->bootslot, TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_UPDATE_SOURCE", update_source, TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
 
@@ -1388,7 +1325,7 @@ gboolean install_run(RaucInstallArgs *args) {
 	GThread *thread = NULL;
 	r_context_set_busy(TRUE);
 
-	g_print("Active slot bootname: %s\n", get_cmdline_bootname());
+	g_print("Active slot bootname: %s\n", r_context()->bootslot);
 
 	thread = g_thread_new("installer", install_thread, args);
 	if (thread == NULL)

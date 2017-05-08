@@ -278,7 +278,7 @@ static void install_fixture_tear_down(InstallFixture *fixture,
 static void install_test_bootname(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	g_assert_nonnull(get_bootname());
+	g_assert_nonnull(r_context()->bootslot);
 }
 
 static void install_test_target(InstallFixture *fixture,

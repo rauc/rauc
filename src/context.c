@@ -7,6 +7,52 @@
 
 RaucContext *context = NULL;
 
+static const gchar* get_cmdline_bootname(void) {
+	GRegex *regex = NULL;
+	GMatchInfo *match = NULL;
+	char *contents = NULL;
+	static const char *bootname = NULL;
+
+	if (bootname != NULL)
+		return bootname;
+
+	if (!g_file_get_contents("/proc/cmdline", &contents, NULL, NULL))
+		return NULL;
+
+	regex = g_regex_new("rauc\\.slot=(\\S+)", 0, 0, NULL);
+	if (g_regex_match(regex, contents, 0, &match)) {
+		bootname = g_match_info_fetch(match, 1);
+		goto out;
+	}
+	g_clear_pointer(&match, g_match_info_free);
+	g_clear_pointer(&regex, g_regex_unref);
+
+	/* For barebox, we check if the bootstate code set the active slot name
+	 * in the command line */
+	if (g_strcmp0(context->config->system_bootloader, "barebox") == 0) {
+		regex = g_regex_new("(?:bootstate|bootchooser)\\.active=(\\S+)", 0, 0, NULL);
+		if (g_regex_match(regex, contents, 0, &match)) {
+			bootname = g_match_info_fetch(match, 1);
+			goto out;
+		}
+		g_clear_pointer(&match, g_match_info_free);
+		g_clear_pointer(&regex, g_regex_unref);
+	}
+
+	regex = g_regex_new("root=(\\S+)", 0, 0, NULL);
+	if (g_regex_match(regex, contents, 0, &match)) {
+		bootname = g_match_info_fetch(match, 1);
+		goto out;
+	}
+
+out:
+	g_clear_pointer(&match, g_match_info_free);
+	g_clear_pointer(&regex, g_regex_unref);
+	g_clear_pointer(&contents, g_free);
+
+	return bootname;
+}
+
 static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTable *variables, GError **error) {
 	GSubprocessLauncher *handlelaunch = NULL;
 	GSubprocess *handleproc = NULL;
@@ -116,6 +162,10 @@ static void r_context_configure(void) {
 		}
 
 		g_clear_pointer(&vars, g_hash_table_unref);
+	}
+
+	if (context->bootslot == NULL) {
+		context->bootslot = g_strdup(get_cmdline_bootname());
 	}
 
 	if (context->mountprefix) {
