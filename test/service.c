@@ -20,8 +20,17 @@ typedef struct {
 
 static void service_fixture_set_up(ServiceFixture *fixture, gconstpointer user_data)
 {
+	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	/* Write a D-Bus service file with current tmpdir */
+	write_tmp_file(fixture->tmpdir, "de.pengutronix.rauc.service", g_strdup_printf("\
+[D-BUS Service]\n\
+Name=de.pengutronix.rauc\n\
+Exec="TEST_SERVICES"/rauc -c %s/system.conf --override-boot-slot=system0 service\n", fixture->tmpdir), NULL);
+	g_build_filename(fixture->tmpdir, "mount", NULL);
+
 	fixture->dbus = g_test_dbus_new(G_TEST_DBUS_NONE);
-	g_test_dbus_add_service_dir(fixture->dbus, TEST_SERVICES);
+	g_test_dbus_add_service_dir(fixture->dbus, fixture->tmpdir);
 	g_test_dbus_up(fixture->dbus);
 }
 
