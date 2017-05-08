@@ -216,7 +216,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 		goto out;
 	}
 
-	if (!CMS_verify(cms, other, store, incontent, NULL, CMS_DETACHED)) {
+	if (!CMS_verify(cms, other, store, incontent, NULL, CMS_DETACHED | CMS_BINARY)) {
 		unsigned long err;
 		const gchar *data;
 		int flags;
