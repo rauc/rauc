@@ -52,6 +52,8 @@ static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
 				 gpointer data) {
 	RaucInstallArgs *args = data;
 	gchar *msg;
+	gint32 percentage, depth;
+	const gchar *message = NULL;
 
 	if (invalidated && invalidated[0]) {
 		g_warning("rauc service disappeared\n");
@@ -65,6 +67,10 @@ static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
 	g_mutex_lock(&args->status_mutex);
 	if (g_variant_lookup(changed, "Operation", "s", &msg)) {
 		g_queue_push_tail(&args->status_messages, g_strdup(msg));
+	} else if (g_variant_lookup(changed, "Progress", "(isi)", &percentage, &message, &depth)) {
+		g_queue_push_tail(&args->status_messages, g_strdup_printf("%3"G_GINT32_FORMAT"%% %s", percentage, message));
+	} else if (g_variant_lookup(changed, "LastError", "s", &message) && message[0] != '\0') {
+		g_queue_push_tail(&args->status_messages, g_strdup_printf("LastError: %s", message));
 	}
 	g_mutex_unlock(&args->status_mutex);
 
