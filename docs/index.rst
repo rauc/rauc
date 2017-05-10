@@ -24,6 +24,8 @@ Contents:
    terminology
    design
 
+   changes
+
 * :ref:`search`
 * :ref:`genindex`
 

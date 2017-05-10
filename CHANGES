@@ -1,0 +1,29 @@
+Release 0.1.1 (in development)
+------------------------------
+
+.. rubric:: Enhancements
+
+* systemd service: allow systemd to manage and cleanup RAUCs mount directory
+
+.. rubric:: Bugs fixed
+
+* Fix typo in json status output formatter ("mountpint" -> "mountpoint")
+* Fixed packaging of systemd service files by removing generated service files
+  from distribution
+* src/context: initialize datainstream to NULL
+* Added missing git-version-gen script to automake distribution which made
+  autoreconf runs on release packages fail
+* Fixed D-Bus activation of RAUC service for non-systemd systems
+
+.. rubric:: Documentation
+
+* Added CHANGES file
+* Converted README.md to README.rst
+* Added RAUC logo
+* Several typos fixed
+* Updated documentation for mainline PTXdist recipes
+
+Release 0.1 (released Feb 24, 2017)
+-----------------------------------
+
+This is the initial release of RAUC.
