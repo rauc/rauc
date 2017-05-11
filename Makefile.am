@@ -88,7 +88,9 @@ dbuspolicydir = $(DBUS_POLICYDIR)
 dist_dbuspolicy_DATA = data/de.pengutronix.rauc.conf
 
 EXTRA_DIST += data/rauc.service.in \
-	      data/de.pengutronix.rauc.service.in
+	      data/de.pengutronix.rauc.service.in \
+	      README.rst \
+	      CHANGES
 
 AM_TESTS_ENVIRONMENT = \
 	AM_TAP_AWK='$(AWK)'; export AM_TAP_AWK; \
