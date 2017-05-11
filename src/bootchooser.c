@@ -118,12 +118,12 @@ static gboolean barebox_set_state(RaucSlot *slot, gboolean good) {
 	} else {
 		/* for marking bad, also set priority to 0 */
 		attempts = 0;
-		g_ptr_array_add(pairs, g_strdup_printf("%s.%s.priority=%i",
-				BOOTSTATE_PREFIX, slot->bootname, 0));
+		g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".%s.priority=%i",
+				slot->bootname, 0));
 	}
 
-	g_ptr_array_add(pairs, g_strdup_printf("%s.%s.remaining_attempts=%i",
-			BOOTSTATE_PREFIX, slot->bootname, attempts));
+	g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".%s.remaining_attempts=%i",
+			slot->bootname, attempts));
 
 	res = barebox_state_set(pairs);
 	if (!res) {
@@ -159,12 +159,12 @@ static gboolean barebox_set_primary(RaucSlot *slot) {
 		} else {
 			prio = BAREBOX_STATE_DEFAULT_PRIORITY;
 		}
-		g_ptr_array_add(pairs, g_strdup_printf("%s.%s.priority=%i",
-				BOOTSTATE_PREFIX, s->bootname, prio));
+		g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".%s.priority=%i",
+				s->bootname, prio));
 	}
 
-	g_ptr_array_add(pairs, g_strdup_printf("%s.%s.remaining_attempts=%i",
-			BOOTSTATE_PREFIX, slot->bootname, BAREBOX_STATE_ATTEMPS_PRIMARY));
+	g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".%s.remaining_attempts=%i",
+			slot->bootname, BAREBOX_STATE_ATTEMPS_PRIMARY));
 
 	res = barebox_state_set(pairs);
 	if (!res) {
