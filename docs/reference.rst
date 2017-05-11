@@ -192,8 +192,6 @@ A valid manifest file must have the file extension ``.raucm``.
   List of per-slot hooks enabled for this image.
 
 
-**[file.<slot-class>] section**
-
 Slot Status File
 ----------------
 

@@ -201,6 +201,10 @@ Contributing
 
 Fork the repository and send us a pull request.
 
+Please read the Documentation's
+`Contributing <http://rauc.readthedocs.io/en/latest/contributing.html>`_
+section for more details.
+
 .. |LGPLv2.1| image:: https://img.shields.io/badge/license-LGPLv2.1-blue.svg
    :target: https://raw.githubusercontent.com/rauc/rauc/master/COPYING
 .. |Travis branch| image:: https://img.shields.io/travis/rauc/rauc/master.svg

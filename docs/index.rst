@@ -23,6 +23,7 @@ Contents:
    reference
    terminology
    design
+   contributing
 
    changes
 
