@@ -7,6 +7,7 @@ Release 0.1.1 (in development)
 
 .. rubric:: Bugs fixed
 
+* Fix signature verification with OpenSSL 1.1.x by adding missing binary flag
 * Fix typo in json status output formatter ("mountpint" -> "mountpoint")
 * Fixed packaging of systemd service files by removing generated service files
   from distribution
@@ -17,6 +18,7 @@ Release 0.1.1 (in development)
 
 .. rubric:: Documentation
 
+* Added contribution guideline
 * Added CHANGES file
 * Converted README.md to README.rst
 * Added RAUC logo
