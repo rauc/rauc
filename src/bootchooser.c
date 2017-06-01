@@ -381,6 +381,9 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good) {
 		return grub_set_state(slot, good);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
 		return uboot_set_state(slot, good);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "noop") == 0) {
+		g_message("noop bootloader: ignore setting slot %s status to %s", slot->name, good ? "good" : "bad");
+		return TRUE;
 	}
 
 	g_error("bootloader type '%s' not supported yet", r_context()->config->system_bootloader);
@@ -394,6 +397,9 @@ gboolean r_boot_set_primary(RaucSlot *slot) {
 		return grub_set_primary(slot);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
 		return uboot_set_primary(slot);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "noop") == 0) {
+		g_message("noop bootloader: ignore setting slot %s as primary", slot->name);
+		return TRUE;
 	}
 
 	g_error("bootloader type '%s' not supported yet", r_context()->config->system_bootloader);
