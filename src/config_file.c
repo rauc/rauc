@@ -59,7 +59,7 @@ gboolean is_slot_mountable(RaucSlot *slot) {
 	return FALSE;
 }
 
-static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", NULL};
+static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "noop", NULL};
 
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error) {
 	GError *ierror = NULL;
