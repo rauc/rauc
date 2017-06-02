@@ -23,7 +23,6 @@ static gboolean service_install_notify(gpointer data) {
 	while (!g_queue_is_empty(&args->status_messages)) {
 		gchar *msg = g_queue_pop_head(&args->status_messages);
 		g_message("installing %s: %s", args->name, msg);
-		g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
 	}
 	g_mutex_unlock(&args->status_mutex);
 
@@ -42,6 +41,7 @@ static gboolean service_install_cleanup(gpointer data)
 	}
 	r_installer_emit_completed(r_installer, args->status_result);
 	r_installer_set_operation(r_installer, "idle");
+	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
 	g_mutex_unlock(&args->status_mutex);
 
 	install_args_free(args);
@@ -66,6 +66,7 @@ static gboolean r_on_handle_install(RInstaller *interface,
 	args->cleanup = service_install_cleanup;
 
 	r_installer_set_operation(r_installer, "installing");
+	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
 	res = install_run(args);
 	if (!res) {
 		goto out;
@@ -203,6 +204,7 @@ static void send_progress_callback(gint percentage,
 
 	progress_update_tuple = g_variant_new_tuple(progress_update, 3);
 	r_installer_set_progress(r_installer, progress_update_tuple);
+	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
 }
 
 static void r_on_bus_acquired(GDBusConnection *connection,
