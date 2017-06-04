@@ -2,10 +2,12 @@ language: c
 sudo: required
 services:
   - docker
+env:
+  - ci_env=`bash <(curl -s https://codecov.io/env)`
 
 before_script:
   - docker pull rauc/testing:latest
-  - docker run --name rauc-ci -itd -v "$PWD":/home/travis -w /home/travis --tmpfs /tmp/uml:exec,mode=777 --tmpfs /tmp:exec -u travis rauc/testing:latest bash
+  - docker run --name rauc-ci -itd -v "$PWD":/home/travis -w /home/travis --tmpfs /tmp/uml:exec,mode=777 --tmpfs /tmp:exec $ci_env -u travis rauc/testing:latest bash
 
 coverity_scan:
   project:
@@ -28,7 +30,7 @@ script:
   - docker exec -it rauc-ci /bin/sh -c 'cd /home/travis/contrib/cgi && ./autogen.sh && ./configure && make clean && make -j2 && make distcheck'
   - docker exec -it rauc-ci ./uncrustify.sh && git diff --exit-code
 after_success:
-  - docker exec -it rauc-ci coveralls --build-root '.' --exclude test --exclude rauc-installer-generated.c
+  - docker exec -it rauc-ci /usr/bin/codecov -t $CODECOV_TOKEN
 after_failure:
   - cat test/*.log
   - cat test-suite.log
