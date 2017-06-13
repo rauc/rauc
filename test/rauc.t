@@ -103,6 +103,10 @@ test_expect_success "rauc status" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status
 "
 
+test_expect_success "rauc --override-boot-slot=system0 status" "
+  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status
+"
+
 test_expect_success "rauc status readable" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=readable
 "

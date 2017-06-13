@@ -71,7 +71,7 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 	g_assert_true(test_make_filesystem(tmpdir, "images/appfs-1"));
 
 	/* Set dummy bootname provider */
-	set_bootname_provider(test_bootname_provider);
+	r_context_conf()->bootslot = g_strdup("system0");
 
 	g_free(configpath);
 	g_free(certpath);

@@ -622,7 +622,7 @@ static gchar* r_status_formatter_readable(void)
 	GString *text = g_string_new(NULL);
 
 	g_string_append_printf(text, "Compatible:  %s\n", r_context()->config->system_compatible);
-	g_string_append_printf(text, "booted from: %s\n", get_bootname());
+	g_string_append_printf(text, "booted from: %s\n", r_context()->bootslot);
 
 	g_string_append(text, "slot states:\n");
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
@@ -661,7 +661,7 @@ static gchar* r_status_formatter_shell(void)
 	gchar* slotstring = NULL;
 
 	formatter_shell_append(text, "RAUC_SYSTEM_COMPATIBLE", r_context()->config->system_compatible);
-	formatter_shell_append(text, "RAUC_SYSTEM_BOOTED_BOOTNAME", get_bootname());
+	formatter_shell_append(text, "RAUC_SYSTEM_BOOTED_BOOTNAME", r_context()->bootslot);
 
 	slotnames = g_ptr_array_new();
 	slotnumbers = g_ptr_array_new();
@@ -719,7 +719,7 @@ static gchar* r_status_formatter_json(gboolean pretty)
 	json_builder_add_string_value (builder, r_context()->config->system_compatible);
 
 	json_builder_set_member_name (builder, "booted");
-	json_builder_add_string_value (builder, get_bootname());
+	json_builder_add_string_value (builder, r_context()->bootslot);
 
 	json_builder_set_member_name (builder, "slots");
 	json_builder_begin_array (builder);
@@ -895,7 +895,7 @@ static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, debug = FALSE, version = FALSE;
 	gchar *confpath = NULL, *certpath = NULL, *keypath = NULL, *mount = NULL,
-	      *handlerextra = NULL;
+	      *handlerextra = NULL, *bootslot = NULL;
 	char *cmdarg = NULL;
 	GOptionContext *context = NULL;
 	GOptionEntry entries[] = {
@@ -903,6 +903,7 @@ static void cmdline_handler(int argc, char **argv)
 		{"cert", '\0', 0, G_OPTION_ARG_FILENAME, &certpath, "cert file", "PEMFILE"},
 		{"key", '\0', 0, G_OPTION_ARG_FILENAME, &keypath, "key file", "PEMFILE"},
 		{"mount", '\0', 0, G_OPTION_ARG_FILENAME, &mount, "mount prefix", "PATH"},
+		{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "SLOTNAME"},
 		{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handlerextra, "extra handler arguments", "ARGS"},
 		{"debug", 'd', 0, G_OPTION_ARG_NONE, &debug, "enable debug output", NULL},
 		{"version", '\0', 0, G_OPTION_ARG_NONE, &version, "display version", NULL},
@@ -1039,6 +1040,8 @@ static void cmdline_handler(int argc, char **argv)
 			r_context_conf()->keypath = keypath;
 		if (mount)
 			r_context_conf()->mountprefix = mount;
+		if (bootslot)
+			r_context_conf()->bootslot = bootslot;
 		if (handlerextra)
 			r_context_conf()->handlerextra = handlerextra;
 	} else {

@@ -31,9 +31,6 @@ typedef struct {
 	gint status_result;
 } RaucInstallArgs;
 
-void set_bootname_provider(const gchar* (*provider)(void));
-const gchar* get_bootname(void);
-
 gboolean determine_slot_states(GError **error);
 
 GList* get_slot_class_members(const gchar* slotclass);

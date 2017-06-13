@@ -27,6 +27,7 @@ typedef struct {
 	gchar *keypath;
 	/* optional global mount prefix overwrite */
 	gchar *mountprefix;
+	gchar *bootslot;
 
 	gchar *system_serial;
 

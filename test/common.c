@@ -306,10 +306,6 @@ gboolean test_make_slot_user_writable(const gchar* path, const gchar* file) {
 	return res;
 }
 
-const gchar* test_bootname_provider(void) {
-	return "system0";
-}
-
 gboolean test_running_as_root(void) {
 	uid_t uid = getuid();
 	uid_t euid = geteuid();
