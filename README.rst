@@ -178,13 +178,11 @@ Creating a Bundle
 
     mkdir content-dir/
     cp $SOURCE/rootfs.ext4.img content-dir/
-    cat >> content-dir/manifest << EOF
+    cat >> content-dir/manifest.raucm << EOF
     [update]
     compatible=FooCorp Super BarBazzer
     version=2015.04-1
     [image.rootfs]
-    sha256=de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31
-    size=24117248
     filename=rootfs.ext4.img
     EOF
     rauc --cert autobuilder.cert.pem --key autobuilder.key.pem bundle content-dir/ update-2015.04-1.raucb
