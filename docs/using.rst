@@ -80,29 +80,30 @@ default it will print a human readable representation of your system.
 Alternatively you can obtain a shell-parsable description, or a JSON
 representation of the system status.
 
-Marking Boot as Successful / Failed
-------------------------------------
+React to a Successfully Booted System/Failed Boot
+-------------------------------------------------
 
 Normally, the full system update chain is not completed before being sure the
 newly installed system runs without any errors.
 As the definition and detection of a `successful` operation is really
-system-depended, RAUC provides a command for marking a boot as either
-successful or failed.
+system-dependent, RAUC provides commands to preserve a slot as being the
+preferred one to boot or to discard a slot from being bootable.
 
 .. code-block:: sh
 
   rauc status mark-good
 
-This marks a boot as successful for the underlying bootloader implementation.
-This will, for example, reset a boot attempt counter.
+After assessment of the currently booted system to be fully operational, one
+wants to signal this information to the underlying bootloader implementation
+which then, for example, resets a boot attempt counter.
 
 .. code-block:: sh
 
   rauc status mark-bad
 
-This marks a boot as failed for the underlying bootloader implementation.
-In most cases this will disable the currently booted slot or at least switch to
-another one.
+If the current boot failed in some kind, this command can be used to reflect
+that to the underlying bootloader implementation. In most cases this will
+disable the currently booted slot or at least switch to another one.
 
 Customizing the Update
 ----------------------
