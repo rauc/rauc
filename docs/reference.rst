@@ -52,6 +52,10 @@ Example configuration:
   mechanism. Currently supported values (and bootloaders) are ``barebox``,
   ``grub``, ``u-boot``.
 
+``mountprefix``
+  Prefix of the path where bundles and slots will be mounted. Can be overwritten
+  by the command line option ``--mount``.
+
 **[keyring] section**
 
 The ``keyring`` section refers to the trusted keyring used for signature
