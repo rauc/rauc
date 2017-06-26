@@ -132,6 +132,8 @@ See details about using handlers in `Custom Handlers (Interface)`_.
   (see :ref:`[handler] section <sec-manifest-handler>`)
   RAUC will not execute any system handler script.
 
+.. _slot.slot-class.idx-section:
+
 **[slot.<slot-class>.<idx>] section**
 
 Each slot is identified by a section starting with ``slot.`` followed by

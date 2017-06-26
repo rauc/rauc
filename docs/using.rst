@@ -123,6 +123,22 @@ If the current boot failed in some kind, this command can be used to communicate
 that to the underlying bootloader implementation. In most cases this will
 disable the currently booted slot or at least switch to a different one.
 
+Although not very useful in the field, both commands recognize an optional
+argument to explicitely identify the slot to act on:
+
+.. code-block:: sh
+
+  rauc status mark-{good,bad} [booted | other | <SLOT_NAME>]
+
+Choosing ``other`` marks the next bootable slot that is not the one that is
+currently booted. In a two-slot-setup this is just... the other one. If one
+wants to explicitely address a known slot, one can do so by using its slot name
+which has the form ``<slot-class>.<idx>`` (e.g. ``rootfs.1``), see :ref:`this
+<slot.slot-class.idx-section>` part of section :ref:`System Configuration File
+<sec_ref_slot_config>`. Last but not least choosing ``booted`` as the argument
+which is, by the way, the default if the optional argument has been omitted acts
+on the currently booted slot.
+
 Customizing the Update
 ----------------------
 
