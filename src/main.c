@@ -780,8 +780,7 @@ static gchar* r_status_formatter_json(gboolean pretty)
 static gboolean status_start(int argc, char **argv)
 {
 	GHashTableIter iter;
-	gpointer key, value;
-	RaucSlot *booted = NULL;
+	RaucSlot *slot, *booted = NULL;
 	gchar *text = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -818,8 +817,7 @@ static gboolean status_start(int argc, char **argv)
 	}
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		RaucSlot *slot = value;
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
 		if (slot->state == ST_BOOTED) {
 			booted = slot;
 		}
