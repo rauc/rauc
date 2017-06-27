@@ -927,6 +927,9 @@ static gboolean status_start(int argc, char **argv)
 	} else if (g_strcmp0(argv[2], "mark-bad") == 0) {
 		g_print("marking slot %s as bad\n", slot->name);
 		r_exit_status = r_boot_set_state(slot, FALSE) ? 0 : 1;
+	} else if (g_strcmp0(argv[2], "mark-active") == 0) {
+		g_print("marking slot %s as active\n", slot->name);
+		r_exit_status = r_boot_set_primary(slot) ? 0 : 1;
 	} else {
 		g_message("unknown subcommand %s", argv[2]);
 		r_exit_status = 1;

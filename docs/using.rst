@@ -130,14 +130,45 @@ argument to explicitely identify the slot to act on:
 
   rauc status mark-{good,bad} [booted | other | <SLOT_NAME>]
 
-Choosing ``other`` marks the next bootable slot that is not the one that is
-currently booted. In a two-slot-setup this is just... the other one. If one
-wants to explicitely address a known slot, one can do so by using its slot name
-which has the form ``<slot-class>.<idx>`` (e.g. ``rootfs.1``), see :ref:`this
-<slot.slot-class.idx-section>` part of section :ref:`System Configuration File
-<sec_ref_slot_config>`. Last but not least choosing ``booted`` as the argument
-which is, by the way, the default if the optional argument has been omitted acts
-on the currently booted slot.
+This is to maintain consistency with respect to ``rauc status mark-active``
+where that argument is definitively wanted, see :ref:`here
+<optional-slot-identifier-argument>`.
+
+.. _mark-active:
+
+Manually Switch to a Different Slot
+-----------------------------------
+
+One can think of a variety of reasons to switch the preferred slot for the next
+boot by hand, for example:
+
+* Recurrently test the installation of a bundle in development starting from a
+  known state.
+* Activate a slot that has been installed sometime before and whose activation
+  has explicitely been prevented at that time using the system configuration
+  file's parameter :ref:`activate-installed <activate-installed>`.
+* Switch back to the previous slot because one really knows |better (TM)|.
+
+.. |better (TM)| unicode:: better U+2122 .. with trademark sign
+
+To do so, RAUC offers the subcommand
+
+.. _optional-slot-identifier-argument:
+
+.. code-block:: sh
+
+  rauc status mark-active [booted | other | <SLOT_NAME>]
+
+where the optional argument decides which slot to (re-)activate at the expense
+of the remaining slots. Choosing ``other`` switches to the next bootable slot
+that is not the one that is currently booted. In a two-slot-setup this is
+just... the other one. If one wants to explicitely address a known slot, one can
+do so by using its slot name which has the form ``<slot-class>.<idx>`` (e.g.
+``rootfs.1``), see :ref:`this <slot.slot-class.idx-section>` part of section
+:ref:`System Configuration File <sec_ref_slot_config>`. Last but not least,
+after switching to a different slot by mistake, this can be remedied by choosing
+``booted`` as the argument which is, by the way, the default if the optional
+argument has been omitted.
 
 Customizing the Update
 ----------------------
