@@ -124,7 +124,6 @@ AC_CONFIG_LINKS([test/openssl-ca/rel/private/release-1.pem:test/openssl-ca/rel/p
 AC_CONFIG_LINKS([test/openssl-ca/manifest-r1.sig:test/openssl-ca/manifest-r1.sig])
 AC_CONFIG_LINKS([test/rauc.t:test/rauc.t])
 AC_CONFIG_LINKS([test/rootfs.raucs:test/rootfs.raucs])
-AC_CONFIG_LINKS([test/services/de.pengutronix.rauc.service.in:test/services/de.pengutronix.rauc.service.in])
 AC_CONFIG_LINKS([test/sharness.sh:test/sharness.sh])
 AC_CONFIG_LINKS([test/install-content/appfs.img:test/install-content/appfs.img])
 AC_CONFIG_LINKS([test/install-content/rootfs.img:test/install-content/rootfs.img])
@@ -134,6 +133,5 @@ AC_CONFIG_LINKS([test/install-content/manifest.raucm:test/install-content/manife
 
 AC_CONFIG_FILES([
 	Makefile
-	test/services/de.pengutronix.rauc.service
 ])
 AC_OUTPUT

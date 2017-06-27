@@ -152,7 +152,7 @@ test_config_file_test_LDADD = librauctest.la
 test_manifest_test_SOURCES = test/manifest.c
 test_manifest_test_LDADD = librauctest.la
 
-test_service_test_CFLAGS = $(AM_CFLAGS) -DTEST_SERVICES=\""$(abs_top_builddir)/test/services"\"
+test_service_test_CFLAGS = $(AM_CFLAGS) -DTEST_SERVICES=\""$(abs_top_builddir)"\"
 test_service_test_SOURCES = test/service.c rauc-installer-generated.h
 test_service_test_LDADD = librauctest.la
 

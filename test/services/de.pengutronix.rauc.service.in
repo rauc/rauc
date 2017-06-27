@@ -1,3 +1,0 @@
-[D-BUS Service]
-Name=de.pengutronix.rauc
-Exec=@abs_top_builddir@/rauc -c @abs_top_builddir@/test/test.conf service
