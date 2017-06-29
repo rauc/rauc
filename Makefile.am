@@ -88,7 +88,9 @@ dbuspolicydir = $(DBUS_POLICYDIR)
 dist_dbuspolicy_DATA = data/de.pengutronix.rauc.conf
 
 EXTRA_DIST += data/rauc.service.in \
-	      data/de.pengutronix.rauc.service.in
+	      data/de.pengutronix.rauc.service.in \
+	      README.rst \
+	      CHANGES
 
 AM_TESTS_ENVIRONMENT = \
 	AM_TAP_AWK='$(AWK)'; export AM_TAP_AWK; \
@@ -192,6 +194,9 @@ doc:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(DOCDIR) $(SPHINXBUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(SPHINXBUILDDIR)/html."
+
+EXTRA_DIST += docs/conf.py
+EXTRA_DIST += $(wildcard docs/*.rst)
 
 AM_DISTCHECK_CONFIGURE_FLAGS = "--without-systemdunitdir"
 
