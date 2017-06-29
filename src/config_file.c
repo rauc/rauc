@@ -8,6 +8,7 @@
 #include "utils.h"
 
 G_DEFINE_QUARK(r-config-error-quark, r_config_error)
+G_DEFINE_QUARK(r-slot-error-quark, r_slot_error)
 
 #define RAUC_SLOT_PREFIX	"slot"
 

@@ -29,13 +29,6 @@
 /* All exit codes of hook script above this mean 'rejected' */
 #define INSTALL_HOOK_REJECT_CODE 10
 
-#define R_SLOT_ERROR r_slot_error_quark ()
-
-static GQuark r_slot_error_quark (void)
-{
-	return g_quark_from_static_string ("r_slot_error_quark");
-}
-
 #define R_INSTALL_ERROR r_install_error_quark ()
 
 GQuark r_install_error_quark (void)
@@ -82,7 +75,7 @@ gboolean determine_slot_states(GError **error) {
 		g_set_error_literal(
 				error,
 				R_SLOT_ERROR,
-				1,
+				R_SLOT_ERROR_NO_CONFIG,
 				"No slot configuration found");
 		goto out;
 	}
@@ -107,7 +100,7 @@ gboolean determine_slot_states(GError **error) {
 		g_set_error_literal(
 				error,
 				R_SLOT_ERROR,
-				2,
+				R_SLOT_ERROR_NO_BOOTSLOT,
 				"Bootname not found");
 		goto out;
 	}
@@ -164,7 +157,7 @@ gboolean determine_slot_states(GError **error) {
 		g_set_error_literal(
 				error,
 				R_SLOT_ERROR,
-				3,
+				R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
 				"Did not find booted slot");
 		goto out;
 	}

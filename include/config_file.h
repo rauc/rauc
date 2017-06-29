@@ -39,6 +39,16 @@ typedef enum {
 	ST_BOOTED = 4 | ST_ACTIVE,
 } SlotState;
 
+typedef enum {
+	R_SLOT_ERROR_NO_CONFIG,
+	R_SLOT_ERROR_NO_BOOTSLOT,
+	R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
+	R_SLOT_ERROR_FAILED
+} RSlotError;
+
+#define R_SLOT_ERROR r_slot_error_quark()
+GQuark r_slot_error_quark(void);
+
 typedef struct _RaucSlot {
 	/** name of the slot. A glib intern string. */
 	const gchar *name;
