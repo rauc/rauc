@@ -101,7 +101,7 @@ gboolean determine_slot_states(GError **error) {
 				error,
 				R_SLOT_ERROR,
 				R_SLOT_ERROR_NO_BOOTSLOT,
-				"Bootname not found");
+				"Bootname or device of booted slot not found");
 		goto out;
 	}
 
