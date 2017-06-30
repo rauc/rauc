@@ -34,8 +34,7 @@ static void service_install_fixture_set_up(ServiceFixture *fixture, gconstpointe
 	write_tmp_file(fixture->tmpdir, "de.pengutronix.rauc.service", g_strdup_printf("\
 [D-BUS Service]\n\
 Name=de.pengutronix.rauc\n\
-Exec="TEST_SERVICES"/rauc -c %s/system.conf --override-boot-slot=system0 service\n", fixture->tmpdir), NULL);
-	g_build_filename(fixture->tmpdir, "mount", NULL);
+Exec="TEST_SERVICES"/rauc -c %s/system.conf --mount=%s/mount --override-boot-slot=system0 service\n", fixture->tmpdir, fixture->tmpdir), NULL);
 
 	fixture->dbus = g_test_dbus_new(G_TEST_DBUS_NONE);
 	g_test_dbus_add_service_dir(fixture->dbus, fixture->tmpdir);
@@ -50,7 +49,6 @@ static void service_info_fixture_set_up(ServiceFixture *fixture, gconstpointer u
 [D-BUS Service]\n\
 Name=de.pengutronix.rauc\n\
 Exec="TEST_SERVICES"/rauc -c test/test.conf service\n", NULL);
-	g_build_filename(fixture->tmpdir, "mount", NULL);
 
 	fixture->dbus = g_test_dbus_new(G_TEST_DBUS_NONE);
 	g_test_dbus_add_service_dir(fixture->dbus, fixture->tmpdir);
@@ -128,7 +126,7 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	GQueue *args = g_queue_new();
 	const gchar *operation = NULL, *last_error = NULL;
 	GVariant *progress = NULL;
-	gchar *bundlepath, *mountprefix;
+	gchar *bundlepath;
 	GError *error = NULL;
 	gboolean ret = FALSE;
 
@@ -187,10 +185,6 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	progress = r_installer_get_progress(installer);
 	assert_progress(progress, 0, "", 0);
 
-	/* Set mount path to current temp dir */
-	mountprefix = g_build_filename(fixture->tmpdir, "mount", NULL);
-	g_assert_nonnull(mountprefix);
-	r_context_conf()->mountprefix = mountprefix;
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
