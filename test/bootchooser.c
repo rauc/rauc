@@ -48,12 +48,12 @@ bootname=recovery\n\
 readonly=true\n\
 \n\
 [slot.rootfs.0]\n\
-device=/dev/sda0\n\
+device=/dev/rootfs-0\n\
 type=ext4\n\
 bootname=system0\n\
 \n\
 [slot.rootfs.1]\n\
-device=/dev/sda1\n\
+device=/dev/rootfs-1\n\
 type=ext4\n\
 bootname=system1\n";
 
@@ -64,7 +64,7 @@ bootname=system1\n";
 	r_context_conf()->configpath = pathname;
 	r_context();
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/sda0");
+	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
 	g_assert_nonnull(slot);
 
 	/* check rootfs is considered good */
@@ -131,7 +131,7 @@ bootstate.system1.priority=10\n\
 ", TRUE);
 	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/sda1");
+	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
 	g_assert_nonnull(slot);
 
 	/* check rootfs-1 is marked primary (prio set to 20, others to 10) */
@@ -181,18 +181,18 @@ mountprefix=/mnt/myrauc/\n\
 path=/etc/rauc/keyring/\n\
 \n\
 [slot.rescue.0]\n\
-device=/dev/mtd4\n\
+device=/dev/rescue-0\n\
 type=raw\n\
 bootname=R\n\
 readonly=true\n\
 \n\
 [slot.rootfs.0]\n\
-device=/dev/sda0\n\
+device=/dev/rootfs-0\n\
 type=ext4\n\
 bootname=A\n\
 \n\
 [slot.rootfs.1]\n\
-device=/dev/sda1\n\
+device=/dev/rootfs-1\n\
 type=ext4\n\
 bootname=B\n";
 
@@ -203,13 +203,13 @@ bootname=B\n";
 	r_context_conf()->configpath = pathname;
 	r_context();
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/sda0");
+	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
 	g_assert_nonnull(slot);
 
 	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
 	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/sda1");
+	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
 	g_assert_nonnull(slot);
 
 	g_assert_true(r_boot_set_primary(slot, NULL));
@@ -236,12 +236,12 @@ bootname=R\n\
 readonly=true\n\
 \n\
 [slot.rootfs.0]\n\
-device=/dev/sda0\n\
+device=/dev/rootfs-0\n\
 type=ext4\n\
 bootname=A\n\
 \n\
 [slot.rootfs.1]\n\
-device=/dev/sda1\n\
+device=/dev/rootfs-1\n\
 type=ext4\n\
 bootname=B\n";
 
@@ -252,13 +252,13 @@ bootname=B\n";
 	r_context_conf()->configpath = pathname;
 	r_context();
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/sda0");
+	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
 	g_assert_nonnull(slot);
 
 	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
 	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/sda1");
+	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
 	g_assert_nonnull(slot);
 
 	g_assert_true(r_boot_set_primary(slot, NULL));
