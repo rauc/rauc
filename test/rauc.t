@@ -4,9 +4,63 @@ test_description="rauc binary tests"
 
 . ./sharness.sh
 
+# Provide functions to start and stop a dedicated session bus
+start_session_bus ()
+{
+  eval $(dbus-launch --sh-syntax)
+}
+stop_session_bus ()
+{
+  kill ${DBUS_SESSION_BUS_PID}
+}
+
+# If running under user mode linux use the prepared system bus otherwise start a
+# dedicated session bus
+select_system_or_session_bus ()
+{
+  if grep -q "init=[^ ]*/uml-test-init" /proc/cmdline; then
+    export DBUS_STARTER_BUS_TYPE=system
+  else
+    start_session_bus
+    cleanup stop_session_bus
+    export DBUS_STARTER_BUS_TYPE=session
+  fi
+}
+
+# Provide functions to start and stop the RAUC background service using the test
+# configuration
+start_rauc_dbus_service ()
+{
+  rauc "$@" service&
+  RAUC_DBUS_SERVICE_PID=$!
+
+  # The timeout is measured in nanoseconds
+  TIMEOUT=$(( 5 * 1000 * 1000 * 1000 ))
+  END=$(( $(date +%s%N) + ${TIMEOUT} ))
+
+  # Wait for RAUC's background service to appear on the bus or the timeout
+  # period to elapse
+  while true; do
+    dbus-send --${DBUS_STARTER_BUS_TYPE} --dest=de.pengutronix.rauc \
+      --reply-timeout=1000 --print-reply --type=method_call \
+      / org.freedesktop.DBus.Peer.Ping > /dev/null 2>&1 && break
+    test $(date +%s%N) -ge ${END} && break
+  done
+}
+stop_rauc_dbus_service ()
+{
+  kill ${RAUC_DBUS_SERVICE_PID}
+  wait ${RAUC_DBUS_SERVICE_PID}
+}
+
 # Prerequisite: JSON support enabled [JSON]
 grep -q "ENABLE_JSON 1" $SHARNESS_TEST_DIRECTORY/../config.h && \
   test_set_prereq JSON
+
+# Prerequisite: background service support enabled [SERVICE]
+grep -q "ENABLE_SERVICE 1" $SHARNESS_TEST_DIRECTORY/../config.h &&
+  test_set_prereq SERVICE &&
+  select_system_or_session_bus
 
 test_expect_success "rauc noargs" "
   test_must_fail rauc
@@ -128,16 +182,49 @@ test_expect_success "rauc status invalid" "
   test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status --output-format=invalid
 "
 
-test_expect_success "rauc status mark-good" "
+test_expect_success !SERVICE "rauc status mark-good: internally" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status mark-good
 "
 
-test_expect_success "rauc status mark-bad" "
+test_expect_success !SERVICE "rauc status mark-bad: internally" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status mark-bad
 "
 
-test_expect_success "rauc status mark-active" "
+test_expect_success !SERVICE "rauc status mark-active: internally" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test-temp.conf status mark-active
+"
+
+test_expect_success SERVICE "rauc status mark-good: via D-Bus" "
+  start_rauc_dbus_service \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test-temp.conf \
+    --override-boot-slot=system1 &&
+  test_when_finished stop_rauc_dbus_service &&
+  rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test-temp.conf \
+    --override-boot-slot=system1 \
+    status mark-good
+"
+
+test_expect_success SERVICE "rauc status mark-bad: via D-Bus" "
+  start_rauc_dbus_service \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test-temp.conf \
+    --override-boot-slot=system1 &&
+  test_when_finished stop_rauc_dbus_service &&
+  rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test-temp.conf \
+    --override-boot-slot=system1 \
+    status mark-bad
+"
+
+test_expect_success SERVICE "rauc status mark-active: via D-Bus" "
+  start_rauc_dbus_service \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test-temp.conf \
+    --override-boot-slot=system1 &&
+  test_when_finished stop_rauc_dbus_service &&
+  rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test-temp.conf \
+    --override-boot-slot=system1 \
+    status mark-active
 "
 
 test_expect_success "rauc install invalid local paths" "
