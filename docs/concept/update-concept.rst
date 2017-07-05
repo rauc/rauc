@@ -380,7 +380,7 @@ Slot name suffix of images must match the slot class name (slot.class.#).
 The ``sha`` entry provides the slot images hash while the ``filename`` entry
 provides the name of the slot's update image.
 The filename suffix should either match the file system type (.ext4, .ubifs,
-...) or be .tar.* for an archive to be extracted into an empty file system.
+...) or be .tar* for an archive to be extracted into an empty file system.
 
 
 .. TODO: Some words how multi-bundle updates might work
