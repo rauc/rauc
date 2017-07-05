@@ -87,8 +87,12 @@ nodist_dbussystem_DATA = data/de.pengutronix.rauc.service
 dbuspolicydir = $(DBUS_POLICYDIR)
 dist_dbuspolicy_DATA = data/de.pengutronix.rauc.conf
 
+dbuswrapperdir = $(libexecdir)
+dist_dbuswrapper_SCRIPTS = data/rauc-service.sh
+
 EXTRA_DIST += data/rauc.service.in \
 	      data/de.pengutronix.rauc.service.in \
+	      data/rauc-service.sh.in \
 	      README.rst \
 	      CHANGES
 
@@ -175,6 +179,7 @@ test_progress_test_LDADD = librauctest.la
 
 SED_REPLACE = $(SED) \
        -e 's|[@]bindir[@]|$(bindir)|g' \
+       -e 's|[@]libexecdir[@]|$(libexecdir)|g' \
        -e 's|[@]datadir[@]|$(pkgdatadir)|g' \
        -e 's|[@]prefix[@]|$(prefix)|g'
 
@@ -203,6 +208,7 @@ AM_DISTCHECK_CONFIGURE_FLAGS = "--without-systemdunitdir"
 CLEANFILES = $(gdbus_installer_generated) \
 	     $(nodist_systemdunit_DATA) \
 	     $(nodist_dbussystem_DATA) \
+	     $(dist_dbuswrapper_SCRIPTS) \
 	     data/rauc.service \
 	     test/empty.dat \
 	     test/test-results/rauc.*.counts \
