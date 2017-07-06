@@ -185,6 +185,46 @@ out:
 	return res;
 }
 
+static gboolean vfat_format_slot(RaucSlot *dest_slot, GError **error)
+{
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	GPtrArray *args = g_ptr_array_new_full(4, g_free);
+
+	g_ptr_array_add(args, g_strdup("mkfs.vfat"));
+	if (strlen(dest_slot->name) <= 16) {
+		g_ptr_array_add(args, g_strdup("-n"));
+		g_ptr_array_add(args, g_strdup(dest_slot->name));
+	}
+	g_ptr_array_add(args, g_strdup(dest_slot->device));
+	g_ptr_array_add(args, NULL);
+
+	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
+				  G_SUBPROCESS_FLAGS_NONE, &ierror);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start mkfs.vfat: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run mkfs.vfat: ");
+		goto out;
+	}
+
+out:
+	g_ptr_array_unref(args);
+	g_clear_pointer(&sproc, g_object_unref);
+	return res;
+}
+
 static gboolean nand_format_slot(const gchar *device, GError **error)
 {
 	GSubprocess *sproc = NULL;
@@ -592,6 +632,71 @@ out:
 	return res;
 }
 
+static gboolean tar_to_vfat_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	/* format vfat volume */
+	g_message("Formatting vfat slot %s", dest_slot->device);
+	res = vfat_format_slot(dest_slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* mount vfat volume */
+	g_message("Mounting vfat slot %s", dest_slot->device);
+	res = r_mount_slot(dest_slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* extract tar into mounted vfat volume */
+	g_message("Extracting %s to %s", image->filename, dest_slot->mount_point);
+	res = untar_image(image, dest_slot->mount_point, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto unmount_out;
+	}
+
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto unmount_out;
+		}
+	}
+
+unmount_out:
+	/* finally umount vfat volume */
+	g_message("Unmounting vfat slot %s", dest_slot->device);
+	if (!r_umount_slot(dest_slot, &ierror)) {
+		res = FALSE;
+		if (error) {
+			/* the previous error is more relevant here */
+			g_warning("Ignoring umount error after previous error: %s", ierror->message);
+			g_clear_error(&ierror);
+		} else {
+			g_propagate_error(error, ierror);
+		}
+	}
+
+out:
+	return res;
+}
+
 static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -750,6 +855,7 @@ RaucUpdatePair updatepairs[] = {
 	{"*.vfat", "raw", img_to_raw_handler},
 	{"*.tar*", "ext4", tar_to_ext4_handler},
 	{"*.tar*", "ubifs", tar_to_ubifs_handler},
+	{"*.tar*", "vfat", tar_to_vfat_handler},
 	{"*.ubifs", "ubivol", img_to_ubivol_handler},
 	{"*.img", "nand", img_to_nand_handler},
 	{"*.img", "ubivol", img_to_ubivol_handler},
