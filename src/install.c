@@ -858,7 +858,14 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			goto out;
 		}
 
-		if (dest_slot->mount_point || dest_slot->ext_mount_point) {
+		if (dest_slot->ext_mount_point && dest_slot->system_mounted) {
+			if (!r_umount(dest_slot->ext_mount_point, &ierror)) {
+				res = FALSE;
+				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
+						"Could not umount destination device: '%s'", dest_slot->device);
+				goto out;
+			}
+		} else if (dest_slot->mount_point || dest_slot->ext_mount_point) {
 			res = FALSE;
 			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
 					"Destination device '%s' already mounted", dest_slot->device);
@@ -975,6 +982,18 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		}
 
 image_out:
+
+		if (dest_slot->ext_mount_point && dest_slot->system_mounted) {
+			res = r_mount_full(dest_slot->device, dest_slot->ext_mount_point,
+					dest_slot->type, 0, &ierror);
+			if (!res) {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Remounting failed: ");
+				goto out;
+			}
+		}
 
 		install_args_update(args, g_strdup_printf("Updating slot %s done", dest_slot->name));
 	}
