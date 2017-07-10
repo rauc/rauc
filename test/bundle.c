@@ -145,10 +145,7 @@ static void bundle_test_extract_manifest(BundleFixture *fixture,
 static void bundle_test_verify_manifest(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *bundlename, *contentdir, *appfsimage;
-
-	bundlename = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
-	g_assert_nonnull(bundlename);
+	gchar *contentdir, *appfsimage;
 
 	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
 	g_assert_nonnull(contentdir);
@@ -187,7 +184,6 @@ static void bundle_test_verify_manifest(BundleFixture *fixture,
 
 	g_free(appfsimage);
 	g_free(contentdir);
-	g_free(bundlename);
 }
 
 int main(int argc, char *argv[])
