@@ -875,6 +875,7 @@ typedef struct {
 	const RaucCommandType type;
 	const gchar* name;
 	const gchar* usage;
+	const gchar* summary;
 	gboolean (*cmd_handler) (int argc, char **argv);
 	GOptionGroup* options;
 	gboolean while_busy;
@@ -923,14 +924,14 @@ static void cmdline_handler(int argc, char **argv)
 	gchar *text;
 
 	RaucCommand rcommands[] = {
-		{UNKNOWN, "help", "<COMMAND>", unknown_start, NULL, TRUE},
-		{INSTALL, "install", "install <BUNDLE>", install_start, install_group, FALSE},
-		{BUNDLE, "bundle", "bundle <INPUTDIR> <BUNDLENAME>", bundle_start, NULL, FALSE},
-		{CHECKSUM, "checksum", "checksum <DIRECTORY>", checksum_start, NULL, FALSE},
-		{INFO, "info", "info <FILE>", info_start, info_group, FALSE},
-		{STATUS, "status", "status", status_start, status_group, TRUE},
+		{UNKNOWN, "help", "<COMMAND>", "Print help", unknown_start, NULL, TRUE},
+		{INSTALL, "install", "install <BUNDLE>", "Install a bundle", install_start, install_group, FALSE},
+		{BUNDLE, "bundle", "bundle <INPUTDIR> <BUNDLENAME>", "Create a bundle from a content directory", bundle_start, NULL, FALSE},
+		{CHECKSUM, "checksum", "checksum <DIRECTORY>", "Deprecated", checksum_start, NULL, FALSE},
+		{INFO, "info", "info <FILE>", "Print bundle info", info_start, info_group, FALSE},
+		{STATUS, "status", "status", "Show system status", status_start, status_group, TRUE},
 #if ENABLE_SERVICE == 1
-		{SERVICE, "service", "service", service_start, NULL, TRUE},
+		{SERVICE, "service", "service", "Start RAUC service", service_start, NULL, TRUE},
 #endif
 		{0}
 	};
@@ -1017,6 +1018,8 @@ static void cmdline_handler(int argc, char **argv)
 	/* re-setup option context for showing command-specific help */
 	g_clear_pointer(&context, g_option_context_free);
 	context = g_option_context_new(rcommand->usage);
+	if (rcommand->summary)
+		g_option_context_set_summary(context, rcommand->summary);
 	g_option_context_set_help_enabled(context, FALSE);
 	g_option_context_add_main_entries(context, entries, NULL);
 	if (rcommand->options)
