@@ -228,8 +228,8 @@ static gboolean bundle_start(int argc, char **argv)
 		goto out;
 	}
 
-	g_print("input directory: %s\n", argv[2]);
-	g_print("output bundle: %s\n", argv[3]);
+	g_debug("input directory: %s", argv[2]);
+	g_debug("output bundle: %s", argv[3]);
 
 	if (!update_manifest(argv[2], FALSE, &ierror)) {
 		g_printerr("Failed to update manifest: %s\n", ierror->message);
