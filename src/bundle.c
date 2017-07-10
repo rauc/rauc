@@ -2,6 +2,7 @@
 
 #include <gio/gio.h>
 #include <glib/gstdio.h>
+#include <string.h>
 
 #include "bundle.h"
 #include "context.h"
@@ -105,6 +106,46 @@ static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, con
 	res = TRUE;
 out:
 	r_context_end_step("unsquashfs", res);
+	return res;
+}
+
+static gboolean casync_make(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error) {
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	GPtrArray *args = g_ptr_array_new_full(5, g_free);
+
+	g_ptr_array_add(args, g_strdup("casync"));
+	g_ptr_array_add(args, g_strdup("make"));
+	g_ptr_array_add(args, g_strdup(idxpath));
+	g_ptr_array_add(args, g_strdup(contentpath));
+	if (store) {
+		g_ptr_array_add(args, g_strdup("--store"));
+		g_ptr_array_add(args, g_strdup(store));
+	}
+	g_ptr_array_add(args, NULL);
+
+	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
+				 G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start casync: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run casync: ");
+		goto out;
+	}
+
+	res = TRUE;
+out:
 	return res;
 }
 
@@ -341,6 +382,139 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 	}
 
 	res = sign_bundle(outpath, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	return res;
+}
+
+static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	gchar *tmpdir = NULL, *contentdir = NULL, *mfpath = NULL, *storepath = NULL, *basepath = NULL;
+	RaucManifest *manifest = NULL;
+
+	g_return_val_if_fail(bundle, FALSE);
+	g_return_val_if_fail(outbundle, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	basepath = g_strndup(outbundle, strlen(outbundle) - 6);
+	storepath = g_strconcat(basepath, ".castr", NULL);
+	g_free(basepath);
+
+	/* Assure bundle destination path doe not already exist */
+	if (g_file_test(outbundle, G_FILE_TEST_EXISTS)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "Destination bundle '%s' already exists", outbundle);
+		res = FALSE;
+		goto out;
+	}
+
+	if (g_file_test(storepath, G_FILE_TEST_EXISTS)) {
+		g_warning("Store path '%s' already exists, appending new chunks", outbundle);
+	}
+
+	/* Set up tmp dir for conversion */
+	tmpdir = g_dir_make_tmp("rauc-casync-XXXXXX", &ierror);
+	if (tmpdir == NULL) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to create tmp dir: ");
+		res = FALSE;
+		goto out;
+	}
+
+	contentdir = g_build_filename(tmpdir, "content", NULL);
+	mfpath = g_build_filename(contentdir, "manifest.raucm", NULL);
+
+	/* Extract input bundle to content/ dir */
+	res = extract_bundle(bundle, contentdir, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* Load manifest from content/ dir */
+	res = load_manifest_file(mfpath, &manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* Iterate over each image and convert */
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		RaucImage *image = l->data;
+		gchar *imgpath = NULL, *idxfile = NULL, *idxpath = NULL;
+
+		imgpath = g_build_filename(contentdir, image->filename, NULL);
+		idxfile = g_strconcat(image->filename, ".caibx", NULL);
+		idxpath = g_build_filename(contentdir, idxfile, NULL);
+
+		/* Rewrite manifest filename */
+		g_free(image->filename);
+		image->filename = idxfile;
+
+		g_message("Converting %s to %s", image->filename, idxfile);
+
+		/* Generate index for content */
+		res = casync_make(idxpath, imgpath, storepath, &ierror);
+		if (!res) {
+			g_free(idxpath);
+			g_free(imgpath);
+
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+		/* Remove original file */
+		if (g_remove(imgpath) != 0) {
+			g_warning("Failed removing %s", imgpath);
+		}
+
+		g_free(idxpath);
+		g_free(imgpath);
+	}
+
+	/* Rewrite manifest to content/ dir */
+	res = save_manifest_file(mfpath, manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = create_bundle(outbundle, contentdir, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	/* Remove temporary bundle creation directory */
+	if (tmpdir)
+		rm_tree(tmpdir, NULL);
+
+	g_clear_pointer(&manifest, free_manifest);
+	g_clear_pointer(&tmpdir, g_free);
+	g_clear_pointer(&contentdir, g_free);
+	g_clear_pointer(&mfpath, g_free);
+	g_clear_pointer(&storepath, g_free);
+	return res;
+}
+
+gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	res = convert_to_casync_bundle(bundle, outbundle, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = sign_bundle(outbundle, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;

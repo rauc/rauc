@@ -356,6 +356,59 @@ out:
 	return TRUE;
 }
 
+static gboolean convert_start(int argc, char **argv)
+{
+	RaucBundle *bundle = NULL;
+	GError *ierror = NULL;
+	g_debug("convert start");
+
+	if (r_context()->certpath == NULL ||
+	    r_context()->keypath == NULL) {
+		g_printerr("Cert and key files must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc < 3) {
+		g_printerr("An input bundle must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc < 4) {
+		g_printerr("An output bundle name must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc > 4) {
+		g_printerr("Excess argument: %s\n", argv[4]);
+		goto out;
+	}
+
+	g_debug("input bundle: %s", argv[2]);
+	g_debug("output bundle: %s", argv[3]);
+
+	if (!check_bundle(argv[2], &bundle, TRUE, &ierror)) {
+		g_printerr("%s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (!create_casync_bundle(bundle, argv[3], &ierror)) {
+		g_printerr("Failed to create bundle: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	g_print("Bundle written to %s\n", argv[3]);
+
+out:
+	return TRUE;
+}
+
 static gboolean checksum_start(int argc, char **argv)
 {
 	GError *error = NULL;
@@ -1106,6 +1159,7 @@ typedef enum  {
 	BUNDLE,
 	RESIGN,
 	EXTRACT,
+	CONVERT,
 	CHECKSUM,
 	STATUS,
 	INFO,
@@ -1173,6 +1227,7 @@ static void cmdline_handler(int argc, char **argv)
 		{BUNDLE, "bundle", "bundle <INPUTDIR> <BUNDLENAME>", "Create a bundle from a content directory", bundle_start, NULL, FALSE},
 		{RESIGN, "resign", "resign <BUNDLENAME>", "Resign an already signed bundle", resign_start, NULL, FALSE},
 		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>", "Extract the bundle content", extract_start, NULL, FALSE},
+		{CONVERT, "convert", "convert <INBUNDLE> <OUTBUNDLE>", "Convert to casync index bundle and store", convert_start, NULL, FALSE},
 		{CHECKSUM, "checksum", "checksum <DIRECTORY>", "Deprecated", checksum_start, NULL, FALSE},
 		{INFO, "info", "info <FILE>", "Print bundle info", info_start, info_group, FALSE},
 		{STATUS, "status", "status", "Show system status", status_start, status_group, TRUE},
@@ -1197,6 +1252,7 @@ static void cmdline_handler(int argc, char **argv)
 			"  bundle\tCreate a bundle\n" \
 			"  resign\tResign an already signed bundle\n" \
 			"  extract\tExtract the bundle content\n" \
+			"  convert\tConvert classic to casync bundle\n" \
 			"  checksum\tUpdate a manifest with checksums (and optionally sign it)\n" \
 			"  install\tInstall a bundle\n" \
 			"  info\t\tShow file information\n" \

@@ -98,6 +98,15 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
 gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, const gchar *file, GError **error);
 
 /**
+ * Create casync bundle.
+ *
+ * @param bundle RaucBundle struct as returned by check_bundle()
+ * @param outbundle output location for converted casync bundle
+ * @param error Return location for a GError
+ */
+gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error);
+
+/**
  * Mount a bundle.
  *
  * Note that check_bundle() must be called prior to this, to obtain a
