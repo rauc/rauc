@@ -73,7 +73,7 @@ static void test_check_invalid_bundle(BundleFixture *fixture,
 	g_free(bundlename);
 }
 
-static void bundle_test1(BundleFixture *fixture,
+static void bundle_test_create_extract(BundleFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *bundlename, *contentdir, *outputdir;
@@ -93,7 +93,7 @@ static void bundle_test1(BundleFixture *fixture,
 	g_assert_true(verify_manifest(outputdir, NULL, FALSE, NULL));
 }
 
-static void bundle_test2(BundleFixture *fixture,
+static void bundle_test_create_mount_extract(BundleFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *bundlename, *contentdir, *mountpoint;
@@ -142,7 +142,7 @@ static void bundle_test_extract_manifest(BundleFixture *fixture,
 	g_assert_true(g_file_test(manifestpath, G_FILE_TEST_EXISTS));
 }
 
-static void bundle_test3(BundleFixture *fixture,
+static void bundle_test_verify_manifest(BundleFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *bundlename, *contentdir, *appfsimage;
@@ -209,20 +209,20 @@ int main(int argc, char *argv[])
 		   bundle_fixture_set_up, test_check_invalid_bundle,
 		   bundle_fixture_tear_down);
 
-	g_test_add("/bundle/test1", BundleFixture, NULL,
-		   bundle_fixture_set_up, bundle_test1,
+	g_test_add("/bundle/create_extract", BundleFixture, NULL,
+		   bundle_fixture_set_up, bundle_test_create_extract,
 		   bundle_fixture_tear_down);
 
-	g_test_add("/bundle/test2", BundleFixture, NULL,
-		   bundle_fixture_set_up, bundle_test2,
+	g_test_add("/bundle/create_mount_extract", BundleFixture, NULL,
+		   bundle_fixture_set_up, bundle_test_create_mount_extract,
 		   bundle_fixture_tear_down);
 
-	g_test_add("/bundle/test_extract_manifest", BundleFixture, NULL,
+	g_test_add("/bundle/extract_manifest", BundleFixture, NULL,
 		   bundle_fixture_set_up, bundle_test_extract_manifest,
 		   bundle_fixture_tear_down);
 
-	g_test_add("/bundle/test3", BundleFixture, NULL,
-		   bundle_fixture_set_up, bundle_test3,
+	g_test_add("/bundle/verify_manifest", BundleFixture, NULL,
+		   bundle_fixture_set_up, bundle_test_verify_manifest,
 		   bundle_fixture_tear_down);
 
 	return g_test_run();
