@@ -261,7 +261,7 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 
 	r_context_begin_step("check_bundle", "Checking bundle", verify);
 
-	if (!r_context()->config->keyring_path) {
+	if (verify && !r_context()->config->keyring_path) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_KEYRING, "No keyring file provided");
 		goto out;
 	}
@@ -399,16 +399,14 @@ gboolean extract_file_from_bundle(const gchar *bundlename, const gchar *outputdi
 	gsize size;
 	gboolean res = FALSE;
 
-	if (verify) {
-		res = check_bundle(bundlename, &size, verify, &ierror);
-		if (!res) {
-			if (g_error_matches(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE)) {
-				g_propagate_prefixed_error(error, ierror, "Invalid Bundle: ");
-			} else {
-				g_propagate_error(error, ierror);
-			}
-			goto out;
+	res = check_bundle(bundlename, &size, verify, &ierror);
+	if (!res) {
+		if (g_error_matches(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE)) {
+			g_propagate_prefixed_error(error, ierror, "Invalid Bundle: ");
+		} else {
+			g_propagate_error(error, ierror);
 		}
+		goto out;
 	}
 
 	res = unsquashfs(bundlename, outputdir, file, &ierror);
