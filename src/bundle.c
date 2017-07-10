@@ -245,6 +245,39 @@ static gboolean input_stream_read_uint64_all(GInputStream *stream,
 	return res;
 }
 
+#define SQUASHFS_MAGIC			0x73717368
+
+/* Attempts to read and verify the squashfs magic to verify having a valid bundle */
+static gboolean input_stream_check_bundle_identifier(GInputStream *stream, GError **error)
+{
+	GError *ierror = NULL;
+	guint32 squashfs_id;
+	gboolean res;
+	gsize bytes_read;
+
+	res = g_input_stream_read_all(stream, &squashfs_id, sizeof(squashfs_id), &bytes_read, NULL, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	if (bytes_read != sizeof(squashfs_id)) {
+		g_set_error(error,
+				G_IO_ERROR,
+				G_IO_ERROR_PARTIAL_INPUT,
+				"Only %lu of %lu bytes read",
+				bytes_read,
+				sizeof(squashfs_id));
+		return FALSE;
+	}
+
+	if (squashfs_id != SQUASHFS_MAGIC) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_IDENTIFIER, "Invalid identifier. Did you pass a valid RAUC bundle?");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 static gboolean output_stream_write_bytes_all(GOutputStream *stream,
 		GBytes *bytes,
 		GCancellable *cancellable,
@@ -680,6 +713,15 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 				ierror,
 				"Failed to open bundle for reading: ");
 		res = FALSE;
+		goto out;
+	}
+
+	res = input_stream_check_bundle_identifier(G_INPUT_STREAM(bundlestream), &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to check bundle identifier: ");
 		goto out;
 	}
 
