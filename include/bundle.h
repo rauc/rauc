@@ -6,7 +6,8 @@
 GQuark r_bundle_error_quark(void);
 
 typedef enum {
-	R_BUNDLE_ERROR_SIGNATURE
+	R_BUNDLE_ERROR_SIGNATURE,
+	R_BUNDLE_ERROR_KEYRING
 } RBundleError;
 
 gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error);
