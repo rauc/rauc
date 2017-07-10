@@ -171,7 +171,7 @@ static gboolean input_stream_read_bytes_all(GInputStream *stream,
 	return TRUE;
 }
 
-gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error) {
+static gboolean sign_bundle(const gchar *bundlename, GError **error) {
 	GError *ierror = NULL;
 	GBytes *sig = NULL;
 	GFile *bundlefile = NULL;
@@ -181,12 +181,6 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 
 	g_assert_nonnull(r_context()->certpath);
 	g_assert_nonnull(r_context()->keypath);
-
-	res = mksquashfs(bundlename, contentdir, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
 
 	sig = cms_sign_file(bundlename,
 			    r_context()->certpath,
@@ -249,6 +243,28 @@ out:
 	g_clear_pointer(&sig, g_bytes_unref);
 	return res;
 }
+
+gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	res = mksquashfs(bundlename, contentdir, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = sign_bundle(bundlename, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	return res;
+}
+
 
 gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GError **error) {
 	GError *ierror = NULL;
