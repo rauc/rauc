@@ -925,7 +925,7 @@ static void cmdline_handler(int argc, char **argv)
 	RaucCommand rcommands[] = {
 		{UNKNOWN, "help", "<COMMAND>", unknown_start, NULL, TRUE},
 		{INSTALL, "install", "install <BUNDLE>", install_start, install_group, FALSE},
-		{BUNDLE, "bundle", "bundle <FILE>", bundle_start, NULL, FALSE},
+		{BUNDLE, "bundle", "bundle <INPUTDIR> <BUNDLENAME>", bundle_start, NULL, FALSE},
 		{CHECKSUM, "checksum", "checksum <DIRECTORY>", checksum_start, NULL, FALSE},
 		{INFO, "info", "info <FILE>", info_start, info_group, FALSE},
 		{STATUS, "status", "status", status_start, status_group, TRUE},
