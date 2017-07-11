@@ -25,6 +25,7 @@ typedef struct {
 	/* signing data */
 	gchar *certpath;
 	gchar *keypath;
+	gchar *keyringpath;
 	/* optional global mount prefix overwrite */
 	gchar *mountprefix;
 	gchar *bootslot;

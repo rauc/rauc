@@ -915,7 +915,7 @@ GOptionEntry entries_status[] = {
 static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, debug = FALSE, version = FALSE;
-	gchar *confpath = NULL, *certpath = NULL, *keypath = NULL, *mount = NULL,
+	gchar *confpath = NULL, *certpath = NULL, *keypath = NULL, *keyring = NULL, *mount = NULL,
 	      *handlerextra = NULL, *bootslot = NULL;
 	char *cmdarg = NULL;
 	GOptionContext *context = NULL;
@@ -923,6 +923,7 @@ static void cmdline_handler(int argc, char **argv)
 		{"conf", 'c', 0, G_OPTION_ARG_FILENAME, &confpath, "config file", "FILENAME"},
 		{"cert", '\0', 0, G_OPTION_ARG_FILENAME, &certpath, "cert file", "PEMFILE"},
 		{"key", '\0', 0, G_OPTION_ARG_FILENAME, &keypath, "key file", "PEMFILE"},
+		{"keyring", '\0', 0, G_OPTION_ARG_FILENAME, &keyring, "keyring file", "PEMFILE"},
 		{"mount", '\0', 0, G_OPTION_ARG_FILENAME, &mount, "mount prefix", "PATH"},
 		{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "SLOTNAME"},
 		{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handlerextra, "extra handler arguments", "ARGS"},
@@ -1061,6 +1062,8 @@ static void cmdline_handler(int argc, char **argv)
 			r_context_conf()->certpath = certpath;
 		if (keypath)
 			r_context_conf()->keypath = keypath;
+		if (keyring)
+			r_context_conf()->keyringpath = keyring;
 		if (mount)
 			r_context_conf()->mountprefix = mount;
 		if (bootslot)
