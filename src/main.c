@@ -107,6 +107,11 @@ static gboolean install_start(int argc, char **argv)
 		goto out;
 	}
 
+	if (argc > 3) {
+		g_printerr("Excess argument: %s\n", argv[3]);
+		goto out;
+	}
+
 	bundlescheme = g_uri_parse_scheme(argv[2]);
 	if (bundlescheme == NULL && !g_path_is_absolute(argv[2])) {
 		bundlelocation = g_build_filename(g_get_current_dir(), argv[2], NULL);
@@ -221,9 +226,14 @@ static gboolean bundle_start(int argc, char **argv)
 		goto out;
 	}
 
-	if (argc != 4) {
+	if (argc < 4) {
 		g_printerr("An output bundle name must be provided\n");
 		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc > 4) {
+		g_printerr("Excess argument: %s\n", argv[4]);
 		goto out;
 	}
 
@@ -540,10 +550,15 @@ static gboolean info_start(int argc, char **argv)
 	gboolean res = FALSE;
 	gchar* (*formatter)(RaucManifest *manifest) = NULL;
 
-	if (argc != 3) {
+	if (argc < 3) {
 		g_printerr("A file name must be provided\n");
 		r_exit_status = 1;
 		return FALSE;
+	}
+
+	if (argc > 3) {
+		g_printerr("Excess argument: %s\n", argv[3]);
+		goto out;
 	}
 
 	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
