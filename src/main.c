@@ -9,12 +9,12 @@
 #include <json-glib/json-gobject.h>
 #endif
 
-#include <bootchooser.h>
-#include <bundle.h>
-#include <config_file.h>
-#include <context.h>
-#include <install.h>
-#include <service.h>
+#include "bootchooser.h"
+#include "bundle.h"
+#include "config_file.h"
+#include "context.h"
+#include "install.h"
+#include "service.h"
 #include "rauc-installer-generated.h"
 #include "utils.h"
 

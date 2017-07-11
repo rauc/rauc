@@ -2,9 +2,9 @@
 
 #include <gio/gio.h>
 
-#include <context.h>
-#include <signature.h>
-#include <mount.h>
+#include "context.h"
+#include "signature.h"
+#include "mount.h"
 #include "bundle.h"
 
 GQuark

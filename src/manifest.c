@@ -2,11 +2,11 @@
 
 #include "manifest.h"
 
-#include <checksum.h>
-#include <config_file.h>
-#include <context.h>
-#include <signature.h>
-#include <utils.h>
+#include "checksum.h"
+#include "config_file.h"
+#include "context.h"
+#include "signature.h"
+#include "utils.h"
 
 #define RAUC_IMAGE_PREFIX	"image"
 #define RAUC_FILE_PREFIX	"file"

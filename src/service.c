@@ -5,11 +5,11 @@
 #include <glib-unix.h>
 #include <gio/gio.h>
 
-#include <context.h>
-#include <install.h>
-#include <service.h>
-#include <bundle.h>
-#include <utils.h>
+#include "context.h"
+#include "install.h"
+#include "service.h"
+#include "bundle.h"
+#include "utils.h"
 #include "rauc-installer-generated.h"
 
 GMainLoop *service_loop = NULL;

@@ -1,8 +1,8 @@
 #include <config.h>
 
-#include <config_file.h>
-#include <network.h>
-#include <signature.h>
+#include "config_file.h"
+#include "network.h"
+#include "signature.h"
 #include <gio/gio.h>
 
 #include "context.h"

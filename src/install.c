@@ -4,9 +4,9 @@
 #include <gio/gio.h>
 #include <glib/gstdio.h>
 
-#include <context.h>
-#include <network.h>
-#include <signature.h>
+#include "context.h"
+#include "network.h"
+#include "signature.h"
 #include "install.h"
 #include "manifest.h"
 #include "bundle.h"
