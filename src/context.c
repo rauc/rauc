@@ -175,6 +175,10 @@ static void r_context_configure(void) {
 		context->config->mount_prefix = g_strdup(context->mountprefix);
 	}
 
+	if (context->keyringpath) {
+		context->config->keyring_path = context->keyringpath;
+	}
+
 	context->pending = FALSE;
 }
 
