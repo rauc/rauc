@@ -7,6 +7,11 @@
 #include "context.h"
 #include "mount.h"
 #include "signature.h"
+#include "utils.h"
+#include "network.h"
+
+/* Maximum downloadable bundle size (8MB) */
+#define BUNDLE_DL_MAX_SIZE 8*1024*1024
 
 GQuark
 r_bundle_error_quark (void)
@@ -346,6 +351,13 @@ out:
 	return res;
 }
 
+static gboolean is_remote_scheme(const gchar *scheme) {
+	return (g_strcmp0(scheme, "http") == 0) ||
+		(g_strcmp0(scheme, "https") == 0) ||
+		(g_strcmp0(scheme, "sftp") == 0) ||
+		(g_strcmp0(scheme, "ftp") == 0);
+}
+
 gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error) {
 	GError *ierror = NULL;
 	GBytes *sig = NULL;
@@ -355,27 +367,49 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	goffset offset;
 	gboolean res = FALSE;
 	RaucBundle *ibundle = g_new0(RaucBundle, 1);
+	gchar *bundlescheme = NULL;
 
 	g_return_val_if_fail (bundle == NULL || *bundle == NULL, FALSE);
 
-	ibundle->path = g_strdup(bundlename);
-
 	r_context_begin_step("check_bundle", "Checking bundle", verify);
+
+	/* Download Bundle to temporary location if remote URI is given */
+	bundlescheme = g_uri_parse_scheme(bundlename);
+	if (is_remote_scheme(bundlescheme)) {
+#if ENABLE_NETWORK
+		ibundle->origpath = g_strdup(bundlename);
+		ibundle->path = g_build_filename(g_get_tmp_dir(), "_download.raucb", NULL);
+
+		g_message("Remote URI detected, downloading bundle to %s...", ibundle->path);
+		res = download_file(ibundle->path, ibundle->origpath, BUNDLE_DL_MAX_SIZE, &ierror);
+		if (!res) {
+			g_propagate_prefixed_error(error, ierror, "Failed to download bundle %s: ", ibundle->origpath);
+			goto out;
+		}
+		g_debug("Downloaded temp bundle to %s", ibundle->path);
+#else
+		g_warning("Mounting remote bundle not supported, recompile with --enable-network");
+#endif
+	} else {
+		ibundle->path = g_strdup(bundlename);
+	}
 
 	if (verify && !r_context()->config->keyring_path) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_KEYRING, "No keyring file provided");
+		res = FALSE;
 		goto out;
 	}
 
-	g_message("Reading bundle: %s", bundlename);
+	g_message("Reading bundle: %s", ibundle->path);
 
-	bundlefile = g_file_new_for_path(bundlename);
+	bundlefile = g_file_new_for_path(ibundle->path);
 	bundlestream = g_file_read(bundlefile, NULL, &ierror);
 	if (bundlestream == NULL) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
 				"Failed to open bundle for reading: ");
+		res = FALSE;
 		goto out;
 	}
 
@@ -452,7 +486,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 
 		g_message("Verifying bundle... ");
 		/* the squashfs image size is in offset */
-		res = cms_verify_file(bundlename, sig, offset, &cms, &store, &ierror);
+		res = cms_verify_file(ibundle->path, sig, offset, &cms, &store, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -520,7 +554,7 @@ out:
 }
 
 gboolean mount_bundle(RaucBundle *bundle, GError **error) {
-	gchar* mount_point = NULL;
+	gchar *mount_point = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -553,6 +587,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error) {
 
 	res = TRUE;
 out:
+
 	return res;
 }
 
@@ -581,6 +616,10 @@ out:
 
 void free_bundle(RaucBundle *bundle) {
 	g_return_if_fail(bundle);
+
+	/* In case of a temporary donwload artifact, remove it. */
+	if (bundle->origpath)
+		g_remove(bundle->path);
 
 	g_free(bundle->path);
 	g_free(bundle->mount_point);
