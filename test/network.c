@@ -28,10 +28,14 @@ static void test_download_file(NetworkFixture *fixture,
 			       gconstpointer user_data)
 {
 	const gchar *target;
+	GError *ierror = NULL;
+	gboolean res;
 
 	target = g_build_filename(fixture->tmpdir, "target", NULL);
 	
-	g_assert_true(download_file(target, "http://example.com/", 0));
+	res = download_file(target, "http://example.com/", 0, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
 }
 
 static void test_download_mem(void)

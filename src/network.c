@@ -1,6 +1,7 @@
 #include <config.h>
 
 #include <curl/curl.h>
+#include <gio/gio.h>
 #include <glib/gstdio.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,7 +93,7 @@ out:
 	return res;
 }
 
-gboolean download_file(const gchar *target, const gchar *url, gsize limit) {
+gboolean download_file(const gchar *target, const gchar *url, gsize limit, GError **error) {
 	RaucTransfer xfer = {0};
 	gboolean res = FALSE;
 
@@ -103,12 +104,15 @@ gboolean download_file(const gchar *target, const gchar *url, gsize limit) {
 
 	xfer.dl = fopen(target, "wbx");
 	if (xfer.dl == NULL) {
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Failed opening target file");
 		goto out;
 	}
 
 	res = transfer(&xfer);
-	if (!res)
+	if (!res) {
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed");
 		goto out;
+	}
 
 out:
 	g_clear_pointer(&xfer.dl, fclose);
@@ -133,7 +137,7 @@ gboolean download_file_checksum(const gchar *target, const gchar *url,
 	if (g_file_test(tmppath, G_FILE_TEST_EXISTS))
 		goto out;
 
-	res = download_file(tmppath, url, checksum->size);
+	res = download_file(tmppath, url, checksum->size, NULL);
 	if (!res)
 		goto out;
 
