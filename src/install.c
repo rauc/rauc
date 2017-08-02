@@ -1,3 +1,5 @@
+#include <config.h>
+
 #include <glib.h>
 #include <gio/gio.h>
 #include <glib/gstdio.h>
@@ -23,7 +25,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <config.h>
 
 /* All exit codes of hook script above this mean 'rejected' */
 #define INSTALL_HOOK_REJECT_CODE 10

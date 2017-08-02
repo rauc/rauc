@@ -1,3 +1,5 @@
+#include <config.h>
+
 #include "update_handler.h"
 #include "mount.h"
 #include "context.h"

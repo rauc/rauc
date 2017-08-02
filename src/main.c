@@ -9,7 +9,6 @@
 #include <json-glib/json-gobject.h>
 #endif
 
-#include <config.h>
 #include <bootchooser.h>
 #include <bundle.h>
 #include <config_file.h>

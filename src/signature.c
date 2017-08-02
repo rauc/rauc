@@ -1,3 +1,5 @@
+#include <config.h>
+
 #include <openssl/cms.h>
 #include <openssl/conf.h>
 #include <openssl/err.h>

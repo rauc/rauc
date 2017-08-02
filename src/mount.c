@@ -1,9 +1,9 @@
+#include <config.h>
 #include <unistd.h>
 
 #include <gio/gio.h>
 #include <glib/gstdio.h>
 
-#include <config.h>
 #include "mount.h"
 #include "utils.h"
 #include "context.h"

@@ -1,3 +1,5 @@
+#include <config.h>
+
 #include <config_file.h>
 #include <network.h>
 #include <signature.h>

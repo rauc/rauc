@@ -1,3 +1,5 @@
+#include <config.h>
+
 #include "manifest.h"
 
 #include <checksum.h>
