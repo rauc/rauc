@@ -77,6 +77,7 @@ static gboolean transfer(RaucTransfer *xfer) {
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, xfer);
 	curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xfer_cb);
 	curl_easy_setopt(curl, CURLOPT_XFERINFODATA, xfer);
+	curl_easy_setopt(curl, CURLOPT_FAILONERROR, xfer);
 
 	r = curl_easy_perform(curl);
 	if (r != CURLE_OK) {
