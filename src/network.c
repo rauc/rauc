@@ -56,7 +56,7 @@ static int xfer_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 	return 0;
 }
 
-static gboolean transfer(RaucTransfer *xfer) {
+static gboolean transfer(RaucTransfer *xfer, GError **error) {
 	CURL *curl = NULL;
 	CURLcode r;
 	gboolean res = FALSE;
@@ -80,7 +80,12 @@ static gboolean transfer(RaucTransfer *xfer) {
 	curl_easy_setopt(curl, CURLOPT_FAILONERROR, xfer);
 
 	r = curl_easy_perform(curl);
-	if (r != CURLE_OK) {
+	if (r == CURLE_HTTP_RETURNED_ERROR) {
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "HTTP returned >=400");
+		res = FALSE;
+		goto out;
+	} else if (r != CURLE_OK) {
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed");
 		res = FALSE;
 		goto out;
 	}
@@ -97,6 +102,7 @@ out:
 gboolean download_file(const gchar *target, const gchar *url, gsize limit, GError **error) {
 	RaucTransfer xfer = {0};
 	gboolean res = FALSE;
+	GError *ierror = NULL;
 
 	xfer.url = url;
 	xfer.limit = limit;
@@ -109,9 +115,9 @@ gboolean download_file(const gchar *target, const gchar *url, gsize limit, GErro
 		goto out;
 	}
 
-	res = transfer(&xfer);
+	res = transfer(&xfer, &ierror);
 	if (!res) {
-		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed");
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 
@@ -170,7 +176,7 @@ gboolean download_mem(GBytes **data, const gchar *url, gsize limit) {
 		goto out;
 	}
 
-	res = transfer(&xfer);
+	res = transfer(&xfer, NULL);
 	if (!res)
 		goto out;
 	
