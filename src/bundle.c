@@ -127,7 +127,7 @@ static gboolean input_stream_read_uint64_all(GInputStream *stream,
 	gsize bytes_read;
 	gboolean res;
 
-	res = g_input_stream_read_all(stream, &tmp, sizeof(tmp), &bytes_read,
+	res = g_input_stream_read_all(stream, &tmp, (goffset) sizeof(tmp), &bytes_read,
 		                      cancellable, error);
 	g_assert(bytes_read == sizeof(tmp));
 	*data = GUINT64_FROM_BE(tmp);
