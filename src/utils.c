@@ -1,10 +1,10 @@
 #include <config.h>
 
 #include <ftw.h>
-#include <string.h>
+#include <gio/gio.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-#include <gio/gio.h>
+#include <string.h>
 
 #include "utils.h"
 

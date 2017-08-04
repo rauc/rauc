@@ -1,16 +1,16 @@
 #include <config.h>
 
-#include <stdio.h>
-#include <glib.h>
-#include <glib-unix.h>
 #include <gio/gio.h>
+#include <glib-unix.h>
+#include <glib.h>
+#include <stdio.h>
 
+#include "bundle.h"
 #include "context.h"
 #include "install.h"
-#include "service.h"
-#include "bundle.h"
-#include "utils.h"
 #include "rauc-installer-generated.h"
+#include "service.h"
+#include "utils.h"
 
 GMainLoop *service_loop = NULL;
 RInstaller *r_installer = NULL;

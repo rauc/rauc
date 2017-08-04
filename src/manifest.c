@@ -1,10 +1,9 @@
 #include <config.h>
 
-#include "manifest.h"
-
 #include "checksum.h"
 #include "config_file.h"
 #include "context.h"
+#include "manifest.h"
 #include "signature.h"
 #include "utils.h"
 

@@ -2,10 +2,10 @@
 
 #include <gio/gio.h>
 
-#include "context.h"
-#include "signature.h"
-#include "mount.h"
 #include "bundle.h"
+#include "context.h"
+#include "mount.h"
+#include "signature.h"
 
 GQuark
 r_bundle_error_quark (void)
