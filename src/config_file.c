@@ -1,8 +1,9 @@
+#include <config.h>
+
 #include <glib.h>
 
 #include "config_file.h"
-
-#include <utils.h>
+#include "utils.h"
 
 G_DEFINE_QUARK(r-config-error-quark, r_config_error)
 

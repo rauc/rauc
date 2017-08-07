@@ -1,9 +1,11 @@
-#include <config_file.h>
-#include <network.h>
-#include <signature.h>
+#include <config.h>
+
 #include <gio/gio.h>
 
+#include "config_file.h"
 #include "context.h"
+#include "network.h"
+#include "signature.h"
 
 RaucContext *context = NULL;
 

@@ -1,29 +1,30 @@
-#include <glib.h>
-#include <gio/gio.h>
-#include <glib/gstdio.h>
+#include <config.h>
 
-#include <context.h>
-#include <network.h>
-#include <signature.h>
-#include "install.h"
-#include "manifest.h"
-#include "bundle.h"
-#include "mount.h"
-#include "utils.h"
-#include "bootchooser.h"
-#include "service.h"
-#include "update_handler.h"
-#include <sys/ioctl.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <gio/gfiledescriptorbased.h>
+#include <gio/gio.h>
 #include <gio/gunixmounts.h>
 #include <gio/gunixoutputstream.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+#include <glib.h>
+#include <glib/gstdio.h>
 #include <stdio.h>
-#include <config.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include "bootchooser.h"
+#include "bundle.h"
+#include "context.h"
+#include "install.h"
+#include "manifest.h"
+#include "mount.h"
+#include "network.h"
+#include "service.h"
+#include "signature.h"
+#include "update_handler.h"
+#include "utils.h"
 
 /* All exit codes of hook script above this mean 'rejected' */
 #define INSTALL_HOOK_REJECT_CODE 10

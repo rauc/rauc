@@ -1,10 +1,12 @@
+#include <config.h>
+
 #include <openssl/cms.h>
 #include <openssl/conf.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 
-#include <context.h>
+#include "context.h"
 #include "signature.h"
 
 #define R_SIGNATURE_ERROR r_signature_error_quark ()

@@ -1,7 +1,9 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <config.h>
+
 #include <curl/curl.h>
 #include <glib/gstdio.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "network.h"
 

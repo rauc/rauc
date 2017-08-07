@@ -1,22 +1,21 @@
 #include <config.h>
 
-#include <stdio.h>
+#include <gio/gio.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-#include <gio/gio.h>
 #if ENABLE_JSON
 #include <json-glib/json-glib.h>
 #include <json-glib/json-gobject.h>
 #endif
+#include <stdio.h>
 
-#include <config.h>
-#include <bootchooser.h>
-#include <bundle.h>
-#include <config_file.h>
-#include <context.h>
-#include <install.h>
-#include <service.h>
+#include "bootchooser.h"
+#include "bundle.h"
+#include "config_file.h"
+#include "context.h"
+#include "install.h"
 #include "rauc-installer-generated.h"
+#include "service.h"
 #include "utils.h"
 
 GMainLoop *r_loop = NULL;

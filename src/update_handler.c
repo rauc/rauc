@@ -1,16 +1,17 @@
-#include "update_handler.h"
-#include "mount.h"
-#include "context.h"
+#include <config.h>
 
-#include <gio/gunixoutputstream.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <string.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <gio/gunixoutputstream.h>
 #include <mtd/ubi-user.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include "context.h"
+#include "mount.h"
+#include "update_handler.h"
 
 
 #define R_SLOT_HOOK_PRE_INSTALL "slot-pre-install"

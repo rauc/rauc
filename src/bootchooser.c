@@ -1,5 +1,7 @@
-#include <gio/gio.h>
+#include <config.h>
+
 #include <errno.h>
+#include <gio/gio.h>
 
 #include "bootchooser.h"
 #include "config_file.h"

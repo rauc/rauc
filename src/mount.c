@@ -1,12 +1,12 @@
-#include <unistd.h>
+#include <config.h>
 
 #include <gio/gio.h>
 #include <glib/gstdio.h>
+#include <unistd.h>
 
-#include <config.h>
+#include "context.h"
 #include "mount.h"
 #include "utils.h"
-#include "context.h"
 
 gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, gsize size, GError **error) {
 	GSubprocess *sproc = NULL;
