@@ -14,6 +14,7 @@ Contents:
    :maxdepth: 1
 
    updating
+   basic
    using
    examples
    scenarios
