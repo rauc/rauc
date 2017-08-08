@@ -18,11 +18,10 @@ Contents:
    using
    examples
    scenarios
-   checklist
    integration
+   checklist
    reference
    terminology
-   design
    contributing
 
    changes
