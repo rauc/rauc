@@ -55,7 +55,7 @@ static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
 	const gchar *message = NULL;
 
 	if (invalidated && invalidated[0]) {
-		g_warning("rauc service disappeared\n");
+		g_printerr("RAUC service disappeared\n");
 		g_mutex_lock(&args->status_mutex);
 		args->status_result = 2;
 		g_mutex_unlock(&args->status_mutex);
@@ -103,7 +103,7 @@ static gboolean install_start(int argc, char **argv)
 	r_exit_status = 1;
 
 	if (argc < 3) {
-		g_printerr("a bundle filename name must be provided\n");
+		g_printerr("A bundle filename name must be provided\n");
 		goto out;
 	}
 
@@ -152,18 +152,18 @@ static gboolean install_start(int argc, char **argv)
 		}
 		if (g_signal_connect(installer, "g-properties-changed",
 				     G_CALLBACK(on_installer_changed), args) <= 0) {
-			g_printerr("failed to connect properties-changed signal\n");
+			g_printerr("Failed to connect properties-changed signal\n");
 			goto out_loop;
 		}
 		if (g_signal_connect(installer, "completed",
 				     G_CALLBACK(on_installer_completed), args) <= 0) {
-			g_printerr("failed to connect completed signal\n");
+			g_printerr("Failed to connect completed signal\n");
 			goto out_loop;
 		}
-		g_print("trying to contact rauc service\n");
+		g_print("Trying to contact rauc service\n");
 		if (!r_installer_call_install_sync(installer, bundlelocation, NULL,
 						   &error)) {
-			g_printerr("failed %s\n", error->message);
+			g_printerr("Failed %s\n", error->message);
 			g_error_free (error);
 			goto out_loop;
 		}
@@ -177,16 +177,16 @@ static gboolean install_start(int argc, char **argv)
 out_loop:
 	switch (args->status_result) {
 		case 0:
-			g_print("installing `%s` succeeded\n", args->name);
+			g_print("Installing `%s` succeeded\n", args->name);
 			break;
 		case 1:
-			g_printerr("installing `%s` failed\n", args->name);
+			g_printerr("Installing `%s` failed\n", args->name);
 			break;
 		case 2:
 			g_printerr("D-Bus error while installing `%s`\n", args->name);
 			break;
 		default:
-			g_printerr("installing `%s` failed with unknown exit code: %d\n", args->name, args->status_result);
+			g_printerr("Installing `%s` failed with unknown exit code: %d\n", args->name, args->status_result);
 			break;
 	}
 	r_exit_status = args->status_result;
@@ -210,34 +210,36 @@ static gboolean bundle_start(int argc, char **argv)
 
 	if (r_context()->certpath == NULL ||
 	    r_context()->keypath == NULL) {
-		g_warning("cert and key files must be provided");
+		g_printerr("Cert and key files must be provided\n");
 		r_exit_status = 1;
 		goto out;
 	}
 
 	if (argc < 3) {
-		g_warning("an input directory name must be provided");
+		g_printerr("An input directory name must be provided\n");
 		r_exit_status = 1;
 		goto out;
 	}
 
 	if (argc != 4) {
-		g_warning("an output bundle name must be provided");
+		g_printerr("An output bundle name must be provided\n");
 		r_exit_status = 1;
 		goto out;
 	}
 
-	g_print("input directory: %s\n", argv[2]);
-	g_print("output bundle: %s\n", argv[3]);
+	g_debug("input directory: %s", argv[2]);
+	g_debug("output bundle: %s", argv[3]);
 
 	if (!update_manifest(argv[2], FALSE, &ierror)) {
-		g_warning("failed to update manifest: %s", ierror->message);
+		g_printerr("Failed to update manifest: %s\n", ierror->message);
+		g_clear_error(&ierror);
 		r_exit_status = 1;
 		goto out;
 	}
 
 	if (!create_bundle(argv[3], argv[2], &ierror)) {
-		g_warning("failed to create bundle: %s", ierror->message);
+		g_printerr("Failed to create bundle: %s\n", ierror->message);
+		g_clear_error(&ierror);
 		r_exit_status = 1;
 		goto out;
 	}
@@ -258,13 +260,13 @@ static gboolean checksum_start(int argc, char **argv)
 		sign = TRUE;
 	} else if (r_context()->certpath != NULL ||
 	    r_context()->keypath != NULL) {
-		g_warning("Either both or none of cert and key files must be provided");
+		g_printerr("Either both or none of cert and key files must be provided\n");
 		r_exit_status = 1;
 		goto out;
 	}
 
 	if (argc != 3) {
-		g_warning("A directory name must be provided");
+		g_printerr("A directory name must be provided\n");
 		r_exit_status = 1;
 		goto out;
 	}
@@ -272,7 +274,7 @@ static gboolean checksum_start(int argc, char **argv)
 	g_message("updating checksums for: %s", argv[2]);
 
 	if (!update_manifest(argv[2], sign, &error)) {
-		g_warning("Failed to update manifest: %s", error->message);
+		g_printerr("Failed to update manifest: %s\n", error->message);
 		g_clear_error(&error);
 		r_exit_status = 1;
 	}
@@ -539,7 +541,7 @@ static gboolean info_start(int argc, char **argv)
 	gchar* (*formatter)(RaucManifest *manifest) = NULL;
 
 	if (argc != 3) {
-		g_warning("a file name must be provided");
+		g_printerr("A file name must be provided\n");
 		r_exit_status = 1;
 		return FALSE;
 	}
@@ -559,7 +561,7 @@ static gboolean info_start(int argc, char **argv)
 
 	tmpdir = g_dir_make_tmp("bundle-XXXXXX", &error);
 	if (!tmpdir) {
-		g_warning("%s", error->message);
+		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
 		goto out;
 	}
@@ -569,14 +571,14 @@ static gboolean info_start(int argc, char **argv)
 
 	res = extract_file_from_bundle(argv[2], bundledir, "manifest.raucm", !info_noverify, &error);
 	if (!res) {
-		g_warning("%s", error->message);
+		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
  		goto out;
  	}
 
 	res = load_manifest_file(manifestpath, &manifest, &error);
 	if (!res) {
-		g_warning("%s", error->message);
+		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
 		goto out;
 	}
@@ -823,7 +825,7 @@ static gboolean status_start(int argc, char **argv)
 	}
 
 	if (!booted) {
-		g_warning("Failed to determine booted slot");
+		g_printerr("Failed to determine booted slot\n");
 		r_exit_status = 1;
 		goto out;
 	}
