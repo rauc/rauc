@@ -1,13 +1,42 @@
 Integration
 ===========
 
-When integrating RAUC (and in general) we recommend using a Linux system build
-tool like Yocto / OpenEmbedded or PTXdist. For information about how
-to integrate RAUC using these tools, refer to section :ref:`sec_int_yocto` or
-:ref:`sec_int_ptxdist`.
+If you intend to prepare your platform for using RAUC as an update framework,
+this chapter will guide you through the required steps and show the different
+ways you can choose.
 
-System Configuration
---------------------
+To integrate RAUC, you first need to be able to build RAUC as both a host and a
+target application.
+The host application is needed for generating update bundles while the target
+application or service performs the core task of RAUC:
+updating you device.
+
+In an update system, a lot of components have to play together and have to be
+configured appropriately to interact correctly.
+In principle, these are:
+
+* Hardware setup, Devices, Partitions, etc.
+* The bootloader
+* The Linux kernel
+* The init system
+* System utilities (mount, mkfs, ...)
+* The update tool, RAUC itself
+
+.. note::
+  When integrating RAUC into your embedded Linux system, and in general,
+  we highly recommend using a Linux system build system like Yocto /
+  OpenEmbedded or PTXdist that allows you to have well defined software states
+  while easing integration of the different components involved.
+
+  For information about how to integrate RAUC using these tools,
+  refer to the sections :ref:`sec_int_yocto` or :ref:`sec_int_ptxdist`.
+
+.. _sec-int-system-config:
+
+RAUC System Configuration
+-------------------------
+
+The system configuration file is the central configuration in RAUC that maps 
 
 RAUC expects the file ``/etc/rauc/system.conf`` to describe the system it runs
 on in a way that all relevant information for performing updates and making
@@ -16,62 +45,111 @@ decisions are given.
 .. note:: For a full reference of the system.conf file refer to section
   :ref:`sec_ref_slot_config`
 
-Similar to other configuration files used by RAUC, the system configuration
-uses a key-value syntax (similar to those known from .ini files).
+Similar to other configuration files used by RAUC,
+the system configuration uses a key-value syntax (similar to those known from
+.ini files).
 
 Slot Configuration
 ~~~~~~~~~~~~~~~~~~
 
 The most important step is to describe the slots that RAUC should use
-when performing updates. Which slots are required and what you have to take
-care of when designing your system will be covered in the chapter :ref:`todo`.
-This section assumes that you have already decided on a setup and want to describe
-it for RAUC.
+when performing updates.
+Which slots are required and what you have to take care of when designing your
+system will be covered in the chapter :ref:`sec-scenarios`.
+This section assumes that you have already decided on a setup and want to
+describe it for RAUC.
 
-A slot is defined by a slot section. The naming of the section must follow a
-simple format: `slot.<slot-class>.<slot-index>` where *slot-class* describes a
-group used for redundancy and *slot-index* is the index of the individual slot
-starting with 0.
-If you have two rootfs slots, for example, one slot section will be named
-``[slot.rootfs.0]``, the other will be named ``[slot.rootfs.1]``.
+A slot is defined by a slot section.
+The naming of the section must follow a simple format:
+``[slot.<slot-class>.<slot-index>]``
+where *<slot-class>* describes a class of possibly multiple redundant slots
+(such as ``rootfs``, ``recovery`` or ``appfs``)
+and *slot-index* is the index of the individual slot instance,
+starting with index 0.
+
+If you have two redundant slots used for the root file system, for example,
+you should name your sections according to this example:
+
+.. code-block:: cfg
+
+  [slot.rootfs.0]
+  device = [...]
+
+  [slot.rootfs.1]
+  device = [...]
+
 RAUC does not have predefined class names. The only requirement is that the
-class names used in the system config match those in the update manifests.
+class names used in the system config match those you later use in the update
+manifests.
 
-The mandatory settings for each slot are: the ``device`` that holds the
-(device) path describing *where* the slot is located, the ``type`` that
-defines *how* to update the target device, and the ``bootname`` which is
-the name the bootloader uses to refer to this slot device.
+The mandatory settings for each slot are:
 
-Type
-^^^^
+* the ``device`` that holds the (device) path describing *where* the slot is
+  located,
+* the ``type`` that defines *how* to update the target device, 
 
-A list of common types supported by RAUC:
+If the slot is bootable, then you also need
 
-+----------+-------------------------------------------------------------------+
-| Type     | Description                                                       |
-+----------+-------------------------------------------------------------------+
-| raw      | A partition holding no (known) file system. Only raw image copies |
-|          | may be performed.                                                 |
-+----------+-------------------------------------------------------------------+
-| ext4     | A partition holding an ext4 filesystem.                           |
-+----------+-------------------------------------------------------------------+
-| nand     | A NAND partition.                                                 |
-+----------+-------------------------------------------------------------------+
-| ubivol   | A NAND partition holding an UBI volume                            |
-+----------+-------------------------------------------------------------------+
-| ubifs    | A NAND partition holding an UBI volume containing an UBIFS.       |
-+----------+-------------------------------------------------------------------+
+* the ``bootname`` which is the name the bootloader uses to refer to this slot
+  device.
+
+Slot Type
+^^^^^^^^^
+
+A list of slot storage types currently supported by RAUC:
+
++----------+-------------------------------------------------------------------+-------------+
+| Type     | Description                                                       | Tar support |
++----------+-------------------------------------------------------------------+-------------+
+| raw      | A partition holding no (known) file system. Only raw image copies |             |
+|          | may be performed.                                                 |             |
++----------+-------------------------------------------------------------------+-------------+
+| ext4     | A block device holding an ext4 filesystem.                        |     x       |
++----------+-------------------------------------------------------------------+-------------+
+| nand     | A raw NAND partition.                                             |             |
++----------+-------------------------------------------------------------------+-------------+
+| ubivol   | An UBI partition in NAND.                                         |             |
++----------+-------------------------------------------------------------------+-------------+
+| ubifs    | An UBI volume containing an UBIFS in NAND.                        |     x       |
++----------+-------------------------------------------------------------------+-------------+
+
+Grouping Slots
+^^^^^^^^^^^^^^
+
+If multiple slots belong together in a way that they always have to be updated
+together with the respective other slots, you can ensure this by grouping slots.
+
+A group must always have a single bootable slot, then all other slots define a
+parent relationship to this bootable slot as follows:
+
+.. code-block:: cfg
+
+  [slot.rootfs.0]
+  ... 
+
+  [slot.appfs.0]
+  parent = rootfs.0
+  ...
+
+  [slot.rootfs.1]
+  ...
+
+  [slot.appfs.1]
+  parent = rootfs.1
+  ...
 
 Kernel Configuration
 --------------------
 
-The kernel used on the target device must support both loop devices and the
-SquashFS file system to allow installing bundles.
+The kernel used on the target device must support both loop block devices and the
+SquashFS file system to allow installing RAUC bundles.
 
 In kernel Kconfig you have to enable the following options:
 
-  * `CONFIG_BLK_DEV_LOOP=y`
-  * `CONFIG_SQUASHFS=y`
+.. code-block:: cfg
+
+  CONFIG_BLK_DEV_LOOP=y
+  CONFIG_SQUASHFS=y
 
 Required Target Tools
 ---------------------
@@ -100,8 +178,8 @@ cannot fully know how you intend to use your system.
 Interfacing with the Bootloader
 -------------------------------
 
-RAUC provides support for interfacing with different types of bootloaders. To
-select the bootloader you have or intend to use on your system, set the
+RAUC provides support for interfacing with different types of bootloaders.
+To select the bootloader you have or intend to use on your system, set the
 ``bootloader`` key in the ``[system]`` section of your devices ``system.conf``.
 
 .. note::
@@ -109,10 +187,10 @@ select the bootloader you have or intend to use on your system, set the
   If in doubt about choosing the right bootloader, we recommend to use Barebox
   as it provides a dedicated boot handling framework, called `bootchooser`.
 
-To allow RAUC handling a bootable slot, you have to mark it bootable in your
-system.conf and configure the name under which the bootloader is able to
-identify this distinct slot. This is both done by setting the ``bootname``
-property.
+To let RAUC handle a bootable slot, you have to mark it as bootable in your
+system.conf and configure the name under which the bootloader identifies this
+specific slot.
+This is both done by setting the ``bootname`` property.
 
 .. code-block:: cfg
 
@@ -123,30 +201,277 @@ property.
 Barebox
 ~~~~~~~
 
+The `Barebox <http://www.barebox.org>`_ bootloader,
+which is available for many common embedded platforms,
+provides a dedicated boot source selection framework, called *bootchooser*,
+backed by an atomic and redundant storage backend, named *state*.
+
+Barebox state allows you to save the variables required by bootchooser with
+memory specific storage strategies in all common storage medias,
+such as block devices, mtd (NAND/NOR), EEPROM, and UEFI variables.
+
+The Bootchooser framework maintains informations about priority and remaining
+boot attemps while being configurable on how to deal with them for different
+strategies.
+
+
+To enable the Barebox bootchooser support in RAUC, select it in your
+system.conf:
+
 .. code-block:: cfg
 
   [system]
   ...
   bootloader=barebox
 
-Barebox support requires you to have the **bootchooser framework** with
-**barebox state** backend enabled. In Barebox Kconfig you can enable this by
-setting:
+Configure Barebox
+-----------------
+
+As mentioned above, Barebox support requires you to have the *bootchooser
+framework* with *barebox state* backend enabled.
+In Barebox Kconfig you can enable this by setting:
 
 .. code-block:: cfg
 
   CONFIG_BOOTCHOOSER=y
   CONFIG_STATE=y
+  CONFIG_STATE_DRV=y
 
-To enable reading and writing of the required state variables, you also have
-to add the ``barebox-state`` tool from the `dt-utils
-<https://git.pengutronix.de/cgit/tools/dt-utils/>`_ repository to your
-systems rootfs.
+To debug and interact with bootchooser and state in Barebox,
+you should also enable these tools:
+
+.. code-block:: cfg
+
+  CONFIG_CMD_STATE=y
+  CONFIG_CMD_BOOTCHOOSER=y
+
+Setup Barebox Bootchooser
+-------------------------
+
+The barebox bootchooser framework allows you to specify a number of redundant
+boot targets that should be automatically selected by an algorithm,
+based on status information saved for each boot target.
+
+The bootchooser itself can be used as a Barebox boot target.
+This is where we start by setting the barebox default boot target to
+`bootchooser`::
+
+  nv bootchooser.default="bootchooser"
+
+Now, when Barebox is initialized it starts the bootchooser logik to select its
+real boot target.
+
+As a next step, we need to tell bootchooser which boot targets it should
+handle. These boot targets can have descriptive names must not equal any of
+your existing boot targets, we will have a mapping for this later on.
+
+In this example we call the virtual bootchooser boot targets ``system0`` and
+``system1``::
+
+  nv bootchooser.targets="system0 system1"
+
+These virtual boot targets you connect to real Barebox boot target
+(one of its automagical ones or custom boot scripts)::
+
+  nv bootchooser.system0.boot="nand0.ubi.system0"
+  nv bootchooser.system1.boot="nand0.ubi.system1"
+
+To configure bootchooser to store the variables in Barebox state, you need to configure the ``state_prefix``::
+
+  nv bootchooser.state_prefix="state.bootstate"
+
+Beside this very basic configuration variables, you need to set up a set of
+other general and slot-specific variables.
+
+.. warning::
+  It is highly recommended to read the full Barebox bootchooser
+  `documentation <http://barebox.org/doc/latest/user/bootchooser.html>`_
+  in order to know about the requirements and possibilites in fine-tuning the
+  behavior according to you needs.
+
+  Also make sure to have these ``nv`` settings in your compiled-in environment,
+  not in your device-local environment.
+
+Setting up Barebox State for Bootchooser
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For storing its status information, the botchooser framework requires a
+*barebox,state* instance to be set up with a set of variables matching the set
+of virtual boot targets defined.
+
+To allow loading the state information in a well-defined format both from
+Barebox and from the kernel,
+we store the state data format definition in the Barebox devicetree.
+
+Barebox fixups the information into the Linux devicetree when loading the
+kernel.
+This assures having a consistent view on the variables in Barebox and Linux.
+
+An example devicetree node for our simple redundant setup will have the
+following basic structure::
+
+  state {
+    bootstate {
+      system0 {
+      ...
+      };
+      system1 {
+      ...
+      };
+    };
+  };
+
+In the state node, we set the appropriate compatible to tell the *barebox,state*
+driver to care for it and define where and how we want to store our data.
+This will look similar to this::
+
+  state: state {
+          magic = <0x4d433230>;
+          compatible = "barebox,state";
+          backend-type = "raw";
+          backend = <&state_storage>;
+          backend-stridesize = <0x40>;
+          backend-storage-type = "circular";
+          #address-cells = <1>;
+          #size-cells = <1>;
+
+	  [...]
+  }
+
+where ``<&state_storage>`` is a phandle to, e.g. an EEPROM or NAND partition.
+
+.. important::
+   The device tree only defines where and in which format the data will
+   be stored. By default, no data will be stored in the deviectree itself!
+
+The rest of the variable set definition will be made in the ``bootstate``
+subnode.
+
+For each virtual boot target handled by state,
+two uint32 variables ``remaining_attempts`` and ``priority`` need to be
+defined.:
+
+.. code-block:: c
+
+  bootstate {
+
+          system0 {
+                  #address-cells = <1>;
+                  #size-cells = <1>;
+          
+                  remaining_attempts@0 {
+                          reg = <0x0 0x4>;
+                          type = "uint32";
+                          default = <3>;
+                  };
+                  priority@4 {
+                          reg = <0x4 0x4>;
+                          type = "uint32";
+                          default = <20>;
+                  };
+          };
+
+          [...]
+  };
 
 .. note::
-  For details on how to set it up, which storage backend to use, etc. refer to
-  the Barebox `bootchooser documentation
-  <http://barebox.org/doc/latest/user/bootchooser.html>`_.
+  As the example shows, you must also specify some useful default variables the
+  state driver will load in case of uninitialized backend storage
+
+Additionally one single variable for storing information about the last chosen
+boot target is required::
+
+  bootstate {
+
+          [...]
+
+          last_chosen@10 {
+                  reg = <0x10 0x4>;
+                  type = "uint32";
+          };
+  };
+
+.. warning::
+  This example shows only a highly condensed except of setting up Barebox
+  bootchooser with barebox state.
+  For a full documentation on configuration options, possible strategies or
+  memory backend handling, see the official Barebox Bootchooser and Barebox
+  state documentation!
+
+You can verify your setup by calling ``devinfo state`` from Barebox,
+which would print this for example:
+
+.. code-block:: sh
+
+  barebox@board:/ devinfo state
+  Parameters:
+  bootstate.last_chosen: 2 (type: uint32)
+  bootstate.system0.priority: 10 (type: uint32)
+  bootstate.system0.remaining_attempts: 3 (type: uint32)
+  bootstate.system1.priority: 20 (type: uint32)
+  bootstate.system1.remaining_attempts: 3 (type: uint32)
+  dirty: 0 (type: bool)
+  save_on_shutdown: 1 (type: bool)
+
+Once you have set up bootchooser properly, you finally need to enable RAUC to
+interact with it.
+
+Enable Accessing Barebox State for RAUC
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For this, you need to specify which (virtual) boot target belongs to which
+of the RAUC slots you defined.
+You do this by assigning the virtual boot target name to the slots ``bootname``
+property:
+
+.. code-block:: cfg
+
+  [slot.rootfs.0]
+  ...
+  bootname=system0
+
+  [slot.rootfs.1]
+  ...
+  bootname=system1
+
+
+For writing the bootchoosers state variables from userspace,
+RAUC uses the tool *barebox-state* form the
+`dt-utils <https://git.pengutronix.de/cgit/tools/dt-utils/>`_ repository.
+
+Make sure to have this tool integrated on your target platform.
+You can verify your setup by calling it manually:
+
+.. code-block:: sh
+
+  # barebox-state -d
+  bootstate.system0.remaining_attempts=3
+  bootstate.system0.priority=10
+  bootstate.system1.remaining_attempts=3
+  bootstate.system1.priority=20
+  bootstate.last_chosen=2
+
+Verify Boot Slot Detection
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As detecting the currently booted rootfs slot from userspace and matching it to
+one of the slots defined in RAUCs system.conf is not always trivial and
+error-prone, Barebox provides an explicit information about which slot it
+selected for booting adding a `bootchooser.active` key to the commandline of
+the kernel it boots. This key has the virtual bootchooser boot target assigned.
+In our case, if the bootchooser logic decided to boot `system0` the kernel
+commandline will contain::
+
+  bootchooser.active=system0
+
+RAUC uses this information for detecting the active boot slot (based on the
+slots `bootname` property).
+
+If the kernel commandline of your booted system contains this line, you have
+successfully set up bootchooser to boot your slot::
+
+  $ cat /proc/cmdline
+  
 
 U-Boot
 ~~~~~~
@@ -166,9 +491,13 @@ remaining boot attempts for the respective slot in your bootloader script.
 To enable reading and writing of the U-Boot environment, you need to have the
 U-Boot target tool ``fw_setenv`` available on your devices rootfs.
 
-An examplary U-Boot script for handling redundant boot setups is located in the
+An U-Boot script example for handling redundant boot setups is located in the
 ``contrib/`` folder of the RAUC source repository (``uboot.sh``).
 
+.. note::
+   If you want to implement different behavior or use other variable names, you
+   will need to modify the ``uboot_set_state()`` and ``uboot_set_primary()``
+   functions in ``src/bootchooser.c``.
 
 GRUB
 ~~~~
@@ -195,22 +524,76 @@ per enabled slot.
 Others
 ~~~~~~
 
-System Boot
------------
-   * Watchdog vs. Confirmation
-   * Kernel Command Line: booted slot
-   * D-Bus-Service vs. Single Binary
-   * Cron
+It is planned to add support for a `custom` boot selection implementation that
+will allow you to use also non-conventional or yet unimplemented approaches for
+selecting your boot slot.
 
-Backend
--------
+Init System and Service Startup
+-------------------------------
 
-Persistent Data
----------------
+There are several ways to run the RAUC service on your target.
+The recommended way is to use a Systemd-based system and allow to start RAUC
+via D-Bus activation.
 
-   * SSH-Keys?
+You can start the RAUC service manually by executing::
 
-Feel free to extend RAUC with support for your bootloader.
+  $ rauc service
+
+Systemd Integration
+~~~~~~~~~~~~~~~~~~~
+
+When building RAUC, a default systemd ``rauc.service`` file will be generated
+in the ``data/`` folder.
+
+Depending on your configuration ``make install`` will place this file in one of
+your systems service file folders.
+
+It is a good idea to wait for the system to be fully started before marking it
+as succesfully booted.
+In order to achieve this, a smart soluting is create a systemd service that calls
+``rauc status mark-good`` and use systemd's dependency handling to assure this
+service will not be executed before all relevant other services came up
+successfully. It could look similar to this:
+
+.. code-block:: cfg
+
+  [Unit]
+  Description=RAUC Good-marking Service
+  ConditionKernelCommandLine=|bootchooser.active
+  ConditionKernelCommandLine=|rauc.slot
+  
+  [Service]
+  ExecStart=/usr/bin/rauc status mark-good
+  
+  [Install]
+  WantedBy=multi-user.target
+
+
+D-Bus Integration
+-----------------
+
+The D-Bus interface RAUC provides makes it easy to integrate it into you custom
+application.
+In order to allow sending data, make sure the D-Bus config file
+``de.pengutronix.rauc.conf`` from the ``data/`` dir gets installed properly.
+
+To only start RAUC when required, using D-Bus activation is a smart solution.
+In order to enable D-Bus activation, make sure the D-Bus service file
+``de.pengutronix.rauc.service`` from the ``data/`` dir gets installed properly.
+
+Watchdog Configuration
+----------------------
+
+Detecting system hangs during runtime requires to have a watchdog and to have
+the wathdog configured and handled properly.
+Systemd provides a sophisticated watchdog multiplexing and handling allowing
+you to configure separate timeouts and handlings for each of your services.
+
+To enable it, you need at least to have these lines in your systemd
+configuration::
+
+  RuntimeWatchdogSec=20
+  ShutdownWatchdogSec=10min
 
 .. _sec_int_yocto:
 
@@ -251,9 +634,10 @@ a system compatible string to identify your system type, as well as a
 definition of all slots in your system. By default, the system configuration
 will be placed in `/etc/rauc/system.conf` on your target rootfs.
 
-For a reference of allowed configuration options in system.conf, see `system
-configuration file`_.
-For a more detailed instruction on how to write a system.conf, see `chapter`_.
+For a reference of allowed configuration options in system.conf,
+see :ref:`sec_ref_slot_config`.
+For a more detailed instruction on how to write a system.conf,
+see :ref:`sec-int-system-config`.
 
 Using RAUC on the Host System
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -371,7 +755,7 @@ PTXdist's default bundle configuration is placed in
 to use this as a base for custom bundle configuration.
 
 In order to sign your update (mandatory) you also need to place a valid
-certificate and key file in your BSP at the following paths:
+certificate and key file in your BSP at the following paths::
 
   $(PTXDIST_PLATFORMCONFIGDIR)/config/rauc/rauc.key.pem (key)
   $(PTXDIST_PLATFORMCONFIGDIR)/config/rauc/rauc.cert.pem (cert)
