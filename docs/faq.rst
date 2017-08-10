@@ -1,0 +1,13 @@
+Frequently Asked Questions
+==========================
+
+Why doesn't the installed system use the whole partition?
+---------------------------------------------------------
+
+The filesystem image installed via RAUC was probably created for a size smaller
+than the partition on the target device.
+
+Especially in cases where the same bundle will be installed on devices which use
+different partition sizes, tar archives are preferable to filesystem images.
+When RAUC installs from a tar archive, it will first create a new filesystem on
+the target partition, allowing use of the full size.
