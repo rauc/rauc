@@ -19,6 +19,7 @@ Contents:
    examples
    scenarios
    integration
+   advanced
    checklist
    reference
    terminology
