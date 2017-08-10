@@ -21,6 +21,7 @@ Contents:
    integration
    advanced
    checklist
+   faq
    reference
    terminology
    contributing
