@@ -83,3 +83,80 @@ installation of the corresponding updates.
 While using signing also during development may seem unnecessary, the additional
 testing of the whole update system (RAUC,bootloader, migration code, …) allows
 finding problems much earlier.
+
+Updating the Bootloader
+-----------------------
+
+Updating the bootloader is a special case, as it is a singe point of failure on
+most systems:
+The selection which of the redundant system images should be booted cannot
+itself be implemented in a redundant component (otherwise there would need to
+be an even earlier selection component).
+
+Some SoCs contain a fixed firmware or ROM code which already supports redundant
+bootloaders, possibly integrated with a HW watchdog or boot counter.
+On these platforms, it is possible to have the selection point before the
+bootloader, allowing it to be stored redundantly and updated as any other
+component.
+
+If redundant bootloaders with fallback is not possible (or too inflexible) on
+your platform, you may instead be able to ensure that the bootloader update is
+atomic.
+This doesn't support recovering from a buggy bootloader, but will prevent a
+non-bootable system caused by an error or power-loss during the update.
+
+Whether atomic bootloader updates can be implemented depends on your
+SoC/firmware and storage medium.
+For example eMMC's have two dedicated boot partitions (see the JEDEC standard
+JESD84-B51_ for details), one of which can be enabled atomically via
+configuration registers in the eMMC.
+
+.. _JESD84-B51: http://www.jedec.org/standards-documents/results/jesd84-b51
+
+As a further example, the NXP i.MX6 supports up to four bootloader copies when
+booting from NAND flash.
+The ROM code will try each copy in turn until it finds one which is readable
+without uncorrectable ECC errors and has a correct header.
+By using the trait of NAND flash that interrupted writes cause ECC errors and
+writing the first page (containing the header) last, the bootloader images can
+be replaced one after the other, while ensuring that the system will boot even in
+case of a crash or power failure.
+
+Currently, independent of whether you are able to update your bootloader with
+fallback, atomically or with some risk of an unbootable system, our suggestion
+is to handle updates for it outside of RAUC.
+The main reason is to avoid booting an old system with a new bootloader, as this
+combination is usually not tested during development, increasing the risk of
+problems appearing only in the field.
+
+One possible approach to this is:
+
+* Store a copy of the bootloader in the RootFS.
+* Use RAUC only to update the RootFS. The combinations to test
+  can be reduced by limiting which old versions are supported by an update.
+* Reboot into the new system.
+* On boot, before starting the application, check that the current slot
+  is 'sane'. Then check if the installed bootloader is older than the
+  version shipped in the (new) rootfs. In that case:
+
+  * Disable the old rootfs slot and update the bootloader.
+  * Reboot
+* Start the application.
+
+This way you still have fallback support for the rootfs upgrade and need
+to test only:
+
+* The sanity check functionality and the bootloader installation when started
+  from old bootloader and new rootfs
+* Normal operation when started from new bootloader and new rootfs
+
+The case of new bootloader with old rootfs can never happen, because you
+disable the old one from the new before installing a new bootloader.
+
+If you need to ensure that you can fall back to the secondary slot even after
+performing the bootloader update, you should check that the "other" slot
+contains the same bootloader version as the currently running one during the
+sanity check.
+This means that you need to update both slots in turn before the bootloader is
+updated.
+
