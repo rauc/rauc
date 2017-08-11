@@ -28,7 +28,7 @@ To create a simple key pair for testing, we can use ``openssl``::
 
 For actual usage, setting up a real PKI (with a CA separate from the signing
 keys and a revocation infrastructure) is *strongly* recommended. OpenVPN's
-easy-rsa_ is a good first step.
+easy-rsa_ is a good first step. See :ref:`sec-security` for more details.
 
 .. _easy-rsa: https://github.com/OpenVPN/easy-rsa
 

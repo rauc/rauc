@@ -1,6 +1,8 @@
 Advanced Topics
 ===============
 
+.. _sec-security:
+
 Security
 --------
 
