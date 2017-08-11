@@ -160,3 +160,41 @@ sanity check.
 This means that you need to update both slots in turn before the bootloader is
 updated.
 
+Updating Sub-Devices
+--------------------
+
+Besides the internal storage, some systems have external components or
+sub-devices which can be updated.
+For example:
+
+* Firmware for micro-controllers on modular boards
+* Firmware for a system management controller
+* FPGA bitstreams (stored in a separate flash)
+* Other Linux-based systems in the same enclosure
+* Software for third-party hardware components
+
+In many cases, these components have some custom interface to query the
+currently installed version and to upload an update.
+They may or may not have internal redundancy or recovery mechanisms as well.
+
+Although it is possible to configure RAUC slots for these and let it call a
+script to perform the installation, there are some disadvantages to this
+approach:
+
+* After a fallback to an older version in a A/B scenario, the sub-devices may be
+  running an incompatible (newer) version.
+* A modular sub-device may be replaced and still has an old firmware version
+  installed.
+* The number of sub-devices may not be fixed, so each device would need a
+  different slot configuration.
+
+Instead, a more robust approach is to store the sub-device firmware in the
+rootfs and (if needed) update them to the current versions during boot.
+This ensures that the sub-devices are always running the correct set of versions
+corresponding to the version of the main application.
+
+If the bootloader falls back to the previous version on the main system, the
+same mechanism will downgrade the sub-devices as needed.
+During a downgrade, sub-devices which are running Linux with RAUC in an A/B
+scenario will detect that the to be installed image already matches the one in
+the other slot and avoid unnecessary installations.
