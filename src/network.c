@@ -1,6 +1,7 @@
 #include <config.h>
 
 #include <curl/curl.h>
+#include <gio/gio.h>
 #include <glib/gstdio.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +56,7 @@ static int xfer_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 	return 0;
 }
 
-static gboolean transfer(RaucTransfer *xfer) {
+static gboolean transfer(RaucTransfer *xfer, GError **error) {
 	CURL *curl = NULL;
 	CURLcode r;
 	gboolean res = FALSE;
@@ -76,9 +77,15 @@ static gboolean transfer(RaucTransfer *xfer) {
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, xfer);
 	curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xfer_cb);
 	curl_easy_setopt(curl, CURLOPT_XFERINFODATA, xfer);
+	curl_easy_setopt(curl, CURLOPT_FAILONERROR, xfer);
 
 	r = curl_easy_perform(curl);
-	if (r != CURLE_OK) {
+	if (r == CURLE_HTTP_RETURNED_ERROR) {
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "HTTP returned >=400");
+		res = FALSE;
+		goto out;
+	} else if (r != CURLE_OK) {
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed");
 		res = FALSE;
 		goto out;
 	}
@@ -92,9 +99,10 @@ out:
 	return res;
 }
 
-gboolean download_file(const gchar *target, const gchar *url, gsize limit) {
+gboolean download_file(const gchar *target, const gchar *url, gsize limit, GError **error) {
 	RaucTransfer xfer = {0};
 	gboolean res = FALSE;
+	GError *ierror = NULL;
 
 	xfer.url = url;
 	xfer.limit = limit;
@@ -103,12 +111,15 @@ gboolean download_file(const gchar *target, const gchar *url, gsize limit) {
 
 	xfer.dl = fopen(target, "wbx");
 	if (xfer.dl == NULL) {
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Failed opening target file");
 		goto out;
 	}
 
-	res = transfer(&xfer);
-	if (!res)
+	res = transfer(&xfer, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
+	}
 
 out:
 	g_clear_pointer(&xfer.dl, fclose);
@@ -133,7 +144,7 @@ gboolean download_file_checksum(const gchar *target, const gchar *url,
 	if (g_file_test(tmppath, G_FILE_TEST_EXISTS))
 		goto out;
 
-	res = download_file(tmppath, url, checksum->size);
+	res = download_file(tmppath, url, checksum->size, NULL);
 	if (!res)
 		goto out;
 
@@ -165,7 +176,7 @@ gboolean download_mem(GBytes **data, const gchar *url, gsize limit) {
 		goto out;
 	}
 
-	res = transfer(&xfer);
+	res = transfer(&xfer, NULL);
 	if (!res)
 		goto out;
 	
