@@ -198,3 +198,65 @@ same mechanism will downgrade the sub-devices as needed.
 During a downgrade, sub-devices which are running Linux with RAUC in an A/B
 scenario will detect that the to be installed image already matches the one in
 the other slot and avoid unnecessary installations.
+
+Software Deployment
+-------------------
+
+When designing your update infrastructure, you must think about how to deploy
+the updates you produce to your device(s).
+In general, you have two major options:
+Deployment via storage media such as USB sticks or network-based deployment.
+
+As RAUC uses signed bundles instead of e.g. trusted connections to enable update
+author verification, RAUC fully supports both method with the same technique
+and you may also use both of them in parallel.
+
+Some factors tha will have an influence on the decision which method to use can
+be:
+
+* Do you have network access on the devie?
+* How many devices have to be updated?
+* Who will perform the update?
+
+Deployment via Storage Media
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This method is mainly used for decentralized updates of devices without network
+access (either due to missing infrastructure or because of security concerns).
+
+To handle deployment via storage media, you need a component that detects the
+plugged-in storage media and calls RAUC to trigger the actual installation.
+
+When using systemd, you could use auto-mount units for detecting plugged-in
+media and trigger an installation.
+
+Deployment via Deployment Server
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Deployment over network is especially useful when having a larger set of
+devices to update or direct access to these devices is tricky.
+
+As RAUC focuses on update handling on the target side, it does not provide a
+deployment server out of the box.
+But if you do not already have a deployment infrastructure, there a few Open
+Source Deployment server implementations available in the wilderness.
+
+One of it worth being mentioned is
+`hawkBit <https://eclipse.org/hawkbit/>`_ from the Eclipse IoT project which
+also provides some strategies for Rollout Management for larger-scale device
+farms.
+
+The RAUC hawkBit client
+^^^^^^^^^^^^^^^^^^^^^^^
+
+As a separate project, the RAUC development team provides a python-based
+example application that acts as hawkBit client via its REST DDI-API while
+controlling RAUC via D-Bus.
+
+For more information and testing it, visit it on GitHub:
+
+https://github.com/rauc/rauc-hawkbit
+
+It is also available via pypi:
+
+https://pypi.python.org/pypi/rauc-hawkbit/
