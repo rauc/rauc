@@ -84,6 +84,94 @@ While using signing also during development may seem unnecessary, the additional
 testing of the whole update system (RAUC,bootloader, migration code, …) allows
 finding problems much earlier.
 
+Data Storage and Migration
+--------------------------
+
+Most systems require a location for storing configuration data such as
+passwords, ssh keys or application data.
+When performing an update, you have to ensure that the updated system takes
+over or can access the data of the old system.
+
+Storing Data in The RootFS
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In case of a writeable root file system, you could place password files
+etc in their default locations.
+When performing the update, you have to ensure the files you need to preserve
+are copied to the target slot after having written
+the system data to it.
+
+RAUC provides support for executing *hooks* from different slot installation
+stages.
+For migrating data from your old rootfs to your updated rootfs,
+simply specify a slot post-install hook.
+Read the :ref:`Hooks <sec-hooks>` chapter on how to create one.
+
+Using Data Partions
+~~~~~~~~~~~~~~~~~~~
+
+Ofthen, there are a couple of reasons why you don't want to or cannot store
+your data inside the root file system:
+
+* You want to keep you rootfs read-only to reduce probability of corrupting it.
+* You have a non-writable root file system such as SquashFS
+* You want to keep your data seperated from the rootfs to ease setup, reset or
+  recovery.
+
+In this case you need a separate storage location for your data on a different
+partition, volume or device.
+
+If the update concept uses full redundant root file systems,
+there are also good reasons for using a redundant data storage, too.
+Read below about the possible impact on data migration.
+
+To let your system access it, it has to be mounted into your rootfs.
+Note that if you intend to store configurable system information on your data
+partition you have to map the default paths Linux (such as /etc/passwd) to
+files or directories on your data storage. You can do this by using:
+
+ * symbolic links
+ * bind mounts
+ * an overlay file system
+
+It depends on the amount and type of data you want to handle which option you
+should choose.
+
+Application Data Migration
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. image:: images/data_migration.svg
+  :width: 500
+
+Both a single and a redundant data storage have their advantages and
+disadvantages.
+Note when storing data inside your rootfs you will have a redundant setup by
+design and cannot choose.
+
+
+The decision about how to set up a configuration storage and how to handle it
+depends on several aspects:
+
+* May configuration format change over different application versions?
+* Can a new application read (and convert) old data?
+* Does your infrastructure allow working on possibly obsolete data?
+* Enough storage to store data redundantly?
+* ...
+
+The basic advantages and disadvantages a single or a redundant setup implicate
+are listed below:
+
++-----------+--------------------------+---------------------------+
+|           | Single Data              | Redundant Data            |
++===========+==========================+===========================+
+| Setup     | easy                     | assure using correct one  |
++-----------+--------------------------+---------------------------+
+| Migration | no backup by default     | copy on update, migrate   |
++-----------+--------------------------+---------------------------+
+| Fallback  | tricky (reconvert data?) | easy (old data!)          |
++-----------+--------------------------+---------------------------+
+
+
 Updating the Bootloader
 -----------------------
 
