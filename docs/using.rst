@@ -448,6 +448,58 @@ on how to achieve this.
 Using the D-Bus API
 -------------------
 
+The RAUC D-BUS API allows seamless integration into existing or
+project-specific applications, incorporation with bridge services such as the
+`rauc-hawkbit` client and also the rauc CLI uses it.
+
+The API's service domain is ``de.pengutronix.rauc`` while the object path is
+``/``.
+
+The D-Bus API's main purpose is to trigger and monitor the installation
+process via its ``Installer`` interface.
+While the ``Install`` operation starts the installation progress, constant
+progress information will be emitted in form of changes to the ``Progress``
+property.
+Upon completing the installation RAUC emits the ``Completed`` signal indicating
+either successful or failed installation.
+
+Processing Progress Data
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The progress property will be updated upon each change of the progress value.
+For details see the :ref:`gdbus-property-de-pengutronix-rauc-Installer.Progress`
+chapter in the reference documentation.
+
+To monitor ``Progress`` property changes from your application, attach to the
+``PropertiesChanged`` signal and filter on the ``Operation`` properties.
+
+Each progress step emitted is a tuple ``(percentage, message, nesting depth)``
+describing a tree of progress steps::
+
+  ├"Installing" (0%)
+  │ ├"Determining slot states" (0%)
+  │ ├"Determining slot states done." (20%)
+  │ ├"Checking bundle" (20%)
+  │ │ ├"Verifying signature" (20%)
+  │ │ └"Verifying signature done." (40%)
+  │ ├"Checking bundle done." (40%)
+  │ ...
+  └"Installing done." (100%)
+
+This hierarchical structure allows applications to decide for the appropriate
+granularity to display information.
+Progress messages with a nesting depth of 1 are only ``Installing`` and
+``Installing done.``.
+A nesting depth of 2 means more fine-grained information while larger depths
+are even more detailed.
+
+Additionally, the nesting depth information allows the application to print
+tree-like views as shown above.
+The ``percentage`` value always goes from 0 to 100 while the ``message`` is
+always a human-readable English string.
+For internationalization you may use a
+`gettext <https://www.gnu.org/software/gettext/>`_-based approach.
+
 Examples Using ``busctl`` Command
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -457,14 +509,20 @@ Triggering an installation:
 
   busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer Install s "/path/to/bundle"
 
-Get the `operation` property containing the current operation:
+Get the `Operation` property containing the current operation:
 
 .. code-block:: sh
 
   busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.Installer Operation
 
-Get the `lasterror` property, which contains the last error that occured during
-an installation.
+Get the `Progress` property containing the progress information:
+
+.. code-block:: sh
+
+  busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.Installer Progress
+
+Get the `LastError` property, which contains the last error that occurred
+during an installation.
 
 .. code-block:: sh
 
