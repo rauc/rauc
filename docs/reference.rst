@@ -168,6 +168,7 @@ A valid manifest file must have the file extension ``.raucm``.
 ``hooks``
   List of hooks enabled for this bundle.
 
+.. _sec-manifest-handler:
 
 **[handler] section**
 
