@@ -153,7 +153,7 @@ previously deployed version.
 In the following, handlers and hooks will be explained in more detail.
 
 System-Based Customization: Handlers
-------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * system.conf
 * multiple scripts?
@@ -161,8 +161,7 @@ System-Based Customization: Handlers
 For a detailed list of all environment variables exported to the handler
 scripts, see  the :ref:`sec-handler-interface` section.
 
-Pre-Install Handler
-~~~~~~~~~~~~~~~~~~~
+.. rubric:: Pre-Install Handler
 
 .. code-block:: cfg
 
@@ -177,8 +176,7 @@ target group has been determined successfully.
 If calling the handler fails or the handler returns a non-zero exit code, RAUC
 will abort installation with an error.
 
-Install Handler
-~~~~~~~~~~~~~~~
+.. rubric:: Install Handler
 
 .. code-block:: cfg
 
@@ -192,8 +190,7 @@ executed between the pre-install and post-install handlers.
 If calling the handler fails or the handler returns a non-zero exit code, RAUC
 will abort installation with an error.
 
-Post-Install Handler
-~~~~~~~~~~~~~~~~~~~~
+.. rubric:: Post-Install Handler
 
 .. code-block:: cfg
 
@@ -211,8 +208,7 @@ performed update anymore.
 A possible usage for the post-install handler could be to trigger an automatic
 restart of the system.
 
-System-Info Handler
-~~~~~~~~~~~~~~~~~~~
+.. rubric:: System-Info Handler
 
 .. code-block:: cfg
 
@@ -226,9 +222,10 @@ serial number.
 The handler script must return a system serial number by echoing
 `RAUC_SYSTEM_SERIAL=<value>` to standard out.
 
+.. _sec-hooks:
 
 Bundle-Based Customization: Hooks
----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Unlike handlers, hooks allow the author of a bundle to add or replace
 functionality for the installation of a specific bundle. This can be useful for
@@ -253,7 +250,7 @@ some are image-specific, i.e. they will be executed for the installation of a
 specific image only, while some other are global.
 
 Install Hooks
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^
 
 Install hooks operate globally on the bundle installation.
 
@@ -273,8 +270,7 @@ The following environment variables will be passed to the hook executable:
   ``RAUC_MOUNT_PREFIX``
     The global RAUC mount prefix path
 
-Install-Check Hook
-^^^^^^^^^^^^^^^^^^
+.. rubric:: Install-Check Hook
 
 .. code-block:: cfg
 
@@ -311,7 +307,7 @@ the hook executable as the rejection reason message and provide it to the user:
   exit 0
 
 Slot Hooks
-~~~~~~~~~~
+^^^^^^^^^^
 
 Slot hooks are called for each slot an image will be installed to. In order to
 enable them, you have to specify them in the ``hooks`` key under the respective
@@ -355,8 +351,7 @@ The following environment variables will be passed to the hook executable:
   ``RAUC_MOUNT_PREFIX``
     The global RAUC mount prefix path
 
-Pre-Install Hook
-^^^^^^^^^^^^^^^^
+.. rubric:: Pre-Install Hook
 
 The pre-install hook will be called right before the update procedure for the
 respective slot will be started. For slot types that represent a mountable file
@@ -374,8 +369,7 @@ system, the hook will be executed with having the file system mounted.
   hooks=pre-install
 
 
-Post-Install Hook
-^^^^^^^^^^^^^^^^^
+.. rubric:: Post-Install Hook
 
 The post-install hook will be called right after the update procedure for the
 respective slot was finished successfully. For slot types that represent a
@@ -416,8 +410,7 @@ An example on how to use a post-install hook:
   exit 0
 
 
-Install Hook
-^^^^^^^^^^^^
+.. rubric:: Install Hook
 
 The install hook will replace the entire default installation process for the
 target slot of the image it was specified for. Note that when having the install
