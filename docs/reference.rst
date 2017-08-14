@@ -56,6 +56,10 @@ Example configuration:
   Prefix of the path where bundles and slots will be mounted. Can be overwritten
   by the command line option ``--mount``.
 
+``grubenv``
+  Only valid when ``bootloader`` is set to ``grub``.
+  Specifies the path under which the GRUB environment can be accessed.
+
 **[keyring] section**
 
 The ``keyring`` section refers to the trusted keyring used for signature
@@ -65,6 +69,20 @@ verification.
   Path to the keyring file in PEM format. Either absolute or relative to the
   system.conf file.
 
+**[autoinstall] section**
+
+The auto-install feature allows to configure a path that will be checked upon
+RAUC service startup.
+If there is a bundle placed under this specific path, this bundle will be
+installed automatically without any further interaction.
+
+This feature is useful for automatically updating the slot RAUC currently runs
+from, like for asymmetric redundancy setups where the update is always
+performed from a dedicated (recovery) slot.
+
+``path``
+  The full path of the bundle file to check for.
+  If file at ``path`` exists, auto-install will be triggered.
 
 **[handlers] section**
 
