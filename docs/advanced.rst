@@ -287,6 +287,28 @@ During a downgrade, sub-devices which are running Linux with RAUC in an A/B
 scenario will detect that the to be installed image already matches the one in
 the other slot and avoid unnecessary installations.
 
+Migrating to an Updated Bundle Version
+--------------------------------------
+
+As RAUC will undergo constantly development, it might be extended and new
+features or enhancements will make their way into RAUC.
+Thus, also the sections and options contained in the bundle manifest may
+extend over the time.
+
+To assure a well-defined and controlled update procedure,
+RAUC is rather strict in parsing the manifest and will reject bundles
+containing unknown configuration options.
+
+But, this does not prevent you from being able to use those new RAUC features
+on your current sytem.
+All you have to do ist to perform an *intermediate update*:
+
+* Create a bundle containing a rootfs with the recent RAUC version,
+  but *not* containing the new RAUC features in its manifest.
+* Update your system and reboot
+* Now you have a system with a recent RAUC version which is able to
+  interpretate and appropriately handle a bundle with the latest options
+
 Software Deployment
 -------------------
 
