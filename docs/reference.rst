@@ -236,6 +236,8 @@ Command Line Tool
     status        Show status
 
 
+.. _sec-handler-interface:
+
 Custom Handlers (Interface)
 ---------------------------
 
