@@ -2,11 +2,26 @@ Using RAUC
 ==========
 
 For using RAUC in your embedded project, you will need to build at least two
-instances of it:
+versions of it:
 
-* One for your host (development) system, where you create new updates.
-* One that will run on the target for performing updates.
+* One for your **host** (build or development) system.
+  This will allow you to create, inspect and modify bundles.
 
+* One for your **target** system.
+  This can act both as the service for handling the installation on your system,
+  as a command line tool that allows triggering the installation and inspecting your
+  system or obtaining bundle information.
+
+All common embedded Linux build system recipes for RAUC will solve the task of
+creating appropriate binaries for you as well as caring for bundle creation and
+partly system configuration.
+If you intend to use RAUC with Yocto, use the
+`meta-rauc <https://github.com/rauc/meta-rauc>`_ layer, in case you use
+PTXdist, simply enable RAUC in your configuration.
+
+.. note::
+  When using the RAUC service from your application, the D-Bus interface is
+  preferable to using the provided command-line tool.
 
 Creating Bundles
 ----------------
@@ -20,25 +35,11 @@ sub-command:
 
 Where ``<input-dir>`` must be a directory containing all images and scripts the
 bundle should include, as well as a manifest file ``manifest.raucm`` that
-describes the content of the bundle in a way the RAUC updater on the target can
-handle it and knows which image to install to which slot, which scripts to
-execute etc.
+describes the content of the bundle for the RAUC updater on the target:
+which image to install to which slot, which scripts to execute etc.
 ``<output-file>`` must be the path of the bundle file to create. Note that RAUC
-bundles must always have a ``.raucb`` file name suffix in order to make RAUC
-treat them as bundles.
-
-Resigning Bundles
------------------
-
-.. note:: This feature is not fully implemented yet
-
-RAUC allows to resign a bundle from your build host, e.g. for making a testing
-bundle a productive bundle that should have a key that is accepted by
-non-debugging platforms:
-
-.. code-block:: sh
-
-  rauc resign --cert=<certfile> --key=<keyfile> <input-file> <output-file>
+bundles must always have a ``.raucb`` file name suffix in order to ensure that
+RAUC treats them as bundles.
 
 Obtaining Bundle Information
 ----------------------------
@@ -47,16 +48,20 @@ Obtaining Bundle Information
 
   rauc info [--output-format=<format>] <input-file>
 
-You can control the output type of RAUC info depending on your needs. By
-default it will print a human readable representation of the bundle.
-Alternatively you can obtain a shell-parsable description, or a JSON
+The ``info`` command lists the basic meta data of a bundle (compatible, version,
+build-id, description) and the images and hooks contained in the bundle.
+
+You can control the output format depending on your needs.
+By default it will print a human readable representation of the bundle not
+intended for being processed programmatically.
+Alternatively you can obtain a shell-parsable description or a JSON
 representation of the bundle content.
 
 Installing Bundles
 ------------------
 
-To install an update bundle on your target hardware, RAUC provides the
-`install` command:
+To actually install an update bundle on your target hardware, RAUC provides the
+``install`` command:
 
 .. code-block:: sh
 
@@ -64,27 +69,40 @@ To install an update bundle on your target hardware, RAUC provides the
 
 Alternatively you can trigger a bundle installation via D-Bus.
 
-See System Status
------------------
+Viewing the System Status
+-------------------------
 
-For debugging purposes and for scripts maybe it can be helpful to gain an
-overview over the current system as RAUC sees it. The `status` command allows
-this:
+For debugging purposes and for scripting it is helpful to gain an overview of
+the current system as RAUC sees it.
+The ``status`` command allows this:
 
 .. code-block:: sh
 
   rauc status [--output-format=<format>]
 
-You can choose the output style of RAUC status depending on your needs. By
-default it will print a human readable representation of your system.
+You can choose the output style of RAUC status depending on your needs.
+By default it will print a human readable representation of your system.
 Alternatively you can obtain a shell-parsable description, or a JSON
 representation of the system status.
 
-React to a Successfully Booted System/Failed Boot
--------------------------------------------------
+Resigning Bundles
+-----------------
 
-Normally, the full system update chain is not completed before being sure the
-newly installed system runs without any errors.
+.. note:: This feature is not fully implemented yet
+
+RAUC allows to resign a bundle from your build host, e.g. for making a testing
+bundle a release bundle that should have a key that is accepted by
+non-debugging platforms:
+
+.. code-block:: sh
+
+  rauc resign --cert=<certfile> --key=<keyfile> <input-file> <output-file>
+
+Reacting to a Successfully/Failed Boot
+--------------------------------------
+
+Normally, the full system update chain is not complete before being sure that
+the newly installed system runs without any errors.
 As the definition and detection of a `successful` operation is really
 system-dependent, RAUC provides commands to preserve a slot as being the
 preferred one to boot or to discard a slot from being bootable.
@@ -93,7 +111,7 @@ preferred one to boot or to discard a slot from being bootable.
 
   rauc status mark-good
 
-After assessment of the currently booted system to be fully operational, one
+After verifying that the currently booted system is fully operational, one
 wants to signal this information to the underlying bootloader implementation
 which then, for example, resets a boot attempt counter.
 
@@ -101,34 +119,34 @@ which then, for example, resets a boot attempt counter.
 
   rauc status mark-bad
 
-If the current boot failed in some kind, this command can be used to reflect
+If the current boot failed in some kind, this command can be used to communicate
 that to the underlying bootloader implementation. In most cases this will
-disable the currently booted slot or at least switch to another one.
+disable the currently booted slot or at least switch to a different one.
 
 Customizing the Update
 ----------------------
 
-RAUC provides several ways to customize the update process. Some allow to add
-and extend details more fine-grainedly, some allow to replace major parts of the
-default behavior of RAUC.
+RAUC provides several ways to customize the update process. Some allow adding
+and extending details more fine-grainedly, some allow replacing major parts of
+the default behavior of RAUC.
 
 In general, there exist three major types of customization: configuration,
 handlers and hooks.
 
-The first is configuration through pre-defined variables. This allows to
-control the update in a predefined way.
+The first is configuration through variables.
+This allow controlling the update in a predefined way.
 
-The second type is using `handlers`. Handlers allow to extend or replace the
+The second type is using `handlers`. Handlers allow extending or replacing the
 installation process. They are executables (most likely shell scripts) located
 in the root filesystem and configured in the system's configuration file. They
-control static behavior of the system that should remain the same over all
-future updates.
+control static behavior of the system that should remain the same over future
+updates.
 
-The last type are `hooks`. They are much like `handlers`, except that they are
+The last type are `hooks`. They are similar to `handlers`, except that they are
 contained in the update bundle. Thus they allow to flexibly extend or customize
 one or more updates by some special behavior.
 A common example would be using a per-slot post-install hook that handles
-configuration migration for a new system version. Hooks are especially useful
+configuration migration for a new software version. Hooks are especially useful
 to handle details of installing an update which were not considered in the
 previously deployed version.
 
@@ -140,8 +158,8 @@ System-Based Customization: Handlers
 * system.conf
 * multiple scripts?
 
-For a detailed list of all environment variables exported for the handler
-scripts, see ...
+For a detailed list of all environment variables exported to the handler
+scripts, see  the :ref:`sec-handler-interface` section.
 
 Pre-Install Handler
 ~~~~~~~~~~~~~~~~~~~
@@ -153,7 +171,7 @@ Pre-Install Handler
 
 RAUC will call the pre-install handler (if given) during the bundle
 installation process, right before calling the default or custom installation
-process. At this stage, the bundle is mounted and its content accessible, the
+process. At this stage, the bundle is mounted, its content is accessible and the
 target group has been determined successfully.
 
 If calling the handler fails or the handler returns a non-zero exit code, RAUC
@@ -167,10 +185,9 @@ Install Handler
   [handlers]
   install=/usr/lib/rauc/install
 
-The install handler is the most powerful one RAUC has. If you provide
+The install handler is the most powerful one RAUC provides. If you use
 this, you replace the entire default update procedure of RAUC. It will be
-executed right after the pre-install handler and right before the post-install
-handler.
+executed between the pre-install and post-install handlers.
 
 If calling the handler fails or the handler returns a non-zero exit code, RAUC
 will abort installation with an error.
@@ -229,11 +246,11 @@ handled by a single executable that is registered in the bundle's manifest:
 
 Each hook must be activated explicitly and leads to a call of the hook executable
 with a specific argument that allows to distinguish between the different hook
-types. Multiple hooks must be separated with a ``;``.
+types. Multiple hook types must be separated with a ``;``.
 
 In the following the available hooks are listed. Depending on their purpose,
-some are image-specific, i.e. they will be executed for the currently installed
-image only, while some other are global.
+some are image-specific, i.e. they will be executed for the installation of a
+specific image only, while some other are global.
 
 Install Hooks
 ~~~~~~~~~~~~~
@@ -280,15 +297,15 @@ the hook executable as the rejection reason message and provide it to the user:
   #!/bin/sh
 
   case "$1" in 
-  	install-check)
-                if [[ "$RAUC_MF_COMPATIBLE" != "$RAUC_SYSTEM_COMPATIBLE" ]]; then
-  		        echo "Comptaible does not match!" 1>&2
-  		        exit 10
-                fi
-  		;;
-        *)
-                exit 1
-                ;;
+          install-check)
+                  if [[ "$RAUC_MF_COMPATIBLE" != "$RAUC_SYSTEM_COMPATIBLE" ]]; then
+                          echo "Comptaible does not match!" 1>&2
+                          exit 10
+                  fi
+                  ;;
+          *)
+                  exit 1
+                  ;;
   esac
 
   exit 0
