@@ -431,6 +431,20 @@ migrating configuration settings.
   sha256=...
   hooks=install
 
+Full Custom Update
+~~~~~~~~~~~~~~~~~~
+
+For some special tasks (recovery, testing, migration) it might be required to
+completely replace the default RAUC update mechanism and to only use its
+infrastructure for exectuing an application or a script on the target side.
+
+For this case, you may replace the entire default installation handler of rauc
+by a cutom handler script or application.
+
+Refer system.conf :ref:`[handler] <sec-manifest-handler>` section description
+on how to achieve this.
+
+
 Using the D-Bus API
 -------------------
 
