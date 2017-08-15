@@ -27,7 +27,7 @@ script:
   - ./configure --enable-code-coverage
   - make clean
   - make -j2
-  - make doc
+  - make doc SPHINXOPTS=-W
   - make check TESTS= && sudo ./uml-test
   - make distcheck
 after_success:
