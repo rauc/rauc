@@ -438,3 +438,36 @@ The "Progress" Property
 Provides installation progress informations in the form
 
 (percentage, message, nesting depth)
+
+RAUC's Basic Update Procedure
+-----------------------------
+
+Performing an update using the default RAUC mechanism will work as follows:
+
+1. Startup, read system configuration
+#. Determine slot states
+#. Verify bundle signature (reject if invalid)
+#. Mount bundle (SquashFS)
+#. Parse and verify manifest
+#. Determine target install group
+
+   A. Execute `pre install handler` (optional)
+
+#. Verify bundle compatible against system compatible (reject if not matching)
+#. Mark target slots as non-bootable for bootloader
+#. Iterate over each image specified in the manifest
+
+   A. Determine update handler (based on image and slot type)
+   #. Try to mount slot and read slot status information
+
+      a. Skip update if new image hash matches hash of insalled one
+
+   #. Perform slot update (image copy / mkfs+tar extract / ...)
+   #. Try to write slot status information
+
+#. Mark target slots as new primary boot source for the bootloader
+
+   A. Execute `post install` handler (optional)
+
+#. Unmount bundle
+#. Terminate successfully if no error occurred
