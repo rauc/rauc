@@ -10,7 +10,7 @@ The RAUC bundle format consists of a squashfs image containing the images and
 the manifest, which is followed by a public key signature over the full image.
 This signature is stored in the CMS (Cryptographic Message Syntax, see RFC5652_)
 format.
-Before installation, the signature is verified against the key-ring already
+Before installation, the signature is verified against the keyring already
 stored on the system.
 
 .. _RFC5652: https://tools.ietf.org/html/rfc5652
@@ -36,7 +36,7 @@ CA Configuration
 ~~~~~~~~~~~~~~~~
 
 OpenSSL uses a ``openssl.cnf`` file to define paths to use for signing, default
-parameters for certificaets and additional parameters to be stored during
+parameters for certificates and additional parameters to be stored during
 signing.
 Configuring a CA correctly (and securely) is a complex topic and obviously
 exceeds the scope of this documentation.
@@ -59,7 +59,7 @@ You can use ``openssl req -x509 -newkey rsa:4096 -keyout key.pem -out
 cert.pem -days 365 -nodes`` to create a key and a self-signed certificate.
 While you can use RAUC with these, you can't:
 
-* replace expired certificates without updating the key-ring
+* replace expired certificates without updating the keyring
 * distinguish between development versions and releases
 * revoke a compromised key
 
@@ -79,11 +79,11 @@ Separate Development and Release CAs
 
 By creating a complete separate CA and bundle signing keys, you can give only
 specific persons (or roles) the keys necessary to sign final releases.
-Each device only has one of the two CAs in it's key-ring, allowing only
+Each device only has one of the two CAs in its keyring, allowing only
 installation of the corresponding updates.
 
 While using signing also during development may seem unnecessary, the additional
-testing of the whole update system (RAUC,bootloader, migration code, …) allows
+testing of the whole update system (RAUC, bootloader, migration code, …) allows
 finding problems much earlier.
 
 Data Storage and Migration
@@ -94,13 +94,14 @@ passwords, ssh keys or application data.
 When performing an update, you have to ensure that the updated system takes
 over or can access the data of the old system.
 
-Storing Data in The RootFS
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Storing Data in The Root File System
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In case of a writeable root file system, you could place password files
-etc in their default locations.
-When performing the update, you have to ensure the files you need to preserve
-are copied to the target slot after having written
+In case of a writeable root file system, it often contains additional data,
+for example cryptographic material specific to the machine, or configuration
+files modified by the user.
+When performing the update, you have to ensure that the files you need to
+preserve are copied to the target slot after having written
 the system data to it.
 
 RAUC provides support for executing *hooks* from different slot installation
@@ -112,12 +113,12 @@ Read the :ref:`Hooks <sec-hooks>` chapter on how to create one.
 Using Data Partions
 ~~~~~~~~~~~~~~~~~~~
 
-Ofthen, there are a couple of reasons why you don't want to or cannot store
+Often, there are a couple of reasons why you don't want to or cannot store
 your data inside the root file system:
 
 * You want to keep you rootfs read-only to reduce probability of corrupting it.
-* You have a non-writable root file system such as SquashFS
-* You want to keep your data seperated from the rootfs to ease setup, reset or
+* You have a non-writable rootfs such as SquashFS.
+* You want to keep your data separated from the rootfs to ease setup, reset or
   recovery.
 
 In this case you need a separate storage location for your data on a different
@@ -127,10 +128,11 @@ If the update concept uses full redundant root file systems,
 there are also good reasons for using a redundant data storage, too.
 Read below about the possible impact on data migration.
 
-To let your system access it, it has to be mounted into your rootfs.
+To let your system access the separate storage location, it has to be mounted
+into your rootfs.
 Note that if you intend to store configurable system information on your data
-partition you have to map the default paths Linux (such as /etc/passwd) to
-files or directories on your data storage. You can do this by using:
+partition, you have to map the default Linux paths (such as ``/etc/passwd``) to
+your data storage. You can do this by using:
 
  * symbolic links
  * bind mounts
@@ -177,9 +179,9 @@ are listed below:
 Updating the Bootloader
 -----------------------
 
-Updating the bootloader is a special case, as it is a singe point of failure on
+Updating the bootloader is a special case, as it is a single point of failure on
 most systems:
-The selection which of the redundant system images should be booted cannot
+The selection of which redundant system images should be booted cannot
 itself be implemented in a redundant component (otherwise there would need to
 be an even earlier selection component).
 
@@ -197,7 +199,7 @@ non-bootable system caused by an error or power-loss during the update.
 
 Whether atomic bootloader updates can be implemented depends on your
 SoC/firmware and storage medium.
-For example eMMC's have two dedicated boot partitions (see the JEDEC standard
+For example eMMCs have two dedicated boot partitions (see the JEDEC standard
 JESD84-B51_ for details), one of which can be enabled atomically via
 configuration registers in the eMMC.
 
@@ -221,8 +223,8 @@ problems appearing only in the field.
 
 One possible approach to this is:
 
-* Store a copy of the bootloader in the RootFS.
-* Use RAUC only to update the RootFS. The combinations to test
+* Store a copy of the bootloader in the rootfs.
+* Use RAUC only to update the rootfs. The combinations to test
   can be reduced by limiting which old versions are supported by an update.
 * Reboot into the new system.
 * On boot, before starting the application, check that the current slot
@@ -271,7 +273,7 @@ Although it is possible to configure RAUC slots for these and let it call a
 script to perform the installation, there are some disadvantages to this
 approach:
 
-* After a fallback to an older version in a A/B scenario, the sub-devices may be
+* After a fallback to an older version in an A/B scenario, the sub-devices may be
   running an incompatible (newer) version.
 * A modular sub-device may be replaced and still has an old firmware version
   installed.
@@ -286,16 +288,16 @@ corresponding to the version of the main application.
 If the bootloader falls back to the previous version on the main system, the
 same mechanism will downgrade the sub-devices as needed.
 During a downgrade, sub-devices which are running Linux with RAUC in an A/B
-scenario will detect that the to be installed image already matches the one in
+scenario will detect that the image to be installed already matches the one in
 the other slot and avoid unnecessary installations.
 
 Migrating to an Updated Bundle Version
 --------------------------------------
 
-As RAUC will undergo constantly development, it might be extended and new
+As RAUC undergoes constant development, it might be extended and new
 features or enhancements will make their way into RAUC.
-Thus, also the sections and options contained in the bundle manifest may
-extend over the time.
+Thus, also the sections and options contained in the bundle manifest may be
+extended over time.
 
 To assure a well-defined and controlled update procedure,
 RAUC is rather strict in parsing the manifest and will reject bundles
@@ -303,7 +305,7 @@ containing unknown configuration options.
 
 But, this does not prevent you from being able to use those new RAUC features
 on your current sytem.
-All you have to do ist to perform an *intermediate update*:
+All you have to do is to perform an *intermediate update*:
 
 * Create a bundle containing a rootfs with the recent RAUC version,
   but *not* containing the new RAUC features in its manifest.
@@ -315,18 +317,17 @@ Software Deployment
 -------------------
 
 When designing your update infrastructure, you must think about how to deploy
-the updates you produce to your device(s).
+the updates to your device(s).
 In general, you have two major options:
 Deployment via storage media such as USB sticks or network-based deployment.
 
 As RAUC uses signed bundles instead of e.g. trusted connections to enable update
-author verification, RAUC fully supports both method with the same technique
+author verification, RAUC fully supports both methods with the same technique
 and you may also use both of them in parallel.
 
-Some factors tha will have an influence on the decision which method to use can
-be:
+Some influential factors on the method to used can be:
 
-* Do you have network access on the devie?
+* Do you have network access on the device?
 * How many devices have to be updated?
 * Who will perform the update?
 
@@ -339,30 +340,32 @@ access (either due to missing infrastructure or because of security concerns).
 To handle deployment via storage media, you need a component that detects the
 plugged-in storage media and calls RAUC to trigger the actual installation.
 
-When using systemd, you could use auto-mount units for detecting plugged-in
+When using systemd, you could use automount_ units for detecting plugged-in
 media and trigger an installation.
+
+.. _automount: https://www.freedesktop.org/software/systemd/man/systemd.automount.html
 
 Deployment via Deployment Server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Deployment over network is especially useful when having a larger set of
+Deployment over a network is especially useful when having a larger set of
 devices to update or direct access to these devices is tricky.
 
 As RAUC focuses on update handling on the target side, it does not provide a
 deployment server out of the box.
 But if you do not already have a deployment infrastructure, there a few Open
-Source Deployment server implementations available in the wilderness.
+Source deployment server implementations available in the wilderness.
 
 One of it worth being mentioned is
-`hawkBit <https://eclipse.org/hawkbit/>`_ from the Eclipse IoT project which
-also provides some strategies for Rollout Management for larger-scale device
+`hawkBit <https://eclipse.org/hawkbit/>`_ from the Eclipse IoT project, which
+also provides some strategies for rollout management for larger-scale device
 farms.
 
 The RAUC hawkBit client
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-As a separate project, the RAUC development team provides a python-based
-example application that acts as hawkBit client via its REST DDI-API while
+As a separate project, the RAUC development team provides a Python-based
+example application that acts as a hawkBit client via its REST DDI-API while
 controlling RAUC via D-Bus.
 
 For more information and testing it, visit it on GitHub:
