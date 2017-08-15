@@ -330,9 +330,6 @@ variables.
   done
 
 
-Signatures
-----------
-
 D-Bus API
 ---------
 
