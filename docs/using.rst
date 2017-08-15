@@ -152,13 +152,19 @@ previously deployed version.
 
 In the following, handlers and hooks will be explained in more detail.
 
+System Configuration File
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Beside providing the basic slot layout, RAUC's system configuration file also
+allows you to configure parts of its runtime behavior, such as handlers (see
+below), paths, etc.
+For a detailed list of possible configuration options,
+see :ref:`sec_ref_slot_config` section in the Reference chapter.
+
 System-Based Customization: Handlers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* system.conf
-* multiple scripts?
-
-For a detailed list of all environment variables exported to the handler
+For a detailed list of all environment variables exported for the handler
 scripts, see  the :ref:`sec-handler-interface` section.
 
 .. rubric:: Pre-Install Handler
@@ -436,10 +442,10 @@ Full Custom Update
 
 For some special tasks (recovery, testing, migration) it might be required to
 completely replace the default RAUC update mechanism and to only use its
-infrastructure for exectuing an application or a script on the target side.
+infrastructure for executing an application or a script on the target side.
 
 For this case, you may replace the entire default installation handler of rauc
-by a cutom handler script or application.
+by a custom handler script or application.
 
 Refer system.conf :ref:`[handler] <sec-manifest-handler>` section description
 on how to achieve this.
