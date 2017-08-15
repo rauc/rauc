@@ -91,18 +91,35 @@ call for different purposes. All parameters expect pathnames to the script to
 be executed. Pathnames are either absolute or relative to the system.conf file
 location.
 
-RAUC passes a set of environment variables to handler scripts. See details about
-using handlers in :ref:`Custom Handlers (Interface)`.
+RAUC passes a set of environment variables to handler scripts.
+See details about using handlers in `Custom Handlers (Interface)`_.
 
 ``system-info``
-  This script will be called ...
+  This handler will be called when RAUC starts up, right after loading the
+  system configuration file.
+  It is used for obtaining further information about the individual system RAUC
+  runs on.
+  The handler script must print the information to standard output in form of
+  key value pairs ``KEY=value``.
+  The following variables are supported:
+
+  ``RAUC_SYSTEM_SERIAL``
+    Serial number of the individual board
 
 ``pre-install``
-  This script will be called ...
+  This handler will be called right before RAUC starts with the installation.
+  This is after RAUC has verified and mounted the bundle, thus you can access
+  bundle content.
 
 ``post-install``
-  This script will be called ...
+  This handler will be called after a successful installation.
+  The bundle is still mounted at this moment, thus you could access data in it
+  if required.
 
+.. note::
+  When using a full custom installation
+  (see :ref:`[handler] section <sec-manifest-handler>`)
+  RAUC will not execute any system handler script.
 
 **[slot.<slot-class>.<idx>] section**
 
