@@ -133,8 +133,8 @@ set of slots.
 
 ``type``
   The type describing the slot. Currently supported values are ``raw``,
-  ``nand``, ``ubivol``, ``ubifs``, ``ext4``. See table :ref:`todo` for a more
-  detailed list about these different types.
+  ``nand``, ``ubivol``, ``ubifs``, ``ext4``.
+  See table :ref:`sec-slot-type` for a more detailed list of these different types.
 
 ``bootname``
   For bootable slots, the name the bootloader uses to identify it. The real
