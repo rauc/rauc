@@ -93,6 +93,8 @@ If the slot is bootable, then you also need
 * the ``bootname`` which is the name the bootloader uses to refer to this slot
   device.
 
+.. _sec-slot-type:
+
 Slot Type
 ^^^^^^^^^
 
