@@ -165,3 +165,12 @@ gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **erro
  * Frees the memory allocated by a RaucSlot
  */
 void r_free_slot(gpointer value);
+
+/**
+ * Check if slot type is mountable.
+ *
+ * @param slot slot to check
+ *
+ * @return TRUE if mountable, otherwise FALSE
+ */
+gboolean is_slot_mountable(RaucSlot *slot);
