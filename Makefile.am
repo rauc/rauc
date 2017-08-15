@@ -196,7 +196,7 @@ SPHINXBUILDDIR      = $(DOCDIR)/build
 .PHONY: check-valgrind check-valgrind-tool
 
 doc:
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(DOCDIR) $(SPHINXBUILDDIR)/html
+	$(SPHINXBUILD) -b html $(SPHINXOPTS) $(DOCDIR) $(SPHINXBUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(SPHINXBUILDDIR)/html."
 
