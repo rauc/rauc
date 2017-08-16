@@ -632,7 +632,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	install_args_update(args, "Updating slots...");
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		RaucImage *mfimage;
-		GFile *destdevicefile = NULL;
 		gchar *slotstatuspath = NULL;
 		RaucSlotStatus *slot_state = NULL;
 		img_to_slot_handler update_handler = NULL;
@@ -680,8 +679,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 		r_context_begin_step("check_slot", g_strdup_printf("Checking slot %s", dest_slot->name), 0);
 	
-		destdevicefile = g_file_new_for_path(dest_slot->device);
-
 		/* read slot status */
 		g_message("mounting slot %s", dest_slot->device);
 		res = r_mount_slot(dest_slot, &ierror);
@@ -801,7 +798,6 @@ copy:
 		
 image_out:
 		g_clear_pointer(&slot_state, free_slot_status);
-		g_clear_pointer(&destdevicefile, g_object_unref);
 		g_clear_pointer(&slotstatuspath, g_free);
 
 		if (dest_slot->mount_internal) {
