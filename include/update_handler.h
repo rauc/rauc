@@ -2,6 +2,7 @@
 
 #include <glib.h>
 
+#include "config_file.h"
 #include "manifest.h"
 
 #define R_UPDATE_ERROR r_update_error_quark()

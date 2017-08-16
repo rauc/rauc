@@ -3,6 +3,7 @@
 #include <glib.h>
 
 #include <checksum.h>
+#include "manifest.h"
 
 typedef enum {
 	R_CONFIG_ERROR_INVALID_FORMAT,
@@ -131,6 +132,34 @@ gboolean write_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **e
  * @param slotstatus a RaucSlotStatus
  */
 void free_slot_status(RaucSlotStatus *slotstatus);
+
+/**
+ * Load slot status.
+ *
+ * This mounts the given slot, reads the status information from its status
+ * file and unmounts the slot afterwards.
+ *
+ * @param dest_slot Slot to load status information for
+ * @param slot_state return location for the slot information obtained
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if loading status succeeded, FALSE otherwise
+ */
+gboolean load_slot_status(RaucSlot *dest_slot, RaucSlotStatus **slot_state, GError **error);
+
+/**
+ * Save slot status.
+ *
+ * This mounts the given slot, writes the status information into its status
+ * file and unomounts the slot afterwards.
+ *
+ * @param dest_slot Slot to write status information for
+ * @param mfimage image that was just installed
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if loading status succeeded, FALSE otherwise
+ */
+gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **error);
 
 /**
  * Frees the memory allocated by a RaucSlot
