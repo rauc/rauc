@@ -267,7 +267,7 @@ void free_config(RaucConfig *config) {
 	g_free(config);
 }
 
-gboolean load_slot_status(const gchar *filename, RaucSlotStatus **slotstatus, GError **error) {
+gboolean read_slot_status(const gchar *filename, RaucSlotStatus **slotstatus, GError **error) {
 	GError *ierror = NULL;
 	RaucSlotStatus *ss = g_new0(RaucSlotStatus, 1);
 	gboolean res = FALSE;
@@ -300,7 +300,7 @@ free:
 	return res;
 }
 
-gboolean save_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error) {
+gboolean write_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error) {
 	GError *ierror = NULL;
 	GKeyFile *key_file = NULL;
 	gboolean res = FALSE;

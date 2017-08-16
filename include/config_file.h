@@ -114,7 +114,7 @@ void free_config(RaucConfig *config);
  *
  * @return TRUE if the slot status was sucessfully loaded. FALSE if there were errors.
  */
-gboolean load_slot_status(const gchar *filename, RaucSlotStatus **slotstatus, GError **error);
+gboolean read_slot_status(const gchar *filename, RaucSlotStatus **slotstatus, GError **error);
 
 /**
  * Save slot status file.
@@ -123,7 +123,7 @@ gboolean load_slot_status(const gchar *filename, RaucSlotStatus **slotstatus, GE
  * @param ss the slot status to save
  * @param error a GError, or NULL
  */
-gboolean save_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error);
+gboolean write_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error);
 
 /**
  * Frees the memory allocated by the RaucSlotStatus.

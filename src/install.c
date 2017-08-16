@@ -694,7 +694,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 		slotstatuspath = g_build_filename(dest_slot->mount_point, "slot.raucs", NULL);
 
-		res = load_slot_status(slotstatuspath, &slot_state, &ierror);
+		res = read_slot_status(slotstatuspath, &slot_state, &ierror);
 
 		if (!res) {
 			g_message("Failed to load slot status file: %s", ierror->message);
@@ -784,7 +784,7 @@ copy:
 		g_message("Updating slot file %s", slotstatuspath);
 		install_args_update(args, g_strdup_printf("Updating slot %s status", dest_slot->name));
 
-		res = save_slot_status(slotstatuspath, slot_state, &ierror);
+		res = write_slot_status(slotstatuspath, slot_state, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(
 					error,
@@ -926,7 +926,7 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 
 		// read status
 		slotstatuspath = g_build_filename(slot->mount_point, "slot.raucs", NULL);
-		res = load_slot_status(slotstatuspath, &slot_state, &ierror);
+		res = read_slot_status(slotstatuspath, &slot_state, &ierror);
 		if (!res) {
 			g_message("Failed to load slot status file: %s", ierror->message);
 			g_clear_error(&ierror);
@@ -976,7 +976,7 @@ file_out:
 
 		// write status
 		slot_state->status = g_strdup("ok");
-		res = save_slot_status(slotstatuspath, slot_state, &ierror);
+		res = write_slot_status(slotstatuspath, slot_state, &ierror);
 		if (!res) {
 			g_warning("Failed writing status file: %s", ierror->message);
 			g_clear_error(&ierror);
