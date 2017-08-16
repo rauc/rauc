@@ -1,6 +1,10 @@
 Integration
 ===========
 
+.. contents::
+   :local:
+   :depth: 2
+
 If you intend to prepare your platform for using RAUC as an update framework,
 this chapter will guide you through the required steps and show the different
 ways you can choose.

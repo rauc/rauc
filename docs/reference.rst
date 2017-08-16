@@ -1,6 +1,10 @@
 Reference
 =========
 
+.. contents::
+   :local:
+   :depth: 1
+
 .. _sec_ref_slot_config:
 
 System Configuration File
