@@ -227,7 +227,7 @@ system.conf:
   bootloader=barebox
 
 Configure Barebox
------------------
+^^^^^^^^^^^^^^^^^
 
 As mentioned above, Barebox support requires you to have the *bootchooser
 framework* with *barebox state* backend enabled.
@@ -248,7 +248,7 @@ you should also enable these tools:
   CONFIG_CMD_BOOTCHOOSER=y
 
 Setup Barebox Bootchooser
--------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The barebox bootchooser framework allows you to specify a number of redundant
 boot targets that should be automatically selected by an algorithm,
@@ -295,7 +295,7 @@ other general and slot-specific variables.
   not in your device-local environment.
 
 Setting up Barebox State for Bootchooser
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For storing its status information, the botchooser framework requires a
 *barebox,state* instance to be set up with a set of variables matching the set
@@ -419,7 +419,7 @@ Once you have set up bootchooser properly, you finally need to enable RAUC to
 interact with it.
 
 Enable Accessing Barebox State for RAUC
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For this, you need to specify which (virtual) boot target belongs to which
 of the RAUC slots you defined.
@@ -454,7 +454,7 @@ You can verify your setup by calling it manually:
   bootstate.last_chosen=2
 
 Verify Boot Slot Detection
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 As detecting the currently booted rootfs slot from userspace and matching it to
 one of the slots defined in RAUCs system.conf is not always trivial and
