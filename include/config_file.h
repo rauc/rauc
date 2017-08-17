@@ -31,6 +31,7 @@ typedef struct {
 	gchar *mount_prefix;
 	gchar *grubenv_path;
 	gboolean activate_installed;
+	gchar *statusfile_path;
 	gchar *keyring_path;
 
 	gchar *autoinstall_path;
@@ -162,10 +163,11 @@ void free_slot_status(RaucSlotStatus *slotstatus);
  * Load slot status.
  *
  * Takes care to fill in slot status information into the designated component
- * of the slot data structure: mount the given slot, read the status information
- * from its status file and unmount the slot afterwards. If a problem occurs the
- * stored slot status consists of default values. Do nothing if the status
- * information have already been loaded before.
+ * of the slot data structure. If the user configured a global status file in
+ * the system.conf they are read from this file. Otherwise mount the given slot,
+ * read the status information from its local status file and unmount the slot
+ * afterwards. If a problem occurs the stored slot status consists of default
+ * values. Do nothing if the status information have already been loaded before.
  *
  * @param dest_slot Slot to load status information for
  */
@@ -174,9 +176,11 @@ void load_slot_status(RaucSlot *dest_slot);
 /**
  * Save slot status.
  *
- * This mounts the given slot, transfers the status information from the
- * designated component of the slot data structure into its status file and
- * unmounts the slot afterwards.
+ * This persists the status information from the designated component of the
+ * given slot data structure. If the user configured a global status file in the
+ * system.conf they are written to this file. Otherwise mount the given slot,
+ * transfer the status information to the local status file and unmount the slot
+ * afterwards.
  *
  * @param dest_slot Slot to write status information for
  * @param error return location for a GError, or NULL

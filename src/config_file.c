@@ -1,8 +1,10 @@
 #include <config.h>
 
 #include <glib.h>
+#include <string.h>
 
 #include "config_file.h"
+#include "context.h"
 #include "manifest.h"
 #include "mount.h"
 #include "utils.h"
@@ -212,6 +214,9 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		c->system_variant = variant_data;
 	}
 
+	c->statusfile_path = resolve_path(filename,
+		g_key_file_get_string(key_file, "system", "statusfile", NULL));
+
 	/* parse [keyring] section */
 	c->keyring_path = resolve_path(filename,
 		g_key_file_get_string(key_file, "keyring", "path", NULL));
@@ -386,6 +391,7 @@ void free_config(RaucConfig *config) {
 	g_free(config->system_bootloader);
 	g_free(config->mount_prefix);
 	g_free(config->grubenv_path);
+	g_free(config->statusfile_path);
 	g_free(config->keyring_path);
 	g_free(config->autoinstall_path);
 	g_free(config->systeminfo_handler);
@@ -474,7 +480,7 @@ free:
 	return res;
 }
 
-void load_slot_status(RaucSlot *dest_slot) {
+static void load_slot_status_locally(RaucSlot *dest_slot) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar *slotstatuspath = NULL;
@@ -517,8 +523,63 @@ free:
 	g_clear_error(&ierror);
 }
 
+static void load_slot_status_globally(void) {
+	GError *ierror = NULL;
+	GHashTable *slots = r_context()->config->slots;
+	GKeyFile *key_file = g_key_file_new();
+	gchar **groups, **group, *slotname;
+	GHashTableIter iter;
+	RaucSlot *slot;
 
-gboolean save_slot_status(RaucSlot *dest_slot, GError **error) {
+	g_return_if_fail(r_context()->config->statusfile_path);
+
+	g_key_file_load_from_file(key_file, r_context()->config->statusfile_path, G_KEY_FILE_NONE, &ierror);
+	if (ierror && !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+		g_message("load_slot_status_globally: %s.", ierror->message);
+	g_clear_error(&ierror);
+
+	/* Load all slot states included in the statusfile */
+	groups = g_key_file_get_groups(key_file, NULL);
+	for (group = groups; *group != NULL; group++) {
+		if (!g_str_has_prefix(*group, RAUC_SLOT_PREFIX "."))
+			continue;
+
+		slotname = *group + strlen(RAUC_SLOT_PREFIX ".");
+		slot = g_hash_table_lookup(slots, slotname);
+		if (!slot || slot->status)
+			continue;
+
+		slot->status = g_new0(RaucSlotStatus, 1);
+		g_debug("Load status for slot %s.", slot->name);
+		status_file_get_slot_status(key_file, *group, slot->status);
+	}
+	g_strfreev(groups);
+	g_clear_pointer(&key_file, g_key_file_free);
+
+	/* Set all other slots to the default status */
+	g_hash_table_iter_init(&iter, slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
+		if (slot->status)
+			continue;
+
+		g_debug("Set default status for slot %s.", slot->name);
+		slot->status = g_new0(RaucSlotStatus, 1);
+	}
+}
+
+void load_slot_status(RaucSlot *dest_slot) {
+	g_return_if_fail(dest_slot);
+
+	if (dest_slot->status)
+		return;
+
+	if (r_context()->config->statusfile_path)
+		load_slot_status_globally();
+	else
+		load_slot_status_locally(dest_slot);
+}
+
+static gboolean save_slot_status_locally(RaucSlot *dest_slot, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar *slotstatuspath = NULL;
@@ -560,6 +621,45 @@ free:
 	g_clear_pointer(&slotstatuspath, g_free);
 
 	return res;
+}
+
+static gboolean save_slot_status_globally(RaucSlot *dest_slot, GError **error) {
+	GKeyFile *key_file = g_key_file_new();
+	GError *ierror = NULL;
+	gboolean res;
+	gchar *group;
+
+	g_return_val_if_fail(dest_slot, FALSE);
+	g_return_val_if_fail(dest_slot->status, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+	g_return_val_if_fail(r_context()->config->statusfile_path, FALSE);
+
+	g_key_file_load_from_file(key_file, r_context()->config->statusfile_path, G_KEY_FILE_NONE, &ierror);
+	if (ierror && !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+		g_message("save_slot_status_globally: %s.", ierror->message);
+	g_clear_error(&ierror);
+
+	group = g_strdup_printf(RAUC_SLOT_PREFIX ".%s", dest_slot->name);
+	status_file_set_slot_status(key_file, group, dest_slot->status);
+	g_free(group);
+
+	res = g_key_file_save_to_file(key_file, r_context()->config->statusfile_path, &ierror);
+	if (!res)
+		g_propagate_error(error, ierror);
+
+	g_key_file_free(key_file);
+
+	return res;
+}
+
+gboolean save_slot_status(RaucSlot *dest_slot, GError **error) {
+	g_return_val_if_fail(dest_slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (r_context()->config->statusfile_path)
+		return save_slot_status_globally(dest_slot, error);
+	else
+		return save_slot_status_locally(dest_slot, error);
 }
 
 void free_slot_status(RaucSlotStatus *slotstatus) {
