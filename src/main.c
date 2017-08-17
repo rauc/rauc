@@ -260,6 +260,47 @@ out:
 	return TRUE;
 }
 
+static gboolean resign_start(int argc, char **argv)
+{
+	GError *ierror = NULL;
+	g_debug("resign start");
+
+	if (r_context()->certpath == NULL ||
+	    r_context()->keypath == NULL ||
+	    r_context()->keyringpath == NULL) {
+		g_printerr("Cert, key and keyring files must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc < 3) {
+		g_printerr("An input bundle must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc < 4) {
+		g_printerr("An output bundle must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc > 4) {
+		g_printerr("Excess argument: %s\n", argv[4]);
+		goto out;
+	}
+
+	if (!resign_bundle(argv[2], argv[3], &ierror)) {
+		g_printerr("Failed to resign bundle: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+out:
+	return TRUE;
+}
+
 static gboolean checksum_start(int argc, char **argv)
 {
 	GError *error = NULL;
@@ -913,6 +954,7 @@ typedef enum  {
 	UNKNOWN = 0,
 	INSTALL,
 	BUNDLE,
+	RESIGN,
 	CHECKSUM,
 	STATUS,
 	INFO,
@@ -976,6 +1018,7 @@ static void cmdline_handler(int argc, char **argv)
 		{UNKNOWN, "help", "<COMMAND>", "Print help", unknown_start, NULL, TRUE},
 		{INSTALL, "install", "install <BUNDLE>", "Install a bundle", install_start, install_group, FALSE},
 		{BUNDLE, "bundle", "bundle <INPUTDIR> <BUNDLENAME>", "Create a bundle from a content directory", bundle_start, NULL, FALSE},
+		{RESIGN, "resign", "resign <BUNDLENAME>", "Resign an already signed bundle", resign_start, NULL, FALSE},
 		{CHECKSUM, "checksum", "checksum <DIRECTORY>", "Deprecated", checksum_start, NULL, FALSE},
 		{INFO, "info", "info <FILE>", "Print bundle info", info_start, info_group, FALSE},
 		{STATUS, "status", "status", "Show system status", status_start, status_group, TRUE},
@@ -998,6 +1041,7 @@ static void cmdline_handler(int argc, char **argv)
 	g_option_context_set_description(context, 
 			"List of rauc commands:\n" \
 			"  bundle\tCreate a bundle\n" \
+			"  resign\tResign an already signed bundle\n" \
 			"  checksum\tUpdate a manifest with checksums (and optionally sign it)\n" \
 			"  install\tInstall a bundle\n" \
 			"  info\t\tShow file information\n" \
