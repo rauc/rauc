@@ -632,8 +632,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	install_args_update(args, "Updating slots...");
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		RaucImage *mfimage;
-		gchar *slotstatuspath = NULL;
-		RaucSlotStatus *slot_state = NULL;
 		img_to_slot_handler update_handler = NULL;
 
 		mfimage = l->data;
@@ -678,58 +676,51 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		install_args_update(args, g_strdup_printf("Checking slot %s", dest_slot->name));
 
 		r_context_begin_step("check_slot", g_strdup_printf("Checking slot %s", dest_slot->name), 0);
-	
-		/* read slot status */
-		g_message("mounting slot %s", dest_slot->device);
-		res = r_mount_slot(dest_slot, &ierror);
-		if (!res) {
-			g_message("Mounting failed: %s", ierror->message);
-			g_clear_error(&ierror);
 
-			slot_state = g_new0(RaucSlotStatus, 1);
-			slot_state->status = g_strdup("update");
-			r_context_end_step("check_slot", FALSE);
-			goto copy;
-		}
+		if (is_slot_mountable(dest_slot)) {
+			RaucSlotStatus *slot_state = NULL;
 
-		slotstatuspath = g_build_filename(dest_slot->mount_point, "slot.raucs", NULL);
+			res = load_slot_status(dest_slot, &slot_state, &ierror);
 
-		res = load_slot_status(slotstatuspath, &slot_state, &ierror);
+			if (!res) {
+				g_message("Failed to load slot status file: %s", ierror->message);
+				g_clear_error(&ierror);
 
-		if (!res) {
-			g_message("Failed to load slot status file: %s", ierror->message);
-			g_clear_error(&ierror);
+				/* In case we failed unmounting while reading status
+				 * file, abort here */
+				if (dest_slot->mount_internal) {
+					res = FALSE;
+					g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
+							"Slot '%s' still mounted", dest_slot->device);
+					r_context_end_step("check_slot", FALSE);
+					goto out;
+				}
 
-			slot_state = g_new0(RaucSlotStatus, 1);
-			slot_state->status = g_strdup("update");
-		} else {
-			/* skip if slot is up-to-date */
-			res = g_str_equal(mfimage->checksum.digest, slot_state->checksum.digest);
-			if (res) {
-				install_args_update(args, g_strdup_printf("Skipping update for correct image %s", mfimage->filename));
-				g_message("Skipping update for correct image %s", mfimage->filename);
-				r_context_end_step("check_slot", TRUE);
-				r_context_begin_step("skip_image", "Copying image skipped", 0);
-				r_context_end_step("skip_image", TRUE);
-				goto image_out;
+				g_clear_pointer(&slot_state, free_slot_status);
+				slot_state = g_new0(RaucSlotStatus, 1);
+				slot_state->status = g_strdup("update");
 			} else {
-				g_message("Slot needs to be updated with %s", mfimage->filename);
-			}
-		}
+				/* skip if slot is up-to-date */
+				if (g_str_equal(mfimage->checksum.digest, slot_state->checksum.digest)) {
+					install_args_update(args, g_strdup_printf("Skipping update for correct image %s", mfimage->filename));
+					g_message("Skipping update for correct image %s", mfimage->filename);
+					r_context_end_step("check_slot", TRUE);
 
-		res = r_umount_slot(dest_slot, &ierror);
-		if (!res) {
-			g_propagate_prefixed_error(
-					error,
-					ierror,
-					"Unmounting failed: ");
-			r_context_end_step("check_slot", FALSE);
-			goto out;
+					/* Dummy step to indicate slot was skipped */
+					r_context_begin_step("skip_image", "Copying image skipped", 0);
+					r_context_end_step("skip_image", TRUE);
+
+					g_clear_pointer(&slot_state, free_slot_status);
+					goto image_out;
+				}
+	
+				g_message("Slot needs to be updated with %s", mfimage->filename);
+				g_clear_pointer(&slot_state, free_slot_status);
+			}
 		}
 
 		r_context_end_step("check_slot", TRUE);
 
-copy:
 		install_args_update(args, g_strdup_printf("Updating slot %s", dest_slot->name));
 
 		/* update slot */
@@ -751,66 +742,20 @@ copy:
 
 		r_context_end_step("copy_image", TRUE);
 
-		if (g_strcmp0(dest_slot->type, "raw") == 0) {
-			g_message("Skipping slot status update for raw slot %s ", dest_slot->device);
-			goto image_out;
-		}
-
-		if (g_strcmp0(dest_slot->type, "nand") == 0) {
-			g_message("Skipping slot status update for nand slot %s ", dest_slot->device);
-			goto image_out;
-		}
-
-		if (g_strcmp0(dest_slot->type, "ubivol") == 0) {
-			g_message("Skipping slot status update for ubi (static volume) slot %s ", dest_slot->device);
-			goto image_out;
-		}
-
-		g_debug("mounting slot %s", dest_slot->device);
-		res = r_mount_slot(dest_slot, &ierror);
-		if (!res) {
-			g_propagate_prefixed_error(error, ierror,
-					"Mounting failed: ");
-			goto out;
-		}
-
-		slot_state->status = g_strdup("ok");
-		slot_state->checksum.type = mfimage->checksum.type;
-		slot_state->checksum.digest = g_strdup(mfimage->checksum.digest);
-
-		if (!slotstatuspath)
-			slotstatuspath = g_build_filename(dest_slot->mount_point, "slot.raucs", NULL);
-		
-		g_message("Updating slot file %s", slotstatuspath);
-		install_args_update(args, g_strdup_printf("Updating slot %s status", dest_slot->name));
-
-		res = save_slot_status(slotstatuspath, slot_state, &ierror);
-		if (!res) {
-			g_propagate_prefixed_error(
-					error,
-					ierror,
-					"Failed writing status file: ");
-
-			r_umount_slot(dest_slot, NULL);
-
-			goto out;
-		}
-		
-image_out:
-		g_clear_pointer(&slot_state, free_slot_status);
-		g_clear_pointer(&slotstatuspath, g_free);
-
-		if (dest_slot->mount_internal) {
-			g_debug("unmounting slot %s", dest_slot->device);
-			res = r_umount_slot(dest_slot, &ierror);
+		if (is_slot_mountable(dest_slot)) {
+			install_args_update(args, g_strdup_printf("Updating slot %s status", dest_slot->name));
+			res = save_slot_status(dest_slot, mfimage, &ierror);
 			if (!res) {
 				g_propagate_prefixed_error(
 						error,
 						ierror,
-						"Unmounting failed: ");
+						"Error while writing status file: ");
+
 				goto out;
 			}
 		}
+		
+image_out:
 
 		install_args_update(args, g_strdup_printf("Updating slot %s done", dest_slot->name));
 	}
@@ -926,7 +871,7 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 
 		// read status
 		slotstatuspath = g_build_filename(slot->mount_point, "slot.raucs", NULL);
-		res = load_slot_status(slotstatuspath, &slot_state, &ierror);
+		res = read_slot_status(slotstatuspath, &slot_state, &ierror);
 		if (!res) {
 			g_message("Failed to load slot status file: %s", ierror->message);
 			g_clear_error(&ierror);
@@ -976,7 +921,7 @@ file_out:
 
 		// write status
 		slot_state->status = g_strdup("ok");
-		res = save_slot_status(slotstatuspath, slot_state, &ierror);
+		res = write_slot_status(slotstatuspath, slot_state, &ierror);
 		if (!res) {
 			g_warning("Failed writing status file: %s", ierror->message);
 			g_clear_error(&ierror);

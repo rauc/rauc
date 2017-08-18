@@ -2,7 +2,7 @@
 
 #include <glib.h>
 
-#include <config_file.h>
+#include "checksum.h"
 
 #define R_MANIFEST_ERROR r_manifest_error_quark ()
 GQuark r_manifest_error_quark (void);

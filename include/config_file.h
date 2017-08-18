@@ -3,6 +3,7 @@
 #include <glib.h>
 
 #include <checksum.h>
+#include "manifest.h"
 
 typedef enum {
 	R_CONFIG_ERROR_INVALID_FORMAT,
@@ -114,7 +115,7 @@ void free_config(RaucConfig *config);
  *
  * @return TRUE if the slot status was sucessfully loaded. FALSE if there were errors.
  */
-gboolean load_slot_status(const gchar *filename, RaucSlotStatus **slotstatus, GError **error);
+gboolean read_slot_status(const gchar *filename, RaucSlotStatus **slotstatus, GError **error);
 
 /**
  * Save slot status file.
@@ -123,7 +124,7 @@ gboolean load_slot_status(const gchar *filename, RaucSlotStatus **slotstatus, GE
  * @param ss the slot status to save
  * @param error a GError, or NULL
  */
-gboolean save_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error);
+gboolean write_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error);
 
 /**
  * Frees the memory allocated by the RaucSlotStatus.
@@ -133,6 +134,43 @@ gboolean save_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **er
 void free_slot_status(RaucSlotStatus *slotstatus);
 
 /**
+ * Load slot status.
+ *
+ * This mounts the given slot, reads the status information from its status
+ * file and unmounts the slot afterwards.
+ *
+ * @param dest_slot Slot to load status information for
+ * @param slot_state return location for the slot information obtained
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if loading status succeeded, FALSE otherwise
+ */
+gboolean load_slot_status(RaucSlot *dest_slot, RaucSlotStatus **slot_state, GError **error);
+
+/**
+ * Save slot status.
+ *
+ * This mounts the given slot, writes the status information into its status
+ * file and unomounts the slot afterwards.
+ *
+ * @param dest_slot Slot to write status information for
+ * @param mfimage image that was just installed
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if loading status succeeded, FALSE otherwise
+ */
+gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **error);
+
+/**
  * Frees the memory allocated by a RaucSlot
  */
 void r_free_slot(gpointer value);
+
+/**
+ * Check if slot type is mountable.
+ *
+ * @param slot slot to check
+ *
+ * @return TRUE if mountable, otherwise FALSE
+ */
+gboolean is_slot_mountable(RaucSlot *slot);

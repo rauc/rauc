@@ -3,6 +3,8 @@
 #include <glib.h>
 
 #include "config_file.h"
+#include "manifest.h"
+#include "mount.h"
 #include "utils.h"
 
 G_DEFINE_QUARK(r-config-error-quark, r_config_error)
@@ -25,6 +27,30 @@ gboolean default_config(RaucConfig **config) {
 
 	*config = c;
 	return TRUE;
+}
+
+typedef struct {
+	const gchar *name;
+	gboolean mountable;
+} RaucSlotType;
+
+RaucSlotType supported_slot_types[] = {
+	{"raw", FALSE},
+	{"ext4", TRUE},
+	{"ubifs", TRUE},
+	{"ubivol", FALSE},
+	{"nand", FALSE},
+	{}
+};
+
+gboolean is_slot_mountable(RaucSlot *slot) {
+	for (RaucSlotType *slot_type = supported_slot_types; slot_type->name != NULL; slot_type++) {
+		if (g_strcmp0(slot->type, slot_type->name) == 0) {
+			return slot_type->mountable;
+		}
+	}
+
+	return FALSE;
 }
 
 static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", NULL};
@@ -267,7 +293,7 @@ void free_config(RaucConfig *config) {
 	g_free(config);
 }
 
-gboolean load_slot_status(const gchar *filename, RaucSlotStatus **slotstatus, GError **error) {
+gboolean read_slot_status(const gchar *filename, RaucSlotStatus **slotstatus, GError **error) {
 	GError *ierror = NULL;
 	RaucSlotStatus *ss = g_new0(RaucSlotStatus, 1);
 	gboolean res = FALSE;
@@ -300,7 +326,7 @@ free:
 	return res;
 }
 
-gboolean save_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error) {
+gboolean write_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error) {
 	GError *ierror = NULL;
 	GKeyFile *key_file = NULL;
 	gboolean res = FALSE;
@@ -322,6 +348,84 @@ gboolean save_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **er
 
 free:
 	g_key_file_free(key_file);
+
+	return res;
+}
+
+gboolean load_slot_status(RaucSlot *dest_slot, RaucSlotStatus **slot_state, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	gchar *slotstatuspath = NULL;
+
+	/* read slot status */
+	g_message("mounting slot %s", dest_slot->device);
+	res = r_mount_slot(dest_slot, &ierror);
+	if (!res) {
+		r_umount_slot(dest_slot, NULL);
+		g_propagate_error(error, ierror);
+		goto free;
+	}
+
+	slotstatuspath = g_build_filename(dest_slot->mount_point, "slot.raucs", NULL);
+
+	res = read_slot_status(slotstatuspath, slot_state, &ierror);
+	if (!res) {
+		r_umount_slot(dest_slot, NULL);
+		g_propagate_error(error, ierror);
+		goto free;
+	}
+
+	res = r_umount_slot(dest_slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto free;
+	}
+
+free:
+	g_clear_pointer(&slotstatuspath, g_free);
+
+	return res;
+}
+
+
+gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	gchar *slotstatuspath = NULL;
+	RaucSlotStatus *slot_state = g_new0(RaucSlotStatus, 1);
+
+	g_debug("mounting slot %s", dest_slot->device);
+	res = r_mount_slot(dest_slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		r_umount_slot(dest_slot, NULL);
+		goto free;
+	}
+
+	slot_state->status = g_strdup("ok");
+	slot_state->checksum.type = mfimage->checksum.type;
+	slot_state->checksum.digest = g_strdup(mfimage->checksum.digest);
+
+	slotstatuspath = g_build_filename(dest_slot->mount_point, "slot.raucs", NULL);
+	g_message("Updating slot file %s", slotstatuspath);
+
+	res = write_slot_status(slotstatuspath, slot_state, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		r_umount_slot(dest_slot, NULL);
+
+		goto free;
+	}
+
+	res = r_umount_slot(dest_slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto free;
+	}
+
+free:
+	g_clear_pointer(&slotstatuspath, g_free);
+	g_clear_pointer(&slot_state, free_slot_status);
 
 	return res;
 }
