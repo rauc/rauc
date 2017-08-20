@@ -399,10 +399,14 @@ boot target is required::
 
 .. warning::
   This example shows only a highly condensed except of setting up Barebox
-  bootchooser with barebox state.
-  For a full documentation on configuration options, possible strategies or
-  memory backend handling, see the official Barebox Bootchooser and Barebox
-  state documentation!
+  state for bootchooser.
+  For a full documentation on how Barebox state works and how to properly
+  integrate it into your platform refer the see the official
+  Barebox State Framework
+  `user documentation <http://www.barebox.org/doc/latest/user/state.html>`_
+  as well as the corresponding
+  `device tree binding <http://www.barebox.org/doc/latest/devicetree/bindings/barebox/barebox,state.html>`_
+  reference!
 
 You can verify your setup by calling ``devinfo state`` from Barebox,
 which would print this for example:
