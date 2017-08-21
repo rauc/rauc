@@ -1,5 +1,6 @@
 #pragma once
 
+#include <openssl/cms.h>
 #include <glib.h>
 
 #define R_SIGNATURE_ERROR r_signature_error_quark ()
@@ -53,19 +54,25 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
  *
  * @param content content to verify against signature
  * @param sig signature used to verify
+ * @param cms Return location for the CMS_ContentInfo used for verification
+ * @param store Return location for the X509 store used for verification
  * @param error return location for a GError, or NULL
  *
  * @return TRUE if succeeded, FALSE if failed
  */
-gboolean cms_verify(GBytes *content, GBytes *sig, GError **error);
+gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_STORE **store, GError **error);
 
 
 /**
+ * Verify signature for given file.
+ *
  * @param filename name of file with content to verify against signature
  * @param sig signature used to verify
  * @param limit size of content to use, 0 if all should be included
+ * @param cms Return location for the CMS_ContentInfo used for verification
+ * @param store Return location for the X509 store used for verification
  * @param error return location for a GError, or NULL
  *
  * @return TRUE if succeeded, FALSE if failed
  */
-gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, GError **error);
+gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, CMS_ContentInfo **cms, X509_STORE **store, GError **error);

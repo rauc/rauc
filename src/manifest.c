@@ -627,7 +627,7 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signa
 			goto out;
 		}
 
-		res = cms_verify_file(manifestpath, sig, 0, &ierror);
+		res = cms_verify_file(manifestpath, sig, 0, NULL, NULL, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;

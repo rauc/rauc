@@ -1119,7 +1119,7 @@ gboolean do_install_network(const gchar *url, GError **error) {
 		goto out;
 	}
 
-	res = cms_verify(manifest_data, signature_data, &ierror);
+	res = cms_verify(manifest_data, signature_data, NULL, NULL, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,

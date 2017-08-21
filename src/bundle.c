@@ -448,7 +448,7 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 	if (verify) {
 		g_message("Verifying bundle... ");
 		/* the squashfs image size is in offset */
-		res = cms_verify_file(bundlename, sig, offset, &ierror);
+		res = cms_verify_file(bundlename, sig, offset, NULL, NULL, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;

@@ -93,7 +93,7 @@ static void signature_verify(void)
 	GBytes *sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
 	g_assert_nonnull(content);
 	g_assert_nonnull(sig);
-	g_assert_true(cms_verify(content, sig, NULL));
+	g_assert_true(cms_verify(content, sig, NULL, NULL, NULL));
 	g_bytes_unref(content);
 	g_bytes_unref(sig);
 }
@@ -108,17 +108,17 @@ static void signature_verify_file(void)
 	g_assert_nonnull(isig);
 
 	// Test valid manifest
-	g_assert_true(cms_verify_file("test/openssl-ca/manifest", sig, 0, &error));
+	g_assert_true(cms_verify_file("test/openssl-ca/manifest", sig, 0, NULL, NULL, &error));
 	g_assert_null(error);
 
 	// Test non-existing file
-	g_assert_false(cms_verify_file("path/to/nonexisting/file", sig, 0, &error));
+	g_assert_false(cms_verify_file("path/to/nonexisting/file", sig, 0, NULL, NULL, &error));
 	g_assert_nonnull(error);
 
 	g_clear_error(&error);
 
 	// Test valid manifest against invalid signature
-	g_assert_false(cms_verify_file("test/openssl-ca/manifest", isig, 0, &error));
+	g_assert_false(cms_verify_file("test/openssl-ca/manifest", isig, 0, NULL, NULL, &error));
 	g_assert_nonnull(error);
 
 	g_clear_error(&error);
@@ -137,9 +137,9 @@ static void signature_loopback(void)
 		       r_context()->keypath,
 		       NULL);
 	g_assert_nonnull(sig);
-	g_assert_true(cms_verify(content, sig, NULL));
+	g_assert_true(cms_verify(content, sig, NULL, NULL, NULL));
 	((char *)g_bytes_get_data(content, NULL))[0] = 0x00;
-	g_assert_false(cms_verify(content, sig, NULL));
+	g_assert_false(cms_verify(content, sig, NULL, NULL, NULL));
 	g_bytes_unref(content);
 	g_bytes_unref(sig);
 }

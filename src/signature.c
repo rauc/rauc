@@ -85,6 +85,7 @@ static X509 *load_cert(const gchar *certfile, GError **error) {
 					(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		goto out;
 	}
+
 out:
 	BIO_free_all(cert);
 	return res;
@@ -156,11 +157,11 @@ out:
 	return res;
 }
 
-gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
+gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_STORE **store, GError **error) {
 	const gchar *capath = r_context()->config->keyring_path;
-	X509_STORE *store = NULL;
+	X509_STORE *istore = NULL;
 	X509_LOOKUP *lookup = NULL;
-	CMS_ContentInfo *cms = NULL;
+	CMS_ContentInfo *icms = NULL;
 	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
 					 g_bytes_get_size(content));
 	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
@@ -169,7 +170,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 
 	r_context_begin_step("cms_verify", "Verifying signature", 0);
 
-	if (!(store = X509_STORE_new())) {
+	if (!(istore = X509_STORE_new())) {
 		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
@@ -177,7 +178,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 				"failed to allocate new X509 store");
 		goto out;
 	}
-	if (!(lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file()))) {
+	if (!(lookup = X509_STORE_add_lookup(istore, X509_LOOKUP_file()))) {
 		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
@@ -194,7 +195,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 		goto out;
 	}
 
-	if (!(cms = d2i_CMS_bio(insig, NULL))) {
+	if (!(icms = d2i_CMS_bio(insig, NULL))) {
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
@@ -203,7 +204,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 		goto out;
 	}
 
-	if (!CMS_verify(cms, NULL, store, incontent, NULL, CMS_DETACHED | CMS_BINARY)) {
+	if (!CMS_verify(icms, NULL, istore, incontent, NULL, CMS_DETACHED | CMS_BINARY)) {
 		unsigned long err;
 		const gchar *data;
 		int flags;
@@ -216,13 +217,22 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 		goto out;
 	}
 
+	if (cms)
+		*cms = icms;
+
+	if (store)
+		*store = istore;
+
+
 	res = TRUE;
 out:
 	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
 	BIO_free_all(insig);
-	X509_STORE_free(store);
-	CMS_ContentInfo_free(cms);
+	if (!store)
+		X509_STORE_free(istore);
+	if (!cms)
+		CMS_ContentInfo_free(icms);
 	r_context_end_step("cms_verify", res);
 	return res;
 }
@@ -252,7 +262,7 @@ out:
 	return sig;
 }
 
-gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, GError **error) {
+gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, CMS_ContentInfo **cms, X509_STORE **store, GError **error) {
 	GError *ierror = NULL;
 	GMappedFile *file;
 	GBytes *content = NULL;
@@ -271,7 +281,7 @@ gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, GError
 		content = tmp;
 	}
 
-	res = cms_verify(content, sig, &ierror);
+	res = cms_verify(content, sig, cms, store, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
