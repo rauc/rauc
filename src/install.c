@@ -990,6 +990,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 	gboolean res = FALSE;
 	gchar* mountpoint;
 	RaucManifest *manifest = NULL;
+	RaucBundle *bundle = NULL;
 	GHashTable *target_group;
 
 	g_assert_nonnull(bundlefile);
@@ -1014,7 +1015,14 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 	// TODO: mount info in context ?
 	g_message("Mounting bundle '%s' to '%s'", bundlefile, mountpoint);
 	install_args_update(args, "Checking and mounting bundle...");
-	res = mount_bundle(bundlefile, mountpoint, TRUE, &ierror);
+
+	res = check_bundle(bundlefile, &bundle, TRUE, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = mount_bundle(bundle, mountpoint, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -1078,11 +1086,12 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 	res = TRUE;
 
 umount:
-	umount_bundle(mountpoint, NULL);
+	umount_bundle(bundle, NULL);
 	g_rmdir(mountpoint);
 	g_clear_pointer(&mountpoint, g_free);
 
 out:
+	g_clear_pointer(&bundle, free_bundle);
 	g_clear_pointer(&manifest, free_manifest);
 	r_context_end_step("do_install_bundle", res);
 

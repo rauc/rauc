@@ -262,6 +262,7 @@ out:
 
 static gboolean resign_start(int argc, char **argv)
 {
+	RaucBundle *bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("resign start");
 
@@ -290,7 +291,14 @@ static gboolean resign_start(int argc, char **argv)
 		goto out;
 	}
 
-	if (!resign_bundle(argv[2], argv[3], &ierror)) {
+	if (!check_bundle(argv[2], &bundle, TRUE, &ierror)) {
+		g_printerr("%s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (!resign_bundle(bundle, argv[3], &ierror)) {
 		g_printerr("Failed to resign bundle: %s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -298,6 +306,7 @@ static gboolean resign_start(int argc, char **argv)
 	}
 
 out:
+	g_clear_pointer(&bundle, free_bundle);
 	return TRUE;
 }
 
@@ -589,6 +598,7 @@ static gboolean info_start(int argc, char **argv)
 	gchar* bundledir = NULL;
 	gchar* manifestpath = NULL;
 	RaucManifest *manifest = NULL;
+	RaucBundle *bundle = NULL;
 	GError *error = NULL;
 	gboolean res = FALSE;
 	gchar* (*formatter)(RaucManifest *manifest) = NULL;
@@ -627,7 +637,14 @@ static gboolean info_start(int argc, char **argv)
 	bundledir = g_build_filename(tmpdir, "bundle-content", NULL);
 	manifestpath = g_build_filename(bundledir, "manifest.raucm", NULL);
 
-	res = extract_file_from_bundle(argv[2], bundledir, "manifest.raucm", !info_noverify, &error);
+	res = check_bundle(argv[2], &bundle, !info_noverify, &error);
+	if (!res) {
+		g_printerr("%s\n", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+	res = extract_file_from_bundle(bundle, bundledir, "manifest.raucm", &error);
 	if (!res) {
 		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
@@ -648,6 +665,7 @@ out:
 	if (tmpdir)
 		rm_tree(tmpdir, NULL);
 
+	g_clear_pointer(&bundle, free_bundle);
 	g_clear_pointer(&tmpdir, g_free);
 	g_clear_pointer(&bundledir, g_free);
 	g_clear_pointer(&manifestpath, g_free);

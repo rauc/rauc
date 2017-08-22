@@ -92,18 +92,25 @@ static void bundle_test_create_extract(BundleFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *outputdir;
+	RaucBundle *bundle = NULL;
 
 	outputdir = g_build_filename(fixture->tmpdir, "output", NULL);
 	g_assert_nonnull(outputdir);
 
-	g_assert_true(extract_bundle(fixture->bundlename, outputdir, TRUE, NULL));
+	g_assert_true(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
+	g_assert_nonnull(bundle);
+
+	g_assert_true(extract_bundle(bundle, outputdir, NULL));
 	g_assert_true(verify_manifest(outputdir, NULL, FALSE, NULL));
+
+	free_bundle(bundle);
 }
 
 static void bundle_test_create_mount_extract(BundleFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *mountpoint;
+	RaucBundle *bundle = NULL;
 
 	/* mount needs to run as root */
 	if (!test_running_as_root())
@@ -113,9 +120,14 @@ static void bundle_test_create_mount_extract(BundleFixture *fixture,
 	g_assert_nonnull(mountpoint);
 	g_assert(g_mkdir(mountpoint, 0777) == 0);
 
-	g_assert_true(mount_bundle(fixture->bundlename, mountpoint, FALSE, NULL));
+	g_assert_true(check_bundle(fixture->bundlename, &bundle, FALSE, NULL));
+	g_assert_nonnull(bundle);
+
+	g_assert_true(mount_bundle(bundle, mountpoint, NULL));
 	g_assert_true(verify_manifest(mountpoint, NULL, FALSE, NULL));
-	g_assert_true(umount_bundle(fixture->bundlename, NULL));
+	g_assert_true(umount_bundle(bundle, NULL));
+
+	free_bundle(bundle);
 }
 
 
@@ -123,6 +135,7 @@ static void bundle_test_extract_manifest(BundleFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *outputdir, *manifestpath;
+	RaucBundle *bundle = NULL;
 
 	outputdir = g_build_filename(fixture->tmpdir, "output", NULL);
 	g_assert_nonnull(outputdir);
@@ -130,8 +143,13 @@ static void bundle_test_extract_manifest(BundleFixture *fixture,
 	manifestpath = g_build_filename(fixture->tmpdir, "/output/manifest.raucm", NULL);
 	g_assert_nonnull(manifestpath);
 
-	g_assert_true(extract_file_from_bundle(fixture->bundlename, outputdir, "manifest.raucm", TRUE, NULL));
+	g_assert_true(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
+	g_assert_nonnull(bundle);
+
+	g_assert_true(extract_file_from_bundle(bundle, outputdir, "manifest.raucm", NULL));
 	g_assert_true(g_file_test(manifestpath, G_FILE_TEST_EXISTS));
+
+	free_bundle(bundle);
 }
 
 static void bundle_test_resign(BundleFixture *fixture,
@@ -153,14 +171,20 @@ static void bundle_test_resign(BundleFixture *fixture,
 	/* Verify input bundle with dev keyring */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
 	g_assert_true(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
+
+	g_clear_pointer(&bundle, free_bundle);
+
 	/* Verify input bundle with rel keyring */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
 	g_assert_false(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
 
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
-	res = resign_bundle(fixture->bundlename, resignbundle, &ierror);
+	g_assert_true(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
+	res = resign_bundle(bundle, resignbundle, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
+
+	g_clear_pointer(&bundle, free_bundle);
 
 	/* Verify resigned bundle with dev keyring.
 	 * Note that this evaluates to true as the dev-ca.pem keyring contains
@@ -169,9 +193,14 @@ static void bundle_test_resign(BundleFixture *fixture,
 	 * bundles. */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
 	g_assert_true(check_bundle(resignbundle, &bundle, TRUE, NULL));
+
+	g_clear_pointer(&bundle, free_bundle);
+
 	/* Verify resigned bundle with rel keyring */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
 	g_assert_true(check_bundle(resignbundle, &bundle, TRUE, NULL));
+
+	g_clear_pointer(&bundle, free_bundle);
 }
 
 int main(int argc, char *argv[])
