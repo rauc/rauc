@@ -15,6 +15,7 @@
 #include "install.h"
 #include "rauc-installer-generated.h"
 #include "service.h"
+#include "signature.h"
 #include "utils.h"
 #include "mark.h"
 
@@ -662,6 +663,12 @@ static gboolean info_start(int argc, char **argv)
 	text = formatter(manifest);
 	g_print("%s\n", text);
 	g_free(text);
+
+	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
+		text = print_cert_chain(bundle->verified_chain);
+		g_print("%s\n", text);
+		g_free(text);
+	}
 
 out:
 	r_exit_status = res ? 0 : 1;
