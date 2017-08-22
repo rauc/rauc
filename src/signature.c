@@ -172,7 +172,6 @@ out:
 
 gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 	const gchar *capath = r_context()->config->keyring_path;
-	STACK_OF(X509) *other = NULL;
 	X509_STORE *store = NULL;
 	X509_LOOKUP *lookup = NULL;
 	CMS_ContentInfo *cms = NULL;
@@ -218,7 +217,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 		goto out;
 	}
 
-	if (!CMS_verify(cms, other, store, incontent, NULL, CMS_DETACHED | CMS_BINARY)) {
+	if (!CMS_verify(cms, NULL, store, incontent, NULL, CMS_DETACHED | CMS_BINARY)) {
 		unsigned long err;
 		const gchar *data;
 		int flags;
