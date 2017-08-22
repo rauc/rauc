@@ -857,6 +857,7 @@ static gboolean status_start(int argc, char **argv)
 	}
 
 out:
+	g_free(text);
 	return TRUE;
 }
 
