@@ -437,6 +437,18 @@ int main(int argc, char *argv[])
 
 		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK | TEST_UPDATE_HANDLER_NO_HOOK_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_ERROR, G_SPAWN_ERROR_NOENT},
 
+		/* vfat tests */
+		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 2},
+		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_NO_TARGET_DEV | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK, 0, 0},
+		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK, 0, 0},
+		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK, 0, 0},
+		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+
 		{0}
 	};
 	setlocale(LC_ALL, "C");
@@ -703,6 +715,68 @@ int main(int argc, char *argv[])
 	g_test_add("/update_handler/update_handler/ext4_to_ext4/hooks/no-file",
 			UpdateHandlerFixture,
 			&testpair_matrix[40],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+
+	/* vfat tests */
+	g_test_add("/update_handler/get_handler/tar_to_vfat",
+			UpdateHandlerFixture,
+			&testpair_matrix[41],
+			NULL,
+			test_get_update_handler,
+			NULL);
+	g_test_add("/update_handler/update_handler/tar_to_vfat",
+			UpdateHandlerFixture,
+			&testpair_matrix[42],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/tar_to_vfat/no-image",
+			UpdateHandlerFixture,
+			&testpair_matrix[43],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/tar_to_vfat/no-slot",
+			UpdateHandlerFixture,
+			&testpair_matrix[44],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/tar_to_vfat/pre-hook",
+			UpdateHandlerFixture,
+			&testpair_matrix[45],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/tar_to_vfat/post-hook",
+			UpdateHandlerFixture,
+			&testpair_matrix[46],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/tar_to_vfat/install-hook",
+			UpdateHandlerFixture,
+			&testpair_matrix[47],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/tar_to_vfat/pre-hook/fail",
+			UpdateHandlerFixture,
+			&testpair_matrix[48],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/tar_to_vfat/post-hook/fail",
+			UpdateHandlerFixture,
+			&testpair_matrix[49],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/tar_to_vfat/install-hook/fail",
+			UpdateHandlerFixture,
+			&testpair_matrix[50],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
