@@ -367,12 +367,11 @@ out:
 
 gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir, gboolean verify, GError **error) {
 	GError *ierror = NULL;
-	gsize size;
 	gboolean res = FALSE;
 
 	r_context_begin_step("extract_bundle", "Extracting bundle", 2);
 
-	res = check_bundle(bundlename, &size, verify, &ierror);
+	res = check_bundle(bundlename, NULL, verify, &ierror);
 	if (!res) {
 		if (g_error_matches(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE)) {
 			g_propagate_prefixed_error(error, ierror, "Invalid Bundle: ");
@@ -396,10 +395,9 @@ out:
 
 gboolean extract_file_from_bundle(const gchar *bundlename, const gchar *outputdir, const gchar *file, gboolean verify, GError **error) {
 	GError *ierror = NULL;
-	gsize size;
 	gboolean res = FALSE;
 
-	res = check_bundle(bundlename, &size, verify, &ierror);
+	res = check_bundle(bundlename, NULL, verify, &ierror);
 	if (!res) {
 		if (g_error_matches(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE)) {
 			g_propagate_prefixed_error(error, ierror, "Invalid Bundle: ");
