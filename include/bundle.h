@@ -10,6 +10,11 @@ typedef enum {
 	R_BUNDLE_ERROR_KEYRING
 } RBundleError;
 
+typedef struct {
+	gchar *path;
+	gsize size;
+} RaucBundle;
+
 /**
  * Create a bundle.
  *
@@ -26,15 +31,17 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
  *
  * This will verify and check the bundle content.
  *
- * @param bundlemane filename of the bundle to check
- * @param size Return location for the bundle size
+ * @param bundlemane filename of the bundle to check 
+ * @param bundle Return location for a RaucBundle struct.
+ *               This will contain all bundle information obtained by
+ *               check_bundle
  * @param verify If set to true the bundle signature will also be verified, if
  *               set to FALSE this step will be skipped
  * @param error Return location for a GError
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GError **error);
+gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error);
 
 /**
  * Resign a bundle.
@@ -103,3 +110,10 @@ gboolean mount_bundle(const gchar *bundlename, const gchar *mountpoint, gboolean
  * @return TRUE on success, FALSE if an error occurred
  */
 gboolean umount_bundle(const gchar *bundlename, GError **error);
+
+/**
+ * Frees the memory allocated by a RaucBundle.
+ *
+ * @param bundle bundle to free
+ */
+void free_bundle(RaucBundle *bundle);

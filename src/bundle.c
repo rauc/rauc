@@ -324,15 +324,15 @@ out:
 gboolean resign_bundle(const gchar *inpath, const gchar *outpath, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	gsize size;
+	RaucBundle *bundle;
 
-	res = check_bundle(inpath, &size, TRUE, &ierror);
+	res = check_bundle(inpath, &bundle, TRUE, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
 
-	res = truncate_bundle(inpath, outpath, size, &ierror);
+	res = truncate_bundle(inpath, outpath, bundle->size, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -349,7 +349,7 @@ out:
 	return res;
 }
 
-gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GError **error) {
+gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error) {
 	GError *ierror = NULL;
 	GBytes *sig = NULL;
 	GFile *bundlefile = NULL;
@@ -357,6 +357,11 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 	guint64 sigsize;
 	goffset offset;
 	gboolean res = FALSE;
+	RaucBundle *ibundle = g_new0(RaucBundle, 1);
+
+	g_return_val_if_fail (bundle == NULL || *bundle == NULL, FALSE);
+
+	ibundle->path = g_strdup(bundlename);
 
 	r_context_begin_step("check_bundle", "Checking bundle", verify);
 
@@ -422,8 +427,7 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 
 	offset -= sigsize;
 
-	if (size)
-		*size = offset;
+	ibundle->size = offset;
 
 	res = g_seekable_seek(G_SEEKABLE(bundlestream),
 			      offset, G_SEEK_SET, NULL, &ierror);
@@ -455,8 +459,13 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 		}
 	}
 
+	if (bundle)
+		*bundle = ibundle;
+
 	res = TRUE;
 out:
+	if (!bundle)
+		free_bundle(ibundle);
 	g_clear_object(&bundlestream);
 	g_clear_object(&bundlefile);
 	g_clear_pointer(&sig, g_bytes_unref);
@@ -519,16 +528,16 @@ out:
 
 gboolean mount_bundle(const gchar *bundlename, const gchar *mountpoint, gboolean verify, GError **error) {
 	GError *ierror = NULL;
-	gsize size;
+	RaucBundle *bundle = NULL;
 	gboolean res = FALSE;
 
-	res = check_bundle(bundlename, &size, verify, &ierror);
+	res = check_bundle(bundlename, &bundle, verify, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
 
-	res = r_mount_loop(bundlename, mountpoint, size, &ierror);
+	res = r_mount_loop(bundlename, mountpoint, bundle->size, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -552,4 +561,9 @@ gboolean umount_bundle(const gchar *bundlename, GError **error) {
 	res = TRUE;
 out:
 	return res;
+}
+
+void free_bundle(RaucBundle *bundle) {
+
+	g_free(bundle->path);
 }

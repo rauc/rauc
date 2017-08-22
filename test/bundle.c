@@ -52,14 +52,16 @@ static void test_check_empty_bundle(BundleFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *bundlename;
-	gsize size;
+	RaucBundle *bundle = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
 	bundlename = write_random_file(fixture->tmpdir, "bundle.raucb", 0, 1234);
 	g_assert_nonnull(bundlename);
 
-	res = check_bundle(bundlename, &size, TRUE, &ierror);
+	res = check_bundle(bundlename, &bundle, TRUE, &ierror);
+	g_assert_null(bundle);
+
 	g_assert_error(ierror, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
 	g_assert_false(res);
 
@@ -70,14 +72,16 @@ static void test_check_invalid_bundle(BundleFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *bundlename;
-	gsize size;
+	RaucBundle *bundle = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
 	bundlename = write_random_file(fixture->tmpdir, "bundle.raucb", 1024, 1234);
 	g_assert_nonnull(bundlename);
 
-	res = check_bundle(bundlename, &size, FALSE, &ierror);
+	res = check_bundle(bundlename, &bundle, FALSE, &ierror);
+	g_assert_null(bundle);
+
 	g_assert_error(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE);
 	g_assert_false(res);
 
@@ -134,7 +138,7 @@ static void bundle_test_resign(BundleFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *resignbundle;
-	gsize size;
+	RaucBundle *bundle = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -148,10 +152,10 @@ static void bundle_test_resign(BundleFixture *fixture,
 
 	/* Verify input bundle with dev keyring */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
-	g_assert_true(check_bundle(fixture->bundlename, &size, TRUE, NULL));
+	g_assert_true(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
 	/* Verify input bundle with rel keyring */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
-	g_assert_false(check_bundle(fixture->bundlename, &size, TRUE, NULL));
+	g_assert_false(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
 
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
 	res = resign_bundle(fixture->bundlename, resignbundle, &ierror);
@@ -164,10 +168,10 @@ static void bundle_test_resign(BundleFixture *fixture,
 	 * installing development bundles as well as moving to production
 	 * bundles. */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
-	g_assert_true(check_bundle(resignbundle, &size, TRUE, NULL));
+	g_assert_true(check_bundle(resignbundle, &bundle, TRUE, NULL));
 	/* Verify resigned bundle with rel keyring */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
-	g_assert_true(check_bundle(resignbundle, &size, TRUE, NULL));
+	g_assert_true(check_bundle(resignbundle, &bundle, TRUE, NULL));
 }
 
 int main(int argc, char *argv[])
