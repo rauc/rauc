@@ -51,7 +51,7 @@ static gboolean barebox_state_get_int(const gchar* name, int *value) {
 
 	result = g_ascii_strtoull(outline, NULL, 10);
 	if (errno != 0) {
-		g_warning("Invalid return value: '%s'\n", outline);
+		g_warning("Invalid return value: '%s'", outline);
 		goto out;
 	}
 
