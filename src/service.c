@@ -8,6 +8,7 @@
 #include "bundle.h"
 #include "context.h"
 #include "install.h"
+#include "mark.h"
 #include "rauc-installer-generated.h"
 #include "service.h"
 #include "utils.h"
@@ -155,6 +156,48 @@ out:
 	return TRUE;
 }
 
+static gboolean r_on_handle_mark(RInstaller *interface,
+				 GDBusMethodInvocation  *invocation,
+				 const gchar *arg_state,
+				 const gchar *arg_slot_identifier)
+{
+	gchar *slot_name = NULL;
+	gchar *message = NULL;
+	GError *ierror = NULL;
+	gboolean res;
+
+	res = !r_context_get_busy();
+	if (!res) {
+		message = g_strdup("already processing a different method");
+		goto out;
+	}
+
+	res = determine_slot_states(&ierror);
+	if (!res) {
+		message = g_strdup_printf("Failed to determine slot states: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		goto out;
+	}
+
+	res = mark_run(arg_state, arg_slot_identifier, &slot_name, &message);
+
+out:
+	if (res) {
+		r_installer_complete_mark(interface, invocation, slot_name, message);
+	} else {
+		g_dbus_method_invocation_return_error(invocation,
+						      G_IO_ERROR,
+						      G_IO_ERROR_FAILED_HANDLED,
+						      "%s", message);
+	}
+	if (message)
+		g_message("rauc mark: %s", message);
+
+	g_free(slot_name);
+	g_free(message);
+
+	return TRUE;
+}
 
 static gboolean auto_install(const gchar *source) {
 	RaucInstallArgs *args = install_args_new();
@@ -220,6 +263,10 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 
 	g_signal_connect(r_installer, "handle-info",
 			 G_CALLBACK(r_on_handle_info),
+			 NULL);
+
+	g_signal_connect(r_installer, "handle-mark",
+			 G_CALLBACK(r_on_handle_mark),
 			 NULL);
 
 	r_context_register_progress_callback(send_progress_callback);

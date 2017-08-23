@@ -22,6 +22,25 @@
       <arg name="version" type="s" direction="out" />
     </method>
 
+    <!--
+         Mark:
+         @state: operation to perform (one out of "good", "bad" or "active")
+         @slot_identifier: can be "booted", "other" or <SLOT_NAME> (e.g.
+             "rootfs.1")
+         @slot_name: name of the slot which has ultimately been marked
+         @message: message describing what has been done successfully (e.g.
+             "activated slot rootfs.0")
+
+         Keeps a slot bootable (state == "good"), makes it unbootable (state ==
+         "bad") or explicitely activates it for the next boot (state == "active").
+    -->
+    <method name="Mark">
+      <arg name="state" type="s" direction="in"/>
+      <arg name="slot_identifier" type="s" direction="in"/>
+      <arg name="slot_name" type="s" direction="out"/>
+      <arg name="message" type="s" direction="out"/>
+    </method>
+
     <!-- Operation: Represents the current (global) operation rauc performs -->
     <property name="Operation" type="s" access="read"/>
     <!-- LastError: Holds a message describing the last error that occurred -->

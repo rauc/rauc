@@ -8,6 +8,7 @@
 #include "utils.h"
 
 G_DEFINE_QUARK(r-config-error-quark, r_config_error)
+G_DEFINE_QUARK(r-slot-error-quark, r_slot_error)
 
 #define RAUC_SLOT_PREFIX	"slot"
 
@@ -126,6 +127,17 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			g_debug("No grubenv path provided, using /boot/grub/grubenv as default");
 			c->grubenv_path = g_strdup("/boot/grub/grubenv");
 		}
+	}
+
+	c->activate_installed = g_key_file_get_boolean(key_file, "system", "activate-installed", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		c->activate_installed = TRUE;
+		g_clear_error(&ierror);
+	}
+	else if (ierror) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
 	}
 
 	/* parse [keyring] section */

@@ -9,7 +9,6 @@
 #endif
 #include <stdio.h>
 
-#include "bootchooser.h"
 #include "bundle.h"
 #include "config_file.h"
 #include "context.h"
@@ -17,6 +16,7 @@
 #include "rauc-installer-generated.h"
 #include "service.h"
 #include "utils.h"
+#include "mark.h"
 
 GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
@@ -795,13 +795,19 @@ static gchar* r_status_formatter_json(gboolean pretty)
 
 static gboolean status_start(int argc, char **argv)
 {
-	GHashTableIter iter;
-	RaucSlot *slot, *booted = NULL;
+	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
+		? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 	gchar *text = NULL;
+	gchar *slot_name = NULL;
+	gchar *message = NULL;
+	const gchar *state = NULL;
+	const gchar *slot_identifier = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+	RInstaller *proxy = NULL;
 
 	g_debug("status start");
+	r_exit_status = 0;
 
 	res = determine_slot_states(&ierror);
 	if (!res) {
@@ -828,35 +834,60 @@ static gboolean status_start(int argc, char **argv)
 	g_print("%s\n", text);
 
 	if (argc < 3) {
-		r_exit_status = 0;
 		goto out;
-	}
-
-	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
-		if (slot->state == ST_BOOTED) {
-			booted = slot;
-		}
-	}
-
-	if (!booted) {
-		g_printerr("Failed to determine booted slot\n");
+	} else if (argc == 3) {
+		slot_identifier = "booted";
+	} else if (argc == 4) {
+		slot_identifier = argv[3];
+	} else if (argc > 4) {
+		g_warning("Too many arguments");
 		r_exit_status = 1;
 		goto out;
 	}
 
 	if (g_strcmp0(argv[2], "mark-good") == 0) {
-		g_print("marking slot %s as good\n", booted->name);
-		r_exit_status = r_boot_set_state(booted, TRUE) ? 0 : 1;
+		state = "good";
 	} else if (g_strcmp0(argv[2], "mark-bad") == 0) {
-		g_print("marking slot %s as bad\n", booted->name);
-		r_exit_status = r_boot_set_state(booted, FALSE) ? 0 : 1;
+		state = "bad";
+	} else if (g_strcmp0(argv[2], "mark-active") == 0) {
+		state = "active";
 	} else {
 		g_message("unknown subcommand %s", argv[2]);
 		r_exit_status = 1;
+		goto out;
+	}
+
+	if (ENABLE_SERVICE) {
+		proxy = r_installer_proxy_new_for_bus_sync(bus_type,
+			G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
+			"de.pengutronix.rauc", "/", NULL, &ierror);
+		if (proxy == NULL) {
+			message = g_strdup_printf("rauc mark: error creating proxy: %s",
+						  ierror->message);
+			g_error_free(ierror);
+			r_exit_status = 1;
+			goto out;
+		}
+		g_print("trying to contact rauc service\n");
+		if (!r_installer_call_mark_sync(proxy, state, slot_identifier,
+						&slot_name, &message, NULL, &ierror)) {
+			message = g_strdup(ierror->message);
+			g_error_free(ierror);
+			r_exit_status = 1;
+			goto out;
+		}
+	} else {
+		r_exit_status = mark_run(state, slot_identifier, NULL, &message) ? 0 : 1;
 	}
 
 out:
+	if (message)
+		g_message("rauc mark: %s", message);
+	g_free(text);
+	g_free(slot_name);
+	g_free(message);
+	g_clear_pointer(&proxy, g_object_unref);
+
 	return TRUE;
 }
 
