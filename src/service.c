@@ -322,11 +322,8 @@ static gboolean r_on_signal(gpointer user_data)
 }
 
 gboolean r_service_run(void) {
-	GBusType bus_type = G_BUS_TYPE_SYSTEM;
-
-	if (g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session") == 0) {
-		bus_type = G_BUS_TYPE_SESSION;
-	}
+	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
+		? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 
 	r_context();
 
