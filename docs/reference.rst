@@ -137,7 +137,7 @@ set of slots.
 
 ``type``
   The type describing the slot. Currently supported values are ``raw``,
-  ``nand``, ``ubivol``, ``ubifs``, ``ext4``.
+  ``nand``, ``ubivol``, ``ubifs``, ``ext4``, ``vfat``.
   See table :ref:`sec-slot-type` for a more detailed list of these different types.
 
 ``bootname``
