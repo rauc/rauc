@@ -13,6 +13,8 @@
 
 typedef struct {
 	gchar *tmpdir;
+	gchar *bundlename;
+	gchar *contentdir;
 } BundleFixture;
 
 static void bundle_fixture_set_up(BundleFixture *fixture,
@@ -21,13 +23,28 @@ static void bundle_fixture_set_up(BundleFixture *fixture,
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
 	g_print("bundle tmpdir: %s\n", fixture->tmpdir);
+}
+
+static void bundle_fixture_set_up_bundle(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(fixture->tmpdir);
+
+	fixture->contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
+	g_assert_nonnull(fixture->contentdir);
+	fixture->bundlename = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_nonnull(fixture->bundlename);
+
+	g_print("bundle tmpdir: %s\n", fixture->tmpdir);
 	g_assert(test_mkdir_relative(fixture->tmpdir, "content", 0777) == 0);
-	g_assert(test_mkdir_relative(fixture->tmpdir, "mount", 0777) == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.ext4",
 					 1024*1024, "/dev/urandom") == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.ext4",
 				         64*1024, "/dev/urandom") == 0);
 	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE, FALSE) == 0);
+	g_assert_true(update_manifest(fixture->contentdir, FALSE, NULL));
+	g_assert_true(create_bundle(fixture->bundlename, fixture->contentdir, NULL));
 }
 
 static void bundle_fixture_tear_down(BundleFixture *fixture,
@@ -76,59 +93,38 @@ static void test_check_invalid_bundle(BundleFixture *fixture,
 static void bundle_test_create_extract(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *bundlename, *contentdir, *outputdir;
-
-	bundlename = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
-	g_assert_nonnull(bundlename);
-
-	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
-	g_assert_nonnull(contentdir);
+	gchar *outputdir;
 
 	outputdir = g_build_filename(fixture->tmpdir, "output", NULL);
 	g_assert_nonnull(outputdir);
 
-	g_assert_true(update_manifest(contentdir, FALSE, NULL));
-	g_assert_true(create_bundle(bundlename, contentdir, NULL));
-	g_assert_true(extract_bundle(bundlename, outputdir, TRUE, NULL));
+	g_assert_true(extract_bundle(fixture->bundlename, outputdir, TRUE, NULL));
 	g_assert_true(verify_manifest(outputdir, NULL, FALSE, NULL));
 }
 
 static void bundle_test_create_mount_extract(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *bundlename, *contentdir, *mountpoint;
+	gchar *mountpoint;
 
 	/* mount needs to run as root */
 	if (!test_running_as_root())
 		return;
 
-	bundlename = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
-	g_assert_nonnull(bundlename);
-
-	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
-	g_assert_nonnull(contentdir);
-
 	mountpoint = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountpoint);
+	g_assert(g_mkdir(mountpoint, 0777) == 0);
 
-	g_assert_true(update_manifest(contentdir, FALSE, NULL));
-	g_assert_true(create_bundle(bundlename, contentdir, NULL));
-	g_assert_true(mount_bundle(bundlename, mountpoint, FALSE, NULL));
+	g_assert_true(mount_bundle(fixture->bundlename, mountpoint, FALSE, NULL));
 	g_assert_true(verify_manifest(mountpoint, NULL, FALSE, NULL));
-	g_assert_true(umount_bundle(bundlename, NULL));
+	g_assert_true(umount_bundle(fixture->bundlename, NULL));
 }
 
 
 static void bundle_test_extract_manifest(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *bundlename, *contentdir, *outputdir, *manifestpath;
-
-	bundlename = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
-	g_assert_nonnull(bundlename);
-
-	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
-	g_assert_nonnull(contentdir);
+	gchar *outputdir, *manifestpath;
 
 	outputdir = g_build_filename(fixture->tmpdir, "output", NULL);
 	g_assert_nonnull(outputdir);
@@ -136,9 +132,7 @@ static void bundle_test_extract_manifest(BundleFixture *fixture,
 	manifestpath = g_build_filename(fixture->tmpdir, "/output/manifest.raucm", NULL);
 	g_assert_nonnull(manifestpath);
 
-	g_assert_true(update_manifest(contentdir, FALSE, NULL));
-	g_assert_true(create_bundle(bundlename, contentdir, NULL));
-	g_assert_true(extract_file_from_bundle(bundlename, outputdir, "manifest.raucm", TRUE, NULL));
+	g_assert_true(extract_file_from_bundle(fixture->bundlename, outputdir, "manifest.raucm", TRUE, NULL));
 	g_assert_true(g_file_test(manifestpath, G_FILE_TEST_EXISTS));
 }
 
@@ -206,19 +200,19 @@ int main(int argc, char *argv[])
 		   bundle_fixture_tear_down);
 
 	g_test_add("/bundle/create_extract", BundleFixture, NULL,
-		   bundle_fixture_set_up, bundle_test_create_extract,
+		   bundle_fixture_set_up_bundle, bundle_test_create_extract,
 		   bundle_fixture_tear_down);
 
 	g_test_add("/bundle/create_mount_extract", BundleFixture, NULL,
-		   bundle_fixture_set_up, bundle_test_create_mount_extract,
+		   bundle_fixture_set_up_bundle, bundle_test_create_mount_extract,
 		   bundle_fixture_tear_down);
 
 	g_test_add("/bundle/extract_manifest", BundleFixture, NULL,
-		   bundle_fixture_set_up, bundle_test_extract_manifest,
+		   bundle_fixture_set_up_bundle, bundle_test_extract_manifest,
 		   bundle_fixture_tear_down);
 
 	g_test_add("/bundle/verify_manifest", BundleFixture, NULL,
-		   bundle_fixture_set_up, bundle_test_verify_manifest,
+		   bundle_fixture_set_up_bundle, bundle_test_verify_manifest,
 		   bundle_fixture_tear_down);
 
 	return g_test_run();
