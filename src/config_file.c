@@ -41,6 +41,7 @@ RaucSlotType supported_slot_types[] = {
 	{"ubifs", TRUE},
 	{"ubivol", FALSE},
 	{"nand", FALSE},
+	{"vfat", TRUE},
 	{}
 };
 

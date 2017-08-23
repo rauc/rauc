@@ -7,7 +7,7 @@ before_install:
     trusty main restricted universe multiverse" -y
   - sudo apt-get update -qq
   - sudo apt-get install -qq autoconf automake libglib2.0-dev libjson-glib-dev
-    libssl-dev libcurl4-openssl-dev squashfs-tools lcov slirp python-sphinx
+    libssl-dev libcurl4-openssl-dev squashfs-tools dosfstools lcov slirp python-sphinx
   - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/
     vivid main restricted universe multiverse" -y
   - sudo apt-get update -qq
