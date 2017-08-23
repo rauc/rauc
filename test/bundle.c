@@ -36,15 +36,9 @@ static void bundle_fixture_set_up_bundle(BundleFixture *fixture,
 	fixture->bundlename = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(fixture->bundlename);
 
-	g_print("bundle tmpdir: %s\n", fixture->tmpdir);
-	g_assert(test_mkdir_relative(fixture->tmpdir, "content", 0777) == 0);
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/rootfs.ext4",
-					 1024*1024, "/dev/urandom") == 0);
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.ext4",
-				         64*1024, "/dev/urandom") == 0);
-	g_assert(test_prepare_manifest_file(fixture->tmpdir, "content/manifest.raucm", FALSE, FALSE) == 0);
-	g_assert_true(update_manifest(fixture->contentdir, FALSE, NULL));
-	g_assert_true(create_bundle(fixture->bundlename, fixture->contentdir, NULL));
+	test_create_content(fixture->contentdir);
+
+	test_create_bundle(fixture->contentdir, fixture->bundlename);
 }
 
 static void bundle_fixture_tear_down(BundleFixture *fixture,
