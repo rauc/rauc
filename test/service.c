@@ -130,6 +130,11 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	GError *error = NULL;
 	gboolean ret = FALSE;
 
+	if (!ENABLE_SERVICE) {
+	    g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
+	    return;
+	}
+
 	/* needs to run as root */
 	if (!test_running_as_root())
 		return;
@@ -206,6 +211,11 @@ static void service_test_info(ServiceFixture *fixture, gconstpointer user_data)
 	GError *error = NULL;
 	gchar *compatible;
 	gchar *version;
+
+	if (!ENABLE_SERVICE) {
+	    g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
+	    return;
+	}
 
 	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
 						       G_DBUS_PROXY_FLAGS_NONE,
