@@ -93,6 +93,8 @@ static void on_installer_completed(GDBusProxy *proxy, gint result,
 
 static gboolean install_start(int argc, char **argv)
 {
+	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
+		? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 	RInstaller *installer = NULL;
 	RaucInstallArgs *args = NULL;
 	GError *error = NULL;
@@ -147,7 +149,7 @@ static gboolean install_start(int argc, char **argv)
 
 	r_loop = g_main_loop_new(NULL, FALSE);
 	if (ENABLE_SERVICE) {
-		installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SYSTEM,
+		installer = r_installer_proxy_new_for_bus_sync(bus_type,
 			G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
 			"de.pengutronix.rauc", "/", NULL, &error);
 		if (installer == NULL) {
