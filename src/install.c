@@ -1215,7 +1215,7 @@ static gpointer install_thread(gpointer data) {
 	/* clear LastError property */
 	set_last_error(g_strdup(""));
 
-	g_debug("thread started for %s\n", args->name);
+	g_debug("thread started for %s", args->name);
 	install_args_update(args, "started");
 
 	if (g_str_has_suffix(args->name, ".raucb")) {
@@ -1240,7 +1240,7 @@ static gpointer install_thread(gpointer data) {
 	args->status_result = result;
 	g_mutex_unlock(&args->status_mutex);
 	install_args_update(args, "finished");
-	g_debug("thread finished for %s\n", args->name);
+	g_debug("thread finished for %s", args->name);
 
 	g_main_context_invoke(NULL, install_done, args);
 	return NULL;

@@ -150,7 +150,7 @@ static void r_context_configure(void) {
 
 		vars = g_hash_table_new(g_str_hash, g_str_equal);
 
-		g_message("Getting Systeminfo: %s\n", context->config->systeminfo_handler);
+		g_message("Getting Systeminfo: %s", context->config->systeminfo_handler);
 		res = launch_and_wait_variables_handler(context->config->systeminfo_handler, vars, &ierror);
 		if (!res) {
 			g_error("Failed to read system-info variables%s", ierror->message);
