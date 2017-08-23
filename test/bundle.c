@@ -130,49 +130,6 @@ static void bundle_test_extract_manifest(BundleFixture *fixture,
 	g_assert_true(g_file_test(manifestpath, G_FILE_TEST_EXISTS));
 }
 
-static void bundle_test_verify_manifest(BundleFixture *fixture,
-		gconstpointer user_data)
-{
-	gchar *contentdir, *appfsimage;
-
-	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
-	g_assert_nonnull(contentdir);
-
-	appfsimage = g_build_filename(fixture->tmpdir, "content", "appfs.ext4", NULL);
-	g_assert_nonnull(appfsimage);
-
-	g_assert_true(update_manifest(contentdir, TRUE, NULL));
-	g_assert_true(verify_manifest(contentdir, NULL, FALSE, NULL));
-	g_assert_true(verify_manifest(contentdir, NULL, TRUE, NULL));
-
-	/* Test with invalid checksum */
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.ext4",
-					 64*1024, "/dev/urandom") == 0);
-	g_test_expect_message (G_LOG_DOMAIN,
-			G_LOG_LEVEL_WARNING,
-			"Failed verifying checksum: Digests do not match");
-	g_assert_false(verify_manifest(contentdir, NULL, FALSE, NULL));
-	g_test_expect_message (G_LOG_DOMAIN,
-			G_LOG_LEVEL_WARNING,
-			"Failed verifying checksum: Digests do not match");
-	g_assert_false(verify_manifest(contentdir, NULL, TRUE, NULL));
-
-	/* Test with non-existing image */
-	g_assert_cmpint(g_unlink(appfsimage), ==, 0);
-
-	g_test_expect_message (G_LOG_DOMAIN,
-			G_LOG_LEVEL_WARNING,
-			"Failed verifying checksum: Failed to open file * No such file or directory");
-	g_assert_false(verify_manifest(contentdir, NULL, FALSE, NULL));
-	g_test_expect_message (G_LOG_DOMAIN,
-			G_LOG_LEVEL_WARNING,
-			"Failed verifying checksum: Failed to open file * No such file or directory");
-	g_assert_false(verify_manifest(contentdir, NULL, TRUE, NULL));
-	g_test_assert_expected_messages();
-
-	g_free(appfsimage);
-	g_free(contentdir);
-}
 
 int main(int argc, char *argv[])
 {
@@ -203,10 +160,6 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bundle/extract_manifest", BundleFixture, NULL,
 		   bundle_fixture_set_up_bundle, bundle_test_extract_manifest,
-		   bundle_fixture_tear_down);
-
-	g_test_add("/bundle/verify_manifest", BundleFixture, NULL,
-		   bundle_fixture_set_up_bundle, bundle_test_verify_manifest,
 		   bundle_fixture_tear_down);
 
 	return g_test_run();
