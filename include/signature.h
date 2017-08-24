@@ -12,6 +12,11 @@ typedef enum {
 	R_SIGNATURE_ERROR_PARSE_ERROR,
 	R_SIGNATURE_ERROR_CREATE_SIG,
 	R_SIGNATURE_ERROR_SERIALIZE_SIG,
+	R_SIGNATURE_ERROR_X509_CTX_NEW,
+	R_SIGNATURE_ERROR_X509_CTX_INIT,
+	R_SIGNATURE_ERROR_VERIFY_CERT,
+	R_SIGNATURE_ERROR_GET_SIGNER,
+	R_SIGNATURE_ERROR_NUM_SIGNER,
 
 	R_SIGNATURE_ERROR_X509_NEW,
 	R_SIGNATURE_ERROR_X509_LOOKUP,
@@ -76,3 +81,37 @@ gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_ST
  * @return TRUE if succeeded, FALSE if failed
  */
 gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, CMS_ContentInfo **cms, X509_STORE **store, GError **error);
+
+/**
+ * Returns string representation of certificate.
+ *
+ * @param verified_chain Stack of X509 certificates as returned by
+ *                       cms_get_signer_info
+ * @return allocated string containing default OpenSSL text representation of
+ *         signer certificate (first in chain)
+ */
+gchar* print_signer_cert(STACK_OF(X509) *verified_chain);
+
+/**
+ * Return string representation of certificate chain.
+ *
+ * @param verified_chain Stack of X509 certificates as returned by
+ *                       cms_get_signer_info
+ * @return allocated string containing text representation of certificate chain
+ *         (signer and issuer)
+ */
+gchar* print_cert_chain(STACK_OF(X509) *verified_chain);
+
+/**
+ * Get infos about signer and verification chain.
+ *
+ * Must be called *after* cms_verify()
+ *
+ * @param cms CMS_ContentInfo used in cms_verify()
+ * @param store Store used in cms_verify()
+ * @param verified_chain Return location for the verification chain, or NULL
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if succeeded, FALSE if failed
+ */
+gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error);;

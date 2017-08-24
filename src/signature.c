@@ -157,6 +157,116 @@ out:
 	return res;
 }
 
+gchar* print_signer_cert(STACK_OF(X509) *verified_chain) {
+	BIO *mem;
+	gchar *data;
+
+	g_return_val_if_fail(verified_chain != NULL, NULL);
+
+	mem = BIO_new(BIO_s_mem());
+	X509_print_ex(mem, sk_X509_value(verified_chain, 0), 0, 0);
+
+	BIO_get_mem_data(mem, &data);
+
+	BIO_set_close(mem, BIO_NOCLOSE); /* So BIO_free() leaves BUF_MEM alone */
+	BIO_free(mem);
+
+	return data;
+}
+
+gchar* print_cert_chain(STACK_OF(X509) *verified_chain) {
+	GString *text = g_string_new(NULL);
+	char buf[BUFSIZ];
+
+	g_string_append(text, "Certificate Chain:\n");
+	for (int i = 0; i < sk_X509_num(verified_chain); i++) {
+		X509_NAME_oneline(X509_get_subject_name(sk_X509_value(verified_chain, i)),
+				buf, sizeof buf);
+		g_string_append_printf(text, "%2d Subject: %s\n", i, buf);
+		X509_NAME_oneline(X509_get_issuer_name(sk_X509_value(verified_chain, i)),
+				buf, sizeof buf);
+		g_string_append_printf(text, "   Issuer: %s\n", buf);
+	}
+
+	return g_string_free(text, FALSE);
+}
+
+gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error) {
+	STACK_OF(X509) *signers = NULL;
+	X509_STORE_CTX *cert_ctx = NULL;
+	gint signer_cnt;
+	gboolean res = FALSE;
+
+	g_return_val_if_fail(cms != NULL, FALSE);
+	g_return_val_if_fail(store != NULL, FALSE);
+	g_return_val_if_fail(verified_chain == NULL || *verified_chain == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	signers = CMS_get0_signers(cms);
+	if (signers == NULL) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_GET_SIGNER,
+				"Failed to obtain signer info");
+		goto out;
+	}
+
+	signer_cnt = sk_X509_num(signers);
+	if (signer_cnt != 1) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_NUM_SIGNER,
+				"Unsupported number of signers: %d", signer_cnt);
+		goto out;
+	}
+
+	cert_ctx = X509_STORE_CTX_new();
+	if (cert_ctx == NULL) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_X509_CTX_NEW,
+				"Failed to allocate new X509 CTX store");
+		goto out;
+	}
+
+	if (!X509_STORE_CTX_init(cert_ctx, store, sk_X509_value(signers, 0), NULL)) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_X509_CTX_INIT,
+				"Failed to init new X509 CTX store");
+		goto out;
+	}
+
+	if(X509_verify_cert(cert_ctx) != 1) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_VERIFY_CERT,
+				"Failed to verify X509 cert");
+		goto out;
+	}
+
+	*verified_chain = X509_STORE_CTX_get1_chain(cert_ctx);
+
+	/* The first element in the chain must be the signer certificate */
+	g_assert(sk_X509_value(signers, 0) == sk_X509_value(*verified_chain, 0));
+
+	g_debug("Got %d chain elements", sk_X509_num(*verified_chain));
+
+	res = TRUE;
+out:
+	if (cert_ctx)
+		X509_STORE_CTX_free(cert_ctx);
+	if (signers)
+		sk_X509_free(signers);
+
+	return res;
+}
+
 gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_STORE **store, GError **error) {
 	const gchar *capath = r_context()->config->keyring_path;
 	X509_STORE *istore = NULL;
