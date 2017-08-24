@@ -1,5 +1,6 @@
 #pragma once
 
+#include <openssl/cms.h>
 #include <glib.h>
 
 #define R_BUNDLE_ERROR r_bundle_error_quark ()
@@ -13,6 +14,7 @@ typedef enum {
 typedef struct {
 	gchar *path;
 	gsize size;
+	STACK_OF(X509) *verified_chain;
 } RaucBundle;
 
 /**

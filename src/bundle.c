@@ -445,13 +445,25 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	}
 
 	if (verify) {
+		CMS_ContentInfo *cms = NULL;
+		X509_STORE *store = NULL;
+
 		g_message("Verifying bundle... ");
 		/* the squashfs image size is in offset */
-		res = cms_verify_file(bundlename, sig, offset, NULL, NULL, &ierror);
+		res = cms_verify_file(bundlename, sig, offset, &cms, &store, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
 		}
+
+		res = cms_get_cert_chain(cms, store, &ibundle->verified_chain, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+		X509_STORE_free(store);
+		CMS_ContentInfo_free(cms);
 	}
 
 	if (bundle)
@@ -542,4 +554,6 @@ out:
 void free_bundle(RaucBundle *bundle) {
 
 	g_free(bundle->path);
+	if (bundle->verified_chain)
+		sk_X509_pop_free(bundle->verified_chain, X509_free);
 }
