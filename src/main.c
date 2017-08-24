@@ -23,7 +23,7 @@ GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
 gboolean install_ignore_compatible = FALSE;
-gboolean info_noverify = FALSE;
+gboolean info_noverify, info_dumpcert = FALSE;
 gchar *output_format = NULL;
 
 static gboolean install_notify(gpointer data) {
@@ -668,6 +668,12 @@ static gboolean info_start(int argc, char **argv)
 		text = print_cert_chain(bundle->verified_chain);
 		g_print("%s\n", text);
 		g_free(text);
+
+		if (info_dumpcert) {
+			text = print_signer_cert(bundle->verified_chain);
+			g_print("%s\n", text);
+			g_free(text);
+		}
 	}
 
 out:
@@ -1007,6 +1013,7 @@ GOptionEntry entries_install[] = {
 GOptionEntry entries_info[] = {
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &info_noverify, "disable bundle verification", NULL},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
+	{"dump-cert", '\0', 0, G_OPTION_ARG_NONE, &info_dumpcert, "dump certificate", NULL},
 	{0}
 };
 
