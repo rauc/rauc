@@ -171,7 +171,7 @@ static gboolean input_stream_read_bytes_all(GInputStream *stream,
 	return TRUE;
 }
 
-gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error) {
+static gboolean sign_bundle(const gchar *bundlename, GError **error) {
 	GError *ierror = NULL;
 	GBytes *sig = NULL;
 	GFile *bundlefile = NULL;
@@ -181,12 +181,6 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 
 	g_assert_nonnull(r_context()->certpath);
 	g_assert_nonnull(r_context()->keypath);
-
-	res = mksquashfs(bundlename, contentdir, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
 
 	sig = cms_sign_file(bundlename,
 			    r_context()->certpath,
@@ -249,6 +243,28 @@ out:
 	g_clear_pointer(&sig, g_bytes_unref);
 	return res;
 }
+
+gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	res = mksquashfs(bundlename, contentdir, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = sign_bundle(bundlename, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	return res;
+}
+
 
 gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GError **error) {
 	GError *ierror = NULL;
@@ -367,12 +383,11 @@ out:
 
 gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir, gboolean verify, GError **error) {
 	GError *ierror = NULL;
-	gsize size;
 	gboolean res = FALSE;
 
 	r_context_begin_step("extract_bundle", "Extracting bundle", 2);
 
-	res = check_bundle(bundlename, &size, verify, &ierror);
+	res = check_bundle(bundlename, NULL, verify, &ierror);
 	if (!res) {
 		if (g_error_matches(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE)) {
 			g_propagate_prefixed_error(error, ierror, "Invalid Bundle: ");
@@ -396,10 +411,9 @@ out:
 
 gboolean extract_file_from_bundle(const gchar *bundlename, const gchar *outputdir, const gchar *file, gboolean verify, GError **error) {
 	GError *ierror = NULL;
-	gsize size;
 	gboolean res = FALSE;
 
-	res = check_bundle(bundlename, &size, verify, &ierror);
+	res = check_bundle(bundlename, NULL, verify, &ierror);
 	if (!res) {
 		if (g_error_matches(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE)) {
 			g_propagate_prefixed_error(error, ierror, "Invalid Bundle: ");
