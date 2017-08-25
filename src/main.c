@@ -602,6 +602,7 @@ static gboolean info_start(int argc, char **argv)
 	GError *error = NULL;
 	gboolean res = FALSE;
 	gchar* (*formatter)(RaucManifest *manifest) = NULL;
+	gchar *text;
 
 	if (argc < 3) {
 		g_printerr("A file name must be provided\n");
@@ -658,7 +659,9 @@ static gboolean info_start(int argc, char **argv)
 		goto out;
 	}
 
-	g_print("%s\n", formatter(manifest));
+	text = formatter(manifest);
+	g_print("%s\n", text);
+	g_free(text);
 
 out:
 	r_exit_status = res ? 0 : 1;
