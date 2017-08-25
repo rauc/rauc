@@ -270,17 +270,21 @@ Command Line Tool
   Usage:
     rauc [OPTION...] <COMMAND>
   
-  Application Options:
-    -c, --conf=FILENAME     config file
-    --cert=PEMFILE          cert file
-    --key=PEMFILE           key file
-    --mount=PATH            mount prefix
-    --handler-args=ARGS     extra handler arguments
-    --version               display version
-    -h, --help              
+  Options:
+    -c, --conf=FILENAME               config file
+    --cert=PEMFILE                    cert file
+    --key=PEMFILE                     key file
+    --keyring=PEMFILE                 keyring file
+    --mount=PATH                      mount prefix
+    --override-boot-slot=SLOTNAME     override auto-detection of booted slot
+    --handler-args=ARGS               extra handler arguments
+    -d, --debug                       enable debug output
+    --version                         display version
+    -h, --help
   
   List of rauc commands:
     bundle        Create a bundle
+    resign        Resign an already signed bundle
     checksum      Update a manifest with checksums (and optionally sign it)
     install       Install a bundle
     info          Show file information

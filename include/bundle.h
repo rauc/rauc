@@ -37,6 +37,20 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GError **error);
 
 /**
+ * Resign a bundle.
+ *
+ * This will create a copy of a bundle with a new signature but unmodified
+ * content.
+ *
+ * @param inpath filename of the bundle to resign
+ * @param outpath filename of the resigned output bundle
+ * @param error Return location for a GError
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean resign_bundle(const gchar *inpath, const gchar *outpath, GError **error);
+
+/**
  * Extract a bundle.
  *
  * This will extract the entire bundle content into a given directory.

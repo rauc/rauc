@@ -265,6 +265,89 @@ out:
 	return res;
 }
 
+static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, gsize size, GError **error) {
+	GFile *infile, *outfile = NULL;
+	GFileInputStream *instream = NULL;
+	GFileOutputStream *outstream = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	gssize ssize;
+
+	infile = g_file_new_for_path(inpath);
+	outfile = g_file_new_for_path(outpath);
+
+	instream = g_file_read(infile, NULL, &ierror);
+	if (instream == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to open bundle for reading: ");
+		res = FALSE;
+		goto out;
+	}
+	outstream = g_file_create(outfile, G_FILE_CREATE_NONE, NULL,
+			&ierror);
+	if (outstream == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to open bundle for writing: ");
+		res = FALSE;
+		goto out;
+	}
+
+	ssize = g_output_stream_splice(
+			(GOutputStream*)outstream,
+			(GInputStream*)instream,
+			G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE,
+			NULL, &ierror);
+	if (ssize == -1) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto out;
+	}
+
+	res = g_seekable_truncate(G_SEEKABLE(outstream), size, NULL, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	g_clear_object(&outstream);
+	g_clear_object(&infile);
+	g_clear_object(&outfile);
+	return res;
+}
+
+gboolean resign_bundle(const gchar *inpath, const gchar *outpath, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	gsize size;
+
+	res = check_bundle(inpath, &size, TRUE, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = truncate_bundle(inpath, outpath, size, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = sign_bundle(outpath, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	return res;
+}
 
 gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GError **error) {
 	GError *ierror = NULL;

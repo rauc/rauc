@@ -130,14 +130,53 @@ static void bundle_test_extract_manifest(BundleFixture *fixture,
 	g_assert_true(g_file_test(manifestpath, G_FILE_TEST_EXISTS));
 }
 
+static void bundle_test_resign(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *resignbundle;
+	gsize size;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	resignbundle = g_build_filename(fixture->tmpdir, "resigned-bundle.raucb", NULL);
+	g_assert_nonnull(resignbundle);
+
+	/* Switch to release key pair */
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+
+
+	/* Verify input bundle with dev keyring */
+	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
+	g_assert_true(check_bundle(fixture->bundlename, &size, TRUE, NULL));
+	/* Verify input bundle with rel keyring */
+	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
+	g_assert_false(check_bundle(fixture->bundlename, &size, TRUE, NULL));
+
+	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
+	res = resign_bundle(fixture->bundlename, resignbundle, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	/* Verify resigned bundle with dev keyring.
+	 * Note that this evaluates to true as the dev-ca.pem keyring contains
+	 * both the production and the development certificate to allow
+	 * installing development bundles as well as moving to production
+	 * bundles. */
+	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
+	g_assert_true(check_bundle(resignbundle, &size, TRUE, NULL));
+	/* Verify resigned bundle with rel keyring */
+	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
+	g_assert_true(check_bundle(resignbundle, &size, TRUE, NULL));
+}
 
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
 
 	r_context_conf()->configpath = g_strdup("test/test.conf");
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/autobuilder-1.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/autobuilder-1.pem");
 	r_context();
 
 	g_test_init(&argc, &argv, NULL);
@@ -160,6 +199,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bundle/extract_manifest", BundleFixture, NULL,
 		   bundle_fixture_set_up_bundle, bundle_test_extract_manifest,
+		   bundle_fixture_tear_down);
+
+	g_test_add("/bundle/resign", BundleFixture, NULL,
+		   bundle_fixture_set_up_bundle, bundle_test_resign,
 		   bundle_fixture_tear_down);
 
 	return g_test_run();
