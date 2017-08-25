@@ -20,7 +20,7 @@ typedef struct {
 /**
  * Create a bundle.
  *
- * @param bundlemane filename of the bundle to create
+ * @param bundlename filename of the bundle to create
  * @param contentdir directory containing this bundle content
  * @param error Return location for a GError
  *
@@ -33,7 +33,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
  *
  * This will verify and check the bundle content.
  *
- * @param bundlemane filename of the bundle to check 
+ * @param bundlename filename of the bundle to check
  * @param bundle Return location for a RaucBundle struct.
  *               This will contain all bundle information obtained by
  *               check_bundle
@@ -68,7 +68,7 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
  * This will extract the entire bundle content into a given directory.
  *
  * @param bundle RaucBundle struct as returned by check_bundle()
- * @param outputdir directory to instract content into
+ * @param outputdir directory to extract content into
  * @param error Return location for a GError
  *
  * Note that check_bundle() must be called prior to this, to obtain a
@@ -79,7 +79,7 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **error);
 
 /**
- * Extract a single file form a bundle.
+ * Extract a single file from a bundle.
  *
  * This will extract a single file into a given directory.
  *
@@ -87,7 +87,7 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
  * RaucBundle struct.
  *
  * @param bundle RaucBundle struct as returned by check_bundle()
- * @param outputdir directory to instract the file into
+ * @param outputdir directory to extract the file into
  * @param file filename of file to extract from bundle
  * @param error Return location for a GError
  *
