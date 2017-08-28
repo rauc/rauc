@@ -9,24 +9,10 @@
 #include "context.h"
 #include "signature.h"
 
-#define R_SIGNATURE_ERROR r_signature_error_quark ()
-
-static GQuark r_signature_error_quark (void)
+GQuark r_signature_error_quark (void)
 {
   return g_quark_from_static_string ("r_signature_error_quark");
 }
-
-#define R_SIGNATURE_ERROR_UNKNOWN	0
-#define R_SIGNATURE_ERROR_LOAD_FAILED	1
-#define R_SIGNATURE_ERROR_PARSE_ERROR	2
-#define R_SIGNATURE_ERROR_CREATE_SIG	3
-#define R_SIGNATURE_ERROR_SERIALIZE_SIG	4
-
-#define R_SIGNATURE_ERROR_X509_NEW	10
-#define R_SIGNATURE_ERROR_X509_LOOKUP	11
-#define R_SIGNATURE_ERROR_CA_LOAD	12
-#define R_SIGNATURE_ERROR_PARSE		13
-#define R_SIGNATURE_ERROR_INVALID	14
 
 void signature_init(void) {
 	OPENSSL_no_config();

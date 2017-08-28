@@ -2,6 +2,23 @@
 
 #include <glib.h>
 
+#define R_SIGNATURE_ERROR r_signature_error_quark ()
+GQuark r_signature_error_quark (void);
+
+typedef enum {
+	R_SIGNATURE_ERROR_UNKNOWN,
+	R_SIGNATURE_ERROR_LOAD_FAILED,
+	R_SIGNATURE_ERROR_PARSE_ERROR,
+	R_SIGNATURE_ERROR_CREATE_SIG,
+	R_SIGNATURE_ERROR_SERIALIZE_SIG,
+
+	R_SIGNATURE_ERROR_X509_NEW,
+	R_SIGNATURE_ERROR_X509_LOOKUP,
+	R_SIGNATURE_ERROR_CA_LOAD,
+	R_SIGNATURE_ERROR_PARSE,
+	R_SIGNATURE_ERROR_INVALID
+} RSignatureError;
+
 /**
  * Initalization routine.
  */
