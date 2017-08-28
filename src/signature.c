@@ -236,6 +236,7 @@ out:
 	BIO_free_all(incontent);
 	BIO_free_all(insig);
 	X509_STORE_free(store);
+	CMS_ContentInfo_free(cms);
 	r_context_end_step("cms_verify", res);
 	return res;
 }
