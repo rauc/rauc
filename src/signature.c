@@ -249,6 +249,7 @@ gchar* print_cert_chain(STACK_OF(X509) *verified_chain) {
 		X509_NAME_oneline(X509_get_issuer_name(sk_X509_value(verified_chain, i)),
 				buf, sizeof buf);
 		g_string_append_printf(text, "   Issuer: %s\n", buf);
+		g_string_append_printf(text, "   SPKI sha256: %s\n", get_pubkey_hash(sk_X509_value(verified_chain, i)));
 	}
 
 	return g_string_free(text, FALSE);
