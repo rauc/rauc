@@ -994,6 +994,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 	GHashTable *target_group;
 
 	g_assert_nonnull(bundlefile);
+	g_assert_null(r_context()->install_info->mounted_bundle);
 
 	r_context_begin_step("do_install_bundle", "Installing", 5);
 	res = determine_slot_states(&ierror);
