@@ -390,6 +390,7 @@ RaucContext *r_context_conf(void) {
 		context = g_new0(RaucContext, 1);
 		context->configpath = g_strdup("/etc/rauc/system.conf");
 		context->progress = NULL;
+		context->install_info = g_new0(RContextInstallationInfo, 1);
 	}
 
 	g_assert_false(context->busy);

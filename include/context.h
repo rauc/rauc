@@ -6,9 +6,15 @@
 
 
 #include "config_file.h"
+#include "bundle.h"
 
 typedef void (*progress_callback) (gint percentage, const gchar *message,
 				   gint nesting_depth);
+
+typedef struct {
+	/* The bundle currently mounted by RAUC */
+	RaucBundle *mounted_bundle;
+} RContextInstallationInfo;
 
 typedef struct {
 	/* a busy context must not be reconfigured */
@@ -36,6 +42,9 @@ typedef struct {
 	gchar *handlerextra;
 	/* ignore compatible check */
 	gboolean ignore_compatible;
+
+	/* for storing installation runtime informations */
+	RContextInstallationInfo *install_info;
 } RaucContext;
 
 typedef struct {

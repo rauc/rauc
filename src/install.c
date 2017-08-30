@@ -1031,6 +1031,8 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 		goto umount;
 	}
 
+	r_context()->install_info->mounted_bundle = bundle;
+
 	res = verify_manifest(mountpoint, &manifest, FALSE, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
@@ -1089,6 +1091,7 @@ umount:
 	umount_bundle(bundle, NULL);
 	g_rmdir(mountpoint);
 	g_clear_pointer(&mountpoint, g_free);
+	r_context()->install_info->mounted_bundle = NULL;
 
 out:
 	g_clear_pointer(&bundle, free_bundle);
