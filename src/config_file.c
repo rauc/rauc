@@ -394,12 +394,15 @@ void free_config(RaucConfig *config) {
 	g_free(config);
 }
 
-gboolean read_slot_status(const gchar *filename, RaucSlotStatus **slotstatus, GError **error) {
+gboolean read_slot_status(const gchar *filename, RaucSlotStatus *slotstatus, GError **error) {
 	GError *ierror = NULL;
-	RaucSlotStatus *ss = g_new0(RaucSlotStatus, 1);
 	gboolean res = FALSE;
 	GKeyFile *key_file = NULL;
 	gchar *digest;
+
+	g_return_val_if_fail(filename, FALSE);
+	g_return_val_if_fail(slotstatus, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	key_file = g_key_file_new();
 
@@ -409,21 +412,20 @@ gboolean read_slot_status(const gchar *filename, RaucSlotStatus **slotstatus, GE
 		goto free;
 	}
 
-	ss->status = g_key_file_get_string(key_file, "slot", "status", NULL);
+	g_free(slotstatus->status);
+	g_clear_pointer(&slotstatus->checksum.digest, g_free);
+
+	slotstatus->status = g_key_file_get_string(key_file, "slot", "status", NULL);
 	digest = g_key_file_get_string(key_file, "slot", "sha256", NULL);
 	if (digest) {
-		ss->checksum.type = G_CHECKSUM_SHA256;
-		ss->checksum.digest = digest;
+		slotstatus->checksum.type = G_CHECKSUM_SHA256;
+		slotstatus->checksum.digest = digest;
 	}
 
 	res = TRUE;
 free:
-	if (!res) {
-		free_slot_status(ss);
-		ss = NULL;
-	}
 	g_key_file_free(key_file);
-	*slotstatus = ss;
+
 	return res;
 }
 
@@ -453,38 +455,42 @@ free:
 	return res;
 }
 
-gboolean load_slot_status(RaucSlot *dest_slot, RaucSlotStatus **slot_state, GError **error) {
+void load_slot_status(RaucSlot *dest_slot, RaucSlotStatus **slot_state) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar *slotstatuspath = NULL;
+
+	g_return_if_fail(dest_slot);
+	g_return_if_fail(slot_state != NULL && *slot_state == NULL);
+
+	*slot_state = g_new0(RaucSlotStatus, 1);
 
 	/* read slot status */
 	g_message("mounting slot %s", dest_slot->device);
 	res = r_mount_slot(dest_slot, &ierror);
 	if (!res) {
-		g_propagate_error(error, ierror);
+		g_message("Failed to mount slot %s: %s", dest_slot->device, ierror->message);
 		goto free;
 	}
 
 	slotstatuspath = g_build_filename(dest_slot->mount_point, "slot.raucs", NULL);
 
-	res = read_slot_status(slotstatuspath, slot_state, &ierror);
+	res = read_slot_status(slotstatuspath, *slot_state, &ierror);
 	if (!res) {
+		g_message("Failed to load status file %s: %s", slotstatuspath, ierror->message);
 		r_umount_slot(dest_slot, NULL);
-		g_propagate_error(error, ierror);
 		goto free;
 	}
 
 	res = r_umount_slot(dest_slot, &ierror);
 	if (!res) {
-		g_propagate_error(error, ierror);
+		g_message("Failed to unmount slot %s: %s", dest_slot->device, ierror->message);
 		goto free;
 	}
 
 free:
 	g_clear_pointer(&slotstatuspath, g_free);
-
-	return res;
+	g_clear_error(&ierror);
 }
 
 
