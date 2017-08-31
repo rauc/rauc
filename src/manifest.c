@@ -71,6 +71,72 @@ static gchar * manifest_consume_string(
 	return result;
 }
 
+static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **image, GError **error) {
+	RaucImage *iimage = g_new0(RaucImage, 1);
+	gchar **groupsplit = NULL;
+	gchar *value;
+	gchar **hooks;
+	gsize entries;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	
+	g_return_val_if_fail(key_file != NULL, FALSE);
+	g_return_val_if_fail(group != NULL, FALSE);
+	g_return_val_if_fail(image == NULL || *image == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	groupsplit = g_strsplit(group, ".", 2);
+	g_assert_cmpint(g_strv_length(groupsplit), ==, 2);
+
+	iimage->slotclass = g_strdup(groupsplit[1]);
+
+	value = manifest_consume_string(key_file, group, "sha256", NULL);
+	if (value) {
+		iimage->checksum.type = G_CHECKSUM_SHA256;
+		iimage->checksum.digest = value;
+	}
+	iimage->checksum.size = g_key_file_get_uint64(key_file,
+			group, "size", NULL);
+	g_key_file_remove_key(key_file, group, "size", NULL);
+
+	iimage->filename = manifest_consume_string(key_file, group, "filename", &ierror);
+	if (iimage->filename == NULL) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	hooks = g_key_file_get_string_list(key_file, group, "hooks", &entries, NULL);
+	for (gsize j = 0; j < entries; j++) {
+		if (g_strcmp0(hooks[j], "pre-install") == 0) {
+			iimage->hooks.pre_install = TRUE;
+		} else if (g_strcmp0(hooks[j], "install") == 0) {
+			iimage->hooks.install = TRUE;
+		} else if (g_strcmp0(hooks[j], "post-install") == 0) {
+			iimage->hooks.post_install = TRUE;
+		} else  {
+			g_warning("hook key %s not supported", hooks[j]);
+		}
+	}
+	g_key_file_remove_key(key_file, group, "hooks", NULL);
+
+	g_strfreev(hooks);
+
+	if (!check_remaining_keys(key_file, group, &ierror)) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+	g_key_file_remove_group(key_file, group, NULL);
+
+	res = TRUE;
+	*image = iimage;
+
+out:
+	if (!image)
+		g_clear_pointer(&iimage, r_free_image);
+	g_strfreev(groupsplit);
+	return res;
+}
+
 /* Parses key_file into RaucManifest structure
  *
  * key_file - input key file
@@ -154,63 +220,30 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	/* parse [image.<slotclass>] and [file.<slotclass>/<destname>] sections */
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
-		gchar **groupsplit = g_strsplit(groups[i], ".", 2);
-		if (groupsplit == NULL || g_strv_length(groupsplit) < 2) {
-			g_strfreev(groupsplit);
-			continue;
-		}
 
-		if (g_str_equal(groupsplit[0], RAUC_IMAGE_PREFIX)) {
-			RaucImage *image = g_new0(RaucImage, 1);
-			gchar *value;
-			gchar **hooks;
-			gsize entries;
+		if (g_str_has_prefix(groups[i], RAUC_IMAGE_PREFIX ".")) {
 
-			image->slotclass = g_strdup(groupsplit[1]);
+			RaucImage *image = NULL;
 
-			value = manifest_consume_string(key_file, groups[i], "sha256", NULL);
-			if (value) {
-				image->checksum.type = G_CHECKSUM_SHA256;
-				image->checksum.digest = value;
-			}
-			image->checksum.size = g_key_file_get_uint64(key_file,
-					groups[i], "size", NULL);
-			g_key_file_remove_key(key_file, groups[i], "size", NULL);
-
-			image->filename = manifest_consume_string(key_file, groups[i], "filename", &ierror);
-			if (image->filename == NULL) {
+			if (!parse_image(key_file, groups[i], &image, &ierror)) {
 				g_propagate_error(error, ierror);
 				goto free;
 			}
-
-			hooks = g_key_file_get_string_list(key_file, groups[i], "hooks", &entries, NULL);
-			for (gsize j = 0; j < entries; j++) {
-				if (g_strcmp0(hooks[j], "pre-install") == 0) {
-					image->hooks.pre_install = TRUE;
-				} else if (g_strcmp0(hooks[j], "install") == 0) {
-					image->hooks.install = TRUE;
-				} else if (g_strcmp0(hooks[j], "post-install") == 0) {
-					image->hooks.post_install = TRUE;
-				} else  {
-					g_warning("hook key %s not supported", hooks[j]);
-				}
-			}
-			g_key_file_remove_key(key_file, groups[i], "hooks", NULL);
-
-			g_strfreev(hooks);
 
 			raucm->images = g_list_append(raucm->images, image);
 
-			if (!check_remaining_keys(key_file, groups[i], &ierror)) {
-				g_propagate_error(error, ierror);
-				goto free;
-			}
-			g_key_file_remove_group(key_file, groups[i], NULL);
 
-		} else if (g_str_equal(groupsplit[0], RAUC_FILE_PREFIX)) {
-			gchar **destsplit = g_strsplit(groupsplit[1], "/", 2);
+		} else if (g_str_has_prefix(groups[i], RAUC_FILE_PREFIX ".")) {
 			RaucFile *file;
 			gchar *value;
+			gchar **groupsplit = g_strsplit(groups[i], ".", 2);
+			gchar **destsplit = NULL;
+			if (groupsplit == NULL || g_strv_length(groupsplit) < 2) {
+				g_strfreev(groupsplit);
+				continue;
+			}
+			destsplit = g_strsplit(groupsplit[1], "/", 2);
+			g_strfreev(groupsplit);
 
 			if (destsplit == NULL || g_strv_length(destsplit) < 2) {
 				g_strfreev(destsplit);
@@ -247,7 +280,6 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 			g_key_file_remove_group(key_file, groups[i], NULL);
 		}
 
-		g_strfreev(groupsplit);
 	}
 
 	if (!check_remaining_groups(key_file, &ierror)) {
