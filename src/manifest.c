@@ -190,7 +190,7 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 				} else if (g_strcmp0(hooks[j], "post-install") == 0) {
 					image->hooks.post_install = TRUE;
 				} else  {
-					g_warning("hook key %s not supported", hooks[i]);
+					g_warning("hook key %s not supported", hooks[j]);
 				}
 			}
 			g_key_file_remove_key(key_file, groups[i], "hooks", NULL);
