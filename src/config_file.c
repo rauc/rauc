@@ -22,6 +22,7 @@ void r_free_slot(gpointer value) {
 	g_free(slot->type);
 	g_free(slot->bootname);
 	g_free(slot->mount_point);
+	g_clear_pointer(&slot->status, free_slot_status);
 	g_free(slot);
 }
 
@@ -455,15 +456,17 @@ free:
 	return res;
 }
 
-void load_slot_status(RaucSlot *dest_slot, RaucSlotStatus **slot_state) {
+void load_slot_status(RaucSlot *dest_slot) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar *slotstatuspath = NULL;
 
 	g_return_if_fail(dest_slot);
-	g_return_if_fail(slot_state != NULL && *slot_state == NULL);
 
-	*slot_state = g_new0(RaucSlotStatus, 1);
+	if (dest_slot->status)
+		return;
+
+	dest_slot->status = g_new0(RaucSlotStatus, 1);
 
 	if (!is_slot_mountable(dest_slot))
 		return;
@@ -478,7 +481,7 @@ void load_slot_status(RaucSlot *dest_slot, RaucSlotStatus **slot_state) {
 
 	slotstatuspath = g_build_filename(dest_slot->mount_point, "slot.raucs", NULL);
 
-	res = read_slot_status(slotstatuspath, *slot_state, &ierror);
+	res = read_slot_status(slotstatuspath, dest_slot->status, &ierror);
 	if (!res) {
 		g_message("Failed to load status file %s: %s", slotstatuspath, ierror->message);
 		r_umount_slot(dest_slot, NULL);
@@ -501,7 +504,12 @@ gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **erro
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar *slotstatuspath = NULL;
-	RaucSlotStatus *slot_state = g_new0(RaucSlotStatus, 1);
+	RaucSlotStatus *slot_state = NULL;
+
+	g_return_val_if_fail(dest_slot, FALSE);
+	g_return_val_if_fail(dest_slot->status, FALSE);
+	g_return_val_if_fail(mfimage, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (!is_slot_mountable(dest_slot)) {
 		res = TRUE;
@@ -515,8 +523,11 @@ gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **erro
 		goto free;
 	}
 
+	slot_state = dest_slot->status;
+	g_free(slot_state->status);
 	slot_state->status = g_strdup("ok");
 	slot_state->checksum.type = mfimage->checksum.type;
+	g_free(slot_state->checksum.digest);
 	slot_state->checksum.digest = g_strdup(mfimage->checksum.digest);
 
 	slotstatuspath = g_build_filename(dest_slot->mount_point, "slot.raucs", NULL);
@@ -538,7 +549,6 @@ gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **erro
 
 free:
 	g_clear_pointer(&slotstatuspath, g_free);
-	g_clear_pointer(&slot_state, free_slot_status);
 
 	return res;
 }

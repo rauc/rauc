@@ -59,6 +59,11 @@ typedef enum {
 #define R_SLOT_ERROR r_slot_error_quark()
 GQuark r_slot_error_quark(void);
 
+typedef struct {
+	gchar *status;
+	RaucChecksum checksum;
+} RaucSlotStatus;
+
 typedef struct _RaucSlot {
 	/** name of the slot. A glib intern string. */
 	const gchar *name;
@@ -82,15 +87,11 @@ typedef struct _RaucSlot {
 	struct _RaucSlot *parent;
 	gchar *mount_point;
 	gchar *ext_mount_point;
+	RaucSlotStatus *status;
 } RaucSlot;
 
 typedef struct {
 } RaucSlotGroup;
-
-typedef struct {
-	gchar *status;
-	RaucChecksum checksum;
-} RaucSlotStatus;
 
 /**
  * Loads rauc system configuration from file.
@@ -160,21 +161,22 @@ void free_slot_status(RaucSlotStatus *slotstatus);
 /**
  * Load slot status.
  *
- * This mounts the given slot, reads the status information from its status file
- * and unmounts the slot. If a problem occurs the created slot status consists
- * of default values. It should be freed with free_slot_status() when no longer
- * needed.
+ * Takes care to fill in slot status information into the designated component
+ * of the slot data structure: mount the given slot, read the status information
+ * from its status file and unmount the slot afterwards. If a problem occurs the
+ * stored slot status consists of default values. Do nothing if the status
+ * information have already been loaded before.
  *
  * @param dest_slot Slot to load status information for
- * @param slot_state return location for the slot information obtained
  */
-void load_slot_status(RaucSlot *dest_slot, RaucSlotStatus **slot_state);
+void load_slot_status(RaucSlot *dest_slot);
 
 /**
  * Save slot status.
  *
- * This mounts the given slot, writes the status information into its status
- * file and unmounts the slot afterwards.
+ * This mounts the given slot, transfers the status information from the
+ * designated component of the slot data structure into its status file and
+ * unmounts the slot afterwards.
  *
  * @param dest_slot Slot to write status information for
  * @param mfimage image that was just installed
