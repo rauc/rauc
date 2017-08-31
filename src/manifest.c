@@ -175,7 +175,11 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 					groups[i], "size", NULL);
 			g_key_file_remove_key(key_file, groups[i], "size", NULL);
 
-			image->filename = manifest_consume_string(key_file, groups[i], "filename", NULL);
+			image->filename = manifest_consume_string(key_file, groups[i], "filename", &ierror);
+			if (image->filename == NULL) {
+				g_propagate_error(error, ierror);
+				goto free;
+			}
 
 			hooks = g_key_file_get_string_list(key_file, groups[i], "hooks", &entries, NULL);
 			for (gsize j = 0; j < entries; j++) {
@@ -224,7 +228,11 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 			g_key_file_remove_key(key_file, groups[i], "size", NULL);
 
 
-			file->filename = manifest_consume_string(key_file, groups[i], "filename", NULL);
+			file->filename = manifest_consume_string(key_file, groups[i], "filename", &ierror);
+			if (file->filename == NULL) {
+				g_propagate_error(error, ierror);
+				goto free;
+			}
 
 			raucm->files = g_list_append(raucm->files, file);
 
