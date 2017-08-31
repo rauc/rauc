@@ -98,6 +98,7 @@ static gboolean r_on_handle_info(RInstaller *interface,
 	gchar* bundledir = NULL;
 	gchar* manifestpath = NULL;
 	RaucManifest *manifest = NULL;
+	RaucBundle *bundle = NULL;
 	GError *error = NULL;
 	gboolean res = TRUE;
 
@@ -118,7 +119,14 @@ static gboolean r_on_handle_info(RInstaller *interface,
 	bundledir = g_build_filename(tmpdir, "bundle-content", NULL);
 	manifestpath = g_build_filename(bundledir, "manifest.raucm", NULL);
 
-	res = extract_file_from_bundle(arg_bundle, bundledir, "manifest.raucm", TRUE, &error);
+	res = check_bundle(arg_bundle, &bundle, TRUE, &error);
+	if (!res) {
+		g_warning("%s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+	res = extract_file_from_bundle(bundle, bundledir, "manifest.raucm", &error);
 	if (!res) {
 		g_warning("%s", error->message);
 		g_clear_error(&error);
@@ -152,6 +160,8 @@ out:
 						      G_IO_ERROR_FAILED_HANDLED,
 						      "rauc info error");
 	}
+
+	g_clear_pointer(&bundle, free_bundle);
 
 	return TRUE;
 }

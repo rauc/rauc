@@ -321,18 +321,13 @@ out:
 	return res;
 }
 
-gboolean resign_bundle(const gchar *inpath, const gchar *outpath, GError **error) {
+gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	gsize size;
 
-	res = check_bundle(inpath, &size, TRUE, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
+	g_return_val_if_fail(bundle != NULL, FALSE);
 
-	res = truncate_bundle(inpath, outpath, size, &ierror);
+	res = truncate_bundle(bundle->path, outpath, bundle->size, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -349,7 +344,7 @@ out:
 	return res;
 }
 
-gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GError **error) {
+gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error) {
 	GError *ierror = NULL;
 	GBytes *sig = NULL;
 	GFile *bundlefile = NULL;
@@ -357,6 +352,11 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 	guint64 sigsize;
 	goffset offset;
 	gboolean res = FALSE;
+	RaucBundle *ibundle = g_new0(RaucBundle, 1);
+
+	g_return_val_if_fail (bundle == NULL || *bundle == NULL, FALSE);
+
+	ibundle->path = g_strdup(bundlename);
 
 	r_context_begin_step("check_bundle", "Checking bundle", verify);
 
@@ -422,8 +422,7 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 
 	offset -= sigsize;
 
-	if (size)
-		*size = offset;
+	ibundle->size = offset;
 
 	res = g_seekable_seek(G_SEEKABLE(bundlestream),
 			      offset, G_SEEK_SET, NULL, &ierror);
@@ -446,17 +445,34 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
 	}
 
 	if (verify) {
+		CMS_ContentInfo *cms = NULL;
+		X509_STORE *store = NULL;
+
 		g_message("Verifying bundle... ");
 		/* the squashfs image size is in offset */
-		res = cms_verify_file(bundlename, sig, offset, &ierror);
+		res = cms_verify_file(bundlename, sig, offset, &cms, &store, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
 		}
+
+		res = cms_get_cert_chain(cms, store, &ibundle->verified_chain, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+		X509_STORE_free(store);
+		CMS_ContentInfo_free(cms);
 	}
+
+	if (bundle)
+		*bundle = ibundle;
 
 	res = TRUE;
 out:
+	if (!bundle)
+		free_bundle(ibundle);
 	g_clear_object(&bundlestream);
 	g_clear_object(&bundlefile);
 	g_clear_pointer(&sig, g_bytes_unref);
@@ -464,23 +480,15 @@ out:
 	return res;
 }
 
-gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir, gboolean verify, GError **error) {
+gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
-	r_context_begin_step("extract_bundle", "Extracting bundle", 2);
+	g_return_val_if_fail(bundle != NULL, FALSE);
 
-	res = check_bundle(bundlename, NULL, verify, &ierror);
-	if (!res) {
-		if (g_error_matches(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE)) {
-			g_propagate_prefixed_error(error, ierror, "Invalid Bundle: ");
-		} else {
-			g_propagate_error(error, ierror);
-		}
-		goto out;
-	}
+	r_context_begin_step("extract_bundle", "Extracting bundle", 1);
 
-	res = unsquashfs(bundlename, outputdir, NULL, &ierror);
+	res = unsquashfs(bundle->path, outputdir, NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -492,21 +500,13 @@ out:
 	return res;
 }
 
-gboolean extract_file_from_bundle(const gchar *bundlename, const gchar *outputdir, const gchar *file, gboolean verify, GError **error) {
+gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, const gchar *file, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
-	res = check_bundle(bundlename, NULL, verify, &ierror);
-	if (!res) {
-		if (g_error_matches(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE)) {
-			g_propagate_prefixed_error(error, ierror, "Invalid Bundle: ");
-		} else {
-			g_propagate_error(error, ierror);
-		}
-		goto out;
-	}
+	g_return_val_if_fail(bundle != NULL, FALSE);
 
-	res = unsquashfs(bundlename, outputdir, file, &ierror);
+	res = unsquashfs(bundle->path, outputdir, file, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -517,18 +517,13 @@ out:
 	return res;
 }
 
-gboolean mount_bundle(const gchar *bundlename, const gchar *mountpoint, gboolean verify, GError **error) {
+gboolean mount_bundle(RaucBundle *bundle, const gchar *mountpoint, GError **error) {
 	GError *ierror = NULL;
-	gsize size;
 	gboolean res = FALSE;
 
-	res = check_bundle(bundlename, &size, verify, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
+	g_return_val_if_fail(bundle != NULL, FALSE);
 
-	res = r_mount_loop(bundlename, mountpoint, size, &ierror);
+	res = r_mount_loop(bundle->path, mountpoint, bundle->size, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -539,11 +534,13 @@ out:
 	return res;
 }
 
-gboolean umount_bundle(const gchar *bundlename, GError **error) {
+gboolean umount_bundle(RaucBundle *bundle, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
-	res = r_umount(bundlename, &ierror);
+	g_return_val_if_fail(bundle != NULL, FALSE);
+
+	res = r_umount(bundle->path, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -552,4 +549,11 @@ gboolean umount_bundle(const gchar *bundlename, GError **error) {
 	res = TRUE;
 out:
 	return res;
+}
+
+void free_bundle(RaucBundle *bundle) {
+
+	g_free(bundle->path);
+	if (bundle->verified_chain)
+		sk_X509_pop_free(bundle->verified_chain, X509_free);
 }

@@ -9,24 +9,10 @@
 #include "context.h"
 #include "signature.h"
 
-#define R_SIGNATURE_ERROR r_signature_error_quark ()
-
-static GQuark r_signature_error_quark (void)
+GQuark r_signature_error_quark (void)
 {
   return g_quark_from_static_string ("r_signature_error_quark");
 }
-
-#define R_SIGNATURE_ERROR_UNKNOWN	0
-#define R_SIGNATURE_ERROR_LOAD_FAILED	1
-#define R_SIGNATURE_ERROR_PARSE_ERROR	2
-#define R_SIGNATURE_ERROR_CREATE_SIG	3
-#define R_SIGNATURE_ERROR_SERIALIZE_SIG	4
-
-#define R_SIGNATURE_ERROR_X509_NEW	10
-#define R_SIGNATURE_ERROR_X509_LOOKUP	11
-#define R_SIGNATURE_ERROR_CA_LOAD	12
-#define R_SIGNATURE_ERROR_PARSE		13
-#define R_SIGNATURE_ERROR_INVALID	14
 
 void signature_init(void) {
 	OPENSSL_no_config();
@@ -99,6 +85,7 @@ static X509 *load_cert(const gchar *certfile, GError **error) {
 					(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		goto out;
 	}
+
 out:
 	BIO_free_all(cert);
 	return res;
@@ -170,11 +157,121 @@ out:
 	return res;
 }
 
-gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
+gchar* print_signer_cert(STACK_OF(X509) *verified_chain) {
+	BIO *mem;
+	gchar *data;
+
+	g_return_val_if_fail(verified_chain != NULL, NULL);
+
+	mem = BIO_new(BIO_s_mem());
+	X509_print_ex(mem, sk_X509_value(verified_chain, 0), 0, 0);
+
+	BIO_get_mem_data(mem, &data);
+
+	BIO_set_close(mem, BIO_NOCLOSE); /* So BIO_free() leaves BUF_MEM alone */
+	BIO_free(mem);
+
+	return data;
+}
+
+gchar* print_cert_chain(STACK_OF(X509) *verified_chain) {
+	GString *text = g_string_new(NULL);
+	char buf[BUFSIZ];
+
+	g_string_append(text, "Certificate Chain:\n");
+	for (int i = 0; i < sk_X509_num(verified_chain); i++) {
+		X509_NAME_oneline(X509_get_subject_name(sk_X509_value(verified_chain, i)),
+				buf, sizeof buf);
+		g_string_append_printf(text, "%2d Subject: %s\n", i, buf);
+		X509_NAME_oneline(X509_get_issuer_name(sk_X509_value(verified_chain, i)),
+				buf, sizeof buf);
+		g_string_append_printf(text, "   Issuer: %s\n", buf);
+	}
+
+	return g_string_free(text, FALSE);
+}
+
+gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error) {
+	STACK_OF(X509) *signers = NULL;
+	X509_STORE_CTX *cert_ctx = NULL;
+	gint signer_cnt;
+	gboolean res = FALSE;
+
+	g_return_val_if_fail(cms != NULL, FALSE);
+	g_return_val_if_fail(store != NULL, FALSE);
+	g_return_val_if_fail(verified_chain == NULL || *verified_chain == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	signers = CMS_get0_signers(cms);
+	if (signers == NULL) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_GET_SIGNER,
+				"Failed to obtain signer info");
+		goto out;
+	}
+
+	signer_cnt = sk_X509_num(signers);
+	if (signer_cnt != 1) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_NUM_SIGNER,
+				"Unsupported number of signers: %d", signer_cnt);
+		goto out;
+	}
+
+	cert_ctx = X509_STORE_CTX_new();
+	if (cert_ctx == NULL) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_X509_CTX_NEW,
+				"Failed to allocate new X509 CTX store");
+		goto out;
+	}
+
+	if (!X509_STORE_CTX_init(cert_ctx, store, sk_X509_value(signers, 0), NULL)) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_X509_CTX_INIT,
+				"Failed to init new X509 CTX store");
+		goto out;
+	}
+
+	if(X509_verify_cert(cert_ctx) != 1) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_VERIFY_CERT,
+				"Failed to verify X509 cert");
+		goto out;
+	}
+
+	*verified_chain = X509_STORE_CTX_get1_chain(cert_ctx);
+
+	/* The first element in the chain must be the signer certificate */
+	g_assert(sk_X509_value(signers, 0) == sk_X509_value(*verified_chain, 0));
+
+	g_debug("Got %d chain elements", sk_X509_num(*verified_chain));
+
+	res = TRUE;
+out:
+	if (cert_ctx)
+		X509_STORE_CTX_free(cert_ctx);
+	if (signers)
+		sk_X509_free(signers);
+
+	return res;
+}
+
+gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_STORE **store, GError **error) {
 	const gchar *capath = r_context()->config->keyring_path;
-	X509_STORE *store = NULL;
+	X509_STORE *istore = NULL;
 	X509_LOOKUP *lookup = NULL;
-	CMS_ContentInfo *cms = NULL;
+	CMS_ContentInfo *icms = NULL;
 	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
 					 g_bytes_get_size(content));
 	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
@@ -183,7 +280,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 
 	r_context_begin_step("cms_verify", "Verifying signature", 0);
 
-	if (!(store = X509_STORE_new())) {
+	if (!(istore = X509_STORE_new())) {
 		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
@@ -191,7 +288,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 				"failed to allocate new X509 store");
 		goto out;
 	}
-	if (!(lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file()))) {
+	if (!(lookup = X509_STORE_add_lookup(istore, X509_LOOKUP_file()))) {
 		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
@@ -208,7 +305,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 		goto out;
 	}
 
-	if (!(cms = d2i_CMS_bio(insig, NULL))) {
+	if (!(icms = d2i_CMS_bio(insig, NULL))) {
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
@@ -217,7 +314,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 		goto out;
 	}
 
-	if (!CMS_verify(cms, NULL, store, incontent, NULL, CMS_DETACHED | CMS_BINARY)) {
+	if (!CMS_verify(icms, NULL, istore, incontent, NULL, CMS_DETACHED | CMS_BINARY)) {
 		unsigned long err;
 		const gchar *data;
 		int flags;
@@ -230,12 +327,22 @@ gboolean cms_verify(GBytes *content, GBytes *sig, GError **error) {
 		goto out;
 	}
 
+	if (cms)
+		*cms = icms;
+
+	if (store)
+		*store = istore;
+
+
 	res = TRUE;
 out:
 	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
 	BIO_free_all(insig);
-	X509_STORE_free(store);
+	if (!store)
+		X509_STORE_free(istore);
+	if (!cms)
+		CMS_ContentInfo_free(icms);
 	r_context_end_step("cms_verify", res);
 	return res;
 }
@@ -265,7 +372,7 @@ out:
 	return sig;
 }
 
-gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, GError **error) {
+gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, CMS_ContentInfo **cms, X509_STORE **store, GError **error) {
 	GError *ierror = NULL;
 	GMappedFile *file;
 	GBytes *content = NULL;
@@ -284,7 +391,7 @@ gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, GError
 		content = tmp;
 	}
 
-	res = cms_verify(content, sig, &ierror);
+	res = cms_verify(content, sig, cms, store, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;

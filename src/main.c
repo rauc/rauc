@@ -15,6 +15,7 @@
 #include "install.h"
 #include "rauc-installer-generated.h"
 #include "service.h"
+#include "signature.h"
 #include "utils.h"
 #include "mark.h"
 
@@ -22,7 +23,7 @@ GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
 gboolean install_ignore_compatible = FALSE;
-gboolean info_noverify = FALSE;
+gboolean info_noverify, info_dumpcert = FALSE;
 gchar *output_format = NULL;
 
 static gboolean install_notify(gpointer data) {
@@ -262,6 +263,7 @@ out:
 
 static gboolean resign_start(int argc, char **argv)
 {
+	RaucBundle *bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("resign start");
 
@@ -290,7 +292,14 @@ static gboolean resign_start(int argc, char **argv)
 		goto out;
 	}
 
-	if (!resign_bundle(argv[2], argv[3], &ierror)) {
+	if (!check_bundle(argv[2], &bundle, TRUE, &ierror)) {
+		g_printerr("%s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (!resign_bundle(bundle, argv[3], &ierror)) {
 		g_printerr("Failed to resign bundle: %s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -298,6 +307,7 @@ static gboolean resign_start(int argc, char **argv)
 	}
 
 out:
+	g_clear_pointer(&bundle, free_bundle);
 	return TRUE;
 }
 
@@ -589,9 +599,11 @@ static gboolean info_start(int argc, char **argv)
 	gchar* bundledir = NULL;
 	gchar* manifestpath = NULL;
 	RaucManifest *manifest = NULL;
+	RaucBundle *bundle = NULL;
 	GError *error = NULL;
 	gboolean res = FALSE;
 	gchar* (*formatter)(RaucManifest *manifest) = NULL;
+	gchar *text;
 
 	if (argc < 3) {
 		g_printerr("A file name must be provided\n");
@@ -627,7 +639,14 @@ static gboolean info_start(int argc, char **argv)
 	bundledir = g_build_filename(tmpdir, "bundle-content", NULL);
 	manifestpath = g_build_filename(bundledir, "manifest.raucm", NULL);
 
-	res = extract_file_from_bundle(argv[2], bundledir, "manifest.raucm", !info_noverify, &error);
+	res = check_bundle(argv[2], &bundle, !info_noverify, &error);
+	if (!res) {
+		g_printerr("%s\n", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+	res = extract_file_from_bundle(bundle, bundledir, "manifest.raucm", &error);
 	if (!res) {
 		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
@@ -641,13 +660,28 @@ static gboolean info_start(int argc, char **argv)
 		goto out;
 	}
 
-	g_print("%s\n", formatter(manifest));
+	text = formatter(manifest);
+	g_print("%s\n", text);
+	g_free(text);
+
+	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
+		text = print_cert_chain(bundle->verified_chain);
+		g_print("%s\n", text);
+		g_free(text);
+
+		if (info_dumpcert) {
+			text = print_signer_cert(bundle->verified_chain);
+			g_print("%s\n", text);
+			g_free(text);
+		}
+	}
 
 out:
 	r_exit_status = res ? 0 : 1;
 	if (tmpdir)
 		rm_tree(tmpdir, NULL);
 
+	g_clear_pointer(&bundle, free_bundle);
 	g_clear_pointer(&tmpdir, g_free);
 	g_clear_pointer(&bundledir, g_free);
 	g_clear_pointer(&manifestpath, g_free);
@@ -979,6 +1013,7 @@ GOptionEntry entries_install[] = {
 GOptionEntry entries_info[] = {
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &info_noverify, "disable bundle verification", NULL},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
+	{"dump-cert", '\0', 0, G_OPTION_ARG_NONE, &info_dumpcert, "dump certificate", NULL},
 	{0}
 };
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <openssl/cms.h>
 #include <glib.h>
 
 #define R_BUNDLE_ERROR r_bundle_error_quark ()
@@ -10,10 +11,16 @@ typedef enum {
 	R_BUNDLE_ERROR_KEYRING
 } RBundleError;
 
+typedef struct {
+	gchar *path;
+	gsize size;
+	STACK_OF(X509) *verified_chain;
+} RaucBundle;
+
 /**
  * Create a bundle.
  *
- * @param bundlemane filename of the bundle to create
+ * @param bundlename filename of the bundle to create
  * @param contentdir directory containing this bundle content
  * @param error Return location for a GError
  *
@@ -26,15 +33,17 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
  *
  * This will verify and check the bundle content.
  *
- * @param bundlemane filename of the bundle to check
- * @param size Return location for the bundle size
+ * @param bundlename filename of the bundle to check
+ * @param bundle Return location for a RaucBundle struct.
+ *               This will contain all bundle information obtained by
+ *               check_bundle
  * @param verify If set to true the bundle signature will also be verified, if
  *               set to FALSE this step will be skipped
  * @param error Return location for a GError
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GError **error);
+gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error);
 
 /**
  * Resign a bundle.
@@ -42,64 +51,81 @@ gboolean check_bundle(const gchar *bundlename, gsize *size, gboolean verify, GEr
  * This will create a copy of a bundle with a new signature but unmodified
  * content.
  *
- * @param inpath filename of the bundle to resign
+ * Note that check_bundle() must be called prior to this, to obtain a
+ * RaucBundle struct.
+ *
+ * @param bundle RaucBundle struct as returned by check_bundle()
  * @param outpath filename of the resigned output bundle
  * @param error Return location for a GError
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean resign_bundle(const gchar *inpath, const gchar *outpath, GError **error);
+gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error);
 
 /**
  * Extract a bundle.
  *
  * This will extract the entire bundle content into a given directory.
  *
- * @param bundlemane filename of the bundle to extract
- * @param outputdir directory to instract content into
- * @param verify If set to true the bundle signature will also be verified, if
- *               set to FALSE this step will be skipped
+ * @param bundle RaucBundle struct as returned by check_bundle()
+ * @param outputdir directory to extract content into
  * @param error Return location for a GError
+ *
+ * Note that check_bundle() must be called prior to this, to obtain a
+ * RaucBundle struct.
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean extract_bundle(const gchar *bundlename, const gchar *outputdir, gboolean verify, GError **error);
+gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **error);
 
 /**
- * Extract a single file form a bundle.
+ * Extract a single file from a bundle.
  *
  * This will extract a single file into a given directory.
  *
- * @param bundlemane filename of the bundle to extract
- * @param outputdir directory to instract the file into
+ * Note that check_bundle() must be called prior to this, to obtain a
+ * RaucBundle struct.
+ *
+ * @param bundle RaucBundle struct as returned by check_bundle()
+ * @param outputdir directory to extract the file into
  * @param file filename of file to extract from bundle
- * @param verify If set to true the bundle signature will also be verified, if
- *               set to FALSE this step will be skipped
  * @param error Return location for a GError
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean extract_file_from_bundle(const gchar *bundlename, const gchar *outputdir, const gchar *file, gboolean verify, GError **error);
+gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, const gchar *file, GError **error);
 
 /**
  * Mount a bundle.
  *
- * @param bundlemane filename of the bundle to mount
+ * Note that check_bundle() must be called prior to this, to obtain a
+ * RaucBundle struct.
+ *
+ * @param bundle RaucBundle struct as returned by check_bundle()
  * @param mountpoint path to the desired mount point
- * @param verify If set to true the bundle signature will also be verified, if
- *               set to FALSE this step will be skipped
+ * @param size
  * @param error Return location for a GError
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean mount_bundle(const gchar *bundlename, const gchar *mountpoint, gboolean verify, GError **error);
+gboolean mount_bundle(RaucBundle *bundle, const gchar *mountpoint, GError **error);
 
 /**
  * Unmount a bundle.
  *
- * @param bundlemane filename of the bundle to unmount
+ * Note that check_bundle() must be called prior to this, to obtain a
+ * RaucBundle struct.
+ *
+ * @param bundle RaucBundle struct as returned by check_bundle()
  * @param error Return location for a GError
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean umount_bundle(const gchar *bundlename, GError **error);
+gboolean umount_bundle(RaucBundle *bundle, GError **error);
+
+/**
+ * Frees the memory allocated by a RaucBundle.
+ *
+ * @param bundle bundle to free
+ */
+void free_bundle(RaucBundle *bundle);
