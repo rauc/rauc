@@ -465,6 +465,9 @@ void load_slot_status(RaucSlot *dest_slot, RaucSlotStatus **slot_state) {
 
 	*slot_state = g_new0(RaucSlotStatus, 1);
 
+	if (!is_slot_mountable(dest_slot))
+		return;
+
 	/* read slot status */
 	g_message("mounting slot %s", dest_slot->device);
 	res = r_mount_slot(dest_slot, &ierror);
@@ -499,6 +502,11 @@ gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **erro
 	gboolean res = FALSE;
 	gchar *slotstatuspath = NULL;
 	RaucSlotStatus *slot_state = g_new0(RaucSlotStatus, 1);
+
+	if (!is_slot_mountable(dest_slot)) {
+		res = TRUE;
+		goto free;
+	}
 
 	g_debug("mounting slot %s", dest_slot->device);
 	res = r_mount_slot(dest_slot, &ierror);

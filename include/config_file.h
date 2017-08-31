@@ -180,7 +180,7 @@ void load_slot_status(RaucSlot *dest_slot, RaucSlotStatus **slot_state);
  * @param mfimage image that was just installed
  * @param error return location for a GError, or NULL
  *
- * @return TRUE if saving status succeeded, FALSE otherwise
+ * @return TRUE if slot is not mountable or saving status succeeded, FALSE otherwise
  */
 gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **error);
 
