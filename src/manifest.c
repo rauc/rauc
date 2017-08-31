@@ -143,6 +143,8 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 			g_warning("hook key %s not supported", bundle_hooks[j]);
 		}
 	}
+	g_strfreev(bundle_hooks);
+
 	if (!check_remaining_keys(key_file, "hooks", &ierror)) {
 		g_propagate_error(error, ierror);
 		goto free;
@@ -194,6 +196,8 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 				}
 			}
 			g_key_file_remove_key(key_file, groups[i], "hooks", NULL);
+
+			g_strfreev(hooks);
 
 			raucm->images = g_list_append(raucm->images, image);
 
