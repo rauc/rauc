@@ -395,11 +395,42 @@ void free_config(RaucConfig *config) {
 	g_free(config);
 }
 
+static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, RaucSlotStatus *slotstatus) {
+	gchar *digest;
+
+	if (!g_key_file_has_group(key_file, group))
+		g_debug("Group %s not found in key file.", group);
+
+	g_free(slotstatus->status);
+	g_clear_pointer(&slotstatus->checksum.digest, g_free);
+
+	slotstatus->status = g_key_file_get_string(key_file, group, "status", NULL);
+
+	digest = g_key_file_get_string(key_file, group, "sha256", NULL);
+	if (digest) {
+		slotstatus->checksum.type = G_CHECKSUM_SHA256;
+		slotstatus->checksum.digest = digest;
+	}
+}
+
+static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group, RaucSlotStatus *slotstatus) {
+	if (slotstatus->status)
+		g_key_file_set_string(key_file, group, "status", slotstatus->status);
+	else
+		g_key_file_remove_key(key_file, group, "status", NULL);
+
+	if (slotstatus->checksum.digest && slotstatus->checksum.type == G_CHECKSUM_SHA256)
+		g_key_file_set_string(key_file, group, "sha256", slotstatus->checksum.digest);
+	else
+		g_key_file_remove_key(key_file, group, "sha256", NULL);
+
+	return;
+}
+
 gboolean read_slot_status(const gchar *filename, RaucSlotStatus *slotstatus, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GKeyFile *key_file = NULL;
-	gchar *digest;
 
 	g_return_val_if_fail(filename, FALSE);
 	g_return_val_if_fail(slotstatus, FALSE);
@@ -413,15 +444,7 @@ gboolean read_slot_status(const gchar *filename, RaucSlotStatus *slotstatus, GEr
 		goto free;
 	}
 
-	g_free(slotstatus->status);
-	g_clear_pointer(&slotstatus->checksum.digest, g_free);
-
-	slotstatus->status = g_key_file_get_string(key_file, "slot", "status", NULL);
-	digest = g_key_file_get_string(key_file, "slot", "sha256", NULL);
-	if (digest) {
-		slotstatus->checksum.type = G_CHECKSUM_SHA256;
-		slotstatus->checksum.digest = digest;
-	}
+	status_file_get_slot_status(key_file, "slot", slotstatus);
 
 	res = TRUE;
 free:
@@ -437,12 +460,7 @@ gboolean write_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **e
 
 	key_file = g_key_file_new();
 
-	if (ss->status)
-		g_key_file_set_string(key_file, "slot", "status", ss->status);
-
-	if (ss->checksum.digest && ss->checksum.type == G_CHECKSUM_SHA256)
-		g_key_file_set_string(key_file, "slot", "sha256", ss->checksum.digest);
-
+	status_file_set_slot_status(key_file, "slot", ss);
 
 	res = g_key_file_save_to_file(key_file, filename, &ierror);
 	if (!res) {
