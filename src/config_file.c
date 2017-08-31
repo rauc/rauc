@@ -19,6 +19,7 @@ void r_free_slot(gpointer value) {
 	g_clear_pointer(&slot->device, g_free);
 	g_clear_pointer(&slot->type, g_free);
 	g_clear_pointer(&slot->bootname, g_free);
+	g_clear_pointer(&slot->mount_point, g_free);
 }
 
 gboolean default_config(RaucConfig **config) {
@@ -297,6 +298,8 @@ void free_config(RaucConfig *config) {
 	g_assert_nonnull(config);
 	g_clear_pointer(&config->system_compatible, g_free);
 	g_clear_pointer(&config->system_bootloader, g_free);
+	g_clear_pointer(&config->mount_prefix, g_free);
+	g_clear_pointer(&config->grubenv_path, g_free);
 	g_clear_pointer(&config->keyring_path, g_free);
 	g_clear_pointer(&config->autoinstall_path, g_free);
 	g_clear_pointer(&config->systeminfo_handler, g_free);
