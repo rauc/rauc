@@ -352,7 +352,7 @@ gboolean write_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **e
 	if (ss->status)
 		g_key_file_set_string(key_file, "slot", "status", ss->status);
 
-	if (ss->checksum.type == G_CHECKSUM_SHA256)
+	if (ss->checksum.digest && ss->checksum.type == G_CHECKSUM_SHA256)
 		g_key_file_set_string(key_file, "slot", "sha256", ss->checksum.digest);
 
 
