@@ -179,12 +179,11 @@ void load_slot_status(RaucSlot *dest_slot);
  * unmounts the slot afterwards.
  *
  * @param dest_slot Slot to write status information for
- * @param mfimage image that was just installed
  * @param error return location for a GError, or NULL
  *
  * @return TRUE if slot is not mountable or saving status succeeded, FALSE otherwise
  */
-gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **error);
+gboolean save_slot_status(RaucSlot *dest_slot, GError **error);
 
 /**
  * Frees the memory allocated by a RaucSlot

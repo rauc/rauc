@@ -500,15 +500,13 @@ free:
 }
 
 
-gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **error) {
+gboolean save_slot_status(RaucSlot *dest_slot, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar *slotstatuspath = NULL;
-	RaucSlotStatus *slot_state = NULL;
 
 	g_return_val_if_fail(dest_slot, FALSE);
 	g_return_val_if_fail(dest_slot->status, FALSE);
-	g_return_val_if_fail(mfimage, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (!is_slot_mountable(dest_slot)) {
@@ -523,17 +521,10 @@ gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **erro
 		goto free;
 	}
 
-	slot_state = dest_slot->status;
-	g_free(slot_state->status);
-	slot_state->status = g_strdup("ok");
-	slot_state->checksum.type = mfimage->checksum.type;
-	g_free(slot_state->checksum.digest);
-	slot_state->checksum.digest = g_strdup(mfimage->checksum.digest);
-
 	slotstatuspath = g_build_filename(dest_slot->mount_point, "slot.raucs", NULL);
 	g_message("Updating slot file %s", slotstatuspath);
 
-	res = write_slot_status(slotstatuspath, slot_state, &ierror);
+	res = write_slot_status(slotstatuspath, dest_slot->status, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		r_umount_slot(dest_slot, NULL);
