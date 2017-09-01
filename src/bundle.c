@@ -579,6 +579,7 @@ out:
 }
 
 void free_bundle(RaucBundle *bundle) {
+	g_return_if_fail(bundle);
 
 	g_free(bundle->path);
 	g_free(bundle->mount_point);
