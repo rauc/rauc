@@ -83,6 +83,27 @@ gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_ST
 gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, CMS_ContentInfo **cms, X509_STORE **store, GError **error);
 
 /**
+ * Calculates hash for certificate pubkey info.
+ *
+ * This hashes the complete 'Subject Public Key Info' similar to what DANE
+ * does.
+ *
+ * @param cert certificate to calculate hash for
+ *
+ * @return colon-separated hexadecimal representation of subject key hash
+ */
+gchar* get_pubkey_hash(X509 *cert);
+
+/**
+ * Calculates all hashes for certificate stacks pubkeys
+ *
+ * @param certs Stack of certificates
+ *
+ * @return Array of pointers to string representations of hashes
+ */
+gchar** get_pubkey_hashes(STACK_OF(X509) *certs);
+
+/**
  * Returns string representation of certificate.
  *
  * @param verified_chain Stack of X509 certificates as returned by

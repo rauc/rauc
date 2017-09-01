@@ -11,6 +11,7 @@
 
 #include "context.h"
 #include "mount.h"
+#include "signature.h"
 #include "update_handler.h"
 
 
@@ -381,6 +382,18 @@ static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, Rau
 		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_CLASS", image->slotclass, TRUE);
 	}
 	g_subprocess_launcher_setenv(launcher, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
+
+	if (r_context()->install_info->mounted_bundle) {
+		gchar **hashes = NULL;
+		gchar *string = NULL;
+
+		hashes = get_pubkey_hashes(r_context()->install_info->mounted_bundle->verified_chain);
+		string = g_strjoinv(" ", hashes);
+		g_strfreev(hashes);
+
+		g_subprocess_launcher_setenv(launcher, "RAUC_BUNDLE_SPKI_HASHES", string, FALSE);
+		g_free(string);
+	}
 
 	sproc = g_subprocess_launcher_spawn(
 			launcher, &ierror,

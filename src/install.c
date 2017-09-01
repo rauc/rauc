@@ -994,6 +994,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 	GHashTable *target_group;
 
 	g_assert_nonnull(bundlefile);
+	g_assert_null(r_context()->install_info->mounted_bundle);
 
 	r_context_begin_step("do_install_bundle", "Installing", 5);
 	res = determine_slot_states(&ierror);
@@ -1030,6 +1031,8 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 				"Failed mounting bundle: ");
 		goto umount;
 	}
+
+	r_context()->install_info->mounted_bundle = bundle;
 
 	res = verify_manifest(mountpoint, &manifest, FALSE, &ierror);
 	if (!res) {
@@ -1089,6 +1092,7 @@ umount:
 	umount_bundle(bundle, NULL);
 	g_rmdir(mountpoint);
 	g_clear_pointer(&mountpoint, g_free);
+	r_context()->install_info->mounted_bundle = NULL;
 
 out:
 	g_clear_pointer(&bundle, free_bundle);

@@ -5,6 +5,7 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
+#include <openssl/crypto.h>
 
 #include "context.h"
 #include "signature.h"
@@ -157,6 +158,68 @@ out:
 	return res;
 }
 
+gchar* get_pubkey_hash(X509 *cert) {
+		gchar *data = NULL;
+		GString *string;
+		unsigned char *der_buf, *tmp_buf = NULL;
+		unsigned int len = 0;
+		unsigned int n = 0;
+		unsigned char md[SHA256_DIGEST_LENGTH];
+
+		/* As we print colon-separated hex, we need 3 chars per byte */
+		string = g_string_sized_new(SHA256_DIGEST_LENGTH * 3);
+
+		len = i2d_X509_PUBKEY(X509_get_X509_PUBKEY(cert), NULL);
+		if (len <= 0) {
+			g_warning("DER Encoding failed\n");
+			goto out;
+		}
+		/* As i2d_X509_PUBKEY() moves pointer after end of data,
+		 * we must use a tmp pointer, here */
+		der_buf = tmp_buf = g_malloc(len);
+		i2d_X509_PUBKEY(X509_get_X509_PUBKEY(cert), &tmp_buf);
+
+		g_assert(tmp_buf- der_buf == len);
+
+		if (!EVP_Digest(der_buf, len, md, &n, EVP_sha256(), NULL)) {
+			g_warning("Error in EVP_Digest\n");
+			goto out;
+		}
+
+		g_assert_cmpint(n, ==, SHA256_DIGEST_LENGTH);
+
+		for (int j = 0; j < (int)n; j++) {
+			g_string_append_printf(string, "%02X:", md[j]);
+		}
+		g_string_truncate(string, SHA256_DIGEST_LENGTH * 3 - 1);
+
+		data = g_string_free(string, FALSE);
+out:
+		g_clear_pointer(&der_buf, g_free);
+		return data;
+}
+
+gchar** get_pubkey_hashes(STACK_OF(X509) *verified_chain) {
+	GPtrArray *hashes = g_ptr_array_new_full(4, g_free);
+	gchar **ret = NULL;
+
+	for (int i = 0; i < sk_X509_num(verified_chain); i++) {
+		gchar *hash;
+
+		hash = get_pubkey_hash(sk_X509_value(verified_chain, i));
+		if (hash == NULL) {
+			g_ptr_array_free(hashes, TRUE);
+			goto out;
+		}
+		g_ptr_array_add(hashes, hash);
+	}
+	g_ptr_array_add(hashes, NULL);
+
+	ret = (gchar**) g_ptr_array_free(hashes, FALSE);
+out:
+	return ret;
+}
+
 gchar* print_signer_cert(STACK_OF(X509) *verified_chain) {
 	BIO *mem;
 	gchar *data;
@@ -186,6 +249,7 @@ gchar* print_cert_chain(STACK_OF(X509) *verified_chain) {
 		X509_NAME_oneline(X509_get_issuer_name(sk_X509_value(verified_chain, i)),
 				buf, sizeof buf);
 		g_string_append_printf(text, "   Issuer: %s\n", buf);
+		g_string_append_printf(text, "   SPKI sha256: %s\n", get_pubkey_hash(sk_X509_value(verified_chain, i)));
 	}
 
 	return g_string_free(text, FALSE);
