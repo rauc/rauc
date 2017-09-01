@@ -162,13 +162,13 @@ gboolean load_slot_status(RaucSlot *dest_slot, RaucSlotStatus **slot_state, GErr
  * Save slot status.
  *
  * This mounts the given slot, writes the status information into its status
- * file and unomounts the slot afterwards.
+ * file and unmounts the slot afterwards.
  *
  * @param dest_slot Slot to write status information for
  * @param mfimage image that was just installed
  * @param error return location for a GError, or NULL
  *
- * @return TRUE if loading status succeeded, FALSE otherwise
+ * @return TRUE if saving status succeeded, FALSE otherwise
  */
 gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **error);
 
