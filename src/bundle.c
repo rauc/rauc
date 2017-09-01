@@ -584,4 +584,5 @@ void free_bundle(RaucBundle *bundle) {
 	g_free(bundle->mount_point);
 	if (bundle->verified_chain)
 		sk_X509_pop_free(bundle->verified_chain, X509_free);
+	g_free(bundle);
 }

@@ -448,8 +448,12 @@ void free_manifest(RaucManifest *manifest) {
 
 	g_clear_pointer(&manifest->update_compatible, g_free);
 	g_clear_pointer(&manifest->update_version, g_free);
+	g_clear_pointer(&manifest->update_description, g_free);
+	g_clear_pointer(&manifest->update_build, g_free);
 	g_clear_pointer(&manifest->keyring, g_free);
 	g_clear_pointer(&manifest->handler_name, g_free);
+	g_clear_pointer(&manifest->handler_args, g_free);
+	g_clear_pointer(&manifest->hook_name, g_free);
 	g_list_free_full(manifest->images, r_free_image);
 	g_list_free_full(manifest->files, r_free_file);
 	g_clear_pointer(&manifest, g_free);
