@@ -20,6 +20,7 @@ void r_free_slot(gpointer value) {
 	g_clear_pointer(&slot->type, g_free);
 	g_clear_pointer(&slot->bootname, g_free);
 	g_clear_pointer(&slot->mount_point, g_free);
+	g_free(slot);
 }
 
 gboolean default_config(RaucConfig **config) {
