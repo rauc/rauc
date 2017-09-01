@@ -15,6 +15,8 @@ G_DEFINE_QUARK(r-slot-error-quark, r_slot_error)
 void r_free_slot(gpointer value) {
 	RaucSlot *slot = (RaucSlot*)value;
 
+	g_return_if_fail(slot);
+
 	g_clear_pointer(&slot->description, g_free);
 	g_clear_pointer(&slot->device, g_free);
 	g_clear_pointer(&slot->type, g_free);
@@ -296,7 +298,8 @@ out:
 }
 
 void free_config(RaucConfig *config) {
-	g_assert_nonnull(config);
+	g_return_if_fail(config);
+
 	g_clear_pointer(&config->system_compatible, g_free);
 	g_clear_pointer(&config->system_bootloader, g_free);
 	g_clear_pointer(&config->mount_prefix, g_free);
@@ -447,7 +450,8 @@ free:
 }
 
 void free_slot_status(RaucSlotStatus *slotstatus) {
-	g_assert_nonnull(slotstatus);
+	g_return_if_fail(slotstatus);
+
 	g_clear_pointer(&slotstatus->status, g_free);
 	g_clear_pointer(&slotstatus->checksum.digest, g_free);
 	g_free(slotstatus);

@@ -552,6 +552,7 @@ out:
 }
 
 void free_bundle(RaucBundle *bundle) {
+	g_return_if_fail(bundle);
 
 	g_free(bundle->path);
 	if (bundle->verified_chain)
