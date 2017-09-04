@@ -46,7 +46,7 @@ hooks=install-check\n\
 filename=rootfs.ext4\n\
 \n\
 [image.appfs]\n\
-filename=rootfs.ext4";
+filename=appfs.ext4";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
@@ -68,7 +68,7 @@ filename=rootfs.ext4\n\
 hooks=install\n\
 \n\
 [image.appfs]\n\
-filename=rootfs.ext4\n\
+filename=appfs.ext4\n\
 hooks=install";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
@@ -91,7 +91,7 @@ filename=rootfs.ext4\n\
 hooks=post-install\n\
 \n\
 [image.appfs]\n\
-filename=rootfs.ext4\n\
+filename=appfs.ext4\n\
 hooks=post-install";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
@@ -303,7 +303,7 @@ filename=appfs.ext4\n\
 \n\
 [image.demofs]\n\
 sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca\n\
-filename=appfs.ext4\n\
+filename=demofs.ext4\n\
 \n\
 [file.rootfs/vmlinuz]\n\
 sha256=5fb50868cd1f2e34ff531d6680c9b734ba35ed4944072f396a50871e9c2d5155\n\
