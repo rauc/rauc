@@ -686,6 +686,8 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 					g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
 							"Slot '%s' still mounted", dest_slot->device);
 					r_context_end_step("check_slot", FALSE);
+
+					g_clear_pointer(&slot_state, free_slot_status);
 					goto out;
 				}
 
