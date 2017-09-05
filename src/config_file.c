@@ -402,7 +402,9 @@ void free_config(RaucConfig *config) {
 }
 
 static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, RaucSlotStatus *slotstatus) {
+	GError *ierror = NULL;
 	gchar *digest;
+	guint64 count;
 
 	if (!g_key_file_has_group(key_file, group))
 		g_debug("Group %s not found in key file.", group);
@@ -413,6 +415,7 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 	g_free(slotstatus->bundle_build);
 	g_free(slotstatus->status);
 	g_clear_pointer(&slotstatus->checksum.digest, g_free);
+	g_free(slotstatus->installed_timestamp);
 
 	slotstatus->bundle_compatible = g_key_file_get_string(key_file, group, "bundle.compatible", NULL);
 	slotstatus->bundle_version = g_key_file_get_string(key_file, group, "bundle.version", NULL);
@@ -426,6 +429,21 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 		slotstatus->checksum.digest = digest;
 		slotstatus->checksum.size = g_key_file_get_uint64(key_file, group, "size", NULL);
 	}
+
+	slotstatus->installed_timestamp = g_key_file_get_string(key_file, group, "installed.timestamp", NULL);
+	count = g_key_file_get_uint64(key_file, group, "installed.count", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE)) {
+		g_message("Value of key \"installed.count\" in group [%s] "
+			"is no valid unsigned integer - setting to zero.", group);
+		count = 0;
+	}
+	g_clear_error(&ierror);
+	if (count > G_MAXUINT32) {
+		g_message("Value of key \"installed.count\" in group [%s] "
+			"is greater than G_MAXUINT32 - setting to zero.", group);
+		count = 0;
+	}
+	slotstatus->installed_count = count;
 }
 
 static void status_file_set_string_or_remove_key(GKeyFile *key_file, const gchar *group, const gchar *key, gchar *string) {
@@ -448,6 +466,14 @@ static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group, 
 	} else {
 		g_key_file_remove_key(key_file, group, "sha256", NULL);
 		g_key_file_remove_key(key_file, group, "size", NULL);
+	}
+
+	if (slotstatus->installed_timestamp) {
+		g_key_file_set_string(key_file, group, "installed.timestamp", slotstatus->installed_timestamp);
+		g_key_file_set_uint64(key_file, group, "installed.count", slotstatus->installed_count);
+	} else {
+		g_key_file_remove_key(key_file, group, "installed.timestamp", NULL);
+		g_key_file_remove_key(key_file, group, "installed.count", NULL);
 	}
 
 	return;
@@ -691,5 +717,6 @@ void free_slot_status(RaucSlotStatus *slotstatus) {
 	g_free(slotstatus->bundle_build);
 	g_free(slotstatus->status);
 	g_free(slotstatus->checksum.digest);
+	g_free(slotstatus->installed_timestamp);
 	g_free(slotstatus);
 }

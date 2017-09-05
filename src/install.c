@@ -817,6 +817,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		RaucSlot *dest_slot;
 		img_to_slot_handler update_handler = NULL;
 		RaucSlotStatus *slot_state = NULL;
+		GDateTime *now;
 
 		mfimage = l->data;
 		dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
@@ -930,6 +931,9 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		g_free(slot_state->bundle_build);
 		g_free(slot_state->status);
 		g_free(slot_state->checksum.digest);
+		g_free(slot_state->installed_timestamp);
+
+		now = g_date_time_new_now_utc();
 
 		slot_state->bundle_compatible = g_strdup(manifest->update_compatible);
 		slot_state->bundle_version = g_strdup(manifest->update_version);
@@ -939,6 +943,10 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		slot_state->checksum.type = mfimage->checksum.type;
 		slot_state->checksum.digest = g_strdup(mfimage->checksum.digest);
 		slot_state->checksum.size = mfimage->checksum.size;
+		slot_state->installed_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
+		slot_state->installed_count++;
+
+		g_date_time_unref(now);
 
 		r_context_end_step("copy_image", TRUE);
 

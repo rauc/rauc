@@ -67,6 +67,8 @@ typedef struct {
 	gchar *bundle_build;
 	gchar *status;
 	RaucChecksum checksum;
+	gchar *installed_timestamp;
+	guint32 installed_count;
 } RaucSlotStatus;
 
 typedef struct _RaucSlot {

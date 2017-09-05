@@ -296,6 +296,8 @@ termed with the slot name (e.g. [slot.rootfs.1]) for the central status file:
   status=ok
   sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
   size=419430400
+  installed.timestamp=2017-03-27T09:51:13Z
+  installed.count=3
 
 For a description of ``sha256`` and ``size`` keys see :ref:`this
 <image.slot-class-section>` part of the section :ref:`Manifest
@@ -308,6 +310,10 @@ The properties ``bundle.compatible``, ``bundle.version``, ``bundle.description``
 and ``bundle.build`` are copies of the respective manifest properties.
 More information can be found in this :ref:`subsection <sec-manifest-update>` of
 section :ref:`Manifest <sec_ref_manifest>`.
+
+RAUC also stores the point in time of installing the image to the slot in
+``installed.timestamp`` as well as the number of updates so far in
+``installed.count``.
 
 
 Command Line Tool
