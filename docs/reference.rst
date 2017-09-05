@@ -181,6 +181,8 @@ hierarchical separator.
   which means that updating this slot will be skipped if new image's hash
   matches hash of installed one.
 
+.. _sec_ref_manifest:
+
 Manifest
 --------
 
@@ -244,6 +246,8 @@ A valid manifest file must have the file extension ``.raucm``.
   Arguments to pass to the handler script, such as ``args=--verbose``
 
 
+.. _image.slot-class-section:
+
 **[image.<slot-class>] section**
 
 ``filename``
@@ -285,6 +289,14 @@ termed with the slot name (e.g. [slot.rootfs.1]) for the central status file:
   [slot]
   status=ok
   sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
+  size=419430400
+
+For a description of ``sha256`` and ``size`` keys see :ref:`this
+<image.slot-class-section>` part of the section :ref:`Manifest
+<sec_ref_manifest>`.
+Having the slot's content's size allows to re-calculate the hash via `head -c
+<size> <slot-device> | sha256sum` or `dd bs=<size> count=1 if=<slot-device> |
+sha256sum`.
 
 
 Command Line Tool

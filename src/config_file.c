@@ -416,6 +416,7 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 	if (digest) {
 		slotstatus->checksum.type = G_CHECKSUM_SHA256;
 		slotstatus->checksum.digest = digest;
+		slotstatus->checksum.size = g_key_file_get_uint64(key_file, group, "size", NULL);
 	}
 }
 
@@ -425,10 +426,13 @@ static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group, 
 	else
 		g_key_file_remove_key(key_file, group, "status", NULL);
 
-	if (slotstatus->checksum.digest && slotstatus->checksum.type == G_CHECKSUM_SHA256)
+	if (slotstatus->checksum.digest && slotstatus->checksum.type == G_CHECKSUM_SHA256) {
 		g_key_file_set_string(key_file, group, "sha256", slotstatus->checksum.digest);
-	else
+		g_key_file_set_uint64(key_file, group, "size", slotstatus->checksum.size);
+	} else {
 		g_key_file_remove_key(key_file, group, "sha256", NULL);
+		g_key_file_remove_key(key_file, group, "size", NULL);
+	}
 
 	return;
 }

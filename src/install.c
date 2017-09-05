@@ -930,6 +930,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		slot_state->status = g_strdup("ok");
 		slot_state->checksum.type = mfimage->checksum.type;
 		slot_state->checksum.digest = g_strdup(mfimage->checksum.digest);
+		slot_state->checksum.size = mfimage->checksum.size;
 
 		r_context_end_step("copy_image", TRUE);
 
