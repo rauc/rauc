@@ -407,9 +407,17 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 	if (!g_key_file_has_group(key_file, group))
 		g_debug("Group %s not found in key file.", group);
 
+	g_free(slotstatus->bundle_compatible);
+	g_free(slotstatus->bundle_version);
+	g_free(slotstatus->bundle_description);
+	g_free(slotstatus->bundle_build);
 	g_free(slotstatus->status);
 	g_clear_pointer(&slotstatus->checksum.digest, g_free);
 
+	slotstatus->bundle_compatible = g_key_file_get_string(key_file, group, "bundle.compatible", NULL);
+	slotstatus->bundle_version = g_key_file_get_string(key_file, group, "bundle.version", NULL);
+	slotstatus->bundle_description = g_key_file_get_string(key_file, group, "bundle.description", NULL);
+	slotstatus->bundle_build = g_key_file_get_string(key_file, group, "bundle.build", NULL);
 	slotstatus->status = g_key_file_get_string(key_file, group, "status", NULL);
 
 	digest = g_key_file_get_string(key_file, group, "sha256", NULL);
@@ -420,11 +428,19 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 	}
 }
 
-static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group, RaucSlotStatus *slotstatus) {
-	if (slotstatus->status)
-		g_key_file_set_string(key_file, group, "status", slotstatus->status);
+static void status_file_set_string_or_remove_key(GKeyFile *key_file, const gchar *group, const gchar *key, gchar *string) {
+	if (string)
+		g_key_file_set_string(key_file, group, key, string);
 	else
-		g_key_file_remove_key(key_file, group, "status", NULL);
+		g_key_file_remove_key(key_file, group, key, NULL);
+}
+
+static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group, RaucSlotStatus *slotstatus) {
+	status_file_set_string_or_remove_key(key_file, group, "bundle.compatible", slotstatus->bundle_compatible);
+	status_file_set_string_or_remove_key(key_file, group, "bundle.version", slotstatus->bundle_version);
+	status_file_set_string_or_remove_key(key_file, group, "bundle.description", slotstatus->bundle_description);
+	status_file_set_string_or_remove_key(key_file, group, "bundle.build", slotstatus->bundle_build);
+	status_file_set_string_or_remove_key(key_file, group, "status", slotstatus->status);
 
 	if (slotstatus->checksum.digest && slotstatus->checksum.type == G_CHECKSUM_SHA256) {
 		g_key_file_set_string(key_file, group, "sha256", slotstatus->checksum.digest);
@@ -669,6 +685,10 @@ gboolean save_slot_status(RaucSlot *dest_slot, GError **error) {
 void free_slot_status(RaucSlotStatus *slotstatus) {
 	g_return_if_fail(slotstatus);
 
+	g_free(slotstatus->bundle_compatible);
+	g_free(slotstatus->bundle_version);
+	g_free(slotstatus->bundle_description);
+	g_free(slotstatus->bundle_build);
 	g_free(slotstatus->status);
 	g_free(slotstatus->checksum.digest);
 	g_free(slotstatus);

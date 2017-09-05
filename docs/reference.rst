@@ -205,6 +205,8 @@ A valid manifest file must have the file extension ``.raucm``.
   sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca
 
 
+.. _sec-manifest-update:
+
 **[update] section**
 
 ``compatible``
@@ -287,6 +289,10 @@ termed with the slot name (e.g. [slot.rootfs.1]) for the central status file:
 .. code-block:: cfg
 
   [slot]
+  bundle.compatible=FooCorp Super BarBazzer
+  bundle.version=2016.08-1
+  bundle.description=Introduction of Galactic Feature XYZ
+  bundle.build=2016.08.1/imx6/20170324-7
   status=ok
   sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
   size=419430400
@@ -297,6 +303,11 @@ For a description of ``sha256`` and ``size`` keys see :ref:`this
 Having the slot's content's size allows to re-calculate the hash via `head -c
 <size> <slot-device> | sha256sum` or `dd bs=<size> count=1 if=<slot-device> |
 sha256sum`.
+
+The properties ``bundle.compatible``, ``bundle.version``, ``bundle.description``
+and ``bundle.build`` are copies of the respective manifest properties.
+More information can be found in this :ref:`subsection <sec-manifest-update>` of
+section :ref:`Manifest <sec_ref_manifest>`.
 
 
 Command Line Tool

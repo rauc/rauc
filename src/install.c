@@ -924,9 +924,17 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			goto out;
 		}
 
+		g_free(slot_state->bundle_compatible);
+		g_free(slot_state->bundle_version);
+		g_free(slot_state->bundle_description);
+		g_free(slot_state->bundle_build);
 		g_free(slot_state->status);
 		g_free(slot_state->checksum.digest);
 
+		slot_state->bundle_compatible = g_strdup(manifest->update_compatible);
+		slot_state->bundle_version = g_strdup(manifest->update_version);
+		slot_state->bundle_description = g_strdup(manifest->update_description);
+		slot_state->bundle_build = g_strdup(manifest->update_build);
 		slot_state->status = g_strdup("ok");
 		slot_state->checksum.type = mfimage->checksum.type;
 		slot_state->checksum.digest = g_strdup(mfimage->checksum.digest);

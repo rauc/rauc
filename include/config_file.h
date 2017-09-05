@@ -61,6 +61,10 @@ typedef enum {
 GQuark r_slot_error_quark(void);
 
 typedef struct {
+	gchar *bundle_compatible;
+	gchar *bundle_version;
+	gchar *bundle_description;
+	gchar *bundle_build;
 	gchar *status;
 	RaucChecksum checksum;
 } RaucSlotStatus;
