@@ -167,6 +167,8 @@ gboolean r_mount_slot(RaucSlot *slot, GError **error) {
 				error,
 				ierror,
 				"failed to mount slot: ");
+		g_rmdir(mount_point);
+		g_free(mount_point);
 		goto out;
 	}
 
