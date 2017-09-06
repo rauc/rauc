@@ -377,7 +377,6 @@ gboolean load_slot_status(RaucSlot *dest_slot, RaucSlotStatus **slot_state, GErr
 	g_message("mounting slot %s", dest_slot->device);
 	res = r_mount_slot(dest_slot, &ierror);
 	if (!res) {
-		r_umount_slot(dest_slot, NULL);
 		g_propagate_error(error, ierror);
 		goto free;
 	}
