@@ -34,7 +34,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
  * This will verify and check the bundle content.
  *
  * @param bundlename filename of the bundle to check
- * @param bundle Return location for a RaucBundle struct.
+ * @param bundle return location for a RaucBundle struct.
  *               This will contain all bundle information obtained by
  *               check_bundle
  * @param verify If set to true the bundle signature will also be verified, if
