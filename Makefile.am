@@ -218,4 +218,5 @@ CLEANFILES = $(gdbus_installer_generated) \
 	     test/savedslot.raucs \
 	     test/grubenv.test \
 	     test/random.dat \
-	     test/test-temp.conf
+	     test/test-temp.conf \
+	     test/system.raucs

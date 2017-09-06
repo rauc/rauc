@@ -69,6 +69,8 @@ typedef struct {
 	RaucChecksum checksum;
 	gchar *installed_timestamp;
 	guint32 installed_count;
+	gchar *activated_timestamp;
+	guint32 activated_count;
 } RaucSlotStatus;
 
 typedef struct _RaucSlot {

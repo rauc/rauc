@@ -156,6 +156,9 @@ do so by using its slot name which has the form ``<slot-class>.<idx>`` (e.g.
 after switching to a different slot by mistake, before having rebooted this can
 be remedied by choosing ``booted`` as the argument which is, by the way, the
 default if the optional argument has been omitted.
+The date and time of activation as well as the number of activations is part of
+the slot's metadata which is stored in the slot status file, see section
+:ref:`slot-status`.
 
 Customizing the Update
 ----------------------

@@ -416,6 +416,7 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 	g_free(slotstatus->status);
 	g_clear_pointer(&slotstatus->checksum.digest, g_free);
 	g_free(slotstatus->installed_timestamp);
+	g_free(slotstatus->activated_timestamp);
 
 	slotstatus->bundle_compatible = g_key_file_get_string(key_file, group, "bundle.compatible", NULL);
 	slotstatus->bundle_version = g_key_file_get_string(key_file, group, "bundle.version", NULL);
@@ -444,6 +445,21 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 		count = 0;
 	}
 	slotstatus->installed_count = count;
+
+	slotstatus->activated_timestamp = g_key_file_get_string(key_file, group, "activated.timestamp", NULL);
+	count = g_key_file_get_uint64(key_file, group, "activated.count", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE)) {
+		g_message("Value of key \"activated.count\" in group [%s] "
+			"is no valid unsigned integer - setting to zero.", group);
+		count = 0;
+	}
+	g_clear_error(&ierror);
+	if (count > G_MAXUINT32) {
+		g_message("Value of key \"activated.count\" in group [%s] "
+			"is greater than G_MAXUINT32 - setting to zero.", group);
+		count = 0;
+	}
+	slotstatus->activated_count = count;
 }
 
 static void status_file_set_string_or_remove_key(GKeyFile *key_file, const gchar *group, const gchar *key, gchar *string) {
@@ -474,6 +490,14 @@ static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group, 
 	} else {
 		g_key_file_remove_key(key_file, group, "installed.timestamp", NULL);
 		g_key_file_remove_key(key_file, group, "installed.count", NULL);
+	}
+
+	if (slotstatus->activated_timestamp) {
+		g_key_file_set_string(key_file, group, "activated.timestamp", slotstatus->activated_timestamp);
+		g_key_file_set_uint64(key_file, group, "activated.count", slotstatus->activated_count);
+	} else {
+		g_key_file_remove_key(key_file, group, "activated.timestamp", NULL);
+		g_key_file_remove_key(key_file, group, "activated.count", NULL);
 	}
 
 	return;
@@ -718,5 +742,6 @@ void free_slot_status(RaucSlotStatus *slotstatus) {
 	g_free(slotstatus->status);
 	g_free(slotstatus->checksum.digest);
 	g_free(slotstatus->installed_timestamp);
+	g_free(slotstatus->activated_timestamp);
 	g_free(slotstatus);
 }

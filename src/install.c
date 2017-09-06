@@ -19,6 +19,7 @@
 #include "context.h"
 #include "install.h"
 #include "manifest.h"
+#include "mark.h"
 #include "mount.h"
 #include "network.h"
 #include "service.h"
@@ -971,14 +972,20 @@ image_out:
 			if (dest_slot->parent || !dest_slot->bootname)
 				continue;
 
-			res = r_boot_set_primary(dest_slot, &ierror);
-
-			if (!res) {
+			mark_active(dest_slot, &ierror);
+			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE)) {
 				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
-						"Failed marking slot %s bootable: %s", dest_slot->name, ierror->message);
+					"Failed marking slot %s bootable", dest_slot->name);
+				g_clear_error(&ierror);
+				goto out;
+			} else if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED)) {
+				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED,
+					"Marked slot %s bootable, but failed to write status file: %s",
+					dest_slot->name, ierror->message);
 				g_clear_error(&ierror);
 				goto out;
 			}
+			g_clear_error(&ierror);
 		}
 	} else {
 		g_message("Leaving target slot non-bootable as requested by activate_installed == false.");
