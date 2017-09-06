@@ -179,7 +179,7 @@ gchar* get_pubkey_hash(X509 *cert) {
 		der_buf = tmp_buf = g_malloc(len);
 		i2d_X509_PUBKEY(X509_get_X509_PUBKEY(cert), &tmp_buf);
 
-		g_assert(tmp_buf- der_buf == len);
+		g_assert(((unsigned int)(tmp_buf - der_buf)) == len);
 
 		if (!EVP_Digest(der_buf, len, md, &n, EVP_sha256(), NULL)) {
 			g_warning("Error in EVP_Digest\n");
