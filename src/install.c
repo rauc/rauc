@@ -171,115 +171,227 @@ out:
 	return res;
 }
 
-/* Returns the inactive slots for a given slot class */
-static GList* get_inactive_slot_class_members(const gchar* slotclass) {
-	GList *members = NULL;
-	RaucSlot *slot;
-	GHashTableIter iter;
-
-	g_assert_nonnull(slotclass);
-
-	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
-		/* only collect inactive slots */
-		if (slot->state != ST_INACTIVE)
-			continue;
-
-		if (g_strcmp0(slot->sclass, slotclass) == 0) {
-			members = g_list_append(members, slot);
-		}
-	}
-
-	return members;
-}
-
-/* Returns inactive base parent slot for given slot (if available), otherwise
- * NULL */
-static RaucSlot* get_inactive_base_slot(RaucSlot *slot) {
+/* Returns the parent root slot for given slot.
+ *
+ * If the given slot is a root slot itself, a pointer to itself will be
+ * returned.
+ *
+ * @param slot slot to find parent root slot for
+ *
+ * @return pointer to RaucSlot
+ */
+static RaucSlot* get_parent_root_slot(RaucSlot *slot) {
 	RaucSlot *base = NULL;
 
-	g_assert_nonnull(slot);
+	g_return_val_if_fail(slot, NULL);
 
-	base = (slot->state == ST_INACTIVE) ? slot : NULL;
+	base = slot;
 	while (base != NULL && base->parent != NULL)
-		base = (base->parent->state == ST_INACTIVE) ? base->parent : NULL;
+		base = base->parent;
 
 	return base;
 }
 
-GHashTable* determine_target_install_group(RaucManifest *manifest) {
+/* Returns newly allocated NULL-teminated string array of all classes listed in
+ * given manifest.
+ * Free with g_strfreev */
+static gchar** get_all_file_slot_classes(const RaucManifest *manifest) {
 	GPtrArray *slotclasses = NULL;
-	GHashTable *bases = NULL;
-	GHashTable *targetgroup = NULL;
-	gboolean res = FALSE;
 
-	r_context_begin_step("determine_target_install_group", "Determining target install group", 0);
+	g_return_val_if_fail(manifest, NULL);
 
-	/* collect referenced slot classes from manifest */
 	slotclasses = g_ptr_array_new();
-	for (GList *l = manifest->images; l != NULL; l = l->next) {
-		const gchar *key = g_intern_string(((RaucImage*)l->data)->slotclass);
-		g_ptr_array_add(slotclasses, (gpointer)key);
-	}
+
 	for (GList *l = manifest->files; l != NULL; l = l->next) {
-		const gchar *key = g_intern_string(((RaucFile*)l->data)->slotclass);
+		RaucFile *iterfile = l->data;
+		const gchar *key = NULL;
+		g_assert_nonnull(iterfile->slotclass);
+		key = g_intern_string(iterfile->slotclass);
 		g_ptr_array_remove_fast(slotclasses, (gpointer)key); /* avoid duplicates */
 		g_ptr_array_add(slotclasses, (gpointer)key);
 	}
+	g_ptr_array_add(slotclasses, NULL);
 
-	g_assert_cmpuint(slotclasses->len, >, 0);
+	return (gchar**) g_ptr_array_free(slotclasses, FALSE);
+}
 
-	/* slots with no parent, already selected for installing */
-	bases = g_hash_table_new(NULL, NULL); /* keys are interned strings */
+/* Gets all classes that do not have a parent
+ * 
+ * @return newly allocated NULL-teminated string array. Free with g_strfreev */
+static gchar** get_root_system_slot_classes(void) {
+	GPtrArray *slotclasses = NULL;
+	GHashTableIter iter;
+	RaucSlot *iterslot = NULL;
+
+	g_assert(r_context()->config != NULL);
+	g_assert(r_context()->config->slots != NULL);
+
+	slotclasses = g_ptr_array_new();
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&iterslot)) {
+		const gchar *key = NULL;
+
+		if (iterslot->parent)
+			continue;
+
+		key = g_intern_string(iterslot->sclass);
+		g_ptr_array_remove_fast(slotclasses, (gpointer)key); /* avoid duplicates */
+		g_ptr_array_add(slotclasses, (gpointer)key);
+	}
+	g_ptr_array_add(slotclasses, NULL);
+
+	return (gchar**) g_ptr_array_free(slotclasses, FALSE);
+}
+
+/* Selects a single appropriate inactive slot of root slot class
+ *
+ * Note: This function may be extended to be more sophisticated or follow a
+ * certain policy for selecting an appropriate slot!
+ *
+ * @param rootclass name of root slot class
+ *
+ * @return pointer to appropriate slot in system slot list
+ */
+static RaucSlot *select_inactive_slot_class_member(gchar *rootclass) {
+	RaucSlot *iterslot;
+	GHashTableIter iter;
+
+	g_return_val_if_fail(rootclass, NULL);
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&iterslot)) {
+
+		if (iterslot->state != ST_INACTIVE)
+			continue;
+
+		if (g_strcmp0(iterslot->sclass, rootclass) == 0) {
+			return iterslot;
+		}
+	}
+
+	return NULL;
+}
+
+/* 
+ * Test if provided slot list contains slot instance (same pointer!)
+ */
+static gboolean slot_list_contains(GList *slotlist, const RaucSlot *testslot) {
+
+	g_return_val_if_fail(testslot, FALSE);
+
+	if (!slotlist)
+		return FALSE;
+
+	for (GList *l = slotlist; l != NULL; l = l->next) {
+		RaucSlot *slot = l->data;
+
+		if (slot == testslot) {
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+/* Map each slot class available to a potential target slot.
+ *
+ * Algorithm:
+ *
+ * - Get all root classes (classes of slots that do not have a parent)
+ * - For each root class:
+ *     - select 1 (inactive) member (function)
+ * -> set of selected root slots
+ * -> collect target install group
+ *
+ * @return Newly allocated HashTable of
+ *         slotclass (gchar*) -> target slot (RaucSlot *)
+ */
+GHashTable* determine_target_install_group(void) {
+	gchar **rootclasses = NULL;
+	GHashTable *targetgroup = NULL;
+	GHashTableIter iter;
+	gboolean res = FALSE;
+	RaucSlot *iterslot = NULL;
+	GList *selected_root_slots = NULL;
+
+	r_context_begin_step("determine_target_install_group", "Determining target install group", 0);
+
+	/* collect all root classes available in system.conf */
+	rootclasses = get_root_system_slot_classes();
+
+	for (gchar **rootslot = rootclasses; *rootslot != NULL; rootslot++) {
+		RaucSlot *selected = NULL;
+
+		selected = select_inactive_slot_class_member(*rootslot);
+
+		if (selected == NULL)
+			continue;
+
+		selected_root_slots = g_list_append(selected_root_slots, selected);
+	}
+
 	targetgroup = g_hash_table_new(g_str_hash, g_str_equal);
 
-	/* iterate over each slot class mentioned in manifest */
-	for (guint i = 0; i < slotclasses->len; i++) {
-		const gchar *slotclass = slotclasses->pdata[i];
-		GList *slotmembers;
-		RaucSlot *target_slot = NULL;
+	/* Now, iterate over all slots available and add those who's parent are
+	 * in the selected root slots */
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&iterslot)) {
+		RaucSlot *parent = get_parent_root_slot(iterslot);
+		g_debug("Checking slot: %s", iterslot->name);
 
-		/* iterate over each inactive slot in this slot class */
-		slotmembers = get_inactive_slot_class_members(slotclass);
-		for (GList *l = slotmembers; l != NULL; l = l->next) {
-			RaucSlot *base, *known_base = NULL;
-			RaucSlot *slot = (RaucSlot*) l->data;
-			base = get_inactive_base_slot(slot);
-			/* check if we have found a base for this class already */
-			known_base = (RaucSlot *)g_hash_table_lookup(bases, (gpointer)base->sclass);
-			if (known_base) {
-				/* if we already have another base selected for this, skip */
-				if (base->name != known_base->name)
-					continue;
-			} else {
-				g_hash_table_insert(bases, (gpointer)base->sclass, base);
-			}
 
-			target_slot = slot;
-			break;
+		if (slot_list_contains(selected_root_slots, parent)) {
+			g_debug("\tAdding mappping: %s -> %s", iterslot->sclass, iterslot->name);
+			g_hash_table_insert(targetgroup, (gpointer) iterslot->sclass, iterslot);
+		} else {
+			g_debug("\tNo mappping found");
 		}
-		g_list_free(slotmembers);
-
-		if (target_slot == NULL) {
-			g_warning("No target for class '%s' found!", slotclass);
-			res = FALSE;
-			goto out;
-		}
-
-		g_print("Adding to target group: %s -> %s\n", target_slot->sclass, target_slot->name);
-		g_hash_table_insert(targetgroup, (gpointer)target_slot->sclass, target_slot);
 	}
 
 	res = TRUE;
 
-out:
 	if (!res)
 		g_clear_pointer(&targetgroup, g_hash_table_unref);
-	g_clear_pointer(&bases, g_hash_table_unref);
-	g_clear_pointer(&slotclasses, g_ptr_array_unref);
 	r_context_end_step("determine_target_install_group", res);
 
 	return targetgroup;
+}
+
+
+GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group, GError **error) {
+	GList *install_images = NULL;
+
+	g_return_val_if_fail(manifest != NULL, NULL);
+	g_return_val_if_fail(target_group != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	/* Check for update image for each slot class */
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		RaucImage *lookup_image = l->data;
+
+		/* Check if target_group contains an appropriate */
+		if (!g_hash_table_contains(target_group, lookup_image->slotclass)) {
+			g_set_error(error,
+					R_INSTALL_ERROR,
+					R_INSTALL_ERROR_FAILED,
+					"No target slot for image %s found", lookup_image->filename);
+			g_clear_pointer(&install_images, g_list_free);
+			goto out;
+		}
+
+		g_debug("\tFound image mapping: %s -> %s", lookup_image->filename, lookup_image->slotclass);
+		install_images = g_list_append(install_images, lookup_image);
+	}
+
+	if (!install_images)
+		g_set_error_literal(error,
+				R_INSTALL_ERROR,
+				R_INSTALL_ERROR_FAILED,
+				"No install image found");
+out:
+
+	return install_images;
 }
 
 static void parse_handler_output(gchar* line) {
@@ -573,8 +685,14 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	gchar *hook_name = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	GHashTableIter iter;
-	RaucSlot *dest_slot;
+	GList *install_images = NULL;
+	RaucImage *mfimage;
+
+	install_images = get_install_images(manifest, target_group, &ierror);
+	if (install_images == NULL) {
+		g_warning("%s", ierror->message);
+		g_clear_error(&ierror);
+	}
 
 	/* Allow overriding compatible check by hook */
 	if (manifest->hooks.install_check) {
@@ -603,8 +721,11 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 	/* Mark all parent destination slots non-bootable */
 	g_message("Marking target slot as non-bootable...");
-	g_hash_table_iter_init(&iter, target_group);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&dest_slot)) {
+	for (GList *l = install_images; l != NULL; l = l->next) {
+		RaucSlot *dest_slot = g_hash_table_lookup(target_group, ((RaucImage*)l->data)->slotclass);
+		
+		g_assert_nonnull(dest_slot);
+
 		if (dest_slot->parent || !dest_slot->bootname) {
 			continue;
 		}
@@ -623,8 +744,8 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 	r_context_begin_step("update_slots", "Updating slots", g_list_length(manifest->images)*2);
 	install_args_update(args, "Updating slots...");
-	for (GList *l = manifest->images; l != NULL; l = l->next) {
-		RaucImage *mfimage;
+	for (GList *l = install_images; l != NULL; l = l->next) {
+		RaucSlot *dest_slot;
 		img_to_slot_handler update_handler = NULL;
 
 		mfimage = l->data;
@@ -758,8 +879,9 @@ image_out:
 	if (r_context()->config->activate_installed) {
 		/* Mark all parent destination slots bootable */
 		g_message("Marking slots as bootable...");
-		g_hash_table_iter_init(&iter, target_group);
-		while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&dest_slot)) {
+		for (GList *l = install_images; l != NULL; l = l->next) {
+			RaucSlot *dest_slot = g_hash_table_lookup(target_group, ((RaucImage*)l->data)->slotclass);
+
 			if (dest_slot->parent || !dest_slot->bootname)
 				continue;
 
@@ -826,8 +948,9 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 						GError **error) {
 	gboolean res = FALSE, invalid = FALSE;
 	GError *ierror = NULL;
-	GHashTableIter iter;
-	RaucSlot *slot;
+	gchar **fileclasses = NULL;
+
+	fileclasses = get_all_file_slot_classes(manifest);
 
 	if (!verify_compatible(manifest)) {
 		res = FALSE;
@@ -838,8 +961,11 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 
 	/* Mark all parent destination slots non-bootable */
 	g_message("Marking active slot as non-bootable...");
-	g_hash_table_iter_init(&iter, target_group);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
+	for (gchar **cls = fileclasses; *cls != NULL; cls++) {
+		RaucSlot *slot = g_hash_table_lookup(target_group, *cls);
+		
+		g_assert_nonnull(slot);
+
 		if (slot->state & ST_ACTIVE && !slot->parent) {
 			break;
 		}
@@ -853,11 +979,13 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 		}
 	}
 
+
 	// for slot in target_group
-	g_hash_table_iter_init(&iter, target_group);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
+	for (gchar **cls = fileclasses; *cls != NULL; cls++) {
 		gchar *slotstatuspath = NULL;
 		RaucSlotStatus *slot_state = NULL;
+
+		RaucSlot *slot = g_hash_table_lookup(target_group, *cls);
 
 		res = r_mount_slot(slot, &ierror);
 		if (!res) {
@@ -952,8 +1080,11 @@ slot_out:
 	if (r_context()->config->activate_installed) {
 		/* Mark all parent destination slots bootable */
 		g_message("Marking slots as bootable...");
-		g_hash_table_iter_init(&iter, target_group);
-		while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
+		for (gchar **cls = fileclasses; *cls != NULL; cls++) {
+			RaucSlot *slot = g_hash_table_lookup(target_group, *cls);
+
+			g_assert_nonnull(slot);
+
 			if (slot->parent || !slot->bootname)
 				continue;
 
@@ -1033,7 +1164,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 		goto umount;
 	}
 
-	target_group = determine_target_install_group(manifest);
+	target_group = determine_target_install_group();
 	if (!target_group) {
 		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_TARGET_GROUP, "Could not determine target group");
 		res = FALSE;
@@ -1140,7 +1271,7 @@ gboolean do_install_network(const gchar *url, GError **error) {
 		goto out;
 	}
 
-	target_group = determine_target_install_group(manifest);
+	target_group = determine_target_install_group();
 	if (!target_group) {
 		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_TARGET_GROUP, "Could not determine target group");
 		goto out;

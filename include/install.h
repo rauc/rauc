@@ -45,12 +45,10 @@ gboolean determine_slot_states(GError **error);
  * Returns hash table of slot classes for that a potential installation target
  * slot could be determined.
  *
- * @param manifest manifest to use
- *
  * @return GHashTable mapping a slotclass (gchar*) to a slot instance
  * (RaucSlot*)
  */
-GHashTable* determine_target_install_group(RaucManifest *manifest);
+GHashTable* determine_target_install_group(void);
 
 /**
  * Basic bundle installation procedure.
@@ -98,3 +96,20 @@ void install_args_free(RaucInstallArgs *args);
  * @return TRUE if starting thread succeeded, otherwise FALSE
  */
 gboolean install_run(RaucInstallArgs *args);
+
+/**
+ * Checks and returns list of images to install
+ *
+ * Check is performed against target_group.
+ *
+ * NOTE: This function might be extended to perform further selection on
+ * install images later on.
+ *
+ * @param manifest manifest to obtain install images from
+ * @param target_group target group to verify against
+ * @param error Return location for a GError
+ *
+ * @return Returns a map slotclass (gchar*) -> image (RaucImage *),
+ *         or NULL if an error occurred
+ */
+GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group, GError **error);

@@ -297,6 +297,8 @@ static void install_test_target(InstallFixture *fixture,
 {
 	RaucManifest *rm = NULL;
 	GHashTable *tgrp;
+	GList *selected_images = NULL;
+	GError *error = NULL;
 
 
 	const gchar *manifest_file = "\
@@ -342,17 +344,35 @@ filename=bootloader.img";
 	g_assert_cmpint(((RaucSlot*) g_hash_table_lookup(r_context()->config->slots, "appfs.0"))->state, ==, ST_ACTIVE);
 	g_assert_cmpint(((RaucSlot*) g_hash_table_lookup(r_context()->config->slots, "appfs.1"))->state, ==, ST_INACTIVE);
 
-	tgrp = determine_target_install_group(rm);
+	tgrp = determine_target_install_group();
 
 	g_assert_nonnull(tgrp);
 
+	g_assert_true(g_hash_table_contains(tgrp, "rescue"));
 	g_assert_true(g_hash_table_contains(tgrp, "rootfs"));
 	g_assert_true(g_hash_table_contains(tgrp, "appfs"));
+	g_assert_true(g_hash_table_contains(tgrp, "demofs"));
+	g_assert_true(g_hash_table_contains(tgrp, "bootloader"));
+	g_assert_true(g_hash_table_contains(tgrp, "prebootloader"));
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rescue"))->name, ==, "rescue.0");
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rootfs"))->name, ==, "rootfs.1");
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "appfs"))->name, ==, "appfs.1");
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "demofs"))->name, ==, "demofs.1");
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "bootloader"))->name, ==, "bootloader.0");
-	g_assert_cmpint(g_hash_table_size(tgrp), ==, 4);
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "prebootloader"))->name, ==, "prebootloader.0");
+	g_assert_cmpint(g_hash_table_size(tgrp), ==, 6);
+
+	selected_images = get_install_images(rm, tgrp, &error);
+	g_assert_nonnull(selected_images);
+	g_assert_no_error(error);
+
+	g_assert_cmpint(g_list_length(selected_images), ==, 4);
+	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 0))->filename, ==, "rootfs.ext4");
+	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 1))->filename, ==, "appfs.ext4");
+	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 2))->filename, ==, "demofs.ext4");
+	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 3))->filename, ==, "bootloader.img");
+
+	g_hash_table_unref(tgrp);
 }
 
 static gboolean r_quit(gpointer data) {
