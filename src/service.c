@@ -209,6 +209,105 @@ out:
 	return TRUE;
 }
 
+/*
+ * Constructs a GVariant dictionary representing a slot status.
+ */
+static GVariant* convert_slot_status_to_dict(RaucSlot *slot) {
+	RaucSlotStatus *slot_state = NULL;
+	GVariantDict dict;
+
+	load_slot_status(slot);
+	slot_state = slot->status;
+
+	g_variant_dict_init(&dict, NULL);
+
+	if (slot_state->bundle_compatible)
+		g_variant_dict_insert(&dict, "bundle.compatible", "s", slot_state->bundle_compatible);
+
+	if (slot_state->bundle_version)
+		g_variant_dict_insert(&dict, "bundle.version", "s", slot_state->bundle_version);
+
+	if (slot_state->bundle_description)
+		g_variant_dict_insert(&dict, "bundle.description", "s", slot_state->bundle_description);
+
+	if (slot_state->bundle_build)
+		g_variant_dict_insert(&dict, "bundle.build", "s", slot_state->bundle_build);
+
+	if (slot_state->status)
+		g_variant_dict_insert(&dict, "status", "s", slot_state->status);
+
+	if (slot_state->checksum.digest && slot_state->checksum.type == G_CHECKSUM_SHA256) {
+		g_variant_dict_insert(&dict, "sha256", "s", slot_state->checksum.digest);
+		g_variant_dict_insert(&dict, "size", "t", slot_state->checksum.size);
+	}
+
+	if (slot_state->installed_timestamp) {
+		g_variant_dict_insert(&dict, "installed.timestamp", "s", slot_state->installed_timestamp);
+		g_variant_dict_insert(&dict, "installed.count", "u", slot_state->installed_count);
+	}
+
+	if (slot_state->activated_timestamp) {
+		g_variant_dict_insert(&dict, "activated.timestamp", "s", slot_state->activated_timestamp);
+		g_variant_dict_insert(&dict, "activated.count", "u", slot_state->activated_count);
+	}
+
+	return g_variant_dict_end(&dict);
+}
+
+/*
+ * Makes slot status information available via DBUS.
+ */
+static GVariant* create_slotstatus_array(void) {
+	gint slot_number = g_hash_table_size(r_context()->config->slots);
+	GVariant **slot_status_tuples;
+	GVariant *slot_status_array;
+	gint slot_count = 0;
+	GHashTableIter iter;
+	RaucSlot *slot;
+
+	g_return_val_if_fail(r_installer, NULL);
+
+	slot_status_tuples = g_new(GVariant*, slot_number);
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
+		GVariant* slot_status[2];
+
+		g_debug("Adding slot: %s", slot->name);
+
+		slot_status[0] = g_variant_new_string(slot->name);
+		slot_status[1] = convert_slot_status_to_dict(slot);
+
+		slot_status_tuples[slot_count] = g_variant_new_tuple(slot_status, 2);
+		slot_count++;
+	}
+
+	/* it's an array of (slotname, dict) tuples */
+	slot_status_array = g_variant_new_array(G_VARIANT_TYPE("(sa{sv})"), slot_status_tuples, slot_number);
+	g_free(slot_status_tuples);
+
+	return slot_status_array;
+}
+
+static gboolean r_on_handle_get_slot_status(RInstaller *interface,
+			GDBusMethodInvocation  *invocation)
+{
+	gboolean res;
+
+	res = !r_context_get_busy();
+
+	if (res) {
+		r_installer_complete_get_slot_status(interface, invocation, create_slotstatus_array());
+	} else {
+		g_dbus_method_invocation_return_error(invocation,
+			G_IO_ERROR,
+			G_IO_ERROR_FAILED_HANDLED,
+			"already processing a different method");
+	}
+
+	return TRUE;
+}
+
 static gboolean auto_install(const gchar *source) {
 	RaucInstallArgs *args = install_args_new();
 	gboolean res = TRUE;
@@ -277,6 +376,10 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 
 	g_signal_connect(r_installer, "handle-mark",
 			 G_CALLBACK(r_on_handle_mark),
+			 NULL);
+
+	g_signal_connect(r_installer, "handle-get-slot-status",
+			 G_CALLBACK(r_on_handle_get_slot_status),
 			 NULL);
 
 	r_context_register_progress_callback(send_progress_callback);
