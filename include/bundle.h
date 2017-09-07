@@ -14,6 +14,7 @@ typedef enum {
 typedef struct {
 	gchar *path;
 	gsize size;
+	gchar *mount_point;
 	STACK_OF(X509) *verified_chain;
 } RaucBundle;
 
@@ -102,13 +103,11 @@ gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, co
  * RaucBundle struct.
  *
  * @param bundle RaucBundle struct as returned by check_bundle()
- * @param mountpoint path to the desired mount point
- * @param size
  * @param error Return location for a GError
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean mount_bundle(RaucBundle *bundle, const gchar *mountpoint, GError **error);
+gboolean mount_bundle(RaucBundle *bundle, GError **error);
 
 /**
  * Unmount a bundle.
