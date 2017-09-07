@@ -564,7 +564,7 @@ gboolean umount_bundle(RaucBundle *bundle, GError **error) {
 
 	g_assert_nonnull(bundle->mount_point);
 
-	res = r_umount(bundle->path, &ierror);
+	res = r_umount(bundle->mount_point, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
