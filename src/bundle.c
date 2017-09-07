@@ -522,6 +522,7 @@ gboolean mount_bundle(RaucBundle *bundle, const gchar *mountpoint, GError **erro
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	res = r_mount_loop(bundle->path, mountpoint, bundle->size, &ierror);
 	if (!res) {
@@ -539,6 +540,7 @@ gboolean umount_bundle(RaucBundle *bundle, GError **error) {
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
 	res = r_umount(bundle->path, &ierror);
 	if (!res) {
