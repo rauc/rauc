@@ -317,7 +317,7 @@ activate-installed=false\n";
 }
 
 
-static void config_file_test3(void)
+static void config_file_test_read_slot_status(void)
 {
 	RaucSlotStatus *ss;
 	g_assert_true(read_slot_status("test/rootfs.raucs", &ss, NULL));
@@ -331,7 +331,7 @@ static void config_file_test3(void)
 }
 
 
-static void config_file_test5(void)
+static void config_file_test_write_slot_status(void)
 {
 	RaucSlotStatus *ss = g_new0(RaucSlotStatus, 1);
 
@@ -354,7 +354,7 @@ static void config_file_test5(void)
 	free_slot_status(ss);
 }
 
-static void config_file_test6(void)
+static void config_file_system_serial(void)
 {
 	g_assert_nonnull(r_context()->system_serial);
 	g_assert_cmpstr(r_context()->system_serial, ==, "1234");
@@ -391,9 +391,9 @@ int main(int argc, char *argv[])
 	g_test_add("/config-file/activate-installed-key-set-to-false", ConfigFileFixture, NULL,
 		   config_file_fixture_set_up, config_file_activate_installed_set_to_false,
 		   config_file_fixture_tear_down);
-	g_test_add_func("/config-file/test3", config_file_test3);
-	g_test_add_func("/config-file/test5", config_file_test5);
-	g_test_add_func("/config-file/test6", config_file_test6);
+	g_test_add_func("/config-file/read-slot-status", config_file_test_read_slot_status);
+	g_test_add_func("/config-file/write-read-slot-status", config_file_test_write_slot_status);
+	g_test_add_func("/config-file/system-serial", config_file_system_serial);
 
 	return g_test_run ();
 }
