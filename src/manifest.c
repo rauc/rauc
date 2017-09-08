@@ -85,10 +85,16 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 	g_return_val_if_fail(image == NULL || *image == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	groupsplit = g_strsplit(group, ".", 2);
-	g_assert_cmpint(g_strv_length(groupsplit), ==, 2);
+	groupsplit = g_strsplit(group, ".", 3);
+	g_assert_cmpint(g_strv_length(groupsplit), >=, 2);
 
 	iimage->slotclass = g_strdup(groupsplit[1]);
+
+	/* if we have a variant part in group, store it here */
+	if (g_strv_length(groupsplit) == 3)
+		iimage->variant = g_strdup(groupsplit[2]);
+	else
+		iimage->variant = NULL;
 
 	value = manifest_consume_string(key_file, group, "sha256", NULL);
 	if (value) {

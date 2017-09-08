@@ -25,6 +25,7 @@ typedef struct {
 
 typedef struct {
 	gchar* slotclass;
+	gchar* variant;
 	RaucChecksum checksum;
 	gchar* filename;
 	SlotHooks hooks;
