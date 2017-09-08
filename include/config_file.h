@@ -14,9 +14,18 @@ typedef enum {
 #define R_CONFIG_ERROR r_config_error_quark()
 GQuark r_config_error_quark(void);
 
+typedef enum {
+	R_CONFIG_SYS_VARIANT_NONE,
+	R_CONFIG_SYS_VARIANT_DTB,
+	R_CONFIG_SYS_VARIANT_FILE,
+	R_CONFIG_SYS_VARIANT_NAME
+} RConfigSysVariant;
+
 /* System configuration */
 typedef struct {
 	gchar *system_compatible;
+	RConfigSysVariant system_variant_type;
+	gchar *system_variant;
 	gchar *system_bootloader;
 	/* path prefix where rauc may create mount directories */
 	gchar *mount_prefix;
