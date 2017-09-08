@@ -220,6 +220,74 @@ static void test_load_manifest_mem(void)
 	free_manifest(rm);
 }
 
+
+static void test_manifest_load_variants(void)
+{
+	gchar *tmpdir;
+	RaucManifest *rm = NULL;
+	gchar* manifestpath = NULL;
+	GError *error = NULL;
+	RaucImage *test_img = NULL;
+	const gchar *mffile= "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[keyring]\n\
+archive=release.tar\n\
+\n\
+[handler]\n\
+filename=custom_handler.sh\n\
+\n\
+[hooks]\n\
+filename=hook.sh\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs-default.ext4\n\
+\n\
+[image.rootfs.variant,1]\n\
+filename=rootfs-var1.ext4\n\
+\n\
+[image.rootfs.variant,2]\n\
+filename=rootfs-var2.ext4\n\
+";
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
+	g_assert_nonnull(manifestpath);
+
+	g_free(tmpdir);
+
+	g_assert_true(load_manifest_file(manifestpath, &rm, &error));
+	g_assert_no_error(error);
+
+	g_clear_error(&error);
+	g_free(manifestpath);
+
+	for (GList *l = rm->images; l != NULL; l = l->next) {
+		RaucImage *img = l->data;
+		/* All variants must be detected as the same slot class */
+		g_assert_cmpstr(img->slotclass, ==, "rootfs");
+	}
+
+	test_img = (RaucImage*)g_list_nth_data(rm->images, 0);
+	g_assert_nonnull(test_img);
+	g_assert_null(test_img->variant);
+
+	test_img = (RaucImage*)g_list_nth_data(rm->images, 1);
+	g_assert_nonnull(test_img);
+	g_assert_cmpstr(test_img->variant, ==, "variant,1");
+
+	test_img = (RaucImage*)g_list_nth_data(rm->images, 2);
+	g_assert_nonnull(test_img);
+	g_assert_cmpstr(test_img->variant, ==, "variant,2");
+
+	free_manifest(rm);
+}
+
+
 /* Test manifest/invalid_data:
  *
  * Tests parsing invalid data: *
@@ -360,6 +428,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/manifest/load", test_load_manifest);
 	g_test_add_func("/manifest/save_load", test_save_load_manifest);
 	g_test_add_func("/manifest/load_mem", test_load_manifest_mem);
+	g_test_add_func("/manifest/load_variants", test_manifest_load_variants);
 	g_test_add_func("/manifest/invalid_data", test_invalid_data);
 	g_test_add("/manifest/verify", ManifestFixture, NULL,
 		   manifest_fixture_set_up_content, manifest_test_verify,
