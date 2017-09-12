@@ -622,6 +622,153 @@ device=/dev/null\n\
 	g_hash_table_unref(tgrp);
 }
 
+/* Test image selection, default redundancy setup */
+static void test_install_image_selection(void)
+{
+	gchar *tmpdir = NULL;
+	gchar* sysconfpath = NULL;
+	GBytes *data = NULL;
+	RaucManifest *rm = NULL;
+	GHashTable *tgrp = NULL;
+	GError *error = NULL;
+	GList *selected_images = NULL;
+	RaucImage *image = NULL;
+
+#define MANIFEST2 "\
+[update]\n\
+compatible=foo\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.img\n\
+\n\
+[image.appfs]\n\
+filename=appfs.img\n\
+"
+
+	const gchar *system_conf = "\
+[system]\n\
+compatible=foo\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+bootname=system0\n\
+device=/dev/null\n\
+\n\
+[slot.rootfs.1]\n\
+bootname=system1\n\
+device=/dev/null\n\
+\n\
+[slot.appfs.0]\n\
+device=/dev/null\n\
+\n\
+[slot.appfs.1]\n\
+device=/dev/null\n\
+\n\
+[slot.bootloader.0]\n\
+device=/dev/null\n\
+";
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	sysconfpath = write_tmp_file(tmpdir, "test.conf", system_conf, NULL);
+	g_assert_nonnull(sysconfpath);
+
+	/* Set up context */
+	r_context_conf()->configpath = sysconfpath;
+	r_context_conf()->bootslot = g_strdup("system1");
+	r_context();
+
+	data = g_bytes_new_static(MANIFEST2, sizeof(MANIFEST2));
+	load_manifest_mem(data, &rm, &error);
+	g_assert_no_error(error);
+
+	determine_slot_states(&error);
+	g_assert_no_error(error);
+
+	tgrp = determine_target_install_group();
+	g_assert_nonnull(tgrp);
+
+	selected_images = get_install_images(rm, tgrp, &error);
+	g_assert_nonnull(selected_images);
+	g_assert_no_error(error);
+
+	/* We expecte the image selection to return both appfs.img and
+	 * rootfs.img as we have matching slots for them. */
+	g_assert_cmpint(g_list_length(selected_images), ==, 2);
+
+	image = (RaucImage*) g_list_nth_data(selected_images, 0);
+	g_assert_nonnull(image);
+	g_assert_cmpstr(image->filename, ==, "rootfs.img");
+
+	image = (RaucImage*) g_list_nth_data(selected_images, 1);
+	g_assert_nonnull(image);
+	g_assert_cmpstr(image->filename, ==, "appfs.img");
+
+	g_hash_table_unref(tgrp);
+}
+
+static void test_install_image_selection_no_matching_slot(void)
+{
+	gchar *tmpdir = NULL;
+	gchar* sysconfpath = NULL;
+	GBytes *data = NULL;
+	RaucManifest *rm = NULL;
+	GHashTable *tgrp = NULL;
+	GError *error = NULL;
+	GList *selected_images = NULL;
+
+#define MANIFEST2 "\
+[update]\n\
+compatible=foo\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.img\n\
+\n\
+[image.appfs]\n\
+filename=appfs.img\n\
+"
+
+	const gchar *system_conf = "\
+[system]\n\
+compatible=foo\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+bootname=system0\n\
+device=/dev/null\n\
+\n\
+[slot.rootfs.1]\n\
+bootname=system1\n\
+device=/dev/null\n\
+";
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	sysconfpath = write_tmp_file(tmpdir, "test.conf", system_conf, NULL);
+	g_assert_nonnull(sysconfpath);
+
+	/* Set up context */
+	r_context_conf()->configpath = sysconfpath;
+	r_context_conf()->bootslot = g_strdup("system1");
+	r_context();
+
+	data = g_bytes_new_static(MANIFEST2, sizeof(MANIFEST2));
+	load_manifest_mem(data, &rm, &error);
+	g_assert_no_error(error);
+
+	determine_slot_states(&error);
+	g_assert_no_error(error);
+
+	tgrp = determine_target_install_group();
+	g_assert_nonnull(tgrp);
+
+	/* we expect the image mapping to fail as there is no slot candidate
+	 * for image.appfs */
+	selected_images = get_install_images(rm, tgrp, &error);
+	g_assert_null(selected_images);
+	g_assert_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED);
+
+	g_hash_table_unref(tgrp);
+}
+
 static gboolean r_quit(gpointer data) {
 	g_assert_nonnull(r_loop);
 	g_main_loop_quit(r_loop);
@@ -967,6 +1114,10 @@ int main(int argc, char *argv[])
 	g_test_add_func("/install/target-group/loose", test_install_target_group_loose);
 
 	g_test_add_func("/install/target-group/n-redundant", test_install_target_group_n_redundant);
+
+	g_test_add_func("/install/image-selection/redundant", test_install_image_selection);
+
+	g_test_add_func("/install/image-selection/non-matching", test_install_image_selection_no_matching_slot);
 
 	g_test_add("/install/bundle", InstallFixture, NULL,
 		   install_fixture_set_up_bundle, install_test_bundle,
