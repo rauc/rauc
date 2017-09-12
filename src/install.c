@@ -217,6 +217,29 @@ static gchar** get_all_file_slot_classes(const RaucManifest *manifest) {
 }
 #endif
 
+/* Returns newly allocated NULL-teminated string array of all classes listed in
+ * given manifest.
+ * Free with g_strfreev */
+static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest) {
+	GPtrArray *slotclasses = NULL;
+
+	g_return_val_if_fail(manifest, NULL);
+
+	slotclasses = g_ptr_array_new();
+
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		const gchar *key = NULL;
+		RaucImage *iterimage = l->data;
+		g_assert_nonnull(iterimage->slotclass);
+		key = g_intern_string(iterimage->slotclass);
+		g_ptr_array_remove_fast(slotclasses, (gpointer)key); /* avoid duplicates */
+		g_ptr_array_add(slotclasses, (gpointer)key);
+	}
+	g_ptr_array_add(slotclasses, NULL);
+
+	return (gchar**) g_ptr_array_free(slotclasses, FALSE);
+}
+
 /* Gets all classes that do not have a parent
  * 
  * @return newly allocated NULL-teminated string array. Free with g_strfreev */
@@ -363,27 +386,60 @@ GHashTable* determine_target_install_group(void) {
 
 GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group, GError **error) {
 	GList *install_images = NULL;
+	gchar **slotclasses = NULL;
 
 	g_return_val_if_fail(manifest != NULL, NULL);
 	g_return_val_if_fail(target_group != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	/* Check for update image for each slot class */
-	for (GList *l = manifest->images; l != NULL; l = l->next) {
-		RaucImage *lookup_image = l->data;
+	slotclasses = get_all_manifest_slot_classes(manifest);
 
-		/* Check if target_group contains an appropriate */
-		if (!g_hash_table_contains(target_group, lookup_image->slotclass)) {
+	for (gchar **cls = slotclasses; *cls != NULL; cls++) {
+		RaucImage *matching_img = NULL;
+
+		for (GList *l = manifest->images; l != NULL; l = l->next) {
+			RaucImage *lookup_image = l->data;
+
+			/* Check if target_group contains an appropriate slot for this image */
+			if (!g_hash_table_contains(target_group, lookup_image->slotclass)) {
+				g_set_error(error,
+						R_INSTALL_ERROR,
+						R_INSTALL_ERROR_FAILED,
+						"No target slot for class %s of image %s found", lookup_image->slotclass, lookup_image->filename);
+				g_clear_pointer(&install_images, g_list_free);
+				goto out;
+			}
+
+			/* Not interested in slots of other classes */
+			if (!g_strcmp0(lookup_image->slotclass, *cls) == 0)
+				continue;
+
+			/* If this is a default variant and we have no better
+			 * match yet, use it and continue scanning.
+			 * Otherwise test if it is our variant and directly use
+			 * it if so */
+			if (lookup_image->variant == NULL) {
+				if (!matching_img)
+					matching_img = lookup_image;
+			} else if (g_strcmp0(lookup_image->variant, r_context()->config->system_variant) == 0) {
+				matching_img = lookup_image;
+				break;
+			}
+		}
+
+		/* If we have an image for a class in the manifest but none
+		 * that matches our variant, we assume this to be a failure */
+		if (!matching_img) {
 			g_set_error(error,
 					R_INSTALL_ERROR,
 					R_INSTALL_ERROR_FAILED,
-					"No target slot for image %s found", lookup_image->filename);
+					"Failed to find matching variant of image for %s", *cls);
 			g_clear_pointer(&install_images, g_list_free);
 			goto out;
 		}
 
-		g_debug("\tFound image mapping: %s -> %s", lookup_image->filename, lookup_image->slotclass);
-		install_images = g_list_append(install_images, lookup_image);
+		g_debug("Found image mapping: %s -> %s", matching_img->filename, matching_img->slotclass);
+		install_images = g_list_append(install_images, matching_img);
 	}
 
 	if (!install_images)
