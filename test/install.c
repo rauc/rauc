@@ -26,10 +26,21 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 
 static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture,
 		gconstpointer user_data) {
+	const gchar *manifest_file = "\
+[update]\n\
+compatible=Test Config\n\
+\n\
+[handler]\n\
+filename=custom_handler.sh\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.ext4\n\
+";
+
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
 	fixture_helper_set_up_system(fixture->tmpdir, user_data);
-	fixture_helper_set_up_bundle(fixture->tmpdir, user_data, NULL, TRUE, FALSE);
+	fixture_helper_set_up_bundle(fixture->tmpdir, user_data, manifest_file, TRUE, FALSE);
 }
 
 static void install_fixture_set_up_bundle_install_check_hook(InstallFixture *fixture,
