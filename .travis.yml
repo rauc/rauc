@@ -1,6 +1,6 @@
 language: c
 sudo: required
-compiler: gcc
+compiler: gcc-6
 dist: trusty
 before_install:
   - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/
@@ -23,7 +23,9 @@ addons:
       - slirp
       - python-sphinx
       - dbus-x11
+      - gcc-6
     sources: &sources
+      - ubuntu-toolchain-r-test
       - sourceline: 'deb http://archive.ubuntu.com/ubuntu/ trusty main restricted universe multiverse'
   coverity_scan:
     project:
