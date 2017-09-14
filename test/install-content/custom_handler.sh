@@ -61,12 +61,12 @@ done
 
 # Update boot priority
 for i in $RAUC_SLOTS; do
-	eval RAUC_SLOT_PARENT=\$RAUC_SLOT_PARENT_${i}
 	eval RAUC_SLOT_CLASS=\$RAUC_SLOT_CLASS_${i}
 	eval RAUC_SLOT_BOOTNAME=\$RAUC_SLOT_BOOTNAME_${i}
 	eval RAUC_SLOT_NAME=\$RAUC_SLOT_NAME_${i}
-	# skip non-root slots
-	if [ -n "$RAUC_SLOT_PARENT" ]; then
+
+	# skip non-bootable slots
+	if [ -z "$RAUC_SLOT_BOOTNAME" ]; then
 		continue
 	fi
 
