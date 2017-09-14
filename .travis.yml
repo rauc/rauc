@@ -4,17 +4,27 @@ compiler: gcc
 dist: trusty
 before_install:
   - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/
-    trusty main restricted universe multiverse" -y
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq autoconf automake libglib2.0-dev libjson-glib-dev
-    libssl-dev libcurl4-openssl-dev squashfs-tools dosfstools lcov slirp python-sphinx
-    dbus-x11
-  - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/
     vivid main restricted universe multiverse" -y
   - sudo apt-get update -qq
   - sudo apt-get install -qq user-mode-linux grub-common
   - sudo pip install --upgrade cpp-coveralls
 addons:
+  apt:
+    packages:
+      - autoconf
+      - automake
+      - libglib2.0-dev
+      - libjson-glib-dev
+      - libssl-dev
+      - libcurl4-openssl-dev
+      - squashfs-tools
+      - dosfstools
+      - lcov
+      - slirp
+      - python-sphinx
+      - dbus-x11
+    sources: &sources
+      - sourceline: 'deb http://archive.ubuntu.com/ubuntu/ trusty main restricted universe multiverse'
   coverity_scan:
     project:
       name: "jluebbe/rauc"
