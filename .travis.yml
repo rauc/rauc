@@ -1,20 +1,32 @@
 language: c
 sudo: required
-compiler: gcc
+compiler: gcc-6
 dist: trusty
 before_install:
-  - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/
-    trusty main restricted universe multiverse" -y
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq autoconf automake libglib2.0-dev libjson-glib-dev
-    libssl-dev libcurl4-openssl-dev squashfs-tools dosfstools lcov slirp python-sphinx
-    dbus-x11
   - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/
     vivid main restricted universe multiverse" -y
   - sudo apt-get update -qq
   - sudo apt-get install -qq user-mode-linux grub-common
   - sudo pip install --upgrade cpp-coveralls
 addons:
+  apt:
+    packages:
+      - autoconf
+      - automake
+      - libglib2.0-dev
+      - libjson-glib-dev
+      - libssl-dev
+      - libcurl4-openssl-dev
+      - squashfs-tools
+      - dosfstools
+      - lcov
+      - slirp
+      - python-sphinx
+      - dbus-x11
+      - gcc-6
+    sources: &sources
+      - ubuntu-toolchain-r-test
+      - sourceline: 'deb http://archive.ubuntu.com/ubuntu/ trusty main restricted universe multiverse'
   coverity_scan:
     project:
       name: "jluebbe/rauc"
@@ -32,6 +44,6 @@ script:
   - make check TESTS= && sudo ./uml-test
   - make distcheck
 after_success:
-  - coveralls --build-root '.' --exclude tests --exclude rauc-installer-generated.c
+  - coveralls --build-root '.' --exclude test --exclude rauc-installer-generated.c
 after_failure:
   - cat test/*.log
