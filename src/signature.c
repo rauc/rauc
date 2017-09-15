@@ -222,19 +222,21 @@ out:
 
 gchar* print_signer_cert(STACK_OF(X509) *verified_chain) {
 	BIO *mem;
-	gchar *data;
+	gchar *data, *ret;
+	gsize size;
 
 	g_return_val_if_fail(verified_chain != NULL, NULL);
 
 	mem = BIO_new(BIO_s_mem());
 	X509_print_ex(mem, sk_X509_value(verified_chain, 0), 0, 0);
 
-	BIO_get_mem_data(mem, &data);
+	size = BIO_get_mem_data(mem, &data);
+	ret = g_strndup(data, size);
 
-	BIO_set_close(mem, BIO_NOCLOSE); /* So BIO_free() leaves BUF_MEM alone */
+	BIO_set_close(mem, BIO_CLOSE);
 	BIO_free(mem);
 
-	return data;
+	return ret;
 }
 
 gchar* print_cert_chain(STACK_OF(X509) *verified_chain) {
@@ -317,7 +319,7 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 	*verified_chain = X509_STORE_CTX_get1_chain(cert_ctx);
 
 	/* The first element in the chain must be the signer certificate */
-	g_assert(sk_X509_value(signers, 0) == sk_X509_value(*verified_chain, 0));
+	g_assert(X509_cmp(sk_X509_value(signers, 0), sk_X509_value(*verified_chain, 0)) == 0);
 
 	g_debug("Got %d chain elements", sk_X509_num(*verified_chain));
 
