@@ -319,7 +319,7 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 	*verified_chain = X509_STORE_CTX_get1_chain(cert_ctx);
 
 	/* The first element in the chain must be the signer certificate */
-	g_assert(sk_X509_value(signers, 0) == sk_X509_value(*verified_chain, 0));
+	g_assert(X509_cmp(sk_X509_value(signers, 0), sk_X509_value(*verified_chain, 0)) == 0);
 
 	g_debug("Got %d chain elements", sk_X509_num(*verified_chain));
 
