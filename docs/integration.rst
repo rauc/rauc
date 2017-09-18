@@ -488,28 +488,82 @@ successfully set up bootchooser to boot your slot::
 U-Boot
 ~~~~~~
 
+To enable handling of redundant booting in U-Boot, manual scripting is
+required.
+U-Boot allows storing and modifying variables in its *Envionment*.
+Properly configured it can be accessed both from U-Boot itself as
+well as from Linux userspace.
+
+The RAUC U-Boot boot selection implementation uses a custom U-Boot script
+together with the environment for managing and persisting slot selection.
+
+To enable U-Boot support in RAUC, select it in your system.conf:
+
 .. code-block:: cfg
 
   [system]
   ...
   bootloader=uboot
 
-To enable handling of redundant booting in U-Boot, manual scripting is required.
+Set up U-Boot Environment for RAUC
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The U-Boot bootloader interface of RAUC will rely on setting the U-Boot
-environment variables ``BOOT_<bootname>_LEFT`` which should mark the number of
-remaining boot attempts for the respective slot in your bootloader script.
+environment variables:
 
-To enable reading and writing of the U-Boot environment, you need to have the
-U-Boot target tool ``fw_setenv`` available on your devices rootfs.
+* ``BOOT_ORDER``, which will contain a space-separated list of boot targets in
+  the order they should be tried.
+* ``BOOT_<bootname>_LEFT``, which contains the number of remaining boot
+  attempts to perform for the respective slot
 
-An U-Boot script example for handling redundant boot setups is located in the
-``contrib/`` folder of the RAUC source repository (``uboot.sh``).
+An example U-Boot script for handling redundant A/B boot setups is located in
+the ``contrib/`` folder of the RAUC source repository (``contrib/uboot.sh``).
+
+You must integrate your boot selection script into U-Boot.
+Refer the
+`U-Boot Scripting Capabilities <https://www.denx.de/wiki/DULG/UBootScripts>`_
+chapter in the U-Boot user documentation on how to achieve this.
+
+The script uses the names ``A`` and ``B`` as the ``bootname`` for the two
+different boot targets.
+Thus the resulting boot attempts variables will be ``BOOT_A_LEFT`` and
+``BOOT_B_LEFT``.
+The ``BOOT_ORDER`` variable will contain ``A B`` if ``A`` is the primary slot or
+``B A`` if ``B`` is the primary slot.
 
 .. note::
    If you want to implement different behavior or use other variable names, you
-   will need to modify the ``uboot_set_state()`` and ``uboot_set_primary()``
+   might need to modify the ``uboot_set_state()`` and ``uboot_set_primary()``
    functions in ``src/bootchooser.c``.
+
+Enable Accessing U-Boot Environment from Userspace
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To enable reading and writing of the U-Boot environment from Linux userspace,
+you need to have:
+
+* U-Boot target tools ``fw_printenv`` and ``fw_setenv`` available on your devices rootfs.
+* Environment configuration file ``/etc/fw_env.config`` in your target root filesystem
+
+See the corresponding
+`HowTo <https://www.denx.de/wiki/DULG/HowCanIAccessUBootEnvironmentVariablesInLinux>`_
+section from the U-Boot documentation for more details on how to set up the
+environment config file for your device.
+
+Support for Fail-Safe Environment Update
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For atomic updates of environment, U-Boot can use redundant environment
+storages that allow to write one copy while using the other as fallback if
+writing fails, e.g. due to sudden power cut.
+
+In order to enable redundant environment storage, you have to set in you U-Boot
+config::
+
+  CONFIG_ENV_OFFSET_REDUND=y
+  CONFIG_ENV_ADDR_REDUND=xxx
+
+Refer to U-Boot source code and README for more details on this.
 
 GRUB
 ~~~~
