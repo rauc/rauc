@@ -4,6 +4,53 @@ In Development
 .. rubric:: Documentation
 
 * Added docs/, CHANGES and README to tarball
+* Added and reworked a bunch of documentation chapters
+* Help text for ``rauc bundle`` fixed
+* Added short summary for command help
+
+.. rubric:: Enhancements
+
+* Added ``--override-boot-slot`` argument to force booted slot
+* Display installation progress and error cause in CLI
+* Allow installing uncompressed tar balls
+* Error reporting for network handling and fail on HTTP errors
+* Added ``--keyring`` command line argument
+* Added ``activate-installed`` key and handling for ``system.conf`` that allows
+  installing updates without immediately switching boot partitions.
+* Extended ``rauc status mark-{good,bad}`` with an optional slot identifier
+  argument
+* Added subcommand ``rauc status mark-active`` to explicitly activate slots
+* New D-Bus method ``mark`` introduced that allows slot activation via D-Bus
+* Added ``tar`` archive update handler for ``vfat`` slots
+* Introduced ``rauc resign`` command that allows to exchange RAUC signature
+  without modifying bundle content
+* Display signature verification trust chain in output of ``rauc info``.
+  Also generate and display SPKI hash for each certificate
+* Added ``--dump-cert`` argument to ``rauc info`` to allow displaying signer
+  certificate info
+
+.. rubric:: Bugs fixes
+
+* Flush D-Bus interface to not drop property updates
+* Set proper PATH when starting service on non-systemd systems
+* Include config.h on top of each file to fix largefile support and more
+* Let CLI properly fail on excess arguments provided
+* Do not disable bundle checking for ``rauc info --no-verify``
+* Properly clean up mount points after failures
+* Misc memory leak fixes
+* Fixes in error handling and debug printout
+* Some code cleanups
+
+.. rubric:: Testing
+
+* Miscellaneous cleanups, fixes and refactoring
+* Add tests for installation via D-Bus
+* Let Travis build documentation with treating warnings as errors
+* Allow skipping sharness tests requiring service enabled
+* Explicitly install dbus-x11 package to fix Travis builds
+* Fix coveralls builds by using ``--upgrade`` during
+  ``pip install cpp-coveralls``
+* use gcc-6 for testing
 
 Release 0.1.1 (released May 11, 2017)
 -------------------------------------
