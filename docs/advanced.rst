@@ -86,6 +86,19 @@ While using signing also during development may seem unnecessary, the additional
 testing of the whole update system (RAUC, bootloader, migration code, …) allows
 finding problems much earlier.
 
+Intermediate Certificates
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+RAUC allows you to include intermediate certificates in the bundle signature
+that can be used to close the trust chain during bundle signature verification.
+
+To do this, specify the ``--intermediate`` argument during bundle creation::
+
+  rauc bundle --intermediate=/path/to/intermediate.ca.pem [...]
+
+Note that you can specify the ``--intermediate`` argument multiple times to
+include multiple intermediate certificates to your bundle signature.
+
 Data Storage and Migration
 --------------------------
 
