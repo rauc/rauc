@@ -1,6 +1,6 @@
 language: c
 sudo: required
-compiler: gcc-6
+compiler: gcc-7
 dist: trusty
 before_install:
   - sudo pip install --upgrade cpp-coveralls
@@ -19,7 +19,7 @@ addons:
       - slirp
       - python-sphinx
       - dbus-x11
-      - gcc-6
+      - gcc-7
       - user-mode-linux
       - grub-common
     sources: &sources
@@ -30,7 +30,7 @@ addons:
       name: "jluebbe/rauc"
       description: "Robust Auto-Update Controller"
     notification_email: jluebbe@lasnet.de
-    build_command_prepend: "cov-configure --comptype gcc --compiler gcc-6 --template && ./autogen.sh && ./configure"
+    build_command_prepend: "cov-configure --comptype gcc --compiler gcc-7 --template && ./autogen.sh && ./configure"
     build_command: "make -j2"
     branch_pattern: master
 script:
