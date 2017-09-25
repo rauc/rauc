@@ -277,6 +277,7 @@ gchar* print_cert_chain(STACK_OF(X509) *verified_chain) {
 
 gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error) {
 	STACK_OF(X509) *signers = NULL;
+	STACK_OF(X509) *intercerts = NULL;
 	X509_STORE_CTX *cert_ctx = NULL;
 	gint signer_cnt;
 	gboolean res = FALSE;
@@ -306,6 +307,8 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 		goto out;
 	}
 
+	intercerts = CMS_get1_certs(cms);
+
 	cert_ctx = X509_STORE_CTX_new();
 	if (cert_ctx == NULL) {
 		g_set_error_literal(
@@ -316,7 +319,7 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 		goto out;
 	}
 
-	if (!X509_STORE_CTX_init(cert_ctx, store, sk_X509_value(signers, 0), NULL)) {
+	if (!X509_STORE_CTX_init(cert_ctx, store, sk_X509_value(signers, 0), intercerts)) {
 		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
