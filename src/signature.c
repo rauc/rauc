@@ -100,13 +100,14 @@ static GBytes *bytes_from_bio(BIO *bio) {
 	return g_bytes_new(data, size);
 }
 
-GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, GError **error) {
+GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error) {
 	GError *ierror = NULL;
 	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
 					 g_bytes_get_size(content));
 	BIO *outsig = BIO_new(BIO_s_mem());
 	X509 *signcert = NULL;
 	EVP_PKEY *pkey = NULL;
+	STACK_OF(X509) *intercerts = NULL;
 	CMS_ContentInfo *cms = NULL;
 	GBytes *res = NULL;
 	int flags = CMS_DETACHED | CMS_BINARY;
@@ -123,7 +124,20 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, G
 		goto out;
 	}
 
-	cms = CMS_sign(signcert, pkey, NULL, incontent, flags);
+	intercerts = sk_X509_new_null();
+
+	for (gchar **intercertpath = interfiles; intercertpath && *intercertpath != NULL; intercertpath++) {
+
+		X509 *intercert = load_cert(*intercertpath, &ierror);
+		if (intercert == NULL) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+		sk_X509_push(intercerts, intercert);
+	}
+
+	cms = CMS_sign(signcert, pkey, intercerts, incontent, flags);
 	if (cms == NULL) {
 		unsigned long err;
 		const gchar *data;
@@ -418,7 +432,7 @@ out:
 	return res;
 }
 
-GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar *keyfile, GError **error) {
+GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error) {
 	GError *ierror = NULL;
 	GMappedFile *file;
 	GBytes *content = NULL;
@@ -431,7 +445,7 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
 	}
 	content = g_mapped_file_get_bytes(file);
 
-	sig = cms_sign(content, certfile, keyfile, &ierror);
+	sig = cms_sign(content, certfile, keyfile, interfiles, &ierror);
 	if (sig == NULL) {
 		g_propagate_error(error, ierror);
 		goto out;

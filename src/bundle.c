@@ -186,6 +186,7 @@ static gboolean sign_bundle(const gchar *bundlename, GError **error) {
 	sig = cms_sign_file(bundlename,
 			    r_context()->certpath,
 			    r_context()->keypath,
+			    NULL,
 			    &ierror);
 	if (sig == NULL) {
 		g_propagate_prefixed_error(

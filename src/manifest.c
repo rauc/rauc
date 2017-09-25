@@ -581,6 +581,7 @@ gboolean update_manifest(const gchar *dir, gboolean signature, GError **error) {
 		sig = cms_sign_file(manifestpath,
 				    r_context()->certpath,
 				    r_context()->keypath,
+				    NULL,
 				    &ierror);
 		if (sig == NULL) {
 			g_propagate_error(error, ierror);

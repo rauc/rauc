@@ -18,6 +18,7 @@ static void signature_sign(void)
 	sig = cms_sign(content,
 		       r_context()->certpath,
 		       r_context()->keypath,
+		       NULL,
 		       &error);
 	g_assert_nonnull(sig);
 	g_assert_null(error);
@@ -28,6 +29,7 @@ static void signature_sign(void)
 	sig = cms_sign(content,
 		       r_context()->certpath,
 		       "test/random.dat",
+		       NULL,
 		       &error);
 	g_assert_null(sig);
 	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE_ERROR);
@@ -38,6 +40,7 @@ static void signature_sign(void)
 	sig = cms_sign(content,
 		       "test/random.dat",
 		       r_context()->keypath,
+		       NULL,
 		       &error);
 	g_assert_null(sig);
 	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE_ERROR);
@@ -56,6 +59,7 @@ static void signature_sign_file(void)
 	sig = cms_sign_file("test/openssl-ca/manifest",
 			    r_context()->certpath,
 			    r_context()->keypath,
+			    NULL,
 			    &error);
 	g_assert_nonnull(sig);
 	g_assert_null(error);
@@ -68,6 +72,7 @@ static void signature_sign_file(void)
 	sig = cms_sign_file("path/to/nonexisting/file",
 			    r_context()->certpath,
 			    r_context()->keypath,
+			    NULL,
 			    &error);
 	g_assert_null(sig);
 	g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
@@ -79,6 +84,7 @@ static void signature_sign_file(void)
 	sig = cms_sign_file("test/openssl-ca/manifest",
 			    NULL,
 			    r_context()->keypath,
+			    NULL,
 			    &error);
 	g_assert_null(sig);
 	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_LOAD_FAILED);
@@ -165,6 +171,7 @@ static void signature_loopback(void)
 	sig = cms_sign(content,
 		       r_context()->certpath,
 		       r_context()->keypath,
+		       NULL,
 		       NULL);
 	g_assert_nonnull(sig);
 	g_assert_true(cms_verify(content, sig, NULL, NULL, NULL));
@@ -229,6 +236,7 @@ static void signature_selfsigned(void)
 	sig = cms_sign(content,
 		       r_context()->certpath,
 		       r_context()->keypath,
+		       NULL,
 		       &error);
 	g_assert_nonnull(sig);
 	g_assert_no_error(error);
