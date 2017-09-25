@@ -98,8 +98,8 @@ non-debugging platforms:
 
   rauc resign --cert=<certfile> --key=<keyfile> <input-file> <output-file>
 
-Reacting to a Successfully/Failed Boot
---------------------------------------
+React to a Successfully Booted System/Failed Boot
+-------------------------------------------------
 
 Normally, the full system update chain is not complete before being sure that
 the newly installed system runs without any errors.
