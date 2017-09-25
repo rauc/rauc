@@ -312,11 +312,12 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 	}
 
 	if(X509_verify_cert(cert_ctx) != 1) {
-		g_set_error_literal(
+		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_VERIFY_CERT,
-				"Failed to verify X509 cert");
+				"Failed to verify X509 cert: %s",
+				X509_verify_cert_error_string(X509_STORE_CTX_get_error(cert_ctx)));
 		goto out;
 	}
 
