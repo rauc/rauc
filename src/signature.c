@@ -125,11 +125,15 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, G
 
 	cms = CMS_sign(signcert, pkey, NULL, incontent, flags);
 	if (cms == NULL) {
-		g_set_error_literal(
+		unsigned long err;
+		const gchar *data;
+		int errflags;
+		err = ERR_get_error_line_data(NULL, NULL, &data, &errflags);
+		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
-				R_SIGNATURE_ERROR_CREATE_SIG,
-				"failed to create signature");
+				R_SIGNATURE_ERROR_INVALID,
+				"failed to create signature: %s", (errflags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		goto out;
 	}
 	if (!i2d_CMS_bio(outsig, cms)) {
