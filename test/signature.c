@@ -30,7 +30,7 @@ static void signature_sign(void)
 		       "test/random.dat",
 		       &error);
 	g_assert_null(sig);
-	g_assert_nonnull(error);
+	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE_ERROR);
 
 	g_clear_error(&error);
 
@@ -40,7 +40,7 @@ static void signature_sign(void)
 		       r_context()->keypath,
 		       &error);
 	g_assert_null(sig);
-	g_assert_nonnull(error);
+	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE_ERROR);
 
 	g_clear_error(&error);
 
@@ -70,7 +70,7 @@ static void signature_sign_file(void)
 			    r_context()->keypath,
 			    &error);
 	g_assert_null(sig);
-	g_assert_nonnull(error);
+	g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
 
 	g_bytes_unref(sig);
 	g_clear_error(&error);
@@ -81,7 +81,7 @@ static void signature_sign_file(void)
 			    r_context()->keypath,
 			    &error);
 	g_assert_null(sig);
-	g_assert_nonnull(error);
+	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_LOAD_FAILED);
 
 	g_bytes_unref(sig);
 	g_clear_error(&error);
@@ -113,13 +113,13 @@ static void signature_verify_file(void)
 
 	// Test non-existing file
 	g_assert_false(cms_verify_file("path/to/nonexisting/file", sig, 0, NULL, NULL, &error));
-	g_assert_nonnull(error);
+	g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
 
 	g_clear_error(&error);
 
 	// Test valid manifest against invalid signature
 	g_assert_false(cms_verify_file("test/openssl-ca/manifest", isig, 0, NULL, NULL, &error));
-	g_assert_nonnull(error);
+	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE);
 
 	g_clear_error(&error);
 
