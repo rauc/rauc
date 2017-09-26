@@ -89,42 +89,72 @@ static void signature_sign_file(void)
 
 static void signature_verify(void)
 {
+	GError *error = NULL;
+	CMS_ContentInfo *cms = NULL;
+	X509_STORE *store = NULL;
+
 	GBytes *content = read_file("test/openssl-ca/manifest", NULL);
 	GBytes *sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
+	GBytes *isig = read_file("test/random.dat", NULL);
 	g_assert_nonnull(content);
 	g_assert_nonnull(sig);
-	g_assert_true(cms_verify(content, sig, NULL, NULL, NULL));
+	g_assert_nonnull(isig);
+
+	g_assert_true(cms_verify(content, sig, &cms, &store, &error));
+	g_assert_no_error(error);
+	g_assert_nonnull(cms);
+	g_assert_nonnull(store);
+
+	g_clear_pointer(&store, X509_STORE_free);
+	g_clear_pointer(&cms, CMS_ContentInfo_free);
+
+	// Test against invalid signature
+	g_assert_false(cms_verify(content, isig, &cms, &store, &error));
+	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE);
+	g_assert_null(cms);
+	g_assert_null(store);
+
 	g_bytes_unref(content);
 	g_bytes_unref(sig);
+	g_bytes_unref(isig);
 }
 
 static void signature_verify_file(void)
 {
+	CMS_ContentInfo *cms = NULL;
+	X509_STORE *store = NULL;
 	GError *error = NULL;
+
 	GBytes *sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
-	GBytes *isig = read_file("test/random.dat", NULL);
 
 	g_assert_nonnull(sig);
-	g_assert_nonnull(isig);
 
 	// Test valid manifest
-	g_assert_true(cms_verify_file("test/openssl-ca/manifest", sig, 0, NULL, NULL, &error));
+	g_assert_true(cms_verify_file("test/openssl-ca/manifest", sig, 0, &cms, &store, &error));
 	g_assert_null(error);
+	g_assert_nonnull(cms);
+	g_assert_nonnull(store);
 
-	// Test non-existing file
-	g_assert_false(cms_verify_file("path/to/nonexisting/file", sig, 0, NULL, NULL, &error));
-	g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
+	g_clear_pointer(&store, X509_STORE_free);
+	g_clear_pointer(&cms, CMS_ContentInfo_free);
+
+	// Test valid manifest with invalid size limit
+	g_assert_false(cms_verify_file("test/openssl-ca/manifest", sig, 42, &cms, &store, &error));
+	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
+	g_assert_null(cms);
+	g_assert_null(store);
 
 	g_clear_error(&error);
 
-	// Test valid manifest against invalid signature
-	g_assert_false(cms_verify_file("test/openssl-ca/manifest", isig, 0, NULL, NULL, &error));
-	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE);
+	// Test non-existing file
+	g_assert_false(cms_verify_file("path/to/nonexisting/file", sig, 0, &cms, &store, &error));
+	g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
+	g_assert_null(cms);
+	g_assert_null(store);
 
 	g_clear_error(&error);
 
 	g_bytes_unref(sig);
-	g_bytes_unref(isig);
 }
 
 static void signature_loopback(void)
