@@ -174,6 +174,89 @@ static void signature_loopback(void)
 	g_bytes_unref(sig);
 }
 
+static void signature_get_cert_chain(void)
+{
+	GError *error = NULL;
+	CMS_ContentInfo *cms = NULL;
+	X509_STORE *store = NULL;
+	STACK_OF(X509) *verified_chain = NULL;
+
+	GBytes *content = read_file("test/openssl-ca/manifest", NULL);
+	GBytes *sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
+	g_assert_nonnull(content);
+	g_assert_nonnull(sig);
+
+	/* We verify against the dev-ca keychain */
+	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/dev-ca.pem");
+
+	g_assert_true(cms_verify(content, sig, &cms, &store, &error));
+	g_assert_no_error(error);
+	g_assert_nonnull(cms);
+	g_assert_nonnull(store);
+
+	/* Verify obtaining cert chain works */
+	g_assert_true(cms_get_cert_chain(cms, store, &verified_chain, &error));
+	g_assert_no_error(error);
+	g_assert_nonnull(verified_chain);
+
+	g_clear_pointer(&store, X509_STORE_free);
+	g_clear_pointer(&cms, CMS_ContentInfo_free);
+	g_clear_error(&error);
+
+	/* Chain length must be 2 (release-1 -> rel) */
+	g_assert_cmpint(sk_X509_num(verified_chain), ==, 2);
+
+	sk_X509_pop_free(verified_chain, X509_free);
+}
+
+static void signature_selfsigned(void)
+{
+	GBytes *sig = NULL;
+	GError *error = NULL;
+	CMS_ContentInfo *cms = NULL;
+	X509_STORE *store = NULL;
+	STACK_OF(X509) *verified_chain = NULL;
+
+	GBytes *content = read_file("test/openssl-ca/manifest", NULL);
+	g_assert_nonnull(content);
+
+	/* We sign with rel CA key and cert */
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/ca.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/ca.key.pem");
+	/* We also verify against the rel CA */
+	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/rel/ca.cert.pem");
+	
+	sig = cms_sign(content,
+		       r_context()->certpath,
+		       r_context()->keypath,
+		       &error);
+	g_assert_nonnull(sig);
+	g_assert_no_error(error);
+
+	g_clear_error(&error);
+
+	g_assert_true(cms_verify(content, sig, &cms, &store, &error));
+	g_assert_no_error(error);
+	g_assert_nonnull(cms);
+	g_assert_nonnull(store);
+
+	g_clear_error(&error);
+
+	/* Verify obtaining cert chain works */
+	g_assert_true(cms_get_cert_chain(cms, store, &verified_chain, &error));
+	g_assert_no_error(error);
+	g_assert_nonnull(verified_chain);
+
+	g_clear_pointer(&store, X509_STORE_free);
+	g_clear_pointer(&cms, CMS_ContentInfo_free);
+	g_clear_error(&error);
+
+	/* Chain length for self-signed must be 1 */
+	g_assert_cmpint(sk_X509_num(verified_chain), ==, 1);
+
+	sk_X509_pop_free(verified_chain, X509_free);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -196,6 +279,8 @@ int main(int argc, char *argv[])
 	g_test_add_func("/signature/verify", signature_verify);
 	g_test_add_func("/signature/verify_file", signature_verify_file);
 	g_test_add_func("/signature/loopback", signature_loopback);
+	g_test_add_func("/signature/get_cert_chain", signature_get_cert_chain);
+	g_test_add_func("/signature/selfsigned", signature_selfsigned);
 
 	return g_test_run();
 }
