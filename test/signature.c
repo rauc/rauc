@@ -203,8 +203,8 @@ static void signature_get_cert_chain(void)
 	g_clear_pointer(&cms, CMS_ContentInfo_free);
 	g_clear_error(&error);
 
-	/* Chain length must be 2 (release-1 -> rel) */
-	g_assert_cmpint(sk_X509_num(verified_chain), ==, 2);
+	/* Chain length must be 3 (release-1 -> rel -> root) */
+	g_assert_cmpint(sk_X509_num(verified_chain), ==, 3);
 
 	sk_X509_pop_free(verified_chain, X509_free);
 }
@@ -220,11 +220,11 @@ static void signature_selfsigned(void)
 	GBytes *content = read_file("test/openssl-ca/manifest", NULL);
 	g_assert_nonnull(content);
 
-	/* We sign with rel CA key and cert */
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/ca.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/ca.key.pem");
-	/* We also verify against the rel CA */
-	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/rel/ca.cert.pem");
+	/* We sign with root CA key and cert */
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/root/ca.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/root/private/ca.key.pem");
+	/* We also verify against the root CA */
+	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/root/ca.cert.pem");
 	
 	sig = cms_sign(content,
 		       r_context()->certpath,
