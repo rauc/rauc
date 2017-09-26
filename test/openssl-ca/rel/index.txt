@@ -1,2 +1,1 @@
-V	99991231235959Z		01	unknown	/O=Test Org/CN=Test Org Provisioning CA Release
-V	99991231235959Z		02	unknown	/O=Test Org/CN=Test Org Release-1
+V	99991231235959Z		01	unknown	/O=Test Org/CN=Test Org Release-1
