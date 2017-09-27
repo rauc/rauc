@@ -85,19 +85,6 @@ By default it will print a human readable representation of your system.
 Alternatively you can obtain a shell-parsable description, or a JSON
 representation of the system status.
 
-Resigning Bundles
------------------
-
-.. note:: This feature is not fully implemented yet
-
-RAUC allows to resign a bundle from your build host, e.g. for making a testing
-bundle a release bundle that should have a key that is accepted by
-non-debugging platforms:
-
-.. code-block:: sh
-
-  rauc resign --cert=<certfile> --key=<keyfile> <input-file> <output-file>
-
 React to a Successfully Booted System/Failed Boot
 -------------------------------------------------
 
