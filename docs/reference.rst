@@ -167,6 +167,11 @@ hierarchical separator.
   Marks the slot as existing but not updatable. May be used for sanity checking
   or informative purpose. A ``readonly`` slot cannot be a target slot.
 
+``ignore-checksum``
+  If set to ``true`` this will bypass the default hash comparison for this slot
+  and force RAUC to unconditionally update it. The default value is ``false``,
+  which means that updating this slot will be skipped if new image's hash
+  matches hash of installed one.
 
 Manifest
 --------
@@ -478,7 +483,7 @@ Performing an update using the default RAUC mechanism will work as follows:
    A. Determine update handler (based on image and slot type)
    #. Try to mount slot and read slot status information
 
-      a. Skip update if new image hash matches hash of insalled one
+      a. Skip update if new image hash matches hash of installed one
 
    #. Perform slot update (image copy / mkfs+tar extract / ...)
    #. Try to write slot status information
