@@ -300,6 +300,17 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				goto free;
 			}
 
+			slot->ignore_checksum = g_key_file_get_boolean(key_file, groups[i], "ignore-checksum", &ierror);
+			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+				slot->ignore_checksum = FALSE;
+				g_clear_error(&ierror);
+			}
+			else if (ierror) {
+				g_propagate_error(error, ierror);
+				res = FALSE;
+				goto free;
+			}
+
 			g_hash_table_insert(slots, (gchar*)slot->name, slot);
 
 		}

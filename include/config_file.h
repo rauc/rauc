@@ -74,6 +74,8 @@ typedef struct _RaucSlot {
 	gchar *bootname;
 	/** flag indicating if the slot is updatable */
 	gboolean readonly;
+	/** flag indicating if the slot update may be forced */
+	gboolean ignore_checksum;
 
 	/** current state of the slot (runtime) */
 	SlotState state;
