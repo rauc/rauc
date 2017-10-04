@@ -556,7 +556,7 @@ static gboolean tar_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, dest_slot, &ierror);
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto unmount_out;
