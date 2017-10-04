@@ -58,6 +58,7 @@ device=/dev/sda0\n\
 type=ext4\n\
 bootname=system0\n\
 readonly=false\n\
+ignore-checksum=false\n\
 \n\
 [slot.rootfs.1]\n\
 description=Root filesystem partition 1\n\
@@ -65,18 +66,21 @@ device=/dev/sda1\n\
 type=ext4\n\
 bootname=system1\n\
 readonly=false\n\
+ignore-checksum=false\n\
 \n\
 [slot.appfs.0]\n\
 description=Application filesystem partition 0\n\
 device=/dev/sda2\n\
 type=ext4\n\
 parent=rootfs.0\n\
+ignore-checksum=true\n\
 \n\
 [slot.appfs.1]\n\
 description=Application filesystem partition 1\n\
 device=/dev/sda3\n\
 type=ext4\n\
-parent=rootfs.1\n";
+parent=rootfs.1\n\
+ignore-checksum=true\n";
 
 	gchar* pathname = write_tmp_file(fixture->tmpdir, "full_config.conf", cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -98,6 +102,7 @@ parent=rootfs.1\n";
 	g_assert_cmpstr(slot->bootname, ==, "factory0");
 	g_assert_cmpstr(slot->type, ==, "raw");
 	g_assert_true(slot->readonly);
+	g_assert_false(slot->ignore_checksum);
 	g_assert_null(slot->parent);
 	g_assert(find_config_slot_by_device(config, "/dev/mtd4") == slot);
 
@@ -108,6 +113,7 @@ parent=rootfs.1\n";
 	g_assert_cmpstr(slot->bootname, ==, "system0");
 	g_assert_cmpstr(slot->type, ==, "ext4");
 	g_assert_false(slot->readonly);
+	g_assert_false(slot->ignore_checksum);
 	g_assert_null(slot->parent);
 	g_assert(find_config_slot_by_device(config, "/dev/sda0") == slot);
 
@@ -118,6 +124,7 @@ parent=rootfs.1\n";
 	g_assert_cmpstr(slot->bootname, ==, "system1");
 	g_assert_cmpstr(slot->type, ==, "ext4");
 	g_assert_false(slot->readonly);
+	g_assert_false(slot->ignore_checksum);
 	g_assert_null(slot->parent);
 	g_assert(find_config_slot_by_device(config, "/dev/sda1") == slot);
 
@@ -128,6 +135,7 @@ parent=rootfs.1\n";
 	g_assert_null(slot->bootname);
 	g_assert_cmpstr(slot->type, ==, "ext4");
 	g_assert_false(slot->readonly);
+	g_assert_true(slot->ignore_checksum);
 	g_assert_nonnull(slot->parent);
 	g_assert(find_config_slot_by_device(config, "/dev/sda2") == slot);
 
@@ -138,6 +146,7 @@ parent=rootfs.1\n";
 	g_assert_null(slot->bootname);
 	g_assert_cmpstr(slot->type, ==, "ext4");
 	g_assert_false(slot->readonly);
+	g_assert_true(slot->ignore_checksum);
 	g_assert_nonnull(slot->parent);
 	g_assert(find_config_slot_by_device(config, "/dev/sda3") == slot);
 
@@ -230,6 +239,35 @@ device=/dev/mtd4\n\
 type=raw\n\
 bootname=factory0\n\
 readonly=typo\n";
+
+
+	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
+	g_clear_error(&ierror);
+}
+
+static void config_file_typo_in_boolean_ignore_checksum_key(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[slot.rescue.0]\n\
+description=Rescue partition\n\
+device=/dev/mtd4\n\
+type=raw\n\
+bootname=factory0\n\
+ignore-checksum=typo\n";
 
 
 	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", cfg_file, NULL);
@@ -478,6 +516,9 @@ int main(int argc, char *argv[])
 		   config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-boolean-readonly-key", ConfigFileFixture, NULL,
 		   config_file_fixture_set_up, config_file_typo_in_boolean_readonly_key,
+		   config_file_fixture_tear_down);
+	g_test_add("/config-file/typo-in-boolean-ignore-checksum-key", ConfigFileFixture, NULL,
+		   config_file_fixture_set_up, config_file_typo_in_boolean_ignore_checksum_key,
 		   config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-boolean-activate-installed-key", ConfigFileFixture, NULL,
 		   config_file_fixture_set_up, config_file_typo_in_boolean_activate_installed_key,
