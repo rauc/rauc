@@ -80,14 +80,14 @@ static void signature_sign_file(void)
 	g_bytes_unref(sig);
 	g_clear_error(&error);
 
-	// Test invalid certificate
+	// Test invalid certificate (use key instead)
 	sig = cms_sign_file("test/openssl-ca/manifest",
-			    NULL,
+			    r_context()->keypath,
 			    r_context()->keypath,
 			    NULL,
 			    &error);
 	g_assert_null(sig);
-	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_LOAD_FAILED);
+	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE_ERROR);
 
 	g_bytes_unref(sig);
 	g_clear_error(&error);

@@ -28,7 +28,8 @@ static EVP_PKEY *load_key(const gchar *keyfile, GError **error) {
 	const gchar *data;
 	int flags;
 
-	g_assert(error == NULL || *error == NULL);
+	g_return_val_if_fail(keyfile != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	key = BIO_new_file(keyfile, "r");
 	if (key == NULL) {
@@ -63,7 +64,7 @@ static X509 *load_cert(const gchar *certfile, GError **error) {
 	const gchar *data;
 	int flags;
 
-	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	cert = BIO_new_file(certfile, "r");
 	if (cert == NULL) {
@@ -96,6 +97,8 @@ static GBytes *bytes_from_bio(BIO *bio) {
 	long size;
 	char *data;
 
+	g_return_val_if_fail(bio != NULL, NULL);
+
 	size = BIO_get_mem_data(bio, &data);
 	return g_bytes_new(data, size);
 }
@@ -111,6 +114,11 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 	CMS_ContentInfo *cms = NULL;
 	GBytes *res = NULL;
 	int flags = CMS_DETACHED | CMS_BINARY;
+
+	g_return_val_if_fail(content != NULL, NULL);
+	g_return_val_if_fail(certfile != NULL, NULL);
+	g_return_val_if_fail(keyfile != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	signcert = load_cert(certfile, &ierror);
 	if (signcert == NULL) {
@@ -184,6 +192,8 @@ gchar* get_pubkey_hash(X509 *cert) {
 		unsigned int n = 0;
 		unsigned char md[SHA256_DIGEST_LENGTH];
 
+		g_return_val_if_fail(cert != NULL, NULL);
+
 		/* As we print colon-separated hex, we need 3 chars per byte */
 		string = g_string_sized_new(SHA256_DIGEST_LENGTH * 3);
 
@@ -220,6 +230,8 @@ out:
 gchar** get_pubkey_hashes(STACK_OF(X509) *verified_chain) {
 	GPtrArray *hashes = g_ptr_array_new_full(4, g_free);
 	gchar **ret = NULL;
+
+	g_return_val_if_fail(verified_chain != NULL, NULL);
 
 	for (int i = 0; i < sk_X509_num(verified_chain); i++) {
 		gchar *hash;
@@ -260,6 +272,8 @@ gchar* print_signer_cert(STACK_OF(X509) *verified_chain) {
 gchar* print_cert_chain(STACK_OF(X509) *verified_chain) {
 	GString *text = g_string_new(NULL);
 	char buf[BUFSIZ];
+
+	g_return_val_if_fail(verified_chain != NULL, NULL);
 
 	g_string_append(text, "Certificate Chain:\n");
 	for (int i = 0; i < sk_X509_num(verified_chain); i++) {
@@ -366,6 +380,12 @@ gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_ST
 				     g_bytes_get_size(sig));
 	gboolean res = FALSE;
 
+	g_return_val_if_fail(content != NULL, FALSE);
+	g_return_val_if_fail(sig != NULL, FALSE);
+	g_return_val_if_fail(cms == NULL || *cms == NULL, FALSE);
+	g_return_val_if_fail(store == NULL || *store == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	r_context_begin_step("cms_verify", "Verifying signature", 0);
 
 	if (!(istore = X509_STORE_new())) {
@@ -441,6 +461,12 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
 	GBytes *content = NULL;
 	GBytes *sig = NULL;
 
+	g_return_val_if_fail(filename != NULL, FALSE);
+	g_return_val_if_fail(certfile != NULL, FALSE);
+	g_return_val_if_fail(keyfile != NULL, FALSE);
+	g_return_val_if_fail(interfiles == NULL || *interfiles == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	file = g_mapped_file_new(filename, FALSE, &ierror);
 	if (file == NULL) {
 		g_propagate_error(error, ierror);
@@ -465,6 +491,12 @@ gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, CMS_Co
 	GMappedFile *file;
 	GBytes *content = NULL;
 	gboolean res = FALSE;
+
+	g_return_val_if_fail(filename != NULL, FALSE);
+	g_return_val_if_fail(sig != NULL, FALSE);
+	g_return_val_if_fail(cms == NULL || *cms == NULL, FALSE);
+	g_return_val_if_fail(store == NULL || *store == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	file = g_mapped_file_new(filename, FALSE, &ierror);
 	if (file == NULL) {
