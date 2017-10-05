@@ -568,6 +568,21 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		ibundle->path = g_strdup(bundlename);
 	}
 
+	/* Determine store path for casync, defaults to bundle */
+	if (r_context()->config->store_path) {
+		ibundle->storepath = r_context()->config->store_path;
+	} else {
+		gchar *strprfx;
+
+		if (ibundle->origpath)
+			strprfx = g_strndup(ibundle->origpath, strlen(ibundle->origpath) - 6);
+		else
+			strprfx = g_strndup(ibundle->path, strlen(ibundle->path) - 6);
+		ibundle->storepath = g_strconcat(strprfx, ".castr", NULL);
+
+		g_free(strprfx);
+	}
+
 	if (verify && !r_context()->config->keyring_path) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_KEYRING, "No keyring file provided");
 		res = FALSE;

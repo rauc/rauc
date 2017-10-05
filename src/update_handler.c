@@ -108,7 +108,7 @@ out:
 	return res;
 }
 
-static gboolean casync_extract(RaucImage *image, gchar *dest, gchar *seed, GError **error)
+static gboolean casync_extract(RaucImage *image, gchar *dest, const gchar *seed, const gchar *store, GError **error)
 {
 	GSubprocess *sproc = NULL;
 	GError *ierror = NULL;
@@ -120,6 +120,10 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, gchar *seed, GErro
 	if (seed) {
 		g_ptr_array_add(args, g_strdup("--seed"));
 		g_ptr_array_add(args, g_strdup(seed));
+	}
+	if (store) {
+		g_ptr_array_add(args, g_strdup("--store"));
+		g_ptr_array_add(args, g_strdup(store));
 	}
 	g_ptr_array_add(args, g_strdup("--seed-output=no"));
 	g_ptr_array_add(args, g_strdup(image->filename));
@@ -176,6 +180,7 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, GError **err
 	gboolean res = FALSE;
 	RaucSlot *seedslot = NULL;
 	gchar *seed = NULL;
+	gchar *store = NULL;
 
 	/* Prepare Seed */
 	seedslot = get_active_slot_class_member(image->slotclass);
@@ -187,9 +192,12 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, GError **err
 	g_debug("Adding as casync blob seed: %s", seedslot->device);
 	seed = g_strdup(seedslot->device);
 
+	store = r_context()->install_info->mounted_bundle->storepath;
+	g_debug("Using store path: '%s'", store);
+
 extract:
 	/* Call casync to extract */
-	res = casync_extract(image, dest, seed, &ierror);
+	res = casync_extract(image, dest, seed, store, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;

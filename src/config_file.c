@@ -215,6 +215,9 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	c->keyring_path = resolve_path(filename,
 		g_key_file_get_string(key_file, "keyring", "path", NULL));
 
+	/* parse [casync] section */
+	c->store_path = g_key_file_get_string(key_file, "casync", "storepath", NULL);
+
 	/* parse [autoinstall] section */
 	c->autoinstall_path = resolve_path(filename,
 		g_key_file_get_string(key_file, "autoinstall", "path", NULL));
@@ -384,6 +387,7 @@ void free_config(RaucConfig *config) {
 	g_free(config->system_compatible);
 	g_free(config->system_bootloader);
 	g_free(config->mount_prefix);
+	g_free(config->store_path);
 	g_free(config->grubenv_path);
 	g_free(config->keyring_path);
 	g_free(config->autoinstall_path);

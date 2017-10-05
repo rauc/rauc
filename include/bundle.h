@@ -14,6 +14,7 @@ typedef enum {
 typedef struct {
 	gchar *path;
 	gchar *origpath;
+	gchar *storepath;
 	gsize size;
 	gchar *mount_point;
 	STACK_OF(X509) *verified_chain;
