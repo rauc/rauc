@@ -312,6 +312,50 @@ out:
 	return TRUE;
 }
 
+static gboolean extract_start(int argc, char **argv)
+{
+	RaucBundle *bundle = NULL;
+	GError *ierror = NULL;
+	g_debug("extract start");
+
+	if (argc < 3) {
+		g_printerr("An input bundle must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc < 4) {
+		g_printerr("An output directory must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc > 4) {
+		g_printerr("Excess argument: %s\n", argv[4]);
+		goto out;
+	}
+
+	g_debug("input bundle: %s", argv[2]);
+	g_debug("output dir: %s", argv[3]);
+
+	if (!check_bundle(argv[2], &bundle, TRUE, &ierror)) {
+		g_printerr("%s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (!extract_bundle(bundle, argv[3], &ierror)) {
+		g_printerr("Failed to extract bundle: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+out:
+	return TRUE;
+}
+
 static gboolean checksum_start(int argc, char **argv)
 {
 	GError *error = NULL;
@@ -1056,6 +1100,7 @@ typedef enum  {
 	INSTALL,
 	BUNDLE,
 	RESIGN,
+	EXTRACT,
 	CHECKSUM,
 	STATUS,
 	INFO,
@@ -1122,6 +1167,7 @@ static void cmdline_handler(int argc, char **argv)
 		{INSTALL, "install", "install <BUNDLE>", "Install a bundle", install_start, install_group, FALSE},
 		{BUNDLE, "bundle", "bundle <INPUTDIR> <BUNDLENAME>", "Create a bundle from a content directory", bundle_start, NULL, FALSE},
 		{RESIGN, "resign", "resign <BUNDLENAME>", "Resign an already signed bundle", resign_start, NULL, FALSE},
+		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>", "Extract the bundle content", extract_start, NULL, FALSE},
 		{CHECKSUM, "checksum", "checksum <DIRECTORY>", "Deprecated", checksum_start, NULL, FALSE},
 		{INFO, "info", "info <FILE>", "Print bundle info", info_start, info_group, FALSE},
 		{STATUS, "status", "status", "Show system status", status_start, status_group, TRUE},
@@ -1145,6 +1191,7 @@ static void cmdline_handler(int argc, char **argv)
 			"List of rauc commands:\n" \
 			"  bundle\tCreate a bundle\n" \
 			"  resign\tResign an already signed bundle\n" \
+			"  extract\tExtract the bundle content\n" \
 			"  checksum\tUpdate a manifest with checksums (and optionally sign it)\n" \
 			"  install\tInstall a bundle\n" \
 			"  info\t\tShow file information\n" \
