@@ -67,7 +67,7 @@ the slots must be configured in a *system configuration file*.
 This file is the central instance that tells RAUC how to handle the board, which
 bootloader to use, which custom scripts to execute, etc.
 
-The slot description names, for example, the file path the slot can be accesed
+The slot description names, for example, the file path the slot can be accessed
 with, the type of storage or filesystem to use, its identification from the
 bootloader, etc.
 
@@ -77,7 +77,7 @@ Target Slot Selection
 A very important step when installing an update is to determine the correct
 mapping from the images that are contained in a RAUC bundle to the slots that
 are defined on the target system.
-The updated must also assure to select an inactive slot, and not accidently a
+The updated must also assure to select an inactive slot, and not accidentally a
 slot the system currently runs from.
 
 For this mapping, RAUC allows to define different *slot classes*.
@@ -92,7 +92,7 @@ Now, multiple slots of different classes can be grouped as a *slot group*.
 Such a group is the base for the slot selection algorithm of RAUC.
 
 Consider, for example, a system with two redundant rootfs slots and two
-redundant application slots. Then you group them togehter to have a fixed set
+redundant application slots. Then you group them together to have a fixed set
 of a rootfs and application slot each that will be used together.
 
 .. image:: images/rauc-multi-image.svg
