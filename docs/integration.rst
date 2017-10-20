@@ -176,9 +176,11 @@ cannot fully know how you intend to use your system.
 :TAR archives: You may either use `GNU tar <http://www.gnu.org/software/tar/>`_
   or `Busybox tar <http://www.busybox.net>`_.
 
-  If you intend to use Busybox tar, make sure format autodetection is enabled:
+  If you intend to use Busybox tar, make sure format autodetection and also the
+  compression formats you use are enabled:
 
     * ``CONFIG_FEATURE_TAR_AUTODETECT=y``
+    * ``CONFIG_FEATURE_SEAMLESS_XZ=y``
 :ext2/3/4: mkfs.ext2/3/4 (from `e2fsprogs
   <git://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git>`_)
 
