@@ -184,6 +184,33 @@ mountprefix=/mnt/myrauc/\n";
 	g_clear_error(&ierror);
 }
 
+static void config_file_invalid_parent(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
+
+	const gchar *nonexisting_parent = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.child.0]\n\
+device=/dev/null\n\
+parent=invalid\n\
+	";
+
+
+	pathname = write_tmp_file(fixture->tmpdir, "nonexisting_bootloader.conf", nonexisting_parent, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_PARENT);
+	g_assert_cmpstr(ierror->message, ==, "Parent slot 'invalid' not found!");
+	g_clear_error(&ierror);
+}
+
 static void config_file_typo_in_boolean_readonly_key(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
@@ -348,6 +375,9 @@ int main(int argc, char *argv[])
 		   config_file_fixture_tear_down);
 	g_test_add("/config-file/bootloaders", ConfigFileFixture, NULL,
 		   config_file_fixture_set_up, config_file_bootloaders,
+		   config_file_fixture_tear_down);
+	g_test_add("/config-file/invalid-parent", ConfigFileFixture, NULL,
+		   config_file_fixture_set_up, config_file_invalid_parent,
 		   config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-boolean-readonly-key", ConfigFileFixture, NULL,
 		   config_file_fixture_set_up, config_file_typo_in_boolean_readonly_key,

@@ -253,8 +253,13 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 		s = g_hash_table_lookup(slots, value);
 		if (!s) {
-			g_print("Parent %s not found!\n", value);
-			continue;
+			g_set_error (
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_PARENT,
+					"Parent slot '%s' not found!", value);
+			res = FALSE;
+			goto free;
 		}
 
 		((RaucSlot*)g_hash_table_lookup(slots, l->data))->parent = s;
