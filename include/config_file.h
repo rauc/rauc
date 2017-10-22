@@ -7,7 +7,8 @@
 
 typedef enum {
 	R_CONFIG_ERROR_INVALID_FORMAT,
-	R_CONFIG_ERROR_BOOTLOADER
+	R_CONFIG_ERROR_BOOTLOADER,
+	R_CONFIG_ERROR_PARENT
 } RConfigError;
 
 #define R_CONFIG_ERROR r_config_error_quark()
