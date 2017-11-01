@@ -1,6 +1,7 @@
 #include <config.h>
 
 #include <gio/gio.h>
+#include <string.h>
 
 #include "config_file.h"
 #include "context.h"
@@ -8,6 +9,25 @@
 #include "signature.h"
 
 RaucContext *context = NULL;
+
+/* resolve PARTUUID=xxx to real device name */
+static gchar* resolve_partuuid_arg(gchar *arg) {
+	gchar buf[PATH_MAX + 1];
+	gchar *res = NULL;
+
+	gchar *partuuidpath = g_build_filename(
+			"/dev/disk/by-partuuid/",
+			&arg[9],
+			NULL);
+
+	res = realpath(partuuidpath, buf);
+	g_free(partuuidpath);
+
+	if (!res)
+		return NULL;
+
+	return g_strdup(buf);
+}
 
 static const gchar* get_cmdline_bootname(void) {
 	GRegex *regex = NULL;
@@ -44,7 +64,17 @@ static const gchar* get_cmdline_bootname(void) {
 	regex = g_regex_new("root=(\\S+)", 0, 0, NULL);
 	if (g_regex_match(regex, contents, 0, &match)) {
 		bootname = g_match_info_fetch(match, 1);
-		goto out;
+	}
+
+	if (strncmp(bootname, "PARTUUID=", 9) == 0) {
+		gchar *tmp = resolve_partuuid_arg((gchar*) bootname);
+		if (tmp) {
+			g_debug("Resolved bootname %s to %s", bootname, tmp);
+			g_free((gchar*) bootname);
+			bootname = tmp;
+		} else {
+			g_message("Unable to resolve PARTUUID bootname %s", bootname);
+		}
 	}
 
 out:
