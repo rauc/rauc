@@ -1,6 +1,7 @@
 #include <config.h>
 
 #include <gio/gio.h>
+#include <glib/gstdio.h>
 
 #include "bundle.h"
 #include "context.h"
@@ -517,17 +518,37 @@ out:
 	return res;
 }
 
-gboolean mount_bundle(RaucBundle *bundle, const gchar *mountpoint, GError **error) {
+gboolean mount_bundle(RaucBundle *bundle, GError **error) {
+	gchar* mount_point = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
-	res = r_mount_loop(bundle->path, mountpoint, bundle->size, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
+	g_assert_null(bundle->mount_point);
+
+	mount_point = r_create_mount_point("bundle", &ierror);
+	if (!mount_point) {
+		res = FALSE;
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed creating mount point: ");
 		goto out;
 	}
+
+	g_message("Mounting bundle '%s' to '%s'", bundle->path, mount_point);
+
+	res = r_mount_loop(bundle->path, mount_point, bundle->size, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		g_rmdir(mount_point);
+		g_free(mount_point);
+		goto out;
+	}
+
+	bundle->mount_point = mount_point;
 
 	res = TRUE;
 out:
@@ -539,12 +560,18 @@ gboolean umount_bundle(RaucBundle *bundle, GError **error) {
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
-	res = r_umount(bundle->path, &ierror);
+	g_assert_nonnull(bundle->mount_point);
+
+	res = r_umount(bundle->mount_point, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
+
+	g_rmdir(bundle->mount_point);
+	g_clear_pointer(&bundle->mount_point, g_free);
 
 	res = TRUE;
 out:
@@ -554,6 +581,7 @@ out:
 void free_bundle(RaucBundle *bundle) {
 
 	g_free(bundle->path);
+	g_free(bundle->mount_point);
 	if (bundle->verified_chain)
 		sk_X509_pop_free(bundle->verified_chain, X509_free);
 }
