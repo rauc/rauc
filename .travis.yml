@@ -32,7 +32,7 @@ addons:
       name: "jluebbe/rauc"
       description: "Robust Auto-Update Controller"
     notification_email: jluebbe@lasnet.de
-    build_command_prepend: "./autogen.sh && ./configure"
+    build_command_prepend: "cov-configure --comptype gcc --compiler gcc-6 --template && ./autogen.sh && ./configure"
     build_command: "make -j2"
     branch_pattern: master
 script:
