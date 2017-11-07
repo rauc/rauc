@@ -1,5 +1,5 @@
-In Development
---------------
+Release 0.2 (released Nov 7, 2017)
+----------------------------------
 
 .. rubric:: Documentation
 
@@ -37,6 +37,7 @@ In Development
 * Let CLI properly fail on excess arguments provided
 * Do not disable bundle checking for ``rauc info --no-verify``
 * Properly clean up mount points after failures
+* Abort on inconsistent slot parent configuration
 * Misc memory leak fixes
 * Fixes in error handling and debug printout
 * Some code cleanups
@@ -50,7 +51,7 @@ In Development
 * Explicitly install dbus-x11 package to fix Travis builds
 * Fix coveralls builds by using ``--upgrade`` during
   ``pip install cpp-coveralls``
-* use gcc-6 for testing
+* Use gcc-6 for testing
 
 Release 0.1.1 (released May 11, 2017)
 -------------------------------------
