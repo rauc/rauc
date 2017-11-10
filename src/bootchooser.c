@@ -15,6 +15,33 @@
 #define BAREBOX_STATE_PRIORITY_PRIMARY	20
 #define UBOOT_FWSETENV_NAME "fw_setenv"
 
+static gboolean bootchooser_order_primay(RaucSlot *slot, GString **value) {
+	GString *order = g_string_sized_new(10);
+	GList *slots;
+
+	g_assert_nonnull(slot);
+	g_assert_nonnull(value);
+
+	g_string_append(order, slot->bootname);
+
+	/* Iterate over class members */
+	slots = g_hash_table_get_values(r_context()->config->slots);
+	for (GList *l = slots; l != NULL; l = l->next) {
+		RaucSlot *s = l->data;
+		if (s == slot)
+			continue;
+		if (s->sclass != slot->sclass)
+			continue;
+
+		g_string_append_c(order, ' ');
+		g_string_append(order, s->bootname);
+	}
+
+	*value = order;
+
+	return TRUE;
+}
+
 #if 0
 static gboolean barebox_state_get_int(const gchar* name, int *value) {
 	GSubprocess *sub;
@@ -246,25 +273,15 @@ out:
 /* Set slot as primary boot slot */
 static gboolean grub_set_primary(RaucSlot *slot) {
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
-	GString *order = g_string_sized_new(10);
+	GString *order = NULL;
 	gboolean res = FALSE;
-	GList *slots;
 
 	g_assert_nonnull(slot);
 
-	g_string_append(order, slot->bootname);
-
-	/* Iterate over class members */
-	slots = g_hash_table_get_values(r_context()->config->slots);
-	for (GList *l = slots; l != NULL; l = l->next) {
-		RaucSlot *s = l->data;
-		if (s == slot)
-			continue;
-		if (s->sclass != slot->sclass)
-			continue;
-
-		g_string_append_c(order, ' ');
-		g_string_append(order, s->bootname);
+	res = bootchooser_order_primay(slot, &order);
+	if (!res) {
+		g_warning("failed to create primary boot order");
+		goto out;
 	}
 
 	g_ptr_array_add(pairs, g_strdup_printf("%s_OK=%i", slot->bootname, 1));
@@ -333,26 +350,16 @@ out:
 
 /* Set slot as primary boot slot */
 static gboolean uboot_set_primary(RaucSlot *slot) {
-	GString *order = g_string_sized_new(10);
+	GString *order = NULL;
 	gboolean res = FALSE;
 	gchar *key = NULL;
-	GList *slots;
 
 	g_assert_nonnull(slot);
 
-	g_string_append(order, slot->bootname);
-
-	/* Iterate over class members */
-	slots = g_hash_table_get_values(r_context()->config->slots);
-	for (GList *l = slots; l != NULL; l = l->next) {
-		RaucSlot *s = l->data;
-		if (s == slot)
-			continue;
-		if (s->sclass != slot->sclass)
-			continue;
-
-		g_string_append_c(order, ' ');
-		g_string_append(order, s->bootname);
+	res = bootchooser_order_primay(slot, &order);
+	if (!res) {
+		g_warning("failed to create primary boot order");
+		goto out;
 	}
 
 	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
