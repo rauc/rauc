@@ -453,6 +453,8 @@ For writing the bootchoosers state variables from userspace,
 RAUC uses the tool *barebox-state* form the
 `dt-utils <https://git.pengutronix.de/cgit/tools/dt-utils/>`_ repository.
 
+.. note:: RAUC requires dt-utils version v2017.03 or later!
+
 Make sure to have this tool integrated on your target platform.
 You can verify your setup by calling it manually:
 
