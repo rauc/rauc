@@ -183,7 +183,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 						error,
 						R_CONFIG_ERROR,
 						R_CONFIG_ERROR_INVALID_FORMAT,
-						"Invalid slot name format");
+						"Invalid slot name format: %s", groups[i]);
 				res = FALSE;
 				goto free;
 			}

@@ -66,7 +66,7 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 			g_set_error(error,
 				    R_SLOT_ERROR,
 				    R_SLOT_ERROR_FAILED,
-				    "Invalid slot name format");
+				    "Invalid slot name format: '%s'", identifier);
 		}
 
 		g_strfreev(groupsplit);
