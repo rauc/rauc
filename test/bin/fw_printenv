@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Command line checking
+if [ $# -ne 1 ]; then
+	echo "Invalid arguments $*"
+	exit 1
+fi
+
+if [ "$1" = "BOOT_ORDER" ]; then
+    echo "$1=A B R"
+else
+	echo "Invalid key: '$1'"
+	exit 1
+fi
+
+exit 0

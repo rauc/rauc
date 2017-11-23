@@ -1,5 +1,6 @@
 #include <config.h>
 
+#include <string.h>
 #include <errno.h>
 #include <gio/gio.h>
 
@@ -14,6 +15,34 @@
 #define BAREBOX_STATE_DEFAULT_PRIORITY	10
 #define BAREBOX_STATE_PRIORITY_PRIMARY	20
 #define UBOOT_FWSETENV_NAME "fw_setenv"
+#define UBOOT_FWGETENV_NAME "fw_printenv"
+
+static gboolean bootchooser_order_primay(RaucSlot *slot, GString **value) {
+	GString *order = g_string_sized_new(10);
+	GList *slots;
+
+	g_assert_nonnull(slot);
+	g_assert_nonnull(value);
+
+	g_string_append(order, slot->bootname);
+
+	/* Iterate over class members */
+	slots = g_hash_table_get_values(r_context()->config->slots);
+	for (GList *l = slots; l != NULL; l = l->next) {
+		RaucSlot *s = l->data;
+		if (s == slot)
+			continue;
+		if (s->sclass != slot->sclass)
+			continue;
+
+		g_string_append_c(order, ' ');
+		g_string_append(order, s->bootname);
+	}
+
+	*value = order;
+
+	return TRUE;
+}
 
 #if 0
 static gboolean barebox_state_get_int(const gchar* name, int *value) {
@@ -246,25 +275,15 @@ out:
 /* Set slot as primary boot slot */
 static gboolean grub_set_primary(RaucSlot *slot) {
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
-	GString *order = g_string_sized_new(10);
+	GString *order = NULL;
 	gboolean res = FALSE;
-	GList *slots;
 
 	g_assert_nonnull(slot);
 
-	g_string_append(order, slot->bootname);
-
-	/* Iterate over class members */
-	slots = g_hash_table_get_values(r_context()->config->slots);
-	for (GList *l = slots; l != NULL; l = l->next) {
-		RaucSlot *s = l->data;
-		if (s == slot)
-			continue;
-		if (s->sclass != slot->sclass)
-			continue;
-
-		g_string_append_c(order, ' ');
-		g_string_append(order, s->bootname);
+	res = bootchooser_order_primay(slot, &order);
+	if (!res) {
+		g_warning("failed to create primary boot order");
+		goto out;
 	}
 
 	g_ptr_array_add(pairs, g_strdup_printf("%s_OK=%i", slot->bootname, 1));
@@ -279,8 +298,63 @@ static gboolean grub_set_primary(RaucSlot *slot) {
 
 	res = TRUE;
 out:
-	g_string_free(order, TRUE);
+	if (order)
+		g_string_free(order, TRUE);
 	g_ptr_array_unref(pairs);
+	return res;
+}
+
+static gboolean uboot_env_get(const gchar *key, GString **value) {
+	GSubprocess *sub;
+	GError *error = NULL;
+	GBytes *stdout_buf = NULL;
+	const char *data;
+	gsize offset;
+	gsize size;
+	gboolean res = FALSE;
+	gint ret;
+
+	g_assert_nonnull(key);
+	g_assert_nonnull(value);
+
+	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &error,
+			       UBOOT_FWGETENV_NAME, key, NULL);
+	if (!sub) {
+		g_warning("starting " UBOOT_FWGETENV_NAME " failed: %s",
+			  error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+	res = g_subprocess_communicate(sub, NULL, NULL, &stdout_buf, NULL, &error);
+	if (!res) {
+		g_warning(UBOOT_FWGETENV_NAME " communication failed: %s", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+	res = g_subprocess_get_if_exited(sub);
+	if (!res) {
+		g_warning(UBOOT_FWGETENV_NAME " did not exit normally");
+		goto out;
+	}
+
+	ret = g_subprocess_get_exit_status(sub);
+	if (ret != 0) {
+		g_warning(UBOOT_FWGETENV_NAME " failed with exit code: %i", ret);
+		res = FALSE;
+		goto out;
+	}
+
+	/* offset is composed of key + equal sign, e.g. 'BOOT_ORDER=A B R' */
+	offset = strlen(key) + 1;
+	data = g_bytes_get_data(stdout_buf, &size);
+	*value = g_string_new_len(data + offset, size - offset);
+	g_strchomp((*value)->str);
+
+out:
+	g_bytes_unref(stdout_buf);
+
 	return res;
 }
 
@@ -333,26 +407,34 @@ out:
 
 /* Set slot as primary boot slot */
 static gboolean uboot_set_primary(RaucSlot *slot) {
-	GString *order = g_string_sized_new(10);
+	GString *order_new = g_string_sized_new(10);
+	GString *order_current = NULL;
+	gchar **bootnames = NULL;
 	gboolean res = FALSE;
 	gchar *key = NULL;
-	GList *slots;
 
 	g_assert_nonnull(slot);
 
-	g_string_append(order, slot->bootname);
+	/* Add updated slot as first entry in new boot order */
+	g_string_append(order_new, slot->bootname);
 
-	/* Iterate over class members */
-	slots = g_hash_table_get_values(r_context()->config->slots);
-	for (GList *l = slots; l != NULL; l = l->next) {
-		RaucSlot *s = l->data;
-		if (s == slot)
-			continue;
-		if (s->sclass != slot->sclass)
+	res = uboot_env_get("BOOT_ORDER", &order_current);
+	if (!res && !bootchooser_order_primay(slot, &order_current))
+		goto out;
+
+	/* Iterate over current boot order */
+	bootnames = g_strsplit(order_current->str, " ", -1);
+	for (gchar **bootname = bootnames; *bootname; bootname++) {
+		/* Skip updated slot, as it is already at the beginning */
+		if (g_strcmp0(*bootname, slot->bootname) == 0)
 			continue;
 
-		g_string_append_c(order, ' ');
-		g_string_append(order, s->bootname);
+		/* skip empty strings from head or tail */
+		if (g_strcmp0(*bootname, "") == 0)
+			continue;
+
+		g_string_append_c(order_new, ' ');
+		g_string_append(order_new, *bootname);
 	}
 
 	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
@@ -362,14 +444,17 @@ static gboolean uboot_set_primary(RaucSlot *slot) {
 		g_warning("failed marking as good");
 		goto out;
 	}
-	res = uboot_env_set("BOOT_ORDER", order->str);
+	res = uboot_env_set("BOOT_ORDER", order_new->str);
 	if (!res) {
 		g_warning("failed marking as primary");
 		goto out;
 	}
 
 out:
-	g_string_free(order, TRUE);
+	g_string_free(order_current, TRUE);
+	if (order_new)
+		g_string_free(order_new, TRUE);
+	g_strfreev(bootnames);
 	g_free(key);
 	return res;
 }

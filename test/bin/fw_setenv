@@ -7,7 +7,7 @@ if [ $# -ne 2 ]; then
 fi
 
 if [ "$1" = "BOOT_ORDER" ]; then
-	if ! [ "$2" = "A B" -o "$2" = "B A" ]; then
+	if ! [ "$2" = "A B" -o "$2" = "B A R" ]; then
 		echo "Invalid argument for BOOT_ORDER: '$2'"
 		exit 1
 	fi
