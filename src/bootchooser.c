@@ -298,7 +298,8 @@ static gboolean grub_set_primary(RaucSlot *slot) {
 
 	res = TRUE;
 out:
-	g_string_free(order, TRUE);
+	if (order)
+		g_string_free(order, TRUE);
 	g_ptr_array_unref(pairs);
 	return res;
 }
@@ -451,7 +452,8 @@ static gboolean uboot_set_primary(RaucSlot *slot) {
 
 out:
 	g_string_free(order_current, TRUE);
-	g_string_free(order_new, TRUE);
+	if (order_new)
+		g_string_free(order_new, TRUE);
 	g_strfreev(bootnames);
 	g_free(key);
 	return res;
