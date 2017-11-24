@@ -34,8 +34,11 @@ for i in $RAUC_TARGET_SLOTS; do
 	eval RAUC_IMAGE_NAME=\$RAUC_IMAGE_NAME_${i}
 	eval RAUC_IMAGE_DIGEST=\$RAUC_IMAGE_DIGEST_${i}
 	exit_if_empty $RAUC_SLOT_DEVICE
-	exit_if_empty $RAUC_IMAGE_NAME
-	exit_if_empty $RAUC_IMAGE_DIGEST
+
+	# If we do not have an image for this slot, skip
+	if [ -z "$RAUC_IMAGE_NAME" ]; then
+		continue
+	fi
 
 	# Get absolute image path
 	if [[ "$RAUC_IMAGE_NAME" = /* ]]; then
@@ -61,12 +64,12 @@ done
 
 # Update boot priority
 for i in $RAUC_SLOTS; do
-	eval RAUC_SLOT_PARENT=\$RAUC_SLOT_PARENT_${i}
 	eval RAUC_SLOT_CLASS=\$RAUC_SLOT_CLASS_${i}
 	eval RAUC_SLOT_BOOTNAME=\$RAUC_SLOT_BOOTNAME_${i}
 	eval RAUC_SLOT_NAME=\$RAUC_SLOT_NAME_${i}
-	# skip non-root slots
-	if [ -n "$RAUC_SLOT_PARENT" ]; then
+
+	# skip non-bootable slots
+	if [ -z "$RAUC_SLOT_BOOTNAME" ]; then
 		continue
 	fi
 
@@ -74,6 +77,11 @@ for i in $RAUC_SLOTS; do
 	for j in $RAUC_TARGET_SLOTS; do
 		eval TARGET_CLASS=\$RAUC_SLOT_CLASS_${j}
 		eval TARGET_NAME=\$RAUC_SLOT_NAME_${j}
+
+		# If we do not have an image for this slot, skip
+		if [ -z "$RAUC_IMAGE_NAME" ]; then
+			continue
+		fi
 
 		if [ "$RAUC_SLOT_CLASS" != "$TARGET_CLASS" ]; then
 			continue

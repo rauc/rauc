@@ -26,10 +26,21 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 
 static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture,
 		gconstpointer user_data) {
+	const gchar *manifest_file = "\
+[update]\n\
+compatible=Test Config\n\
+\n\
+[handler]\n\
+filename=custom_handler.sh\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.ext4\n\
+";
+
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
 	fixture_helper_set_up_system(fixture->tmpdir, user_data);
-	fixture_helper_set_up_bundle(fixture->tmpdir, user_data, NULL, TRUE, FALSE);
+	fixture_helper_set_up_bundle(fixture->tmpdir, user_data, manifest_file, TRUE, FALSE);
 }
 
 static void install_fixture_set_up_bundle_install_check_hook(InstallFixture *fixture,
@@ -46,7 +57,7 @@ hooks=install-check\n\
 filename=rootfs.ext4\n\
 \n\
 [image.appfs]\n\
-filename=rootfs.ext4";
+filename=appfs.ext4";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
@@ -68,7 +79,7 @@ filename=rootfs.ext4\n\
 hooks=install\n\
 \n\
 [image.appfs]\n\
-filename=rootfs.ext4\n\
+filename=appfs.ext4\n\
 hooks=install";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
@@ -91,7 +102,7 @@ filename=rootfs.ext4\n\
 hooks=post-install\n\
 \n\
 [image.appfs]\n\
-filename=rootfs.ext4\n\
+filename=appfs.ext4\n\
 hooks=post-install";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
@@ -286,6 +297,8 @@ static void install_test_target(InstallFixture *fixture,
 {
 	RaucManifest *rm = NULL;
 	GHashTable *tgrp;
+	GList *selected_images = NULL;
+	GError *error = NULL;
 
 
 	const gchar *manifest_file = "\
@@ -303,7 +316,7 @@ filename=appfs.ext4\n\
 \n\
 [image.demofs]\n\
 sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca\n\
-filename=appfs.ext4\n\
+filename=demofs.ext4\n\
 \n\
 [file.rootfs/vmlinuz]\n\
 sha256=5fb50868cd1f2e34ff531d6680c9b734ba35ed4944072f396a50871e9c2d5155\n\
@@ -331,17 +344,429 @@ filename=bootloader.img";
 	g_assert_cmpint(((RaucSlot*) g_hash_table_lookup(r_context()->config->slots, "appfs.0"))->state, ==, ST_ACTIVE);
 	g_assert_cmpint(((RaucSlot*) g_hash_table_lookup(r_context()->config->slots, "appfs.1"))->state, ==, ST_INACTIVE);
 
-	tgrp = determine_target_install_group(rm);
+	tgrp = determine_target_install_group();
 
 	g_assert_nonnull(tgrp);
 
+	g_assert_true(g_hash_table_contains(tgrp, "rescue"));
 	g_assert_true(g_hash_table_contains(tgrp, "rootfs"));
 	g_assert_true(g_hash_table_contains(tgrp, "appfs"));
+	g_assert_true(g_hash_table_contains(tgrp, "demofs"));
+	g_assert_true(g_hash_table_contains(tgrp, "bootloader"));
+	g_assert_true(g_hash_table_contains(tgrp, "prebootloader"));
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rescue"))->name, ==, "rescue.0");
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rootfs"))->name, ==, "rootfs.1");
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "appfs"))->name, ==, "appfs.1");
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "demofs"))->name, ==, "demofs.1");
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "bootloader"))->name, ==, "bootloader.0");
-	g_assert_cmpint(g_hash_table_size(tgrp), ==, 4);
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "prebootloader"))->name, ==, "prebootloader.0");
+	g_assert_cmpint(g_hash_table_size(tgrp), ==, 6);
+
+	selected_images = get_install_images(rm, tgrp, &error);
+	g_assert_nonnull(selected_images);
+	g_assert_no_error(error);
+
+	g_assert_cmpint(g_list_length(selected_images), ==, 4);
+	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 0))->filename, ==, "rootfs.ext4");
+	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 1))->filename, ==, "appfs.ext4");
+	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 2))->filename, ==, "demofs.ext4");
+	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 3))->filename, ==, "bootloader.img");
+
+	g_hash_table_unref(tgrp);
+}
+
+/* Test with image for non-redundant active target slot. */
+static void test_install_determine_target_group_non_redundant(void)
+{
+	gchar *tmpdir = NULL;
+	gchar* sysconfpath = NULL;
+	GHashTable *tgrp = NULL;
+
+	const gchar *system_conf = "\
+[system]\n\
+compatible=foo\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+bootname=system0\n\
+device=/dev/null\n\
+";
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	sysconfpath = write_tmp_file(tmpdir, "test.conf", system_conf, NULL);
+	g_assert_nonnull(sysconfpath);
+	g_free(tmpdir);
+
+	/* Set up context */
+	r_context_conf()->configpath = sysconfpath;
+	r_context_conf()->bootslot = g_strdup("system0");
+	r_context();
+
+	g_assert_true(determine_slot_states(NULL));
+
+	tgrp = determine_target_install_group();
+	g_assert_nonnull(tgrp);
+
+	/* We must not have any updatable slot detected */
+	g_assert_cmpint(g_hash_table_size(tgrp), ==, 0);
+
+	g_hash_table_unref(tgrp);
+}
+
+/* Test a typical asynchronous slot setup (rootfs + rescuefs) with additional
+ * childs */
+static void test_install_target_group_async(void)
+{
+	gchar *tmpdir = NULL;
+	gchar* sysconfpath = NULL;
+	GHashTable *tgrp = NULL;
+
+	const gchar *system_conf = "\
+[system]\n\
+compatible=foo\n\
+bootloader=barebox\n\
+\n\
+[slot.rescue.0]\n\
+bootname=rescue\n\
+device=/dev/null\n\
+\n\
+[slot.rescueapp.0]\n\
+parent=rescue.0\n\
+device=/dev/null\n\
+\n\
+[slot.rootfs.0]\n\
+bootname=system\n\
+device=/dev/null\n\
+\n\
+[slot.appfs.0]\n\
+parent=rootfs.0\n\
+device=/dev/null\n\
+";
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	sysconfpath = write_tmp_file(tmpdir, "test.conf", system_conf, NULL);
+	g_assert_nonnull(sysconfpath);
+	g_free(tmpdir);
+
+	/* Set up context */
+	r_context_conf()->configpath = sysconfpath;
+	r_context_conf()->bootslot = g_strdup("rescue");
+	r_context();
+
+	g_assert_true(determine_slot_states(NULL));
+
+	tgrp = determine_target_install_group();
+	g_assert_nonnull(tgrp);
+
+	/* Rootfs must be in target group, rescue not */
+	g_assert_cmpint(g_hash_table_size(tgrp), ==, 2);
+	g_assert_true(g_hash_table_contains(tgrp, "rootfs"));
+	g_assert_true(g_hash_table_contains(tgrp, "appfs"));
+
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rootfs"))->name, ==, "rootfs.0");
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "appfs"))->name, ==, "appfs.0");
+
+	g_hash_table_unref(tgrp);
+}
+
+/* Test a typical synchronous slot setup (rootfs a + b) with appfs childs */
+static void test_install_target_group_sync(void)
+{
+	gchar *tmpdir = NULL;
+	gchar* sysconfpath = NULL;
+	GHashTable *tgrp = NULL;
+
+	const gchar *system_conf = "\
+[system]\n\
+compatible=foo\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+bootname=system0\n\
+device=/dev/null\n\
+\n\
+[slot.rootfs.1]\n\
+bootname=system1\n\
+device=/dev/null\n\
+\n\
+[slot.appfs.1]\n\
+parent=rootfs.1\n\
+device=/dev/null\n\
+\n\
+[slot.appfs.0]\n\
+parent=rootfs.0\n\
+device=/dev/null\n\
+";
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	sysconfpath = write_tmp_file(tmpdir, "test.conf", system_conf, NULL);
+	g_assert_nonnull(sysconfpath);
+
+	/* Set up context */
+	r_context_conf()->configpath = sysconfpath;
+	r_context_conf()->bootslot = g_strdup("system1");
+	r_context();
+
+	g_assert_true(determine_slot_states(NULL));
+
+	tgrp = determine_target_install_group();
+	g_assert_nonnull(tgrp);
+
+	/* First rootfs.0 and appfs.0 must be in target group, other not */
+	g_assert_cmpint(g_hash_table_size(tgrp), ==, 2);
+	g_assert_true(g_hash_table_contains(tgrp, "rootfs"));
+	g_assert_true(g_hash_table_contains(tgrp, "appfs"));
+
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rootfs"))->name, ==, "rootfs.0");
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "appfs"))->name, ==, "appfs.0");
+
+	g_hash_table_unref(tgrp);
+}
+
+/* Test with extra loose (non-booted) groups in parent child relation */
+static void test_install_target_group_loose(void)
+{
+	gchar *tmpdir = NULL;
+	gchar* sysconfpath = NULL;
+	GHashTable *tgrp = NULL;
+
+	const gchar *system_conf = "\
+[system]\n\
+compatible=foo\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+bootname=system0\n\
+device=/dev/null\n\
+\n\
+[slot.xloader.0]\n\
+device=/dev/null\n\
+\n\
+[slot.bootloader.0]\n\
+parent=xloader.0\n\
+device=/dev/null\n\
+";
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	sysconfpath = write_tmp_file(tmpdir, "test.conf", system_conf, NULL);
+	g_assert_nonnull(sysconfpath);
+
+	/* Set up context */
+	r_context_conf()->configpath = sysconfpath;
+	r_context_conf()->bootslot = g_strdup("system0");
+	r_context();
+
+	g_assert_true(determine_slot_states(NULL));
+
+	tgrp = determine_target_install_group();
+	g_assert_nonnull(tgrp);
+
+	/* Rootfs must be in target group, rescue not */
+	g_assert_cmpint(g_hash_table_size(tgrp), ==, 2);
+	g_assert_true(g_hash_table_contains(tgrp, "xloader"));
+	g_assert_true(g_hash_table_contains(tgrp, "bootloader"));
+
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "xloader"))->name, ==, "xloader.0");
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "bootloader"))->name, ==, "bootloader.0");
+
+	g_hash_table_unref(tgrp);
+}
+
+/* Test with 3 redundant slots */
+static void test_install_target_group_n_redundant(void)
+{
+	gchar *tmpdir = NULL;
+	gchar* sysconfpath = NULL;
+	GHashTable *tgrp = NULL;
+
+	const gchar *system_conf = "\
+[system]\n\
+compatible=foo\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+bootname=system0\n\
+device=/dev/null\n\
+\n\
+[slot.rootfs.1]\n\
+bootname=system1\n\
+device=/dev/null\n\
+\n\
+[slot.rootfs.2]\n\
+bootname=system2\n\
+device=/dev/null\n\
+";
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	sysconfpath = write_tmp_file(tmpdir, "test.conf", system_conf, NULL);
+	g_assert_nonnull(sysconfpath);
+
+	/* Set up context */
+	r_context_conf()->configpath = sysconfpath;
+	r_context_conf()->bootslot = g_strdup("system1");
+	r_context();
+
+	g_assert_true(determine_slot_states(NULL));
+
+	tgrp = determine_target_install_group();
+	g_assert_nonnull(tgrp);
+
+	/* Rootfs must be in target group, rescue not */
+	g_assert_cmpint(g_hash_table_size(tgrp), ==, 1);
+	g_assert_true(g_hash_table_contains(tgrp, "rootfs"));
+
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rootfs"))->name, ==, "rootfs.0");
+
+	g_hash_table_unref(tgrp);
+}
+
+/* Test image selection, default redundancy setup */
+static void test_install_image_selection(void)
+{
+	gchar *tmpdir = NULL;
+	gchar* sysconfpath = NULL;
+	GBytes *data = NULL;
+	RaucManifest *rm = NULL;
+	GHashTable *tgrp = NULL;
+	GError *error = NULL;
+	GList *selected_images = NULL;
+	RaucImage *image = NULL;
+
+#define MANIFEST2 "\
+[update]\n\
+compatible=foo\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.img\n\
+\n\
+[image.appfs]\n\
+filename=appfs.img\n\
+"
+
+	const gchar *system_conf = "\
+[system]\n\
+compatible=foo\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+bootname=system0\n\
+device=/dev/null\n\
+\n\
+[slot.rootfs.1]\n\
+bootname=system1\n\
+device=/dev/null\n\
+\n\
+[slot.appfs.0]\n\
+device=/dev/null\n\
+\n\
+[slot.appfs.1]\n\
+device=/dev/null\n\
+\n\
+[slot.bootloader.0]\n\
+device=/dev/null\n\
+";
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	sysconfpath = write_tmp_file(tmpdir, "test.conf", system_conf, NULL);
+	g_assert_nonnull(sysconfpath);
+
+	/* Set up context */
+	r_context_conf()->configpath = sysconfpath;
+	r_context_conf()->bootslot = g_strdup("system1");
+	r_context();
+
+	data = g_bytes_new_static(MANIFEST2, sizeof(MANIFEST2));
+	load_manifest_mem(data, &rm, &error);
+	g_assert_no_error(error);
+
+	determine_slot_states(&error);
+	g_assert_no_error(error);
+
+	tgrp = determine_target_install_group();
+	g_assert_nonnull(tgrp);
+
+	selected_images = get_install_images(rm, tgrp, &error);
+	g_assert_nonnull(selected_images);
+	g_assert_no_error(error);
+
+	/* We expecte the image selection to return both appfs.img and
+	 * rootfs.img as we have matching slots for them. */
+	g_assert_cmpint(g_list_length(selected_images), ==, 2);
+
+	image = (RaucImage*) g_list_nth_data(selected_images, 0);
+	g_assert_nonnull(image);
+	g_assert_cmpstr(image->filename, ==, "rootfs.img");
+
+	image = (RaucImage*) g_list_nth_data(selected_images, 1);
+	g_assert_nonnull(image);
+	g_assert_cmpstr(image->filename, ==, "appfs.img");
+
+	g_hash_table_unref(tgrp);
+}
+
+static void test_install_image_selection_no_matching_slot(void)
+{
+	gchar *tmpdir = NULL;
+	gchar* sysconfpath = NULL;
+	GBytes *data = NULL;
+	RaucManifest *rm = NULL;
+	GHashTable *tgrp = NULL;
+	GError *error = NULL;
+	GList *selected_images = NULL;
+
+#define MANIFEST2 "\
+[update]\n\
+compatible=foo\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.img\n\
+\n\
+[image.appfs]\n\
+filename=appfs.img\n\
+"
+
+	const gchar *system_conf = "\
+[system]\n\
+compatible=foo\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+bootname=system0\n\
+device=/dev/null\n\
+\n\
+[slot.rootfs.1]\n\
+bootname=system1\n\
+device=/dev/null\n\
+";
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	sysconfpath = write_tmp_file(tmpdir, "test.conf", system_conf, NULL);
+	g_assert_nonnull(sysconfpath);
+
+	/* Set up context */
+	r_context_conf()->configpath = sysconfpath;
+	r_context_conf()->bootslot = g_strdup("system1");
+	r_context();
+
+	data = g_bytes_new_static(MANIFEST2, sizeof(MANIFEST2));
+	load_manifest_mem(data, &rm, &error);
+	g_assert_no_error(error);
+
+	determine_slot_states(&error);
+	g_assert_no_error(error);
+
+	tgrp = determine_target_install_group();
+	g_assert_nonnull(tgrp);
+
+	/* we expect the image mapping to fail as there is no slot candidate
+	 * for image.appfs */
+	selected_images = get_install_images(rm, tgrp, &error);
+	g_assert_null(selected_images);
+	g_assert_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED);
+
+	g_hash_table_unref(tgrp);
 }
 
 static gboolean r_quit(gpointer data) {
@@ -679,6 +1104,20 @@ int main(int argc, char *argv[])
 	g_test_add("/install/target", InstallFixture, NULL,
 		   install_fixture_set_up_system_conf, install_test_target,
 		   install_fixture_tear_down);
+
+	g_test_add_func("/install/target-group/non-redundant", test_install_determine_target_group_non_redundant);
+
+	g_test_add_func("/install/target-group/async", test_install_target_group_async);
+
+	g_test_add_func("/install/target-group/sync", test_install_target_group_sync);
+
+	g_test_add_func("/install/target-group/loose", test_install_target_group_loose);
+
+	g_test_add_func("/install/target-group/n-redundant", test_install_target_group_n_redundant);
+
+	g_test_add_func("/install/image-selection/redundant", test_install_image_selection);
+
+	g_test_add_func("/install/image-selection/non-matching", test_install_image_selection_no_matching_slot);
 
 	g_test_add("/install/bundle", InstallFixture, NULL,
 		   install_fixture_set_up_bundle, install_test_bundle,
