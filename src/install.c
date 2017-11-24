@@ -192,6 +192,7 @@ static RaucSlot* get_parent_root_slot(RaucSlot *slot) {
 	return base;
 }
 
+#if ENABLE_NETWORK
 /* Returns newly allocated NULL-teminated string array of all classes listed in
  * given manifest.
  * Free with g_strfreev */
@@ -214,6 +215,7 @@ static gchar** get_all_file_slot_classes(const RaucManifest *manifest) {
 
 	return (gchar**) g_ptr_array_free(slotclasses, FALSE);
 }
+#endif
 
 /* Gets all classes that do not have a parent
  * 
