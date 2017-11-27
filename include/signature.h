@@ -36,11 +36,13 @@ void signature_init(void);
  * @param content content that should be signed
  * @param certfile certificate file name
  * @param keyfile private key file name
+ * @param interfiles NULL-terminated array of intermediate certificate file
+ *                   name strings to include in the bundle signature
  * @param error return location for a GError, or NULL
  *
  * @return signature bytes, NULL if failed
  */
-GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, GError **error);
+GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error);
 
 /**
  * Sign file with provided certificate and private key
@@ -48,11 +50,13 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, G
  * @param filename file with content that should be signed
  * @param certfile certificate file name
  * @param keyfile private key file name
+ * @param interfiles NULL-terminated array of intermediate certificate file
+ *                   name strings to include in the bundle signature
  * @param error return location for a GError, or NULL
  *
  * @return signature bytes, NULL if failed
  */
-GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar *keyfile, GError **error);
+GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error);
 
 /**
  * Verify signature for given content.

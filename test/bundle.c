@@ -158,23 +158,23 @@ static void bundle_test_resign(BundleFixture *fixture,
 	resignbundle = g_build_filename(fixture->tmpdir, "resigned-bundle.raucb", NULL);
 	g_assert_nonnull(resignbundle);
 
-	/* Switch to release key pair */
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
-
-
-	/* Verify input bundle with dev keyring */
-	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
-	g_assert_true(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
-
-	g_clear_pointer(&bundle, free_bundle);
-
-	/* Verify input bundle with rel keyring */
+	/* Input bundle must *not* verify against 'rel' keyring.
+	 * Note we have to use r_context() here as a hack to avoid re-setting
+	 * the context's 'pending' flag which would cause a re-initialization
+	 * of context and thus overwrite content of 'config' member. */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
 	g_assert_false(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
 
+	g_clear_pointer(&bundle, free_bundle);
+
+	/* Verify input bundle with 'dev' keyring */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
 	g_assert_true(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
+
+	/* Use 'rel' key pair for resigning */
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+
 	res = resign_bundle(bundle, resignbundle, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);

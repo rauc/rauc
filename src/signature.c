@@ -100,13 +100,14 @@ static GBytes *bytes_from_bio(BIO *bio) {
 	return g_bytes_new(data, size);
 }
 
-GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, GError **error) {
+GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error) {
 	GError *ierror = NULL;
 	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
 					 g_bytes_get_size(content));
 	BIO *outsig = BIO_new(BIO_s_mem());
 	X509 *signcert = NULL;
 	EVP_PKEY *pkey = NULL;
+	STACK_OF(X509) *intercerts = NULL;
 	CMS_ContentInfo *cms = NULL;
 	GBytes *res = NULL;
 	int flags = CMS_DETACHED | CMS_BINARY;
@@ -123,13 +124,30 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, G
 		goto out;
 	}
 
-	cms = CMS_sign(signcert, pkey, NULL, incontent, flags);
+	intercerts = sk_X509_new_null();
+
+	for (gchar **intercertpath = interfiles; intercertpath && *intercertpath != NULL; intercertpath++) {
+
+		X509 *intercert = load_cert(*intercertpath, &ierror);
+		if (intercert == NULL) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+		sk_X509_push(intercerts, intercert);
+	}
+
+	cms = CMS_sign(signcert, pkey, intercerts, incontent, flags);
 	if (cms == NULL) {
-		g_set_error_literal(
+		unsigned long err;
+		const gchar *data;
+		int errflags;
+		err = ERR_get_error_line_data(NULL, NULL, &data, &errflags);
+		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
-				R_SIGNATURE_ERROR_CREATE_SIG,
-				"failed to create signature");
+				R_SIGNATURE_ERROR_INVALID,
+				"failed to create signature: %s", (errflags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		goto out;
 	}
 	if (!i2d_CMS_bio(outsig, cms)) {
@@ -259,6 +277,7 @@ gchar* print_cert_chain(STACK_OF(X509) *verified_chain) {
 
 gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error) {
 	STACK_OF(X509) *signers = NULL;
+	STACK_OF(X509) *intercerts = NULL;
 	X509_STORE_CTX *cert_ctx = NULL;
 	gint signer_cnt;
 	gboolean res = FALSE;
@@ -288,6 +307,8 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 		goto out;
 	}
 
+	intercerts = CMS_get1_certs(cms);
+
 	cert_ctx = X509_STORE_CTX_new();
 	if (cert_ctx == NULL) {
 		g_set_error_literal(
@@ -298,7 +319,7 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 		goto out;
 	}
 
-	if (!X509_STORE_CTX_init(cert_ctx, store, sk_X509_value(signers, 0), NULL)) {
+	if (!X509_STORE_CTX_init(cert_ctx, store, sk_X509_value(signers, 0), intercerts)) {
 		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
@@ -308,11 +329,12 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 	}
 
 	if(X509_verify_cert(cert_ctx) != 1) {
-		g_set_error_literal(
+		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_VERIFY_CERT,
-				"Failed to verify X509 cert");
+				"Failed to verify X509 cert: %s",
+				X509_verify_cert_error_string(X509_STORE_CTX_get_error(cert_ctx)));
 		goto out;
 	}
 
@@ -413,7 +435,7 @@ out:
 	return res;
 }
 
-GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar *keyfile, GError **error) {
+GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error) {
 	GError *ierror = NULL;
 	GMappedFile *file;
 	GBytes *content = NULL;
@@ -426,7 +448,7 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
 	}
 	content = g_mapped_file_get_bytes(file);
 
-	sig = cms_sign(content, certfile, keyfile, &ierror);
+	sig = cms_sign(content, certfile, keyfile, interfiles, &ierror);
 	if (sig == NULL) {
 		g_propagate_error(error, ierror);
 		goto out;

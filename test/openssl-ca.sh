@@ -15,6 +15,10 @@ if [ -e $BASE ]; then
   exit 1
 fi
 
+mkdir -p $BASE/root/{private,certs}
+touch $BASE/root/index.txt
+echo 01 > $BASE/root/serial
+
 mkdir -p $BASE/rel/{private,certs}
 touch $BASE/rel/index.txt
 echo 01 > $BASE/rel/serial
@@ -86,15 +90,22 @@ EOF
 
 export OPENSSL_CONF=$BASE/openssl.cnf
 
-echo "Release CA"
-cd $BASE/rel
-openssl req -newkey rsa -keyout private/ca.key.pem -out ca.csr.pem -subj "/O=$ORG/CN=$ORG $CA Release"
+echo "Root CA"
+cd $BASE/root
+openssl req -newkey rsa -keyout private/ca.key.pem -out ca.csr.pem -subj "/O=$ORG/CN=$ORG $CA Root"
 openssl ca -batch -selfsign -extensions v3_ca -in ca.csr.pem -out ca.cert.pem -keyfile private/ca.key.pem
 
-echo "Development CA"
+echo "Release Intermediate CA"
+cd $BASE/rel
+openssl req -newkey rsa -keyout private/ca.key.pem -out ca.csr.pem -subj "/O=$ORG/CN=$ORG $CA Release"
+cd $BASE/root
+openssl ca -batch -extensions v3_inter -in $BASE/rel/ca.csr.pem -out $BASE/rel/ca.cert.pem
+
+echo "Development Intermediate CA"
 cd $BASE/dev
 openssl req -newkey rsa -keyout private/ca.key.pem -out ca.csr.pem -subj "/O=$ORG/CN=$ORG $CA Development"
-openssl ca -batch -selfsign -extensions v3_ca -in ca.csr.pem -out ca.cert.pem -keyfile private/ca.key.pem
+cd $BASE/root
+openssl ca -batch -extensions v3_inter -in $BASE/dev/ca.csr.pem -out $BASE/dev/ca.cert.pem
 
 echo "Autobuilder Signing Keys 1&2"
 cd $BASE/dev
@@ -112,6 +123,8 @@ openssl req -newkey rsa -keyout private/release-1.pem -out release-1.csr.pem -su
 openssl ca -batch -extensions v3_leaf -in release-1.csr.pem -out release-1.cert.pem
 
 echo "Generate CRL"
+cd $BASE/root
+openssl ca -gencrl $CRL -out crl.pem
 cd $BASE/rel
 openssl ca -gencrl $CRL -out crl.pem
 cd $BASE/dev
@@ -119,8 +132,9 @@ openssl ca -gencrl $CRL -out crl.pem
 
 echo "Build CA PEM"
 cd $BASE
-cat dev/ca.cert.pem dev/crl.pem rel/ca.cert.pem rel/crl.pem > dev-ca.pem
-cat rel/ca.cert.pem rel/crl.pem > rel-ca.pem
+cat root/ca.cert.pem root/crl.pem rel/crl.pem dev/crl.pem > provisioning-ca.pem
+cat root/ca.cert.pem root/crl.pem rel/ca.cert.pem rel/crl.pem dev/ca.cert.pem dev/crl.pem > dev-ca.pem
+cat root/ca.cert.pem root/crl.pem rel/ca.cert.pem rel/crl.pem > rel-ca.pem
 
 cd $BASE
 cat > manifest <<EOF
@@ -146,21 +160,19 @@ filename=appfs.ext4
 EOF
 
 echo "Sign and check with Release-1"
-openssl cms -sign -in manifest -out manifest-r1.sig -signer rel/release-1.cert.pem -inkey rel/private/release-1.pem -outform DER -nosmimecap -binary
-openssl cms -verify -in manifest-r1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem || echo FAILED
-openssl cms -verify -in manifest-r1.sig -content manifest -inform DER -binary -crl_check -CAfile rel-ca.pem || echo FAILED
+openssl cms -sign -in manifest -out manifest-r1.sig -signer rel/release-1.cert.pem -inkey rel/private/release-1.pem -outform DER -nosmimecap -binary -certfile rel/ca.cert.pem
+openssl cms -verify -in manifest-r1.sig -content manifest -inform DER -binary -crl_check -CAfile provisioning-ca.pem || echo FAILED
 
 echo "Sign and check with Autobuilder-1"
-openssl cms -sign -in manifest -out manifest-a1.sig -signer dev/autobuilder-1.cert.pem -inkey dev/private/autobuilder-1.pem -outform DER -nosmimecap -binary
-openssl cms -verify -in manifest-a1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem || echo FAILED
-openssl cms -verify -in manifest-a1.sig -content manifest -inform DER -binary -crl_check -CAfile rel-ca.pem && echo FAILED
+openssl cms -sign -in manifest -out manifest-a1.sig -signer dev/autobuilder-1.cert.pem -inkey dev/private/autobuilder-1.pem -outform DER -nosmimecap -binary -certfile dev/ca.cert.pem
+openssl cms -verify -in manifest-a1.sig -content manifest -inform DER -binary -crl_check -CAfile provisioning-ca.pem || echo FAILED
 
 echo "Sign and check with Autobuilder-2 (revoked)"
-openssl cms -sign -in manifest -out manifest-a2.sig -signer dev/autobuilder-2.cert.pem -inkey dev/private/autobuilder-2.pem -outform DER -nosmimecap -binary
+openssl cms -sign -in manifest -out manifest-a2.sig -signer dev/autobuilder-2.cert.pem -inkey dev/private/autobuilder-2.pem -outform DER -nosmimecap -binary -certfile dev/ca.cert.pem
 echo "  without CRL"
-openssl cms -verify -in manifest-a2.sig -content manifest -inform DER -binary -CAfile dev/ca.cert.pem || echo FAILED
+openssl cms -verify -in manifest-a2.sig -content manifest -inform DER -binary -CAfile root/ca.cert.pem || echo FAILED
 echo "  with CRL"
-openssl cms -verify -in manifest-a2.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem && echo FAILED
+openssl cms -verify -in manifest-a2.sig -content manifest -inform DER -binary -crl_check -CAfile provisioning-ca.pem && echo FAILED
 
 echo "Encrypt and decrypt with Release-1"
 openssl cms -encrypt -text -in manifest -aes256 -out manifest.mail rel/release-1.cert.pem

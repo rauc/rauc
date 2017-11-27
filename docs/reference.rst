@@ -275,6 +275,7 @@ Command Line Tool
     --cert=PEMFILE                    cert file
     --key=PEMFILE                     key file
     --keyring=PEMFILE                 keyring file
+    --intermediate=PEMFILE            intermediate CA file name
     --mount=PATH                      mount prefix
     --override-boot-slot=SLOTNAME     override auto-detection of booted slot
     --handler-args=ARGS               extra handler arguments
