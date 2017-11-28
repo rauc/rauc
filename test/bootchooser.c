@@ -113,6 +113,29 @@ bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=20\n\
 ", TRUE);
 	g_assert_true(r_boot_set_primary(slot));
+
+	/* check rootfs-1 is marked primary while current remains disabled (prio set to 20, others to 10) */
+	g_setenv ("BAREBOX_STATE_VARS_PRE", " \
+bootstate.system0.remaining_attempts=3\n\
+bootstate.system0.priority=0\n\
+bootstate.system1.remaining_attempts=0\n\
+bootstate.system1.priority=10\n\
+", TRUE);
+	g_setenv ("BAREBOX_STATE_VARS_POST", " \
+bootstate.system0.remaining_attempts=3\n\
+bootstate.system0.priority=0\n\
+bootstate.system1.remaining_attempts=3\n\
+bootstate.system1.priority=20\n\
+", TRUE);
+	/* ATM we expect this to fail as we do not read barebox-state prior to
+	 * writing it. */
+        g_test_expect_message (G_LOG_DOMAIN,
+                        G_LOG_LEVEL_WARNING,
+                        "setting state failed: Child process exited with code 2");
+        g_test_expect_message (G_LOG_DOMAIN,
+                        G_LOG_LEVEL_WARNING,
+                        "failed marking as primary");
+	g_assert_false(r_boot_set_primary(slot));
 }
 
 static void bootchooser_grub(BootchooserFixture *fixture,
