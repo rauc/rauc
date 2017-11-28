@@ -40,10 +40,10 @@ mountprefix=/mnt/myrauc/\n\
 [keyring]\n\
 path=/etc/rauc/keyring/\n\
 \n\
-[slot.rescue.0]\n\
-device=/dev/mtd4\n\
+[slot.recovery.0]\n\
+device=/dev/recovery-0\n\
 type=raw\n\
-bootname=factory0\n\
+bootname=recovery\n\
 readonly=true\n\
 \n\
 [slot.rootfs.0]\n\
