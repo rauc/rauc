@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# List of valid variables
-varlist="bootstate.system0.remaining_attempts bootstate.system0.priority bootstate.system0.ok bootstate.system1.remaining_attempts bootstate.system1.priority bootstate.system1.ok bootstate.factory.remaining_attempts bootstate.factory.priority bootstate.factory.ok=0"
+# escape to bash-compatible variable assignment for saving pre-values
+for i in $BAREBOX_STATE_VARS_PRE; do
+	eval $(echo $i | sed 's/\./__/g')
+done
 
 # Command line parsing
 while [[ $# > 1 ]]; do
@@ -25,8 +27,8 @@ done
 
 function check_var {
 	found=0
-	for l in $varlist; do
-		if [ "$1" = "$l" ]; then
+	for l in $BAREBOX_STATE_VARS_PRE; do
+		if [ "$1" = "${l%=*}" ]; then
 			found=1
 		fi
 	done
@@ -34,7 +36,6 @@ function check_var {
 		echo "Invalid variable: $1"
 		exit 1
 	fi
-	printf "$1=$2\n"
 }
 
 for i in $SETVAR; do
@@ -43,6 +44,8 @@ for i in $SETVAR; do
 
 	check_var "$var" "$val"
 
+	# Assign new value
+	eval $(echo $SETVAR | sed 's/\./__/g')
 done
 
 for i in $GETVAR; do
@@ -51,6 +54,21 @@ for i in $GETVAR; do
 
 	check_var "$var"
 
+	# Output values read
+	eval echo \$$(echo ${i%=*} | sed 's/\./__/g')
+done
+
+# If we do not set something, exit before post value validation
+if [ -z "$SETVAR" ]; then
+	exit 0
+fi
+
+for i in $BAREBOX_STATE_VARS_POST; do
+	comp=$(echo ${i%=*} | sed 's/\./__/g')
+	if [ "${i#*=}" != "${!comp}" ]; then
+		echo "${i%=*} should be ${i#*=} but was ${!comp}" 1>&2
+		exit 2
+	fi
 done
 
 exit 0
