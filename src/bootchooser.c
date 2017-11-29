@@ -240,12 +240,13 @@ out:
 	return res;
 }
 
-static gboolean grub_env_set(GPtrArray *pairs) {
+static gboolean grub_env_set(GPtrArray *pairs, GError **error) {
 	GSubprocess *sub;
-	GError *error = NULL;
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(pairs, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_assert_cmpuint(pairs->len, >, 0);
 	g_assert_nonnull(r_context()->config->grubenv_path);
@@ -256,17 +257,21 @@ static gboolean grub_env_set(GPtrArray *pairs) {
 	g_ptr_array_add(pairs, NULL);
 
 	sub = g_subprocess_newv((const gchar * const *)pairs->pdata,
-				  G_SUBPROCESS_FLAGS_NONE, &error);
+				  G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!sub) {
-		g_warning("starting grub-editenv failed: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start grub-editenv: ");
 		goto out;
 	}
 
-	res = g_subprocess_wait_check(sub, NULL, &error);
+	res = g_subprocess_wait_check(sub, NULL, &ierror);
 	if (!res) {
-		g_warning("grub-editenv failed: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run grub-editenv: ");
 		goto out;
 	}
 
@@ -281,6 +286,7 @@ out:
 /* Set slot status values */
 static gboolean grub_set_state(RaucSlot *slot, gboolean good) {
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(slot, FALSE);
@@ -293,9 +299,10 @@ static gboolean grub_set_state(RaucSlot *slot, gboolean good) {
 		g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=0", slot->bootname));
 	}
 
-	res = grub_env_set(pairs);
+	res = grub_env_set(pairs, &ierror);
 	if (!res) {
-		g_warning("failed marking as %s", good ? "good" : "bad");
+		g_warning("failed marking as %s: %s", good ? "good" : "bad", ierror->message);
+		g_clear_error(&ierror);
 		goto out;
 	}
 
@@ -309,6 +316,7 @@ out:
 static gboolean grub_set_primary(RaucSlot *slot) {
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
 	GString *order = NULL;
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(slot, FALSE);
@@ -323,9 +331,10 @@ static gboolean grub_set_primary(RaucSlot *slot) {
 	g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=%i", slot->bootname, 0));
 	g_ptr_array_add(pairs, g_strdup_printf("ORDER=%s", order->str));
 
-	res = grub_env_set(pairs);
+	res = grub_env_set(pairs, &ierror);
 	if (!res) {
-		g_warning("failed marking as primary");
+		g_warning("failed marking as primary: %s", ierror->message);
+		g_clear_error(&ierror);
 		goto out;
 	}
 
