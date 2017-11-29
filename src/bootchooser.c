@@ -51,7 +51,6 @@ typedef struct {
 
 #define BOOTSTATE_PREFIX "bootstate"
 
-#if 0
 static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_state) {
 	GSubprocess *sub;
 	GError *error = NULL;
@@ -117,7 +116,6 @@ out:
 	g_ptr_array_unref(args);
 	return res;
 }
-#endif
 
 
 /* names: list of gchar, values: list of gint */
@@ -203,14 +201,25 @@ static gboolean barebox_set_primary(RaucSlot *slot) {
 	for (GList *l = slots; l != NULL; l = l->next) {
 		RaucSlot *s = l->data;
 		int prio;
+		BareboxSlotState bb_state;
 
 		if (s->sclass != slot->sclass)
 			continue;
 
+
+		res = barebox_state_get(s->bootname, &bb_state);
+		if (!res) {
+			g_warning("failed obtaining current state");
+			goto out;
+		}
+
 		if (s == slot) {
 			prio = BAREBOX_STATE_PRIORITY_PRIMARY;
 		} else {
-			prio = BAREBOX_STATE_DEFAULT_PRIORITY;
+			if (bb_state.prio == 0)
+				prio = 0;
+			else
+				prio = BAREBOX_STATE_DEFAULT_PRIORITY;
 		}
 		g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".%s.priority=%i",
 				s->bootname, prio));
