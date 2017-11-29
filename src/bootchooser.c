@@ -178,13 +178,14 @@ out:
 }
 
 /* Set slot status values */
-static gboolean barebox_set_state(RaucSlot *slot, gboolean good) {
+static gboolean barebox_set_state(RaucSlot *slot, gboolean good, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
 	int attempts;
 
 	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (good) {
 		attempts = BAREBOX_STATE_DEFAULT_ATTEMPS;
@@ -200,8 +201,7 @@ static gboolean barebox_set_state(RaucSlot *slot, gboolean good) {
 
 	res = barebox_state_set(pairs, &ierror);
 	if (!res) {
-		g_warning("failed marking as %s: %s", good ? "good" : "bad", ierror->message);
-		g_clear_error(&ierror);
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 
@@ -212,13 +212,14 @@ out:
 }
 
 /* Set slot as primary boot slot */
-static gboolean barebox_set_primary(RaucSlot *slot) {
+static gboolean barebox_set_primary(RaucSlot *slot, GError **error) {
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GList *slots;
 
 	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* Iterate over class members */
 	slots = g_hash_table_get_values(r_context()->config->slots);
@@ -233,8 +234,7 @@ static gboolean barebox_set_primary(RaucSlot *slot) {
 
 		res = barebox_state_get(s->bootname, &bb_state, &ierror);
 		if (!res) {
-			g_warning("failed obtaining current state: %s", ierror->message);
-			g_clear_error(&ierror);
+			g_propagate_error(error, ierror);
 			goto out;
 		}
 
@@ -255,8 +255,7 @@ static gboolean barebox_set_primary(RaucSlot *slot) {
 
 	res = barebox_state_set(pairs, &ierror);
 	if (!res) {
-		g_warning("failed marking as primary: %s", ierror->message);
-		g_clear_error(&ierror);
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 
@@ -310,12 +309,13 @@ out:
 }
 
 /* Set slot status values */
-static gboolean grub_set_state(RaucSlot *slot, gboolean good) {
+static gboolean grub_set_state(RaucSlot *slot, gboolean good, GError **error) {
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (good) {
 		g_ptr_array_add(pairs, g_strdup_printf("%s_OK=1", slot->bootname));
@@ -327,8 +327,7 @@ static gboolean grub_set_state(RaucSlot *slot, gboolean good) {
 
 	res = grub_env_set(pairs, &ierror);
 	if (!res) {
-		g_warning("failed marking as %s: %s", good ? "good" : "bad", ierror->message);
-		g_clear_error(&ierror);
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 
@@ -339,13 +338,14 @@ out:
 }
 
 /* Set slot as primary boot slot */
-static gboolean grub_set_primary(RaucSlot *slot) {
+static gboolean grub_set_primary(RaucSlot *slot, GError **error) {
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
 	GString *order = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	order = bootchooser_order_primay(slot);
 
@@ -355,8 +355,7 @@ static gboolean grub_set_primary(RaucSlot *slot) {
 
 	res = grub_env_set(pairs, &ierror);
 	if (!res) {
-		g_warning("failed marking as primary: %s", ierror->message);
-		g_clear_error(&ierror);
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 
@@ -467,19 +466,19 @@ out:
 }
 
 /* Set slot status values */
-static gboolean uboot_set_state(RaucSlot *slot, gboolean good) {
+static gboolean uboot_set_state(RaucSlot *slot, gboolean good, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar *key = NULL;
 
 	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
 
 	res = uboot_env_set(key, good ? "3" : "0", &ierror);
 	if (!res) {
-		g_warning("failed marking as %s: %s", good ? "good" : "bad", ierror->message);
-		g_clear_error(&ierror);
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 
@@ -489,14 +488,16 @@ out:
 }
 
 /* Set slot as primary boot slot */
-static gboolean uboot_set_primary(RaucSlot *slot) {
+static gboolean uboot_set_primary(RaucSlot *slot, GError **error) {
 	GString *order_new = g_string_sized_new(10);
 	GString *order_current = NULL;
 	gchar **bootnames = NULL;
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar *key = NULL;
 
 	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* Add updated slot as first entry in new boot order */
 	g_string_append(order_new, slot->bootname);
@@ -526,14 +527,14 @@ static gboolean uboot_set_primary(RaucSlot *slot) {
 
 	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
 
-	res = uboot_env_set(key, "3", NULL);
+	res = uboot_env_set(key, "3", &ierror);
 	if (!res) {
-		g_warning("failed marking as good");
+		g_propagate_error(error, ierror);
 		goto out;
 	}
-	res = uboot_env_set("BOOT_ORDER", order_new->str, NULL);
+	res = uboot_env_set("BOOT_ORDER", order_new->str, &ierror);
 	if (!res) {
-		g_warning("failed marking as primary");
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 
@@ -546,41 +547,73 @@ out:
 	return res;
 }
 
-gboolean r_boot_set_state(RaucSlot *slot, gboolean good) {
+gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error) {
+	gboolean res = FALSE;
+	GError *ierror = NULL;
 
 	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
-		return barebox_set_state(slot, good);
+		res = barebox_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
-		return grub_set_state(slot, good);
+		res = grub_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
-		return uboot_set_state(slot, good);
+		res = uboot_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "noop") == 0) {
 		g_message("noop bootloader: ignore setting slot %s status to %s", slot->name, good ? "good" : "bad");
-		return TRUE;
+		res = TRUE;
+	} else {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+				"Bootloader type '%s' not supported yet", r_context()->config->system_bootloader);
+		return FALSE;
 	}
 
-	g_error("bootloader type '%s' not supported yet", r_context()->config->system_bootloader);
-	return FALSE;
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed marking '%s' as %s: ", slot->name, good ? "good" : "bad");
+	}
+
+	return res;
 }
 
-gboolean r_boot_set_primary(RaucSlot *slot) {
+gboolean r_boot_set_primary(RaucSlot *slot, GError **error) {
+	gboolean res = FALSE;
+	GError *ierror = NULL;
 
 	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
-		return barebox_set_primary(slot);
+		res = barebox_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
-		return grub_set_primary(slot);
+		res = grub_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
-		return uboot_set_primary(slot);
+		res = uboot_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "noop") == 0) {
 		g_message("noop bootloader: ignore setting slot %s as primary", slot->name);
-		return TRUE;
+		res = TRUE;
+	} else {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+				"Bootloader type '%s' not supported yet", r_context()->config->system_bootloader);
+		return FALSE;
 	}
 
-	g_error("bootloader type '%s' not supported yet", r_context()->config->system_bootloader);
-	return FALSE;
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed marking '%s' as primary: ", slot->name);
+	}
+
+	return res;
 }
 

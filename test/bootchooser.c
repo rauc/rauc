@@ -79,7 +79,7 @@ bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
 ", TRUE);
-	g_assert_true(r_boot_set_state(slot, TRUE));
+	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
 
 	/* check rootfs-0 is marked bad (prio and attempts 0) */
 	g_setenv ("BAREBOX_STATE_VARS_PRE", " \
@@ -94,7 +94,7 @@ bootstate.system0.priority=0\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
 ", TRUE);
-	g_assert_true(r_boot_set_state(slot, FALSE));
+	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
 
 	slot = find_config_slot_by_device(r_context()->config, "/dev/sda1");
 	g_assert_nonnull(slot);
@@ -112,7 +112,7 @@ bootstate.system0.priority=10\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=20\n\
 ", TRUE);
-	g_assert_true(r_boot_set_primary(slot));
+	g_assert_true(r_boot_set_primary(slot, NULL));
 
 	/* check rootfs-1 is marked primary while current remains disabled (prio set to 20, others to 10) */
 	g_setenv ("BAREBOX_STATE_VARS_PRE", " \
@@ -127,7 +127,7 @@ bootstate.system0.priority=0\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=20\n\
 ", TRUE);
-	g_assert_true(r_boot_set_primary(slot));
+	g_assert_true(r_boot_set_primary(slot, NULL));
 }
 
 static void bootchooser_grub(BootchooserFixture *fixture,
@@ -171,13 +171,13 @@ bootname=B\n";
 	slot = find_config_slot_by_device(r_context()->config, "/dev/sda0");
 	g_assert_nonnull(slot);
 
-	g_assert_true(r_boot_set_state(slot, TRUE));
-	g_assert_true(r_boot_set_state(slot, FALSE));
+	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
+	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
 
 	slot = find_config_slot_by_device(r_context()->config, "/dev/sda1");
 	g_assert_nonnull(slot);
 
-	g_assert_true(r_boot_set_primary(slot));
+	g_assert_true(r_boot_set_primary(slot, NULL));
 }
 
 static void bootchooser_uboot(BootchooserFixture *fixture,
@@ -220,13 +220,13 @@ bootname=B\n";
 	slot = find_config_slot_by_device(r_context()->config, "/dev/sda0");
 	g_assert_nonnull(slot);
 
-	g_assert_true(r_boot_set_state(slot, TRUE));
-	g_assert_true(r_boot_set_state(slot, FALSE));
+	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
+	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
 
 	slot = find_config_slot_by_device(r_context()->config, "/dev/sda1");
 	g_assert_nonnull(slot);
 
-	g_assert_true(r_boot_set_primary(slot));
+	g_assert_true(r_boot_set_primary(slot, NULL));
 }
 
 int main(int argc, char *argv[])
