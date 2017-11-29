@@ -21,8 +21,8 @@ static gboolean bootchooser_order_primay(RaucSlot *slot, GString **value) {
 	GString *order = g_string_sized_new(10);
 	GList *slots;
 
-	g_assert_nonnull(slot);
-	g_assert_nonnull(value);
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(value, FALSE);
 
 	g_string_append(order, slot->bootname);
 
@@ -55,6 +55,9 @@ static gboolean barebox_state_get_int(const gchar* name, int *value) {
 	guint64 result = 0;
 	GPtrArray *args = g_ptr_array_new_full(10, g_free);
 	
+	g_return_val_if_fail(bootname, FALSE);
+	g_return_val_if_fail(bb_state, FALSE);
+
 	g_ptr_array_add(args, g_strdup(BAREBOX_STATE_NAME));
 	g_ptr_array_add(args, g_strdup("-g"));
 	g_ptr_array_add(args, g_strdup(name));
@@ -107,6 +110,8 @@ static gboolean barebox_state_set(GPtrArray *pairs) {
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(2*pairs->len+2, g_free);
 
+	g_return_val_if_fail(pairs, FALSE);
+
 	g_assert_cmpuint(pairs->len, >, 0);
 	
 	g_ptr_array_add(args, g_strdup(BAREBOX_STATE_NAME));
@@ -142,7 +147,7 @@ static gboolean barebox_set_state(RaucSlot *slot, gboolean good) {
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
 	int attempts;
 
-	g_assert_nonnull(slot);
+	g_return_val_if_fail(slot, FALSE);
 
 	if (good) {
 		attempts = BAREBOX_STATE_DEFAULT_ATTEMPS;
@@ -174,7 +179,7 @@ static gboolean barebox_set_primary(RaucSlot *slot) {
 	gboolean res = FALSE;
 	GList *slots;
 
-	g_assert_nonnull(slot);
+	g_return_val_if_fail(slot, FALSE);
 
 	/* Iterate over class members */
 	slots = g_hash_table_get_values(r_context()->config->slots);
@@ -214,6 +219,8 @@ static gboolean grub_env_set(GPtrArray *pairs) {
 	GError *error = NULL;
 	gboolean res = FALSE;
 
+	g_return_val_if_fail(pairs, FALSE);
+
 	g_assert_cmpuint(pairs->len, >, 0);
 	g_assert_nonnull(r_context()->config->grubenv_path);
 
@@ -250,7 +257,7 @@ static gboolean grub_set_state(RaucSlot *slot, gboolean good) {
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
 	gboolean res = FALSE;
 
-	g_assert_nonnull(slot);
+	g_return_val_if_fail(slot, FALSE);
 
 	if (good) {
 		g_ptr_array_add(pairs, g_strdup_printf("%s_OK=1", slot->bootname));
@@ -278,7 +285,7 @@ static gboolean grub_set_primary(RaucSlot *slot) {
 	GString *order = NULL;
 	gboolean res = FALSE;
 
-	g_assert_nonnull(slot);
+	g_return_val_if_fail(slot, FALSE);
 
 	res = bootchooser_order_primay(slot, &order);
 	if (!res) {
@@ -314,8 +321,8 @@ static gboolean uboot_env_get(const gchar *key, GString **value) {
 	gboolean res = FALSE;
 	gint ret;
 
-	g_assert_nonnull(key);
-	g_assert_nonnull(value);
+	g_return_val_if_fail(key, FALSE);
+	g_return_val_if_fail(value && *value == NULL, FALSE);
 
 	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &error,
 			       UBOOT_FWGETENV_NAME, key, NULL);
@@ -363,8 +370,8 @@ static gboolean uboot_env_set(const gchar *key, const gchar *value) {
 	GError *error = NULL;
 	gboolean res = FALSE;
 
-	g_assert_nonnull(key);
-	g_assert_nonnull(value);
+	g_return_val_if_fail(key, FALSE);
+	g_return_val_if_fail(value, FALSE);
 
 	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &error, UBOOT_FWSETENV_NAME,
 			       key, value, NULL);
@@ -390,7 +397,7 @@ static gboolean uboot_set_state(RaucSlot *slot, gboolean good) {
 	gboolean res = FALSE;
 	gchar *key = NULL;
 
-	g_assert_nonnull(slot);
+	g_return_val_if_fail(slot, FALSE);
 
 	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
 
@@ -413,7 +420,7 @@ static gboolean uboot_set_primary(RaucSlot *slot) {
 	gboolean res = FALSE;
 	gchar *key = NULL;
 
-	g_assert_nonnull(slot);
+	g_return_val_if_fail(slot, FALSE);
 
 	/* Add updated slot as first entry in new boot order */
 	g_string_append(order_new, slot->bootname);
@@ -460,6 +467,9 @@ out:
 }
 
 gboolean r_boot_set_state(RaucSlot *slot, gboolean good) {
+
+	g_return_val_if_fail(slot, FALSE);
+
 	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
 		return barebox_set_state(slot, good);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
@@ -476,6 +486,9 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good) {
 }
 
 gboolean r_boot_set_primary(RaucSlot *slot) {
+
+	g_return_val_if_fail(slot, FALSE);
+
 	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
 		return barebox_set_primary(slot);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
