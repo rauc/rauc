@@ -44,27 +44,36 @@ static gboolean bootchooser_order_primay(RaucSlot *slot, GString **value) {
 	return TRUE;
 }
 
+typedef struct {
+	guint32 prio;
+	guint32 attempts;
+} BareboxSlotState;
+
+#define BOOTSTATE_PREFIX "bootstate"
+
 #if 0
-static gboolean barebox_state_get_int(const gchar* name, int *value) {
+static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_state) {
 	GSubprocess *sub;
 	GError *error = NULL;
 	gboolean res = FALSE;
 	GInputStream *instream;
 	GDataInputStream *datainstream;
 	gchar* outline;
-	guint64 result = 0;
-	GPtrArray *args = g_ptr_array_new_full(10, g_free);
+	guint64 result[2] = {};
+	GPtrArray *args = g_ptr_array_new_full(6, g_free);
 	
 	g_return_val_if_fail(bootname, FALSE);
 	g_return_val_if_fail(bb_state, FALSE);
 
 	g_ptr_array_add(args, g_strdup(BAREBOX_STATE_NAME));
 	g_ptr_array_add(args, g_strdup("-g"));
-	g_ptr_array_add(args, g_strdup(name));
+	g_ptr_array_add(args, g_strdup_printf(BOOTSTATE_PREFIX ".%s.priority", bootname));
+	g_ptr_array_add(args, g_strdup("-g"));
+	g_ptr_array_add(args, g_strdup_printf(BOOTSTATE_PREFIX ".%s.remaining_attempts", bootname));
 	g_ptr_array_add(args, NULL);
 
 	sub = g_subprocess_newv((const gchar * const *)args->pdata,
-				  G_SUBPROCESS_FLAGS_NONE, &error);
+				  G_SUBPROCESS_FLAGS_STDOUT_PIPE, &error);
 	if (!sub) {
 		g_warning("getting state failed: %s", error->message);
 		g_clear_error(&error);
@@ -74,34 +83,42 @@ static gboolean barebox_state_get_int(const gchar* name, int *value) {
 	instream = g_subprocess_get_stdout_pipe(sub);
 	datainstream = g_data_input_stream_new(instream);
 
-	outline = g_data_input_stream_read_line(datainstream, NULL, NULL, NULL);
-	if (!outline) {
-		g_warning("failed reading state");
-		goto out;
-	}
+	for (int i = 0; i < 2; i++) {
+		gchar *endptr = NULL;
+		outline = g_data_input_stream_read_line(datainstream, NULL, NULL, NULL);
+		if (!outline) {
+			g_warning("Failed parsing barebox-state output");
+			goto out;
+		}
 
-
-	result = g_ascii_strtoull(outline, NULL, 10);
-	if (errno != 0) {
-		g_warning("Invalid return value: '%s'", outline);
-		goto out;
+		result[i] = g_ascii_strtoull(outline, &endptr, 10);
+		if (result[i] == 0 && outline == endptr) {
+			g_warning("Failed to parse value: '%s'", outline);
+			res = FALSE;
+			goto out;
+		} else if (result[i] == G_MAXUINT64 && errno != 0) {
+			g_warning("Return value overflow: '%s', error: %d", outline, errno);
+			res = FALSE;
+			goto out;
+		}
 	}
 
 	res = g_subprocess_wait_check(sub, NULL, &error);
 	if (!res) {
-		g_warning("getting state failed: %s", error->message);
+		g_warning("Getting state failed: %s", error->message);
 		g_clear_error(&error);
 		goto out;
 	}
 
+	bb_state->prio = result[0];
+	bb_state->attempts = result[1];
+
 out:
 	g_ptr_array_unref(args);
-	*value = result;
 	return res;
 }
 #endif
 
-#define BOOTSTATE_PREFIX "bootstate"
 
 /* names: list of gchar, values: list of gint */
 static gboolean barebox_state_set(GPtrArray *pairs) {
