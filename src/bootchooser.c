@@ -346,9 +346,9 @@ out:
 	return res;
 }
 
-static gboolean uboot_env_get(const gchar *key, GString **value) {
+static gboolean uboot_env_get(const gchar *key, GString **value, GError **error) {
 	GSubprocess *sub;
-	GError *error = NULL;
+	GError *ierror = NULL;
 	GBytes *stdout_buf = NULL;
 	const char *data;
 	gsize offset;
@@ -358,32 +358,44 @@ static gboolean uboot_env_get(const gchar *key, GString **value) {
 
 	g_return_val_if_fail(key, FALSE);
 	g_return_val_if_fail(value && *value == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &error,
+	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror,
 			       UBOOT_FWGETENV_NAME, key, NULL);
 	if (!sub) {
-		g_warning("starting " UBOOT_FWGETENV_NAME " failed: %s",
-			  error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start " UBOOT_FWGETENV_NAME ": ");
 		goto out;
 	}
 
-	res = g_subprocess_communicate(sub, NULL, NULL, &stdout_buf, NULL, &error);
+	res = g_subprocess_communicate(sub, NULL, NULL, &stdout_buf, NULL, &ierror);
 	if (!res) {
-		g_warning(UBOOT_FWGETENV_NAME " communication failed: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run " UBOOT_FWGETENV_NAME ": ");
 		goto out;
 	}
 
 	res = g_subprocess_get_if_exited(sub);
 	if (!res) {
-		g_warning(UBOOT_FWGETENV_NAME " did not exit normally");
+		g_set_error_literal(
+				error,
+				G_SPAWN_ERROR,
+				G_SPAWN_ERROR_FAILED,
+				UBOOT_FWGETENV_NAME " did not exit normally");
 		goto out;
 	}
 
 	ret = g_subprocess_get_exit_status(sub);
 	if (ret != 0) {
-		g_warning(UBOOT_FWGETENV_NAME " failed with exit code: %i", ret);
+		g_set_error(
+				error,
+				G_SPAWN_EXIT_ERROR,
+				ret,
+				UBOOT_FWGETENV_NAME " failed with exit code: %i", ret);
 		res = FALSE;
 		goto out;
 	}
@@ -400,26 +412,31 @@ out:
 	return res;
 }
 
-static gboolean uboot_env_set(const gchar *key, const gchar *value) {
+static gboolean uboot_env_set(const gchar *key, const gchar *value, GError **error) {
 	GSubprocess *sub;
-	GError *error = NULL;
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(key, FALSE);
 	g_return_val_if_fail(value, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &error, UBOOT_FWSETENV_NAME,
+	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, UBOOT_FWSETENV_NAME,
 			       key, value, NULL);
 	if (!sub) {
-		g_warning("starting fw_setenv failed: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start fw_setenv: ");
 		goto out;
 	}
 
-	res = g_subprocess_wait_check(sub, NULL, &error);
+	res = g_subprocess_wait_check(sub, NULL, &ierror);
 	if (!res) {
-		g_warning("fw_setenv failed: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run fw_setenv: ");
 		goto out;
 	}
 
@@ -429,6 +446,7 @@ out:
 
 /* Set slot status values */
 static gboolean uboot_set_state(RaucSlot *slot, gboolean good) {
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar *key = NULL;
 
@@ -436,9 +454,10 @@ static gboolean uboot_set_state(RaucSlot *slot, gboolean good) {
 
 	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
 
-	res = uboot_env_set(key, good ? "3" : "0");
+	res = uboot_env_set(key, good ? "3" : "0", &ierror);
 	if (!res) {
-		g_warning("failed marking as %s", good ? "good" : "bad");
+		g_warning("failed marking as %s: %s", good ? "good" : "bad", ierror->message);
+		g_clear_error(&ierror);
 		goto out;
 	}
 
@@ -460,7 +479,7 @@ static gboolean uboot_set_primary(RaucSlot *slot) {
 	/* Add updated slot as first entry in new boot order */
 	g_string_append(order_new, slot->bootname);
 
-	res = uboot_env_get("BOOT_ORDER", &order_current);
+	res = uboot_env_get("BOOT_ORDER", &order_current, NULL);
 	if (!res && !bootchooser_order_primay(slot, &order_current))
 		goto out;
 
@@ -481,12 +500,12 @@ static gboolean uboot_set_primary(RaucSlot *slot) {
 
 	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
 
-	res = uboot_env_set(key, "3");
+	res = uboot_env_set(key, "3", NULL);
 	if (!res) {
 		g_warning("failed marking as good");
 		goto out;
 	}
-	res = uboot_env_set("BOOT_ORDER", order_new->str);
+	res = uboot_env_set("BOOT_ORDER", order_new->str, NULL);
 	if (!res) {
 		g_warning("failed marking as primary");
 		goto out;
