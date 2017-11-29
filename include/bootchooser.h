@@ -4,6 +4,13 @@
 
 #include "config_file.h"
 
+#define R_BOOTCHOOSER_ERROR r_bootchooser_error_quark ()
+GQuark r_bootchooser_error_quark (void);
+
+#define R_BOOTCHOOSER_ERROR_FAILED		0
+#define R_BOOTCHOOSER_ERROR_NOT_SUPPORTED	10
+#define R_BOOTCHOOSER_ERROR_PARSE_FAILED	20
+
 /**
  * Mark slot as good or bad.
  *

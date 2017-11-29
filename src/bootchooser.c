@@ -9,6 +9,11 @@
 #include "context.h"
 #include "install.h"
 
+GQuark r_bootchooser_error_quark (void)
+{
+  return g_quark_from_static_string ("r_bootchooser_error_quark");
+}
+
 #define BAREBOX_STATE_NAME "barebox-state"
 #define BAREBOX_STATE_DEFAULT_ATTEMPS	3
 #define BAREBOX_STATE_ATTEMPS_PRIMARY	3
@@ -51,9 +56,9 @@ typedef struct {
 
 #define BOOTSTATE_PREFIX "bootstate"
 
-static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_state) {
+static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_state, GError **error) {
 	GSubprocess *sub;
-	GError *error = NULL;
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GInputStream *instream;
 	GDataInputStream *datainstream;
@@ -63,6 +68,7 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 	
 	g_return_val_if_fail(bootname, FALSE);
 	g_return_val_if_fail(bb_state, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_ptr_array_add(args, g_strdup(BAREBOX_STATE_NAME));
 	g_ptr_array_add(args, g_strdup("-g"));
@@ -72,10 +78,12 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 	g_ptr_array_add(args, NULL);
 
 	sub = g_subprocess_newv((const gchar * const *)args->pdata,
-				  G_SUBPROCESS_FLAGS_STDOUT_PIPE, &error);
+				  G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror);
 	if (!sub) {
-		g_warning("getting state failed: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start " BAREBOX_STATE_NAME ": ");
 		goto out;
 	}
 
@@ -84,28 +92,39 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 
 	for (int i = 0; i < 2; i++) {
 		gchar *endptr = NULL;
-		outline = g_data_input_stream_read_line(datainstream, NULL, NULL, NULL);
+		outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
 		if (!outline) {
-			g_warning("Failed parsing barebox-state output");
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed parsing " BAREBOX_STATE_NAME " output: ");
 			goto out;
 		}
 
 		result[i] = g_ascii_strtoull(outline, &endptr, 10);
 		if (result[i] == 0 && outline == endptr) {
-			g_warning("Failed to parse value: '%s'", outline);
-			res = FALSE;
+			g_set_error(
+					error,
+					R_BOOTCHOOSER_ERROR,
+					R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+					"Failed to parse value: '%s'", outline);
 			goto out;
 		} else if (result[i] == G_MAXUINT64 && errno != 0) {
-			g_warning("Return value overflow: '%s', error: %d", outline, errno);
-			res = FALSE;
+			g_set_error(
+					error,
+					R_BOOTCHOOSER_ERROR,
+					R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+					"Return value overflow: '%s', error: %d", outline, errno);
 			goto out;
 		}
 	}
 
-	res = g_subprocess_wait_check(sub, NULL, &error);
+	res = g_subprocess_wait_check(sub, NULL, &ierror);
 	if (!res) {
-		g_warning("Getting state failed: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run " BAREBOX_STATE_NAME ": ");
 		goto out;
 	}
 
@@ -119,13 +138,14 @@ out:
 
 
 /* names: list of gchar, values: list of gint */
-static gboolean barebox_state_set(GPtrArray *pairs) {
+static gboolean barebox_state_set(GPtrArray *pairs, GError **error) {
 	GSubprocess *sub;
-	GError *error = NULL;
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(2*pairs->len+2, g_free);
 
 	g_return_val_if_fail(pairs, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_assert_cmpuint(pairs->len, >, 0);
 	
@@ -137,17 +157,21 @@ static gboolean barebox_state_set(GPtrArray *pairs) {
 	g_ptr_array_add(args, NULL);
 
 	sub = g_subprocess_newv((const gchar * const *)args->pdata,
-				  G_SUBPROCESS_FLAGS_NONE, &error);
+				  G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!sub) {
-		g_warning("starting " BAREBOX_STATE_NAME " failed: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start " BAREBOX_STATE_NAME ": ");
 		goto out;
 	}
 
-	res = g_subprocess_wait_check(sub, NULL, &error);
+	res = g_subprocess_wait_check(sub, NULL, &ierror);
 	if (!res) {
-		g_warning("setting state failed: %s", error->message);
-		g_clear_error(&error);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run " BAREBOX_STATE_NAME ": ");
 		goto out;
 	}
 
@@ -158,6 +182,7 @@ out:
 
 /* Set slot status values */
 static gboolean barebox_set_state(RaucSlot *slot, gboolean good) {
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
 	int attempts;
@@ -176,9 +201,10 @@ static gboolean barebox_set_state(RaucSlot *slot, gboolean good) {
 	g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".%s.remaining_attempts=%i",
 			slot->bootname, attempts));
 
-	res = barebox_state_set(pairs);
+	res = barebox_state_set(pairs, &ierror);
 	if (!res) {
-		g_warning("failed marking as %s", good ? "good" : "bad");
+		g_warning("failed marking as %s: %s", good ? "good" : "bad", ierror->message);
+		g_clear_error(&ierror);
 		goto out;
 	}
 
@@ -191,6 +217,7 @@ out:
 /* Set slot as primary boot slot */
 static gboolean barebox_set_primary(RaucSlot *slot) {
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GList *slots;
 
@@ -207,9 +234,10 @@ static gboolean barebox_set_primary(RaucSlot *slot) {
 			continue;
 
 
-		res = barebox_state_get(s->bootname, &bb_state);
+		res = barebox_state_get(s->bootname, &bb_state, &ierror);
 		if (!res) {
-			g_warning("failed obtaining current state");
+			g_warning("failed obtaining current state: %s", ierror->message);
+			g_clear_error(&ierror);
 			goto out;
 		}
 
@@ -228,9 +256,10 @@ static gboolean barebox_set_primary(RaucSlot *slot) {
 	g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".%s.remaining_attempts=%i",
 			slot->bootname, BAREBOX_STATE_ATTEMPS_PRIMARY));
 
-	res = barebox_state_set(pairs);
+	res = barebox_state_set(pairs, &ierror);
 	if (!res) {
-		g_warning("failed marking as primary");
+		g_warning("failed marking as primary: %s", ierror->message);
+		g_clear_error(&ierror);
 		goto out;
 	}
 
