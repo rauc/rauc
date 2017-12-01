@@ -22,12 +22,11 @@ GQuark r_bootchooser_error_quark (void)
 #define UBOOT_FWSETENV_NAME "fw_setenv"
 #define UBOOT_FWGETENV_NAME "fw_printenv"
 
-static gboolean bootchooser_order_primay(RaucSlot *slot, GString **value) {
+static GString *bootchooser_order_primay(RaucSlot *slot) {
 	GString *order = g_string_sized_new(10);
 	GList *slots;
 
-	g_return_val_if_fail(slot, FALSE);
-	g_return_val_if_fail(value, FALSE);
+	g_return_val_if_fail(slot, NULL);
 
 	g_string_append(order, slot->bootname);
 
@@ -44,9 +43,7 @@ static gboolean bootchooser_order_primay(RaucSlot *slot, GString **value) {
 		g_string_append(order, s->bootname);
 	}
 
-	*value = order;
-
-	return TRUE;
+	return order;
 }
 
 typedef struct {
@@ -350,11 +347,7 @@ static gboolean grub_set_primary(RaucSlot *slot) {
 
 	g_return_val_if_fail(slot, FALSE);
 
-	res = bootchooser_order_primay(slot, &order);
-	if (!res) {
-		g_warning("failed to create primary boot order");
-		goto out;
-	}
+	order = bootchooser_order_primay(slot);
 
 	g_ptr_array_add(pairs, g_strdup_printf("%s_OK=%i", slot->bootname, 1));
 	g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=%i", slot->bootname, 0));
@@ -508,9 +501,13 @@ static gboolean uboot_set_primary(RaucSlot *slot) {
 	/* Add updated slot as first entry in new boot order */
 	g_string_append(order_new, slot->bootname);
 
-	res = uboot_env_get("BOOT_ORDER", &order_current, NULL);
-	if (!res && !bootchooser_order_primay(slot, &order_current))
-		goto out;
+	res = uboot_env_get("BOOT_ORDER", &order_current, &ierror);
+	if (!res) {
+		g_message("Unable to obtain BOOT_ORDER, using defaults");
+		g_clear_error(&ierror);
+
+		order_current = bootchooser_order_primay(slot);
+	}
 
 	/* Iterate over current boot order */
 	bootnames = g_strsplit(order_current->str, " ", -1);
