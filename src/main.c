@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include "bundle.h"
+#include "bootchooser.h"
 #include "config_file.h"
 #include "context.h"
 #include "install.h"
@@ -719,18 +720,32 @@ static gchar* r_status_formatter_readable(void)
 	gpointer key, value;
 	gint slotcnt = 0;
 	GString *text = g_string_new(NULL);
+	GError *ierror = NULL;
+	RaucSlot *primary = NULL;
+
+	primary = r_boot_get_primary(&ierror);
+	if (!primary) {
+		g_debug("Failed getting primary slot: %s", ierror->message);
+		g_clear_error(&ierror);
+	}
 
 	g_string_append_printf(text, "Compatible:  %s\n", r_context()->config->system_compatible);
-	g_string_append_printf(text, "booted from: %s\n", r_context()->bootslot);
+	g_string_append_printf(text, "Booted from: %s\n", r_context()->bootslot);
+	g_string_append_printf(text, "Activated:   %s\n", primary ? primary->name : NULL);
 
 	g_string_append(text, "slot states:\n");
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		gchar *name = key;
 		RaucSlot *slot = value;
+		gboolean good = FALSE;
 
 		slotcnt++;
 
+		if (slot->bootname && !r_boot_get_state(slot, &good, &ierror)) {
+			g_debug("Failed to obtain boot state for %s: %s", slot->name, ierror->message);
+			g_clear_error(&ierror);
+		}
 
 		g_string_append_printf(text, "  %s: class=%s, device=%s, type=%s, bootname=%s\n",
 				name, slot->sclass, slot->device, slot->type, slot->bootname);
@@ -743,6 +758,8 @@ static gchar* r_status_formatter_readable(void)
 			g_string_append_printf(text, ", mountpoint=%s", slot->mount_point);
 		else
 			g_string_append(text, ", mountpoint=(none)");
+		if (slot->bootname)
+			g_string_append_printf(text, "\n      boot status=%s", good ? "good" : "bad");
 		g_string_append_c(text, '\n');
 
 	}
@@ -758,9 +775,18 @@ static gchar* r_status_formatter_shell(void)
 	GString *text = g_string_new(NULL);
 	GPtrArray *slotnames, *slotnumbers = NULL;
 	gchar* slotstring = NULL;
+	GError *ierror = NULL;
+	RaucSlot *primary = NULL;
+
+	primary = r_boot_get_primary(&ierror);
+	if (!primary) {
+		g_debug("Failed getting primary slot: %s", ierror->message);
+		g_clear_error(&ierror);
+	}
 
 	formatter_shell_append(text, "RAUC_SYSTEM_COMPATIBLE", r_context()->config->system_compatible);
 	formatter_shell_append(text, "RAUC_SYSTEM_BOOTED_BOOTNAME", r_context()->bootslot);
+	formatter_shell_append(text, "RAUC_BOOT_PRIMARY", primary ? primary->name : NULL);
 
 	slotnames = g_ptr_array_new();
 	slotnumbers = g_ptr_array_new();
@@ -786,9 +812,14 @@ static gchar* r_status_formatter_shell(void)
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		RaucSlot *slot = value;
+		gboolean good = FALSE;
 
 		slotcnt++;
 
+		if (slot->bootname && !r_boot_get_state(slot, &good, &ierror)) {
+			g_debug("Failed to obtain boot state for %s: %s", slot->name, ierror->message);
+			g_clear_error(&ierror);
+		}
 
 		formatter_shell_append_n(text, "RAUC_SLOT_STATE", slotcnt, slotstate_to_str(slot->state));
 		formatter_shell_append_n(text, "RAUC_SLOT_CLASS", slotcnt, slot->sclass);
@@ -797,6 +828,10 @@ static gchar* r_status_formatter_shell(void)
 		formatter_shell_append_n(text, "RAUC_SLOT_BOOTNAME", slotcnt, slot->bootname);
 		formatter_shell_append_n(text, "RAUC_SLOT_PARENT", slotcnt, slot->parent ? slot->parent->name : NULL);
 		formatter_shell_append_n(text, "RAUC_SLOT_MOUNTPOINT", slotcnt, slot->mount_point);
+		if (slot->bootname)
+			formatter_shell_append_n(text, "RAUC_SLOT_BOOT_STATUS", slotcnt, good ? "good" : "bad");
+		else
+			formatter_shell_append_n(text, "RAUC_SLOT_BOOT_STATUS", slotcnt, NULL);
 	}
 
 	return g_string_free(text, FALSE);
@@ -811,6 +846,14 @@ static gchar* r_status_formatter_json(gboolean pretty)
 	gpointer key, value;
 	gchar *str;
 	JsonBuilder *builder = json_builder_new ();
+	GError *ierror = NULL;
+	RaucSlot *primary = NULL;
+
+	primary = r_boot_get_primary(&ierror);
+	if (!primary) {
+		g_debug("Failed getting primary slot: %s", ierror->message);
+		g_clear_error(&ierror);
+	}
 
 	json_builder_begin_object (builder);
 
@@ -820,12 +863,21 @@ static gchar* r_status_formatter_json(gboolean pretty)
 	json_builder_set_member_name (builder, "booted");
 	json_builder_add_string_value (builder, r_context()->bootslot);
 
+	json_builder_set_member_name (builder, "boot_primary");
+	json_builder_add_string_value (builder, primary ? primary->name : NULL);
+
 	json_builder_set_member_name (builder, "slots");
 	json_builder_begin_array (builder);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		RaucSlot *slot = value;
+		gboolean good = FALSE;
+
+		if (slot->bootname && !r_boot_get_state(slot, &good, &ierror)) {
+			g_debug("Failed to obtain boot state for %s: %s", slot->name, ierror->message);
+			g_clear_error(&ierror);
+		}
 
 		json_builder_begin_object (builder);
 		json_builder_set_member_name (builder, slot->name);
@@ -844,6 +896,11 @@ static gchar* r_status_formatter_json(gboolean pretty)
 		json_builder_add_string_value (builder, slot->parent ? slot->parent->name : NULL);
 		json_builder_set_member_name (builder, "mountpoint");
 		json_builder_add_string_value (builder, slot->mount_point);
+		json_builder_set_member_name (builder, "boot_status");
+		if (slot->bootname)
+			json_builder_add_string_value (builder, good ? "good" : "bad");
+		else
+			json_builder_add_string_value (builder, NULL);
 		json_builder_end_object (builder);
 		json_builder_end_object (builder);
 
