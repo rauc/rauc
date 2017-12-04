@@ -211,6 +211,73 @@ out:
 	return res;
 }
 
+/* Get slot marked as primary one */
+static RaucSlot* barebox_get_primary(GError **error) {
+	RaucSlot *slot;
+	GHashTableIter iter;
+	RaucSlot *primary = NULL;
+	guint32 top_prio = 0;
+	GError *ierror = NULL;
+	gboolean res;
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
+		BareboxSlotState state;
+
+		if (!slot->bootname)
+			continue;
+
+		res = barebox_state_get(slot->bootname, &state, &ierror);
+		if (!res) {
+			g_debug("%s", ierror->message);
+			g_clear_error(&ierror);
+			continue;
+		}
+
+		if (state.attempts == 0)
+			continue;
+
+		/* We search for the slot with highest priority */
+		if (state.prio > top_prio) {
+			primary = slot;
+			top_prio = state.prio;
+		}
+	}
+
+	if (!primary) {
+		g_set_error_literal(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Unable to obtain primary element");
+	}
+
+	return primary;
+}
+
+/* We assume a slot to be 'good' if its priority is > 0 AND its remaining
+ * attempts counter is > 0 */
+static gboolean barebox_get_state(RaucSlot *slot, gboolean *good, GError **error) {
+	BareboxSlotState state;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	res = barebox_state_get(slot->bootname, &state, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	if (state.prio > 0)
+		*good = (state.attempts > 0) ? TRUE : FALSE;
+	else
+		*good = FALSE;
+
+out:
+	return res;
+}
+
 /* Set slot as primary boot slot */
 static gboolean barebox_set_primary(RaucSlot *slot, GError **error) {
 	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
@@ -547,6 +614,35 @@ out:
 	return res;
 }
 
+gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)  {
+	gboolean res = FALSE;
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(good, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
+		res = barebox_get_state(slot, good, &ierror);
+	} else {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+				"Obtaining state from bootloader '%s' not supported yet", r_context()->config->system_bootloader);
+		return FALSE;
+	}
+
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to get state of %s: ", slot->name);
+	}
+
+	return res;
+}
+
 gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error) {
 	gboolean res = FALSE;
 	GError *ierror = NULL;
@@ -580,6 +676,33 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error) {
 	}
 
 	return res;
+}
+
+RaucSlot* r_boot_get_primary(GError **error) {
+	RaucSlot *slot = NULL;
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
+		slot = barebox_get_primary(&ierror);
+	} else {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+				"Obtaining primary entry from bootloader '%s' not supported yet", r_context()->config->system_bootloader);
+		return NULL;
+	}
+
+	if (!slot) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed getting primary slot: ");
+	}
+
+	return slot;
 }
 
 gboolean r_boot_set_primary(RaucSlot *slot, GError **error) {

@@ -31,3 +31,24 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error);
  * @return TRUE if successful, FALSE if failed
  */
 gboolean r_boot_set_primary(RaucSlot *slot, GError **error);
+
+/**
+ * Get primary boot slot.
+ *
+ * @param error return location for a GError, or NULL
+ *
+ * @return Primary slot, NULL if detection failed
+ */
+RaucSlot* r_boot_get_primary(GError **error);
+
+/**
+ * Get bootloader state.
+ *
+ * @param slot Slot to get boot state from
+ * @param good return location for slot status.
+ *             TRUE means 'good', FALSE means 'bad')
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if successful, FALSE if failed
+ */
+gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error);
