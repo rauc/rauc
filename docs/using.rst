@@ -153,9 +153,9 @@ just... the other one. If one wants to explicitely address a known slot, one can
 do so by using its slot name which has the form ``<slot-class>.<idx>`` (e.g.
 ``rootfs.1``), see :ref:`this <slot.slot-class.idx-section>` part of section
 :ref:`System Configuration File <sec_ref_slot_config>`. Last but not least,
-after switching to a different slot by mistake, this can be remedied by choosing
-``booted`` as the argument which is, by the way, the default if the optional
-argument has been omitted.
+after switching to a different slot by mistake, before having rebooted this can
+be remedied by choosing ``booted`` as the argument which is, by the way, the
+default if the optional argument has been omitted.
 
 Customizing the Update
 ----------------------
