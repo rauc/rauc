@@ -168,7 +168,7 @@ static gboolean install_start(int argc, char **argv)
 			g_printerr("Failed to connect completed signal\n");
 			goto out_loop;
 		}
-		g_print("Trying to contact rauc service\n");
+		g_debug("Trying to contact rauc service");
 		if (!r_installer_call_install_sync(installer, bundlelocation, NULL,
 						   &error)) {
 			g_printerr("Failed %s\n", error->message);
@@ -945,7 +945,7 @@ static gboolean status_start(int argc, char **argv)
 			r_exit_status = 1;
 			goto out;
 		}
-		g_print("trying to contact rauc service\n");
+		g_debug("Trying to contact rauc service");
 		if (!r_installer_call_mark_sync(proxy, state, slot_identifier,
 						&slot_name, &message, NULL, &ierror)) {
 			message = g_strdup(ierror->message);
