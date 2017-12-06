@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Command line checking
+if [ $# -eq 0 ]; then
+	echo "\
+BootCurrent: 0002
+Timeout: 0 seconds
+BootOrder: 0001,0002,0003,0000
+Boot0000* invalid
+Boot0001* system0
+Boot0002* system1
+Boot0003  recovery"
+exit 0
+fi
+
+if [ "$1" = "--bootorder" ]; then
+	# Test code must move system1 to primary position. Assert this!
+	echo "--bootorder: $2"
+	#if [ "$2" != "0002,0001,0003,0000" ]; then
+	#	exit 1
+	#fi
+elif [ "$1" = "--bootnext" ]; then
+	# Test code must move system1 to primary position. Assert this!
+	echo "--bootnext: $2"
+	if [ "$2" != "0002" ]; then
+		exit 1
+	fi
+else
+	echo "Invalid key: '$1'"
+	exit 1
+fi
+
+exit 0

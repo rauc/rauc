@@ -264,6 +264,63 @@ bootname=B\n";
 	g_assert_true(r_boot_set_primary(slot, NULL));
 }
 
+static void bootchooser_efi(BootchooserFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucSlot *slot;
+	gboolean good;
+	RaucSlot *primary = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=efi\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[keyring]\n\
+path=/etc/rauc/keyring/\n\
+\n\
+[slot.rescue.0]\n\
+device=/dev/mtd4\n\
+type=raw\n\
+bootname=recover\n\
+readonly=true\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/rootfs-0\n\
+type=ext4\n\
+bootname=system0\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/rootfs-1\n\
+type=ext4\n\
+bootname=system1\n";
+
+	gchar* pathname = write_tmp_file(fixture->tmpdir, "efi.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_clear_pointer(&r_context_conf()->configpath, g_free);
+	r_context_conf()->configpath = pathname;
+	r_context();
+
+	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
+	g_assert_nonnull(slot);
+
+	g_assert_true(r_boot_get_state(slot, &good, NULL));
+	g_assert_true(good);
+	primary = r_boot_get_primary(NULL);
+	g_assert_nonnull(primary);
+
+	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
+	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
+
+	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
+	g_assert_nonnull(slot);
+
+	g_assert_true(r_boot_set_primary(slot, NULL));
+}
+
+
 int main(int argc, char *argv[])
 {
 	gchar *path;
@@ -285,6 +342,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bootchoser/uboot", BootchooserFixture, NULL,
 		   bootchooser_fixture_set_up, bootchooser_uboot,
+		   bootchooser_fixture_tear_down);
+
+	g_test_add("/bootchoser/efi", BootchooserFixture, NULL,
+		   bootchooser_fixture_set_up, bootchooser_efi,
 		   bootchooser_fixture_tear_down);
 
 	return g_test_run ();
