@@ -3,10 +3,6 @@ sudo: required
 compiler: gcc-6
 dist: trusty
 before_install:
-  - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/
-    vivid main restricted universe multiverse" -y
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq user-mode-linux grub-common
   - sudo pip install --upgrade cpp-coveralls
 addons:
   apt:
@@ -24,6 +20,8 @@ addons:
       - python-sphinx
       - dbus-x11
       - gcc-6
+      - user-mode-linux
+      - grub-common
     sources: &sources
       - ubuntu-toolchain-r-test
       - sourceline: 'deb http://archive.ubuntu.com/ubuntu/ trusty main restricted universe multiverse'
