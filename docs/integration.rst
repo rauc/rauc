@@ -266,7 +266,7 @@ The bootchooser itself can be used as a Barebox boot target.
 This is where we start by setting the barebox default boot target to
 `bootchooser`::
 
-  nv bootchooser.default="bootchooser"
+  nv boot.default="bootchooser"
 
 Now, when Barebox is initialized it starts the bootchooser logik to select its
 real boot target.
