@@ -40,10 +40,10 @@ mountprefix=/mnt/myrauc/\n\
 [keyring]\n\
 path=/etc/rauc/keyring/\n\
 \n\
-[slot.rescue.0]\n\
-device=/dev/mtd4\n\
+[slot.recovery.0]\n\
+device=/dev/recovery-0\n\
 type=raw\n\
-bootname=factory0\n\
+bootname=recovery\n\
 readonly=true\n\
 \n\
 [slot.rootfs.0]\n\
@@ -66,13 +66,68 @@ bootname=system1\n";
 	slot = find_config_slot_by_device(r_context()->config, "/dev/sda0");
 	g_assert_nonnull(slot);
 
-	g_assert_true(r_boot_set_state(slot, TRUE));
-	g_assert_true(r_boot_set_state(slot, FALSE));
+	/* check rootfs-0 is marked good (has remaining attempts reset 1->3) */
+	g_setenv ("BAREBOX_STATE_VARS_PRE", " \
+bootstate.system0.remaining_attempts=1\n\
+bootstate.system0.priority=20\n\
+bootstate.system1.remaining_attempts=3\n\
+bootstate.system1.priority=10\n\
+", TRUE);
+	g_setenv ("BAREBOX_STATE_VARS_POST", " \
+bootstate.system0.remaining_attempts=3\n\
+bootstate.system0.priority=20\n\
+bootstate.system1.remaining_attempts=3\n\
+bootstate.system1.priority=10\n\
+", TRUE);
+	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
+
+	/* check rootfs-0 is marked bad (prio and attempts 0) */
+	g_setenv ("BAREBOX_STATE_VARS_PRE", " \
+bootstate.system0.remaining_attempts=3\n\
+bootstate.system0.priority=20\n\
+bootstate.system1.remaining_attempts=3\n\
+bootstate.system1.priority=10\n\
+", TRUE);
+	g_setenv ("BAREBOX_STATE_VARS_POST", " \
+bootstate.system0.remaining_attempts=0\n\
+bootstate.system0.priority=0\n\
+bootstate.system1.remaining_attempts=3\n\
+bootstate.system1.priority=10\n\
+", TRUE);
+	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
 
 	slot = find_config_slot_by_device(r_context()->config, "/dev/sda1");
 	g_assert_nonnull(slot);
 
-	g_assert_true(r_boot_set_primary(slot));
+	/* check rootfs-1 is marked primary (prio set to 20, others to 10) */
+	g_setenv ("BAREBOX_STATE_VARS_PRE", " \
+bootstate.system0.remaining_attempts=3\n\
+bootstate.system0.priority=20\n\
+bootstate.system1.remaining_attempts=3\n\
+bootstate.system1.priority=10\n\
+", TRUE);
+	g_setenv ("BAREBOX_STATE_VARS_POST", " \
+bootstate.system0.remaining_attempts=3\n\
+bootstate.system0.priority=10\n\
+bootstate.system1.remaining_attempts=3\n\
+bootstate.system1.priority=20\n\
+", TRUE);
+	g_assert_true(r_boot_set_primary(slot, NULL));
+
+	/* check rootfs-1 is marked primary while current remains disabled (prio set to 20, others to 10) */
+	g_setenv ("BAREBOX_STATE_VARS_PRE", " \
+bootstate.system0.remaining_attempts=3\n\
+bootstate.system0.priority=0\n\
+bootstate.system1.remaining_attempts=0\n\
+bootstate.system1.priority=10\n\
+", TRUE);
+	g_setenv ("BAREBOX_STATE_VARS_POST", " \
+bootstate.system0.remaining_attempts=3\n\
+bootstate.system0.priority=0\n\
+bootstate.system1.remaining_attempts=3\n\
+bootstate.system1.priority=20\n\
+", TRUE);
+	g_assert_true(r_boot_set_primary(slot, NULL));
 }
 
 static void bootchooser_grub(BootchooserFixture *fixture,
@@ -116,13 +171,13 @@ bootname=B\n";
 	slot = find_config_slot_by_device(r_context()->config, "/dev/sda0");
 	g_assert_nonnull(slot);
 
-	g_assert_true(r_boot_set_state(slot, TRUE));
-	g_assert_true(r_boot_set_state(slot, FALSE));
+	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
+	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
 
 	slot = find_config_slot_by_device(r_context()->config, "/dev/sda1");
 	g_assert_nonnull(slot);
 
-	g_assert_true(r_boot_set_primary(slot));
+	g_assert_true(r_boot_set_primary(slot, NULL));
 }
 
 static void bootchooser_uboot(BootchooserFixture *fixture,
@@ -165,13 +220,13 @@ bootname=B\n";
 	slot = find_config_slot_by_device(r_context()->config, "/dev/sda0");
 	g_assert_nonnull(slot);
 
-	g_assert_true(r_boot_set_state(slot, TRUE));
-	g_assert_true(r_boot_set_state(slot, FALSE));
+	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
+	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
 
 	slot = find_config_slot_by_device(r_context()->config, "/dev/sda1");
 	g_assert_nonnull(slot);
 
-	g_assert_true(r_boot_set_primary(slot));
+	g_assert_true(r_boot_set_primary(slot, NULL));
 }
 
 int main(int argc, char *argv[])

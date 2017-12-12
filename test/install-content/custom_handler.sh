@@ -24,6 +24,14 @@ done
 exit_if_empty $RAUC_MOUNT_PREFIX
 mkdir -p $RAUC_MOUNT_PREFIX/image
 
+# This is only for testing
+export BAREBOX_STATE_VARS_PRE="\
+bootstate.system0.priority=20 \
+bootstate.system0.remaining_attempts=3 \
+bootstate.system1.priority=10 \
+bootstate.system1.remaining_attempts=3 \
+"
+
 # deactivate current slot
 barebox-state -s bootstate.$RAUC_CURRENT_BOOTNAME.priority=0
 
