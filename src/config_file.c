@@ -73,6 +73,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	GList *l;
 	gchar *bootloader;
 	const gchar **pointer;
+	gboolean dtbvariant;
+	gchar *variant_data;
 
 	key_file = g_key_file_new();
 
@@ -138,11 +140,75 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 		c->activate_installed = TRUE;
 		g_clear_error(&ierror);
-	}
-	else if (ierror) {
+	} else if (ierror) {
 		g_propagate_error(error, ierror);
 		res = FALSE;
 		goto free;
+	}
+
+	c->system_variant_type = R_CONFIG_SYS_VARIANT_NONE;
+
+	/* parse 'variant-dtb' key */
+	dtbvariant = g_key_file_get_boolean(key_file, "system", "variant-dtb", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		dtbvariant = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
+	if (dtbvariant)
+		c->system_variant_type = R_CONFIG_SYS_VARIANT_DTB;
+
+	/* parse 'variant-file' key */
+	variant_data = g_key_file_get_string(key_file, "system", "variant-file", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		variant_data = NULL;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
+	if (variant_data) {
+		if (c->system_variant_type != R_CONFIG_SYS_VARIANT_NONE) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_INVALID_FORMAT,
+					"Only one of the keys 'variant-file', variant-dtb','variant-name' is allowed");
+			res = FALSE;
+			goto free;
+		}
+
+		c->system_variant_type = R_CONFIG_SYS_VARIANT_FILE;
+		c->system_variant = variant_data;
+	}
+
+	/* parse 'variant-name' key */
+	variant_data = g_key_file_get_string(key_file, "system", "variant-name", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		variant_data = NULL;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
+	if (variant_data) {
+		if (c->system_variant_type != R_CONFIG_SYS_VARIANT_NONE) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_INVALID_FORMAT,
+					"Only one of the keys 'variant-file', variant-dtb','variant-name' is allowed");
+			res = FALSE;
+			goto free;
+		}
+
+		c->system_variant_type = R_CONFIG_SYS_VARIANT_NAME;
+		c->system_variant = variant_data;
 	}
 
 	/* parse [keyring] section */
@@ -228,8 +294,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 				slot->readonly = FALSE;
 				g_clear_error(&ierror);
-			}
-			else if (ierror) {
+			} else if (ierror) {
 				g_propagate_error(error, ierror);
 				res = FALSE;
 				goto free;

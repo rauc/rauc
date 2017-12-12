@@ -140,8 +140,9 @@ See details about using handlers in `Custom Handlers (Interface)`_.
 
 Each slot is identified by a section starting with ``slot.`` followed by
 the slot class name, and a slot number.
-The *slot class* name is used in the *update manifest* to target the correct
-set of slots.
+The `<slot-class>` name is used in the *update manifest* to target the correct
+set of slots. It must not contain any `.` (dots) as these are used as
+hierarchical separator.
 
 ``device``
   The slot's device path.

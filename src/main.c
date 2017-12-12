@@ -730,6 +730,7 @@ static gchar* r_status_formatter_readable(void)
 	}
 
 	g_string_append_printf(text, "Compatible:  %s\n", r_context()->config->system_compatible);
+	g_string_append_printf(text, "Variant:     %s\n", r_context()->config->system_variant);
 	g_string_append_printf(text, "Booted from: %s\n", r_context()->bootslot);
 	g_string_append_printf(text, "Activated:   %s\n", primary ? primary->name : NULL);
 
@@ -785,6 +786,7 @@ static gchar* r_status_formatter_shell(void)
 	}
 
 	formatter_shell_append(text, "RAUC_SYSTEM_COMPATIBLE", r_context()->config->system_compatible);
+	formatter_shell_append(text, "RAUC_SYSTEM_VARIANT", r_context()->config->system_variant);
 	formatter_shell_append(text, "RAUC_SYSTEM_BOOTED_BOOTNAME", r_context()->bootslot);
 	formatter_shell_append(text, "RAUC_BOOT_PRIMARY", primary ? primary->name : NULL);
 
@@ -859,6 +861,9 @@ static gchar* r_status_formatter_json(gboolean pretty)
 
 	json_builder_set_member_name (builder, "compatible");
 	json_builder_add_string_value (builder, r_context()->config->system_compatible);
+
+	json_builder_set_member_name (builder, "variant");
+	json_builder_add_string_value (builder, r_context()->config->system_variant);
 
 	json_builder_set_member_name (builder, "booted");
 	json_builder_add_string_value (builder, r_context()->bootslot);

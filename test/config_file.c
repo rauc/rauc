@@ -316,8 +316,105 @@ activate-installed=false\n";
 	free_config(config);
 }
 
+static void config_file_system_variant(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
 
-static void config_file_test3(void)
+	const gchar *cfg_file_no_variant= "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/";
+
+	const gchar *cfg_file_name_variant= "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+variant-name=variant-name";
+
+	const gchar *cfg_file_dtb_variant= "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+variant-dtb=true";
+
+	const gchar *cfg_file_file_variant= "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+variant-file=/path/to/file";
+
+	const gchar *cfg_file_conflicting_variants= "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+variant-dtb=true\n\
+variant-name=";
+
+	pathname = write_tmp_file(fixture->tmpdir, "no_variant.conf", cfg_file_no_variant, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_true(load_config(pathname, &config, &ierror));
+	g_free(pathname);
+	g_assert_null(ierror);
+	g_assert_nonnull(config);
+	g_assert_null(config->system_variant);
+
+	free_config(config);
+
+	pathname = write_tmp_file(fixture->tmpdir, "name_variant.conf", cfg_file_name_variant, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_true(load_config(pathname, &config, &ierror));
+	g_free(pathname);
+	g_assert_null(ierror);
+	g_assert_nonnull(config);
+	g_assert(config->system_variant_type == R_CONFIG_SYS_VARIANT_NAME);
+	g_assert_cmpstr(config->system_variant, ==, "variant-name");
+
+	free_config(config);
+
+	pathname = write_tmp_file(fixture->tmpdir, "dtb_variant.conf", cfg_file_dtb_variant, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_true(load_config(pathname, &config, &ierror));
+	g_free(pathname);
+	g_assert_null(ierror);
+	g_assert_nonnull(config);
+	g_assert(config->system_variant_type == R_CONFIG_SYS_VARIANT_DTB);
+	g_assert_null(config->system_variant);
+
+	free_config(config);
+
+	pathname = write_tmp_file(fixture->tmpdir, "file_variant.conf", cfg_file_file_variant, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_true(load_config(pathname, &config, &ierror));
+	g_free(pathname);
+	g_assert_null(ierror);
+	g_assert_nonnull(config);
+	g_assert(config->system_variant_type == R_CONFIG_SYS_VARIANT_FILE);
+	g_assert_cmpstr(config->system_variant, ==, "/path/to/file");
+
+	pathname = write_tmp_file(fixture->tmpdir, "conflict_variant.conf", cfg_file_conflicting_variants, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_free(pathname);
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT);
+	g_assert_null(config);
+}
+
+
+
+static void config_file_test_read_slot_status(void)
 {
 	RaucSlotStatus *ss;
 	g_assert_true(read_slot_status("test/rootfs.raucs", &ss, NULL));
@@ -331,7 +428,7 @@ static void config_file_test3(void)
 }
 
 
-static void config_file_test5(void)
+static void config_file_test_write_slot_status(void)
 {
 	RaucSlotStatus *ss = g_new0(RaucSlotStatus, 1);
 
@@ -354,7 +451,7 @@ static void config_file_test5(void)
 	free_slot_status(ss);
 }
 
-static void config_file_test6(void)
+static void config_file_system_serial(void)
 {
 	g_assert_nonnull(r_context()->system_serial);
 	g_assert_cmpstr(r_context()->system_serial, ==, "1234");
@@ -391,9 +488,12 @@ int main(int argc, char *argv[])
 	g_test_add("/config-file/activate-installed-key-set-to-false", ConfigFileFixture, NULL,
 		   config_file_fixture_set_up, config_file_activate_installed_set_to_false,
 		   config_file_fixture_tear_down);
-	g_test_add_func("/config-file/test3", config_file_test3);
-	g_test_add_func("/config-file/test5", config_file_test5);
-	g_test_add_func("/config-file/test6", config_file_test6);
+	g_test_add("/config-file/system-variant", ConfigFileFixture, NULL,
+		   config_file_fixture_set_up, config_file_system_variant,
+		   config_file_fixture_tear_down);
+	g_test_add_func("/config-file/read-slot-status", config_file_test_read_slot_status);
+	g_test_add_func("/config-file/write-read-slot-status", config_file_test_write_slot_status);
+	g_test_add_func("/config-file/system-serial", config_file_system_serial);
 
 	return g_test_run ();
 }

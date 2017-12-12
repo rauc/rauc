@@ -769,6 +769,120 @@ device=/dev/null\n\
 	g_hash_table_unref(tgrp);
 }
 
+static void test_install_image_variants(void)
+{
+	gchar *tmpdir = NULL;
+	gchar* sysconfpath = NULL;
+	GBytes *data = NULL;
+	RaucManifest *rm = NULL;
+	GHashTable *tgrp = NULL;
+	GList *install_images = NULL;
+	RaucImage *test_img = NULL;
+	GError *error = NULL;
+
+#define MANIFEST_VARIANT "\
+[update]\n\
+compatible=foo\n\
+\n\
+[image.rootfs.variant-1]\n\
+filename=dummy\n\
+\n\
+[image.rootfs]\n\
+filename=dummy\n\
+"
+
+#define MANIFEST_DEFAULT_VARIANT "\
+[update]\n\
+compatible=foo\n\
+\n\
+[image.rootfs]\n\
+filename=dummy\n\
+"
+
+#define MANIFEST_OTHER_VARIANT "\
+[update]\n\
+compatible=foo\n\
+\n\
+[image.rootfs.variant-2]\n\
+filename=dummy\n\
+"
+
+	const gchar *system_conf_variant = "\
+[system]\n\
+compatible=foo\n\
+bootloader=barebox\n\
+variant-name=variant-1\n\
+\n\
+[slot.rootfs.0]\n\
+bootname=system0\n\
+device=/dev/null\n\
+\n\
+[slot.rootfs.1]\n\
+bootname=system1\n\
+device=/dev/null\n\
+\n\
+";
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	sysconfpath = write_tmp_file(tmpdir, "test.conf", system_conf_variant, NULL);
+	g_assert_nonnull(sysconfpath);
+
+	/* Set up context */
+	r_context_conf()->configpath = sysconfpath;
+	r_context_conf()->bootslot = g_strdup("system1");
+	r_context();
+
+	determine_slot_states(&error);
+	g_assert_no_error(error);
+
+	tgrp = determine_target_install_group();
+	g_assert_nonnull(tgrp);
+
+	/* Test with manifest containing default and specific variant */
+	data = g_bytes_new_static(MANIFEST_VARIANT, sizeof(MANIFEST_VARIANT));
+	load_manifest_mem(data, &rm, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(rm);
+
+	install_images = get_install_images(rm, tgrp, NULL);
+	g_assert_nonnull(install_images);
+	g_clear_pointer(&rm, free_manifest);
+
+	g_assert_cmpint(g_list_length(install_images), ==, 1);
+
+	test_img = (RaucImage*)g_list_nth_data(install_images, 0);
+	g_assert_nonnull(test_img);
+	g_assert_cmpstr(test_img->variant, ==, "variant-1");
+
+	/* Test with manifest containing only default variant */
+	data = g_bytes_new_static(MANIFEST_DEFAULT_VARIANT, sizeof(MANIFEST_DEFAULT_VARIANT));
+	load_manifest_mem(data, &rm, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(rm);
+
+	install_images = get_install_images(rm, tgrp, NULL);
+	g_assert_nonnull(install_images);
+	g_clear_pointer(&rm, free_manifest);
+
+	g_assert_cmpint(g_list_length(install_images), ==, 1);
+
+	test_img = (RaucImage*)g_list_nth_data(install_images, 0);
+	g_assert_nonnull(test_img);
+	g_assert_null(test_img->variant);
+
+	/* Test with manifest containing only non-matching specific variant (must fail) */
+	data = g_bytes_new_static(MANIFEST_OTHER_VARIANT, sizeof(MANIFEST_OTHER_VARIANT));
+	load_manifest_mem(data, &rm, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(rm);
+
+	install_images = get_install_images(rm, tgrp, NULL);
+	g_assert_null(install_images);
+	g_clear_pointer(&rm, free_manifest);
+
+	g_hash_table_unref(tgrp);
+}
+
 static gboolean r_quit(gpointer data) {
 	g_assert_nonnull(r_loop);
 	g_main_loop_quit(r_loop);
@@ -1118,6 +1232,8 @@ int main(int argc, char *argv[])
 	g_test_add_func("/install/image-selection/redundant", test_install_image_selection);
 
 	g_test_add_func("/install/image-selection/non-matching", test_install_image_selection_no_matching_slot);
+
+	g_test_add_func("/install/image-mapping/variants", test_install_image_variants);
 
 	g_test_add("/install/bundle", InstallFixture, NULL,
 		   install_fixture_set_up_bundle, install_test_bundle,

@@ -286,6 +286,85 @@ are listed below:
 +-----------+--------------------------+---------------------------+
 
 
+Handling Board Variants With a Single Bundle
+--------------------------------------------
+
+If you have hardware variants that require installing different images
+(e.g. for the kernel or for an FPGA bitstream), but have other slots
+that are common (such as the rootfs) between all hardware variants,
+RAUC allows you to put multiple different variants of these images in the
+same bundle.
+RAUC calls this feature 'image variants'.
+
+.. image:: images/rauc-image-variants.svg
+  :width: 300
+
+If you want to make use of image variants, you first of all need to say which
+variant your specific board is. You can do this in your ``system.conf`` by
+setting exactly one of the keys ``variant-dtb``, ``variant-file`` or
+``variant-name``.
+
+.. code-block:: cfg
+
+  [system]
+  ...
+  variant-dtb=true
+
+The ``variant-dtb`` is a boolean that allows (on device-tree based boards)
+to use the systems compatible string as the board variant.
+
+.. code-block:: cfg
+
+  [system]
+  ...
+  variant-file=/path/to/file
+
+A more generic alternative is the ``variant-file`` key.
+It allows to specify a file that will be read to obtain the variant name.
+Note that the content of the file should be a simple string without any line
+breaks.
+A typical use case would be to generate this file (in ``/run``) during system
+startup from a value you obtained from your bootloader.
+Another use case is to have a RAUC post-install hook that copies this file from
+the old system to the newly updated one.
+
+.. code-block:: cfg
+
+  [system]
+  ...
+  variant-name=myvariant-name
+
+A third variant to specify the systems variant is to give it directly in your
+system.conf.
+This method is primary meant for testing, as this prevents having a generic
+rootfs image for all variants!
+
+
+In your manifest, you can specify variants of an image (e.g. the kernel here) as
+follows:
+
+.. code-block:: cfg
+
+  [image.kernel.variant-1]
+  filename=variant1.img
+  ...
+
+  [image.kernel.variant-2]
+  filename=variant1.img
+  ...
+
+It is allowed to have both a specific variant as well as a default image in the
+same bundle.
+If a specific variant of the image is available, it will be used on that system.
+On all other systems, the default image will be used instead.
+
+If you have a specific image variant for one of your systems,
+it is mandatory to also have a default or specific variant for the same slot
+class for any other system you intend to update.
+RAUC will report an error if for example a booloader image is only present for
+variant A when you try to install on variant B.
+This should prevent from bricking your device by unintentional partial updates.
+
 Updating the Bootloader
 -----------------------
 

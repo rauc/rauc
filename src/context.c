@@ -150,6 +150,31 @@ out:
 	return res;
 }
 
+static gchar* get_system_dtb_compatible(GError **error) {
+	gchar *contents = NULL;
+	GError *ierror = NULL;
+
+	if (!g_file_get_contents("/sys/firmware/devicetree/base/compatible", &contents, NULL, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	return contents;
+}
+
+static gchar* get_variant_from_file(const gchar* filename, GError **error) {
+	gchar *contents = NULL;
+	GError *ierror = NULL;
+
+	if (!g_file_get_contents(filename, &contents, NULL, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	return contents;
+}
+
+
 static void r_context_configure(void) {
 	gboolean res = TRUE;
 	GError *error = NULL;
@@ -167,6 +192,26 @@ static void r_context_configure(void) {
 	if (!res) {
 		g_error("failed to initialize context: %s", error->message);
 		g_clear_error(&error);
+	}
+
+	if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_DTB) {
+		gchar *compatible = get_system_dtb_compatible(&error);
+		if (!compatible) {
+			g_warning("Failed to read dtb compatible: %s", error->message);
+			g_clear_error(&error);
+		} else {
+			g_free(context->config->system_variant);
+			context->config->system_variant = compatible;
+		}
+	} else if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_FILE) {
+		gchar *variant = get_variant_from_file(context->config->system_variant, &error);
+		if (!variant) {
+			g_warning("Failed to read system variant from file: %s", error->message);
+			g_clear_error(&error);
+		} else {
+			g_free(context->config->system_variant);
+			context->config->system_variant = variant;
+		}
 	}
 
 	if (context->config->systeminfo_handler &&
