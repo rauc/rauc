@@ -139,6 +139,17 @@ static void test_save_load_manifest(void)
 
 	new_image = g_new0(RaucImage, 1);
 
+	new_image->slotclass = g_strdup("rootfs");
+	new_image->variant = g_strdup("variant-1");
+	new_image->checksum.type = G_CHECKSUM_SHA256;
+	new_image->checksum.digest = g_strdup("768c36e72bedd35dac67c39b6145f97ef174179f5903a31c4c03abc0eb5d954c");
+	new_image->filename = g_strdup("myrootimg_vareiant1.ext4");
+	new_image->hooks.pre_install = TRUE;
+	new_image->hooks.post_install = TRUE;
+	rm->images = g_list_append(rm->images, new_image);
+
+	new_image = g_new0(RaucImage, 1);
+
 	new_image->slotclass = g_strdup("appfs");
 	new_image->checksum.type = G_CHECKSUM_SHA256;
 	new_image->checksum.digest = g_strdup("4e7e45db749b073eda450d30c978c7e2f6035b057d3e33ac4c61d69ce5155313");
@@ -154,7 +165,7 @@ static void test_save_load_manifest(void)
 	new_file->filename = g_strdup("mykernel.img");
 	rm->files = g_list_append(rm->files, new_file);
 
-	g_assert_cmpuint(g_list_length(rm->images), ==, 2);
+	g_assert_cmpuint(g_list_length(rm->images), ==, 3);
 	g_assert_cmpuint(g_list_length(rm->files), ==, 1);
 
 	g_assert_true(save_manifest_file("test/savedmanifest.raucm", rm, NULL));
@@ -171,7 +182,7 @@ static void test_save_load_manifest(void)
 	g_assert_cmpstr(rm->handler_args, ==, "--foo --dummy1 --dummy2");
 	g_assert_cmpstr(rm->hook_name, ==, "hook.sh");
 
-	g_assert_cmpuint(g_list_length(rm->images), ==, 2);
+	g_assert_cmpuint(g_list_length(rm->images), ==, 3);
 	g_assert_cmpuint(g_list_length(rm->files), ==, 1);
 
 	for (GList *l = rm->images; l != NULL; l = l->next) {
