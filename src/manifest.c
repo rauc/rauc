@@ -417,6 +417,12 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **er
 
 		group = g_strconcat(RAUC_IMAGE_PREFIX ".", image->slotclass, NULL);
 
+		if (image->variant) {
+			gchar *tmp = group;
+			group = g_strconcat(group, ".", image->variant, NULL);
+			g_free(tmp);
+		}
+
 		if (image->checksum.type == G_CHECKSUM_SHA256)
 			g_key_file_set_string(key_file, group, "sha256", image->checksum.digest);
 		if (image->checksum.size)
