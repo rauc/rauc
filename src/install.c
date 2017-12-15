@@ -422,6 +422,7 @@ GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group
 				if (!matching_img)
 					matching_img = lookup_image;
 			} else if (g_strcmp0(lookup_image->variant, r_context()->config->system_variant) == 0) {
+				g_debug("Using variant %s image %s for %s", lookup_image->variant, lookup_image->filename, lookup_image->slotclass);
 				matching_img = lookup_image;
 				break;
 			}
@@ -898,7 +899,10 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		install_args_update(args, g_strdup_printf("Updating slot %s", dest_slot->name));
 
 		/* update slot */
-		g_message("Updating %s with %s", dest_slot->device, mfimage->filename);
+		if (mfimage->variant)
+			g_message("Updating %s with %s (variant: %s)", dest_slot->device, mfimage->filename, mfimage->variant);
+		else
+			g_message("Updating %s with %s", dest_slot->device, mfimage->filename);
 
 		r_context_begin_step("copy_image", "Copying image", 0);
 
