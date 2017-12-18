@@ -487,7 +487,6 @@ gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **erro
 	res = r_mount_slot(dest_slot, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		r_umount_slot(dest_slot, NULL);
 		goto free;
 	}
 
