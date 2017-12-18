@@ -216,20 +216,6 @@ target group has been determined successfully.
 If calling the handler fails or the handler returns a non-zero exit code, RAUC
 will abort installation with an error.
 
-.. rubric:: Install Handler
-
-.. code-block:: cfg
-
-  [handlers]
-  install=/usr/lib/rauc/install
-
-The install handler is the most powerful one RAUC provides. If you use
-this, you replace the entire default update procedure of RAUC. It will be
-executed between the pre-install and post-install handlers.
-
-If calling the handler fails or the handler returns a non-zero exit code, RAUC
-will abort installation with an error.
-
 .. rubric:: Post-Install Handler
 
 .. code-block:: cfg
