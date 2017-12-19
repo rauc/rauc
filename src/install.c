@@ -788,11 +788,12 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			continue;
 		}
 
-		res = r_boot_set_state(dest_slot, FALSE, NULL);
+		res = r_boot_set_state(dest_slot, FALSE, &ierror);
 
 		if (!res) {
 			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_NONBOOTABLE,
-					"Failed marking slot %s non-bootable", dest_slot->name);
+					"Failed marking slot %s non-bootable: %s", dest_slot->name, ierror->message);
+			g_clear_error(&ierror);
 			goto early_out;
 		}
 	}
@@ -943,11 +944,12 @@ image_out:
 			if (dest_slot->parent || !dest_slot->bootname)
 				continue;
 
-			res = r_boot_set_primary(dest_slot, NULL);
+			res = r_boot_set_primary(dest_slot, &ierror);
 
 			if (!res) {
 				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
-						"Failed marking slot %s bootable", dest_slot->name);
+						"Failed marking slot %s bootable: %s", dest_slot->name, ierror->message);
+				g_clear_error(&ierror);
 				goto out;
 			}
 		}
@@ -1028,11 +1030,12 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 			break;
 		}
 
-		res = r_boot_set_state(slot, FALSE, NULL);
+		res = r_boot_set_state(slot, FALSE, &ierror);
 
 		if (!res) {
 			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_NONBOOTABLE,
-					"Failed marking slot %s non-bootable", slot->name);
+					"Failed marking slot %s non-bootable: %s", slot->name, ierror->message);
+			g_clear_error(&ierror);
 			goto out;
 		}
 	}
@@ -1146,10 +1149,12 @@ slot_out:
 			if (slot->parent || !slot->bootname)
 				continue;
 
-			res = r_boot_set_primary(slot, NULL);
+			res = r_boot_set_primary(slot, &ierror);
 
 			if (!res) {
-				g_warning("Failed marking slot %s bootable", slot->name);
+				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
+						"Failed marking slot %s bootable: %s", slot->name, ierror->message);
+				g_clear_error(&ierror);
 				goto out;
 			}
 		}
