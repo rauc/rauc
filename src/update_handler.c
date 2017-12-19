@@ -516,6 +516,59 @@ out:
 	return res;
 }
 
+static gboolean img_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
+	GOutputStream *outstream = NULL;
+	GError *ierror = NULL;
+	int out_fd;
+	gboolean res = FALSE;
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	/* open */
+	g_message("opening slot device %s", dest_slot->device);
+	outstream = open_slot_device(dest_slot, &out_fd, &ierror);
+	if (outstream == NULL) {
+		res = FALSE;
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* ubifs ioctl */
+	res = ubifs_ioctl(image, out_fd, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* copy */
+	res = copy_raw_image(image, outstream, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+out:
+	g_clear_object(&outstream);
+	return res;
+}
+
 static gboolean tar_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GError *ierror = NULL;
@@ -870,6 +923,7 @@ RaucUpdatePair updatepairs[] = {
 	{"*.tar*", "ubifs", tar_to_ubifs_handler},
 	{"*.tar*", "vfat", tar_to_vfat_handler},
 	{"*.ubifs", "ubivol", img_to_ubivol_handler},
+	{"*.ubifs", "ubifs", img_to_ubifs_handler},
 	{"*.img", "nand", img_to_nand_handler},
 	{"*.img", "ubivol", img_to_ubivol_handler},
 	{"*.squashfs", "ubivol", img_to_ubivol_handler},
