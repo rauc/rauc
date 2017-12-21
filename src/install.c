@@ -422,6 +422,7 @@ GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group
 				if (!matching_img)
 					matching_img = lookup_image;
 			} else if (g_strcmp0(lookup_image->variant, r_context()->config->system_variant) == 0) {
+				g_debug("Using variant %s image %s for %s", lookup_image->variant, lookup_image->filename, lookup_image->slotclass);
 				matching_img = lookup_image;
 				break;
 			}
@@ -800,7 +801,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	if (manifest->hook_name)
 		hook_name = g_build_filename(bundledir, manifest->hook_name, NULL);
 
-	r_context_begin_step("update_slots", "Updating slots", g_list_length(manifest->images)*2);
+	r_context_begin_step("update_slots", "Updating slots", g_list_length(install_images) * 2);
 	install_args_update(args, "Updating slots...");
 	for (GList *l = install_images; l != NULL; l = l->next) {
 		RaucSlot *dest_slot;
@@ -898,7 +899,10 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		install_args_update(args, g_strdup_printf("Updating slot %s", dest_slot->name));
 
 		/* update slot */
-		g_message("Updating %s with %s", dest_slot->device, mfimage->filename);
+		if (mfimage->variant)
+			g_message("Updating %s with %s (variant: %s)", dest_slot->device, mfimage->filename, mfimage->variant);
+		else
+			g_message("Updating %s with %s", dest_slot->device, mfimage->filename);
 
 		r_context_begin_step("copy_image", "Copying image", 0);
 

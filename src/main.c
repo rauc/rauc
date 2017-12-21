@@ -393,6 +393,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 		RaucImage *img = l->data;
 		formatter_shell_append_n(text, "RAUC_IMAGE_NAME", cnt, img->filename);
 		formatter_shell_append_n(text, "RAUC_IMAGE_CLASS", cnt, img->slotclass);
+		formatter_shell_append_n(text, "RAUC_IMAGE_VARIANT", cnt, img->variant);
 		formatter_shell_append_n(text, "RAUC_IMAGE_DIGEST", cnt, img->checksum.digest);
 		g_string_append_printf(text, "RAUC_IMAGE_SIZE_%d=%"G_GSIZE_FORMAT"\n", cnt, img->checksum.size);
 
@@ -461,6 +462,8 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		RaucImage *img = l->data;
 		g_string_append_printf(text, "(%d)\t%s\n", cnt, img->filename);
 		g_string_append_printf(text, "\tSlotclass: %s\n", img->slotclass);
+		if (img->variant)
+			g_string_append_printf(text, "\tVariant:   %s\n", img->variant);
 		g_string_append_printf(text, "\tChecksum:  %s\n", img->checksum.digest);
 		g_string_append_printf(text, "\tSize:      %"G_GSIZE_FORMAT"\n", img->checksum.size);
 
@@ -540,6 +543,8 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 		json_builder_begin_object (builder);
 		json_builder_set_member_name (builder, img->slotclass);
 		json_builder_begin_object (builder);
+		json_builder_set_member_name (builder, "variant");
+		json_builder_add_string_value (builder, img->variant);
 		json_builder_set_member_name (builder, "filename");
 		json_builder_add_string_value (builder, img->filename);
 		json_builder_set_member_name (builder, "checksum");
