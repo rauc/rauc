@@ -183,6 +183,8 @@ cannot fully know how you intend to use your system.
     * ``CONFIG_FEATURE_SEAMLESS_XZ=y``
 :ext2/3/4: mkfs.ext2/3/4 (from `e2fsprogs
   <git://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git>`_)
+:vfat: mkfs.vfat (from `dosfstools
+                  <https://github.com/dosfstools/dosfstools>`_)
 
 
 Interfacing with the Bootloader
@@ -590,6 +592,73 @@ An examplary GRUB configuration for handling redundant boot setups is located in
 ``contrib/`` folder of the RAUC source repository (``grub.conf``). As the GRUB
 shell only has limited support for scripting, this example uses only one try
 per enabled slot.
+
+EFI
+~~~
+
+For x86 systems that directly boot via EFI/UEFI, RAUC supports interaction with
+EFI boot entries by using the `efibootmgr` tool. To enable EFI bootloader
+support in RAUC, write in your ``system.conf``:
+
+.. code-block:: cfg
+
+  [system]
+  ...
+  bootloader=efi
+
+To set up a system ready for pure EFI-based redundancy boot without any further
+bootloader or initramfs involved, you have to create an appropriate appropriate
+partition layout and matching boot EFI entries.
+
+Assuming a simple A/B redundancy, you would need:
+
+* 2 redundant EFI partitions holding an EFI stub kernel
+  (e.g. at ``EFI/LINUX/BZIMAGE.EFI``)
+* 2 redundant rootfs partitions
+
+To create boot entries for these, use the efibootmgr tool::
+
+  efibootmgr --create --disk /dev/sdaX --part 1 --label "system0" --loader \\EFI\\LINUX\\BZIMAGE.EFI --unicode "root=PARTUUID=<partuuid-of-part-1>"
+  efibootmgr --create --disk /dev/sdaX --part 2 --label "system1" --loader \\EFI\\LINUX\\BZIMAGE.EFI --unicode "root=PARTUUID=<partuuid-of-part-2>"
+
+where you replace /dev/sdaX with the name of the disk you use for redundancy
+boot and ``<partuuid-of-part-1>`` with the PARTUUID of the first rootfs
+partition, and ``<partuuid-of-part-2>`` with the PARTUUID of the second rootfs
+partition.
+
+You can inspect and verify your settings by running::
+
+  efibootmgr -v
+
+In your system.conf, you have to list both the EFI partitions (each containing
+one kernel) as well as the rootfs partition.
+Make the first EFI partition a child of the first rootfs partition and the
+second EFI partition a child of the second rootfs partition to have valid slot
+groups.
+Set the rootfs slot bootnames to those we have defined with the ``--label``
+argument in the ``efibootmgr`` call above:
+
+.. code-block:: cfg
+
+  [efi.0]
+  device=/dev/sdX1
+  type=vfat
+  parent=rootfs.0
+
+  [efi.1]
+  device=/dev/sdX2
+  type=vfat
+  parent=rootfs.1
+
+  [rootfs.0]
+  device=/dev/sdX3
+  type=ext4
+  bootname=system0
+
+  [rootfs.1]
+  device=/dev/sdX4
+  type=ext4
+  bootname=system1
 
 Others
 ~~~~~~
