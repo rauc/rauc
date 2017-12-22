@@ -715,6 +715,11 @@ static gboolean info_start(int argc, char **argv)
 	g_free(text);
 
 	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
+		if (!bundle->verified_chain) {
+			g_print("Signature unverified\n");
+			goto out;
+		}
+
 		text = print_cert_chain(bundle->verified_chain);
 		g_print("%s\n", text);
 		g_free(text);
