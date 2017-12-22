@@ -59,6 +59,7 @@ static int xfer_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 static gboolean transfer(RaucTransfer *xfer, GError **error) {
 	CURL *curl = NULL;
 	CURLcode r;
+	char errbuf[CURL_ERROR_SIZE];
 	gboolean res = FALSE;
 
 	curl = curl_easy_init();
@@ -78,6 +79,10 @@ static gboolean transfer(RaucTransfer *xfer, GError **error) {
 	curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xfer_cb);
 	curl_easy_setopt(curl, CURLOPT_XFERINFODATA, xfer);
 	curl_easy_setopt(curl, CURLOPT_FAILONERROR, xfer);
+	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
+
+	/* set error buffer empty before perorming a request */
+	errbuf[0] = 0;
 
 	r = curl_easy_perform(curl);
 	if (r == CURLE_HTTP_RETURNED_ERROR) {
@@ -85,7 +90,11 @@ static gboolean transfer(RaucTransfer *xfer, GError **error) {
 		res = FALSE;
 		goto out;
 	} else if (r != CURLE_OK) {
-		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed");
+		size_t len = strlen(errbuf);
+		if(len)
+			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s%s", errbuf, ((errbuf[len - 1] != '\n') ? "\n" : ""));
+		else
+			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s", curl_easy_strerror(res));
 		res = FALSE;
 		goto out;
 	}
