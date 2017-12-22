@@ -360,7 +360,6 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 
 	ibundle->path = g_strdup(bundlename);
 
-	r_context_begin_step("check_bundle", "Checking bundle", verify);
 
 	if (verify && !r_context()->config->keyring_path) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_KEYRING, "No keyring file provided");
@@ -478,7 +477,6 @@ out:
 	g_clear_object(&bundlestream);
 	g_clear_object(&bundlefile);
 	g_clear_pointer(&sig, g_bytes_unref);
-	r_context_end_step("check_bundle", res);
 	return res;
 }
 

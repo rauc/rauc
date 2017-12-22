@@ -1205,11 +1205,13 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 	// TODO: mount info in context ?
 	install_args_update(args, "Checking and mounting bundle...");
 
+	r_context_begin_step("check_bundle", "Checking bundle", 1);
 	res = check_bundle(bundlefile, &bundle, TRUE, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
+	r_context_end_step("check_bundle", res);
 
 	res = mount_bundle(bundle, &ierror);
 	if (!res) {
