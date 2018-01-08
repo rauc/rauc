@@ -877,7 +877,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 				slot_state->status = g_strdup("update");
 			} else {
 				/* skip if slot is up-to-date */
-				if (g_str_equal(mfimage->checksum.digest, slot_state->checksum.digest)) {
+				if (!dest_slot->ignore_checksum && g_str_equal(mfimage->checksum.digest, slot_state->checksum.digest)) {
 					install_args_update(args, g_strdup_printf("Skipping update for correct image %s", mfimage->filename));
 					g_message("Skipping update for correct image %s", mfimage->filename);
 					r_context_end_step("check_slot", TRUE);
