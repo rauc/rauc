@@ -10,30 +10,13 @@
 
 RaucContext *context = NULL;
 
-/* resolve PARTUUID=xxx to real device name */
-static gchar* resolve_partuuid_arg(gchar *arg) {
-	gchar buf[PATH_MAX + 1];
-	gchar *res = NULL;
-
-	gchar *partuuidpath = g_build_filename(
-			"/dev/disk/by-partuuid/",
-			&arg[9],
-			NULL);
-
-	res = realpath(partuuidpath, buf);
-	g_free(partuuidpath);
-
-	if (!res)
-		return NULL;
-
-	return g_strdup(buf);
-}
-
 static const gchar* get_cmdline_bootname(void) {
 	GRegex *regex = NULL;
 	GMatchInfo *match = NULL;
 	char *contents = NULL;
 	static const char *bootname = NULL;
+	gchar buf[PATH_MAX + 1];
+	gchar *realdev = NULL;
 
 	if (bootname != NULL)
 		return bootname;
@@ -67,15 +50,29 @@ static const gchar* get_cmdline_bootname(void) {
 	}
 
 	if (strncmp(bootname, "PARTUUID=", 9) == 0) {
-		gchar *tmp = resolve_partuuid_arg((gchar*) bootname);
-		if (tmp) {
-			g_debug("Resolved bootname %s to %s", bootname, tmp);
+		gchar *partuuidpath = g_build_filename(
+			"/dev/disk/by-partuuid/",
+			&bootname[9],
+			NULL);
+		if (partuuidpath) {
 			g_free((gchar*) bootname);
-			bootname = tmp;
-		} else {
-			g_message("Unable to resolve PARTUUID bootname %s", bootname);
+			bootname = partuuidpath;
 		}
 	}
+
+	realdev = realpath(bootname, buf);
+	if (realdev == NULL) {
+		g_message("Failed to resolve realpath for '%s'", bootname);
+		goto out;
+	}
+
+	if (g_strcmp0(realdev, bootname) != 0) {
+		g_debug("Resolved bootname %s to %s", bootname, realdev);
+
+		g_free((gchar*) bootname);
+		bootname = g_strdup(realdev);
+	}
+
 
 out:
 	g_clear_pointer(&match, g_match_info_free);
