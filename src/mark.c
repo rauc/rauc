@@ -96,14 +96,14 @@ gboolean mark_run(const gchar *state,
 	}
 
 	if (!g_strcmp0(state, "good")) {
-		res = r_boot_set_state(slot, TRUE, NULL);
-		*message = g_strdup_printf((res) ? "marked slot %s as good" : "failed to mark slot %s as good", slot->name);
+		res = r_boot_set_state(slot, TRUE, &ierror);
+		*message = res ? g_strdup_printf("marked slot %s as good", slot->name) : g_strdup(ierror->message);
 	} else if (!g_strcmp0(state, "bad")) {
-		res = r_boot_set_state(slot, FALSE, NULL);
-		*message = g_strdup_printf((res) ? "marked slot %s as bad" : "failed to mark slot %s as bad", slot->name);
+		res = r_boot_set_state(slot, FALSE, &ierror);
+		*message = res ? g_strdup_printf("marked slot %s as bad", slot->name) : g_strdup(ierror->message);
 	} else if (!g_strcmp0(state, "active")) {
-		res = r_boot_set_primary(slot, NULL);
-		*message = g_strdup_printf((res) ? "activated slot %s" : "failed to activate slot %s", slot->name);
+		res = r_boot_set_primary(slot, &ierror);
+		*message = res ? g_strdup_printf("activated slot %s", slot->name) : g_strdup(ierror->message);
 	} else {
 		res = FALSE;
 		*message = g_strdup_printf("unknown subcommand %s", state);
@@ -112,6 +112,9 @@ gboolean mark_run(const gchar *state,
 out:
 	if (res && slot_name)
 		*slot_name = g_strdup(slot->name);
+
+	if (ierror)
+		g_clear_error(&ierror);
 
 	return res;
 }
