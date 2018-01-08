@@ -108,6 +108,7 @@ AC_SUBST(DBUS_SYSTEMSERVICEDIR)
 
 AC_CONFIG_LINKS([test/test.conf:test/test.conf])
 AC_CONFIG_LINKS([test/bin/postinstall.sh:test/bin/postinstall.sh])
+AC_CONFIG_LINKS([test/bin/efibootmgr:test/bin/efibootmgr])
 AC_CONFIG_LINKS([test/bin/fw_setenv:test/bin/fw_setenv])
 AC_CONFIG_LINKS([test/bin/fw_printenv:test/bin/fw_printenv])
 AC_CONFIG_LINKS([test/bin/grub-editenv:test/bin/grub-editenv])

@@ -135,16 +135,18 @@ Key Features of RAUC
 
     * Well integrated with `bootchooser <http://barebox.de/doc/latest/user/bootchooser.html?highlight=bootchooser>`_ framework
   * `u-boot <http://www.denx.de/wiki/U-Boot>`_
+  * `EFI <https://de.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface>`_
 
 * Storage support:
 
   * ext2/3/4 filesystem
+  * vfat filesystem
   * UBI volumes
   * UBIFS
   * raw NAND (using nandwrite)
   * squashfs
 
-* Independent from update source
+* Independent from update sources
 
   * **USB Stick**
   * Software provisioning server (e.g. **Hawkbit**)

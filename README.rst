@@ -55,9 +55,11 @@ Features
   * `grub <https://www.gnu.org/software/grub/>`_
   * `barebox <http://barebox.org/>`_
   * `u-boot <http://www.denx.de/wiki/U-Boot>`_
+  * `EFI <https://de.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface>`_
 * Storage support:
 
   * ext2/3/4 filesystem
+  * vfat filesystem
   * UBI volumes
   * UBIFS
   * raw NAND (using nandwrite)
@@ -98,6 +100,7 @@ Target Requirements
   * GRUB: environment file on SD/eMMC/SSD/disk
   * Barebox: State partition on EEPROM/FRAM/MRAM or NAND flash
   * U-Boot: environment variable
+  * EFI: EFI variables
 * Boot target selection support in the bootloader
 * Enough mass storage for two symmetric/asymmetric/custom slots
 * For bundle mode:
