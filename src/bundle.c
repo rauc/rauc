@@ -375,7 +375,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to open bundle for reading: ");
+				"Failed to open bundle for reading: ");
 		goto out;
 	}
 
@@ -386,7 +386,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to seek to end of bundle: ");
+				"Failed to seek to end of bundle: ");
 		goto out;
 	}
 	offset = g_seekable_tell((GSeekable *)bundlestream);
@@ -397,27 +397,27 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to read signature size from bundle: ");
+				"Failed to read signature size from bundle: ");
 		goto out;
 	}
 
 	if (sigsize == 0) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
-				"signature size is 0");
+				"Signature size is 0");
 		res = FALSE;
 		goto out;
 	}
 	/* sanity check: signature should be smaller than bundle size */
 	if (sigsize > (guint64)offset) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
-				"signature size (%"G_GUINT64_FORMAT") exceeds bundle size", sigsize);
+				"Signature size (%"G_GUINT64_FORMAT") exceeds bundle size", sigsize);
 		res = FALSE;
 		goto out;
 	}
 	/* sanity check: signature should be smaller than 64kiB */
 	if (sigsize > 0x4000000) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
-				"signature size (%"G_GUINT64_FORMAT") exceeds 64KiB", sigsize);
+				"Signature size (%"G_GUINT64_FORMAT") exceeds 64KiB", sigsize);
 		res = FALSE;
 		goto out;
 	}
@@ -432,7 +432,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to seek to start of bundle signature: ");
+				"Failed to seek to start of bundle signature: ");
 		goto out;
 	}
 
@@ -442,7 +442,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to read signature from bundle: ");
+				"Failed to read signature from bundle: ");
 		goto out;
 	}
 
