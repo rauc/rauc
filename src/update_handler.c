@@ -531,6 +531,8 @@ static gboolean unpack_archive(RaucImage *image, gchar *dest, GError **error)
 {
 	if (g_str_has_suffix(image->filename, ".caidx" ))
 		return casync_extract_image(image, dest, error);
+	else if (g_str_has_suffix(image->filename, ".catar" ))
+		return casync_extract_image(image, dest, error);
 	else
 		return untar_image(image, dest, error);
 }
@@ -1104,6 +1106,7 @@ RaucUpdatePair updatepairs[] = {
 	{"*.ext4", "raw", img_to_raw_handler},
 	{"*.vfat", "raw", img_to_raw_handler},
 	{"*.tar*", "ext4", archive_to_ext4_handler},
+	{"*.catar", "ext4", archive_to_ext4_handler},
 	{"*.tar*", "ubifs", archive_to_ubifs_handler},
 	{"*.tar*", "vfat", archive_to_vfat_handler},
 	{"*.ubifs", "ubivol", img_to_ubivol_handler},
