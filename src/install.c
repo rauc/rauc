@@ -89,8 +89,8 @@ gboolean determine_slot_states(GError **error) {
 		RaucSlot *s = find_config_slot_by_device(r_context()->config,
 				devicepath);
 		if (s) {
-			s->mount_point = g_strdup(g_unix_mount_get_mount_path(m));
-			g_debug("Found mountpoint for slot %s at %s", s->name, s->mount_point);
+			s->ext_mount_point = g_strdup(g_unix_mount_get_mount_path(m));
+			g_debug("Found external mountpoint for slot %s at %s", s->name, s->ext_mount_point);
 		}
 		g_free(devicepath);
 	}
@@ -841,7 +841,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			goto out;
 		}
 
-		if (dest_slot->mount_point) {
+		if (dest_slot->mount_point || dest_slot->ext_mount_point) {
 			res = FALSE;
 			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
 					"Destination device '%s' already mounted", dest_slot->device);
@@ -878,7 +878,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 				/* In case we failed unmounting while reading status
 				 * file, abort here */
-				if (dest_slot->mount_internal) {
+				if (dest_slot->mount_point) {
 					res = FALSE;
 					g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
 							"Slot '%s' still mounted", dest_slot->device);

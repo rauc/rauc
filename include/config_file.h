@@ -81,7 +81,7 @@ typedef struct _RaucSlot {
 	SlotState state;
 	struct _RaucSlot *parent;
 	gchar *mount_point;
-	gboolean mount_internal;
+	gchar *ext_mount_point;
 } RaucSlot;
 
 typedef struct {

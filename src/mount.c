@@ -138,7 +138,6 @@ gboolean r_mount_slot(RaucSlot *slot, GError **error) {
 
 	g_assert_nonnull(slot);
 	g_assert_null(slot->mount_point);
-	g_assert_false(slot->mount_internal);
 
 	if (!g_file_test(slot->device, G_FILE_TEST_EXISTS)) {
 		g_set_error(
@@ -173,7 +172,6 @@ gboolean r_mount_slot(RaucSlot *slot, GError **error) {
 	}
 
 	slot->mount_point = mount_point;
-	slot->mount_internal = TRUE;
 
 out:
 	return res;
@@ -185,7 +183,6 @@ gboolean r_umount_slot(RaucSlot *slot, GError **error) {
 
 	g_assert_nonnull(slot);
 	g_assert_nonnull(slot->mount_point);
-	g_assert_true(slot->mount_internal);
 
 	res = r_umount(slot->mount_point, &ierror);
 	if (!res) {
@@ -199,7 +196,6 @@ gboolean r_umount_slot(RaucSlot *slot, GError **error) {
 
 	g_rmdir(slot->mount_point);
 	g_clear_pointer(&slot->mount_point, g_free);
-	slot->mount_internal = FALSE;
 
 out:
 	return res;
