@@ -60,6 +60,17 @@ static const gchar* get_cmdline_bootname(void) {
 		}
 	}
 
+	if (strncmp(bootname, "UUID=", 5) == 0) {
+		gchar *uuidpath = g_build_filename(
+			"/dev/disk/by-uuid/",
+			&bootname[5],
+			NULL);
+		if (uuidpath) {
+			g_free((gchar*) bootname);
+			bootname = uuidpath;
+		}
+	}
+
 	realdev = realpath(bootname, buf);
 	if (realdev == NULL) {
 		g_message("Failed to resolve realpath for '%s'", bootname);
