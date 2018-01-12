@@ -110,21 +110,32 @@ static void bundle_test_create_mount_extract(BundleFixture *fixture,
 		gconstpointer user_data)
 {
 	RaucBundle *bundle = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
 
 	/* mount needs to run as root */
 	if (!test_running_as_root())
 		return;
 
-	g_assert_true(check_bundle(fixture->bundlename, &bundle, FALSE, NULL));
+	res = check_bundle(fixture->bundlename, &bundle, FALSE, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
 	g_assert_nonnull(bundle);
 
-	g_assert_true(mount_bundle(bundle, NULL));
-	g_assert_true(verify_manifest(bundle->mount_point, NULL, FALSE, NULL));
-	g_assert_true(umount_bundle(bundle, NULL));
+	res = mount_bundle(bundle, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	res = verify_manifest(bundle->mount_point, NULL, FALSE, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	res = umount_bundle(bundle, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
 
 	free_bundle(bundle);
 }
-
 
 static void bundle_test_extract_manifest(BundleFixture *fixture,
 		gconstpointer user_data)
