@@ -7,7 +7,7 @@
 #include "common.h"
 
 void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
-		gconstpointer user_data)
+		const gchar *configname)
 {
 	gchar *configpath;
 	gchar *certpath;
@@ -25,9 +25,11 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 	g_assert(test_mkdir_relative(tmpdir, "slot", 0777) == 0);
 
 	/* copy system config to temp dir*/
+	if (!configname)
+		configname = "test/test.conf";
 	configpath = g_build_filename(tmpdir, "system.conf", NULL);
 	g_assert_nonnull(configpath);
-	g_assert_true(test_copy_file("test/test.conf", NULL, configpath, NULL));
+	g_assert_true(test_copy_file(configname, NULL, configpath, NULL));
 	r_context_conf()->configpath = g_strdup(configpath);
 
 	/* copy systeminfo, preinstall and postinstall handler to temp dir*/
@@ -80,7 +82,7 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 }
 
 void fixture_helper_set_up_system(gchar *tmpdir,
-		gconstpointer user_data)
+		const gchar *configname)
 {
 	gchar *slotfile;
 	gchar *slotpath;
@@ -89,7 +91,7 @@ void fixture_helper_set_up_system(gchar *tmpdir,
 	if (!test_running_as_root())
 		return;
 
-	fixture_helper_fixture_set_up_system_user(tmpdir, user_data);
+	fixture_helper_fixture_set_up_system_user(tmpdir, configname);
 
 	/* Make images user-writable */
 	test_make_slot_user_writable(tmpdir, "images/rootfs-0");
@@ -107,7 +109,6 @@ void fixture_helper_set_up_system(gchar *tmpdir,
 }
 
 void fixture_helper_set_up_bundle(gchar *tmpdir,
-		gconstpointer user_data,
 		const gchar* manifest_content,
 		gboolean handler,
 		gboolean hook) {

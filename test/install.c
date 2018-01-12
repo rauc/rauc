@@ -20,8 +20,8 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 		gconstpointer user_data) {
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, user_data);
-	fixture_helper_set_up_bundle(fixture->tmpdir, user_data, NULL, FALSE, FALSE);
+	fixture_helper_set_up_system(fixture->tmpdir, NULL);
+	fixture_helper_set_up_bundle(fixture->tmpdir, NULL, FALSE, FALSE);
 }
 
 static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture,
@@ -39,8 +39,8 @@ filename=rootfs.ext4\n\
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, user_data);
-	fixture_helper_set_up_bundle(fixture->tmpdir, user_data, manifest_file, TRUE, FALSE);
+	fixture_helper_set_up_system(fixture->tmpdir, NULL);
+	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, TRUE, FALSE);
 }
 
 static void install_fixture_set_up_bundle_install_check_hook(InstallFixture *fixture,
@@ -61,8 +61,8 @@ filename=appfs.ext4";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, user_data);
-	fixture_helper_set_up_bundle(fixture->tmpdir, user_data, manifest_file, FALSE, TRUE);
+	fixture_helper_set_up_system(fixture->tmpdir, NULL);
+	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, FALSE, TRUE);
 }
 
 static void install_fixture_set_up_bundle_install_hook(InstallFixture *fixture,
@@ -84,8 +84,8 @@ hooks=install";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, user_data);
-	fixture_helper_set_up_bundle(fixture->tmpdir, user_data, manifest_file, FALSE, TRUE);
+	fixture_helper_set_up_system(fixture->tmpdir, NULL);
+	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, FALSE, TRUE);
 }
 
 static void install_fixture_set_up_bundle_post_hook(InstallFixture *fixture,
@@ -107,8 +107,8 @@ hooks=post-install";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, user_data);
-	fixture_helper_set_up_bundle(fixture->tmpdir, user_data, manifest_file, FALSE, TRUE);
+	fixture_helper_set_up_system(fixture->tmpdir, NULL);
+	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, FALSE, TRUE);
 }
 
 static void install_fixture_set_up_system_conf(InstallFixture *fixture,
@@ -221,7 +221,7 @@ static void install_fixture_set_up_network(InstallFixture *fixture,
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, user_data);
+	fixture_helper_set_up_system(fixture->tmpdir, NULL);
 
 	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
 	manifestpath = g_build_filename(fixture->tmpdir, "content/manifest.raucm", NULL);
@@ -1197,7 +1197,7 @@ static void install_fixture_set_up_system_user(InstallFixture *fixture,
 {
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_fixture_set_up_system_user(fixture->tmpdir, user_data);
+	fixture_helper_fixture_set_up_system_user(fixture->tmpdir, NULL);
 }
 
 int main(int argc, char *argv[])
