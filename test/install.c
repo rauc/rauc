@@ -919,6 +919,8 @@ static void install_test_bundle(InstallFixture *fixture,
 {
 	gchar *bundlepath, *mountprefix, *slotfile, *testfilepath, *mountdir;
 	RaucInstallArgs *args;
+	GError *ierror = NULL;
+	gboolean res;
 
 	/* needs to run as root */
 	if (!test_running_as_root())
@@ -937,7 +939,9 @@ static void install_test_bundle(InstallFixture *fixture,
 	args->name = g_strdup(bundlepath);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
-	g_assert_true(do_install_bundle(args, NULL));
+	res = do_install_bundle(args, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
 
 	slotfile = g_build_filename(fixture->tmpdir, "images/rootfs-1", NULL);
 	mountdir = g_build_filename(fixture->tmpdir, "mnt", NULL);
