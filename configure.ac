@@ -107,6 +107,7 @@ AC_SUBST(DBUS_SYSTEMSERVICEDIR)
 # Checks for library functions.
 
 AC_CONFIG_LINKS([test/test.conf:test/test.conf])
+AC_CONFIG_LINKS([test/test-global.conf:test/test-global.conf])
 AC_CONFIG_LINKS([test/bin/postinstall.sh:test/bin/postinstall.sh])
 AC_CONFIG_LINKS([test/bin/efibootmgr:test/bin/efibootmgr])
 AC_CONFIG_LINKS([test/bin/fw_setenv:test/bin/fw_setenv])

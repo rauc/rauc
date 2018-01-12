@@ -241,6 +241,41 @@ out:
 	g_free(version);
 }
 
+static void service_test_slot_status(ServiceFixture *fixture, gconstpointer user_data)
+{
+	GError *error = NULL;
+	GVariant *slot_status_array = NULL;
+
+	if (!ENABLE_SERVICE) {
+	    g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
+	    return;
+	}
+
+	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
+						       G_DBUS_PROXY_FLAGS_NONE,
+						       "de.pengutronix.rauc",
+						       "/",
+						       NULL,
+						       NULL);
+
+	if (installer == NULL) {
+		g_error("failed to install proxy");
+		goto out;
+	}
+
+	r_installer_call_get_slot_status_sync(installer,
+					      &slot_status_array,
+					      NULL,
+					      &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(slot_status_array);
+	g_assert_cmpint(g_variant_n_children(slot_status_array), ==, 5);
+
+out:
+	g_clear_pointer(&installer, g_object_unref);
+	g_variant_unref(slot_status_array);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -253,6 +288,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/service/info", ServiceFixture, NULL,
 		   service_info_fixture_set_up, service_test_info,
+		   service_fixture_tear_down);
+
+	g_test_add("/service/slot-status", ServiceFixture, NULL,
+		   service_info_fixture_set_up, service_test_slot_status,
 		   service_fixture_tear_down);
 
 	return g_test_run();
