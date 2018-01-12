@@ -7,6 +7,7 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 mount -t proc none /proc
 mount -t sysfs none /sys
 mount -t tmpfs none /tmp
+mount -t tmpfs none /mnt
 
 mount --bind /usr/lib/uml/modules /lib/modules
 
