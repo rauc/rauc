@@ -693,25 +693,30 @@ free:
 	return res;
 }
 
-static gboolean save_slot_status_globally(RaucSlot *dest_slot, GError **error) {
+static gboolean save_slot_status_globally(GError **error) {
+	GHashTable *slots = r_context()->config->slots;
 	GKeyFile *key_file = g_key_file_new();
 	GError *ierror = NULL;
+	GHashTableIter iter;
+	RaucSlot *slot;
 	gboolean res;
 	gchar *group;
 
-	g_return_val_if_fail(dest_slot, FALSE);
-	g_return_val_if_fail(dest_slot->status, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 	g_return_val_if_fail(r_context()->config->statusfile_path, FALSE);
 
-	g_key_file_load_from_file(key_file, r_context()->config->statusfile_path, G_KEY_FILE_NONE, &ierror);
-	if (ierror && !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_NOENT))
-		g_message("save_slot_status_globally: %s.", ierror->message);
-	g_clear_error(&ierror);
+	g_debug("Saving global slot status");
 
-	group = g_strdup_printf(RAUC_SLOT_PREFIX ".%s", dest_slot->name);
-	status_file_set_slot_status(key_file, group, dest_slot->status);
-	g_free(group);
+	/* Save all slot status information */
+	g_hash_table_iter_init(&iter, slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
+		if (!slot->status) {
+			continue;
+		}
+		group = g_strdup_printf(RAUC_SLOT_PREFIX ".%s", slot->name);
+		status_file_set_slot_status(key_file, group, slot->status);
+		g_free(group);
+	}
 
 	res = g_key_file_save_to_file(key_file, r_context()->config->statusfile_path, &ierror);
 	if (!res)
@@ -727,7 +732,7 @@ gboolean save_slot_status(RaucSlot *dest_slot, GError **error) {
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (r_context()->config->statusfile_path)
-		return save_slot_status_globally(dest_slot, error);
+		return save_slot_status_globally(error);
 	else
 		return save_slot_status_locally(dest_slot, error);
 }
