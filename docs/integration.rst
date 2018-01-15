@@ -19,7 +19,7 @@ In an update system, a lot of components have to play together and have to be
 configured appropriately to interact correctly.
 In principle, these are:
 
-* Hardware setup, Devices, Partitions, etc.
+* Hardware setup, devices, partitions, etc.
 * The bootloader
 * The Linux kernel
 * The init system
@@ -44,12 +44,12 @@ The system configuration file is the central configuration in RAUC that
 abstracts the loosely coupled storage setup, partitioning and boot strategy of
 your board to a coherent redundancy setup world view for RAUC.
 
-RAUC expects the file ``/etc/rauc/system.conf`` to describe the system it runs
-on in a way that all relevant information for performing updates and making
-decisions are given.
+RAUC expects its central configuration file ``/etc/rauc/system.conf`` to
+describe the system it runs on in a way that all relevant information for
+performing updates and making decisions are given.
 
 .. note:: For a full reference of the system.conf file refer to section
-  :ref:`sec_ref_slot_config`
+  :ref:`sec_ref_slot_config`.
 
 Similar to other configuration files used by RAUC,
 the system configuration uses a key-value syntax (similar to those known from
@@ -92,7 +92,7 @@ The mandatory settings for each slot are:
 
 * the ``device`` that holds the (device) path describing *where* the slot is
   located,
-* the ``type`` that defines *how* to update the target device, 
+* the ``type`` that defines *how* to update the target device.
 
 If the slot is bootable, then you also need
 
@@ -194,7 +194,7 @@ Interfacing with the Bootloader
 
 RAUC provides support for interfacing with different types of bootloaders.
 To select the bootloader you have or intend to use on your system, set the
-``bootloader`` key in the ``[system]`` section of your devices ``system.conf``.
+``bootloader`` key in the ``[system]`` section of your device's ``system.conf``.
 
 .. note::
 
@@ -202,7 +202,7 @@ To select the bootloader you have or intend to use on your system, set the
   as it provides a dedicated boot handling framework, called `bootchooser`.
 
 To let RAUC handle a bootable slot, you have to mark it as bootable in your
-system.conf and configure the name under which the bootloader identifies this
+``system.conf`` and configure the name under which the bootloader identifies this
 specific slot.
 This is both done by setting the ``bootname`` property.
 
@@ -224,7 +224,7 @@ Barebox state allows you to save the variables required by bootchooser with
 memory specific storage strategies in all common storage medias,
 such as block devices, mtd (NAND/NOR), EEPROM, and UEFI variables.
 
-The Bootchooser framework maintains informations about priority and remaining
+The Bootchooser framework maintains information about priority and remaining
 boot attemps while being configurable on how to deal with them for different
 strategies.
 
@@ -243,7 +243,7 @@ Configure Barebox
 
 As mentioned above, Barebox support requires you to have the *bootchooser
 framework* with *barebox state* backend enabled.
-In Barebox Kconfig you can enable this by setting:
+In Barebox' Kconfig you can enable this by setting:
 
 .. code-block:: cfg
 
@@ -272,11 +272,11 @@ This is where we start by setting the barebox default boot target to
 
   nv boot.default="bootchooser"
 
-Now, when Barebox is initialized it starts the bootchooser logik to select its
+Now, when Barebox is initialized it starts the bootchooser logic to select its
 real boot target.
 
 As a next step, we need to tell bootchooser which boot targets it should
-handle. These boot targets can have descriptive names must not equal any of
+handle. These boot targets can have descriptive names which must not equal any of
 your existing boot targets, we will have a mapping for this later on.
 
 In this example we call the virtual bootchooser boot targets ``system0`` and
@@ -284,7 +284,7 @@ In this example we call the virtual bootchooser boot targets ``system0`` and
 
   nv bootchooser.targets="system0 system1"
 
-These virtual boot targets you connect to real Barebox boot target
+Now connect each of these virtual boot targets to a real Barebox boot target
 (one of its automagical ones or custom boot scripts)::
 
   nv bootchooser.system0.boot="nand0.ubi.system0"
@@ -300,8 +300,8 @@ other general and slot-specific variables.
 .. warning::
   It is highly recommended to read the full Barebox bootchooser
   `documentation <http://barebox.org/doc/latest/user/bootchooser.html>`_
-  in order to know about the requirements and possibilites in fine-tuning the
-  behavior according to you needs.
+  in order to know about the requirements and possibilities in fine-tuning the
+  behavior according to your needs.
 
   Also make sure to have these ``nv`` settings in your compiled-in environment,
   not in your device-local environment.
@@ -355,7 +355,7 @@ This will look similar to this::
 where ``<&state_storage>`` is a phandle to, e.g. an EEPROM or NAND partition.
 
 .. important::
-   The device tree only defines where and in which format the data will
+   The devicetree only defines where and in which format the data will
    be stored. By default, no data will be stored in the deviectree itself!
 
 The rest of the variable set definition will be made in the ``bootstate``
@@ -390,7 +390,7 @@ defined.:
 
 .. note::
   As the example shows, you must also specify some useful default variables the
-  state driver will load in case of uninitialized backend storage
+  state driver will load in case of uninitialized backend storage.
 
 Additionally one single variable for storing information about the last chosen
 boot target is required::
@@ -406,14 +406,13 @@ boot target is required::
   };
 
 .. warning::
-  This example shows only a highly condensed except of setting up Barebox
+  This example shows only a highly condensed excerpt of setting up Barebox
   state for bootchooser.
   For a full documentation on how Barebox state works and how to properly
-  integrate it into your platform refer the see the official
-  Barebox State Framework
+  integrate it into your platform see the official Barebox State Framework
   `user documentation <http://www.barebox.org/doc/latest/user/state.html>`_
   as well as the corresponding
-  `device tree binding <http://www.barebox.org/doc/latest/devicetree/bindings/barebox/barebox,state.html>`_
+  `devicetree binding <http://www.barebox.org/doc/latest/devicetree/bindings/barebox/barebox,state.html>`_
   reference!
 
 You can verify your setup by calling ``devinfo state`` from Barebox,
@@ -453,8 +452,8 @@ property:
   bootname=system1
 
 
-For writing the bootchoosers state variables from userspace,
-RAUC uses the tool *barebox-state* form the
+For writing the bootchooser's state variables from userspace,
+RAUC uses the tool *barebox-state* from the
 `dt-utils <https://git.pengutronix.de/cgit/tools/dt-utils/>`_ repository.
 
 .. note:: RAUC requires dt-utils version v2017.03 or later!
@@ -475,7 +474,7 @@ Verify Boot Slot Detection
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 As detecting the currently booted rootfs slot from userspace and matching it to
-one of the slots defined in RAUCs system.conf is not always trivial and
+one of the slots defined in RAUC's ``system.conf`` is not always trivial and
 error-prone, Barebox provides an explicit information about which slot it
 selected for booting adding a `bootchooser.active` key to the commandline of
 the kernel it boots. This key has the virtual bootchooser boot target assigned.
@@ -485,7 +484,7 @@ commandline will contain::
   bootchooser.active=system0
 
 RAUC uses this information for detecting the active boot slot (based on the
-slots `bootname` property).
+slot's `bootname` property).
 
 If the kernel commandline of your booted system contains this line, you have
 successfully set up bootchooser to boot your slot::
@@ -522,7 +521,7 @@ environment variables:
 * ``BOOT_ORDER``, which will contain a space-separated list of boot targets in
   the order they should be tried.
 * ``BOOT_<bootname>_LEFT``, which contains the number of remaining boot
-  attempts to perform for the respective slot
+  attempts to perform for the respective slot.
 
 An example U-Boot script for handling redundant A/B boot setups is located in
 the ``contrib/`` folder of the RAUC source repository (``contrib/uboot.sh``).
@@ -551,7 +550,7 @@ To enable reading and writing of the U-Boot environment from Linux userspace,
 you need to have:
 
 * U-Boot target tools ``fw_printenv`` and ``fw_setenv`` available on your devices rootfs.
-* Environment configuration file ``/etc/fw_env.config`` in your target root filesystem
+* Environment configuration file ``/etc/fw_env.config`` in your target root filesystem.
 
 See the corresponding
 `HowTo <https://www.denx.de/wiki/DULG/HowCanIAccessUBootEnvironmentVariablesInLinux>`_
@@ -565,7 +564,7 @@ For atomic updates of environment, U-Boot can use redundant environment
 storages that allow to write one copy while using the other as fallback if
 writing fails, e.g. due to sudden power cut.
 
-In order to enable redundant environment storage, you have to set in you U-Boot
+In order to enable redundant environment storage, you have to set in your U-Boot
 config::
 
   CONFIG_ENV_OFFSET_REDUND=y
@@ -590,7 +589,7 @@ The GRUB bootloader interface of RAUC uses the GRUB environment variables
 To enable reading and writing of the GRUB environment, you need to have the tool
 ``grub-editenv`` available on your target.
 
-An examplary GRUB configuration for handling redundant boot setups is located in the
+An exemplary GRUB configuration for handling redundant boot setups is located in the
 ``contrib/`` folder of the RAUC source repository (``grub.conf``). As the GRUB
 shell only has limited support for scripting, this example uses only one try
 per enabled slot.
@@ -609,7 +608,7 @@ support in RAUC, write in your ``system.conf``:
   bootloader=efi
 
 To set up a system ready for pure EFI-based redundancy boot without any further
-bootloader or initramfs involved, you have to create an appropriate appropriate
+bootloader or initramfs involved, you have to create an appropriate
 partition layout and matching boot EFI entries.
 
 Assuming a simple A/B redundancy, you would need:
@@ -624,16 +623,16 @@ To create boot entries for these, use the efibootmgr tool::
   efibootmgr --create --disk /dev/sdaX --part 2 --label "system1" --loader \\EFI\\LINUX\\BZIMAGE.EFI --unicode "root=PARTUUID=<partuuid-of-part-2>"
 
 where you replace /dev/sdaX with the name of the disk you use for redundancy
-boot and ``<partuuid-of-part-1>`` with the PARTUUID of the first rootfs
-partition, and ``<partuuid-of-part-2>`` with the PARTUUID of the second rootfs
+boot, ``<partuuid-of-part-1>`` with the PARTUUID of the first rootfs
+partition and ``<partuuid-of-part-2>`` with the PARTUUID of the second rootfs
 partition.
 
 You can inspect and verify your settings by running::
 
   efibootmgr -v
 
-In your system.conf, you have to list both the EFI partitions (each containing
-one kernel) as well as the rootfs partition.
+In your ``system.conf``, you have to list both the EFI partitions (each containing
+one kernel) as well as the rootfs partitions.
 Make the first EFI partition a child of the first rootfs partition and the
 second EFI partition a child of the second rootfs partition to have valid slot
 groups.
@@ -673,7 +672,7 @@ Init System and Service Startup
 -------------------------------
 
 There are several ways to run the RAUC service on your target.
-The recommended way is to use a Systemd-based system and allow to start RAUC
+The recommended way is to use a systemd-based system and allow to start RAUC
 via D-Bus activation.
 
 You can start the RAUC service manually by executing::
@@ -687,11 +686,11 @@ When building RAUC, a default systemd ``rauc.service`` file will be generated
 in the ``data/`` folder.
 
 Depending on your configuration ``make install`` will place this file in one of
-your systems service file folders.
+your system's service file folders.
 
 It is a good idea to wait for the system to be fully started before marking it
 as succesfully booted.
-In order to achieve this, a smart soluting is create a systemd service that calls
+In order to achieve this, a smart solution is to create a systemd service that calls
 ``rauc status mark-good`` and use systemd's dependency handling to assure this
 service will not be executed before all relevant other services came up
 successfully. It could look similar to this:
@@ -713,20 +712,20 @@ successfully. It could look similar to this:
 D-Bus Integration
 -----------------
 
-The D-Bus interface RAUC provides makes it easy to integrate it into you custom
+The D-Bus interface RAUC provides makes it easy to integrate it into your custom
 application.
 In order to allow sending data, make sure the D-Bus config file
 ``de.pengutronix.rauc.conf`` from the ``data/`` dir gets installed properly.
 
 To only start RAUC when required, using D-Bus activation is a smart solution.
-In order to enable D-Bus activation, make sure the D-Bus service file
-``de.pengutronix.rauc.service`` from the ``data/`` dir gets installed properly.
+In order to enable D-Bus activation, properly install the D-Bus service file
+``de.pengutronix.rauc.service`` from the ``data/`` dir.
 
 Watchdog Configuration
 ----------------------
 
 Detecting system hangs during runtime requires to have a watchdog and to have
-the wathdog configured and handled properly.
+the watchdog configured and handled properly.
 Systemd provides a sophisticated watchdog multiplexing and handling allowing
 you to configure separate timeouts and handlings for each of your services.
 
@@ -804,7 +803,7 @@ tool, or by using the ``bundle.bbclass`` that handles most of the basic steps,
 automatically.
 
 First, create a bundle recipe in your BSP layer. A possible location for this
-could be ``meta-your-pbsp/recipes-core/bundles/update-bundle.bb``.
+could be ``meta-your-bsp/recipes-core/bundles/update-bundle.bb``.
 
 To create your bundle you first have to inherit the bundle class::
 
@@ -860,7 +859,7 @@ type. The default value will be ``"${PTXCONF_PROJECT_VENDOR}\ ${PTXCONF_PROJECT}
 
 Place your system configuration file in
 ``configs/platform-<yourplatform>/projectroot/etc/rauc/system.conf`` to let the
-RAUC recipe install it into the rootfs you build.
+RAUC package install it into the rootfs you build.
 Also place the keyring for your device in
 ``configs/platform-<yourplatform>/projectroot/etc/rauc/ca.cert.pem``.
 
@@ -874,7 +873,7 @@ for RAUC as well as a ``rauc-mark-good.service`` file.
 This additional good-marking-service runs after user space is brought up and
 notifies the underlying bootloader implementation about a successful boot of
 the system.  This is typically used in conjunction with a boot attempts counter
-in the bootloader that is decremented before starting the systemd and reset by
+in the bootloader that is decremented before starting the system and reset by
 `rauc status mark-good` to indicate a successful system startup.
 
 
@@ -887,9 +886,9 @@ To enable building RAUC bundles, set::
 
 in your platformconfig (by using ``ptxdist platformconfig``).
 
-This adds a default image recipe for building a RAUC update Bundle out of the
-systems rootfs. As for all image recipes, the `genimage` tool is used to
-configure and generate the update Bundle.
+This adds a default image recipe for building a RAUC update bundle out of the
+system's rootfs. As for all image recipes, the `genimage` tool is used to
+configure and generate the update bundle.
 
 PTXdist's default bundle configuration is placed in
 `config/images/rauc.config`. You may also copy this to your platform directory
@@ -901,6 +900,6 @@ certificate and key file in your BSP at the following paths::
   $(PTXDIST_PLATFORMCONFIGDIR)/config/rauc/rauc.key.pem (key)
   $(PTXDIST_PLATFORMCONFIGDIR)/config/rauc/rauc.cert.pem (cert)
 
-Once you are done with you setup, PTXdist will automatically create a RAUC
-update Bundle for you during the run of ``ptxdist images``.  It will be placed
+Once you are done with your setup, PTXdist will automatically create a RAUC
+update bundle for you during the run of ``ptxdist images``.  It will be placed
 under ``<platform-builddir>/images/update.raucb``.
