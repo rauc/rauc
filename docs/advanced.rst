@@ -111,8 +111,6 @@ the content of the bundle itself.
 
 This is what the ``resign`` command of RAUC is for::
 
-.. code-block:: sh
-
   rauc resign --cert=<certfile> --key=<keyfile> --keyring=<keyring> <input-bundle> <output-bundle>
 
 It verifies the bundle against the given keyring, strips the old signature and
