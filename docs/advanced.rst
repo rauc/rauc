@@ -169,13 +169,13 @@ Example hook shell script code for above trust chain:
 .. code-block:: sh
 
   case "$1" in
-  
+
   	[...]
-  
+
   	slot-post-install)
-  
+
   		[...]
-  
+
   		# iterate over trust chain SPKI hashes (from leaf to root)
   		for i in $RAUC_BUNDLE_SPKI_HASHES; do
   			# Test for development intermediate certificate
@@ -192,7 +192,7 @@ Example hook shell script code for above trust chain:
   			fi
   		done
   		;;
-  
+
   	[...]
   esac
 
