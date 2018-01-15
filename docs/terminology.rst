@@ -39,7 +39,7 @@ Terminology
     slots are bound to one of the root file system slots.
     They form an **install group**.
     An update can be applied only to members of the same group.
- 
+
   .. FIXME find a better term for this
 
   System Configuration

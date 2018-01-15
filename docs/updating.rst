@@ -17,7 +17,7 @@ In this you initial phase you can prevent yourself from making wrong decisions.
 Redundancy and Atomicity
 ------------------------
 
-There are two key requirements for allowing you to robustly update your system. 
+There are two key requirements for allowing you to robustly update your system.
 
 The first one is redundancy:
 You must not update the system you are currently running on.
@@ -100,5 +100,5 @@ Update Source and Provisioning
 Depending on your infrastructure or requirements, an update might be deployed in
 several ways.
 
-The two most common ones are over network, e.g. by using a deployment server, 
+The two most common ones are over network, e.g. by using a deployment server,
 or simply over a USB stick that will be plugged into the target system.

@@ -53,7 +53,7 @@ a small partition is used instead of the second one (often called "main" and
 "update" or "rescue").
 
 The slot configuration for this in ``system.conf`` could look like this:
-  
+
 .. code-block:: cfg
 
   [slot.update.0]

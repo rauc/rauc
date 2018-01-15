@@ -318,7 +318,7 @@ the hook executable as the rejection reason message and provide it to the user:
 
   #!/bin/sh
 
-  case "$1" in 
+  case "$1" in
           install-check)
                   if [[ "$RAUC_MF_COMPATIBLE" != "$RAUC_SYSTEM_COMPATIBLE" ]]; then
                           echo "Comptaible does not match!" 1>&2
@@ -364,7 +364,7 @@ The following environment variables will be passed to the hook executable:
 
   ``RAUC_SLOT_MOUNT_POINT``
     If available, the mount point of the currently installed slot
-  
+
   ``RAUC_IMAGE_NAME``
     If set, the file name of the image currently to be installed
 
