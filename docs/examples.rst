@@ -75,14 +75,14 @@ out of the box. Instead we use a script to implement it
 
   default=0
   timeout=3
-  
+
   set ORDER="A B"
   set A_OK=0
   set B_OK=0
   set A_TRY=0
   set B_TRY=0
   load_env
-  
+
   # select bootable slot
   for SLOT in $ORDER; do
       if [ "$SLOT" == "A" ]; then
@@ -102,7 +102,7 @@ out of the box. Instead we use a script to implement it
           break
       fi
   done
-  
+
   # reset booted flags
   if [ "$default" -eq 0 ]; then
       if [ "$A_OK" -eq 1 -a "$A_TRY" -eq 1 ]; then
@@ -112,15 +112,15 @@ out of the box. Instead we use a script to implement it
           B_TRY=0
       fi
   fi
-  
+
   save_env A_TRY B_TRY
-  
+
   CMDLINE="panic=60 quiet"
-  
+
   menuentry "Slot A (OK=$A_OK TRY=$A_TRY)" {
       linux (hd0,2)/kernel root=/dev/sda2 $CMDLINE rauc.slot=A
   }
-  
+
   menuentry "Slot B (OK=$B_OK TRY=$B_TRY)" {
       linux (hd0,3)/kernel root=/dev/sda3 $CMDLINE rauc.slot=B
   }

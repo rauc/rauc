@@ -165,10 +165,10 @@ Key Features of RAUC
 
   .. |yocto_logo| image:: images/yocto.png
      :width: 200
-   
+
   .. |ptxdist_logo| image:: images/ptxdist_logo.png
      :width: 200
-  
+
   +-----------------------------+----------------------------------+
   ||yocto_logo|                 | |ptxdist_logo|                   |
   +-----------------------------+----------------------------------+

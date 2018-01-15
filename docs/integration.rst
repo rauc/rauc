@@ -135,7 +135,7 @@ parent relationship to this bootable slot as follows:
 .. code-block:: cfg
 
   [slot.rootfs.0]
-  ... 
+  ...
 
   [slot.appfs.0]
   parent = rootfs.0
@@ -372,7 +372,7 @@ defined.:
           system0 {
                   #address-cells = <1>;
                   #size-cells = <1>;
-          
+
                   remaining_attempts@0 {
                           reg = <0x0 0x4>;
                           type = "uint32";
@@ -490,7 +490,7 @@ If the kernel commandline of your booted system contains this line, you have
 successfully set up bootchooser to boot your slot::
 
   $ cat /proc/cmdline
-  
+
 
 U-Boot
 ~~~~~~
@@ -701,10 +701,10 @@ successfully. It could look similar to this:
   Description=RAUC Good-marking Service
   ConditionKernelCommandLine=|bootchooser.active
   ConditionKernelCommandLine=|rauc.slot
-  
+
   [Service]
   ExecStart=/usr/bin/rauc status mark-good
-  
+
   [Install]
   WantedBy=multi-user.target
 
@@ -765,7 +765,7 @@ following) by creating a ``meta-your-bsp/recipes-core/rauc/rauc_%.bbappend``
 with the following content::
 
   FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
-  
+
   SRC_URI_append := "file://system.conf"
 
 Write a ``system.conf`` for your board and place it in the folder you mentioned

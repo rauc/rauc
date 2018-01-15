@@ -183,12 +183,12 @@ A valid manifest file must have the file extension ``.raucm``.
   [update]
   compatible=FooCorp Super BarBazzer
   version=2016.08-1
-  
+
   [image.rootfs]
   filename=rootfs.ext4
   size=419430400
   sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
-  
+
   [image.appfs]
   filename=appfs.ext4
   size=219430400
@@ -275,7 +275,7 @@ Command Line Tool
 
   Usage:
     rauc [OPTION...] <COMMAND>
-  
+
   Options:
     -c, --conf=FILENAME               config file
     --cert=PEMFILE                    cert file
@@ -288,7 +288,7 @@ Command Line Tool
     -d, --debug                       enable debug output
     --version                         display version
     -h, --help
-  
+
   List of rauc commands:
     bundle        Create a bundle
     resign        Resign an already signed bundle
