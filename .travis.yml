@@ -45,3 +45,4 @@ after_success:
   - coveralls --build-root '.' --exclude test --exclude rauc-installer-generated.c
 after_failure:
   - cat test/*.log
+  - cat test-suite.log
