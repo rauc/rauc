@@ -1231,7 +1231,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 
 	r_context()->install_info->mounted_bundle = bundle;
 
-	res = verify_manifest(bundle->mount_point, &manifest, FALSE, &ierror);
+	res = verify_manifest(bundle->mount_point, &manifest, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,

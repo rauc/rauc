@@ -659,7 +659,7 @@ out:
 	return res;
 }
 
-gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signature, GError **error) {
+gboolean verify_manifest(const gchar *dir, RaucManifest **output, GError **error) {
 	GError *ierror = NULL;
 	gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
 	gchar* signaturepath = g_build_filename(dir, "manifest.raucm.sig", NULL);
@@ -667,23 +667,7 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signa
 	GBytes *sig = NULL;
 	gboolean res = FALSE;
 
-	r_context_begin_step("verify_manifest", "Verifying manifest",
-			     2 + signature);
-
-	if (signature) {
-		sig = read_file(signaturepath, &ierror);
-		if (sig == NULL) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-
-		res = cms_verify_file(manifestpath, sig, 0, NULL, NULL, &ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-
-	}
+	r_context_begin_step("verify_manifest", "Verifying manifest", 2);
 
 	res = load_manifest_file(manifestpath, &manifest, &ierror);
 	if (!res) {

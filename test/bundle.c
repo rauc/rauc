@@ -101,7 +101,7 @@ static void bundle_test_create_extract(BundleFixture *fixture,
 	g_assert_nonnull(bundle);
 
 	g_assert_true(extract_bundle(bundle, outputdir, NULL));
-	g_assert_true(verify_manifest(outputdir, NULL, FALSE, NULL));
+	g_assert_true(verify_manifest(outputdir, NULL, NULL));
 
 	free_bundle(bundle);
 }
@@ -126,7 +126,7 @@ static void bundle_test_create_mount_extract(BundleFixture *fixture,
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 
-	res = verify_manifest(bundle->mount_point, NULL, FALSE, &ierror);
+	res = verify_manifest(bundle->mount_point, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 
