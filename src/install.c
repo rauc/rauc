@@ -848,6 +848,13 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			goto out;
 		}
 
+		/* Verify image checksum */
+		res = verify_checksum(&mfimage->checksum, mfimage->filename, &ierror);
+		if (!res) {
+			g_propagate_prefixed_error(error, ierror, "Failed verifying checksum: ");
+			goto out;
+		}
+
 		/* determine whether update image type is compatible with destination slot type */
 		update_handler = get_update_handler(mfimage, dest_slot, &ierror);
 		if (update_handler == NULL) {
@@ -1200,6 +1207,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 	RaucManifest *manifest = NULL;
 	RaucBundle *bundle = NULL;
 	GHashTable *target_group;
+	gchar* manifestpath = NULL;
 
 	g_assert_nonnull(bundlefile);
 	g_assert_null(r_context()->install_info->mounted_bundle);
@@ -1231,12 +1239,13 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
 
 	r_context()->install_info->mounted_bundle = bundle;
 
-	res = verify_manifest(bundle->mount_point, &manifest, &ierror);
+	manifestpath = g_build_filename(bundle->mount_point, "manifest.raucm", NULL);
+	res = load_manifest_file(manifestpath, &manifest, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed verifying manifest: ");
+				"Failed loading manifest: ");
 		goto umount;
 	}
 
@@ -1292,6 +1301,7 @@ umount:
 	r_context()->install_info->mounted_bundle = NULL;
 
 out:
+	g_free(manifestpath);
 	g_clear_pointer(&bundle, free_bundle);
 	g_clear_pointer(&manifest, free_manifest);
 	r_context_end_step("do_install_bundle", res);

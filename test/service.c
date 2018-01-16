@@ -149,12 +149,8 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  20, "Verifying signature", 3));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  40, "Verifying signature done.", 3));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  40, "Checking bundle done.", 2));
-	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  40, "Verifying manifest", 2));
-	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  40, "Loading manifest file", 3));
-	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  50, "Loading manifest file done.", 3));
-	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  50, "Verifying manifest checksums", 3));
-	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  60, "Verifying manifest checksums done.", 3));
-	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  60, "Verifying manifest done.", 2));
+	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  40, "Loading manifest file", 2));
+	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  60, "Loading manifest file done.", 2));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  60, "Determining target install group", 2));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  80, "Determining target install group done.", 2));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  80, "Updating slots", 2));
