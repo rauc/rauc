@@ -109,7 +109,71 @@ out:
 	return res;
 }
 
-static gboolean casync_make(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error) {
+static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error) {
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	GPtrArray *args = g_ptr_array_new_full(15, g_free);
+	GPtrArray *iargs = g_ptr_array_new_full(15, g_free);
+	const gchar *tmpdir = NULL;
+
+	tmpdir = g_dir_make_tmp("arch-XXXXXX", &ierror);
+	if (tmpdir == NULL) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to create tmp dir: ");
+		goto out;
+	}
+
+	/* Inner process call (argument of fakroot sh -c) */
+	g_ptr_array_add(iargs, g_strdup("tar"));
+	g_ptr_array_add(iargs, g_strdup("xf"));
+	g_ptr_array_add(iargs, g_strdup(contentpath));
+	g_ptr_array_add(iargs, g_strdup("-C"));
+	g_ptr_array_add(iargs, g_strdup(tmpdir));
+	g_ptr_array_add(iargs, g_strdup("&&"));
+	g_ptr_array_add(iargs, g_strdup("casync"));
+	g_ptr_array_add(iargs, g_strdup("make"));
+	g_ptr_array_add(iargs, g_strdup("--with=unix"));
+	g_ptr_array_add(iargs, g_strdup(idxpath));
+	g_ptr_array_add(iargs, g_strdup(tmpdir));
+	if (store) {
+		g_ptr_array_add(iargs, g_strdup("--store"));
+		g_ptr_array_add(iargs, g_strdup(store));
+	}
+	g_ptr_array_add(iargs, NULL);
+
+	/* Outer process calll */
+	g_ptr_array_add(args, g_strdup("fakeroot"));
+	g_ptr_array_add(args, g_strdup("sh"));
+	g_ptr_array_add(args, g_strdup("-c"));
+	g_ptr_array_add(args, g_strjoinv(" ", (gchar**) g_ptr_array_free(iargs, FALSE)));
+	g_ptr_array_add(args, NULL);
+
+	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
+				 G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start casync: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run casync: ");
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	return res;
+}
+
+static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error) {
 	GSubprocess *sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -392,6 +456,15 @@ out:
 	return res;
 }
 
+static gboolean image_is_archive(RaucImage* image) {
+	if (g_pattern_match_simple("*.tar*", image->filename) ||
+			g_pattern_match_simple("*.catar", image->filename)) {
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -449,24 +522,42 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 		gchar *imgpath = NULL, *idxfile = NULL, *idxpath = NULL;
 
 		imgpath = g_build_filename(contentdir, image->filename, NULL);
-		idxfile = g_strconcat(image->filename, ".caibx", NULL);
-		idxpath = g_build_filename(contentdir, idxfile, NULL);
+
+		if (image_is_archive(image)) {
+			idxfile = g_strconcat(image->filename, ".caidx", NULL);
+			idxpath = g_build_filename(contentdir, idxfile, NULL);
+
+			g_message("Converting %s to directory tree idx %s", image->filename, idxfile);
+
+			res = casync_make_arch(idxpath, imgpath, storepath, &ierror);
+			if (!res) {
+				g_free(idxpath);
+				g_free(imgpath);
+
+				g_propagate_error(error, ierror);
+				goto out;
+			}
+		} else {
+
+			idxfile = g_strconcat(image->filename, ".caibx", NULL);
+			idxpath = g_build_filename(contentdir, idxfile, NULL);
+
+			g_message("Converting %s to blob idx %s", image->filename, idxfile);
+
+			/* Generate index for content */
+			res = casync_make_blob(idxpath, imgpath, storepath, &ierror);
+			if (!res) {
+				g_free(idxpath);
+				g_free(imgpath);
+
+				g_propagate_error(error, ierror);
+				goto out;
+			}
+		}
 
 		/* Rewrite manifest filename */
 		g_free(image->filename);
 		image->filename = idxfile;
-
-		g_message("Converting %s to %s", image->filename, idxfile);
-
-		/* Generate index for content */
-		res = casync_make(idxpath, imgpath, storepath, &ierror);
-		if (!res) {
-			g_free(idxpath);
-			g_free(imgpath);
-
-			g_propagate_error(error, ierror);
-			goto out;
-		}
 
 		/* Remove original file */
 		if (g_remove(imgpath) != 0) {
