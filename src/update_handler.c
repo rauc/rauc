@@ -108,6 +108,33 @@ out:
 	return res;
 }
 
+static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error) {
+	GOutputStream *outstream = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	/* open */
+	g_message("opening slot device %s", slot->device);
+	outstream = open_slot_device(slot, NULL, &ierror);
+	if (outstream == NULL) {
+		res = FALSE;
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* copy */
+	g_message("writing data to device %s", slot->device);
+	res = copy_raw_image(image, outstream, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+out:
+	g_clear_object(&outstream);
+	return res;
+}
+
 static gboolean ubifs_format_slot(RaucSlot *dest_slot, GError **error)
 {
 	GSubprocess *sproc = NULL;
@@ -819,17 +846,8 @@ static gboolean img_to_fs_handler(RaucImage *image, RaucSlot *dest_slot, const g
 		}
 	}
 
-	/* open */
-	g_message("opening slot device %s", dest_slot->device);
-	outstream = open_slot_device(dest_slot, NULL, &ierror);
-	if (outstream == NULL) {
-		res = FALSE;
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
 	/* copy */
-	res = copy_raw_image(image, outstream, &ierror);
+	res = write_image_to_dev(image, dest_slot, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -850,7 +868,6 @@ out:
 }
 
 static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
-	GOutputStream *outstream = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -863,17 +880,8 @@ static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const 
 		}
 	}
 
-	/* open */
-	g_message("opening slot device %s", dest_slot->device);
-	outstream = open_slot_device(dest_slot, NULL, &ierror);
-	if (outstream == NULL) {
-		res = FALSE;
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
 	/* copy */
-	res = copy_raw_image(image, outstream, &ierror);
+	res = write_image_to_dev(image, dest_slot, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -889,7 +897,6 @@ static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const 
 	}
 
 out:
-	g_clear_object(&outstream);
 	return res;
 }
 
