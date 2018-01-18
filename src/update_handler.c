@@ -108,7 +108,99 @@ out:
 	return res;
 }
 
-static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error) {
+static gboolean casync_extract(RaucImage *image, gchar *dest, gchar *seed, GError **error)
+{
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	GPtrArray *args = g_ptr_array_new_full(5, g_free);
+
+	g_ptr_array_add(args, g_strdup("casync"));
+	g_ptr_array_add(args, g_strdup("extract"));
+	if (seed) {
+		g_ptr_array_add(args, g_strdup("--seed"));
+		g_ptr_array_add(args, g_strdup(seed));
+	}
+	g_ptr_array_add(args, g_strdup("--seed-output=no"));
+	g_ptr_array_add(args, g_strdup(image->filename));
+	g_ptr_array_add(args, g_strdup(dest));
+	g_ptr_array_add(args, NULL);
+
+	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
+				  G_SUBPROCESS_FLAGS_NONE, &ierror);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start casync extract: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run casync extract: ");
+		goto out;
+	}
+
+out:
+	g_ptr_array_unref(args);
+	g_clear_pointer(&sproc, g_object_unref);
+	return res;
+}
+
+static RaucSlot *get_active_slot_class_member(gchar *slotclass) {
+	RaucSlot *iterslot;
+	GHashTableIter iter;
+
+	g_return_val_if_fail(slotclass, NULL);
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&iterslot)) {
+		if (iterslot->state == ST_INACTIVE)
+			continue;
+
+		if (g_strcmp0(iterslot->sclass, slotclass) == 0) {
+			return iterslot;
+		}
+	}
+
+	return NULL;
+}
+
+static gboolean casync_extract_image(RaucImage *image, gchar *dest, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	RaucSlot *seedslot = NULL;
+	gchar *seed = NULL;
+
+	/* Prepare Seed */
+	seedslot = get_active_slot_class_member(image->slotclass);
+	if (!seedslot) {
+		g_warning("No seed slot available for %s", image->slotclass);
+		goto extract;
+	}
+
+	g_debug("Adding as casync blob seed: %s", seedslot->device);
+	seed = g_strdup(seedslot->device);
+
+extract:
+	/* Call casync to extract */
+	res = casync_extract(image, dest, seed, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	return res;
+}
+
+static gboolean copy_raw_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error) {
 	GOutputStream *outstream = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -132,6 +224,33 @@ static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **er
 
 out:
 	g_clear_object(&outstream);
+	return res;
+}
+
+static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	/* Handle casync index file */
+	if (g_str_has_suffix(image->filename, ".caibx")) {
+		g_message("Extracting %s to %s", image->filename, slot->device);
+
+		/* Extract caibx to device */
+		res = casync_extract_image(image, slot->device, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+	} else {
+		res = copy_raw_image_to_dev(image, slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+out:
 	return res;
 }
 
@@ -923,6 +1042,16 @@ typedef struct {
 } RaucUpdatePair;
 
 RaucUpdatePair updatepairs[] = {
+	{"*.ext4.caibx", "ext4", img_to_fs_handler},
+	{"*.ext4.caibx", "raw", img_to_raw_handler},
+	{"*.vfat.caibx", "raw", img_to_raw_handler},
+	//{"*.ubifs.caibx", "ubivol", img_to_ubivol_handler}, /* unsupported */
+	//{"*.ubifs.caibx", "ubifs", img_to_ubifs_handler}, /* unsupported */
+	//{"*.img.caibx", "nand", img_to_nand_handler}, /* unsupported */
+	//{"*.img.caibx", "ubivol", img_to_ubivol_handler}, /* unsupported */
+	//{"*.squashfs.caibx", "ubivol", img_to_ubivol_handler}, /* unsupported */
+	{"*.img.caibx", "*", img_to_raw_handler}, /* fallback */
+
 	{"*.ext4", "ext4", img_to_fs_handler},
 	{"*.ext4", "raw", img_to_raw_handler},
 	{"*.vfat", "raw", img_to_raw_handler},
