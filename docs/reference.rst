@@ -85,7 +85,8 @@ verification.
 **[casync] section**
 
 The ``casync`` section contains casync-related settings.
-For more information about using casync support of RAUC, refer to `todo`_.
+For more information about using casync support of RAUC, refer to
+:ref:`casync-support`.
 
 ``storepath``
   Allows to set the path to use as chunk store path for casync to a fixed one.

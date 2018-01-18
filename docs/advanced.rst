@@ -286,6 +286,114 @@ are listed below:
 | Fallback  | tricky (reconvert data?) | easy (old data!)          |
 +-----------+--------------------------+---------------------------+
 
+.. _casync-support:
+
+RAUC casync Support
+-------------------
+
+Using the Content-Addressable Data Synchronization tool `casync` for updating
+embedded / IoT devices provides a couple of benefits.
+By splitting and chunking the update artifacts into reusable pieces, casync
+allows to
+
+ * stream remote bundles to the target without occupying storage / NAND
+ * minimize transferred data for an update by downloading only the delta to the
+   running system
+ * reduce data storage on server side by eliminating redundancy
+ * good handling for CDNs due to similar chunk sizes
+
+For a full description of the way casync works and what you can do with it,
+refer to the
+`blog post <http://0pointer.net/blog/casync-a-tool-for-distributing-file-system-images.html>`_
+by its author Lennart Poettering or visit the
+`GitHub site <https://github.com/systemd/casync>`_.
+
+RAUC supports using casync index files instead of complete images in its bundles.
+This way the real size of the bundle comes down to the size of the index files
+required for referring to the individual chunks.
+The real image data contained in the individual chunks can be stored in one
+single repository, for a whole systems with multiple images as well as for
+multiple systems in different versions, etc.
+This makes the approach quite flexible.
+
+Creating casync Bundles
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Creating RAUC bundles with casync index files is a bit different from creating
+'conventional' bundles.
+While the bundle format remains the same and you could also mix conventional
+and casync-based bundles, creating these bundles is not straight forward when
+using common embedded build systems such as Yocto, PTXdist or buildroot.
+
+Because of this, we decided use a two-step process for creating casync RAUC
+bundles:
+
+ 1. Create 'conventional' RAUC bundle
+ 2. Convert to casync-based RAUC bundle
+
+RAUC provides a command for creating casync-based bundles from  'conventional'
+bundles.
+Simply call::
+
+  rauc convert conventional-bundle.raucb casync-bundle.raucb
+
+The conversion process will create two new artifacts:
+
+ 1. The converted bundle `casync-bundle.raucb` with casnyc index files instead
+    of image files
+ 2. A casync chunk store `casync-bundle.castr/` for all bundle images.
+    This is a directory with chunks grouped by subfolders of the first 4 digits
+    of their chunk ID.
+
+Installing casync Bundles
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The main difference between installing conventional bundles and bundles that
+contain casync index files is that RAUC requires access to the remote casync
+chunk store during installation of the bundle.
+
+Due to the built-in network support of both casync and RAUC, it is possible to
+directly give a network URL as the source of the bundle::
+
+  rauc install https://server.example.com/deploy/bundle-20180112.raucb
+
+By default, RAUC will assume the corresponding casync chunk store is located at
+the same location as the bundle (with the ``.castr`` extension instead of
+``.raucb``), in this example at
+``https://server.example.com/deploy/bundle-20180112.castr``.
+The default location can also be configured in the system config to point to a
+generic location that is valid for all installations.
+
+When installing a bundle, the casync implementation will automatically handle
+the chunk download via an unprivileged helper binary.
+
+Reducing Download Size -- Seeding
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Reducing the amount of data to be transferred over slow connections is one of
+the main goals of using casync for updating.
+Casync splits up the images or directory trees it handles into reusable chunks
+of similar size.
+Doing this both on the source as well as on the destination side allows
+comparing the hashes of the resulting chunks to know which parts are different.
+
+When we update a system, we usually do not change its entire file tree, but
+only update a few libraries, the kernel, the application, etc.
+Thus, most of the data can be retrieved from the currently active system and
+does not need to be fetched via the network.
+
+For each casync image that RAUC extracts to the target slot, it determines an
+appropriate seed.
+This is normally a redundant slot of the same class as the target slot but from
+the currently booted slot group.
+
+.. note::
+  Depending on your targets processing and storage speed, updating slots with
+  casync can be a bit slower than conventional updates,
+  because casync first has to process the entire seed slot to calculate the
+  seed chunks.
+  After this is done it will start writing the data and fetch missing chunks
+  via the network.
 
 .. _sec-variants:
 
