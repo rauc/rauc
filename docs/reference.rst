@@ -58,7 +58,7 @@ Example configuration:
 
 ``mountprefix``
   Prefix of the path where bundles and slots will be mounted. Can be overwritten
-  by the command line option ``--mount``.
+  by the command line option ``--mount``. Defaults to ``/mnt/rauc/``.
 
 ``grubenv``
   Only valid when ``bootloader`` is set to ``grub``.

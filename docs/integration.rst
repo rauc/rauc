@@ -40,7 +40,9 @@ In principle, these are:
 RAUC System Configuration
 -------------------------
 
-The system configuration file is the central configuration in RAUC that maps 
+The system configuration file is the central configuration in RAUC that
+abstracts the loosely coupled storage setup, partitioning and boot strategy of
+your board to a coherent redundancy setup world view for RAUC.
 
 RAUC expects the file ``/etc/rauc/system.conf`` to describe the system it runs
 on in a way that all relevant information for performing updates and making
