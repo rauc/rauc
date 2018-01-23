@@ -92,10 +92,19 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 		gchar *endptr = NULL;
 		outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
 		if (!outline) {
-			g_propagate_prefixed_error(
-					error,
-					ierror,
-					"Failed parsing " BAREBOX_STATE_NAME " output: ");
+			/* Having no error set there was means no content to read */
+			if (ierror == NULL) {
+				g_set_error(
+						error,
+						R_BOOTCHOOSER_ERROR,
+						R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+						"No content to read");
+			} else {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Failed parsing " BAREBOX_STATE_NAME " output: ");
+			}
 			goto out;
 		}
 
