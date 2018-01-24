@@ -659,23 +659,7 @@ out:
 	return res;
 }
 
-static gboolean check_compatible(RaucManifest *manifest, GError **error) {
-	gboolean res = FALSE;
-	g_assert_nonnull(r_context()->config);
-	g_assert_nonnull(r_context()->config->system_compatible);
-
-	res = (g_strcmp0(r_context()->config->system_compatible, manifest->update_compatible) == 0);
-	if (!res) {
-		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_COMPATIBLE,
-				"'%s' (mf) does not match '%s' (sys)",
-				manifest->update_compatible,
-				r_context()->config->system_compatible);
-	}
-
-	return res;
-}
-
-gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signature, GError **error) {
+gboolean verify_manifest(const gchar *dir, RaucManifest **output, GError **error) {
 	GError *ierror = NULL;
 	gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
 	gchar* signaturepath = g_build_filename(dir, "manifest.raucm.sig", NULL);
@@ -683,33 +667,11 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, gboolean signa
 	GBytes *sig = NULL;
 	gboolean res = FALSE;
 
-	r_context_begin_step("verify_manifest", "Verifying manifest",
-			     2 + signature);
-
-	if (signature) {
-		sig = read_file(signaturepath, &ierror);
-		if (sig == NULL) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-
-		res = cms_verify_file(manifestpath, sig, 0, NULL, NULL, &ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-
-	}
+	r_context_begin_step("verify_manifest", "Verifying manifest", 2);
 
 	res = load_manifest_file(manifestpath, &manifest, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(error, ierror, "Failed opening manifest: ");
-		goto out;
-	}
-
-	res = check_compatible(manifest, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(error, ierror, "Invalid compatible: ");
 		goto out;
 	}
 
