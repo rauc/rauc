@@ -1004,33 +1004,26 @@ static RaucSlot *efi_get_primary(GError **error) {
 		goto out;
 	}
 
-	/* We only need to look further if bootnext is not set */
+	/* We prepend the content of BootNext if set */
 	if (bootnext) {
-		g_debug("Skip scanning for primary as Bootnext is set to %s", bootnext->name);
-		goto get_slot;
+		g_debug("Detected BootNext set to %s", bootnext->name);
+		bootorder_entries = g_list_prepend(bootorder_entries, bootnext);
 	}
 
-	if (g_list_first(bootorder_entries) == NULL) {
-		g_set_error_literal(
-				error,
-				R_BOOTCHOOSER_ERROR,
-				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
-				"Unable to obtain primary element");
-		res = FALSE;
-		goto out;
-	}
+	for (GList *entry = bootorder_entries; entry != NULL; entry = entry->next) {
+		efi_bootentry *bootentry = entry->data;
 
-	bootnext = g_list_nth_data(bootorder_entries, 0);
-
-get_slot:
-
-	/* find matching slot entry */
-	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
-		if (g_strcmp0(bootnext->name, slot->bootname) == 0) {
-			primary = slot;
-			break;
+		/* find matching slot entry */
+		g_hash_table_iter_init(&iter, r_context()->config->slots);
+		while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
+			if (g_strcmp0(bootentry->name, slot->bootname) == 0) {
+				primary = slot;
+				break;
+			}
 		}
+
+		if (primary)
+			break;
 	}
 
 	if (!primary) {
