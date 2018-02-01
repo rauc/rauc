@@ -1,3 +1,48 @@
+Release 0.3 (released Feb 1, 2018)
+----------------------------------
+
+.. rubric:: Enhancements
+
+* Added support for intermediate certificates, improved bundle resigning and
+  certificate information for hooks.
+  This makes it easier to use a multi-level PKI with separate intermediate
+  certificates for development and releases.
+  See :ref:`sec-resign` for details.
+* Added support for image variants, which allow creating a single bundle which
+  supports multiple hardware variants by selecting the matching image from a
+  set contained in the bundle.
+  See :ref:`sec-variants` for details.
+* Added support for redundant booting by using EFI boot entries directly.
+  See :ref:`sec-efi` for details.
+* Added boot information to ``rauc status``
+* Added ``rauc extract`` command to extract bundles
+* Support detection of the booted slot by using the ``UUID=`` and ``PARTUUID=``
+  kernel options.
+* Improved the status and error output
+* Improved internal error cause propagation
+
+.. rubric:: Bug fixes
+
+* Fixed boot slot detection for ``root=<symlink>`` boot parameters (such as
+  ``root=/dev/disk/by-path/pci-0000:00:17.0-ata-1-part1``)
+* Removed redundant image checksum verification during installation.
+
+.. rubric:: Testing
+
+* Improve robustness and test coverage
+* Use gcc-7 for testing
+
+.. rubric:: Documentation
+
+* Added documentation for
+
+  - intermediate certificates
+  - re-signing bundles
+  - image variants
+  - UEFI support
+
+* Minor fixes and clarifications
+
 Release 0.2 (released Nov 7, 2017)
 ----------------------------------
 
