@@ -1,13 +1,6 @@
 Release 0.2 (released Nov 7, 2017)
 ----------------------------------
 
-.. rubric:: Documentation
-
-* Added docs/, CHANGES and README to tarball
-* Added and reworked a bunch of documentation chapters
-* Help text for ``rauc bundle`` fixed
-* Added short summary for command help
-
 .. rubric:: Enhancements
 
 * Added ``--override-boot-slot`` argument to force booted slot
@@ -29,7 +22,14 @@ Release 0.2 (released Nov 7, 2017)
 * Added ``--dump-cert`` argument to ``rauc info`` to allow displaying signer
   certificate info
 
-.. rubric:: Bugs fixes
+.. rubric:: Documentation
+
+* Added docs/, CHANGES and README to tarball
+* Added and reworked a bunch of documentation chapters
+* Help text for ``rauc bundle`` fixed
+* Added short summary for command help
+
+.. rubric:: Bug fixes
 
 * Flush D-Bus interface to not drop property updates
 * Set proper PATH when starting service on non-systemd systems
@@ -60,7 +60,16 @@ Release 0.1.1 (released May 11, 2017)
 
 * systemd service: allow systemd to manage and cleanup RAUCs mount directory
 
-.. rubric:: Bugs fixed
+.. rubric:: Documentation
+
+* Added contribution guideline
+* Added CHANGES file
+* Converted README.md to README.rst
+* Added RAUC logo
+* Several typos fixed
+* Updated documentation for mainline PTXdist recipes
+
+.. rubric:: Bug fixes
 
 * Fix signature verification with OpenSSL 1.1.x by adding missing binary flag
 * Fix typo in json status output formatter ("mountpint" -> "mountpoint")
@@ -70,15 +79,6 @@ Release 0.1.1 (released May 11, 2017)
 * Added missing git-version-gen script to automake distribution which made
   autoreconf runs on release packages fail
 * Fixed D-Bus activation of RAUC service for non-systemd systems
-
-.. rubric:: Documentation
-
-* Added contribution guideline
-* Added CHANGES file
-* Converted README.md to README.rst
-* Added RAUC logo
-* Several typos fixed
-* Updated documentation for mainline PTXdist recipes
 
 Release 0.1 (released Feb 24, 2017)
 -----------------------------------
