@@ -100,6 +100,8 @@ To do this, specify the ``--intermediate`` argument during bundle creation::
 Note that you can specify the ``--intermediate`` argument multiple times to
 include multiple intermediate certificates to your bundle signature.
 
+.. _sec-resign:
+
 Resigning Bundles
 ~~~~~~~~~~~~~~~~~
 
@@ -284,6 +286,8 @@ are listed below:
 | Fallback  | tricky (reconvert data?) | easy (old data!)          |
 +-----------+--------------------------+---------------------------+
 
+
+.. _sec-variants:
 
 Handling Board Variants With a Single Bundle
 --------------------------------------------

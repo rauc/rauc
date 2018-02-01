@@ -594,6 +594,8 @@ An exemplary GRUB configuration for handling redundant boot setups is located in
 shell only has limited support for scripting, this example uses only one try
 per enabled slot.
 
+.. _sec-efi:
+
 EFI
 ~~~
 
