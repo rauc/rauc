@@ -1074,6 +1074,86 @@ static gchar* r_status_formatter_json(gboolean pretty)
 #endif
 }
 
+static RaucSlotStatus* r_variant_get_slot_state(GVariant *vardict)
+{
+	RaucSlotStatus *slot_state = g_new0(RaucSlotStatus, 1);
+	GVariantDict dict;
+
+	g_variant_dict_init(&dict, vardict);
+
+	g_variant_dict_lookup(&dict, "bundle.compatible", "s", &slot_state->bundle_compatible);
+	g_variant_dict_lookup(&dict, "bundle.version", "s", &slot_state->bundle_version);
+	g_variant_dict_lookup(&dict, "bundle.description", "s", &slot_state->bundle_description);
+	g_variant_dict_lookup(&dict, "bundle.build", "s", &slot_state->bundle_build);
+	g_variant_dict_lookup(&dict, "status", "s", &slot_state->status);
+	if (g_variant_dict_lookup(&dict, "sha256", "s", &slot_state->checksum.digest))
+		slot_state->checksum.type = G_CHECKSUM_SHA256;
+	g_variant_dict_lookup(&dict, "size", "t", &slot_state->checksum.size);
+	g_variant_dict_lookup(&dict, "installed.timestamp", "s", &slot_state->installed_timestamp);
+	g_variant_dict_lookup(&dict, "installed.count", "u", &slot_state->installed_count);
+	g_variant_dict_lookup(&dict, "activated.timestamp", "s", &slot_state->activated_timestamp);
+	g_variant_dict_lookup(&dict, "activated.count", "u", &slot_state->activated_count);
+
+	vardict = g_variant_dict_end(&dict);
+	g_variant_unref(vardict);
+
+	return slot_state;
+}
+
+static gboolean retrieve_slot_states_via_dbus(GError **error)
+{
+	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
+		? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
+	GError *ierror = NULL;
+	RInstaller *proxy;
+	GVariant *slot_status_array, *vardict;
+	GHashTable *slots = r_context()->config->slots;
+	GVariantIter *iter;
+	gchar *slot_name;
+	RaucSlot *slot;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	proxy = r_installer_proxy_new_for_bus_sync(bus_type,
+						   G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
+						   "de.pengutronix.rauc", "/", NULL, &ierror);
+	if (proxy == NULL) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "error creating proxy: %s", ierror->message);
+		g_error_free(ierror);
+		return FALSE;
+	}
+
+	g_debug("Trying to contact rauc service");
+	if (!r_installer_call_get_slot_status_sync(proxy, &slot_status_array, NULL, &ierror)) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "error calling D-Bus method \"GetSlotStatus\": %s", ierror->message);
+		g_error_free(ierror);
+		return FALSE;
+	}
+
+	g_variant_get(slot_status_array, "a(sa{sv})", &iter);
+	while (g_variant_iter_loop(iter, "(s@a{sv})", &slot_name, &vardict)) {
+		slot = g_hash_table_lookup(slots, slot_name);
+		if (!slot) {
+			g_debug("No slot with name \"%s\" found", slot_name);
+			continue;
+		}
+
+		g_clear_pointer(&slot->status, free_slot_status);
+		slot->status = r_variant_get_slot_state(vardict);
+	}
+
+	g_variant_iter_free(iter);
+	g_variant_unref(slot_status_array);
+
+	return TRUE;
+}
+
 static gboolean status_start(int argc, char **argv)
 {
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
