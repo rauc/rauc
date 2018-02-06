@@ -26,6 +26,7 @@ int r_exit_status = 0;
 
 gboolean install_ignore_compatible = FALSE;
 gboolean info_noverify, info_dumpcert = FALSE;
+gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
 
 static gboolean install_notify(gpointer data) {
@@ -881,6 +882,7 @@ static gchar* r_status_formatter_readable(void)
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		gchar *name = key;
 		RaucSlot *slot = value;
+		RaucSlotStatus *slot_state = slot->status;
 		gboolean good = FALSE;
 
 		slotcnt++;
@@ -903,8 +905,35 @@ static gchar* r_status_formatter_readable(void)
 			g_string_append(text, ", mountpoint=(none)");
 		if (slot->bootname)
 			g_string_append_printf(text, "\n      boot status=%s", good ? "good" : "bad");
+		if (status_detailed && slot_state) {
+			g_string_append_printf(text, "\n      slot status:");
+			g_string_append_printf(text, "\n          bundle:");
+			g_string_append_printf(text, "\n              compatible=%s", slot_state->bundle_compatible);
+			if (slot_state->bundle_version)
+				g_string_append_printf(text, "\n              version=%s", slot_state->bundle_version);
+			if (slot_state->bundle_description)
+				g_string_append_printf(text, "\n              description=%s", slot_state->bundle_description);
+			if (slot_state->bundle_build)
+				g_string_append_printf(text, "\n              build=%s", slot_state->bundle_build);
+			if (slot_state->checksum.digest && slot_state->checksum.type == G_CHECKSUM_SHA256) {
+				g_string_append_printf(text, "\n          checksum:");
+				g_string_append_printf(text, "\n              sha256=%s", slot_state->checksum.digest);
+				g_string_append_printf(text, "\n              size=%lu", slot_state->checksum.size);
+			}
+			if (slot_state->installed_timestamp) {
+				g_string_append_printf(text, "\n          installed:");
+				g_string_append_printf(text, "\n              timestamp=%s", slot_state->installed_timestamp);
+				g_string_append_printf(text, "\n              count=%u", slot_state->installed_count);
+			}
+			if (slot_state->activated_timestamp) {
+				g_string_append_printf(text, "\n          activated:");
+				g_string_append_printf(text, "\n              timestamp=%s", slot_state->activated_timestamp);
+				g_string_append_printf(text, "\n              count=%u", slot_state->activated_count);
+			}
+			if (slot_state->status)
+				g_string_append_printf(text, "\n          status=%s", slot_state->status);
+		}
 		g_string_append_c(text, '\n');
-
 	}
 
 	return g_string_free(text, FALSE);
@@ -956,6 +985,7 @@ static gchar* r_status_formatter_shell(void)
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		RaucSlot *slot = value;
+		RaucSlotStatus *slot_state = slot->status;
 		gboolean good = FALSE;
 
 		slotcnt++;
@@ -976,6 +1006,27 @@ static gchar* r_status_formatter_shell(void)
 			formatter_shell_append_n(text, "RAUC_SLOT_BOOT_STATUS", slotcnt, good ? "good" : "bad");
 		else
 			formatter_shell_append_n(text, "RAUC_SLOT_BOOT_STATUS", slotcnt, NULL);
+		if (status_detailed && slot_state) {
+			gchar *str;
+
+			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_COMPATIBLE", slotcnt, slot_state->bundle_compatible);
+			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_VERSION", slotcnt, slot_state->bundle_version);
+			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_DESCRIPTION", slotcnt, slot_state->bundle_description);
+			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_BUILD", slotcnt, slot_state->bundle_build);
+			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_CHECKSUM_SHA256", slotcnt, slot_state->checksum.digest);
+			str = g_strdup_printf("%lu", slot_state->checksum.size);
+			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_CHECKSUM_SIZE", slotcnt, str);
+			g_free(str);
+			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_INSTALLED_TIMESTAMP", slotcnt, slot_state->installed_timestamp);
+			str = g_strdup_printf("%u", slot_state->installed_count);
+			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_INSTALLED_COUNT", slotcnt, str);
+			g_free(str);
+			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_ACTIVATED_TIMESTAMP", slotcnt, slot_state->activated_timestamp);
+			str = g_strdup_printf("%u", slot_state->activated_count);
+			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_ACTIVATED_COUNT", slotcnt, str);
+			g_free(str);
+			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_STATUS", slotcnt, slot_state->status);
+		}
 	}
 
 	return g_string_free(text, FALSE);
@@ -1019,6 +1070,7 @@ static gchar* r_status_formatter_json(gboolean pretty)
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		RaucSlot *slot = value;
+		RaucSlotStatus *slot_state = slot->status;
 		gboolean good = FALSE;
 
 		if (slot->bootname && !r_boot_get_state(slot, &good, &ierror)) {
@@ -1048,9 +1100,61 @@ static gchar* r_status_formatter_json(gboolean pretty)
 			json_builder_add_string_value (builder, good ? "good" : "bad");
 		else
 			json_builder_add_string_value (builder, NULL);
+		if (status_detailed && slot_state) {
+			json_builder_set_member_name(builder, "slot_status");
+			json_builder_begin_object(builder);	/* slot_status */
+			json_builder_set_member_name(builder, "bundle");
+			json_builder_begin_object(builder);		/* bundle */
+			json_builder_set_member_name(builder, "compatible");
+			json_builder_add_string_value(builder, slot_state->bundle_compatible);
+			if (slot_state->bundle_version) {
+				json_builder_set_member_name(builder, "version");
+				json_builder_add_string_value(builder, slot_state->bundle_version);
+			}
+			if (slot_state->bundle_description) {
+				json_builder_set_member_name(builder, "description");
+				json_builder_add_string_value(builder, slot_state->bundle_description);
+			}
+			if (slot_state->bundle_build) {
+				json_builder_set_member_name(builder, "build");
+				json_builder_add_string_value(builder, slot_state->bundle_build);
+			}
+			json_builder_end_object(builder);		/* bundle */
+			if (slot_state->checksum.digest && slot_state->checksum.type == G_CHECKSUM_SHA256) {
+				json_builder_set_member_name(builder, "checksum");
+				json_builder_begin_object(builder);	/* checksum */
+				json_builder_set_member_name(builder, "sha256");
+				json_builder_add_string_value(builder, slot_state->checksum.digest);
+				json_builder_set_member_name(builder, "size");
+				json_builder_add_int_value(builder, slot_state->checksum.size);
+				json_builder_end_object(builder);	/* checksum */
+			}
+			if (slot_state->installed_timestamp) {
+				json_builder_set_member_name(builder, "installed");
+				json_builder_begin_object(builder);	/* installed */
+				json_builder_set_member_name(builder, "timestamp");
+				json_builder_add_string_value(builder, slot_state->installed_timestamp);
+				json_builder_set_member_name(builder, "count");
+				json_builder_add_int_value(builder, slot_state->installed_count);
+				json_builder_end_object(builder);	/* installed */
+			}
+			if (slot_state->activated_timestamp) {
+				json_builder_set_member_name(builder, "activated");
+				json_builder_begin_object(builder);	/* activated */
+				json_builder_set_member_name(builder, "timestamp");
+				json_builder_add_string_value(builder, slot_state->activated_timestamp);
+				json_builder_set_member_name(builder, "count");
+				json_builder_add_int_value(builder, slot_state->activated_count);
+				json_builder_end_object(builder);	/* activated */
+			}
+			if (slot_state->status) {
+				json_builder_set_member_name(builder, "status");
+				json_builder_add_string_value(builder, slot_state->status);
+			}
+			json_builder_end_object(builder);	/* slot_status */
+		}
 		json_builder_end_object (builder);
 		json_builder_end_object (builder);
-
 	}
 
 	json_builder_end_array (builder);
@@ -1176,6 +1280,24 @@ static gboolean status_start(int argc, char **argv)
 		g_clear_error(&ierror);
 		r_exit_status = 1;
 		goto out;
+	}
+
+	if (status_detailed) {
+		if (!ENABLE_SERVICE) {
+			GHashTable *slots = r_context()->config->slots;
+			GHashTableIter iter;
+			RaucSlot *slot;
+
+			g_hash_table_iter_init(&iter, slots);
+			while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot))
+				load_slot_status(slot);
+		} else if (!retrieve_slot_states_via_dbus(&ierror)) {
+			message = g_strdup_printf("rauc status: error retrieving slot status via D-Bus: %s",
+						  ierror->message);
+			g_error_free(ierror);
+			r_exit_status = 1;
+			goto out;
+		}
 	}
 
 	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
@@ -1304,6 +1426,7 @@ GOptionEntry entries_info[] = {
 };
 
 GOptionEntry entries_status[] = {
+	{"detailed", '\0', 0, G_OPTION_ARG_NONE, &status_detailed, "show more status details", NULL},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
 	{0}
 };
