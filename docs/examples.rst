@@ -202,6 +202,17 @@ on the next boot. By configuring the kernel and systemd to reboot on
 critical errors and by using a (software) watchdog, hangs in a non-working
 installation can be avoided.
 
+Write Slots Without Update Mechanics
+------------------------------------
+
+Assuming an image has been copied to or exists on the target, a manual slot
+write can be performed by::
+
+  > rauc write-slot rootfs.0 rootfs.ext4
+
+This will write the rootfs image ``rootfs.ext4`` to the slot ``rootfs.0``. Note
+that this bypasses all update mechanics like hooks, slot status etc.
+
 Example BSPs
 ------------
 * Yocto
