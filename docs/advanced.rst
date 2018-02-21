@@ -368,6 +368,19 @@ RAUC will report an error if for example a booloader image is only present for
 variant A when you try to install on variant B.
 This should prevent from bricking your device by unintentional partial updates.
 
+Manually Writing Images to Slots
+--------------------------------
+
+In order to write an image to a slot without using update mechanics like hooks,
+slot status etc. use:
+
+.. code-block:: sh
+
+  rauc write-slot <slotname> <image>
+
+This uses the correct handler to write the image to the slot. It is useful for
+development scenarios as well as initial provisioning of embedded boards.
+
 Updating the Bootloader
 -----------------------
 

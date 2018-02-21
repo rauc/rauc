@@ -17,6 +17,7 @@
 #include "rauc-installer-generated.h"
 #include "service.h"
 #include "signature.h"
+#include "update_handler.h"
 #include "utils.h"
 #include "mark.h"
 
@@ -259,6 +260,93 @@ static gboolean bundle_start(int argc, char **argv)
 	}
 
 out:
+	return TRUE;
+}
+
+static gboolean write_slot_start(int argc, char **argv)
+{
+	GError *ierror = NULL;
+	RaucImage *image = g_new0(RaucImage, 1);
+	RaucSlot *slot = g_new0(RaucSlot, 1);
+	GFileInfo *info = NULL;
+	GInputStream *instream = NULL;
+	GFile *imagefile = NULL;
+	img_to_slot_handler update_handler = NULL;
+
+	g_debug("write_slot_start");
+
+	if (argc < 3) {
+		g_printerr("A target slot name must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc < 4) {
+		g_printerr("An image must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc > 4) {
+		g_printerr("Excess argument: %s\n", argv[4]);
+		goto out;
+	}
+
+	/* construct RaucImage with required attributes */
+	imagefile = g_file_new_for_path(argv[3]);
+	instream = (GInputStream*)g_file_read(imagefile, NULL, &ierror);
+	if (instream == NULL) {
+		g_printerr("%s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	info = g_file_input_stream_query_info(G_FILE_INPUT_STREAM(instream),
+			G_FILE_ATTRIBUTE_STANDARD_SIZE, NULL, &ierror);
+	if (info == NULL) {
+		g_printerr("%s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	image->checksum.size = g_file_info_get_size(info);
+	image->filename = g_strdup(argv[3]);
+
+	/* retrieve RaucSlot */
+	slot = g_hash_table_lookup(r_context()->config->slots, argv[2]);
+	if (slot == NULL) {
+		g_printerr("No matching slot found for given slot name\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	/* retrieve update handler */
+	update_handler = get_update_handler(image, slot, &ierror);
+	if (update_handler == NULL) {
+		g_printerr("%s\n", ierror->message);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	/* call update handler */
+	if (!update_handler(image, slot, NULL, &ierror)) {
+		g_printerr("%s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	g_message("Slot written successfully");
+
+out:
+	g_object_unref(info);
+	g_clear_object(&instream);
+	g_clear_object(&imagefile);
+	g_clear_pointer(&slot, r_free_slot);
+	g_clear_pointer(&image, r_free_image);
+
 	return TRUE;
 }
 
@@ -1109,6 +1197,7 @@ typedef enum  {
 	CHECKSUM,
 	STATUS,
 	INFO,
+	WRITE_SLOT,
 	SERVICE,
 } RaucCommandType;
 
@@ -1176,6 +1265,7 @@ static void cmdline_handler(int argc, char **argv)
 		{CHECKSUM, "checksum", "checksum <DIRECTORY>", "Deprecated", checksum_start, NULL, FALSE},
 		{INFO, "info", "info <FILE>", "Print bundle info", info_start, info_group, FALSE},
 		{STATUS, "status", "status", "Show system status", status_start, status_group, TRUE},
+		{WRITE_SLOT, "write-slot", "write-slot <SLOTNAME> <IMAGE>", "Write image to slot and bypass all update logic", write_slot_start, NULL, FALSE},
 #if ENABLE_SERVICE == 1
 		{SERVICE, "service", "service", "Start RAUC service", service_start, NULL, TRUE},
 #endif
@@ -1200,7 +1290,8 @@ static void cmdline_handler(int argc, char **argv)
 			"  checksum\tUpdate a manifest with checksums (and optionally sign it)\n" \
 			"  install\tInstall a bundle\n" \
 			"  info\t\tShow file information\n" \
-			"  status\tShow status");
+			"  status\tShow status\n" \
+			"  write-slot\tWrite image to slot and bypass all update logic");
 
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
 		g_printerr("%s\n", error->message);
