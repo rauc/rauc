@@ -134,7 +134,8 @@ EXTRA_DIST += tap-t \
 	      test/rauc.t \
 	      test/rootfs.raucs \
 	      test/sharness.sh \
-	      test/test.conf
+	      test/test.conf \
+	      test/test-global.conf
 
 librauctest_la_SOURCES = \
 	test/common.c \
@@ -218,4 +219,6 @@ CLEANFILES = $(gdbus_installer_generated) \
 	     test/savedslot.raucs \
 	     test/grubenv.test \
 	     test/random.dat \
-	     test/test-temp.conf
+	     test/test-temp.conf \
+	     test/system.raucs \
+	     test/global.raucs

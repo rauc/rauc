@@ -31,6 +31,7 @@ typedef struct {
 	gchar *mount_prefix;
 	gchar *grubenv_path;
 	gboolean activate_installed;
+	gchar *statusfile_path;
 	gchar *keyring_path;
 
 	gchar *autoinstall_path;
@@ -59,6 +60,19 @@ typedef enum {
 #define R_SLOT_ERROR r_slot_error_quark()
 GQuark r_slot_error_quark(void);
 
+typedef struct {
+	gchar *bundle_compatible;
+	gchar *bundle_version;
+	gchar *bundle_description;
+	gchar *bundle_build;
+	gchar *status;
+	RaucChecksum checksum;
+	gchar *installed_timestamp;
+	guint32 installed_count;
+	gchar *activated_timestamp;
+	guint32 activated_count;
+} RaucSlotStatus;
+
 typedef struct _RaucSlot {
 	/** name of the slot. A glib intern string. */
 	const gchar *name;
@@ -82,15 +96,11 @@ typedef struct _RaucSlot {
 	struct _RaucSlot *parent;
 	gchar *mount_point;
 	gchar *ext_mount_point;
+	RaucSlotStatus *status;
 } RaucSlot;
 
 typedef struct {
 } RaucSlotGroup;
-
-typedef struct {
-	gchar *status;
-	RaucChecksum checksum;
-} RaucSlotStatus;
 
 /**
  * Loads rauc system configuration from file.
@@ -130,15 +140,16 @@ RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device);
 void free_config(RaucConfig *config);
 
 /**
- * Load slot status file.
+ * Load a single slot status from a file into a pre-allocated status structure.
+ * If a problem occurs this structure is left unmodified.
  *
  * @param filename file to load
- * @param slotstatus a location to place the slot status
+ * @param slotstatus pointer to the pre-allocated structure going to store the slot status
  * @param error a GError, or NULL
  *
  * @return TRUE if the slot status was sucessfully loaded. FALSE if there were errors.
  */
-gboolean read_slot_status(const gchar *filename, RaucSlotStatus **slotstatus, GError **error);
+gboolean read_slot_status(const gchar *filename, RaucSlotStatus *slotstatus, GError **error);
 
 /**
  * Save slot status file.
@@ -159,30 +170,32 @@ void free_slot_status(RaucSlotStatus *slotstatus);
 /**
  * Load slot status.
  *
- * This mounts the given slot, reads the status information from its status
- * file and unmounts the slot afterwards.
+ * Takes care to fill in slot status information into the designated component
+ * of the slot data structure. If the user configured a global status file in
+ * the system.conf they are read from this file. Otherwise mount the given slot,
+ * read the status information from its local status file and unmount the slot
+ * afterwards. If a problem occurs the stored slot status consists of default
+ * values. Do nothing if the status information have already been loaded before.
  *
  * @param dest_slot Slot to load status information for
- * @param slot_state return location for the slot information obtained
- * @param error return location for a GError, or NULL
- *
- * @return TRUE if loading status succeeded, FALSE otherwise
  */
-gboolean load_slot_status(RaucSlot *dest_slot, RaucSlotStatus **slot_state, GError **error);
+void load_slot_status(RaucSlot *dest_slot);
 
 /**
  * Save slot status.
  *
- * This mounts the given slot, writes the status information into its status
- * file and unmounts the slot afterwards.
+ * This persists the status information from the designated component of the
+ * given slot data structure. If the user configured a global status file in the
+ * system.conf they are written to this file. Otherwise mount the given slot,
+ * transfer the status information to the local status file and unmount the slot
+ * afterwards.
  *
  * @param dest_slot Slot to write status information for
- * @param mfimage image that was just installed
  * @param error return location for a GError, or NULL
  *
- * @return TRUE if saving status succeeded, FALSE otherwise
+ * @return TRUE if slot is not mountable or saving status succeeded, FALSE otherwise
  */
-gboolean save_slot_status(RaucSlot *dest_slot, RaucImage *mfimage, GError **error);
+gboolean save_slot_status(RaucSlot *dest_slot, GError **error);
 
 /**
  * Frees the memory allocated by a RaucSlot

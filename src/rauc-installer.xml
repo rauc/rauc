@@ -41,6 +41,17 @@
       <arg name="message" type="s" direction="out"/>
     </method>
 
+    <!--
+         GetSlotStatus:
+         @slot_status_array: array of (slotname, dict) tuples with each
+             dictionary representing the status of the corresponding slot
+
+         Access method to get all slots' status.
+    -->
+    <method name="GetSlotStatus">
+      <arg name="slot_status_array" type="a(sa{sv})" direction="out"/>
+    </method>
+
     <!-- Operation: Represents the current (global) operation rauc performs -->
     <property name="Operation" type="s" access="read"/>
     <!-- LastError: Holds a message describing the last error that occurred -->

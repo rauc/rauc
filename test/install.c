@@ -24,6 +24,15 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 	fixture_helper_set_up_bundle(fixture->tmpdir, NULL, FALSE, FALSE);
 }
 
+static void install_fixture_set_up_bundle_central_status(InstallFixture *fixture,
+		gconstpointer user_data) {
+
+	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	fixture_helper_set_up_system(fixture->tmpdir, "test/test-global.conf");
+	fixture_helper_set_up_bundle(fixture->tmpdir, NULL, FALSE, FALSE);
+}
+
 static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture,
 		gconstpointer user_data) {
 	const gchar *manifest_file = "\
@@ -1241,6 +1250,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/install/bundle", InstallFixture, NULL,
 		   install_fixture_set_up_bundle, install_test_bundle,
+		   install_fixture_tear_down);
+
+	g_test_add("/install/bundle/central-status", InstallFixture, NULL,
+		   install_fixture_set_up_bundle_central_status, install_test_bundle,
 		   install_fixture_tear_down);
 
 	g_test_add("/install/network", InstallFixture, NULL,

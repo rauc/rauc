@@ -19,6 +19,7 @@
 #include "context.h"
 #include "install.h"
 #include "manifest.h"
+#include "mark.h"
 #include "mount.h"
 #include "network.h"
 #include "service.h"
@@ -816,6 +817,8 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	for (GList *l = install_images; l != NULL; l = l->next) {
 		RaucSlot *dest_slot;
 		img_to_slot_handler update_handler = NULL;
+		RaucSlotStatus *slot_state = NULL;
+		GDateTime *now;
 
 		mfimage = l->data;
 		dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
@@ -867,49 +870,37 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 		r_context_begin_step("check_slot", g_strdup_printf("Checking slot %s", dest_slot->name), 0);
 
-		if (is_slot_mountable(dest_slot)) {
-			RaucSlotStatus *slot_state = NULL;
+		load_slot_status(dest_slot);
+		slot_state = dest_slot->status;
 
-			res = load_slot_status(dest_slot, &slot_state, &ierror);
+		/* In case we failed unmounting while reading status
+		 * file, abort here */
+		if (dest_slot->mount_point) {
+			res = FALSE;
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
+					"Slot '%s' still mounted", dest_slot->device);
+			r_context_end_step("check_slot", FALSE);
 
-			if (!res) {
-				g_message("Failed to load slot status file: %s", ierror->message);
-				g_clear_error(&ierror);
-
-				/* In case we failed unmounting while reading status
-				 * file, abort here */
-				if (dest_slot->mount_point) {
-					res = FALSE;
-					g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
-							"Slot '%s' still mounted", dest_slot->device);
-					r_context_end_step("check_slot", FALSE);
-
-					g_clear_pointer(&slot_state, free_slot_status);
-					goto out;
-				}
-
-				g_clear_pointer(&slot_state, free_slot_status);
-				slot_state = g_new0(RaucSlotStatus, 1);
-				slot_state->status = g_strdup("update");
-			} else {
-				/* skip if slot is up-to-date */
-				if (!dest_slot->ignore_checksum && g_str_equal(mfimage->checksum.digest, slot_state->checksum.digest)) {
-					install_args_update(args, g_strdup_printf("Skipping update for correct image %s", mfimage->filename));
-					g_message("Skipping update for correct image %s", mfimage->filename);
-					r_context_end_step("check_slot", TRUE);
-
-					/* Dummy step to indicate slot was skipped */
-					r_context_begin_step("skip_image", "Copying image skipped", 0);
-					r_context_end_step("skip_image", TRUE);
-
-					g_clear_pointer(&slot_state, free_slot_status);
-					goto image_out;
-				}
-	
-				g_message("Slot needs to be updated with %s", mfimage->filename);
-				g_clear_pointer(&slot_state, free_slot_status);
-			}
+			goto out;
 		}
+
+		/* skip if slot is up-to-date */
+		if (!dest_slot->ignore_checksum && g_strcmp0(mfimage->checksum.digest, slot_state->checksum.digest) == 0) {
+			install_args_update(args, g_strdup_printf("Skipping update for correct image %s", mfimage->filename));
+			g_message("Skipping update for correct image %s", mfimage->filename);
+			r_context_end_step("check_slot", TRUE);
+
+			/* Dummy step to indicate slot was skipped */
+			r_context_begin_step("skip_image", "Copying image skipped", 0);
+			r_context_end_step("skip_image", TRUE);
+
+			goto image_out;
+		}
+
+		g_free(slot_state->status);
+		slot_state->status = g_strdup("update");
+
+		g_message("Slot needs to be updated with %s", mfimage->filename);
 
 		r_context_end_step("check_slot", TRUE);
 
@@ -935,21 +926,38 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			goto out;
 		}
 
+		g_free(slot_state->bundle_compatible);
+		g_free(slot_state->bundle_version);
+		g_free(slot_state->bundle_description);
+		g_free(slot_state->bundle_build);
+		g_free(slot_state->status);
+		g_free(slot_state->checksum.digest);
+		g_free(slot_state->installed_timestamp);
+
+		now = g_date_time_new_now_utc();
+
+		slot_state->bundle_compatible = g_strdup(manifest->update_compatible);
+		slot_state->bundle_version = g_strdup(manifest->update_version);
+		slot_state->bundle_description = g_strdup(manifest->update_description);
+		slot_state->bundle_build = g_strdup(manifest->update_build);
+		slot_state->status = g_strdup("ok");
+		slot_state->checksum.type = mfimage->checksum.type;
+		slot_state->checksum.digest = g_strdup(mfimage->checksum.digest);
+		slot_state->checksum.size = mfimage->checksum.size;
+		slot_state->installed_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
+		slot_state->installed_count++;
+
+		g_date_time_unref(now);
+
 		r_context_end_step("copy_image", TRUE);
 
-		if (is_slot_mountable(dest_slot)) {
-			install_args_update(args, g_strdup_printf("Updating slot %s status", dest_slot->name));
-			res = save_slot_status(dest_slot, mfimage, &ierror);
-			if (!res) {
-				g_propagate_prefixed_error(
-						error,
-						ierror,
-						"Error while writing status file: ");
-
-				goto out;
-			}
+		install_args_update(args, g_strdup_printf("Updating slot %s status", dest_slot->name));
+		res = save_slot_status(dest_slot, &ierror);
+		if (!res) {
+			g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
+			goto out;
 		}
-		
+
 image_out:
 
 		install_args_update(args, g_strdup_printf("Updating slot %s done", dest_slot->name));
@@ -964,14 +972,20 @@ image_out:
 			if (dest_slot->parent || !dest_slot->bootname)
 				continue;
 
-			res = r_boot_set_primary(dest_slot, &ierror);
-
-			if (!res) {
+			mark_active(dest_slot, &ierror);
+			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE)) {
 				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
-						"Failed marking slot %s bootable: %s", dest_slot->name, ierror->message);
+					"Failed marking slot %s bootable", dest_slot->name);
+				g_clear_error(&ierror);
+				goto out;
+			} else if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED)) {
+				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED,
+					"Marked slot %s bootable, but failed to write status file: %s",
+					dest_slot->name, ierror->message);
 				g_clear_error(&ierror);
 				goto out;
 			}
+			g_clear_error(&ierror);
 		}
 	} else {
 		g_message("Leaving target slot non-bootable as requested by activate_installed == false.");
@@ -1064,7 +1078,7 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 	// for slot in target_group
 	for (gchar **cls = fileclasses; *cls != NULL; cls++) {
 		gchar *slotstatuspath = NULL;
-		RaucSlotStatus *slot_state = NULL;
+		RaucSlotStatus *slot_state = g_new0(RaucSlotStatus, 1);
 
 		RaucSlot *slot = g_hash_table_lookup(target_group, *cls);
 
@@ -1079,12 +1093,12 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 
 		// read status
 		slotstatuspath = g_build_filename(slot->mount_point, "slot.raucs", NULL);
-		res = read_slot_status(slotstatuspath, &slot_state, &ierror);
+		res = read_slot_status(slotstatuspath, slot_state, &ierror);
 		if (!res) {
 			g_message("Failed to load slot status file: %s", ierror->message);
 			g_clear_error(&ierror);
 
-			slot_state = g_new0(RaucSlotStatus, 1);
+			g_free(slot_state->status);
 			slot_state->status = g_strdup("update");
 		}
 
