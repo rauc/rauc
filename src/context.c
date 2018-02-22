@@ -110,7 +110,7 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 	/* we copy the variables from the hashtable and add them to the
 	   subprocess environment */
 	g_hash_table_iter_init(&iter, variables);
-	while (g_hash_table_iter_next(&iter, (gpointer*)&key, (gpointer*)&value)) {
+	while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
                 g_subprocess_launcher_setenv(handlelaunch, g_strdup(key), g_strdup(value), 1);
 	}
 
@@ -241,7 +241,7 @@ static void r_context_configure(void) {
 		}
 
 		g_hash_table_iter_init(&iter, vars);
-		while (g_hash_table_iter_next(&iter, (gpointer*)&key, (gpointer*)&value)) {
+		while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
 			if (g_strcmp0(key, "RAUC_SYSTEM_SERIAL") == 0)
 				r_context_conf()->system_serial = g_strdup(value);
 		}

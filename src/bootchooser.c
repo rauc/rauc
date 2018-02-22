@@ -231,8 +231,7 @@ static RaucSlot* barebox_get_primary(GError **error) {
 	gboolean res;
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		BareboxSlotState state;
 
 		if (!slot->bootname)
@@ -1015,7 +1014,7 @@ static RaucSlot *efi_get_primary(GError **error) {
 
 		/* find matching slot entry */
 		g_hash_table_iter_init(&iter, r_context()->config->slots);
-		while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
+		while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 			if (g_strcmp0(bootentry->name, slot->bootname) == 0) {
 				primary = slot;
 				break;

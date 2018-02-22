@@ -11,7 +11,7 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&booted)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &booted)) {
 		if (booted->state == ST_BOOTED)
 			break;
 		booted = NULL;
@@ -29,7 +29,7 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 	} else if (!g_strcmp0(identifier, "other")) {
 		if (booted) {
 			g_hash_table_iter_init(&iter, r_context()->config->slots);
-			while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
+			while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 				if (slot->sclass == booted->sclass && !slot->parent && slot->bootname && slot != booted)
 					break;
 				slot = NULL;
@@ -51,7 +51,7 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 
 		if (g_strv_length(groupsplit) == 2) {
 			g_hash_table_iter_init(&iter, r_context()->config->slots);
-			while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
+			while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 				if (!g_strcmp0(slot->sclass, groupsplit[0]) && !slot->parent && !g_strcmp0(slot->name, identifier))
 					break;
 				slot = NULL;
