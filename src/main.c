@@ -1336,7 +1336,7 @@ static gboolean status_start(int argc, char **argv)
 			RaucSlot *slot;
 
 			g_hash_table_iter_init(&iter, r_context()->config->slots);
-			while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot))
+			while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot))
 				load_slot_status(slot);
 		} else if (!retrieve_slot_states_via_dbus(&ierror)) {
 			message = g_strdup_printf("rauc status: error retrieving slot status via D-Bus: %s",
