@@ -698,7 +698,6 @@ free:
 }
 
 static gboolean save_slot_status_globally(GError **error) {
-	GHashTable *slots = r_context()->config->slots;
 	GKeyFile *key_file = g_key_file_new();
 	GError *ierror = NULL;
 	GHashTableIter iter;
@@ -712,7 +711,7 @@ static gboolean save_slot_status_globally(GError **error) {
 	g_debug("Saving global slot status");
 
 	/* Save all slot status information */
-	g_hash_table_iter_init(&iter, slots);
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
 		if (!slot->status) {
 			continue;

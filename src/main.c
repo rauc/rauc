@@ -913,11 +913,11 @@ static gchar* slotstate_to_str(SlotState slotstate)
 static gchar* r_status_formatter_readable(void)
 {
 	GHashTableIter iter;
-	gpointer key, value;
 	gint slotcnt = 0;
 	GString *text = g_string_new(NULL);
 	GError *ierror = NULL;
-	RaucSlot *primary = NULL;
+	RaucSlot *slot, *primary = NULL;
+	gchar *name;
 
 	primary = r_boot_get_primary(&ierror);
 	if (!primary) {
@@ -932,9 +932,7 @@ static gchar* r_status_formatter_readable(void)
 
 	g_string_append(text, "slot states:\n");
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		gchar *name = key;
-		RaucSlot *slot = value;
+	while (g_hash_table_iter_next(&iter, (gpointer*) &name, (gpointer*) &slot)) {
 		RaucSlotStatus *slot_state = slot->status;
 		gboolean good = FALSE;
 
@@ -995,13 +993,13 @@ static gchar* r_status_formatter_readable(void)
 static gchar* r_status_formatter_shell(void)
 {
 	GHashTableIter iter;
-	gpointer key, value;
 	gint slotcnt = 0;
 	GString *text = g_string_new(NULL);
 	GPtrArray *slotnames, *slotnumbers = NULL;
 	gchar* slotstring = NULL;
 	GError *ierror = NULL;
-	RaucSlot *primary = NULL;
+	RaucSlot *slot, *primary = NULL;
+	gchar *name;
 
 	primary = r_boot_get_primary(&ierror);
 	if (!primary) {
@@ -1017,8 +1015,8 @@ static gchar* r_status_formatter_shell(void)
 	slotnames = g_ptr_array_new();
 	slotnumbers = g_ptr_array_new();
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		g_ptr_array_add(slotnames, (gchar*) key);
+	while (g_hash_table_iter_next(&iter, (gpointer*) &name, NULL)) {
+		g_ptr_array_add(slotnames, name);
 		g_ptr_array_add(slotnumbers, g_strdup_printf("%i", ++slotcnt));
 	}
 	g_ptr_array_add(slotnames, NULL);
@@ -1036,8 +1034,7 @@ static gchar* r_status_formatter_shell(void)
 
 	slotcnt = 0;
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		RaucSlot *slot = value;
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		RaucSlotStatus *slot_state = slot->status;
 		gboolean good = FALSE;
 
@@ -1091,11 +1088,10 @@ static gchar* r_status_formatter_json(gboolean pretty)
 	JsonGenerator *gen;
 	JsonNode * root;
 	GHashTableIter iter;
-	gpointer key, value;
 	gchar *str;
 	JsonBuilder *builder = json_builder_new ();
 	GError *ierror = NULL;
-	RaucSlot *primary = NULL;
+	RaucSlot *slot, *primary = NULL;
 
 	primary = r_boot_get_primary(&ierror);
 	if (!primary) {
@@ -1121,8 +1117,7 @@ static gchar* r_status_formatter_json(gboolean pretty)
 	json_builder_begin_array (builder);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		RaucSlot *slot = value;
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		RaucSlotStatus *slot_state = slot->status;
 		gboolean good = FALSE;
 
@@ -1337,11 +1332,10 @@ static gboolean status_start(int argc, char **argv)
 
 	if (status_detailed) {
 		if (!ENABLE_SERVICE) {
-			GHashTable *slots = r_context()->config->slots;
 			GHashTableIter iter;
 			RaucSlot *slot;
 
-			g_hash_table_iter_init(&iter, slots);
+			g_hash_table_iter_init(&iter, r_context()->config->slots);
 			while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot))
 				load_slot_status(slot);
 		} else if (!retrieve_slot_states_via_dbus(&ierror)) {
