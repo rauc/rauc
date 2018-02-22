@@ -291,6 +291,11 @@ are listed below:
 RAUC casync Support
 -------------------
 
+.. warning:: casync support is still experimental and lacks some unit tests.
+
+  When evaluating, make sure to compile a recent casync version from the
+  `git <https://github.com/systemd/casync>`_ for testing.
+
 Using the Content-Addressable Data Synchronization tool `casync` for updating
 embedded / IoT devices provides a couple of benefits.
 By splitting and chunking the update artifacts into reusable pieces, casync
