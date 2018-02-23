@@ -264,7 +264,7 @@ static gchar** get_root_system_slot_classes(void) {
 	slotclasses = g_ptr_array_new();
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&iterslot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &iterslot)) {
 		const gchar *key = NULL;
 
 		if (iterslot->parent)
@@ -295,8 +295,7 @@ static RaucSlot *select_inactive_slot_class_member(gchar *rootclass) {
 	g_return_val_if_fail(rootclass, NULL);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&iterslot)) {
-
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &iterslot)) {
 		if (iterslot->state != ST_INACTIVE)
 			continue;
 
@@ -371,7 +370,7 @@ GHashTable* determine_target_install_group(void) {
 	/* Now, iterate over all slots available and add those who's parent are
 	 * in the selected root slots */
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&iterslot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &iterslot)) {
 		RaucSlot *parent = get_parent_root_slot(iterslot);
 		g_debug("Checking slot: %s", iterslot->name);
 
@@ -522,7 +521,7 @@ static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_sou
 	g_subprocess_launcher_setenv(launcher, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		gchar *varname;
 		gchar *tmp;
 		GHashTableIter iiter;
@@ -1013,7 +1012,7 @@ static gboolean reuse_existing_file_checksum(const RaucChecksum *checksum, const
 	RaucSlot *slot;
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		gchar *srcname = NULL;
 		if (!slot->mount_point)
 			goto next;
@@ -1211,7 +1210,7 @@ static void print_slot_hash_table(GHashTable *hash_table) {
 	RaucSlot *slot;
 
 	g_hash_table_iter_init(&iter, hash_table);
-	while (g_hash_table_iter_next(&iter, (gpointer *)&key, (gpointer *)&slot)) {
+	while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &slot)) {
 		g_print("  %s -> %s\n", key, slot->name);
 	}
 }

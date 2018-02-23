@@ -270,7 +270,7 @@ static GVariant* create_slotstatus_array(void) {
 	slot_status_tuples = g_new(GVariant*, slot_number);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		GVariant* slot_status[2];
 
 		g_debug("Adding slot: %s", slot->name);

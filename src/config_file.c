@@ -375,7 +375,7 @@ RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device) {
 	RaucSlot *slot;
 
 	g_hash_table_iter_init(&iter, config->slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		if (g_strcmp0(slot->device, device) == 0) {
 			goto out;
 		}
@@ -632,7 +632,7 @@ static void load_slot_status_globally(void) {
 
 	/* Set all other slots to the default status */
 	g_hash_table_iter_init(&iter, slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		if (slot->status)
 			continue;
 
@@ -698,7 +698,6 @@ free:
 }
 
 static gboolean save_slot_status_globally(GError **error) {
-	GHashTable *slots = r_context()->config->slots;
 	GKeyFile *key_file = g_key_file_new();
 	GError *ierror = NULL;
 	GHashTableIter iter;
@@ -712,8 +711,8 @@ static gboolean save_slot_status_globally(GError **error) {
 	g_debug("Saving global slot status");
 
 	/* Save all slot status information */
-	g_hash_table_iter_init(&iter, slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		if (!slot->status) {
 			continue;
 		}

@@ -550,7 +550,7 @@ static void config_file_test_global_slot_status(ConfigFileFixture *fixture,
 
 	/* Set status for all slots */
 	g_hash_table_iter_init(&iter, slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		if (slot->status)
 			free_slot_status(slot->status);
 
@@ -563,14 +563,14 @@ static void config_file_test_global_slot_status(ConfigFileFixture *fixture,
 
 	/* Save status for all slots */
 	g_hash_table_iter_init(&iter, slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		save_slot_status(slot, &ierror);
 		g_assert_no_error(ierror);
 	}
 
 	/* Clear status for all slots */
 	g_hash_table_iter_init(&iter, slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		if (slot->status)
 			free_slot_status(slot->status);
 
@@ -579,7 +579,7 @@ static void config_file_test_global_slot_status(ConfigFileFixture *fixture,
 
 	/* Check status for all slots */
 	g_hash_table_iter_init(&iter, slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer) &slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		load_slot_status(slot);
 		g_assert_nonnull(slot->status);
 		g_assert_cmpstr(slot->status->status, ==, "ok");
