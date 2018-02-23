@@ -248,6 +248,9 @@ A valid manifest file must have the file extension ``.raucm``.
 
 ``hooks``
   List of hooks enabled for this bundle.
+  See :ref:`sec-install-hooks` for more details.
+
+  Valid items are: ``install-check``
 
 .. _sec-manifest-handler:
 
@@ -278,6 +281,9 @@ A valid manifest file must have the file extension ``.raucm``.
 
 ``hooks``
   List of per-slot hooks enabled for this image.
+  See :ref:`sec-slot-hooks` for more details.
+
+  Valid items are: ``pre-install``, ``install``, ``post-install``
 
 .. _slot-status:
 
