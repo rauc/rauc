@@ -108,6 +108,190 @@ out:
 	return res;
 }
 
+static gboolean casync_extract(RaucImage *image, gchar *dest, const gchar *seed, const gchar *store, GError **error)
+{
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	GPtrArray *args = g_ptr_array_new_full(5, g_free);
+
+	g_ptr_array_add(args, g_strdup("casync"));
+	g_ptr_array_add(args, g_strdup("extract"));
+	if (seed) {
+		g_ptr_array_add(args, g_strdup("--seed"));
+		g_ptr_array_add(args, g_strdup(seed));
+	}
+	if (store) {
+		g_ptr_array_add(args, g_strdup("--store"));
+		g_ptr_array_add(args, g_strdup(store));
+	}
+	g_ptr_array_add(args, g_strdup("--seed-output=no"));
+	g_ptr_array_add(args, g_strdup(image->filename));
+	g_ptr_array_add(args, g_strdup(dest));
+	g_ptr_array_add(args, NULL);
+
+	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
+				  G_SUBPROCESS_FLAGS_NONE, &ierror);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start casync extract: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run casync extract: ");
+		goto out;
+	}
+
+out:
+	g_ptr_array_unref(args);
+	g_clear_pointer(&sproc, g_object_unref);
+	return res;
+}
+
+static RaucSlot *get_active_slot_class_member(gchar *slotclass) {
+	RaucSlot *iterslot;
+	GHashTableIter iter;
+
+	g_return_val_if_fail(slotclass, NULL);
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&iterslot)) {
+		if (iterslot->state == ST_INACTIVE)
+			continue;
+
+		if (g_strcmp0(iterslot->sclass, slotclass) == 0) {
+			return iterslot;
+		}
+	}
+
+	return NULL;
+}
+
+static gboolean casync_extract_image(RaucImage *image, gchar *dest, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	RaucSlot *seedslot = NULL;
+	gchar *seed = NULL;
+	gchar *store = NULL;
+	gboolean seed_mounted = FALSE;
+
+	/* Prepare Seed */
+	seedslot = get_active_slot_class_member(image->slotclass);
+	if (!seedslot) {
+		g_warning("No seed slot available for %s", image->slotclass);
+		goto extract;
+	}
+
+	if (g_str_has_suffix(image->filename, ".caidx" )) {
+		/* We need to have the seed slot (bind) mounted to a distinct
+		 * path to allow seeding. E.g. using mount path '/' for the
+		 * rootfs slot seed is inaproppriate as it contains virtual
+		 * file systems, additional mounts, etc. */
+		if (!seedslot->mount_point) {
+			g_debug("Mounting %s to use as seed", seedslot->device);
+			res = r_mount_slot(seedslot, &ierror);
+			if (!res) {
+				g_warning("Failed mounting for seeding: %s", ierror->message);
+				g_clear_error(&ierror);
+				goto extract;
+			}
+			seed_mounted = TRUE;
+		}
+
+		g_debug("Adding as casync directory tree seed: %s", seedslot->mount_point);
+		seed = g_strdup(seedslot->mount_point);
+	} else {
+		g_debug("Adding as casync blob seed: %s", seedslot->device);
+		seed = g_strdup(seedslot->device);
+	}
+
+	store = r_context()->install_info->mounted_bundle->storepath;
+	g_debug("Using store path: '%s'", store);
+
+extract:
+	/* Call casync to extract */
+	res = casync_extract(image, dest, seed, store, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* Cleanup seed */
+	if (seed_mounted) {
+		r_umount_slot(seedslot, &ierror);
+		if (!res) {
+			g_propagate_prefixed_error(error, ierror, "Failed unmounting seed slot: ");
+			goto out;
+		}
+	}
+
+	res = TRUE;
+out:
+	return res;
+}
+
+static gboolean copy_raw_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error) {
+	GOutputStream *outstream = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	/* open */
+	g_message("opening slot device %s", slot->device);
+	outstream = open_slot_device(slot, NULL, &ierror);
+	if (outstream == NULL) {
+		res = FALSE;
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* copy */
+	g_message("writing data to device %s", slot->device);
+	res = copy_raw_image(image, outstream, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+out:
+	g_clear_object(&outstream);
+	return res;
+}
+
+static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	/* Handle casync index file */
+	if (g_str_has_suffix(image->filename, ".caibx")) {
+		g_message("Extracting %s to %s", image->filename, slot->device);
+
+		/* Extract caibx to device */
+		res = casync_extract_image(image, slot->device, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+	} else {
+		res = copy_raw_image_to_dev(image, slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+out:
+	return res;
+}
+
 static gboolean ubifs_format_slot(RaucSlot *dest_slot, GError **error)
 {
 	GSubprocess *sproc = NULL;
@@ -343,6 +527,16 @@ out:
 	return res;
 }
 
+static gboolean unpack_archive(RaucImage *image, gchar *dest, GError **error)
+{
+	if (g_str_has_suffix(image->filename, ".caidx" ))
+		return casync_extract_image(image, dest, error);
+	else if (g_str_has_suffix(image->filename, ".catar" ))
+		return casync_extract_image(image, dest, error);
+	else
+		return untar_image(image, dest, error);
+}
+
 /**
  * Executes the per-slot hook script.
  *
@@ -569,7 +763,7 @@ out:
 	return res;
 }
 
-static gboolean tar_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+static gboolean archive_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -601,7 +795,7 @@ static gboolean tar_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 
 	/* extract tar into mounted ubi volume */
 	g_message("Extracting %s to %s", image->filename, dest_slot->mount_point);
-	res = untar_image(image, dest_slot->mount_point, &ierror);
+	res = unpack_archive(image, dest_slot->mount_point, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto unmount_out;
@@ -634,7 +828,7 @@ out:
 	return res;
 }
 
-static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
+static gboolean archive_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -665,7 +859,7 @@ static gboolean tar_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, const
 
 	/* extract tar into mounted ext4 volume */
 	g_message("Extracting %s to %s", image->filename, dest_slot->mount_point);
-	res = untar_image(image, dest_slot->mount_point, &ierror);
+	res = unpack_archive(image, dest_slot->mount_point, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto unmount_out;
@@ -698,7 +892,7 @@ out:
 	return res;
 }
 
-static gboolean tar_to_vfat_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+static gboolean archive_to_vfat_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -730,7 +924,7 @@ static gboolean tar_to_vfat_handler(RaucImage *image, RaucSlot *dest_slot, const
 
 	/* extract tar into mounted vfat volume */
 	g_message("Extracting %s to %s", image->filename, dest_slot->mount_point);
-	res = untar_image(image, dest_slot->mount_point, &ierror);
+	res = unpack_archive(image, dest_slot->mount_point, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto unmount_out;
@@ -819,17 +1013,8 @@ static gboolean img_to_fs_handler(RaucImage *image, RaucSlot *dest_slot, const g
 		}
 	}
 
-	/* open */
-	g_message("opening slot device %s", dest_slot->device);
-	outstream = open_slot_device(dest_slot, NULL, &ierror);
-	if (outstream == NULL) {
-		res = FALSE;
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
 	/* copy */
-	res = copy_raw_image(image, outstream, &ierror);
+	res = write_image_to_dev(image, dest_slot, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -850,7 +1035,6 @@ out:
 }
 
 static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
-	GOutputStream *outstream = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -863,17 +1047,8 @@ static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const 
 		}
 	}
 
-	/* open */
-	g_message("opening slot device %s", dest_slot->device);
-	outstream = open_slot_device(dest_slot, NULL, &ierror);
-	if (outstream == NULL) {
-		res = FALSE;
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
 	/* copy */
-	res = copy_raw_image(image, outstream, &ierror);
+	res = write_image_to_dev(image, dest_slot, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -889,7 +1064,6 @@ static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const 
 	}
 
 out:
-	g_clear_object(&outstream);
 	return res;
 }
 
@@ -916,12 +1090,25 @@ typedef struct {
 } RaucUpdatePair;
 
 RaucUpdatePair updatepairs[] = {
+	{"*.ext4.caibx", "ext4", img_to_fs_handler},
+	{"*.ext4.caibx", "raw", img_to_raw_handler},
+	{"*.vfat.caibx", "raw", img_to_raw_handler},
+	//{"*.ubifs.caibx", "ubivol", img_to_ubivol_handler}, /* unsupported */
+	//{"*.ubifs.caibx", "ubifs", img_to_ubifs_handler}, /* unsupported */
+	//{"*.img.caibx", "nand", img_to_nand_handler}, /* unsupported */
+	//{"*.img.caibx", "ubivol", img_to_ubivol_handler}, /* unsupported */
+	//{"*.squashfs.caibx", "ubivol", img_to_ubivol_handler}, /* unsupported */
+	{"*.img.caibx", "*", img_to_raw_handler}, /* fallback */
+	{"*.caidx", "ext4", archive_to_ext4_handler},
+	{"*.caidx", "ubifs", archive_to_ubifs_handler},
+	{"*.caidx", "vfat", archive_to_vfat_handler},
 	{"*.ext4", "ext4", img_to_fs_handler},
 	{"*.ext4", "raw", img_to_raw_handler},
 	{"*.vfat", "raw", img_to_raw_handler},
-	{"*.tar*", "ext4", tar_to_ext4_handler},
-	{"*.tar*", "ubifs", tar_to_ubifs_handler},
-	{"*.tar*", "vfat", tar_to_vfat_handler},
+	{"*.tar*", "ext4", archive_to_ext4_handler},
+	{"*.catar", "ext4", archive_to_ext4_handler},
+	{"*.tar*", "ubifs", archive_to_ubifs_handler},
+	{"*.tar*", "vfat", archive_to_vfat_handler},
 	{"*.ubifs", "ubivol", img_to_ubivol_handler},
 	{"*.ubifs", "ubifs", img_to_ubifs_handler},
 	{"*.img", "nand", img_to_nand_handler},

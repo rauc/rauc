@@ -90,6 +90,19 @@ verification.
   Path to the keyring file in PEM format. Either absolute or relative to the
   system.conf file.
 
+**[casync] section**
+
+The ``casync`` section contains casync-related settings.
+For more information about using casync support of RAUC, refer to
+:ref:`casync-support`.
+
+``storepath``
+  Allows to set the path to use as chunk store path for casync to a fixed one.
+  This is useful if your chunk store is on a dedicated server and will be the
+  same pool for each update you perform.
+  By default, the chunk store path is derived from the location of the RAUC
+  bundle you install.
+
 **[autoinstall] section**
 
 The auto-install feature allows to configure a path that will be checked upon

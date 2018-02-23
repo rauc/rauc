@@ -13,6 +13,8 @@ typedef enum {
 
 typedef struct {
 	gchar *path;
+	gchar *origpath;
+	gchar *storepath;
 	gsize size;
 	gchar *mount_point;
 	STACK_OF(X509) *verified_chain;
@@ -95,6 +97,15 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
  * @return TRUE on success, FALSE if an error occurred
  */
 gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, const gchar *file, GError **error);
+
+/**
+ * Create casync bundle.
+ *
+ * @param bundle RaucBundle struct as returned by check_bundle()
+ * @param outbundle output location for converted casync bundle
+ * @param error Return location for a GError
+ */
+gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error);
 
 /**
  * Mount a bundle.

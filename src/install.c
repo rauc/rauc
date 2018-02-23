@@ -851,11 +851,13 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			goto out;
 		}
 
-		/* Verify image checksum */
-		res = verify_checksum(&mfimage->checksum, mfimage->filename, &ierror);
-		if (!res) {
-			g_propagate_prefixed_error(error, ierror, "Failed verifying checksum: ");
-			goto out;
+		/* Verify image checksum (for non-casync images) */
+		if (!g_str_has_suffix(mfimage->filename, ".caibx") && !g_str_has_suffix(mfimage->filename, ".caidx")) {
+			res = verify_checksum(&mfimage->checksum, mfimage->filename, &ierror);
+			if (!res) {
+				g_propagate_prefixed_error(error, ierror, "Failed verifying checksum: ");
+				goto out;
+			}
 		}
 
 		/* determine whether update image type is compatible with destination slot type */

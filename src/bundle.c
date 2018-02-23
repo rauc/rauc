@@ -2,11 +2,17 @@
 
 #include <gio/gio.h>
 #include <glib/gstdio.h>
+#include <string.h>
 
 #include "bundle.h"
 #include "context.h"
 #include "mount.h"
 #include "signature.h"
+#include "utils.h"
+#include "network.h"
+
+/* Maximum downloadable bundle size (8MB) */
+#define BUNDLE_DL_MAX_SIZE 8*1024*1024
 
 GQuark
 r_bundle_error_quark (void)
@@ -100,6 +106,110 @@ static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, con
 	res = TRUE;
 out:
 	r_context_end_step("unsquashfs", res);
+	return res;
+}
+
+static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error) {
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	GPtrArray *args = g_ptr_array_new_full(15, g_free);
+	GPtrArray *iargs = g_ptr_array_new_full(15, g_free);
+	const gchar *tmpdir = NULL;
+
+	tmpdir = g_dir_make_tmp("arch-XXXXXX", &ierror);
+	if (tmpdir == NULL) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to create tmp dir: ");
+		goto out;
+	}
+
+	/* Inner process call (argument of fakroot sh -c) */
+	g_ptr_array_add(iargs, g_strdup("tar"));
+	g_ptr_array_add(iargs, g_strdup("xf"));
+	g_ptr_array_add(iargs, g_strdup(contentpath));
+	g_ptr_array_add(iargs, g_strdup("-C"));
+	g_ptr_array_add(iargs, g_strdup(tmpdir));
+	g_ptr_array_add(iargs, g_strdup("&&"));
+	g_ptr_array_add(iargs, g_strdup("casync"));
+	g_ptr_array_add(iargs, g_strdup("make"));
+	g_ptr_array_add(iargs, g_strdup("--with=unix"));
+	g_ptr_array_add(iargs, g_strdup(idxpath));
+	g_ptr_array_add(iargs, g_strdup(tmpdir));
+	if (store) {
+		g_ptr_array_add(iargs, g_strdup("--store"));
+		g_ptr_array_add(iargs, g_strdup(store));
+	}
+	g_ptr_array_add(iargs, NULL);
+
+	/* Outer process calll */
+	g_ptr_array_add(args, g_strdup("fakeroot"));
+	g_ptr_array_add(args, g_strdup("sh"));
+	g_ptr_array_add(args, g_strdup("-c"));
+	g_ptr_array_add(args, g_strjoinv(" ", (gchar**) g_ptr_array_free(iargs, FALSE)));
+	g_ptr_array_add(args, NULL);
+
+	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
+				 G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start casync: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run casync: ");
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	return res;
+}
+
+static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error) {
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	GPtrArray *args = g_ptr_array_new_full(5, g_free);
+
+	g_ptr_array_add(args, g_strdup("casync"));
+	g_ptr_array_add(args, g_strdup("make"));
+	g_ptr_array_add(args, g_strdup(idxpath));
+	g_ptr_array_add(args, g_strdup(contentpath));
+	if (store) {
+		g_ptr_array_add(args, g_strdup("--store"));
+		g_ptr_array_add(args, g_strdup(store));
+	}
+	g_ptr_array_add(args, NULL);
+
+	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
+				 G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start casync: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run casync: ");
+		goto out;
+	}
+
+	res = TRUE;
+out:
 	return res;
 }
 
@@ -346,6 +456,173 @@ out:
 	return res;
 }
 
+static gboolean image_is_archive(RaucImage* image) {
+	if (g_pattern_match_simple("*.tar*", image->filename) ||
+			g_pattern_match_simple("*.catar", image->filename)) {
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	gchar *tmpdir = NULL, *contentdir = NULL, *mfpath = NULL, *storepath = NULL, *basepath = NULL;
+	RaucManifest *manifest = NULL;
+
+	g_return_val_if_fail(bundle, FALSE);
+	g_return_val_if_fail(outbundle, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	basepath = g_strndup(outbundle, strlen(outbundle) - 6);
+	storepath = g_strconcat(basepath, ".castr", NULL);
+	g_free(basepath);
+
+	/* Assure bundle destination path doe not already exist */
+	if (g_file_test(outbundle, G_FILE_TEST_EXISTS)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "Destination bundle '%s' already exists", outbundle);
+		res = FALSE;
+		goto out;
+	}
+
+	if (g_file_test(storepath, G_FILE_TEST_EXISTS)) {
+		g_warning("Store path '%s' already exists, appending new chunks", outbundle);
+	}
+
+	/* Set up tmp dir for conversion */
+	tmpdir = g_dir_make_tmp("rauc-casync-XXXXXX", &ierror);
+	if (tmpdir == NULL) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to create tmp dir: ");
+		res = FALSE;
+		goto out;
+	}
+
+	contentdir = g_build_filename(tmpdir, "content", NULL);
+	mfpath = g_build_filename(contentdir, "manifest.raucm", NULL);
+
+	/* Extract input bundle to content/ dir */
+	res = extract_bundle(bundle, contentdir, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* Load manifest from content/ dir */
+	res = load_manifest_file(mfpath, &manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* Iterate over each image and convert */
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		RaucImage *image = l->data;
+		gchar *imgpath = NULL, *idxfile = NULL, *idxpath = NULL;
+
+		imgpath = g_build_filename(contentdir, image->filename, NULL);
+
+		if (image_is_archive(image)) {
+			idxfile = g_strconcat(image->filename, ".caidx", NULL);
+			idxpath = g_build_filename(contentdir, idxfile, NULL);
+
+			g_message("Converting %s to directory tree idx %s", image->filename, idxfile);
+
+			res = casync_make_arch(idxpath, imgpath, storepath, &ierror);
+			if (!res) {
+				g_free(idxpath);
+				g_free(imgpath);
+
+				g_propagate_error(error, ierror);
+				goto out;
+			}
+		} else {
+
+			idxfile = g_strconcat(image->filename, ".caibx", NULL);
+			idxpath = g_build_filename(contentdir, idxfile, NULL);
+
+			g_message("Converting %s to blob idx %s", image->filename, idxfile);
+
+			/* Generate index for content */
+			res = casync_make_blob(idxpath, imgpath, storepath, &ierror);
+			if (!res) {
+				g_free(idxpath);
+				g_free(imgpath);
+
+				g_propagate_error(error, ierror);
+				goto out;
+			}
+		}
+
+		/* Rewrite manifest filename */
+		g_free(image->filename);
+		image->filename = idxfile;
+
+		/* Remove original file */
+		if (g_remove(imgpath) != 0) {
+			g_warning("Failed removing %s", imgpath);
+		}
+
+		g_free(idxpath);
+		g_free(imgpath);
+	}
+
+	/* Rewrite manifest to content/ dir */
+	res = save_manifest_file(mfpath, manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = create_bundle(outbundle, contentdir, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	/* Remove temporary bundle creation directory */
+	if (tmpdir)
+		rm_tree(tmpdir, NULL);
+
+	g_clear_pointer(&manifest, free_manifest);
+	g_clear_pointer(&tmpdir, g_free);
+	g_clear_pointer(&contentdir, g_free);
+	g_clear_pointer(&mfpath, g_free);
+	g_clear_pointer(&storepath, g_free);
+	return res;
+}
+
+gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error) {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	res = convert_to_casync_bundle(bundle, outbundle, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = sign_bundle(outbundle, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	return res;
+}
+
+static gboolean is_remote_scheme(const gchar *scheme) {
+	return (g_strcmp0(scheme, "http") == 0) ||
+		(g_strcmp0(scheme, "https") == 0) ||
+		(g_strcmp0(scheme, "sftp") == 0) ||
+		(g_strcmp0(scheme, "ftp") == 0);
+}
+
 gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error) {
 	GError *ierror = NULL;
 	GBytes *sig = NULL;
@@ -355,27 +632,64 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	goffset offset;
 	gboolean res = FALSE;
 	RaucBundle *ibundle = g_new0(RaucBundle, 1);
+	gchar *bundlescheme = NULL;
 
 	g_return_val_if_fail (bundle == NULL || *bundle == NULL, FALSE);
 
-	ibundle->path = g_strdup(bundlename);
-
 	r_context_begin_step("check_bundle", "Checking bundle", verify);
+
+	/* Download Bundle to temporary location if remote URI is given */
+	bundlescheme = g_uri_parse_scheme(bundlename);
+	if (is_remote_scheme(bundlescheme)) {
+#if ENABLE_NETWORK
+		ibundle->origpath = g_strdup(bundlename);
+		ibundle->path = g_build_filename(g_get_tmp_dir(), "_download.raucb", NULL);
+
+		g_message("Remote URI detected, downloading bundle to %s...", ibundle->path);
+		res = download_file(ibundle->path, ibundle->origpath, BUNDLE_DL_MAX_SIZE, &ierror);
+		if (!res) {
+			g_propagate_prefixed_error(error, ierror, "Failed to download bundle %s: ", ibundle->origpath);
+			goto out;
+		}
+		g_debug("Downloaded temp bundle to %s", ibundle->path);
+#else
+		g_warning("Mounting remote bundle not supported, recompile with --enable-network");
+#endif
+	} else {
+		ibundle->path = g_strdup(bundlename);
+	}
+
+	/* Determine store path for casync, defaults to bundle */
+	if (r_context()->config->store_path) {
+		ibundle->storepath = r_context()->config->store_path;
+	} else {
+		gchar *strprfx;
+
+		if (ibundle->origpath)
+			strprfx = g_strndup(ibundle->origpath, strlen(ibundle->origpath) - 6);
+		else
+			strprfx = g_strndup(ibundle->path, strlen(ibundle->path) - 6);
+		ibundle->storepath = g_strconcat(strprfx, ".castr", NULL);
+
+		g_free(strprfx);
+	}
 
 	if (verify && !r_context()->config->keyring_path) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_KEYRING, "No keyring file provided");
+		res = FALSE;
 		goto out;
 	}
 
-	g_message("Reading bundle: %s", bundlename);
+	g_message("Reading bundle: %s", ibundle->path);
 
-	bundlefile = g_file_new_for_path(bundlename);
+	bundlefile = g_file_new_for_path(ibundle->path);
 	bundlestream = g_file_read(bundlefile, NULL, &ierror);
 	if (bundlestream == NULL) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
 				"Failed to open bundle for reading: ");
+		res = FALSE;
 		goto out;
 	}
 
@@ -452,7 +766,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 
 		g_message("Verifying bundle... ");
 		/* the squashfs image size is in offset */
-		res = cms_verify_file(bundlename, sig, offset, &cms, &store, &ierror);
+		res = cms_verify_file(ibundle->path, sig, offset, &cms, &store, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -520,7 +834,7 @@ out:
 }
 
 gboolean mount_bundle(RaucBundle *bundle, GError **error) {
-	gchar* mount_point = NULL;
+	gchar *mount_point = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -553,6 +867,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error) {
 
 	res = TRUE;
 out:
+
 	return res;
 }
 
@@ -581,6 +896,10 @@ out:
 
 void free_bundle(RaucBundle *bundle) {
 	g_return_if_fail(bundle);
+
+	/* In case of a temporary donwload artifact, remove it. */
+	if (bundle->origpath)
+		g_remove(bundle->path);
 
 	g_free(bundle->path);
 	g_free(bundle->mount_point);
