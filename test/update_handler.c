@@ -132,7 +132,8 @@ static void update_handler_fixture_tear_down(UpdateHandlerFixture *fixture,
 	g_assert(test_rmdir(fixture->tmpdir, "") == 0);
 }
 
-static gsize get_file_size(gchar* filename, GError **error) {
+static gsize get_file_size(gchar* filename, GError **error)
+{
 	GError *ierror = NULL;
 	GFile *file = NULL;
 	GFileInputStream *filestream = NULL;

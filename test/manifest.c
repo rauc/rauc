@@ -15,7 +15,8 @@ typedef struct {
 	gchar *contentdir;
 } ManifestFixture;
 
-static void manifest_check_common(RaucManifest *rm) {
+static void manifest_check_common(RaucManifest *rm)
+{
 	g_assert_nonnull(rm);
 	g_assert_cmpstr(rm->update_compatible, ==, "FooCorp Super BarBazzer");
 	g_assert_cmpstr(rm->update_version, ==, "2015.04-1");

@@ -199,7 +199,8 @@ out:
 	return res;
 }
 
-static RaucSlot *get_active_slot_class_member(gchar *slotclass) {
+static RaucSlot *get_active_slot_class_member(gchar *slotclass)
+{
 	RaucSlot *iterslot;
 	GHashTableIter iter;
 
@@ -282,7 +283,8 @@ out:
 	return res;
 }
 
-static gboolean copy_raw_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error) {
+static gboolean copy_raw_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error)
+{
 	GOutputStream *outstream = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -309,7 +311,8 @@ out:
 	return res;
 }
 
-static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error) {
+static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -592,7 +595,8 @@ static gboolean unpack_archive(RaucImage *image, gchar *dest, GError **error)
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, RaucImage *image, RaucSlot *slot, GError **error) {
+static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, RaucImage *image, RaucSlot *slot, GError **error)
+{
 	GSubprocessLauncher *launcher = NULL;
 	GSubprocess *sproc = NULL;
 	GError *ierror = NULL;
@@ -872,7 +876,8 @@ out:
 	return res;
 }
 
-static gboolean archive_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
+static gboolean archive_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -1001,7 +1006,8 @@ out:
 	return res;
 }
 
-static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
+static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -1043,7 +1049,8 @@ out:
 	return res;
 }
 
-static gboolean img_to_fs_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
+static gboolean img_to_fs_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
 	GOutputStream *outstream = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -1078,7 +1085,8 @@ out:
 	return res;
 }
 
-static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
+static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
 
 	gboolean res = FALSE;
 	int out_fd;
@@ -1238,7 +1246,8 @@ out:
 	return res;
 }
 
-static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
+static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -1271,7 +1280,8 @@ out:
 	return res;
 }
 
-static gboolean hook_install_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error) {
+static gboolean hook_install_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 

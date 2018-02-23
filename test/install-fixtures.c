@@ -111,7 +111,8 @@ void fixture_helper_set_up_system(gchar *tmpdir,
 void fixture_helper_set_up_bundle(gchar *tmpdir,
 		const gchar* manifest_content,
 		gboolean handler,
-		gboolean hook) {
+		gboolean hook)
+{
 	gchar *contentdir;
 	gchar *bundlepath;
 	gchar *mountdir;

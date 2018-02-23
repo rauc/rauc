@@ -99,7 +99,8 @@ static void on_installer_completed(GDBusProxy *proxy, gint result,
 	g_main_loop_quit(testloop);
 }
 
-static void assert_progress(GVariant *progress, gint32 percentage, const gchar *message, gint32 depth) {
+static void assert_progress(GVariant *progress, gint32 percentage, const gchar *message, gint32 depth)
+{
 	gint32 comp_percentage, comp_depth;
 	const gchar *comp_message = NULL;
 	GVariant *gv = NULL;

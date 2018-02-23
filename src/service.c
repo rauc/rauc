@@ -17,7 +17,8 @@ GMainLoop *service_loop = NULL;
 RInstaller *r_installer = NULL;
 guint r_bus_name_id = 0;
 
-static gboolean service_install_notify(gpointer data) {
+static gboolean service_install_notify(gpointer data)
+{
 	RaucInstallArgs *args = data;
 
 	g_mutex_lock(&args->status_mutex);
@@ -52,7 +53,8 @@ static gboolean service_install_cleanup(gpointer data)
 
 static gboolean r_on_handle_install(RInstaller *interface,
 		GDBusMethodInvocation  *invocation,
-		const gchar *source) {
+		const gchar *source)
+{
 	RaucInstallArgs *args = install_args_new();
 	gboolean res;
 
@@ -212,7 +214,8 @@ out:
 /*
  * Constructs a GVariant dictionary representing a slot status.
  */
-static GVariant* convert_slot_status_to_dict(RaucSlot *slot) {
+static GVariant* convert_slot_status_to_dict(RaucSlot *slot)
+{
 	RaucSlotStatus *slot_state = NULL;
 	GError *ierror = NULL;
 	gboolean good = FALSE;
@@ -283,7 +286,8 @@ static GVariant* convert_slot_status_to_dict(RaucSlot *slot) {
 /*
  * Makes slot status information available via DBUS.
  */
-static GVariant* create_slotstatus_array(void) {
+static GVariant* create_slotstatus_array(void)
+{
 	gint slot_number = g_hash_table_size(r_context()->config->slots);
 	GVariant **slot_status_tuples;
 	GVariant *slot_status_array;
@@ -342,7 +346,8 @@ static gboolean r_on_handle_get_slot_status(RInstaller *interface,
 	return TRUE;
 }
 
-static gboolean auto_install(const gchar *source) {
+static gboolean auto_install(const gchar *source)
+{
 	RaucInstallArgs *args = install_args_new();
 	gboolean res = TRUE;
 
@@ -371,14 +376,16 @@ out:
 	return res;
 }
 
-void set_last_error(gchar *message) {
+void set_last_error(gchar *message)
+{
 	if (r_installer)
 		r_installer_set_last_error(r_installer, message);
 }
 
 static void send_progress_callback(gint percentage,
 		const gchar *message,
-		gint nesting_depth) {
+		gint nesting_depth)
+{
 
 	GVariant **progress_update;
 	GVariant *progress_update_tuple;
@@ -395,7 +402,8 @@ static void send_progress_callback(gint percentage,
 
 static void r_on_bus_acquired(GDBusConnection *connection,
 		const gchar     *name,
-		gpointer user_data) {
+		gpointer user_data)
+{
 	GError *ierror = NULL;
 
 	r_installer = r_installer_skeleton_new();
@@ -434,7 +442,8 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 
 static void r_on_name_acquired(GDBusConnection *connection,
 		const gchar     *name,
-		gpointer user_data) {
+		gpointer user_data)
+{
 	g_debug("name '%s' acquired", name);
 
 	if (r_context()->config->autoinstall_path)
@@ -445,7 +454,8 @@ static void r_on_name_acquired(GDBusConnection *connection,
 
 static void r_on_name_lost(GDBusConnection *connection,
 		const gchar     *name,
-		gpointer user_data) {
+		gpointer user_data)
+{
 	if (connection == NULL) {
 		g_message("Connection to the bus can't be made for %s", name);
 	} else {
@@ -468,7 +478,8 @@ static gboolean r_on_signal(gpointer user_data)
 	return G_SOURCE_REMOVE;
 }
 
-gboolean r_service_run(void) {
+gboolean r_service_run(void)
+{
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 

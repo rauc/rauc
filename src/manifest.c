@@ -14,7 +14,8 @@ GQuark r_manifest_error_quark(void)
 	return g_quark_from_static_string("r_manifest_error_quark");
 }
 
-static gboolean check_remaining_groups(GKeyFile *key_file, GError **error) {
+static gboolean check_remaining_groups(GKeyFile *key_file, GError **error)
+{
 	gsize rem_num_groups;
 	gchar **rem_groups;
 
@@ -28,7 +29,8 @@ static gboolean check_remaining_groups(GKeyFile *key_file, GError **error) {
 	return TRUE;
 }
 
-static gboolean check_remaining_keys(GKeyFile *key_file, const gchar *groupname, GError **error) {
+static gboolean check_remaining_keys(GKeyFile *key_file, const gchar *groupname, GError **error)
+{
 	gsize rem_num_keys;
 	gchar **rem_keys;
 
@@ -48,7 +50,8 @@ static gchar * manifest_consume_string(
 		GKeyFile *key_file,
 		const gchar *group_name,
 		const gchar *key,
-		GError **error) {
+		GError **error)
+{
 	gchar *result = NULL;
 	GError *ierror = NULL;
 
@@ -69,7 +72,8 @@ static gchar * manifest_consume_string(
 	return result;
 }
 
-static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **image, GError **error) {
+static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **image, GError **error)
+{
 	RaucImage *iimage = g_new0(RaucImage, 1);
 	gchar **groupsplit = NULL;
 	gchar *value;
@@ -151,7 +155,8 @@ out:
  *
  * Returns TRUE if manifest was parsed without error, otherwise FALSE
  */
-static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GError **error) {
+static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GError **error)
+{
 	GError *ierror = NULL;
 	RaucManifest *raucm = g_new0(RaucManifest, 1);
 	gboolean res = FALSE;
@@ -304,7 +309,8 @@ free:
 	return res;
 }
 
-gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error) {
+gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)
+{
 	GError *ierror = NULL;
 	GKeyFile *key_file = NULL;
 	const gchar *data;
@@ -336,7 +342,8 @@ out:
 	return res;
 }
 
-gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GError **error) {
+gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GError **error)
+{
 	GError *ierror = NULL;
 	GKeyFile *key_file = NULL;
 	gboolean res = FALSE;
@@ -363,7 +370,8 @@ out:
 	return res;
 }
 
-gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **error) {
+gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **error)
+{
 	GKeyFile *key_file = NULL;
 	gboolean res = FALSE;
 	GPtrArray *hooks = g_ptr_array_new_full(3, g_free);
@@ -479,7 +487,8 @@ free:
 	return res;
 }
 
-void r_free_image(gpointer data) {
+void r_free_image(gpointer data)
+{
 	RaucImage *image = (RaucImage*) data;
 
 	g_return_if_fail(image);
@@ -490,7 +499,8 @@ void r_free_image(gpointer data) {
 	g_free(image);
 }
 
-void r_free_file(gpointer data) {
+void r_free_file(gpointer data)
+{
 	RaucFile *file = (RaucFile*) data;
 
 	g_return_if_fail(file);
@@ -502,7 +512,8 @@ void r_free_file(gpointer data) {
 	g_free(file);
 }
 
-void free_manifest(RaucManifest *manifest) {
+void free_manifest(RaucManifest *manifest)
+{
 	g_return_if_fail(manifest);
 
 	g_free(manifest->update_compatible);
@@ -519,7 +530,8 @@ void free_manifest(RaucManifest *manifest) {
 }
 
 
-static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *dir, GError **error) {
+static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *dir, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = TRUE;
 	gboolean had_errors = FALSE;
@@ -558,7 +570,8 @@ static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *d
 	return res;
 }
 
-static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *dir, GError **error) {
+static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *dir, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = TRUE;
 	gboolean had_errors = FALSE;
@@ -600,7 +613,8 @@ static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *d
 	return res;
 }
 
-gboolean update_manifest(const gchar *dir, gboolean signature, GError **error) {
+gboolean update_manifest(const gchar *dir, gboolean signature, GError **error)
+{
 	GError *ierror = NULL;
 	gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
 	gchar* signaturepath = g_build_filename(dir, "manifest.raucm.sig", NULL);
@@ -657,7 +671,8 @@ out:
 	return res;
 }
 
-gboolean verify_manifest(const gchar *dir, RaucManifest **output, GError **error) {
+gboolean verify_manifest(const gchar *dir, RaucManifest **output, GError **error)
+{
 	GError *ierror = NULL;
 	gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
 	gchar* signaturepath = g_build_filename(dir, "manifest.raucm.sig", NULL);

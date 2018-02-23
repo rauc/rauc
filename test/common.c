@@ -15,7 +15,8 @@ typedef struct {
 	gchar *tmpdir;
 } InstallFixture;
 
-gchar* random_bytes(gsize size, guint32 seed) {
+gchar* random_bytes(gsize size, guint32 seed)
+{
 	gchar *str = g_new0(gchar, size + 1);
 	GRand *rand = g_rand_new_with_seed(seed);
 	for (gsize i = 0; i < size; i++) {
@@ -25,7 +26,8 @@ gchar* random_bytes(gsize size, guint32 seed) {
 }
 
 gchar* write_random_file(const gchar *tmpdir, const gchar *filename,
-		gsize size, const guint32 seed) {
+		gsize size, const guint32 seed)
+{
 	gchar *pathname;
 	gchar *content;
 
@@ -48,7 +50,8 @@ gchar* write_tmp_file(
 		const gchar* tmpdir,
 		const gchar* filename,
 		const gchar* content,
-		GError **error) {
+		GError **error)
+{
 	gchar *pathname;
 	GError *ierror = NULL;
 
@@ -64,7 +67,8 @@ gchar* write_tmp_file(
 }
 
 int test_prepare_dummy_file(const gchar *dirname, const gchar *filename,
-		gsize size, const gchar *source) {
+		gsize size, const gchar *source)
+{
 	GIOChannel *input, *output;
 	GIOStatus status;
 	gchar *path;
@@ -108,7 +112,8 @@ int test_prepare_dummy_file(const gchar *dirname, const gchar *filename,
 	return 0;
 }
 
-int test_mkdir_relative(const gchar *dirname, const gchar *filename, int mode) {
+int test_mkdir_relative(const gchar *dirname, const gchar *filename, int mode)
+{
 	gchar *path;
 	int res;
 
@@ -121,7 +126,8 @@ int test_mkdir_relative(const gchar *dirname, const gchar *filename, int mode) {
 	return res;
 }
 
-int test_rmdir(const gchar *dirname, const gchar *filename) {
+int test_rmdir(const gchar *dirname, const gchar *filename)
+{
 	gchar *path;
 	int res;
 
@@ -134,7 +140,8 @@ int test_rmdir(const gchar *dirname, const gchar *filename) {
 	return res;
 }
 
-int test_remove(const gchar *dirname, const gchar *filename) {
+int test_remove(const gchar *dirname, const gchar *filename)
+{
 	gchar *path;
 	int res;
 
@@ -147,7 +154,8 @@ int test_remove(const gchar *dirname, const gchar *filename) {
 	return res;
 }
 
-gboolean test_rm_tree(const gchar *dirname, const gchar *filename) {
+gboolean test_rm_tree(const gchar *dirname, const gchar *filename)
+{
 	gchar *path;
 	gboolean res;
 
@@ -160,7 +168,8 @@ gboolean test_rm_tree(const gchar *dirname, const gchar *filename) {
 	return res;
 }
 
-int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, gboolean custom_handler, gboolean hooks) {
+int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, gboolean custom_handler, gboolean hooks)
+{
 	gchar *path = g_build_filename(dirname, filename, NULL);
 	RaucManifest *rm = g_new0(RaucManifest, 1);
 	RaucImage *img;
@@ -195,7 +204,8 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, gboo
 	return 0;
 }
 
-gboolean test_make_filesystem(const gchar *dirname, const gchar *filename) {
+gboolean test_make_filesystem(const gchar *dirname, const gchar *filename)
+{
 	GSubprocess *sub;
 	GError *error = NULL;
 	gchar *path;
@@ -225,12 +235,14 @@ gboolean test_make_filesystem(const gchar *dirname, const gchar *filename) {
 	return TRUE;
 }
 
-gboolean test_mount(const gchar *src, const gchar *dest) {
+gboolean test_mount(const gchar *src, const gchar *dest)
+{
 	return r_mount_full(src, dest, NULL, 0, NULL);
 }
 
 
-gboolean test_do_chmod(const gchar *path) {
+gboolean test_do_chmod(const gchar *path)
+{
 	GSubprocess *sub;
 	GError *error = NULL;
 	gboolean res = FALSE;
@@ -265,7 +277,8 @@ out:
 	return res;
 }
 
-gboolean test_umount(const gchar *dirname, const gchar *mountpoint) {
+gboolean test_umount(const gchar *dirname, const gchar *mountpoint)
+{
 	gchar *path;
 	gboolean res;
 
@@ -277,11 +290,13 @@ gboolean test_umount(const gchar *dirname, const gchar *mountpoint) {
 	return res;
 }
 
-gboolean test_copy_file(const gchar *srcprefix, const gchar *srcfile, const gchar *dstprefix, const gchar *dstfile) {
+gboolean test_copy_file(const gchar *srcprefix, const gchar *srcfile, const gchar *dstprefix, const gchar *dstfile)
+{
 	return copy_file(srcprefix, srcfile, dstprefix, dstfile, NULL);
 }
 
-gboolean test_make_slot_user_writable(const gchar* path, const gchar* file) {
+gboolean test_make_slot_user_writable(const gchar* path, const gchar* file)
+{
 	gboolean res = FALSE;
 	gchar *slotpath;
 	gchar *mountpath;
@@ -307,7 +322,8 @@ gboolean test_make_slot_user_writable(const gchar* path, const gchar* file) {
 	return res;
 }
 
-void test_create_content(gchar *contentdir) {
+void test_create_content(gchar *contentdir)
+{
 	g_assert(g_mkdir(contentdir, 0777) == 0);
 	g_assert(test_prepare_dummy_file(contentdir, "rootfs.ext4",
 					1024*1024, "/dev/urandom") == 0);
@@ -316,12 +332,14 @@ void test_create_content(gchar *contentdir) {
 	g_assert(test_prepare_manifest_file(contentdir, "manifest.raucm", FALSE, FALSE) == 0);
 }
 
-void test_create_bundle(gchar *contentdir, gchar *bundlename) {
+void test_create_bundle(gchar *contentdir, gchar *bundlename)
+{
 	g_assert_true(update_manifest(contentdir, FALSE, NULL));
 	g_assert_true(create_bundle(bundlename, contentdir, NULL));
 }
 
-gboolean test_running_as_root(void) {
+gboolean test_running_as_root(void)
+{
 	uid_t uid = getuid();
 	uid_t euid = geteuid();
 

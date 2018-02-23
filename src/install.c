@@ -35,14 +35,16 @@ GQuark r_install_error_quark(void)
 	return g_quark_from_static_string("r_install_error_quark");
 }
 
-static void install_args_update(RaucInstallArgs *args, const gchar *msg) {
+static void install_args_update(RaucInstallArgs *args, const gchar *msg)
+{
 	g_mutex_lock(&args->status_mutex);
 	g_queue_push_tail(&args->status_messages, g_strdup(msg));
 	g_mutex_unlock(&args->status_mutex);
 	g_main_context_invoke(NULL, args->notify, args);
 }
 
-static gchar *resolve_loop_device(const gchar *devicepath) {
+static gchar *resolve_loop_device(const gchar *devicepath)
+{
 	gchar *devicename = NULL;
 	gchar *syspath = NULL;
 	gchar *res = NULL;
@@ -60,7 +62,8 @@ static gchar *resolve_loop_device(const gchar *devicepath) {
 	return res;
 }
 
-gboolean determine_slot_states(GError **error) {
+gboolean determine_slot_states(GError **error)
+{
 	GList *slotlist = NULL;
 	GList *mountlist = NULL;
 	RaucSlot *booted = NULL;
@@ -188,7 +191,8 @@ out:
  *
  * @return pointer to RaucSlot
  */
-static RaucSlot* get_parent_root_slot(RaucSlot *slot) {
+static RaucSlot* get_parent_root_slot(RaucSlot *slot)
+{
 	RaucSlot *base = NULL;
 
 	g_return_val_if_fail(slot, NULL);
@@ -204,7 +208,8 @@ static RaucSlot* get_parent_root_slot(RaucSlot *slot) {
 /* Returns newly allocated NULL-teminated string array of all classes listed in
  * given manifest.
  * Free with g_strfreev */
-static gchar** get_all_file_slot_classes(const RaucManifest *manifest) {
+static gchar** get_all_file_slot_classes(const RaucManifest *manifest)
+{
 	GPtrArray *slotclasses = NULL;
 
 	g_return_val_if_fail(manifest, NULL);
@@ -228,7 +233,8 @@ static gchar** get_all_file_slot_classes(const RaucManifest *manifest) {
 /* Returns newly allocated NULL-teminated string array of all classes listed in
  * given manifest.
  * Free with g_strfreev */
-static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest) {
+static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest)
+{
 	GPtrArray *slotclasses = NULL;
 
 	g_return_val_if_fail(manifest, NULL);
@@ -251,7 +257,8 @@ static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest) {
 /* Gets all classes that do not have a parent
  *
  * @return newly allocated NULL-teminated string array. Free with g_strfreev */
-static gchar** get_root_system_slot_classes(void) {
+static gchar** get_root_system_slot_classes(void)
+{
 	GPtrArray *slotclasses = NULL;
 	GHashTableIter iter;
 	RaucSlot *iterslot = NULL;
@@ -286,7 +293,8 @@ static gchar** get_root_system_slot_classes(void) {
  *
  * @return pointer to appropriate slot in system slot list
  */
-static RaucSlot *select_inactive_slot_class_member(gchar *rootclass) {
+static RaucSlot *select_inactive_slot_class_member(gchar *rootclass)
+{
 	RaucSlot *iterslot;
 	GHashTableIter iter;
 
@@ -308,7 +316,8 @@ static RaucSlot *select_inactive_slot_class_member(gchar *rootclass) {
 /*
  * Test if provided slot list contains slot instance (same pointer!)
  */
-static gboolean slot_list_contains(GList *slotlist, const RaucSlot *testslot) {
+static gboolean slot_list_contains(GList *slotlist, const RaucSlot *testslot)
+{
 
 	g_return_val_if_fail(testslot, FALSE);
 
@@ -339,7 +348,8 @@ static gboolean slot_list_contains(GList *slotlist, const RaucSlot *testslot) {
  * @return Newly allocated HashTable of
  *         slotclass (gchar*) -> target slot (RaucSlot *)
  */
-GHashTable* determine_target_install_group(void) {
+GHashTable* determine_target_install_group(void)
+{
 	gchar **rootclasses = NULL;
 	GHashTable *targetgroup = NULL;
 	GHashTableIter iter;
@@ -391,7 +401,8 @@ GHashTable* determine_target_install_group(void) {
 }
 
 
-GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group, GError **error) {
+GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group, GError **error)
+{
 	GList *install_images = NULL;
 	gchar **slotclasses = NULL;
 
@@ -460,7 +471,8 @@ out:
 	return install_images;
 }
 
-static void parse_handler_output(gchar* line) {
+static void parse_handler_output(gchar* line)
+{
 	gchar **split = NULL;
 
 	g_assert_nonnull(line);
@@ -491,7 +503,8 @@ out:
 	g_strfreev(split);
 }
 
-static gboolean verify_compatible(RaucManifest *manifest) {
+static gboolean verify_compatible(RaucManifest *manifest)
+{
 	if (r_context()->ignore_compatible) {
 		return TRUE;
 	} else if (g_strcmp0(r_context()->config->system_compatible,
@@ -589,7 +602,8 @@ static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_sou
 	g_clear_pointer(&slotlist, g_free);
 }
 
-static gboolean launch_and_wait_handler(gchar *update_source, gchar *handler_name, RaucManifest *manifest, GHashTable *target_group, GError **error) {
+static gboolean launch_and_wait_handler(gchar *update_source, gchar *handler_name, RaucManifest *manifest, GHashTable *target_group, GError **error)
+{
 	GSubprocessLauncher *handlelaunch = NULL;
 	GSubprocess *handleproc = NULL;
 	GError *ierror = NULL;
@@ -637,7 +651,8 @@ out:
 	return res;
 }
 
-static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const gchar *hook_cmd, GError **error) {
+static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const gchar *hook_cmd, GError **error)
+{
 	gchar *hook_name = NULL;
 	GSubprocessLauncher *launcher = NULL;
 	GSubprocess *sproc = NULL;
@@ -714,7 +729,8 @@ out:
 	return res;
 }
 
-static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error) {
+static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error)
+{
 	gchar* handler_name = NULL;
 	gboolean res = FALSE;
 
@@ -747,7 +763,8 @@ out:
 }
 
 
-static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error) {
+static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error)
+{
 	gchar *hook_name = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -1002,7 +1019,8 @@ early_out:
 }
 
 #if ENABLE_NETWORK
-static gboolean reuse_existing_file_checksum(const RaucChecksum *checksum, const gchar *filename) {
+static gboolean reuse_existing_file_checksum(const RaucChecksum *checksum, const gchar *filename)
+{
 	GError *error = NULL;
 	gboolean res = FALSE;
 	gchar *basename = g_path_get_basename(filename);
@@ -1038,7 +1056,8 @@ next:
 static gboolean launch_and_wait_network_handler(const gchar* base_url,
 		RaucManifest *manifest,
 		GHashTable *target_group,
-		GError **error) {
+		GError **error)
+{
 	gboolean res = FALSE, invalid = FALSE;
 	GError *ierror = NULL;
 	gchar **fileclasses = NULL;
@@ -1202,7 +1221,8 @@ out:
 }
 #endif
 
-static void print_slot_hash_table(GHashTable *hash_table) {
+static void print_slot_hash_table(GHashTable *hash_table)
+{
 	GHashTableIter iter;
 	const gchar *key;
 	RaucSlot *slot;
@@ -1213,7 +1233,8 @@ static void print_slot_hash_table(GHashTable *hash_table) {
 	}
 }
 
-gboolean do_install_bundle(RaucInstallArgs *args, GError **error) {
+gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
+{
 	const gchar* bundlefile = args->name;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -1322,7 +1343,8 @@ out:
 	return res;
 }
 
-gboolean do_install_network(const gchar *url, GError **error) {
+gboolean do_install_network(const gchar *url, GError **error)
+{
 #if ENABLE_NETWORK
 	gboolean res = FALSE;
 	GError *ierror = NULL;
@@ -1430,7 +1452,8 @@ out:
 #endif
 }
 
-static gboolean install_done(gpointer data) {
+static gboolean install_done(gpointer data)
+{
 	RaucInstallArgs *args = data;
 
 	args->cleanup(args);
@@ -1440,7 +1463,8 @@ static gboolean install_done(gpointer data) {
 	return G_SOURCE_REMOVE;
 }
 
-static gpointer install_thread(gpointer data) {
+static gpointer install_thread(gpointer data)
+{
 	GError *ierror = NULL;
 	RaucInstallArgs *args = data;
 	gint result;
@@ -1479,7 +1503,8 @@ static gpointer install_thread(gpointer data) {
 	return NULL;
 }
 
-RaucInstallArgs *install_args_new(void) {
+RaucInstallArgs *install_args_new(void)
+{
 	RaucInstallArgs *args = g_new0(RaucInstallArgs, 1);
 
 	g_mutex_init(&args->status_mutex);
@@ -1489,7 +1514,8 @@ RaucInstallArgs *install_args_new(void) {
 	return args;
 }
 
-void install_args_free(RaucInstallArgs *args) {
+void install_args_free(RaucInstallArgs *args)
+{
 	g_free(args->name);
 	g_mutex_clear(&args->status_mutex);
 	g_assert_cmpint(args->status_result, >=, 0);
@@ -1497,7 +1523,8 @@ void install_args_free(RaucInstallArgs *args) {
 	g_free(args);
 }
 
-gboolean install_run(RaucInstallArgs *args) {
+gboolean install_run(RaucInstallArgs *args)
+{
 	GThread *thread = NULL;
 	r_context_set_busy(TRUE);
 

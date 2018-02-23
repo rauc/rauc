@@ -4,7 +4,8 @@
 
 G_DEFINE_QUARK(r-checksum-error-quark, r_checksum_error)
 
-gboolean update_checksum(RaucChecksum *checksum, const gchar *filename, GError **error) {
+gboolean update_checksum(RaucChecksum *checksum, const gchar *filename, GError **error)
+{
 	GError *ierror = NULL;
 	GMappedFile *file;
 	GBytes *content = NULL;
@@ -36,7 +37,8 @@ out:
 	return res;
 }
 
-gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename, GError **error) {
+gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename, GError **error)
+{
 	GError *ierror = NULL;
 	GMappedFile *file = NULL;
 	GBytes *content = NULL;

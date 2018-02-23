@@ -7,7 +7,8 @@
 #if ENABLE_NETWORK
 void network_init(void);
 #else
-static inline void network_init(void) {
+static inline void network_init(void)
+{
 	return;
 }
 #endif

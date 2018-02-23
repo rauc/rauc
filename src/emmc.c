@@ -13,7 +13,8 @@
 #include "update_handler.h"
 
 
-static int r_emmc_read_extcsd(int fd, guint8 extcsd[512]) {
+static int r_emmc_read_extcsd(int fd, guint8 extcsd[512])
+{
 	struct mmc_ioc_cmd cmd = {};
 
 	cmd.write_flag = 0;
@@ -27,7 +28,8 @@ static int r_emmc_read_extcsd(int fd, guint8 extcsd[512]) {
 	return ioctl(fd, MMC_IOC_CMD, &cmd);
 }
 
-gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError **error) {
+gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError **error)
+{
 	gint ret;
 	gboolean res = FALSE;
 	guint8 extcsd[512];
@@ -65,7 +67,8 @@ out:
 	return res;
 }
 
-static gint r_emmc_write_extcsd(int fd, guint8 index, guint8 value) {
+static gint r_emmc_write_extcsd(int fd, guint8 index, guint8 value)
+{
 	struct mmc_ioc_cmd cmd;
 
 	memset(&cmd, 0, sizeof(cmd));
@@ -79,7 +82,8 @@ static gint r_emmc_write_extcsd(int fd, guint8 index, guint8 value) {
 	return ioctl(fd, MMC_IOC_CMD, &cmd);
 }
 
-gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError **error) {
+gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError **error)
+{
 	gint ret;
 	gboolean res = FALSE;
 	int fd;
@@ -117,7 +121,8 @@ out:
 	return res;
 }
 
-static gboolean r_emmc_force_part_write(const gchar *device, gchar value, GError **error) {
+static gboolean r_emmc_force_part_write(const gchar *device, gchar value, GError **error)
+{
 	gboolean ret = FALSE;
 	gchar *device_basename = g_path_get_basename(device);
 	gchar *sysfs_path = NULL;
@@ -153,7 +158,8 @@ out:
 	return ret;
 }
 
-gboolean r_emmc_force_part_ro(const gchar *device, GError **error) {
+gboolean r_emmc_force_part_ro(const gchar *device, GError **error)
+{
 	gboolean ret = FALSE;
 	GError *ierror = NULL;
 
@@ -165,7 +171,8 @@ gboolean r_emmc_force_part_ro(const gchar *device, GError **error) {
 	return ret;
 }
 
-gboolean r_emmc_force_part_rw(const gchar *device, GError **error) {
+gboolean r_emmc_force_part_rw(const gchar *device, GError **error)
+{
 	gboolean ret = FALSE;
 	GError *ierror = NULL;
 

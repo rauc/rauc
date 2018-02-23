@@ -27,7 +27,8 @@ gboolean info_noverify, info_dumpcert = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
 
-static gboolean install_notify(gpointer data) {
+static gboolean install_notify(gpointer data)
+{
 	RaucInstallArgs *args = data;
 
 	g_mutex_lock(&args->status_mutex);
@@ -50,7 +51,8 @@ static gboolean install_cleanup(gpointer data)
 
 static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
 		const gchar* const *invalidated,
-		gpointer data) {
+		gpointer data)
+{
 	RaucInstallArgs *args = data;
 	gchar *msg;
 	gint32 percentage, depth;
@@ -81,7 +83,8 @@ static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
 }
 
 static void on_installer_completed(GDBusProxy *proxy, gint result,
-		gpointer data) {
+		gpointer data)
+{
 	RaucInstallArgs *args = data;
 
 	g_mutex_lock(&args->status_mutex);
@@ -533,14 +536,16 @@ out:
 
 /* Takes a shell variable and its desired argument as input and appends it to
  * the provided text with taking care of correct shell quoting */
-static void formatter_shell_append(GString* text, const gchar* varname, const gchar* argument) {
+static void formatter_shell_append(GString* text, const gchar* varname, const gchar* argument)
+{
 	gchar* quoted = g_shell_quote(argument ?: "");
 	g_string_append_printf(text, "%s=%s\n", varname, quoted);
 	g_clear_pointer(&quoted, g_free);
 }
 /* Same as above, expect that it has a cnt argument to add per-slot-number
  * strings */
-static void formatter_shell_append_n(GString* text, const gchar* varname, gint cnt, const gchar* argument) {
+static void formatter_shell_append_n(GString* text, const gchar* varname, gint cnt, const gchar* argument)
+{
 	gchar* quoted = g_shell_quote(argument ?: "");
 	g_string_append_printf(text, "%s_%d=%s\n", varname, cnt, quoted);
 	g_clear_pointer(&quoted, g_free);
@@ -1652,7 +1657,8 @@ done:
 	g_clear_pointer(&context, g_option_context_free);;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 	/* disable remote VFS */
 	g_assert(g_setenv("GIO_USE_VFS", "local", TRUE));
 

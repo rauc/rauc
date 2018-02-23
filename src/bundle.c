@@ -18,7 +18,8 @@ r_bundle_error_quark(void)
 	return g_quark_from_static_string("r-bundle-error-quark");
 }
 
-static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GError **error) {
+static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GError **error)
+{
 	GSubprocess *sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -62,7 +63,8 @@ out:
 	return res;
 }
 
-static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, const gchar *extractfile, GError **error) {
+static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, const gchar *extractfile, GError **error)
+{
 	GSubprocess *sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -107,7 +109,8 @@ out:
 	return res;
 }
 
-static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error) {
+static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error)
+{
 	GSubprocess *sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -171,7 +174,8 @@ out:
 	return res;
 }
 
-static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error) {
+static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error)
+{
 	GSubprocess *sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -280,7 +284,8 @@ static gboolean input_stream_read_bytes_all(GInputStream *stream,
 	return TRUE;
 }
 
-static gboolean sign_bundle(const gchar *bundlename, GError **error) {
+static gboolean sign_bundle(const gchar *bundlename, GError **error)
+{
 	GError *ierror = NULL;
 	GBytes *sig = NULL;
 	GFile *bundlefile = NULL;
@@ -354,7 +359,8 @@ out:
 	return res;
 }
 
-gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error) {
+gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -375,7 +381,8 @@ out:
 	return res;
 }
 
-static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, gsize size, GError **error) {
+static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, gsize size, GError **error)
+{
 	GFile *infile, *outfile = NULL;
 	GFileInputStream *instream = NULL;
 	GFileOutputStream *outstream = NULL;
@@ -431,7 +438,8 @@ out:
 	return res;
 }
 
-gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error) {
+gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -454,7 +462,8 @@ out:
 	return res;
 }
 
-static gboolean image_is_archive(RaucImage* image) {
+static gboolean image_is_archive(RaucImage* image)
+{
 	if (g_pattern_match_simple("*.tar*", image->filename) ||
 	    g_pattern_match_simple("*.catar", image->filename)) {
 		return TRUE;
@@ -463,7 +472,8 @@ static gboolean image_is_archive(RaucImage* image) {
 	return FALSE;
 }
 
-static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error) {
+static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar *tmpdir = NULL, *contentdir = NULL, *mfpath = NULL, *storepath = NULL, *basepath = NULL;
@@ -593,7 +603,8 @@ out:
 	return res;
 }
 
-gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error) {
+gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -614,14 +625,16 @@ out:
 	return res;
 }
 
-static gboolean is_remote_scheme(const gchar *scheme) {
+static gboolean is_remote_scheme(const gchar *scheme)
+{
 	return (g_strcmp0(scheme, "http") == 0) ||
 	       (g_strcmp0(scheme, "https") == 0) ||
 	       (g_strcmp0(scheme, "sftp") == 0) ||
 	       (g_strcmp0(scheme, "ftp") == 0);
 }
 
-gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error) {
+gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error)
+{
 	GError *ierror = NULL;
 	GBytes *sig = NULL;
 	GFile *bundlefile = NULL;
@@ -794,7 +807,8 @@ out:
 	return res;
 }
 
-gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **error) {
+gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -814,7 +828,8 @@ out:
 	return res;
 }
 
-gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, const gchar *file, GError **error) {
+gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, const gchar *file, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -831,7 +846,8 @@ out:
 	return res;
 }
 
-gboolean mount_bundle(RaucBundle *bundle, GError **error) {
+gboolean mount_bundle(RaucBundle *bundle, GError **error)
+{
 	gchar *mount_point = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -869,7 +885,8 @@ out:
 	return res;
 }
 
-gboolean umount_bundle(RaucBundle *bundle, GError **error) {
+gboolean umount_bundle(RaucBundle *bundle, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -892,7 +909,8 @@ out:
 	return res;
 }
 
-void free_bundle(RaucBundle *bundle) {
+void free_bundle(RaucBundle *bundle)
+{
 	g_return_if_fail(bundle);
 
 	/* In case of a temporary donwload artifact, remove it. */

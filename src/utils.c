@@ -6,7 +6,8 @@
 
 #include "utils.h"
 
-GBytes *read_file(const gchar *filename, GError **error) {
+GBytes *read_file(const gchar *filename, GError **error)
+{
 	gchar *contents;
 	gsize length;
 
@@ -16,7 +17,8 @@ GBytes *read_file(const gchar *filename, GError **error) {
 	return g_bytes_new_take(contents, length);
 }
 
-gchar *read_file_str(const gchar *filename, GError **error) {
+gchar *read_file_str(const gchar *filename, GError **error)
+{
 	gchar *contents;
 	gsize length;
 	gchar *res = NULL;
@@ -30,7 +32,8 @@ gchar *read_file_str(const gchar *filename, GError **error) {
 	return res;
 }
 
-gboolean write_file(const gchar *filename, GBytes *bytes, GError **error) {
+gboolean write_file(const gchar *filename, GBytes *bytes, GError **error)
+{
 	const gchar *contents;
 	gsize length;
 
@@ -40,7 +43,8 @@ gboolean write_file(const gchar *filename, GBytes *bytes, GError **error) {
 }
 
 gboolean copy_file(const gchar *srcprefix, const gchar *srcfile,
-		const gchar *dstprefix, const gchar *dstfile, GError **error) {
+		const gchar *dstprefix, const gchar *dstfile, GError **error)
+{
 	gboolean res = FALSE;
 	GError *ierror = NULL;
 	gchar *srcpath = g_build_filename(srcprefix, srcfile, NULL);
@@ -64,7 +68,8 @@ out:
 }
 
 static int rm_tree_cb(const char *fpath, const struct stat *sb,
-		int typeflag, struct FTW *ftwbuf) {
+		int typeflag, struct FTW *ftwbuf)
+{
 	switch(typeflag) {
 		case FTW_F:
 		case FTW_SL:
@@ -76,7 +81,8 @@ static int rm_tree_cb(const char *fpath, const struct stat *sb,
 	}
 }
 
-gboolean rm_tree(const gchar *path, GError **error) {
+gboolean rm_tree(const gchar *path, GError **error)
+{
 	int flags = FTW_DEPTH | FTW_MOUNT | FTW_PHYS;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -93,7 +99,8 @@ gboolean rm_tree(const gchar *path, GError **error) {
 }
 
 
-gchar *resolve_path(const gchar *basefile, gchar *path) {
+gchar *resolve_path(const gchar *basefile, gchar *path)
+{
 	gchar *cwd = NULL, *dir = NULL, *res = NULL;
 
 	if (path == NULL)
