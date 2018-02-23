@@ -78,12 +78,14 @@ The ``status`` command allows this:
 
 .. code-block:: sh
 
-  rauc status [--output-format=<format>]
+  rauc status [--detailed] [--output-format=<format>]
 
 You can choose the output style of RAUC status depending on your needs.
-By default it will print a human readable representation of your system.
-Alternatively you can obtain a shell-parsable description, or a JSON
-representation of the system status.
+By default it will print a human readable representation of your system's most
+important properties. Alternatively you can obtain a shell-parsable description,
+or a JSON representation of the system status.
+If more information is needed such as the slots' :ref:`status <slot-status>` add
+the command line option ``--detailed``.
 
 React to a Successfully Booted System/Failed Boot
 -------------------------------------------------

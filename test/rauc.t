@@ -151,29 +151,96 @@ test_expect_success "rauc bundle" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info out.raucb
 "
 
-test_expect_success "rauc --override-boot-slot=system0 status" "
+test_expect_success !SERVICE "rauc --override-boot-slot=system0 status: internally" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status
 "
 
-test_expect_success "rauc status readable" "
+test_expect_success !SERVICE "rauc status readable: internally" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status --output-format=readable
 "
 
-test_expect_success "rauc status shell" "
+test_expect_success !SERVICE "rauc status shell: internally" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status --output-format=shell \
   | sh
 "
 
-test_expect_success JSON "rauc status json" "
+test_expect_success !SERVICE,JSON "rauc status json: internally" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status --output-format=json
 "
 
-test_expect_success JSON "rauc status json-pretty" "
+test_expect_success !SERVICE,JSON "rauc status json-pretty: internally" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status --output-format=json-pretty
 "
 
-test_expect_success "rauc status invalid" "
+test_expect_success !SERVICE "rauc status invalid: internally" "
   test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status --output-format=invalid
+"
+
+test_expect_success SERVICE "rauc --override-boot-slot=system0 status: via D-Bus" "
+  start_rauc_dbus_service \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service &&
+  rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
+    --override-boot-slot=system0 \
+    status
+"
+
+test_expect_success SERVICE "rauc status readable: via D-Bus" "
+  start_rauc_dbus_service \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service &&
+  rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
+    --override-boot-slot=system0 \
+    status --output-format=readable
+"
+
+test_expect_success SERVICE "rauc status shell: via D-Bus" "
+  start_rauc_dbus_service \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service &&
+  rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
+    --override-boot-slot=system0 \
+    status --output-format=shell \
+  | sh
+"
+
+test_expect_success SERVICE,JSON "rauc status json: via D-Bus" "
+  start_rauc_dbus_service \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service &&
+  rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
+    --override-boot-slot=system0 \
+    status --output-format=json
+"
+
+test_expect_success SERVICE,JSON "rauc status json-pretty: via D-Bus" "
+  start_rauc_dbus_service \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service &&
+  rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
+    --override-boot-slot=system0 \
+    status --output-format=json-pretty
+"
+
+test_expect_success SERVICE "rauc status invalid: via D-Bus" "
+  start_rauc_dbus_service \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service &&
+  test_must_fail rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
+    --override-boot-slot=system0 \
+    status --output-format=invalid
 "
 
 test_expect_success !SERVICE "rauc status mark-good: internally" "
