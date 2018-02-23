@@ -280,6 +280,8 @@ In the following the available hooks are listed. Depending on their purpose,
 some are image-specific, i.e. they will be executed for the installation of a
 specific image only, while some other are global.
 
+.. _sec-install-hooks:
+
 Install Hooks
 ^^^^^^^^^^^^^
 
@@ -336,6 +338,8 @@ the hook executable as the rejection reason message and provide it to the user:
   esac
 
   exit 0
+
+.. _sec-slot-hooks:
 
 Slot Hooks
 ^^^^^^^^^^
