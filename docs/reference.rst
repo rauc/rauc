@@ -441,6 +441,12 @@ Methods
 ~~~~~~~
 :ref:`Install <gdbus-method-de-pengutronix-rauc-Installer.Install>` (IN  s source);
 
+:ref:`Info <gdbus-method-de-pengutronix-rauc-Installer.Info>` (IN  s bundle, s compatible, s version);
+
+:ref:`Mark <gdbus-method-de-pengutronix-rauc-Installer.Mark>` (IN  s state, IN  s slot_identifier, s slot_name, s message);
+
+:ref:`GetSlotStatus <gdbus-method-de-pengutronix-rauc-Installer.GetSlotStatus>` (a(sa{sv}) slot_status_array);
+
 Signals
 ~~~~~~~
 :ref:`Completed <gdbus-signal-de-pengutronix-rauc-Installer.Completed>` (i result);
@@ -473,6 +479,69 @@ Triggers the installation of a bundle.
 
 IN s *source*:
     Path to bundle to be installed
+
+.. _gdbus-method-de-pengutronix-rauc-Installer.Info:
+
+The Info() Method
+^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer.Info()
+  Info (IN  s bundle, s compatible, s version);
+
+Provides bundle info.
+
+IN s *bundle*:
+    Path to bundle information should be shown
+
+s *compatible*:
+    Compatible of bundle
+
+s *version*:
+    Version string of bundle
+
+.. _gdbus-method-de-pengutronix-rauc-Installer.Mark:
+
+The Mark() Method
+^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer.Mark()
+  Mark (IN  s state, IN  s slot_identifier, s slot_name, s message);
+
+Keeps a slot bootable (state == "good"), makes it unbootable (state == "bad")
+or explicitely activates it for the next boot (state == "active").
+
+IN s *state*:
+    Operation to perform (one out of "good", "bad" or "active")
+
+IN s *slot_identifier*:
+    Can be "booted", "other" or <SLOT_NAME> (e.g. "rootfs.1")
+
+s *slot_name*:
+    Name of the slot which has ultimately been marked
+
+s *message*:
+    Message describing what has been done successfully
+    (e.g. "activated slot rootfs.0")
+
+.. _gdbus-method-de-pengutronix-rauc-Installer.GetSlotStatus:
+
+The GetSlotStatus() Method
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer.GetSlotStatus()
+  GetSlotStatus (a(sa{sv}) slot_status_array);
+
+Access method to get all slots' status.
+
+a(sa{sv}) *slot_status_array*:
+    Array of (slotname, dict) tuples with each dictionary representing the
+    status of the corresponding slot
 
 Signal Details
 ~~~~~~~~~~~~~~
