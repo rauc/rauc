@@ -211,3 +211,12 @@ void r_free_slot(gpointer value);
  * @return TRUE if mountable, otherwise FALSE
  */
 gboolean is_slot_mountable(RaucSlot *slot);
+
+/**
+ * Get string representation of slot state
+ *
+ * @param slotstate state to turn into string
+ *
+ * @return string representation of slot state
+ */
+gchar* slotstate_to_str(SlotState slotstate);

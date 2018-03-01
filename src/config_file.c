@@ -751,3 +751,27 @@ void free_slot_status(RaucSlotStatus *slotstatus) {
 	g_free(slotstatus->activated_timestamp);
 	g_free(slotstatus);
 }
+
+/* returns string representation of slot state */
+gchar* slotstate_to_str(SlotState slotstate)
+{
+	gchar *state = NULL;
+
+	switch (slotstate) {
+	case ST_ACTIVE:
+		state = g_strdup("active");
+		break;
+	case ST_INACTIVE:
+		state = g_strdup("inactive");
+		break;
+	case ST_BOOTED:
+		state = g_strdup("booted");
+		break;
+	case ST_UNKNOWN:
+	default:
+		g_error("invalid slot status %d", slotstate);
+		break;
+	}
+
+	return state;
+}
