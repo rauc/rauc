@@ -65,6 +65,7 @@ Features
 * Storage support:
 
   * ext2/3/4 filesystem
+  * eMMC boot partitions (atomic update)
   * vfat filesystem
   * UBI volumes
   * UBIFS

@@ -39,6 +39,7 @@ librauc_la_SOURCES = \
 	src/checksum.c \
 	src/config_file.c \
 	src/context.c \
+	src/emmc.c \
 	src/install.c \
 	src/manifest.c \
 	src/mark.c \
@@ -52,6 +53,7 @@ librauc_la_SOURCES = \
 	include/checksum.h \
 	include/config_file.h \
 	include/context.h \
+	include/emmc.h \
 	include/install.h \
 	include/manifest.h \
 	include/mark.h \
