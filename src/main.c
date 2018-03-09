@@ -969,7 +969,7 @@ static gchar* r_status_formatter_readable(void)
 			if (slot_state->checksum.digest && slot_state->checksum.type == G_CHECKSUM_SHA256) {
 				g_string_append_printf(text, "\n          checksum:");
 				g_string_append_printf(text, "\n              sha256=%s", slot_state->checksum.digest);
-				g_string_append_printf(text, "\n              size=%lu", slot_state->checksum.size);
+				g_string_append_printf(text, "\n              size=%"G_GSIZE_FORMAT, slot_state->checksum.size);
 			}
 			if (slot_state->installed_timestamp) {
 				g_string_append_printf(text, "\n          installed:");
@@ -1064,7 +1064,7 @@ static gchar* r_status_formatter_shell(void)
 			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_DESCRIPTION", slotcnt, slot_state->bundle_description);
 			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_BUILD", slotcnt, slot_state->bundle_build);
 			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_CHECKSUM_SHA256", slotcnt, slot_state->checksum.digest);
-			str = g_strdup_printf("%lu", slot_state->checksum.size);
+			str = g_strdup_printf("%"G_GSIZE_FORMAT, slot_state->checksum.size);
 			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_CHECKSUM_SIZE", slotcnt, str);
 			g_free(str);
 			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_INSTALLED_TIMESTAMP", slotcnt, slot_state->installed_timestamp);
