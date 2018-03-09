@@ -340,7 +340,7 @@ RAUC provides a command for creating casync-based bundles from  'conventional'
 bundles.
 Simply call::
 
-  rauc convert conventional-bundle.raucb casync-bundle.raucb
+  rauc convert --cert=<certfile> --key=<keyfile> --keyring=<keyring> conventional-bundle.raucb casync-bundle.raucb
 
 The conversion process will create two new artifacts:
 
