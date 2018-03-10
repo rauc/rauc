@@ -238,7 +238,7 @@ static GVariant* convert_slot_status_to_dict(RaucSlot *slot) {
 
 	if (slot_state->checksum.digest && slot_state->checksum.type == G_CHECKSUM_SHA256) {
 		g_variant_dict_insert(&dict, "sha256", "s", slot_state->checksum.digest);
-		g_variant_dict_insert(&dict, "size", "t", slot_state->checksum.size);
+		g_variant_dict_insert(&dict, "size", "t", (guint64) slot_state->checksum.size);
 	}
 
 	if (slot_state->installed_timestamp) {
