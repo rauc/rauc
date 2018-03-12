@@ -127,7 +127,6 @@ gboolean mark_run(const gchar *state,
 	if (ierror) {
 		res = FALSE;
 		*message = g_strdup(ierror->message);
-		g_error_free(ierror);
 		goto out;
 	}
 
