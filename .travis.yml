@@ -25,6 +25,8 @@ addons:
     sources: &sources
       - ubuntu-toolchain-r-test
       - sourceline: 'deb http://archive.ubuntu.com/ubuntu/ trusty main restricted universe multiverse'
+before_script:
+  - ./build-uncrustify.sh
 script:
   - ./autogen.sh
   - ./configure --enable-code-coverage
@@ -35,6 +37,8 @@ script:
   - make distcheck
 after_success:
   - coveralls --build-root '.' --exclude test --exclude rauc-installer-generated.c
+  - ./uncrustify.sh && git diff --exit-code
 after_failure:
   - cat test/*.log
   - cat test-suite.log
+  - ./uncrustify.sh && git diff --exit-code

@@ -17,6 +17,7 @@ rauc
 stamp-h1
 .deps
 .dirstamp
+.uncrustify/
 *-coverage/
 *-coverage.info
 *~
