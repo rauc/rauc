@@ -1,6 +1,5 @@
 #pragma once
 
-#include <config.h>
 #include <glib.h>
 
 gchar* random_bytes(gsize size, guint32 seed);

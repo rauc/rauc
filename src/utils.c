@@ -1,5 +1,3 @@
-#include <config.h>
-
 #include <ftw.h>
 #include <gio/gio.h>
 #include <glib.h>

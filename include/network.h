@@ -3,7 +3,6 @@
 #include <glib.h>
 
 #include <checksum.h>
-#include <config.h>
 
 #if ENABLE_NETWORK
 void network_init(void);

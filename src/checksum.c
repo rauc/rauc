@@ -1,5 +1,3 @@
-#include <config.h>
-
 #include "checksum.h"
 
 #define RAUC_DEFAULT_CHECKSUM G_CHECKSUM_SHA256
