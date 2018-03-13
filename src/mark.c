@@ -160,8 +160,7 @@ out:
 	if (res && slot_name)
 		*slot_name = g_strdup(slot->name);
 
-	if (ierror)
-		g_clear_error(&ierror);
+	g_clear_error(&ierror);
 
 	return res;
 }
