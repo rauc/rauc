@@ -1,5 +1,3 @@
-#include <config.h>
-
 #include <curl/curl.h>
 #include <gio/gio.h>
 #include <glib/gstdio.h>

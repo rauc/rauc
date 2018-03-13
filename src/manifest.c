@@ -1,5 +1,3 @@
-#include <config.h>
-
 #include "checksum.h"
 #include "config_file.h"
 #include "context.h"

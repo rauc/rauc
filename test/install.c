@@ -5,7 +5,6 @@
 #include <gio/gio.h>
 
 #include <context.h>
-#include <config.h>
 #include <install.h>
 #include <manifest.h>
 #include <mount.h>
