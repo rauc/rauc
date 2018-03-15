@@ -81,6 +81,12 @@ Example configuration:
   This file should be located on a filesystem which is not overwritten during
   updates.
 
+``barebox-statename``
+  Only valid when ``bootloader`` is set to ``barebox``.
+  Overwrites the default state ``state`` to a user-defined state name. If this
+  key not exists, the bootchooser framework searches per default for ``/state``
+  or ``/aliases/state``.
+
 **[keyring] section**
 
 The ``keyring`` section refers to the trusted keyring used for signature
