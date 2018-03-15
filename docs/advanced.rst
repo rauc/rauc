@@ -481,6 +481,8 @@ RAUC will report an error if for example a booloader image is only present for
 variant A when you try to install on variant B.
 This should prevent from bricking your device by unintentional partial updates.
 
+.. _sec-manual-write:
+
 Manually Writing Images to Slots
 --------------------------------
 
@@ -517,14 +519,39 @@ non-bootable system caused by an error or power-loss during the update.
 
 Whether atomic bootloader updates can be implemented depends on your
 SoC/firmware and storage medium.
-For example eMMCs have two dedicated boot partitions (see the JEDEC standard
-JESD84-B51_ for details), one of which can be enabled atomically via
-configuration registers in the eMMC.
+
+Update eMMC Boot Partitions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+RAUC supports updating eMMC boot partitions (see the JEDEC standard JESD84-B51_
+for details), one of which gets enabled atomically via configuration registers
+in the eMMC (*ext_csd registers*).
 
 .. _JESD84-B51: http://www.jedec.org/standards-documents/results/jesd84-b51
 
-As a further example, the NXP i.MX6 supports up to four bootloader copies when
-booting from NAND flash.
+The required slot type is ``boot-emmc``.
+The device to be specified is expected to be the root device.
+The boot partitions are derived automatically.
+A ``system.conf`` could look like this:
+
+.. code-block:: cfg
+
+  [slot.bootloader.0]
+  device=/dev/mmcblk1
+  type=boot-emmc
+
+.. important::
+
+  A kernel bug may prevent consistent toggling of the eMMC ext_csd boot
+  partition register.
+  Be sure your kernel contains this patch:
+  https://www.spinics.net/lists/linux-mmc/msg48271.html
+
+Bootloader Update Ideas
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The NXP i.MX6 supports up to four bootloader copies when booting from NAND
+flash.
 The ROM code will try each copy in turn until it finds one which is readable
 without uncorrectable ECC errors and has a correct header.
 By using the trait of NAND flash that interrupted writes cause ECC errors and
@@ -532,14 +559,15 @@ writing the first page (containing the header) last, the bootloader images can
 be replaced one after the other, while ensuring that the system will boot even in
 case of a crash or power failure.
 
-Currently, independent of whether you are able to update your bootloader with
-fallback, atomically or with some risk of an unbootable system, our suggestion
-is to handle updates for it outside of RAUC.
-The main reason is to avoid booting an old system with a new bootloader, as this
-combination is usually not tested during development, increasing the risk of
-problems appearing only in the field.
+The slot type could be called "boot-imx6-nand" analogous to eMMC.
 
-One possible approach to this is:
+Considerations When Updating the Bootloader
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Booting an old system with a new bootloader is usually not tested during
+development, increasing the risk of problems appearing only in the field.
+If you want to address this issue do not add the bootloader to your bundle, but
+rather use an approach like this:
 
 * Store a copy of the bootloader in the rootfs.
 * Use RAUC only to update the rootfs. The combinations to test
