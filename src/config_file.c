@@ -122,6 +122,10 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		goto free;
 	}
 
+	if (g_strcmp0(c->system_bootloader, "barebox") == 0) {
+		c->system_bb_statename = g_key_file_get_string(key_file, "system", "barebox-statename", NULL);
+	}
+
 	c->mount_prefix = g_key_file_get_string(key_file, "system", "mountprefix", NULL);
 	if (!c->mount_prefix) {
 		g_debug("No mount prefix provided, using /mnt/rauc/ as default");

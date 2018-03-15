@@ -27,6 +27,7 @@ typedef struct {
 	RConfigSysVariant system_variant_type;
 	gchar *system_variant;
 	gchar *system_bootloader;
+	gchar *system_bb_statename;
 	/* path prefix where rauc may create mount directories */
 	gchar *mount_prefix;
 	gchar *store_path;
