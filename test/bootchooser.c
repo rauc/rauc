@@ -68,7 +68,7 @@ bootname=system1\n";
 	g_assert_nonnull(slot);
 
 	/* check rootfs is considered good */
-	g_setenv ("BAREBOX_STATE_VARS_PRE", " \
+	g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
@@ -76,13 +76,13 @@ bootstate.system1.priority=10\n\
 ", TRUE);
 	g_assert_true(r_boot_get_state(slot, &good, NULL));
 	g_assert_true(good);
-	
+
 	primary = r_boot_get_primary(NULL);
 	g_assert_nonnull(primary);
 	g_assert(primary == slot);
 
 	/* check rootfs is considered bad (remaining_attempts = 0) */
-	g_setenv ("BAREBOX_STATE_VARS_PRE", " \
+	g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=0\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
@@ -92,7 +92,7 @@ bootstate.system1.priority=10\n\
 	g_assert_false(good);
 
 	/* check rootfs is considered bad (priority = 0) */
-	g_setenv ("BAREBOX_STATE_VARS_PRE", " \
+	g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=0\n\
 bootstate.system1.remaining_attempts=3\n\
@@ -102,13 +102,13 @@ bootstate.system1.priority=10\n\
 	g_assert_false(good);
 
 	/* check rootfs-0 is marked good (has remaining attempts reset 1->3) */
-	g_setenv ("BAREBOX_STATE_VARS_PRE", " \
+	g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=1\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
 ", TRUE);
-	g_setenv ("BAREBOX_STATE_VARS_POST", " \
+	g_setenv("BAREBOX_STATE_VARS_POST", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
@@ -117,13 +117,13 @@ bootstate.system1.priority=10\n\
 	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
 
 	/* check rootfs-0 is marked bad (prio and attempts 0) */
-	g_setenv ("BAREBOX_STATE_VARS_PRE", " \
+	g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
 ", TRUE);
-	g_setenv ("BAREBOX_STATE_VARS_POST", " \
+	g_setenv("BAREBOX_STATE_VARS_POST", " \
 bootstate.system0.remaining_attempts=0\n\
 bootstate.system0.priority=0\n\
 bootstate.system1.remaining_attempts=3\n\
@@ -135,13 +135,13 @@ bootstate.system1.priority=10\n\
 	g_assert_nonnull(slot);
 
 	/* check rootfs-1 is marked primary (prio set to 20, others to 10) */
-	g_setenv ("BAREBOX_STATE_VARS_PRE", " \
+	g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
 ", TRUE);
-	g_setenv ("BAREBOX_STATE_VARS_POST", " \
+	g_setenv("BAREBOX_STATE_VARS_POST", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=10\n\
 bootstate.system1.remaining_attempts=3\n\
@@ -150,13 +150,13 @@ bootstate.system1.priority=20\n\
 	g_assert_true(r_boot_set_primary(slot, NULL));
 
 	/* check rootfs-1 is marked primary while current remains disabled (prio set to 20, others to 10) */
-	g_setenv ("BAREBOX_STATE_VARS_PRE", " \
+	g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=0\n\
 bootstate.system1.remaining_attempts=0\n\
 bootstate.system1.priority=10\n\
 ", TRUE);
-	g_setenv ("BAREBOX_STATE_VARS_POST", " \
+	g_setenv("BAREBOX_STATE_VARS_POST", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=0\n\
 bootstate.system1.remaining_attempts=3\n\
@@ -333,20 +333,20 @@ int main(int argc, char *argv[])
 	g_test_init(&argc, &argv, NULL);
 
 	g_test_add("/bootchoser/barebox", BootchooserFixture, NULL,
-		   bootchooser_fixture_set_up, bootchooser_barebox,
-		   bootchooser_fixture_tear_down);
+			bootchooser_fixture_set_up, bootchooser_barebox,
+			bootchooser_fixture_tear_down);
 
 	g_test_add("/bootchoser/grub", BootchooserFixture, NULL,
-		   bootchooser_fixture_set_up, bootchooser_grub,
-		   bootchooser_fixture_tear_down);
+			bootchooser_fixture_set_up, bootchooser_grub,
+			bootchooser_fixture_tear_down);
 
 	g_test_add("/bootchoser/uboot", BootchooserFixture, NULL,
-		   bootchooser_fixture_set_up, bootchooser_uboot,
-		   bootchooser_fixture_tear_down);
+			bootchooser_fixture_set_up, bootchooser_uboot,
+			bootchooser_fixture_tear_down);
 
 	g_test_add("/bootchoser/efi", BootchooserFixture, NULL,
-		   bootchooser_fixture_set_up, bootchooser_efi,
-		   bootchooser_fixture_tear_down);
+			bootchooser_fixture_set_up, bootchooser_efi,
+			bootchooser_fixture_tear_down);
 
-	return g_test_run ();
+	return g_test_run();
 }

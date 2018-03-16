@@ -221,28 +221,28 @@ int main(int argc, char *argv[])
 	g_test_init(&argc, &argv, NULL);
 
 	g_test_add("/bundle/check/empty", BundleFixture, NULL,
-		   bundle_fixture_set_up, test_check_empty_bundle,
-		   bundle_fixture_tear_down);
+			bundle_fixture_set_up, test_check_empty_bundle,
+			bundle_fixture_tear_down);
 
 	g_test_add("/bundle/check/invalid", BundleFixture, NULL,
-		   bundle_fixture_set_up, test_check_invalid_bundle,
-		   bundle_fixture_tear_down);
+			bundle_fixture_set_up, test_check_invalid_bundle,
+			bundle_fixture_tear_down);
 
 	g_test_add("/bundle/create_extract", BundleFixture, NULL,
-		   bundle_fixture_set_up_bundle, bundle_test_create_extract,
-		   bundle_fixture_tear_down);
+			bundle_fixture_set_up_bundle, bundle_test_create_extract,
+			bundle_fixture_tear_down);
 
 	g_test_add("/bundle/create_mount_extract", BundleFixture, NULL,
-		   bundle_fixture_set_up_bundle, bundle_test_create_mount_extract,
-		   bundle_fixture_tear_down);
+			bundle_fixture_set_up_bundle, bundle_test_create_mount_extract,
+			bundle_fixture_tear_down);
 
 	g_test_add("/bundle/extract_manifest", BundleFixture, NULL,
-		   bundle_fixture_set_up_bundle, bundle_test_extract_manifest,
-		   bundle_fixture_tear_down);
+			bundle_fixture_set_up_bundle, bundle_test_extract_manifest,
+			bundle_fixture_tear_down);
 
 	g_test_add("/bundle/resign", BundleFixture, NULL,
-		   bundle_fixture_set_up_bundle, bundle_test_resign,
-		   bundle_fixture_tear_down);
+			bundle_fixture_set_up_bundle, bundle_test_resign,
+			bundle_fixture_tear_down);
 
 	return g_test_run();
 }

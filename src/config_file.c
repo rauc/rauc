@@ -12,7 +12,8 @@ G_DEFINE_QUARK(r-slot-error-quark, r_slot_error)
 
 #define RAUC_SLOT_PREFIX	"slot"
 
-void r_free_slot(gpointer value) {
+void r_free_slot(gpointer value)
+{
 	RaucSlot *slot = (RaucSlot*)value;
 
 	g_return_if_fail(slot);
@@ -26,7 +27,8 @@ void r_free_slot(gpointer value) {
 	g_free(slot);
 }
 
-gboolean default_config(RaucConfig **config) {
+gboolean default_config(RaucConfig **config)
+{
 	RaucConfig *c = g_new0(RaucConfig, 1);
 
 	c->mount_prefix = g_strdup("/mnt/rauc/");
@@ -50,7 +52,8 @@ RaucSlotType supported_slot_types[] = {
 	{}
 };
 
-gboolean is_slot_mountable(RaucSlot *slot) {
+gboolean is_slot_mountable(RaucSlot *slot)
+{
 	for (RaucSlotType *slot_type = supported_slot_types; slot_type->name != NULL; slot_type++) {
 		if (g_strcmp0(slot->type, slot_type->name) == 0) {
 			return slot_type->mountable;
@@ -62,7 +65,8 @@ gboolean is_slot_mountable(RaucSlot *slot) {
 
 static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "noop", NULL};
 
-gboolean load_config(const gchar *filename, RaucConfig **config, GError **error) {
+gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
+{
 	GError *ierror = NULL;
 	RaucConfig *c = g_new0(RaucConfig, 1);
 	gboolean res = FALSE;
@@ -94,7 +98,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 	bootloader = g_key_file_get_string(key_file, "system", "bootloader", NULL);
 	if (!bootloader) {
-		g_set_error_literal (
+		g_set_error_literal(
 				error,
 				R_CONFIG_ERROR,
 				R_CONFIG_ERROR_BOOTLOADER,
@@ -134,7 +138,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 	if (g_strcmp0(c->system_bootloader, "grub") == 0) {
 		c->grubenv_path = resolve_path(filename,
-			g_key_file_get_string(key_file, "system", "grubenv", NULL));
+				g_key_file_get_string(key_file, "system", "grubenv", NULL));
 		if (!c->grubenv_path) {
 			g_debug("No grubenv path provided, using /boot/grub/grubenv as default");
 			c->grubenv_path = g_strdup("/boot/grub/grubenv");
@@ -217,28 +221,28 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 
 	c->statusfile_path = resolve_path(filename,
-		g_key_file_get_string(key_file, "system", "statusfile", NULL));
+			g_key_file_get_string(key_file, "system", "statusfile", NULL));
 
 	/* parse [keyring] section */
 	c->keyring_path = resolve_path(filename,
-		g_key_file_get_string(key_file, "keyring", "path", NULL));
+			g_key_file_get_string(key_file, "keyring", "path", NULL));
 
 	/* parse [casync] section */
 	c->store_path = g_key_file_get_string(key_file, "casync", "storepath", NULL);
 
 	/* parse [autoinstall] section */
 	c->autoinstall_path = resolve_path(filename,
-		g_key_file_get_string(key_file, "autoinstall", "path", NULL));
+			g_key_file_get_string(key_file, "autoinstall", "path", NULL));
 
 	/* parse [handlers] section */
 	c->systeminfo_handler = resolve_path(filename,
-		g_key_file_get_string(key_file, "handlers", "system-info", NULL));
+			g_key_file_get_string(key_file, "handlers", "system-info", NULL));
 
 	c->preinstall_handler = resolve_path(filename,
-		g_key_file_get_string(key_file, "handlers", "pre-install", NULL));
+			g_key_file_get_string(key_file, "handlers", "pre-install", NULL));
 
 	c->postinstall_handler = resolve_path(filename,
-		g_key_file_get_string(key_file, "handlers", "post-install", NULL));
+			g_key_file_get_string(key_file, "handlers", "post-install", NULL));
 
 	/* parse [slot.*.#] sections */
 	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_free_slot);
@@ -285,7 +289,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			slot->sclass = g_intern_string(groupsplit[1]);
 
 			value = resolve_path(filename,
-				g_key_file_get_string(key_file, groups[i], "device", &ierror));
+					g_key_file_get_string(key_file, groups[i], "device", &ierror));
 			if (!value) {
 				g_propagate_error(error, ierror);
 				res = FALSE;
@@ -343,7 +347,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 		s = g_hash_table_lookup(slots, value);
 		if (!s) {
-			g_set_error (
+			g_set_error(
 					error,
 					R_CONFIG_ERROR,
 					R_CONFIG_ERROR_PARENT,
@@ -372,7 +376,8 @@ free:
 	return res;
 }
 
-RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device) {
+RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device)
+{
 	GHashTableIter iter;
 	RaucSlot *slot;
 
@@ -389,7 +394,8 @@ out:
 	return slot;
 }
 
-void free_config(RaucConfig *config) {
+void free_config(RaucConfig *config)
+{
 	g_return_if_fail(config);
 
 	g_free(config->system_compatible);
@@ -407,7 +413,8 @@ void free_config(RaucConfig *config) {
 	g_free(config);
 }
 
-static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, RaucSlotStatus *slotstatus) {
+static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, RaucSlotStatus *slotstatus)
+{
 	GError *ierror = NULL;
 	gchar *digest;
 	guint64 count;
@@ -441,13 +448,13 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 	count = g_key_file_get_uint64(key_file, group, "installed.count", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE)) {
 		g_message("Value of key \"installed.count\" in group [%s] "
-			"is no valid unsigned integer - setting to zero.", group);
+				"is no valid unsigned integer - setting to zero.", group);
 		count = 0;
 	}
 	g_clear_error(&ierror);
 	if (count > G_MAXUINT32) {
 		g_message("Value of key \"installed.count\" in group [%s] "
-			"is greater than G_MAXUINT32 - setting to zero.", group);
+				"is greater than G_MAXUINT32 - setting to zero.", group);
 		count = 0;
 	}
 	slotstatus->installed_count = count;
@@ -456,26 +463,28 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 	count = g_key_file_get_uint64(key_file, group, "activated.count", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE)) {
 		g_message("Value of key \"activated.count\" in group [%s] "
-			"is no valid unsigned integer - setting to zero.", group);
+				"is no valid unsigned integer - setting to zero.", group);
 		count = 0;
 	}
 	g_clear_error(&ierror);
 	if (count > G_MAXUINT32) {
 		g_message("Value of key \"activated.count\" in group [%s] "
-			"is greater than G_MAXUINT32 - setting to zero.", group);
+				"is greater than G_MAXUINT32 - setting to zero.", group);
 		count = 0;
 	}
 	slotstatus->activated_count = count;
 }
 
-static void status_file_set_string_or_remove_key(GKeyFile *key_file, const gchar *group, const gchar *key, gchar *string) {
+static void status_file_set_string_or_remove_key(GKeyFile *key_file, const gchar *group, const gchar *key, gchar *string)
+{
 	if (string)
 		g_key_file_set_string(key_file, group, key, string);
 	else
 		g_key_file_remove_key(key_file, group, key, NULL);
 }
 
-static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group, RaucSlotStatus *slotstatus) {
+static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group, RaucSlotStatus *slotstatus)
+{
 	status_file_set_string_or_remove_key(key_file, group, "bundle.compatible", slotstatus->bundle_compatible);
 	status_file_set_string_or_remove_key(key_file, group, "bundle.version", slotstatus->bundle_version);
 	status_file_set_string_or_remove_key(key_file, group, "bundle.description", slotstatus->bundle_description);
@@ -509,7 +518,8 @@ static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group, 
 	return;
 }
 
-gboolean read_slot_status(const gchar *filename, RaucSlotStatus *slotstatus, GError **error) {
+gboolean read_slot_status(const gchar *filename, RaucSlotStatus *slotstatus, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GKeyFile *key_file = NULL;
@@ -535,7 +545,8 @@ free:
 	return res;
 }
 
-gboolean write_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error) {
+gboolean write_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error)
+{
 	GError *ierror = NULL;
 	GKeyFile *key_file = NULL;
 	gboolean res = FALSE;
@@ -556,7 +567,8 @@ free:
 	return res;
 }
 
-static void load_slot_status_locally(RaucSlot *dest_slot) {
+static void load_slot_status_locally(RaucSlot *dest_slot)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar *slotstatuspath = NULL;
@@ -599,7 +611,8 @@ free:
 	g_clear_error(&ierror);
 }
 
-static void load_slot_status_globally(void) {
+static void load_slot_status_globally(void)
+{
 	GError *ierror = NULL;
 	GHashTable *slots = r_context()->config->slots;
 	GKeyFile *key_file = g_key_file_new();
@@ -643,7 +656,8 @@ static void load_slot_status_globally(void) {
 	}
 }
 
-void load_slot_status(RaucSlot *dest_slot) {
+void load_slot_status(RaucSlot *dest_slot)
+{
 	g_return_if_fail(dest_slot);
 
 	if (dest_slot->status)
@@ -655,7 +669,8 @@ void load_slot_status(RaucSlot *dest_slot) {
 		load_slot_status_locally(dest_slot);
 }
 
-static gboolean save_slot_status_locally(RaucSlot *dest_slot, GError **error) {
+static gboolean save_slot_status_locally(RaucSlot *dest_slot, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar *slotstatuspath = NULL;
@@ -699,7 +714,8 @@ free:
 	return res;
 }
 
-static gboolean save_slot_status_globally(GError **error) {
+static gboolean save_slot_status_globally(GError **error)
+{
 	GKeyFile *key_file = g_key_file_new();
 	GError *ierror = NULL;
 	GHashTableIter iter;
@@ -732,7 +748,8 @@ static gboolean save_slot_status_globally(GError **error) {
 	return res;
 }
 
-gboolean save_slot_status(RaucSlot *dest_slot, GError **error) {
+gboolean save_slot_status(RaucSlot *dest_slot, GError **error)
+{
 	g_return_val_if_fail(dest_slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
@@ -742,7 +759,8 @@ gboolean save_slot_status(RaucSlot *dest_slot, GError **error) {
 		return save_slot_status_locally(dest_slot, error);
 }
 
-void free_slot_status(RaucSlotStatus *slotstatus) {
+void free_slot_status(RaucSlotStatus *slotstatus)
+{
 	g_return_if_fail(slotstatus);
 
 	g_free(slotstatus->bundle_compatible);
@@ -762,19 +780,19 @@ gchar* slotstate_to_str(SlotState slotstate)
 	gchar *state = NULL;
 
 	switch (slotstate) {
-	case ST_ACTIVE:
-		state = g_strdup("active");
-		break;
-	case ST_INACTIVE:
-		state = g_strdup("inactive");
-		break;
-	case ST_BOOTED:
-		state = g_strdup("booted");
-		break;
-	case ST_UNKNOWN:
-	default:
-		g_error("invalid slot status %d", slotstate);
-		break;
+		case ST_ACTIVE:
+			state = g_strdup("active");
+			break;
+		case ST_INACTIVE:
+			state = g_strdup("inactive");
+			break;
+		case ST_BOOTED:
+			state = g_strdup("booted");
+			break;
+		case ST_UNKNOWN:
+		default:
+			g_error("invalid slot status %d", slotstate);
+			break;
 	}
 
 	return state;

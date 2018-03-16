@@ -16,10 +16,10 @@ static void signature_sign(void)
 
 	// Test valid signing
 	sig = cms_sign(content,
-		       r_context()->certpath,
-		       r_context()->keypath,
-		       NULL,
-		       &error);
+			r_context()->certpath,
+			r_context()->keypath,
+			NULL,
+			&error);
 	g_assert_nonnull(sig);
 	g_assert_null(error);
 
@@ -27,10 +27,10 @@ static void signature_sign(void)
 
 	// Test signing fail with invalid key
 	sig = cms_sign(content,
-		       r_context()->certpath,
-		       "test/random.dat",
-		       NULL,
-		       &error);
+			r_context()->certpath,
+			"test/random.dat",
+			NULL,
+			&error);
 	g_assert_null(sig);
 	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE_ERROR);
 
@@ -38,10 +38,10 @@ static void signature_sign(void)
 
 	// Test signing fail with invalid cert
 	sig = cms_sign(content,
-		       "test/random.dat",
-		       r_context()->keypath,
-		       NULL,
-		       &error);
+			"test/random.dat",
+			r_context()->keypath,
+			NULL,
+			&error);
 	g_assert_null(sig);
 	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE_ERROR);
 
@@ -57,10 +57,10 @@ static void signature_sign_file(void)
 
 	// Test valid file
 	sig = cms_sign_file("test/openssl-ca/manifest",
-			    r_context()->certpath,
-			    r_context()->keypath,
-			    NULL,
-			    &error);
+			r_context()->certpath,
+			r_context()->keypath,
+			NULL,
+			&error);
 	g_assert_nonnull(sig);
 	g_assert_null(error);
 
@@ -70,10 +70,10 @@ static void signature_sign_file(void)
 
 	// Test non-existing file
 	sig = cms_sign_file("path/to/nonexisting/file",
-			    r_context()->certpath,
-			    r_context()->keypath,
-			    NULL,
-			    &error);
+			r_context()->certpath,
+			r_context()->keypath,
+			NULL,
+			&error);
 	g_assert_null(sig);
 	g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
 
@@ -82,10 +82,10 @@ static void signature_sign_file(void)
 
 	// Test invalid certificate (use key instead)
 	sig = cms_sign_file("test/openssl-ca/manifest",
-			    r_context()->keypath,
-			    r_context()->keypath,
-			    NULL,
-			    &error);
+			r_context()->keypath,
+			r_context()->keypath,
+			NULL,
+			&error);
 	g_assert_null(sig);
 	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE_ERROR);
 
@@ -169,10 +169,10 @@ static void signature_loopback(void)
 	GBytes *sig = NULL;
 	g_assert_nonnull(content);
 	sig = cms_sign(content,
-		       r_context()->certpath,
-		       r_context()->keypath,
-		       NULL,
-		       NULL);
+			r_context()->certpath,
+			r_context()->keypath,
+			NULL,
+			NULL);
 	g_assert_nonnull(sig);
 	g_assert_true(cms_verify(content, sig, NULL, NULL, NULL));
 	((char *)g_bytes_get_data(content, NULL))[0] = 0x00;
@@ -232,12 +232,12 @@ static void signature_selfsigned(void)
 	r_context_conf()->keypath = g_strdup("test/openssl-ca/root/private/ca.key.pem");
 	/* We also verify against the root CA */
 	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/root/ca.cert.pem");
-	
+
 	sig = cms_sign(content,
-		       r_context()->certpath,
-		       r_context()->keypath,
-		       NULL,
-		       &error);
+			r_context()->certpath,
+			r_context()->keypath,
+			NULL,
+			&error);
 	g_assert_nonnull(sig);
 	g_assert_no_error(error);
 
@@ -284,10 +284,10 @@ static void signature_intermediate(void)
 	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/provisioning-ca.pem");
 
 	sig = cms_sign(content,
-		       r_context()->certpath,
-		       r_context()->keypath,
-		       NULL,
-		       &error);
+			r_context()->certpath,
+			r_context()->keypath,
+			NULL,
+			&error);
 	g_assert_nonnull(sig);
 	g_assert_no_error(error);
 
@@ -307,10 +307,10 @@ static void signature_intermediate(void)
 	g_ptr_array_add(interfiles, NULL);
 
 	sig = cms_sign(content,
-		       r_context()->certpath,
-		       r_context()->keypath,
-		       (gchar**) g_ptr_array_free(interfiles, FALSE),
-		       NULL);
+			r_context()->certpath,
+			r_context()->keypath,
+			(gchar**) g_ptr_array_free(interfiles, FALSE),
+			NULL);
 	g_assert_nonnull(sig);
 
 	/* With intermediate certificate, this must succeed */
@@ -344,10 +344,10 @@ int main(int argc, char *argv[])
 	r_context();
 
 	g_assert(test_prepare_dummy_file("test/", "random.dat",
-				         256 * 1024, "/dev/urandom") == 0);
+					256 * 1024, "/dev/urandom") == 0);
 
 	g_assert(test_prepare_dummy_file("test/", "empty.dat",
-				         0, "/dev/zero") == 0);
+					0, "/dev/zero") == 0);
 
 	g_test_init(&argc, &argv, NULL);
 

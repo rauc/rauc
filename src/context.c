@@ -8,7 +8,8 @@
 
 RaucContext *context = NULL;
 
-static const gchar* get_cmdline_bootname(void) {
+static const gchar* get_cmdline_bootname(void)
+{
 	GRegex *regex = NULL;
 	GMatchInfo *match = NULL;
 	char *contents = NULL;
@@ -49,9 +50,9 @@ static const gchar* get_cmdline_bootname(void) {
 
 	if (strncmp(bootname, "PARTUUID=", 9) == 0) {
 		gchar *partuuidpath = g_build_filename(
-			"/dev/disk/by-partuuid/",
-			&bootname[9],
-			NULL);
+				"/dev/disk/by-partuuid/",
+				&bootname[9],
+				NULL);
 		if (partuuidpath) {
 			g_free((gchar*) bootname);
 			bootname = partuuidpath;
@@ -60,9 +61,9 @@ static const gchar* get_cmdline_bootname(void) {
 
 	if (strncmp(bootname, "UUID=", 5) == 0) {
 		gchar *uuidpath = g_build_filename(
-			"/dev/disk/by-uuid/",
-			&bootname[5],
-			NULL);
+				"/dev/disk/by-uuid/",
+				&bootname[5],
+				NULL);
 		if (uuidpath) {
 			g_free((gchar*) bootname);
 			bootname = uuidpath;
@@ -91,7 +92,8 @@ out:
 	return bootname;
 }
 
-static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTable *variables, GError **error) {
+static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTable *variables, GError **error)
+{
 	GSubprocessLauncher *handlelaunch = NULL;
 	GSubprocess *handleproc = NULL;
 	GError *ierror = NULL;
@@ -109,7 +111,7 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 	   subprocess environment */
 	g_hash_table_iter_init(&iter, variables);
 	while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
-                g_subprocess_launcher_setenv(handlelaunch, g_strdup(key), g_strdup(value), 1);
+		g_subprocess_launcher_setenv(handlelaunch, g_strdup(key), g_strdup(value), 1);
 	}
 
 	handleproc = g_subprocess_launcher_spawn(
@@ -156,7 +158,8 @@ out:
 	return res;
 }
 
-static gchar* get_system_dtb_compatible(GError **error) {
+static gchar* get_system_dtb_compatible(GError **error)
+{
 	gchar *contents = NULL;
 	GError *ierror = NULL;
 
@@ -168,7 +171,8 @@ static gchar* get_system_dtb_compatible(GError **error) {
 	return contents;
 }
 
-static gchar* get_variant_from_file(const gchar* filename, GError **error) {
+static gchar* get_variant_from_file(const gchar* filename, GError **error)
+{
 	gchar *contents = NULL;
 	GError *ierror = NULL;
 
@@ -181,7 +185,8 @@ static gchar* get_variant_from_file(const gchar* filename, GError **error) {
 }
 
 
-static void r_context_configure(void) {
+static void r_context_configure(void)
+{
 	gboolean res = TRUE;
 	GError *error = NULL;
 
@@ -221,7 +226,7 @@ static void r_context_configure(void) {
 	}
 
 	if (context->config->systeminfo_handler &&
-		g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
+	    g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
 
 		GError *ierror = NULL;
 		GHashTable *vars = NULL;
@@ -263,7 +268,8 @@ static void r_context_configure(void) {
 	context->pending = FALSE;
 }
 
-gboolean r_context_get_busy(void) {
+gboolean r_context_get_busy(void)
+{
 	if (context == NULL) {
 		return FALSE;
 	}
@@ -271,7 +277,8 @@ gboolean r_context_get_busy(void) {
 	return context->busy;
 }
 
-void r_context_set_busy(gboolean busy) {
+void r_context_set_busy(gboolean busy)
+{
 	g_assert_nonnull(context);
 	g_assert(context->busy != busy);
 
@@ -281,7 +288,8 @@ void r_context_set_busy(gboolean busy) {
 	context->busy = busy;
 }
 
-static void r_context_send_progress(gboolean op_finished, gboolean success) {
+static void r_context_send_progress(gboolean op_finished, gboolean success)
+{
 	RaucProgressStep *step;
 	RaucProgressStep *iter_step;
 	gfloat percentage = 0;
@@ -311,20 +319,21 @@ static void r_context_send_progress(gboolean op_finished, gboolean success) {
 	if (op_finished) {
 		if (success)
 			step->description = g_strdup_printf("%s done.",
-							    step->description);
+					step->description);
 		else
 			step->description = g_strdup_printf("%s failed.",
-							    step->description);
+					step->description);
 	}
 
 	/* handle missing callback gracefully */
 	if (context->progress_callback)
 		context->progress_callback(percentage, step->description,
-					   g_list_length(context->progress));
+				g_list_length(context->progress));
 }
 
 void r_context_begin_step(const gchar *name, const gchar *description,
-	 		  gint substeps) {
+		gint substeps)
+{
 
 	RaucProgressStep *step = g_new0(RaucProgressStep, 1);
 	RaucProgressStep *parent;
@@ -345,12 +354,12 @@ void r_context_begin_step(const gchar *name, const gchar *description,
 		/* nesting check */
 		if (parent->substeps_total == parent->substeps_done)
 			g_error("Step nesting wrong: %s contains %s exceeding step limit (%d/%d)",
-				parent->name, step->name,
-				parent->substeps_done + 1,
-				parent->substeps_total);
+					parent->name, step->name,
+					parent->substeps_done + 1,
+					parent->substeps_total);
 
 		step->percent_total = parent->percent_total
-			/ parent->substeps_total;
+		                      / parent->substeps_total;
 
 		g_assert_cmpint(step->percent_total, <=,
 				parent->percent_total);
@@ -366,7 +375,8 @@ void r_context_begin_step(const gchar *name, const gchar *description,
 	r_context_send_progress(FALSE, FALSE);
 }
 
-void r_context_end_step(const gchar *name, gboolean success) {
+void r_context_end_step(const gchar *name, gboolean success)
+{
 	RaucProgressStep *step;
 	GList *step_element;
 	RaucProgressStep *parent;
@@ -384,13 +394,13 @@ void r_context_end_step(const gchar *name, gboolean success) {
 	/* check number of substeps */
 	if (step->substeps_done > step->substeps_total)
 		g_error("Too many substeps: %s (%d/%d)",
-			step->name, step->substeps_done,
-			step->substeps_total);
+				step->name, step->substeps_done,
+				step->substeps_total);
 
 	if (success && step->substeps_done < step->substeps_total)
 		g_error("Not enough substeps: %s (%d/%d)",
-			step->name, step->substeps_done,
-			step->substeps_total);
+				step->name, step->substeps_done,
+				step->substeps_total);
 
 	/* mark substeps/percentage as done/complete in case of an error */
 	if (!success)
@@ -409,7 +419,7 @@ void r_context_end_step(const gchar *name, gboolean success) {
 			r_context_set_step_percentage(step->name, 100);
 		else
 			parent->percent_done = parent->percent_done
-				+ step->percent_done;
+			                       + step->percent_done;
 
 		g_assert_cmpint(step->percent_done, <=,
 				parent->percent_done);
@@ -417,13 +427,14 @@ void r_context_end_step(const gchar *name, gboolean success) {
 
 	r_context_send_progress(TRUE, success);
 	context->progress = g_list_remove_link(context->progress,
-					       step_element);
+			step_element);
 
 	g_list_free(step_element);
 	g_free(step);
 }
 
-void r_context_set_step_percentage(const gchar *name, gint custom_percent) {
+void r_context_set_step_percentage(const gchar *name, gint custom_percent)
+{
 	RaucProgressStep *step;
 	RaucProgressStep *parent;
 	gint percent_difference;
@@ -442,12 +453,12 @@ void r_context_set_step_percentage(const gchar *name, gint custom_percent) {
 	percent_difference = custom_percent - step->last_explicit_percent;
 
 	step->percent_done = step->percent_total
-		* (percent_difference / 100.0f);
+	                     * (percent_difference / 100.0f);
 
 	/* pass to parent */
 	if (parent)
 		parent->percent_done = parent->percent_done
-			+ step->percent_done;
+		                       + step->percent_done;
 
 	step->last_explicit_percent = custom_percent;
 
@@ -456,14 +467,16 @@ void r_context_set_step_percentage(const gchar *name, gint custom_percent) {
 		r_context_send_progress(FALSE, FALSE);
 }
 
-void r_context_register_progress_callback(progress_callback progress_cb) {
+void r_context_register_progress_callback(progress_callback progress_cb)
+{
 	g_assert_nonnull(progress_cb);
 	g_assert_null(context->progress_callback);
 
 	context->progress_callback = progress_cb;
 }
 
-RaucContext *r_context_conf(void) {
+RaucContext *r_context_conf(void)
+{
 	if (context == NULL) {
 		network_init();
 		signature_init();
@@ -481,7 +494,8 @@ RaucContext *r_context_conf(void) {
 	return context;
 }
 
-const RaucContext *r_context(void) {
+const RaucContext *r_context(void)
+{
 	g_assert_nonnull(context);
 
 	if (context->pending)

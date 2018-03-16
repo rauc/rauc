@@ -3,18 +3,18 @@
 #include <glib.h>
 
 typedef enum {
-        R_CHECKSUM_ERROR_FAILED = 0,
-        R_CHECKSUM_ERROR_SIZE_MISMATCH,
-        R_CHECKSUM_ERROR_DIGEST_MISMATCH,
+	R_CHECKSUM_ERROR_FAILED = 0,
+	R_CHECKSUM_ERROR_SIZE_MISMATCH,
+	R_CHECKSUM_ERROR_DIGEST_MISMATCH,
 } RChecksumError;
 
 #define R_CHECKSUM_ERROR (r_checksum_error_quark())
 GQuark r_checksum_error_quark(void);
 
 typedef struct {
-        GChecksumType type;
-        gchar *digest;
-        gsize size;
+	GChecksumType type;
+	gchar *digest;
+	gsize size;
 } RaucChecksum;
 
 /**

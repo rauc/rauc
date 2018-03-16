@@ -10,8 +10,9 @@ gint callback_counter;
 gint last_percentage;
 
 static void test_progress_callback(gint percentage,
-				   const gchar *message,
-				   gint nesting_depth) {
+		const gchar *message,
+		gint nesting_depth)
+{
 
 	/* percentage sanity checks */
 	g_assert_cmpint(percentage, >=, 0);
@@ -24,7 +25,8 @@ static void test_progress_callback(gint percentage,
 	last_percentage = percentage;
 }
 
-static void progress_test_nesting(void) {
+static void progress_test_nesting(void)
+{
 	RaucProgressStep *step;
 
 	/* reset global state */
@@ -46,7 +48,7 @@ static void progress_test_nesting(void) {
 	g_assert_cmpint(g_list_length(r_context()->progress), ==, 5);
 
 	/* test RaucProgressStep items in list */
-	for (guint i=0; i < g_list_length(r_context()->progress); i++) {
+	for (guint i = 0; i < g_list_length(r_context()->progress); i++) {
 		step = g_list_nth_data(r_context()->progress, i);
 
 		g_assert_nonnull(step->description);
@@ -70,7 +72,8 @@ static void progress_test_nesting(void) {
 	g_assert_cmpint(callback_counter, ==, 12);
 }
 
-static void progress_test_unsuccessful_substep(void) {
+static void progress_test_unsuccessful_substep(void)
+{
 	/* reset global state */
 	callback_counter = 0;
 	last_percentage = 0;
@@ -87,7 +90,8 @@ static void progress_test_unsuccessful_substep(void) {
 	g_assert_cmpint(callback_counter, ==, 4);
 }
 
-static void progress_test_explicit_percentage(void) {
+static void progress_test_explicit_percentage(void)
+{
 	/* reset global state */
 	callback_counter = 0;
 	last_percentage = 0;
@@ -119,8 +123,9 @@ static void progress_test_explicit_percentage(void) {
 	g_assert_cmpint(callback_counter, ==, 9);
 }
 
-int main(int argc, char *argv[]) {
-	setlocale (LC_ALL, "C");
+int main(int argc, char *argv[])
+{
+	setlocale(LC_ALL, "C");
 
 	/* set up config/context */
 	r_context_conf()->configpath = g_strdup("test/test.conf");

@@ -13,17 +13,18 @@ typedef struct {
 	gchar *tmpdir;
 } UpdateHandlerFixture;
 
+#define BIT(nr) (1UL << (nr))
 typedef enum {
-	TEST_UPDATE_HANDLER_DEFAULT       = 0 << 0,
-	TEST_UPDATE_HANDLER_EXPECT_FAIL   = 1 << 0,
-	TEST_UPDATE_HANDLER_NO_IMAGE_FILE = 1 << 1,
-	TEST_UPDATE_HANDLER_NO_TARGET_DEV = 1 << 2,
-	TEST_UPDATE_HANDLER_HOOKS         = 1 << 3,
-	TEST_UPDATE_HANDLER_PRE_HOOK      = 1 << 4,
-	TEST_UPDATE_HANDLER_POST_HOOK     = 1 << 5,
-	TEST_UPDATE_HANDLER_INSTALL_HOOK  = 1 << 6,
-	TEST_UPDATE_HANDLER_NO_HOOK_FILE  = 1 << 7,
-	TEST_UPDATE_HANDLER_HOOK_FAIL     = 1 << 8,
+	TEST_UPDATE_HANDLER_DEFAULT       = 0,
+	TEST_UPDATE_HANDLER_EXPECT_FAIL   = BIT(0),
+	TEST_UPDATE_HANDLER_NO_IMAGE_FILE = BIT(1),
+	TEST_UPDATE_HANDLER_NO_TARGET_DEV = BIT(2),
+	TEST_UPDATE_HANDLER_HOOKS         = BIT(3),
+	TEST_UPDATE_HANDLER_PRE_HOOK      = BIT(4),
+	TEST_UPDATE_HANDLER_POST_HOOK     = BIT(5),
+	TEST_UPDATE_HANDLER_INSTALL_HOOK  = BIT(6),
+	TEST_UPDATE_HANDLER_NO_HOOK_FILE  = BIT(7),
+	TEST_UPDATE_HANDLER_HOOK_FAIL     = BIT(8),
 } TestUpdateHandlerParams;
 
 typedef struct {
@@ -111,7 +112,7 @@ static void update_handler_fixture_set_up(UpdateHandlerFixture *fixture,
 
 	if (!(test_pair->params & TEST_UPDATE_HANDLER_NO_TARGET_DEV)) {
 		g_assert(test_prepare_dummy_file(fixture->tmpdir, "rootfs-0",
-					SLOT_SIZE, "/dev/zero") == 0);
+						SLOT_SIZE, "/dev/zero") == 0);
 		if (g_strcmp0(test_pair->slottype, "ext4") == 0) {
 			g_assert(test_make_filesystem(fixture->tmpdir, "rootfs-0"));
 		}
@@ -131,7 +132,8 @@ static void update_handler_fixture_tear_down(UpdateHandlerFixture *fixture,
 	g_assert(test_rmdir(fixture->tmpdir, "") == 0);
 }
 
-static gsize get_file_size(gchar* filename, GError **error) {
+static gsize get_file_size(gchar* filename, GError **error)
+{
 	GError *ierror = NULL;
 	GFile *file = NULL;
 	GFileInputStream *filestream = NULL;
@@ -149,7 +151,7 @@ static gsize get_file_size(gchar* filename, GError **error) {
 	}
 
 	res = g_seekable_seek(G_SEEKABLE(filestream),
-			      0, G_SEEK_END, NULL, &ierror);
+			0, G_SEEK_END, NULL, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -183,7 +185,7 @@ static gboolean tar_image(const gchar *dest, const gchar *dir, GError **error)
 	g_ptr_array_add(args, NULL);
 
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-				  G_SUBPROCESS_FLAGS_NONE, &ierror);
+			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -225,7 +227,7 @@ static gboolean test_prepare_dummy_archive(const gchar *path, const gchar *archn
 
 	g_assert(g_mkdir(contentpath, 0777) == 0);
 	g_assert(test_prepare_dummy_file(contentpath, filename,
-				FILE_SIZE, "/dev/zero") == 0);
+					FILE_SIZE, "/dev/zero") == 0);
 
 	/* tar file to pseudo image */
 	res = tar_image(archpath, contentpath, &ierror);
@@ -279,8 +281,8 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 		image->hooks.install = (test_pair->params & TEST_UPDATE_HANDLER_INSTALL_HOOK);
 		image->hooks.post_install = (test_pair->params & TEST_UPDATE_HANDLER_POST_HOOK);
 		if (!(test_pair->params & TEST_UPDATE_HANDLER_NO_HOOK_FILE)) {
-				g_assert_true(write_tmp_file(fixture->tmpdir, "hook.sh", hook_content, NULL));
-				test_do_chmod(hookpath);
+			g_assert_true(write_tmp_file(fixture->tmpdir, "hook.sh", hook_content, NULL));
+			test_do_chmod(hookpath);
 		}
 	}
 
@@ -290,10 +292,10 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 
 	if (g_strcmp0(test_pair->imagetype, "img") == 0) {
 		g_assert(test_prepare_dummy_file(fixture->tmpdir, "image.img",
-					IMAGE_SIZE, "/dev/zero") == 0);
+						IMAGE_SIZE, "/dev/zero") == 0);
 	} else if (g_strcmp0(test_pair->imagetype, "ext4") == 0) {
 		g_assert(test_prepare_dummy_file(fixture->tmpdir, "image.ext4",
-					IMAGE_SIZE, "/dev/zero") == 0);
+						IMAGE_SIZE, "/dev/zero") == 0);
 		g_assert(test_make_filesystem(fixture->tmpdir, "image.ext4"));
 	} else if (g_strcmp0(test_pair->imagetype, "tar.bz2") == 0) {
 		g_assert_true(test_prepare_dummy_archive(fixture->tmpdir, "image.tar.bz2", "testfile.txt"));
@@ -367,7 +369,7 @@ out:
 
 	/* clean up hook scrip if it was generated */
 	if ((test_pair->params & TEST_UPDATE_HANDLER_HOOKS) &&
-			!(test_pair->params & TEST_UPDATE_HANDLER_NO_HOOK_FILE)) {
+	    !(test_pair->params & TEST_UPDATE_HANDLER_NO_HOOK_FILE)) {
 		g_assert(g_remove(hookpath) == 0);
 	}
 
@@ -406,17 +408,17 @@ int main(int argc, char *argv[])
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_NO_TARGET_DEV | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
 
 		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK, 0, 0},
-		{"raw", "img", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK , 0, 0},
+		{"raw", "img", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK, 0, 0},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK, 0, 0},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK, 0, 0},
 
 		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK, 0, 0},
-		{"raw", "img", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK , 0, 0},
+		{"raw", "img", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK, 0, 0},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK, 0, 0},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK, 0, 0},
 
 		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK, 0, 0},
-		{"raw", "img", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK , 0, 0},
+		{"raw", "img", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK, 0, 0},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK, 0, 0},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK, 0, 0},
 

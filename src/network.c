@@ -20,11 +20,13 @@ typedef struct {
 	size_t limit;
 } RaucTransfer;
 
-void network_init(void) {
+void network_init(void)
+{
 	curl_global_init(CURL_GLOBAL_ALL);
 }
 
-static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata) {
+static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata)
+{
 	RaucTransfer *xfer = userdata;
 	size_t res;
 
@@ -41,21 +43,23 @@ static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata) {
 }
 
 static int xfer_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
-	    curl_off_t ultotal, curl_off_t ulnow) {
+		curl_off_t ultotal, curl_off_t ulnow)
+{
 	RaucTransfer *xfer = clientp;
-	
+
 	/* check transfer limit */
 	if (xfer->limit) {
-	    if (dltotal > (curl_off_t)xfer->limit)
-		return 1;
-	    if (dlnow > (curl_off_t)xfer->limit)
-		return 1;
+		if (dltotal > (curl_off_t)xfer->limit)
+			return 1;
+		if (dlnow > (curl_off_t)xfer->limit)
+			return 1;
 	}
 
 	return 0;
 }
 
-static gboolean transfer(RaucTransfer *xfer, GError **error) {
+static gboolean transfer(RaucTransfer *xfer, GError **error)
+{
 	CURL *curl = NULL;
 	CURLcode r;
 	char errbuf[CURL_ERROR_SIZE];
@@ -107,7 +111,8 @@ out:
 	return res;
 }
 
-gboolean download_file(const gchar *target, const gchar *url, gsize limit, GError **error) {
+gboolean download_file(const gchar *target, const gchar *url, gsize limit, GError **error)
+{
 	RaucTransfer xfer = {0};
 	gboolean res = FALSE;
 	GError *ierror = NULL;
@@ -135,12 +140,13 @@ out:
 }
 
 gboolean download_file_checksum(const gchar *target, const gchar *url,
-				const RaucChecksum *checksum) {
+		const RaucChecksum *checksum)
+{
 	gchar *tmpname = NULL, *dir = NULL, *tmppath = NULL;
 	gboolean res = FALSE;
 
 	tmpname = g_strdup_printf(".rauc_%s_%"G_GSIZE_FORMAT, checksum->digest,
-				  checksum->size);
+			checksum->size);
 	dir = g_path_get_dirname(target);
 	tmppath = g_build_filename(dir, tmpname, NULL);
 
@@ -171,14 +177,15 @@ out:
 	return res;
 }
 
-gboolean download_mem(GBytes **data, const gchar *url, gsize limit) {
+gboolean download_mem(GBytes **data, const gchar *url, gsize limit)
+{
 	RaucTransfer xfer = {0};
 	gboolean res = FALSE;
 	char *dl_data = NULL;
 
 	xfer.url = url;
 	xfer.limit = limit;
-	
+
 	xfer.dl = open_memstream(&dl_data, &xfer.dl_size);
 	if (xfer.dl == NULL) {
 		goto out;
@@ -187,7 +194,7 @@ gboolean download_mem(GBytes **data, const gchar *url, gsize limit) {
 	res = transfer(&xfer, NULL);
 	if (!res)
 		goto out;
-	
+
 	g_clear_pointer(&xfer.dl, fclose);
 	*data = g_bytes_new_take(dl_data, xfer.dl_size);
 	dl_data = NULL;

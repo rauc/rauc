@@ -3,8 +3,8 @@
 #include <openssl/cms.h>
 #include <glib.h>
 
-#define R_SIGNATURE_ERROR r_signature_error_quark ()
-GQuark r_signature_error_quark (void);
+#define R_SIGNATURE_ERROR r_signature_error_quark()
+GQuark r_signature_error_quark(void);
 
 typedef enum {
 	R_SIGNATURE_ERROR_UNKNOWN,

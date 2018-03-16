@@ -6,12 +6,13 @@
 #include "mount.h"
 #include "utils.h"
 
-gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, gsize size, GError **error) {
+gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, gsize size, GError **error)
+{
 	GSubprocess *sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(10, g_free);
-	
+
 	if (getuid() != 0) {
 		g_ptr_array_add(args, g_strdup("sudo"));
 		g_ptr_array_add(args, g_strdup("--non-interactive"));
@@ -30,7 +31,7 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 	g_ptr_array_add(args, NULL);
 
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-				  G_SUBPROCESS_FLAGS_NONE, &ierror);
+			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -55,16 +56,18 @@ out:
 }
 
 
-gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, gsize size, GError **error) {
+gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, gsize size, GError **error)
+{
 	return r_mount_full(filename, mountpoint, "squashfs", size, error);
 }
 
-gboolean r_umount(const gchar *filename, GError **error) {
+gboolean r_umount(const gchar *filename, GError **error)
+{
 	GSubprocess *sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(10, g_free);
-	
+
 	if (getuid() != 0) {
 		g_ptr_array_add(args, g_strdup("sudo"));
 		g_ptr_array_add(args, g_strdup("--non-interactive"));
@@ -74,7 +77,7 @@ gboolean r_umount(const gchar *filename, GError **error) {
 	g_ptr_array_add(args, NULL);
 
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-				  G_SUBPROCESS_FLAGS_NONE, &ierror);
+			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -100,14 +103,15 @@ out:
 
 
 /* Creates a mount subdir in mount path prefix */
-gchar* r_create_mount_point(const gchar *name, GError **error) {
+gchar* r_create_mount_point(const gchar *name, GError **error)
+{
 	gchar* prefix;
 	gchar* mountpoint = NULL;
 
 	prefix = r_context()->config->mount_prefix;
 	mountpoint = g_build_filename(prefix, name, NULL);
 
-	if (!g_file_test (mountpoint, G_FILE_TEST_IS_DIR)) {
+	if (!g_file_test(mountpoint, G_FILE_TEST_IS_DIR)) {
 		gint ret;
 		ret = g_mkdir_with_parents(mountpoint, 0700);
 
@@ -129,7 +133,8 @@ out:
 	return mountpoint;
 }
 
-gboolean r_mount_slot(RaucSlot *slot, GError **error) {
+gboolean r_mount_slot(RaucSlot *slot, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gchar *mount_point = NULL;
@@ -175,7 +180,8 @@ out:
 	return res;
 }
 
-gboolean r_umount_slot(RaucSlot *slot, GError **error) {
+gboolean r_umount_slot(RaucSlot *slot, GError **error)
+{
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 

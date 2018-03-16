@@ -15,7 +15,8 @@ typedef struct {
 	gchar *contentdir;
 } ManifestFixture;
 
-static void manifest_check_common(RaucManifest *rm) {
+static void manifest_check_common(RaucManifest *rm)
+{
 	g_assert_nonnull(rm);
 	g_assert_cmpstr(rm->update_compatible, ==, "FooCorp Super BarBazzer");
 	g_assert_cmpstr(rm->update_version, ==, "2015.04-1");
@@ -176,7 +177,7 @@ static void test_save_load_manifest(void)
 
 	g_assert_nonnull(rm);
 	g_assert_cmpstr(rm->update_compatible, ==, "BarCorp FooBazzer");
-	g_assert_cmpstr(rm->update_version , ==, "2011.03-1");
+	g_assert_cmpstr(rm->update_version, ==, "2011.03-1");
 	g_assert_cmpstr(rm->keyring, ==, "mykeyring.tar");
 	g_assert_cmpstr(rm->handler_name, ==, "myhandler.sh");
 	g_assert_cmpstr(rm->handler_args, ==, "--foo --dummy1 --dummy2");
@@ -239,7 +240,7 @@ static void test_manifest_load_variants(void)
 	gchar* manifestpath = NULL;
 	GError *error = NULL;
 	RaucImage *test_img = NULL;
-	const gchar *mffile= "\
+	const gchar *mffile = "\
 [update]\n\
 compatible=FooCorp Super BarBazzer\n\
 version=2015.04-1\n\
@@ -396,8 +397,8 @@ static void manifest_test_verify(ManifestFixture *fixture,
 
 	/* Test with invalid checksum */
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.ext4",
-					 64*1024, "/dev/urandom") == 0);
-	g_test_expect_message (G_LOG_DOMAIN,
+					64*1024, "/dev/urandom") == 0);
+	g_test_expect_message(G_LOG_DOMAIN,
 			G_LOG_LEVEL_WARNING,
 			"Failed verifying checksum: Digests do not match");
 	g_assert_false(verify_manifest(fixture->contentdir, NULL, NULL));
@@ -405,7 +406,7 @@ static void manifest_test_verify(ManifestFixture *fixture,
 	/* Test with non-existing image */
 	g_assert_cmpint(g_unlink(appfsimage), ==, 0);
 
-	g_test_expect_message (G_LOG_DOMAIN,
+	g_test_expect_message(G_LOG_DOMAIN,
 			G_LOG_LEVEL_WARNING,
 			"Failed verifying checksum: Failed to open file * No such file or directory");
 	g_assert_false(verify_manifest(fixture->contentdir, NULL, NULL));
@@ -432,8 +433,8 @@ int main(int argc, char *argv[])
 	g_test_add_func("/manifest/load_variants", test_manifest_load_variants);
 	g_test_add_func("/manifest/invalid_data", test_invalid_data);
 	g_test_add("/manifest/verify", ManifestFixture, NULL,
-		   manifest_fixture_set_up_content, manifest_test_verify,
-		   manifest_fixture_tear_down);
+			manifest_fixture_set_up_content, manifest_test_verify,
+			manifest_fixture_tear_down);
 
-	return g_test_run ();
+	return g_test_run();
 }

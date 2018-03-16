@@ -8,19 +8,21 @@
 #include "context.h"
 #include "signature.h"
 
-GQuark r_signature_error_quark (void)
+GQuark r_signature_error_quark(void)
 {
-  return g_quark_from_static_string ("r_signature_error_quark");
+	return g_quark_from_static_string("r_signature_error_quark");
 }
 
-void signature_init(void) {
+void signature_init(void)
+{
 	OPENSSL_no_config();
 	OpenSSL_add_all_algorithms();
 	ERR_load_crypto_strings();
 }
 
-static EVP_PKEY *load_key(const gchar *keyfile, GError **error) {
-        EVP_PKEY *res = NULL;
+static EVP_PKEY *load_key(const gchar *keyfile, GError **error)
+{
+	EVP_PKEY *res = NULL;
 	BIO *key = NULL;
 	unsigned long err;
 	const gchar *data;
@@ -47,7 +49,7 @@ static EVP_PKEY *load_key(const gchar *keyfile, GError **error) {
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE_ERROR,
 				"failed to parse key file '%s': %s", keyfile,
-					(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		goto out;
 	}
 out:
@@ -55,7 +57,8 @@ out:
 	return res;
 }
 
-static X509 *load_cert(const gchar *certfile, GError **error) {
+static X509 *load_cert(const gchar *certfile, GError **error)
+{
 	X509 *res = NULL;
 	BIO *cert = NULL;
 	unsigned long err;
@@ -82,7 +85,7 @@ static X509 *load_cert(const gchar *certfile, GError **error) {
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE_ERROR,
 				"failed to parse cert file '%s': %s", certfile,
-					(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		goto out;
 	}
 
@@ -91,7 +94,8 @@ out:
 	return res;
 }
 
-static GBytes *bytes_from_bio(BIO *bio) {
+static GBytes *bytes_from_bio(BIO *bio)
+{
 	long size;
 	char *data;
 
@@ -101,10 +105,11 @@ static GBytes *bytes_from_bio(BIO *bio) {
 	return g_bytes_new(data, size);
 }
 
-GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error) {
+GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
+{
 	GError *ierror = NULL;
 	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
-					 g_bytes_get_size(content));
+			g_bytes_get_size(content));
 	BIO *outsig = BIO_new(BIO_s_mem());
 	X509 *signcert = NULL;
 	EVP_PKEY *pkey = NULL;
@@ -182,50 +187,52 @@ out:
 	return res;
 }
 
-gchar* get_pubkey_hash(X509 *cert) {
-		gchar *data = NULL;
-		GString *string;
-		unsigned char *der_buf, *tmp_buf = NULL;
-		unsigned int len = 0;
-		unsigned int n = 0;
-		unsigned char md[SHA256_DIGEST_LENGTH];
+gchar* get_pubkey_hash(X509 *cert)
+{
+	gchar *data = NULL;
+	GString *string;
+	unsigned char *der_buf, *tmp_buf = NULL;
+	unsigned int len = 0;
+	unsigned int n = 0;
+	unsigned char md[SHA256_DIGEST_LENGTH];
 
-		g_return_val_if_fail(cert != NULL, NULL);
+	g_return_val_if_fail(cert != NULL, NULL);
 
-		/* As we print colon-separated hex, we need 3 chars per byte */
-		string = g_string_sized_new(SHA256_DIGEST_LENGTH * 3);
+	/* As we print colon-separated hex, we need 3 chars per byte */
+	string = g_string_sized_new(SHA256_DIGEST_LENGTH * 3);
 
-		len = i2d_X509_PUBKEY(X509_get_X509_PUBKEY(cert), NULL);
-		if (len <= 0) {
-			g_warning("DER Encoding failed\n");
-			goto out;
-		}
-		/* As i2d_X509_PUBKEY() moves pointer after end of data,
-		 * we must use a tmp pointer, here */
-		der_buf = tmp_buf = g_malloc(len);
-		i2d_X509_PUBKEY(X509_get_X509_PUBKEY(cert), &tmp_buf);
+	len = i2d_X509_PUBKEY(X509_get_X509_PUBKEY(cert), NULL);
+	if (len <= 0) {
+		g_warning("DER Encoding failed\n");
+		goto out;
+	}
+	/* As i2d_X509_PUBKEY() moves pointer after end of data,
+	 * we must use a tmp pointer, here */
+	der_buf = tmp_buf = g_malloc(len);
+	i2d_X509_PUBKEY(X509_get_X509_PUBKEY(cert), &tmp_buf);
 
-		g_assert(((unsigned int)(tmp_buf - der_buf)) == len);
+	g_assert(((unsigned int)(tmp_buf - der_buf)) == len);
 
-		if (!EVP_Digest(der_buf, len, md, &n, EVP_sha256(), NULL)) {
-			g_warning("Error in EVP_Digest\n");
-			goto out;
-		}
+	if (!EVP_Digest(der_buf, len, md, &n, EVP_sha256(), NULL)) {
+		g_warning("Error in EVP_Digest\n");
+		goto out;
+	}
 
-		g_assert_cmpint(n, ==, SHA256_DIGEST_LENGTH);
+	g_assert_cmpint(n, ==, SHA256_DIGEST_LENGTH);
 
-		for (int j = 0; j < (int)n; j++) {
-			g_string_append_printf(string, "%02X:", md[j]);
-		}
-		g_string_truncate(string, SHA256_DIGEST_LENGTH * 3 - 1);
+	for (int j = 0; j < (int)n; j++) {
+		g_string_append_printf(string, "%02X:", md[j]);
+	}
+	g_string_truncate(string, SHA256_DIGEST_LENGTH * 3 - 1);
 
-		data = g_string_free(string, FALSE);
+	data = g_string_free(string, FALSE);
 out:
-		g_clear_pointer(&der_buf, g_free);
-		return data;
+	g_clear_pointer(&der_buf, g_free);
+	return data;
 }
 
-gchar** get_pubkey_hashes(STACK_OF(X509) *verified_chain) {
+gchar** get_pubkey_hashes(STACK_OF(X509) *verified_chain)
+{
 	GPtrArray *hashes = g_ptr_array_new_full(4, g_free);
 	gchar **ret = NULL;
 
@@ -248,7 +255,8 @@ out:
 	return ret;
 }
 
-gchar* print_signer_cert(STACK_OF(X509) *verified_chain) {
+gchar* print_signer_cert(STACK_OF(X509) *verified_chain)
+{
 	BIO *mem;
 	gchar *data, *ret;
 	gsize size;
@@ -267,7 +275,8 @@ gchar* print_signer_cert(STACK_OF(X509) *verified_chain) {
 	return ret;
 }
 
-gchar* print_cert_chain(STACK_OF(X509) *verified_chain) {
+gchar* print_cert_chain(STACK_OF(X509) *verified_chain)
+{
 	GString *text = g_string_new(NULL);
 	char buf[BUFSIZ];
 
@@ -287,7 +296,8 @@ gchar* print_cert_chain(STACK_OF(X509) *verified_chain) {
 	return g_string_free(text, FALSE);
 }
 
-gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error) {
+gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error)
+{
 	STACK_OF(X509) *signers = NULL;
 	STACK_OF(X509) *intercerts = NULL;
 	X509_STORE_CTX *cert_ctx = NULL;
@@ -367,15 +377,16 @@ out:
 	return res;
 }
 
-gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_STORE **store, GError **error) {
+gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_STORE **store, GError **error)
+{
 	const gchar *capath = r_context()->config->keyring_path;
 	X509_STORE *istore = NULL;
 	X509_LOOKUP *lookup = NULL;
 	CMS_ContentInfo *icms = NULL;
 	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
-					 g_bytes_get_size(content));
+			g_bytes_get_size(content));
 	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
-				     g_bytes_get_size(sig));
+			g_bytes_get_size(sig));
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(content != NULL, FALSE);
@@ -453,7 +464,8 @@ out:
 	return res;
 }
 
-GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error) {
+GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
+{
 	GError *ierror = NULL;
 	GMappedFile *file;
 	GBytes *content = NULL;
@@ -484,7 +496,8 @@ out:
 	return sig;
 }
 
-gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, CMS_ContentInfo **cms, X509_STORE **store, GError **error) {
+gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, CMS_ContentInfo **cms, X509_STORE **store, GError **error)
+{
 	GError *ierror = NULL;
 	GMappedFile *file;
 	GBytes *content = NULL;

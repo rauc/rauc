@@ -3,7 +3,7 @@
 #include <openssl/cms.h>
 #include <glib.h>
 
-#define R_BUNDLE_ERROR r_bundle_error_quark ()
+#define R_BUNDLE_ERROR r_bundle_error_quark()
 GQuark r_bundle_error_quark(void);
 
 typedef enum {

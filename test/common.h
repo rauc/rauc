@@ -4,10 +4,10 @@
 
 gchar* random_bytes(gsize size, guint32 seed);
 gchar* write_random_file(const gchar *tmpdir, const gchar *filename,
-			    gsize size, const guint32 seed);
+		gsize size, const guint32 seed);
 gchar* write_tmp_file(const gchar* tmpdir, const gchar* filename, const gchar* content, GError **error);
 int test_prepare_dummy_file(const gchar *dirname, const gchar *filename,
-			    gsize size, const gchar *source);
+		gsize size, const gchar *source);
 int test_mkdir_relative(const gchar *dirname, const gchar *filename, int mode);
 int test_rmdir(const gchar *dirname, const gchar *filename);
 int test_remove(const gchar *dirname, const gchar *filename);

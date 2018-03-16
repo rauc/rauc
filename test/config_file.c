@@ -224,7 +224,7 @@ bootloader=barebox\n\
 [slot.child.0]\n\
 device=/dev/null\n\
 parent=invalid\n\
-	";
+\t";
 
 
 	pathname = write_tmp_file(fixture->tmpdir, "nonexisting_bootloader.conf", nonexisting_parent, NULL);
@@ -377,34 +377,34 @@ static void config_file_system_variant(ConfigFileFixture *fixture,
 	GError *ierror = NULL;
 	gchar* pathname;
 
-	const gchar *cfg_file_no_variant= "\
+	const gchar *cfg_file_no_variant = "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 mountprefix=/mnt/myrauc/";
 
-	const gchar *cfg_file_name_variant= "\
+	const gchar *cfg_file_name_variant = "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
 variant-name=variant-name";
 
-	const gchar *cfg_file_dtb_variant= "\
+	const gchar *cfg_file_dtb_variant = "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
 variant-dtb=true";
 
-	const gchar *cfg_file_file_variant= "\
+	const gchar *cfg_file_file_variant = "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
 variant-file=/path/to/file";
 
-	const gchar *cfg_file_conflicting_variants= "\
+	const gchar *cfg_file_conflicting_variants = "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
@@ -596,41 +596,41 @@ int main(int argc, char *argv[])
 	g_test_init(&argc, &argv, NULL);
 
 	g_test_add("/config-file/full-config", ConfigFileFixture, NULL,
-		   config_file_fixture_set_up, config_file_full_config,
-		   config_file_fixture_tear_down);
+			config_file_fixture_set_up, config_file_full_config,
+			config_file_fixture_tear_down);
 	g_test_add("/config-file/bootloaders", ConfigFileFixture, NULL,
-		   config_file_fixture_set_up, config_file_bootloaders,
-		   config_file_fixture_tear_down);
+			config_file_fixture_set_up, config_file_bootloaders,
+			config_file_fixture_tear_down);
 	g_test_add("/config-file/invalid-parent", ConfigFileFixture, NULL,
-		   config_file_fixture_set_up, config_file_invalid_parent,
-		   config_file_fixture_tear_down);
+			config_file_fixture_set_up, config_file_invalid_parent,
+			config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-boolean-readonly-key", ConfigFileFixture, NULL,
-		   config_file_fixture_set_up, config_file_typo_in_boolean_readonly_key,
-		   config_file_fixture_tear_down);
+			config_file_fixture_set_up, config_file_typo_in_boolean_readonly_key,
+			config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-boolean-ignore-checksum-key", ConfigFileFixture, NULL,
-		   config_file_fixture_set_up, config_file_typo_in_boolean_ignore_checksum_key,
-		   config_file_fixture_tear_down);
+			config_file_fixture_set_up, config_file_typo_in_boolean_ignore_checksum_key,
+			config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-boolean-activate-installed-key", ConfigFileFixture, NULL,
-		   config_file_fixture_set_up, config_file_typo_in_boolean_activate_installed_key,
-		   config_file_fixture_tear_down);
+			config_file_fixture_set_up, config_file_typo_in_boolean_activate_installed_key,
+			config_file_fixture_tear_down);
 	g_test_add("/config-file/activate-installed-key-set-to-true", ConfigFileFixture, NULL,
-		   config_file_fixture_set_up, config_file_activate_installed_set_to_true,
-		   config_file_fixture_tear_down);
+			config_file_fixture_set_up, config_file_activate_installed_set_to_true,
+			config_file_fixture_tear_down);
 	g_test_add("/config-file/activate-installed-key-set-to-false", ConfigFileFixture, NULL,
-		   config_file_fixture_set_up, config_file_activate_installed_set_to_false,
-		   config_file_fixture_tear_down);
+			config_file_fixture_set_up, config_file_activate_installed_set_to_false,
+			config_file_fixture_tear_down);
 	g_test_add("/config-file/system-variant", ConfigFileFixture, NULL,
-		   config_file_fixture_set_up, config_file_system_variant,
-		   config_file_fixture_tear_down);
+			config_file_fixture_set_up, config_file_system_variant,
+			config_file_fixture_tear_down);
 	g_test_add_func("/config-file/read-slot-status", config_file_test_read_slot_status);
 	g_test_add_func("/config-file/write-read-slot-status", config_file_test_write_slot_status);
 	g_test_add_func("/config-file/system-serial", config_file_system_serial);
 	g_test_add("/config-file/statusfile-missing", ConfigFileFixture, NULL,
-		   config_file_fixture_set_up, config_file_statusfile_missing,
-		   config_file_fixture_tear_down);
+			config_file_fixture_set_up, config_file_statusfile_missing,
+			config_file_fixture_tear_down);
 	g_test_add("/config-file/global-slot-staus", ConfigFileFixture, NULL,
-		   config_file_fixture_set_up_global, config_file_test_global_slot_status,
-		   config_file_fixture_tear_down);
+			config_file_fixture_set_up_global, config_file_test_global_slot_status,
+			config_file_fixture_tear_down);
 
-	return g_test_run ();
+	return g_test_run();
 }

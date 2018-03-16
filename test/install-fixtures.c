@@ -34,11 +34,11 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 
 	/* copy systeminfo, preinstall and postinstall handler to temp dir*/
 	g_assert_true(test_copy_file("test/bin/systeminfo.sh", NULL,
-				tmpdir, "bin/systeminfo.sh"));
+					tmpdir, "bin/systeminfo.sh"));
 	g_assert_true(test_copy_file("test/bin/preinstall.sh", NULL,
-				tmpdir, "bin/preinstall.sh"));
+					tmpdir, "bin/preinstall.sh"));
 	g_assert_true(test_copy_file("test/bin/postinstall.sh", NULL,
-				tmpdir, "bin/postinstall.sh"));
+					tmpdir, "bin/postinstall.sh"));
 
 	/* copy cert */
 	certpath = g_build_filename(tmpdir, "openssl-ca/release-1.cert.pem", NULL);
@@ -56,17 +56,17 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 	capath = g_build_filename(tmpdir, "openssl-ca/dev-ca.pem", NULL);
 	g_assert_nonnull(capath);
 	g_assert_true(test_copy_file("test/openssl-ca/dev-ca.pem", NULL,
-				tmpdir, "openssl-ca/dev-ca.pem"));
+					tmpdir, "openssl-ca/dev-ca.pem"));
 
 	/* Setup pseudo devices */
 	g_assert(test_prepare_dummy_file(tmpdir, "images/rootfs-0",
-				         SLOT_SIZE, "/dev/zero") == 0);
+					SLOT_SIZE, "/dev/zero") == 0);
 	g_assert(test_prepare_dummy_file(tmpdir, "images/appfs-0",
-					 SLOT_SIZE, "/dev/zero") == 0);
+					SLOT_SIZE, "/dev/zero") == 0);
 	g_assert(test_prepare_dummy_file(tmpdir, "images/rootfs-1",
-				         SLOT_SIZE, "/dev/zero") == 0);
+					SLOT_SIZE, "/dev/zero") == 0);
 	g_assert(test_prepare_dummy_file(tmpdir, "images/appfs-1",
-					 SLOT_SIZE, "/dev/zero") == 0);
+					SLOT_SIZE, "/dev/zero") == 0);
 	g_assert_true(test_make_filesystem(tmpdir, "images/rootfs-0"));
 	g_assert_true(test_make_filesystem(tmpdir, "images/appfs-0"));
 	g_assert_true(test_make_filesystem(tmpdir, "images/rootfs-1"));
@@ -98,7 +98,7 @@ void fixture_helper_set_up_system(gchar *tmpdir,
 	test_make_slot_user_writable(tmpdir, "images/appfs-0");
 	test_make_slot_user_writable(tmpdir, "images/rootfs-1");
 	test_make_slot_user_writable(tmpdir, "images/appfs-1");
-	
+
 	/* Provide active mounted slot */
 	slotfile = g_build_filename(tmpdir, "images/rootfs-0", NULL);
 	slotpath = g_build_filename(tmpdir, "slot", NULL);
@@ -111,7 +111,8 @@ void fixture_helper_set_up_system(gchar *tmpdir,
 void fixture_helper_set_up_bundle(gchar *tmpdir,
 		const gchar* manifest_content,
 		gboolean handler,
-		gboolean hook) {
+		gboolean hook)
+{
 	gchar *contentdir;
 	gchar *bundlepath;
 	gchar *mountdir;
@@ -121,7 +122,7 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 	if (!test_running_as_root())
 		return;
 
-        g_assert_nonnull(tmpdir);
+	g_assert_nonnull(tmpdir);
 
 	contentdir = g_build_filename(tmpdir, "content", NULL);
 	bundlepath = g_build_filename(tmpdir, "bundle.raucb", NULL);
@@ -130,9 +131,9 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 
 	/* Setup bundle content */
 	g_assert(test_prepare_dummy_file(tmpdir, "content/rootfs.ext4",
-					 SLOT_SIZE, "/dev/zero") == 0);
+					SLOT_SIZE, "/dev/zero") == 0);
 	g_assert(test_prepare_dummy_file(tmpdir, "content/appfs.ext4",
-					 SLOT_SIZE, "/dev/zero") == 0);
+					SLOT_SIZE, "/dev/zero") == 0);
 	g_assert_true(test_make_filesystem(tmpdir, "content/rootfs.ext4"));
 	g_assert_true(test_make_filesystem(tmpdir, "content/appfs.ext4"));
 	if (manifest_content) {
@@ -155,13 +156,13 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 	/* Copy custom handler */
 	if (handler) {
 		g_assert_true(test_copy_file("test/install-content/custom_handler.sh", NULL,
-					tmpdir, "content/custom_handler.sh"));
+						tmpdir, "content/custom_handler.sh"));
 	}
 
 	/* Copy hook */
 	if (hook) {
 		g_assert_true(test_copy_file("test/install-content/hook.sh", NULL,
-					tmpdir, "content/hook.sh"));
+						tmpdir, "content/hook.sh"));
 	}
 
 	/* Update checksums in manifest */

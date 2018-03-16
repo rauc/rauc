@@ -4,13 +4,14 @@
 
 G_DEFINE_QUARK(r-checksum-error-quark, r_checksum_error)
 
-gboolean update_checksum(RaucChecksum *checksum, const gchar *filename, GError **error) {
+gboolean update_checksum(RaucChecksum *checksum, const gchar *filename, GError **error)
+{
 	GError *ierror = NULL;
 	GMappedFile *file;
 	GBytes *content = NULL;
 	gboolean res = FALSE;
 
-	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	file = g_mapped_file_new(filename, FALSE, &ierror);
 	if (file == NULL) {
@@ -24,7 +25,7 @@ gboolean update_checksum(RaucChecksum *checksum, const gchar *filename, GError *
 	g_clear_pointer(&checksum->digest, g_free);
 	checksum->digest = g_compute_checksum_for_bytes(checksum->type, content);
 	checksum->size = g_bytes_get_size(content);
-	
+
 	res = TRUE;
 out:
 	if (!res) {
@@ -36,7 +37,8 @@ out:
 	return res;
 }
 
-gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename, GError **error) {
+gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename, GError **error)
+{
 	GError *ierror = NULL;
 	GMappedFile *file = NULL;
 	GBytes *content = NULL;

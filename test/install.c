@@ -16,7 +16,8 @@ GMainLoop *r_loop = NULL;
 
 
 static void install_fixture_set_up_bundle(InstallFixture *fixture,
-		gconstpointer user_data) {
+		gconstpointer user_data)
+{
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
 	fixture_helper_set_up_system(fixture->tmpdir, NULL);
@@ -24,7 +25,8 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 }
 
 static void install_fixture_set_up_bundle_central_status(InstallFixture *fixture,
-		gconstpointer user_data) {
+		gconstpointer user_data)
+{
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
@@ -33,7 +35,8 @@ static void install_fixture_set_up_bundle_central_status(InstallFixture *fixture
 }
 
 static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture,
-		gconstpointer user_data) {
+		gconstpointer user_data)
+{
 	const gchar *manifest_file = "\
 [update]\n\
 compatible=Test Config\n\
@@ -52,7 +55,8 @@ filename=rootfs.ext4\n\
 }
 
 static void install_fixture_set_up_bundle_install_check_hook(InstallFixture *fixture,
-		gconstpointer user_data) {
+		gconstpointer user_data)
+{
 	const gchar *manifest_file = "\
 [update]\n\
 compatible=Test Config\n\
@@ -74,7 +78,8 @@ filename=appfs.ext4";
 }
 
 static void install_fixture_set_up_bundle_install_hook(InstallFixture *fixture,
-		gconstpointer user_data) {
+		gconstpointer user_data)
+{
 	const gchar *manifest_file = "\
 [update]\n\
 compatible=Test Config\n\
@@ -97,7 +102,8 @@ hooks=install";
 }
 
 static void install_fixture_set_up_bundle_post_hook(InstallFixture *fixture,
-		gconstpointer user_data) {
+		gconstpointer user_data)
+{
 	const gchar *manifest_file = "\
 [update]\n\
 compatible=Test Config\n\
@@ -193,7 +199,8 @@ device=/path/to/prebootloader";
 	g_free(pathname);
 }
 
-static void rename_manifest(const gchar *contentdir, const gchar *targetname) {
+static void rename_manifest(const gchar *contentdir, const gchar *targetname)
+{
 	gchar *manifestpath1 = g_strconcat(contentdir,
 			"/manifest.raucm", NULL);
 	gchar *manifestpath2 = g_strconcat(contentdir,
@@ -213,7 +220,8 @@ static void rename_manifest(const gchar *contentdir, const gchar *targetname) {
 }
 
 static void install_fixture_set_up_network(InstallFixture *fixture,
-		gconstpointer user_data) {
+		gconstpointer user_data)
+{
 	RaucManifest *rm = g_new0(RaucManifest, 1);
 	RaucFile *files;
 	gchar *contentdir;
@@ -236,14 +244,14 @@ static void install_fixture_set_up_network(InstallFixture *fixture,
 
 	/* Setup bundle content */
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/vmlinuz-1",
-					 64*1024, "/dev/urandom") == 0);
+					64*1024, "/dev/urandom") == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/vmlinuz-2",
-					 64*1024, "/dev/urandom") == 0);
+					64*1024, "/dev/urandom") == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/initramfs-1",
-					 32*1024, "/dev/urandom") == 0);
+					32*1024, "/dev/urandom") == 0);
 
 	g_assert_true(test_copy_file(fixture->tmpdir, "content/vmlinuz-2",
-				fixture->tmpdir, "slot/vmlinuz"));
+					fixture->tmpdir, "slot/vmlinuz"));
 
 	/* Prepare manifest */
 	rm->update_compatible = g_strdup("Test Config");
@@ -891,14 +899,16 @@ device=/dev/null\n\
 	g_hash_table_unref(tgrp);
 }
 
-static gboolean r_quit(gpointer data) {
+static gboolean r_quit(gpointer data)
+{
 	g_assert_nonnull(r_loop);
 	g_main_loop_quit(r_loop);
 
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean install_notify(gpointer data) {
+static gboolean install_notify(gpointer data)
+{
 	RaucInstallArgs *args = data;
 
 	g_assert_nonnull(args);
@@ -988,17 +998,17 @@ static void install_test_network(InstallFixture *fixture,
 	r_context();
 
 	manifesturl = g_strconcat("file://", fixture->tmpdir,
-				  "/content/manifest-1.raucm", NULL);
+			"/content/manifest-1.raucm", NULL);
 	g_assert_true(do_install_network(manifesturl, NULL));
 	g_free(manifesturl);
 
 	manifesturl = g_strconcat("file://", fixture->tmpdir,
-				  "/content/manifest-2.raucm", NULL);
+			"/content/manifest-2.raucm", NULL);
 	g_assert_true(do_install_network(manifesturl, NULL));
 	g_free(manifesturl);
 
 	manifesturl = g_strconcat("file://", fixture->tmpdir,
-				  "/content/manifest-3.raucm", NULL);
+			"/content/manifest-3.raucm", NULL);
 	g_assert_true(do_install_network(manifesturl, NULL));
 	g_free(manifesturl);
 }
@@ -1056,7 +1066,7 @@ static void install_test_network_thread(InstallFixture *fixture,
 	r_context();
 
 	manifesturl = g_strconcat("file://", fixture->tmpdir,
-				  "/content/manifest-1.raucm", NULL);
+			"/content/manifest-1.raucm", NULL);
 	g_assert_true(do_install_network(manifesturl, NULL));
 	args->name = g_strdup(manifesturl);
 	args->notify = install_notify;
@@ -1224,12 +1234,12 @@ int main(int argc, char *argv[])
 	g_test_init(&argc, &argv, NULL);
 
 	g_test_add("/install/bootname", InstallFixture, NULL,
-		   install_fixture_set_up_system_user, install_test_bootname,
-		   install_fixture_tear_down);
+			install_fixture_set_up_system_user, install_test_bootname,
+			install_fixture_tear_down);
 
 	g_test_add("/install/target", InstallFixture, NULL,
-		   install_fixture_set_up_system_conf, install_test_target,
-		   install_fixture_tear_down);
+			install_fixture_set_up_system_conf, install_test_target,
+			install_fixture_tear_down);
 
 	g_test_add_func("/install/target-group/non-redundant", test_install_determine_target_group_non_redundant);
 
@@ -1248,40 +1258,40 @@ int main(int argc, char *argv[])
 	g_test_add_func("/install/image-mapping/variants", test_install_image_variants);
 
 	g_test_add("/install/bundle", InstallFixture, NULL,
-		   install_fixture_set_up_bundle, install_test_bundle,
-		   install_fixture_tear_down);
+			install_fixture_set_up_bundle, install_test_bundle,
+			install_fixture_tear_down);
 
 	g_test_add("/install/bundle/central-status", InstallFixture, NULL,
-		   install_fixture_set_up_bundle_central_status, install_test_bundle,
-		   install_fixture_tear_down);
+			install_fixture_set_up_bundle_central_status, install_test_bundle,
+			install_fixture_tear_down);
 
 	g_test_add("/install/network", InstallFixture, NULL,
-		   install_fixture_set_up_network, install_test_network,
-		   install_fixture_tear_down);
+			install_fixture_set_up_network, install_test_network,
+			install_fixture_tear_down);
 
 	g_test_add("/install/bundle-thread", InstallFixture, NULL,
-		   install_fixture_set_up_bundle, install_test_bundle_thread,
-		   install_fixture_tear_down);
+			install_fixture_set_up_bundle, install_test_bundle_thread,
+			install_fixture_tear_down);
 
 	g_test_add("/install/network-thread", InstallFixture, NULL,
-		   install_fixture_set_up_network, install_test_network_thread,
-		   install_fixture_tear_down);
+			install_fixture_set_up_network, install_test_network_thread,
+			install_fixture_tear_down);
 
 	g_test_add("/install/bundle-custom-handler", InstallFixture, NULL,
-		   install_fixture_set_up_bundle_custom_handler, install_test_bundle,
-		   install_fixture_tear_down);
+			install_fixture_set_up_bundle_custom_handler, install_test_bundle,
+			install_fixture_tear_down);
 
 	g_test_add("/install/bundle-hook/install-check", InstallFixture, NULL,
-		   install_fixture_set_up_bundle_install_check_hook, install_test_bundle_hook_install_check,
-		   install_fixture_tear_down);
+			install_fixture_set_up_bundle_install_check_hook, install_test_bundle_hook_install_check,
+			install_fixture_tear_down);
 
 	g_test_add("/install/bundle-hook/slot-install", InstallFixture, NULL,
-		   install_fixture_set_up_bundle_install_hook, install_test_bundle_hook_install,
-		   install_fixture_tear_down);
+			install_fixture_set_up_bundle_install_hook, install_test_bundle_hook_install,
+			install_fixture_tear_down);
 
 	g_test_add("/install/bundle-hook/slot-post-install", InstallFixture, NULL,
-		   install_fixture_set_up_bundle_post_hook, install_test_bundle_hook_post_install,
-		   install_fixture_tear_down);
+			install_fixture_set_up_bundle_post_hook, install_test_bundle_hook_post_install,
+			install_fixture_tear_down);
 
 	return g_test_run();
 }

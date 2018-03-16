@@ -9,7 +9,7 @@
 #include "bundle.h"
 
 typedef void (*progress_callback) (gint percentage, const gchar *message,
-				   gint nesting_depth);
+		gint nesting_depth);
 
 typedef struct {
 	/* The bundle currently mounted by RAUC */
@@ -73,7 +73,7 @@ void r_context_set_busy(gboolean busy);
  * @param sub_steps number of direct sub steps contained in this step
  */
 void r_context_begin_step(const gchar *name, const gchar *description,
-			  gint sub_steps);
+		gint sub_steps);
 
 /**
  * Call at the end of a relevant code block. Percentage calculation is done
