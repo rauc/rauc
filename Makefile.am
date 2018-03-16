@@ -15,7 +15,7 @@ CODE_COVERAGE_IGNORE_PATTERN = "*-generated.c"
 
 AM_CFLAGS = -DG_LOG_DOMAIN=\"rauc\" $(WARN_CFLAGS) $(GLIB_CFLAGS) $(CURL_CFLAGS)
 AM_LDFLAGS = $(WARN_LDFLAGS) $(GLIB_LDFLAGS) $(CURL_LDFLAGS) $(OPENSSL_LDFLAGS)
-AM_CPPFLAGS = -I${top_srcdir}/include -include ${top_srcdir}/config.h $(OPENSSL_INCLUDES)
+AM_CPPFLAGS = -I${top_srcdir}/include -include ${top_builddir}/config.h $(OPENSSL_INCLUDES)
 
 gdbus_installer_generated = \
 	rauc-installer-generated.c \
@@ -195,8 +195,8 @@ data/%: data/%.in
 SPHINXOPTS          =
 SPHINXBUILD         = sphinx-build
 PAPER               =
-DOCDIR              = docs
-SPHINXBUILDDIR      = $(DOCDIR)/build
+DOCDIR              = $(top_srcdir)/docs
+SPHINXBUILDDIR      = $(top_builddir)/docs/build
 
 .PHONY: check-valgrind check-valgrind-tool
 
