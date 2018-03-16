@@ -7,9 +7,9 @@
 #include "context.h"
 #include "install.h"
 
-GQuark r_bootchooser_error_quark (void)
+GQuark r_bootchooser_error_quark(void)
 {
-  return g_quark_from_static_string ("r_bootchooser_error_quark");
+	return g_quark_from_static_string("r_bootchooser_error_quark");
 }
 
 #define BAREBOX_STATE_NAME "barebox-state"
@@ -61,7 +61,7 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 	gchar* outline;
 	guint64 result[2] = {};
 	GPtrArray *args = g_ptr_array_new_full(6, g_free);
-	
+
 	g_return_val_if_fail(bootname, FALSE);
 	g_return_val_if_fail(bb_state, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -78,7 +78,7 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 	g_ptr_array_add(args, NULL);
 
 	sub = g_subprocess_newv((const gchar * const *)args->pdata,
-				  G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror);
+			G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,
@@ -157,7 +157,7 @@ static gboolean barebox_state_set(GPtrArray *pairs, GError **error) {
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_assert_cmpuint(pairs->len, >, 0);
-	
+
 	g_ptr_array_add(args, g_strdup(BAREBOX_STATE_NAME));
 	if (r_context()->config->system_bb_statename) {
 		g_ptr_array_add(args, g_strdup("-n"));
@@ -170,7 +170,7 @@ static gboolean barebox_state_set(GPtrArray *pairs, GError **error) {
 	g_ptr_array_add(args, NULL);
 
 	sub = g_subprocess_newv((const gchar * const *)args->pdata,
-				  G_SUBPROCESS_FLAGS_NONE, &ierror);
+			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,
@@ -209,11 +209,11 @@ static gboolean barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
 		/* for marking bad, also set priority to 0 */
 		attempts = 0;
 		g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".%s.priority=%i",
-				slot->bootname, 0));
+						slot->bootname, 0));
 	}
 
 	g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".%s.remaining_attempts=%i",
-			slot->bootname, attempts));
+					slot->bootname, attempts));
 
 	res = barebox_state_set(pairs, &ierror);
 	if (!res) {
@@ -329,11 +329,11 @@ static gboolean barebox_set_primary(RaucSlot *slot, GError **error) {
 				prio = BAREBOX_STATE_DEFAULT_PRIORITY;
 		}
 		g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".%s.priority=%i",
-				s->bootname, prio));
+						s->bootname, prio));
 	}
 
 	g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".%s.remaining_attempts=%i",
-			slot->bootname, BAREBOX_STATE_ATTEMPS_PRIMARY));
+					slot->bootname, BAREBOX_STATE_ATTEMPS_PRIMARY));
 
 	res = barebox_state_set(pairs, &ierror);
 	if (!res) {
@@ -364,7 +364,7 @@ static gboolean grub_env_set(GPtrArray *pairs, GError **error) {
 	g_ptr_array_add(pairs, NULL);
 
 	sub = g_subprocess_newv((const gchar * const *)pairs->pdata,
-				  G_SUBPROCESS_FLAGS_NONE, &ierror);
+			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,
@@ -464,7 +464,7 @@ static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror,
-			       UBOOT_FWGETENV_NAME, key, NULL);
+			UBOOT_FWGETENV_NAME, key, NULL);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,
@@ -525,7 +525,7 @@ static gboolean uboot_env_set(const gchar *key, const gchar *value, GError **err
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, UBOOT_FWSETENV_NAME,
-			       key, value, NULL);
+			key, value, NULL);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,
@@ -645,7 +645,7 @@ static gboolean efi_bootorder_set(gchar *order, GError **error) {
 
 
 	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, "efibootmgr",
-			       "--bootorder", order, NULL);
+			"--bootorder", order, NULL);
 
 	if (!sub) {
 		g_propagate_prefixed_error(
@@ -678,7 +678,7 @@ static gboolean efi_set_bootnext(gchar *bootnumber, GError **error) {
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, "efibootmgr",
-			       "--bootnext", bootnumber, NULL);
+			"--bootnext", bootnumber, NULL);
 
 	if (!sub) {
 		g_propagate_prefixed_error(
@@ -722,11 +722,11 @@ static efi_bootentry* get_efi_entry_by_bootnum(GList *entries, const gchar *boot
 /* Parses output of efibootmgr and returns information obtained.
  *
  * @param bootorder_entries Return location for List (of efi_bootentry
- * 	  elements) of slots that are currently in EFI 'BootOrder'
+ *        elements) of slots that are currently in EFI 'BootOrder'
  * @param all_entries Return location for List (of efi_bootentry element) of
- * 	  all EFI boot entries
+ *        all EFI boot entries
  * @param bootnext Return location for EFI boot slot currently selected as
- * 	  'BootNext' (if any)
+ *        'BootNext' (if any)
  * @param error Return location for a GError
  */
 static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries, efi_bootentry **bootnext, GError **error) {
@@ -747,7 +747,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror,
-			       EFIBOOTMGR_NAME, NULL);
+			EFIBOOTMGR_NAME, NULL);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,

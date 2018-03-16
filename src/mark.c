@@ -22,10 +22,10 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 			slot = booted;
 		else
 			g_set_error(
-				error,
-				R_SLOT_ERROR,
-				R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
-				"Did not find booted slot");
+					error,
+					R_SLOT_ERROR,
+					R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
+					"Did not find booted slot");
 	} else if (!g_strcmp0(identifier, "other")) {
 		if (booted) {
 			g_hash_table_iter_init(&iter, r_context()->config->slots);
@@ -36,15 +36,15 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 			}
 			if (!slot)
 				g_set_error(error,
-					    R_SLOT_ERROR,
-					    R_SLOT_ERROR_FAILED,
-					    "No other bootable slot of the same class found");
+						R_SLOT_ERROR,
+						R_SLOT_ERROR_FAILED,
+						"No other bootable slot of the same class found");
 		} else {
 			g_set_error(
-				error,
-				R_SLOT_ERROR,
-				R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
-				"Did not find booted slot needed to find another bootable slot of the same class");
+					error,
+					R_SLOT_ERROR,
+					R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
+					"Did not find booted slot needed to find another bootable slot of the same class");
 		}
 	} else {
 		gchar **groupsplit = g_strsplit(identifier, ".", -1);
@@ -58,16 +58,16 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 			}
 			if (!slot)
 				g_set_error(error,
-					    R_SLOT_ERROR,
-					    R_SLOT_ERROR_FAILED,
-					    "No slot with class %s and name %s found",
-					    groupsplit[0],
-					    identifier);
+						R_SLOT_ERROR,
+						R_SLOT_ERROR_FAILED,
+						"No slot with class %s and name %s found",
+						groupsplit[0],
+						identifier);
 		} else {
 			g_set_error(error,
-				    R_SLOT_ERROR,
-				    R_SLOT_ERROR_FAILED,
-				    "Invalid slot name format: '%s'", identifier);
+					R_SLOT_ERROR,
+					R_SLOT_ERROR_FAILED,
+					"Invalid slot name format: '%s'", identifier);
 		}
 
 		g_strfreev(groupsplit);
@@ -92,7 +92,7 @@ void mark_active(RaucSlot *slot, GError **error)
 	res = r_boot_set_primary(slot, &ierror);
 	if (!res) {
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
-			"failed to activate slot %s: %s", slot->name, ierror->message);
+				"failed to activate slot %s: %s", slot->name, ierror->message);
 		g_error_free(ierror);
 		return;
 	}
@@ -112,9 +112,9 @@ void mark_active(RaucSlot *slot, GError **error)
 }
 
 gboolean mark_run(const gchar *state,
-		  const gchar *slot_identifier,
-		  gchar **slot_name,
-		  gchar **message)
+		const gchar *slot_identifier,
+		gchar **slot_name,
+		gchar **message)
 {
 	RaucSlot *slot = NULL;
 	GError *ierror = NULL;

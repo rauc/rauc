@@ -13,9 +13,9 @@
 #define BUNDLE_DL_MAX_SIZE 8*1024*1024
 
 GQuark
-r_bundle_error_quark (void)
+r_bundle_error_quark(void)
 {
-  return g_quark_from_static_string ("r-bundle-error-quark");
+	return g_quark_from_static_string("r-bundle-error-quark");
 }
 
 static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GError **error) {
@@ -25,20 +25,20 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 
 	r_context_begin_step("mksquashfs", "Creating squashfs", 0);
 
-	if (g_file_test (bundlename, G_FILE_TEST_EXISTS)) {
+	if (g_file_test(bundlename, G_FILE_TEST_EXISTS)) {
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "bundle %s already exists", bundlename);
 		goto out;
 	}
 
 	sproc = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
-				 &ierror, "mksquashfs",
-				 contentdir,
-				 bundlename,
-				 "-all-root",
-				 "-noappend",
-				 "-no-progress",
-				 "-no-xattrs",
-				 NULL);
+			&ierror, "mksquashfs",
+			contentdir,
+			bundlename,
+			"-all-root",
+			"-noappend",
+			"-no-progress",
+			"-no-xattrs",
+			NULL);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -83,7 +83,7 @@ static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, con
 	g_ptr_array_add(args, NULL);
 
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-				 G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
+			G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -148,7 +148,7 @@ static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath,
 	g_ptr_array_add(args, NULL);
 
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-				 G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
+			G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -188,7 +188,7 @@ static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath,
 	g_ptr_array_add(args, NULL);
 
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-				 G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
+			G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -212,54 +212,54 @@ out:
 }
 
 static gboolean output_stream_write_uint64_all(GOutputStream *stream,
-                                              guint64 data,
-                                              GCancellable *cancellable,
-                                              GError **error)
+		guint64 data,
+		GCancellable *cancellable,
+		GError **error)
 {
 	gsize bytes_written;
 	gboolean res;
 
 	data = GUINT64_TO_BE(data);
 	res = g_output_stream_write_all(stream, &data, sizeof(data), &bytes_written,
-					 cancellable, error);
+			cancellable, error);
 	g_assert(bytes_written == sizeof(data));
 	return res;
 }
 
 static gboolean input_stream_read_uint64_all(GInputStream *stream,
-                                             guint64 *data,
-                                             GCancellable *cancellable,
-                                             GError **error)
+		guint64 *data,
+		GCancellable *cancellable,
+		GError **error)
 {
 	guint64 tmp;
 	gsize bytes_read;
 	gboolean res;
 
 	res = g_input_stream_read_all(stream, &tmp, sizeof(tmp), &bytes_read,
-		                      cancellable, error);
+			cancellable, error);
 	g_assert(bytes_read == sizeof(tmp));
 	*data = GUINT64_FROM_BE(tmp);
 	return res;
 }
 
 static gboolean output_stream_write_bytes_all(GOutputStream *stream,
-                                              GBytes *bytes,
-                                              GCancellable *cancellable,
-                                              GError **error)
+		GBytes *bytes,
+		GCancellable *cancellable,
+		GError **error)
 {
 	const void *buffer;
 	gsize count, bytes_written;
 
 	buffer = g_bytes_get_data(bytes, &count);
 	return g_output_stream_write_all(stream, buffer, count, &bytes_written,
-					 cancellable, error);
+			cancellable, error);
 }
 
 static gboolean input_stream_read_bytes_all(GInputStream *stream,
-		                            GBytes **bytes,
-                                            gsize count,
-                                            GCancellable *cancellable,
-                                            GError **error)
+		GBytes **bytes,
+		gsize count,
+		GCancellable *cancellable,
+		GError **error)
 {
 	void *buffer = NULL;
 	gsize bytes_read;
@@ -270,7 +270,7 @@ static gboolean input_stream_read_bytes_all(GInputStream *stream,
 	buffer = g_malloc0(count);
 
 	res = g_input_stream_read_all(stream, buffer, count, &bytes_read,
-		                      cancellable, error);
+			cancellable, error);
 	if (!res) {
 		g_free(buffer);
 		return res;
@@ -292,10 +292,10 @@ static gboolean sign_bundle(const gchar *bundlename, GError **error) {
 	g_assert_nonnull(r_context()->keypath);
 
 	sig = cms_sign_file(bundlename,
-			    r_context()->certpath,
-			    r_context()->keypath,
-			    r_context()->intermediatepaths,
-			    &ierror);
+			r_context()->certpath,
+			r_context()->keypath,
+			r_context()->intermediatepaths,
+			&ierror);
 	if (sig == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -317,7 +317,7 @@ static gboolean sign_bundle(const gchar *bundlename, GError **error) {
 	}
 
 	res = g_seekable_seek(G_SEEKABLE(bundlestream),
-			      0, G_SEEK_END, NULL, &ierror);
+			0, G_SEEK_END, NULL, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -456,7 +456,7 @@ out:
 
 static gboolean image_is_archive(RaucImage* image) {
 	if (g_pattern_match_simple("*.tar*", image->filename) ||
-			g_pattern_match_simple("*.catar", image->filename)) {
+	    g_pattern_match_simple("*.catar", image->filename)) {
 		return TRUE;
 	}
 
@@ -616,9 +616,9 @@ out:
 
 static gboolean is_remote_scheme(const gchar *scheme) {
 	return (g_strcmp0(scheme, "http") == 0) ||
-		(g_strcmp0(scheme, "https") == 0) ||
-		(g_strcmp0(scheme, "sftp") == 0) ||
-		(g_strcmp0(scheme, "ftp") == 0);
+	       (g_strcmp0(scheme, "https") == 0) ||
+	       (g_strcmp0(scheme, "sftp") == 0) ||
+	       (g_strcmp0(scheme, "ftp") == 0);
 }
 
 gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error) {
@@ -632,7 +632,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	RaucBundle *ibundle = g_new0(RaucBundle, 1);
 	gchar *bundlescheme = NULL;
 
-	g_return_val_if_fail (bundle == NULL || *bundle == NULL, FALSE);
+	g_return_val_if_fail(bundle == NULL || *bundle == NULL, FALSE);
 
 	r_context_begin_step("check_bundle", "Checking bundle", verify);
 
@@ -693,7 +693,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 
 	offset = sizeof(sigsize);
 	res = g_seekable_seek(G_SEEKABLE(bundlestream),
-			      -offset, G_SEEK_END, NULL, &ierror);
+			-offset, G_SEEK_END, NULL, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -704,7 +704,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	offset = g_seekable_tell((GSeekable *)bundlestream);
 
 	res = input_stream_read_uint64_all(G_INPUT_STREAM(bundlestream),
-			                   &sigsize, NULL, &ierror);
+			&sigsize, NULL, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -722,14 +722,14 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	/* sanity check: signature should be smaller than bundle size */
 	if (sigsize > (guint64)offset) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
-				"Signature size (%"G_GUINT64_FORMAT") exceeds bundle size", sigsize);
+				"Signature size (%"G_GUINT64_FORMAT ") exceeds bundle size", sigsize);
 		res = FALSE;
 		goto out;
 	}
 	/* sanity check: signature should be smaller than 64kiB */
 	if (sigsize > 0x4000000) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
-				"Signature size (%"G_GUINT64_FORMAT") exceeds 64KiB", sigsize);
+				"Signature size (%"G_GUINT64_FORMAT ") exceeds 64KiB", sigsize);
 		res = FALSE;
 		goto out;
 	}
@@ -739,7 +739,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	ibundle->size = offset;
 
 	res = g_seekable_seek(G_SEEKABLE(bundlestream),
-			      offset, G_SEEK_SET, NULL, &ierror);
+			offset, G_SEEK_SET, NULL, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -749,7 +749,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	}
 
 	res = input_stream_read_bytes_all(G_INPUT_STREAM(bundlestream),
-			                  &sig, sigsize, NULL, &ierror);
+			&sig, sigsize, NULL, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -837,7 +837,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error) {
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
-	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_assert_null(bundle->mount_point);
 
@@ -874,7 +874,7 @@ gboolean umount_bundle(RaucBundle *bundle, GError **error) {
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
-	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_assert_nonnull(bundle->mount_point);
 

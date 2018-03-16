@@ -41,15 +41,15 @@ static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata) {
 }
 
 static int xfer_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
-	    curl_off_t ultotal, curl_off_t ulnow) {
+		curl_off_t ultotal, curl_off_t ulnow) {
 	RaucTransfer *xfer = clientp;
-	
+
 	/* check transfer limit */
 	if (xfer->limit) {
-	    if (dltotal > (curl_off_t)xfer->limit)
-		return 1;
-	    if (dlnow > (curl_off_t)xfer->limit)
-		return 1;
+		if (dltotal > (curl_off_t)xfer->limit)
+			return 1;
+		if (dlnow > (curl_off_t)xfer->limit)
+			return 1;
 	}
 
 	return 0;
@@ -135,12 +135,12 @@ out:
 }
 
 gboolean download_file_checksum(const gchar *target, const gchar *url,
-				const RaucChecksum *checksum) {
+		const RaucChecksum *checksum) {
 	gchar *tmpname = NULL, *dir = NULL, *tmppath = NULL;
 	gboolean res = FALSE;
 
 	tmpname = g_strdup_printf(".rauc_%s_%"G_GSIZE_FORMAT, checksum->digest,
-				  checksum->size);
+			checksum->size);
 	dir = g_path_get_dirname(target);
 	tmppath = g_build_filename(dir, tmpname, NULL);
 
@@ -178,7 +178,7 @@ gboolean download_mem(GBytes **data, const gchar *url, gsize limit) {
 
 	xfer.url = url;
 	xfer.limit = limit;
-	
+
 	xfer.dl = open_memstream(&dl_data, &xfer.dl_size);
 	if (xfer.dl == NULL) {
 		goto out;
@@ -187,7 +187,7 @@ gboolean download_mem(GBytes **data, const gchar *url, gsize limit) {
 	res = transfer(&xfer, NULL);
 	if (!res)
 		goto out;
-	
+
 	g_clear_pointer(&xfer.dl, fclose);
 	*data = g_bytes_new_take(dl_data, xfer.dl_size);
 	dl_data = NULL;

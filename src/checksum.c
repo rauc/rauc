@@ -10,7 +10,7 @@ gboolean update_checksum(RaucChecksum *checksum, const gchar *filename, GError *
 	GBytes *content = NULL;
 	gboolean res = FALSE;
 
-	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	file = g_mapped_file_new(filename, FALSE, &ierror);
 	if (file == NULL) {
@@ -24,7 +24,7 @@ gboolean update_checksum(RaucChecksum *checksum, const gchar *filename, GError *
 	g_clear_pointer(&checksum->digest, g_free);
 	checksum->digest = g_compute_checksum_for_bytes(checksum->type, content);
 	checksum->size = g_bytes_get_size(content);
-	
+
 	res = TRUE;
 out:
 	if (!res) {

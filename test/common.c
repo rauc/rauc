@@ -25,7 +25,7 @@ gchar* random_bytes(gsize size, guint32 seed) {
 }
 
 gchar* write_random_file(const gchar *tmpdir, const gchar *filename,
-			    gsize size, const guint32 seed) {
+		gsize size, const guint32 seed) {
 	gchar *pathname;
 	gchar *content;
 
@@ -64,7 +64,7 @@ gchar* write_tmp_file(
 }
 
 int test_prepare_dummy_file(const gchar *dirname, const gchar *filename,
-			    gsize size, const gchar *source) {
+		gsize size, const gchar *source) {
 	GIOChannel *input, *output;
 	GIOStatus status;
 	gchar *path;
@@ -90,12 +90,12 @@ int test_prepare_dummy_file(const gchar *dirname, const gchar *filename,
 		GError *error = NULL;
 
 		status = g_io_channel_read_chars(input, buf, bytes_to_read,
-						 &bytes_read, &error);
+				&bytes_read, &error);
 		g_assert_no_error(error);
 		g_assert(status == G_IO_STATUS_NORMAL);
 
 		status = g_io_channel_write_chars(output, buf, bytes_read,
-						  &bytes_written, &error);
+				&bytes_written, &error);
 		g_assert_no_error(error);
 		g_assert(status == G_IO_STATUS_NORMAL);
 		g_assert(bytes_read == bytes_written);
@@ -200,7 +200,7 @@ gboolean test_make_filesystem(const gchar *dirname, const gchar *filename) {
 	GError *error = NULL;
 	gchar *path;
 	gboolean res = FALSE;
-	
+
 	path = g_build_filename(dirname, filename, NULL);
 	sub = g_subprocess_new(
 			G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
@@ -235,7 +235,7 @@ gboolean test_do_chmod(const gchar *path) {
 	GError *error = NULL;
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(10, g_free);
-	
+
 	if (getuid() != 0) {
 		g_ptr_array_add(args, g_strdup("sudo"));
 		g_ptr_array_add(args, g_strdup("--non-interactive"));
@@ -246,7 +246,7 @@ gboolean test_do_chmod(const gchar *path) {
 	g_ptr_array_add(args, NULL);
 
 	sub = g_subprocess_newv((const gchar * const *)args->pdata,
-				  G_SUBPROCESS_FLAGS_NONE, &error);
+			G_SUBPROCESS_FLAGS_NONE, &error);
 	if (!sub) {
 		g_warning("chmod failed: %s", error->message);
 		g_clear_error(&error);
@@ -268,7 +268,7 @@ out:
 gboolean test_umount(const gchar *dirname, const gchar *mountpoint) {
 	gchar *path;
 	gboolean res;
-	
+
 	path = g_build_filename(dirname, mountpoint, NULL);
 	g_assert_nonnull(path);
 
@@ -285,7 +285,7 @@ gboolean test_make_slot_user_writable(const gchar* path, const gchar* file) {
 	gboolean res = FALSE;
 	gchar *slotpath;
 	gchar *mountpath;
-	
+
 	slotpath = g_build_filename(path, file, NULL);
 	g_assert_nonnull(slotpath);
 
@@ -310,9 +310,9 @@ gboolean test_make_slot_user_writable(const gchar* path, const gchar* file) {
 void test_create_content(gchar *contentdir) {
 	g_assert(g_mkdir(contentdir, 0777) == 0);
 	g_assert(test_prepare_dummy_file(contentdir, "rootfs.ext4",
-					 1024*1024, "/dev/urandom") == 0);
+					1024*1024, "/dev/urandom") == 0);
 	g_assert(test_prepare_dummy_file(contentdir, "appfs.ext4",
-				         64*1024, "/dev/urandom") == 0);
+					64*1024, "/dev/urandom") == 0);
 	g_assert(test_prepare_manifest_file(contentdir, "manifest.raucm", FALSE, FALSE) == 0);
 }
 

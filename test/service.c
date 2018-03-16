@@ -34,7 +34,7 @@ static void service_install_fixture_set_up(ServiceFixture *fixture, gconstpointe
 	write_tmp_file(fixture->tmpdir, "de.pengutronix.rauc.service", g_strdup_printf("\
 [D-BUS Service]\n\
 Name=de.pengutronix.rauc\n\
-Exec="TEST_SERVICES"/rauc -c %s/system.conf --mount=%s/mount --override-boot-slot=system0 service\n", fixture->tmpdir, fixture->tmpdir), NULL);
+Exec="TEST_SERVICES "/rauc -c %s/system.conf --mount=%s/mount --override-boot-slot=system0 service\n", fixture->tmpdir, fixture->tmpdir), NULL);
 
 	fixture->dbus = g_test_dbus_new(G_TEST_DBUS_NONE);
 	g_test_dbus_add_service_dir(fixture->dbus, fixture->tmpdir);
@@ -48,7 +48,7 @@ static void service_info_fixture_set_up(ServiceFixture *fixture, gconstpointer u
 	write_tmp_file(fixture->tmpdir, "de.pengutronix.rauc.service", "\
 [D-BUS Service]\n\
 Name=de.pengutronix.rauc\n\
-Exec="TEST_SERVICES"/rauc -c test/test.conf service\n", NULL);
+Exec="TEST_SERVICES "/rauc -c test/test.conf service\n", NULL);
 
 	fixture->dbus = g_test_dbus_new(G_TEST_DBUS_NONE);
 	g_test_dbus_add_service_dir(fixture->dbus, fixture->tmpdir);
@@ -62,8 +62,8 @@ static void service_fixture_tear_down(ServiceFixture *fixture, gconstpointer use
 }
 
 static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
-                                 const gchar* const *invalidated,
-                                 gpointer data)
+		const gchar* const *invalidated,
+		gpointer data)
 {
 	GQueue *args = data;
 	gchar *msg;
@@ -90,7 +90,7 @@ static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
 }
 
 static void on_installer_completed(GDBusProxy *proxy, gint result,
-                                   gpointer data)
+		gpointer data)
 {
 	const gchar *last_error = NULL;
 	last_error = r_installer_get_last_error(installer);
@@ -131,8 +131,8 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	gboolean ret = FALSE;
 
 	if (!ENABLE_SERVICE) {
-	    g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
-	    return;
+		g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
+		return;
 	}
 
 	/* needs to run as root */
@@ -166,16 +166,16 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)", 100, "Installing done.", 1));
 
 	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
-		G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
-		"de.pengutronix.rauc", "/", NULL, NULL);
+			G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
+			"de.pengutronix.rauc", "/", NULL, NULL);
 
 	g_assert_nonnull(installer);
 
 	/* connect signals to test callbacks */
 	g_assert_cmpint(g_signal_connect(installer, "g-properties-changed",
-			     G_CALLBACK(on_installer_changed), args), !=, 0);
+					G_CALLBACK(on_installer_changed), args), !=, 0);
 	g_assert_cmpint(g_signal_connect(installer, "completed",
-			     G_CALLBACK(on_installer_completed), args), !=, 0);
+					G_CALLBACK(on_installer_completed), args), !=, 0);
 
 	/* initial operation must be 'idle', initial last_error must be empty */
 	operation = r_installer_get_operation(installer);
@@ -209,16 +209,16 @@ static void service_test_info(ServiceFixture *fixture, gconstpointer user_data)
 	gchar *version;
 
 	if (!ENABLE_SERVICE) {
-	    g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
-	    return;
+		g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
+		return;
 	}
 
 	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
-						       G_DBUS_PROXY_FLAGS_NONE,
-						       "de.pengutronix.rauc",
-						       "/",
-						       NULL,
-						       NULL);
+			G_DBUS_PROXY_FLAGS_NONE,
+			"de.pengutronix.rauc",
+			"/",
+			NULL,
+			NULL);
 
 	if (installer == NULL) {
 		g_error("failed to install proxy");
@@ -226,11 +226,11 @@ static void service_test_info(ServiceFixture *fixture, gconstpointer user_data)
 	}
 
 	r_installer_call_info_sync(installer,
-				   "test/good-bundle.raucb",
-				   &compatible,
-				   &version,
-				   NULL,
-				   &error);
+			"test/good-bundle.raucb",
+			&compatible,
+			&version,
+			NULL,
+			&error);
 	g_assert_no_error(error);
 	g_assert_cmpstr(compatible, ==, "Test Config");
 	g_assert_cmpstr(version, ==, "2011.03-2");
@@ -247,16 +247,16 @@ static void service_test_slot_status(ServiceFixture *fixture, gconstpointer user
 	GVariant *slot_status_array = NULL;
 
 	if (!ENABLE_SERVICE) {
-	    g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
-	    return;
+		g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
+		return;
 	}
 
 	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
-						       G_DBUS_PROXY_FLAGS_NONE,
-						       "de.pengutronix.rauc",
-						       "/",
-						       NULL,
-						       NULL);
+			G_DBUS_PROXY_FLAGS_NONE,
+			"de.pengutronix.rauc",
+			"/",
+			NULL,
+			NULL);
 
 	if (installer == NULL) {
 		g_error("failed to install proxy");
@@ -264,9 +264,9 @@ static void service_test_slot_status(ServiceFixture *fixture, gconstpointer user
 	}
 
 	r_installer_call_get_slot_status_sync(installer,
-					      &slot_status_array,
-					      NULL,
-					      &error);
+			&slot_status_array,
+			NULL,
+			&error);
 	g_assert_no_error(error);
 	g_assert_nonnull(slot_status_array);
 	g_assert_cmpint(g_variant_n_children(slot_status_array), ==, 5);
@@ -283,16 +283,16 @@ int main(int argc, char *argv[])
 	g_test_init(&argc, &argv, NULL);
 
 	g_test_add("/service/install", ServiceFixture, NULL,
-		   service_install_fixture_set_up, service_test_install,
-		   service_fixture_tear_down);
+			service_install_fixture_set_up, service_test_install,
+			service_fixture_tear_down);
 
 	g_test_add("/service/info", ServiceFixture, NULL,
-		   service_info_fixture_set_up, service_test_info,
-		   service_fixture_tear_down);
+			service_info_fixture_set_up, service_test_info,
+			service_fixture_tear_down);
 
 	g_test_add("/service/slot-status", ServiceFixture, NULL,
-		   service_info_fixture_set_up, service_test_slot_status,
-		   service_fixture_tear_down);
+			service_info_fixture_set_up, service_test_slot_status,
+			service_fixture_tear_down);
 
 	return g_test_run();
 }

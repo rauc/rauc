@@ -49,9 +49,9 @@ static const gchar* get_cmdline_bootname(void) {
 
 	if (strncmp(bootname, "PARTUUID=", 9) == 0) {
 		gchar *partuuidpath = g_build_filename(
-			"/dev/disk/by-partuuid/",
-			&bootname[9],
-			NULL);
+				"/dev/disk/by-partuuid/",
+				&bootname[9],
+				NULL);
 		if (partuuidpath) {
 			g_free((gchar*) bootname);
 			bootname = partuuidpath;
@@ -60,9 +60,9 @@ static const gchar* get_cmdline_bootname(void) {
 
 	if (strncmp(bootname, "UUID=", 5) == 0) {
 		gchar *uuidpath = g_build_filename(
-			"/dev/disk/by-uuid/",
-			&bootname[5],
-			NULL);
+				"/dev/disk/by-uuid/",
+				&bootname[5],
+				NULL);
 		if (uuidpath) {
 			g_free((gchar*) bootname);
 			bootname = uuidpath;
@@ -109,7 +109,7 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 	   subprocess environment */
 	g_hash_table_iter_init(&iter, variables);
 	while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
-                g_subprocess_launcher_setenv(handlelaunch, g_strdup(key), g_strdup(value), 1);
+		g_subprocess_launcher_setenv(handlelaunch, g_strdup(key), g_strdup(value), 1);
 	}
 
 	handleproc = g_subprocess_launcher_spawn(
@@ -221,7 +221,7 @@ static void r_context_configure(void) {
 	}
 
 	if (context->config->systeminfo_handler &&
-		g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
+	    g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
 
 		GError *ierror = NULL;
 		GHashTable *vars = NULL;
@@ -311,20 +311,20 @@ static void r_context_send_progress(gboolean op_finished, gboolean success) {
 	if (op_finished) {
 		if (success)
 			step->description = g_strdup_printf("%s done.",
-							    step->description);
+					step->description);
 		else
 			step->description = g_strdup_printf("%s failed.",
-							    step->description);
+					step->description);
 	}
 
 	/* handle missing callback gracefully */
 	if (context->progress_callback)
 		context->progress_callback(percentage, step->description,
-					   g_list_length(context->progress));
+				g_list_length(context->progress));
 }
 
 void r_context_begin_step(const gchar *name, const gchar *description,
-	 		  gint substeps) {
+		gint substeps) {
 
 	RaucProgressStep *step = g_new0(RaucProgressStep, 1);
 	RaucProgressStep *parent;
@@ -345,12 +345,12 @@ void r_context_begin_step(const gchar *name, const gchar *description,
 		/* nesting check */
 		if (parent->substeps_total == parent->substeps_done)
 			g_error("Step nesting wrong: %s contains %s exceeding step limit (%d/%d)",
-				parent->name, step->name,
-				parent->substeps_done + 1,
-				parent->substeps_total);
+					parent->name, step->name,
+					parent->substeps_done + 1,
+					parent->substeps_total);
 
 		step->percent_total = parent->percent_total
-			/ parent->substeps_total;
+		                      / parent->substeps_total;
 
 		g_assert_cmpint(step->percent_total, <=,
 				parent->percent_total);
@@ -384,13 +384,13 @@ void r_context_end_step(const gchar *name, gboolean success) {
 	/* check number of substeps */
 	if (step->substeps_done > step->substeps_total)
 		g_error("Too many substeps: %s (%d/%d)",
-			step->name, step->substeps_done,
-			step->substeps_total);
+				step->name, step->substeps_done,
+				step->substeps_total);
 
 	if (success && step->substeps_done < step->substeps_total)
 		g_error("Not enough substeps: %s (%d/%d)",
-			step->name, step->substeps_done,
-			step->substeps_total);
+				step->name, step->substeps_done,
+				step->substeps_total);
 
 	/* mark substeps/percentage as done/complete in case of an error */
 	if (!success)
@@ -409,7 +409,7 @@ void r_context_end_step(const gchar *name, gboolean success) {
 			r_context_set_step_percentage(step->name, 100);
 		else
 			parent->percent_done = parent->percent_done
-				+ step->percent_done;
+			                       + step->percent_done;
 
 		g_assert_cmpint(step->percent_done, <=,
 				parent->percent_done);
@@ -417,7 +417,7 @@ void r_context_end_step(const gchar *name, gboolean success) {
 
 	r_context_send_progress(TRUE, success);
 	context->progress = g_list_remove_link(context->progress,
-					       step_element);
+			step_element);
 
 	g_list_free(step_element);
 	g_free(step);
@@ -442,12 +442,12 @@ void r_context_set_step_percentage(const gchar *name, gint custom_percent) {
 	percent_difference = custom_percent - step->last_explicit_percent;
 
 	step->percent_done = step->percent_total
-		* (percent_difference / 100.0f);
+	                     * (percent_difference / 100.0f);
 
 	/* pass to parent */
 	if (parent)
 		parent->percent_done = parent->percent_done
-			+ step->percent_done;
+		                       + step->percent_done;
 
 	step->last_explicit_percent = custom_percent;
 

@@ -49,8 +49,8 @@ static gboolean install_cleanup(gpointer data)
 }
 
 static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
-				 const gchar* const *invalidated,
-				 gpointer data) {
+		const gchar* const *invalidated,
+		gpointer data) {
 	RaucInstallArgs *args = data;
 	gchar *msg;
 	gint32 percentage, depth;
@@ -69,7 +69,7 @@ static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
 	if (g_variant_lookup(changed, "Operation", "s", &msg)) {
 		g_queue_push_tail(&args->status_messages, g_strdup(msg));
 	} else if (g_variant_lookup(changed, "Progress", "(isi)", &percentage, &message, &depth)) {
-		g_queue_push_tail(&args->status_messages, g_strdup_printf("%3"G_GINT32_FORMAT"%% %s", percentage, message));
+		g_queue_push_tail(&args->status_messages, g_strdup_printf("%3"G_GINT32_FORMAT "%% %s", percentage, message));
 	} else if (g_variant_lookup(changed, "LastError", "s", &message) && message[0] != '\0') {
 		g_queue_push_tail(&args->status_messages, g_strdup_printf("LastError: %s", message));
 	}
@@ -81,7 +81,7 @@ static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
 }
 
 static void on_installer_completed(GDBusProxy *proxy, gint result,
-				   gpointer data) {
+		gpointer data) {
 	RaucInstallArgs *args = data;
 
 	g_mutex_lock(&args->status_mutex);
@@ -96,7 +96,7 @@ static void on_installer_completed(GDBusProxy *proxy, gint result,
 static gboolean install_start(int argc, char **argv)
 {
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
-		? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
+	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 	RInstaller *installer = NULL;
 	RaucInstallArgs *args = NULL;
 	GError *error = NULL;
@@ -132,7 +132,7 @@ static gboolean install_start(int argc, char **argv)
 			goto out;
 		}
 
-		if (!g_file_test (bundlelocation, G_FILE_TEST_EXISTS)) {
+		if (!g_file_test(bundlelocation, G_FILE_TEST_EXISTS)) {
 			g_printerr("No such file: %s\n", bundlelocation);
 			g_clear_pointer(&bundlelocation, g_free);
 			goto out;
@@ -152,28 +152,28 @@ static gboolean install_start(int argc, char **argv)
 	r_loop = g_main_loop_new(NULL, FALSE);
 	if (ENABLE_SERVICE) {
 		installer = r_installer_proxy_new_for_bus_sync(bus_type,
-			G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
-			"de.pengutronix.rauc", "/", NULL, &error);
+				G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
+				"de.pengutronix.rauc", "/", NULL, &error);
 		if (installer == NULL) {
 			g_printerr("Error creating proxy: %s\n", error->message);
-			g_error_free (error);
+			g_error_free(error);
 			goto out_loop;
 		}
 		if (g_signal_connect(installer, "g-properties-changed",
-				     G_CALLBACK(on_installer_changed), args) <= 0) {
+				    G_CALLBACK(on_installer_changed), args) <= 0) {
 			g_printerr("Failed to connect properties-changed signal\n");
 			goto out_loop;
 		}
 		if (g_signal_connect(installer, "completed",
-				     G_CALLBACK(on_installer_completed), args) <= 0) {
+				    G_CALLBACK(on_installer_completed), args) <= 0) {
 			g_printerr("Failed to connect completed signal\n");
 			goto out_loop;
 		}
 		g_debug("Trying to contact rauc service");
 		if (!r_installer_call_install_sync(installer, bundlelocation, NULL,
-						   &error)) {
+				    &error)) {
 			g_printerr("Failed %s\n", error->message);
-			g_error_free (error);
+			g_error_free(error);
 			goto out_loop;
 		}
 	} else {
@@ -507,7 +507,7 @@ static gboolean checksum_start(int argc, char **argv)
 	    r_context()->keypath != NULL) {
 		sign = TRUE;
 	} else if (r_context()->certpath != NULL ||
-	    r_context()->keypath != NULL) {
+	           r_context()->keypath != NULL) {
 		g_printerr("Either both or none of cert and key files must be provided\n");
 		r_exit_status = 1;
 		goto out;
@@ -534,14 +534,14 @@ out:
 /* Takes a shell variable and its desired argument as input and appends it to
  * the provided text with taking care of correct shell quoting */
 static void formatter_shell_append(GString* text, const gchar* varname, const gchar* argument) {
-	gchar* quoted = g_shell_quote (argument ?: "");
+	gchar* quoted = g_shell_quote(argument ?: "");
 	g_string_append_printf(text, "%s=%s\n", varname, quoted);
 	g_clear_pointer(&quoted, g_free);
 }
 /* Same as above, expect that it has a cnt argument to add per-slot-number
  * strings */
 static void formatter_shell_append_n(GString* text, const gchar* varname, gint cnt, const gchar* argument) {
-	gchar* quoted = g_shell_quote (argument ?: "");
+	gchar* quoted = g_shell_quote(argument ?: "");
 	g_string_append_printf(text, "%s_%d=%s\n", varname, cnt, quoted);
 	g_clear_pointer(&quoted, g_free);
 }
@@ -579,7 +579,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 		formatter_shell_append_n(text, "RAUC_IMAGE_CLASS", cnt, img->slotclass);
 		formatter_shell_append_n(text, "RAUC_IMAGE_VARIANT", cnt, img->variant);
 		formatter_shell_append_n(text, "RAUC_IMAGE_DIGEST", cnt, img->checksum.digest);
-		g_string_append_printf(text, "RAUC_IMAGE_SIZE_%d=%"G_GSIZE_FORMAT"\n", cnt, img->checksum.size);
+		g_string_append_printf(text, "RAUC_IMAGE_SIZE_%d=%"G_GSIZE_FORMAT "\n", cnt, img->checksum.size);
 
 		hooks = g_ptr_array_new();
 		if (img->hooks.pre_install == TRUE) {
@@ -608,7 +608,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 		g_string_append_printf(text, "RAUC_FILE_CLASS_%d=%s\n", cnt, file->slotclass);
 		g_string_append_printf(text, "RAUC_FILE_DEST_%d=%s\n", cnt, file->destname);
 		g_string_append_printf(text, "RAUC_FILE_DIGEST_%d=%s\n", cnt, file->checksum.digest);
-		g_string_append_printf(text, "RAUC_FILE_SIZE_%d=%"G_GSIZE_FORMAT"\n", cnt, file->checksum.size);
+		g_string_append_printf(text, "RAUC_FILE_SIZE_%d=%"G_GSIZE_FORMAT "\n", cnt, file->checksum.size);
 		cnt++;
 	}
 
@@ -649,7 +649,7 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		if (img->variant)
 			g_string_append_printf(text, "\tVariant:   %s\n", img->variant);
 		g_string_append_printf(text, "\tChecksum:  %s\n", img->checksum.digest);
-		g_string_append_printf(text, "\tSize:      %"G_GSIZE_FORMAT"\n", img->checksum.size);
+		g_string_append_printf(text, "\tSize:      %"G_GSIZE_FORMAT "\n", img->checksum.size);
 
 		hooks = g_ptr_array_new();
 		if (img->hooks.pre_install == TRUE) {
@@ -681,7 +681,7 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		g_string_append_printf(text, "\tSlotclass: %s\n", file->slotclass);
 		g_string_append_printf(text, "\tDest:      %s\n", file->destname);
 		g_string_append_printf(text, "\tChecksum:  %s\n", file->checksum.digest);
-		g_string_append_printf(text, "\tSize:      %"G_GSIZE_FORMAT"\n", file->checksum.size);
+		g_string_append_printf(text, "\tSize:      %"G_GSIZE_FORMAT "\n", file->checksum.size);
 		cnt++;
 	}
 
@@ -695,76 +695,76 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 	JsonGenerator *gen;
 	JsonNode * root;
 	gchar *str;
-	JsonBuilder *builder = json_builder_new ();
+	JsonBuilder *builder = json_builder_new();
 
-	json_builder_begin_object (builder);
+	json_builder_begin_object(builder);
 
-	json_builder_set_member_name (builder, "compatible");
-	json_builder_add_string_value (builder, manifest->update_compatible);
+	json_builder_set_member_name(builder, "compatible");
+	json_builder_add_string_value(builder, manifest->update_compatible);
 
-	json_builder_set_member_name (builder, "version");
-	json_builder_add_string_value (builder, manifest->update_version);
+	json_builder_set_member_name(builder, "version");
+	json_builder_add_string_value(builder, manifest->update_version);
 
-	json_builder_set_member_name (builder, "description");
-	json_builder_add_string_value (builder, manifest->update_description);
+	json_builder_set_member_name(builder, "description");
+	json_builder_add_string_value(builder, manifest->update_description);
 
-	json_builder_set_member_name (builder, "build");
-	json_builder_add_string_value (builder, manifest->update_build);
+	json_builder_set_member_name(builder, "build");
+	json_builder_add_string_value(builder, manifest->update_build);
 
-	json_builder_set_member_name (builder, "hooks");
-	json_builder_begin_array (builder);
+	json_builder_set_member_name(builder, "hooks");
+	json_builder_begin_array(builder);
 	if (manifest->hooks.install_check == TRUE) {
-		json_builder_add_string_value (builder, "install-check");
+		json_builder_add_string_value(builder, "install-check");
 	}
-	json_builder_end_array (builder);
+	json_builder_end_array(builder);
 
-	json_builder_set_member_name (builder, "images");
-	json_builder_begin_array (builder);
+	json_builder_set_member_name(builder, "images");
+	json_builder_begin_array(builder);
 
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		RaucImage *img = l->data;
 
-		json_builder_begin_object (builder);
-		json_builder_set_member_name (builder, img->slotclass);
-		json_builder_begin_object (builder);
-		json_builder_set_member_name (builder, "variant");
-		json_builder_add_string_value (builder, img->variant);
-		json_builder_set_member_name (builder, "filename");
-		json_builder_add_string_value (builder, img->filename);
-		json_builder_set_member_name (builder, "checksum");
-		json_builder_add_string_value (builder, img->checksum.digest);
-		json_builder_set_member_name (builder, "size");
-		json_builder_add_int_value (builder, img->checksum.size);
-		json_builder_set_member_name (builder, "hooks");
-		json_builder_begin_array (builder);
+		json_builder_begin_object(builder);
+		json_builder_set_member_name(builder, img->slotclass);
+		json_builder_begin_object(builder);
+		json_builder_set_member_name(builder, "variant");
+		json_builder_add_string_value(builder, img->variant);
+		json_builder_set_member_name(builder, "filename");
+		json_builder_add_string_value(builder, img->filename);
+		json_builder_set_member_name(builder, "checksum");
+		json_builder_add_string_value(builder, img->checksum.digest);
+		json_builder_set_member_name(builder, "size");
+		json_builder_add_int_value(builder, img->checksum.size);
+		json_builder_set_member_name(builder, "hooks");
+		json_builder_begin_array(builder);
 		if (img->hooks.pre_install == TRUE) {
-			json_builder_add_string_value (builder, "pre-install");
+			json_builder_add_string_value(builder, "pre-install");
 		}
 		if (img->hooks.install == TRUE) {
-			json_builder_add_string_value (builder, "install");
+			json_builder_add_string_value(builder, "install");
 		}
 		if (img->hooks.post_install == TRUE) {
-			json_builder_add_string_value (builder, "post-install");
+			json_builder_add_string_value(builder, "post-install");
 		}
-		json_builder_end_array (builder);
-		json_builder_end_object (builder);
-		json_builder_end_object (builder);
+		json_builder_end_array(builder);
+		json_builder_end_object(builder);
+		json_builder_end_object(builder);
 
 	}
 
-	json_builder_end_array (builder);
+	json_builder_end_array(builder);
 
-	json_builder_end_object (builder);
+	json_builder_end_object(builder);
 
-	gen = json_generator_new ();
-	root = json_builder_get_root (builder);
-	json_generator_set_root (gen, root);
-	json_generator_set_pretty (gen, pretty);
-	str = json_generator_to_data (gen, NULL);
+	gen = json_generator_new();
+	root = json_builder_get_root(builder);
+	json_generator_set_root(gen, root);
+	json_generator_set_pretty(gen, pretty);
+	str = json_generator_to_data(gen, NULL);
 
-	json_node_free (root);
-	g_object_unref (gen);
-	g_object_unref (builder);
+	json_node_free(root);
+	g_object_unref(gen);
+	g_object_unref(builder);
 
 	return str;
 #else
@@ -840,8 +840,8 @@ static gboolean info_start(int argc, char **argv)
 	if (!res) {
 		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
- 		goto out;
- 	}
+		goto out;
+	}
 
 	res = load_manifest_file(manifestpath, &manifest, &error);
 	if (!res) {
@@ -1062,7 +1062,7 @@ static gchar* r_status_formatter_json(gboolean pretty)
 	JsonNode * root;
 	GHashTableIter iter;
 	gchar *str;
-	JsonBuilder *builder = json_builder_new ();
+	JsonBuilder *builder = json_builder_new();
 	GError *ierror = NULL;
 	RaucSlot *slot, *primary = NULL;
 
@@ -1072,22 +1072,22 @@ static gchar* r_status_formatter_json(gboolean pretty)
 		g_clear_error(&ierror);
 	}
 
-	json_builder_begin_object (builder);
+	json_builder_begin_object(builder);
 
-	json_builder_set_member_name (builder, "compatible");
-	json_builder_add_string_value (builder, r_context()->config->system_compatible);
+	json_builder_set_member_name(builder, "compatible");
+	json_builder_add_string_value(builder, r_context()->config->system_compatible);
 
-	json_builder_set_member_name (builder, "variant");
-	json_builder_add_string_value (builder, r_context()->config->system_variant);
+	json_builder_set_member_name(builder, "variant");
+	json_builder_add_string_value(builder, r_context()->config->system_variant);
 
-	json_builder_set_member_name (builder, "booted");
-	json_builder_add_string_value (builder, r_context()->bootslot);
+	json_builder_set_member_name(builder, "booted");
+	json_builder_add_string_value(builder, r_context()->bootslot);
 
-	json_builder_set_member_name (builder, "boot_primary");
-	json_builder_add_string_value (builder, primary ? primary->name : NULL);
+	json_builder_set_member_name(builder, "boot_primary");
+	json_builder_add_string_value(builder, primary ? primary->name : NULL);
 
-	json_builder_set_member_name (builder, "slots");
-	json_builder_begin_array (builder);
+	json_builder_set_member_name(builder, "slots");
+	json_builder_begin_array(builder);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
@@ -1099,33 +1099,33 @@ static gchar* r_status_formatter_json(gboolean pretty)
 			g_clear_error(&ierror);
 		}
 
-		json_builder_begin_object (builder);
-		json_builder_set_member_name (builder, slot->name);
-		json_builder_begin_object (builder);
-		json_builder_set_member_name (builder, "class");
-		json_builder_add_string_value (builder, slot->sclass);
-		json_builder_set_member_name (builder, "device");
-		json_builder_add_string_value (builder, slot->device);
-		json_builder_set_member_name (builder, "type");
-		json_builder_add_string_value (builder, slot->type);
-		json_builder_set_member_name (builder, "bootname");
-		json_builder_add_string_value (builder, slot->bootname);
-		json_builder_set_member_name (builder, "state");
-		json_builder_add_string_value (builder, slotstate_to_str(slot->state));
-		json_builder_set_member_name (builder, "parent");
-		json_builder_add_string_value (builder, slot->parent ? slot->parent->name : NULL);
-		json_builder_set_member_name (builder, "mountpoint");
-		json_builder_add_string_value (builder, slot->mount_point);
-		json_builder_set_member_name (builder, "boot_status");
+		json_builder_begin_object(builder);
+		json_builder_set_member_name(builder, slot->name);
+		json_builder_begin_object(builder);
+		json_builder_set_member_name(builder, "class");
+		json_builder_add_string_value(builder, slot->sclass);
+		json_builder_set_member_name(builder, "device");
+		json_builder_add_string_value(builder, slot->device);
+		json_builder_set_member_name(builder, "type");
+		json_builder_add_string_value(builder, slot->type);
+		json_builder_set_member_name(builder, "bootname");
+		json_builder_add_string_value(builder, slot->bootname);
+		json_builder_set_member_name(builder, "state");
+		json_builder_add_string_value(builder, slotstate_to_str(slot->state));
+		json_builder_set_member_name(builder, "parent");
+		json_builder_add_string_value(builder, slot->parent ? slot->parent->name : NULL);
+		json_builder_set_member_name(builder, "mountpoint");
+		json_builder_add_string_value(builder, slot->mount_point);
+		json_builder_set_member_name(builder, "boot_status");
 		if (slot->bootname)
-			json_builder_add_string_value (builder, good ? "good" : "bad");
+			json_builder_add_string_value(builder, good ? "good" : "bad");
 		else
-			json_builder_add_string_value (builder, NULL);
+			json_builder_add_string_value(builder, NULL);
 		if (status_detailed && slot_state) {
 			json_builder_set_member_name(builder, "slot_status");
-			json_builder_begin_object(builder);	/* slot_status */
+			json_builder_begin_object(builder);     /* slot_status */
 			json_builder_set_member_name(builder, "bundle");
-			json_builder_begin_object(builder);		/* bundle */
+			json_builder_begin_object(builder);             /* bundle */
 			json_builder_set_member_name(builder, "compatible");
 			json_builder_add_string_value(builder, slot_state->bundle_compatible);
 			if (slot_state->bundle_version) {
@@ -1140,57 +1140,57 @@ static gchar* r_status_formatter_json(gboolean pretty)
 				json_builder_set_member_name(builder, "build");
 				json_builder_add_string_value(builder, slot_state->bundle_build);
 			}
-			json_builder_end_object(builder);		/* bundle */
+			json_builder_end_object(builder);               /* bundle */
 			if (slot_state->checksum.digest && slot_state->checksum.type == G_CHECKSUM_SHA256) {
 				json_builder_set_member_name(builder, "checksum");
-				json_builder_begin_object(builder);	/* checksum */
+				json_builder_begin_object(builder);     /* checksum */
 				json_builder_set_member_name(builder, "sha256");
 				json_builder_add_string_value(builder, slot_state->checksum.digest);
 				json_builder_set_member_name(builder, "size");
 				json_builder_add_int_value(builder, slot_state->checksum.size);
-				json_builder_end_object(builder);	/* checksum */
+				json_builder_end_object(builder);       /* checksum */
 			}
 			if (slot_state->installed_timestamp) {
 				json_builder_set_member_name(builder, "installed");
-				json_builder_begin_object(builder);	/* installed */
+				json_builder_begin_object(builder);     /* installed */
 				json_builder_set_member_name(builder, "timestamp");
 				json_builder_add_string_value(builder, slot_state->installed_timestamp);
 				json_builder_set_member_name(builder, "count");
 				json_builder_add_int_value(builder, slot_state->installed_count);
-				json_builder_end_object(builder);	/* installed */
+				json_builder_end_object(builder);       /* installed */
 			}
 			if (slot_state->activated_timestamp) {
 				json_builder_set_member_name(builder, "activated");
-				json_builder_begin_object(builder);	/* activated */
+				json_builder_begin_object(builder);     /* activated */
 				json_builder_set_member_name(builder, "timestamp");
 				json_builder_add_string_value(builder, slot_state->activated_timestamp);
 				json_builder_set_member_name(builder, "count");
 				json_builder_add_int_value(builder, slot_state->activated_count);
-				json_builder_end_object(builder);	/* activated */
+				json_builder_end_object(builder);       /* activated */
 			}
 			if (slot_state->status) {
 				json_builder_set_member_name(builder, "status");
 				json_builder_add_string_value(builder, slot_state->status);
 			}
-			json_builder_end_object(builder);	/* slot_status */
+			json_builder_end_object(builder);       /* slot_status */
 		}
-		json_builder_end_object (builder);
-		json_builder_end_object (builder);
+		json_builder_end_object(builder);
+		json_builder_end_object(builder);
 	}
 
-	json_builder_end_array (builder);
+	json_builder_end_array(builder);
 
-	json_builder_end_object (builder);
+	json_builder_end_object(builder);
 
-	gen = json_generator_new ();
-	root = json_builder_get_root (builder);
-	json_generator_set_root (gen, root);
-	json_generator_set_pretty (gen, pretty);
-	str = json_generator_to_data (gen, NULL);
+	gen = json_generator_new();
+	root = json_builder_get_root(builder);
+	json_generator_set_root(gen, root);
+	json_generator_set_pretty(gen, pretty);
+	str = json_generator_to_data(gen, NULL);
 
-	json_node_free (root);
-	g_object_unref (gen);
-	g_object_unref (builder);
+	json_node_free(root);
+	g_object_unref(gen);
+	g_object_unref(builder);
 
 	return str;
 #else
@@ -1228,7 +1228,7 @@ static RaucSlotStatus* r_variant_get_slot_state(GVariant *vardict)
 static gboolean retrieve_slot_states_via_dbus(GError **error)
 {
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
-		? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
+	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 	GError *ierror = NULL;
 	RInstaller *proxy;
 	GVariant *slot_status_array, *vardict;
@@ -1240,13 +1240,13 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	proxy = r_installer_proxy_new_for_bus_sync(bus_type,
-						   G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
-						   "de.pengutronix.rauc", "/", NULL, &ierror);
+			G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
+			"de.pengutronix.rauc", "/", NULL, &ierror);
 	if (proxy == NULL) {
 		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_FAILED,
-			    "error creating proxy: %s", ierror->message);
+				G_IO_ERROR,
+				G_IO_ERROR_FAILED,
+				"error creating proxy: %s", ierror->message);
 		g_error_free(ierror);
 		return FALSE;
 	}
@@ -1254,9 +1254,9 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 	g_debug("Trying to contact rauc service");
 	if (!r_installer_call_get_slot_status_sync(proxy, &slot_status_array, NULL, &ierror)) {
 		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_FAILED,
-			    "error calling D-Bus method \"GetSlotStatus\": %s", ierror->message);
+				G_IO_ERROR,
+				G_IO_ERROR_FAILED,
+				"error calling D-Bus method \"GetSlotStatus\": %s", ierror->message);
 		g_error_free(ierror);
 		return FALSE;
 	}
@@ -1282,7 +1282,7 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 static gboolean status_start(int argc, char **argv)
 {
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
-		? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
+	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 	gchar *text = NULL;
 	gchar *slot_name = NULL;
 	gchar *message = NULL;
@@ -1313,7 +1313,7 @@ static gboolean status_start(int argc, char **argv)
 				load_slot_status(slot);
 		} else if (!retrieve_slot_states_via_dbus(&ierror)) {
 			message = g_strdup_printf("rauc status: error retrieving slot status via D-Bus: %s",
-						  ierror->message);
+					ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
 			goto out;
@@ -1362,18 +1362,18 @@ static gboolean status_start(int argc, char **argv)
 
 	if (ENABLE_SERVICE) {
 		proxy = r_installer_proxy_new_for_bus_sync(bus_type,
-			G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
-			"de.pengutronix.rauc", "/", NULL, &ierror);
+				G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
+				"de.pengutronix.rauc", "/", NULL, &ierror);
 		if (proxy == NULL) {
 			message = g_strdup_printf("rauc mark: error creating proxy: %s",
-						  ierror->message);
+					ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
 			goto out;
 		}
 		g_debug("Trying to contact rauc service");
 		if (!r_installer_call_mark_sync(proxy, state, slot_identifier,
-						&slot_name, &message, NULL, &ierror)) {
+				    &slot_name, &message, NULL, &ierror)) {
 			message = g_strdup(ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
@@ -1429,7 +1429,7 @@ typedef struct {
 	const gchar* name;
 	const gchar* usage;
 	const gchar* summary;
-	gboolean (*cmd_handler) (int argc, char **argv);
+	gboolean (*cmd_handler)(int argc, char **argv);
 	GOptionGroup* options;
 	gboolean while_busy;
 } RaucCommand;
@@ -1507,7 +1507,7 @@ static void cmdline_handler(int argc, char **argv)
 	g_option_context_set_help_enabled(context, FALSE);
 	g_option_context_set_ignore_unknown_options(context, TRUE);
 	g_option_context_add_main_entries(context, entries, NULL);
-	g_option_context_set_description(context, 
+	g_option_context_set_description(context,
 			"List of rauc commands:\n" \
 			"  bundle\tCreate a bundle\n" \
 			"  resign\tResign an already signed bundle\n" \
@@ -1541,7 +1541,7 @@ static void cmdline_handler(int argc, char **argv)
 
 	/* get first parameter wihtout dashes */
 	for (gint i = 1; i <= argc; i++) {
-		if (argv[i] && !g_str_has_prefix (argv[i], "-")) {
+		if (argv[i] && !g_str_has_prefix(argv[i], "-")) {
 			cmdarg = argv[i];
 			break;
 		}
@@ -1549,7 +1549,7 @@ static void cmdline_handler(int argc, char **argv)
 
 	if (cmdarg == NULL) {
 		if (version) {
-			g_print(PACKAGE_STRING"\n");
+			g_print(PACKAGE_STRING "\n");
 			goto done;
 		}
 

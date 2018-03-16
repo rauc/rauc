@@ -4,8 +4,8 @@
 
 #include "manifest.h"
 
-#define R_INSTALL_ERROR r_install_error_quark ()
-GQuark r_install_error_quark (void);
+#define R_INSTALL_ERROR r_install_error_quark()
+GQuark r_install_error_quark(void);
 
 typedef enum {
 	R_INSTALL_ERROR_FAILED,

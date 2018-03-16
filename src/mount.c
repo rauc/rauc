@@ -11,7 +11,7 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(10, g_free);
-	
+
 	if (getuid() != 0) {
 		g_ptr_array_add(args, g_strdup("sudo"));
 		g_ptr_array_add(args, g_strdup("--non-interactive"));
@@ -30,7 +30,7 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 	g_ptr_array_add(args, NULL);
 
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-				  G_SUBPROCESS_FLAGS_NONE, &ierror);
+			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -64,7 +64,7 @@ gboolean r_umount(const gchar *filename, GError **error) {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(10, g_free);
-	
+
 	if (getuid() != 0) {
 		g_ptr_array_add(args, g_strdup("sudo"));
 		g_ptr_array_add(args, g_strdup("--non-interactive"));
@@ -74,7 +74,7 @@ gboolean r_umount(const gchar *filename, GError **error) {
 	g_ptr_array_add(args, NULL);
 
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-				  G_SUBPROCESS_FLAGS_NONE, &ierror);
+			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -107,7 +107,7 @@ gchar* r_create_mount_point(const gchar *name, GError **error) {
 	prefix = r_context()->config->mount_prefix;
 	mountpoint = g_build_filename(prefix, name, NULL);
 
-	if (!g_file_test (mountpoint, G_FILE_TEST_IS_DIR)) {
+	if (!g_file_test(mountpoint, G_FILE_TEST_IS_DIR)) {
 		gint ret;
 		ret = g_mkdir_with_parents(mountpoint, 0700);
 

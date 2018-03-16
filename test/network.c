@@ -25,14 +25,14 @@ static void network_fixture_tear_down(NetworkFixture *fixture,
 }
 
 static void test_download_file(NetworkFixture *fixture,
-			       gconstpointer user_data)
+		gconstpointer user_data)
 {
 	const gchar *target;
 	GError *ierror = NULL;
 	gboolean res;
 
 	target = g_build_filename(fixture->tmpdir, "target", NULL);
-	
+
 	res = download_file(target, "http://example.com/", 0, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -80,8 +80,8 @@ int main(int argc, char *argv[])
 	g_test_add_func("/network/download_mem", test_download_mem);
 
 	g_test_add("/network/download_file", NetworkFixture, NULL,
-		   network_fixture_set_up, test_download_file,
-		   network_fixture_tear_down);
+			network_fixture_set_up, test_download_file,
+			network_fixture_tear_down);
 
 	return g_test_run();
 }

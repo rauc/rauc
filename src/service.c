@@ -51,8 +51,8 @@ static gboolean service_install_cleanup(gpointer data)
 }
 
 static gboolean r_on_handle_install(RInstaller *interface,
-				    GDBusMethodInvocation  *invocation,
-				    const gchar *source) {
+		GDBusMethodInvocation  *invocation,
+		const gchar *source) {
 	RaucInstallArgs *args = install_args_new();
 	gboolean res;
 
@@ -81,9 +81,9 @@ out:
 	} else {
 		r_installer_set_operation(r_installer, "idle");
 		g_dbus_method_invocation_return_error(invocation,
-				 		      G_IO_ERROR,
-						      G_IO_ERROR_FAILED_HANDLED,
-						      "rauc installer error");
+				G_IO_ERROR,
+				G_IO_ERROR_FAILED_HANDLED,
+				"rauc installer error");
 	}
 
 	return TRUE;
@@ -91,8 +91,8 @@ out:
 
 
 static gboolean r_on_handle_info(RInstaller *interface,
-				 GDBusMethodInvocation  *invocation,
-				 const gchar *arg_bundle)
+		GDBusMethodInvocation  *invocation,
+		const gchar *arg_bundle)
 {
 	gchar* tmpdir = NULL;
 	gchar* bundledir = NULL;
@@ -156,9 +156,9 @@ out:
 				manifest->update_version ? manifest->update_version : "");
 	} else {
 		g_dbus_method_invocation_return_error(invocation,
-						      G_IO_ERROR,
-						      G_IO_ERROR_FAILED_HANDLED,
-						      "rauc info error");
+				G_IO_ERROR,
+				G_IO_ERROR_FAILED_HANDLED,
+				"rauc info error");
 	}
 
 	g_clear_pointer(&bundle, free_bundle);
@@ -167,9 +167,9 @@ out:
 }
 
 static gboolean r_on_handle_mark(RInstaller *interface,
-				 GDBusMethodInvocation  *invocation,
-				 const gchar *arg_state,
-				 const gchar *arg_slot_identifier)
+		GDBusMethodInvocation  *invocation,
+		const gchar *arg_state,
+		const gchar *arg_slot_identifier)
 {
 	gchar *slot_name = NULL;
 	gchar *message = NULL;
@@ -196,9 +196,9 @@ out:
 		r_installer_complete_mark(interface, invocation, slot_name, message);
 	} else {
 		g_dbus_method_invocation_return_error(invocation,
-						      G_IO_ERROR,
-						      G_IO_ERROR_FAILED_HANDLED,
-						      "%s", message);
+				G_IO_ERROR,
+				G_IO_ERROR_FAILED_HANDLED,
+				"%s", message);
 	}
 	if (message)
 		g_message("rauc mark: %s", message);
@@ -324,7 +324,7 @@ static GVariant* create_slotstatus_array(void) {
 }
 
 static gboolean r_on_handle_get_slot_status(RInstaller *interface,
-			GDBusMethodInvocation  *invocation)
+		GDBusMethodInvocation  *invocation)
 {
 	gboolean res;
 
@@ -334,9 +334,9 @@ static gboolean r_on_handle_get_slot_status(RInstaller *interface,
 		r_installer_complete_get_slot_status(interface, invocation, create_slotstatus_array());
 	} else {
 		g_dbus_method_invocation_return_error(invocation,
-			G_IO_ERROR,
-			G_IO_ERROR_FAILED_HANDLED,
-			"already processing a different method");
+				G_IO_ERROR,
+				G_IO_ERROR_FAILED_HANDLED,
+				"already processing a different method");
 	}
 
 	return TRUE;
@@ -377,8 +377,8 @@ void set_last_error(gchar *message) {
 }
 
 static void send_progress_callback(gint percentage,
-				   const gchar *message,
-				   gint nesting_depth) {
+		const gchar *message,
+		gint nesting_depth) {
 
 	GVariant **progress_update;
 	GVariant *progress_update_tuple;
@@ -394,27 +394,27 @@ static void send_progress_callback(gint percentage,
 }
 
 static void r_on_bus_acquired(GDBusConnection *connection,
-			      const gchar     *name,
-			      gpointer         user_data) {
+		const gchar     *name,
+		gpointer user_data) {
 	GError *ierror = NULL;
 
 	r_installer = r_installer_skeleton_new();
 
 	g_signal_connect(r_installer, "handle-install",
-			 G_CALLBACK(r_on_handle_install),
-			 NULL);
+			G_CALLBACK(r_on_handle_install),
+			NULL);
 
 	g_signal_connect(r_installer, "handle-info",
-			 G_CALLBACK(r_on_handle_info),
-			 NULL);
+			G_CALLBACK(r_on_handle_info),
+			NULL);
 
 	g_signal_connect(r_installer, "handle-mark",
-			 G_CALLBACK(r_on_handle_mark),
-			 NULL);
+			G_CALLBACK(r_on_handle_mark),
+			NULL);
 
 	g_signal_connect(r_installer, "handle-get-slot-status",
-			 G_CALLBACK(r_on_handle_get_slot_status),
-			 NULL);
+			G_CALLBACK(r_on_handle_get_slot_status),
+			NULL);
 
 	r_context_register_progress_callback(send_progress_callback);
 
@@ -422,19 +422,19 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 	r_installer_set_operation(r_installer, "idle");
 
 	if (!g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(r_installer),
-					      connection,
-					      "/",
-					      &ierror)) {
+			    connection,
+			    "/",
+			    &ierror)) {
 		g_error("Failed to export interface: %s", ierror->message);
-		g_error_free (ierror);
+		g_error_free(ierror);
 	}
 
 	return;
 }
 
 static void r_on_name_acquired(GDBusConnection *connection,
-			       const gchar     *name,
-			       gpointer         user_data) {
+		const gchar     *name,
+		gpointer user_data) {
 	g_debug("name '%s' acquired", name);
 
 	if (r_context()->config->autoinstall_path)
@@ -444,8 +444,8 @@ static void r_on_name_acquired(GDBusConnection *connection,
 }
 
 static void r_on_name_lost(GDBusConnection *connection,
-			   const gchar     *name,
-			   gpointer         user_data) {
+		const gchar     *name,
+		gpointer user_data) {
 	if (connection == NULL) {
 		g_message("Connection to the bus can't be made for %s", name);
 	} else {
@@ -470,7 +470,7 @@ static gboolean r_on_signal(gpointer user_data)
 
 gboolean r_service_run(void) {
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
-		? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
+	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 
 	r_context();
 
@@ -478,12 +478,12 @@ gboolean r_service_run(void) {
 	g_unix_signal_add(SIGTERM, r_on_signal, NULL);
 
 	r_bus_name_id = g_bus_own_name(bus_type,
-				       "de.pengutronix.rauc",
-				       G_BUS_NAME_OWNER_FLAGS_NONE,
-				       r_on_bus_acquired,
-				       r_on_name_acquired,
-				       r_on_name_lost,
-				       NULL, NULL);
+			"de.pengutronix.rauc",
+			G_BUS_NAME_OWNER_FLAGS_NONE,
+			r_on_bus_acquired,
+			r_on_name_acquired,
+			r_on_name_lost,
+			NULL, NULL);
 
 	g_main_loop_run(service_loop);
 

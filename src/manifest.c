@@ -8,10 +8,10 @@
 #define RAUC_IMAGE_PREFIX	"image"
 #define RAUC_FILE_PREFIX	"file"
 
-#define R_MANIFEST_ERROR r_manifest_error_quark ()
-GQuark r_manifest_error_quark (void)
+#define R_MANIFEST_ERROR r_manifest_error_quark()
+GQuark r_manifest_error_quark(void)
 {
-  return g_quark_from_static_string ("r_manifest_error_quark");
+	return g_quark_from_static_string("r_manifest_error_quark");
 }
 
 static gboolean check_remaining_groups(GKeyFile *key_file, GError **error) {
@@ -77,7 +77,7 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 	gsize entries;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	
+
 	g_return_val_if_fail(key_file != NULL, FALSE);
 	g_return_val_if_fail(group != NULL, FALSE);
 	g_return_val_if_fail(image == NULL || *image == NULL, FALSE);
@@ -633,10 +633,10 @@ gboolean update_manifest(const gchar *dir, gboolean signature, GError **error) {
 
 	if (signature) {
 		sig = cms_sign_file(manifestpath,
-				    r_context()->certpath,
-				    r_context()->keypath,
-				    NULL,
-				    &ierror);
+				r_context()->certpath,
+				r_context()->keypath,
+				NULL,
+				&ierror);
 		if (sig == NULL) {
 			g_propagate_error(error, ierror);
 			goto out;
