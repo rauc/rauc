@@ -4,6 +4,8 @@
 #include <stdio.h>
 
 #include "bundle.h"
+#include "bootchooser.h"
+#include "config_file.h"
 #include "context.h"
 #include "install.h"
 #include "mark.h"
@@ -212,12 +214,38 @@ out:
  */
 static GVariant* convert_slot_status_to_dict(RaucSlot *slot) {
 	RaucSlotStatus *slot_state = NULL;
+	GError *ierror = NULL;
+	gboolean good = FALSE;
 	GVariantDict dict;
 
 	load_slot_status(slot);
 	slot_state = slot->status;
 
 	g_variant_dict_init(&dict, NULL);
+
+	if (slot->bootname && !r_boot_get_state(slot, &good, &ierror)) {
+		g_debug("Failed to obtain boot state for %s: %s", slot->name, ierror->message);
+		g_clear_error(&ierror);
+	}
+
+	if (slot->sclass)
+		g_variant_dict_insert(&dict, "class", "s", slot->sclass);
+	if (slot->device)
+		g_variant_dict_insert(&dict, "device", "s", slot->device);
+	if (slot->type)
+		g_variant_dict_insert(&dict, "type", "s", slot->type);
+	if (slot->bootname)
+		g_variant_dict_insert(&dict, "bootname", "s", slot->bootname);
+	if (slot->state)
+		g_variant_dict_insert(&dict, "state", "s", slotstate_to_str(slot->state));
+	if (slot->description)
+		g_variant_dict_insert(&dict, "description", "s", slot->description);
+	if (slot->parent)
+		g_variant_dict_insert(&dict, "parent", "s", slot->parent->name);
+	if (slot->mount_point)
+		g_variant_dict_insert(&dict, "mountpoint", "s", slot->mount_point);
+	if (slot->bootname)
+		g_variant_dict_insert(&dict, "boot-status", "s", good ? "good" : "bad");
 
 	if (slot_state->bundle_compatible)
 		g_variant_dict_insert(&dict, "bundle.compatible", "s", slot_state->bundle_compatible);
@@ -260,12 +288,20 @@ static GVariant* create_slotstatus_array(void) {
 	GVariant **slot_status_tuples;
 	GVariant *slot_status_array;
 	gint slot_count = 0;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
 	GHashTableIter iter;
 	RaucSlot *slot;
 
 	g_return_val_if_fail(r_installer, NULL);
 
 	slot_status_tuples = g_new(GVariant*, slot_number);
+
+	res = determine_slot_states(&ierror);
+	if (!res) {
+		g_debug("Failed to determine slot states: %s\n", ierror->message);
+		g_clear_error(&ierror);
+	}
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
