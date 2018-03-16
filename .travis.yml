@@ -25,14 +25,6 @@ addons:
     sources: &sources
       - ubuntu-toolchain-r-test
       - sourceline: 'deb http://archive.ubuntu.com/ubuntu/ trusty main restricted universe multiverse'
-  coverity_scan:
-    project:
-      name: "jluebbe/rauc"
-      description: "Robust Auto-Update Controller"
-    notification_email: jluebbe@lasnet.de
-    build_command_prepend: "cov-configure --comptype gcc --compiler gcc-7 --template && ./autogen.sh && ./configure"
-    build_command: "make -j2"
-    branch_pattern: master
 script:
   - ./autogen.sh
   - ./configure --enable-code-coverage
