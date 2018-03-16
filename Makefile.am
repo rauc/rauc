@@ -195,8 +195,8 @@ data/%: data/%.in
 SPHINXOPTS          =
 SPHINXBUILD         = sphinx-build
 PAPER               =
-DOCDIR              = docs
-SPHINXBUILDDIR      = $(DOCDIR)/build
+DOCDIR              = $(top_srcdir)/docs
+SPHINXBUILDDIR      = $(top_builddir)/docs/build
 
 .PHONY: check-valgrind check-valgrind-tool
 
