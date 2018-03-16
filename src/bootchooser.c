@@ -67,6 +67,10 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_ptr_array_add(args, g_strdup(BAREBOX_STATE_NAME));
+	if (r_context()->config->system_bb_statename) {
+		g_ptr_array_add(args, g_strdup("-n"));
+		g_ptr_array_add(args, g_strdup(r_context()->config->system_bb_statename));
+	}
 	g_ptr_array_add(args, g_strdup("-g"));
 	g_ptr_array_add(args, g_strdup_printf(BOOTSTATE_PREFIX ".%s.priority", bootname));
 	g_ptr_array_add(args, g_strdup("-g"));
@@ -155,6 +159,10 @@ static gboolean barebox_state_set(GPtrArray *pairs, GError **error) {
 	g_assert_cmpuint(pairs->len, >, 0);
 	
 	g_ptr_array_add(args, g_strdup(BAREBOX_STATE_NAME));
+	if (r_context()->config->system_bb_statename) {
+		g_ptr_array_add(args, g_strdup("-n"));
+		g_ptr_array_add(args, g_strdup(r_context()->config->system_bb_statename));
+	}
 	for (guint i = 0; i < pairs->len; i++) {
 		g_ptr_array_add(args, g_strdup("-s"));
 		g_ptr_array_add(args, g_strdup(pairs->pdata[i]));
