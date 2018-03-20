@@ -62,7 +62,7 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 	GDataInputStream *datainstream;
 	gchar* outline;
 	guint64 result[2] = {};
-	GPtrArray *args = g_ptr_array_new_full(6, g_free);
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(6, g_free);
 
 	g_return_val_if_fail(bootname, FALSE);
 	g_return_val_if_fail(bb_state, FALSE);
@@ -143,7 +143,6 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 	bb_state->attempts = result[1];
 
 out:
-	g_ptr_array_unref(args);
 	return res;
 }
 
@@ -154,7 +153,7 @@ static gboolean barebox_state_set(GPtrArray *pairs, GError **error)
 	GSubprocess *sub;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	GPtrArray *args = g_ptr_array_new_full(2*pairs->len+2, g_free);
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(2*pairs->len+2, g_free);
 
 	g_return_val_if_fail(pairs, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -192,7 +191,6 @@ static gboolean barebox_state_set(GPtrArray *pairs, GError **error)
 	}
 
 out:
-	g_ptr_array_unref(args);
 	return res;
 }
 
@@ -201,7 +199,7 @@ static gboolean barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
+	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(10, g_free);
 	int attempts;
 
 	g_return_val_if_fail(slot, FALSE);
@@ -227,7 +225,6 @@ static gboolean barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
 
 	res = TRUE;
 out:
-	g_ptr_array_unref(pairs);
 	return res;
 }
 
@@ -302,7 +299,7 @@ out:
 /* Set slot as primary boot slot */
 static gboolean barebox_set_primary(RaucSlot *slot, GError **error)
 {
-	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
+	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(10, g_free);
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GList *slots;
@@ -350,7 +347,6 @@ static gboolean barebox_set_primary(RaucSlot *slot, GError **error)
 
 	res = TRUE;
 out:
-	g_ptr_array_unref(pairs);
 	return res;
 }
 
@@ -401,7 +397,7 @@ out:
 /* Set slot status values */
 static gboolean grub_set_state(RaucSlot *slot, gboolean good, GError **error)
 {
-	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
+	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(10, g_free);
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -424,15 +420,14 @@ static gboolean grub_set_state(RaucSlot *slot, gboolean good, GError **error)
 
 	res = TRUE;
 out:
-	g_ptr_array_unref(pairs);
 	return res;
 }
 
 /* Set slot as primary boot slot */
 static gboolean grub_set_primary(RaucSlot *slot, GError **error)
 {
-	GPtrArray *pairs = g_ptr_array_new_full(10, g_free);
-	GString *order = NULL;
+	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(10, g_free);
+	g_autoptr(GString) order = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -453,9 +448,6 @@ static gboolean grub_set_primary(RaucSlot *slot, GError **error)
 
 	res = TRUE;
 out:
-	if (order)
-		g_string_free(order, TRUE);
-	g_ptr_array_unref(pairs);
 	return res;
 }
 
@@ -463,7 +455,7 @@ static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
 {
 	GSubprocess *sub;
 	GError *ierror = NULL;
-	GBytes *stdout_buf = NULL;
+	g_autoptr(GBytes) stdout_buf = NULL;
 	const char *data;
 	gsize offset;
 	gsize size;
@@ -521,8 +513,6 @@ static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
 	g_strchomp((*value)->str);
 
 out:
-	g_bytes_unref(stdout_buf);
-
 	return res;
 }
 
@@ -564,7 +554,7 @@ static gboolean uboot_set_state(RaucSlot *slot, gboolean good, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	gchar *key = NULL;
+	g_autofree gchar *key = NULL;
 
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -578,19 +568,18 @@ static gboolean uboot_set_state(RaucSlot *slot, gboolean good, GError **error)
 	}
 
 out:
-	g_free(key);
 	return res;
 }
 
 /* Set slot as primary boot slot */
 static gboolean uboot_set_primary(RaucSlot *slot, GError **error)
 {
-	GString *order_new = g_string_sized_new(10);
-	GString *order_current = NULL;
-	gchar **bootnames = NULL;
+	g_autoptr(GString) order_new = g_string_sized_new(10);
+	g_autoptr(GString) order_current = NULL;
+	g_auto(GStrv) bootnames = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	gchar *key = NULL;
+	g_autofree gchar *key = NULL;
 
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -635,11 +624,6 @@ static gboolean uboot_set_primary(RaucSlot *slot, GError **error)
 	}
 
 out:
-	g_string_free(order_current, TRUE);
-	if (order_new)
-		g_string_free(order_new, TRUE);
-	g_strfreev(bootnames);
-	g_free(key);
 	return res;
 }
 
@@ -750,7 +734,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 {
 	GSubprocess *sub = NULL;
 	GError *ierror = NULL;
-	GBytes *stdout_buf = NULL;
+	g_autoptr(GBytes) stdout_buf = NULL;
 	gboolean res = FALSE;
 	gint ret;
 	GRegex *regex = NULL;
@@ -869,8 +853,6 @@ out:
 	g_clear_pointer(&regex, g_regex_unref);
 	g_clear_pointer(&match, g_match_info_free);
 
-	g_bytes_unref(stdout_buf);
-
 	return res;
 }
 
@@ -924,7 +906,7 @@ static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend
 	GList *entries = NULL;
 	GList *all_entries = NULL;
 	GPtrArray *bootorder = NULL;
-	gchar *order = NULL;
+	g_autofree gchar *order = NULL;
 	gboolean res = FALSE;
 	GError *ierror = NULL;
 	efi_bootentry *efi_slot_entry = NULL;
@@ -990,7 +972,6 @@ static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend
 
 	res = TRUE;
 out:
-	g_free(order);
 	return res;
 }
 
