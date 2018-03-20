@@ -379,8 +379,8 @@ out:
 
 static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, gsize size, GError **error)
 {
-	g_autoptr(GFile) *infile = NULL;
-	g_autoptr(GFile) *outfile = NULL;
+	g_autoptr(GFile) infile = NULL;
+	g_autoptr(GFile) outfile = NULL;
 	g_autoptr(GFileInputStream) instream = NULL;
 	g_autoptr(GFileOutputStream) outstream = NULL;
 	GError *ierror = NULL;
@@ -470,8 +470,12 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	gchar *tmpdir = NULL, *contentdir = NULL, *mfpath = NULL, *storepath = NULL, *basepath = NULL;
-	RaucManifest *manifest = NULL;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *contentdir = NULL;
+	g_autofree gchar *mfpath = NULL;
+	g_autofree gchar *storepath = NULL;
+	gchar *basepath = NULL;
+	g_autoptr(RaucManifest) manifest = NULL;
 
 	g_return_val_if_fail(bundle, FALSE);
 	g_return_val_if_fail(outbundle, FALSE);
@@ -521,7 +525,9 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 	/* Iterate over each image and convert */
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		RaucImage *image = l->data;
-		gchar *imgpath = NULL, *idxfile = NULL, *idxpath = NULL;
+		g_autofree gchar *imgpath = NULL;
+		g_autofree gchar *idxfile = NULL;
+		g_autofree gchar *idxpath = NULL;
 
 		imgpath = g_build_filename(contentdir, image->filename, NULL);
 
@@ -533,9 +539,6 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 
 			res = casync_make_arch(idxpath, imgpath, storepath, &ierror);
 			if (!res) {
-				g_free(idxpath);
-				g_free(imgpath);
-
 				g_propagate_error(error, ierror);
 				goto out;
 			}
@@ -549,9 +552,6 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 			/* Generate index for content */
 			res = casync_make_blob(idxpath, imgpath, storepath, &ierror);
 			if (!res) {
-				g_free(idxpath);
-				g_free(imgpath);
-
 				g_propagate_error(error, ierror);
 				goto out;
 			}
@@ -559,15 +559,12 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 
 		/* Rewrite manifest filename */
 		g_free(image->filename);
-		image->filename = idxfile;
+		image->filename = g_steal_pointer(&idxfile);
 
 		/* Remove original file */
 		if (g_remove(imgpath) != 0) {
 			g_warning("Failed removing %s", imgpath);
 		}
-
-		g_free(idxpath);
-		g_free(imgpath);
 	}
 
 	/* Rewrite manifest to content/ dir */
@@ -588,12 +585,6 @@ out:
 	/* Remove temporary bundle creation directory */
 	if (tmpdir)
 		rm_tree(tmpdir, NULL);
-
-	g_clear_pointer(&manifest, free_manifest);
-	g_clear_pointer(&tmpdir, g_free);
-	g_clear_pointer(&contentdir, g_free);
-	g_clear_pointer(&mfpath, g_free);
-	g_clear_pointer(&storepath, g_free);
 	return res;
 }
 
@@ -630,13 +621,13 @@ static gboolean is_remote_scheme(const gchar *scheme)
 gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error)
 {
 	GError *ierror = NULL;
-	GBytes *sig = NULL;
-	GFile *bundlefile = NULL;
-	GFileInputStream *bundlestream = NULL;
+	g_autoptr(GBytes) sig = NULL;
+	g_autoptr(GFile) bundlefile = NULL;
+	g_autoptr(GFileInputStream) bundlestream = NULL;
 	guint64 sigsize;
 	goffset offset;
 	gboolean res = FALSE;
-	RaucBundle *ibundle = g_new0(RaucBundle, 1);
+	g_autoptr(RaucBundle) ibundle = g_new0(RaucBundle, 1);
 	gchar *bundlescheme = NULL;
 
 	g_return_val_if_fail(bundle == NULL || *bundle == NULL, FALSE);
@@ -788,15 +779,10 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	}
 
 	if (bundle)
-		*bundle = ibundle;
+		*bundle = g_steal_pointer(&ibundle);
 
 	res = TRUE;
 out:
-	if (!bundle)
-		free_bundle(ibundle);
-	g_clear_object(&bundlestream);
-	g_clear_object(&bundlefile);
-	g_clear_pointer(&sig, g_bytes_unref);
 	r_context_end_step("check_bundle", res);
 	return res;
 }
@@ -875,7 +861,6 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 
 	res = TRUE;
 out:
-
 	return res;
 }
 
