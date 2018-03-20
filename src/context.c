@@ -10,22 +10,19 @@ RaucContext *context = NULL;
 
 static const gchar *regex_match(const gchar *pattern, const gchar *string)
 {
-	GRegex *regex = NULL;
-	GMatchInfo *match = NULL;
-	const gchar *result = NULL;
+	g_autoptr(GRegex) regex = NULL;
+	g_autoptr(GMatchInfo) match = NULL;
 
 	regex = g_regex_new(pattern, 0, 0, NULL);
 	if (g_regex_match(regex, string, 0, &match))
-		result = g_match_info_fetch(match, 1);
+		return g_match_info_fetch(match, 1);
 
-	g_clear_pointer(&match, g_match_info_free);
-	g_clear_pointer(&regex, g_regex_unref);
-	return result;
+	return NULL;
 }
 
 static const gchar* get_cmdline_bootname(void)
 {
-	char *contents = NULL;
+	g_autofree gchar *contents = NULL;
 	static const char *bootname = NULL;
 	gchar buf[PATH_MAX + 1];
 	gchar *realdev = NULL;
@@ -38,7 +35,7 @@ static const gchar* get_cmdline_bootname(void)
 
 	bootname = regex_match("rauc\\.slot=(\\S+)", contents);
 	if (bootname)
-		goto out;
+		return bootname;
 
 	/* For barebox, we check if the bootstate code set the active slot name
 	 * in the command line */
@@ -47,12 +44,12 @@ static const gchar* get_cmdline_bootname(void)
 				"(?:bootstate|bootchooser)\\.active=(\\S+)",
 				contents);
 		if (bootname)
-			goto out;
+			return bootname;
 	}
 
 	bootname = regex_match("root=(\\S+)", contents);
 	if (!bootname)
-		goto out;
+		return NULL;
 
 	if (strncmp(bootname, "PARTUUID=", 9) == 0) {
 		gchar *partuuidpath = g_build_filename(
@@ -79,7 +76,7 @@ static const gchar* get_cmdline_bootname(void)
 	realdev = realpath(bootname, buf);
 	if (realdev == NULL) {
 		g_message("Failed to resolve realpath for '%s'", bootname);
-		goto out;
+		return bootname;
 	}
 
 	if (g_strcmp0(realdev, bootname) != 0) {
@@ -89,23 +86,19 @@ static const gchar* get_cmdline_bootname(void)
 		bootname = g_strdup(realdev);
 	}
 
-
-out:
-	g_clear_pointer(&contents, g_free);
-
 	return bootname;
 }
 
 static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTable *variables, GError **error)
 {
-	GSubprocessLauncher *handlelaunch = NULL;
-	GSubprocess *handleproc = NULL;
+	g_autoptr(GSubprocessLauncher) handlelaunch = NULL;
+	g_autoptr(GSubprocess) handleproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GHashTableIter iter;
 	gchar *key = NULL;
 	gchar *value = NULL;
-	GDataInputStream *datainstream = NULL;
+	g_autoptr(GDataInputStream) datainstream = NULL;
 	GInputStream *instream;
 	gchar* outline;
 
@@ -126,7 +119,7 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 
 	if (!handleproc) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	instream = g_subprocess_get_stdout_pipe(handleproc);
@@ -151,15 +144,10 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 	res = g_subprocess_wait_check(handleproc, NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
-out:
-	g_clear_object(&datainstream);
-	g_clear_object(&handleproc);
-	g_clear_object(&handlelaunch);
-	return res;
+	return TRUE;
 }
 
 static gchar* get_system_dtb_compatible(GError **error)
@@ -233,7 +221,7 @@ static void r_context_configure(void)
 	    g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
 
 		GError *ierror = NULL;
-		GHashTable *vars = NULL;
+		g_autoptr(GHashTable) vars = NULL;
 		GHashTableIter iter;
 		gchar *key = NULL;
 		gchar *value = NULL;
@@ -252,8 +240,6 @@ static void r_context_configure(void)
 			if (g_strcmp0(key, "RAUC_SYSTEM_SERIAL") == 0)
 				r_context_conf()->system_serial = g_strdup(value);
 		}
-
-		g_clear_pointer(&vars, g_hash_table_unref);
 	}
 
 	if (context->bootslot == NULL) {
