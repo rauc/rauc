@@ -265,7 +265,7 @@ static gboolean input_stream_read_bytes_all(GInputStream *stream,
 		GCancellable *cancellable,
 		GError **error)
 {
-	void *buffer = NULL;
+	g_autofree void *buffer = NULL;
 	gsize bytes_read;
 	gboolean res;
 
@@ -276,20 +276,19 @@ static gboolean input_stream_read_bytes_all(GInputStream *stream,
 	res = g_input_stream_read_all(stream, buffer, count, &bytes_read,
 			cancellable, error);
 	if (!res) {
-		g_free(buffer);
 		return res;
 	}
 	g_assert(bytes_read == count);
-	*bytes = g_bytes_new_take(buffer, count);
+	*bytes = g_bytes_new_take(g_steal_pointer(&buffer), count);
 	return TRUE;
 }
 
 static gboolean sign_bundle(const gchar *bundlename, GError **error)
 {
 	GError *ierror = NULL;
-	GBytes *sig = NULL;
-	GFile *bundlefile = NULL;
-	GFileOutputStream *bundlestream = NULL;
+	g_autoptr(GBytes) sig = NULL;
+	g_autoptr(GFile) bundlefile = NULL;
+	g_autoptr(GFileOutputStream) bundlestream = NULL;
 	gboolean res = FALSE;
 	guint64 offset;
 
@@ -353,9 +352,6 @@ static gboolean sign_bundle(const gchar *bundlename, GError **error)
 	}
 
 out:
-	g_clear_object(&bundlestream);
-	g_clear_object(&bundlefile);
-	g_clear_pointer(&sig, g_bytes_unref);
 	return res;
 }
 
@@ -383,9 +379,10 @@ out:
 
 static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, gsize size, GError **error)
 {
-	GFile *infile, *outfile = NULL;
-	GFileInputStream *instream = NULL;
-	GFileOutputStream *outstream = NULL;
+	g_autoptr(GFile) *infile = NULL;
+	g_autoptr(GFile) *outfile = NULL;
+	g_autoptr(GFileInputStream) instream = NULL;
+	g_autoptr(GFileOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gssize ssize;
@@ -432,9 +429,6 @@ static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, gsize
 
 	res = TRUE;
 out:
-	g_clear_object(&outstream);
-	g_clear_object(&infile);
-	g_clear_object(&outfile);
 	return res;
 }
 
