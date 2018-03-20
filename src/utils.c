@@ -47,23 +47,16 @@ gboolean copy_file(const gchar *srcprefix, const gchar *srcfile,
 {
 	gboolean res = FALSE;
 	GError *ierror = NULL;
-	gchar *srcpath = g_build_filename(srcprefix, srcfile, NULL);
-	gchar *dstpath = g_build_filename(dstprefix, dstfile, NULL);
-	GFile *src = g_file_new_for_path(srcpath);
-	GFile *dst = g_file_new_for_path(dstpath);
+	g_autofree gchar *srcpath = g_build_filename(srcprefix, srcfile, NULL);
+	g_autofree gchar *dstpath = g_build_filename(dstprefix, dstfile, NULL);
+	g_autoptr(GFile) src = g_file_new_for_path(srcpath);
+	g_autoptr(GFile) dst = g_file_new_for_path(dstpath);
 
 	res = g_file_copy(src, dst, G_FILE_COPY_NONE, NULL, NULL, NULL,
 			&ierror);
-	if (!res) {
+	if (!res)
 		g_propagate_error(error, ierror);
-		goto out;
-	}
 
-out:
-	g_object_unref(src);
-	g_object_unref(dst);
-	g_clear_pointer(&srcpath, g_free);
-	g_clear_pointer(&dstpath, g_free);
 	return res;
 }
 
@@ -101,7 +94,9 @@ gboolean rm_tree(const gchar *path, GError **error)
 
 gchar *resolve_path(const gchar *basefile, gchar *path)
 {
-	gchar *cwd = NULL, *dir = NULL, *res = NULL;
+	g_autofree gchar *cwd = NULL;
+	g_autofree gchar *dir = NULL;
+	g_autofree gchar *res = NULL;
 
 	if (path == NULL)
 		return NULL;
@@ -110,17 +105,9 @@ gchar *resolve_path(const gchar *basefile, gchar *path)
 		return path;
 
 	dir = g_path_get_dirname(basefile);
-	if (g_path_is_absolute(dir)) {
-		res = g_build_filename(dir, path, NULL);
-		goto out;
-	}
+	if (g_path_is_absolute(dir))
+		return g_build_filename(dir, path, NULL);
 
 	cwd = g_get_current_dir();
-	res = g_build_filename(cwd, dir, path, NULL);
-
-out:
-	g_clear_pointer(&cwd, g_free);
-	g_clear_pointer(&dir, g_free);
-	g_clear_pointer(&path, g_free);
-	return res;
+	return g_build_filename(cwd, dir, path, NULL);
 }
