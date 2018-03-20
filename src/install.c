@@ -45,21 +45,15 @@ static void install_args_update(RaucInstallArgs *args, const gchar *msg)
 
 static gchar *resolve_loop_device(const gchar *devicepath)
 {
-	gchar *devicename = NULL;
-	gchar *syspath = NULL;
-	gchar *res = NULL;
+	g_autofree gchar *devicename = NULL;
+	g_autofree gchar *syspath = NULL;
 
 	if (!g_str_has_prefix(devicepath, "/dev/loop"))
 		return g_strdup(devicepath);
 
 	devicename = g_path_get_basename(devicepath);
 	syspath = g_build_filename("/sys/block", devicename, "loop/backing_file", NULL);
-	res = g_strchomp(read_file_str(syspath, NULL));
-
-	g_free(syspath);
-	g_free(devicename);
-
-	return res;
+	return g_strchomp(read_file_str(syspath, NULL));
 }
 
 gboolean determine_slot_states(GError **error)
@@ -87,14 +81,13 @@ gboolean determine_slot_states(GError **error)
 	mountlist = g_unix_mounts_get(NULL);
 	for (GList *l = mountlist; l != NULL; l = l->next) {
 		GUnixMountEntry *m = (GUnixMountEntry*)l->data;
-		gchar *devicepath = resolve_loop_device(g_unix_mount_get_device_path(m));
+		g_autofree gchar *devicepath = resolve_loop_device(g_unix_mount_get_device_path(m));
 		RaucSlot *s = find_config_slot_by_device(r_context()->config,
 				devicepath);
 		if (s) {
 			s->ext_mount_point = g_strdup(g_unix_mount_get_mount_path(m));
 			g_debug("Found external mountpoint for slot %s at %s", s->name, s->ext_mount_point);
 		}
-		g_free(devicepath);
 	}
 	g_list_free_full(mountlist, (GDestroyNotify)g_unix_mount_free);
 
@@ -158,7 +151,6 @@ gboolean determine_slot_states(GError **error)
 	}
 
 	if (!booted) {
-
 		if (g_strcmp0(r_context()->bootslot, "/dev/nfs") == 0) {
 			g_message("Detected nfs boot, ignoring missing active slot");
 			res = TRUE;
@@ -353,7 +345,6 @@ GHashTable* determine_target_install_group(void)
 	gchar **rootclasses = NULL;
 	GHashTable *targetgroup = NULL;
 	GHashTableIter iter;
-	gboolean res = FALSE;
 	RaucSlot *iterslot = NULL;
 	GList *selected_root_slots = NULL;
 
@@ -391,11 +382,7 @@ GHashTable* determine_target_install_group(void)
 		}
 	}
 
-	res = TRUE;
-
-	if (!res)
-		g_clear_pointer(&targetgroup, g_hash_table_unref);
-	r_context_end_step("determine_target_install_group", res);
+	r_context_end_step("determine_target_install_group", TRUE);
 
 	return targetgroup;
 }
@@ -473,19 +460,19 @@ out:
 
 static void parse_handler_output(gchar* line)
 {
-	gchar **split = NULL;
+	g_auto(GStrv) split = NULL;
 
 	g_assert_nonnull(line);
 
 	if (!g_str_has_prefix(line, "<< ")) {
 		g_print("# %s\n", line);
-		goto out;
+		return;
 	}
 
 	split = g_strsplit(line, " ", 5);
 
 	if (!split[1])
-		goto out;
+		return;
 
 	if (g_strcmp0(split[1], "handler") == 0) {
 		g_print("Handler status: %s\n", split[2]);
@@ -498,9 +485,6 @@ static void parse_handler_output(gchar* line)
 	} else {
 		g_print("Unknown command: %s\n", split[1]);
 	}
-
-out:
-	g_strfreev(split);
 }
 
 static gboolean verify_compatible(RaucManifest *manifest)
@@ -523,8 +507,8 @@ static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_sou
 	GHashTableIter iter;
 	RaucSlot *slot;
 	gint slotcnt = 0;
-	gchar *targetlist = NULL;
-	gchar *slotlist = NULL;
+	g_autofree gchar *targetlist = NULL;
+	g_autofree gchar *slotlist = NULL;
 
 	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_CONFIG", r_context()->configpath, TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_CURRENT_BOOTNAME", r_context()->bootslot, TRUE);
@@ -598,14 +582,12 @@ static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_sou
 
 	g_subprocess_launcher_setenv(launcher, "RAUC_SLOTS", slotlist, TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_TARGET_SLOTS", targetlist, TRUE);
-	g_clear_pointer(&targetlist, g_free);
-	g_clear_pointer(&slotlist, g_free);
 }
 
 static gboolean launch_and_wait_handler(gchar *update_source, gchar *handler_name, RaucManifest *manifest, GHashTable *target_group, GError **error)
 {
-	GSubprocessLauncher *handlelaunch = NULL;
-	GSubprocess *handleproc = NULL;
+	g_autoptr(GSubprocessLauncher) handlelaunch = NULL;
+	g_autoptr(GSubprocess) handleproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GInputStream *instream = NULL;
@@ -646,16 +628,14 @@ static gboolean launch_and_wait_handler(gchar *update_source, gchar *handler_nam
 	res = TRUE;
 
 out:
-	g_clear_pointer(&handlelaunch, g_object_unref);
-	g_clear_pointer(&handleproc, g_object_unref);
 	return res;
 }
 
 static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const gchar *hook_cmd, GError **error)
 {
-	gchar *hook_name = NULL;
-	GSubprocessLauncher *launcher = NULL;
-	GSubprocess *sproc = NULL;
+	g_autofree gchar *hook_name = NULL;
+	g_autoptr(GSubprocessLauncher) launcher = NULL;
+	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	GInputStream *instream = NULL;
 	GDataInputStream *datainstream = NULL;
@@ -723,15 +703,12 @@ static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const 
 	}
 
 out:
-	g_clear_pointer(&launcher, g_object_unref);
-	g_clear_pointer(&sproc, g_object_unref);
-	g_clear_pointer(&hook_name, g_free);
 	return res;
 }
 
 static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error)
 {
-	gchar* handler_name = NULL;
+	g_autofree gchar* handler_name = NULL;
 	gboolean res = FALSE;
 
 	r_context_begin_step("launch_and_wait_custom_handler", "Launching update handler", 0);
@@ -757,7 +734,6 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bun
 	res = launch_and_wait_handler(bundledir, handler_name, manifest, target_group, error);
 
 out:
-	g_free(handler_name);
 	r_context_end_step("launch_and_wait_custom_handler", res);
 	return res;
 }
@@ -1023,13 +999,13 @@ static gboolean reuse_existing_file_checksum(const RaucChecksum *checksum, const
 {
 	GError *error = NULL;
 	gboolean res = FALSE;
-	gchar *basename = g_path_get_basename(filename);
+	g_autofree gchar *basename = g_path_get_basename(filename);
 	GHashTableIter iter;
 	RaucSlot *slot;
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
-		gchar *srcname = NULL;
+		g_autofree gchar *srcname = NULL;
 		if (!slot->mount_point)
 			goto next;
 		srcname = g_build_filename(slot->mount_point, basename, NULL);
@@ -1044,12 +1020,10 @@ static gboolean reuse_existing_file_checksum(const RaucChecksum *checksum, const
 		}
 
 next:
-		g_clear_pointer(&srcname, g_free);
 		if (res)
 			break;
 	}
 
-	g_clear_pointer(&basename, g_free);
 	return res;
 }
 
@@ -1095,7 +1069,7 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 
 	// for slot in target_group
 	for (gchar **cls = fileclasses; *cls != NULL; cls++) {
-		gchar *slotstatuspath = NULL;
+		g_autofree gchar *slotstatuspath = NULL;
 		RaucSlotStatus *slot_state = g_new0(RaucSlotStatus, 1);
 
 		RaucSlot *slot = g_hash_table_lookup(target_group, *cls);
@@ -1123,10 +1097,11 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 		// for file targeting this slot
 		for (GList *l = manifest->files; l != NULL; l = l->next) {
 			RaucFile *mffile = l->data;
-			gchar *filename = g_build_filename(slot->mount_point,
+			g_autofree gchar *filename = g_build_filename(
+					slot->mount_point,
 					mffile->destname,
 					NULL);
-			gchar *fileurl = g_strconcat(base_url, "/",
+			g_autofree gchar *fileurl = g_strconcat(base_url, "/",
 					mffile->filename, NULL);
 
 			res = verify_checksum(&mffile->checksum, filename, NULL);
@@ -1151,8 +1126,6 @@ static gboolean launch_and_wait_network_handler(const gchar* base_url,
 			}
 
 file_out:
-			g_clear_pointer(&filename, g_free);
-			g_clear_pointer(&fileurl, g_free);
 			if (!res) {
 				invalid = TRUE;
 				goto slot_out;
@@ -1171,7 +1144,6 @@ file_out:
 		}
 
 slot_out:
-		g_clear_pointer(&slotstatuspath, g_free);
 		g_clear_pointer(&slot_state, free_slot_status);
 		res = r_umount_slot(slot, &ierror);
 		if (!res) {
@@ -1238,10 +1210,10 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	const gchar* bundlefile = args->name;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	RaucManifest *manifest = NULL;
-	RaucBundle *bundle = NULL;
+	g_autoptr(RaucManifest) manifest = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
 	GHashTable *target_group;
-	gchar* manifestpath = NULL;
+	g_autofree gchar* manifestpath = NULL;
 
 	g_assert_nonnull(bundlefile);
 	g_assert_null(r_context()->install_info->mounted_bundle);
@@ -1335,9 +1307,6 @@ umount:
 	r_context()->install_info->mounted_bundle = NULL;
 
 out:
-	g_free(manifestpath);
-	g_clear_pointer(&bundle, free_bundle);
-	g_clear_pointer(&manifest, free_manifest);
 	r_context_end_step("do_install_bundle", res);
 
 	return res;
@@ -1348,10 +1317,12 @@ gboolean do_install_network(const gchar *url, GError **error)
 #if ENABLE_NETWORK
 	gboolean res = FALSE;
 	GError *ierror = NULL;
-	gchar *base_url = NULL, *signature_url = NULL;
-	GBytes *manifest_data = NULL, *signature_data = NULL;
-	RaucManifest *manifest = NULL;
-	GHashTable *target_group = NULL;
+	g_autofree gchar *base_url = NULL;
+	g_autofree gchar *signature_url = NULL;
+	g_autoptr(GBytes) manifest_data = NULL;
+	g_autoptr(GBytes) signature_data = NULL;
+	g_autoptr(RaucManifest) manifest = NULL;
+	g_autoptr(GHashTable) target_group = NULL;
 
 	g_assert_nonnull(url);
 
@@ -1434,13 +1405,6 @@ gboolean do_install_network(const gchar *url, GError **error)
 	res = TRUE;
 
 out:
-	g_clear_pointer(&target_group, g_hash_table_unref);
-	g_clear_pointer(&manifest, free_manifest);
-	g_clear_pointer(&base_url, g_free);
-	g_clear_pointer(&signature_url, g_free);
-	g_clear_pointer(&manifest_data, g_bytes_unref);
-	g_clear_pointer(&signature_data, g_bytes_unref);
-
 	return res;
 #else
 	g_set_error_literal(
@@ -1525,7 +1489,7 @@ void install_args_free(RaucInstallArgs *args)
 
 gboolean install_run(RaucInstallArgs *args)
 {
-	GThread *thread = NULL;
+	g_autoptr(GThread) thread = NULL;
 	r_context_set_busy(TRUE);
 
 	g_print("Active slot bootname: %s\n", r_context()->bootslot);
@@ -1533,8 +1497,6 @@ gboolean install_run(RaucInstallArgs *args)
 	thread = g_thread_new("installer", install_thread, args);
 	if (thread == NULL)
 		return FALSE;
-
-	g_thread_unref(thread);
 
 	return TRUE;
 }
