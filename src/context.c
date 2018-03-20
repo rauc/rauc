@@ -8,10 +8,23 @@
 
 RaucContext *context = NULL;
 
-static const gchar* get_cmdline_bootname(void)
+static const gchar *regex_match(const gchar *pattern, const gchar *string)
 {
 	GRegex *regex = NULL;
 	GMatchInfo *match = NULL;
+	const gchar *result = NULL;
+
+	regex = g_regex_new(pattern, 0, 0, NULL);
+	if (g_regex_match(regex, string, 0, &match))
+		result = g_match_info_fetch(match, 1);
+
+	g_clear_pointer(&match, g_match_info_free);
+	g_clear_pointer(&regex, g_regex_unref);
+	return result;
+}
+
+static const gchar* get_cmdline_bootname(void)
+{
 	char *contents = NULL;
 	static const char *bootname = NULL;
 	gchar buf[PATH_MAX + 1];
@@ -23,30 +36,21 @@ static const gchar* get_cmdline_bootname(void)
 	if (!g_file_get_contents("/proc/cmdline", &contents, NULL, NULL))
 		return NULL;
 
-	regex = g_regex_new("rauc\\.slot=(\\S+)", 0, 0, NULL);
-	if (g_regex_match(regex, contents, 0, &match)) {
-		bootname = g_match_info_fetch(match, 1);
+	bootname = regex_match("rauc\\.slot=(\\S+)", contents);
+	if (bootname)
 		goto out;
-	}
-	g_clear_pointer(&match, g_match_info_free);
-	g_clear_pointer(&regex, g_regex_unref);
 
 	/* For barebox, we check if the bootstate code set the active slot name
 	 * in the command line */
 	if (g_strcmp0(context->config->system_bootloader, "barebox") == 0) {
-		regex = g_regex_new("(?:bootstate|bootchooser)\\.active=(\\S+)", 0, 0, NULL);
-		if (g_regex_match(regex, contents, 0, &match)) {
-			bootname = g_match_info_fetch(match, 1);
+		bootname = regex_match(
+				"(?:bootstate|bootchooser)\\.active=(\\S+)",
+				contents);
+		if (bootname)
 			goto out;
-		}
-		g_clear_pointer(&match, g_match_info_free);
-		g_clear_pointer(&regex, g_regex_unref);
 	}
 
-	regex = g_regex_new("root=(\\S+)", 0, 0, NULL);
-	if (g_regex_match(regex, contents, 0, &match)) {
-		bootname = g_match_info_fetch(match, 1);
-	}
+	bootname = regex_match("root=(\\S+)", contents);
 	if (!bootname)
 		goto out;
 
@@ -87,8 +91,6 @@ static const gchar* get_cmdline_bootname(void)
 
 
 out:
-	g_clear_pointer(&match, g_match_info_free);
-	g_clear_pointer(&regex, g_regex_unref);
 	g_clear_pointer(&contents, g_free);
 
 	return bootname;
