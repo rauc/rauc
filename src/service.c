@@ -96,11 +96,11 @@ static gboolean r_on_handle_info(RInstaller *interface,
 		GDBusMethodInvocation  *invocation,
 		const gchar *arg_bundle)
 {
-	gchar* tmpdir = NULL;
-	gchar* bundledir = NULL;
-	gchar* manifestpath = NULL;
+	g_autofree gchar* tmpdir = NULL;
+	g_autofree gchar* bundledir = NULL;
+	g_autofree gchar* manifestpath = NULL;
 	RaucManifest *manifest = NULL;
-	RaucBundle *bundle = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
 	GError *error = NULL;
 	gboolean res = TRUE;
 
@@ -146,10 +146,6 @@ out:
 	if (tmpdir)
 		rm_tree(tmpdir, NULL);
 
-	g_clear_pointer(&tmpdir, g_free);
-	g_clear_pointer(&bundledir, g_free);
-	g_clear_pointer(&manifestpath, g_free);
-
 	if (res) {
 		r_installer_complete_info(
 				interface,
@@ -163,8 +159,6 @@ out:
 				"rauc info error");
 	}
 
-	g_clear_pointer(&bundle, free_bundle);
-
 	return TRUE;
 }
 
@@ -173,8 +167,8 @@ static gboolean r_on_handle_mark(RInstaller *interface,
 		const gchar *arg_state,
 		const gchar *arg_slot_identifier)
 {
-	gchar *slot_name = NULL;
-	gchar *message = NULL;
+	g_autofree gchar *slot_name = NULL;
+	g_autofree gchar *message = NULL;
 	GError *ierror = NULL;
 	gboolean res;
 
@@ -204,9 +198,6 @@ out:
 	}
 	if (message)
 		g_message("rauc mark: %s", message);
-
-	g_free(slot_name);
-	g_free(message);
 
 	return TRUE;
 }
