@@ -47,6 +47,8 @@ static const gchar* get_cmdline_bootname(void)
 	if (g_regex_match(regex, contents, 0, &match)) {
 		bootname = g_match_info_fetch(match, 1);
 	}
+	if (!bootname)
+		goto out;
 
 	if (strncmp(bootname, "PARTUUID=", 9) == 0) {
 		gchar *partuuidpath = g_build_filename(
