@@ -51,5 +51,5 @@ Terminology
     The bootloader component that determines which slot to boot from.
 
   Recovery System
-    A non-updatable initial (fatory default) system, capable of running the
+    A non-updatable initial (factory default) system, capable of running the
     update service to recover the system if all other slots are damaged.

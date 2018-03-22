@@ -228,7 +228,7 @@ will abort installation with an error.
   [handlers]
   post-install=/usr/lib/rauc/post-install
 
-The post install handler will be called right after RAUC successfully performed
+The post-install handler will be called right after RAUC successfully performed
 a system update. If any error occurred during installation, the post-install
 handler will not be called.
 
@@ -328,7 +328,7 @@ the hook executable as the rejection reason message and provide it to the user:
   case "$1" in
           install-check)
                   if [[ "$RAUC_MF_COMPATIBLE" != "$RAUC_SYSTEM_COMPATIBLE" ]]; then
-                          echo "Comptaible does not match!" 1>&2
+                          echo "Compatible does not match!" 1>&2
                           exit 10
                   fi
                   ;;
