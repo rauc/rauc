@@ -165,7 +165,7 @@ also allows installing file system content from (compressed) tar archives.
 
 In addition to the need for different methods to write to storage (simple copy
 for block devices, nandwrite for NAND, ubiupdatevol for UBI volumes, …) the
-tar-based installation requires additional handling and prepartation of storage.
+tar-based installation requires additional handling and preparation of storage.
 
 Thus, the possible and required handling depends on both the type of input
 image (e.g. .tar.xz, .ext4, .img) as well as the type of storage.

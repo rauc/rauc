@@ -41,7 +41,7 @@ parameters for certificates and additional parameters to be stored during
 signing.
 Configuring a CA correctly (and securely) is a complex topic and obviously
 exceeds the scope of this documentation.
-As a starting point, the OpenSSL manual pages (espcially ca_, req_, x509_, cms_,
+As a starting point, the OpenSSL manual pages (especially ca_, req_, x509_, cms_,
 verify_ and config_) and Stefan H. Holek's pki-tutorial_ are useful.
 
 .. _ca: https://www.openssl.org/docs/manmaster/man1/ca.html
@@ -134,7 +134,7 @@ the release case.
 
 Doing this would be possible in a slot's post-install hook, for example.
 Depending on whether the bundle to install was signed with a development or a
-relase certificate, either the production or development keyring will be copied
+release certificate, either the production or development keyring will be copied
 to the location where RAUC expects it to be.
 
 To allow comparing hashes, RAUC generates SPKI hashes (i.e. hashes over the
@@ -208,7 +208,7 @@ over or can access the data of the old system.
 Storing Data in The Root File System
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In case of a writeable root file system, it often contains additional data,
+In case of a writable root file system, it often contains additional data,
 for example cryptographic material specific to the machine, or configuration
 files modified by the user.
 When performing the update, you have to ensure that the files you need to
@@ -221,8 +221,8 @@ For migrating data from your old rootfs to your updated rootfs,
 simply specify a slot post-install hook.
 Read the :ref:`Hooks <sec-hooks>` chapter on how to create one.
 
-Using Data Partions
-~~~~~~~~~~~~~~~~~~~
+Using Data Partitions
+~~~~~~~~~~~~~~~~~~~~~
 
 Often, there are a couple of reasons why you don't want to or cannot store
 your data inside the root file system:
@@ -477,7 +477,7 @@ On all other systems, the default image will be used instead.
 If you have a specific image variant for one of your systems,
 it is mandatory to also have a default or specific variant for the same slot
 class for any other system you intend to update.
-RAUC will report an error if for example a booloader image is only present for
+RAUC will report an error if for example a bootloader image is only present for
 variant A when you try to install on variant B.
 This should prevent from bricking your device by unintentional partial updates.
 
@@ -650,14 +650,14 @@ RAUC is rather strict in parsing the manifest and will reject bundles
 containing unknown configuration options.
 
 But, this does not prevent you from being able to use those new RAUC features
-on your current sytem.
+on your current system.
 All you have to do is to perform an *intermediate update*:
 
 * Create a bundle containing a rootfs with the recent RAUC version,
   but *not* containing the new RAUC features in its manifest.
 * Update your system and reboot
 * Now you have a system with a recent RAUC version which is able to
-  interpretate and appropriately handle a bundle with the latest options
+  interpret and appropriately handle a bundle with the latest options
 
 Software Deployment
 -------------------
