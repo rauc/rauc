@@ -26,7 +26,7 @@ done
 if test -n "${bootargs}"; then
   saveenv
 else
-  echo "No vaild slot found, resetting tries to 3"
+  echo "No valid slot found, resetting tries to 3"
   setenv BOOT_A_LEFT 3
   setenv BOOT_B_LEFT 3
   saveenv
