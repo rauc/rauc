@@ -544,8 +544,8 @@ A ``system.conf`` could look like this:
 
   A kernel bug may prevent consistent toggling of the eMMC ext_csd boot
   partition register.
-  Be sure your kernel contains this patch:
-  https://www.spinics.net/lists/linux-mmc/msg48271.html
+  Be sure your kernel is >= 4.16-rc7 (resp. >= 4.15.14, >= 4.14.31) or contains
+  this patch: https://www.spinics.net/lists/linux-mmc/msg48271.html
 
 Bootloader Update Ideas
 ~~~~~~~~~~~~~~~~~~~~~~~
