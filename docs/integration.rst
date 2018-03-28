@@ -768,13 +768,20 @@ with the following content::
 
   FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
-  SRC_URI_append := "file://system.conf"
-
 Write a ``system.conf`` for your board and place it in the folder you mentioned
 in the recipe (`meta-your-bsp/recipes-core/rauc/files`). This file must provide
 a system compatible string to identify your system type, as well as a
 definition of all slots in your system. By default, the system configuration
 will be placed in `/etc/rauc/system.conf` on your target rootfs.
+
+Also place the appropriate keyring file for your target into the directory
+added to ``FILESEXTRAPATHS`` above. Name it either ``ca.cert.pem`` or
+additionally specify the name of your custom file by setting
+``RAUC_KEYRING_FILE``.
+
+.. note::
+  For information on how to create a testing / development
+  key/cert/keyring, please refer to `scripts/README` in meta-rauc.
 
 For a reference of allowed configuration options in system.conf,
 see :ref:`sec_ref_slot_config`.
@@ -832,12 +839,45 @@ For using the built-in bundle generation, you need to specify some variables:
 
 ``RAUC_SLOT_<slotclass>[type]``
   For each slot class, set this to the *type* of image you intend to place in
-  this slot. Possible types are: ``rootfs`` (default), ``kernel``,
-  ``bootloader``.
+  this slot. Possible types are: ``image`` (default), ``kernel``,
+  ``boot``, or ``file``.
 
-Based on this information, your bundle recipe will build all required
-components and generate a bundle from this. The created bundle can be found in
-``tmp/deploy/images/<machine>/bundles`` in your build directory.
+.. note::
+  For a full list of supported variables, refer to `classes/bundle.bbclass` in
+  meta-rauc.
+
+A minimal bundle recipe, such as `core-bundle-minimal.bb` that is contained in
+meta-rauc will look as follows::
+
+  inherit bundle
+
+  RAUC_BUNDLE_COMPATIBLE ?= "Demo Board"
+
+  RAUC_BUNDLE_SLOTS ?= "rootfs"
+
+  RAUC_SLOT_rootfs ?= "core-image-minimal"
+
+
+To be able to build a signed image of this, you also need to configure
+``RAUC_KEY_FILE`` and ``RAUC_CERT_FILE`` to point to your key and certifcate
+files you intend to use for signing. You may set them either from your bundle
+recipe or any global configuration (layer, site.conf, etc.), e.g.::
+
+  RAUC_KEY_FILE = "${COREBASE}/meta-<layername>/files/development-1.key.pem"
+  RAUC_CERT_FILE = "${COREBASE}/meta-<layername>/files/development-1.cert.pem"
+
+.. note::
+  For information on how to create a testing / development
+  key/cert/keyring, please refer to `scripts/README` in meta-rauc.
+
+Based on this information, a call of::
+
+  bitbake core-bundle-minimal
+
+will build all required images and generate a signed RAUC bundle from this.
+The created bundle can be found in
+``${DELPOY_DIR_IMAGE}``
+(defaults to ``tmp/deploy/images/<machine>`` in your build directory).
 
 .. _sec_int_ptxdist:
 
