@@ -205,6 +205,7 @@ static void install_fixture_tear_down(InstallFixture *fixture,
 		return;
 
 	test_umount(fixture->tmpdir, "slot");
+	test_umount(fixture->tmpdir, "bootloader");
 	test_rm_tree(fixture->tmpdir, "");
 }
 
