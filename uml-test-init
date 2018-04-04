@@ -14,11 +14,16 @@ if [ -d /usr/lib/uml/modules ]; then
     mount --bind /usr/lib/uml/modules /lib/modules
 fi
 
-ip addr add 127.0.0.1 dev lo
-ip link set lo up
-ip addr add 10.0.2.15/24 dev eth0
-ip link set eth0 up
-ip route add default via 10.0.2.2
+if [ -d /sys/class/net/lo ]; then
+    ip addr add 127.0.0.1 dev lo
+    ip link set lo up
+fi
+
+if [ -d /sys/class/net/eth0 -a -x /usr/bin/slirp-fullbolt ]; then
+    ip addr add 10.0.2.15/24 dev eth0
+    ip link set eth0 up
+    ip route add default via 10.0.2.2
+fi
 
 modprobe loop max_loop=24
 for i in $(seq 0 23); do
