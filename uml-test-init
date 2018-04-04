@@ -49,6 +49,7 @@ chown root:root /tmp/system.d/de.pengutronix.rauc.conf
 chmod 644 /tmp/system.d/de.pengutronix.rauc.conf
 mount --bind /tmp/system.d /etc/dbus-1/system.d
 mkdir /tmp/var_run_dbus
+mkdir -p /var/run/dbus
 mount --bind /tmp/var_run_dbus /var/run/dbus
 dbus-daemon --system --fork --nopidfile
 
