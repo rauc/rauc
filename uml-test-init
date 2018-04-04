@@ -17,7 +17,10 @@ ip addr add 10.0.2.15/24 dev eth0
 ip link set eth0 up
 ip route add default via 10.0.2.2
 
-modprobe loop
+modprobe loop max_loop=24
+for i in $(seq 0 23); do
+    [ -b /dev/loop$i ] || mknod -m 660 /dev/loop$i b 7 $i
+done
 
 if grep -q 127.0.0.1 /etc/resolv.conf; then
     echo "nameserver 10.0.2.2" > /tmp/resolv.conf
