@@ -270,7 +270,7 @@ static void service_test_slot_status(ServiceFixture *fixture, gconstpointer user
 			&error);
 	g_assert_no_error(error);
 	g_assert_nonnull(slot_status_array);
-	g_assert_cmpint(g_variant_n_children(slot_status_array), ==, 5);
+	g_assert_cmpint(g_variant_n_children(slot_status_array), ==, 6);
 
 out:
 	g_clear_pointer(&installer, g_object_unref);

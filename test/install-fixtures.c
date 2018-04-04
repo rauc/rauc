@@ -23,6 +23,7 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 	g_assert(test_mkdir_relative(tmpdir, "images", 0777) == 0);
 	g_assert(test_mkdir_relative(tmpdir, "openssl-ca", 0777) == 0);
 	g_assert(test_mkdir_relative(tmpdir, "slot", 0777) == 0);
+	g_assert(test_mkdir_relative(tmpdir, "bootloader", 0777) == 0);
 
 	/* copy system config to temp dir*/
 	if (!configname)
@@ -67,10 +68,13 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 					SLOT_SIZE, "/dev/zero") == 0);
 	g_assert(test_prepare_dummy_file(tmpdir, "images/appfs-1",
 					SLOT_SIZE, "/dev/zero") == 0);
+	g_assert(test_prepare_dummy_file(tmpdir, "images/bootloader-0",
+					SLOT_SIZE, "/dev/zero") == 0);
 	g_assert_true(test_make_filesystem(tmpdir, "images/rootfs-0"));
 	g_assert_true(test_make_filesystem(tmpdir, "images/appfs-0"));
 	g_assert_true(test_make_filesystem(tmpdir, "images/rootfs-1"));
 	g_assert_true(test_make_filesystem(tmpdir, "images/appfs-1"));
+	g_assert_true(test_make_filesystem(tmpdir, "images/bootloader-0"));
 
 	/* Set dummy bootname provider */
 	r_context_conf()->bootslot = g_strdup("system0");
@@ -98,12 +102,19 @@ void fixture_helper_set_up_system(gchar *tmpdir,
 	test_make_slot_user_writable(tmpdir, "images/appfs-0");
 	test_make_slot_user_writable(tmpdir, "images/rootfs-1");
 	test_make_slot_user_writable(tmpdir, "images/appfs-1");
+	test_make_slot_user_writable(tmpdir, "images/bootloader-0");
 
 	/* Provide active mounted slot */
 	slotfile = g_build_filename(tmpdir, "images/rootfs-0", NULL);
 	slotpath = g_build_filename(tmpdir, "slot", NULL);
 	g_assert(test_mount(slotfile, slotpath));
+	g_free(slotfile);
+	g_free(slotpath);
 
+	/* Provide already mounted slot */
+	slotfile = g_build_filename(tmpdir, "images/bootloader-0", NULL);
+	slotpath = g_build_filename(tmpdir, "bootloader", NULL);
+	g_assert(test_mount(slotfile, slotpath));
 	g_free(slotfile);
 	g_free(slotpath);
 }
@@ -134,8 +145,11 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 					SLOT_SIZE, "/dev/zero") == 0);
 	g_assert(test_prepare_dummy_file(tmpdir, "content/appfs.ext4",
 					SLOT_SIZE, "/dev/zero") == 0);
+	g_assert(test_prepare_dummy_file(tmpdir, "content/bootloader.ext4",
+					SLOT_SIZE, "/dev/zero") == 0);
 	g_assert_true(test_make_filesystem(tmpdir, "content/rootfs.ext4"));
 	g_assert_true(test_make_filesystem(tmpdir, "content/appfs.ext4"));
+	g_assert_true(test_make_filesystem(tmpdir, "content/bootloader.ext4"));
 	if (manifest_content) {
 		g_assert_true(write_tmp_file(tmpdir, "content/manifest.raucm", manifest_content, NULL));
 	} else {
@@ -145,6 +159,7 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 	/* Make images user-writable */
 	test_make_slot_user_writable(tmpdir, "content/rootfs.ext4");
 	test_make_slot_user_writable(tmpdir, "content/appfs.ext4");
+	test_make_slot_user_writable(tmpdir, "content/bootloader.ext4");
 
 	/* Write test file to slot */
 	g_assert(test_mkdir_relative(tmpdir, "mnt", 0777) == 0);
