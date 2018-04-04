@@ -34,6 +34,23 @@ static void install_fixture_set_up_bundle_central_status(InstallFixture *fixture
 	fixture_helper_set_up_bundle(fixture->tmpdir, NULL, FALSE, FALSE);
 }
 
+static void install_fixture_set_up_bundle_already_mounted(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	const gchar *manifest_file = "\
+[update]\n\
+compatible=Test Config\n\
+\n\
+[image.bootloader]\n\
+filename=bootloader.ext4\n\
+";
+
+	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	fixture_helper_set_up_system(fixture->tmpdir, NULL);
+	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, TRUE, FALSE);
+}
+
 static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1214,6 +1231,41 @@ static void install_test_bundle_hook_post_install(InstallFixture *fixture,
 	g_free(bundlepath);
 }
 
+/* Test with already mounted slot */
+static void install_test_already_mounted(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *bundlepath, *mountprefix;
+	RaucInstallArgs *args;
+	GError *ierror = NULL;
+	gboolean res;
+
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
+	/* Set mount path to current temp dir */
+	mountprefix = g_build_filename(fixture->tmpdir, "mount", NULL);
+	g_assert_nonnull(mountprefix);
+	r_context_conf()->mountprefix = mountprefix;
+	r_context();
+
+	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_nonnull(bundlepath);
+
+	args = install_args_new();
+	args->name = g_strdup(bundlepath);
+	args->notify = install_notify;
+	args->cleanup = install_cleanup;
+	res = do_install_bundle(args, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	args->status_result = 0;
+
+	g_free(bundlepath);
+}
+
 static void install_fixture_set_up_system_user(InstallFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1291,6 +1343,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/install/bundle-hook/slot-post-install", InstallFixture, NULL,
 			install_fixture_set_up_bundle_post_hook, install_test_bundle_hook_post_install,
+			install_fixture_tear_down);
+
+	g_test_add("/install/already-mounted", InstallFixture, NULL,
+			install_fixture_set_up_bundle_already_mounted, install_test_already_mounted,
 			install_fixture_tear_down);
 
 	return g_test_run();
