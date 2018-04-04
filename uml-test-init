@@ -9,7 +9,10 @@ mount -t sysfs none /sys
 mount -t tmpfs none /tmp
 mount -t tmpfs none /mnt
 
-mount --bind /usr/lib/uml/modules /lib/modules
+if [ -d /usr/lib/uml/modules ]; then
+    mkdir -p /lib/modules
+    mount --bind /usr/lib/uml/modules /lib/modules
+fi
 
 ip addr add 127.0.0.1 dev lo
 ip link set lo up
