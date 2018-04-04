@@ -451,7 +451,7 @@ Methods
 
 :ref:`Mark <gdbus-method-de-pengutronix-rauc-Installer.Mark>` (IN  s state, IN  s slot_identifier, s slot_name, s message);
 
-:ref:`GetSlotStatus <gdbus-method-de-pengutronix-rauc-Installer.GetSlotStatus>` (a(sa{sv}) slot_status_array);
+:ref:`GetSlotStatus <gdbus-method-de-pengutronix-rauc-Installer.GetSlotStatus>` (a{sv} system_status_dict, a(sa{sv}) slot_status_array);
 
 Signals
 ~~~~~~~
@@ -541,9 +541,12 @@ The GetSlotStatus() Method
 .. code::
 
   de.pengutronix.rauc.Installer.GetSlotStatus()
-  GetSlotStatus (a(sa{sv}) slot_status_array);
+  GetSlotStatus (a{sv} system_status_dict, a(sa{sv}) slot_status_array);
 
 Access method to get all slots' status.
+
+a{sv} *system_status_dict*;
+    Dictionary representing the system status
 
 a(sa{sv}) *slot_status_array*:
     Array of (slotname, dict) tuples with each dictionary representing the

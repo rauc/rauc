@@ -246,6 +246,7 @@ static void service_test_slot_status(ServiceFixture *fixture, gconstpointer user
 {
 	GError *error = NULL;
 	GVariant *slot_status_array = NULL;
+	GVariant *system_status_dict = NULL;
 
 	if (!ENABLE_SERVICE) {
 		g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
@@ -265,16 +266,18 @@ static void service_test_slot_status(ServiceFixture *fixture, gconstpointer user
 	}
 
 	r_installer_call_get_slot_status_sync(installer,
-			&slot_status_array,
+			&system_status_dict, &slot_status_array,
 			NULL,
 			&error);
 	g_assert_no_error(error);
 	g_assert_nonnull(slot_status_array);
 	g_assert_cmpint(g_variant_n_children(slot_status_array), ==, 5);
+	g_assert_nonnull(system_status_dict);
 
 out:
 	g_clear_pointer(&installer, g_object_unref);
 	g_variant_unref(slot_status_array);
+	g_variant_unref(system_status_dict);
 }
 
 int main(int argc, char *argv[])

@@ -1236,7 +1236,7 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 	GError *ierror = NULL;
 	RInstaller *proxy;
-	GVariant *slot_status_array, *vardict;
+	GVariant *system_status_dict, *slot_status_array, *vardict;
 	GHashTable *slots = r_context()->config->slots;
 	GVariantIter *iter;
 	gchar *slot_name;
@@ -1257,7 +1257,7 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 	}
 
 	g_debug("Trying to contact rauc service");
-	if (!r_installer_call_get_slot_status_sync(proxy, &slot_status_array, NULL, &ierror)) {
+	if (!r_installer_call_get_slot_status_sync(proxy, &system_status_dict, &slot_status_array, NULL, &ierror)) {
 		g_set_error(error,
 				G_IO_ERROR,
 				G_IO_ERROR_FAILED,
@@ -1280,6 +1280,7 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 
 	g_variant_iter_free(iter);
 	g_variant_unref(slot_status_array);
+	g_variant_unref(system_status_dict);
 
 	return TRUE;
 }
