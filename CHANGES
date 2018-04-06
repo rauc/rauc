@@ -1,3 +1,62 @@
+Release 0.4 (released Apr 9, 2018)
+----------------------------------
+
+.. rubric:: Enhancements
+
+* Add ``barebox-statename`` key to ``[system]`` section of system.conf in order
+  to allow using non-default names for barebox state
+* Support atomic bootloader updates for eMMCs.
+  The newly introduced slot type ``boot-emmc`` will tell RAUC to handle
+  bootloader updates on eMMC by using the ``mmcblkXboot0/-boot1`` partitions
+  and the EXT_CSD registers for alternating updates.
+* Support writing ``*.vfat`` images to vfat slots
+* Add basic support for streaming bundles using casync tool.
+  Using the casync tool allows streaming bundle updates chunk-wise over
+  http/https/sftp etc.
+  By using the source slot as a seed for the reproducible casync chunking
+  algorithm, the actual chunks to download get reduced to only those that
+  differ from the original system.
+
+  * Add ``rauc convert`` command to convert conventional bundles to casync
+    bundle and chunk store
+  * Extend update handler to handle ``.caibx`` and ``.caidx`` suffix image types in
+    bundle
+* Added ``--detailed`` argument to ``rauc status`` to obtain newly added slot
+  status information
+* Added D-Bus Methods ``GetSlotStatus`` to obtain collected status of all slots
+* Extended information stored in slot status files (installed bundle info,
+  installation and activation timestamps and counters)
+* Optionally use a central status file located in a storage location not
+  touched during RAUC updates instead of per-slot files (enabled by setting
+  ``statusfile`` key in ``[system]`` section of ``system.conf``).
+* Add ``write-slot`` command to write images directly to defined slots (for use
+  during development)
+
+.. rubric:: Bug fixes
+
+* Fix documentation out-of-tree builds
+* Fixed packaging for dbus wrapper script rauc-service.sh
+* Some double-free and error handling fixes
+
+.. rubric:: Testing
+
+* Create uncrustify report during Travis run
+
+.. rubric:: Code
+
+* Unified hash table iteration and variable usage
+* Add uncrustify code style configuration checker script to gain consistent
+  coding style. Committed changes revealed by initial run.
+
+.. rubric:: Documentation
+
+* Updated and extended D-Bus interface documentation
+* Added documentation for newly added features (casync, central slot status,
+  etc.)
+* Fixed and extended Yocto (meta-rauc) integration documentation
+* Add link to IRC/Matrix channel
+* Some minor spelling errors fixed
+
 Release 0.3 (released Feb 1, 2018)
 ----------------------------------
 
