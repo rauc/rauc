@@ -2,10 +2,15 @@
 - update version in docs/conf.py
 - merge preparation pull-request
 - create signed git tag
-- run "make distcheck"
+  git tag -m 'release v0.X' -s -u A58CC53DBF05E090 v0.X
+- create source tar archive in a clean work-dir
+  ./autogen.sh
+  ./configure
+  make distcheck
 - sign source archive
   gpg --detach-sign -u A58CC53DBF05E090 --armor rauc-0.X.tar.xz
   gpg --verify rauc-0.X.tar.xz.asc
 - push signed tag
 - upload source archive and signature
 - create release on github using changelog
+  pandoc -f rst -t markdown_github CHANGES
