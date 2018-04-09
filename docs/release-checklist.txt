@@ -1,0 +1,11 @@
+- update changelog
+- update version in docs/conf.py
+- merge preparation pull-request
+- create signed git tag
+- run "make distcheck"
+- sign source archive
+  gpg --detach-sign -u A58CC53DBF05E090 --armor rauc-0.X.tar.xz
+  gpg --verify rauc-0.X.tar.xz.asc
+- push signed tag
+- upload source archive and signature
+- create release on github using changelog
