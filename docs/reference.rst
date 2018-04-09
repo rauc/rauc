@@ -292,8 +292,12 @@ A valid manifest file must have the file extension ``.raucm``.
 
 **[image.<slot-class>] section**
 
+.. _image.slot-filename:
+
 ``filename``
   Name of the image file (relative to bundle content).
+  RAUC uses the file extension and the slot type to decide how to extract the
+  image file content to the slot.
 
 ``sha256``
   sha256 of image file. RAUC determines this value automatically when creating
