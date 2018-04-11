@@ -687,7 +687,6 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 #if ENABLE_JSON
 	g_autoptr(JsonGenerator) gen = NULL;
 	g_autoptr(JsonNode) root = NULL;
-	gchar *str;
 	g_autoptr(JsonBuilder) builder = json_builder_new();
 
 	json_builder_begin_object(builder);
@@ -753,9 +752,7 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 	root = json_builder_get_root(builder);
 	json_generator_set_root(gen, root);
 	json_generator_set_pretty(gen, pretty);
-	str = json_generator_to_data(gen, NULL);
-
-	return str;
+	return json_generator_to_data(gen, NULL);
 #else
 	g_error("json support is disabled");
 	return NULL;
@@ -1045,7 +1042,6 @@ static gchar* r_status_formatter_json(gboolean pretty)
 	g_autoptr(JsonGenerator) gen = NULL;
 	g_autoptr(JsonNode) root = NULL;
 	GHashTableIter iter;
-	gchar *str;
 	g_autoptr(JsonBuilder) builder = json_builder_new();
 	GError *ierror = NULL;
 	RaucSlot *slot, *primary = NULL;
@@ -1170,9 +1166,7 @@ static gchar* r_status_formatter_json(gboolean pretty)
 	root = json_builder_get_root(builder);
 	json_generator_set_root(gen, root);
 	json_generator_set_pretty(gen, pretty);
-	str = json_generator_to_data(gen, NULL);
-
-	return str;
+	return json_generator_to_data(gen, NULL);
 #else
 	g_error("json support is disabled");
 	return NULL;
@@ -1500,7 +1494,7 @@ static void cmdline_handler(int argc, char **argv)
 		g_printerr("%s\n", error->message);
 		g_error_free(error);
 		r_exit_status = 1;
-		goto done;
+		return;
 	}
 
 	if (debug) {
@@ -1527,7 +1521,7 @@ static void cmdline_handler(int argc, char **argv)
 	if (cmdarg == NULL) {
 		if (version) {
 			g_print(PACKAGE_STRING "\n");
-			goto done;
+			return;
 		}
 
 		/* NO COMMAND given */
@@ -1604,28 +1598,25 @@ static void cmdline_handler(int argc, char **argv)
 		    keypath != NULL) {
 			g_error("rauc busy, cannot reconfigure");
 			r_exit_status = 1;
-			goto done;
+			return;
 		}
 	}
 
 	if (r_context_get_busy() && !rcommand->while_busy) {
 		g_error("rauc busy: cannot run %s", rcommand->name);
 		r_exit_status = 1;
-		goto done;
+		return;
 	}
 
 	/* real commands are handled here */
 	if (rcommand->cmd_handler) {
 		rcommand->cmd_handler(argc, argv);
 	}
-	goto done;
+	return;
 
 print_help:
 	text = g_option_context_get_help(context, FALSE, NULL);
 	g_print("%s", text);
-
-done:
-	return;
 }
 
 int main(int argc, char **argv)
