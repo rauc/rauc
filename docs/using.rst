@@ -67,7 +67,7 @@ To actually install an update bundle on your target hardware, RAUC provides the
 
   rauc install <input-file>
 
-Alternatively you can trigger a bundle installation via D-Bus.
+Alternatively you can trigger a bundle installation `using the D-Bus API`_.
 
 Viewing the System Status
 -------------------------
