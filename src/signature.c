@@ -474,7 +474,6 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
 	g_return_val_if_fail(filename != NULL, FALSE);
 	g_return_val_if_fail(certfile != NULL, FALSE);
 	g_return_val_if_fail(keyfile != NULL, FALSE);
-	g_return_val_if_fail(interfiles == NULL || *interfiles == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	file = g_mapped_file_new(filename, FALSE, &ierror);
@@ -533,3 +532,4 @@ out:
 	g_clear_pointer(&file, g_mapped_file_unref);
 	return res;
 }
+

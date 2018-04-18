@@ -334,6 +334,72 @@ static void signature_intermediate(void)
 	sk_X509_pop_free(verified_chain, X509_free);
 }
 
+static void signature_intermediate_file(void)
+{
+	GBytes *sig = NULL;
+	GError *error = NULL;
+	CMS_ContentInfo *cms = NULL;
+	X509_STORE *store = NULL;
+	STACK_OF(X509) *verified_chain = NULL;
+	GPtrArray *interfiles = NULL;
+
+	/* We sign with the release key */
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	/* We verify against the provisioning CA */
+	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/provisioning-ca.pem");
+
+	sig = cms_sign_file("test/openssl-ca/manifest",
+			r_context()->certpath,
+			r_context()->keypath,
+			NULL,
+			&error);
+	g_assert_nonnull(sig);
+	g_assert_no_error(error);
+
+	/* Without explicit intermediate certificate, this must fail */
+	g_assert_false(cms_verify_file("test/openssl-ca/manifest", sig, 0, &cms, &store, &error));
+	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
+	g_assert_null(cms);
+	g_assert_null(store);
+
+	g_clear_pointer(&cms, CMS_ContentInfo_free);
+	g_clear_pointer(&store, X509_STORE_free);
+	g_clear_error(&error);
+
+	/* Include the missing link in the signature */
+	interfiles = g_ptr_array_new();
+	g_ptr_array_add(interfiles, g_strdup("test/openssl-ca/rel/ca.cert.pem"));
+	g_ptr_array_add(interfiles, NULL);
+
+	sig = cms_sign_file("test/openssl-ca/manifest",
+			r_context()->certpath,
+			r_context()->keypath,
+			(gchar**) g_ptr_array_free(interfiles, FALSE),
+			NULL);
+	g_assert_nonnull(sig);
+
+	/* With intermediate certificate, this must succeed */
+	g_assert_true(cms_verify_file("test/openssl-ca/manifest", sig, 0, &cms, &store, &error));
+	g_assert_no_error(error);
+	g_assert_nonnull(cms);
+	g_assert_nonnull(store);
+
+	/* Verify obtaining cert chain works */
+	g_assert_true(cms_get_cert_chain(cms, store, &verified_chain, &error));
+	g_assert_no_error(error);
+	g_assert_nonnull(verified_chain);
+
+	g_clear_pointer(&store, X509_STORE_free);
+	g_clear_pointer(&cms, CMS_ContentInfo_free);
+	g_clear_error(&error);
+
+	/* Chain length must be 3 (release-1 -> rel -> root) */
+	g_assert_cmpint(sk_X509_num(verified_chain), ==, 3);
+
+	sk_X509_pop_free(verified_chain, X509_free);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -359,6 +425,8 @@ int main(int argc, char *argv[])
 	g_test_add_func("/signature/get_cert_chain", signature_get_cert_chain);
 	g_test_add_func("/signature/selfsigned", signature_selfsigned);
 	g_test_add_func("/signature/intermediate", signature_intermediate);
+	g_test_add_func("/signature/intermediate_file", signature_intermediate_file);
 
 	return g_test_run();
 }
+
