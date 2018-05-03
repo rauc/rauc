@@ -6,4 +6,3 @@ Type=dbus
 BusName=de.pengutronix.rauc
 ExecStart=@bindir@/rauc --mount=/run/rauc service
 RuntimeDirectory=rauc
-MountFlags=slave
