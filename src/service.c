@@ -327,6 +327,36 @@ static GVariant* create_slotstatus_array(void)
 	return slot_status_array;
 }
 
+/*
+ * Makes system status information available via DBUS.
+ */
+static GVariant* create_systemstatus_dict(void)
+{
+	GVariantDict dict;
+	RaucSlot *primary = NULL;
+	GError *ierror = NULL;
+	g_return_val_if_fail(r_installer, NULL);
+
+
+	primary = r_boot_get_primary(&ierror);
+	if (!primary) {
+		g_debug("Failed getting primary slot: %s", ierror->message);
+		g_clear_error(&ierror);
+	}
+
+	g_variant_dict_init(&dict, NULL);
+
+	if (r_context()->config->system_compatible)
+		g_variant_dict_insert(&dict, "compatible", "s", r_context()->config->system_compatible);
+	if (r_context()->config->system_variant)
+		g_variant_dict_insert(&dict, "variant", "s", r_context()->config->system_variant);
+	if (r_context()->bootslot)
+		g_variant_dict_insert(&dict, "booted", "s", r_context()->bootslot);
+	g_variant_dict_insert(&dict, "boot_primary", "s", primary ? primary->name : NULL);
+
+	return g_variant_dict_end(&dict);
+}
+
 static gboolean r_on_handle_get_slot_status(RInstaller *interface,
 		GDBusMethodInvocation  *invocation)
 {
@@ -335,7 +365,7 @@ static gboolean r_on_handle_get_slot_status(RInstaller *interface,
 	res = !r_context_get_busy();
 
 	if (res) {
-		r_installer_complete_get_slot_status(interface, invocation, create_slotstatus_array());
+		r_installer_complete_get_slot_status(interface, invocation, create_systemstatus_dict(), create_slotstatus_array());
 	} else {
 		g_dbus_method_invocation_return_error(invocation,
 				G_IO_ERROR,

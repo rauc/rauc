@@ -43,12 +43,14 @@
 
     <!--
          GetSlotStatus:
+         @system_status: dict representing the system status
          @slot_status_array: array of (slotname, dict) tuples with each
              dictionary representing the status of the corresponding slot
 
          Access method to get all slots' status.
     -->
     <method name="GetSlotStatus">
+      <arg name="system_status_dict" type="a{sv}" direction="out"/>
       <arg name="slot_status_array" type="a(sa{sv})" direction="out"/>
     </method>
 
