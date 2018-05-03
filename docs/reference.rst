@@ -482,6 +482,8 @@ The Install() Method
   Install (IN  s source);
 
 Triggers the installation of a bundle.
+This method call is non-blocking.
+After completion, the :ref:`"Completed" <gdbus-signal-de-pengutronix-rauc-Installer.Completed>` signal will be emitted.
 
 IN s *source*:
     Path to bundle to be installed

@@ -67,7 +67,7 @@ To actually install an update bundle on your target hardware, RAUC provides the
 
   rauc install <input-file>
 
-Alternatively you can trigger a bundle installation via D-Bus.
+Alternatively you can trigger a bundle installation `using the D-Bus API`_.
 
 Viewing the System Status
 -------------------------
@@ -490,13 +490,22 @@ project-specific applications, incorporation with bridge services such as the
 The API's service domain is ``de.pengutronix.rauc`` while the object path is
 ``/``.
 
+Installing a Bundle
+~~~~~~~~~~~~~~~~~~~
+
 The D-Bus API's main purpose is to trigger and monitor the installation
 process via its ``Installer`` interface.
-While the ``Install`` operation starts the installation progress, constant
-progress information will be emitted in form of changes to the ``Progress``
-property.
-Upon completing the installation RAUC emits the ``Completed`` signal indicating
-either successful or failed installation.
+
+The ``Install`` method call triggers the installation of a given bundle in the
+background and returns immediately.
+Upon completion of the installation RAUC emits the ``Completed`` signal,
+indicating either successful or failed installation.
+For details on triggering the installation process, see the
+:ref:`gdbus-method-de-pengutronix-rauc-Installer.Install` chapter in the
+reference documentation.
+
+While the installation is in progress, constant progress information will be
+emitted in form of changes to the ``Progress`` property.
 
 Processing Progress Data
 ~~~~~~~~~~~~~~~~~~~~~~~~
