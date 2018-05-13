@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <glib/gstdio.h>
 #include <linux/major.h>
+#include <linux/types.h> /* kernel < 3.4 forgot that in mmc/ioctl.h */
 #include <linux/mmc/ioctl.h>
 #include <string.h>
 #include <sys/ioctl.h>
