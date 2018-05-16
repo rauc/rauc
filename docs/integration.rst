@@ -643,22 +643,22 @@ argument in the ``efibootmgr`` call above:
 
 .. code-block:: cfg
 
-  [efi.0]
+  [slot.efi.0]
   device=/dev/sdX1
   type=vfat
   parent=rootfs.0
 
-  [efi.1]
+  [slot.efi.1]
   device=/dev/sdX2
   type=vfat
   parent=rootfs.1
 
-  [rootfs.0]
+  [slot.rootfs.0]
   device=/dev/sdX3
   type=ext4
   bootname=system0
 
-  [rootfs.1]
+  [slot.rootfs.1]
   device=/dev/sdX4
   type=ext4
   bootname=system1
