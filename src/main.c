@@ -1510,7 +1510,7 @@ static void cmdline_handler(int argc, char **argv)
 		g_print("Domains: '%s'\n", domains);
 	}
 
-	/* get first parameter wihtout dashes */
+	/* get first parameter without dashes */
 	for (gint i = 1; i <= argc; i++) {
 		if (argv[i] && !g_str_has_prefix(argv[i], "-")) {
 			cmdarg = argv[i];
