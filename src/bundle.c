@@ -288,7 +288,6 @@ static gboolean sign_bundle(const gchar *bundlename, GError **error)
 	g_autoptr(GBytes) sig = NULL;
 	g_autoptr(GFile) bundlefile = NULL;
 	g_autoptr(GFileOutputStream) bundlestream = NULL;
-	gboolean res = FALSE;
 	guint64 offset;
 
 	g_assert_nonnull(r_context()->certpath);
@@ -304,8 +303,7 @@ static gboolean sign_bundle(const gchar *bundlename, GError **error)
 				error,
 				ierror,
 				"failed signing bundle: ");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	bundlefile = g_file_new_for_path(bundlename);
@@ -315,43 +313,38 @@ static gboolean sign_bundle(const gchar *bundlename, GError **error)
 				error,
 				ierror,
 				"failed to open bundle for appending: ");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
-	res = g_seekable_seek(G_SEEKABLE(bundlestream),
-			0, G_SEEK_END, NULL, &ierror);
-	if (!res) {
+	if (!g_seekable_seek(G_SEEKABLE(bundlestream),
+			0, G_SEEK_END, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
 				"failed to seek to end of bundle: ");
-		goto out;
+		return FALSE;
 	}
 
 	offset = g_seekable_tell((GSeekable *)bundlestream);
-	res = output_stream_write_bytes_all((GOutputStream *)bundlestream, sig, NULL, &ierror);
-	if (!res) {
+	if (!output_stream_write_bytes_all((GOutputStream *)bundlestream, sig, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
 				"failed to append signature to bundle: ");
-		goto out;
+		return FALSE;
 	}
 
 
 	offset = g_seekable_tell((GSeekable *)bundlestream) - offset;
-	res = output_stream_write_uint64_all((GOutputStream *)bundlestream, offset, NULL, &ierror);
-	if (!res) {
+	if (!output_stream_write_uint64_all((GOutputStream *)bundlestream, offset, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
 				"failed to append signature size to bundle: ");
-		goto out;
+		return FALSE;
 	}
 
-out:
-	return res;
+	return TRUE;
 }
 
 gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error)
