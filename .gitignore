@@ -3,7 +3,7 @@
 !/build-aux/git-version-gen
 /test/*.test
 /test/services/de.pengutronix.rauc.service
-/src/*-generated.[ch]
+/*-generated.[ch]
 Makefile
 Makefile.in
 aclocal.m4
