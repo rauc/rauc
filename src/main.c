@@ -1211,18 +1211,29 @@ static RaucSlotStatus* r_variant_get_slot_state(GVariant *vardict)
 	return slot_state;
 }
 
-static gboolean retrieve_slot_states_via_dbus(GError **error)
+/*
+ * Performs a D-Bus call to obtain information of all slots exposed.
+ *
+ * @param[out] Slots Returns a newly allocated GHashTable containing slot information
+ *              [transfer full]
+ * @param error Return location for a GError
+ *
+ * @return TRUE if succeeded, FALSE if failed
+ */
+static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error)
 {
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 	GError *ierror = NULL;
 	RInstaller *proxy = NULL;
 	GVariant *slot_status_array, *vardict;
-	GHashTable *slots = r_context()->config->slots;
 	GVariantIter *iter;
 	gchar *slot_name;
 
+	g_return_val_if_fail(slots != NULL && *slots == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	*slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_free_slot);
 
 	proxy = r_installer_proxy_new_for_bus_sync(bus_type,
 			G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
@@ -1249,7 +1260,7 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 
 	g_variant_get(slot_status_array, "a(sa{sv})", &iter);
 	while (g_variant_iter_loop(iter, "(s@a{sv})", &slot_name, &vardict)) {
-		RaucSlot *slot = g_hash_table_lookup(slots, slot_name);
+		RaucSlot *slot = g_hash_table_lookup(*slots, slot_name);
 		if (!slot) {
 			g_debug("No slot with name \"%s\" found", slot_name);
 			continue;
@@ -1326,7 +1337,7 @@ static gboolean status_start(int argc, char **argv)
 			g_hash_table_iter_init(&iter, r_context()->config->slots);
 			while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot))
 				load_slot_status(slot);
-		} else if (!retrieve_slot_states_via_dbus(&ierror)) {
+		} else if (!retrieve_slot_states_via_dbus(&r_context()->config->slots, &ierror)) {
 			message = g_strdup_printf("rauc status: error retrieving slot status via D-Bus: %s",
 					ierror->message);
 			g_error_free(ierror);
