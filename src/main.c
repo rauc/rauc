@@ -901,28 +901,31 @@ out:
 	return TRUE;
 }
 
-static gchar* r_status_formatter_readable(void)
+typedef struct {
+	RaucSlot *primary;
+	gchar *compatible;
+	gchar *variant;
+	gchar *bootslot;
+	GHashTable *slots;
+} RaucStatusPrint;
+
+static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 {
 	GHashTableIter iter;
 	gint slotcnt = 0;
 	GString *text = g_string_new(NULL);
-	GError *ierror = NULL;
-	RaucSlot *slot, *primary = NULL;
+	RaucSlot *slot = NULL;
 	gchar *name;
 
-	primary = r_boot_get_primary(&ierror);
-	if (!primary) {
-		g_debug("Failed getting primary slot: %s", ierror->message);
-		g_clear_error(&ierror);
-	}
+	g_return_val_if_fail(status, NULL);
 
-	g_string_append_printf(text, "Compatible:  %s\n", r_context()->config->system_compatible);
-	g_string_append_printf(text, "Variant:     %s\n", r_context()->config->system_variant);
-	g_string_append_printf(text, "Booted from: %s\n", r_context()->bootslot);
-	g_string_append_printf(text, "Activated:   %s (%s)\n", primary ? primary->name : NULL, primary ? primary->bootname : NULL);
+	g_string_append_printf(text, "Compatible:  %s\n", status->compatible);
+	g_string_append_printf(text, "Variant:     %s\n", status->variant);
+	g_string_append_printf(text, "Booted from: %s\n", status->bootslot);
+	g_string_append_printf(text, "Activated:   %s (%s)\n", status->primary ? status->primary->name : NULL, status->primary ? status->primary->bootname : NULL);
 
 	g_string_append(text, "slot states:\n");
-	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	g_hash_table_iter_init(&iter, status->slots);
 	while (g_hash_table_iter_next(&iter, (gpointer*) &name, (gpointer*) &slot)) {
 		RaucSlotStatus *slot_state = slot->status;
 
@@ -975,31 +978,26 @@ static gchar* r_status_formatter_readable(void)
 	return g_string_free(text, FALSE);
 }
 
-static gchar* r_status_formatter_shell(void)
+static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 {
 	GHashTableIter iter;
 	gint slotcnt = 0;
 	GString *text = g_string_new(NULL);
 	GPtrArray *slotnames, *slotnumbers = NULL;
 	gchar* slotstring = NULL;
-	GError *ierror = NULL;
-	RaucSlot *slot, *primary = NULL;
+	RaucSlot *slot = NULL;
 	gchar *name;
 
-	primary = r_boot_get_primary(&ierror);
-	if (!primary) {
-		g_debug("Failed getting primary slot: %s", ierror->message);
-		g_clear_error(&ierror);
-	}
+	g_return_val_if_fail(status, NULL);
 
-	formatter_shell_append(text, "RAUC_SYSTEM_COMPATIBLE", r_context()->config->system_compatible);
-	formatter_shell_append(text, "RAUC_SYSTEM_VARIANT", r_context()->config->system_variant);
-	formatter_shell_append(text, "RAUC_SYSTEM_BOOTED_BOOTNAME", r_context()->bootslot);
-	formatter_shell_append(text, "RAUC_BOOT_PRIMARY", primary ? primary->name : NULL);
+	formatter_shell_append(text, "RAUC_SYSTEM_COMPATIBLE", status->compatible);
+	formatter_shell_append(text, "RAUC_SYSTEM_VARIANT", status->variant);
+	formatter_shell_append(text, "RAUC_SYSTEM_BOOTED_BOOTNAME", status->bootslot);
+	formatter_shell_append(text, "RAUC_BOOT_PRIMARY", status->primary ? status->primary->name : NULL);
 
 	slotnames = g_ptr_array_new();
 	slotnumbers = g_ptr_array_new();
-	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	g_hash_table_iter_init(&iter, status->slots);
 	while (g_hash_table_iter_next(&iter, (gpointer*) &name, NULL)) {
 		g_ptr_array_add(slotnames, name);
 		g_ptr_array_add(slotnumbers, g_strdup_printf("%i", ++slotcnt));
@@ -1018,7 +1016,7 @@ static gchar* r_status_formatter_shell(void)
 	g_ptr_array_unref(slotnames);
 
 	slotcnt = 0;
-	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	g_hash_table_iter_init(&iter, status->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		RaucSlotStatus *slot_state = slot->status;
 
@@ -1061,40 +1059,35 @@ static gchar* r_status_formatter_shell(void)
 	return g_string_free(text, FALSE);
 }
 
-static gchar* r_status_formatter_json(gboolean pretty)
+static gchar* r_status_formatter_json(RaucStatusPrint *status, gboolean pretty)
 {
 #if ENABLE_JSON
 	g_autoptr(JsonGenerator) gen = NULL;
 	g_autoptr(JsonNode) root = NULL;
 	GHashTableIter iter;
 	g_autoptr(JsonBuilder) builder = json_builder_new();
-	GError *ierror = NULL;
-	RaucSlot *slot, *primary = NULL;
+	RaucSlot *slot = NULL;
 
-	primary = r_boot_get_primary(&ierror);
-	if (!primary) {
-		g_debug("Failed getting primary slot: %s", ierror->message);
-		g_clear_error(&ierror);
-	}
+	g_return_val_if_fail(status, NULL);
 
 	json_builder_begin_object(builder);
 
 	json_builder_set_member_name(builder, "compatible");
-	json_builder_add_string_value(builder, r_context()->config->system_compatible);
+	json_builder_add_string_value(builder, status->compatible);
 
 	json_builder_set_member_name(builder, "variant");
-	json_builder_add_string_value(builder, r_context()->config->system_variant);
+	json_builder_add_string_value(builder, status->variant);
 
 	json_builder_set_member_name(builder, "booted");
-	json_builder_add_string_value(builder, r_context()->bootslot);
+	json_builder_add_string_value(builder, status->bootslot);
 
 	json_builder_set_member_name(builder, "boot_primary");
-	json_builder_add_string_value(builder, primary ? primary->name : NULL);
+	json_builder_add_string_value(builder, status->primary ? status->primary->name : NULL);
 
 	json_builder_set_member_name(builder, "slots");
 	json_builder_begin_array(builder);
 
-	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	g_hash_table_iter_init(&iter, status->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		RaucSlotStatus *slot_state = slot->status;
 
@@ -1273,18 +1266,18 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 	return TRUE;
 }
 
-static gboolean print_status(void)
+static gboolean print_status(RaucStatusPrint *status_print)
 {
 	g_autofree gchar *text = NULL;
 
 	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
-		text = r_status_formatter_readable();
+		text = r_status_formatter_readable(status_print);
 	} else if (g_strcmp0(output_format, "shell") == 0) {
-		text = r_status_formatter_shell();
+		text = r_status_formatter_shell(status_print);
 	} else if (ENABLE_JSON && g_strcmp0(output_format, "json") == 0) {
-		text = r_status_formatter_json(FALSE);
+		text = r_status_formatter_json(status_print, FALSE);
 	} else if (ENABLE_JSON && g_strcmp0(output_format, "json-pretty") == 0) {
-		text = r_status_formatter_json(TRUE);
+		text = r_status_formatter_json(status_print, TRUE);
 	} else {
 		g_printerr("Unknown output format: '%s'\n", output_format);
 		return FALSE;
@@ -1306,6 +1299,7 @@ static gboolean status_start(int argc, char **argv)
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	RInstaller *proxy = NULL;
+	RaucStatusPrint *status_print = NULL;
 
 	g_debug("status start");
 	r_exit_status = 0;
@@ -1341,7 +1335,20 @@ static gboolean status_start(int argc, char **argv)
 		}
 	}
 
-	if (!print_status()) {
+	status_print = g_new0(RaucStatusPrint, 1);
+
+	status_print->primary = r_boot_get_primary(&ierror);
+	if (!status_print->primary) {
+		g_printerr("Failed getting primary slot: %s", ierror->message);
+		g_clear_error(&ierror);
+	}
+
+	status_print->compatible = r_context()->config->system_compatible;
+	status_print->variant = r_context()->config->system_variant;
+	status_print->bootslot = r_context()->bootslot;
+	status_print->slots = r_context()->config->slots;
+
+	if (!print_status(status_print)) {
 		r_exit_status = 1;
 		goto out;
 	}
