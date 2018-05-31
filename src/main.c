@@ -1209,7 +1209,6 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 	GHashTable *slots = r_context()->config->slots;
 	GVariantIter *iter;
 	gchar *slot_name;
-	RaucSlot *slot;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
@@ -1237,7 +1236,7 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 
 	g_variant_get(slot_status_array, "a(sa{sv})", &iter);
 	while (g_variant_iter_loop(iter, "(s@a{sv})", &slot_name, &vardict)) {
-		slot = g_hash_table_lookup(slots, slot_name);
+		RaucSlot *slot = g_hash_table_lookup(slots, slot_name);
 		if (!slot) {
 			g_debug("No slot with name \"%s\" found", slot_name);
 			continue;
