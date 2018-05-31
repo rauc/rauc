@@ -1291,11 +1291,32 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 	return TRUE;
 }
 
+static gboolean print_status(void)
+{
+	g_autofree gchar *text = NULL;
+
+	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
+		text = r_status_formatter_readable();
+	} else if (g_strcmp0(output_format, "shell") == 0) {
+		text = r_status_formatter_shell();
+	} else if (ENABLE_JSON && g_strcmp0(output_format, "json") == 0) {
+		text = r_status_formatter_json(FALSE);
+	} else if (ENABLE_JSON && g_strcmp0(output_format, "json-pretty") == 0) {
+		text = r_status_formatter_json(TRUE);
+	} else {
+		g_printerr("Unknown output format: '%s'\n", output_format);
+		return FALSE;
+	}
+
+	g_print("%s\n", text);
+
+	return TRUE;
+}
+
 static gboolean status_start(int argc, char **argv)
 {
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
-	g_autofree gchar *text = NULL;
 	g_autofree gchar *slot_name = NULL;
 	g_autofree gchar *message = NULL;
 	const gchar *state = NULL;
@@ -1332,21 +1353,10 @@ static gboolean status_start(int argc, char **argv)
 		}
 	}
 
-	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
-		text = r_status_formatter_readable();
-	} else if (g_strcmp0(output_format, "shell") == 0) {
-		text = r_status_formatter_shell();
-	} else if (ENABLE_JSON && g_strcmp0(output_format, "json") == 0) {
-		text = r_status_formatter_json(FALSE);
-	} else if (ENABLE_JSON && g_strcmp0(output_format, "json-pretty") == 0) {
-		text = r_status_formatter_json(TRUE);
-	} else {
-		g_printerr("Unknown output format: '%s'\n", output_format);
+	if (!print_status()) {
 		r_exit_status = 1;
 		goto out;
 	}
-
-	g_print("%s\n", text);
 
 	if (argc < 3) {
 		goto out;
