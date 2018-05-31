@@ -20,7 +20,7 @@ r_bundle_error_quark(void)
 
 static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GError **error)
 {
-	GSubprocess *sproc = NULL;
+	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -65,7 +65,7 @@ out:
 
 static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, const gchar *extractfile, GError **error)
 {
-	GSubprocess *sproc = NULL;
+	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(7, g_free);
@@ -111,7 +111,7 @@ out:
 
 static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error)
 {
-	GSubprocess *sproc = NULL;
+	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(15, g_free);
@@ -176,7 +176,7 @@ out:
 
 static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error)
 {
-	GSubprocess *sproc = NULL;
+	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(5, g_free);
