@@ -26,9 +26,9 @@ GQuark r_update_error_quark(void)
 }
 
 /* the fd will only live as long as the returned output stream */
-static GOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **error)
+static GUnixOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **error)
 {
-	GOutputStream *outstream = NULL;
+	GUnixOutputStream *outstream = NULL;
 	GFile *destslotfile = NULL;
 	GError *ierror = NULL;
 	int fd_out;
@@ -43,7 +43,7 @@ static GOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **error)
 		goto out;
 	}
 
-	outstream = g_unix_output_stream_new(fd_out, TRUE);
+	outstream = (GUnixOutputStream *) g_unix_output_stream_new(fd_out, TRUE);
 	if (outstream == NULL) {
 		g_propagate_prefixed_error(error, ierror,
 				"failed to open file for writing: ");
@@ -66,7 +66,7 @@ static gboolean clear_slot(RaucSlot *slot, GError **error)
 	int out_fd;
 	gint write_count = 0;
 
-	outstream = open_slot_device(slot, &out_fd, &ierror);
+	outstream = (GOutputStream *) open_slot_device(slot, &out_fd, &ierror);
 	if (outstream == NULL) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -115,11 +115,12 @@ static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 	return TRUE;
 }
 
-static gboolean copy_raw_image(RaucImage *image, GOutputStream *outstream, GError **error)
+static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, GError **error)
 {
 	GError *ierror = NULL;
 	gssize size;
 	g_autoptr(GFile) srcimagefile = g_file_new_for_path(image->filename);
+	int out_fd = g_unix_output_stream_get_fd(outstream);
 
 	g_autoptr(GInputStream) instream = (GInputStream*)g_file_read(srcimagefile, NULL, &ierror);
 	if (instream == NULL) {
@@ -128,7 +129,10 @@ static gboolean copy_raw_image(RaucImage *image, GOutputStream *outstream, GErro
 		return FALSE;
 	}
 
-	size = g_output_stream_splice(outstream, instream,
+	/* Do not close fd automatically to give us the chance to call fsync() on it before closing */
+	g_unix_output_stream_set_close_fd(outstream, FALSE);
+
+	size = g_output_stream_splice((GOutputStream *) outstream, instream,
 			G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE | G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
 			NULL,
 			&ierror);
@@ -142,6 +146,17 @@ static gboolean copy_raw_image(RaucImage *image, GOutputStream *outstream, GErro
 		return FALSE;
 	}
 
+	/* flush to block device before closing to assure content is written to disk */
+	if (fsync(out_fd) == -1) {
+		close(out_fd); /* Silent attempt to close as we failed, anyway */
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Syncing content to disk failed: %s", strerror(errno));
+		return FALSE;
+	}
+
+	if (close(out_fd) == -1) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Closing output device failed: %s", strerror(errno));
+		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -278,7 +293,7 @@ out:
 
 static gboolean copy_raw_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error)
 {
-	g_autoptr(GOutputStream) outstream = NULL;
+	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -686,7 +701,7 @@ out:
 
 static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
-	g_autoptr(GOutputStream) outstream = NULL;
+	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	int out_fd;
 	gboolean res = FALSE;
@@ -738,7 +753,7 @@ out:
 
 static gboolean img_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
-	g_autoptr(GOutputStream) outstream = NULL;
+	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	int out_fd;
 	gboolean res = FALSE;
@@ -1069,7 +1084,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	gint part_active;
 	g_autofree gchar *part_active_str = NULL;
 	gint part_active_after;
-	g_autoptr(GOutputStream) outstream = NULL;
+	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	g_autoptr(RaucSlot) part_slot = NULL;
 
