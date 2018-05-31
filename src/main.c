@@ -1231,6 +1231,7 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 				G_IO_ERROR_FAILED,
 				"error calling D-Bus method \"GetSlotStatus\": %s", ierror->message);
 		g_error_free(ierror);
+		g_object_unref(&proxy);
 		return FALSE;
 	}
 
@@ -1248,6 +1249,7 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 
 	g_variant_iter_free(iter);
 	g_variant_unref(slot_status_array);
+	g_object_unref(&proxy);
 
 	return TRUE;
 }
