@@ -1166,6 +1166,9 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		goto out;
 	}
 
+	/* disable closing outstream file descriptor */
+	g_unix_output_stream_set_close_fd((GUnixOutputStream *)outstream, FALSE);
+
 	/* copy */
 	g_message("Copying image to slot device partition %s",
 			part_slot->device);
@@ -1174,6 +1177,10 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		g_propagate_error(error, ierror);
 		goto out;
 	}
+
+	/* flush to block device before making eMMC boot partition read only */
+	fsync(out_fd);
+	close(out_fd);
 
 	/* reenable read-only on determined eMMC boot partition */
 	g_debug("Reenabling read-only mode of slot device partition %s",
