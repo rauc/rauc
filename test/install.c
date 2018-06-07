@@ -3,6 +3,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gio/gio.h>
+#include <gio/gunixmounts.h>
 
 #include <context.h>
 #include <install.h>
@@ -1238,6 +1239,8 @@ static void install_test_already_mounted(InstallFixture *fixture,
 	gchar *bundlepath, *mountprefix;
 	RaucInstallArgs *args;
 	GError *ierror = NULL;
+	GUnixMountEntry *mountentry = NULL;
+	gchar *test_mount_path = NULL;
 	gboolean res;
 
 	/* needs to run as root */
@@ -1253,6 +1256,14 @@ static void install_test_already_mounted(InstallFixture *fixture,
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
 
+	/* check bootloader slot is mounted */
+	test_mount_path = g_build_filename(fixture->tmpdir, "bootloader", NULL);
+	mountentry = g_unix_mount_at(test_mount_path, NULL);
+	g_assert_nonnull(mountentry);
+	g_assert_nonnull(g_unix_mount_get_device_path(mountentry));
+
+	g_clear_pointer(&mountentry, g_unix_mount_free);
+
 	args = install_args_new();
 	args->name = g_strdup(bundlepath);
 	args->notify = install_notify;
@@ -1260,6 +1271,14 @@ static void install_test_already_mounted(InstallFixture *fixture,
 	res = do_install_bundle(args, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
+
+	/* check bootloader slot is (still) mounted */
+	mountentry = g_unix_mount_at(test_mount_path, NULL);
+	g_assert_nonnull(mountentry);
+	g_assert_nonnull(g_unix_mount_get_device_path(mountentry));
+
+	g_clear_pointer(&test_mount_path, g_free);
+	g_clear_pointer(&mountentry, g_unix_mount_free);
 
 	args->status_result = 0;
 
