@@ -35,7 +35,7 @@ static GOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **error)
 
 	destslotfile = g_file_new_for_path(slot->device);
 
-	fd_out = open(g_file_get_path(destslotfile), O_WRONLY);
+	fd_out = open(g_file_get_path(destslotfile), O_WRONLY | O_EXCL);
 
 	if (fd_out == -1) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
