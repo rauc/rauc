@@ -1179,8 +1179,11 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	}
 
 	/* flush to block device before making eMMC boot partition read only */
-	fsync(out_fd);
-	close(out_fd);
+	if (fsync(out_fd) == -1) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Output device synchronization failed: %s", strerror(errno));
+		res = FALSE;
+		goto out;
+	}
 
 	/* reenable read-only on determined eMMC boot partition */
 	g_debug("Reenabling read-only mode of slot device partition %s",
@@ -1245,6 +1248,9 @@ out:
 	/* ensure that the eMMC boot partition is read-only afterwards */
 	if (!res && part_slot)
 		r_emmc_force_part_ro(part_slot->device, NULL);
+
+	if ((out_fd > 0) && (close(out_fd) == -1))
+		g_error("Close output device failed: %s", strerror(errno));
 
 	g_clear_object(&outstream);
 	g_clear_pointer(&part_slot, r_free_slot);
