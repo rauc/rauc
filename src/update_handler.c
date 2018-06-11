@@ -1166,12 +1166,22 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		goto out;
 	}
 
+	/* disable closing outstream file descriptor */
+	g_unix_output_stream_set_close_fd((GUnixOutputStream *)outstream, FALSE);
+
 	/* copy */
 	g_message("Copying image to slot device partition %s",
 			part_slot->device);
 	res = copy_raw_image(image, outstream, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* flush to block device before making eMMC boot partition read only */
+	if (fsync(out_fd) == -1) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Output device synchronization failed: %s", strerror(errno));
+		res = FALSE;
 		goto out;
 	}
 
@@ -1238,6 +1248,9 @@ out:
 	/* ensure that the eMMC boot partition is read-only afterwards */
 	if (!res && part_slot)
 		r_emmc_force_part_ro(part_slot->device, NULL);
+
+	if ((out_fd > 0) && (close(out_fd) == -1))
+		g_error("Close output device failed: %s", strerror(errno));
 
 	g_clear_object(&outstream);
 	g_clear_pointer(&part_slot, r_free_slot);
