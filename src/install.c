@@ -860,9 +860,18 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 		if (dest_slot->mount_point || dest_slot->ext_mount_point) {
 			res = FALSE;
-			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
-					"Destination device '%s' already mounted", dest_slot->device);
-			goto out;
+			if (dest_slot->state == ST_INACTIVE) {
+				res = r_umount(dest_slot->device, error);
+			}
+			if (res) {
+				g_clear_pointer(&dest_slot->mount_point, g_free);
+				g_clear_pointer(&dest_slot->ext_mount_point, g_free);
+			} else {
+				g_propagate_error(error, ierror);
+				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
+						"Destination device '%s' already mounted", dest_slot->device);
+				goto out;
+			}
 		}
 
 		/* Verify image checksum (for non-casync images) */
