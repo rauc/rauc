@@ -23,7 +23,7 @@ In principle, these are:
 * The bootloader
 * The Linux kernel
 * The init system
-* System utilities (mount, mkfs, ...)
+* System utilities (mount, mkfs, unsquashfs, ...)
 * The update tool, RAUC itself
 
 .. note::
@@ -171,6 +171,8 @@ Note that build systems may handle parts of these dependencies automatically,
 but also in this case you will have to select some of them manually as RAUC
 cannot fully know how you intend to use your system.
 
+:General: unsquashfs (from `Squashfs
+          <http://squashfs.sourceforge.net/>`_)
 :NAND Flash: nandwrite (from `mtd-utils
              <git://git.infradead.org/mtd-utils.git>`_)
 :UBIFS: mkfs.ubifs (from `mtd-utils
