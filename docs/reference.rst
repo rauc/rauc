@@ -194,11 +194,12 @@ hierarchical separator.
   Marks the slot as existing but not updatable. May be used for sanity checking
   or informative purpose. A ``readonly`` slot cannot be a target slot.
 
-``ignore-checksum``
+``force-install-same``
   If set to ``true`` this will bypass the default hash comparison for this slot
   and force RAUC to unconditionally update it. The default value is ``false``,
   which means that updating this slot will be skipped if new image's hash
   matches hash of installed one.
+  This replaces the deprecated entry ``ignore-checksum``.
 
 .. _sec_ref_manifest:
 
