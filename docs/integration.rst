@@ -188,6 +188,8 @@ cannot fully know how you intend to use your system.
 :vfat: mkfs.vfat (from `dosfstools
                   <https://github.com/dosfstools/dosfstools>`_)
 
+Note that for running ``rauc info`` on the target (as well as on the host), you
+also need to have the ``unsquashfs`` tool installed.
 
 Interfacing with the Bootloader
 -------------------------------
