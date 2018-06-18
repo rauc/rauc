@@ -315,10 +315,20 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				goto free;
 			}
 
-			slot->ignore_checksum = g_key_file_get_boolean(key_file, groups[i], "ignore-checksum", &ierror);
+			slot->force_install_same = g_key_file_get_boolean(key_file, groups[i], "force-install-same", &ierror);
 			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-				slot->ignore_checksum = FALSE;
 				g_clear_error(&ierror);
+				/* try also deprecatet flag ignore-checksum */
+				slot->force_install_same = g_key_file_get_boolean(key_file, groups[i], "ignore-checksum", &ierror);
+				if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+					slot->force_install_same = FALSE;
+					g_clear_error(&ierror);
+				}
+				else if (ierror) {
+					g_propagate_error(error, ierror);
+					res = FALSE;
+					goto free;
+				}
 			}
 			else if (ierror) {
 				g_propagate_error(error, ierror);

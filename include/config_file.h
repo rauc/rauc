@@ -91,7 +91,7 @@ typedef struct _RaucSlot {
 	/** flag indicating if the slot is updatable */
 	gboolean readonly;
 	/** flag indicating if the slot update may be forced */
-	gboolean ignore_checksum;
+	gboolean force_install_same;
 
 	/** current state of the slot (runtime) */
 	SlotState state;
