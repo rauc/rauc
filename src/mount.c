@@ -8,10 +8,10 @@
 
 gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, gsize size, GError **error)
 {
-	GSubprocess *sproc = NULL;
+	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	GPtrArray *args = g_ptr_array_new_full(10, g_free);
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(10, g_free);
 
 	if (getuid() != 0) {
 		g_ptr_array_add(args, g_strdup("sudo"));
@@ -51,7 +51,6 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 
 	res = TRUE;
 out:
-	g_ptr_array_unref(args);
 	return res;
 }
 
@@ -63,10 +62,10 @@ gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, gsize size
 
 gboolean r_umount(const gchar *filename, GError **error)
 {
-	GSubprocess *sproc = NULL;
+	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	GPtrArray *args = g_ptr_array_new_full(10, g_free);
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(10, g_free);
 
 	if (getuid() != 0) {
 		g_ptr_array_add(args, g_strdup("sudo"));
@@ -97,7 +96,6 @@ gboolean r_umount(const gchar *filename, GError **error)
 
 	res = TRUE;
 out:
-	g_ptr_array_unref(args);
 	return res;
 }
 
@@ -129,7 +127,6 @@ gchar* r_create_mount_point(const gchar *name, GError **error)
 	}
 
 out:
-
 	return mountpoint;
 }
 

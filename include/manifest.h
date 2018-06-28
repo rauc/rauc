@@ -98,6 +98,8 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *manifest, GErro
  */
 void free_manifest(RaucManifest *manifest);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucManifest, free_manifest);
+
 /**
  * Updates a manifest file in the given bundle directory.
  *
@@ -133,7 +135,11 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, GError **error
  */
 void r_free_image(gpointer data);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucImage, r_free_image);
+
 /**
  * Frees a rauc file
  */
 void r_free_file(gpointer data);
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucFile, r_free_file);

@@ -74,8 +74,8 @@ static gchar * manifest_consume_string(
 
 static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **image, GError **error)
 {
-	RaucImage *iimage = g_new0(RaucImage, 1);
-	gchar **groupsplit = NULL;
+	g_autoptr(RaucImage) iimage = g_new0(RaucImage, 1);
+	g_auto(GStrv) groupsplit = NULL;
 	gchar *value;
 	gchar **hooks;
 	gsize entries;
@@ -136,12 +136,9 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 	g_key_file_remove_group(key_file, group, NULL);
 
 	res = TRUE;
-	*image = iimage;
+	*image = g_steal_pointer(&iimage);
 
 out:
-	if (!image)
-		g_clear_pointer(&iimage, r_free_image);
-	g_strfreev(groupsplit);
 	return res;
 }
 
@@ -299,20 +296,15 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	g_strfreev(groups);
 
 	res = TRUE;
+	*manifest = g_steal_pointer(&raucm);
 free:
-	if (res) {
-		*manifest = raucm;
-	} else {
-		free_manifest(raucm);
-	}
-
 	return res;
 }
 
 gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)
 {
 	GError *ierror = NULL;
-	GKeyFile *key_file = NULL;
+	g_autoptr(GKeyFile) key_file = NULL;
 	const gchar *data;
 	gsize length;
 	gboolean res = FALSE;
@@ -338,14 +330,13 @@ gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)
 	}
 
 out:
-	g_clear_pointer(&key_file, g_key_file_free);
 	return res;
 }
 
 gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GError **error)
 {
 	GError *ierror = NULL;
-	GKeyFile *key_file = NULL;
+	g_autoptr(GKeyFile) key_file = NULL;
 	gboolean res = FALSE;
 
 	r_context_begin_step("load_manifest_file", "Loading manifest file", 0);
@@ -365,14 +356,13 @@ gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GErr
 	}
 
 out:
-	g_clear_pointer(&key_file, g_key_file_free);
 	r_context_end_step("load_manifest_file", res);
 	return res;
 }
 
 gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **error)
 {
-	GKeyFile *key_file = NULL;
+	g_autoptr(GKeyFile) key_file = NULL;
 	gboolean res = FALSE;
 	GPtrArray *hooks = g_ptr_array_new_full(3, g_free);
 
@@ -414,9 +404,9 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **er
 	g_ptr_array_unref(hooks);
 
 	for (GList *l = mf->images; l != NULL; l = l->next) {
-		GPtrArray *hooklist = g_ptr_array_new_full(3, g_free);
+		g_autoptr(GPtrArray) hooklist = g_ptr_array_new_full(3, g_free);
 		RaucImage *image = l->data;
-		gchar *group;
+		g_autofree gchar *group = NULL;
 
 		if (!image || !image->slotclass)
 			continue;
@@ -452,14 +442,11 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **er
 			g_key_file_set_string_list(key_file, group, "hooks",
 					(const gchar **)hooklist->pdata, hooklist->len);
 		}
-
-		g_ptr_array_unref(hooklist);
-		g_free(group);
 	}
 
 	for (GList *l = mf->files; l != NULL; l = l->next) {
 		RaucFile *file = l->data;
-		gchar *group;
+		g_autofree gchar *group = NULL;
 
 		if (!file || !file->slotclass || !file->destname)
 			continue;
@@ -473,8 +460,6 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **er
 
 		if (file->filename)
 			g_key_file_set_string(key_file, group, "filename", file->filename);
-
-		g_free(group);
 	}
 
 	res = g_key_file_save_to_file(key_file, filename, NULL);
@@ -482,8 +467,6 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **er
 		goto free;
 
 free:
-	g_key_file_free(key_file);
-
 	return res;
 }
 
@@ -529,7 +512,6 @@ void free_manifest(RaucManifest *manifest)
 	g_free(manifest);
 }
 
-
 static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *dir, GError **error)
 {
 	GError *ierror = NULL;
@@ -538,9 +520,8 @@ static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *d
 
 	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
 		RaucImage *image = elem->data;
-		gchar *filename = g_build_filename(dir, image->filename, NULL);
+		g_autofree gchar *filename = g_build_filename(dir, image->filename, NULL);
 		res = update_checksum(&image->checksum, filename, &ierror);
-		g_free(filename);
 		if (!res) {
 			g_warning("Failed updating checksum: %s", ierror->message);
 			g_clear_error(&ierror);
@@ -551,9 +532,8 @@ static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *d
 
 	for (GList *elem = manifest->files; elem != NULL; elem = elem->next) {
 		RaucFile *file = elem->data;
-		gchar *filename = g_build_filename(dir, file->filename, NULL);
+		g_autofree gchar *filename = g_build_filename(dir, file->filename, NULL);
 		res = update_checksum(&file->checksum, filename, &ierror);
-		g_free(filename);
 		if (!res) {
 			g_warning("Failed updating checksum: %s", ierror->message);
 			g_clear_error(&ierror);
@@ -580,9 +560,8 @@ static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *d
 
 	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
 		RaucImage *image = elem->data;
-		gchar *filename = g_build_filename(dir, image->filename, NULL);
+		g_autofree gchar *filename = g_build_filename(dir, image->filename, NULL);
 		res = verify_checksum(&image->checksum, filename, &ierror);
-		g_free(filename);
 		if (!res) {
 			g_warning("Failed verifying checksum: %s", ierror->message);
 			g_clear_error(&ierror);
@@ -593,9 +572,8 @@ static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *d
 
 	for (GList *elem = manifest->files; elem != NULL; elem = elem->next) {
 		RaucFile *file = elem->data;
-		gchar *filename = g_build_filename(dir, file->filename, NULL);
+		g_autofree gchar *filename = g_build_filename(dir, file->filename, NULL);
 		res = verify_checksum(&file->checksum, filename, &ierror);
-		g_free(filename);
 		if (!res) {
 			g_warning("Failed verifying checksum: %s", ierror->message);
 			g_clear_error(&ierror);
@@ -616,10 +594,10 @@ static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *d
 gboolean update_manifest(const gchar *dir, gboolean signature, GError **error)
 {
 	GError *ierror = NULL;
-	gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
-	gchar* signaturepath = g_build_filename(dir, "manifest.raucm.sig", NULL);
-	RaucManifest *manifest = NULL;
-	GBytes *sig = NULL;
+	g_autofree gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
+	g_autofree gchar* signaturepath = g_build_filename(dir, "manifest.raucm.sig", NULL);
+	g_autoptr(RaucManifest) manifest = NULL;
+	g_autoptr(GBytes) sig = NULL;
 	gboolean res = FALSE;
 
 	if (signature) {
@@ -664,20 +642,16 @@ gboolean update_manifest(const gchar *dir, gboolean signature, GError **error)
 	}
 
 out:
-	g_clear_pointer(&sig, g_bytes_unref);
-	g_clear_pointer(&manifest, free_manifest);
-	g_free(signaturepath);
-	g_free(manifestpath);
 	return res;
 }
 
 gboolean verify_manifest(const gchar *dir, RaucManifest **output, GError **error)
 {
 	GError *ierror = NULL;
-	gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
-	gchar* signaturepath = g_build_filename(dir, "manifest.raucm.sig", NULL);
-	RaucManifest *manifest = NULL;
-	GBytes *sig = NULL;
+	g_autofree gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
+	g_autofree gchar* signaturepath = g_build_filename(dir, "manifest.raucm.sig", NULL);
+	g_autoptr(RaucManifest) manifest = NULL;
+	g_autoptr(GBytes) sig = NULL;
 	gboolean res = FALSE;
 
 	r_context_begin_step("verify_manifest", "Verifying manifest", 2);
@@ -699,12 +673,7 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, GError **error
 		manifest = NULL;
 	}
 
-
 out:
-	g_clear_pointer(&sig, g_bytes_unref);
-	g_clear_pointer(&manifest, free_manifest);
-	g_free(signaturepath);
-	g_free(manifestpath);
 	r_context_end_step("verify_manifest", res);
 	return res;
 }

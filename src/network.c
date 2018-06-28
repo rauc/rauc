@@ -142,7 +142,9 @@ out:
 gboolean download_file_checksum(const gchar *target, const gchar *url,
 		const RaucChecksum *checksum)
 {
-	gchar *tmpname = NULL, *dir = NULL, *tmppath = NULL;
+	g_autofree gchar *tmpname = NULL;
+	g_autofree gchar *dir = NULL;
+	g_autofree gchar *tmppath = NULL;
 	gboolean res = FALSE;
 
 	tmpname = g_strdup_printf(".rauc_%s_%"G_GSIZE_FORMAT, checksum->digest,
@@ -171,9 +173,6 @@ gboolean download_file_checksum(const gchar *target, const gchar *url,
 		goto out;
 
 out:
-	g_clear_pointer(&tmpname, g_free);
-	g_clear_pointer(&dir, g_free);
-	g_clear_pointer(&tmppath, g_free);
 	return res;
 }
 

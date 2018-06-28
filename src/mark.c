@@ -47,7 +47,7 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 					"Did not find booted slot needed to find another bootable slot of the same class");
 		}
 	} else {
-		gchar **groupsplit = g_strsplit(identifier, ".", -1);
+		g_auto(GStrv) groupsplit = g_strsplit(identifier, ".", -1);
 
 		if (g_strv_length(groupsplit) == 2) {
 			g_hash_table_iter_init(&iter, r_context()->config->slots);
@@ -69,8 +69,6 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 					R_SLOT_ERROR_FAILED,
 					"Invalid slot name format: '%s'", identifier);
 		}
-
-		g_strfreev(groupsplit);
 	}
 
 	return slot;

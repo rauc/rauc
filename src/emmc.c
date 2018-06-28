@@ -125,8 +125,8 @@ out:
 static gboolean r_emmc_force_part_write(const gchar *device, gchar value, GError **error)
 {
 	gboolean ret = FALSE;
-	gchar *device_basename = g_path_get_basename(device);
-	gchar *sysfs_path = NULL;
+	g_autofree gchar *device_basename = g_path_get_basename(device);
+	g_autofree gchar *sysfs_path = NULL;
 	FILE *f = NULL;
 
 	g_return_val_if_fail(value == '0' || value == '1', FALSE);
@@ -152,9 +152,6 @@ static gboolean r_emmc_force_part_write(const gchar *device, gchar value, GError
 out:
 	if (f)
 		fclose(f);
-
-	g_free(device_basename);
-	g_free(sysfs_path);
 
 	return ret;
 }

@@ -141,6 +141,8 @@ RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device);
  */
 void free_config(RaucConfig *config);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucConfig, free_config);
+
 /**
  * Load a single slot status from a file into a pre-allocated status structure.
  * If a problem occurs this structure is left unmodified.
@@ -203,6 +205,8 @@ gboolean save_slot_status(RaucSlot *dest_slot, GError **error);
  * Frees the memory allocated by a RaucSlot
  */
 void r_free_slot(gpointer value);
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucSlot, r_free_slot);
 
 /**
  * Check if slot type is mountable.

@@ -103,7 +103,8 @@ static gboolean install_start(int argc, char **argv)
 	RInstaller *installer = NULL;
 	RaucInstallArgs *args = NULL;
 	GError *error = NULL;
-	gchar *bundlelocation = NULL, *bundlescheme = NULL;
+	g_autofree gchar *bundlelocation = NULL;
+	g_autofree gchar *bundlescheme = NULL;
 
 	g_debug("install started");
 
@@ -131,13 +132,11 @@ static gboolean install_start(int argc, char **argv)
 		/* A valid local bundle path name must end with `.raucb` */
 		if (!g_str_has_suffix(bundlelocation, ".raucb")) {
 			g_printerr("Bundle must have a .raucb extension: %s\n", bundlelocation);
-			g_clear_pointer(&bundlelocation, g_free);
 			goto out;
 		}
 
 		if (!g_file_test(bundlelocation, G_FILE_TEST_EXISTS)) {
 			g_printerr("No such file: %s\n", bundlelocation);
-			g_clear_pointer(&bundlelocation, g_free);
 			goto out;
 		}
 	}
@@ -145,7 +144,7 @@ static gboolean install_start(int argc, char **argv)
 	g_debug("input bundle: %s", bundlelocation);
 
 	args = install_args_new();
-	args->name = bundlelocation;
+	args->name = g_steal_pointer(&bundlelocation);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 	args->status_result = 2;
@@ -173,7 +172,7 @@ static gboolean install_start(int argc, char **argv)
 			goto out_loop;
 		}
 		g_debug("Trying to contact rauc service");
-		if (!r_installer_call_install_sync(installer, bundlelocation, NULL,
+		if (!r_installer_call_install_sync(installer, args->name, NULL,
 				    &error)) {
 			g_printerr("Failed %s\n", error->message);
 			g_error_free(error);
@@ -210,8 +209,6 @@ out_loop:
 	install_args_free(args);
 
 out:
-	g_clear_pointer(&bundlescheme, g_free);
-
 	return TRUE;
 }
 
@@ -268,11 +265,11 @@ out:
 static gboolean write_slot_start(int argc, char **argv)
 {
 	GError *ierror = NULL;
-	RaucImage *image = g_new0(RaucImage, 1);
-	RaucSlot *slot = g_new0(RaucSlot, 1);
-	GFileInfo *info = NULL;
-	GInputStream *instream = NULL;
-	GFile *imagefile = NULL;
+	g_autoptr(RaucImage) image = g_new0(RaucImage, 1);
+	g_autoptr(RaucSlot) slot = g_new0(RaucSlot, 1);
+	g_autoptr(GFileInfo) info = NULL;
+	g_autoptr(GInputStream) instream = NULL;
+	g_autoptr(GFile) imagefile = NULL;
 	img_to_slot_handler update_handler = NULL;
 
 	g_debug("write_slot_start");
@@ -343,18 +340,12 @@ static gboolean write_slot_start(int argc, char **argv)
 	g_message("Slot written successfully");
 
 out:
-	g_object_unref(info);
-	g_clear_object(&instream);
-	g_clear_object(&imagefile);
-	g_clear_pointer(&slot, r_free_slot);
-	g_clear_pointer(&image, r_free_image);
-
 	return TRUE;
 }
 
 static gboolean resign_start(int argc, char **argv)
 {
-	RaucBundle *bundle = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("resign start");
 
@@ -398,7 +389,6 @@ static gboolean resign_start(int argc, char **argv)
 	}
 
 out:
-	g_clear_pointer(&bundle, free_bundle);
 	return TRUE;
 }
 
@@ -538,17 +528,15 @@ out:
  * the provided text with taking care of correct shell quoting */
 static void formatter_shell_append(GString* text, const gchar* varname, const gchar* argument)
 {
-	gchar* quoted = g_shell_quote(argument ?: "");
+	g_autofree gchar* quoted = g_shell_quote(argument ?: "");
 	g_string_append_printf(text, "%s=%s\n", varname, quoted);
-	g_clear_pointer(&quoted, g_free);
 }
 /* Same as above, expect that it has a cnt argument to add per-slot-number
  * strings */
 static void formatter_shell_append_n(GString* text, const gchar* varname, gint cnt, const gchar* argument)
 {
-	gchar* quoted = g_shell_quote(argument ?: "");
+	g_autofree gchar* quoted = g_shell_quote(argument ?: "");
 	g_string_append_printf(text, "%s_%d=%s\n", varname, cnt, quoted);
-	g_clear_pointer(&quoted, g_free);
 }
 
 static gchar *info_formatter_shell(RaucManifest *manifest)
@@ -697,10 +685,9 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 {
 #if ENABLE_JSON
-	JsonGenerator *gen;
-	JsonNode * root;
-	gchar *str;
-	JsonBuilder *builder = json_builder_new();
+	g_autoptr(JsonGenerator) gen = NULL;
+	g_autoptr(JsonNode) root = NULL;
+	g_autoptr(JsonBuilder) builder = json_builder_new();
 
 	json_builder_begin_object(builder);
 
@@ -765,13 +752,7 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 	root = json_builder_get_root(builder);
 	json_generator_set_root(gen, root);
 	json_generator_set_pretty(gen, pretty);
-	str = json_generator_to_data(gen, NULL);
-
-	json_node_free(root);
-	g_object_unref(gen);
-	g_object_unref(builder);
-
-	return str;
+	return json_generator_to_data(gen, NULL);
 #else
 	g_error("json support is disabled");
 	return NULL;
@@ -790,11 +771,11 @@ static gchar* info_formatter_json_pretty(RaucManifest *manifest)
 
 static gboolean info_start(int argc, char **argv)
 {
-	gchar* tmpdir = NULL;
-	gchar* bundledir = NULL;
-	gchar* manifestpath = NULL;
+	g_autofree gchar* tmpdir = NULL;
+	g_autofree gchar* bundledir = NULL;
+	g_autofree gchar* manifestpath = NULL;
 	RaucManifest *manifest = NULL;
-	RaucBundle *bundle = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
 	GError *error = NULL;
 	gboolean res = FALSE;
 	gchar* (*formatter)(RaucManifest *manifest) = NULL;
@@ -880,11 +861,6 @@ out:
 	r_exit_status = res ? 0 : 1;
 	if (tmpdir)
 		rm_tree(tmpdir, NULL);
-
-	g_clear_pointer(&bundle, free_bundle);
-	g_clear_pointer(&tmpdir, g_free);
-	g_clear_pointer(&bundledir, g_free);
-	g_clear_pointer(&manifestpath, g_free);
 	return TRUE;
 }
 
@@ -1063,11 +1039,10 @@ static gchar* r_status_formatter_shell(void)
 static gchar* r_status_formatter_json(gboolean pretty)
 {
 #if ENABLE_JSON
-	JsonGenerator *gen;
-	JsonNode * root;
+	g_autoptr(JsonGenerator) gen = NULL;
+	g_autoptr(JsonNode) root = NULL;
 	GHashTableIter iter;
-	gchar *str;
-	JsonBuilder *builder = json_builder_new();
+	g_autoptr(JsonBuilder) builder = json_builder_new();
 	GError *ierror = NULL;
 	RaucSlot *slot, *primary = NULL;
 
@@ -1191,13 +1166,7 @@ static gchar* r_status_formatter_json(gboolean pretty)
 	root = json_builder_get_root(builder);
 	json_generator_set_root(gen, root);
 	json_generator_set_pretty(gen, pretty);
-	str = json_generator_to_data(gen, NULL);
-
-	json_node_free(root);
-	g_object_unref(gen);
-	g_object_unref(builder);
-
-	return str;
+	return json_generator_to_data(gen, NULL);
 #else
 	g_error("json support is disabled");
 	return NULL;
@@ -1288,9 +1257,9 @@ static gboolean status_start(int argc, char **argv)
 {
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
-	gchar *text = NULL;
-	gchar *slot_name = NULL;
-	gchar *message = NULL;
+	g_autofree gchar *text = NULL;
+	g_autofree gchar *slot_name = NULL;
+	g_autofree gchar *message = NULL;
 	const gchar *state = NULL;
 	const gchar *slot_identifier = NULL;
 	GError *ierror = NULL;
@@ -1391,9 +1360,6 @@ static gboolean status_start(int argc, char **argv)
 out:
 	if (message)
 		g_message("rauc mark: %s", message);
-	g_free(text);
-	g_free(slot_name);
-	g_free(message);
 	g_clear_pointer(&proxy, g_object_unref);
 
 	return TRUE;
@@ -1463,7 +1429,7 @@ static void cmdline_handler(int argc, char **argv)
 	gchar *confpath = NULL, *certpath = NULL, *keypath = NULL, *keyring = NULL, **intermediate = NULL, *mount = NULL,
 	      *handlerextra = NULL, *bootslot = NULL;
 	char *cmdarg = NULL;
-	GOptionContext *context = NULL;
+	g_autoptr(GOptionContext) context = NULL;
 	GOptionEntry entries[] = {
 		{"conf", 'c', 0, G_OPTION_ARG_FILENAME, &confpath, "config file", "FILENAME"},
 		{"cert", '\0', 0, G_OPTION_ARG_FILENAME, &certpath, "cert file", "PEMFILE"},
@@ -1483,7 +1449,7 @@ static void cmdline_handler(int argc, char **argv)
 	GOptionGroup *status_group = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
 
 	GError *error = NULL;
-	gchar *text;
+	g_autofree gchar *text = NULL;
 
 	RaucCommand rcommands[] = {
 		{UNKNOWN, "help", "<COMMAND>", "Print help", unknown_start, NULL, TRUE},
@@ -1528,7 +1494,7 @@ static void cmdline_handler(int argc, char **argv)
 		g_printerr("%s\n", error->message);
 		g_error_free(error);
 		r_exit_status = 1;
-		goto done;
+		return;
 	}
 
 	if (debug) {
@@ -1555,7 +1521,7 @@ static void cmdline_handler(int argc, char **argv)
 	if (cmdarg == NULL) {
 		if (version) {
 			g_print(PACKAGE_STRING "\n");
-			goto done;
+			return;
 		}
 
 		/* NO COMMAND given */
@@ -1632,29 +1598,25 @@ static void cmdline_handler(int argc, char **argv)
 		    keypath != NULL) {
 			g_error("rauc busy, cannot reconfigure");
 			r_exit_status = 1;
-			goto done;
+			return;
 		}
 	}
 
 	if (r_context_get_busy() && !rcommand->while_busy) {
 		g_error("rauc busy: cannot run %s", rcommand->name);
 		r_exit_status = 1;
-		goto done;
+		return;
 	}
 
 	/* real commands are handled here */
 	if (rcommand->cmd_handler) {
 		rcommand->cmd_handler(argc, argv);
 	}
-	goto done;
+	return;
 
 print_help:
 	text = g_option_context_get_help(context, FALSE, NULL);
 	g_print("%s", text);
-	g_free(text);
-
-done:
-	g_clear_pointer(&context, g_option_context_free);;
 }
 
 int main(int argc, char **argv)

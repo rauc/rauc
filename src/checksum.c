@@ -7,8 +7,8 @@ G_DEFINE_QUARK(r-checksum-error-quark, r_checksum_error)
 gboolean update_checksum(RaucChecksum *checksum, const gchar *filename, GError **error)
 {
 	GError *ierror = NULL;
-	GMappedFile *file;
-	GBytes *content = NULL;
+	g_autoptr(GMappedFile) file = NULL;
+	g_autoptr(GBytes) content = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -32,17 +32,15 @@ out:
 		g_clear_pointer(&checksum->digest, g_free);
 		checksum->size = 0;
 	}
-	g_clear_pointer(&content, g_bytes_unref);
-	g_clear_pointer(&file, g_mapped_file_unref);
 	return res;
 }
 
 gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename, GError **error)
 {
 	GError *ierror = NULL;
-	GMappedFile *file = NULL;
-	GBytes *content = NULL;
-	gchar *digest = NULL;
+	g_autoptr(GMappedFile) file = NULL;
+	g_autoptr(GBytes) content = NULL;
+	g_autofree gchar *digest = NULL;
 	gboolean res = FALSE;
 
 	if (checksum->digest == NULL) {
@@ -71,8 +69,5 @@ gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename, GE
 	}
 
 out:
-	g_clear_pointer(&digest, g_free);
-	g_clear_pointer(&content, g_bytes_unref);
-	g_clear_pointer(&file, g_mapped_file_unref);
 	return res;
 }
