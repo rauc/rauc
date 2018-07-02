@@ -167,11 +167,15 @@ Required Target Tools
 RAUC requires and uses a set of target tools depending on the type of supported
 storage and used image type.
 
+Mandatory tools for each setup are ``mount`` and ``umount``, either from
+`Busybox <http://www.busybox.net>`_ or
+`util-linux <https://cdn.kernel.org/pub//linux/utils/util-linux/>`_
+
 Note that build systems may handle parts of these dependencies automatically,
 but also in this case you will have to select some of them manually as RAUC
 cannot fully know how you intend to use your system.
 
-:NAND Flash: nandwrite (from `mtd-utils
+:NAND Flash: flash_erase & nandwrite (from `mtd-utils
              <git://git.infradead.org/mtd-utils.git>`_)
 :UBIFS: mkfs.ubifs (from `mtd-utils
                   <git://git.infradead.org/mtd-utils.git>`_)
@@ -188,8 +192,20 @@ cannot fully know how you intend to use your system.
 :vfat: mkfs.vfat (from `dosfstools
                   <https://github.com/dosfstools/dosfstools>`_)
 
+Depending on the bootloader you use on your target, RAUC also needs the right
+tool to interact with it:
+
+:Barebox: barebox-state
+          (from `dt-utils <https://git.pengutronix.de/cgit/tools/dt-utils/>`_)
+:U-Boot: fw_setenv/fw_getenv (from `u-boot <http://git.denx.de/?p=u-boot.git;a=summary>`_)
+:GRUB: grub-editenv
+:EFI: efibootmgr
+
 Note that for running ``rauc info`` on the target (as well as on the host), you
 also need to have the ``unsquashfs`` tool installed.
+
+When using the RAUC casync integration, the ``casync`` tool must also be
+available.
 
 Interfacing with the Bootloader
 -------------------------------
