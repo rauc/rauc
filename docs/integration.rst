@@ -161,6 +161,18 @@ In kernel Kconfig you have to enable the following options:
   CONFIG_BLK_DEV_LOOP=y
   CONFIG_SQUASHFS=y
 
+Required Host Tools
+-------------------
+
+To be able to generate bundles, RAUC requires at least the following host tools:
+
+* mksquashfs
+* fakeroot
+* unsquashfs
+
+When using the RAUC casync integration, the ``casync`` tool must also be
+available.
+
 Required Target Tools
 ---------------------
 
