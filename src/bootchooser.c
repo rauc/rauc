@@ -659,7 +659,7 @@ static gboolean efi_bootorder_set(gchar *order, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 
-	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, "efibootmgr",
+	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, EFIBOOTMGR_NAME,
 			"--bootorder", order, NULL);
 
 	if (!sub) {
@@ -693,7 +693,7 @@ static gboolean efi_set_bootnext(gchar *bootnumber, GError **error)
 	g_return_val_if_fail(bootnumber, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, "efibootmgr",
+	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, EFIBOOTMGR_NAME,
 			"--bootnext", bootnumber, NULL);
 
 	if (!sub) {
