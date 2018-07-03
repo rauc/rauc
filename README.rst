@@ -161,6 +161,12 @@ following Busybox feature:
 
 -  ``CONFIG_FEATURE_TAR_AUTODETECT=y``
 
+Depending on the actual storage type and/or filesystem used, further target
+tool might be required.
+The documentation chapter
+`Required Target Tools <http://rauc.readthedocs.io/en/latest/integration.html#required-target-tools>`_
+gives a more detailed list on these.
+
 Building from Sources
 ---------------------
 
