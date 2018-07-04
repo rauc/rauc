@@ -167,11 +167,10 @@ Required Host Tools
 To be able to generate bundles, RAUC requires at least the following host tools:
 
 * mksquashfs
-* fakeroot
 * unsquashfs
 
-When using the RAUC casync integration, the ``casync`` tool must also be
-available.
+When using the RAUC casync integration, the ``casync`` tool and ``fakeroot``
+(for converting archives to directory tree indexes) must also be available.
 
 Required Target Tools
 ---------------------
