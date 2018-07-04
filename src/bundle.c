@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <gio/gio.h>
 #include <glib/gstdio.h>
 #include <string.h>
@@ -894,7 +895,9 @@ void free_bundle(RaucBundle *bundle)
 
 	/* In case of a temporary donwload artifact, remove it. */
 	if (bundle->origpath)
-		g_remove(bundle->path);
+		if (g_remove(bundle->path) == -1) {
+			g_warning("Failed removing download artifact %s: %s\n", bundle->path, g_strerror(errno));
+		}
 
 	g_free(bundle->path);
 	g_free(bundle->mount_point);
