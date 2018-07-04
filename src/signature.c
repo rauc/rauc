@@ -496,7 +496,7 @@ out:
 gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, CMS_ContentInfo **cms, X509_STORE **store, GError **error)
 {
 	GError *ierror = NULL;
-	g_autoptr(GMappedFile) file;
+	g_autoptr(GMappedFile) file = NULL;
 	g_autoptr(GBytes) content = NULL;
 	gboolean res = FALSE;
 
