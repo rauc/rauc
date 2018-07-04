@@ -266,7 +266,7 @@ extract:
 
 	/* Cleanup seed */
 	if (seed_mounted) {
-		r_umount_slot(seedslot, &ierror);
+		res = r_umount_slot(seedslot, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror, "Failed unmounting seed slot: ");
 			goto out;
