@@ -969,12 +969,14 @@ image_out:
 				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
 						"Failed marking slot %s bootable", dest_slot->name);
 				g_clear_error(&ierror);
+				res = FALSE;
 				goto out;
 			} else if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED)) {
 				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED,
 						"Marked slot %s bootable, but failed to write status file: %s",
 						dest_slot->name, ierror->message);
 				g_clear_error(&ierror);
+				res = FALSE;
 				goto out;
 			}
 			g_clear_error(&ierror);
