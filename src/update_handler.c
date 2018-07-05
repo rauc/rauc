@@ -531,6 +531,7 @@ static gboolean untar_image(RaucImage *image, gchar *dest, GError **error)
 	g_ptr_array_add(args, g_strdup(image->filename));
 	g_ptr_array_add(args, g_strdup("-C"));
 	g_ptr_array_add(args, g_strdup(dest));
+	g_ptr_array_add(args, g_strdup("--numeric-owner"));
 	g_ptr_array_add(args, NULL);
 
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,

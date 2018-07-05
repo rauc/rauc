@@ -132,6 +132,7 @@ static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath,
 	g_ptr_array_add(iargs, g_strdup(contentpath));
 	g_ptr_array_add(iargs, g_strdup("-C"));
 	g_ptr_array_add(iargs, g_strdup(tmpdir));
+	g_ptr_array_add(iargs, g_strdup("--numeric-owner"));
 	g_ptr_array_add(iargs, g_strdup("&&"));
 	g_ptr_array_add(iargs, g_strdup("casync"));
 	g_ptr_array_add(iargs, g_strdup("make"));
