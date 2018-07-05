@@ -160,6 +160,7 @@ For using tar archive in RAUC bundles with Busybox tar, you have to enable the
 following Busybox feature:
 
 -  ``CONFIG_FEATURE_TAR_AUTODETECT=y``
+-  ``CONFIG_FEATURE_TAR_LONG_OPTIONS=y``
 
 Depending on the actual storage type and/or filesystem used, further target
 tool might be required.
