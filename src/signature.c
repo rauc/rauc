@@ -355,6 +355,30 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 				"Read zero bytes");
 		goto out;
 	}
+
+	/* keyring was given, perform verification to obtain trust chain */
+	if (r_context()->config->keyring_path) {
+		g_autoptr(CMS_ContentInfo) vcms = NULL;
+		g_autoptr(X509_STORE) store = NULL;
+		STACK_OF(X509) *verified_chain = NULL;
+
+		g_message("Keyring given, doing signature verification");
+		if (!cms_verify(content, res, &vcms, &store, &ierror)) {
+			g_propagate_error(error, ierror);
+			res = NULL;
+			goto out;
+		}
+
+		if (!cms_get_cert_chain(vcms, store, &verified_chain, &ierror)) {
+			g_propagate_error(error, ierror);
+			res = NULL;
+			goto out;
+		}
+
+		sk_X509_pop_free(verified_chain, X509_free);
+	} else {
+		g_message("No keyring given, skipping signature verification");
+	}
 out:
 	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
