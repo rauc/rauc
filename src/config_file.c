@@ -574,7 +574,6 @@ free:
 static void load_slot_status_locally(RaucSlot *dest_slot)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 	g_autofree gchar *slotstatuspath = NULL;
 
 	g_return_if_fail(dest_slot);
@@ -589,29 +588,24 @@ static void load_slot_status_locally(RaucSlot *dest_slot)
 
 	/* read slot status */
 	g_message("mounting slot %s", dest_slot->device);
-	res = r_mount_slot(dest_slot, &ierror);
-	if (!res) {
+	if (!r_mount_slot(dest_slot, &ierror)) {
 		g_message("Failed to mount slot %s: %s", dest_slot->device, ierror->message);
-		goto free;
+		g_clear_error(&ierror);
+		return;
 	}
 
 	slotstatuspath = g_build_filename(dest_slot->mount_point, "slot.raucs", NULL);
 
-	res = read_slot_status(slotstatuspath, dest_slot->status, &ierror);
-	if (!res) {
+	if (!read_slot_status(slotstatuspath, dest_slot->status, &ierror)) {
 		g_message("Failed to load status file %s: %s", slotstatuspath, ierror->message);
-		r_umount_slot(dest_slot, NULL);
-		goto free;
+		g_clear_error(&ierror);
 	}
 
-	res = r_umount_slot(dest_slot, &ierror);
-	if (!res) {
+	if (!r_umount_slot(dest_slot, &ierror)) {
 		g_message("Failed to unmount slot %s: %s", dest_slot->device, ierror->message);
-		goto free;
+		g_clear_error(&ierror);
+		return;
 	}
-
-free:
-	g_clear_error(&ierror);
 }
 
 static void load_slot_status_globally(void)
