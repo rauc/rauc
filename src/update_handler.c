@@ -219,7 +219,7 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, GError **err
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	RaucSlot *seedslot = NULL;
-	gchar *seed = NULL;
+	g_autofree gchar *seed = NULL;
 	gchar *store = NULL;
 	gboolean seed_mounted = FALSE;
 
