@@ -890,7 +890,7 @@ static gboolean efi_set_temp_primary(RaucSlot *slot, GError **error)
 
 	res = efi_set_bootnext(efi_slot_entry->num, &ierror);
 	if (!res) {
-		g_propagate_prefixed_error(error, ierror, "Obtaining bootorder failed: ");
+		g_propagate_prefixed_error(error, ierror, "Setting bootnext failed: ");
 		goto out;
 	}
 

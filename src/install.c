@@ -375,10 +375,10 @@ GHashTable* determine_target_install_group(void)
 
 
 		if (slot_list_contains(selected_root_slots, parent)) {
-			g_debug("\tAdding mappping: %s -> %s", iterslot->sclass, iterslot->name);
+			g_debug("\tAdding mapping: %s -> %s", iterslot->sclass, iterslot->name);
 			g_hash_table_insert(targetgroup, (gpointer) iterslot->sclass, iterslot);
 		} else {
-			g_debug("\tNo mappping found");
+			g_debug("\tNo mapping found");
 		}
 	}
 
