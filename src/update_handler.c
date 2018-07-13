@@ -253,10 +253,11 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, GError **err
 		seed = g_strdup(seedslot->device);
 	}
 
+extract:
+	/* Set store */
 	store = r_context()->install_info->mounted_bundle->storepath;
 	g_debug("Using store path: '%s'", store);
 
-extract:
 	/* Call casync to extract */
 	res = casync_extract(image, dest, seed, store, &ierror);
 	if (!res) {
