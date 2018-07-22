@@ -87,6 +87,11 @@ Example configuration:
   key not exists, the bootchooser framework searches per default for ``/state``
   or ``/aliases/state``.
 
+``max-bundle-download-size``
+  Defines the maximum downloadable bundle size in bytes, and thus must be
+  a simple integer value (without unit) greater than zero.
+  It overwrites the compiled-in default value of 8 MiB.
+
 **[keyring] section**
 
 The ``keyring`` section refers to the trusted keyring used for signature

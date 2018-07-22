@@ -56,6 +56,7 @@ compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
 statusfile=/mnt/persistent-rw-fs/system.raucs\n\
+max-bundle-download-size=42\n\
 \n\
 [keyring]\n\
 path=/etc/rauc/keyring/\n\
@@ -107,6 +108,7 @@ ignore-checksum=true\n";
 	g_assert_cmpstr(config->mount_prefix, ==, "/mnt/myrauc/");
 	g_assert_true(config->activate_installed);
 	g_assert_cmpstr(config->statusfile_path, ==, "/mnt/persistent-rw-fs/system.raucs");
+	g_assert_cmpint(config->max_bundle_download_size, ==, 42);
 
 	g_assert_nonnull(config->slots);
 	slotlist = g_hash_table_get_keys(config->slots);
@@ -344,6 +346,75 @@ activate-installed=typo\n";
 	g_assert_false(load_config(pathname, &config, &ierror));
 	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
 	g_assert_null(config);
+	g_clear_error(&ierror);
+}
+
+static void config_file_no_max_bundle_download_size(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "no_max_bundle_download_size.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_true(load_config(pathname, &config, &ierror));
+	g_assert_null(ierror);
+	g_assert_nonnull(config);
+	g_assert_cmpuint(config->max_bundle_download_size, ==, DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE);
+
+	free_config(config);
+}
+
+static void config_file_zero_max_bundle_download_size(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+max-bundle-download-size=0\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "zero_max_bundle_download_size.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_MAX_BUNDLE_DOWNLOAD_SIZE);
+	g_assert_null(config);
+
+	g_clear_error(&ierror);
+}
+
+static void config_file_typo_in_uint64_max_bundle_download_size(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+max-bundle-download-size=no-uint64\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "invalid_max_bundle_download_size.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
+	g_assert_null(config);
+
 	g_clear_error(&ierror);
 }
 
@@ -644,6 +715,15 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-boolean-activate-installed-key", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_typo_in_boolean_activate_installed_key,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/no-max-bundle-download-size", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_no_max_bundle_download_size,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/zero-max-bundle-download-size", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_zero_max_bundle_download_size,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/typo-in-uint64-max-bundle-download-size", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_typo_in_uint64_max_bundle_download_size,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/activate-installed-key-set-to-true", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_activate_installed_set_to_true,

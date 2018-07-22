@@ -31,6 +31,7 @@ gboolean default_config(RaucConfig **config)
 {
 	RaucConfig *c = g_new0(RaucConfig, 1);
 
+	c->max_bundle_download_size = DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE;
 	c->mount_prefix = g_strdup("/mnt/rauc/");
 
 	*config = c;
@@ -128,6 +129,27 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 	if (g_strcmp0(c->system_bootloader, "barebox") == 0) {
 		c->system_bb_statename = g_key_file_get_string(key_file, "system", "barebox-statename", NULL);
+	}
+
+	c->max_bundle_download_size = g_key_file_get_uint64(key_file, "system", "max-bundle-download-size", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_debug("No value for key \"max-bundle-download-size\" in [system] defined "
+				"- using default value of %d bytes.", DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE);
+		c->max_bundle_download_size = DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
+	if (c->max_bundle_download_size == 0) {
+		g_set_error(
+				error,
+				R_CONFIG_ERROR,
+				R_CONFIG_ERROR_MAX_BUNDLE_DOWNLOAD_SIZE,
+				"Invalid value (%" G_GUINT64_FORMAT ") for key \"max-bundle-download-size\" in system config", c->max_bundle_download_size);
+		res = FALSE;
+		goto free;
 	}
 
 	c->mount_prefix = g_key_file_get_string(key_file, "system", "mountprefix", NULL);
