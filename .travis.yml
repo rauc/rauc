@@ -3,6 +3,8 @@ sudo: required
 compiler: gcc-7
 dist: trusty
 before_install:
+  # travis-ci/travis-ci#9037: remove mongodb because the repository key is expired and we don't need it
+  - sudo rm -fv /etc/apt/sources.list.d/mongodb*
   - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ xenial main restricted universe multiverse" -y
   - sudo apt-get update -qq
   - sudo apt-get install -qq libglib2.0-dev libjson-glib-dev
