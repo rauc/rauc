@@ -41,5 +41,5 @@ mkdir /tmp/var_run_dbus
 mount --bind /tmp/var_run_dbus /var/run/dbus
 dbus-daemon --system --fork --nopidfile
 
-make check && touch uml-test-ok || true
+make check && touch uml-test-ok || cat test-suite.log
 poweroff -f
