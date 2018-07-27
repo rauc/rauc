@@ -4,4 +4,4 @@
 test=$1
 shift
 cd "$(dirname "$test")"
-./$(basename "$test") $*
+./$(basename "$test") -v $*
