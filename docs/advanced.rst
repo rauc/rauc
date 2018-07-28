@@ -197,6 +197,99 @@ Example hook shell script code for above trust chain:
   	[...]
   esac
 
+.. _pkcs11-support:
+
+PKCS#11 Support
+~~~~~~~~~~~~~~~
+
+RAUC can use certificates and keys which are stored in a PKCS#11-supporting
+smart-card, USB token (such as a `YubiKey <https://www.yubico.com>`_) or
+Hardware Security Module (HSM).
+For all commands which need create a signature ``bundle``, ``convert`` and
+``resign``, `PKCS#11 URLs <https://tools.ietf.org/html/rfc7512>`_ can be used
+instead of filenames for the ``--cert`` and ``--key`` arguments.
+
+For example, a bundle can be signed with a certificate and key available as
+``pkcs11:token=rauc;object=autobuilder-1``::
+
+  rauc bundle \
+    --cert='pkcs11:token=rauc;object=autobuilder-1' \
+    --key='pkcs11:token=rauc;object=autobuilder-1' \
+    <input-dir> <output-file>
+
+.. note::
+  Most PKCS#11 implementations require a PIN for signing operations.
+  You can either enter the PIN interactively as requested by RAUC or use the
+  ``RAUC_PKCS11_PIN`` environment variable to specifiy the PIN to use.
+
+When working with PKCS#11, some tools are useful to configure and show your tokens:
+
+`p11-kit <https://github.com/p11-glue/p11-kit>`_
+  p11-kit is an abstraction layer which provides access to multiple PKCS#11 modules.
+
+  It contains ``p11tool``, which is useful to see available tokens and objects
+  (keys and certificates) and their URLs::
+
+    $ p11tool --list-tokens
+    …
+    Token 5:
+	    URL: pkcs11:model=SoftHSM%20v2;manufacturer=SoftHSM%20project;serial=9f03d1aaed92ef58;token=rauc
+	    Label: rauc
+	    Type: Generic token
+	    Manufacturer: SoftHSM project
+	    Model: SoftHSM v2
+	    Serial: 9f03d1aaed92ef58
+	    Module: /usr/lib/softhsm/libsofthsm2.so
+    $ p11tool --login --list-all pkcs11:token=rauc
+    Token 'rauc' with URL 'pkcs11:model=SoftHSM%20v2;manufacturer=SoftHSM%20project;serial=9f03d1aaed92ef58;token=rauc' requires user PIN
+    Enter PIN: ****
+    Object 0:
+	    URL: pkcs11:model=SoftHSM%20v2;manufacturer=SoftHSM%20project;serial=9f03d1aaed92ef58;token=rauc;id=%01;object=autobuilder-1;type=public
+	    Type: Public key
+	    Label: autobuilder-1
+	    Flags: CKA_WRAP/UNWRAP;
+	    ID: 01
+
+    Object 1:
+	    URL: pkcs11:model=SoftHSM%20v2;manufacturer=SoftHSM%20project;serial=9f03d1aaed92ef58;token=rauc;id=%01;object=autobuilder-1;type=private
+	    Type: Private key
+	    Label: autobuilder-1
+	    Flags: CKA_WRAP/UNWRAP; CKA_PRIVATE; CKA_SENSITIVE;
+	    ID: 01
+
+    Object 2:
+	    URL: pkcs11:model=SoftHSM%20v2;manufacturer=SoftHSM%20project;serial=9f03d1aaed92ef58;token=rauc;id=%01;object=autobuilder-1;type=cert
+	    Type: X.509 Certificate
+	    Label: autobuilder-1
+	    ID: 01
+
+
+`OpenSC <https://github.com/OpenSC/OpenSC>`_
+  OpenSC is the standard open source framework for smart card access.
+
+  It provides ``pkcs11-tool``, which is useful to prepare a token for usage
+  with RAUC.
+  It can list, read/write objects, generate keypairs and more.
+
+`libp11 <https://github.com/OpenSC/libp11>`_
+  libp11 is an engine plugin for OpenSSL, which allows using keys on PKCS#11
+  tokens with OpenSSL.
+
+  It will automatically use p11-kit (if available) to access all configured
+  PKCS#11 modules.
+
+  .. note::
+    If you cannot use p11-kit, you can also use the ``RAUC_PKCS11_MODULE``
+    environment variable to select the PKCS#11 module.
+
+`SoftHSM2 <https://github.com/opendnssec/SoftHSMv2>`_
+  SoftHSM2 is software implementation of a HSM with a PKCS#11 interface.
+
+  It is used in the RAUC test suite to emulate a real HSM and can also be used
+  to try the PKCS#11 functionality in RAUC without any hardware.
+  The ``prepare_softhsm2`` shell function in ``test/rauc.t`` can be used as an
+  example on how to initialize SoftHSM2 token.
+
 Data Storage and Migration
 --------------------------
 

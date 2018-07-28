@@ -1432,8 +1432,8 @@ static void cmdline_handler(int argc, char **argv)
 	g_autoptr(GOptionContext) context = NULL;
 	GOptionEntry entries[] = {
 		{"conf", 'c', 0, G_OPTION_ARG_FILENAME, &confpath, "config file", "FILENAME"},
-		{"cert", '\0', 0, G_OPTION_ARG_FILENAME, &certpath, "cert file", "PEMFILE"},
-		{"key", '\0', 0, G_OPTION_ARG_FILENAME, &keypath, "key file", "PEMFILE"},
+		{"cert", '\0', 0, G_OPTION_ARG_FILENAME, &certpath, "cert file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
+		{"key", '\0', 0, G_OPTION_ARG_FILENAME, &keypath, "key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 		{"keyring", '\0', 0, G_OPTION_ARG_FILENAME, &keyring, "keyring file", "PEMFILE"},
 		{"intermediate", '\0', 0, G_OPTION_ARG_FILENAME_ARRAY, &intermediate, "intermediate CA file name", "PEMFILE"},
 		{"mount", '\0', 0, G_OPTION_ARG_FILENAME, &mount, "mount prefix", "PATH"},
@@ -1488,7 +1488,11 @@ static void cmdline_handler(int argc, char **argv)
 			"  install\tInstall a bundle\n" \
 			"  info\t\tShow file information\n" \
 			"  status\tShow status\n" \
-			"  write-slot\tWrite image to slot and bypass all update logic");
+			"  write-slot\tWrite image to slot and bypass all update logic\n" \
+			"\n" \
+			"Environment variables:\n"
+			"  RAUC_PKCS11_MODULE  Library filename for PKCS#11 module (signing only)\n" \
+			"  RAUC_PKCS11_PIN     PIN to use for accessing PKCS#11 keys (signing only)");
 
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
 		g_printerr("%s\n", error->message);

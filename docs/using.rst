@@ -41,6 +41,11 @@ which image to install to which slot, which scripts to execute etc.
 bundles must always have a ``.raucb`` file name suffix in order to ensure that
 RAUC treats them as bundles.
 
+Instead of the ``certfile`` and ``keyfile`` arguments, PKCS#11 URLs such as
+``'pkcs11:token=rauc;object=autobuilder-1'`` can be used to avoid storing
+sensitive key material as files (see :ref:`PKCS#11 Support <pkcs11-support>`
+for details).
+
 Obtaining Bundle Information
 ----------------------------
 

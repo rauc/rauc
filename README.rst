@@ -46,6 +46,8 @@ Features
   * Update compatibility check
 * **Cryptographic signing and verification** of updates using OpenSSL (signatures
   based on x.509 certificates)
+
+  * Keys and certificates on **PKCS#11 tokens** (HSMs) are supported
 * **Flexible and customizable** redundancy/storage setup
 
   * **Symmetric** setup (Root-FS A & B)
