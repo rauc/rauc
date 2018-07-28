@@ -1,13 +1,16 @@
 language: c
 sudo: required
 compiler: gcc-7
-dist: trusty
+dist: xenial
 before_install:
   # travis-ci/travis-ci#9037: remove mongodb because the repository key is expired and we don't need it
   - sudo rm -fv /etc/apt/sources.list.d/mongodb*
-  - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ xenial main restricted universe multiverse" -y
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq libglib2.0-dev libjson-glib-dev
+  - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+  - sudo apt-get update -q
+  - sudo apt-cache policy gcc-7
+  - sudo apt-get install -q gcc-7
+  # work around https://bugs.launchpad.net/ubuntu/+source/libp11/+bug/1690287
+  - sudo ln -s /usr/lib/ssl/engines/libpkcs11.so /usr/lib/x86_64-linux-gnu/openssl-1.0.0/engines/libpkcs11.so
 addons:
   apt:
     packages:
@@ -23,11 +26,13 @@ addons:
       - slirp
       - python-sphinx
       - dbus-x11
-      - gcc-7
       - user-mode-linux
       - grub-common
+      - softhsm2
+      - opensc
+      - opensc-pkcs11
+      - libengine-pkcs11-openssl
     sources: &sources
-      - ubuntu-toolchain-r-test
       - sourceline: 'deb http://archive.ubuntu.com/ubuntu/ trusty main restricted universe multiverse'
   coverity_scan:
     project:
