@@ -275,6 +275,23 @@ gchar* print_signer_cert(STACK_OF(X509) *verified_chain)
 	return ret;
 }
 
+static gchar* get_cert_time(ASN1_TIME *time) {
+	BIO *mem;
+	gchar *data, *ret;
+	gsize size;
+
+	mem = BIO_new(BIO_s_mem());
+	ASN1_TIME_print(mem, time);
+
+	size = BIO_get_mem_data(mem, &data);
+	ret = g_strndup(data, size);
+
+	BIO_set_close(mem, BIO_CLOSE);
+	BIO_free(mem);
+
+	return ret;
+}
+
 gchar* print_cert_chain(STACK_OF(X509) *verified_chain)
 {
 	GString *text = NULL;
@@ -291,6 +308,8 @@ gchar* print_cert_chain(STACK_OF(X509) *verified_chain)
 				buf, sizeof buf);
 		g_string_append_printf(text, "   Issuer: %s\n", buf);
 		g_string_append_printf(text, "   SPKI sha256: %s\n", get_pubkey_hash(sk_X509_value(verified_chain, i)));
+		g_string_append_printf(text, "   Not Before: %s\n", get_cert_time(X509_get_notBefore(sk_X509_value(verified_chain, i))));
+		g_string_append_printf(text, "   Not After:  %s\n", get_cert_time(X509_get_notAfter(sk_X509_value(verified_chain, i))));
 	}
 
 	return g_string_free(text, FALSE);
