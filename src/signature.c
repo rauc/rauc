@@ -383,6 +383,30 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 			goto out;
 		}
 
+		for (int i = 0; i < sk_X509_num(verified_chain); i++) {
+			const ASN1_TIME *expiry_time;
+			struct tm *next_month;
+			time_t now;
+			time_t comp;
+			time(&now);
+
+			next_month = gmtime(&now);
+			next_month->tm_mon += 1;
+			if (next_month->tm_mon == 12)
+				next_month->tm_mon = 0;
+			comp = timegm(next_month);
+
+			expiry_time = X509_get0_notAfter(sk_X509_value(verified_chain, i));
+
+			/* Check if expiry time is within last month */
+			if (X509_cmp_current_time(expiry_time) == 1 && X509_cmp_time(expiry_time, &comp) == -1) {
+				char buf[BUFSIZ];
+				X509_NAME_oneline(X509_get_subject_name(sk_X509_value(verified_chain, i)),
+						buf, sizeof buf);
+				g_warning("Certificate %d (%s) will exipre in less than a month!", i + 1, buf);
+			}
+		}
+
 		sk_X509_pop_free(verified_chain, X509_free);
 	} else {
 		g_message("No keyring given, skipping signature verification");
