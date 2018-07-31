@@ -41,6 +41,7 @@ typedef struct {
 	gboolean activate_installed;
 	gchar *statusfile_path;
 	gchar *keyring_path;
+	gboolean use_bundle_signing_time;
 
 	gchar *autoinstall_path;
 	gchar *preinstall_handler;
