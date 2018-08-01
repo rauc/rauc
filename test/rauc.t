@@ -394,6 +394,39 @@ test_expect_success "rauc write-slot invalid slot" "
   test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test.conf write-slot system0 /path/to/foo.img
 "
 
+echo "\
+[system]
+compatible=Test Config
+bootloader=grub
+grubenv=grubenv.test
+
+[keyring]
+path=openssl-ca/dev-ca.pem
+use-bundle-signing-time=true
+" > $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf
+cleanup rm $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf
+
+test_expect_success "rauc verify with 'use-bundle-signing-time': valid signing time, invalid current time" "
+  faketime "2018-01-01" \
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
+  faketime "2022-01-01" rauc --conf $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf info out.raucb &&
+  rm out.raucb
+"
+
+test_expect_success "rauc verfiy with 'use-bundle-signing-time': invalid signing time, valid current time" "
+  faketime "2022-01-01" \
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
+    bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
+  test_must_fail faketime "2018-01-01" rauc --conf $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf info out.raucb &&
+  rm out.raucb
+"
+
 test_expect_success CASYNC "rauc convert" "
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
