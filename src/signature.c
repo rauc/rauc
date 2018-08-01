@@ -616,7 +616,7 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 	/* The first element in the chain must be the signer certificate */
 	g_assert(X509_cmp(sk_X509_value(signers, 0), sk_X509_value(*verified_chain, 0)) == 0);
 
-	g_debug("Got %d chain elements", sk_X509_num(*verified_chain));
+	g_debug("Got %d elements for trust chain", sk_X509_num(*verified_chain));
 
 	res = TRUE;
 out:
