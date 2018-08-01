@@ -148,7 +148,9 @@ test_expect_success "rauc bundle" "
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
     bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
-  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info out.raucb
+  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info out.raucb &&
+  test -f out.raucb &&
+  rm out.raucb
 "
 
 test_expect_success !SERVICE "rauc --override-boot-slot=system0 status: internally" "
