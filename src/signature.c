@@ -204,7 +204,7 @@ gchar* get_pubkey_hash(X509 *cert)
 
 	len = i2d_X509_PUBKEY(X509_get_X509_PUBKEY(cert), NULL);
 	if (len <= 0) {
-		g_warning("DER Encoding failed\n");
+		g_warning("DER Encoding failed");
 		goto out;
 	}
 	/* As i2d_X509_PUBKEY() moves pointer after end of data,
@@ -215,7 +215,7 @@ gchar* get_pubkey_hash(X509 *cert)
 	g_assert(((unsigned int)(tmp_buf - der_buf)) == len);
 
 	if (!EVP_Digest(der_buf, len, md, &n, EVP_sha256(), NULL)) {
-		g_warning("Error in EVP_Digest\n");
+		g_warning("Error in EVP_Digest");
 		goto out;
 	}
 
