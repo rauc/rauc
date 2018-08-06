@@ -231,6 +231,20 @@ bootname=B\n";
 	g_assert_true(r_boot_set_primary(slot, NULL));
 }
 
+/* Write content to state storage for uboot fw_setenv / fw_printenv RAUC mock
+ * tools. Content should be similar to:
+ * "\
+ * BOOT_ORDER=A B\n\
+ * BOOT_A_LEFT=3\n\
+ * BOOT_B_LEFT=3\n\
+ * "
+ */
+static void test_uboot_initialize_state(const gchar *vars) {
+	g_autofree gchar *state_path = g_build_filename(g_get_tmp_dir(), "uboot-test-state", NULL);
+	g_setenv("UBOOT_STATE_PATH", state_path, TRUE);
+	g_assert_true(g_file_set_contents(state_path, vars, -1, NULL));
+}
+
 static void bootchooser_uboot(BootchooserFixture *fixture,
 		gconstpointer user_data)
 {
@@ -273,6 +287,12 @@ bootname=B\n";
 	g_assert_nonnull(rootfs0);
 	rootfs1 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
 	g_assert_nonnull(rootfs1);
+
+	test_uboot_initialize_state("\
+BOOT_ORDER=A B R\n\
+BOOT_A_LEFT=0\n\
+BOOT_B_LEFT=3\n\
+");
 
 	g_assert_true(r_boot_set_state(rootfs0, TRUE, NULL));
 	g_assert_true(r_boot_set_state(rootfs0, FALSE, NULL));

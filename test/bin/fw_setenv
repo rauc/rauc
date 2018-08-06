@@ -1,29 +1,49 @@
 #!/bin/bash
 
+# Read env file into environment
+eval $(cat $UBOOT_STATE_PATH | sed  "s/\(.*\)=\(.*\)/export \1=\"\2\"/g")
+UBOOT_VARS_PRE=$(cat $UBOOT_STATE_PATH | sed  "s/\(.*\)=\(.*\)/\1/g" | tr '\n' ' ')
+
+
+function check_var {
+	found=0
+	for l in $UBOOT_VARS_PRE; do
+		if [ "$1" = "${l%=*}" ]; then
+			found=1
+		fi
+	done
+	if [ "$found" -eq "0" ]; then
+		echo "Invalid variable: $1"
+		exit 1
+	fi
+}
+
 # Command line checking
 if [ $# -ne 2 ]; then
 	echo "Invalid arguments $*"
 	exit 1
 fi
 
-if [ "$1" = "BOOT_ORDER" ]; then
-	if ! [ "$2" = "A B" -o "$2" = "B A R" ]; then
-		echo "Invalid argument for BOOT_ORDER: '$2'"
-		exit 1
-	fi
-elif [ "$1" = "BOOT_A_LEFT" ]; then
-	if ! [ "$2" -ge 0 -a "$2" -le 3 ]; then
-		echo "Invalid argument for BOOT_A_LEFT: '$2'"
-		exit 1
-	fi
-elif [ "$1" = "BOOT_B_LEFT" ]; then
-	if ! [ "$2" -ge 0 -a "$2" -le 3 ]; then
-		echo "Invalid argument for BOOT_B_LEFT: '$2'"
-		exit 1
-	fi
-else
-	echo "Invalid key: '$1'"
-	exit 1
-fi
+# Set var
+while [[ $# -gt 0 ]]
+do
+	var="$1"
+	val="$2"
+	shift
+	shift
+
+	check_var "$var" "$val"
+
+	# Assign new value
+	echo "setting: $var to $val"
+	eval "${var}=\"${val}\""
+done
+
+# write back
+rm $UBOOT_STATE_PATH
+for l in $UBOOT_VARS_PRE; do
+	echo "${l}=${!l}"
+	echo "${l}=${!l}" >> $UBOOT_STATE_PATH
+done
 
 exit 0
