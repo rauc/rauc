@@ -239,7 +239,8 @@ bootname=B\n";
  * BOOT_B_LEFT=3\n\
  * "
  */
-static void test_uboot_initialize_state(const gchar *vars) {
+static void test_uboot_initialize_state(const gchar *vars)
+{
 	g_autofree gchar *state_path = g_build_filename(g_get_tmp_dir(), "uboot-test-state", NULL);
 	g_setenv("UBOOT_STATE_PATH", state_path, TRUE);
 	g_assert_true(g_file_set_contents(state_path, vars, -1, NULL));
@@ -253,7 +254,8 @@ static void test_uboot_initialize_state(const gchar *vars) {
  * Returns TRUE if mock tools state content equals desired content,
  * FALSE otherwise
  */
-static gboolean test_uboot_post_state(const gchar *compare) {
+static gboolean test_uboot_post_state(const gchar *compare)
+{
 	g_autofree gchar *state_path = g_build_filename(g_get_tmp_dir(), "uboot-test-state", NULL);
 	g_autofree gchar *contents = NULL;
 
@@ -272,6 +274,9 @@ static void bootchooser_uboot(BootchooserFixture *fixture,
 {
 	RaucSlot *rootfs0 = NULL;
 	RaucSlot *rootfs1 = NULL;
+	RaucSlot *primary = NULL;
+	gboolean good;
+	GError *error = NULL;
 
 	const gchar *cfg_file = "\
 [system]\n\
@@ -310,18 +315,60 @@ bootname=B\n";
 	rootfs1 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
 	g_assert_nonnull(rootfs1);
 
-	/* check rootfs.0 is marked bad (BOOT_A_LEFT set to 0) */
+	/* check rootfs.0 and rootfs.1 are considered bad (as not in BOOT_ORDER / no attempts left) */
+	test_uboot_initialize_state("\
+BOOT_ORDER=B R\n\
+BOOT_A_LEFT=3\n\
+BOOT_B_LEFT=0\n\
+");
+	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
+	g_assert_false(good);
+	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	g_assert_false(good);
+
+	/* check rootfs.1 is considered primary (as rootfs.0 has BOOT_A_LEFT set to 0) */
+	test_uboot_initialize_state("\
+BOOT_ORDER=A B R\n\
+BOOT_A_LEFT=0\n\
+BOOT_B_LEFT=3\n\
+");
+	primary = r_boot_get_primary(NULL);
+	g_assert_nonnull(primary);
+	g_assert(primary != rootfs0);
+	g_assert(primary == rootfs1);
+
+	/* check none is considered primary (as rootfs.0 has BOOT_A_LEFT set to 0 and rootfs.1 is not in BOOT_ORDER) */
+	test_uboot_initialize_state("\
+BOOT_ORDER=A R\n\
+BOOT_A_LEFT=0\n\
+BOOT_B_LEFT=3\n\
+");
+	primary = r_boot_get_primary(&error);
+	g_assert_null(primary);
+	g_assert_error(error, G_SPAWN_EXIT_ERROR, 1);
+	g_clear_error(&error);
+
+	/* check rootfs.0 + rootfs.1 are considered good */
 	test_uboot_initialize_state("\
 BOOT_ORDER=A B R\n\
 BOOT_A_LEFT=3\n\
 BOOT_B_LEFT=3\n\
 ");
+	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
+	g_assert_true(good);
+	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	g_assert_true(good);
+
+	/* check rootfs.0 is marked bad (BOOT_A_LEFT set to 0) */
 	g_assert_true(r_boot_set_state(rootfs0, FALSE, NULL));
 	g_assert_true(test_uboot_post_state("\
 BOOT_ORDER=A B R\n\
 BOOT_A_LEFT=0\n\
 BOOT_B_LEFT=3\n\
 "));
+	/* check rootfs.0 is considered bad*/
+	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
+	g_assert_false(good);
 
 	/* check rootfs.0 is marked good again (BOOT_A_LEFT reset to 3) */
 	g_assert_true(r_boot_set_state(rootfs0, TRUE, NULL));
