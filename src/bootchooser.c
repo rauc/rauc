@@ -569,6 +569,43 @@ static gboolean uboot_set_state(RaucSlot *slot, gboolean good, GError **error)
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	if (!good) {
+		g_autoptr(GString) order_current = NULL;
+		g_autoptr(GPtrArray) order_new = NULL;
+		g_auto(GStrv) bootnames = NULL;
+		g_autofree gchar *order = NULL;
+
+		if (!uboot_env_get("BOOT_ORDER", &order_current, &ierror)) {
+			g_message("Unable to obtain BOOT_ORDER: %s", ierror->message);
+			g_clear_error(&ierror);
+			goto set_left;
+		}
+
+		order_new = g_ptr_array_new();
+		/* Iterate over current boot order */
+		bootnames = g_strsplit(order_current->str, " ", -1);
+		for (gchar **bootname = bootnames; *bootname; bootname++) {
+			/* Skip selected slot, as we want it to be removed */
+			if (g_strcmp0(*bootname, slot->bootname) == 0)
+				continue;
+
+			/* skip empty strings from head or tail */
+			if (g_strcmp0(*bootname, "") == 0)
+				continue;
+
+			g_ptr_array_add(order_new, *bootname);
+		}
+		g_ptr_array_add(order_new, NULL);
+
+		order = g_strjoinv(" ", (gchar**) order_new->pdata);
+		if (!uboot_env_set("BOOT_ORDER", order, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+	}
+
+set_left:
+
 	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
 
 	if (!uboot_env_set(key, good ? UBOOT_DEFAULT_ATTEMPS : "0", &ierror)) {
