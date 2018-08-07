@@ -371,6 +371,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 	res = sign_bundle(bundlename, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
+		g_remove(bundlename);
 		goto out;
 	}
 
@@ -450,6 +451,7 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 	res = sign_bundle(outpath, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
+		g_remove(outpath);
 		goto out;
 	}
 
