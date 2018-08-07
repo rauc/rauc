@@ -234,7 +234,8 @@ bootname=B\n";
 static void bootchooser_uboot(BootchooserFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucSlot *slot;
+	RaucSlot *rootfs0 = NULL;
+	RaucSlot *rootfs1 = NULL;
 
 	const gchar *cfg_file = "\
 [system]\n\
@@ -268,16 +269,15 @@ bootname=B\n";
 	r_context_conf()->configpath = pathname;
 	r_context();
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
-	g_assert_nonnull(slot);
+	rootfs0 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
+	g_assert_nonnull(rootfs0);
+	rootfs1 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
+	g_assert_nonnull(rootfs1);
 
-	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
-	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
+	g_assert_true(r_boot_set_state(rootfs0, TRUE, NULL));
+	g_assert_true(r_boot_set_state(rootfs0, FALSE, NULL));
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
-	g_assert_nonnull(slot);
-
-	g_assert_true(r_boot_set_primary(slot, NULL));
+	g_assert_true(r_boot_set_primary(rootfs1, NULL));
 }
 
 static void bootchooser_efi(BootchooserFixture *fixture,
