@@ -69,7 +69,7 @@ bootname=system1\n";
 	rootfs1 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
 	g_assert_nonnull(rootfs1);
 
-	/* check rootfs.0 is considered good */
+	/* check rootfs.0 and rootfs.1 are considered good */
 	g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
@@ -78,10 +78,13 @@ bootstate.system1.priority=10\n\
 ", TRUE);
 	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
 	g_assert_true(good);
-
+	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	g_assert_true(good);
+	/* check rootfs.0 is considered as primary */
 	primary = r_boot_get_primary(NULL);
 	g_assert_nonnull(primary);
 	g_assert(primary == rootfs0);
+	g_assert(primary != rootfs1);
 
 	/* check rootfs.0 is considered bad (remaining_attempts = 0) */
 	g_setenv("BAREBOX_STATE_VARS_PRE", " \
@@ -92,6 +95,13 @@ bootstate.system1.priority=10\n\
 ", TRUE);
 	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
 	g_assert_false(good);
+	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	g_assert_true(good);
+	/* check rootfs.1 is considered as primary */
+	primary = r_boot_get_primary(NULL);
+	g_assert_nonnull(primary);
+	g_assert(primary != rootfs0);
+	g_assert(primary == rootfs1);
 
 	/* check rootfs.0 is considered bad (priority = 0) */
 	g_setenv("BAREBOX_STATE_VARS_PRE", " \
@@ -102,6 +112,13 @@ bootstate.system1.priority=10\n\
 ", TRUE);
 	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
 	g_assert_false(good);
+	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	g_assert_true(good);
+	/* check rootfs.1 is considered as primary */
+	primary = r_boot_get_primary(NULL);
+	g_assert_nonnull(primary);
+	g_assert(primary != rootfs0);
+	g_assert(primary == rootfs1);
 
 	/* check rootfs.0 is marked good (has remaining attempts reset 1->3) */
 	g_setenv("BAREBOX_STATE_VARS_PRE", " \
