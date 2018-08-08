@@ -18,7 +18,7 @@ GQuark r_bootchooser_error_quark(void)
 #define BAREBOX_STATE_DEFAULT_PRIORITY	10
 #define BAREBOX_STATE_PRIORITY_PRIMARY	20
 #define UBOOT_FWSETENV_NAME "fw_setenv"
-#define UBOOT_FWGETENV_NAME "fw_printenv"
+#define UBOOT_FWPRINTENV_NAME "fw_printenv"
 #define EFIBOOTMGR_NAME "efibootmgr"
 
 static GString *bootchooser_order_primay(RaucSlot *slot)
@@ -467,12 +467,12 @@ static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror,
-			UBOOT_FWGETENV_NAME, key, NULL);
+			UBOOT_FWPRINTENV_NAME, key, NULL);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed to start " UBOOT_FWGETENV_NAME ": ");
+				"Failed to start " UBOOT_FWPRINTENV_NAME ": ");
 		goto out;
 	}
 
@@ -481,7 +481,7 @@ static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed to run " UBOOT_FWGETENV_NAME ": ");
+				"Failed to run " UBOOT_FWPRINTENV_NAME ": ");
 		goto out;
 	}
 
@@ -491,7 +491,7 @@ static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
 				error,
 				G_SPAWN_ERROR,
 				G_SPAWN_ERROR_FAILED,
-				UBOOT_FWGETENV_NAME " did not exit normally");
+				UBOOT_FWPRINTENV_NAME " did not exit normally");
 		goto out;
 	}
 
@@ -501,7 +501,7 @@ static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
 				error,
 				G_SPAWN_EXIT_ERROR,
 				ret,
-				UBOOT_FWGETENV_NAME " failed with exit code: %i", ret);
+				UBOOT_FWPRINTENV_NAME " failed with exit code: %i", ret);
 		res = FALSE;
 		goto out;
 	}
