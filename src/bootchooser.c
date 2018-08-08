@@ -532,7 +532,7 @@ static gboolean uboot_env_set(const gchar *key, const gchar *value, GError **err
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed to start fw_setenv: ");
+				"Failed to start " UBOOT_FWSETENV_NAME ": ");
 		goto out;
 	}
 
@@ -541,7 +541,7 @@ static gboolean uboot_env_set(const gchar *key, const gchar *value, GError **err
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed to run fw_setenv: ");
+				"Failed to run " UBOOT_FWSETENV_NAME ": ");
 		goto out;
 	}
 
