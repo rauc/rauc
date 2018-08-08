@@ -20,6 +20,7 @@ GQuark r_bootchooser_error_quark(void)
 #define UBOOT_FWSETENV_NAME "fw_setenv"
 #define UBOOT_FWPRINTENV_NAME "fw_printenv"
 #define EFIBOOTMGR_NAME "efibootmgr"
+#define GRUB_EDITENV "grub-editenv"
 
 static GString *bootchooser_order_primay(RaucSlot *slot)
 {
@@ -362,7 +363,7 @@ static gboolean grub_env_set(GPtrArray *pairs, GError **error)
 	g_assert_cmpuint(pairs->len, >, 0);
 	g_assert_nonnull(r_context()->config->grubenv_path);
 
-	g_ptr_array_insert(pairs, 0, g_strdup("grub-editenv"));
+	g_ptr_array_insert(pairs, 0, g_strdup(GRUB_EDITENV));
 	g_ptr_array_insert(pairs, 1, g_strdup(r_context()->config->grubenv_path));
 	g_ptr_array_insert(pairs, 2, g_strdup("set"));
 	g_ptr_array_add(pairs, NULL);
@@ -373,7 +374,7 @@ static gboolean grub_env_set(GPtrArray *pairs, GError **error)
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed to start grub-editenv: ");
+				"Failed to start " GRUB_EDITENV ": ");
 		goto out;
 	}
 
@@ -382,7 +383,7 @@ static gboolean grub_env_set(GPtrArray *pairs, GError **error)
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed to run grub-editenv: ");
+				"Failed to run " GRUB_EDITENV ": ");
 		goto out;
 	}
 
