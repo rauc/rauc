@@ -120,13 +120,12 @@ static gboolean copy_raw_image(RaucImage *image, GOutputStream *outstream, GErro
 	GError *ierror = NULL;
 	gssize size;
 	g_autoptr(GFile) srcimagefile = g_file_new_for_path(image->filename);
-	gboolean res = FALSE;
 
 	g_autoptr(GInputStream) instream = (GInputStream*)g_file_read(srcimagefile, NULL, &ierror);
 	if (instream == NULL) {
 		g_propagate_prefixed_error(error, ierror,
 				"failed to open file for reading: ");
-		goto out;
+		return FALSE;
 	}
 
 	size = g_output_stream_splice(outstream, instream,
@@ -136,17 +135,15 @@ static gboolean copy_raw_image(RaucImage *image, GOutputStream *outstream, GErro
 	if (size == -1) {
 		g_propagate_prefixed_error(error, ierror,
 				"failed splicing data: ");
-		goto out;
+		return FALSE;
 	} else if (size != (gssize)image->checksum.size) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"written size (%"G_GSIZE_FORMAT ") != image size (%"G_GSIZE_FORMAT ")", size, (gssize)image->checksum.size);
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
 
-out:
-	return res;
+	return TRUE;
 }
 
 static gboolean casync_extract(RaucImage *image, gchar *dest, const gchar *seed, const gchar *store, GError **error)
