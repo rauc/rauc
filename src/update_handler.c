@@ -124,7 +124,7 @@ static gboolean copy_raw_image(RaucImage *image, GOutputStream *outstream, GErro
 	g_autoptr(GInputStream) instream = (GInputStream*)g_file_read(srcimagefile, NULL, &ierror);
 	if (instream == NULL) {
 		g_propagate_prefixed_error(error, ierror,
-				"failed to open file for reading: ");
+				"Failed to open file for reading: ");
 		return FALSE;
 	}
 
@@ -134,11 +134,11 @@ static gboolean copy_raw_image(RaucImage *image, GOutputStream *outstream, GErro
 			&ierror);
 	if (size == -1) {
 		g_propagate_prefixed_error(error, ierror,
-				"failed splicing data: ");
+				"Failed splicing data: ");
 		return FALSE;
 	} else if (size != (gssize)image->checksum.size) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"written size (%"G_GSIZE_FORMAT ") != image size (%"G_GSIZE_FORMAT ")", size, (gssize)image->checksum.size);
+				"Written size (%"G_GSIZE_FORMAT ") != image size (%"G_GSIZE_FORMAT ")", size, (gssize)image->checksum.size);
 		return FALSE;
 	}
 
