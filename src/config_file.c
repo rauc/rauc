@@ -883,3 +883,16 @@ gchar* slotstate_to_str(SlotState slotstate)
 
 	return state;
 }
+
+SlotState str_to_slotstate(gchar *str)
+{
+	if (g_strcmp0(str, "active") == 0) {
+		return ST_ACTIVE;
+	} else if (g_strcmp0(str, "inactive") == 0) {
+		return ST_INACTIVE;
+	} else if (g_strcmp0(str, "booted") == 0) {
+		return ST_BOOTED;
+	}
+
+	return ST_UNKNOWN;
+}
