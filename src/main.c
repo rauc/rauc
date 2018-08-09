@@ -909,6 +909,22 @@ typedef struct {
 	GHashTable *slots;
 } RaucStatusPrint;
 
+static void free_status_print(RaucStatusPrint *status)
+{
+	g_return_if_fail(status);
+
+	r_free_slot(status->primary);
+	g_free(status->compatible);
+	g_free(status->variant);
+	g_free(status->bootslot);
+	g_hash_table_destroy(status->slots);
+
+	g_free(status);
+	return;
+}
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucStatusPrint, free_status_print);
+
 static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 {
 	GHashTableIter iter;
@@ -1227,7 +1243,9 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 	GError *ierror = NULL;
 	RInstaller *proxy = NULL;
 	GVariant *slot_status_array, *vardict;
-	GVariantIter *iter;
+	GVariantIter *viter;
+	GHashTableIter hiter;
+	RaucSlot *iterslot;
 	gchar *slot_name;
 
 	g_return_val_if_fail(slots != NULL && *slots == NULL, FALSE);
@@ -1258,21 +1276,123 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 		return FALSE;
 	}
 
-	g_variant_get(slot_status_array, "a(sa{sv})", &iter);
-	while (g_variant_iter_loop(iter, "(s@a{sv})", &slot_name, &vardict)) {
-		RaucSlot *slot = g_hash_table_lookup(*slots, slot_name);
-		if (!slot) {
-			g_debug("No slot with name \"%s\" found", slot_name);
+	g_variant_get(slot_status_array, "a(sa{sv})", &viter);
+	while (g_variant_iter_loop(viter, "(s@a{sv})", &slot_name, &vardict)) {
+		RaucSlot *slot = NULL;
+		GVariantDict dict;
+		g_autofree gchar *parent = NULL;
+		g_autofree gchar *state = NULL;
+		g_autofree gchar *boot_good = NULL;
+
+		/* if already existing, skip */
+		if (g_hash_table_lookup(*slots, slot_name)) {
+			g_warning("slot %s already exists", slot_name);
 			continue;
 		}
 
-		g_clear_pointer(&slot->status, free_slot_status);
-		slot->status = r_variant_get_slot_state(vardict);
+		/* Create slot struct and fill up with information */
+		slot = g_new0(RaucSlot, 1);
+		slot->name = g_strdup(slot_name);
+		g_variant_dict_init(&dict, vardict);
+		g_variant_dict_lookup(&dict, "class", "s", &slot->sclass);
+		g_variant_dict_lookup(&dict, "device", "s", &slot->device);
+		g_variant_dict_lookup(&dict, "type", "s", &slot->type);
+		g_variant_dict_lookup(&dict, "bootname", "s", &slot->bootname);
+		g_variant_dict_lookup(&dict, "state", "s", &state);
+		slot->state = str_to_slotstate(state);
+		g_variant_dict_lookup(&dict, "description", "s", &slot->description);
+		g_variant_dict_lookup(&dict, "parent", "s", &parent);
+		if (parent) {
+			/* we add a dummy slot with only a name for now that we
+			 * can replace with a pointer to the real one
+			 * afterwards */
+			slot->parent = g_new0(RaucSlot, 1);
+			slot->parent->name = g_steal_pointer(&parent);
+		}
+		g_variant_dict_lookup(&dict, "mountpoint", "s", &slot->mount_point);
+		g_variant_dict_lookup(&dict, "boot-status", "s", &boot_good);
+		if (g_strcmp0(boot_good, "good")) {
+			slot->boot_good = TRUE;
+		} else {
+			slot->boot_good = FALSE;
+		}
+
+		if (status_detailed) {
+			slot->status = r_variant_get_slot_state(vardict);
+		}
+		g_hash_table_insert(*slots, (gchar*)slot->name, slot);
 	}
 
-	g_variant_iter_free(iter);
+	/* Now we replace the dummy parent slots with the poitner to the real
+	 * parent slots */
+	g_hash_table_iter_init(&hiter, *slots);
+	while (g_hash_table_iter_next(&hiter, (gpointer*) &slot_name, (gpointer*) &iterslot)) {
+		RaucSlot *parent_slot;
+		if (iterslot->parent) {
+			parent_slot = g_hash_table_lookup(*slots, iterslot->parent->name);
+			g_assert_nonnull(parent_slot); /* A valid serialization should not run into this case! */
+			g_clear_pointer(&iterslot->parent, r_free_slot);
+			iterslot->parent = parent_slot;
+		}
+	}
+
+	g_variant_iter_free(viter);
 	g_variant_unref(slot_status_array);
 	g_object_unref(proxy);
+
+	return TRUE;
+}
+
+/*
+ * Performs a D-Bus call to obtain general status information such as
+ * Compatible, Variant, etc.
+ *
+ * @param[out] status_print Return a newly allocated RaucStatusPrint instance
+ *              [transfer full]
+ * @param error Return location for a GError
+ *
+ * @return TRUE if succeeded, FALSE if failed
+ */
+static gboolean retrieve_status_via_dbus(RaucStatusPrint **status_print, GError **error)
+{
+	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
+	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
+	GError *ierror = NULL;
+	RInstaller *proxy;
+	g_autoptr(RaucStatusPrint) istatus = NULL;
+	gchar *primary = NULL;
+
+	g_return_val_if_fail(status_print != NULL && *status_print == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	istatus = g_new0(RaucStatusPrint, 1);
+
+	proxy = r_installer_proxy_new_for_bus_sync(bus_type,
+			G_DBUS_PROXY_FLAGS_NONE,
+			"de.pengutronix.rauc", "/", NULL, &ierror);
+	if (proxy == NULL) {
+		g_set_error(error,
+				G_IO_ERROR,
+				G_IO_ERROR_FAILED,
+				"error creating proxy: %s", ierror->message);
+		g_error_free(ierror);
+		return FALSE;
+	}
+
+	if (!r_installer_call_get_primary_sync(proxy, &primary, NULL, &ierror)) {
+		g_warning("%s", ierror->message);
+		g_clear_error(&ierror);
+	}
+
+	istatus->variant = r_installer_dup_variant(proxy);
+	istatus->compatible = r_installer_dup_compatible(proxy);
+	istatus->bootslot = r_installer_dup_boot_slot(proxy);
+	istatus->slots = NULL;
+	/* Add an empty dummy slot only containing name of primary */
+	istatus->primary = g_new0(RaucSlot, 1);
+	istatus->primary->name = primary;
+
+	*status_print = g_steal_pointer(&istatus);
 
 	return TRUE;
 }
@@ -1310,34 +1430,59 @@ static gboolean status_start(int argc, char **argv)
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	RInstaller *proxy = NULL;
-	RaucStatusPrint *status_print = NULL;
+	g_autoptr(RaucStatusPrint) status_print = NULL;
 
 	g_debug("status start");
 	r_exit_status = 0;
 
-	res = determine_slot_states(&ierror);
-	if (!res) {
-		g_printerr("Failed to determine slot states: %s\n", ierror->message);
-		g_clear_error(&ierror);
-		r_exit_status = 1;
-		goto out;
-	}
+	if (!ENABLE_SERVICE) {
+		res = determine_slot_states(&ierror);
+		if (!res) {
+			g_printerr("Failed to determine slot states: %s\n", ierror->message);
+			g_clear_error(&ierror);
+			r_exit_status = 1;
+			goto out;
+		}
 
-	res = determine_boot_states(&ierror);
-	if (!res) {
-		g_printerr("Failed to determine boot states: %s\n", ierror->message);
-		g_clear_error(&ierror);
-	}
+		res = determine_boot_states(&ierror);
+		if (!res) {
+			g_printerr("Failed to determine boot states: %s\n", ierror->message);
+			g_clear_error(&ierror);
+		}
 
-	if (status_detailed) {
-		if (!ENABLE_SERVICE) {
+		if (status_detailed) {
 			GHashTableIter iter;
 			RaucSlot *slot;
 
 			g_hash_table_iter_init(&iter, r_context()->config->slots);
 			while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot))
 				load_slot_status(slot);
-		} else if (!retrieve_slot_states_via_dbus(&r_context()->config->slots, &ierror)) {
+		}
+
+		status_print = g_new0(RaucStatusPrint, 1);
+
+		status_print->primary = r_boot_get_primary(&ierror);
+		if (!status_print->primary) {
+			g_printerr("Failed getting primary slot: %s\n", ierror->message);
+			g_clear_error(&ierror);
+		}
+
+		status_print->compatible = r_context()->config->system_compatible;
+		status_print->variant = r_context()->config->system_variant;
+		status_print->bootslot = r_context()->bootslot;
+		status_print->slots = r_context()->config->slots;
+
+	} else {
+		if (!retrieve_status_via_dbus(&status_print, &ierror)) {
+			message = g_strdup_printf(
+					"rauc status: error retrieving slot status via D-Bus: %s",
+					ierror->message);
+			g_error_free(ierror);
+			r_exit_status = 1;
+			goto out;
+		}
+
+		if (!retrieve_slot_states_via_dbus(&status_print->slots, &ierror)) {
 			message = g_strdup_printf("rauc status: error retrieving slot status via D-Bus: %s",
 					ierror->message);
 			g_error_free(ierror);
@@ -1345,19 +1490,6 @@ static gboolean status_start(int argc, char **argv)
 			goto out;
 		}
 	}
-
-	status_print = g_new0(RaucStatusPrint, 1);
-
-	status_print->primary = r_boot_get_primary(&ierror);
-	if (!status_print->primary) {
-		g_printerr("Failed getting primary slot: %s", ierror->message);
-		g_clear_error(&ierror);
-	}
-
-	status_print->compatible = r_context()->config->system_compatible;
-	status_print->variant = r_context()->config->system_variant;
-	status_print->bootslot = r_context()->bootslot;
-	status_print->slots = r_context()->config->slots;
 
 	if (!print_status(status_print)) {
 		r_exit_status = 1;
