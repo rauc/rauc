@@ -755,6 +755,12 @@ test_done() {
 		say_color error "# failed $test_failure among $msg"
 		say "1..$test_count"
 
+		test_eval_ "$final_cleanup"
+
+		test -d "$remove_trash" &&
+		cd "$(dirname "$remove_trash")" &&
+		rm -rf "$(basename "$remove_trash")"
+
 		exit 1 ;;
 
 	esac
