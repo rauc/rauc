@@ -208,19 +208,12 @@ out:
 static GVariant* convert_slot_status_to_dict(RaucSlot *slot)
 {
 	RaucSlotStatus *slot_state = NULL;
-	GError *ierror = NULL;
-	gboolean good = FALSE;
 	GVariantDict dict;
 
 	load_slot_status(slot);
 	slot_state = slot->status;
 
 	g_variant_dict_init(&dict, NULL);
-
-	if (slot->bootname && !r_boot_get_state(slot, &good, &ierror)) {
-		g_debug("Failed to obtain boot state for %s: %s", slot->name, ierror->message);
-		g_clear_error(&ierror);
-	}
 
 	if (slot->sclass)
 		g_variant_dict_insert(&dict, "class", "s", slot->sclass);
@@ -239,7 +232,7 @@ static GVariant* convert_slot_status_to_dict(RaucSlot *slot)
 	if (slot->mount_point)
 		g_variant_dict_insert(&dict, "mountpoint", "s", slot->mount_point);
 	if (slot->bootname)
-		g_variant_dict_insert(&dict, "boot-status", "s", good ? "good" : "bad");
+		g_variant_dict_insert(&dict, "boot-status", "s", slot->boot_good ? "good" : "bad");
 
 	if (slot_state->bundle_compatible)
 		g_variant_dict_insert(&dict, "bundle.compatible", "s", slot_state->bundle_compatible);
@@ -295,6 +288,12 @@ static GVariant* create_slotstatus_array(void)
 	res = determine_slot_states(&ierror);
 	if (!res) {
 		g_debug("Failed to determine slot states: %s\n", ierror->message);
+		g_clear_error(&ierror);
+	}
+
+	res = determine_boot_states(&ierror);
+	if (!res) {
+		g_debug("Failed to determine boot states: %s\n", ierror->message);
 		g_clear_error(&ierror);
 	}
 

@@ -104,6 +104,7 @@ typedef struct _RaucSlot {
 
 	/** current state of the slot (runtime) */
 	SlotState state;
+	gboolean boot_good;
 	struct _RaucSlot *parent;
 	gchar *mount_point;
 	gchar *ext_mount_point;

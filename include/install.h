@@ -42,6 +42,16 @@ typedef struct {
 gboolean determine_slot_states(GError **error);
 
 /**
+ * Obtains boot status information for all relevant slots and stores
+ * information into context.
+ *
+ * @param error return location for a GError
+ *
+ * @return TRUE if succeeded, FALSE if failed
+ */
+gboolean determine_boot_states(GError **error);
+
+/**
  * Returns hash table of slot classes for that a potential installation target
  * slot could be determined.
  *

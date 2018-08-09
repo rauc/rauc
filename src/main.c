@@ -925,14 +925,8 @@ static gchar* r_status_formatter_readable(void)
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, (gpointer*) &name, (gpointer*) &slot)) {
 		RaucSlotStatus *slot_state = slot->status;
-		gboolean good = FALSE;
 
 		slotcnt++;
-
-		if (slot->bootname && !r_boot_get_state(slot, &good, &ierror)) {
-			g_debug("Failed to obtain boot state for %s: %s", slot->name, ierror->message);
-			g_clear_error(&ierror);
-		}
 
 		g_string_append_printf(text, "  %s: class=%s, device=%s, type=%s, bootname=%s\n",
 				name, slot->sclass, slot->device, slot->type, slot->bootname);
@@ -946,7 +940,7 @@ static gchar* r_status_formatter_readable(void)
 		else
 			g_string_append(text, ", mountpoint=(none)");
 		if (slot->bootname)
-			g_string_append_printf(text, "\n      boot status=%s", good ? "good" : "bad");
+			g_string_append_printf(text, "\n      boot status=%s", slot->boot_good ? "good" : "bad");
 		if (status_detailed && slot_state) {
 			g_string_append_printf(text, "\n      slot status:");
 			g_string_append_printf(text, "\n          bundle:");
@@ -1027,14 +1021,8 @@ static gchar* r_status_formatter_shell(void)
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		RaucSlotStatus *slot_state = slot->status;
-		gboolean good = FALSE;
 
 		slotcnt++;
-
-		if (slot->bootname && !r_boot_get_state(slot, &good, &ierror)) {
-			g_debug("Failed to obtain boot state for %s: %s", slot->name, ierror->message);
-			g_clear_error(&ierror);
-		}
 
 		formatter_shell_append_n(text, "RAUC_SLOT_STATE", slotcnt, slotstate_to_str(slot->state));
 		formatter_shell_append_n(text, "RAUC_SLOT_CLASS", slotcnt, slot->sclass);
@@ -1044,7 +1032,7 @@ static gchar* r_status_formatter_shell(void)
 		formatter_shell_append_n(text, "RAUC_SLOT_PARENT", slotcnt, slot->parent ? slot->parent->name : NULL);
 		formatter_shell_append_n(text, "RAUC_SLOT_MOUNTPOINT", slotcnt, slot->mount_point);
 		if (slot->bootname)
-			formatter_shell_append_n(text, "RAUC_SLOT_BOOT_STATUS", slotcnt, good ? "good" : "bad");
+			formatter_shell_append_n(text, "RAUC_SLOT_BOOT_STATUS", slotcnt, slot->boot_good ? "good" : "bad");
 		else
 			formatter_shell_append_n(text, "RAUC_SLOT_BOOT_STATUS", slotcnt, NULL);
 		if (status_detailed && slot_state) {
@@ -1109,12 +1097,6 @@ static gchar* r_status_formatter_json(gboolean pretty)
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		RaucSlotStatus *slot_state = slot->status;
-		gboolean good = FALSE;
-
-		if (slot->bootname && !r_boot_get_state(slot, &good, &ierror)) {
-			g_debug("Failed to obtain boot state for %s: %s", slot->name, ierror->message);
-			g_clear_error(&ierror);
-		}
 
 		json_builder_begin_object(builder);
 		json_builder_set_member_name(builder, slot->name);
@@ -1135,7 +1117,7 @@ static gchar* r_status_formatter_json(gboolean pretty)
 		json_builder_add_string_value(builder, slot->mount_point);
 		json_builder_set_member_name(builder, "boot_status");
 		if (slot->bootname)
-			json_builder_add_string_value(builder, good ? "good" : "bad");
+			json_builder_add_string_value(builder, slot->boot_good ? "good" : "bad");
 		else
 			json_builder_add_string_value(builder, NULL);
 		if (status_detailed && slot_state) {
@@ -1334,6 +1316,12 @@ static gboolean status_start(int argc, char **argv)
 		g_clear_error(&ierror);
 		r_exit_status = 1;
 		goto out;
+	}
+
+	res = determine_boot_states(&ierror);
+	if (!res) {
+		g_printerr("Failed to determine boot states: %s\n", ierror->message);
+		g_clear_error(&ierror);
 	}
 
 	if (status_detailed) {
