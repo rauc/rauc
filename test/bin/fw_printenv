@@ -1,16 +1,40 @@
 #!/bin/bash
 
-# Command line checking
+# Read env file into environment
+eval $(cat $UBOOT_STATE_PATH | sed  "s/\(.*\)=\(.*\)/export \1=\"\2\"/g")
+UBOOT_VARS=$(cat $UBOOT_STATE_PATH | sed  "s/\(.*\)=\(.*\)/\1/g" | tr '\n' ' ')
+
+function check_var {
+	found=0
+	for l in $UBOOT_VARS; do
+		if [ "$1" = "${l%=*}" ]; then
+			found=1
+		fi
+	done
+	if [ "$found" -eq "0" ]; then
+		echo "Invalid variable: $1"
+		exit 1
+	fi
+}
+
+# Print all vars if none specified
 if [ $# -ne 1 ]; then
-	echo "Invalid arguments $*"
-	exit 1
+	for l in ${UBOOT_VARS}; do
+		echo "${l}=${!l}"
+	done
+	exit 0
 fi
 
-if [ "$1" = "BOOT_ORDER" ]; then
-    echo "$1=A B R"
-else
-	echo "Invalid key: '$1'"
-	exit 1
-fi
+# Print specific var if specified
+for i in $1; do
+	var="${i%=*}"
+	val="${i#*=}"
+
+	check_var "$var"
+
+	# Output values read
+	eval echo $(echo ${i%=*})=\$$(echo ${i%=*})
+done
+
 
 exit 0

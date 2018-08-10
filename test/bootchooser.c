@@ -29,7 +29,7 @@ static void bootchooser_fixture_tear_down(BootchooserFixture *fixture,
 static void bootchooser_barebox(BootchooserFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucSlot *slot = NULL, *primary = NULL;
+	RaucSlot *rootfs0 = NULL, *rootfs1 = NULL, *primary = NULL;
 	gboolean good;
 
 	const gchar *cfg_file = "\
@@ -64,44 +64,63 @@ bootname=system1\n";
 	r_context_conf()->configpath = pathname;
 	r_context();
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
-	g_assert_nonnull(slot);
+	rootfs0 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
+	g_assert_nonnull(rootfs0);
+	rootfs1 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
+	g_assert_nonnull(rootfs1);
 
-	/* check rootfs is considered good */
+	/* check rootfs.0 and rootfs.1 are considered good */
 	g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
 ", TRUE);
-	g_assert_true(r_boot_get_state(slot, &good, NULL));
+	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
 	g_assert_true(good);
-
+	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	g_assert_true(good);
+	/* check rootfs.0 is considered as primary */
 	primary = r_boot_get_primary(NULL);
 	g_assert_nonnull(primary);
-	g_assert(primary == slot);
+	g_assert(primary == rootfs0);
+	g_assert(primary != rootfs1);
 
-	/* check rootfs is considered bad (remaining_attempts = 0) */
+	/* check rootfs.0 is considered bad (remaining_attempts = 0) */
 	g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=0\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
 ", TRUE);
-	g_assert_true(r_boot_get_state(slot, &good, NULL));
+	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
 	g_assert_false(good);
+	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	g_assert_true(good);
+	/* check rootfs.1 is considered as primary */
+	primary = r_boot_get_primary(NULL);
+	g_assert_nonnull(primary);
+	g_assert(primary != rootfs0);
+	g_assert(primary == rootfs1);
 
-	/* check rootfs is considered bad (priority = 0) */
+	/* check rootfs.0 is considered bad (priority = 0) */
 	g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=0\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
 ", TRUE);
-	g_assert_true(r_boot_get_state(slot, &good, NULL));
+	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
 	g_assert_false(good);
+	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	g_assert_true(good);
+	/* check rootfs.1 is considered as primary */
+	primary = r_boot_get_primary(NULL);
+	g_assert_nonnull(primary);
+	g_assert(primary != rootfs0);
+	g_assert(primary == rootfs1);
 
-	/* check rootfs-0 is marked good (has remaining attempts reset 1->3) */
+	/* check rootfs.0 is marked good (has remaining attempts reset 1->3) */
 	g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=1\n\
 bootstate.system0.priority=20\n\
@@ -114,9 +133,9 @@ bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
 ", TRUE);
-	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
+	g_assert_true(r_boot_set_state(rootfs0, TRUE, NULL));
 
-	/* check rootfs-0 is marked bad (prio and attempts 0) */
+	/* check rootfs.0 is marked bad (prio and attempts 0) */
 	g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
@@ -129,12 +148,9 @@ bootstate.system0.priority=0\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
 ", TRUE);
-	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
+	g_assert_true(r_boot_set_state(rootfs0, FALSE, NULL));
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
-	g_assert_nonnull(slot);
-
-	/* check rootfs-1 is marked primary (prio set to 20, others to 10) */
+	/* check rootfs.1 is marked primary (prio set to 20, others to 10) */
 	g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
@@ -147,9 +163,9 @@ bootstate.system0.priority=10\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=20\n\
 ", TRUE);
-	g_assert_true(r_boot_set_primary(slot, NULL));
+	g_assert_true(r_boot_set_primary(rootfs1, NULL));
 
-	/* check rootfs-1 is marked primary while current remains disabled (prio set to 20, others to 10) */
+	/* check rootfs.1 is marked primary while current remains disabled (prio set to 20, others to 10) */
 	g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=0\n\
@@ -162,7 +178,7 @@ bootstate.system0.priority=0\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=20\n\
 ", TRUE);
-	g_assert_true(r_boot_set_primary(slot, NULL));
+	g_assert_true(r_boot_set_primary(rootfs1, NULL));
 }
 
 static void bootchooser_grub(BootchooserFixture *fixture,
@@ -215,10 +231,47 @@ bootname=B\n";
 	g_assert_true(r_boot_set_primary(slot, NULL));
 }
 
+/* Write content to state storage for uboot fw_setenv / fw_printenv RAUC mock
+ * tools. Content should be similar to:
+ * "\
+ * BOOT_ORDER=A B\n\
+ * BOOT_A_LEFT=3\n\
+ * BOOT_B_LEFT=3\n\
+ * "
+ */
+static void test_uboot_initialize_state(const gchar *vars) {
+	g_autofree gchar *state_path = g_build_filename(g_get_tmp_dir(), "uboot-test-state", NULL);
+	g_setenv("UBOOT_STATE_PATH", state_path, TRUE);
+	g_assert_true(g_file_set_contents(state_path, vars, -1, NULL));
+}
+
+/* Write desired target content of variables set by RAUC's fw_setenv /
+ * fw_printenv mock tools for asserting correct behavior.
+ * Content should identical to format described for
+ * test_uboot_initialize_state().
+ *
+ * Returns TRUE if mock tools state content equals desired content,
+ * FALSE otherwise
+ */
+static gboolean test_uboot_post_state(const gchar *compare) {
+	g_autofree gchar *state_path = g_build_filename(g_get_tmp_dir(), "uboot-test-state", NULL);
+	g_autofree gchar *contents = NULL;
+
+	g_assert_true(g_file_get_contents(state_path, &contents, NULL, NULL));
+
+	if (g_strcmp0(contents, compare) != 0) {
+		g_print("Error: '%s' and '%s' differ\n", contents, compare);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 static void bootchooser_uboot(BootchooserFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucSlot *slot;
+	RaucSlot *rootfs0 = NULL;
+	RaucSlot *rootfs1 = NULL;
 
 	const gchar *cfg_file = "\
 [system]\n\
@@ -252,16 +305,57 @@ bootname=B\n";
 	r_context_conf()->configpath = pathname;
 	r_context();
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
-	g_assert_nonnull(slot);
+	rootfs0 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
+	g_assert_nonnull(rootfs0);
+	rootfs1 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
+	g_assert_nonnull(rootfs1);
 
-	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
-	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
+	/* check rootfs.0 is marked bad (BOOT_A_LEFT set to 0) */
+	test_uboot_initialize_state("\
+BOOT_ORDER=A B R\n\
+BOOT_A_LEFT=3\n\
+BOOT_B_LEFT=3\n\
+");
+	g_assert_true(r_boot_set_state(rootfs0, FALSE, NULL));
+	g_assert_true(test_uboot_post_state("\
+BOOT_ORDER=A B R\n\
+BOOT_A_LEFT=0\n\
+BOOT_B_LEFT=3\n\
+"));
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
-	g_assert_nonnull(slot);
+	/* check rootfs.0 is marked good again (BOOT_A_LEFT reset to 3) */
+	g_assert_true(r_boot_set_state(rootfs0, TRUE, NULL));
+	g_assert_true(test_uboot_post_state("\
+BOOT_ORDER=A B R\n\
+BOOT_A_LEFT=3\n\
+BOOT_B_LEFT=3\n\
+"));
 
-	g_assert_true(r_boot_set_primary(slot, NULL));
+	/* check rootfs.1 is marked primary (first in BOOT_ORDER, BOOT_B_LEFT reset to 3) */
+	test_uboot_initialize_state("\
+BOOT_ORDER=A B R\n\
+BOOT_A_LEFT=3\n\
+BOOT_B_LEFT=1\n\
+");
+	g_assert_true(r_boot_set_primary(rootfs1, NULL));
+	g_assert_true(test_uboot_post_state("\
+BOOT_ORDER=B A R\n\
+BOOT_A_LEFT=3\n\
+BOOT_B_LEFT=3\n\
+"));
+
+	/* check rootfs.1 is marked primary while rootfs.0 remains disabled (BOOT_A_LEFT remains 0)  */
+	test_uboot_initialize_state("\
+BOOT_ORDER=A B R\n\
+BOOT_A_LEFT=0\n\
+BOOT_B_LEFT=0\n\
+");
+	g_assert_true(r_boot_set_primary(rootfs1, NULL));
+	g_assert_true(test_uboot_post_state("\
+BOOT_ORDER=B A R\n\
+BOOT_A_LEFT=0\n\
+BOOT_B_LEFT=3\n\
+"));
 }
 
 static void bootchooser_efi(BootchooserFixture *fixture,
