@@ -143,6 +143,10 @@ gboolean mark_run(const gchar *state,
 			res = TRUE;
 			*message = g_strdup_printf("activated slot %s, but failed to write status file: %s",
 					slot->name, ierror->message);
+		} else if (ierror) {
+			res = FALSE;
+			*message = g_strdup_printf("unexpected error while trying to activate slot %s: %s",
+					slot->name, ierror->message);
 		} else {
 			res = TRUE;
 			*message = g_strdup_printf("activated slot %s", slot->name);

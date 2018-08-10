@@ -977,8 +977,13 @@ image_out:
 						dest_slot->name);
 				res = FALSE;
 				goto out;
+			} else if (ierror) {
+				g_propagate_prefixed_error(error, ierror,
+						"Unexpected error while trying to mark slot %s bootable: ",
+						dest_slot->name);
+				res = FALSE;
+				goto out;
 			}
-			g_clear_error(&ierror);
 		}
 	} else {
 		g_message("Leaving target slot non-bootable as requested by activate_installed == false.");
