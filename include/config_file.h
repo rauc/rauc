@@ -5,10 +5,14 @@
 #include <checksum.h>
 #include "manifest.h"
 
+/* Default maximum downloadable bundle size (8 MiB) */
+#define DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE 8*1024*1024
+
 typedef enum {
 	R_CONFIG_ERROR_INVALID_FORMAT,
 	R_CONFIG_ERROR_BOOTLOADER,
-	R_CONFIG_ERROR_PARENT
+	R_CONFIG_ERROR_PARENT,
+	R_CONFIG_ERROR_MAX_BUNDLE_DOWNLOAD_SIZE
 } RConfigError;
 
 #define R_CONFIG_ERROR r_config_error_quark()
@@ -28,6 +32,8 @@ typedef struct {
 	gchar *system_variant;
 	gchar *system_bootloader;
 	gchar *system_bb_statename;
+	/* maximum filesize to download in bytes */
+	guint64 max_bundle_download_size;
 	/* path prefix where rauc may create mount directories */
 	gchar *mount_prefix;
 	gchar *store_path;

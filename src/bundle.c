@@ -10,9 +10,6 @@
 #include "utils.h"
 #include "network.h"
 
-/* Maximum downloadable bundle size (8MB) */
-#define BUNDLE_DL_MAX_SIZE 8*1024*1024
-
 GQuark
 r_bundle_error_quark(void)
 {
@@ -646,7 +643,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		ibundle->path = g_build_filename(g_get_tmp_dir(), "_download.raucb", NULL);
 
 		g_message("Remote URI detected, downloading bundle to %s...", ibundle->path);
-		res = download_file(ibundle->path, ibundle->origpath, BUNDLE_DL_MAX_SIZE, &ierror);
+		res = download_file(ibundle->path, ibundle->origpath, r_context()->config->max_bundle_download_size, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror, "Failed to download bundle %s: ", ibundle->origpath);
 			goto out;
