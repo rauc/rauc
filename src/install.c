@@ -396,14 +396,21 @@ GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group
 
 	slotclasses = get_all_manifest_slot_classes(manifest);
 
+	/* Find exactly 1 image for each class listed in manifest */
 	for (gchar **cls = slotclasses; *cls != NULL; cls++) {
 		RaucImage *matching_img = NULL;
 
 		for (GList *l = manifest->images; l != NULL; l = l->next) {
 			RaucImage *lookup_image = l->data;
+			RaucSlot *target_slot = NULL;
+
+			/* Not interested in slots of other classes */
+			if (!g_strcmp0(lookup_image->slotclass, *cls) == 0)
+				continue;
 
 			/* Check if target_group contains an appropriate slot for this image */
-			if (!g_hash_table_contains(target_group, lookup_image->slotclass)) {
+			target_slot = g_hash_table_lookup(target_group, lookup_image->slotclass);
+			if (!target_slot) {
 				g_set_error(error,
 						R_INSTALL_ERROR,
 						R_INSTALL_ERROR_FAILED,
@@ -412,9 +419,14 @@ GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group
 				goto out;
 			}
 
-			/* Not interested in slots of other classes */
-			if (!g_strcmp0(lookup_image->slotclass, *cls) == 0)
-				continue;
+			if (target_slot->readonly) {
+				g_set_error(error,
+						R_INSTALL_ERROR,
+						R_INSTALL_ERROR_FAILED,
+						"Target slot for class %s of image %s is readonly", lookup_image->slotclass, lookup_image->filename);
+				g_clear_pointer(&install_images, g_list_free);
+				goto out;
+			}
 
 			/* If this is a default variant and we have no better
 			 * match yet, use it and continue scanning.
