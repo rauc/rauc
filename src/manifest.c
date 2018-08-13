@@ -14,37 +14,6 @@ GQuark r_manifest_error_quark(void)
 	return g_quark_from_static_string("r_manifest_error_quark");
 }
 
-static gboolean check_remaining_groups(GKeyFile *key_file, GError **error)
-{
-	gsize rem_num_groups;
-	gchar **rem_groups;
-
-	rem_groups = g_key_file_get_groups(key_file, &rem_num_groups);
-	if (rem_num_groups != 0) {
-		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
-				"Invalid group '[%s]'", rem_groups[0]);
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
-static gboolean check_remaining_keys(GKeyFile *key_file, const gchar *groupname, GError **error)
-{
-	gsize rem_num_keys;
-	gchar **rem_keys;
-
-	rem_keys = g_key_file_get_keys(key_file, groupname, &rem_num_keys, NULL);
-	if (rem_keys && rem_num_keys != 0) {
-		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
-				"Invalid key '%s' in group '[%s]'", rem_keys[0],
-				groupname);
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
 /* get string argument from key and remove key from key_file */
 static gchar * manifest_consume_string(
 		GKeyFile *key_file,
