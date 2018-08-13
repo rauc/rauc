@@ -21,7 +21,7 @@ static gboolean check_remaining_groups(GKeyFile *key_file, GError **error)
 
 	rem_groups = g_key_file_get_groups(key_file, &rem_num_groups);
 	if (rem_num_groups != 0) {
-		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_PARSE_ERROR,
+		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
 				"Invalid group '[%s]'", rem_groups[0]);
 		return FALSE;
 	}
@@ -36,7 +36,7 @@ static gboolean check_remaining_keys(GKeyFile *key_file, const gchar *groupname,
 
 	rem_keys = g_key_file_get_keys(key_file, groupname, &rem_num_keys, NULL);
 	if (rem_keys && rem_num_keys != 0) {
-		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_PARSE_ERROR,
+		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
 				"Invalid key '%s' in group '[%s]'", rem_keys[0],
 				groupname);
 		return FALSE;
