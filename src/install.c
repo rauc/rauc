@@ -1347,6 +1347,8 @@ gboolean do_install_network(const gchar *url, GError **error)
 
 	g_assert_nonnull(url);
 
+	g_warning("Network mode is marked as deprecated!\nPlease contact RAUC maintainers if you see this message and intend to use the network mode in future RAUC versions!");
+
 	r_context_begin_step("determine_slot_states", "Determining slot states", 0);
 	res = determine_slot_states(&ierror);
 	r_context_end_step("determine_slot_states", res);
