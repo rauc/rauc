@@ -1058,16 +1058,19 @@ static void install_test_network(InstallFixture *fixture,
 	r_context_conf()->mountprefix = mountdir;
 	r_context();
 
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Network mode is marked as deprecated!\nPlease contact RAUC maintainers if you see this message and intend to use the network mode in future RAUC versions!");
 	manifesturl = g_strconcat("file://", fixture->tmpdir,
 			"/content/manifest-1.raucm", NULL);
 	g_assert_true(do_install_network(manifesturl, NULL));
 	g_free(manifesturl);
 
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Network mode is marked as deprecated!\nPlease contact RAUC maintainers if you see this message and intend to use the network mode in future RAUC versions!");
 	manifesturl = g_strconcat("file://", fixture->tmpdir,
 			"/content/manifest-2.raucm", NULL);
 	g_assert_true(do_install_network(manifesturl, NULL));
 	g_free(manifesturl);
 
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Network mode is marked as deprecated!\nPlease contact RAUC maintainers if you see this message and intend to use the network mode in future RAUC versions!");
 	manifesturl = g_strconcat("file://", fixture->tmpdir,
 			"/content/manifest-3.raucm", NULL);
 	g_assert_true(do_install_network(manifesturl, NULL));
@@ -1128,11 +1131,13 @@ static void install_test_network_thread(InstallFixture *fixture,
 
 	manifesturl = g_strconcat("file://", fixture->tmpdir,
 			"/content/manifest-1.raucm", NULL);
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Network mode is marked as deprecated!\nPlease contact RAUC maintainers if you see this message and intend to use the network mode in future RAUC versions!");
 	g_assert_true(do_install_network(manifesturl, NULL));
 	args->name = g_strdup(manifesturl);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Network mode is marked as deprecated!\nPlease contact RAUC maintainers if you see this message and intend to use the network mode in future RAUC versions!");
 	r_loop = g_main_loop_new(NULL, FALSE);
 	g_assert_true(install_run(args));
 	g_main_loop_run(r_loop);
