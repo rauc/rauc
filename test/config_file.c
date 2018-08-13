@@ -510,7 +510,7 @@ compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
 variant-dtb=true\n\
-variant-name=";
+variant-name=xxx";
 
 	pathname = write_tmp_file(fixture->tmpdir, "no_variant.conf", cfg_file_no_variant, NULL);
 	g_assert_nonnull(pathname);
