@@ -142,3 +142,31 @@ gboolean check_remaining_keys(GKeyFile *key_file, const gchar *groupname, GError
 
 	return TRUE;
 }
+
+/* get string argument from key and remove key from key_file */
+gchar * key_file_consume_string(
+		GKeyFile *key_file,
+		const gchar *group_name,
+		const gchar *key,
+		GError **error)
+{
+	gchar *result = NULL;
+	GError *ierror = NULL;
+
+	result = g_key_file_get_string(key_file, group_name, key, &ierror);
+	if (!result) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	g_key_file_remove_key(key_file, group_name, key, NULL);
+
+	if (result[0] == '\0') {
+		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+				"Missing value for key '%s'", key);
+		return NULL;
+	}
+
+	return result;
+}
+

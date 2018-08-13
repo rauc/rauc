@@ -14,33 +14,6 @@ GQuark r_manifest_error_quark(void)
 	return g_quark_from_static_string("r_manifest_error_quark");
 }
 
-/* get string argument from key and remove key from key_file */
-static gchar * key_file_consume_string(
-		GKeyFile *key_file,
-		const gchar *group_name,
-		const gchar *key,
-		GError **error)
-{
-	gchar *result = NULL;
-	GError *ierror = NULL;
-
-	result = g_key_file_get_string(key_file, group_name, key, &ierror);
-	if (!result) {
-		g_propagate_error(error, ierror);
-		return NULL;
-	}
-
-	g_key_file_remove_key(key_file, group_name, key, NULL);
-
-	if (result[0] == '\0') {
-		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
-				"Missing value for key '%s'", key);
-		return NULL;
-	}
-
-	return result;
-}
-
 static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **image, GError **error)
 {
 	g_autoptr(RaucImage) iimage = g_new0(RaucImage, 1);
