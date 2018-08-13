@@ -244,17 +244,21 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 	c->statusfile_path = resolve_path(filename,
 			g_key_file_get_string(key_file, "system", "statusfile", NULL));
+	g_key_file_remove_group(key_file, "system", NULL);
 
 	/* parse [keyring] section */
 	c->keyring_path = resolve_path(filename,
 			g_key_file_get_string(key_file, "keyring", "path", NULL));
+	g_key_file_remove_group(key_file, "keyring", NULL);
 
 	/* parse [casync] section */
 	c->store_path = g_key_file_get_string(key_file, "casync", "storepath", NULL);
+	g_key_file_remove_group(key_file, "casync", NULL);
 
 	/* parse [autoinstall] section */
 	c->autoinstall_path = resolve_path(filename,
 			g_key_file_get_string(key_file, "autoinstall", "path", NULL));
+	g_key_file_remove_group(key_file, "autoinstall", NULL);
 
 	/* parse [handlers] section */
 	c->systeminfo_handler = resolve_path(filename,
@@ -265,6 +269,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 	c->postinstall_handler = resolve_path(filename,
 			g_key_file_get_string(key_file, "handlers", "post-install", NULL));
+	g_key_file_remove_group(key_file, "handlers", NULL);
 
 	/* parse [slot.*.#] sections */
 	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_free_slot);
@@ -359,7 +364,6 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			}
 
 			g_hash_table_insert(slots, (gchar*)slot->name, slot);
-
 		}
 		g_strfreev(groupsplit);
 	}
@@ -368,14 +372,15 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	slotlist = g_hash_table_get_keys(slots);
 	for (l = slotlist; l != NULL; l = l->next) {
 		RaucSlot *s;
-		gchar* group_name;
+		g_autofree gchar* group_name = NULL;
 		gchar* value;
 
 		group_name = g_strconcat(RAUC_SLOT_PREFIX ".", l->data, NULL);
 		value = g_key_file_get_string(key_file, group_name, "parent", NULL);
-		g_free(group_name);
-		if (!value)
+		if (!value) {
+			g_key_file_remove_group(key_file, group_name, NULL);
 			continue;
+		}
 
 		s = g_hash_table_lookup(slots, value);
 		if (!s) {
@@ -390,10 +395,17 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 		((RaucSlot*)g_hash_table_lookup(slots, l->data))->parent = s;
 
+		g_key_file_remove_group(key_file, group_name, NULL);
 	}
 	g_list_free(slotlist);
 
 	c->slots = slots;
+
+	if (!check_remaining_groups(key_file, &ierror)) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
 
 	g_strfreev(groups);
 
