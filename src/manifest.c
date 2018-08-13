@@ -15,7 +15,7 @@ GQuark r_manifest_error_quark(void)
 }
 
 /* get string argument from key and remove key from key_file */
-static gchar * manifest_consume_string(
+static gchar * key_file_consume_string(
 		GKeyFile *key_file,
 		const gchar *group_name,
 		const gchar *key,
@@ -33,7 +33,7 @@ static gchar * manifest_consume_string(
 	g_key_file_remove_key(key_file, group_name, key, NULL);
 
 	if (result[0] == '\0') {
-		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_EMPTY_STRING,
+		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
 				"Missing value for key '%s'", key);
 		return NULL;
 	}
@@ -67,7 +67,7 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 	else
 		iimage->variant = NULL;
 
-	value = manifest_consume_string(key_file, group, "sha256", NULL);
+	value = key_file_consume_string(key_file, group, "sha256", NULL);
 	if (value) {
 		iimage->checksum.type = G_CHECKSUM_SHA256;
 		iimage->checksum.digest = value;
@@ -76,7 +76,7 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 			group, "size", NULL);
 	g_key_file_remove_key(key_file, group, "size", NULL);
 
-	iimage->filename = manifest_consume_string(key_file, group, "filename", &ierror);
+	iimage->filename = key_file_consume_string(key_file, group, "filename", &ierror);
 	if (iimage->filename == NULL) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -134,14 +134,14 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	g_assert_null(*manifest);
 
 	/* parse [update] section */
-	raucm->update_compatible = manifest_consume_string(key_file, "update", "compatible", &ierror);
+	raucm->update_compatible = key_file_consume_string(key_file, "update", "compatible", &ierror);
 	if (!raucm->update_compatible) {
 		g_propagate_error(error, ierror);
 		goto free;
 	}
-	raucm->update_version = manifest_consume_string(key_file, "update", "version", NULL);
-	raucm->update_description = manifest_consume_string(key_file, "update", "description", NULL);
-	raucm->update_build = manifest_consume_string(key_file, "update", "build", NULL);
+	raucm->update_version = key_file_consume_string(key_file, "update", "version", NULL);
+	raucm->update_description = key_file_consume_string(key_file, "update", "description", NULL);
+	raucm->update_build = key_file_consume_string(key_file, "update", "build", NULL);
 	if (!check_remaining_keys(key_file, "update", &ierror)) {
 		g_propagate_error(error, ierror);
 		goto free;
@@ -149,7 +149,7 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	g_key_file_remove_group(key_file, "update", NULL);
 
 	/* parse [keyring] section */
-	raucm->keyring = manifest_consume_string(key_file, "keyring", "archive", NULL);
+	raucm->keyring = key_file_consume_string(key_file, "keyring", "archive", NULL);
 	if (!check_remaining_keys(key_file, "keyring", &ierror)) {
 		g_propagate_error(error, ierror);
 		goto free;
@@ -157,8 +157,8 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	g_key_file_remove_group(key_file, "keyring", NULL);
 
 	/* parse [handler] section */
-	raucm->handler_name = manifest_consume_string(key_file, "handler", "filename", NULL);
-	raucm->handler_args = manifest_consume_string(key_file, "handler", "args", NULL);
+	raucm->handler_name = key_file_consume_string(key_file, "handler", "filename", NULL);
+	raucm->handler_args = key_file_consume_string(key_file, "handler", "args", NULL);
 	if (r_context()->handlerextra) {
 		GString *str = g_string_new(raucm->handler_args);
 		if (str->len)
@@ -174,7 +174,7 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	g_key_file_remove_group(key_file, "handler", NULL);
 
 	/* parse [hooks] section */
-	raucm->hook_name = manifest_consume_string(key_file, "hooks", "filename", NULL);
+	raucm->hook_name = key_file_consume_string(key_file, "hooks", "filename", NULL);
 	bundle_hooks = g_key_file_get_string_list(key_file, "hooks", "hooks", &hook_entries, NULL);
 	g_key_file_remove_key(key_file, "hooks", "hooks", NULL);
 	for (gsize j = 0; j < hook_entries; j++) {
@@ -230,7 +230,7 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 			file->slotclass = g_strdup(destsplit[0]);
 			file->destname = g_strdup(destsplit[1]);
 
-			value = manifest_consume_string(key_file, groups[i], "sha256", NULL);
+			value = key_file_consume_string(key_file, groups[i], "sha256", NULL);
 			if (value) {
 				file->checksum.type = G_CHECKSUM_SHA256;
 				file->checksum.digest = value;
@@ -240,7 +240,7 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 			g_key_file_remove_key(key_file, groups[i], "size", NULL);
 
 
-			file->filename = manifest_consume_string(key_file, groups[i], "filename", &ierror);
+			file->filename = key_file_consume_string(key_file, groups[i], "filename", &ierror);
 			if (file->filename == NULL) {
 				g_propagate_error(error, ierror);
 				goto free;
