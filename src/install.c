@@ -1283,9 +1283,6 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		goto umount;
 	}
 
-	g_print("Target Group:\n");
-	print_slot_hash_table(target_group);
-
 	if (r_context()->config->preinstall_handler) {
 		g_message("Starting pre install handler: %s", r_context()->config->preinstall_handler);
 		res = launch_and_wait_handler(bundle->mount_point, r_context()->config->preinstall_handler, manifest, target_group, &ierror);
