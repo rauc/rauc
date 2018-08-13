@@ -746,8 +746,8 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 	install_images = get_install_images(manifest, target_group, &ierror);
 	if (install_images == NULL) {
-		g_warning("%s", ierror->message);
-		g_clear_error(&ierror);
+		g_propagate_error(error, ierror);
+		goto early_out;
 	}
 
 	/* Allow overriding compatible check by hook */
