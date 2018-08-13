@@ -1287,7 +1287,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	print_slot_hash_table(target_group);
 
 	if (r_context()->config->preinstall_handler) {
-		g_print("Starting pre install handler: %s\n", r_context()->config->preinstall_handler);
+		g_message("Starting pre install handler: %s", r_context()->config->preinstall_handler);
 		res = launch_and_wait_handler(bundle->mount_point, r_context()->config->preinstall_handler, manifest, target_group, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror, "Pre-install handler error: ");
@@ -1297,10 +1297,10 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 
 
 	if (manifest->handler_name) {
-		g_print("Using custom handler: %s\n", manifest->handler_name);
+		g_message("Using custom handler: %s", manifest->handler_name);
 		res = launch_and_wait_custom_handler(args, bundle->mount_point, manifest, target_group, &ierror);
 	} else {
-		g_print("Using default handler\n");
+		g_debug("Using default installation handler");
 		res = launch_and_wait_default_handler(args, bundle->mount_point, manifest, target_group, &ierror);
 	}
 
@@ -1310,7 +1310,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	}
 
 	if (r_context()->config->postinstall_handler) {
-		g_print("Starting post install handler: %s\n", r_context()->config->postinstall_handler);
+		g_message("Starting post install handler: %s", r_context()->config->postinstall_handler);
 		res = launch_and_wait_handler(bundle->mount_point, r_context()->config->postinstall_handler, manifest, target_group, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror, "Post-install handler error: ");
@@ -1402,7 +1402,7 @@ gboolean do_install_network(const gchar *url, GError **error)
 	base_url = g_path_get_dirname(url);
 
 	if (r_context()->config->preinstall_handler) {
-		g_print("Starting pre install handler: %s\n", r_context()->config->preinstall_handler);
+		g_message("Starting pre install handler: %s", r_context()->config->preinstall_handler);
 		res = launch_and_wait_handler(base_url, r_context()->config->preinstall_handler, manifest, target_group, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror, "Pre-install handler error: ");
@@ -1411,7 +1411,7 @@ gboolean do_install_network(const gchar *url, GError **error)
 	}
 
 
-	g_print("Using network handler for %s\n", base_url);
+	g_message("Using network handler for %s", base_url);
 	res = launch_and_wait_network_handler(base_url, manifest, target_group, NULL);
 	if (!res) {
 		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_HANDLER,
@@ -1420,7 +1420,7 @@ gboolean do_install_network(const gchar *url, GError **error)
 	}
 
 	if (r_context()->config->postinstall_handler) {
-		g_print("Starting post install handler: %s\n", r_context()->config->postinstall_handler);
+		g_message("Starting post install handler: %s", r_context()->config->postinstall_handler);
 		res = launch_and_wait_handler(base_url, r_context()->config->postinstall_handler, manifest, target_group, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror, "Post-install handler error: ");
@@ -1518,7 +1518,7 @@ gboolean install_run(RaucInstallArgs *args)
 	g_autoptr(GThread) thread = NULL;
 	r_context_set_busy(TRUE);
 
-	g_print("Active slot bootname: %s\n", r_context()->bootslot);
+	g_message("Active slot bootname: %s", r_context()->bootslot);
 
 	thread = g_thread_new("installer", install_thread, args);
 	if (thread == NULL)
