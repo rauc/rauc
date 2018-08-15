@@ -239,7 +239,8 @@ bootname=B\n";
  * BOOT_B_LEFT=3\n\
  * "
  */
-static void test_uboot_initialize_state(const gchar *vars) {
+static void test_uboot_initialize_state(const gchar *vars)
+{
 	g_autofree gchar *state_path = g_build_filename(g_get_tmp_dir(), "uboot-test-state", NULL);
 	g_setenv("UBOOT_STATE_PATH", state_path, TRUE);
 	g_assert_true(g_file_set_contents(state_path, vars, -1, NULL));
@@ -253,7 +254,8 @@ static void test_uboot_initialize_state(const gchar *vars) {
  * Returns TRUE if mock tools state content equals desired content,
  * FALSE otherwise
  */
-static gboolean test_uboot_post_state(const gchar *compare) {
+static gboolean test_uboot_post_state(const gchar *compare)
+{
 	g_autofree gchar *state_path = g_build_filename(g_get_tmp_dir(), "uboot-test-state", NULL);
 	g_autofree gchar *contents = NULL;
 

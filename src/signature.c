@@ -275,7 +275,8 @@ gchar* print_signer_cert(STACK_OF(X509) *verified_chain)
 	return ret;
 }
 
-static gchar* get_cert_time(ASN1_TIME *time) {
+static gchar* get_cert_time(ASN1_TIME *time)
+{
 	BIO *mem;
 	gchar *data, *ret;
 	gsize size;
