@@ -525,11 +525,12 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 
 	slotstatus->installed_timestamp = key_file_consume_string(key_file, group, "installed.timestamp", NULL);
 	count = g_key_file_get_uint64(key_file, group, "installed.count", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE)) {
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE))
 		g_message("Value of key \"installed.count\" in group [%s] "
 				"is no valid unsigned integer - setting to zero.", group);
-		count = 0;
-	}
+	else if (ierror && !g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND))
+		g_message("Unexpected error while trying to read key \"installed.count\" in group [%s] "
+				"- setting to zero: %s", group, ierror->message);
 	g_clear_error(&ierror);
 	if (count > G_MAXUINT32) {
 		g_message("Value of key \"installed.count\" in group [%s] "
@@ -540,11 +541,12 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 
 	slotstatus->activated_timestamp = key_file_consume_string(key_file, group, "activated.timestamp", NULL);
 	count = g_key_file_get_uint64(key_file, group, "activated.count", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE)) {
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE))
 		g_message("Value of key \"activated.count\" in group [%s] "
 				"is no valid unsigned integer - setting to zero.", group);
-		count = 0;
-	}
+	else if (ierror && !g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND))
+		g_message("Unexpected error while trying to read key \"activated.count\" in group [%s] "
+				"- setting to zero: %s", group, ierror->message);
 	g_clear_error(&ierror);
 	if (count > G_MAXUINT32) {
 		g_message("Value of key \"activated.count\" in group [%s] "
