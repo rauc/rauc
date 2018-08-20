@@ -45,6 +45,13 @@ script:
   - make doc SPHINXOPTS=-W
   - make check TESTS= && sudo ./uml-test
   - make distcheck
+  - cd contrib/cgi/
+  - ./autogen.sh
+  - ./configure
+  - make clean
+  - make -j2
+  - make distcheck
+  - cd ../..
 after_success:
   - coveralls --build-root '.' --exclude test --exclude rauc-installer-generated.c
   - ./uncrustify.sh && git diff --exit-code
