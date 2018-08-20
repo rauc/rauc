@@ -1209,7 +1209,6 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 	GHashTable *slots = r_context()->config->slots;
 	GVariantIter *iter;
 	gchar *slot_name;
-	RaucSlot *slot;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
@@ -1232,12 +1231,13 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 				G_IO_ERROR_FAILED,
 				"error calling D-Bus method \"GetSlotStatus\": %s", ierror->message);
 		g_error_free(ierror);
+		g_object_unref(&proxy);
 		return FALSE;
 	}
 
 	g_variant_get(slot_status_array, "a(sa{sv})", &iter);
 	while (g_variant_iter_loop(iter, "(s@a{sv})", &slot_name, &vardict)) {
-		slot = g_hash_table_lookup(slots, slot_name);
+		RaucSlot *slot = g_hash_table_lookup(slots, slot_name);
 		if (!slot) {
 			g_debug("No slot with name \"%s\" found", slot_name);
 			continue;
@@ -1249,6 +1249,7 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 
 	g_variant_iter_free(iter);
 	g_variant_unref(slot_status_array);
+	g_object_unref(&proxy);
 
 	return TRUE;
 }
@@ -1510,7 +1511,7 @@ static void cmdline_handler(int argc, char **argv)
 		g_print("Domains: '%s'\n", domains);
 	}
 
-	/* get first parameter wihtout dashes */
+	/* get first parameter without dashes */
 	for (gint i = 1; i <= argc; i++) {
 		if (argv[i] && !g_str_has_prefix(argv[i], "-")) {
 			cmdarg = argv[i];

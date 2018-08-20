@@ -94,7 +94,6 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 	g_autoptr(GSubprocessLauncher) handlelaunch = NULL;
 	g_autoptr(GSubprocess) handleproc = NULL;
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 	GHashTableIter iter;
 	gchar *key = NULL;
 	gchar *value = NULL;
@@ -141,8 +140,7 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 		}
 	} while (outline);
 
-	res = g_subprocess_wait_check(handleproc, NULL, &ierror);
-	if (!res) {
+	if (!g_subprocess_wait_check(handleproc, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
