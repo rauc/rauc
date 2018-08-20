@@ -111,3 +111,62 @@ gchar *resolve_path(const gchar *basefile, gchar *path)
 	cwd = g_get_current_dir();
 	return g_build_filename(cwd, dir, path, NULL);
 }
+
+gboolean check_remaining_groups(GKeyFile *key_file, GError **error)
+{
+	gsize rem_num_groups;
+	gchar **rem_groups;
+
+	rem_groups = g_key_file_get_groups(key_file, &rem_num_groups);
+	if (rem_num_groups != 0) {
+		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+				"Invalid group '[%s]'", rem_groups[0]);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+gboolean check_remaining_keys(GKeyFile *key_file, const gchar *groupname, GError **error)
+{
+	gsize rem_num_keys;
+	gchar **rem_keys;
+
+	rem_keys = g_key_file_get_keys(key_file, groupname, &rem_num_keys, NULL);
+	if (rem_keys && rem_num_keys != 0) {
+		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+				"Invalid key '%s' in group '[%s]'", rem_keys[0],
+				groupname);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/* get string argument from key and remove key from key_file */
+gchar * key_file_consume_string(
+		GKeyFile *key_file,
+		const gchar *group_name,
+		const gchar *key,
+		GError **error)
+{
+	gchar *result = NULL;
+	GError *ierror = NULL;
+
+	result = g_key_file_get_string(key_file, group_name, key, &ierror);
+	if (!result) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	g_key_file_remove_key(key_file, group_name, key, NULL);
+
+	if (result[0] == '\0') {
+		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+				"Missing value for key '%s'", key);
+		return NULL;
+	}
+
+	return result;
+}
+

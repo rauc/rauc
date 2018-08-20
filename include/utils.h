@@ -77,3 +77,13 @@ gboolean rm_tree(const gchar *path, GError **error);
  * @return An absolute path name, determined as described above, NULL if undeterminable
  */
 gchar *resolve_path(const gchar *basefile, gchar *path);
+
+
+gboolean check_remaining_groups(GKeyFile *key_file, GError **error);
+gboolean check_remaining_keys(GKeyFile *key_file, const gchar *groupname, GError **error);
+
+gchar * key_file_consume_string(
+		GKeyFile *key_file,
+		const gchar *group_name,
+		const gchar *key,
+		GError **error);

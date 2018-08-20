@@ -177,6 +177,48 @@ ignore-checksum=true\n";
 	free_config(config);
 }
 
+static void config_file_invalid_items(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
+
+	const gchar *unknown_group_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[unknown]\n\
+foo=bar\n\
+";
+	const gchar *unknown_key_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+foo=bar\n\
+";
+
+	pathname = write_tmp_file(fixture->tmpdir, "unknown_group.conf", unknown_group_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE);
+	g_assert_cmpstr(ierror->message, ==, "Invalid group '[unknown]'");
+	g_clear_error(&ierror);
+
+
+	pathname = write_tmp_file(fixture->tmpdir, "unknown_key.conf", unknown_key_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE);
+	g_assert_cmpstr(ierror->message, ==, "Invalid key 'foo' in group '[system]'");
+	g_clear_error(&ierror);
+}
+
 static void config_file_bootloaders(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
@@ -510,7 +552,7 @@ compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
 variant-dtb=true\n\
-variant-name=";
+variant-name=xxx";
 
 	pathname = write_tmp_file(fixture->tmpdir, "no_variant.conf", cfg_file_no_variant, NULL);
 	g_assert_nonnull(pathname);
@@ -697,6 +739,9 @@ int main(int argc, char *argv[])
 
 	g_test_add("/config-file/full-config", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_full_config,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/invalid-items", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_invalid_items,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/bootloaders", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_bootloaders,

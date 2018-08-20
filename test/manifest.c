@@ -364,21 +364,21 @@ compatible=SuperBazzer\n\
 
 	data = g_bytes_new_static(MANIFEST3, sizeof(MANIFEST3));
 	g_assert_false(load_manifest_mem(data, &rm, &error));
-	g_assert_error(error, R_MANIFEST_ERROR, R_MANIFEST_EMPTY_STRING);
+	g_assert_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE);
 	g_clear_error(&error);
 	g_assert_null(rm);
 	g_clear_pointer(&data, g_byte_array_free);
 
 	data = g_bytes_new_static(MANIFEST4, sizeof(MANIFEST4));
 	g_assert_false(load_manifest_mem(data, &rm, &error));
-	g_assert_error(error, R_MANIFEST_ERROR, R_MANIFEST_PARSE_ERROR);
+	g_assert_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE);
 	g_clear_error(&error);
 	g_assert_null(rm);
 	g_clear_pointer(&data, g_byte_array_free);
 
 	data = g_bytes_new_static(MANIFEST5, sizeof(MANIFEST5));
 	g_assert_false(load_manifest_mem(data, &rm, &error));
-	g_assert_error(error, R_MANIFEST_ERROR, R_MANIFEST_PARSE_ERROR);
+	g_assert_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE);
 	g_clear_error(&error);
 	g_assert_null(rm);
 	g_clear_pointer(&data, g_byte_array_free);
