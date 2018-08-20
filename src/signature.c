@@ -4,6 +4,7 @@
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/crypto.h>
+#include <openssl/engine.h>
 
 #include "context.h"
 #include "signature.h"
@@ -20,7 +21,83 @@ void signature_init(void)
 	ERR_load_crypto_strings();
 }
 
-static EVP_PKEY *load_key(const gchar *keyfile, GError **error)
+static ENGINE *get_pkcs11_engine(GError **error)
+{
+	static ENGINE *e = NULL;
+	unsigned long err;
+	const gchar *data;
+	const gchar *env;
+	int flags;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	ENGINE_load_builtin_engines();
+
+	e = ENGINE_by_id("pkcs11");
+	if (e == NULL) {
+		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_LOAD_FAILED,
+				"failed to load PKCS11 engine: %s",
+				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+
+		goto out;
+	}
+
+	env = g_getenv("RAUC_PKCS11_MODULE");
+	if (env != NULL) {
+		if (!ENGINE_ctrl_cmd_string(e, "MODULE_PATH", env, 0)) {
+			err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_PARSE_ERROR,
+					"failed to configure PKCS11 module path: %s",
+					(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+			goto free;
+		}
+	}
+
+	if (ENGINE_init(e) == 0) {
+		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_LOAD_FAILED,
+				"failed to initialize PKCS11 engine: %s",
+				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+
+		goto free;
+	}
+
+	env = g_getenv("RAUC_PKCS11_PIN");
+	if (env != NULL) {
+		if (!ENGINE_ctrl_cmd_string(e, "PIN", env, 0)) {
+			err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_PARSE_ERROR,
+					"failed to configure PKCS11 PIN: %s",
+					(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+			goto finish;
+		}
+	}
+
+	goto out;
+
+finish:
+	ENGINE_finish(e);
+free:
+	ENGINE_free(e);
+	e = NULL;
+out:
+	return e;
+}
+
+static EVP_PKEY *load_key_file(const gchar *keyfile, GError **error)
 {
 	EVP_PKEY *res = NULL;
 	BIO *key = NULL;
@@ -57,7 +134,50 @@ out:
 	return res;
 }
 
-static X509 *load_cert(const gchar *certfile, GError **error)
+static EVP_PKEY *load_key_pkcs11(const gchar *url, GError **error)
+{
+	EVP_PKEY *res = NULL;
+	unsigned long err;
+	const gchar *data;
+	GError *ierror = NULL;
+	int flags;
+	ENGINE *e;
+
+	g_return_val_if_fail(url != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	e = get_pkcs11_engine(&ierror);
+	if (e == NULL) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = ENGINE_load_private_key(e, url, NULL, NULL);
+	if (res == NULL) {
+		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_LOAD_FAILED,
+				"failed to load PKCS11 private key for '%s': %s", url,
+				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+		goto out;
+	}
+out:
+	return res;
+}
+
+static EVP_PKEY *load_key(const gchar *name, GError **error)
+{
+	g_return_val_if_fail(name != NULL, NULL);
+
+	if (g_str_has_prefix(name, "pkcs11:"))
+		return load_key_pkcs11(name, error);
+	else
+		return load_key_file(name, error);
+}
+
+static X509 *load_cert_file(const gchar *certfile, GError **error)
 {
 	X509 *res = NULL;
 	BIO *cert = NULL;
@@ -65,6 +185,7 @@ static X509 *load_cert(const gchar *certfile, GError **error)
 	const gchar *data;
 	int flags;
 
+	g_return_val_if_fail(certfile != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	cert = BIO_new_file(certfile, "r");
@@ -92,6 +213,58 @@ static X509 *load_cert(const gchar *certfile, GError **error)
 out:
 	BIO_free_all(cert);
 	return res;
+}
+
+static X509 *load_cert_pkcs11(const gchar *url, GError **error)
+{
+	X509 *res = NULL;
+	unsigned long err;
+	const gchar *data;
+	GError *ierror = NULL;
+	int flags;
+	ENGINE *e;
+
+	/* this is defined in libp11 src/eng_back.c ctx_ctrl_load_cert() */
+	struct {
+		const char *url;
+		X509 *cert;
+	} parms;
+
+	g_return_val_if_fail(url != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	e = get_pkcs11_engine(&ierror);
+	if (e == NULL) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	parms.url = url;
+	parms.cert = NULL;
+	if (!ENGINE_ctrl_cmd(e, "LOAD_CERT_CTRL", 0, &parms, NULL, 0) || (parms.cert == NULL)) {
+		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE_ERROR,
+				"failed to load PKCS11 certificate for '%s': %s", url,
+				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+		goto out;
+	}
+	res = parms.cert;
+
+out:
+	return res;
+}
+
+static X509 *load_cert(const gchar *name, GError **error)
+{
+	g_return_val_if_fail(name != NULL, NULL);
+
+	if (g_str_has_prefix(name, "pkcs11:"))
+		return load_cert_pkcs11(name, error);
+	else
+		return load_cert_file(name, error);
 }
 
 static GBytes *bytes_from_bio(BIO *bio)

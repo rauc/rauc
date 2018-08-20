@@ -115,6 +115,8 @@ Key Features of RAUC
   .. image:: images/rauc_safety_security.png
      :width: 500
 
+  * Keys and certificates on **PKCS#11 tokens** (HSMs) are supported
+
 * **Flexible and customizable** redundancy/storage setup
 
   .. image:: images/rauc_update_cases.svg

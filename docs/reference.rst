@@ -362,8 +362,8 @@ Command Line Tool
 
   Options:
     -c, --conf=FILENAME               config file
-    --cert=PEMFILE                    cert file
-    --key=PEMFILE                     key file
+    --cert=PEMFILE|PKCS11-URL         cert file or PKCS#11 URL
+    --key=PEMFILE|PKCS11-URL          key file or PKCS#11 URL
     --keyring=PEMFILE                 keyring file
     --intermediate=PEMFILE            intermediate CA file name
     --mount=PATH                      mount prefix
@@ -381,6 +381,9 @@ Command Line Tool
     info          Show file information
     status        Show status
 
+  Environment variables:
+    RAUC_PKCS11_MODULE  Library filename for PKCS#11 module (signing only)
+    RAUC_PKCS11_PIN     PIN to use for accessing PKCS#11 keys (signing only)
 
 .. _sec-handler-interface:
 

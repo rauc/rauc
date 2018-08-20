@@ -4,6 +4,14 @@ test_description="rauc binary tests"
 
 . ./sharness.sh
 
+CA_DEV="${SHARNESS_TEST_DIRECTORY}/openssl-ca/dev"
+CA_REL="${SHARNESS_TEST_DIRECTORY}/openssl-ca/rel"
+if [ -e "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so" ]; then
+  SOFTHSM2_MOD="/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
+else
+  SOFTHSM2_MOD="/usr/lib/softhsm/libsofthsm2.so"
+fi
+
 # Provide functions to start and stop a dedicated session bus
 start_session_bus ()
 {
@@ -53,6 +61,48 @@ stop_rauc_dbus_service ()
   wait ${RAUC_DBUS_SERVICE_PID}
 }
 
+prepare_softhsm2 ()
+{
+  export SOFTHSM2_CONF="${SHARNESS_TRASH_DIRECTORY}/softhsm2.conf"
+  export SOFTHSM2_DIR="${SHARNESS_TRASH_DIRECTORY}/softhsm2.tokens"
+
+  echo "directories.tokendir = $SOFTHSM2_DIR" > "$SOFTHSM2_CONF"
+  mkdir -p "$SOFTHSM2_DIR"
+
+  pkcs11-tool --module ${SOFTHSM2_MOD} --init-token --label rauc --so-pin 0000
+  pkcs11-tool --module ${SOFTHSM2_MOD} -l --so-pin 0000 --new-pin 1111 --init-pin
+
+  p11-kit list-modules
+
+  openssl engine pkcs11 -tt -vvvv
+
+  openssl x509 -in ${CA_DEV}/autobuilder-1.cert.pem -inform pem -outform der | \
+    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y cert -w /dev/stdin \
+    --label autobuilder-1 --id 01
+  openssl rsa -in ${CA_DEV}/private/autobuilder-1.pem -inform pem -pubout -outform der | \
+    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y pubkey -w /dev/stdin \
+    --label autobuilder-1 --id 01
+  openssl rsa -in ${CA_DEV}/private/autobuilder-1.pem -inform pem -outform der | \
+    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y privkey -w /dev/stdin \
+    --label autobuilder-1 --id 01
+
+  openssl x509 -in ${CA_DEV}/autobuilder-2.cert.pem -inform pem -outform der | \
+    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y cert -w /dev/stdin \
+    --label autobuilder-2 --id 02
+  openssl rsa -in ${CA_DEV}/private/autobuilder-2.pem -inform pem -pubout -outform der | \
+    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y pubkey -w /dev/stdin \
+    --label autobuilder-2 --id 02
+  openssl rsa -in ${CA_DEV}/private/autobuilder-2.pem -inform pem -outform der | \
+    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y privkey -w /dev/stdin \
+    --label autobuilder-2 --id 02
+
+  pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 --list-objects
+
+  export RAUC_PKCS11_PIN=1111
+  # setting the module is needed only if p11-kit doesn't work
+  export RAUC_PKCS11_MODULE=${SOFTHSM2_MOD}
+}
+
 # Prerequisite: JSON support enabled [JSON]
 grep -q "ENABLE_JSON 1" $SHARNESS_TEST_DIRECTORY/../config.h && \
   test_set_prereq JSON
@@ -61,6 +111,11 @@ grep -q "ENABLE_JSON 1" $SHARNESS_TEST_DIRECTORY/../config.h && \
 grep -q "ENABLE_SERVICE 1" $SHARNESS_TEST_DIRECTORY/../config.h &&
   test_set_prereq SERVICE &&
   select_system_or_session_bus
+
+# Prerequisite: softhsm2 installed [PKCS11]
+test -f ${SOFTHSM2_MOD} &&
+  prepare_softhsm2 &&
+  test_set_prereq PKCS11
 
 test_expect_success "rauc noargs" "
   test_must_fail rauc
@@ -144,6 +199,7 @@ test_expect_success "rauc info invalid" "
 "
 
 test_expect_success "rauc bundle" "
+  rm -f out.raucb &&
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
@@ -151,6 +207,32 @@ test_expect_success "rauc bundle" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info out.raucb &&
   test -f out.raucb &&
   rm out.raucb
+"
+
+test_expect_success PKCS11 "rauc bundle with PKCS11 (key 1)" "
+  rm -f out.raucb &&
+  rauc \
+    --cert 'pkcs11:token=rauc;object=autobuilder-1' \
+    --key 'pkcs11:token=rauc;object=autobuilder-1' \
+    bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
+  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info out.raucb
+"
+
+test_expect_success PKCS11 "rauc bundle with PKCS11 (key 2)" "
+  rm -f out.raucb &&
+  rauc \
+    --cert 'pkcs11:token=rauc;object=autobuilder-2' \
+    --key 'pkcs11:token=rauc;object=autobuilder-2' \
+    bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
+  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info out.raucb
+"
+
+test_expect_success PKCS11 "rauc bundle with PKCS11 (key mismatch)" "
+  rm -f out.raucb &&
+  test_must_fail rauc \
+    --cert 'pkcs11:token=rauc;object=autobuilder-1' \
+    --key 'pkcs11:token=rauc;object=autobuilder-2' \
+    bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb
 "
 
 test_expect_success !SERVICE "rauc --override-boot-slot=system0 status: internally" "
