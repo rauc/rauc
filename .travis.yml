@@ -52,10 +52,9 @@ script:
   - make -j2
   - make distcheck
   - cd ../..
+  - ./uncrustify.sh && git diff --exit-code
 after_success:
   - coveralls --build-root '.' --exclude test --exclude rauc-installer-generated.c
-  - ./uncrustify.sh && git diff --exit-code
 after_failure:
   - cat test/*.log
   - cat test-suite.log
-  - ./uncrustify.sh && git diff --exit-code
