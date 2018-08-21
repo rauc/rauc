@@ -966,9 +966,8 @@ image_out:
 
 			mark_active(dest_slot, &ierror);
 			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE)) {
-				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
-						"Failed marking slot %s bootable", dest_slot->name);
-				g_clear_error(&ierror);
+				g_propagate_prefixed_error(error, ierror,
+						"Failed marking slot %s bootable: ", dest_slot->name);
 				res = FALSE;
 				goto out;
 			} else if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED)) {
