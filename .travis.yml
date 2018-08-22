@@ -3,6 +3,7 @@ sudo: required
 compiler: gcc-7
 dist: xenial
 before_install:
+  - sudo pip install --upgrade cpp-coveralls
   # travis-ci/travis-ci#9037: remove mongodb because the repository key is expired and we don't need it
   - sudo rm -fv /etc/apt/sources.list.d/mongodb*
   - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
