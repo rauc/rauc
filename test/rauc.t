@@ -112,6 +112,10 @@ grep -q "ENABLE_SERVICE 1" $SHARNESS_TEST_DIRECTORY/../config.h &&
   test_set_prereq SERVICE &&
   select_system_or_session_bus
 
+# Prerequisite: casync available [CASYNC]
+casync --version &&
+  test_set_prereq CASYNC
+
 # Prerequisite: softhsm2 installed [PKCS11]
 test -f ${SOFTHSM2_MOD} &&
   prepare_softhsm2 &&
@@ -388,6 +392,14 @@ test_expect_success "rauc write-slot invalid slot" "
   test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test.conf write-slot system0 foo &&
   test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test.conf write-slot system0 foo.img &&
   test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test.conf write-slot system0 /path/to/foo.img
+"
+
+test_expect_success CASYNC "rauc convert" "
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    convert $SHARNESS_TEST_DIRECTORY/good-bundle.raucb casync.raucb
 "
 
 test_done
