@@ -667,11 +667,11 @@ static gint cgi_handler(int argc, char **argv)
 	} else if (g_strcmp0("PUT", method) == 0) {
 		/* save stdin to temporary file */
 		if (!stdin_to_file(&error))
-			goto error;
+			goto remove_bundle_on_error;
 
 		/* start rauc install */
 		if (!r_installer_call_install_sync(installer, BUNDLE_TARGET_LOCATION, NULL, &error))
-			goto error;
+			goto remove_bundle_on_error;
 
 		print_headers("200 OK", "text/plain");
 		g_print("Upload and install trigger executed successfully.\n");
@@ -682,11 +682,14 @@ static gint cgi_handler(int argc, char **argv)
 	}
 
 	ret = 0;
-error:
-	if (error) {
-		/* try to remove bundle */
+
+remove_bundle_on_error:
+	/* try to remove bundle */
+	if (error)
 		g_remove(BUNDLE_TARGET_LOCATION);
 
+error:
+	if (error) {
 		switch (error->code) {
 			case CGI_ERROR_METHOD_NOT_ALLOWED:
 				print_headers("405 Method Not Allowed", "text/plain");
