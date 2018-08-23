@@ -556,14 +556,20 @@ static gint64 fread_chunked(char *ptr, size_t size, FILE *stream, GError **error
 	gint64 items_read = 0;
 	gint64 bytes_read = 0;
 	gint percentage = 0;
+	gint last_percentage = -1;
 
 	while (bytes_read < (gint64) size) {
 		items_read = fread(ptr + bytes_read, 1, 1024, stream);
 		bytes_read += items_read;
 		percentage = (bytes_read * 100) / size;
-		if (!write_upload_status(percentage, error)) {
-			bytes_read = -1;
-			goto out;
+
+		/* update upload status only if percentage changed */
+		if (percentage != last_percentage) {
+			last_percentage = percentage;
+			if (!write_upload_status(percentage, error)) {
+				bytes_read = -1;
+				goto out;
+			}
 		}
 	}
 
