@@ -10,6 +10,10 @@ before_install:
   - sudo apt-get update -q
   - sudo apt-cache policy gcc-7
   - sudo apt-get install -q gcc-7
+  - sudo add-apt-repository --yes 'deb http://deb.debian.org/debian/ buster main'
+  - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 8B48AD6246925553 7638D0442B90D010 04EE7237B7D453EC
+  - sudo apt-get update -q
+  - sudo apt-get install -q casync
   # work around https://bugs.launchpad.net/ubuntu/+source/libp11/+bug/1690287
   - sudo ln -s /usr/lib/ssl/engines/libpkcs11.so /usr/lib/x86_64-linux-gnu/openssl-1.0.0/engines/libpkcs11.so
 addons:
