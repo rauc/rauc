@@ -244,6 +244,11 @@ static void try_cleanup_status_on_install_failure(RInstaller *installer)
 	if (!get_progress_updated(installer, &install_percentage, &install_message, NULL))
 		goto out;
 
+	/* Previous install failure is identified by "LastError" D-Bus property (also
+	 * set if no previous install happened), 100% install percentage of D-Bus
+	 * "Pogress" property and an existing status file (means the previous
+	 * installation was started via CGI).
+	 */
 	if (!last_install_success && install_percentage == 100 && g_file_test(STATUS_FILE_LOCATION, G_FILE_TEST_EXISTS)) {
 		g_remove(STATUS_FILE_LOCATION);
 		g_remove(BUNDLE_TARGET_LOCATION);
