@@ -102,6 +102,12 @@ AC_SUBST(DBUS_SYSTEMSERVICEDIR)
 
 # Checks for header files.
 
+AC_CHECK_HEADER([linux/mmc/ioctl.h],
+	AC_DEFINE([ENABLE_EMMC_BOOT_SUPPORT], [1], [Define to 1 to enable eMMC boot support]),
+	AC_DEFINE([ENABLE_EMMC_BOOT_SUPPORT], [0]))
+
+AM_CONDITIONAL([WANT_EMMC_BOOT_SUPPORT], [test x$ac_cv_header_linux_mmc_ioctl_h != xno])
+
 # Checks for typedefs, structures, and compiler characteristics.
 
 # Checks for library functions.
