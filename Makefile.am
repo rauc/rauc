@@ -39,7 +39,6 @@ librauc_la_SOURCES = \
 	src/checksum.c \
 	src/config_file.c \
 	src/context.c \
-	src/emmc.c \
 	src/install.c \
 	src/manifest.c \
 	src/mark.c \
@@ -62,6 +61,10 @@ librauc_la_SOURCES = \
 	include/signature.h \
 	include/update_handler.h \
 	include/utils.h
+
+if WANT_EMMC_BOOT_SUPPORT
+librauc_la_SOURCES += src/emmc.c
+endif
 
 if WANT_NETWORK
 librauc_la_SOURCES += src/network.c include/network.h

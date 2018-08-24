@@ -57,6 +57,7 @@ out:
 	return outstream;
 }
 
+#if ENABLE_EMMC_BOOT_SUPPORT == 1
 static gboolean clear_slot(RaucSlot *slot, GError **error)
 {
 	GError *ierror = NULL;
@@ -98,6 +99,7 @@ static gboolean clear_slot(RaucSlot *slot, GError **error)
 out:
 	return res;
 }
+#endif
 
 static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 {
@@ -1076,6 +1078,7 @@ out:
 	return res;
 }
 
+#if ENABLE_EMMC_BOOT_SUPPORT == 1
 static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 
@@ -1232,6 +1235,7 @@ out:
 
 	return res;
 }
+#endif
 
 static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
@@ -1316,7 +1320,9 @@ RaucUpdatePair updatepairs[] = {
 	{"*.img", "nand", img_to_nand_handler},
 	{"*.img", "ubivol", img_to_ubivol_handler},
 	{"*.squashfs", "ubivol", img_to_ubivol_handler},
+#if ENABLE_EMMC_BOOT_SUPPORT == 1
 	{"*.img", "boot-emmc", img_to_boot_emmc_handler},
+#endif
 	{"*.img", "*", img_to_raw_handler}, /* fallback */
 	{0}
 };
