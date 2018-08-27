@@ -101,6 +101,10 @@ verification.
   Path to the keyring file in PEM format. Either absolute or relative to the
   system.conf file.
 
+``use-bundle-signing-time``
+  Use the bundle signing time instead of current time for certificate
+  validation.
+
 **[casync] section**
 
 The ``casync`` section contains casync-related settings.

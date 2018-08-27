@@ -1,3 +1,4 @@
+#include <openssl/asn1.h>
 #include <openssl/cms.h>
 #include <openssl/conf.h>
 #include <openssl/err.h>
@@ -5,6 +6,7 @@
 #include <openssl/pem.h>
 #include <openssl/crypto.h>
 #include <openssl/engine.h>
+#include <openssl/x509.h>
 
 #include "context.h"
 #include "signature.h"
@@ -570,6 +572,37 @@ out:
 	return res;
 }
 
+/* while OpenSSL 1.1.x provides a function for converting ASN1_TIME to tm,
+ * OpenSSL 1.0.x does not.
+ * Instead of coding an own conversion routine which might introduce bugs
+ * unnecessarily, we use the existing conversion capabilities of
+ * ASN1_TIME_print() and strptime() by taking the string representation as
+ * intermediate format. */
+static gboolean asn1_time_to_tm(const ASN1_TIME *intime, struct tm *tm)
+{
+	BIO *mem;
+	long size;
+	gchar *data;
+	g_autofree gchar *ret;
+
+	mem = BIO_new(BIO_s_mem());
+
+	ASN1_TIME_print(mem, intime);
+
+	size = BIO_get_mem_data(mem, &data);
+	ret = g_strndup(data, size);
+
+	g_debug("Obtained signing time: %s", ret);
+
+	if (!strptime(ret, "%b %d %H:%M:%S %Y GMT", tm))
+		return FALSE;
+
+	BIO_set_close(mem, BIO_CLOSE);
+	BIO_free(mem);
+
+	return TRUE;
+}
+
 gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_STORE **store, GError **error)
 {
 	const gchar *capath = r_context()->config->keyring_path;
@@ -622,6 +655,39 @@ gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_ST
 				R_SIGNATURE_ERROR_PARSE,
 				"failed to parse signature");
 		goto out;
+	}
+
+	/* Optionally use certificate signing timestamp for verification */
+	if (r_context()->config->use_bundle_signing_time) {
+		STACK_OF(CMS_SignerInfo) *sinfos;
+		CMS_SignerInfo *si;
+		X509_ATTRIBUTE *xa;
+		ASN1_TYPE *so;
+		X509_VERIFY_PARAM *param = X509_VERIFY_PARAM_new();
+		struct tm tm;
+		time_t signingtime;
+
+		/* Extract signing time from pkcs9 attributes */
+		sinfos = CMS_get0_SignerInfos(icms);
+		si = sk_CMS_SignerInfo_value(sinfos, 0);
+		xa = CMS_signed_get_attr(si, CMS_signed_get_attr_by_NID(si, NID_pkcs9_signingTime, -1));
+		so = X509_ATTRIBUTE_get0_type(xa, 0);
+
+		/* convert to time_t to make it usable for seting verify parameter */
+		if (!asn1_time_to_tm(so->value.utctime, &tm)) {
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_UNKNOWN,
+					"Failed to convert bundle signing time");
+			goto out;
+		}
+		signingtime = timegm(&tm);
+
+		/* use signing time for verification */
+		X509_VERIFY_PARAM_set_time(param, signingtime);
+		X509_STORE_set1_param(istore, param);
+		X509_VERIFY_PARAM_free(param);
 	}
 
 	if (!CMS_verify(icms, NULL, istore, incontent, NULL, CMS_DETACHED | CMS_BINARY)) {
