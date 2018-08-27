@@ -244,6 +244,11 @@ static void try_cleanup_status_on_install_failure(RInstaller *installer)
 	if (!get_progress_updated(installer, &install_percentage, &install_message, NULL))
 		goto out;
 
+	/* Previous install failure is identified by "LastError" D-Bus property (also
+	 * set if no previous install happened), 100% install percentage of D-Bus
+	 * "Pogress" property and an existing status file (means the previous
+	 * installation was started via CGI).
+	 */
 	if (!last_install_success && install_percentage == 100 && g_file_test(STATUS_FILE_LOCATION, G_FILE_TEST_EXISTS)) {
 		g_remove(STATUS_FILE_LOCATION);
 		g_remove(BUNDLE_TARGET_LOCATION);
@@ -551,14 +556,20 @@ static gint64 fread_chunked(char *ptr, size_t size, FILE *stream, GError **error
 	gint64 items_read = 0;
 	gint64 bytes_read = 0;
 	gint percentage = 0;
+	gint last_percentage = -1;
 
 	while (bytes_read < (gint64) size) {
 		items_read = fread(ptr + bytes_read, 1, 1024, stream);
 		bytes_read += items_read;
 		percentage = (bytes_read * 100) / size;
-		if (!write_upload_status(percentage, error)) {
-			bytes_read = -1;
-			goto out;
+
+		/* update upload status only if percentage changed */
+		if (percentage != last_percentage) {
+			last_percentage = percentage;
+			if (!write_upload_status(percentage, error)) {
+				bytes_read = -1;
+				goto out;
+			}
 		}
 	}
 
@@ -667,11 +678,11 @@ static gint cgi_handler(int argc, char **argv)
 	} else if (g_strcmp0("PUT", method) == 0) {
 		/* save stdin to temporary file */
 		if (!stdin_to_file(&error))
-			goto error;
+			goto remove_bundle_on_error;
 
 		/* start rauc install */
 		if (!r_installer_call_install_sync(installer, BUNDLE_TARGET_LOCATION, NULL, &error))
-			goto error;
+			goto remove_bundle_on_error;
 
 		print_headers("200 OK", "text/plain");
 		g_print("Upload and install trigger executed successfully.\n");
@@ -682,11 +693,14 @@ static gint cgi_handler(int argc, char **argv)
 	}
 
 	ret = 0;
-error:
-	if (error) {
-		/* try to remove bundle */
+
+remove_bundle_on_error:
+	/* try to remove bundle */
+	if (error)
 		g_remove(BUNDLE_TARGET_LOCATION);
 
+error:
+	if (error) {
 		switch (error->code) {
 			case CGI_ERROR_METHOD_NOT_ALLOWED:
 				print_headers("405 Method Not Allowed", "text/plain");
