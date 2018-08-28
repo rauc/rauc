@@ -398,7 +398,7 @@ out:
 /* Set slot status values */
 static gboolean grub_set_state(RaucSlot *slot, gboolean good, GError **error)
 {
-	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(10, g_free);
+	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(6, g_free);
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -427,7 +427,7 @@ out:
 /* Set slot as primary boot slot */
 static gboolean grub_set_primary(RaucSlot *slot, GError **error)
 {
-	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(10, g_free);
+	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(7, g_free);
 	g_autoptr(GString) order = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
