@@ -688,7 +688,7 @@ static gboolean uboot_set_primary(RaucSlot *slot, GError **error)
 
 	res = uboot_env_get("BOOT_ORDER", &order_current, &ierror);
 	if (!res) {
-		g_message("Unable to obtain BOOT_ORDER, using defaults");
+		g_message("Unable to obtain BOOT_ORDER (%s), using defaults", ierror->message);
 		g_clear_error(&ierror);
 
 		order_current = bootchooser_order_primay(slot);
