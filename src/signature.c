@@ -11,6 +11,14 @@
 #include "context.h"
 #include "signature.h"
 
+/* Define for OpenSSL 1.0.x backwards compatiblity.
+ * We use newer get0 names to be clear about memory ownership and to not use
+ * API deprecated in OpenSSL 1.1.x */
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
+#define X509_get0_notAfter X509_get_notAfter
+#define X509_get0_notBefore X509_get_notBefore
+#endif
+
 GQuark r_signature_error_quark(void)
 {
 	return g_quark_from_static_string("r_signature_error_quark");
@@ -474,7 +482,7 @@ gchar* print_signer_cert(STACK_OF(X509) *verified_chain)
 	return ret;
 }
 
-static gchar* get_cert_time(ASN1_TIME *time)
+static gchar* get_cert_time(const ASN1_TIME *time)
 {
 	BIO *mem;
 	gchar *data, *ret;
@@ -508,8 +516,8 @@ gchar* print_cert_chain(STACK_OF(X509) *verified_chain)
 				buf, sizeof buf);
 		g_string_append_printf(text, "   Issuer: %s\n", buf);
 		g_string_append_printf(text, "   SPKI sha256: %s\n", get_pubkey_hash(sk_X509_value(verified_chain, i)));
-		g_string_append_printf(text, "   Not Before: %s\n", get_cert_time(X509_get_notBefore(sk_X509_value(verified_chain, i))));
-		g_string_append_printf(text, "   Not After:  %s\n", get_cert_time(X509_get_notAfter(sk_X509_value(verified_chain, i))));
+		g_string_append_printf(text, "   Not Before: %s\n", get_cert_time(X509_get0_notBefore((const X509*) sk_X509_value(verified_chain, i))));
+		g_string_append_printf(text, "   Not After:  %s\n", get_cert_time(X509_get0_notAfter((const X509*) sk_X509_value(verified_chain, i))));
 	}
 
 	return g_string_free(text, FALSE);
