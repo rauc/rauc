@@ -24,12 +24,12 @@ GQuark r_bootchooser_error_quark(void)
 
 static GString *bootchooser_order_primay(RaucSlot *slot)
 {
-	GString *order = g_string_sized_new(10);
+	GString *order = NULL;
 	GList *slots;
 
 	g_return_val_if_fail(slot, NULL);
 
-	g_string_append(order, slot->bootname);
+	order = g_string_new(slot->bootname);
 
 	/* Iterate over class members */
 	slots = g_hash_table_get_values(r_context()->config->slots);
@@ -673,7 +673,7 @@ static RaucSlot* uboot_get_primary(GError **error)
 /* Set slot as primary boot slot */
 static gboolean uboot_set_primary(RaucSlot *slot, GError **error)
 {
-	g_autoptr(GString) order_new = g_string_sized_new(10);
+	g_autoptr(GString) order_new = NULL;
 	g_autoptr(GString) order_current = NULL;
 	g_auto(GStrv) bootnames = NULL;
 	GError *ierror = NULL;
@@ -684,7 +684,7 @@ static gboolean uboot_set_primary(RaucSlot *slot, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* Add updated slot as first entry in new boot order */
-	g_string_append(order_new, slot->bootname);
+	order_new = g_string_new(slot->bootname);
 
 	res = uboot_env_get("BOOT_ORDER", &order_current, &ierror);
 	if (!res) {
