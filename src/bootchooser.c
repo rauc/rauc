@@ -964,7 +964,7 @@ static gboolean efi_set_temp_primary(RaucSlot *slot, GError **error)
 
 	res = efi_bootorder_get(NULL, &entries, NULL, &ierror);
 	if (!res) {
-		g_propagate_prefixed_error(error, ierror, "Obtaining bootorder failed: ");
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 
@@ -1015,7 +1015,7 @@ static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend
 
 	res = efi_bootorder_get(&entries, &all_entries, NULL, &ierror);
 	if (!res) {
-		g_propagate_prefixed_error(error, ierror, "Modifying bootorder failed: ");
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 
