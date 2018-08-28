@@ -56,7 +56,7 @@ typedef struct {
 
 static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_state, GError **error)
 {
-	GSubprocess *sub;
+	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GInputStream *instream;
@@ -151,7 +151,7 @@ out:
 /* names: list of gchar, values: list of gint */
 static gboolean barebox_state_set(GPtrArray *pairs, GError **error)
 {
-	GSubprocess *sub;
+	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(2*pairs->len+2, g_free);
@@ -353,7 +353,7 @@ out:
 
 static gboolean grub_env_set(GPtrArray *pairs, GError **error)
 {
-	GSubprocess *sub;
+	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -454,7 +454,7 @@ out:
 
 static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
 {
-	GSubprocess *sub;
+	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
 	g_autoptr(GBytes) stdout_buf = NULL;
 	const char *data;
@@ -519,7 +519,7 @@ out:
 
 static gboolean uboot_env_set(const gchar *key, const gchar *value, GError **error)
 {
-	GSubprocess *sub;
+	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -734,7 +734,7 @@ typedef struct {
 
 static gboolean efi_bootorder_set(gchar *order, GError **error)
 {
-	GSubprocess *sub;
+	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -769,7 +769,7 @@ out:
 
 static gboolean efi_set_bootnext(gchar *bootnumber, GError **error)
 {
-	GSubprocess *sub;
+	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -831,7 +831,7 @@ static efi_bootentry* get_efi_entry_by_bootnum(GList *entries, const gchar *boot
  */
 static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries, efi_bootentry **bootnext, GError **error)
 {
-	GSubprocess *sub = NULL;
+	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
 	g_autoptr(GBytes) stdout_buf = NULL;
 	gboolean res = FALSE;
