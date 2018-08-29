@@ -659,3 +659,140 @@ Performing an update using the default RAUC mechanism will work as follows:
 
 #. Unmount bundle
 #. Terminate successfully if no error occurred
+
+Bootloader Interaction
+----------------------
+
+RAUC comes with a generic interface for interacting with the bootloader.
+
+It provides two base functions:
+
+1) Setting state 'good' or 'bad', reflected by API routine `r_boot_set_state()`
+   and command line tool option `rauc status mark <good/bad>`
+2) Marking a slot 'primary', reflected by API routine `r_boot_set_primary()`
+   and command line tool option `rauc status mark-active`
+
+The default flow of how they will be called during the installation of a new
+bundle (on Slot 'A') looks as follows::
+
+  start   ->  install  ->  reboot  -> operating state  ->
+          |            |                               |
+     set A bad   set A primary                     set A good/bad
+
+The aim of setting state 'bad' is to disable a slot in a way that the
+bootloader will not select it for booting anymore.
+As shown above this is either the case before an installation to make the
+update atomic from the bootloader's perspective, or optionally after the
+installation and a reboot into the new system, when a service detects that the
+system is in an unusable state. This potentially allows falling back to a
+working system.
+
+The aim of setting a slot 'primary' is to let the bootloader select this slot
+upon next reboot in case of having completed the installation successfully.
+An alternative to directly marking a slot primary after installation is to
+manually mark it primary at a later point in time, e.g. to let a complete set
+of devices change their software revision at the same time.
+
+Setting the slot 'good' is relevant for the first boot but for all subsequent
+boots, too.
+In most cases, this interaction with the bootloader is required by the
+mechanism that enables fallback capability; rebooting a system one or several times
+without calling `rauc status mark-good` will
+let the bootloader boot an alternative system or abort boot operation
+(depending on configuration).
+Usually, bootloaders implement this fallback mechanism by some kind of counters
+they maintain and decrease upon each boot.
+In these cases *marking good* means resetting these counters.
+
+A normal reboot of the system will look as follows::
+
+  operating state  ->  reboot  -> operating state  ->
+                                                   |
+                                             set A good/bad
+
+Some bootloaders do not require explicitly setting state 'good' as they are able
+to differentiate between a POR and a watchdog reset, for example.
+
+.. note: Despite the naming might suggest it, marking a slot bad and good are
+  not reversible operations, meaning you have no guarantee that a slot first
+  set to 'bad' and then set to 'good' again will be in the same state as
+  before.
+  Actually reactivating it will only work by marking it primary (active).
+
+What the high-level functions described above actually do mainly depends on the underlying
+bootloader used and the capabilities it provides.
+Below is a short description about behavior of each bootloader interface
+currently implemented:
+
+U-Boot
+~~~~~~
+
+The U-Boot implementation assumes to have variables `BOOT_ORDER` and
+`BOOT_x_ATTEMPTS` handled by the bootloader scripting.
+
+:state bad:
+  Sets the `BOOT_x_ATTEMPTS` variable of the slot to `0` and removes it from
+  the `BOOT_ORDER` list
+
+:state good:
+  Sets the `BOOT_x_ATTEMPTS` variable back to its default value (`3`).
+
+:primary:
+  Moves the slot from its current position in the list in `BOOT_ORDER` to the
+  first place and sets `BOOT_x_ATTEMPTS` to its initial value (`3`).
+  If BOOT_ORDER was unset before, it generates a new list of all slots known to
+  RAUC with the one to activate at the first position.
+
+
+Barebox
+~~~~~~~
+
+The barebox implementation assumes using
+`barebox bootchooser <https://barebox.org/doc/latest/user/bootchooser.html>`_.
+
+:state bad:
+  Sets both the `bootstate.systemX.priority` and
+  `bootstate.systemX.remaining_attempts` to `0`.
+
+:state good:
+  Sets the `bootstate.systemX.remaining_attempts` to its default value
+  (`3`).
+
+:primary:
+  Sets `bootstate.systemX.priority` to `20` and all other priorities that were
+  non-zero before to `10`.
+  It also sets `bootstate.systemX.remaining_attempts` to its initial value (`3`).
+
+GRUB
+~~~~
+
+:state bad:
+  Sets slot `x_OK` to `0` and resets `x_TRY` to `0`.
+
+:state good:
+  Sets slot `x_OK` to `1` and resets `x_TRY` to `0`.
+
+:primary:
+  Sets slot `x_OK` to `1` and resets `x_TRY` to `0`.
+  Sets `ORDER` to contain slot ``x`` as first element and all other after.
+
+EFI
+~~~
+
+:state bad:
+  Removes the slot from `BootOrder`
+
+:state good:
+  Prepends the slot to the `BootOrder` list.
+  This behaves slightly different than the other implementations because we use
+  `BootNext` for allowing setting primary with an initial fallback option.
+  Setting state good is then used to persist this.
+
+:primary:
+  Sets the slot as `BootNext`.
+  This will make the slot being booted upon next reboot only!
+
+.. note:: EFI implementations differ in how they handle new or unbootable
+  targets etc. It may also depend on the actual implementation if EFI variable
+  writing is atomic or not.
+  Thus make sure your EFI works as expected and required.
