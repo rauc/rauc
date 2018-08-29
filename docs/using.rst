@@ -31,7 +31,7 @@ sub-command:
 
 .. code-block:: sh
 
-  rauc bundle --cert=<certfile> --key=<keyfile> <input-dir> <output-file>
+  rauc bundle --cert=<certfile> --key=<keyfile> --keyring=<keyringfile> <input-dir> <output-file>
 
 Where ``<input-dir>`` must be a directory containing all images and scripts the
 bundle should include, as well as a manifest file ``manifest.raucm`` that
@@ -45,6 +45,13 @@ Instead of the ``certfile`` and ``keyfile`` arguments, PKCS#11 URLs such as
 ``'pkcs11:token=rauc;object=autobuilder-1'`` can be used to avoid storing
 sensitive key material as files (see :ref:`PKCS#11 Support <pkcs11-support>`
 for details).
+
+While the ``--cert`` and ``--key`` argument are mandatory for signing and must
+provide the certificate and private key that should be used for creating the
+signature, the ``--keyring`` argument is optional and (if given) will be used
+for verifying the trust chain validity of the signature after creation.
+Note that this is very useful to prevent from signing with obsolete
+certificates, etc.
 
 Obtaining Bundle Information
 ----------------------------

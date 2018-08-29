@@ -280,8 +280,7 @@ static void signature_intermediate(void)
 	/* We sign with the release key */
 	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
 	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
-	/* We verify against the provisioning CA */
-	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/provisioning-ca.pem");
+	r_context_conf()->keyringpath = NULL;
 
 	sig = cms_sign(content,
 			r_context()->certpath,
@@ -291,6 +290,8 @@ static void signature_intermediate(void)
 	g_assert_nonnull(sig);
 	g_assert_no_error(error);
 
+	/* We verify against the provisioning CA */
+	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/provisioning-ca.pem");
 	/* Without explicit intermediate certificate, this must fail */
 	g_assert_false(cms_verify(content, sig, &cms, &store, &error));
 	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
@@ -346,8 +347,7 @@ static void signature_intermediate_file(void)
 	/* We sign with the release key */
 	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
 	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
-	/* We verify against the provisioning CA */
-	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/provisioning-ca.pem");
+	r_context_conf()->keyringpath = NULL;
 
 	sig = cms_sign_file("test/openssl-ca/manifest",
 			r_context()->certpath,
@@ -357,6 +357,8 @@ static void signature_intermediate_file(void)
 	g_assert_nonnull(sig);
 	g_assert_no_error(error);
 
+	/* We verify against the provisioning CA */
+	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/provisioning-ca.pem");
 	/* Without explicit intermediate certificate, this must fail */
 	g_assert_false(cms_verify_file("test/openssl-ca/manifest", sig, 0, &cms, &store, &error));
 	g_assert_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);

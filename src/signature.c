@@ -11,6 +11,14 @@
 #include "context.h"
 #include "signature.h"
 
+/* Define for OpenSSL 1.0.x backwards compatiblity.
+ * We use newer get0 names to be clear about memory ownership and to not use
+ * API deprecated in OpenSSL 1.1.x */
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
+#define X509_get0_notAfter X509_get_notAfter
+#define X509_get0_notBefore X509_get_notBefore
+#endif
+
 GQuark r_signature_error_quark(void)
 {
 	return g_quark_from_static_string("r_signature_error_quark");
@@ -355,6 +363,54 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 				"Read zero bytes");
 		goto out;
 	}
+
+	/* keyring was given, perform verification to obtain trust chain */
+	if (r_context()->config->keyring_path) {
+		g_autoptr(CMS_ContentInfo) vcms = NULL;
+		g_autoptr(X509_STORE) store = NULL;
+		STACK_OF(X509) *verified_chain = NULL;
+
+		g_message("Keyring given, doing signature verification");
+		if (!cms_verify(content, res, &vcms, &store, &ierror)) {
+			g_propagate_error(error, ierror);
+			res = NULL;
+			goto out;
+		}
+
+		if (!cms_get_cert_chain(vcms, store, &verified_chain, &ierror)) {
+			g_propagate_error(error, ierror);
+			res = NULL;
+			goto out;
+		}
+
+		for (int i = 0; i < sk_X509_num(verified_chain); i++) {
+			const ASN1_TIME *expiry_time;
+			struct tm *next_month;
+			time_t now;
+			time_t comp;
+			time(&now);
+
+			next_month = gmtime(&now);
+			next_month->tm_mon += 1;
+			if (next_month->tm_mon == 12)
+				next_month->tm_mon = 0;
+			comp = timegm(next_month);
+
+			expiry_time = X509_get0_notAfter(sk_X509_value(verified_chain, i));
+
+			/* Check if expiry time is within last month */
+			if (X509_cmp_current_time(expiry_time) == 1 && X509_cmp_time(expiry_time, &comp) == -1) {
+				char buf[BUFSIZ];
+				X509_NAME_oneline(X509_get_subject_name(sk_X509_value(verified_chain, i)),
+						buf, sizeof buf);
+				g_warning("Certificate %d (%s) will exipre in less than a month!", i + 1, buf);
+			}
+		}
+
+		sk_X509_pop_free(verified_chain, X509_free);
+	} else {
+		g_message("No keyring given, skipping signature verification");
+	}
 out:
 	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
@@ -450,7 +506,7 @@ gchar* print_signer_cert(STACK_OF(X509) *verified_chain)
 	return ret;
 }
 
-static gchar* get_cert_time(ASN1_TIME *time)
+static gchar* get_cert_time(const ASN1_TIME *time)
 {
 	BIO *mem;
 	gchar *data, *ret;
@@ -484,8 +540,8 @@ gchar* print_cert_chain(STACK_OF(X509) *verified_chain)
 				buf, sizeof buf);
 		g_string_append_printf(text, "   Issuer: %s\n", buf);
 		g_string_append_printf(text, "   SPKI sha256: %s\n", get_pubkey_hash(sk_X509_value(verified_chain, i)));
-		g_string_append_printf(text, "   Not Before: %s\n", get_cert_time(X509_get_notBefore(sk_X509_value(verified_chain, i))));
-		g_string_append_printf(text, "   Not After:  %s\n", get_cert_time(X509_get_notAfter(sk_X509_value(verified_chain, i))));
+		g_string_append_printf(text, "   Not Before: %s\n", get_cert_time(X509_get0_notBefore((const X509*) sk_X509_value(verified_chain, i))));
+		g_string_append_printf(text, "   Not After:  %s\n", get_cert_time(X509_get0_notAfter((const X509*) sk_X509_value(verified_chain, i))));
 	}
 
 	return g_string_free(text, FALSE);
@@ -560,7 +616,7 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 	/* The first element in the chain must be the signer certificate */
 	g_assert(X509_cmp(sk_X509_value(signers, 0), sk_X509_value(*verified_chain, 0)) == 0);
 
-	g_debug("Got %d chain elements", sk_X509_num(*verified_chain));
+	g_debug("Got %d elements for trust chain", sk_X509_num(*verified_chain));
 
 	res = TRUE;
 out:

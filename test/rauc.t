@@ -431,6 +431,48 @@ test_expect_success "rauc verfiy with 'use-bundle-signing-time': invalid signing
   rm out.raucb
 "
 
+test_expect_success "rauc sign bundle with expired certificate" "
+  test_must_fail faketime "2019-07-02" \
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
+    test ! -f out.raucb
+"
+
+test_expect_success "rauc sign bundle with not yet valid certificate" "
+  test_must_fail faketime "2017-01-01" \
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
+    test ! -f out.raucb
+"
+
+test_expect_success "rauc sign bundle with almost expired certificate" "
+  faketime "2019-06-15" \
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
+    test -f out.raucb &&
+    rm out.raucb
+"
+
+test_expect_success "rauc sign bundle with valid certificate" "
+  faketime "2019-01-01" \
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
+    test -f out.raucb &&
+    rm out.raucb
+"
+
 test_expect_success CASYNC "rauc convert" "
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \

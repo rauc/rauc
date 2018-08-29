@@ -3,6 +3,9 @@
 #include <openssl/cms.h>
 #include <glib.h>
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(CMS_ContentInfo, CMS_ContentInfo_free)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(X509_STORE, X509_STORE_free)
+
 #define R_SIGNATURE_ERROR r_signature_error_quark()
 GQuark r_signature_error_quark(void);
 
@@ -134,8 +137,9 @@ gchar* print_cert_chain(STACK_OF(X509) *verified_chain);
  *
  * @param cms CMS_ContentInfo used in cms_verify()
  * @param store Store used in cms_verify()
- * @param verified_chain Return location for the verification chain, or NULL
- * @param error return location for a GError, or NULL
+ * @param[out] verified_chain Return location for the verification chain, or NULL
+ *                            [transfer full]
+ * @param[out] error return location for a GError, or NULL
  *
  * @return TRUE if succeeded, FALSE if failed
  */
