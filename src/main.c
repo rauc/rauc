@@ -321,6 +321,12 @@ static gboolean write_slot_start(int argc, char **argv)
 		goto out;
 	}
 
+	if (slot->readonly) {
+		g_printerr("Reject writing to readonly slot\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
 	/* retrieve update handler */
 	update_handler = get_update_handler(image, slot, &ierror);
 	if (update_handler == NULL) {

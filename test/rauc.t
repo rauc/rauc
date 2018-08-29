@@ -394,6 +394,10 @@ test_expect_success "rauc write-slot invalid slot" "
   test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test.conf write-slot system0 /path/to/foo.img
 "
 
+test_expect_success "rauc write-slot readonly" "
+  test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test.conf write-slot rescue.0 $SHARNESS_TEST_DIRECTORY/install-content/appfs.img
+"
+
 echo "\
 [system]
 compatible=Test Config
