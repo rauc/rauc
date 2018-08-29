@@ -19,6 +19,8 @@ GQuark r_bootchooser_error_quark(void)
 #define BAREBOX_STATE_PRIORITY_PRIMARY	20
 #define UBOOT_FWSETENV_NAME "fw_setenv"
 #define UBOOT_FWPRINTENV_NAME "fw_printenv"
+#define UBOOT_DEFAULT_ATTEMPS		"3"
+#define UBOOT_ATTEMPS_PRIMARY		"3"
 #define EFIBOOTMGR_NAME "efibootmgr"
 #define GRUB_EDITENV "grub-editenv"
 
@@ -569,7 +571,7 @@ static gboolean uboot_set_state(RaucSlot *slot, gboolean good, GError **error)
 
 	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
 
-	if (!uboot_env_set(key, good ? "3" : "0", &ierror)) {
+	if (!uboot_env_set(key, good ? UBOOT_DEFAULT_ATTEMPS : "0", &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
@@ -666,7 +668,7 @@ static gboolean uboot_set_primary(RaucSlot *slot, GError **error)
 
 	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
 
-	if (!uboot_env_set(key, "3", &ierror)) {
+	if (!uboot_env_set(key, UBOOT_ATTEMPS_PRIMARY, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
