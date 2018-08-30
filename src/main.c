@@ -919,7 +919,7 @@ static gchar* r_status_formatter_readable(void)
 	g_string_append_printf(text, "Compatible:  %s\n", r_context()->config->system_compatible);
 	g_string_append_printf(text, "Variant:     %s\n", r_context()->config->system_variant);
 	g_string_append_printf(text, "Booted from: %s\n", r_context()->bootslot);
-	g_string_append_printf(text, "Activated:   %s\n", primary ? primary->name : NULL);
+	g_string_append_printf(text, "Activated:   %s (%s)\n", primary ? primary->name : NULL, primary ? primary->bootname : NULL);
 
 	g_string_append(text, "slot states:\n");
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
