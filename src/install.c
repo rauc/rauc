@@ -1305,7 +1305,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	}
 
 	if (!res) {
-		g_propagate_prefixed_error(error, ierror, "Handler error: ");
+		g_propagate_prefixed_error(error, ierror, "Installation error: ");
 		goto umount;
 	}
 

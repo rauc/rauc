@@ -1171,7 +1171,7 @@ static void install_test_bundle_hook_install_check(InstallFixture *fixture,
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 	g_assert_false(do_install_bundle(args, &ierror));
-	g_assert_cmpstr(ierror->message, ==, "Handler error: Bundle rejected: Hook returned: No, I won't install this!");
+	g_assert_cmpstr(ierror->message, ==, "Installation error: Bundle rejected: Hook returned: No, I won't install this!");
 
 	args->status_result = 0;
 
