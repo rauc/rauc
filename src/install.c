@@ -792,7 +792,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	}
 
 	/* Mark all parent destination slots non-bootable */
-	g_message("Marking target slot as non-bootable...");
 	for (GList *l = install_images; l != NULL; l = l->next) {
 		RaucSlot *dest_slot = g_hash_table_lookup(target_group, ((RaucImage*)l->data)->slotclass);
 
@@ -802,6 +801,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			continue;
 		}
 
+		g_message("Marking target slot %s as non-bootable...", dest_slot->name);
 		res = r_boot_set_state(dest_slot, FALSE, &ierror);
 
 		if (!res) {
@@ -970,13 +970,13 @@ image_out:
 
 	if (r_context()->config->activate_installed) {
 		/* Mark all parent destination slots bootable */
-		g_message("Marking slots as bootable...");
 		for (GList *l = install_images; l != NULL; l = l->next) {
 			RaucSlot *dest_slot = g_hash_table_lookup(target_group, ((RaucImage*)l->data)->slotclass);
 
 			if (dest_slot->parent || !dest_slot->bootname)
 				continue;
 
+			g_message("Marking target slot %s as bootable...", dest_slot->name);
 			mark_active(dest_slot, &ierror);
 			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE)) {
 				g_propagate_prefixed_error(error, ierror,
