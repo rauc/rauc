@@ -1210,7 +1210,7 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 	GError *ierror = NULL;
-	RInstaller *proxy;
+	RInstaller *proxy = NULL;
 	GVariant *slot_status_array, *vardict;
 	GHashTable *slots = r_context()->config->slots;
 	GVariantIter *iter;
@@ -1237,7 +1237,7 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 				G_IO_ERROR_FAILED,
 				"error calling D-Bus method \"GetSlotStatus\": %s", ierror->message);
 		g_error_free(ierror);
-		g_object_unref(&proxy);
+		g_object_unref(proxy);
 		return FALSE;
 	}
 
@@ -1255,7 +1255,7 @@ static gboolean retrieve_slot_states_via_dbus(GError **error)
 
 	g_variant_iter_free(iter);
 	g_variant_unref(slot_status_array);
-	g_object_unref(&proxy);
+	g_object_unref(proxy);
 
 	return TRUE;
 }
