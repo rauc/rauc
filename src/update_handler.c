@@ -1029,7 +1029,6 @@ out:
 
 static gboolean img_to_fs_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
-	g_autoptr(GOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
