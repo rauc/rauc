@@ -567,6 +567,10 @@ static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_sou
 		g_subprocess_launcher_setenv(launcher, varname, slot->sclass, TRUE);
 		g_clear_pointer(&varname, g_free);
 
+		varname = g_strdup_printf("RAUC_SLOT_TYPE_%i", slotcnt);
+		g_subprocess_launcher_setenv(launcher, varname, slot->type, TRUE);
+		g_clear_pointer(&varname, g_free);
+
 		varname = g_strdup_printf("RAUC_SLOT_DEVICE_%i", slotcnt);
 		g_subprocess_launcher_setenv(launcher, varname, slot->device, TRUE);
 		g_clear_pointer(&varname, g_free);

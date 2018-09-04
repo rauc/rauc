@@ -416,6 +416,9 @@ variables.
   ``RAUC_SLOT_CLASS_<N>``
     The class of slot number <N>, e.g. ``rootfs``
 
+  ``RAUC_SLOT_TYPE_<N>``
+    The type of slot number <N>, e.g. ``raw``
+
   ``RAUC_SLOT_DEVICE_<N>``
     The device path of slot number <N>, e.g. ``/dev/sda1``
 

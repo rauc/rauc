@@ -20,6 +20,7 @@ case "$1" in
 	slot-post-install)
 		test -n "$RAUC_SLOT_NAME" || die_error "missing RAUC_SLOT_NAME"
 		test -n "$RAUC_SLOT_CLASS" || die_error "missing RAUC_SLOT_CLASS"
+		test -n "$RAUC_SLOT_TYPE" || die_error "missing RAUC_SLOT_TYPE"
 
 		# only rootfs needs to be handled
 		test "$RAUC_SLOT_CLASS" = "rootfs" || exit 0
@@ -32,6 +33,7 @@ case "$1" in
 	slot-install)
 		test -n "$RAUC_SLOT_NAME" || die_error "missing RAUC_SLOT_NAME"
 		test -n "$RAUC_SLOT_CLASS" || die_error "missing RAUC_SLOT_CLASS"
+		test -n "$RAUC_SLOT_TYPE" || die_error "missing RAUC_SLOT_TYPE"
 
 		echo "RAUC_IMAGE_PATH: $RAUC_IMAGE_PATH"
 		echo "RAUC_SLOT_DEVICE: $RAUC_SLOT_DEVICE"
