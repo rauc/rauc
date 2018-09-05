@@ -491,7 +491,7 @@ infrastructure for executing an application or a script on the target side.
 For this case, you may replace the entire default installation handler of rauc
 by a custom handler script or application.
 
-Refer system.conf :ref:`[handler] <sec-manifest-handler>` section description
+Refer manifest :ref:`[handler] <sec-manifest-handler>` section description
 on how to achieve this.
 
 
