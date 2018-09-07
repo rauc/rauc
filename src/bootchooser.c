@@ -1138,7 +1138,7 @@ static RaucSlot *efi_get_primary(GError **error)
 				error,
 				R_BOOTCHOOSER_ERROR,
 				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
-				"Did not find slot for boot entry '%s' !", bootnext->name);
+				"Did not find primary boot entry!");
 		res = FALSE;
 		goto out;
 	}
