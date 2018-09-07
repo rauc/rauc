@@ -610,6 +610,7 @@ static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, Rau
 
 	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_NAME", slot->name, TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_CLASS", slot->sclass, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_TYPE", slot->type, TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_DEVICE", slot->device, TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_BOOTNAME", slot->bootname ?: "", TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_PARENT", slot->parent ? slot->parent->name : "", TRUE);
@@ -666,6 +667,7 @@ static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hoo
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 	g_assert_nonnull(hook_name);
 	g_assert_nonnull(hook_cmd);
 
@@ -688,7 +690,7 @@ static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hoo
 	g_message("Unmounting slot %s", slot->device);
 	if (!r_umount_slot(slot, &ierror)) {
 		res = FALSE;
-		if (error) {
+		if (error && *error) {
 			/* the slot hook error is more relevant here */
 			g_warning("Ignoring umount error after slot hook error: %s", ierror->message);
 			g_clear_error(&ierror);
@@ -810,6 +812,8 @@ static gboolean archive_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, 
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
 		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, dest_slot, &ierror);
@@ -857,7 +861,7 @@ unmount_out:
 	g_message("Unmounting ubifs slot %s", dest_slot->device);
 	if (!r_umount_slot(dest_slot, &ierror)) {
 		res = FALSE;
-		if (error) {
+		if (error && *error) {
 			/* the previous error is more relevant here */
 			g_warning("Ignoring umount error after previous error: %s", ierror->message);
 			g_clear_error(&ierror);
@@ -874,6 +878,8 @@ static gboolean archive_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, c
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
@@ -922,7 +928,7 @@ unmount_out:
 	g_message("Unmounting ext4 slot %s", dest_slot->device);
 	if (!r_umount_slot(dest_slot, &ierror)) {
 		res = FALSE;
-		if (error) {
+		if (error && *error) {
 			/* the previous error is more relevant here */
 			g_warning("Ignoring umount error after previous error: %s", ierror->message);
 			g_clear_error(&ierror);
@@ -939,6 +945,8 @@ static gboolean archive_to_vfat_handler(RaucImage *image, RaucSlot *dest_slot, c
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
@@ -987,7 +995,7 @@ unmount_out:
 	g_message("Unmounting vfat slot %s", dest_slot->device);
 	if (!r_umount_slot(dest_slot, &ierror)) {
 		res = FALSE;
-		if (error) {
+		if (error && *error) {
 			/* the previous error is more relevant here */
 			g_warning("Ignoring umount error after previous error: %s", ierror->message);
 			g_clear_error(&ierror);
@@ -1045,7 +1053,6 @@ out:
 
 static gboolean img_to_fs_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
-	g_autoptr(GOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 

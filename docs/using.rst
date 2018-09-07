@@ -374,6 +374,9 @@ The following environment variables will be passed to the hook executable:
   ``RAUC_SLOT_CLASS``
     The class of the currently installed slot
 
+  ``RAUC_SLOT_TYPE``
+    The type of the currently installed slot
+
   ``RAUC_SLOT_DEVICE``
     The device of the currently installed slot
 
