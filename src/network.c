@@ -176,10 +176,11 @@ out:
 	return res;
 }
 
-gboolean download_mem(GBytes **data, const gchar *url, gsize limit)
+gboolean download_mem(GBytes **data, const gchar *url, gsize limit, GError **error)
 {
 	RaucTransfer xfer = {0};
 	gboolean res = FALSE;
+	GError *ierror = NULL;
 	char *dl_data = NULL;
 
 	xfer.url = url;
@@ -187,12 +188,15 @@ gboolean download_mem(GBytes **data, const gchar *url, gsize limit)
 
 	xfer.dl = open_memstream(&dl_data, &xfer.dl_size);
 	if (xfer.dl == NULL) {
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Failed opening memstream");
 		goto out;
 	}
 
-	res = transfer(&xfer, NULL);
-	if (!res)
+	res = transfer(&xfer, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
+	}
 
 	g_clear_pointer(&xfer.dl, fclose);
 	*data = g_bytes_new_take(dl_data, xfer.dl_size);

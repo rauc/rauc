@@ -43,27 +43,27 @@ static void test_download_mem(void)
 	GBytes *data = NULL;
 
 	/* basic download (no size limit) */
-	g_assert_true(download_mem(&data, "http://example.com/", 0));
+	g_assert_true(download_mem(&data, "http://example.com/", 0, NULL));
 	g_assert_nonnull(data);
 	g_clear_pointer(&data, g_bytes_unref);
 
 	/* download with large limit */
-	g_assert_true(download_mem(&data, "http://example.com/", 1048576));
+	g_assert_true(download_mem(&data, "http://example.com/", 1048576, NULL));
 	g_assert_nonnull(data);
 	g_clear_pointer(&data, g_bytes_unref);
 
 	/* abort download for too large files */
-	g_assert_false(download_mem(&data, "http://example.com/", 1024));
+	g_assert_false(download_mem(&data, "http://example.com/", 1024, NULL));
 	g_assert_null(data);
 	g_clear_pointer(&data, g_bytes_unref);
 
 	/* download with https */
-	g_assert_true(download_mem(&data, "https://example.com/", 1048576));
+	g_assert_true(download_mem(&data, "https://example.com/", 1048576, NULL));
 	g_assert_nonnull(data);
 	g_clear_pointer(&data, g_bytes_unref);
 
 	/* invalid host name */
-	g_assert_false(download_mem(&data, "http://error.example.com/", 1024));
+	g_assert_false(download_mem(&data, "http://error.example.com/", 1024, NULL));
 	g_assert_null(data);
 	g_clear_pointer(&data, g_bytes_unref);
 }

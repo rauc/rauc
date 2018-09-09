@@ -1355,16 +1355,18 @@ gboolean do_install_network(const gchar *url, GError **error)
 		goto out;
 	}
 
-	res = download_mem(&manifest_data, url, 64*1024);
+	res = download_mem(&manifest_data, url, 64*1024, &ierror);
 	if (!res) {
-		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_DOWNLOAD_MF, "Failed to download manifest");
+		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_DOWNLOAD_MF, "Failed to download manifest %s: %s", url, ierror->message);
+		g_clear_error(&ierror);
 		goto out;
 	}
 
 	signature_url = g_strconcat(url, ".sig", NULL);
-	res = download_mem(&signature_data, signature_url, 64*1024);
+	res = download_mem(&signature_data, signature_url, 64*1024, &ierror);
 	if (!res) {
-		g_warning("Failed to download manifest signature");
+		g_warning("Failed to download manifest signature: %s", ierror->message);
+		g_clear_error(&ierror);
 		goto out;
 	}
 
