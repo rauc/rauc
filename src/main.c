@@ -124,7 +124,26 @@ static gboolean install_start(int argc, char **argv)
 	if (bundlescheme == NULL && !g_path_is_absolute(argv[2])) {
 		bundlelocation = g_build_filename(g_get_current_dir(), argv[2], NULL);
 	} else {
-		bundlelocation = g_strdup(argv[2]);
+		gchar *hostname = NULL;
+
+		if (g_strcmp0(bundlescheme, "file") == 0) {
+			bundlelocation = g_filename_from_uri(argv[2], &hostname, &error);
+			if (!bundlelocation) {
+				g_printerr("Conversion error: %s\n", error->message);
+				g_clear_error(&error);
+				goto out;
+			}
+
+			if (hostname != NULL) {
+				g_printerr("file URI with hostname detected. Did you forget to add a leading / ?\n");
+				goto out;
+			}
+
+			/* Clear bundlescheme to trigger local path handling */
+			g_clear_pointer(&bundlescheme, g_free);
+		} else {
+			bundlelocation = g_strdup(argv[2]);
+		}
 	}
 
 	/* If the URI parser returns NULL, assume bundle install with local path */
