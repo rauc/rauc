@@ -674,6 +674,8 @@ static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, Rau
 	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_PARENT", slot->parent ? slot->parent->name : "", TRUE);
 	if (slot->mount_point) {
 		g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_MOUNT_POINT", slot->mount_point, TRUE);
+	} else if (slot->ext_mount_point) {
+		g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_MOUNT_POINT", slot->ext_mount_point, TRUE);
 	}
 	if (image) {
 		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_NAME", image->filename, TRUE);
