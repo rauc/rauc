@@ -240,6 +240,11 @@ hierarchical separator.
   active slots, so that the inactive one can be selected as the update target.
   The parent slot is referenced using the form ``<slot-class>.<idx>``.
 
+``allow-mounted=<true/false>``
+  Setting this entry ``true`` tells RAUC that the slot may be updated even if
+  it is already mounted.
+  Such a slot can be updated only by a custom install hook.
+
 ``readonly=<true/false>``
   Marks the slot as existing but not updatable. May be used for sanity checking
   or informative purpose. A ``readonly`` slot cannot be a target slot.
