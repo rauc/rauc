@@ -43,6 +43,7 @@ The slot status structure is directly based on the GVariant structure of
 `GetSlotStatus <http://rauc.reayydthedocs.io/en/latest/reference.html#the-getslotstatus-method>`_.
 
 ::
+
     $ REQUEST_METHOD=GET QUERY_STRING=status rauc-cgi
     Status: 200 OK
     Content-type: application/json
