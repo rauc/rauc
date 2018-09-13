@@ -917,7 +917,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		else
 			g_message("Updating %s with %s", dest_slot->device, mfimage->filename);
 
-		r_context_begin_step("copy_image", "Copying image", 0);
+		r_context_begin_step_formatted("copy_image", 0, "Copying image to %s", dest_slot->name);
 
 		res = update_handler(
 				mfimage,
