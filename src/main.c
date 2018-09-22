@@ -805,6 +805,7 @@ static gboolean info_start(int argc, char **argv)
 	g_autofree gchar* tmpdir = NULL;
 	g_autofree gchar* bundledir = NULL;
 	g_autofree gchar* manifestpath = NULL;
+	g_autofree gchar *bundlelocation = NULL;
 	RaucManifest *manifest = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
 	GError *error = NULL;
@@ -846,7 +847,12 @@ static gboolean info_start(int argc, char **argv)
 	bundledir = g_build_filename(tmpdir, "bundle-content", NULL);
 	manifestpath = g_build_filename(bundledir, "manifest.raucm", NULL);
 
-	res = check_bundle(argv[2], &bundle, !info_noverify, &error);
+	bundlelocation = resolve_bundle_path(argv[2]);
+	if (bundlelocation == NULL)
+		goto out;
+	g_debug("input bundle: %s", bundlelocation);
+
+	res = check_bundle(bundlelocation, &bundle, !info_noverify, &error);
 	if (!res) {
 		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
