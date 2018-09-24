@@ -926,7 +926,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 				&ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror,
-					"Failed updating slot: ");
+					"Failed updating slot %s: ", dest_slot->name);
 			r_context_end_step("copy_image", FALSE);
 			goto out;
 		}
