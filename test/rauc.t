@@ -4,6 +4,8 @@ test_description="rauc binary tests"
 
 . ./sharness.sh
 
+export G_DEBUG="fatal-criticals"
+
 CA_DEV="${SHARNESS_TEST_DIRECTORY}/openssl-ca/dev"
 CA_REL="${SHARNESS_TEST_DIRECTORY}/openssl-ca/rel"
 if [ -e "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so" ]; then
@@ -275,7 +277,7 @@ test_expect_success SERVICE "rauc --override-boot-slot=system0 status: via D-Bus
     status
 "
 
-test_expect_success SERVICE "rauc status readable: via D-Bus" "
+test_expect_success SERVICE "rauc status (detailed) readable: via D-Bus" "
   start_rauc_dbus_service \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
     --override-boot-slot=system0 &&
@@ -283,10 +285,10 @@ test_expect_success SERVICE "rauc status readable: via D-Bus" "
   rauc \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
     --override-boot-slot=system0 \
-    status --output-format=readable
+    status --detailed --output-format=readable
 "
 
-test_expect_success SERVICE "rauc status shell: via D-Bus" "
+test_expect_success SERVICE "rauc status (detailed) shell: via D-Bus" "
   start_rauc_dbus_service \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
     --override-boot-slot=system0 &&
@@ -294,11 +296,11 @@ test_expect_success SERVICE "rauc status shell: via D-Bus" "
   rauc \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
     --override-boot-slot=system0 \
-    status --output-format=shell \
+    status --detailed --output-format=shell \
   | sh
 "
 
-test_expect_success SERVICE,JSON "rauc status json: via D-Bus" "
+test_expect_success SERVICE,JSON "rauc status (detailed) json: via D-Bus" "
   start_rauc_dbus_service \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
     --override-boot-slot=system0 &&
@@ -306,10 +308,10 @@ test_expect_success SERVICE,JSON "rauc status json: via D-Bus" "
   rauc \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
     --override-boot-slot=system0 \
-    status --output-format=json
+    status --detailed --output-format=json
 "
 
-test_expect_success SERVICE,JSON "rauc status json-pretty: via D-Bus" "
+test_expect_success SERVICE,JSON "rauc status (detailed) json-pretty: via D-Bus" "
   start_rauc_dbus_service \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
     --override-boot-slot=system0 &&
@@ -317,7 +319,7 @@ test_expect_success SERVICE,JSON "rauc status json-pretty: via D-Bus" "
   rauc \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
     --override-boot-slot=system0 \
-    status --output-format=json-pretty
+    status --detailed --output-format=json-pretty
 "
 
 test_expect_success SERVICE "rauc status invalid: via D-Bus" "
