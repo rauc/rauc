@@ -4,6 +4,8 @@ test_description="rauc binary tests"
 
 . ./sharness.sh
 
+export G_DEBUG="fatal-criticals"
+
 CA_DEV="${SHARNESS_TEST_DIRECTORY}/openssl-ca/dev"
 CA_REL="${SHARNESS_TEST_DIRECTORY}/openssl-ca/rel"
 if [ -e "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so" ]; then
