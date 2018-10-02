@@ -337,6 +337,36 @@ static gboolean r_on_handle_get_slot_status(RInstaller *interface,
 	return TRUE;
 }
 
+static gboolean r_on_handle_get_primary(RInstaller *interface,
+		GDBusMethodInvocation  *invocation)
+{
+	GError *ierror = NULL;
+	RaucSlot *primary = NULL;
+
+	if (r_context_get_busy()) {
+		g_dbus_method_invocation_return_error(invocation,
+				G_IO_ERROR,
+				G_IO_ERROR_FAILED_HANDLED,
+				"already processing a different method");
+		return TRUE;
+	}
+
+	primary = r_boot_get_primary(&ierror);
+	if (!primary) {
+		g_dbus_method_invocation_return_error(invocation,
+				G_IO_ERROR,
+				G_IO_ERROR_FAILED_HANDLED,
+				"Failed getting primary slot: %s\n", ierror->message);
+		g_printerr("Failed getting primary slot: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		return TRUE;
+	}
+
+	r_installer_complete_get_primary(interface, invocation, primary->name);
+
+	return TRUE;
+}
+
 static gboolean auto_install(const gchar *source)
 {
 	RaucInstallArgs *args = install_args_new();
@@ -413,6 +443,10 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 
 	g_signal_connect(r_installer, "handle-get-slot-status",
 			G_CALLBACK(r_on_handle_get_slot_status),
+			NULL);
+
+	g_signal_connect(r_installer, "handle-get-primary",
+			G_CALLBACK(r_on_handle_get_primary),
 			NULL);
 
 	r_context_register_progress_callback(send_progress_callback);
