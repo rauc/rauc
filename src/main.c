@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <gio/gio.h>
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -6,6 +7,8 @@
 #include <json-glib/json-gobject.h>
 #endif
 #include <stdio.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 #include "bundle.h"
 #include "bootchooser.h"
@@ -27,6 +30,34 @@ gboolean info_noverify, info_dumpcert = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
 
+static gchar* make_progress_line(gint percentage)
+{
+	struct winsize w;
+	GString *printbuf = NULL;
+	gint pbar_len = 0;
+
+	g_return_val_if_fail(percentage <= 100, NULL);
+
+	/* obtain terminal window parameters */
+	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == -1) {
+		g_warning("Unable to obtain window parameters: %s", strerror(errno));
+		/* default to 80 */
+		w.ws_col = 80;
+	}
+	pbar_len = w.ws_col - 1 - 1 - 5;
+
+	printbuf = g_string_sized_new(w.ws_col);
+
+	g_string_append_c(printbuf, '[');
+	for (int i = 0; i < pbar_len; i++) {
+		g_string_append_c(printbuf, i > pbar_len * percentage / 100 ? ' ' : '#');
+	}
+	g_string_append_c(printbuf, ']');
+	g_string_append_printf(printbuf, "%3d%%", percentage);
+
+	return g_string_free(printbuf, FALSE);
+}
+
 static gboolean install_notify(gpointer data)
 {
 	RaucInstallArgs *args = data;
@@ -34,7 +65,7 @@ static gboolean install_notify(gpointer data)
 	g_mutex_lock(&args->status_mutex);
 	while (!g_queue_is_empty(&args->status_messages)) {
 		gchar *msg = g_queue_pop_head(&args->status_messages);
-		g_message("installing %s: %s", args->name, msg);
+		g_print("%s", msg);
 		g_free(msg);
 	}
 	r_exit_status = args->status_result;
@@ -69,11 +100,22 @@ static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
 
 	g_mutex_lock(&args->status_mutex);
 	if (g_variant_lookup(changed, "Operation", "&s", &message)) {
-		g_queue_push_tail(&args->status_messages, g_strdup(message));
+		g_queue_push_tail(&args->status_messages, g_strdup_printf("%s\n", message));
 	} else if (g_variant_lookup(changed, "Progress", "(i&si)", &percentage, &message, &depth)) {
-		g_queue_push_tail(&args->status_messages, g_strdup_printf("%3"G_GINT32_FORMAT "%% %s", percentage, message));
+		if (isatty(STDOUT_FILENO)) {
+			g_autofree gchar *progress = make_progress_line(percentage);
+			/* This does:
+			 * - move to start of line
+			 * - clear line
+			 * - print 2 lines
+			 * - move to previous line
+			 */
+			g_queue_push_tail(&args->status_messages, g_strdup_printf("\r\033[J%3"G_GINT32_FORMAT "%% %s\n%s\033[F", percentage, message, progress));
+		} else {
+			g_queue_push_tail(&args->status_messages, g_strdup_printf("%3"G_GINT32_FORMAT "%% %s\n", percentage, message));
+		}
 	} else if (g_variant_lookup(changed, "LastError", "&s", &message) && message[0] != '\0') {
-		g_queue_push_tail(&args->status_messages, g_strdup_printf("LastError: %s", message));
+		g_queue_push_tail(&args->status_messages, g_strdup_printf("%sLastError: %s\n", isatty(STDOUT_FILENO) ? "\033[J" : "", message));
 	}
 	g_mutex_unlock(&args->status_mutex);
 
