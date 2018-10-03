@@ -181,7 +181,7 @@ set of slots. It must not contain any `.` (dots) as these are used as
 hierarchical separator.
 
 ``device``
-  The slot's device path.
+  The slot's device path. This one is mandatory.
 
 ``type``
   The type describing the slot. Currently supported values are ``raw``,
