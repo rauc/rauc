@@ -17,6 +17,9 @@ Each board type requires its special configuration.
 
 This file is part of the root file system.
 
+.. note:: When changing the configuration file on your running target you need
+  to restart the RAUC service in order to let the changes take effect.
+
 Example configuration:
 
 .. code-block:: cfg
