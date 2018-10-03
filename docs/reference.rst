@@ -187,6 +187,7 @@ hierarchical separator.
   The type describing the slot. Currently supported values are ``raw``,
   ``nand``, ``ubivol``, ``ubifs``, ``ext4``, ``vfat``.
   See table :ref:`sec-slot-type` for a more detailed list of these different types.
+  Defaults to ``raw`` if none given.
 
 ``bootname``
   For bootable slots, the name the bootloader uses to identify it. The real
