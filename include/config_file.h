@@ -99,6 +99,8 @@ typedef struct _RaucSlot {
 	gboolean readonly;
 	/** flag indicating if the slot update may be forced */
 	gboolean force_install_same;
+	/** extra mount options for this slot */
+	gchar *extra_mount_opts;
 
 	/** current state of the slot (runtime) */
 	SlotState state;

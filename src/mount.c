@@ -163,7 +163,7 @@ gboolean r_mount_slot(RaucSlot *slot, GError **error)
 		goto out;
 	}
 
-	res = r_mount_full(slot->device, mount_point, slot->type, 0, NULL, &ierror);
+	res = r_mount_full(slot->device, mount_point, slot->type, 0, slot->extra_mount_opts, &ierror);
 	if (!res) {
 		res = FALSE;
 		g_propagate_prefixed_error(

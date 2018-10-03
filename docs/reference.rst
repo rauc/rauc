@@ -210,6 +210,10 @@ hierarchical separator.
   matches hash of installed one.
   This replaces the deprecated entry ``ignore-checksum``.
 
+``extra-mount-opts``
+  Allows to specify custom mount options that will be passed to the slots
+  ``mount`` call as ``-o`` argument value.
+
 .. _sec_ref_manifest:
 
 Manifest
