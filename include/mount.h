@@ -13,11 +13,13 @@
  * @param mountpoint destination path for mount
  * @param type type of image to mount (results in -t option)
  * @param size maximum size of image to mount (for loop mounts)
+ * @param extra_options additional mount options that will be passed to mount
+ *        via `-o` argument
  * @param error return location for a GError, or NULL
  *
  * @return True if succeeded, False if failed
  */
-gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, gsize size, GError **error);
+gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, gsize size, const gchar *extra_options, GError **error);
 
 /**
  * Loopback mount a file.
