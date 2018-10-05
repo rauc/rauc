@@ -608,7 +608,74 @@ variant-name=xxx";
 	g_assert_null(config);
 }
 
+static void config_file_no_extra_mount_opts(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	g_autofree gchar* pathname = NULL;
+	RaucSlot *slot = NULL;
 
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+activate-installed=false\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/null\n";
+
+
+	pathname = write_tmp_file(fixture->tmpdir, "extra_mount.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_true(load_config(pathname, &config, &ierror));
+	g_assert_null(ierror);
+	g_assert_nonnull(config);
+
+
+	slot = g_hash_table_lookup(config->slots, "rootfs.0");
+	g_assert_nonnull(slot);
+	g_assert_cmpstr(slot->extra_mount_opts, ==, NULL);
+
+	free_config(config);
+}
+
+
+static void config_file_extra_mount_opts(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	g_autofree gchar* pathname = NULL;
+	RaucSlot *slot = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+activate-installed=false\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/null\n\
+extra-mount-opts=ro,noatime\n";
+
+
+	pathname = write_tmp_file(fixture->tmpdir, "extra_mount.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_true(load_config(pathname, &config, &ierror));
+	g_assert_null(ierror);
+	g_assert_nonnull(config);
+
+	slot = g_hash_table_lookup(config->slots, "rootfs.0");
+	g_assert_nonnull(slot);
+	g_assert_cmpstr(slot->extra_mount_opts, ==, "ro,noatime");
+
+	free_config(config);
+}
 
 static void config_file_statusfile_missing(ConfigFileFixture *fixture,
 		gconstpointer user_data)
@@ -778,6 +845,12 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/system-variant", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_system_variant,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/no-extra-mount-opts", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_no_extra_mount_opts,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/extra-mount-opts", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_extra_mount_opts,
 			config_file_fixture_tear_down);
 	g_test_add_func("/config-file/read-slot-status", config_file_test_read_slot_status);
 	g_test_add_func("/config-file/write-read-slot-status", config_file_test_write_slot_status);
