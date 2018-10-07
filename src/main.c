@@ -1518,7 +1518,7 @@ static void cmdline_handler(int argc, char **argv)
 			g_free(newdomains);
 		}
 		domains = g_getenv("G_MESSAGES_DEBUG");
-		g_print("Domains: '%s'\n", domains);
+		g_message("Debug log domains: '%s'\n", domains);
 	}
 
 	/* get first parameter without dashes */
