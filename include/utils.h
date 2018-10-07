@@ -10,6 +10,11 @@ static inline void r_debug_subprocess(GPtrArray *args)
 	g_free(call);
 }
 
+#define R_LOG_LEVEL_TRACE 1 << G_LOG_LEVEL_USER_SHIFT
+#define r_trace(...)   g_log(G_LOG_DOMAIN,         \
+		R_LOG_LEVEL_TRACE,    \
+		__VA_ARGS__)
+
 /**
  * Read file content into a GBytes.
  *
