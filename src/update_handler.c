@@ -12,6 +12,7 @@
 #include "signature.h"
 #include "update_handler.h"
 #include "emmc.h"
+#include "utils.h"
 
 
 #define R_SLOT_HOOK_PRE_INSTALL "slot-pre-install"
@@ -185,6 +186,7 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, const gchar *seed,
 	g_ptr_array_add(args, g_strdup(dest));
 	g_ptr_array_add(args, NULL);
 
+	r_debug_subprocess(args);
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
 			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
@@ -360,6 +362,7 @@ static gboolean ubifs_format_slot(RaucSlot *dest_slot, GError **error)
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 
+	r_debug_subprocess(args);
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
 			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
@@ -399,6 +402,7 @@ static gboolean ext4_format_slot(RaucSlot *dest_slot, GError **error)
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 
+	r_debug_subprocess(args);
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
 			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
@@ -437,6 +441,7 @@ static gboolean vfat_format_slot(RaucSlot *dest_slot, GError **error)
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 
+	r_debug_subprocess(args);
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
 			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
@@ -474,6 +479,7 @@ static gboolean nand_format_slot(const gchar *device, GError **error)
 	g_ptr_array_add(args, g_strdup("0"));
 	g_ptr_array_add(args, NULL);
 
+	r_debug_subprocess(args);
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
 			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
@@ -511,6 +517,7 @@ static gboolean nand_write_slot(const gchar *image, const gchar *device, GError 
 	g_ptr_array_add(args, g_strdup(image));
 	g_ptr_array_add(args, NULL);
 
+	r_debug_subprocess(args);
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
 			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
@@ -549,6 +556,7 @@ static gboolean untar_image(RaucImage *image, gchar *dest, GError **error)
 	g_ptr_array_add(args, g_strdup("--numeric-owner"));
 	g_ptr_array_add(args, NULL);
 
+	r_debug_subprocess(args);
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
 			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {

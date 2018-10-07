@@ -82,6 +82,7 @@ static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, con
 
 	g_ptr_array_add(args, NULL);
 
+	r_debug_subprocess(args);
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
 			G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (sproc == NULL) {
@@ -149,6 +150,7 @@ static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath,
 	g_ptr_array_add(args, g_strjoinv(" ", (gchar**) g_ptr_array_free(iargs, FALSE)));
 	g_ptr_array_add(args, NULL);
 
+	r_debug_subprocess(args);
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
 			G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (sproc == NULL) {
@@ -190,6 +192,7 @@ static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath,
 	}
 	g_ptr_array_add(args, NULL);
 
+	r_debug_subprocess(args);
 	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
 			G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (sproc == NULL) {
