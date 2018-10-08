@@ -13,14 +13,14 @@ GQuark r_bootchooser_error_quark(void)
 }
 
 #define BAREBOX_STATE_NAME "barebox-state"
-#define BAREBOX_STATE_DEFAULT_ATTEMPS	3
-#define BAREBOX_STATE_ATTEMPS_PRIMARY	3
+#define BAREBOX_STATE_DEFAULT_ATTEMPTS	3
+#define BAREBOX_STATE_ATTEMPTS_PRIMARY	3
 #define BAREBOX_STATE_DEFAULT_PRIORITY	10
 #define BAREBOX_STATE_PRIORITY_PRIMARY	20
 #define UBOOT_FWSETENV_NAME "fw_setenv"
 #define UBOOT_FWPRINTENV_NAME "fw_printenv"
-#define UBOOT_DEFAULT_ATTEMPS		"3"
-#define UBOOT_ATTEMPS_PRIMARY		"3"
+#define UBOOT_DEFAULT_ATTEMPTS		"3"
+#define UBOOT_ATTEMPTS_PRIMARY		"3"
 #define EFIBOOTMGR_NAME "efibootmgr"
 #define GRUB_EDITENV "grub-editenv"
 
@@ -202,7 +202,7 @@ static gboolean barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (good) {
-		attempts = BAREBOX_STATE_DEFAULT_ATTEMPS;
+		attempts = BAREBOX_STATE_DEFAULT_ATTEMPTS;
 	} else {
 		/* for marking bad, also set priority to 0 */
 		attempts = 0;
@@ -323,7 +323,7 @@ static gboolean barebox_set_primary(RaucSlot *slot, GError **error)
 	}
 
 	g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".%s.remaining_attempts=%i",
-					slot->bootname, BAREBOX_STATE_ATTEMPS_PRIMARY));
+					slot->bootname, BAREBOX_STATE_ATTEMPTS_PRIMARY));
 
 	if (!barebox_state_set(pairs, &ierror)) {
 		g_propagate_error(error, ierror);
@@ -608,7 +608,7 @@ set_left:
 
 	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
 
-	if (!uboot_env_set(key, good ? UBOOT_DEFAULT_ATTEMPS : "0", &ierror)) {
+	if (!uboot_env_set(key, good ? UBOOT_DEFAULT_ATTEMPTS : "0", &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
@@ -705,7 +705,7 @@ static gboolean uboot_set_primary(RaucSlot *slot, GError **error)
 
 	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
 
-	if (!uboot_env_set(key, UBOOT_ATTEMPS_PRIMARY, &ierror)) {
+	if (!uboot_env_set(key, UBOOT_ATTEMPTS_PRIMARY, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
