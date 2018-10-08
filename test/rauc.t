@@ -123,6 +123,10 @@ test -f ${SOFTHSM2_MOD} &&
   prepare_softhsm2 &&
   test_set_prereq PKCS11
 
+# Prerequisite: faketime available [FAKETIME]
+faketime "2018-01-01" date &&
+  test_set_prereq FAKETIME
+
 test_expect_success "rauc noargs" "
   test_must_fail rauc
 "
@@ -412,7 +416,7 @@ use-bundle-signing-time=true
 " > $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf
 cleanup rm $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf
 
-test_expect_success "rauc verify with 'use-bundle-signing-time': valid signing time, invalid current time" "
+test_expect_success FAKETIME "rauc verify with 'use-bundle-signing-time': valid signing time, invalid current time" "
   faketime "2018-01-01" \
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
@@ -423,7 +427,7 @@ test_expect_success "rauc verify with 'use-bundle-signing-time': valid signing t
   rm out.raucb
 "
 
-test_expect_success "rauc verfiy with 'use-bundle-signing-time': invalid signing time, valid current time" "
+test_expect_success FAKETIME "rauc verfiy with 'use-bundle-signing-time': invalid signing time, valid current time" "
   faketime "2022-01-01" \
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
@@ -433,7 +437,7 @@ test_expect_success "rauc verfiy with 'use-bundle-signing-time': invalid signing
   rm out.raucb
 "
 
-test_expect_success "rauc sign bundle with expired certificate" "
+test_expect_success FAKETIME "rauc sign bundle with expired certificate" "
   test_must_fail faketime "2019-07-02" \
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
@@ -443,7 +447,7 @@ test_expect_success "rauc sign bundle with expired certificate" "
     test ! -f out.raucb
 "
 
-test_expect_success "rauc sign bundle with not yet valid certificate" "
+test_expect_success FAKETIME "rauc sign bundle with not yet valid certificate" "
   test_must_fail faketime "2017-01-01" \
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
@@ -453,7 +457,7 @@ test_expect_success "rauc sign bundle with not yet valid certificate" "
     test ! -f out.raucb
 "
 
-test_expect_success "rauc sign bundle with almost expired certificate" "
+test_expect_success FAKETIME "rauc sign bundle with almost expired certificate" "
   faketime "2019-06-15" \
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
@@ -464,7 +468,7 @@ test_expect_success "rauc sign bundle with almost expired certificate" "
     rm out.raucb
 "
 
-test_expect_success "rauc sign bundle with valid certificate" "
+test_expect_success FAKETIME "rauc sign bundle with valid certificate" "
   faketime "2019-01-01" \
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
