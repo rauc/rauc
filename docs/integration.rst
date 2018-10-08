@@ -251,11 +251,11 @@ which is available for many common embedded platforms,
 provides a dedicated boot source selection framework, called *bootchooser*,
 backed by an atomic and redundant storage backend, named *state*.
 
-Barebox state allows you to save the variables required by bootchooser with
+*Barebox state* allows you to save the variables required by bootchooser with
 memory specific storage strategies in all common storage medias,
 such as block devices, mtd (NAND/NOR), EEPROM, and UEFI variables.
 
-The Bootchooser framework maintains information about priority and remaining
+The *Bootchooser* framework maintains information about priority and remaining
 boot attempts while being configurable on how to deal with them for different
 strategies.
 
