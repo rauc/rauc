@@ -200,7 +200,7 @@ cannot fully know how you intend to use your system.
     * ``CONFIG_FEATURE_SEAMLESS_XZ=y``
     * ``CONFIG_FEATURE_TAR_LONG_OPTIONS=y``
 
-:ext2/3/4: mkfs.ext2/3/4 (from `e2fsprogs
+:ext2/ext3/ext4: mkfs.ext2/mkfs.ext3/mkfs.ext4 (from `e2fsprogs
   <git://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git>`_)
 :vfat: mkfs.vfat (from `dosfstools
                   <https://github.com/dosfstools/dosfstools>`_)
