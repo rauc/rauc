@@ -536,7 +536,7 @@ The Mark() Method
   Mark (IN  s state, IN  s slot_identifier, s slot_name, s message);
 
 Keeps a slot bootable (state == "good"), makes it unbootable (state == "bad")
-or explicitely activates it for the next boot (state == "active").
+or explicitly activates it for the next boot (state == "active").
 
 IN s *state*:
     Operation to perform (one out of "good", "bad" or "active")
@@ -611,7 +611,7 @@ The "LastError" Property
   de.pengutronix.rauc.Installer:LastError
   LastError  readable   s
 
-Holds the last message of the last error that occured.
+Holds the last message of the last error that occurred.
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.Progress:
 
@@ -623,7 +623,7 @@ The "Progress" Property
   de.pengutronix.rauc.Installer:Progress
   Progress  readable   (isi)
 
-Provides installation progress informations in the form
+Provides installation progress information in the form
 
 (percentage, message, nesting depth)
 
