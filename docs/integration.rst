@@ -256,7 +256,7 @@ memory specific storage strategies in all common storage medias,
 such as block devices, mtd (NAND/NOR), EEPROM, and UEFI variables.
 
 The Bootchooser framework maintains information about priority and remaining
-boot attemps while being configurable on how to deal with them for different
+boot attempts while being configurable on how to deal with them for different
 strategies.
 
 
@@ -528,7 +528,7 @@ U-Boot
 
 To enable handling of redundant booting in U-Boot, manual scripting is
 required.
-U-Boot allows storing and modifying variables in its *Envionment*.
+U-Boot allows storing and modifying variables in its *Environment*.
 Properly configured it can be accessed both from U-Boot itself as
 well as from Linux userspace.
 
@@ -722,7 +722,7 @@ Depending on your configuration ``make install`` will place this file in one of
 your system's service file folders.
 
 It is a good idea to wait for the system to be fully started before marking it
-as succesfully booted.
+as successfully booted.
 In order to achieve this, a smart solution is to create a systemd service that calls
 ``rauc status mark-good`` and use systemd's dependency handling to assure this
 service will not be executed before all relevant other services came up
@@ -890,7 +890,7 @@ meta-rauc will look as follows::
 
 
 To be able to build a signed image of this, you also need to configure
-``RAUC_KEY_FILE`` and ``RAUC_CERT_FILE`` to point to your key and certifcate
+``RAUC_KEY_FILE`` and ``RAUC_CERT_FILE`` to point to your key and certificate
 files you intend to use for signing. You may set them either from your bundle
 recipe or any global configuration (layer, site.conf, etc.), e.g.::
 

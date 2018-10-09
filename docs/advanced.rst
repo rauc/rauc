@@ -220,7 +220,7 @@ For example, a bundle can be signed with a certificate and key available as
 .. note::
   Most PKCS#11 implementations require a PIN for signing operations.
   You can either enter the PIN interactively as requested by RAUC or use the
-  ``RAUC_PKCS11_PIN`` environment variable to specifiy the PIN to use.
+  ``RAUC_PKCS11_PIN`` environment variable to specify the PIN to use.
 
 When working with PKCS#11, some tools are useful to configure and show your tokens:
 
