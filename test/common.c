@@ -237,7 +237,7 @@ gboolean test_make_filesystem(const gchar *dirname, const gchar *filename)
 
 gboolean test_mount(const gchar *src, const gchar *dest)
 {
-	return r_mount_full(src, dest, NULL, 0, NULL);
+	return r_mount_full(src, dest, NULL, 0, NULL, NULL);
 }
 
 

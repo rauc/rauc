@@ -407,6 +407,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			g_key_file_remove_key(key_file, groups[i], "force-install-same", NULL);
 			g_key_file_remove_key(key_file, groups[i], "ignore-checksum", NULL);
 
+			slot->extra_mount_opts = key_file_consume_string(key_file, groups[i], "extra-mount-opts", NULL);
+
 			g_hash_table_insert(slots, (gchar*)slot->name, slot);
 		}
 		g_strfreev(groupsplit);
