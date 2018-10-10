@@ -51,13 +51,14 @@ devices rootfs, a full redundant symmetric A/B setup will not be an option.
 In this case, you might need to use a rescue system consisting of a minimal kernel
 with an appended initramfs to install your updates.
 
-If you can choose the storage technology for your system, *DO NOT* choose raw
-NAND flash.
-NAND (especially MLC) is complex to handle correctly and comes with a
-variety of very specific effects that may cause difficult to debug problem later
-(if not all details of the storage stack are configured just right).
-Instead choose eMMC or SSDs, where the engineers who (hopefully) know the quirks
-of their technology have created layers that hide this complexity to you.
+.. note::
+  If you can choose the storage technology for your system, *DO NOT* choose raw
+  NAND flash.
+  NAND (especially MLC) is complex to handle correctly and comes with a
+  variety of very specific effects that may cause difficult to debug problem later
+  (if not all details of the storage stack are configured just right).
+  Instead choose eMMC or SSDs, where the engineers who (hopefully) know the quirks
+  of their technology have created layers that hide this complexity to you.
 
 If storage size can be freely chosen, calculate for at least 2x the size of
 your rootfs plus additionally required space, e.g. for bootloader, (redundant)

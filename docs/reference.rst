@@ -17,6 +17,9 @@ Each board type requires its special configuration.
 
 This file is part of the root file system.
 
+.. note:: When changing the configuration file on your running target you need
+  to restart the RAUC service in order to let the changes take effect.
+
 Example configuration:
 
 .. code-block:: cfg
@@ -181,12 +184,13 @@ set of slots. It must not contain any `.` (dots) as these are used as
 hierarchical separator.
 
 ``device``
-  The slot's device path.
+  The slot's device path. This one is mandatory.
 
 ``type``
   The type describing the slot. Currently supported values are ``raw``,
   ``nand``, ``ubivol``, ``ubifs``, ``ext4``, ``vfat``.
   See table :ref:`sec-slot-type` for a more detailed list of these different types.
+  Defaults to ``raw`` if none given.
 
 ``bootname``
   For bootable slots, the name the bootloader uses to identify it. The real
@@ -337,9 +341,9 @@ termed with the slot name (e.g. [slot.rootfs.1]) for the central status file:
 For a description of ``sha256`` and ``size`` keys see :ref:`this
 <image.slot-class-section>` part of the section :ref:`Manifest
 <sec_ref_manifest>`.
-Having the slot's content's size allows to re-calculate the hash via `head -c
+Having the slot's content's size allows to re-calculate the hash via ``head -c
 <size> <slot-device> | sha256sum` or `dd bs=<size> count=1 if=<slot-device> |
-sha256sum`.
+sha256sum``.
 
 The properties ``bundle.compatible``, ``bundle.version``, ``bundle.description``
 and ``bundle.build`` are copies of the respective manifest properties.

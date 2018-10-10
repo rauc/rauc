@@ -165,7 +165,7 @@ following Busybox feature:
 -  ``CONFIG_FEATURE_TAR_LONG_OPTIONS=y``
 
 Depending on the actual storage type and/or filesystem used, further target
-tool might be required.
+tools might be required.
 The documentation chapter
 `Required Target Tools <http://rauc.readthedocs.io/en/latest/integration.html#required-target-tools>`_
 gives a more detailed list on these.

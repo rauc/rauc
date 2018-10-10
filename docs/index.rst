@@ -94,7 +94,7 @@ You may want to have a look at
 hawkBit deployment server.
 
 And finally, factory bring up of your device, i.e. initial partitioning etc. is
-also out of scope for and update tool like RAUC.
+also out of scope for an update tool like RAUC.
 While you may use it for initially filling your slot contents during factory
 bring up, the partitioning or volume creation must be made manually or by a
 separate factory bring up script.

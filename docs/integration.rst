@@ -200,7 +200,7 @@ cannot fully know how you intend to use your system.
     * ``CONFIG_FEATURE_SEAMLESS_XZ=y``
     * ``CONFIG_FEATURE_TAR_LONG_OPTIONS=y``
 
-:ext2/3/4: mkfs.ext2/3/4 (from `e2fsprogs
+:ext2/ext3/ext4: mkfs.ext2/mkfs.ext3/mkfs.ext4 (from `e2fsprogs
   <git://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git>`_)
 :vfat: mkfs.vfat (from `dosfstools
                   <https://github.com/dosfstools/dosfstools>`_)
@@ -251,11 +251,11 @@ which is available for many common embedded platforms,
 provides a dedicated boot source selection framework, called *bootchooser*,
 backed by an atomic and redundant storage backend, named *state*.
 
-Barebox state allows you to save the variables required by bootchooser with
+*Barebox state* allows you to save the variables required by bootchooser with
 memory specific storage strategies in all common storage medias,
 such as block devices, mtd (NAND/NOR), EEPROM, and UEFI variables.
 
-The Bootchooser framework maintains information about priority and remaining
+The *Bootchooser* framework maintains information about priority and remaining
 boot attempts while being configurable on how to deal with them for different
 strategies.
 
