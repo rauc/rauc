@@ -57,6 +57,90 @@ typedef struct {
 
 #define BOOTSTATE_PREFIX "bootstate"
 
+static gboolean barebox_state_get_int(const char *name, int *value, GError **error)
+{
+	g_autoptr(GSubprocess) sub = NULL;
+	GError *ierror = NULL;
+	GInputStream *instream;
+	GDataInputStream *datainstream;
+	gchar *outline;
+	gchar *endptr = NULL;
+	guint64 result = 0;
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(6, g_free);
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_ptr_array_add(args, g_strdup(BAREBOX_STATE_NAME));
+	if (r_context()->config->system_bb_statename) {
+		g_ptr_array_add(args, g_strdup("-n"));
+		g_ptr_array_add(args, g_strdup(r_context()->config->system_bb_statename));
+	}
+	g_ptr_array_add(args, g_strdup("-g"));
+	g_ptr_array_add(args, g_strdup_printf(BOOTSTATE_PREFIX ".%s", name));
+	g_ptr_array_add(args, NULL);
+
+	r_debug_subprocess(args);
+	sub = g_subprocess_newv((const gchar * const *)args->pdata,
+			G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror);
+	if (!sub) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start " BAREBOX_STATE_NAME ": ");
+		return FALSE;
+	}
+
+	instream = g_subprocess_get_stdout_pipe(sub);
+	datainstream = g_data_input_stream_new(instream);
+
+	outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
+	if (!outline) {
+		/* Having no error set there was means no content to read */
+		if (ierror == NULL) {
+			g_set_error(
+					error,
+					R_BOOTCHOOSER_ERROR,
+					R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+					"No content to read");
+		} else {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed parsing " BAREBOX_STATE_NAME " output: ");
+		}
+		return FALSE;
+	}
+
+	result = g_ascii_strtoull(outline, &endptr, 10);
+	if (result == 0 && outline == endptr) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Failed to parse value: '%s'", outline);
+		return FALSE;
+	} else if (result == G_MAXUINT64 && errno != 0) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Return value overflow: '%s', error: %d", outline, errno);
+		return FALSE;
+	}
+
+	if (!g_subprocess_wait_check(sub, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run " BAREBOX_STATE_NAME ": ");
+		return FALSE;
+	}
+
+	*value = (int)result;
+
+	return TRUE;
+}
+
 static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_state, GError **error)
 {
 	g_autoptr(GSubprocess) sub = NULL;
@@ -205,6 +289,20 @@ static gboolean barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (good) {
+		int disable_counting = -1;
+		if (barebox_state_get_int("disable_counting", &disable_counting, ierror)) {
+			if (disable_counting)
+			{
+				// If attempts countdown is disabled, then this boot slot is already verified and marked as good.
+				// We don't need to write to the state partition
+				return TRUE;
+			} else {
+				// Disable remaining_attempts countdown, as we have verified this boot slot
+				g_message("disabling countdown of remaining_attempts");
+				g_ptr_array_add(pairs, g_strdup(BOOTSTATE_PREFIX ".disable_counting=1"));
+			}
+		}
+
 		attempts = BAREBOX_STATE_DEFAULT_ATTEMPTS;
 	} else {
 		/* for marking bad, also set priority to 0 */
@@ -293,6 +391,7 @@ static gboolean barebox_set_primary(RaucSlot *slot, GError **error)
 	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(10, g_free);
 	GError *ierror = NULL;
 	GList *slots;
+	int disable_counting = -1;
 
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -327,6 +426,14 @@ static gboolean barebox_set_primary(RaucSlot *slot, GError **error)
 
 	g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".%s.remaining_attempts=%i",
 					slot->bootname, BAREBOX_STATE_ATTEMPTS_PRIMARY));
+
+	if (barebox_state_get_int("disable_counting", &disable_counting, ierror)) {
+		if (disable_counting) {
+			// Set disable_counting to zero, to enable remaining_attempts countdown
+			g_message("enabling countdown of remaining_attempts");
+			g_ptr_array_add(pairs, g_strdup(BOOTSTATE_PREFIX ".disable_counting=0"));
+		}
+	}
 
 	if (!barebox_state_set(pairs, &ierror)) {
 		g_propagate_error(error, ierror);
