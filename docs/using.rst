@@ -592,3 +592,86 @@ Monitor the D-Bus interface
 .. code-block:: sh
 
   busctl monitor de.pengutronix.rauc
+
+Debugging RAUC
+==============
+
+When RAUC fails to start on your target during integration or later during
+installation of new bundles it can have a variety of causes.
+
+This section will lead you trough the most common options you have for
+debugging what actually went wrong.
+
+In each case it is quite essential to know that RAUC, if not compiled with
+``--disable-service`` runs as a service on your target that is either
+controlled by your custom application or by the RAUC command line interface.
+
+The frontend will always only show the 'high level' error outpt, e.g. when an
+installation failed:
+
+.. code-block:: sh
+
+  rauc-Message: 08:27:12.083: installing /home/enrico/Code/rauc/good-bundle-hook.raucb: LastError: Failed mounting bundle: failed to run mount: Child process exited with code 1
+  rauc-Message: 08:27:12.083: installing /home/enrico/Code/rauc/good-bundle-hook.raucb: idle
+  Installing `/home/enrico/Code/rauc/good-bundle-hook.raucb` failed
+
+In simple cases this might be sufficient for identifying the actual problem, in
+more complicated cases this may give a rough hint.
+For a more detailed look on what went wrong you need to inspect the rauc
+service log instead.
+
+If you run RAUC using systemd, the log can be obtained using
+
+.. code-block:: sh
+
+  journalctl -u rauc
+
+When using SysVInit, your service script needs to configure logging itself.
+A common way is to dump the log e.g. /var/log/rauc.
+
+It may also be worth starting the RAUC service via command line on a second
+shell to have a live view of what is going on when you invoke e.g. ``rauc
+install`` on the first shell.
+
+Increasing Debug Verbosity
+--------------------------
+
+Both for the service and the command line interface it is often useful to
+increase the log level for narrowing down the actual error cause or gaining
+more information about the circumstances when the error occurs.
+
+RAUC uses glib and the
+`glib logging framework <https://developer.gnome.org/programming-guidelines/stable/logging.html.en>`_ with the basic log domain 'rauc'.
+
+For simple cases, you can activate logging by passing the ``-d`` or ``--debug`` option to either the CLI:
+
+.. code-block:: sh
+
+  rauc install -d bundle.raucb ..
+
+or the service (you might need to modify your systemd or SysVInit
+service file).
+
+.. code-block:: sh
+
+  rauc service -d
+
+For more fine grained and advanced debugging options, use the
+``G_MESSAGES_DEBUG`` environment variable.
+This allows enabling different log domains. Currently available are:
+
+:all: enable all log domains
+
+:rauc: enable default RAUC log domain (same as calling with ``-d``)
+
+:rauc-subprocess: enable logging of subprocess calls
+
+  This will dump the entire program call invoked by RAUC and can help tracing
+  down or reproducing issues caused by other programs invoked.
+
+Example invocation:
+
+.. code-block:: sh
+
+  G_MESSAGES_DEBUG="rauc rauc-subprocess" rauc service
+
