@@ -6,6 +6,7 @@
 #include "config_file.h"
 #include "context.h"
 #include "install.h"
+#include "utils.h"
 
 GQuark r_bootchooser_error_quark(void)
 {
@@ -81,6 +82,7 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 	g_ptr_array_add(args, g_strdup_printf(BOOTSTATE_PREFIX ".%s.remaining_attempts", bootname));
 	g_ptr_array_add(args, NULL);
 
+	r_debug_subprocess(args);
 	sub = g_subprocess_newv((const gchar * const *)args->pdata,
 			G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror);
 	if (!sub) {
@@ -170,6 +172,7 @@ static gboolean barebox_state_set(GPtrArray *pairs, GError **error)
 	}
 	g_ptr_array_add(args, NULL);
 
+	r_debug_subprocess(args);
 	sub = g_subprocess_newv((const gchar * const *)args->pdata,
 			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!sub) {
@@ -350,6 +353,7 @@ static gboolean grub_env_set(GPtrArray *pairs, GError **error)
 	g_ptr_array_insert(pairs, 2, g_strdup("set"));
 	g_ptr_array_add(pairs, NULL);
 
+	r_debug_subprocess(pairs);
 	sub = g_subprocess_newv((const gchar * const *)pairs->pdata,
 			G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!sub) {

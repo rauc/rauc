@@ -2,6 +2,19 @@
 
 #include <glib.h>
 
+#define R_LOG_DOMAIN_SUBPROCESS "rauc-subprocess"
+static inline void r_debug_subprocess(GPtrArray *args)
+{
+	gchar *call = g_strjoinv(" ", (gchar**) args->pdata);
+	g_log(R_LOG_DOMAIN_SUBPROCESS, G_LOG_LEVEL_DEBUG, "launching subprocess: %s", call);
+	g_free(call);
+}
+
+#define R_LOG_LEVEL_TRACE 1 << G_LOG_LEVEL_USER_SHIFT
+#define r_trace(...)   g_log(G_LOG_DOMAIN,         \
+		R_LOG_LEVEL_TRACE,    \
+		__VA_ARGS__)
+
 /**
  * Read file content into a GBytes.
  *

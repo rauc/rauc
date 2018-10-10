@@ -1512,13 +1512,13 @@ static void cmdline_handler(int argc, char **argv)
 		const gchar *domains = g_getenv("G_MESSAGES_DEBUG");
 		if (!domains) {
 			g_assert(g_setenv("G_MESSAGES_DEBUG", G_LOG_DOMAIN, TRUE));
-		} else if (!g_str_equal(domains, "all") && !g_strrstr(domains, G_LOG_DOMAIN)) {
+		} else if (!g_str_equal(domains, "all")) {
 			gchar *newdomains = g_strdup_printf("%s %s", domains, G_LOG_DOMAIN);
 			g_setenv("G_MESSAGES_DEBUG", newdomains, TRUE);
 			g_free(newdomains);
 		}
 		domains = g_getenv("G_MESSAGES_DEBUG");
-		g_print("Domains: '%s'\n", domains);
+		g_message("Debug log domains: '%s'\n", domains);
 	}
 
 	/* get first parameter without dashes */
