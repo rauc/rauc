@@ -362,7 +362,7 @@ BOOT_B_LEFT=3\n\
 	/* check rootfs.0 is marked bad (BOOT_A_LEFT set to 0) */
 	g_assert_true(r_boot_set_state(rootfs0, FALSE, NULL));
 	g_assert_true(test_uboot_post_state("\
-BOOT_ORDER=A B R\n\
+BOOT_ORDER=B R\n\
 BOOT_A_LEFT=0\n\
 BOOT_B_LEFT=3\n\
 "));
@@ -373,7 +373,7 @@ BOOT_B_LEFT=3\n\
 	/* check rootfs.0 is marked good again (BOOT_A_LEFT reset to 3) */
 	g_assert_true(r_boot_set_state(rootfs0, TRUE, NULL));
 	g_assert_true(test_uboot_post_state("\
-BOOT_ORDER=A B R\n\
+BOOT_ORDER=B R\n\
 BOOT_A_LEFT=3\n\
 BOOT_B_LEFT=3\n\
 "));
