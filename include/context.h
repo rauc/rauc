@@ -76,6 +76,19 @@ void r_context_begin_step(const gchar *name, const gchar *description,
 		gint sub_steps);
 
 /**
+ * Call at the beginning of a relevant code block. Provides progress
+ * information via DBus when rauc service is running.
+ *
+ * Same as r_context_begin_step() but allows printf-like format strings.
+ *
+ * @param name identifying the step
+ * @param sub_steps number of direct sub steps contained in this step
+ * @param description that is emitted via DBus on begin/end.
+ *   A printf-like format string.
+ */
+void r_context_begin_step_formatted(const gchar *name, gint substeps, const gchar *description, ...);
+
+/**
  * Call at the end of a relevant code block. Percentage calculation is done
  * automatically if not set explicitly.
  * If the step did not complete successfully the number of nested substeps
