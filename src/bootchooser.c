@@ -290,7 +290,7 @@ static gboolean barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
 
 	if (good) {
 		int disable_counting = -1;
-		if (barebox_state_get_int("disable_counting", &disable_counting, ierror)) {
+		if (barebox_state_get_int("disable_counting", &disable_counting, &ierror)) {
 			if (disable_counting)
 			{
 				// If attempts countdown is disabled, then this boot slot is already verified and marked as good.
@@ -427,7 +427,7 @@ static gboolean barebox_set_primary(RaucSlot *slot, GError **error)
 	g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".%s.remaining_attempts=%i",
 					slot->bootname, BAREBOX_STATE_ATTEMPTS_PRIMARY));
 
-	if (barebox_state_get_int("disable_counting", &disable_counting, ierror)) {
+	if (barebox_state_get_int("disable_counting", &disable_counting, &ierror)) {
 		if (disable_counting) {
 			// Set disable_counting to zero, to enable remaining_attempts countdown
 			g_message("enabling countdown of remaining_attempts");
@@ -1410,4 +1410,3 @@ gboolean r_boot_set_primary(RaucSlot *slot, GError **error)
 
 	return res;
 }
-
