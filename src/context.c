@@ -327,8 +327,8 @@ void r_context_begin_step(const gchar *name, const gchar *description,
 	RaucProgressStep *parent;
 
 	/* set properties */
-	step->name = name;
-	step->description = description;
+	step->name = g_strdup(name);
+	step->description = g_strdup(description);
 	step->substeps_total = substeps;
 	step->substeps_done = 0;
 	step->percent_done = 0;
@@ -418,7 +418,7 @@ void r_context_end_step(const gchar *name, gboolean success)
 			step_element);
 
 	g_list_free(step_element);
-	g_free(step);
+	r_context_free_progress_step(step);
 }
 
 void r_context_set_step_percentage(const gchar *name, gint custom_percent)
@@ -453,6 +453,15 @@ void r_context_set_step_percentage(const gchar *name, gint custom_percent)
 	/* r_context_step_end sends 100% progress step */
 	if (custom_percent != 100)
 		r_context_send_progress(FALSE, FALSE);
+}
+
+void r_context_free_progress_step(RaucProgressStep *step)
+{
+	g_return_if_fail(step);
+
+	g_free(step->name);
+	g_free(step->description);
+	g_free(step);
 }
 
 void r_context_register_progress_callback(progress_callback progress_cb)

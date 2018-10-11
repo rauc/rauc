@@ -50,8 +50,8 @@ typedef struct {
 
 typedef struct {
 	/* name identifying progress step */
-	const gchar *name;
-	const gchar *description;
+	gchar *name;
+	gchar *description;
 
 	gint substeps_total;
 	gint substeps_done;
@@ -94,6 +94,15 @@ void r_context_end_step(const gchar *name, gboolean success);
  * @param percentage explicit step percentage
  */
 void r_context_set_step_percentage(const gchar *name, gint percentage);
+
+/**
+ * Frees the memory allocated by the RaucProgressStep.
+ *
+ * @param step a RaucProgressStep to free
+ */
+void r_context_free_progress_step(RaucProgressStep *step);
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucProgressStep, r_context_free_progress_step);
 
 void r_context_register_progress_callback(progress_callback progress_cb);
 
