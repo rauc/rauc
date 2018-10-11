@@ -188,6 +188,15 @@ test_expect_success "rauc info" "
     info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
 "
 
+test_expect_success "rauc info valid file URI" "
+  rauc info -c $SHARNESS_TEST_DIRECTORY/test.conf file://$SHARNESS_TEST_DIRECTORY/good-bundle.raucb
+"
+
+test_expect_success "rauc info invalid file URI" "
+  test_must_fail rauc info -c $SHARNESS_TEST_DIRECTORY/test.conf file:/$SHARNESS_TEST_DIRECTORY/good-bundle.raucb &&
+  test_must_fail rauc info -c $SHARNESS_TEST_DIRECTORY/test.conf file://$SHARNESS_TEST_DIRECTORY/good-bundle.rauc
+"
+
 test_expect_success "rauc info shell" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --output-format=shell \
     info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb | sh

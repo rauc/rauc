@@ -1357,16 +1357,18 @@ gboolean do_install_network(const gchar *url, GError **error)
 		goto out;
 	}
 
-	res = download_mem(&manifest_data, url, 64*1024);
+	res = download_mem(&manifest_data, url, 64*1024, &ierror);
 	if (!res) {
-		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_DOWNLOAD_MF, "Failed to download manifest");
+		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_DOWNLOAD_MF, "Failed to download manifest %s: %s", url, ierror->message);
+		g_clear_error(&ierror);
 		goto out;
 	}
 
 	signature_url = g_strconcat(url, ".sig", NULL);
-	res = download_mem(&signature_data, signature_url, 64*1024);
+	res = download_mem(&signature_data, signature_url, 64*1024, &ierror);
 	if (!res) {
-		g_warning("Failed to download manifest signature");
+		g_warning("Failed to download manifest signature: %s", ierror->message);
+		g_clear_error(&ierror);
 		goto out;
 	}
 
@@ -1464,22 +1466,21 @@ static gpointer install_thread(gpointer data)
 	g_debug("thread started for %s", args->name);
 	install_args_update(args, "started");
 
-	if (g_str_has_suffix(args->name, ".raucb")) {
-		result = !do_install_bundle(args, &ierror);
-		if (result != 0) {
-			g_warning("%s", ierror->message);
-			install_args_update(args, ierror->message);
-			set_last_error(ierror->message);
-			g_clear_error(&ierror);
-		}
-	} else {
+	/* Special handling for network mode.
+	 * As bundle mode is our default, we only activate network mode when
+	 * handling a file extension indicating a RAUC manifest
+	 */
+	if (g_str_has_suffix(args->name, ".raucm")) {
 		result = !do_install_network(args->name, &ierror);
-		if (result != 0) {
-			g_warning("%s", ierror->message);
-			install_args_update(args, ierror->message);
-			set_last_error(ierror->message);
-			g_clear_error(&ierror);
-		}
+	} else {
+		result = !do_install_bundle(args, &ierror);
+	}
+
+	if (result != 0) {
+		g_warning("%s", ierror->message);
+		install_args_update(args, ierror->message);
+		set_last_error(ierror->message);
+		g_clear_error(&ierror);
 	}
 
 	g_mutex_lock(&args->status_mutex);

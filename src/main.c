@@ -96,6 +96,50 @@ static void on_installer_completed(GDBusProxy *proxy, gint result,
 	}
 }
 
+static gchar *resolve_bundle_path(char *path)
+{
+	g_autofree gchar *bundlescheme = NULL;
+	g_autofree gchar *bundlelocation = NULL;
+	GError *error = NULL;
+
+	bundlescheme = g_uri_parse_scheme(path);
+	if (bundlescheme == NULL && !g_path_is_absolute(path)) {
+		bundlelocation = g_build_filename(g_get_current_dir(), path, NULL);
+	} else {
+		gchar *hostname = NULL;
+
+		if (g_strcmp0(bundlescheme, "file") == 0) {
+			bundlelocation = g_filename_from_uri(path, &hostname, &error);
+			if (!bundlelocation) {
+				g_printerr("Conversion error: %s\n", error->message);
+				g_clear_error(&error);
+				return NULL;
+			}
+
+			if (hostname != NULL) {
+				g_printerr("file URI with hostname detected. Did you forget to add a leading / ?\n");
+				return NULL;
+			}
+
+			/* Clear bundlescheme to trigger local path handling */
+			g_clear_pointer(&bundlescheme, g_free);
+		} else {
+			bundlelocation = g_strdup(path);
+		}
+	}
+
+	/* If the URI parser returns NULL, assume bundle install with local path */
+	if (bundlescheme == NULL) {
+		if (!g_file_test(bundlelocation, G_FILE_TEST_EXISTS)) {
+			g_printerr("No such file: %s\n", bundlelocation);
+			return NULL;
+		}
+	}
+
+	return g_steal_pointer(&bundlelocation);
+}
+
+
 static gboolean install_start(int argc, char **argv)
 {
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
@@ -104,7 +148,6 @@ static gboolean install_start(int argc, char **argv)
 	RaucInstallArgs *args = NULL;
 	GError *error = NULL;
 	g_autofree gchar *bundlelocation = NULL;
-	g_autofree gchar *bundlescheme = NULL;
 
 	g_debug("install started");
 
@@ -120,27 +163,9 @@ static gboolean install_start(int argc, char **argv)
 		goto out;
 	}
 
-	bundlescheme = g_uri_parse_scheme(argv[2]);
-	if (bundlescheme == NULL && !g_path_is_absolute(argv[2])) {
-		bundlelocation = g_build_filename(g_get_current_dir(), argv[2], NULL);
-	} else {
-		bundlelocation = g_strdup(argv[2]);
-	}
-
-	/* If the URI parser returns NULL, assume bundle install with local path */
-	if (bundlescheme == NULL) {
-		/* A valid local bundle path name must end with `.raucb` */
-		if (!g_str_has_suffix(bundlelocation, ".raucb")) {
-			g_printerr("Bundle must have a .raucb extension: %s\n", bundlelocation);
-			goto out;
-		}
-
-		if (!g_file_test(bundlelocation, G_FILE_TEST_EXISTS)) {
-			g_printerr("No such file: %s\n", bundlelocation);
-			goto out;
-		}
-	}
-
+	bundlelocation = resolve_bundle_path(argv[2]);
+	if (bundlelocation == NULL)
+		goto out;
 	g_debug("input bundle: %s", bundlelocation);
 
 	args = install_args_new();
@@ -780,6 +805,7 @@ static gboolean info_start(int argc, char **argv)
 	g_autofree gchar* tmpdir = NULL;
 	g_autofree gchar* bundledir = NULL;
 	g_autofree gchar* manifestpath = NULL;
+	g_autofree gchar *bundlelocation = NULL;
 	RaucManifest *manifest = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
 	GError *error = NULL;
@@ -821,7 +847,12 @@ static gboolean info_start(int argc, char **argv)
 	bundledir = g_build_filename(tmpdir, "bundle-content", NULL);
 	manifestpath = g_build_filename(bundledir, "manifest.raucm", NULL);
 
-	res = check_bundle(argv[2], &bundle, !info_noverify, &error);
+	bundlelocation = resolve_bundle_path(argv[2]);
+	if (bundlelocation == NULL)
+		goto out;
+	g_debug("input bundle: %s", bundlelocation);
+
+	res = check_bundle(bundlelocation, &bundle, !info_noverify, &error);
 	if (!res) {
 		g_printerr("%s\n", error->message);
 		g_clear_error(&error);

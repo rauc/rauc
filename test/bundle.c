@@ -60,10 +60,9 @@ static void test_check_empty_bundle(BundleFixture *fixture,
 	g_assert_nonnull(bundlename);
 
 	res = check_bundle(bundlename, &bundle, TRUE, &ierror);
-	g_assert_null(bundle);
-
-	g_assert_error(ierror, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
 	g_assert_false(res);
+	g_assert_error(ierror, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT);
+	g_assert_null(bundle);
 
 	g_free(bundlename);
 }
@@ -80,10 +79,9 @@ static void test_check_invalid_bundle(BundleFixture *fixture,
 	g_assert_nonnull(bundlename);
 
 	res = check_bundle(bundlename, &bundle, FALSE, &ierror);
-	g_assert_null(bundle);
-
-	g_assert_error(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE);
 	g_assert_false(res);
+	g_assert_error(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_IDENTIFIER);
+	g_assert_null(bundle);
 
 	g_free(bundlename);
 }
