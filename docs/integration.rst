@@ -436,6 +436,30 @@ boot target is required::
           };
   };
 
+If an extra variable "disable_counting" is provided, then RAUC can communicate to
+the bootloader, if a firmware update has been marked as good and doesn't need to
+be tracked anymore. In this case, the bootloader can stop decrementing the remaining_attempts::
+
+  bootstate {
+
+          [...]
+
+          disable_counting@14 {
+                  reg = <0x14 0x4>;
+                  type = "uint32";
+                  default = <1>;
+          };
+  };
+
+..
+To make this work, the bootloader has to evaluate "disable_counting" explicitly, e.g. with a script::
+
+  #!/bin/sh
+  if [ "${state.bootstate.disable_counting}" = "1" ]; then
+    bootchooser -s
+  fi
+  boot bootchooser
+
 .. warning::
   This example shows only a highly condensed excerpt of setting up Barebox
   state for bootchooser.
