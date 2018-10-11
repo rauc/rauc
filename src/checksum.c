@@ -1,6 +1,13 @@
 #include "checksum.h"
 
 #define RAUC_DEFAULT_CHECKSUM G_CHECKSUM_SHA256
+/*
+ * G_CHECKSUM_MD5 is 0. We will never allow use of such a weak hash
+ * for anything. Hence checking for !checksum->type below to mean "use
+ * the default" is ok.
+ */
+G_STATIC_ASSERT(G_CHECKSUM_MD5 == 0);
+G_STATIC_ASSERT(RAUC_DEFAULT_CHECKSUM != 0);
 
 G_DEFINE_QUARK(r-checksum-error-quark, r_checksum_error)
 
@@ -20,7 +27,7 @@ gboolean compute_checksum(RaucChecksum *checksum, const gchar *filename, GError 
 	}
 	content = g_mapped_file_get_bytes(file);
 
-	if (checksum->digest == NULL)
+	if (!checksum->type)
 		checksum->type = RAUC_DEFAULT_CHECKSUM;
 	g_clear_pointer(&checksum->digest, g_free);
 	checksum->digest = g_compute_checksum_for_bytes(checksum->type, content);
