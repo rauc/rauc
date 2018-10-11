@@ -13,6 +13,9 @@ static const gchar *regex_match(const gchar *pattern, const gchar *string)
 	g_autoptr(GRegex) regex = NULL;
 	g_autoptr(GMatchInfo) match = NULL;
 
+	g_return_val_if_fail(pattern, NULL);
+	g_return_val_if_fail(string, NULL);
+
 	regex = g_regex_new(pattern, 0, 0, NULL);
 	if (g_regex_match(regex, string, 0, &match))
 		return g_match_info_fetch(match, 1);
@@ -101,6 +104,10 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 	GInputStream *instream;
 	gchar* outline;
 
+	g_return_val_if_fail(handler_name, FALSE);
+	g_return_val_if_fail(variables, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE);
 
 	/* we copy the variables from the hashtable and add them to the
@@ -153,6 +160,8 @@ static gchar* get_system_dtb_compatible(GError **error)
 	gchar *contents = NULL;
 	GError *ierror = NULL;
 
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
 	if (!g_file_get_contents("/sys/firmware/devicetree/base/compatible", &contents, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
 		return NULL;
@@ -165,6 +174,9 @@ static gchar* get_variant_from_file(const gchar* filename, GError **error)
 {
 	gchar *contents = NULL;
 	GError *ierror = NULL;
+
+	g_return_val_if_fail(filename, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	if (!g_file_get_contents(filename, &contents, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
@@ -326,9 +338,12 @@ void r_context_begin_step(const gchar *name, const gchar *description,
 	RaucProgressStep *step = g_new0(RaucProgressStep, 1);
 	RaucProgressStep *parent;
 
+	g_return_if_fail(name);
+	g_return_if_fail(description);
+
 	/* set properties */
-	step->name = name;
-	step->description = description;
+	step->name = g_strdup(name);
+	step->description = g_strdup(description);
 	step->substeps_total = substeps;
 	step->substeps_done = 0;
 	step->percent_done = 0;
@@ -363,11 +378,28 @@ void r_context_begin_step(const gchar *name, const gchar *description,
 	r_context_send_progress(FALSE, FALSE);
 }
 
+void r_context_begin_step_formatted(const gchar *name, gint substeps, const gchar *description, ...)
+{
+	va_list args;
+	g_autofree gchar *desc_formatted = NULL;
+
+	g_return_if_fail(name);
+	g_return_if_fail(description);
+
+	va_start(args, description);
+	desc_formatted = g_strdup_vprintf(description, args);
+	va_end(args);
+
+	r_context_begin_step(name, desc_formatted, substeps);
+}
+
 void r_context_end_step(const gchar *name, gboolean success)
 {
 	RaucProgressStep *step;
 	GList *step_element;
 	RaucProgressStep *parent;
+
+	g_return_if_fail(name);
 
 	/* "stack" should never be NULL at this point */
 	g_assert_nonnull(context->progress);
@@ -418,7 +450,7 @@ void r_context_end_step(const gchar *name, gboolean success)
 			step_element);
 
 	g_list_free(step_element);
-	g_free(step);
+	r_context_free_progress_step(step);
 }
 
 void r_context_set_step_percentage(const gchar *name, gint custom_percent)
@@ -426,6 +458,8 @@ void r_context_set_step_percentage(const gchar *name, gint custom_percent)
 	RaucProgressStep *step;
 	RaucProgressStep *parent;
 	gint percent_difference;
+
+	g_return_if_fail(name);
 
 	g_assert_nonnull(context->progress);
 
@@ -455,9 +489,19 @@ void r_context_set_step_percentage(const gchar *name, gint custom_percent)
 		r_context_send_progress(FALSE, FALSE);
 }
 
+void r_context_free_progress_step(RaucProgressStep *step)
+{
+	g_return_if_fail(step);
+
+	g_free(step->name);
+	g_free(step->description);
+	g_free(step);
+}
+
 void r_context_register_progress_callback(progress_callback progress_cb)
 {
-	g_assert_nonnull(progress_cb);
+	g_return_if_fail(progress_cb);
+
 	g_assert_null(context->progress_callback);
 
 	context->progress_callback = progress_cb;
