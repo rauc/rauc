@@ -44,37 +44,31 @@ out:
 
 gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename, GError **error)
 {
-	GError *ierror = NULL;
-	g_autoptr(GMappedFile) file = NULL;
-	g_autoptr(GBytes) content = NULL;
-	g_autofree gchar *digest = NULL;
 	gboolean res = FALSE;
+	RaucChecksum computed = {};
 
 	if (checksum->digest == NULL) {
 		g_set_error(error, R_CHECKSUM_ERROR, R_CHECKSUM_ERROR_FAILED, "No digest provided");
 		goto out;
 	}
+	computed.type = checksum->type;
 
-	file = g_mapped_file_new(filename, FALSE, &ierror);
-	if (file == NULL) {
-		g_propagate_error(error, ierror);
+	if (!compute_checksum(&computed, filename, error))
 		goto out;
-	}
 
-	content = g_mapped_file_get_bytes(file);
-	res = checksum->size == g_bytes_get_size(content);
+	res = checksum->size == computed.size;
 	if (!res) {
 		g_set_error(error, R_CHECKSUM_ERROR, R_CHECKSUM_ERROR_SIZE_MISMATCH, "Sizes do not match");
 		goto out;
 	}
 
-	digest = g_compute_checksum_for_bytes(checksum->type, content);
-	res = g_str_equal(checksum->digest, digest);
+	res = g_str_equal(checksum->digest, computed.digest);
 	if (!res) {
 		g_set_error(error, R_CHECKSUM_ERROR, R_CHECKSUM_ERROR_DIGEST_MISMATCH, "Digests do not match");
 		goto out;
 	}
 
 out:
+	g_free(computed.digest);
 	return res;
 }
