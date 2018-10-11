@@ -489,6 +489,12 @@ Properties
 
 :ref:`Progress <gdbus-property-de-pengutronix-rauc-Installer.Progress>` readable   (isi)
 
+:ref:`Compatible <gdbus-property-de-pengutronix-rauc-Installer.Compatible>` readable   s
+
+:ref:`Variant <gdbus-property-de-pengutronix-rauc-Installer.Variant>` readable   s
+
+:ref:`BootSlot <gdbus-property-de-pengutronix-rauc-Installer.BootSlot>` readable   s
+
 Description
 ~~~~~~~~~~~
 
@@ -634,6 +640,45 @@ The "Progress" Property
 Provides installation progress information in the form
 
 (percentage, message, nesting depth)
+
+.. _gdbus-property-de-pengutronix-rauc-Installer.Compatible:
+
+The "Compatible" Property
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer:Compatible
+  Compatible  readable   s
+
+Represents the system's compatible. This can be used to check for usable bundels.
+
+
+.. _gdbus-property-de-pengutronix-rauc-Installer.Variant:
+
+The "Variant" Property
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer:Variant
+  Variant  readable   s
+
+Represents the system's variant. This can be used to select parts of an bundle.
+
+
+.. _gdbus-property-de-pengutronix-rauc-Installer.BootSlot:
+
+The "BootSlot" Property
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer:BootSlot
+  BootSlot  readable   s
+
+Represents the used boot slot.
+
 
 RAUC's Basic Update Procedure
 -----------------------------
