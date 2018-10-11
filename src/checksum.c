@@ -11,35 +11,46 @@ G_STATIC_ASSERT(RAUC_DEFAULT_CHECKSUM != 0);
 
 G_DEFINE_QUARK(r-checksum-error-quark, r_checksum_error)
 
+static gboolean
+update_from_file(GChecksum *ctx, const gchar *filename, gsize *total, GError **error)
+{
+	g_autoptr(GMappedFile) file = NULL;
+	const guchar *content;
+	gsize size;
+
+	file = g_mapped_file_new(filename, FALSE, error);
+	if (file == NULL)
+		return FALSE;
+
+	content = (const guchar *)g_mapped_file_get_contents(file);
+	size = g_mapped_file_get_length(file);
+	g_checksum_update(ctx, content, size);
+	*total += size;
+
+	return TRUE;
+}
+
 gboolean compute_checksum(RaucChecksum *checksum, const gchar *filename, GError **error)
 {
-	GError *ierror = NULL;
-	g_autoptr(GMappedFile) file = NULL;
-	g_autoptr(GBytes) content = NULL;
-	gboolean res = FALSE;
+	g_autoptr(GChecksum) ctx = NULL;
+	GChecksumType type = checksum->type;
+	gsize total = 0;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	file = g_mapped_file_new(filename, FALSE, &ierror);
-	if (file == NULL) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-	content = g_mapped_file_get_bytes(file);
+	if (!type)
+		type = RAUC_DEFAULT_CHECKSUM;
+	ctx = g_checksum_new(type);
 
-	if (!checksum->type)
-		checksum->type = RAUC_DEFAULT_CHECKSUM;
+	if (!update_from_file(ctx, filename, &total, error))
+		return FALSE;
+
 	g_clear_pointer(&checksum->digest, g_free);
-	checksum->digest = g_compute_checksum_for_bytes(checksum->type, content);
-	checksum->size = g_bytes_get_size(content);
+	checksum->digest = g_strdup(g_checksum_get_string(ctx));
+	checksum->size = total;
+	checksum->type = type;
 
-	res = TRUE;
-out:
-	if (!res) {
-		g_clear_pointer(&checksum->digest, g_free);
-		checksum->size = 0;
-	}
-	return res;
+	return TRUE;
 }
 
 gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename, GError **error)
