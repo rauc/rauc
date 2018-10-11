@@ -48,14 +48,14 @@ static void checksum_test1(void)
 
 	g_clear_pointer(&checksum.digest, g_free);
 	checksum.size = 0;
-	g_assert_true(update_checksum(&checksum, "test/install-content/appfs.img", &error));
+	g_assert_true(compute_checksum(&checksum, "test/install-content/appfs.img", &error));
 	g_assert_no_error(error);
 	g_assert_cmpstr(checksum.digest, ==, TEST_DIGEST_GOOD);
 	g_assert(checksum.size == 32768);
 
 	g_clear_pointer(&checksum.digest, g_free);
 	checksum.size = 0;
-	g_assert_false(update_checksum(&checksum, "tesinstall-content/rootfs.img", &error));
+	g_assert_false(compute_checksum(&checksum, "tesinstall-content/rootfs.img", &error));
 	g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
 	g_clear_error(&error);
 	g_assert_null(checksum.digest);

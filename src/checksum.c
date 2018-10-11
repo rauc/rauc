@@ -4,7 +4,7 @@
 
 G_DEFINE_QUARK(r-checksum-error-quark, r_checksum_error)
 
-gboolean update_checksum(RaucChecksum *checksum, const gchar *filename, GError **error)
+gboolean compute_checksum(RaucChecksum *checksum, const gchar *filename, GError **error)
 {
 	GError *ierror = NULL;
 	g_autoptr(GMappedFile) file = NULL;

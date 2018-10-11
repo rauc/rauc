@@ -27,7 +27,7 @@ typedef struct {
  * @param error return location for a GError, or NULL
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean update_checksum(RaucChecksum *checksum, const gchar *filename, GError **error);
+gboolean compute_checksum(RaucChecksum *checksum, const gchar *filename, GError **error);
 
 /**
  * Verifies provided file checksum.
