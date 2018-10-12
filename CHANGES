@@ -1,3 +1,102 @@
+Release 1.0-rc1 (development)
+-----------------------------
+
+.. rubric:: Enhancements
+
+* Bundle creation
+
+  * Add support for passing Keys/Certificates stored on PKCS#11 tokens (e.g. for using a smart card or HSM)
+  * Print a warning during signing if a certificate in the chain will expire within one month
+  * If keyring is given during bundle creation, automatically verify bundle signature and trust chain
+
+* Configuration
+
+  * Add ``extra-mount-opts`` argument to slot config to allow passing custom options
+    to ``mount`` calls (such as user_xattr or seclabel)
+  * Implement support for ``readonly`` slots that are part of the slot description but
+    should never be written by RAUC
+  * Add option ``use-bundle-signing-time`` to use singing time for verification instead
+    of the current time
+  * Introduce ``max-bundle-download-size`` config setting (by Michael Heimpold)
+  * Rename confusing ``force-install-same`` flag to ``ignore-checksum`` (old remains
+    valid of course) (by Jan Remmet)
+  * Add strict parsing of config files as we do for manifests already.
+    This will reject configs with invalid keys, groups, etc. to prevent unintentional behavior
+
+* Installation
+
+  * Remove strict requirement of using ``.raucb`` file extension, although it is still recommended
+  * Export RAUC slot type to handlers and hooks (by Rasmus Villemoes)
+  * Add ``*.squashfs`` to ``raw`` slot handling (by Emmanuel Roullit)
+  * Add checking of RAUC bundle identifier (squashfs identifier)
+  * ``*.img`` files can now be installed to ``ext4``, ``ubifs`` or ``vfat`` slots (by Michael Heimpold)
+  * Warn if downloaded bundle could not be deleted
+
+* Expose system information (variant, compatible, booted slot) over D-Bus (by Jan Remmet)
+* The ``rauc status`` command line call now only uses the D-Bus API (when enabled) to obtain
+  status information instead of loading configuration and performing operations itself.
+  This finalizes the clear separations between client and service and also allows calling
+  the command line client wihout requiring any configuration.
+* Add debug log domain ``rauc-subprocess`` for printing RAUC subprocess invocations.
+  This can be activated bysetting the environment variable ``G_MESSAGES_DEBUG=rauc-subprocess``
+* Enhancement of many debug and error messages to be more precise and helpful
+* Let U-Boot boot selection handler remove slot from ``BOOT_ORDER`` when marking it bad
+* Implemented obtaining state and primary information for U-Boot boot selection interface (by Timothy Lee)
+* Also show certificate validity times when the certificate chain is displayed
+* Added a simple CGI as an example on how to code against the D-Bus API in RAUC contrib/ folder. (by Bastian Stender)
+
+.. rubric:: Bug fixes
+
+* Fix handling for ``file://`` URI's
+* Bootchooser EFI handler error messages and segfault fixed (by Arnaud Rebillout)
+* Fix preserving of primary errors while printing follow-up errors in update_handlers (by Rasmus Villemoes)
+* Make not finding (all) appropriate target slots a fatal error again
+* Prevent non-installation operations from touching the installation progress information (by Bastian Stender)
+* Call fsync when writing raw images to assure content is fully written to disk before exiting (by Jim Brennan)
+* Fix casync store initialization for extraction without seeds (by Arnaud Rebillout)
+* Fix slot status path generation for external mounts (by Vyacheslav Yurkov)
+* Do not try to mount already mounted slots when loading slot status information from per-slot file
+* Fix invalid return value in case of failed mark_active()
+* Fix bootname detection for missing root= command line parameter
+* Build-fix workaround for ancient (< 3.4) kernels (by Yann E. MORIN)
+* Fix passing intermediate certificates via command line which got broken by a faulty input check (by Marcel Hamer)
+* Various internal error handling fixes (by Ulrich Ölmann, Bastian Stender)
+* Several memory leak fixes
+* Preserve original uid/gid during extraction to be independent of the running system.
+  This was only problematic if the name to ID mapping changed with an update.
+  Note that this requires to enable ``CONFIG_FEATURE_TAR_LONG_OPTIONS`` when using busybox tar.
+* Block device paths are now opened with O_EXCL to ensure exclusive access
+
+.. rubric:: Testing
+
+* Abort on g_critical()'s to detect issues early
+* Extended and restructured testing for barebox and u-boot boot selection handling
+* Basic ``rauc convert`` (casync) testing
+* Switch to Travis xenial environment
+* Make diffs created by uncrustify fatal to enforce coding style
+* Fix hanging rauc.t in case of failed tests for fixing sharness cleanup function handling
+* Run sharness (rauc.t) tests with verbose output
+* Show make-check log on error
+
+.. rubric:: Code
+
+* Add GError handling to download functions
+* Prepare support for tracing log level
+* Start more detailed annotation of function parameter direction and transfer
+* Simplified return handling as result of cleanup helper rework
+* Treewide introduction of Glib automatic cleanup helpers. Increases minimum required GLib version to 2.45.8 (by Philipp Zabel)
+* Prepare deprecation of RAUC ancient non-bundle 'network mode'
+
+.. rubric:: Documentation
+
+* Add chapter on how to debug RAUC
+* Add section describing the boot selection layer and the special handling for the supported bootloaders
+* Add hint on how to run RAUC without D-Bus to FAQ
+* List required host and target tools
+* Tons of typo fixes, minor enhancements, clarifications, example fixes, etc.
+
+Contributions from: Alexander Dahl, Arnaud Rebillout, Bastian Stender, Emmanuel Roullit, Enrico Jörns, Jan Lübbe, Jan Remmet, Jim Brennan, Marcel Hamer, Michael Heimpold, Philip Downer, Philipp Zabel, Rasmus Villemoes, Thomas Petazzoni, Timothy Lee, Ulrich Ölmann, Vyacheslav Yurkov, Yann E. MORIN
+
 Release 0.4 (released Apr 9, 2018)
 ----------------------------------
 
