@@ -123,6 +123,13 @@ A list of slot storage types currently supported by RAUC:
 | vfat     | A block device holding a vfat filesystem..                        |     x       |
 +----------+-------------------------------------------------------------------+-------------+
 
+Depending on this slot storage type and the slot's :ref:`image filename <image.slot-filename>`
+extension, RAUC determines how to extract the image content to the target slot.
+
+While the generic filename extension ``.img`` is supported for all filesystems,
+it is strongly recommended to use explicit extensions (e.g. ``.vfat`` or ``.ext4``)
+when possible, as this allows checking during installation that the slot type is correct.
+
 Grouping Slots
 ^^^^^^^^^^^^^^
 

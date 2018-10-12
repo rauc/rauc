@@ -1333,8 +1333,11 @@ RaucUpdatePair updatepairs[] = {
 	{"*.tar*", "vfat", archive_to_vfat_handler},
 	{"*.ubifs", "ubivol", img_to_ubivol_handler},
 	{"*.ubifs", "ubifs", img_to_ubifs_handler},
+	{"*.img", "ext4", img_to_fs_handler},
 	{"*.img", "nand", img_to_nand_handler},
+	{"*.img", "ubifs", img_to_ubifs_handler},
 	{"*.img", "ubivol", img_to_ubivol_handler},
+	{"*.img", "vfat", img_to_fs_handler},
 	{"*.squashfs", "ubivol", img_to_ubivol_handler},
 #if ENABLE_EMMC_BOOT_SUPPORT == 1
 	{"*.img", "boot-emmc", img_to_boot_emmc_handler},
