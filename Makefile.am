@@ -101,7 +101,11 @@ EXTRA_DIST += data/rauc.service.in \
 	      data/de.pengutronix.rauc.service.in \
 	      data/rauc-service.sh.in \
 	      README.rst \
-	      CHANGES
+	      CHANGES \
+	      contrib \
+	      build-uncrustify.sh \
+	      .uncrustify.cfg \
+	      uncrustify.sh
 
 AM_TESTS_ENVIRONMENT = \
 	AM_TAP_AWK='$(AWK)'; export AM_TAP_AWK; \
