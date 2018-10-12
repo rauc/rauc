@@ -11,6 +11,7 @@ Release 1.0-rc1 (development)
   * If keyring is given during bundle creation, automatically verify bundle signature and trust chain
 
 * Configuration
+  (see the reference for the :ref:`[system] <system-section>`, :ref:`[keyring] <keyring-section>` and :ref:`[slot.*.*] <slot.slot-class.idx-section>` sections for details)
 
   * Add ``extra-mount-opts`` argument to slot config to allow passing custom options
     to ``mount`` calls (such as user_xattr or seclabel)
@@ -23,8 +24,6 @@ Release 1.0-rc1 (development)
     valid of course) (by Jan Remmet)
   * Add strict parsing of config files as we do for manifests already.
     This will reject configs with invalid keys, groups, etc. to prevent unintentional behavior
-
-  See the reference for the :ref:`[system] <system-section>`, :ref:`[keyring] <keyring-section>` and :ref:`[slot.*.*] <slot.slot-class.idx-section>` sections for details
 
 * Installation
 
