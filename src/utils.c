@@ -4,8 +4,19 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <errno.h>
 
 #include "utils.h"
+
+void close_preserve_errno(int fd)
+{
+	int err;
+
+	err = errno;
+	(void) close(fd);
+	errno = err;
+}
 
 GBytes *read_file(const gchar *filename, GError **error)
 {
