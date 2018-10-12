@@ -1,4 +1,9 @@
+#include <unistd.h>
+#include <string.h>
+#include <errno.h>
+#include <fcntl.h>
 #include "checksum.h"
+#include "utils.h"
 
 #define RAUC_DEFAULT_CHECKSUM G_CHECKSUM_SHA256
 /*
@@ -14,17 +19,29 @@ G_DEFINE_QUARK(r-checksum-error-quark, r_checksum_error)
 static gboolean
 update_from_file(GChecksum *ctx, const gchar *filename, gsize *total, GError **error)
 {
-	g_autoptr(GMappedFile) file = NULL;
-	const guchar *content;
-	gsize size;
+	g_auto(filedesc) fd = -1;
+	gsize size = 0;
+	gssize r;
+	guchar buf[4096];
 
-	file = g_mapped_file_new(filename, FALSE, error);
-	if (file == NULL)
+	fd = open(filename, O_RDONLY | O_CLOEXEC);
+	if (fd < 0) {
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(errno),
+				"Failed to open file %s: %s", filename, strerror(errno));
 		return FALSE;
-
-	content = (const guchar *)g_mapped_file_get_contents(file);
-	size = g_mapped_file_get_length(file);
-	g_checksum_update(ctx, content, size);
+	}
+	while (1) {
+		r = read(fd, buf, sizeof(buf));
+		if (r < 0) {
+			g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(errno),
+					"Read from %s failed: %s", filename, strerror(errno));
+			return FALSE;
+		}
+		if (!r)
+			break;
+		size += r;
+		g_checksum_update(ctx, buf, r);
+	}
 	*total += size;
 
 	return TRUE;
