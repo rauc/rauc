@@ -168,6 +168,8 @@ In kernel Kconfig you have to enable the following options:
   CONFIG_BLK_DEV_LOOP=y
   CONFIG_SQUASHFS=y
 
+.. _sec_ref_host_tools:
+
 Required Host Tools
 -------------------
 
@@ -178,6 +180,8 @@ To be able to generate bundles, RAUC requires at least the following host tools:
 
 When using the RAUC casync integration, the ``casync`` tool and ``fakeroot``
 (for converting archives to directory tree indexes) must also be available.
+
+.. _sec_ref_target_tools:
 
 Required Target Tools
 ---------------------

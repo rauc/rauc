@@ -717,6 +717,8 @@ Performing an update using the default RAUC mechanism will work as follows:
 #. Unmount bundle
 #. Terminate successfully if no error occurred
 
+.. _bootloader-interaction:
+
 Bootloader Interaction
 ----------------------
 

@@ -593,6 +593,8 @@ Monitor the D-Bus interface
 
   busctl monitor de.pengutronix.rauc
 
+.. _debugging:
+
 Debugging RAUC
 ==============
 

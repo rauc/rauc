@@ -5,7 +5,8 @@ Release 1.0-rc1 (development)
 
 * Bundle creation
 
-  * Add support for passing Keys/Certificates stored on PKCS#11 tokens (e.g. for using a smart card or HSM)
+  * Add support for passing Keys/Certificates stored on PKCS#11 tokens (e.g. for using a smart card or HSM).
+    See :ref:`pkcs11-support` for details.
   * Print a warning during signing if a certificate in the chain will expire within one month
   * If keyring is given during bundle creation, automatically verify bundle signature and trust chain
 
@@ -38,7 +39,8 @@ Release 1.0-rc1 (development)
   This finalizes the clear separations between client and service and also allows calling
   the command line client wihout requiring any configuration.
 * Add debug log domain ``rauc-subprocess`` for printing RAUC subprocess invocations.
-  This can be activated bysetting the environment variable ``G_MESSAGES_DEBUG=rauc-subprocess``
+  This can be activated bysetting the environment variable ``G_MESSAGES_DEBUG=rauc-subprocess``.
+  See :ref:`debugging` for details.
 * Enhancement of many debug and error messages to be more precise and helpful
 * Let U-Boot boot selection handler remove slot from ``BOOT_ORDER`` when marking it bad
 * Implemented obtaining state and primary information for U-Boot boot selection interface (by Timothy Lee)
@@ -89,10 +91,10 @@ Release 1.0-rc1 (development)
 
 .. rubric:: Documentation
 
-* Add chapter on how to debug RAUC
-* Add section describing the boot selection layer and the special handling for the supported bootloaders
+* Add a :ref:`debugging` chapter on how to debug RAUC
+* Add a :ref:`bootloader-interaction` section describing the boot selection layer and the special handling for the supported bootloaders
 * Add hint on how to run RAUC without D-Bus to FAQ
-* List required host and target tools
+* Document :ref:`sec_ref_host_tools` and :ref:`sec_ref_target_tools`
 * Tons of typo fixes, minor enhancements, clarifications, example fixes, etc.
 
 Contributions from: Alexander Dahl, Arnaud Rebillout, Bastian Stender, Emmanuel Roullit, Enrico Jörns, Jan Lübbe, Jan Remmet, Jim Brennan, Marcel Hamer, Michael Heimpold, Philip Downer, Philipp Zabel, Rasmus Villemoes, Thomas Petazzoni, Timothy Lee, Ulrich Ölmann, Vyacheslav Yurkov, Yann E. MORIN
