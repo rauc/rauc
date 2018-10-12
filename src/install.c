@@ -792,7 +792,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	}
 
 	/* Mark all parent destination slots non-bootable */
-	g_message("Marking target slot as non-bootable...");
 	for (GList *l = install_images; l != NULL; l = l->next) {
 		RaucSlot *dest_slot = g_hash_table_lookup(target_group, ((RaucImage*)l->data)->slotclass);
 
@@ -802,6 +801,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			continue;
 		}
 
+		g_message("Marking target slot %s as non-bootable...", dest_slot->name);
 		res = r_boot_set_state(dest_slot, FALSE, &ierror);
 
 		if (!res) {
@@ -917,7 +917,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		else
 			g_message("Updating %s with %s", dest_slot->device, mfimage->filename);
 
-		r_context_begin_step("copy_image", "Copying image", 0);
+		r_context_begin_step_formatted("copy_image", 0, "Copying image to %s", dest_slot->name);
 
 		res = update_handler(
 				mfimage,
@@ -926,7 +926,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 				&ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror,
-					"Failed updating slot: ");
+					"Failed updating slot %s: ", dest_slot->name);
 			r_context_end_step("copy_image", FALSE);
 			goto out;
 		}
@@ -970,13 +970,13 @@ image_out:
 
 	if (r_context()->config->activate_installed) {
 		/* Mark all parent destination slots bootable */
-		g_message("Marking slots as bootable...");
 		for (GList *l = install_images; l != NULL; l = l->next) {
 			RaucSlot *dest_slot = g_hash_table_lookup(target_group, ((RaucImage*)l->data)->slotclass);
 
 			if (dest_slot->parent || !dest_slot->bootname)
 				continue;
 
+			g_message("Marking target slot %s as bootable...", dest_slot->name);
 			mark_active(dest_slot, &ierror);
 			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE)) {
 				g_propagate_prefixed_error(error, ierror,
@@ -1283,11 +1283,8 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		goto umount;
 	}
 
-	g_print("Target Group:\n");
-	print_slot_hash_table(target_group);
-
 	if (r_context()->config->preinstall_handler) {
-		g_print("Starting pre install handler: %s\n", r_context()->config->preinstall_handler);
+		g_message("Starting pre install handler: %s", r_context()->config->preinstall_handler);
 		res = launch_and_wait_handler(bundle->mount_point, r_context()->config->preinstall_handler, manifest, target_group, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror, "Pre-install handler error: ");
@@ -1297,20 +1294,20 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 
 
 	if (manifest->handler_name) {
-		g_print("Using custom handler: %s\n", manifest->handler_name);
+		g_message("Using custom handler: %s", manifest->handler_name);
 		res = launch_and_wait_custom_handler(args, bundle->mount_point, manifest, target_group, &ierror);
 	} else {
-		g_print("Using default handler\n");
+		g_debug("Using default installation handler");
 		res = launch_and_wait_default_handler(args, bundle->mount_point, manifest, target_group, &ierror);
 	}
 
 	if (!res) {
-		g_propagate_prefixed_error(error, ierror, "Handler error: ");
+		g_propagate_prefixed_error(error, ierror, "Installation error: ");
 		goto umount;
 	}
 
 	if (r_context()->config->postinstall_handler) {
-		g_print("Starting post install handler: %s\n", r_context()->config->postinstall_handler);
+		g_message("Starting post install handler: %s", r_context()->config->postinstall_handler);
 		res = launch_and_wait_handler(bundle->mount_point, r_context()->config->postinstall_handler, manifest, target_group, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror, "Post-install handler error: ");
@@ -1402,7 +1399,7 @@ gboolean do_install_network(const gchar *url, GError **error)
 	base_url = g_path_get_dirname(url);
 
 	if (r_context()->config->preinstall_handler) {
-		g_print("Starting pre install handler: %s\n", r_context()->config->preinstall_handler);
+		g_message("Starting pre install handler: %s", r_context()->config->preinstall_handler);
 		res = launch_and_wait_handler(base_url, r_context()->config->preinstall_handler, manifest, target_group, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror, "Pre-install handler error: ");
@@ -1411,7 +1408,7 @@ gboolean do_install_network(const gchar *url, GError **error)
 	}
 
 
-	g_print("Using network handler for %s\n", base_url);
+	g_message("Using network handler for %s", base_url);
 	res = launch_and_wait_network_handler(base_url, manifest, target_group, NULL);
 	if (!res) {
 		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_HANDLER,
@@ -1420,7 +1417,7 @@ gboolean do_install_network(const gchar *url, GError **error)
 	}
 
 	if (r_context()->config->postinstall_handler) {
-		g_print("Starting post install handler: %s\n", r_context()->config->postinstall_handler);
+		g_message("Starting post install handler: %s", r_context()->config->postinstall_handler);
 		res = launch_and_wait_handler(base_url, r_context()->config->postinstall_handler, manifest, target_group, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror, "Post-install handler error: ");
@@ -1518,7 +1515,7 @@ gboolean install_run(RaucInstallArgs *args)
 	g_autoptr(GThread) thread = NULL;
 	r_context_set_busy(TRUE);
 
-	g_print("Active slot bootname: %s\n", r_context()->bootslot);
+	g_message("Active slot bootname: %s", r_context()->bootslot);
 
 	thread = g_thread_new("installer", install_thread, args);
 	if (thread == NULL)

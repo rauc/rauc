@@ -1137,6 +1137,7 @@ static void install_test_network_thread(InstallFixture *fixture,
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, "Active slot bootname: system0");
 	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Network mode is marked as deprecated!\nPlease contact RAUC maintainers if you see this message and intend to use the network mode in future RAUC versions!");
 	r_loop = g_main_loop_new(NULL, FALSE);
 	g_assert_true(install_run(args));
@@ -1170,7 +1171,7 @@ static void install_test_bundle_hook_install_check(InstallFixture *fixture,
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 	g_assert_false(do_install_bundle(args, &ierror));
-	g_assert_cmpstr(ierror->message, ==, "Handler error: Bundle rejected: Hook returned: No, I won't install this!");
+	g_assert_cmpstr(ierror->message, ==, "Installation error: Bundle rejected: Hook returned: No, I won't install this!");
 
 	args->status_result = 0;
 
