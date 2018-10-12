@@ -171,6 +171,25 @@ out:
 	return res;
 }
 
+gboolean determine_boot_states(GError **error)
+{
+	GHashTableIter iter;
+	RaucSlot *slot;
+	gchar *name;
+	GError *ierror = NULL;
+
+	/* get boot state */
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, (gpointer*) &name, (gpointer*) &slot)) {
+		if (slot->bootname && !r_boot_get_state(slot, &slot->boot_good, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
 /* Returns the parent root slot for given slot.
  *
  * If the given slot is a root slot itself, a pointer to itself will be

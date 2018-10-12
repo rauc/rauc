@@ -65,6 +65,16 @@
     <property name="Variant" type="s" access="read"/>
     <!-- BootSlot: Represents the slot booted from -->
     <property name="BootSlot" type="s" access="read"/>
+    <!--
+         GetPrimary:
+         @slot_status_array: array of (slotname, dict) tuples with each
+             dictionary representing the status of the corresponding slot
+
+         Call the bootloader interface to get the primary boot slot
+    -->
+    <method name="GetPrimary">
+      <arg name="primary" type="s" direction="out"/>
+    </method>
 
     <!--
          Completed:
