@@ -24,6 +24,8 @@ Release 1.0-rc1 (development)
   * Add strict parsing of config files as we do for manifests already.
     This will reject configs with invalid keys, groups, etc. to prevent unintentional behavior
 
+  See the reference for the :ref:`[system] <system-section>`, :ref:`[keyring] <keyring-section>` and :ref:`[slot.*.*] <slot.slot-class.idx-section>` sections for details
+
 * Installation
 
   * Remove strict requirement of using ``.raucb`` file extension, although it is still recommended
@@ -49,29 +51,29 @@ Release 1.0-rc1 (development)
 
 .. rubric:: Bug fixes
 
-* Fix handling for ``file://`` URI's
 * Bootchooser EFI handler error messages and segfault fixed (by Arnaud Rebillout)
 * Fix preserving of primary errors while printing follow-up errors in update_handlers (by Rasmus Villemoes)
 * Make not finding (all) appropriate target slots a fatal error again
 * Prevent non-installation operations from touching the installation progress information (by Bastian Stender)
-* Call fsync when writing raw images to assure content is fully written to disk before exiting (by Jim Brennan)
+* Call ``fsync()`` when writing raw images to assure content is fully written to disk before exiting (by Jim Brennan)
 * Fix casync store initialization for extraction without seeds (by Arnaud Rebillout)
 * Fix slot status path generation for external mounts (by Vyacheslav Yurkov)
 * Do not try to mount already mounted slots when loading slot status information from per-slot file
-* Fix invalid return value in case of failed mark_active()
-* Fix bootname detection for missing root= command line parameter
-* Build-fix workaround for ancient (< 3.4) kernels (by Yann E. MORIN)
+* Fix invalid return value in case of failed ``mark_active()``
+* Fix bootname detection for missing ``root=`` command line parameter
 * Fix passing intermediate certificates via command line which got broken by a faulty input check (by Marcel Hamer)
-* Various internal error handling fixes (by Ulrich Ölmann, Bastian Stender)
-* Several memory leak fixes
 * Preserve original uid/gid during extraction to be independent of the running system.
   This was only problematic if the name to ID mapping changed with an update.
   Note that this requires to enable ``CONFIG_FEATURE_TAR_LONG_OPTIONS`` when using busybox tar.
-* Block device paths are now opened with O_EXCL to ensure exclusive access
+* Block device paths are now opened with ``O_EXCL`` to ensure exclusive access
+* Fix handling for ``file://`` URI's
+* Build-fix workaround for ancient (< 3.4) kernels (by Yann E. MORIN)
+* Various internal error handling fixes (by Ulrich Ölmann, Bastian Stender)
+* Several memory leak fixes
 
 .. rubric:: Testing
 
-* Abort on g_critical()'s to detect issues early
+* Abort on ``g_critical()`` to detect issues early
 * Extended and restructured testing for barebox and u-boot boot selection handling
 * Basic ``rauc convert`` (casync) testing
 * Switch to Travis xenial environment

@@ -45,6 +45,7 @@ Example configuration:
   type=ext4
   bootname=system1
 
+.. _system-section:
 
 **[system] section**
 
@@ -94,6 +95,8 @@ Example configuration:
   Defines the maximum downloadable bundle size in bytes, and thus must be
   a simple integer value (without unit) greater than zero.
   It overwrites the compiled-in default value of 8 MiB.
+
+.. _keyring-section:
 
 **[keyring] section**
 
