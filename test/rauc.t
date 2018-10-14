@@ -79,23 +79,23 @@ prepare_softhsm2 ()
   openssl engine pkcs11 -tt -vvvv
 
   openssl x509 -in ${CA_DEV}/autobuilder-1.cert.pem -inform pem -outform der | \
-    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y cert -w /dev/stdin \
+    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y cert -w /proc/self/fd/0 \
     --label autobuilder-1 --id 01
   openssl rsa -in ${CA_DEV}/private/autobuilder-1.pem -inform pem -pubout -outform der | \
-    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y pubkey -w /dev/stdin \
+    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y pubkey -w /proc/self/fd/0 \
     --label autobuilder-1 --id 01
   openssl rsa -in ${CA_DEV}/private/autobuilder-1.pem -inform pem -outform der | \
-    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y privkey -w /dev/stdin \
+    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y privkey -w /proc/self/fd/0 \
     --label autobuilder-1 --id 01
 
   openssl x509 -in ${CA_DEV}/autobuilder-2.cert.pem -inform pem -outform der | \
-    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y cert -w /dev/stdin \
+    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y cert -w /proc/self/fd/0 \
     --label autobuilder-2 --id 02
   openssl rsa -in ${CA_DEV}/private/autobuilder-2.pem -inform pem -pubout -outform der | \
-    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y pubkey -w /dev/stdin \
+    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y pubkey -w /proc/self/fd/0 \
     --label autobuilder-2 --id 02
   openssl rsa -in ${CA_DEV}/private/autobuilder-2.pem -inform pem -outform der | \
-    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y privkey -w /dev/stdin \
+    pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 -y privkey -w /proc/self/fd/0 \
     --label autobuilder-2 --id 02
 
   pkcs11-tool --module ${SOFTHSM2_MOD} -l --pin 1111 --list-objects
