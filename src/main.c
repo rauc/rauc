@@ -1311,7 +1311,7 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 		}
 		g_variant_dict_lookup(&dict, "mountpoint", "s", &slot->mount_point);
 		g_variant_dict_lookup(&dict, "boot-status", "s", &boot_good);
-		if (g_strcmp0(boot_good, "good")) {
+		if (g_strcmp0(boot_good, "good") == 0) {
 			slot->boot_good = TRUE;
 		} else {
 			slot->boot_good = FALSE;
