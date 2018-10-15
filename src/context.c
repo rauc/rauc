@@ -241,7 +241,7 @@ static void r_context_configure(void)
 		g_message("Getting Systeminfo: %s", context->config->systeminfo_handler);
 		res = launch_and_wait_variables_handler(context->config->systeminfo_handler, vars, &ierror);
 		if (!res) {
-			g_error("Failed to read system-info variables%s", ierror->message);
+			g_error("Failed to read system-info variables: %s", ierror->message);
 			g_clear_error(&ierror);
 		}
 
