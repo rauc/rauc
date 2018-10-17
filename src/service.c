@@ -485,9 +485,9 @@ static void r_on_name_lost(GDBusConnection *connection,
 		gpointer user_data)
 {
 	if (connection == NULL) {
-		g_message("Connection to the bus can't be made for %s", name);
+		g_printerr("Connection to the bus can't be made for %s\n", name);
 	} else {
-		g_message("Failed to obtain name %s", name);
+		g_printerr("Failed to obtain name %s\n", name);
 	}
 
 	if (service_loop) {
