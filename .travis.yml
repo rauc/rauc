@@ -1,73 +1,34 @@
 language: c
 sudo: required
-compiler: gcc-7
-dist: xenial
-before_install:
-  - sudo pip install --upgrade cpp-coveralls
-  # travis-ci/travis-ci#9037: remove mongodb because the repository key is expired and we don't need it
-  - sudo rm -fv /etc/apt/sources.list.d/mongodb*
-  - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
-  - sudo apt-get update -q
-  - sudo apt-cache policy gcc-7
-  - sudo apt-get install -q gcc-7
-  - sudo add-apt-repository --yes 'deb http://deb.debian.org/debian/ buster main'
-  - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 8B48AD6246925553 7638D0442B90D010 04EE7237B7D453EC
-  - sudo apt-get update -q
-  - sudo apt-get install -q casync
-  # work around https://bugs.launchpad.net/ubuntu/+source/libp11/+bug/1690287
-  - sudo ln -s /usr/lib/ssl/engines/libpkcs11.so /usr/lib/x86_64-linux-gnu/openssl-1.0.0/engines/libpkcs11.so
-addons:
-  apt:
-    packages:
-      - autoconf
-      - automake
-      - libglib2.0-dev
-      - libjson-glib-dev
-      - libssl-dev
-      - libcurl4-openssl-dev
-      - squashfs-tools
-      - dosfstools
-      - lcov
-      - slirp
-      - python-sphinx
-      - dbus-x11
-      - user-mode-linux
-      - grub-common
-      - softhsm2
-      - opensc
-      - opensc-pkcs11
-      - libengine-pkcs11-openssl
-      - faketime
-    sources: &sources
-      - sourceline: 'deb http://archive.ubuntu.com/ubuntu/ trusty main restricted universe multiverse'
-  coverity_scan:
-    project:
-      name: "jluebbe/rauc"
-      description: "Robust Auto-Update Controller"
-    notification_email: jlu@pengutronix.de
-    build_command_prepend: "cov-configure --comptype gcc --compiler gcc-7 --template && ./autogen.sh && ./configure"
-    build_command: "make -j2"
-    branch_pattern: master
+services:
+  - docker
+
 before_script:
-  - ./build-uncrustify.sh
+  - docker pull rauc/testing:latest
+  - docker run --name rauc-ci -itd -v "$PWD":/home/travis -w /home/travis --tmpfs /tmp/uml:exec,mode=777 --tmpfs /tmp:exec -u travis rauc/testing:latest bash
+
+coverity_scan:
+  project:
+    name: "jluebbe/rauc"
+    description: "Robust Auto-Update Controller"
+  notification_email: jlu@pengutronix.de
+  build_command_prepend: "cov-configure --comptype gcc --compiler gcc-7 --template && ./autogen.sh && ./configure"
+  build_command: "make -j2"
+  branch_pattern: master
+
 script:
-  - ./autogen.sh
-  - ./configure --enable-code-coverage
-  - make clean
-  - make -j2
-  - make doc SPHINXOPTS=-W
-  - make check TESTS= && sudo ./uml-test
-  - make distcheck
-  - cd contrib/cgi/
-  - ./autogen.sh
-  - ./configure
-  - make clean
-  - make -j2
-  - make distcheck
-  - cd ../..
-  - ./uncrustify.sh && git diff --exit-code
+  - docker exec -it rauc-ci ./autogen.sh
+  - docker exec -it rauc-ci ./configure --enable-code-coverage
+  - docker exec -it rauc-ci make clean
+  - docker exec -it rauc-ci make -j2
+  - docker exec -it rauc-ci make doc SPHINXOPTS=-W
+  - docker exec -it rauc-ci make check TESTS=
+  - docker exec -it rauc-ci /bin/sh -c 'export TMPDIR=/tmp/uml && ./uml-test'
+  - docker exec -it rauc-ci make distcheck
+  - docker exec -it rauc-ci /bin/sh -c 'cd /home/travis/contrib/cgi && ./autogen.sh && ./configure && make clean && make -j2 && make distcheck'
+  - docker exec -it rauc-ci ./uncrustify.sh && git diff --exit-code
 after_success:
-  - coveralls --build-root '.' --exclude test --exclude rauc-installer-generated.c
+  - docker exec -it rauc-ci coveralls --build-root '.' --exclude test --exclude rauc-installer-generated.c
 after_failure:
   - cat test/*.log
   - cat test-suite.log
