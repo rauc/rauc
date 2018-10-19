@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <ftw.h>
 #include <gio/gio.h>
 #include <glib.h>
@@ -84,7 +85,7 @@ gboolean rm_tree(const gchar *path, GError **error)
 	g_return_val_if_fail(path[0] == '/', FALSE);
 
 	if (nftw(path, &rm_tree_cb, 20, flags)) {
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED, "failed to remove tree at %s", path);
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED, "failed to remove tree at %s: %s", path, g_strerror(errno));
 		return FALSE;
 	}
 
