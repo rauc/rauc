@@ -301,8 +301,6 @@ static GVariant* create_slotstatus_array(void)
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		GVariant* slot_status[2];
 
-		g_debug("Adding slot: %s", slot->name);
-
 		slot_status[0] = g_variant_new_string(slot->name);
 		slot_status[1] = convert_slot_status_to_dict(slot);
 
@@ -485,9 +483,9 @@ static void r_on_name_lost(GDBusConnection *connection,
 		gpointer user_data)
 {
 	if (connection == NULL) {
-		g_message("Connection to the bus can't be made for %s", name);
+		g_printerr("Connection to the bus can't be made for %s\n", name);
 	} else {
-		g_message("Failed to obtain name %s", name);
+		g_printerr("Failed to obtain name %s\n", name);
 	}
 
 	if (service_loop) {
