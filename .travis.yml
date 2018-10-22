@@ -3,22 +3,48 @@ sudo: required
 services:
   - docker
 env:
-  - ci_env=`bash <(curl -s https://codecov.io/env)`
+  global:
+    - ci_env=`bash <(curl -s https://codecov.io/env)`
+    - COVERITY_SCAN_PROJECT_NAME="jluebbe/rauc"
+    - COVERITY_SCAN_NOTIFICATION_EMAIL="jlu@pengutronix.de"
+    - COVERITY_SCAN_BRANCH_PATTERN="master"
+    - COVERITY_SCAN_BUILD_COMMAND_PREPEND="cov-configure --comptype gcc --compiler gcc-6 --template && ./autogen.sh && ./configure CC=gcc-6"
+    - COVERITY_SCAN_BUILD_COMMAND="make V=1"
 
 before_script:
   - docker pull rauc/testing:latest
-  - docker run --name rauc-ci -itd -v "$PWD":/home/travis -w /home/travis --tmpfs /tmp/uml:exec,mode=777 --tmpfs /tmp:exec $ci_env -u travis rauc/testing:latest bash
-
-coverity_scan:
-  project:
-    name: "jluebbe/rauc"
-    description: "Robust Auto-Update Controller"
-  notification_email: jlu@pengutronix.de
-  build_command_prepend: "cov-configure --comptype gcc --compiler gcc-7 --template && ./autogen.sh && ./configure"
-  build_command: "make -j2"
-  branch_pattern: master
 
 script:
+    # Prepare environment for Coverity tool
+  - |
+      PLATFORM=`uname`
+      export TOOL_BASE="/tmp/coverity-scan-analysis"
+      export SCAN_URL="https://scan.coverity.com"
+      export UPLOAD_URL="https://scan.coverity.com/builds"
+      export TOOL_ARCHIVE="/tmp/cov-analysis-${PLATFORM}.tgz"
+
+    # Get Coverity tool
+  - test/get-coverity.sh
+  - TOOL_DIR="$(find $TOOL_BASE -type d -name 'cov-analysis*' || exit 0)"
+
+    # Export env variables for Coverity scan
+  - env | grep -E "TRAVIS|COV|TOOL|URL" > .cov-env
+  - |
+      docker run -dit --env-file .cov-env \
+      -v "$PWD":/home/travis -w /home/travis \
+      --tmpfs /tmp/uml:exec,mode=777 \
+      --tmpfs /tmp:exec \
+      -v ${TOOL_BASE}:${TOOL_BASE} \
+      -u travis $ci_env \
+      --name rauc-ci rauc/testing:latest bash
+
+    # Make sure Coverity script is executable
+  - docker cp test/run-coverity.sh rauc-ci:/usr/local/bin
+
+    # Run Coverity Analysis
+  - docker exec -it rauc-ci run-coverity.sh build
+  - docker exec -it rauc-ci run-coverity.sh upload
+
   - docker exec -it rauc-ci ./autogen.sh
   - docker exec -it rauc-ci ./configure --enable-code-coverage
   - docker exec -it rauc-ci make clean
