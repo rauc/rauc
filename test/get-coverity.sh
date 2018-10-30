@@ -33,7 +33,7 @@ if [ ! -d $TOOL_BASE ]; then
   # Download Coverity Scan Analysis Tool
   if [ ! -e $TOOL_ARCHIVE ]; then
 	  echo -e "\033[33;1mDownloading Coverity Scan Analysis Tool...\033[0m"
-	  wget -nv -O $TOOL_ARCHIVE $TOOL_URL --post-data "project=$COVERITY_SCAN_PROJECT_NAME&token=$COVERITY_SCAN_TOKEN"
+	  curl -s -o $TOOL_ARCHIVE $TOOL_URL -d "project=$COVERITY_SCAN_PROJECT_NAME&token=$COVERITY_SCAN_TOKEN"
   fi
 
   # Extract Coverity Scan Analysis Tool
