@@ -26,7 +26,7 @@ GQuark r_signature_error_quark(void)
 
 void signature_init(void)
 {
-	OPENSSL_no_config();
+	OPENSSL_config(NULL);
 	OpenSSL_add_all_algorithms();
 	ERR_load_crypto_strings();
 }
