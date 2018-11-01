@@ -22,7 +22,12 @@ typedef struct {
 
 void network_init(void)
 {
-	curl_global_init(CURL_GLOBAL_ALL);
+	CURLcode res;
+
+	res = curl_global_init(CURL_GLOBAL_ALL);
+	if (res != CURLE_OK) {
+		g_warning("Initializing curl failed!");
+	}
 }
 
 static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata)
