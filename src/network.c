@@ -20,9 +20,19 @@ typedef struct {
 	size_t limit;
 } RaucTransfer;
 
-void network_init(void)
+gboolean network_init(GError **error)
 {
-	curl_global_init(CURL_GLOBAL_ALL);
+	CURLcode res;
+
+	g_return_val_if_fail(error == FALSE || *error == NULL, FALSE);
+
+	res = curl_global_init(CURL_GLOBAL_ALL);
+	if (res != CURLE_OK) {
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Initializing curl failed: %s", curl_easy_strerror(res));
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata)

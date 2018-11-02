@@ -11,6 +11,7 @@ GQuark r_signature_error_quark(void);
 
 typedef enum {
 	R_SIGNATURE_ERROR_UNKNOWN,
+	R_SIGNATURE_ERROR_CRYPTOINIT_FAILED,
 	R_SIGNATURE_ERROR_LOAD_FAILED,
 	R_SIGNATURE_ERROR_PARSE_ERROR,
 	R_SIGNATURE_ERROR_CREATE_SIG,
@@ -30,8 +31,14 @@ typedef enum {
 
 /**
  * Initalization routine.
+ *
+ * Sets up OpenSSL (libcrypto).
+ *
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if succeeded, FALSE if failed
  */
-void signature_init(void);
+gboolean signature_init(GError **error);
 
 /**
  * Sign content with provided certificate and private key

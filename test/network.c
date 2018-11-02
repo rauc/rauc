@@ -1,4 +1,5 @@
 #include <locale.h>
+#include <gio/gio.h>
 #include <glib.h>
 
 #include <context.h>
@@ -41,29 +42,43 @@ static void test_download_file(NetworkFixture *fixture,
 static void test_download_mem(void)
 {
 	GBytes *data = NULL;
+	GError *ierror = NULL;
+	gboolean res;
 
 	/* basic download (no size limit) */
-	g_assert_true(download_mem(&data, "http://example.com/", 0, NULL));
+	res = download_mem(&data, "http://example.com/", 0, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
 	g_assert_nonnull(data);
 	g_clear_pointer(&data, g_bytes_unref);
 
 	/* download with large limit */
-	g_assert_true(download_mem(&data, "http://example.com/", 1048576, NULL));
+	res = download_mem(&data, "http://example.com/", 1048576, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
 	g_assert_nonnull(data);
 	g_clear_pointer(&data, g_bytes_unref);
 
 	/* abort download for too large files */
-	g_assert_false(download_mem(&data, "http://example.com/", 1024, NULL));
+	res = download_mem(&data, "http://example.com/", 1024, &ierror);
+	g_assert_error(ierror, G_IO_ERROR, G_IO_ERROR_FAILED);
+	g_assert_false(res);
 	g_assert_null(data);
 	g_clear_pointer(&data, g_bytes_unref);
 
+	g_clear_error(&ierror);
+
 	/* download with https */
-	g_assert_true(download_mem(&data, "https://example.com/", 1048576, NULL));
+	res = download_mem(&data, "https://example.com/", 1048576, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
 	g_assert_nonnull(data);
 	g_clear_pointer(&data, g_bytes_unref);
 
 	/* invalid host name */
-	g_assert_false(download_mem(&data, "http://error.example.com/", 1024, NULL));
+	res = download_mem(&data, "http://error.example.com/", 1024, &ierror);
+	g_assert_error(ierror, G_IO_ERROR, G_IO_ERROR_FAILED);
+	g_assert_false(res);
 	g_assert_null(data);
 	g_clear_pointer(&data, g_bytes_unref);
 }

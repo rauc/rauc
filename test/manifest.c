@@ -353,35 +353,35 @@ compatible=SuperBazzer\n\
 	g_assert_cmpstr("Key file does not start with a group", ==, error->message);
 	g_clear_error(&error);
 	g_assert_null(rm);
-	g_clear_pointer(&data, g_byte_array_free);
+	g_clear_pointer(&data, g_bytes_unref);
 
 	data = g_bytes_new_static(MANIFEST2, sizeof(MANIFEST2));
 	g_assert_false(load_manifest_mem(data, &rm, &error));
 	g_assert_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND);
 	g_clear_error(&error);
 	g_assert_null(rm);
-	g_clear_pointer(&data, g_byte_array_free);
+	g_clear_pointer(&data, g_bytes_unref);
 
 	data = g_bytes_new_static(MANIFEST3, sizeof(MANIFEST3));
 	g_assert_false(load_manifest_mem(data, &rm, &error));
 	g_assert_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE);
 	g_clear_error(&error);
 	g_assert_null(rm);
-	g_clear_pointer(&data, g_byte_array_free);
+	g_clear_pointer(&data, g_bytes_unref);
 
 	data = g_bytes_new_static(MANIFEST4, sizeof(MANIFEST4));
 	g_assert_false(load_manifest_mem(data, &rm, &error));
 	g_assert_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE);
 	g_clear_error(&error);
 	g_assert_null(rm);
-	g_clear_pointer(&data, g_byte_array_free);
+	g_clear_pointer(&data, g_bytes_unref);
 
 	data = g_bytes_new_static(MANIFEST5, sizeof(MANIFEST5));
 	g_assert_false(load_manifest_mem(data, &rm, &error));
 	g_assert_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE);
 	g_clear_error(&error);
 	g_assert_null(rm);
-	g_clear_pointer(&data, g_byte_array_free);
+	g_clear_pointer(&data, g_bytes_unref);
 }
 
 static void manifest_test_verify(ManifestFixture *fixture,

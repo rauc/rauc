@@ -132,6 +132,10 @@ if WANT_NETWORK
 check_PROGRAMS += test/network.test
 endif
 
+noinst_PROGRAMS = test/fakerand
+
+test_fakerand_SOURCES = test/fakerand.c
+
 check_LTLIBRARIES = librauctest.la
 
 EXTRA_DIST += tap-t \

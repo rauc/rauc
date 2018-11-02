@@ -510,8 +510,18 @@ void r_context_register_progress_callback(progress_callback progress_cb)
 RaucContext *r_context_conf(void)
 {
 	if (context == NULL) {
-		network_init();
-		signature_init();
+		GError *ierror = NULL;
+
+		if (!network_init(&ierror)) {
+			g_warning("%s", ierror->message);
+			g_error_free(ierror);
+			return NULL;
+		}
+		if (!signature_init(&ierror)) {
+			g_warning("%s", ierror->message);
+			g_error_free(ierror);
+			return NULL;
+		}
 
 		context = g_new0(RaucContext, 1);
 		context->configpath = g_strdup("/etc/rauc/system.conf");
