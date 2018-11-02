@@ -482,11 +482,16 @@ static void r_on_name_lost(GDBusConnection *connection,
 		const gchar     *name,
 		gpointer user_data)
 {
+	gboolean *service_return = (gboolean*)user_data;
+
 	if (connection == NULL) {
 		g_printerr("Connection to the bus can't be made for %s\n", name);
 	} else {
 		g_printerr("Failed to obtain name %s\n", name);
 	}
+
+	/* Abort service with exit code */
+	*service_return = FALSE;
 
 	if (service_loop) {
 		g_main_loop_quit(service_loop);
@@ -506,6 +511,7 @@ static gboolean r_on_signal(gpointer user_data)
 
 gboolean r_service_run(void)
 {
+	gboolean service_return = TRUE;
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 
@@ -520,7 +526,7 @@ gboolean r_service_run(void)
 			r_on_bus_acquired,
 			r_on_name_acquired,
 			r_on_name_lost,
-			NULL, NULL);
+			&service_return, NULL);
 
 	g_main_loop_run(service_loop);
 
@@ -530,5 +536,5 @@ gboolean r_service_run(void)
 	g_main_loop_unref(service_loop);
 	service_loop = NULL;
 
-	return TRUE;
+	return service_return;
 }

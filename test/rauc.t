@@ -254,6 +254,14 @@ test_expect_success PKCS11 "rauc bundle with PKCS11 (key mismatch)" "
     bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb
 "
 
+test_expect_success SERVICE "rauc service double-init failure" "
+  start_rauc_dbus_service \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service &&
+  test_must_fail rauc service
+"
+
 test_expect_success !SERVICE "rauc --override-boot-slot=system0 status: internally" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status
 "
