@@ -1555,7 +1555,9 @@ static gboolean service_start(int argc, char **argv)
 {
 	g_debug("service start");
 
-	return r_service_run();
+	r_exit_status = r_service_run() ? 0 : 1;
+
+	return TRUE;
 }
 #endif
 
@@ -1785,14 +1787,14 @@ static void cmdline_handler(int argc, char **argv)
 		if (confpath != NULL ||
 		    certpath != NULL ||
 		    keypath != NULL) {
-			g_error("rauc busy, cannot reconfigure");
+			g_printerr("rauc busy, cannot reconfigure\n");
 			r_exit_status = 1;
 			return;
 		}
 	}
 
 	if (r_context_get_busy() && !rcommand->while_busy) {
-		g_error("rauc busy: cannot run %s", rcommand->name);
+		g_printerr("rauc busy: cannot run %s\n", rcommand->name);
 		r_exit_status = 1;
 		return;
 	}
