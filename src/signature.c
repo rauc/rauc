@@ -24,7 +24,7 @@ GQuark r_signature_error_quark(void)
 	return g_quark_from_static_string("r_signature_error_quark");
 }
 
-void signature_init(void)
+gboolean signature_init(GError **error)
 {
 #if (OPENSSL_VERSION_NUMBER < 0x10100000L)
 	OPENSSL_config(NULL);
@@ -33,6 +33,8 @@ void signature_init(void)
 #else
 	int ret;
 
+	g_return_val_if_fail(error == FALSE || *error == NULL, FALSE);
+
 	ret = OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG | OPENSSL_INIT_LOAD_CRYPTO_STRINGS, NULL);
 	if (!ret) {
 		unsigned long err;
@@ -40,9 +42,17 @@ void signature_init(void)
 		int flags;
 
 		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
-		g_warning("Failed to initalize OpenSSL crypto: %s", (flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_CRYPTOINIT_FAILED,
+				"Failed to initalize OpenSSL crypto: %s",
+				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+		return FALSE;
 	}
 #endif
+
+	return TRUE;
 }
 
 static ENGINE *get_pkcs11_engine(GError **error)

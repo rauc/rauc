@@ -517,7 +517,11 @@ RaucContext *r_context_conf(void)
 			g_error_free(ierror);
 			return NULL;
 		}
-		signature_init();
+		if (!signature_init(&ierror)) {
+			g_warning("%s", ierror->message);
+			g_error_free(ierror);
+			return NULL;
+		}
 
 		context = g_new0(RaucContext, 1);
 		context->configpath = g_strdup("/etc/rauc/system.conf");
