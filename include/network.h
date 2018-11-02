@@ -5,11 +5,20 @@
 #include <checksum.h>
 
 #if ENABLE_NETWORK
-void network_init(void);
+/**
+ * Network initalization routine.
+ *
+ * Sets up libcurl.
+ *
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if succeeded, FALSE if failed
+ */
+gboolean network_init(GError **error);
 #else
-static inline void network_init(void)
+static inline gboolean network_init(GError **error)
 {
-	return;
+	return TRUE;
 }
 #endif
 
