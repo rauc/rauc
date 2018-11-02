@@ -1555,7 +1555,9 @@ static gboolean service_start(int argc, char **argv)
 {
 	g_debug("service start");
 
-	return r_service_run();
+	r_exit_status = r_service_run() ? 0 : 1;
+
+	return TRUE;
 }
 #endif
 
