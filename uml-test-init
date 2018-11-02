@@ -26,6 +26,9 @@ fi
 
 cd $(dirname $0)
 
+# Fake entropy
+test/fakerand
+
 mkdir -p /tmp/boot/grub
 mount --bind /tmp/boot /boot
 grub-editenv test/grubenv.test create
