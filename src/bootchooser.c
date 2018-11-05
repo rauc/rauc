@@ -304,9 +304,8 @@ static gboolean barebox_set_primary(RaucSlot *slot, GError **error)
 		int prio;
 		BareboxSlotState bb_state;
 
-		if (s->sclass != slot->sclass)
+		if (!s->bootname)
 			continue;
-
 
 		if (!barebox_state_get(s->bootname, &bb_state, &ierror)) {
 			g_propagate_error(error, ierror);
