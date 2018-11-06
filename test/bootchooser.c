@@ -278,7 +278,6 @@ path=/etc/rauc/keyring/\n\
 [slot.rescue.0]\n\
 device=/dev/rescue-0\n\
 type=raw\n\
-bootname=R\n\
 readonly=true\n\
 \n\
 [slot.rootfs.0]\n\
