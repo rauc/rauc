@@ -263,6 +263,8 @@ bootstate.system0.priority=20\n\
 static void bootchooser_grub(BootchooserFixture *fixture,
 		gconstpointer user_data)
 {
+	GError *ierror = NULL;
+	gboolean res = FALSE;
 	RaucSlot *slot;
 
 	const gchar *cfg_file = "\
@@ -300,13 +302,19 @@ bootname=B\n";
 	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
 	g_assert_nonnull(slot);
 
-	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
-	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
+	res = r_boot_set_state(slot, TRUE, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	res = r_boot_set_state(slot, FALSE, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
 
 	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
 	g_assert_nonnull(slot);
 
-	g_assert_true(r_boot_set_primary(slot, NULL));
+	res = r_boot_set_primary(slot, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
 }
 
 /* Write content to state storage for uboot fw_setenv / fw_printenv RAUC mock
