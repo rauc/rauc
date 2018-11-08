@@ -140,13 +140,13 @@ test_expect_success "rauc invalid cmd" "
 "
 
 test_expect_success "rauc missing arg" "
-  test_must_fail rauc install &&
-  test_must_fail rauc write-slot &&
-  test_must_fail rauc info &&
-  test_must_fail rauc bundle &&
-  test_must_fail rauc checksum &&
-  test_must_fail rauc resign &&
-  test_must_fail rauc info
+  test_expect_code 1 rauc install &&
+  test_expect_code 1 rauc write-slot &&
+  test_expect_code 1 rauc info &&
+  test_expect_code 1 rauc bundle &&
+  test_expect_code 1 rauc checksum &&
+  test_expect_code 1 rauc resign &&
+  test_expect_code 1 rauc info
 "
 
 test_expect_success "rauc version" "
@@ -162,10 +162,6 @@ test_expect_success "rauc help" "
   rauc checksum --help &&
   rauc resign --help &&
   rauc info --help
-"
-
-test_expect_success "rauc checksum without argument" "
-  test_expect_code 1 rauc checksum
 "
 
 test_expect_success "rauc checksum with signing" "
