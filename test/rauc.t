@@ -142,10 +142,12 @@ test_expect_success "rauc invalid cmd" "
 test_expect_success "rauc missing arg" "
   test_expect_code 1 rauc install &&
   test_expect_code 1 rauc write-slot &&
+  test_expect_code 1 rauc write-slot slot &&
   test_expect_code 1 rauc info &&
   test_expect_code 1 rauc bundle &&
+  test_expect_code 1 rauc bundle input &&
   test_expect_code 1 rauc checksum &&
-  test_expect_code 1 rauc resign &&
+  test_expect_code 1 rauc resign input &&
   test_expect_code 1 rauc info
 "
 
