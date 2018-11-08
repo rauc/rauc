@@ -12,9 +12,9 @@ RAUC - Robust Auto-Update Controller
 .. image:: https://img.shields.io/travis/rauc/rauc/master.svg
    :alt: Travis branch
    :target: https://travis-ci.org/rauc/rauc
-.. image:: https://img.shields.io/coveralls/rauc/rauc/master.svg
-   :alt: Coveralls branch
-   :target: https://coveralls.io/r/rauc/rauc
+.. image:: https://codecov.io/gh/rauc/rauc/branch/master/graph/badge.svg
+   :alt: Codecov.io branch
+   :target: https://codecov.io/gh/rauc/rauc
 .. image:: https://img.shields.io/coverity/scan/5085.svg
    :alt: Coverity
    :target: https://scan.coverity.com/projects/5085
