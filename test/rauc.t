@@ -151,6 +151,16 @@ test_expect_success "rauc missing arg" "
   test_expect_code 1 rauc info
 "
 
+test_expect_success "rauc excess args" "
+  test_expect_code 1 rauc install bundle excess &&
+  test_expect_code 1 rauc write-slot source target excess &&
+  test_expect_code 1 rauc info bundle excess &&
+  test_expect_code 1 rauc bundle indir outbundle excess &&
+  test_expect_code 1 rauc checksum indir excess &&
+  test_expect_code 1 rauc resign inbundle outbundle excess &&
+  test_expect_code 1 rauc info bundle excess
+"
+
 test_expect_success "rauc version" "
   rauc --version
 "
