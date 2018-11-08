@@ -146,7 +146,6 @@ test_expect_success "rauc missing arg" "
   test_must_fail rauc bundle &&
   test_must_fail rauc checksum &&
   test_must_fail rauc resign &&
-  test_must_fail rauc install &&
   test_must_fail rauc info
 "
 
