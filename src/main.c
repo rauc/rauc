@@ -160,6 +160,7 @@ static gboolean install_start(int argc, char **argv)
 
 	if (argc > 3) {
 		g_printerr("Excess argument: %s\n", argv[3]);
+		r_exit_status = 1;
 		goto out;
 	}
 
@@ -263,6 +264,7 @@ static gboolean bundle_start(int argc, char **argv)
 
 	if (argc > 4) {
 		g_printerr("Excess argument: %s\n", argv[4]);
+		r_exit_status = 1;
 		goto out;
 	}
 
@@ -313,6 +315,7 @@ static gboolean write_slot_start(int argc, char **argv)
 
 	if (argc > 4) {
 		g_printerr("Excess argument: %s\n", argv[4]);
+		r_exit_status = 1;
 		goto out;
 	}
 
@@ -402,6 +405,7 @@ static gboolean resign_start(int argc, char **argv)
 
 	if (argc > 4) {
 		g_printerr("Excess argument: %s\n", argv[4]);
+		r_exit_status = 1;
 		goto out;
 	}
 
@@ -443,6 +447,7 @@ static gboolean extract_start(int argc, char **argv)
 
 	if (argc > 4) {
 		g_printerr("Excess argument: %s\n", argv[4]);
+		r_exit_status = 1;
 		goto out;
 	}
 
@@ -494,6 +499,7 @@ static gboolean convert_start(int argc, char **argv)
 
 	if (argc > 4) {
 		g_printerr("Excess argument: %s\n", argv[4]);
+		r_exit_status = 1;
 		goto out;
 	}
 
@@ -821,6 +827,7 @@ static gboolean info_start(int argc, char **argv)
 
 	if (argc > 3) {
 		g_printerr("Excess argument: %s\n", argv[3]);
+		r_exit_status = 1;
 		goto out;
 	}
 
