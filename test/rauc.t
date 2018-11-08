@@ -154,7 +154,14 @@ test_expect_success "rauc version" "
 "
 
 test_expect_success "rauc help" "
-  rauc --help
+  rauc --help &&
+  rauc install --help &&
+  rauc write-slot --help &&
+  rauc info --help &&
+  rauc bundle --help &&
+  rauc checksum --help &&
+  rauc resign --help &&
+  rauc info --help
 "
 
 test_expect_success "rauc checksum without argument" "
