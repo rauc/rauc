@@ -36,10 +36,6 @@ Features
   * **Asymmetric** setup (recovery & normal)
   * Application partition, Data Partitions, ...
   * Allows **grouping** of multiple slots (rootfs, appfs) as update targets
-* Two update modes:
-
-  * Bundle: single file containing the whole update
-  * Network: separate manifest and component files
 * **Bootloader support**:
 
   * `grub <https://www.gnu.org/software/grub/>`_
