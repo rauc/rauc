@@ -36,6 +36,11 @@ Features
   * **Asymmetric** setup (recovery & normal)
   * Application partition, Data Partitions, ...
   * Allows **grouping** of multiple slots (rootfs, appfs) as update targets
+* Network streaming mode using **casync**
+
+  * chunk-based binary delta updates
+  * significantly reduce download size
+  * no extra storage required
 * **Bootloader support**:
 
   * `grub <https://www.gnu.org/software/grub/>`_
