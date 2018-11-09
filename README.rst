@@ -5,25 +5,7 @@
 RAUC - Robust Auto-Update Controller
 ====================================
 
-
-.. image:: https://img.shields.io/badge/license-LGPLv2.1-blue.svg
-   :alt: LGPLv2.1
-   :target: https://raw.githubusercontent.com/rauc/rauc/master/COPYING
-.. image:: https://img.shields.io/travis/rauc/rauc/master.svg
-   :alt: Travis branch
-   :target: https://travis-ci.org/rauc/rauc
-.. image:: https://codecov.io/gh/rauc/rauc/branch/master/graph/badge.svg
-   :alt: Codecov.io branch
-   :target: https://codecov.io/gh/rauc/rauc
-.. image:: https://img.shields.io/coverity/scan/5085.svg
-   :alt: Coverity
-   :target: https://scan.coverity.com/projects/5085
-.. image:: https://readthedocs.org/projects/rauc/badge/?version=latest
-   :alt: Documentation
-   :target: http://rauc.readthedocs.org/en/latest/?badge=latest
-.. image:: https://matrix.to/img/matrix-badge.svg
-   :alt: Chat
-   :target: https://riot.im/app/#/room/#rauc:matrix.org
+|LGPLv2.1| |Travis_branch| |Codecov_branch| |Coverity| |Documentation| |Matrix|
 
 RAUC controls the update process on embedded linux systems. It is both a target
 application that runs as an update client and a host/target tool
@@ -225,11 +207,13 @@ section for more details.
 
 .. |LGPLv2.1| image:: https://img.shields.io/badge/license-LGPLv2.1-blue.svg
    :target: https://raw.githubusercontent.com/rauc/rauc/master/COPYING
-.. |Travis branch| image:: https://img.shields.io/travis/rauc/rauc/master.svg
+.. |Travis_branch| image:: https://img.shields.io/travis/rauc/rauc/master.svg
    :target: https://travis-ci.org/rauc/rauc
-.. |Coveralls branch| image:: https://img.shields.io/coveralls/rauc/rauc/master.svg
-   :target: https://coveralls.io/r/rauc/rauc
+.. |Codecov_branch| image:: https://codecov.io/gh/rauc/rauc/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/rauc/rauc
 .. |Coverity| image:: https://img.shields.io/coverity/scan/5085.svg
    :target: https://scan.coverity.com/projects/5085
 .. |Documentation| image:: https://readthedocs.org/projects/rauc/badge/?version=latest
    :target: http://rauc.readthedocs.org/en/latest/?badge=latest
+.. |Matrix| image:: https://matrix.to/img/matrix-badge.svg
+   :target: https://riot.im/app/#/room/#rauc:matrix.org
