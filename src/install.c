@@ -985,8 +985,13 @@ image_out:
 		for (GList *l = install_images; l != NULL; l = l->next) {
 			RaucSlot *dest_slot = g_hash_table_lookup(target_group, ((RaucImage*)l->data)->slotclass);
 
-			if (dest_slot->parent || !dest_slot->bootname)
+			/* If the slot does not have a bootname but its parent does,
+			 * then replace the dest_slot with its parent in order to call
+			 * mark_active function with the parent's slot. */
+			if (!dest_slot->bootname && !(dest_slot->parent && dest_slot->parent->bootname))
 				continue;
+			else if (!dest_slot->bootname && dest_slot->parent && dest_slot->parent->bootname)
+				dest_slot = dest_slot->parent;
 
 			mark_active(dest_slot, &ierror);
 			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE)) {
