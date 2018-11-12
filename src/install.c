@@ -301,6 +301,49 @@ static RaucSlot *select_inactive_slot_class_member(const gchar *rootclass)
 	return NULL;
 }
 
+/* Get the slot that has a bootname set, i.e. that we need to manipulate by the
+ * boot selection layer to allow atomic updating.
+ */
+static RaucSlot* get_bootname_slot(GHashTable *targetgroup, GList *install_images, GError **error)
+{
+	RaucSlot *bootnameslot = NULL;
+
+	/* Iterate over all slots we have an image to install for */
+	for (GList *l = install_images; l != NULL; l = l->next) {
+		RaucSlot *iterslot = g_hash_table_lookup(targetgroup, ((RaucImage*) l->data)->slotclass);
+
+		g_assert_nonnull(iterslot);
+
+		if (!iterslot->bootname)
+			continue;
+
+		/* If we've detected a bootname slot while already having found
+		 * a bootname slot, this is an error and we must abort.
+		 * This can be caused either by system misconfiguration or by
+		 * cases where we have bad bundles with images for multiple
+		 * concurrent bootname slots. */
+		if (bootnameslot) {
+			g_set_error(error,
+					R_INSTALL_ERROR,
+					R_INSTALL_ERROR_FAILED,
+					"Detected bootname slot %s while %s already present", iterslot->name, bootnameslot->name);
+			return NULL;
+		}
+
+		bootnameslot = iterslot;
+	}
+
+	if (!bootnameslot) {
+		g_set_error(error,
+				R_INSTALL_ERROR,
+				R_INSTALL_ERROR_FAILED,
+				"No bootname slot in target group");
+		return NULL;
+	}
+
+	return bootnameslot;
+}
+
 /* Map each slot class available to a potential target slot.
  *
  * Algorithm:
@@ -824,6 +867,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GList *install_images = NULL;
+	RaucSlot *dest_slot;
 
 	install_images = get_install_images(manifest, target_group, &ierror);
 	if (install_images == NULL) {
@@ -862,25 +906,23 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		goto early_out;
 	}
 
-	/* Mark all parent destination slots non-bootable */
-	for (GList *l = install_images; l != NULL; l = l->next) {
-		RaucSlot *dest_slot = g_hash_table_lookup(target_group, ((RaucImage*)l->data)->slotclass);
+	/* Mark bootname destination slot as non-bootable (inactive) */
+	dest_slot = get_bootname_slot(target_group, install_images, &ierror);
+	if (!dest_slot) {
+		/* Only emit a warning for now. TODO: make this fatal in future
+		 * versions */
+		g_warning("%s", ierror->message);
+		g_clear_error(&ierror);
+	}
 
-		g_assert_nonnull(dest_slot);
+	g_message("Marking target slot %s as non-bootable...", dest_slot->name);
 
-		if (dest_slot->parent || !dest_slot->bootname) {
-			continue;
-		}
-
-		g_message("Marking target slot %s as non-bootable...", dest_slot->name);
-		res = r_boot_set_state(dest_slot, FALSE, &ierror);
-
-		if (!res) {
-			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_NONBOOTABLE,
-					"Failed marking slot %s non-bootable: %s", dest_slot->name, ierror->message);
-			g_clear_error(&ierror);
-			goto early_out;
-		}
+	res = r_boot_set_state(dest_slot, FALSE, &ierror);
+	if (!res) {
+		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_NONBOOTABLE,
+				"Failed marking slot %s non-bootable: %s", dest_slot->name, ierror->message);
+		g_clear_error(&ierror);
+		goto early_out;
 	}
 
 	if (manifest->hook_name)
@@ -890,7 +932,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	install_args_update(args, "Updating slots...");
 	for (GList *l = install_images; l != NULL; l = l->next) {
 		RaucImage *mfimage;
-		RaucSlot *dest_slot;
 		img_to_slot_handler update_handler = NULL;
 		RaucSlotStatus *slot_state = NULL;
 		GDateTime *now;
@@ -1006,33 +1047,35 @@ image_out:
 	}
 
 	if (r_context()->config->activate_installed) {
-		/* Mark all parent destination slots bootable */
-		for (GList *l = install_images; l != NULL; l = l->next) {
-			RaucSlot *dest_slot = g_hash_table_lookup(target_group, ((RaucImage*)l->data)->slotclass);
+		/* Mark bootname destination slot as primary (active) */
+		dest_slot = get_bootname_slot(target_group, install_images, &ierror);
+		if (!dest_slot) {
+			/* Only emit a warning for now. TODO: make this fatal in future
+			 * versions */
+			g_warning("%s", ierror->message);
+			g_clear_error(&ierror);
+		}
 
-			if (dest_slot->parent || !dest_slot->bootname)
-				continue;
+		g_message("Marking target slot %s as bootable...", dest_slot->name);
 
-			g_message("Marking target slot %s as bootable...", dest_slot->name);
-			mark_active(dest_slot, &ierror);
-			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE)) {
-				g_propagate_prefixed_error(error, ierror,
-						"Failed marking slot %s bootable: ", dest_slot->name);
-				res = FALSE;
-				goto out;
-			} else if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED)) {
-				g_propagate_prefixed_error(error, ierror,
-						"Marked slot %s bootable, but failed to write status file: ",
-						dest_slot->name);
-				res = FALSE;
-				goto out;
-			} else if (ierror) {
-				g_propagate_prefixed_error(error, ierror,
-						"Unexpected error while trying to mark slot %s bootable: ",
-						dest_slot->name);
-				res = FALSE;
-				goto out;
-			}
+		mark_active(dest_slot, &ierror);
+		if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE)) {
+			g_propagate_prefixed_error(error, ierror,
+					"Failed marking slot %s bootable: ", dest_slot->name);
+			res = FALSE;
+			goto out;
+		} else if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED)) {
+			g_propagate_prefixed_error(error, ierror,
+					"Marked slot %s bootable, but failed to write status file: ",
+					dest_slot->name);
+			res = FALSE;
+			goto out;
+		} else if (ierror) {
+			g_propagate_prefixed_error(error, ierror,
+					"Unexpected error while trying to mark slot %s bootable: ",
+					dest_slot->name);
+			res = FALSE;
+			goto out;
 		}
 	} else {
 		g_message("Leaving target slot non-bootable as requested by activate_installed == false.");
