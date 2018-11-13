@@ -66,6 +66,8 @@ gboolean is_slot_mountable(RaucSlot *slot)
 
 static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "noop", NULL};
 
+#define VARIANT_TYPES "'variant-bin', 'variant-dtb', 'variant-file', 'variant-name'"
+
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 {
 	GError *ierror = NULL;
@@ -181,6 +183,31 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 	c->system_variant_type = R_CONFIG_SYS_VARIANT_NONE;
 
+	/* parse 'variant-bin' key */
+	variant_data = key_file_consume_string(key_file, "system", "variant-bin", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		variant_data = NULL;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
+	if (variant_data) {
+		if (c->system_variant_type != R_CONFIG_SYS_VARIANT_NONE) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_INVALID_FORMAT,
+					"Only one of the keys " VARIANT_TYPES " is allowed");
+			res = FALSE;
+			goto free;
+		}
+
+		c->system_variant_type = R_CONFIG_SYS_VARIANT_BIN;
+		c->system_variant = variant_data;
+	}
+
 	/* parse 'variant-dtb' key */
 	dtbvariant = g_key_file_get_boolean(key_file, "system", "variant-dtb", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
@@ -211,7 +238,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 					error,
 					R_CONFIG_ERROR,
 					R_CONFIG_ERROR_INVALID_FORMAT,
-					"Only one of the keys 'variant-file', variant-dtb','variant-name' is allowed");
+					"Only one of the keys " VARIANT_TYPES " is allowed");
 			res = FALSE;
 			goto free;
 		}
@@ -236,7 +263,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 					error,
 					R_CONFIG_ERROR,
 					R_CONFIG_ERROR_INVALID_FORMAT,
-					"Only one of the keys 'variant-file', variant-dtb','variant-name' is allowed");
+					"Only one of the keys " VARIANT_TYPES " is allowed");
 			res = FALSE;
 			goto free;
 		}

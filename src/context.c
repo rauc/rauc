@@ -186,6 +186,44 @@ static gchar* get_variant_from_file(const gchar* filename, GError **error)
 	return contents;
 }
 
+static gchar* get_variant_from_binary(const gchar* filename, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(GSubprocess) sproc = NULL;
+	GInputStream *instream = NULL;
+	GDataInputStream *datainstream = NULL;
+	g_autofree gchar *outline = NULL;
+
+	g_return_val_if_fail(filename, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	sproc = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE,
+			&ierror, filename, NULL);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start variant binary (%s): ", filename);
+		return NULL;
+	}
+
+	/* Read scripts first stdout line as variant */
+	instream = g_subprocess_get_stdout_pipe(sproc);
+	datainstream = g_data_input_stream_new(instream);
+
+	outline = g_data_input_stream_read_line(datainstream, NULL, NULL, NULL);
+
+	if (!g_subprocess_wait_check(sproc, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run variant binary (%s): ", filename);
+		return NULL;
+	}
+
+	return g_steal_pointer(&outline);
+}
+
 
 static void r_context_configure(void)
 {
@@ -207,7 +245,15 @@ static void r_context_configure(void)
 		g_clear_error(&error);
 	}
 
-	if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_DTB) {
+	if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_BIN) {
+		gchar *variant = get_variant_from_binary(context->config->system_variant, &error);
+		if (!variant) {
+			g_warning("Failed to read compatible from binary: %s", error->message);
+			g_clear_error(&error);
+		}
+		g_free(context->config->system_variant);
+		context->config->system_variant = variant;
+	} else if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_DTB) {
 		gchar *compatible = get_system_dtb_compatible(&error);
 		if (!compatible) {
 			g_warning("Failed to read dtb compatible: %s", error->message);

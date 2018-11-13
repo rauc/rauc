@@ -510,8 +510,23 @@ RAUC calls this feature 'image variants'.
 
 If you want to make use of image variants, you first of all need to say which
 variant your specific board is. You can do this in your ``system.conf`` by
-setting exactly one of the keys ``variant-dtb``, ``variant-file`` or
-``variant-name``.
+setting exactly one of the keys ``variant-bin``, ``variant-dtb``,
+``variant-file`` or ``variant-name``.
+
+.. code-block:: cfg
+
+  [system]
+  ...
+  variant-bin=/path/to/executable
+
+The ``variant-bin`` allows to run a script or binary executable to obtain the
+variant name.
+The first line of output produced by the binary will be taken as the variant
+value.
+
+A typical use-case for this is to have the platform's variant information
+encoded in hardware bits and an application that may read and transform these
+to a human-readable string.
 
 .. code-block:: cfg
 

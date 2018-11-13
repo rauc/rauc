@@ -546,6 +546,13 @@ bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
 variant-file=/path/to/file";
 
+	const gchar *cfg_file_bin_variant = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+variant-bin=/path/to/bin";
+
 	const gchar *cfg_file_conflicting_variants = "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
@@ -598,6 +605,16 @@ variant-name=xxx";
 	g_assert_nonnull(config);
 	g_assert(config->system_variant_type == R_CONFIG_SYS_VARIANT_FILE);
 	g_assert_cmpstr(config->system_variant, ==, "/path/to/file");
+
+	pathname = write_tmp_file(fixture->tmpdir, "bin_variant.conf", cfg_file_bin_variant, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_true(load_config(pathname, &config, &ierror));
+	g_free(pathname);
+	g_assert_null(ierror);
+	g_assert_nonnull(config);
+	g_assert(config->system_variant_type == R_CONFIG_SYS_VARIANT_BIN);
+	g_assert_cmpstr(config->system_variant, ==, "/path/to/bin");
 
 	pathname = write_tmp_file(fixture->tmpdir, "conflict_variant.conf", cfg_file_conflicting_variants, NULL);
 	g_assert_nonnull(pathname);
