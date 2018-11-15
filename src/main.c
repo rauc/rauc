@@ -243,13 +243,6 @@ static gboolean bundle_start(int argc, char **argv)
 	GError *ierror = NULL;
 	g_debug("bundle start");
 
-	if (r_context()->certpath == NULL ||
-	    r_context()->keypath == NULL) {
-		g_printerr("Cert and key files must be provided\n");
-		r_exit_status = 1;
-		goto out;
-	}
-
 	if (argc < 3) {
 		g_printerr("An input directory name must be provided\n");
 		r_exit_status = 1;
@@ -264,6 +257,13 @@ static gboolean bundle_start(int argc, char **argv)
 
 	if (argc > 4) {
 		g_printerr("Excess argument: %s\n", argv[4]);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (r_context()->certpath == NULL ||
+	    r_context()->keypath == NULL) {
+		g_printerr("Cert and key files must be provided\n");
 		r_exit_status = 1;
 		goto out;
 	}
@@ -383,14 +383,6 @@ static gboolean resign_start(int argc, char **argv)
 	GError *ierror = NULL;
 	g_debug("resign start");
 
-	if (r_context()->certpath == NULL ||
-	    r_context()->keypath == NULL ||
-	    r_context()->keyringpath == NULL) {
-		g_printerr("Cert, key and keyring files must be provided\n");
-		r_exit_status = 1;
-		goto out;
-	}
-
 	if (argc < 3) {
 		g_printerr("An input bundle must be provided\n");
 		r_exit_status = 1;
@@ -405,6 +397,14 @@ static gboolean resign_start(int argc, char **argv)
 
 	if (argc > 4) {
 		g_printerr("Excess argument: %s\n", argv[4]);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (r_context()->certpath == NULL ||
+	    r_context()->keypath == NULL ||
+	    r_context()->keyringpath == NULL) {
+		g_printerr("Cert, key and keyring files must be provided\n");
 		r_exit_status = 1;
 		goto out;
 	}
