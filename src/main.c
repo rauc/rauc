@@ -543,8 +543,14 @@ static gboolean checksum_start(int argc, char **argv)
 		goto out;
 	}
 
-	if (argc != 3) {
+	if (argc < 3) {
 		g_printerr("A directory name must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc > 3) {
+		g_printerr("Excess argument: %s\n", argv[3]);
 		r_exit_status = 1;
 		goto out;
 	}
