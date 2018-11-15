@@ -212,19 +212,17 @@ static void r_context_configure(void)
 		if (!compatible) {
 			g_warning("Failed to read dtb compatible: %s", error->message);
 			g_clear_error(&error);
-		} else {
-			g_free(context->config->system_variant);
-			context->config->system_variant = compatible;
 		}
+		g_free(context->config->system_variant);
+		context->config->system_variant = compatible;
 	} else if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_FILE) {
 		gchar *variant = get_variant_from_file(context->config->system_variant, &error);
 		if (!variant) {
 			g_warning("Failed to read system variant from file: %s", error->message);
 			g_clear_error(&error);
-		} else {
-			g_free(context->config->system_variant);
-			context->config->system_variant = variant;
 		}
+		g_free(context->config->system_variant);
+		context->config->system_variant = variant;
 	}
 
 	if (context->config->systeminfo_handler &&
