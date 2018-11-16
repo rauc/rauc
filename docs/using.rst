@@ -372,6 +372,13 @@ The following environment variables will be passed to the hook executable:
 
 .. glossary::
 
+  ``RAUC_SYSTEM_COMPATIBLE``
+    The compatible value set in the system configuration file
+
+  ``RAUC_SYSTEM_VARIANT``
+    The system's variant as obtained by the variant source
+    (refer ref:`sec-variants`)
+
   ``RAUC_SLOT_NAME``
     The name of the currently installed slot
 
