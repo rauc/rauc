@@ -310,6 +310,7 @@ no_image:
 	targetslot->sclass = g_strdup("rootfs");
 	targetslot->device = g_strdup(slotpath);
 	targetslot->type = g_strdup(test_pair->slottype);
+	targetslot->state = ST_INACTIVE;
 
 	/* Set mount path to current temp dir */
 	mountprefix = g_build_filename(fixture->tmpdir, "testmount", NULL);

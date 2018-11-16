@@ -375,6 +375,10 @@ The following environment variables will be passed to the hook executable:
   ``RAUC_SLOT_NAME``
     The name of the currently installed slot
 
+  ``RAUC_SLOT_STATE``
+    The state of the currently installed slot
+    (will always be 'inactive' for slots we install to)
+
   ``RAUC_SLOT_CLASS``
     The class of the currently installed slot
 
