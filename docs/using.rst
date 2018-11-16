@@ -306,6 +306,10 @@ The following environment variables will be passed to the hook executable:
   ``RAUC_SYSTEM_COMPATIBLE``
     The compatible value set in the system configuration file
 
+  ``RAUC_SYSTEM_VARIANT``
+    The system's variant as obtained by the variant source
+    (refer ref:`sec-variants`)
+
   ``RAUC_MF_COMPATIBLE``
     The compatible value provided by the current bundle
 
