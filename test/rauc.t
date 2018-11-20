@@ -140,14 +140,25 @@ test_expect_success "rauc invalid cmd" "
 "
 
 test_expect_success "rauc missing arg" "
-  test_must_fail rauc install &&
-  test_must_fail rauc write-slot &&
-  test_must_fail rauc info &&
-  test_must_fail rauc bundle &&
-  test_must_fail rauc checksum &&
-  test_must_fail rauc resign &&
-  test_must_fail rauc install &&
-  test_must_fail rauc info
+  test_expect_code 1 rauc install &&
+  test_expect_code 1 rauc write-slot &&
+  test_expect_code 1 rauc write-slot slot &&
+  test_expect_code 1 rauc info &&
+  test_expect_code 1 rauc bundle &&
+  test_expect_code 1 rauc bundle input &&
+  test_expect_code 1 rauc checksum &&
+  test_expect_code 1 rauc resign input &&
+  test_expect_code 1 rauc info
+"
+
+test_expect_success "rauc excess args" "
+  test_expect_code 1 rauc install bundle excess &&
+  test_expect_code 1 rauc write-slot source target excess &&
+  test_expect_code 1 rauc info bundle excess &&
+  test_expect_code 1 rauc bundle indir outbundle excess &&
+  test_expect_code 1 rauc checksum indir excess &&
+  test_expect_code 1 rauc resign inbundle outbundle excess &&
+  test_expect_code 1 rauc info bundle excess
 "
 
 test_expect_success "rauc version" "
@@ -155,11 +166,14 @@ test_expect_success "rauc version" "
 "
 
 test_expect_success "rauc help" "
-  rauc --help
-"
-
-test_expect_success "rauc checksum without argument" "
-  test_expect_code 1 rauc checksum
+  rauc --help &&
+  rauc install --help &&
+  rauc write-slot --help &&
+  rauc info --help &&
+  rauc bundle --help &&
+  rauc checksum --help &&
+  rauc resign --help &&
+  rauc info --help
 "
 
 test_expect_success "rauc checksum with signing" "
