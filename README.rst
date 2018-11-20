@@ -177,10 +177,14 @@ Testing
 Creating a Bundle
 -----------------
 
-::
+Create a directory with the content that should be installed::
 
     mkdir content-dir/
     cp $SOURCE/rootfs.ext4.img content-dir/
+
+Create a manifest describing which image to install where together with some
+meta info::
+
     cat >> content-dir/manifest.raucm << EOF
     [update]
     compatible=FooCorp Super BarBazzer
@@ -188,7 +192,10 @@ Creating a Bundle
     [image.rootfs]
     filename=rootfs.ext4.img
     EOF
-    rauc --cert autobuilder.cert.pem --key autobuilder.key.pem bundle content-dir/ update-2015.04-1.raucb
+
+Let RAUC create a bundle from this::
+
+    rauc --cert autobuilder.cert.pem --key autobuilder.key.pem bundle content-dir/ update-2018.11-1.raucb
 
 Installing a Bundle
 -------------------
