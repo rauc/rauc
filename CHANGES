@@ -1,3 +1,36 @@
+Release 1.0 (development)
+-------------------------
+
+.. rubric:: Enhancements
+
+* support OpenSSL 1.1
+* use OPENSSL_config() instead of OPENSSL_no_config()
+* handle curl_global_init() return code
+
+.. rubric:: Bug fixes
+
+* handle fatal errors during curl or openssl initialization
+* Fix boot selection handling for asymmetric update setups
+* Fix default variant string in case of failure when obtaining
+* Fix return codes when givin excess arguments to CLI functions
+* Let 'rauc service' return exit code != 0 in case of failure
+* Print 'rauc service' user error output with g_printerr()
+* Fix showing primary slot (obtained via D-Bus) in 'rauc status'
+* Fix showing inverted boot-status (obained via D-Bus) in 'rauc status'
+* Minor output and error handling fixes and enhancements
+
+.. rubric:: Testing
+
+* Fake entropy in uml tests to fix and speed up testing
+* Fix creating and submitting coverity report data
+* Migrate to using Docker images for testing
+* Changed coverage service from coveralls to codecov.io
+
+.. rubric:: Documentation
+
+* Fixes and enhancements of README.rst to match current state
+* Add sphinx DTS lexer for fixing and improving dts example code parsing
+
 Release 1.0-rc1 (released Oct 12, 2018)
 ---------------------------------------
 
