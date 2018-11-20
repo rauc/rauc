@@ -34,13 +34,13 @@ static GString *bootchooser_order_primay(RaucSlot *slot)
 
 	order = g_string_new(slot->bootname);
 
-	/* Iterate over class members */
+	/* Iterate over boot selection-handled slots (bootname set) */
 	slots = g_hash_table_get_values(r_context()->config->slots);
 	for (GList *l = slots; l != NULL; l = l->next) {
 		RaucSlot *s = l->data;
 		if (s == slot)
 			continue;
-		if (s->sclass != slot->sclass)
+		if (!s->bootname)
 			continue;
 
 		g_string_append_c(order, ' ');
@@ -304,9 +304,8 @@ static gboolean barebox_set_primary(RaucSlot *slot, GError **error)
 		int prio;
 		BareboxSlotState bb_state;
 
-		if (s->sclass != slot->sclass)
+		if (!s->bootname)
 			continue;
-
 
 		if (!barebox_state_get(s->bootname, &bb_state, &ierror)) {
 			g_propagate_error(error, ierror);
