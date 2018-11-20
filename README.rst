@@ -5,27 +5,9 @@
 RAUC - Robust Auto-Update Controller
 ====================================
 
+|LGPLv2.1| |Travis_branch| |Codecov_branch| |Coverity| |Documentation| |Matrix|
 
-.. image:: https://img.shields.io/badge/license-LGPLv2.1-blue.svg
-   :alt: LGPLv2.1
-   :target: https://raw.githubusercontent.com/rauc/rauc/master/COPYING
-.. image:: https://img.shields.io/travis/rauc/rauc/master.svg
-   :alt: Travis branch
-   :target: https://travis-ci.org/rauc/rauc
-.. image:: https://codecov.io/gh/rauc/rauc/branch/master/graph/badge.svg
-   :alt: Codecov.io branch
-   :target: https://codecov.io/gh/rauc/rauc
-.. image:: https://img.shields.io/coverity/scan/5085.svg
-   :alt: Coverity
-   :target: https://scan.coverity.com/projects/5085
-.. image:: https://readthedocs.org/projects/rauc/badge/?version=latest
-   :alt: Documentation
-   :target: http://rauc.readthedocs.org/en/latest/?badge=latest
-.. image:: https://matrix.to/img/matrix-badge.svg
-   :alt: Chat
-   :target: https://riot.im/app/#/room/#rauc:matrix.org
-
-RAUC controls the update process on embedded linux systems. It is both a target
+RAUC controls the update process on embedded Linux systems. It is both a target
 application that runs as an update client and a host/target tool
 that allows you to create, inspect and modify installation artifacts.
 
@@ -54,10 +36,11 @@ Features
   * **Asymmetric** setup (recovery & normal)
   * Application partition, Data Partitions, ...
   * Allows **grouping** of multiple slots (rootfs, appfs) as update targets
-* Two update modes:
+* Network streaming mode using **casync**
 
-  * Bundle: single file containing the whole update
-  * Network: separate manifest and component files
+  * chunk-based binary delta updates
+  * significantly reduce download size
+  * no extra storage required
 * **Bootloader support**:
 
   * `grub <https://www.gnu.org/software/grub/>`_
@@ -194,10 +177,14 @@ Testing
 Creating a Bundle
 -----------------
 
-::
+Create a directory with the content that should be installed::
 
     mkdir content-dir/
     cp $SOURCE/rootfs.ext4.img content-dir/
+
+Create a manifest describing which image to install where together with some
+meta info::
+
     cat >> content-dir/manifest.raucm << EOF
     [update]
     compatible=FooCorp Super BarBazzer
@@ -205,7 +192,10 @@ Creating a Bundle
     [image.rootfs]
     filename=rootfs.ext4.img
     EOF
-    rauc --cert autobuilder.cert.pem --key autobuilder.key.pem bundle content-dir/ update-2015.04-1.raucb
+
+Let RAUC create a bundle from this::
+
+    rauc --cert autobuilder.cert.pem --key autobuilder.key.pem bundle content-dir/ update-2018.11-1.raucb
 
 Installing a Bundle
 -------------------
@@ -225,11 +215,13 @@ section for more details.
 
 .. |LGPLv2.1| image:: https://img.shields.io/badge/license-LGPLv2.1-blue.svg
    :target: https://raw.githubusercontent.com/rauc/rauc/master/COPYING
-.. |Travis branch| image:: https://img.shields.io/travis/rauc/rauc/master.svg
+.. |Travis_branch| image:: https://img.shields.io/travis/rauc/rauc/master.svg
    :target: https://travis-ci.org/rauc/rauc
-.. |Coveralls branch| image:: https://img.shields.io/coveralls/rauc/rauc/master.svg
-   :target: https://coveralls.io/r/rauc/rauc
+.. |Codecov_branch| image:: https://codecov.io/gh/rauc/rauc/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/rauc/rauc
 .. |Coverity| image:: https://img.shields.io/coverity/scan/5085.svg
    :target: https://scan.coverity.com/projects/5085
 .. |Documentation| image:: https://readthedocs.org/projects/rauc/badge/?version=latest
    :target: http://rauc.readthedocs.org/en/latest/?badge=latest
+.. |Matrix| image:: https://matrix.to/img/matrix-badge.svg
+   :target: https://riot.im/app/#/room/#rauc:matrix.org
