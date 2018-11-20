@@ -7,7 +7,7 @@ RAUC - Robust Auto-Update Controller
 
 |LGPLv2.1| |Travis_branch| |Codecov_branch| |Coverity| |Documentation| |Matrix|
 
-RAUC controls the update process on embedded linux systems. It is both a target
+RAUC controls the update process on embedded Linux systems. It is both a target
 application that runs as an update client and a host/target tool
 that allows you to create, inspect and modify installation artifacts.
 
