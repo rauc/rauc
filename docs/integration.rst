@@ -924,7 +924,7 @@ Based on this information, a call of::
 
 will build all required images and generate a signed RAUC bundle from this.
 The created bundle can be found in
-``${DELPOY_DIR_IMAGE}``
+``${DEPLOY_DIR_IMAGE}``
 (defaults to ``tmp/deploy/images/<machine>`` in your build directory).
 
 .. _sec_int_ptxdist:
