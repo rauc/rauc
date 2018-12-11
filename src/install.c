@@ -1230,6 +1230,7 @@ out:
 }
 #endif
 
+#if ENABLE_NETWORK
 static void print_slot_hash_table(GHashTable *hash_table)
 {
 	GHashTableIter iter;
@@ -1241,6 +1242,7 @@ static void print_slot_hash_table(GHashTable *hash_table)
 		g_print("  %s -> %s\n", key, slot->name);
 	}
 }
+#endif
 
 gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 {
