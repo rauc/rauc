@@ -183,9 +183,14 @@ then
             ;;
     esac
 
-    # Change the first '-' to a '.', so version-comparing tools work properly.
-    # Remove the "g" in git describe's output string, to save a byte.
-    v=`echo "$v" | sed 's/-/./;s/\(.*\)-g/\1-/'`;
+    case "$v" in
+        *-[0-9]*-g*)
+	    # Change the '-' before the number of commits since the last tag to a '.',
+	    # so version-comparing tools work properly.
+	    # Remove the "g" in git describe's output string, to save a byte.
+	    v=`echo "$v" | sed 's/-\([0-9]*-g[0-9a-f]*\)/.\1/;s/\(.*\)-g/\1-/'`;
+	    ;;
+    esac
     v_from_git=1
 elif test "x$fallback" = x || git --version >/dev/null 2>&1; then
     v=UNKNOWN
