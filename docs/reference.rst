@@ -726,6 +726,7 @@ Bootloader Interaction
 ----------------------
 
 RAUC comes with a generic interface for interacting with the bootloader.
+It handles *all* slots that have a `bootname` property set.
 
 It provides two base functions:
 
