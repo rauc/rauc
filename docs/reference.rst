@@ -196,8 +196,11 @@ hierarchical separator.
   Defaults to ``raw`` if none given.
 
 ``bootname``
-  For bootable slots, the name the bootloader uses to identify it. The real
-  meaning of this depends on the bootloader implementation used.
+  Registers the slot for being handled by the
+  :ref:`bootselection interface <bootloader-interaction>` with the name
+  specified.
+  The actual meaning of the name provided depends on the bootloader
+  implementation used.
 
 ``parent``
   The ``parent`` entry is used to bind additional slots to a bootable root
