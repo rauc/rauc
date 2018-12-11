@@ -1,6 +1,9 @@
 Examples
 ========
 
+Full System Example
+-------------------
+
 This chapter aims to explain the basic concepts needed for RAUC using a simple
 but realistic scenario.
 
@@ -19,7 +22,7 @@ This scenario can be easily reproduced using a QEMU_ virtual machine.
 .. _QEMU: http://wiki.qemu.org/
 
 PKI Setup
----------
+~~~~~~~~~
 
 RAUC uses an x.509 PKI (public key infrastructure) to sign and verify updates.
 To create a simple key pair for testing, we can use ``openssl``::
@@ -33,7 +36,7 @@ easy-rsa_ is a good first step. See :ref:`sec-security` for more details.
 .. _easy-rsa: https://github.com/OpenVPN/easy-rsa
 
 RAUC Configuration
-------------------
+~~~~~~~~~~~~~~~~~~
 
 We need a RAUC system configuration file to describe the slots which can be
 updated
@@ -62,7 +65,7 @@ In this case, we need to place the signing certificate into
 ``/etc/rauc/demo.cert.pem``, so that it is used by RAUC for verification.
 
 GRUB Configuration
-------------------
+~~~~~~~~~~~~~~~~~~
 
 GRUB itself is stored on ``/dev/sda1``, separate from the root file system. To
 access GRUB's environment file, this partition should be mounted to ``/boot``
@@ -144,7 +147,7 @@ scope for RAUC. A common approach is to generate a complete disk image
 OpenEmbedded/Yocto, PTXdist or buildroot.
 
 Bundle Generation
------------------
+~~~~~~~~~~~~~~~~~
 
 To create a bundle, we need to collect the components which should become part
 of the update in a directory (in this case only the root file system image)::
@@ -176,7 +179,7 @@ We now have the ``update-2015.04-1.raucb`` bundle file, which can be copied onto
 target system, in this case using a USB memory stick.
 
 Update Installation
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 Having copied ``update-2015.04-1.raucb`` onto the target, we only need to run RAUC::
 
@@ -203,7 +206,7 @@ critical errors and by using a (software) watchdog, hangs in a non-working
 installation can be avoided.
 
 Write Slots Without Update Mechanics
-------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Assuming an image has been copied to or exists on the target, a manual slot
 write can be performed by::
@@ -212,6 +215,137 @@ write can be performed by::
 
 This will write the rootfs image ``rootfs.ext4`` to the slot ``rootfs.0``. Note
 that this bypasses all update mechanics like hooks, slot status etc.
+
+Example Slot Configurations
+---------------------------
+
+This provides some common examples on how to configure slots in your
+system.conf for different scenarios.
+
+Symmetric A/B Setup
+~~~~~~~~~~~~~~~~~~~
+
+This is the default case when having a fully-redundant root file system
+
+.. code-block:: cfg
+  :emphasize-lines: 3, 6, 8, 11
+
+  [...]
+
+  [slot.rootfs.0]
+  device=/dev/sda2
+  type=ext4
+  bootname=A
+
+  [slot.rootfs.1]
+  device=/dev/sda3
+  type=ext4
+  bootname=B
+
+
+Asymmetric A/Recovery Setup
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In case storage is too restricted for a full A/B redundancy setup, an
+asymmetric setup with a dedicated update/recovery slot can be used.
+The recovery slot can be way smaller than the rootfs one as it needs to contain
+only the tools for updating the rootfs slot.
+Because the recovery slot is not meant to be updated in most cases, we can
+manifest this for RAUC by setting the ``readonly=true`` option.
+
+.. code-block:: cfg
+  :emphasize-lines: 3, 6, 7, 9, 12
+
+  [...]
+
+  [slot.recovery.0]
+  device=/dev/sda2
+  type=ext4
+  bootname=R
+  readonly=true
+
+  [slot.rootfs.0]
+  device=/dev/sda3
+  type=ext4
+  bootname=A
+
+Separate Application Partition
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+RAUC allows to have a separate redundant set of slots for the application (or
+other purpose) that have a fixed relation to their corresponding rootfs slots.
+RAUC assures that an update of the entire slot group (rootfs + appfs) is
+atomic.
+
+When defining appfs slots, be sure to set the correct `parent` relation to the
+associated bootable slot.
+
+.. code-block:: cfg
+  :emphasize-lines: 14, 19
+
+  [...]
+
+  [slot.rootfs.0]
+  device=/dev/sda2
+  type=ext4
+  bootname=A
+
+  [slot.rootfs.1]
+  device=/dev/sda3
+  type=ext4
+  bootname=B
+
+  [slot.appfs.0]
+  parent=rootfs.0
+  device=/dev/sda4
+  type=ext4
+
+  [slot.appfs.1]
+  parent=rootfs.1
+  device=/dev/sda5
+  type=ext4
+
+Atomic Bootloader Updates (eMMC)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Updating the Bootloader is also possible with RAUC, despite this is a bit more
+critical than updating the rootfs, as there is no fallback mechanism.
+
+However, depending on the ROM loader it can at least be possible to perform the
+bootloader update atomically.
+The most common example for this is using the two boot partitions of an eMMC
+for atomic bootloader updates which RAUC supports out-of-the-box.
+
+.. code-block:: cfg
+  :emphasize-lines: 3, 5
+
+  [...]
+
+  [slot.bootloader.0]
+  device=/dev/mmcblk0
+  type=boot-emmc
+
+  [slot.rootfs.0]
+  device=/dev/mmcblk0p1
+  type=ext4
+  bootname=A
+
+  [slot.rootfs.1]
+  device=/dev/mmcblk0p2
+  type=ext4
+  bootname=B
+
+Symmetric A/B Setup + Recovery
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Booting into the recovery slot should normally be handled by the bootloader
+if it fails to load the symmetric slots.
+
+Thus from the RAUC perspective this setup is identical to the default A/B
+setup.
+
+Anyway, you can still define it as a slot if you need to be able to provide
+an update for this, too.
 
 Example BSPs
 ------------
