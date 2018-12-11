@@ -431,6 +431,189 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 	g_assert_cmpint(sk_X509_num(fixture->verified_chain), ==, 3);
 }
 
+static void signature_cmsverify_path(SignatureFixture *fixture,
+		gconstpointer user_data)
+{
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/dir/a.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/dir/private/a.key.pem");
+	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/dir/a.cert.pem");
+
+	/* Sign with "A" key and cert */
+	fixture->sig = cms_sign(fixture->content,
+			r_context()->certpath,
+			r_context()->keypath,
+			NULL,
+			&fixture->error);
+	g_assert_nonnull(fixture->sig);
+	g_assert_no_error(fixture->error);
+
+	g_clear_error(&fixture->error);
+
+	/* Verify against "A" cert */
+	g_assert_true(cms_verify(fixture->content,
+			fixture->sig,
+			&fixture->cms,
+			&fixture->store,
+			&fixture->error));
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->cms);
+	g_assert_nonnull(fixture->store);
+}
+
+static void signature_cmsverify_dir_combined(SignatureFixture *fixture,
+		gconstpointer user_data)
+{
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/dir/a.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/dir/private/a.key.pem");
+	r_context_conf()->keyringdirectory = g_strdup("test/openssl-ca/dir/hash/ab");
+
+	/* Sign with "A" key and cert */
+	fixture->sig = cms_sign(fixture->content,
+			r_context()->certpath,
+			r_context()->keypath,
+			NULL,
+			&fixture->error);
+	g_assert_nonnull(fixture->sig);
+	g_assert_no_error(fixture->error);
+	g_clear_error(&fixture->error);
+
+	/* Verify against certs stored in combined directory (A+B) */
+	g_assert_true(cms_verify(fixture->content,
+			fixture->sig,
+			&fixture->cms,
+			&fixture->store,
+			&fixture->error));
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->cms);
+	g_assert_nonnull(fixture->store);
+}
+
+static void signature_cmsverify_dir_single_fail(SignatureFixture *fixture,
+		gconstpointer user_data)
+{
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/dir/b.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/dir/private/b.key.pem");
+
+	/* Sign with "B" key and cert */
+	fixture->sig = cms_sign(fixture->content,
+			r_context()->certpath,
+			r_context()->keypath,
+			NULL,
+			&fixture->error);
+	g_assert_nonnull(fixture->sig);
+	g_assert_no_error(fixture->error);
+	g_clear_error(&fixture->error);
+
+	/* Verify against certs stored in combined directory (A+B) */
+	r_context_conf()->keyringdirectory = g_strdup("test/openssl-ca/dir/hash/ab");
+	r_context();
+	g_assert_true(cms_verify(fixture->content,
+			fixture->sig,
+			&fixture->cms,
+			&fixture->store,
+			&fixture->error));
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->cms);
+	g_assert_nonnull(fixture->store);
+
+	/* Verify failure against certs stored in "A" only directory */
+	g_clear_pointer(&fixture->cms, CMS_ContentInfo_free);
+	g_clear_pointer(&fixture->store, X509_STORE_free);
+	g_free(r_context_conf()->keyringdirectory);
+	r_context_conf()->keyringdirectory = g_strdup("test/openssl-ca/dir/hash/a");
+	r_context();
+	g_assert_false(cms_verify(fixture->content,
+			fixture->sig,
+			&fixture->cms,
+			&fixture->store,
+			&fixture->error));
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
+}
+
+static void signature_cmsverify_pathdir_dir(SignatureFixture *fixture,
+		gconstpointer user_data)
+{
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/dir/a.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/dir/private/a.key.pem");
+	r_context_conf()->keyringdirectory = g_strdup("test/openssl-ca/dir/hash/a");
+	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/dir/b.cert.pem");
+
+	/* Sign with "A" key and cert */
+	fixture->sig = cms_sign(fixture->content,
+			r_context()->certpath,
+			r_context()->keypath,
+			NULL,
+			&fixture->error);
+	g_assert_nonnull(fixture->sig);
+	g_assert_no_error(fixture->error);
+	g_clear_error(&fixture->error);
+
+	/* Verify against certs stored in directory(A) + path(B) */
+	g_assert_true(cms_verify(fixture->content,
+			fixture->sig,
+			&fixture->cms,
+			&fixture->store,
+			&fixture->error));
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->cms);
+	g_assert_nonnull(fixture->store);
+}
+
+static void signature_cmsverify_pathdir_path(SignatureFixture *fixture,
+		gconstpointer user_data)
+{
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/dir/b.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/dir/private/b.key.pem");
+	r_context_conf()->keyringdirectory = g_strdup("test/openssl-ca/dir/hash/a");
+	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/dir/b.cert.pem");
+
+	/* Sign with "B" key and cert */
+	fixture->sig = cms_sign(fixture->content,
+			r_context()->certpath,
+			r_context()->keypath,
+			NULL,
+			&fixture->error);
+
+	g_assert_nonnull(fixture->sig);
+	g_assert_no_error(fixture->error);
+	g_clear_error(&fixture->error);
+
+	/* Verify against certs stored in directory(A) + path(B) */
+	g_assert_true(cms_verify(fixture->content,
+			fixture->sig,
+			&fixture->cms,
+			&fixture->store,
+			&fixture->error));
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->cms);
+	g_assert_nonnull(fixture->store);
+}
+
+static void signature_cmsverify_nocert(SignatureFixture *fixture,
+		gconstpointer user_data)
+{
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/dir/a.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/dir/private/a.key.pem");
+
+	/* Sign with "A" key and cert */
+	fixture->sig = cms_sign(fixture->content,
+			r_context()->certpath,
+			r_context()->keypath,
+			NULL,
+			&fixture->error);
+	g_assert_nonnull(fixture->sig);
+	g_assert_no_error(fixture->error);
+	g_clear_error(&fixture->error);
+
+	/* Verify error when not given directory or path */
+	g_assert_false(cms_verify(fixture->content,
+			fixture->sig,
+			&fixture->cms,
+			&fixture->store,
+			&fixture->error));
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_CA_LOAD);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -454,7 +637,12 @@ int main(int argc, char *argv[])
 	g_test_add("/signature/selfsigned", SignatureFixture, NULL, signature_set_up, signature_selfsigned, signature_tear_down);
 	g_test_add("/signature/intermediate", SignatureFixture, NULL, signature_set_up, signature_intermediate, signature_tear_down);
 	g_test_add("/signature/intermediate_file", SignatureFixture, NULL, signature_set_up, signature_intermediate_file, signature_tear_down);
-
+	g_test_add("/signature/cmsverify_path", SignatureFixture, NULL, signature_set_up, signature_cmsverify_path, signature_tear_down);
+	g_test_add("/signature/cmsverify_dir_combined", SignatureFixture, NULL, signature_set_up, signature_cmsverify_dir_combined, signature_tear_down);
+	g_test_add("/signature/cmsverify_dir_single_fail", SignatureFixture, NULL, signature_set_up, signature_cmsverify_dir_single_fail, signature_tear_down);
+	g_test_add("/signature/cmsverify_pathdir_dir", SignatureFixture, NULL, signature_set_up, signature_cmsverify_pathdir_dir, signature_tear_down);
+	g_test_add("/signature/cmsverify_pathdir_path", SignatureFixture, NULL, signature_set_up, signature_cmsverify_pathdir_path, signature_tear_down);
+	g_test_add("/signature/cmsverify_nocert", SignatureFixture, NULL, signature_set_up, signature_cmsverify_nocert, signature_tear_down);
 
 	return g_test_run();
 }

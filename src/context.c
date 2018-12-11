@@ -273,6 +273,10 @@ static void r_context_configure(void)
 		context->config->keyring_path = g_strdup(context->keyringpath);
 	}
 
+	if (context->keyringdirectory) {
+		context->config->keyring_directory = g_strdup(context->keyringdirectory);
+	}
+
 	context->pending = FALSE;
 }
 
@@ -560,9 +564,11 @@ void r_context_clean(void)
 		g_free(context->certpath);
 		g_free(context->keypath);
 		g_free(context->keyringpath);
+		g_free(context->keyringdirectory);
 		context->certpath = NULL;
 		context->keypath = NULL;
 		context->keyringpath = NULL;
+		context->keyringdirectory = NULL;
 
 		if(context->config) {
 			context->config->keyring_path = NULL;

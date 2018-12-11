@@ -110,10 +110,23 @@ Example configuration:
 
 The ``keyring`` section refers to the trusted keyring used for signature
 verification.
+Both ``path`` and ``directory`` options can be used together if
+desired, though only one or the other is necessary to verify the bundle
+signature.
 
 ``path``
   Path to the keyring file in PEM format. Either absolute or relative to the
   system.conf file.
+
+``directory``
+  Path to the keyring directory containing one or more certificates.
+  Each file in this directory must contain exactly one certificate in CRL or
+  PEM format.
+  The filename of each certificate must have the form hash.N for a certificate
+  or hash.rN for CRLs;
+  where hash is obtained by ``X509_NAME_hash(3)`` or the ``--hash`` option of
+  ``openssl(1)`` ``x509`` or ``crl`` commands.
+  See documentation in ``X509_LOOKUP_hash_dir(3)`` for details.
 
 ``use-bundle-signing-time=<true/false>``
   If this boolean value is set to ``true`` then the bundle signing time
