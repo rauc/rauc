@@ -167,10 +167,8 @@ then
     #   Newer: v6.10-77-g0f8faeb
     #   Older: v6.10-g0f8faeb
     case $v in
-        *-rc*-*) : we have a rc release ;;
-        *-*-*) : git describe is okay three part flavor ;;
-        *-rc*) : we have a rc release ;;
-        *-*)
+        *-[0-9]*-g[0-9a-f]*) : git describe is okay three part flavor ;;
+        *-g[0-9a-f]*)
             : git describe is older two part flavor
             # Recreate the number of commits and rewrite such that the
             # result is the same as if we were using the newer version
