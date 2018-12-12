@@ -649,6 +649,8 @@ static gboolean launch_and_wait_handler(gchar *update_source, gchar *handler_nam
 			continue;
 
 		parse_handler_output(outline);
+
+		g_free(outline);
 	} while (outline);
 
 	res = g_subprocess_wait_check(handleproc, NULL, &ierror);
