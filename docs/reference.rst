@@ -186,38 +186,41 @@ The `<slot-class>` name is used in the *update manifest* to target the correct
 set of slots. It must not contain any `.` (dots) as these are used as
 hierarchical separator.
 
-``device``
+``device=</path/to/dev>``
   The slot's device path. This one is mandatory.
 
-``type``
-  The type describing the slot. Currently supported values are ``raw``,
+``type=<type>``
+  The type describing the slot. Currently supported ``<type>`` values are ``raw``,
   ``nand``, ``ubivol``, ``ubifs``, ``ext4``, ``vfat``.
   See table :ref:`sec-slot-type` for a more detailed list of these different types.
   Defaults to ``raw`` if none given.
 
-``bootname``
-  For bootable slots, the name the bootloader uses to identify it. The real
-  meaning of this depends on the bootloader implementation used.
+``bootname=<name>``
+  Registers the slot for being handled by the
+  :ref:`bootselection interface <bootloader-interaction>` with the ``<name>``
+  specified.
+  The actual meaning of the name provided depends on the bootloader
+  implementation used.
 
-``parent``
+``parent=<slot>``
   The ``parent`` entry is used to bind additional slots to a bootable root
-  file system slot.
+  file system ``<slot>``.
   This is used together with the ``bootname`` to identify the set of currently
   active slots, so that the inactive one can be selected as the update target.
   The parent slot is referenced using the form ``<slot-class>.<idx>``.
 
-``readonly``
+``readonly=<true/false>``
   Marks the slot as existing but not updatable. May be used for sanity checking
   or informative purpose. A ``readonly`` slot cannot be a target slot.
 
-``force-install-same``
+``force-install-same=<true/false>``
   If set to ``true`` this will bypass the default hash comparison for this slot
   and force RAUC to unconditionally update it. The default value is ``false``,
   which means that updating this slot will be skipped if new image's hash
   matches hash of installed one.
   This replaces the deprecated entry ``ignore-checksum``.
 
-``extra-mount-opts``
+``extra-mount-opts=<options>``
   Allows to specify custom mount options that will be passed to the slots
   ``mount`` call as ``-o`` argument value.
 
@@ -726,6 +729,7 @@ Bootloader Interaction
 ----------------------
 
 RAUC comes with a generic interface for interacting with the bootloader.
+It handles *all* slots that have a `bootname` property set.
 
 It provides two base functions:
 
