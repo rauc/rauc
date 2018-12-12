@@ -314,7 +314,8 @@ critical than updating the rootfs, as there is no fallback mechanism.
 However, depending on the ROM loader it can at least be possible to perform the
 bootloader update atomically.
 The most common example for this is using the two boot partitions of an eMMC
-for atomic bootloader updates which RAUC supports out-of-the-box.
+for atomic bootloader updates which RAUC supports out-of-the-box
+(refer :ref:`sec-emmc-boot`).
 
 .. code-block:: cfg
   :emphasize-lines: 3, 5

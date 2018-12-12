@@ -613,6 +613,8 @@ non-bootable system caused by an error or power-loss during the update.
 Whether atomic bootloader updates can be implemented depends on your
 SoC/firmware and storage medium.
 
+.. _sec-emmc-boot:
+
 Update eMMC Boot Partitions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
