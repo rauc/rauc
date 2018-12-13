@@ -9,6 +9,8 @@ Release 1.0 (development)
 
 .. rubric:: Bug fixes
 
+* Fix memory leaks when parsing handler output
+* Fix compiler error when building with --disable-network
 * handle fatal errors during curl or openssl initialization
 * Fix boot selection handling for asymmetric update setups
 * Fix default variant string in case of failure when obtaining
@@ -28,6 +30,8 @@ Release 1.0 (development)
 
 .. rubric:: Documentation
 
+* Provided slot configuration :ref:`examples <sec-example-slot-configs>` for
+  common scenarios
 * Fixes and enhancements of README.rst to match current state
 * Add sphinx DTS lexer for fixing and improving dts example code parsing
 

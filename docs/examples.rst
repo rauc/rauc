@@ -216,6 +216,8 @@ write can be performed by::
 This will write the rootfs image ``rootfs.ext4`` to the slot ``rootfs.0``. Note
 that this bypasses all update mechanics like hooks, slot status etc.
 
+.. _sec-example-slot-configs:
+
 Example Slot Configurations
 ---------------------------
 
