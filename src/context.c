@@ -137,7 +137,7 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 			continue;
 
 		if (g_str_has_prefix(outline, "RAUC_")) {
-			gchar **split = g_strsplit(outline, "=", 2);
+			g_auto(GStrv) split = g_strsplit(outline, "=", 2);
 
 			if (g_strv_length(split) != 2) {
 				g_free(outline);
@@ -145,7 +145,6 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 			}
 
 			g_hash_table_insert(variables, g_strdup(split[0]), g_strdup(split[1]));
-			g_strfreev(split);
 		}
 
 		g_free(outline);
