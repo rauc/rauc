@@ -1,20 +1,49 @@
 #!/bin/bash
 
-# Command line parsing
-if [ $# -le 2 ]; then
-	echo "Invalid arguments $*"
+# Variable argument count
+if [ $# -lt 2 ]; then
+	echo "At least path to grubenv file and command must be specified!"
 	exit 1
 fi
-
+GRUBENV="$1"
+shift
+CMD="$1"
 shift
 
-if ! [ "$1" = "set" ]; then
-	echo "Invalid command: '$1'"
-	exit 1
-fi 
-shift
+# Loads key/value pairs from grub environment file
+function variables_load()
+{
+	if ! [ -f "$GRUBENV" ]; then
+		echo "GRUB environment file not found: $GRUBENV"
+		exit 1
+	fi
 
-function check_var {
+	while read -r line; do
+		var="${line%=*}"
+		val="${line#*=}"
+		eval "$var='$val'"
+	done < "$GRUBENV"
+}
+
+# Stores key/value pair for a single variable (if set)
+function variable_store()
+{
+	! [ -z "${!1}" ] && echo "${1}=${!1}" >> "$GRUBENV"
+}
+
+# Stores grub environment file contents
+function variables_store()
+{
+	echo -n "" > "$GRUBENV"
+	variable_store "A_TRY"
+	variable_store "B_TRY"
+	variable_store "A_OK"
+	variable_store "B_OK"
+	variable_store "ORDER"
+}
+
+# Validates and sets variable value
+function variable_set {
 	if [ "$1" = "ORDER" ]; then
 		if ! [ "$2" = "A B" -o "$2" = "B A" ]; then
 			echo "Invalid argument for ORDER: '$2'"
@@ -44,14 +73,58 @@ function check_var {
 		echo "Invalid key: '$1'"
 		exit 1
 	fi
+	eval "$1=\"$2\""
 	printf "$1=$2\n"
 }
 
-for i in "$@"; do
-	var="${i%=*}"
-	val="${i#*=}"
+# Loads variables passed to 'grub-editenv set'
+function variables_set()
+{
+	if [ $# -lt 1 ]; then
+		echo "No variables passed to 'grub-editenv set'"
+		exit 1
+	fi
 
-	check_var "$var" "$val"
-done
+	for i in "$@"; do
+		var="${i%=*}"
+		val="${i#*=}"
+		variable_set "$var" "$val"
+	done
+
+	variables_store
+}
+
+# Prints key/value pair for a single variable (if set)
+function variable_print()
+{
+	! [ -z "${!1}" ] && echo "${1}=${!1}"
+}
+
+# Lists all variables and their values
+function variables_list()
+{
+	variable_print "A_TRY"
+	variable_print "B_TRY"
+	variable_print "A_OK"
+	variable_print "B_OK"
+	variable_print "ORDER"
+}
+
+
+# Load grub environment file
+variables_load
+# Parse command
+case $CMD in
+	"set")
+		variables_set "$@"
+		;;
+	"list")
+		variables_list "$@"
+		;;
+	*)
+		echo "Invalid command: '$CMD'"
+		exit 1
+		;;
+esac
 
 exit 0

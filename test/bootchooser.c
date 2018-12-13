@@ -260,12 +260,47 @@ bootstate.system0.priority=20\n\
 	g_assert(primary == recovery);
 }
 
+/* Write content to state storage for grub-editenv RAUC mock tool.
+ * Content should be similar to:
+ * "\
+ * A_TRY=1\n\
+ * B_TRY=0\n\
+ * A_OK=1\n\
+ * B_OK=0\n\
+ * ORDER=A B\n\
+ * "
+ */
+static void test_grub_initialize_state(const gchar *vars)
+{
+	g_assert_true(g_file_set_contents(r_context()->config->grubenv_path, vars, -1, NULL));
+}
+
+/**
+ * Returns TRUE if mock tools state content equals desired content,
+ * FALSE otherwise
+ */
+static gboolean test_grub_post_state(const gchar *compare)
+{
+	g_autofree gchar *contents = NULL;
+
+	g_assert_true(g_file_get_contents(r_context()->config->grubenv_path, &contents, NULL, NULL));
+
+	if (g_strcmp0(contents, compare) != 0) {
+		g_print("Error: '%s' and '%s' differ\n", contents, compare);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 static void bootchooser_grub(BootchooserFixture *fixture,
 		gconstpointer user_data)
 {
-	GError *ierror = NULL;
-	gboolean res = FALSE;
-	RaucSlot *slot;
+	RaucSlot *rootfs0 = NULL;
+	RaucSlot *rootfs1 = NULL;
+	RaucSlot *primary = NULL;
+	gboolean good;
+	GError *error = NULL;
 
 	const gchar *cfg_file = "\
 [system]\n\
@@ -299,22 +334,181 @@ bootname=B\n";
 	r_context_conf()->configpath = pathname;
 	r_context();
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
-	g_assert_nonnull(slot);
+	rootfs0 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
+	g_assert_nonnull(rootfs0);
+	rootfs1 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
+	g_assert_nonnull(rootfs1);
 
-	res = r_boot_set_state(slot, TRUE, &ierror);
-	g_assert_no_error(ierror);
-	g_assert_true(res);
-	res = r_boot_set_state(slot, FALSE, &ierror);
-	g_assert_no_error(ierror);
-	g_assert_true(res);
+	/* check rootfs.0 and rootfs.1 are considered bad (as not marked good or boot attempt failed) */
+	test_grub_initialize_state("\
+A_TRY=1\n\
+B_TRY=0\n\
+A_OK=1\n\
+B_OK=0\n\
+ORDER=A B\n\
+");
+	g_assert_true(r_boot_get_state(rootfs0, &good, &error));
+	g_assert_false(good);
+	g_assert_true(r_boot_get_state(rootfs1, &good, &error));
+	g_assert_false(good);
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
-	g_assert_nonnull(slot);
+	/* check rootfs.0 and rootfs.1 are not considered good (A_TRY and B_OK not set) */
+	test_grub_initialize_state("\
+B_TRY=0\n\
+A_OK=1\n\
+ORDER=A B\n\
+");
+	g_assert_false(r_boot_get_state(rootfs0, &good, &error));
+	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_PARSE_FAILED);
+	g_clear_error(&error);
+	g_assert_false(r_boot_get_state(rootfs1, &good, &error));
+	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_PARSE_FAILED);
+	g_clear_error(&error);
 
-	res = r_boot_set_primary(slot, &ierror);
-	g_assert_no_error(ierror);
-	g_assert_true(res);
+	/* check rootfs.1 is considered primary (as rootfs.0 has A_TRY=1) */
+	test_grub_initialize_state("\
+A_TRY=1\n\
+B_TRY=0\n\
+A_OK=0\n\
+B_OK=1\n\
+ORDER=A B\n\
+");
+	primary = r_boot_get_primary(&error);
+	g_assert_nonnull(primary);
+	g_assert(primary != rootfs0);
+	g_assert(primary == rootfs1);
+
+	/* check none is considered primary (as rootfs.0 has A_OK=0 and rootfs.1 is not in ORDER) */
+	test_grub_initialize_state("\
+A_TRY=0\n\
+B_TRY=0\n\
+A_OK=0\n\
+B_OK=1\n\
+ORDER=A\n\
+");
+	primary = r_boot_get_primary(&error);
+	g_assert_null(primary);
+	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_PARSE_FAILED);
+	g_clear_error(&error);
+
+	/* check none is considered primary (B_TRY is not set, rootfs.0 is not in ORDER) */
+	test_grub_initialize_state("\
+A_TRY=0\n\
+A_OK=0\n\
+B_OK=1\n\
+ORDER=B\n\
+");
+	primary = r_boot_get_primary(&error);
+	g_assert_null(primary);
+	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_PARSE_FAILED);
+	g_clear_error(&error);
+
+	/* check none is considered primary (B_OK is not set, rootfs.0 is not in ORDER) */
+	test_grub_initialize_state("\
+A_TRY=0\n\
+B_TRY=0\n\
+A_OK=0\n\
+ORDER=B\n\
+");
+	primary = r_boot_get_primary(&error);
+	g_assert_null(primary);
+	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_PARSE_FAILED);
+	g_clear_error(&error);
+
+	/* check rootfs.0 + rootfs.1 are considered good */
+	test_grub_initialize_state("\
+A_TRY=0\n\
+B_TRY=0\n\
+A_OK=1\n\
+B_OK=1\n\
+ORDER=A B\n\
+");
+	g_assert_true(r_boot_get_state(rootfs0, &good, &error));
+	g_assert_true(good);
+	g_assert_true(r_boot_get_state(rootfs1, &good, &error));
+	g_assert_true(good);
+
+	/* check rootfs.0 is marked bad (A_OK set to 0) */
+	test_grub_initialize_state("\
+A_TRY=0\n\
+B_TRY=0\n\
+A_OK=1\n\
+B_OK=1\n\
+ORDER=A B\n\
+");
+	g_assert_true(r_boot_set_state(rootfs0, FALSE, &error));
+	g_assert_true(test_grub_post_state("\
+A_TRY=0\n\
+B_TRY=0\n\
+A_OK=0\n\
+B_OK=1\n\
+ORDER=A B\n\
+"));
+	/* check rootfs.0 is considered bad */
+	g_assert_true(r_boot_get_state(rootfs0, &good, &error));
+	g_assert_false(good);
+
+	/* check rootfs.0 is marked good (A_OK set to 0) */
+	test_grub_initialize_state("\
+A_TRY=1\n\
+B_TRY=0\n\
+A_OK=0\n\
+B_OK=1\n\
+ORDER=A B\n\
+");
+	g_assert_true(r_boot_set_state(rootfs0, TRUE, &error));
+	g_assert_true(test_grub_post_state("\
+A_TRY=0\n\
+B_TRY=0\n\
+A_OK=1\n\
+B_OK=1\n\
+ORDER=A B\n\
+"));
+	/* check rootfs.0 is considered good */
+	g_assert_true(r_boot_get_state(rootfs0, &good, &error));
+	g_assert_true(good);
+
+	/* check rootfs.1 is marked primary (B_TRY=0, B_OK=1, B first in ORDER) */
+	test_grub_initialize_state("\
+A_TRY=0\n\
+B_TRY=1\n\
+A_OK=1\n\
+B_OK=0\n\
+ORDER=A B\n\
+");
+	g_assert_true(r_boot_set_primary(rootfs1, NULL));
+	g_assert_true(test_grub_post_state("\
+A_TRY=0\n\
+B_TRY=0\n\
+A_OK=1\n\
+B_OK=1\n\
+ORDER=B A\n\
+"));
+	/* check rootfs.1 is considered good */
+	g_assert_true(r_boot_get_state(rootfs1, &good, &error));
+	g_assert_true(good);
+	/* check rootfs.1 is considered primary */
+	primary = r_boot_get_primary(&error);
+	g_assert_nonnull(primary);
+	g_assert(primary != rootfs0);
+	g_assert(primary == rootfs1);
+
+	/* check rootfs.1 is marked primary and rootfs.0 is disabled */
+	test_grub_initialize_state("\
+A_TRY=1\n\
+B_TRY=1\n\
+A_OK=0\n\
+B_OK=0\n\
+ORDER=A B\n\
+");
+	g_assert_true(r_boot_set_primary(rootfs1, NULL));
+	g_assert_true(test_grub_post_state("\
+A_TRY=1\n\
+B_TRY=0\n\
+A_OK=0\n\
+B_OK=1\n\
+ORDER=B A\n\
+"));
 }
 
 /* Write content to state storage for uboot fw_setenv / fw_printenv RAUC mock
