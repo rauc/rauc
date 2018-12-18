@@ -403,7 +403,7 @@ bootname=B\n";
 
 	/* check rootfs.0 and rootfs.1 are considered bad (as not in BOOT_ORDER / no attempts left) */
 	test_uboot_initialize_state("\
-BOOT_ORDER=B R\n\
+BOOT_ORDER=B\n\
 BOOT_A_LEFT=3\n\
 BOOT_B_LEFT=0\n\
 ");
@@ -414,7 +414,7 @@ BOOT_B_LEFT=0\n\
 
 	/* check rootfs.1 is considered primary (as rootfs.0 has BOOT_A_LEFT set to 0) */
 	test_uboot_initialize_state("\
-BOOT_ORDER=A B R\n\
+BOOT_ORDER=A B\n\
 BOOT_A_LEFT=0\n\
 BOOT_B_LEFT=3\n\
 ");
@@ -425,18 +425,18 @@ BOOT_B_LEFT=3\n\
 
 	/* check none is considered primary (as rootfs.0 has BOOT_A_LEFT set to 0 and rootfs.1 is not in BOOT_ORDER) */
 	test_uboot_initialize_state("\
-BOOT_ORDER=A R\n\
+BOOT_ORDER=A\n\
 BOOT_A_LEFT=0\n\
 BOOT_B_LEFT=3\n\
 ");
 	primary = r_boot_get_primary(&error);
 	g_assert_null(primary);
-	g_assert_error(error, G_SPAWN_EXIT_ERROR, 1);
+	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_PARSE_FAILED);
 	g_clear_error(&error);
 
 	/* check rootfs.0 + rootfs.1 are considered good */
 	test_uboot_initialize_state("\
-BOOT_ORDER=A B R\n\
+BOOT_ORDER=A B\n\
 BOOT_A_LEFT=3\n\
 BOOT_B_LEFT=3\n\
 ");
@@ -448,7 +448,7 @@ BOOT_B_LEFT=3\n\
 	/* check rootfs.0 is marked bad (BOOT_A_LEFT set to 0) */
 	g_assert_true(r_boot_set_state(rootfs0, FALSE, NULL));
 	g_assert_true(test_uboot_post_state("\
-BOOT_ORDER=B R\n\
+BOOT_ORDER=B\n\
 BOOT_A_LEFT=0\n\
 BOOT_B_LEFT=3\n\
 "));
@@ -459,33 +459,33 @@ BOOT_B_LEFT=3\n\
 	/* check rootfs.0 is marked good again (BOOT_A_LEFT reset to 3) */
 	g_assert_true(r_boot_set_state(rootfs0, TRUE, NULL));
 	g_assert_true(test_uboot_post_state("\
-BOOT_ORDER=B R\n\
+BOOT_ORDER=B\n\
 BOOT_A_LEFT=3\n\
 BOOT_B_LEFT=3\n\
 "));
 
 	/* check rootfs.1 is marked primary (first in BOOT_ORDER, BOOT_B_LEFT reset to 3) */
 	test_uboot_initialize_state("\
-BOOT_ORDER=A B R\n\
+BOOT_ORDER=A B\n\
 BOOT_A_LEFT=3\n\
 BOOT_B_LEFT=1\n\
 ");
 	g_assert_true(r_boot_set_primary(rootfs1, NULL));
 	g_assert_true(test_uboot_post_state("\
-BOOT_ORDER=B A R\n\
+BOOT_ORDER=B A\n\
 BOOT_A_LEFT=3\n\
 BOOT_B_LEFT=3\n\
 "));
 
 	/* check rootfs.1 is marked primary while rootfs.0 remains disabled (BOOT_A_LEFT remains 0)  */
 	test_uboot_initialize_state("\
-BOOT_ORDER=A B R\n\
+BOOT_ORDER=A B\n\
 BOOT_A_LEFT=0\n\
 BOOT_B_LEFT=0\n\
 ");
 	g_assert_true(r_boot_set_primary(rootfs1, NULL));
 	g_assert_true(test_uboot_post_state("\
-BOOT_ORDER=B A R\n\
+BOOT_ORDER=B A\n\
 BOOT_A_LEFT=0\n\
 BOOT_B_LEFT=3\n\
 "));
