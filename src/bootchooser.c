@@ -666,6 +666,14 @@ static RaucSlot* uboot_get_primary(GError **error)
 			break;
 	}
 
+	if (!primary) {
+		g_set_error_literal(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Unable to find primary boot slot");
+	}
+
 	return primary;
 }
 
