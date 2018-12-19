@@ -96,6 +96,8 @@ gboolean default_config(RaucConfig **config);
  * @param config a RaucConfig
  * @param device the device path to search for
  *
+ * @see find_slot_by_device()
+ *
  * @return a RaucSlot pointer or NULL
  */
 RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device);
