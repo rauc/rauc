@@ -59,7 +59,7 @@ Release 1.0-rc1 (released Oct 12, 2018)
     to ``mount`` calls (such as user_xattr or seclabel)
   * Implement support for ``readonly`` slots that are part of the slot description but
     should never be written by RAUC
-  * Add option ``use-bundle-signing-time`` to use singing time for verification instead
+  * Add option ``use-bundle-signing-time`` to use signing time for verification instead
     of the current time
   * Introduce ``max-bundle-download-size`` config setting (by Michael Heimpold)
   * Rename confusing ``force-install-same`` flag to ``ignore-checksum`` (old remains
