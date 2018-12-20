@@ -47,13 +47,24 @@ static gchar *resolve_loop_device(const gchar *devicepath)
 {
 	g_autofree gchar *devicename = NULL;
 	g_autofree gchar *syspath = NULL;
+	gchar *content = NULL;
+	GError *ierror = NULL;
 
 	if (!g_str_has_prefix(devicepath, "/dev/loop"))
 		return g_strdup(devicepath);
 
 	devicename = g_path_get_basename(devicepath);
 	syspath = g_build_filename("/sys/block", devicename, "loop/backing_file", NULL);
-	return g_strchomp(read_file_str(syspath, NULL));
+
+	content = read_file_str(syspath, &ierror);
+	if (!content) {
+		g_message("%s", ierror->message);
+		g_clear_error(&ierror);
+		return NULL;
+	}
+
+	/* g_strchomp modifies the string and returns it */
+	return g_strchomp(content);
 }
 
 gboolean determine_slot_states(GError **error)
