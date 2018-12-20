@@ -397,7 +397,7 @@ static void manifest_test_verify(ManifestFixture *fixture,
 
 	/* Test with invalid checksum */
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/appfs.ext4",
-					64*1024, "/dev/urandom") == 0);
+			64*1024, "/dev/urandom") == 0);
 	g_test_expect_message(G_LOG_DOMAIN,
 			G_LOG_LEVEL_WARNING,
 			"Failed verifying checksum: Digests do not match");

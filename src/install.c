@@ -520,7 +520,7 @@ static gboolean verify_compatible(RaucManifest *manifest)
 	if (r_context()->ignore_compatible) {
 		return TRUE;
 	} else if (g_strcmp0(r_context()->config->system_compatible,
-				   manifest->update_compatible) == 0) {
+			manifest->update_compatible) == 0) {
 		return TRUE;
 	} else {
 		g_warning("incompatible manifest for this system (%s): %s",
