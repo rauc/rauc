@@ -107,9 +107,9 @@ verification.
   Path to the keyring file in PEM format. Either absolute or relative to the
   system.conf file.
 
-``use-bundle-signing-time``
-  Use the bundle signing time instead of current time for certificate
-  validation.
+``use-bundle-signing-time=<true/false>``
+  If this boolean value is set to ``true`` then the bundle signing time
+  is used instead of the current system time for certificate validation.
 
 **[casync] section**
 
