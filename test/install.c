@@ -244,14 +244,14 @@ static void install_fixture_set_up_network(InstallFixture *fixture,
 
 	/* Setup bundle content */
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/vmlinuz-1",
-					64*1024, "/dev/urandom") == 0);
+			64*1024, "/dev/urandom") == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/vmlinuz-2",
-					64*1024, "/dev/urandom") == 0);
+			64*1024, "/dev/urandom") == 0);
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/initramfs-1",
-					32*1024, "/dev/urandom") == 0);
+			32*1024, "/dev/urandom") == 0);
 
 	g_assert_true(test_copy_file(fixture->tmpdir, "content/vmlinuz-2",
-					fixture->tmpdir, "slot/vmlinuz"));
+			fixture->tmpdir, "slot/vmlinuz"));
 
 	/* Prepare manifest */
 	rm->update_compatible = g_strdup("Test Config");

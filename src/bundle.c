@@ -353,7 +353,7 @@ static gboolean sign_bundle(const gchar *bundlename, GError **error)
 	}
 
 	if (!g_seekable_seek(G_SEEKABLE(bundlestream),
-			    0, G_SEEK_END, NULL, &ierror)) {
+			0, G_SEEK_END, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,

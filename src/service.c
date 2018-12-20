@@ -452,9 +452,9 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 	r_installer_set_operation(r_installer, "idle");
 
 	if (!g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(r_installer),
-			    connection,
-			    "/",
-			    &ierror)) {
+			connection,
+			"/",
+			&ierror)) {
 		g_error("Failed to export interface: %s", ierror->message);
 		g_error_free(ierror);
 	}

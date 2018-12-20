@@ -1135,7 +1135,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 			break;
 		default:
 			part_active_str = g_strdup_printf("%sboot%d", dest_slot->device,
-				part_active);
+					part_active);
 	}
 	g_message("Found active eMMC boot partition %s", part_active_str);
 

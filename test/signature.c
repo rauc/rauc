@@ -412,10 +412,10 @@ int main(int argc, char *argv[])
 	r_context();
 
 	g_assert(test_prepare_dummy_file("test/", "random.dat",
-					256 * 1024, "/dev/urandom") == 0);
+			256 * 1024, "/dev/urandom") == 0);
 
 	g_assert(test_prepare_dummy_file("test/", "empty.dat",
-					0, "/dev/zero") == 0);
+			0, "/dev/zero") == 0);
 
 	g_test_init(&argc, &argv, NULL);
 

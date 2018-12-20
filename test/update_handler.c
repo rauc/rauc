@@ -112,7 +112,7 @@ static void update_handler_fixture_set_up(UpdateHandlerFixture *fixture,
 
 	if (!(test_pair->params & TEST_UPDATE_HANDLER_NO_TARGET_DEV)) {
 		g_assert(test_prepare_dummy_file(fixture->tmpdir, "rootfs-0",
-						SLOT_SIZE, "/dev/zero") == 0);
+				SLOT_SIZE, "/dev/zero") == 0);
 		if (g_strcmp0(test_pair->slottype, "ext4") == 0) {
 			g_assert(test_make_filesystem(fixture->tmpdir, "rootfs-0"));
 		}
@@ -227,7 +227,7 @@ static gboolean test_prepare_dummy_archive(const gchar *path, const gchar *archn
 
 	g_assert(g_mkdir(contentpath, 0777) == 0);
 	g_assert(test_prepare_dummy_file(contentpath, filename,
-					FILE_SIZE, "/dev/zero") == 0);
+			FILE_SIZE, "/dev/zero") == 0);
 
 	/* tar file to pseudo image */
 	res = tar_image(archpath, contentpath, &ierror);
@@ -292,10 +292,10 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 
 	if (g_strcmp0(test_pair->imagetype, "img") == 0) {
 		g_assert(test_prepare_dummy_file(fixture->tmpdir, "image.img",
-						IMAGE_SIZE, "/dev/zero") == 0);
+				IMAGE_SIZE, "/dev/zero") == 0);
 	} else if (g_strcmp0(test_pair->imagetype, "ext4") == 0) {
 		g_assert(test_prepare_dummy_file(fixture->tmpdir, "image.ext4",
-						IMAGE_SIZE, "/dev/zero") == 0);
+				IMAGE_SIZE, "/dev/zero") == 0);
 		g_assert(test_make_filesystem(fixture->tmpdir, "image.ext4"));
 	} else if (g_strcmp0(test_pair->imagetype, "tar.bz2") == 0) {
 		g_assert_true(test_prepare_dummy_archive(fixture->tmpdir, "image.tar.bz2", "testfile.txt"));

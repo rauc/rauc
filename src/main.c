@@ -188,18 +188,18 @@ static gboolean install_start(int argc, char **argv)
 			goto out_loop;
 		}
 		if (g_signal_connect(installer, "g-properties-changed",
-				    G_CALLBACK(on_installer_changed), args) <= 0) {
+				G_CALLBACK(on_installer_changed), args) <= 0) {
 			g_printerr("Failed to connect properties-changed signal\n");
 			goto out_loop;
 		}
 		if (g_signal_connect(installer, "completed",
-				    G_CALLBACK(on_installer_completed), args) <= 0) {
+				G_CALLBACK(on_installer_completed), args) <= 0) {
 			g_printerr("Failed to connect completed signal\n");
 			goto out_loop;
 		}
 		g_debug("Trying to contact rauc service");
 		if (!r_installer_call_install_sync(installer, args->name, NULL,
-				    &error)) {
+				&error)) {
 			g_printerr("Failed %s\n", error->message);
 			g_error_free(error);
 			goto out_loop;
@@ -1545,7 +1545,7 @@ static gboolean status_start(int argc, char **argv)
 		}
 		g_debug("Trying to contact rauc service");
 		if (!r_installer_call_mark_sync(proxy, state, slot_identifier,
-				    &slot_name, &message, NULL, &ierror)) {
+				&slot_name, &message, NULL, &ierror)) {
 			message = g_strdup(ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
