@@ -1,17 +1,19 @@
-Release 1.0 (development)
--------------------------
+Release 1.0 (released Dec 20, 2018)
+-----------------------------------
 
 .. rubric:: Enhancements
 
-* support OpenSSL 1.1
-* use OPENSSL_config() instead of OPENSSL_no_config()
-* handle curl_global_init() return code
+* Support OpenSSL 1.1
+* Use OPENSSL_config() instead of OPENSSL_no_config()
+* Handle curl_global_init() return code
 
 .. rubric:: Bug fixes
 
+* Fix error handling when resolving the backing file for a loop device
+* Fix error reporting when no primary slot is found with u-boot (by Matthias Bolte)
 * Fix memory leaks when parsing handler output
 * Fix compiler error when building with --disable-network
-* handle fatal errors during curl or openssl initialization
+* Handle fatal errors during curl or openssl initialization
 * Fix boot selection handling for asymmetric update setups
 * Fix default variant string in case of failure when obtaining
 * Fix return codes when givin excess arguments to CLI functions
@@ -27,6 +29,7 @@ Release 1.0 (development)
 * Fix creating and submitting coverity report data
 * Migrate to using Docker images for testing
 * Changed coverage service from coveralls to codecov.io
+* Switch to uncrustify 0.68.1
 
 .. rubric:: Documentation
 
@@ -34,6 +37,8 @@ Release 1.0 (development)
   common scenarios
 * Fixes and enhancements of README.rst to match current state
 * Add sphinx DTS lexer for fixing and improving dts example code parsing
+
+Contributions from: Ahmad Fatoum, Enrico Jörns, Jan Lübbe, Matthias Bolte
 
 Release 1.0-rc1 (released Oct 12, 2018)
 ---------------------------------------
