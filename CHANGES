@@ -16,11 +16,11 @@ Release 1.0 (released Dec 20, 2018)
 * Handle fatal errors during curl or openssl initialization
 * Fix boot selection handling for asymmetric update setups
 * Fix default variant string in case of failure when obtaining
-* Fix return codes when givin excess arguments to CLI functions
+* Fix return codes when giving excess arguments to CLI functions
 * Let 'rauc service' return exit code != 0 in case of failure
 * Print 'rauc service' user error output with g_printerr()
 * Fix showing primary slot (obtained via D-Bus) in 'rauc status'
-* Fix showing inverted boot-status (obained via D-Bus) in 'rauc status'
+* Fix showing inverted boot-status (obtained via D-Bus) in 'rauc status'
 * Minor output and error handling fixes and enhancements
 
 .. rubric:: Testing
@@ -80,9 +80,9 @@ Release 1.0-rc1 (released Oct 12, 2018)
 * The ``rauc status`` command line call now only uses the D-Bus API (when enabled) to obtain
   status information instead of loading configuration and performing operations itself.
   This finalizes the clear separations between client and service and also allows calling
-  the command line client wihout requiring any configuration.
+  the command line client without requiring any configuration.
 * Add debug log domain ``rauc-subprocess`` for printing RAUC subprocess invocations.
-  This can be activated bysetting the environment variable ``G_MESSAGES_DEBUG=rauc-subprocess``.
+  This can be activated by setting the environment variable ``G_MESSAGES_DEBUG=rauc-subprocess``.
   See :ref:`debugging` for details.
 * Enhancement of many debug and error messages to be more precise and helpful
 * Let U-Boot boot selection handler remove slot from ``BOOT_ORDER`` when marking it bad
@@ -107,7 +107,7 @@ Release 1.0-rc1 (released Oct 12, 2018)
   This was only problematic if the name to ID mapping changed with an update.
   Note that this requires to enable ``CONFIG_FEATURE_TAR_LONG_OPTIONS`` when using busybox tar.
 * Block device paths are now opened with ``O_EXCL`` to ensure exclusive access
-* Fix handling for ``file://`` URI's
+* Fix handling for ``file://`` URIs
 * Build-fix workaround for ancient (< 3.4) kernels (by Yann E. MORIN)
 * Various internal error handling fixes (by Ulrich Ölmann, Bastian Stender)
 * Several memory leak fixes
