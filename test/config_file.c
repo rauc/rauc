@@ -285,14 +285,25 @@ parent=invalid\n\
 	g_clear_error(&ierror);
 }
 
-static void config_file_typo_in_boolean_readonly_key(ConfigFileFixture *fixture,
-		gconstpointer user_data)
+static void config_file_typo(ConfigFileFixture *fixture, const gchar *cfg_file)
 {
 	RaucConfig *config;
 	GError *ierror = NULL;
 	gchar* pathname;
 
-	const gchar *cfg_file = "\
+	pathname = write_tmp_file(fixture->tmpdir, "typo.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
+	g_assert_null(config);
+	g_clear_error(&ierror);
+}
+
+static void config_file_typo_in_boolean_readonly_key(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	config_file_typo(fixture, "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
@@ -303,25 +314,13 @@ description=Rescue partition\n\
 device=/dev/mtd4\n\
 type=raw\n\
 bootname=factory0\n\
-readonly=typo\n";
-
-
-	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", cfg_file, NULL);
-	g_assert_nonnull(pathname);
-
-	g_assert_false(load_config(pathname, &config, &ierror));
-	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
-	g_clear_error(&ierror);
+readonly=typo\n");
 }
 
 static void config_file_typo_in_boolean_install_same_key(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
-	GError *ierror = NULL;
-	gchar* pathname;
-
-	const gchar *cfg_file = "\
+	config_file_typo(fixture, "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
@@ -332,25 +331,13 @@ description=Rescue partition\n\
 device=/dev/mtd4\n\
 type=raw\n\
 bootname=factory0\n\
-install-same=typo\n";
-
-
-	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", cfg_file, NULL);
-	g_assert_nonnull(pathname);
-
-	g_assert_false(load_config(pathname, &config, &ierror));
-	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
-	g_clear_error(&ierror);
+install-same=typo\n");
 }
 
 static void config_file_typo_in_boolean_force_install_same_key(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
-	GError *ierror = NULL;
-	gchar* pathname;
-
-	const gchar *cfg_file = "\
+	config_file_typo(fixture, "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
@@ -361,25 +348,13 @@ description=Rescue partition\n\
 device=/dev/mtd4\n\
 type=raw\n\
 bootname=factory0\n\
-force-install-same=typo\n";
-
-
-	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", cfg_file, NULL);
-	g_assert_nonnull(pathname);
-
-	g_assert_false(load_config(pathname, &config, &ierror));
-	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
-	g_clear_error(&ierror);
+force-install-same=typo\n");
 }
 
 static void config_file_typo_in_boolean_ignore_checksum_key(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
-	GError *ierror = NULL;
-	gchar* pathname;
-
-	const gchar *cfg_file = "\
+	config_file_typo(fixture, "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
@@ -390,25 +365,13 @@ description=Rescue partition\n\
 device=/dev/mtd4\n\
 type=raw\n\
 bootname=factory0\n\
-ignore-checksum=typo\n";
-
-
-	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", cfg_file, NULL);
-	g_assert_nonnull(pathname);
-
-	g_assert_false(load_config(pathname, &config, &ierror));
-	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
-	g_clear_error(&ierror);
+ignore-checksum=typo\n");
 }
 
 static void config_file_typo_in_boolean_resize_key(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
-	GError *ierror = NULL;
-	gchar* pathname;
-
-	const gchar *cfg_file = "\
+	config_file_typo(fixture, "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
@@ -418,39 +381,18 @@ mountprefix=/mnt/myrauc/\n\
 description=Rescue partition\n\
 device=/dev/null\n\
 type=ext4\n\
-resize=typo\n";
-
-
-	pathname = write_tmp_file(fixture->tmpdir, "invalid_config.conf", cfg_file, NULL);
-	g_assert_nonnull(pathname);
-
-	g_assert_false(load_config(pathname, &config, &ierror));
-	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
-	g_clear_error(&ierror);
+resize=typo\n");
 }
 
 static void config_file_typo_in_boolean_activate_installed_key(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
-	GError *ierror = NULL;
-	gchar* pathname;
-
-	const gchar *cfg_file = "\
+	config_file_typo(fixture, "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
-activate-installed=typo\n";
-
-
-	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", cfg_file, NULL);
-	g_assert_nonnull(pathname);
-
-	g_assert_false(load_config(pathname, &config, &ierror));
-	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
-	g_assert_null(config);
-	g_clear_error(&ierror);
+activate-installed=typo\n");
 }
 
 static void config_file_no_max_bundle_download_size(ConfigFileFixture *fixture,
@@ -502,24 +444,11 @@ max-bundle-download-size=0\n";
 static void config_file_typo_in_uint64_max_bundle_download_size(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
-	GError *ierror = NULL;
-	gchar* pathname;
-
-	const gchar *cfg_file = "\
+	config_file_typo(fixture, "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
-max-bundle-download-size=no-uint64\n";
-
-	pathname = write_tmp_file(fixture->tmpdir, "invalid_max_bundle_download_size.conf", cfg_file, NULL);
-	g_assert_nonnull(pathname);
-
-	g_assert_false(load_config(pathname, &config, &ierror));
-	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
-	g_assert_null(config);
-
-	g_clear_error(&ierror);
+max-bundle-download-size=no-uint64\n");
 }
 
 static void config_file_activate_installed_set_to_true(ConfigFileFixture *fixture,
