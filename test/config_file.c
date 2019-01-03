@@ -317,6 +317,23 @@ bootname=factory0\n\
 readonly=typo\n");
 }
 
+static void config_file_typo_in_boolean_allow_mounted_key(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	config_file_typo(fixture, "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[slot.rescue.0]\n\
+description=Rescue partition\n\
+device=/dev/mtd4\n\
+type=raw\n\
+bootname=factory0\n\
+allow-mounted=typo\n");
+}
+
 static void config_file_typo_in_boolean_install_same_key(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
@@ -807,6 +824,9 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/invalid-parent", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_invalid_parent,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/typo-in-boolean-allow-mounted-key", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_typo_in_boolean_allow_mounted_key,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-boolean-readonly-key", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_typo_in_boolean_readonly_key,
