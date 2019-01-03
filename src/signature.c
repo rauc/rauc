@@ -409,17 +409,9 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 
 		for (int i = 0; i < sk_X509_num(verified_chain); i++) {
 			const ASN1_TIME *expiry_time;
-			struct tm *next_month;
-			time_t now;
 			time_t comp;
-			time(&now);
 
-			next_month = gmtime(&now);
-			next_month->tm_mon += 1;
-			if (next_month->tm_mon == 12)
-				next_month->tm_mon = 0;
-			comp = timegm(next_month);
-
+			comp = time(NULL) + 30*24*60*60;
 			expiry_time = X509_get0_notAfter(sk_X509_value(verified_chain, i));
 
 			/* Check if expiry time is within last month */
