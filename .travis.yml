@@ -15,33 +15,33 @@ before_script:
   - docker pull rauc/testing:latest
 
 script:
-  #   # Prepare environment for Coverity tool
-  # - |
-  #     PLATFORM=`uname`
-  #     export TOOL_BASE="/tmp/coverity-scan-analysis"
-  #     export SCAN_URL="https://scan.coverity.com"
-  #     export UPLOAD_URL="https://scan.coverity.com/builds"
-  #     export TOOL_ARCHIVE="/tmp/cov-analysis-${PLATFORM}.tgz"
+  # Prepare environment for Coverity tool
+  - |
+      PLATFORM=`uname`
+      export TOOL_BASE="/tmp/coverity-scan-analysis"
+      export SCAN_URL="https://scan.coverity.com"
+      export UPLOAD_URL="https://scan.coverity.com/builds"
+      export TOOL_ARCHIVE="/tmp/cov-analysis-${PLATFORM}.tgz"
 
-  #   # Get Coverity tool
+  # Get Coverity tool
   # - test/get-coverity.sh
   # - TOOL_DIR="$(find $TOOL_BASE -type d -name 'cov-analysis*' || exit 0)"
 
-  #   # Export env variables for Coverity scan
-  # - env | grep -E "TRAVIS|COV|TOOL|URL" > .cov-env
-  # - |
-  #     docker run -dit --env-file .cov-env \
-  #     -v "$PWD":/home/travis -w /home/travis \
-  #     --tmpfs /tmp/uml:exec,mode=777 \
-  #     --tmpfs /tmp:exec \
-  #     -v ${TOOL_BASE}:${TOOL_BASE} \
-  #     -u travis $ci_env \
-  #     --name rauc-ci rauc/testing:latest bash
+  # Create container and export env variables for Coverity scan
+  - env | grep -E "TRAVIS|COV|TOOL|URL" > .cov-env
+  - |
+      docker run -dit --env-file .cov-env \
+      -v "$PWD":/home/travis -w /home/travis \
+      --tmpfs /tmp/uml:exec,mode=777 \
+      --tmpfs /tmp:exec \
+      -v ${TOOL_BASE}:${TOOL_BASE} \
+      -u travis $ci_env \
+      --name rauc-ci rauc/testing:latest bash
 
-  #   # Make sure Coverity script is executable
+  # Make sure Coverity script is executable
   # - docker cp test/run-coverity.sh rauc-ci:/usr/local/bin
 
-  #   # Run Coverity Analysis
+  # Run Coverity Analysis
   # - docker exec -it rauc-ci run-coverity.sh build
   # - docker exec -it rauc-ci run-coverity.sh upload
 
