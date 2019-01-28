@@ -379,30 +379,34 @@ are listed below:
 | Fallback  | tricky (reconvert data?) | easy (old data!)          |
 +-----------+--------------------------+---------------------------+
 
+Managing a ``/dev/data`` Symbolic Link
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For redundant data partitions the active rootfs slot has to mount the correct data partition dynamically.
-A udev ruleset can be used for this::
+For redundant data partitions the active rootfs slot has to mount the correct
+data partition dynamically.
+For example with ubifs, a udev ruleset can be used for this::
 
-  KERNEL=="ubi[0-9]_[0-9]", PROGRAM="/usr/bin/is-parent-active %k", ENV{isroot}="%c"
-  KERNEL=="ubi[0-9]_[0-9]", ENV{isroot}=="1", SYMLINK+="data"
+  KERNEL=="ubi[0-9]_[0-9]", PROGRAM="/usr/bin/is-parent-active %k", RESULT=="1", SYMLINK+="data"
 
-This example first determines if ubiX_Y is a data slot with an active parent rootfs slot and stores the result (%c) in the environment variable ``isroot``.
-Secondly, the current ubiX_Y partition is bound to /dev/data if ``isroot`` evaluates to 1.
+This example first determines if ubiX_Y is a data slot with an active parent
+rootfs slot by calling the script below.
+Then, the current ubiX_Y partition is bound to /dev/data if the secript
+retured ``1`` as its output.
 
 ``/usr/bin/is-parent-active`` is a simple bash script::
 
   #!/bin/bash
 
   ROOTFS_DEV=<determine rootfs by using proc cmdline or mount>
-  TEST_DEV=<obtain expected rootfs device for processed device (%k)>
+  TEST_DEV=<obtain parent rootfs device for currently processed device (%k)>
 
-  if [[ $ROOTFS_DEV == $TEST_DEV]]; then
+  if [[ $ROOTFS_DEV == $TEST_DEV ]]; then
   	echo 1
   else
   	echo 0
   fi
 
-Having this you can always mount ``/dev/data`` and get the correct data slot.
+With this you can always mount ``/dev/data`` and get the correct data slot.
 
 .. _casync-support:
 
