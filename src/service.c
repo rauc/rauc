@@ -229,8 +229,8 @@ static GVariant* convert_slot_status_to_dict(RaucSlot *slot)
 		g_variant_dict_insert(&dict, "description", "s", slot->description);
 	if (slot->parent)
 		g_variant_dict_insert(&dict, "parent", "s", slot->parent->name);
-	if (slot->mount_point)
-		g_variant_dict_insert(&dict, "mountpoint", "s", slot->mount_point);
+	if (slot->mount_point || slot->ext_mount_point)
+		g_variant_dict_insert(&dict, "mountpoint", "s", slot->mount_point ? slot->mount_point : slot->ext_mount_point);
 	if (slot->bootname)
 		g_variant_dict_insert(&dict, "boot-status", "s", slot->boot_good ? "good" : "bad");
 

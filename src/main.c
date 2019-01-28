@@ -967,8 +967,8 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 			g_string_append_printf(text, ", parent=%s", slot->parent->name);
 		else
 			g_string_append(text, ", parent=(none)");
-		if (slot->mount_point)
-			g_string_append_printf(text, ", mountpoint=%s", slot->mount_point);
+		if (slot->mount_point || slot->ext_mount_point)
+			g_string_append_printf(text, ", mountpoint=%s", slot->mount_point ? slot->mount_point : slot->ext_mount_point);
 		else
 			g_string_append(text, ", mountpoint=(none)");
 		if (slot->bootname)
