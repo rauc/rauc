@@ -386,6 +386,41 @@ out:
 	return res;
 }
 
+static gboolean ext4_resize_slot(RaucSlot *dest_slot, GError **error)
+{
+	g_autoptr(GSubprocess) sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(3, g_free);
+
+	g_ptr_array_add(args, g_strdup("resize2fs"));
+	g_ptr_array_add(args, g_strdup(dest_slot->device));
+	g_ptr_array_add(args, NULL);
+
+	r_debug_subprocess(args);
+	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
+			G_SUBPROCESS_FLAGS_NONE, &ierror);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start resize2fs: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run resize2fs: ");
+		goto out;
+	}
+
+out:
+	return res;
+}
+
 static gboolean ext4_format_slot(RaucSlot *dest_slot, GError **error)
 {
 	g_autoptr(GSubprocess) sproc = NULL;
@@ -1082,6 +1117,15 @@ static gboolean img_to_fs_handler(RaucImage *image, RaucSlot *dest_slot, const g
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
+	}
+
+	if (dest_slot->resize && g_strcmp0(dest_slot->type, "ext4") == 0) {
+		g_message("Resizing %s", dest_slot->device);
+		res = ext4_resize_slot(dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 	/* run slot post install hook if enabled */
