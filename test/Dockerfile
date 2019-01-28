@@ -35,7 +35,7 @@ RUN apt-get update && apt-get install -y \
 RUN apt-get update && apt-get install -y \
   python3-pip \
   git \
-  gcc-6 \
+  gcc-7 \
   curl && \
   curl -sLo /usr/bin/codecov https://codecov.io/bash && \
   chmod +x /usr/bin/codecov
