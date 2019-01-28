@@ -993,3 +993,11 @@ certificate and key file in your BSP at the following paths::
 Once you are done with your setup, PTXdist will automatically create a RAUC
 update bundle for you during the run of ``ptxdist images``.  It will be placed
 under ``<platform-builddir>/images/update.raucb``.
+
+Buildroot
+---------
+
+.. note:: RAUC support in Buildroot is available since version 2017.08.0.
+
+To build RAUC using buildroot, enable ``BR2_PACKAGE_RAUC`` in your
+configuration.
