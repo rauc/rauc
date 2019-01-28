@@ -58,6 +58,6 @@ script:
 after_success:
   - docker exec -it rauc-ci /usr/bin/codecov -t $CODECOV_TOKEN
 after_failure:
-  - cat test/*.log
-  - cat test-suite.log
-  - cat rauc-*/_build/sub/test-suite.log
+  - cat test/*.log || true
+  - cat test-suite.log || true
+  - cat rauc-*/_build/sub/test-suite.log || true
