@@ -248,10 +248,15 @@ static void r_context_configure(void)
 
 		g_hash_table_iter_init(&iter, vars);
 		while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
-			if (g_strcmp0(key, "RAUC_SYSTEM_SERIAL") == 0)
+			if (g_strcmp0(key, "RAUC_SYSTEM_SERIAL") == 0) {
 				r_context_conf()->system_serial = g_strdup(value);
-			else
+			} else if (g_strcmp0(key, "RAUC_SYSTEM_VARIANT") == 0) {
+				/* set variant (overrides possible previous value) */
+				g_free(r_context_conf()->config->system_variant);
+				r_context_conf()->config->system_variant = g_strdup(value);
+			} else {
 				g_message("Ignoring unknown variable %s", key);
+			}
 		}
 	}
 
