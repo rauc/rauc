@@ -930,7 +930,8 @@ static void free_status_print(RaucStatusPrint *status)
 	g_free(status->compatible);
 	g_free(status->variant);
 	g_free(status->bootslot);
-	g_hash_table_destroy(status->slots);
+	if (status->slots)
+		g_hash_table_destroy(status->slots);
 
 	g_free(status);
 	return;
