@@ -155,6 +155,23 @@ parent relationship to this bootable slot as follows:
   parent = rootfs.1
   ...
 
+Library Dependencies
+--------------------
+
+The minimal requirement for RAUC regardless of whether intended for the host or
+target side is GLib (minimum version 2.45.8) as utility library and OpenSSL
+(>=1.0) for signature handling.
+
+.. note::
+   In order to let RAUC detect mounts correctly, GLib must be compiled
+   with libmount support (``--enable-libmount``) and at least be 2.49.5.
+
+For network support (enabled with ``--enable-network``), additionally `libcurl`
+is required. This is only useful for the target service.
+
+For JSON-style support (enabled with ``--enable-json``), additionally
+`libjson-glib` is required.
+
 Kernel Configuration
 --------------------
 
