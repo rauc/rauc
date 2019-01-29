@@ -120,12 +120,13 @@ gchar** get_pubkey_hashes(STACK_OF(X509) *certs);
 /**
  * Returns string representation of certificate.
  *
- * @param verified_chain Stack of X509 certificates as returned by
- *                       cms_get_signer_info
+ * @param sig GBytes containing raw CMS signature from bundle
+ * @param[out] error return location for a GError, or NULL
+ *
  * @return allocated string containing default OpenSSL text representation of
  *         signer certificate (first in chain)
  */
-gchar* print_signer_cert(STACK_OF(X509) *verified_chain);
+gchar* sigdata_to_string(GBytes *sig, GError **error);
 
 /**
  * Return string representation of certificate chain.
@@ -150,4 +151,4 @@ gchar* print_cert_chain(STACK_OF(X509) *verified_chain);
  *
  * @return TRUE if succeeded, FALSE if failed
  */
-gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error);;
+gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error);

@@ -890,6 +890,12 @@ static gboolean info_start(int argc, char **argv)
 	g_print("%s\n", text);
 	g_free(text);
 
+	if (info_dumpcert) {
+		text = sigdata_to_string(bundle->sigdata, NULL);
+		g_print("%s\n", text);
+		g_free(text);
+	}
+
 	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
 		if (!bundle->verified_chain) {
 			g_print("Signature unverified\n");
@@ -900,11 +906,6 @@ static gboolean info_start(int argc, char **argv)
 		g_print("%s\n", text);
 		g_free(text);
 
-		if (info_dumpcert) {
-			text = print_signer_cert(bundle->verified_chain);
-			g_print("%s\n", text);
-			g_free(text);
-		}
 	}
 
 out:

@@ -502,22 +502,59 @@ out:
 	return ret;
 }
 
-gchar* print_signer_cert(STACK_OF(X509) *verified_chain)
+static gchar* dump_cms(STACK_OF(X509) *x509_certs)
 {
 	BIO *mem;
 	gchar *data, *ret;
 	gsize size;
 
-	g_return_val_if_fail(verified_chain != NULL, NULL);
+	g_return_val_if_fail(x509_certs != NULL, NULL);
 
 	mem = BIO_new(BIO_s_mem());
-	X509_print_ex(mem, sk_X509_value(verified_chain, 0), 0, 0);
+	X509_print_ex(mem, sk_X509_value(x509_certs, 0), 0, 0);
 
 	size = BIO_get_mem_data(mem, &data);
 	ret = g_strndup(data, size);
 
 	BIO_set_close(mem, BIO_CLOSE);
 	BIO_free(mem);
+
+	return ret;
+}
+
+gchar* sigdata_to_string(GBytes *sig, GError **error)
+{
+	CMS_ContentInfo *cms = NULL;
+	STACK_OF(X509) *signers = NULL;
+	gchar *ret;
+	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
+			g_bytes_get_size(sig));
+
+	g_return_val_if_fail(sig != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!(cms = d2i_CMS_bio(insig, NULL))) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE,
+				"failed to parse signature");
+		return NULL;
+	}
+
+	signers = CMS_get1_certs(cms);
+	if (signers == NULL) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_GET_SIGNER,
+				"Failed to obtain signer info");
+		return NULL;
+	}
+
+	ret = dump_cms(signers);
+
+	sk_X509_free(signers);
 
 	return ret;
 }
