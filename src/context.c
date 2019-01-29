@@ -250,6 +250,8 @@ static void r_context_configure(void)
 		while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
 			if (g_strcmp0(key, "RAUC_SYSTEM_SERIAL") == 0)
 				r_context_conf()->system_serial = g_strdup(value);
+			else
+				g_message("Ignoring unknown variable %s", key);
 		}
 	}
 
