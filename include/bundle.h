@@ -17,6 +17,7 @@ typedef struct {
 	gchar *origpath;
 	gchar *storepath;
 	gsize size;
+	GBytes *sigdata;
 	gchar *mount_point;
 	STACK_OF(X509) *verified_chain;
 } RaucBundle;
