@@ -136,6 +136,17 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			g_debug("No grubenv path provided, using /boot/grub/grubenv as default");
 			c->grubenv_path = g_strdup("/boot/grub/grubenv");
 		}
+	} else if (g_strcmp0(c->system_bootloader, "efi") == 0) {
+		c->efi_use_bootnext = g_key_file_get_boolean(key_file, "system", "efi-use-bootnext", &ierror);
+		if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+			c->efi_use_bootnext = TRUE;
+			g_clear_error(&ierror);
+		} else if (ierror) {
+			g_propagate_error(error, ierror);
+			res = FALSE;
+			goto free;
+		}
+		g_key_file_remove_key(key_file, "system", "efi-use-bootnext", NULL);
 	}
 
 	c->max_bundle_download_size = g_key_file_get_uint64(key_file, "system", "max-bundle-download-size", &ierror);

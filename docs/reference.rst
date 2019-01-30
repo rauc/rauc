@@ -74,6 +74,14 @@ Example configuration:
   key not exists, the bootchooser framework searches per default for ``/state``
   or ``/aliases/state``.
 
+``efi-use-bootnext``
+  Only valid when ``bootloader`` is set to ``efi``.
+  If set to ``false``, this disables using efi variable ``BootNext`` for
+  marking a slot primary.
+  This is useful for setups where the BIOS already handles the slot switching
+  on watchdog resets.
+  Behavior defaults to ``true`` if option is not set.
+
 .. _activate-installed:
 
 ``activate-installed``
@@ -855,8 +863,12 @@ EFI
   Setting state good is then used to persist this.
 
 :primary:
-  Sets the slot as `BootNext`.
+  Sets the slot as `BootNext` by default.
   This will make the slot being booted upon next reboot only!
+
+  The behavior is different when ``efi-use-bootnext`` is set to ``false``.
+  Then this prepends the slot to the `BootOrder` list as described for 'state
+  good'.
 
 .. note:: EFI implementations differ in how they handle new or unbootable
   targets etc. It may also depend on the actual implementation if EFI variable
