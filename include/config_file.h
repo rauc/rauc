@@ -32,12 +32,12 @@ typedef struct {
 	gchar *system_variant;
 	gchar *system_bootloader;
 	gchar *system_bb_statename;
+	gchar *grubenv_path;
 	/* maximum filesize to download in bytes */
 	guint64 max_bundle_download_size;
 	/* path prefix where rauc may create mount directories */
 	gchar *mount_prefix;
 	gchar *store_path;
-	gchar *grubenv_path;
 	gboolean activate_installed;
 	gchar *statusfile_path;
 	gchar *keyring_path;

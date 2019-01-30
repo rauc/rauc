@@ -68,6 +68,12 @@ Example configuration:
   Only valid when ``bootloader`` is set to ``grub``.
   Specifies the path under which the GRUB environment can be accessed.
 
+``barebox-statename``
+  Only valid when ``bootloader`` is set to ``barebox``.
+  Overwrites the default state ``state`` to a user-defined state name. If this
+  key not exists, the bootchooser framework searches per default for ``/state``
+  or ``/aliases/state``.
+
 .. _activate-installed:
 
 ``activate-installed``
@@ -84,12 +90,6 @@ Example configuration:
   be stored (e.g. slot specific metadata, see :ref:`slot-status`).
   This file should be located on a filesystem which is not overwritten during
   updates.
-
-``barebox-statename``
-  Only valid when ``bootloader`` is set to ``barebox``.
-  Overwrites the default state ``state`` to a user-defined state name. If this
-  key not exists, the bootchooser framework searches per default for ``/state``
-  or ``/aliases/state``.
 
 ``max-bundle-download-size``
   Defines the maximum downloadable bundle size in bytes, and thus must be

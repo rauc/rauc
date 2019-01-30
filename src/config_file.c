@@ -129,6 +129,13 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 	if (g_strcmp0(c->system_bootloader, "barebox") == 0) {
 		c->system_bb_statename = key_file_consume_string(key_file, "system", "barebox-statename", NULL);
+	} else if (g_strcmp0(c->system_bootloader, "grub") == 0) {
+		c->grubenv_path = resolve_path(filename,
+				key_file_consume_string(key_file, "system", "grubenv", NULL));
+		if (!c->grubenv_path) {
+			g_debug("No grubenv path provided, using /boot/grub/grubenv as default");
+			c->grubenv_path = g_strdup("/boot/grub/grubenv");
+		}
 	}
 
 	c->max_bundle_download_size = g_key_file_get_uint64(key_file, "system", "max-bundle-download-size", &ierror);
@@ -157,15 +164,6 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	if (!c->mount_prefix) {
 		g_debug("No mount prefix provided, using /mnt/rauc/ as default");
 		c->mount_prefix = g_strdup("/mnt/rauc/");
-	}
-
-	if (g_strcmp0(c->system_bootloader, "grub") == 0) {
-		c->grubenv_path = resolve_path(filename,
-				key_file_consume_string(key_file, "system", "grubenv", NULL));
-		if (!c->grubenv_path) {
-			g_debug("No grubenv path provided, using /boot/grub/grubenv as default");
-			c->grubenv_path = g_strdup("/boot/grub/grubenv");
-		}
 	}
 
 	c->activate_installed = g_key_file_get_boolean(key_file, "system", "activate-installed", &ierror);
