@@ -157,6 +157,10 @@ gives a more detailed list on these.
 Building from Sources
 ---------------------
 
+.. note:: RAUC is intended to be built both as a host tool as well as a target
+   tool (service). Therfore it is fully prepared for `automake cross-compilation
+   <https://www.gnu.org/software/automake/manual/html_node/Cross_002dCompilation.html>`_
+
 ::
 
     git clone https://github.com/rauc/rauc
@@ -165,8 +169,22 @@ Building from Sources
     ./configure
     make
 
-Testing
--------
+Manual Installation
+-------------------
+
+.. note:: To prepare RAUC for the target device, it is highly recommended to
+  use an embedded Linux distrubition build suite such as Yocto/OE, PTXdist or
+  Buildroot.
+
+On the host system RAUC can be used directly from the build dir, or optionally
+be installed. On the target instead, installing is highly recommended as it
+also unpacks service and D-Bus configuration files required to run RAUC
+properly::
+
+    make install
+
+Running the Test Suite
+----------------------
 
 ::
 
