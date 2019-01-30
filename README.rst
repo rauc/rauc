@@ -192,13 +192,13 @@ Running the Test Suite
     make check
     ./uml-test
 
-Creating a Bundle
------------------
+Creating a Bundle (Host)
+------------------------
 
 Create a directory with the content that should be installed::
 
     mkdir content-dir/
-    cp $SOURCE/rootfs.ext4.img content-dir/
+    cp $SOURCE/rootfs.ext4 content-dir/
 
 Create a manifest describing which image to install where together with some
 meta info::
@@ -206,21 +206,29 @@ meta info::
     cat >> content-dir/manifest.raucm << EOF
     [update]
     compatible=FooCorp Super BarBazzer
-    version=2015.04-1
+    version=2019.01-1
     [image.rootfs]
-    filename=rootfs.ext4.img
+    filename=rootfs.ext4
     EOF
 
 Let RAUC create a bundle from this::
 
-    rauc --cert autobuilder.cert.pem --key autobuilder.key.pem bundle content-dir/ update-2018.11-1.raucb
+    rauc --cert autobuilder.cert.pem --key autobuilder.key.pem bundle content-dir/ update-2019.01-1.raucb
 
-Installing a Bundle
--------------------
+Starting the RAUC Service (Target)
+----------------------------------
 
-::
+Create a system configuration file in ``/etc/rauc/system.conf`` and start the
+service process in background::
 
-    rauc install update-2015.04-1.raucb
+    rauc service &
+
+Installing a Bundle (Target)
+----------------------------
+
+To install the bundle on your target device, run::
+
+    rauc install update-2019.01-1.raucb
 
 Contributing
 ------------
