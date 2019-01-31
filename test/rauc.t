@@ -202,6 +202,11 @@ test_expect_success "rauc info" "
     info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
 "
 
+test_expect_success "rauc info verification failure" "
+  test_must_fail rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    info $SHARNESS_TEST_DIRECTORY/invalid-sig-bundle.raucb
+"
+
 test_expect_success "rauc info dump-cert unverified" "
   rauc --no-verify --dump-cert \
     info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
