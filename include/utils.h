@@ -2,6 +2,18 @@
 
 #include <glib.h>
 
+/* Use
+ *
+ *   g_auto(filedesc) fd = -1
+ *
+ * to declare a file descriptor that will be automatically closed when
+ * fd goes out of scope. The desctructor is guaranteed to preserve
+ * errno.
+ */
+typedef int filedesc;
+void close_preserve_errno(filedesc fd);
+G_DEFINE_AUTO_CLEANUP_FREE_FUNC(filedesc, close_preserve_errno, -1)
+
 #define R_LOG_DOMAIN_SUBPROCESS "rauc-subprocess"
 static inline void r_debug_subprocess(GPtrArray *args)
 {
