@@ -68,6 +68,20 @@ Example configuration:
   Only valid when ``bootloader`` is set to ``grub``.
   Specifies the path under which the GRUB environment can be accessed.
 
+``barebox-statename``
+  Only valid when ``bootloader`` is set to ``barebox``.
+  Overwrites the default state ``state`` to a user-defined state name. If this
+  key not exists, the bootchooser framework searches per default for ``/state``
+  or ``/aliases/state``.
+
+``efi-use-bootnext``
+  Only valid when ``bootloader`` is set to ``efi``.
+  If set to ``false``, this disables using efi variable ``BootNext`` for
+  marking a slot primary.
+  This is useful for setups where the BIOS already handles the slot switching
+  on watchdog resets.
+  Behavior defaults to ``true`` if option is not set.
+
 .. _activate-installed:
 
 ``activate-installed``
@@ -84,12 +98,6 @@ Example configuration:
   be stored (e.g. slot specific metadata, see :ref:`slot-status`).
   This file should be located on a filesystem which is not overwritten during
   updates.
-
-``barebox-statename``
-  Only valid when ``bootloader`` is set to ``barebox``.
-  Overwrites the default state ``state`` to a user-defined state name. If this
-  key not exists, the bootchooser framework searches per default for ``/state``
-  or ``/aliases/state``.
 
 ``max-bundle-download-size``
   Defines the maximum downloadable bundle size in bytes, and thus must be
@@ -855,8 +863,12 @@ EFI
   Setting state good is then used to persist this.
 
 :primary:
-  Sets the slot as `BootNext`.
+  Sets the slot as `BootNext` by default.
   This will make the slot being booted upon next reboot only!
+
+  The behavior is different when ``efi-use-bootnext`` is set to ``false``.
+  Then this prepends the slot to the `BootOrder` list as described for 'state
+  good'.
 
 .. note:: EFI implementations differ in how they handle new or unbootable
   targets etc. It may also depend on the actual implementation if EFI variable

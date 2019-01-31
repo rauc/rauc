@@ -1130,7 +1130,16 @@ static gboolean efi_set_primary(RaucSlot *slot, GError **error)
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (!efi_set_temp_primary(slot, &ierror)) {
+	if (r_context()->config->efi_use_bootnext) {
+		if (!efi_set_temp_primary(slot, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+
+		return TRUE;
+	}
+
+	if (!efi_modify_persistent_bootorder(slot, TRUE, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
