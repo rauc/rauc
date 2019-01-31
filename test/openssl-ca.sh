@@ -27,6 +27,11 @@ mkdir -p $BASE/dev/{private,certs}
 touch $BASE/dev/index.txt
 echo 01 > $BASE/dev/serial
 
+mkdir -p $BASE/dir/{private,certs,hash}
+touch $BASE/dir/index.txt
+echo 01 > $BASE/dir/serial
+mkdir -p $BASE/dir/hash/{a,ab}
+
 cat > $BASE/openssl.cnf <<EOF
 [ ca ]
 default_ca      = CA_default            # The default ca section
@@ -137,6 +142,22 @@ cd $BASE
 cat root/ca.cert.pem root/crl.pem rel/crl.pem dev/crl.pem > provisioning-ca.pem
 cat root/ca.cert.pem root/crl.pem rel/ca.cert.pem rel/crl.pem dev/ca.cert.pem dev/crl.pem > dev-ca.pem
 cat root/ca.cert.pem root/crl.pem rel/ca.cert.pem rel/crl.pem > rel-ca.pem
+
+echo "Build Directory Test Keys"
+cd $BASE/dir
+openssl req -newkey rsa -keyout private/a.key.pem -out a.csr.pem -subj "/O=$ORG/CN=$ORG $CA A"
+openssl ca -batch -selfsign -extensions v3_ca -in a.csr.pem -out a.cert.pem -keyfile private/a.key.pem
+openssl req -newkey rsa -keyout private/b.key.pem -out b.csr.pem -subj "/O=$ORG/CN=$ORG $CA B"
+openssl ca -batch -selfsign -extensions v3_ca -in b.csr.pem -out b.cert.pem -keyfile private/b.key.pem
+
+echo "Build Directory Hash Test Directories"
+cd $BASE
+DIRHASH_A="$BASE/dir/hash/a"
+DIRHASH_AB="$BASE/dir/hash/ab"
+mkdir -p $DIRHASH_A $DIRHASH_AB
+cp dir/a.cert.pem $DIRHASH_A/$(openssl x509 -in dir/a.cert.pem -hash -noout).0
+cp dir/a.cert.pem $DIRHASH_AB/$(openssl x509 -in dir/a.cert.pem -hash -noout).0
+cp dir/b.cert.pem $DIRHASH_AB/$(openssl x509 -in dir/b.cert.pem -hash -noout).0
 
 cd $BASE
 cat > manifest <<EOF

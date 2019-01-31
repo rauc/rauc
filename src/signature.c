@@ -678,8 +678,8 @@ static gboolean asn1_time_to_tm(const ASN1_TIME *intime, struct tm *tm)
 gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_STORE **store, GError **error)
 {
 	const gchar *capath = r_context()->config->keyring_path;
+	const gchar *cadir = r_context()->config->keyring_directory;
 	X509_STORE *istore = NULL;
-	X509_LOOKUP *lookup = NULL;
 	CMS_ContentInfo *icms = NULL;
 	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
 			g_bytes_get_size(content));
@@ -703,20 +703,12 @@ gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_ST
 				"failed to allocate new X509 store");
 		goto out;
 	}
-	if (!(lookup = X509_STORE_add_lookup(istore, X509_LOOKUP_file()))) {
-		g_set_error_literal(
-				error,
-				R_SIGNATURE_ERROR,
-				R_SIGNATURE_ERROR_X509_LOOKUP,
-				"failed to add X509 store lookup");
-		goto out;
-	}
-	if (!X509_LOOKUP_load_file(lookup, capath, X509_FILETYPE_PEM)) {
+	if (!X509_STORE_load_locations(istore, capath, cadir)) {
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_CA_LOAD,
-				"failed to load CA file '%s'", capath);
+				"failed to load CA file '%s' and/or directory '%s'", capath, cadir);
 		goto out;
 	}
 

@@ -842,7 +842,8 @@ will be placed in `/etc/rauc/system.conf` on your target rootfs.
 Also place the appropriate keyring file for your target into the directory
 added to ``FILESEXTRAPATHS`` above. Name it either ``ca.cert.pem`` or
 additionally specify the name of your custom file by setting
-``RAUC_KEYRING_FILE``.
+``RAUC_KEYRING_FILE``. If multiple keyring certificates are required on a
+single system, create a keyring directory containing each certificate.
 
 .. note::
   For information on how to create a testing / development
@@ -969,6 +970,8 @@ Place your system configuration file in
 RAUC package install it into the rootfs you build.
 Also place the keyring for your device in
 ``configs/platform-<yourplatform>/projectroot/etc/rauc/ca.cert.pem``.
+If using a keyring directory, place the keyrings for your device in
+``configs/platform-<yourplatform>/projectroot/etc/rauc/certs/``.
 
 .. note:: You should use your local PKI infrastructure for generating valid
   certificates and keys for your target. For debugging and testing purpose,

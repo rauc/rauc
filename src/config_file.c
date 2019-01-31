@@ -266,6 +266,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	/* parse [keyring] section */
 	c->keyring_path = resolve_path(filename,
 			key_file_consume_string(key_file, "keyring", "path", NULL));
+	c->keyring_directory = resolve_path(filename,
+			key_file_consume_string(key_file, "keyring", "directory", NULL));
 
 	c->use_bundle_signing_time = g_key_file_get_boolean(key_file, "keyring", "use-bundle-signing-time", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
@@ -508,6 +510,7 @@ void free_config(RaucConfig *config)
 	g_free(config->grubenv_path);
 	g_free(config->statusfile_path);
 	g_free(config->keyring_path);
+	g_free(config->keyring_directory);
 	g_free(config->autoinstall_path);
 	g_free(config->systeminfo_handler);
 	g_free(config->preinstall_handler);

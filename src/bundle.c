@@ -700,8 +700,8 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		g_free(strprfx);
 	}
 
-	if (verify && !r_context()->config->keyring_path) {
-		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_KEYRING, "No keyring file provided");
+	if (verify && !r_context()->config->keyring_path && !r_context()->config->keyring_directory) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_KEYRING, "No keyring file or directory provided");
 		res = FALSE;
 		goto out;
 	}

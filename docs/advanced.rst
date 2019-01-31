@@ -10,7 +10,7 @@ The RAUC bundle format consists of a squashfs image containing the images and
 the manifest, which is followed by a public key signature over the full image.
 This signature is stored in the CMS (Cryptographic Message Syntax, see RFC5652_)
 format.
-Before installation, the signature is verified against the keyring already
+Before installation, the signature is verified against the keyring(s) already
 stored on the system.
 
 .. _RFC5652: https://tools.ietf.org/html/rfc5652
