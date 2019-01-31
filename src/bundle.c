@@ -651,7 +651,6 @@ static gboolean is_remote_scheme(const gchar *scheme)
 gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error)
 {
 	GError *ierror = NULL;
-	g_autoptr(GBytes) sig = NULL;
 	g_autoptr(GFile) bundlefile = NULL;
 	g_autoptr(GFileInputStream) bundlestream = NULL;
 	guint64 sigsize;
@@ -786,7 +785,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	}
 
 	res = input_stream_read_bytes_all(G_INPUT_STREAM(bundlestream),
-			&sig, sigsize, NULL, &ierror);
+			&ibundle->sigdata, sigsize, NULL, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -801,7 +800,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 
 		g_message("Verifying bundle... ");
 		/* the squashfs image size is in offset */
-		res = cms_verify_file(ibundle->path, sig, offset, &cms, &store, &ierror);
+		res = cms_verify_file(ibundle->path, ibundle->sigdata, offset, &cms, &store, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -938,6 +937,7 @@ void free_bundle(RaucBundle *bundle)
 		}
 
 	g_free(bundle->path);
+	g_bytes_unref(bundle->sigdata);
 	g_free(bundle->mount_point);
 	if (bundle->verified_chain)
 		sk_X509_pop_free(bundle->verified_chain, X509_free);

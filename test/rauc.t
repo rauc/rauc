@@ -198,36 +198,46 @@ test_expect_success "rauc checksum with extra args" "
 "
 
 test_expect_success "rauc info" "
-  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf \
+  rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
+"
+
+test_expect_success "rauc info verification failure" "
+  test_must_fail rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    info $SHARNESS_TEST_DIRECTORY/invalid-sig-bundle.raucb
+"
+
+test_expect_success "rauc info dump-cert unverified" "
+  rauc --no-verify --dump-cert \
     info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
 "
 
 test_expect_success "rauc info valid file URI" "
-  rauc info -c $SHARNESS_TEST_DIRECTORY/test.conf file://$SHARNESS_TEST_DIRECTORY/good-bundle.raucb
+  rauc info --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem file://$SHARNESS_TEST_DIRECTORY/good-bundle.raucb
 "
 
 test_expect_success "rauc info invalid file URI" "
-  test_must_fail rauc info -c $SHARNESS_TEST_DIRECTORY/test.conf file:/$SHARNESS_TEST_DIRECTORY/good-bundle.raucb &&
-  test_must_fail rauc info -c $SHARNESS_TEST_DIRECTORY/test.conf file://$SHARNESS_TEST_DIRECTORY/good-bundle.rauc
+  test_must_fail rauc info --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem file:/$SHARNESS_TEST_DIRECTORY/good-bundle.raucb &&
+  test_must_fail rauc info --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem file://$SHARNESS_TEST_DIRECTORY/good-bundle.rauc
 "
 
 test_expect_success "rauc info shell" "
-  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --output-format=shell \
+  rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem --output-format=shell \
     info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb | sh
 "
 
 test_expect_success JSON "rauc info json" "
-  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --output-format=json \
+  rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem --output-format=json \
     info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
 "
 
 test_expect_success JSON "rauc info json-pretty" "
-  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --output-format=json-pretty \
+  rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem --output-format=json-pretty \
     info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
 "
 
 test_expect_success "rauc info invalid" "
-  test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --output-format=invalid \
+  test_must_fail rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem --output-format=invalid \
     info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
 "
 
