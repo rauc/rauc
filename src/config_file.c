@@ -420,6 +420,17 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 			slot->extra_mount_opts = key_file_consume_string(key_file, groups[i], "extra-mount-opts", NULL);
 
+			slot->resize = g_key_file_get_boolean(key_file, groups[i], "resize", &ierror);
+			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+				slot->resize = FALSE;
+				g_clear_error(&ierror);
+			}
+			else if (ierror) {
+				g_propagate_error(error, ierror);
+				res = FALSE;
+				goto free;
+			}
+			g_key_file_remove_key(key_file, groups[i], "resize", NULL);
 			g_hash_table_insert(slots, (gchar*)slot->name, slot);
 		}
 		g_strfreev(groupsplit);

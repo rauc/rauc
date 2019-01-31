@@ -241,6 +241,11 @@ hierarchical separator.
   matches hash of installed one.
   This replaces the deprecated entry ``ignore-checksum``.
 
+``resize=<true/false>``
+  If set to ``true`` this will tell RAUC to resize the filesystem after having
+  written the image to this slot. This only has an effect when writing an ext4
+  file system to an ext4 slot, i.e. if the slot has``type=ext4`` set.
+
 ``extra-mount-opts=<options>``
   Allows to specify custom mount options that will be passed to the slots
   ``mount`` call as ``-o`` argument value.

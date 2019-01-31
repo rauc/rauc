@@ -367,6 +367,34 @@ ignore-checksum=typo\n";
 	g_clear_error(&ierror);
 }
 
+static void config_file_typo_in_boolean_resize_key(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[slot.rescue.0]\n\
+description=Rescue partition\n\
+device=/dev/null\n\
+type=ext4\n\
+resize=typo\n";
+
+
+	pathname = write_tmp_file(fixture->tmpdir, "invalid_config.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
+	g_clear_error(&ierror);
+}
+
 static void config_file_typo_in_boolean_activate_installed_key(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
@@ -824,6 +852,9 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-boolean-ignore-checksum-key", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_typo_in_boolean_ignore_checksum_key,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/typo-in-boolean-resize-key", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_typo_in_boolean_resize_key,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-boolean-activate-installed-key", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_typo_in_boolean_activate_installed_key,

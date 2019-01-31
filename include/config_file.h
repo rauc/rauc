@@ -103,6 +103,8 @@ typedef struct _RaucSlot {
 	gboolean force_install_same;
 	/** extra mount options for this slot */
 	gchar *extra_mount_opts;
+	/** flag indicating to resize after writing (only for ext4) */
+	gboolean resize;
 
 	/** current state of the slot (runtime) */
 	SlotState state;
