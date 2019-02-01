@@ -946,13 +946,18 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 	gint slotcnt = 0;
 	GString *text = g_string_new(NULL);
 	RaucSlot *slot = NULL;
+	RaucSlot *bootedfrom = NULL;
 	gchar *name;
 
 	g_return_val_if_fail(status, NULL);
 
+	bootedfrom = find_slot_by_device(status->slots, status->bootslot);
+	if (!bootedfrom)
+		bootedfrom = find_slot_by_bootname(status->slots, status->bootslot);
+
 	g_string_append_printf(text, "Compatible:  %s\n", status->compatible);
 	g_string_append_printf(text, "Variant:     %s\n", status->variant);
-	g_string_append_printf(text, "Booted from: %s\n", status->bootslot);
+	g_string_append_printf(text, "Booted from: %s (%s)\n", bootedfrom ? bootedfrom->name : NULL, status->bootslot);
 	g_string_append_printf(text, "Activated:   %s (%s)\n", status->primary ? status->primary->name : NULL, status->primary ? status->primary->bootname : NULL);
 
 	g_string_append(text, "slot states:\n");
