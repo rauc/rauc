@@ -1510,12 +1510,10 @@ static gboolean status_start(int argc, char **argv)
 		}
 	}
 
-	if (!print_status(status_print)) {
-		r_exit_status = 1;
-		goto out;
-	}
-
 	if (argc < 3) {
+		if (!print_status(status_print)) {
+			r_exit_status = 1;
+		}
 		goto out;
 	} else if (argc == 3) {
 		slot_identifier = "booted";
