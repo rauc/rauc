@@ -149,6 +149,26 @@ gboolean default_config(RaucConfig **config);
 RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device);
 
 /**
+ * Finds a slot given its device path.
+ *
+ * @param slots a GHashTable containing (gchar, RaucSlot) entries
+ * @param device the device path to search for
+ *
+ * @return a RaucSlot pointer or NULL
+ */
+RaucSlot *find_slot_by_device(GHashTable *slots, const gchar *device);
+
+/**
+ * Finds a slot given its bootname
+ *
+ * @param slots a GHashTable containing (gchar, RaucSlot) entries
+ * @param botname the bootname to search for
+ *
+ * @return a RaucSlot pointer or NULL
+ */
+RaucSlot *find_slot_by_bootname(GHashTable *slots, const gchar *bootname);
+
+/**
  * Frees the memory allocated by the RaucConfig.
  *
  * @param config a RaucConfig
