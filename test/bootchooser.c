@@ -63,9 +63,9 @@ bootname=system1\n";
 	r_context_conf()->configpath = pathname;
 	r_context();
 
-	rootfs0 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
+	rootfs0 = find_config_slot_by_name(r_context()->config, "rootfs.0");
 	g_assert_nonnull(rootfs0);
-	rootfs1 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
+	rootfs1 = find_config_slot_by_name(r_context()->config, "rootfs.1");
 	g_assert_nonnull(rootfs1);
 
 	/* check rootfs.0 and rootfs.1 are considered good */
@@ -214,9 +214,9 @@ bootname=system0\n";
 	r_context_conf()->configpath = pathname;
 	r_context();
 
-	recovery = find_config_slot_by_device(r_context()->config, "/dev/recovery-0");
+	recovery = find_config_slot_by_name(r_context()->config, "recovery.0");
 	g_assert_nonnull(recovery);
-	rootfs0 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
+	rootfs0 = find_config_slot_by_name(r_context()->config, "rootfs.0");
 	g_assert_nonnull(rootfs0);
 
 
@@ -334,9 +334,9 @@ bootname=B\n";
 	r_context_conf()->configpath = pathname;
 	r_context();
 
-	rootfs0 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
+	rootfs0 = find_config_slot_by_name(r_context()->config, "rootfs.0");
 	g_assert_nonnull(rootfs0);
-	rootfs1 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
+	rootfs1 = find_config_slot_by_name(r_context()->config, "rootfs.1");
 	g_assert_nonnull(rootfs1);
 
 	/* check rootfs.0 and rootfs.1 are considered bad (as not marked good or boot attempt failed) */
@@ -590,9 +590,9 @@ bootname=B\n";
 	r_context_conf()->configpath = pathname;
 	r_context();
 
-	rootfs0 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
+	rootfs0 = find_config_slot_by_name(r_context()->config, "rootfs.0");
 	g_assert_nonnull(rootfs0);
-	rootfs1 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
+	rootfs1 = find_config_slot_by_name(r_context()->config, "rootfs.1");
 	g_assert_nonnull(rootfs1);
 
 	/* check rootfs.0 and rootfs.1 are considered bad (as not in BOOT_ORDER / no attempts left) */
@@ -721,9 +721,9 @@ bootname=A\n";
 	r_context_conf()->configpath = pathname;
 	r_context();
 
-	rescue = find_config_slot_by_device(r_context()->config, "/dev/rescue-0");
+	rescue = find_config_slot_by_name(r_context()->config, "rescue.0");
 	g_assert_nonnull(rescue);
-	rootfs0 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
+	rootfs0 = find_config_slot_by_name(r_context()->config, "rootfs.0");
 	g_assert_nonnull(rootfs0);
 
 	/* check rootfs.0 is marked bad (not in BOOT_ORDER, BOOT_R_LEFT = 0) */
@@ -807,7 +807,7 @@ bootname=system1\n";
 	r_context_conf()->configpath = pathname;
 	r_context();
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
+	slot = find_config_slot_by_name(r_context()->config, "rootfs.0");
 	g_assert_nonnull(slot);
 
 	g_assert_true(r_boot_get_state(slot, &good, NULL));
@@ -818,7 +818,7 @@ bootname=system1\n";
 	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
 	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
 
-	slot = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
+	slot = find_config_slot_by_name(r_context()->config, "rootfs.1");
 	g_assert_nonnull(slot);
 
 	g_assert_true(r_boot_set_primary(slot, NULL));

@@ -127,7 +127,7 @@ install-same=false\n";
 	g_assert_true(slot->readonly);
 	g_assert_true(slot->install_same);
 	g_assert_null(slot->parent);
-	g_assert(find_config_slot_by_device(config, "/dev/rescue-0") == slot);
+	g_assert(find_config_slot_by_name(config, "rescue.0") == slot);
 
 	slot = g_hash_table_lookup(config->slots, "rootfs.0");
 	g_assert_cmpstr(slot->name, ==, "rootfs.0");
@@ -138,7 +138,7 @@ install-same=false\n";
 	g_assert_false(slot->readonly);
 	g_assert_false(slot->install_same);
 	g_assert_null(slot->parent);
-	g_assert(find_config_slot_by_device(config, "/dev/rootfs-0") == slot);
+	g_assert(find_config_slot_by_name(config, "rootfs.0") == slot);
 
 	slot = g_hash_table_lookup(config->slots, "rootfs.1");
 	g_assert_cmpstr(slot->name, ==, "rootfs.1");
@@ -149,7 +149,7 @@ install-same=false\n";
 	g_assert_false(slot->readonly);
 	g_assert_false(slot->install_same);
 	g_assert_null(slot->parent);
-	g_assert(find_config_slot_by_device(config, "/dev/rootfs-1") == slot);
+	g_assert(find_config_slot_by_name(config, "rootfs.1") == slot);
 
 	slot = g_hash_table_lookup(config->slots, "appfs.0");
 	g_assert_cmpstr(slot->name, ==, "appfs.0");
@@ -160,7 +160,7 @@ install-same=false\n";
 	g_assert_false(slot->readonly);
 	g_assert_false(slot->install_same);
 	g_assert_nonnull(slot->parent);
-	g_assert(find_config_slot_by_device(config, "/dev/appfs-0") == slot);
+	g_assert(find_config_slot_by_name(config, "appfs.0") == slot);
 
 	slot = g_hash_table_lookup(config->slots, "appfs.1");
 	g_assert_cmpstr(slot->name, ==, "appfs.1");
@@ -171,7 +171,7 @@ install-same=false\n";
 	g_assert_false(slot->readonly);
 	g_assert_false(slot->install_same);
 	g_assert_nonnull(slot->parent);
-	g_assert(find_config_slot_by_device(config, "/dev/appfs-1") == slot);
+	g_assert(find_config_slot_by_name(config, "appfs.1") == slot);
 
 	g_assert_cmpuint(g_list_length(slotlist), ==, 5);
 
