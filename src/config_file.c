@@ -495,6 +495,15 @@ RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device)
 	return r_slot_find_by_device(config->slots, device);
 }
 
+RaucSlot *find_config_slot_by_name(RaucConfig *config, const gchar *name)
+{
+	g_return_val_if_fail(config, NULL);
+	g_return_val_if_fail(config->slots, NULL);
+	g_return_val_if_fail(name, NULL);
+
+	return g_hash_table_lookup(config->slots, name);
+}
+
 void free_config(RaucConfig *config)
 {
 	g_return_if_fail(config);

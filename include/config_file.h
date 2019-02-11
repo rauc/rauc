@@ -101,6 +101,19 @@ gboolean default_config(RaucConfig **config);
 RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device);
 
 /**
+ * Finds a config slot given its name.
+ *
+ * @param config a RaucConfig
+ * @param name the slot name to search for
+ *
+ * @note Current layout of rauc data structures makes this the fastest way to
+ * find a slot.
+ *
+ * @return a RaucSlot pointer or NULL
+ */
+RaucSlot *find_config_slot_by_name(RaucConfig *config, const gchar *name);
+
+/**
  * Frees the memory allocated by the RaucConfig.
  *
  * @param config a RaucConfig
