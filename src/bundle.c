@@ -267,7 +267,7 @@ static gboolean input_stream_check_bundle_identifier(GInputStream *stream, GErro
 		g_set_error(error,
 				G_IO_ERROR,
 				G_IO_ERROR_PARTIAL_INPUT,
-				"Only %lu of %lu bytes read",
+				"Only %"G_GSIZE_FORMAT " of %zu bytes read",
 				bytes_read,
 				sizeof(squashfs_id));
 		return FALSE;
