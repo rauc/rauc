@@ -44,6 +44,8 @@ typedef struct {
 	gchar *handlerextra;
 	/* ignore compatible check */
 	gboolean ignore_compatible;
+	/* force install same option */
+	gboolean force_install_same;
 
 	/* for storing installation runtime informations */
 	RContextInstallationInfo *install_info;

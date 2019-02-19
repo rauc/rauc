@@ -23,6 +23,7 @@ GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
 gboolean install_ignore_compatible = FALSE;
+gboolean install_force_install_same = FALSE;
 gboolean info_noverify, info_dumpcert = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
@@ -176,6 +177,7 @@ static gboolean install_start(int argc, char **argv)
 	args->status_result = 2;
 
 	r_context_conf()->ignore_compatible = install_ignore_compatible;
+	r_context_conf()->force_install_same = install_force_install_same;
 
 	r_loop = g_main_loop_new(NULL, FALSE);
 	if (ENABLE_SERVICE) {
@@ -1612,6 +1614,7 @@ typedef struct {
 
 GOptionEntry entries_install[] = {
 	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
+	{"force-install-same", '\0', 0, G_OPTION_ARG_NONE, &install_force_install_same, "unconditionally update slot", NULL},
 	{0}
 };
 
