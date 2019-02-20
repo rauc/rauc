@@ -1,3 +1,5 @@
+#pragma once
+
 #include <glib.h>
 #include <linux/types.h>
 
