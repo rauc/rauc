@@ -650,6 +650,7 @@ The "Operation" Property
   Operation  readable   s
 
 Represents the current (global) operation RAUC performs.
+Possible values are ``idle`` or ``installing``.
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.LastError:
 
@@ -677,6 +678,8 @@ Provides installation progress information in the form
 
 (percentage, message, nesting depth)
 
+Refer :ref:`Processing Progress Data <sec_processing_progress>` section.
+
 .. _gdbus-property-de-pengutronix-rauc-Installer.Compatible:
 
 The "Compatible" Property
@@ -687,7 +690,7 @@ The "Compatible" Property
   de.pengutronix.rauc.Installer:Compatible
   Compatible  readable   s
 
-Represents the system's compatible. This can be used to check for usable bundels.
+Represents the system's compatible. This can be used to check for usable bundles.
 
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.Variant:

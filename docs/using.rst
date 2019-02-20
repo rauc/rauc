@@ -537,6 +537,8 @@ reference documentation.
 While the installation is in progress, constant progress information will be
 emitted in form of changes to the ``Progress`` property.
 
+.. _sec_processing_progress:
+
 Processing Progress Data
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
