@@ -513,6 +513,8 @@ Methods
 
 :ref:`GetSlotStatus <gdbus-method-de-pengutronix-rauc-Installer.GetSlotStatus>` (a(sa{sv}) slot_status_array);
 
+:ref:`GetPrimary <gdbus-method-de-pengutronix-rauc-Installer.GetPrimary>` s primary);
+
 Signals
 ~~~~~~~
 :ref:`Completed <gdbus-signal-de-pengutronix-rauc-Installer.Completed>` (i result);
@@ -616,6 +618,18 @@ Access method to get all slots' status.
 a(sa{sv}) *slot_status_array*:
     Array of (slotname, dict) tuples with each dictionary representing the
     status of the corresponding slot
+
+.. _gdbus-method-de-pengutronix-rauc-Installer.GetPrimary:
+
+The GetPrimary() Method
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer.GetPrimary()
+  GetPrimary (s primary);
+
+Get the current primary slot.
 
 Signal Details
 ~~~~~~~~~~~~~~
