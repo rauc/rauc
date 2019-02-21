@@ -583,6 +583,18 @@ Triggering an installation:
 
   busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer Install s "/path/to/bundle"
 
+Mark a slot as good:
+
+.. code-block:: sh
+
+  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer Mark ss "good" "rootfs.0"
+
+Mark a slot as active:
+
+.. code-block:: sh
+
+  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer Mark ss "active" "rootfs.0"
+
 Get the `Operation` property containing the current operation:
 
 .. code-block:: sh
