@@ -616,6 +616,18 @@ during an installation.
 
   busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.Installer LastError
 
+Get the status of all slots
+
+.. code-block:: sh
+
+  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer GetSlotStatus
+
+Get the current primary slot
+
+.. code-block:: sh
+
+  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer GetPrimary
+
 Monitor the D-Bus interface
 
 .. code-block:: sh
