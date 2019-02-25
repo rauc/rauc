@@ -418,6 +418,12 @@ static void send_progress_callback(gint percentage,
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
 }
 
+static void send_operation_callback(const gchar *message)
+{
+	if (r_installer)
+		r_installer_set_operation(r_installer, message);
+}
+
 static void r_on_bus_acquired(GDBusConnection *connection,
 		const gchar     *name,
 		gpointer user_data)
@@ -447,6 +453,7 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 			NULL);
 
 	r_context_register_progress_callback(send_progress_callback);
+	r_context_register_operation_callback(send_operation_callback);
 
 	// Set initial Operation status to "idle"
 	r_installer_set_operation(r_installer, "idle");

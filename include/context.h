@@ -10,6 +10,7 @@
 
 typedef void (*progress_callback) (gint percentage, const gchar *message,
 		gint nesting_depth);
+typedef void (*operation_callback) (const gchar *message);
 
 typedef struct {
 	/* The bundle currently mounted by RAUC */
@@ -47,6 +48,8 @@ typedef struct {
 
 	/* for storing installation runtime informations */
 	RContextInstallationInfo *install_info;
+
+	operation_callback operation_callback;
 } RaucContext;
 
 typedef struct {
@@ -119,6 +122,7 @@ void r_context_free_progress_step(RaucProgressStep *step);
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucProgressStep, r_context_free_progress_step);
 
 void r_context_register_progress_callback(progress_callback progress_cb);
+void r_context_register_operation_callback(operation_callback operation_cb);
 
 RaucContext *r_context_conf(void);
 const RaucContext *r_context(void);

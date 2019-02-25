@@ -519,6 +519,15 @@ void r_context_register_progress_callback(progress_callback progress_cb)
 	context->progress_callback = progress_cb;
 }
 
+void r_context_register_operation_callback(operation_callback operation_cb)
+{
+	g_return_if_fail(operation_cb);
+
+	g_assert_null(context->operation_callback);
+
+	context->operation_callback = operation_cb;
+}
+
 RaucContext *r_context_conf(void)
 {
 	if (context == NULL) {
