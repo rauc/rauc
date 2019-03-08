@@ -637,7 +637,7 @@ Monitor the D-Bus interface
 .. _debugging:
 
 Debugging RAUC
-==============
+--------------
 
 When RAUC fails to start on your target during integration or later during
 installation of new bundles it can have a variety of causes.
@@ -677,7 +677,7 @@ shell to have a live view of what is going on when you invoke e.g. ``rauc
 install`` on the first shell.
 
 Increasing Debug Verbosity
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Both for the service and the command line interface it is often useful to
 increase the log level for narrowing down the actual error cause or gaining
