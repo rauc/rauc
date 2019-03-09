@@ -6,5 +6,6 @@ Documentation=https://rauc.readthedocs.io
 Type=dbus
 BusName=de.pengutronix.rauc
 ExecStart=@bindir@/rauc --mount=/run/rauc service
+PrivateTmp=yes
 RuntimeDirectory=rauc
 MountFlags=slave
