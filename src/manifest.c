@@ -253,7 +253,7 @@ gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)
 
 	data = g_bytes_get_data(mem, &length);
 	if (data == NULL) {
-		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_NO_DATA, "No data avaiable");
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_NO_DATA, "No data available");
 		goto out;
 	}
 
