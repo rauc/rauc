@@ -341,9 +341,9 @@ bootname=B\n";
 
 	/* check rootfs.0 and rootfs.1 are considered bad (as not marked good or boot attempt failed) */
 	test_grub_initialize_state("\
-A_TRY=1\n\
-B_TRY=0\n\
-A_OK=1\n\
+A_TRY=\n\
+B_TRY=\n\
+A_OK=0\n\
 B_OK=0\n\
 ORDER=A B\n\
 ");
@@ -352,10 +352,10 @@ ORDER=A B\n\
 	g_assert_true(r_boot_get_state(rootfs1, &good, &error));
 	g_assert_false(good);
 
-	/* check rootfs.0 and rootfs.1 are not considered good (A_TRY and B_OK not set) */
+	/* check rootfs.0 and rootfs.1 are not considered good (A_OK and B_OK not set) */
 	test_grub_initialize_state("\
-B_TRY=0\n\
-A_OK=1\n\
+B_TRY=\n\
+A_TRY=\n\
 ORDER=A B\n\
 ");
 	g_assert_false(r_boot_get_state(rootfs0, &good, &error));
@@ -365,10 +365,10 @@ ORDER=A B\n\
 	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_PARSE_FAILED);
 	g_clear_error(&error);
 
-	/* check rootfs.1 is considered primary (as rootfs.0 has A_TRY=1) */
+	/* check rootfs.1 is considered primary (as rootfs.0 has A_OK=0) */
 	test_grub_initialize_state("\
-A_TRY=1\n\
-B_TRY=0\n\
+A_TRY=\n\
+B_TRY=\n\
 A_OK=0\n\
 B_OK=1\n\
 ORDER=A B\n\
@@ -380,8 +380,8 @@ ORDER=A B\n\
 
 	/* check none is considered primary (as rootfs.0 has A_OK=0 and rootfs.1 is not in ORDER) */
 	test_grub_initialize_state("\
-A_TRY=0\n\
-B_TRY=0\n\
+A_TRY=\n\
+B_TRY=\n\
 A_OK=0\n\
 B_OK=1\n\
 ORDER=A\n\
@@ -391,22 +391,10 @@ ORDER=A\n\
 	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_PARSE_FAILED);
 	g_clear_error(&error);
 
-	/* check none is considered primary (B_TRY is not set, rootfs.0 is not in ORDER) */
-	test_grub_initialize_state("\
-A_TRY=0\n\
-A_OK=0\n\
-B_OK=1\n\
-ORDER=B\n\
-");
-	primary = r_boot_get_primary(&error);
-	g_assert_null(primary);
-	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_PARSE_FAILED);
-	g_clear_error(&error);
-
 	/* check none is considered primary (B_OK is not set, rootfs.0 is not in ORDER) */
 	test_grub_initialize_state("\
-A_TRY=0\n\
-B_TRY=0\n\
+A_TRY=\n\
+B_TRY=\n\
 A_OK=0\n\
 ORDER=B\n\
 ");
@@ -417,8 +405,8 @@ ORDER=B\n\
 
 	/* check rootfs.0 + rootfs.1 are considered good */
 	test_grub_initialize_state("\
-A_TRY=0\n\
-B_TRY=0\n\
+A_TRY=\n\
+B_TRY=\n\
 A_OK=1\n\
 B_OK=1\n\
 ORDER=A B\n\
@@ -430,16 +418,16 @@ ORDER=A B\n\
 
 	/* check rootfs.0 is marked bad (A_OK set to 0) */
 	test_grub_initialize_state("\
-A_TRY=0\n\
-B_TRY=0\n\
+A_TRY=\n\
+B_TRY=\n\
 A_OK=1\n\
 B_OK=1\n\
 ORDER=A B\n\
 ");
 	g_assert_true(r_boot_set_state(rootfs0, FALSE, &error));
 	g_assert_true(test_grub_post_state("\
-A_TRY=0\n\
-B_TRY=0\n\
+A_TRY=\n\
+B_TRY=\n\
 A_OK=0\n\
 B_OK=1\n\
 ORDER=A B\n\
@@ -450,16 +438,16 @@ ORDER=A B\n\
 
 	/* check rootfs.0 is marked good (A_OK set to 0) */
 	test_grub_initialize_state("\
-A_TRY=1\n\
-B_TRY=0\n\
+A_TRY=\n\
+B_TRY=\n\
 A_OK=0\n\
 B_OK=1\n\
 ORDER=A B\n\
 ");
 	g_assert_true(r_boot_set_state(rootfs0, TRUE, &error));
 	g_assert_true(test_grub_post_state("\
-A_TRY=0\n\
-B_TRY=0\n\
+A_TRY=\n\
+B_TRY=\n\
 A_OK=1\n\
 B_OK=1\n\
 ORDER=A B\n\
@@ -468,18 +456,18 @@ ORDER=A B\n\
 	g_assert_true(r_boot_get_state(rootfs0, &good, &error));
 	g_assert_true(good);
 
-	/* check rootfs.1 is marked primary (B_TRY=0, B_OK=1, B first in ORDER) */
+	/* check rootfs.1 is marked primary (B_OK=1, B first in ORDER) */
 	test_grub_initialize_state("\
-A_TRY=0\n\
-B_TRY=1\n\
+A_TRY=\n\
+B_TRY=\n\
 A_OK=1\n\
 B_OK=0\n\
 ORDER=A B\n\
 ");
 	g_assert_true(r_boot_set_primary(rootfs1, NULL));
 	g_assert_true(test_grub_post_state("\
-A_TRY=0\n\
-B_TRY=0\n\
+A_TRY=\n\
+B_TRY=\n\
 A_OK=1\n\
 B_OK=1\n\
 ORDER=B A\n\
@@ -495,16 +483,16 @@ ORDER=B A\n\
 
 	/* check rootfs.1 is marked primary and rootfs.0 is disabled */
 	test_grub_initialize_state("\
-A_TRY=1\n\
-B_TRY=1\n\
+A_TRY=\n\
+B_TRY=\n\
 A_OK=0\n\
 B_OK=0\n\
 ORDER=A B\n\
 ");
 	g_assert_true(r_boot_set_primary(rootfs1, NULL));
 	g_assert_true(test_grub_post_state("\
-A_TRY=1\n\
-B_TRY=0\n\
+A_TRY=\n\
+B_TRY=\n\
 A_OK=0\n\
 B_OK=1\n\
 ORDER=B A\n\

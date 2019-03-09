@@ -469,13 +469,11 @@ out:
 	return res;
 }
 
-/* We assume bootstate to be good if slot is listed in 'ORDER', its
- * _TRY=0 and _OK=1 */
+/* We assume bootstate to be good if slot is listed in 'ORDER', its _OK=1 */
 static gboolean grub_get_state(RaucSlot* slot, gboolean *good, GError **error)
 {
 	g_autoptr(GString) order = NULL;
 	g_autoptr(GString) slot_ok = NULL;
-	g_autoptr(GString) slot_try = NULL;
 	g_auto(GStrv) bootnames = NULL;
 	g_autofree gchar *key = NULL;
 	GError *ierror = NULL;
@@ -509,13 +507,7 @@ static gboolean grub_get_state(RaucSlot* slot, gboolean *good, GError **error)
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
-	g_free(key);
-	key = g_strdup_printf("%s_TRY", slot->bootname);
-	if (!grub_env_get(key, &slot_try, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	*good = (g_ascii_strtoull(slot_ok->str, NULL, 0) == 1) && (g_ascii_strtoull(slot_try->str, NULL, 0) == 0);
+	*good = (g_ascii_strtoull(slot_ok->str, NULL, 0) == 1);
 
 	return TRUE;
 }
@@ -531,10 +523,10 @@ static gboolean grub_set_state(RaucSlot *slot, gboolean good, GError **error)
 
 	if (good) {
 		g_ptr_array_add(pairs, g_strdup_printf("%s_OK=1", slot->bootname));
-		g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=0", slot->bootname));
+		g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=", slot->bootname));
 	} else {
 		g_ptr_array_add(pairs, g_strdup_printf("%s_OK=0", slot->bootname));
-		g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=0", slot->bootname));
+		g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=", slot->bootname));
 	}
 
 	if (!grub_env_set(pairs, &ierror)) {
@@ -570,7 +562,6 @@ static RaucSlot* grub_get_primary(GError **error)
 		while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 			g_autofree gchar *key = NULL;
 			g_autoptr(GString) slot_ok = NULL;
-			g_autoptr(GString) slot_try = NULL;
 
 			if (g_strcmp0(*bootname, slot->bootname) != 0) {
 				continue;
@@ -582,13 +573,8 @@ static RaucSlot* grub_get_primary(GError **error)
 				g_propagate_error(error, ierror);
 				return NULL;
 			}
-			key = g_strdup_printf("%s_TRY", slot->bootname);
-			if (!grub_env_get(key, &slot_try, &ierror)) {
-				g_propagate_error(error, ierror);
-				return NULL;
-			}
 
-			if ((g_ascii_strtoull(slot_ok->str, NULL, 0) != 1) || (g_ascii_strtoull(slot_try->str, NULL, 0) > 0)) {
+			if (g_ascii_strtoull(slot_ok->str, NULL, 0) != 1) {
 				continue;
 			}
 
@@ -625,7 +611,7 @@ static gboolean grub_set_primary(RaucSlot *slot, GError **error)
 	order = bootchooser_order_primay(slot);
 
 	g_ptr_array_add(pairs, g_strdup_printf("%s_OK=%i", slot->bootname, 1));
-	g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=%i", slot->bootname, 0));
+	g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=", slot->bootname));
 	g_ptr_array_add(pairs, g_strdup_printf("ORDER=%s", order->str));
 
 	if (!grub_env_set(pairs, &ierror)) {
