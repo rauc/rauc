@@ -46,7 +46,7 @@ gboolean signature_init(GError **error)
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_CRYPTOINIT_FAILED,
-				"Failed to initalize OpenSSL crypto: %s",
+				"Failed to initialize OpenSSL crypto: %s",
 				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		return FALSE;
 	}
