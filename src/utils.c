@@ -116,11 +116,15 @@ gchar *resolve_path(const gchar *basefile, gchar *path)
 	if (g_path_is_absolute(path))
 		return g_strdup(path);
 
+	cwd = g_get_current_dir();
+
+	if (!basefile)
+		return g_build_filename(cwd, path, NULL);
+
 	dir = g_path_get_dirname(basefile);
 	if (g_path_is_absolute(dir))
 		return g_build_filename(dir, path, NULL);
 
-	cwd = g_get_current_dir();
 	return g_build_filename(cwd, dir, path, NULL);
 }
 
