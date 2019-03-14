@@ -1,0 +1,233 @@
+.TH RAUC 1
+
+.SH NAME
+rauc \- safe and secure updating
+
+.SH SYNOPSIS
+.B rauc
+[\fIOPTIONS\fR...] \fBbundle\fR \fIINPUTDIR\fR \fIBUNDLE\fR
+
+.B rauc
+[\fIOPTIONS\fR...] \fBresign\fR \fIBUNDLE\fR
+
+.B rauc
+[\fIOPTIONS\fR...] \fBextract\fR \fIBUNDLE\fR \fIOUTPUTDIR\fR
+
+.B rauc
+[\fIOPTIONS\fR...] \fBconvert\fR \fIINBUNDLE\fR \fIOUTBUNDLE\fR
+
+.B rauc
+[\fIOPTIONS\fR...] \fBinstall\fR \fIBUNDLE\fR
+
+.B rauc
+[\fIOPTIONS\fR...] \fBinfo\fR \fIBUNDLE\fR
+
+.B rauc
+[\fIOPTIONS\fR...] \fBstatus\fR
+
+.B rauc
+[\fIOPTIONS\fR...] \fBwrite-slot\fR \fISLOTNAME\fR \fIIMAGEFILE\fR
+
+.SH DESCRIPTION
+
+RAUC is a lightweight update client that runs on an Embedded Linux device and
+reliably controls the procedure of updating the device with a new firmware.
+
+RAUC is also the tool on the host system that is used to create, inspect and
+modify update artifacts for the device.
+
+This manual page documents briefly the
+.BR rauc
+command line utility.
+
+It was written for the Debian GNU/Linux distribution to satify the
+packaging requirements. Thus it should only serve as a summary,
+reading the comprehensive online manual (\fBhttps://rauc.readthedocs.io/\fR)
+is recommended.
+
+.SH OPTIONS
+
+The following general options can be used with most commands, however
+not all combinations make sense.
+
+.TP
+\fB\-c\fR \fIFILENAME\fR, \fB\-\-conf=\fR\fIFILENAME\fR
+use the given config file instead of the one at the compiled-in default path
+
+.TP
+\fB\-\-cert=\fR\fIPEMFILE\fR|\fIPKCS11-URL\fR
+use given certificate file or the certificate referenced by the given PKCS#11 URL
+
+.TP
+\fB\-\-key=\fR\fIPEMFILE\fR|\fIPKCS11-URL\fR
+use given private key file or the key referenced by the given PKCS#11 URL
+
+.TP
+\fB\-\-keyring=\fR\fIPEMFILE\fR
+use specific keyring file
+
+.TP
+\fB\-\-intermediate=\fR\fIPEMFILE\fR
+intermediate CA file name
+
+.TP
+\fB\-\-mount=\fR\fIPATH\fR
+mount prefix
+
+.TP
+\fB\-\-override\-boot\-slot=\fR\fIBOOTNAME\fR
+overrides auto-detection of booted slot
+
+.TP
+\fB\-\-handler\-args=\fR\fIARGS\fR
+pass extra handler arguments
+
+.TP
+\fB\-d\fR, \fB\-\-debug\fR
+enable debug output
+
+.TP
+\fB\-\-version\fR
+display version
+
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+print usage
+
+.SH COMMANDS
+
+.PP
+\fBbundle\fR \fIINPUTDIR\fR \fIBUNDLE\fR
+
+.RS 4
+Create a bundle from a content directory.
+
+.RE
+.PP
+\fBresign\fR \fIBUNDLE\fR
+
+.RS 4
+Resign an already signed bundle.
+
+.RE
+.PP
+\fBextract\fR \fIBUNDLE\fR \fIOUTPUTDIR\fR
+
+.RS 4
+Extract the bundle content to a directory.
+
+.RE
+.PP
+\fBconvert\fR \fIINBUNDLE\fR \fIOUTBUNDLE\fR
+
+.RS 4
+Convert an existing bundle to casync index bundle and store.
+
+.RE
+.PP
+\fBinstall\fR \fIBUNDLE\fR
+
+.RS 4
+Install a bundle.
+
+\fBOptions:\fR
+
+.RS 4
+
+.TP
+\fB\-\-ignore\-compatible\fR
+disable compatible check
+
+.RE
+.RE
+.PP
+\fBinfo\fR \fIBUNDLE\fR
+
+.RS 4
+Print bundle info.
+
+\fBOptions:\fR
+
+.RS 4
+
+.TP
+\fB\-\-no\-verify\fR
+disable bundle verification
+
+.TP
+\fB\-\-output\-format=\fR[\fBreadable\fR|\fBshell\fR|\fBjson\fR|\fBjson-pretty\fR]
+select output format
+
+.TP
+\fB\-\-dump\-cert\fR
+dump certificate
+
+.RE
+.RE
+.PP
+\fBstatus\fR
+
+.RS 4
+Show system status
+
+\fBOptions:\fR
+
+.RS 4
+
+.TP
+\fB\-\-detailed\fR
+show more status details
+
+.TP
+\fB\-\-output\-format=\fR[\fBreadable\fR|\fBshell\fR|\fBjson\fR|\fBjson-pretty\fR]
+select output format
+
+.RE
+.RE
+.PP
+\fBwrite-slot\fR \fISLOTNAME\fR \fIIMAGEFILE\fR
+
+.RS 4
+Write image to slot and bypass all update logic.
+
+.RE
+
+.SH ENVIRONMENT
+
+.TP
+.B RAUC_PKCS11_MODULE
+Library filename for PKCS#11 module (signing only)
+
+.TP
+.B RAUC_PKCS11_PIN
+PIN to use for accessing PKCS#11 keys (signing only)
+
+.SH FILES
+
+.TP
+.B /etc/rauc/system.conf
+
+The system configuration file is the central configuration in RAUC that
+abstracts the loosely coupled storage setup, partitioning and boot strategy of
+your board to a coherent redundancy setup world view for RAUC.
+
+RAUC expects its central configuration file \fB/etc/rauc/system.conf\fR to
+describe the system it runs on in a way that all relevant information for
+performing updates and making decisions are given.
+
+Similar to other configuration files used by RAUC,
+the system configuration uses a key-value syntax (similar to those known
+from .ini files).
+
+.SH AUTHORS
+
+rauc is developed by Jan Luebbe, Enrico Joerns, Juergen Borleis and contributors.
+
+This manual page was written by Michael Heimpold <mhei@heimpold.de>,
+for the Debian GNU/Linux system (but may be used by others).
+
+.SH SEE ALSO
+
+.BR casync (1),
+.BR mksquashfs (1),
+.BR unsquashfs (1)
