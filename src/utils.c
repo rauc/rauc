@@ -114,7 +114,7 @@ gchar *resolve_path(const gchar *basefile, gchar *path)
 		return NULL;
 
 	if (g_path_is_absolute(path))
-		return path;
+		return g_strdup(path);
 
 	dir = g_path_get_dirname(basefile);
 	if (g_path_is_absolute(dir))
