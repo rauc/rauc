@@ -241,6 +241,8 @@ out:
 static gboolean bundle_start(int argc, char **argv)
 {
 	GError *ierror = NULL;
+	g_autofree gchar *inpath = NULL;
+	g_autofree gchar *outpath = NULL;
 	g_debug("bundle start");
 
 	if (argc < 3) {
@@ -268,8 +270,17 @@ static gboolean bundle_start(int argc, char **argv)
 		goto out;
 	}
 
-	g_debug("input directory: %s", argv[2]);
-	g_debug("output bundle: %s", argv[3]);
+	inpath = resolve_path(NULL, argv[2]);
+	outpath = resolve_path(NULL, argv[3]);
+
+	if (g_str_has_prefix(outpath, inpath)) {
+		g_printerr("Bundle path must be located outside input directory!\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	g_debug("input directory: %s", inpath);
+	g_debug("output bundle: %s", outpath);
 
 	if (!update_manifest(argv[2], FALSE, &ierror)) {
 		g_printerr("Failed to update manifest: %s\n", ierror->message);
