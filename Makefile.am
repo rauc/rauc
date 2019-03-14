@@ -107,6 +107,8 @@ EXTRA_DIST += data/rauc.service.in \
 	      .uncrustify.cfg \
 	      uncrustify.sh
 
+dist_man_MANS = rauc.1
+
 AM_TESTS_ENVIRONMENT = \
 	AM_TAP_AWK='$(AWK)'; export AM_TAP_AWK; \
 	CATCHSEGV='$(CATCHSEGV)'; export CATCHSEGV;
