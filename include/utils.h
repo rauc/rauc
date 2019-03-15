@@ -100,6 +100,7 @@ gboolean rm_tree(const gchar *path, GError **error);
  * @param path The path to resolve an absolute path for
  *
  * @return An absolute path name, determined as described above, NULL if undeterminable
+ *         [transfer full]
  */
 gchar *resolve_path(const gchar *basefile, gchar *path);
 
