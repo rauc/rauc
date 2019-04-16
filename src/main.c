@@ -104,9 +104,10 @@ static gchar *resolve_bundle_path(char *path)
 
 	bundlescheme = g_uri_parse_scheme(path);
 	if (bundlescheme == NULL && !g_path_is_absolute(path)) {
-		bundlelocation = g_build_filename(g_get_current_dir(), path, NULL);
+		g_autofree gchar *cwd = g_get_current_dir();
+		bundlelocation = g_build_filename(cwd, path, NULL);
 	} else {
-		gchar *hostname = NULL;
+		g_autofree gchar *hostname = NULL;
 
 		if (g_strcmp0(bundlescheme, "file") == 0) {
 			bundlelocation = g_filename_from_uri(path, &hostname, &error);
