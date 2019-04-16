@@ -271,6 +271,90 @@ This is both done by setting the ``bootname`` property.
   ...
   bootname=system0
 
+Amongst others, the bootname property also serves as one way to let RAUC know which slot is
+currently booted (running).
+In the following, the different options for letting RAUC detect the currently
+booted slot are described.
+
+Booted Slot Detection
+~~~~~~~~~~~~~~~~~~~~~
+
+For RAUC it is quite essential to know from which slot the system is currently
+running.
+We will refer this as the *booted slot*.
+Only reliable detection of the *booted slot* enables RAUC to determine the set of
+currently inactive slots (that it can safely write to).
+
+If possible, one should always prefer to signal the active slot explicitly from
+the bootloader to the userspace and RAUC.
+Only for cases where this explicit way is not possible or unwanted, some
+alternative approaches of automatically detecting the currently booted slot
+are implemented in RAUC.
+
+A detailed list of detection mechanism follows.
+
+Identification via Kernel Commandline
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+RAUC evaluates different kernel commandline parameters in the order they are
+listed below.
+
+.. rubric:: ``rauc.slot=``
+
+This is the generic way to explicitly set information about which slot was
+booted by the bootloader.
+For slots that are handled by a bootloader slot selection mechanism (such as
+A+B slots) you should specify the slot's configured ``bootname``::
+
+  rauc.slot=system0
+
+For special cases where some slots are not handled by the slot selection
+mechanism (such as a 'last-resort' recovery fallback that never gets explicitly
+selected) you can also give the name of the slot::
+
+  rauc.slot=recovery.0
+
+.. rubric:: ``bootchooser.active=``
+
+This is the command-line parameter used by barebox's *bootchooser* mechanism.
+It will be set automatically by the bootchooser framework and does not need any
+manual configuration.
+RAUC compares this against each slot's bootname (not the slot's name as above)::
+
+  bootchooser.active=system0
+
+.. rubric:: ``root=``
+
+If none of the above parameters is given, the ``root=`` parameter is evaluated
+by RAUC to gain information on the currently booted system.
+The ``root=`` entry contains the device from which device the kernel (or
+initramfs) should load the rootfs.
+RAUC supports parsing different variants for giving these device as listed below.
+
+::
+
+  root=/dev/sda1
+  root=/dev/ubi0_1
+
+Giving the plain device name is supported, of course.
+
+.. note::
+
+  The alternative ubi rootfs format with ``root=ubi0:volname`` is currently
+  unsupported.
+
+::
+
+  root=PARTUUID=01234
+  root=UUID=01234
+
+Parsing the ``PARTUUID`` and ``UUID`` is supported, which allows referring to a
+special partition / file system without having to know the
+enumeration-dependent `sdX` name.
+
+RAUC converts the value to the corresponding ``/dev/disk-by-*`` symlink name
+and then to the actual device name.
+
 Barebox
 ~~~~~~~
 
@@ -548,7 +632,7 @@ commandline will contain::
 
   bootchooser.active=system0
 
-RAUC uses this information for detecting the active boot slot (based on the
+RAUC uses this information for detecting the active booted slot (based on the
 slot's `bootname` property).
 
 If the kernel commandline of your booted system contains this line, you have
