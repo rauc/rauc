@@ -62,7 +62,7 @@ Release 1.0-rc1 (released Oct 12, 2018)
   * Add option ``use-bundle-signing-time`` to use signing time for verification instead
     of the current time
   * Introduce ``max-bundle-download-size`` config setting (by Michael Heimpold)
-  * Rename confusing ``force-install-same`` flag to ``ignore-checksum`` (old remains
+  * Rename confusing ``ignore-checksum`` flag to ``force-install-same`` (old remains
     valid of course) (by Jan Remmet)
   * Add strict parsing of config files as we do for manifests already.
     This will reject configs with invalid keys, groups, etc. to prevent unintentional behavior
