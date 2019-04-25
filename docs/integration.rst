@@ -355,6 +355,16 @@ enumeration-dependent `sdX` name.
 RAUC converts the value to the corresponding ``/dev/disk-by-*`` symlink name
 and then to the actual device name.
 
+::
+
+  root=/dev/nfs
+
+RAUC automatically detects NFS boots (by checking if this parameter is set in
+the kernel command line).
+There is no extra slot configuration needed for this as RAUC assumes it is safe
+to update all available slots in case the currently running system comes from
+NFS.
+
 Barebox
 ~~~~~~~
 
