@@ -56,6 +56,7 @@ Features
   * UBIFS
   * raw NAND (using nandwrite)
   * squashfs
+  * MBR partition table
 * Independent from updates source
 
   * **USB Stick**

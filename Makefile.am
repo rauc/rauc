@@ -42,6 +42,7 @@ librauc_la_SOURCES = \
 	src/install.c \
 	src/manifest.c \
 	src/mark.c \
+	src/mbr.c \
 	src/mount.c \
 	src/service.c \
 	src/signature.c \
@@ -56,6 +57,7 @@ librauc_la_SOURCES = \
 	include/install.h \
 	include/manifest.h \
 	include/mark.h \
+	include/mbr.h \
 	include/mount.h \
 	include/service.h \
 	include/signature.h \
