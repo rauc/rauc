@@ -241,9 +241,8 @@ static RaucSlot* barebox_get_primary(GError **error)
 			continue;
 
 		if (!barebox_state_get(slot->bootname, &state, &ierror)) {
-			g_debug("%s", ierror->message);
-			g_clear_error(&ierror);
-			continue;
+			g_propagate_error(error, ierror);
+			return NULL;
 		}
 
 		if (state.attempts == 0)
