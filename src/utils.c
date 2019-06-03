@@ -75,7 +75,7 @@ gboolean copy_file(const gchar *srcprefix, const gchar *srcfile,
 static int rm_tree_cb(const char *fpath, const struct stat *sb,
 		int typeflag, struct FTW *ftwbuf)
 {
-	switch(typeflag) {
+	switch (typeflag) {
 		case FTW_F:
 		case FTW_SL:
 			return g_unlink(fpath);

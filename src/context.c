@@ -570,7 +570,7 @@ void r_context_clean(void)
 		context->keyringpath = NULL;
 		context->keyringdirectory = NULL;
 
-		if(context->config) {
+		if (context->config) {
 			context->config->keyring_path = NULL;
 		}
 	}
