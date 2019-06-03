@@ -104,7 +104,7 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 		goto out;
 	} else if (r != CURLE_OK) {
 		size_t len = strlen(errbuf);
-		if(len)
+		if (len)
 			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s%s", errbuf, ((errbuf[len - 1] != '\n') ? "\n" : ""));
 		else
 			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s", curl_easy_strerror(res));

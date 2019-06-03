@@ -654,7 +654,7 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 		goto out;
 	}
 
-	if(X509_verify_cert(cert_ctx) != 1) {
+	if (X509_verify_cert(cert_ctx) != 1) {
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
