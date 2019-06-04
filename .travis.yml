@@ -45,6 +45,8 @@ script:
   # - docker exec -it rauc-ci run-coverity.sh build
   # - docker exec -it rauc-ci run-coverity.sh upload
 
+  - echo $PWD
+  - echo $ci_env
   - ./uncrustify.sh && git diff --exit-code
   - rm -rf .uncrustify
   - docker exec -it rauc-ci ./autogen.sh
