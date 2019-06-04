@@ -1,5 +1,7 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <glib.h>
+#include <glib/gstdio.h>
 #include <gio/gunixoutputstream.h>
 #include <mtd/ubi-user.h>
 #include <string.h>
@@ -34,7 +36,7 @@ static GUnixOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **err
 	GError *ierror = NULL;
 	int fd_out;
 
-	fd_out = open(slot->device, O_WRONLY | O_EXCL);
+	fd_out = g_open(slot->device, O_WRONLY | O_EXCL);
 
 	if (fd_out == -1) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
