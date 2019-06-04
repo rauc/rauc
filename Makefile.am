@@ -219,6 +219,8 @@ doc:
 	@echo "Build finished. The HTML pages are in $(SPHINXBUILDDIR)/html."
 
 EXTRA_DIST += docs/conf.py
+EXTRA_DIST += docs/images
+EXTRA_DIST += docs/extensions
 EXTRA_DIST += $(wildcard docs/*.rst)
 
 AM_DISTCHECK_CONFIGURE_FLAGS = "--without-systemdunitdir"
