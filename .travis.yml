@@ -56,7 +56,7 @@ script:
   - docker exec -it rauc-ci /bin/sh -c 'cd /home/travis/contrib/cgi && ./autogen.sh && ./configure && make clean && make -j2 && make distcheck'
   - ./uncrustify.sh && git diff --exit-code
 after_success:
-  - docker exec -it rauc-ci /usr/bin/codecov -t $CODECOV_TOKEN -v
+  - codecov
 after_failure:
   - cat test/*.log || true
   - cat test-suite.log || true
