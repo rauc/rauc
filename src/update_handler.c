@@ -64,16 +64,14 @@ static GUnixOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **err
 static gboolean clear_slot(RaucSlot *slot, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 	static gchar zerobuf[CLEAR_BLOCK_SIZE] = {};
 	g_autoptr(GOutputStream) outstream = NULL;
-	int out_fd;
 	gint write_count = 0;
 
-	outstream = (GOutputStream *) open_slot_device(slot, &out_fd, &ierror);
+	outstream = (GOutputStream *) open_slot_device(slot, NULL, &ierror);
 	if (outstream == NULL) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	while (write_count != -1) {
@@ -87,20 +85,16 @@ static gboolean clear_slot(RaucSlot *slot, GError **error)
 		    !g_error_matches(ierror, G_IO_ERROR, G_IO_ERROR_NO_SPACE)) {
 			g_propagate_prefixed_error(error, ierror,
 					"failed clearing block device: ");
-			goto out;
+			return FALSE;
 		}
 	}
 
-	res = g_output_stream_close(outstream, NULL, &ierror);
-	if (!res) {
+	if (!g_output_stream_close(outstream, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
-
-out:
-	return res;
+	return TRUE;
 }
 #endif
 
