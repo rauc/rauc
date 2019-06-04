@@ -36,6 +36,9 @@ static GUnixOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **err
 	GError *ierror = NULL;
 	int fd_out;
 
+	g_return_val_if_fail(slot, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
 	fd_out = g_open(slot->device, O_WRONLY | O_EXCL);
 
 	if (fd_out == -1) {
