@@ -58,7 +58,7 @@ script:
   - docker exec -it rauc-ci /bin/sh -c 'export TMPDIR=/tmp/uml && ./uml-test'
 after_success:
   - docker exec -it rauc-ci /bin/bash -c 'ls -l'
-  - docker exec -it rauc-ci /bin/bash -c 'bash <(curl -s https://codecov.io/bash) -v'
+  - docker exec -it rauc-ci /bin/bash -c 'bash <(curl -s https://codecov.io/bash) -v -p /home/travis'
 after_failure:
   - cat test/*.log || true
   - cat test-suite.log || true
