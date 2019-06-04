@@ -51,9 +51,11 @@ static gboolean service_install_cleanup(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean r_on_handle_install(RInstaller *interface,
-		GDBusMethodInvocation  *invocation,
-		const gchar *source)
+static gboolean r_on_handle_install_bundle(
+		RInstaller *interface,
+		GDBusMethodInvocation *invocation,
+		const gchar *source,
+		GVariant *arg_args)
 {
 	RaucInstallArgs *args = install_args_new();
 	gboolean res;
@@ -91,6 +93,13 @@ out:
 	return TRUE;
 }
 
+static gboolean r_on_handle_install(RInstaller *interface,
+		GDBusMethodInvocation  *invocation,
+		const gchar *arg_source)
+{
+	g_message("Using deprecated 'Install' D-Bus Method (replaced by 'InstallBundle')");
+	return r_on_handle_install_bundle(interface, invocation, arg_source, NULL);
+}
 
 static gboolean r_on_handle_info(RInstaller *interface,
 		GDBusMethodInvocation  *invocation,
@@ -427,6 +436,10 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 
 	g_signal_connect(r_installer, "handle-install",
 			G_CALLBACK(r_on_handle_install),
+			NULL);
+
+	g_signal_connect(r_installer, "handle-install-bundle",
+			G_CALLBACK(r_on_handle_install_bundle),
 			NULL);
 
 	g_signal_connect(r_installer, "handle-info",
