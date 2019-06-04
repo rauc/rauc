@@ -40,14 +40,14 @@ static GUnixOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **err
 
 	if (fd_out == -1) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"opening output device failed: %s", strerror(errno));
+				"Opening output device %s failed: %s", slot->device, strerror(errno));
 		return NULL;
 	}
 
 	outstream = (GUnixOutputStream *) g_unix_output_stream_new(fd_out, TRUE);
 	if (outstream == NULL) {
 		g_propagate_prefixed_error(error, ierror,
-				"failed to open file for writing: ");
+				"Failed to open file for writing: ");
 		return NULL;
 	}
 
