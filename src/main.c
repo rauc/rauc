@@ -1412,6 +1412,8 @@ static gboolean retrieve_status_via_dbus(RaucStatusPrint **status_print, GError 
 	}
 
 	if (!r_installer_call_get_primary_sync(proxy, &primary, NULL, &ierror)) {
+		if (g_dbus_error_is_remote_error(ierror))
+			g_dbus_error_strip_remote_error(ierror);
 		g_warning("%s", ierror->message);
 		g_clear_error(&ierror);
 	}
