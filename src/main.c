@@ -229,6 +229,8 @@ static gboolean install_start(int argc, char **argv)
 
 	r_loop = g_main_loop_new(NULL, FALSE);
 	if (ENABLE_SERVICE) {
+		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
+
 		installer = r_installer_proxy_new_for_bus_sync(bus_type,
 				G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
 				"de.pengutronix.rauc", "/", NULL, &error);
@@ -248,7 +250,11 @@ static gboolean install_start(int argc, char **argv)
 			goto out_loop;
 		}
 		g_debug("Trying to contact rauc service");
-		if (!r_installer_call_install_sync(installer, args->name, NULL,
+		if (!r_installer_call_install_bundle_sync(
+				installer,
+				args->name,
+				g_variant_dict_end(&dict), /* floating, no unref needed */
+				NULL,
 				&error)) {
 			g_printerr("Failed %s\n", error->message);
 			g_error_free(error);
