@@ -1,3 +1,74 @@
+Release 1.1 (development)
+-------------------------
+
+.. rubric:: Enhancements
+
+* Check that we do not generate a bundle inside a source directory
+* Added full GRUB2 support, including status and primary slot readback (by
+  Vitaly Ogoltsov and Beralt Meppelink)
+* Allow passing a slot's name via commandline instead of it's bootname
+* Show each slot's name in ``Booted from`` line of ``rauc status`` to simplify
+  identification
+* Add ``resize`` option for ext4 slots to let RAUC run resize2fs on an ext4
+  slot after copying the image.
+* Allow dumping the signer certificate (``--dump-cert``) without verification
+* Allow specifying a keyring directory with multiple files to support
+  non-conflicting installations of certificates from different packages (by
+  Evan Edstrom)
+* Add a bootloader option ``efi-use-bootnext`` (only valid when bootloader is
+  'efi') to disable usage of BootNext for marking slots primary.
+* Support setting a system variant in the ``system-info`` handler via
+  ``RAUC_SYSTEM_VARIANT``
+* D-Bus "mountpoint" property now also exports external mount point
+* Made slot state, compatible and variant available as environment variables
+  for slot hooks
+* Made system variant variable available as an environment variable for bundle
+  hooks
+
+.. rubric:: Bug fixes
+
+* Fix memory leaks in D-Bus notification callbacks (by Michael Heimpold)
+* Fix memory leaks in resolve_bundle_path (by Michael Heimpold)
+* Do not print misleading status dump when calling ``mark-*`` subcommands
+* Avoid mmap'ing potentially huge files (by Rasmus Villemoes)
+* Fix and cleanup checksum verification and handling (by Rasmus Villemoes)
+* Avoid assertion error caused by unconditional slot status hash table freeing
+* Make a-month-from-now validity check in signature verification more robust
+  (by Rasmus Villemoes)
+
+.. rubric:: Testing
+
+* Enable lgtm analysis for tests
+* Restructure signature tests with set_up and tear_down (by Evan Edstrom)
+* Move from gcc-6 to gcc-7
+* Build environment fixes and workarounds
+
+.. rubric:: Code
+
+* A failure in calling barebox_state bootchooser implementation should be
+  propagated
+* Update to latest ``git-version-gen`` upstream version
+* Tail-call real rauc suprocess in ``rauc-service.sh`` (by Angus Lees)
+* Consistently return newly-allocated objects in ``resolve_path()``
+* Enforce space between ``if`` and ``(`` via uncrustify
+
+.. rubric:: Documentation
+
+* Added an initial version of a man page (by Michael Heimpold)
+* Extended D-Bus API documentation
+* Improve description of how RAUC detects the booted slot
+* Added lgtm badge
+* Add hints on library dependencies
+* Clarifications on how to build and install RAUC
+* Add note on basic RAUC buildroot support
+* Clarification on usage of RAUC on host and target side
+* Clarified documentation of 'use-bundle-signing-time' option (by Michael Heimpold)
+* Typos fixed
+
+Contributions from: Angus Lees, Arnaud Rebillout, Beralt Meppelink, Enrico
+Jörns, Evan Edstrom, Ian Abbott, Jan Lübbe, Michael Heimpold, Rasmus Villemoes,
+Ulrich Ölmann, Vitaly Ogoltsov
+
 Release 1.0 (released Dec 20, 2018)
 -----------------------------------
 
