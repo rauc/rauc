@@ -45,18 +45,19 @@ script:
   # - docker exec -it rauc-ci run-coverity.sh build
   # - docker exec -it rauc-ci run-coverity.sh upload
 
+  - ./uncrustify.sh && git diff --exit-code
+  - rm -rf .uncrustify
   - docker exec -it rauc-ci ./autogen.sh
   - docker exec -it rauc-ci ./configure --enable-code-coverage
   - docker exec -it rauc-ci make clean
   - docker exec -it rauc-ci make -j2
   - docker exec -it rauc-ci make doc SPHINXOPTS=-W
-  - docker exec -it rauc-ci make check TESTS=
-  - docker exec -it rauc-ci /bin/sh -c 'export TMPDIR=/tmp/uml && ./uml-test'
   - docker exec -it rauc-ci make distcheck
   - docker exec -it rauc-ci /bin/sh -c 'cd /home/travis/contrib/cgi && ./autogen.sh && ./configure && make clean && make -j2 && make distcheck'
-  - ./uncrustify.sh && git diff --exit-code
+  - docker exec -it rauc-ci make check TESTS=
+  - docker exec -it rauc-ci /bin/sh -c 'export TMPDIR=/tmp/uml && ./uml-test'
 after_success:
-  - docker exec -it rauc-ci /bin/bash -c 'ls -lR'
+  - docker exec -it rauc-ci /bin/bash -c 'ls -l'
   - docker exec -it rauc-ci /bin/bash -c 'bash <(curl -s https://codecov.io/bash) -v'
 after_failure:
   - cat test/*.log || true
