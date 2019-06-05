@@ -395,14 +395,24 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			}
 			g_key_file_remove_key(key_file, groups[i], "readonly", NULL);
 
-			slot->force_install_same = g_key_file_get_boolean(key_file, groups[i], "force-install-same", &ierror);
+			slot->install_same = g_key_file_get_boolean(key_file, groups[i], "install-same", &ierror);
 			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 				g_clear_error(&ierror);
-				/* try also deprecatet flag ignore-checksum */
-				slot->force_install_same = g_key_file_get_boolean(key_file, groups[i], "ignore-checksum", &ierror);
+				/* try also deprecated flag force-install-same */
+				slot->install_same = g_key_file_get_boolean(key_file, groups[i], "force-install-same", &ierror);
 				if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-					slot->force_install_same = FALSE;
 					g_clear_error(&ierror);
+					/* try also deprecated flag ignore-checksum */
+					slot->install_same = g_key_file_get_boolean(key_file, groups[i], "ignore-checksum", &ierror);
+					if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+						slot->install_same = FALSE;
+						g_clear_error(&ierror);
+					}
+					else if (ierror) {
+						g_propagate_error(error, ierror);
+						res = FALSE;
+						goto free;
+					}
 				}
 				else if (ierror) {
 					g_propagate_error(error, ierror);
@@ -415,6 +425,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				res = FALSE;
 				goto free;
 			}
+			g_key_file_remove_key(key_file, groups[i], "install-same", NULL);
 			g_key_file_remove_key(key_file, groups[i], "force-install-same", NULL);
 			g_key_file_remove_key(key_file, groups[i], "ignore-checksum", NULL);
 
