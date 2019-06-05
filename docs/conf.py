@@ -14,6 +14,7 @@
 
 import sys
 import os
+import subprocess
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -59,7 +60,7 @@ copyright = u'2016-2018, Jan Luebbe, Enrico Joerns, Juergen Borleis'
 # built documents.
 #
 # The short X.Y version.
-version = 'v0.4'
+version = subprocess.check_output(['../build-aux/git-version-gen', '../.tarball-version']).decode()
 # The full version, including alpha/beta/rc tags.
 release = version
 
