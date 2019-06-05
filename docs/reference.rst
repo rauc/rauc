@@ -654,7 +654,9 @@ de.pengutronix.rauc.Installer
 
 Methods
 ~~~~~~~
-:ref:`Install <gdbus-method-de-pengutronix-rauc-Installer.Install>` (IN  s source);
+:ref:`InstallBundle <gdbus-method-de-pengutronix-rauc-Installer.InstallBundle>` (IN  s source, IN a{sv} args);
+
+:ref:`Install <gdbus-method-de-pengutronix-rauc-Installer.Install>` (IN  s source); (deprecated)
 
 :ref:`Info <gdbus-method-de-pengutronix-rauc-Installer.Info>` (IN  s bundle, s compatible, s version);
 
@@ -688,10 +690,38 @@ Description
 Method Details
 ~~~~~~~~~~~~~~
 
+.. _gdbus-method-de-pengutronix-rauc-Installer.InstallBundle:
+
+The InstallBundle() Method
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer.InstallBundle()
+  Install (IN  s source, IN a{sv} args);
+
+Triggers the installation of a bundle.
+This method call is non-blocking.
+After completion, the :ref:`"Completed" <gdbus-signal-de-pengutronix-rauc-Installer.Completed>` signal will be emitted.
+
+IN s *source*:
+    Path to bundle to be installed
+
+IN a{sv} *args*:
+    Arguments to pass to installation
+
+    Currently supported:
+
+    :STRING 'ignore-compatible', VARIANT 'b' <true/false>: Ignore the default compatible check for forcing
+        installation of bundles on platforms that a compatible not matching the one
+        of the bundle to be installed
+
 .. _gdbus-method-de-pengutronix-rauc-Installer.Install:
 
 The Install() Method
 ^^^^^^^^^^^^^^^^^^^^
+
+.. note:: This method is deprecated.
 
 .. code::
 

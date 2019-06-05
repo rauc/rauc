@@ -476,12 +476,12 @@ Installing a Bundle
 The D-Bus API's main purpose is to trigger and monitor the installation
 process via its ``Installer`` interface.
 
-The ``Install`` method call triggers the installation of a given bundle in the
+The ``InstallBundle`` method call triggers the installation of a given bundle in the
 background and returns immediately.
 Upon completion of the installation RAUC emits the ``Completed`` signal,
 indicating either successful or failed installation.
 For details on triggering the installation process, see the
-:ref:`gdbus-method-de-pengutronix-rauc-Installer.Install` chapter in the
+:ref:`gdbus-method-de-pengutronix-rauc-Installer.InstallBundle` chapter in the
 reference documentation.
 
 While the installation is in progress, constant progress information will be
@@ -533,7 +533,7 @@ Triggering an installation:
 
 .. code-block:: sh
 
-  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer Install s "/path/to/bundle"
+  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer InstallBundle sa{sv} "/path/to/bundle" 0
 
 Mark a slot as good:
 
