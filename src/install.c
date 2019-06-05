@@ -116,11 +116,13 @@ gboolean determine_slot_states(GError **error)
 		gchar *realdev = NULL;
 
 		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, l->data);
-		if (!s->bootname) {
-			continue;
-		}
 
 		if (g_strcmp0(s->bootname, r_context()->bootslot) == 0) {
+			booted = s;
+			break;
+		}
+
+		if (g_strcmp0(s->name, r_context()->bootslot) == 0) {
 			booted = s;
 			break;
 		}
