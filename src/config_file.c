@@ -405,7 +405,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 					/* try also deprecated flag ignore-checksum */
 					slot->install_same = g_key_file_get_boolean(key_file, groups[i], "ignore-checksum", &ierror);
 					if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-						slot->install_same = FALSE;
+						slot->install_same = TRUE;
 						g_clear_error(&ierror);
 					}
 					else if (ierror) {
