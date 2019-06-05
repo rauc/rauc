@@ -241,8 +241,8 @@ section for more details.
 
 .. |LGPLv2.1| image:: https://img.shields.io/badge/license-LGPLv2.1-blue.svg
    :target: https://raw.githubusercontent.com/rauc/rauc/master/COPYING
-.. |Travis_branch| image:: https://img.shields.io/travis/rauc/rauc/master.svg
-   :target: https://travis-ci.org/rauc/rauc
+.. |Travis_branch| image:: https://img.shields.io/travis/com/rauc/rauc/master.svg
+   :target: https://travis-ci.com/rauc/rauc
 .. |Codecov_branch| image:: https://codecov.io/gh/rauc/rauc/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/rauc/rauc
 .. |Coverity| image:: https://img.shields.io/coverity/scan/5085.svg
