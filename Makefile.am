@@ -105,7 +105,9 @@ EXTRA_DIST += data/rauc.service.in \
 	      contrib \
 	      build-uncrustify.sh \
 	      .uncrustify.cfg \
-	      uncrustify.sh
+	      uncrustify.sh \
+	      rauc_logo.png \
+	      rauc_logo_small.png
 
 dist_man_MANS = rauc.1
 
@@ -142,15 +144,22 @@ check_LTLIBRARIES = librauctest.la
 
 EXTRA_DIST += tap-t \
 	      tap-test \
+	      uml-test uml-test-init \
+	      test/Dockerfile \
 	      test/bin \
 	      test/install-content \
 	      test/openssl-ca \
-	      test/manifest.raucm \
+	      $(wildcard test/*.raucb) \
+	      $(wildcard test/*.raucm) \
 	      test/rauc.t \
 	      test/rootfs.raucs \
 	      test/sharness.sh \
+	      test/system.conf \
 	      test/test.conf \
-	      test/test-global.conf
+	      test/test-global.conf \
+	      test/get-coverity.sh \
+	      test/openssl-ca.sh \
+	      test/run-coverity.sh
 
 librauctest_la_SOURCES = \
 	test/common.c \
@@ -221,6 +230,7 @@ doc:
 EXTRA_DIST += docs/conf.py
 EXTRA_DIST += docs/images
 EXTRA_DIST += docs/extensions
+EXTRA_DIST += docs/release-checklist.txt
 EXTRA_DIST += $(wildcard docs/*.rst)
 
 AM_DISTCHECK_CONFIGURE_FLAGS = "--without-systemdunitdir"
