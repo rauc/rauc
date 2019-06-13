@@ -431,6 +431,25 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				goto free;
 			}
 			g_key_file_remove_key(key_file, groups[i], "resize", NULL);
+
+			if (g_strcmp0(slot->type, "boot-mbr-switch") == 0) {
+				slot->region_start = key_file_consume_binary_suffixed_string(key_file, groups[i],
+						"region-start", &ierror);
+				if (ierror) {
+					g_propagate_prefixed_error(error, ierror, "mandatory for boot-mbr-switch: ");
+					res = FALSE;
+					goto free;
+				}
+
+				slot->region_size = key_file_consume_binary_suffixed_string(key_file, groups[i],
+						"region-size", &ierror);
+				if (ierror) {
+					g_propagate_prefixed_error(error, ierror, "mandatory for boot-mbr-switch: ");
+					res = FALSE;
+					goto free;
+				}
+			}
+
 			g_hash_table_insert(slots, (gchar*)slot->name, slot);
 		}
 		g_strfreev(groupsplit);

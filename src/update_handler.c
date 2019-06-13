@@ -12,6 +12,7 @@
 #include "signature.h"
 #include "update_handler.h"
 #include "emmc.h"
+#include "mbr.h"
 #include "utils.h"
 
 
@@ -1141,6 +1142,120 @@ out:
 	return res;
 }
 
+static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
+	gboolean res = FALSE;
+	int out_fd, inactive_part;
+	g_autoptr(GUnixOutputStream) outstream = NULL;
+	GError *ierror = NULL;
+	struct mbr_switch_partition dest_partition;
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL,
+				dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	res = r_mbr_switch_get_inactive_partition(dest_slot->device,
+			&dest_partition, dest_slot->region_start,
+			dest_slot->region_size, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	if (dest_partition.start == dest_slot->region_start)
+		inactive_part = 0;
+	else
+		inactive_part = 1;
+
+	g_message("Found inactive boot partition %d (pos. %luB, size %luB)",
+			inactive_part, dest_partition.start, dest_partition.size);
+
+	if (dest_partition.size < image->checksum.size) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Size of image (%ld) does not fit to slot size %ld",
+				image->checksum.size, dest_partition.size);
+		res = FALSE;
+		goto out;
+	}
+
+	g_message("Clearing inactive boot partition %d on %s", inactive_part,
+			dest_slot->device);
+
+	res = r_mbr_switch_clear_partition(dest_slot->device, &dest_partition, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to clear inactive partition: ");
+		goto out;
+	}
+
+	g_message("Opening inactive boot partition %d on %s", inactive_part,
+			dest_slot->device);
+
+	out_fd = open(dest_slot->device, O_WRONLY);
+	if (out_fd == -1) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Opening output device failed: %s",
+				strerror(errno));
+		res = FALSE;
+		goto out;
+	}
+
+	if (lseek(out_fd, dest_partition.start, SEEK_SET) !=
+	    (off_t)dest_partition.start) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Failed to set file to position %lu",
+				dest_partition.start);
+		res = FALSE;
+		goto out;
+	}
+
+	outstream = (GUnixOutputStream *)g_unix_output_stream_new(out_fd, FALSE);
+	if (outstream == NULL) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to open file for writing: ");
+		res = FALSE;
+		goto out;
+	}
+
+	g_message("Copying image to inactive boot partition %d on %s",
+			inactive_part, dest_slot->device);
+
+	res = copy_raw_image(image, outstream, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	g_message("Setting MBR to switch boot partitions");
+
+	res = r_mbr_switch_set_boot_partition(dest_slot->device, &dest_partition, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL,
+				dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+out:
+	if (out_fd >= 0)
+		close(out_fd);
+
+	return res;
+}
+
 #if ENABLE_EMMC_BOOT_SUPPORT == 1
 static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
@@ -1390,6 +1505,7 @@ RaucUpdatePair updatepairs[] = {
 #if ENABLE_EMMC_BOOT_SUPPORT == 1
 	{"*.img", "boot-emmc", img_to_boot_emmc_handler},
 #endif
+	{"*.vfat", "boot-mbr-switch", img_to_boot_mbr_switch_handler},
 	{"*.img", "*", img_to_raw_handler}, /* fallback */
 	{0}
 };

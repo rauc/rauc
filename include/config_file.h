@@ -105,6 +105,10 @@ typedef struct _RaucSlot {
 	gchar *extra_mount_opts;
 	/** flag indicating to resize after writing (only for ext4) */
 	gboolean resize;
+	/** start address of first boot-partition (only for boot-mbr-switch) */
+	guint64 region_start;
+	/** size of both partitions(only for boot-mbr-switch) */
+	guint64 region_size;
 
 	/** current state of the slot (runtime) */
 	SlotState state;
