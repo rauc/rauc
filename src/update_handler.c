@@ -1,5 +1,7 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <glib.h>
+#include <glib/gstdio.h>
 #include <gio/gunixoutputstream.h>
 #include <mtd/ubi-user.h>
 #include <string.h>
@@ -31,31 +33,30 @@ GQuark r_update_error_quark(void)
 static GUnixOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **error)
 {
 	GUnixOutputStream *outstream = NULL;
-	GFile *destslotfile = NULL;
 	GError *ierror = NULL;
 	int fd_out;
 
-	destslotfile = g_file_new_for_path(slot->device);
+	g_return_val_if_fail(slot, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	fd_out = open(g_file_get_path(destslotfile), O_WRONLY | O_EXCL);
+	fd_out = g_open(slot->device, O_WRONLY | O_EXCL);
 
 	if (fd_out == -1) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"opening output device failed: %s", strerror(errno));
-		goto out;
+				"Opening output device %s failed: %s", slot->device, strerror(errno));
+		return NULL;
 	}
 
 	outstream = (GUnixOutputStream *) g_unix_output_stream_new(fd_out, TRUE);
 	if (outstream == NULL) {
 		g_propagate_prefixed_error(error, ierror,
-				"failed to open file for writing: ");
-		goto out;
+				"Failed to open file for writing: ");
+		return NULL;
 	}
 
 	if (fd != NULL)
 		*fd = fd_out;
 
-out:
 	return outstream;
 }
 
@@ -63,16 +64,14 @@ out:
 static gboolean clear_slot(RaucSlot *slot, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 	static gchar zerobuf[CLEAR_BLOCK_SIZE] = {};
 	g_autoptr(GOutputStream) outstream = NULL;
-	int out_fd;
 	gint write_count = 0;
 
-	outstream = (GOutputStream *) open_slot_device(slot, &out_fd, &ierror);
+	outstream = (GOutputStream *) open_slot_device(slot, NULL, &ierror);
 	if (outstream == NULL) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	while (write_count != -1) {
@@ -86,20 +85,16 @@ static gboolean clear_slot(RaucSlot *slot, GError **error)
 		    !g_error_matches(ierror, G_IO_ERROR, G_IO_ERROR_NO_SPACE)) {
 			g_propagate_prefixed_error(error, ierror,
 					"failed clearing block device: ");
-			goto out;
+			return FALSE;
 		}
 	}
 
-	res = g_output_stream_close(outstream, NULL, &ierror);
-	if (!res) {
+	if (!g_output_stream_close(outstream, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
-
-out:
-	return res;
+	return TRUE;
 }
 #endif
 
