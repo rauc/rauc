@@ -236,7 +236,7 @@ EXTRA_DIST += docs/release-checklist.txt
 EXTRA_DIST += $(wildcard docs/*.rst)
 
 AM_DISTCHECK_CONFIGURE_FLAGS = \
-    --without-systemdunitdir \
+    --with-systemdunitdir=$$dc_install_base/$(systemdunitdir) \
     --with-dbuspolicydir=$$dc_install_base/$(dbuspolicydir) \
     --with-dbussystemservicedir=$$dc_install_base/$(dbussystemservicedir)
 
