@@ -96,11 +96,11 @@ Target Requirements
   * EFI: EFI variables
 * Boot target selection support in the bootloader
 * Enough mass storage for two symmetric/asymmetric/custom slots
-* For bundle mode:
+* For normal bundle mode:
 
   * Enough storage for the compressed bundle file (in memory, in a temporary
     partition or on an external storage device)
-* For network mode:
+* For casync bundle mode:
 
   * No additional storage needed
   * Network interface
