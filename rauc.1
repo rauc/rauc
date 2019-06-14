@@ -23,7 +23,7 @@ rauc \- safe and secure updating
 [\fIOPTIONS\fR...] \fBinfo\fR \fIBUNDLE\fR
 
 .B rauc
-[\fIOPTIONS\fR...] \fBstatus\fR
+[\fIOPTIONS\fR...] \fBstatus\fR [\fISLOTNAME\fR | \fBmark-{good,bad,active}\fR [\fBbooted\fR|\fBother\fR|\fISLOTNAME\fR]]
 
 .B rauc
 [\fIOPTIONS\fR...] \fBwrite-slot\fR \fISLOTNAME\fR \fIIMAGEFILE\fR
@@ -165,10 +165,17 @@ dump certificate
 .RE
 .RE
 .PP
-\fBstatus\fR
+\fBstatus\fR [\fISLOTNAME\fR | \fBmark-{good,bad,active}\fR [\fBbooted\fR|\fBother\fR|\fISLOTNAME\fR]]
 
 .RS 4
-Show system status
+Without further subcommand, it simply shows the system status or status of a specific slot.
+
+The subcommands \fBmark-good\fR and \fBmark-bad\fR can be used to set the state of a slot
+explicitly. These subcommands usually operate on the currently booted slot if not specified per
+additional parameter.
+
+The subcommand \fBmark-active\fR allows to manually switch to a different slot. Here too,
+the desired slot can be given per parameter, otherwise the currently booted one is used.
 
 \fBOptions:\fR
 
