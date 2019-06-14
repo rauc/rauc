@@ -199,99 +199,6 @@ device=/path/to/prebootloader";
 	g_free(pathname);
 }
 
-static void rename_manifest(const gchar *contentdir, const gchar *targetname)
-{
-	gchar *manifestpath1 = g_strconcat(contentdir,
-			"/manifest.raucm", NULL);
-	gchar *manifestpath2 = g_strconcat(contentdir,
-			"/", targetname, ".raucm", NULL);
-	gchar *signaturepath1 = g_strconcat(contentdir,
-			"/manifest.raucm.sig", NULL);
-	gchar *signaturepath2 = g_strconcat(contentdir,
-			"/", targetname, ".raucm.sig", NULL);
-
-	g_assert(g_rename(manifestpath1, manifestpath2) == 0);
-	g_assert(g_rename(signaturepath1, signaturepath2) == 0);
-
-	g_free(manifestpath1);
-	g_free(manifestpath2);
-	g_free(signaturepath1);
-	g_free(signaturepath2);
-}
-
-static void install_fixture_set_up_network(InstallFixture *fixture,
-		gconstpointer user_data)
-{
-	RaucManifest *rm = g_new0(RaucManifest, 1);
-	RaucFile *files;
-	gchar *contentdir;
-	gchar *manifestpath;
-
-#if !ENABLE_NETWORK
-	return;
-#endif
-
-	/* needs to run as root */
-	if (!test_running_as_root())
-		return;
-
-	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
-
-	fixture_helper_set_up_system(fixture->tmpdir, NULL);
-
-	contentdir = g_build_filename(fixture->tmpdir, "content", NULL);
-	manifestpath = g_build_filename(fixture->tmpdir, "content/manifest.raucm", NULL);
-
-	/* Setup bundle content */
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/vmlinuz-1",
-			64*1024, "/dev/urandom") == 0);
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/vmlinuz-2",
-			64*1024, "/dev/urandom") == 0);
-	g_assert(test_prepare_dummy_file(fixture->tmpdir, "content/initramfs-1",
-			32*1024, "/dev/urandom") == 0);
-
-	g_assert_true(test_copy_file(fixture->tmpdir, "content/vmlinuz-2",
-			fixture->tmpdir, "slot/vmlinuz"));
-
-	/* Prepare manifest */
-	rm->update_compatible = g_strdup("Test Config");
-	rm->update_version = g_strdup("2011.03-2");
-
-	files = g_new0(RaucFile, 2);
-
-	files[0].slotclass = g_strdup("rootfs");
-	files[0].filename = g_strdup("vmlinuz-1");
-	files[0].destname = g_strdup("vmlinuz");
-	rm->files = g_list_append(rm->files, &files[0]);
-
-	files[1].slotclass = g_strdup("rootfs");
-	files[1].filename = g_strdup("initramfs-1");
-	files[1].destname = g_strdup("initramfs");
-	rm->files = g_list_append(rm->files, &files[1]);
-
-	/* Create signed manifest */
-	g_assert_true(save_manifest_file(manifestpath, rm, NULL));
-	g_assert_true(update_manifest(contentdir, TRUE, NULL));
-	rename_manifest(contentdir, "manifest-1");
-
-	/* Modify manifest vmlinuz-1 -> vmlinuz-2 */
-	files[0].filename = g_strdup("vmlinuz-2");
-	g_assert_true(save_manifest_file(manifestpath, rm, NULL));
-	g_assert_true(update_manifest(contentdir, TRUE, NULL));
-	rename_manifest(contentdir, "manifest-2");
-
-	/* Modify manifest (no initramfs) */
-	files[0].filename = g_strdup("vmlinuz-2");
-	rm->files = g_list_remove(rm->files, &files[1]);
-	g_assert_true(save_manifest_file(manifestpath, rm, NULL));
-	g_assert_true(update_manifest(contentdir, TRUE, NULL));
-	rename_manifest(contentdir, "manifest-3");
-
-	free_manifest(rm);
-	g_free(manifestpath);
-	g_free(contentdir);
-}
-
 static void install_fixture_tear_down(InstallFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1038,45 +945,6 @@ static void install_test_bundle(InstallFixture *fixture,
 	g_free(testfilepath);
 }
 
-static void install_test_network(InstallFixture *fixture,
-		gconstpointer user_data)
-{
-	gchar *manifesturl, *mountdir;
-
-#if !ENABLE_NETWORK
-	g_test_skip("Compiled without network support");
-	return;
-#endif
-
-	/* needs to run as root */
-	if (!test_running_as_root())
-		return;
-
-	/* Set mount path to current temp dir */
-	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
-	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = mountdir;
-	r_context();
-
-	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Network mode is marked as deprecated!\nPlease contact RAUC maintainers if you see this message and intend to use the network mode in future RAUC versions!");
-	manifesturl = g_strconcat("file://", fixture->tmpdir,
-			"/content/manifest-1.raucm", NULL);
-	g_assert_true(do_install_network(manifesturl, NULL));
-	g_free(manifesturl);
-
-	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Network mode is marked as deprecated!\nPlease contact RAUC maintainers if you see this message and intend to use the network mode in future RAUC versions!");
-	manifesturl = g_strconcat("file://", fixture->tmpdir,
-			"/content/manifest-2.raucm", NULL);
-	g_assert_true(do_install_network(manifesturl, NULL));
-	g_free(manifesturl);
-
-	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Network mode is marked as deprecated!\nPlease contact RAUC maintainers if you see this message and intend to use the network mode in future RAUC versions!");
-	manifesturl = g_strconcat("file://", fixture->tmpdir,
-			"/content/manifest-3.raucm", NULL);
-	g_assert_true(do_install_network(manifesturl, NULL));
-	g_free(manifesturl);
-}
-
 static void install_test_bundle_thread(InstallFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1106,44 +974,6 @@ static void install_test_bundle_thread(InstallFixture *fixture,
 	g_clear_pointer(&r_loop, g_main_loop_unref);
 
 	g_free(bundlepath);
-}
-
-static void install_test_network_thread(InstallFixture *fixture,
-		gconstpointer user_data)
-{
-	RaucInstallArgs *args = install_args_new();
-	gchar *manifesturl, *mountdir;
-
-#if !ENABLE_NETWORK
-	g_test_skip("Compiled without network support");
-	return;
-#endif
-
-	/* needs to run as root */
-	if (!test_running_as_root())
-		return;
-
-	/* Set mount path to current temp dir */
-	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
-	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = mountdir;
-	r_context();
-
-	manifesturl = g_strconcat("file://", fixture->tmpdir,
-			"/content/manifest-1.raucm", NULL);
-	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Network mode is marked as deprecated!\nPlease contact RAUC maintainers if you see this message and intend to use the network mode in future RAUC versions!");
-	g_assert_true(do_install_network(manifesturl, NULL));
-	args->name = g_strdup(manifesturl);
-	args->notify = install_notify;
-	args->cleanup = install_cleanup;
-
-	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, "Active slot bootname: system0");
-	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Network mode is marked as deprecated!\nPlease contact RAUC maintainers if you see this message and intend to use the network mode in future RAUC versions!");
-	r_loop = g_main_loop_new(NULL, FALSE);
-	g_assert_true(install_run(args));
-	g_main_loop_run(r_loop);
-	g_clear_pointer(&r_loop, g_main_loop_unref);
-	g_free(manifesturl);
 }
 
 static void install_test_bundle_hook_install_check(InstallFixture *fixture,
@@ -1334,16 +1164,8 @@ int main(int argc, char *argv[])
 			install_fixture_set_up_bundle_central_status, install_test_bundle,
 			install_fixture_tear_down);
 
-	g_test_add("/install/network", InstallFixture, NULL,
-			install_fixture_set_up_network, install_test_network,
-			install_fixture_tear_down);
-
 	g_test_add("/install/bundle-thread", InstallFixture, NULL,
 			install_fixture_set_up_bundle, install_test_bundle_thread,
-			install_fixture_tear_down);
-
-	g_test_add("/install/network-thread", InstallFixture, NULL,
-			install_fixture_set_up_network, install_test_network_thread,
 			install_fixture_tear_down);
 
 	g_test_add("/install/bundle-custom-handler", InstallFixture, NULL,
