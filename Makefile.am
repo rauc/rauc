@@ -90,8 +90,8 @@ systemdunitdir=$(SYSTEMD_UNITDIR)
 nodist_systemdunit_DATA = data/rauc.service
 endif
 
-dbussystemdir = $(DBUS_SYSTEMSERVICEDIR)
-nodist_dbussystem_DATA = data/de.pengutronix.rauc.service
+dbussystemservicedir = $(DBUS_SYSTEMSERVICEDIR)
+nodist_dbussystemservice_DATA = data/de.pengutronix.rauc.service
 
 dbuspolicydir = $(DBUS_POLICYDIR)
 dist_dbuspolicy_DATA = data/de.pengutronix.rauc.conf
@@ -238,11 +238,11 @@ EXTRA_DIST += $(wildcard docs/*.rst)
 AM_DISTCHECK_CONFIGURE_FLAGS = \
     --without-systemdunitdir \
     --with-dbuspolicydir=$$dc_install_base/$(dbuspolicydir) \
-    --with-dbussystemservicedir=$$dc_install_base/$(dbussystemdir)
+    --with-dbussystemservicedir=$$dc_install_base/$(dbussystemservicedir)
 
 CLEANFILES = $(gdbus_installer_generated) \
 	     $(nodist_systemdunit_DATA) \
-	     $(nodist_dbussystem_DATA) \
+	     $(nodist_dbussystemservice_DATA) \
 	     $(nodist_dbuswrapper_SCRIPTS) \
 	     data/rauc.service \
 	     test/empty.dat \
