@@ -50,6 +50,7 @@ AS_IF([test "x$enable_service" != "xno"], [
 
 # Checks for libraries.
 PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.45.8 gio-2.0 gio-unix-2.0])
+PKG_CHECK_MODULES([DBUS1], [dbus-1])
 
 AC_ARG_ENABLE([network],
        AS_HELP_STRING([--disable-network], [Disable network update mode])
@@ -89,14 +90,14 @@ AM_CONDITIONAL(SYSTEMD, test -n "${with_systemdunitdir}")
 AC_ARG_WITH([dbuspolicydir],
         AS_HELP_STRING([--with-dbuspolicydir=DIR], [D-Bus policy directory]),
         [],
-        [with_dbuspolicydir=${datadir}/dbus-1/system.d])
+        [with_dbuspolicydir="$($PKG_CONFIG --variable=datadir dbus-1)/dbus-1/system.d"])
 DBUS_POLICYDIR="${with_dbuspolicydir}"
 AC_SUBST(DBUS_POLICYDIR)
 
 AC_ARG_WITH([dbussystemservicedir],
         AS_HELP_STRING([--with-dbussystemservicedir=DIR], [D-Bus system service directory]),
         [],
-        [with_dbussystemservicedir=${datadir}/dbus-1/system-services])
+        [with_dbussystemservicedir="$($PKG_CONFIG --variable=system_bus_services_dir dbus-1)"])
 DBUS_SYSTEMSERVICEDIR="${with_dbussystemservicedir}"
 AC_SUBST(DBUS_SYSTEMSERVICEDIR)
 

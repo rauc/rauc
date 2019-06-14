@@ -235,7 +235,10 @@ EXTRA_DIST += docs/extensions
 EXTRA_DIST += docs/release-checklist.txt
 EXTRA_DIST += $(wildcard docs/*.rst)
 
-AM_DISTCHECK_CONFIGURE_FLAGS = "--without-systemdunitdir"
+AM_DISTCHECK_CONFIGURE_FLAGS = \
+    --without-systemdunitdir \
+    --with-dbuspolicydir=$$dc_install_base/$(dbuspolicydir) \
+    --with-dbussystemservicedir=$$dc_install_base/$(dbussystemdir)
 
 CLEANFILES = $(gdbus_installer_generated) \
 	     $(nodist_systemdunit_DATA) \
