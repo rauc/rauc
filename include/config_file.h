@@ -99,8 +99,8 @@ typedef struct _RaucSlot {
 	gchar *bootname;
 	/** flag indicating if the slot is updatable */
 	gboolean readonly;
-	/** flag indicating if the slot update may be forced */
-	gboolean force_install_same;
+	/** flag indicating if slot skipping optimization should be used */
+	gboolean install_same;
 	/** extra mount options for this slot */
 	gchar *extra_mount_opts;
 	/** flag indicating to resize after writing (only for ext4) */
