@@ -78,9 +78,10 @@ AS_IF([test "x$enable_json" != "xno"], [
 
 AX_CHECK_OPENSSL([],[AC_MSG_ERROR([OpenSSL not found])])
 
-AC_ARG_WITH([systemdunitdir], AC_HELP_STRING([--with-systemdunitdir=DIR],
-	[path to systemd service directory]), [with_systemdunitdir=${withval}],
-		[with_systemdunitdir="`$PKG_CONFIG --variable=systemdsystemunitdir systemd`"])
+AC_ARG_WITH([systemdunitdir],
+        AC_HELP_STRING([--with-systemdunitdir=DIR], [path to systemd service directory]),
+        [],
+        [with_systemdunitdir="$($PKG_CONFIG --variable=systemdsystemunitdir systemd)"])
 if (test -n "${with_systemdunitdir}"); then
 	SYSTEMD_UNITDIR="${with_systemdunitdir}"
 	AC_SUBST(SYSTEMD_UNITDIR)
