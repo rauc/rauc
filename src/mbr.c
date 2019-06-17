@@ -21,6 +21,8 @@ struct chs_entry {
 	guint8 cylinder;
 };
 
+G_STATIC_ASSERT(sizeof(struct chs_entry) == 3);
+
 struct mbr {
 	guint8 bootstrap_code[440];
 	guint32 disk_signature;
@@ -32,7 +34,7 @@ struct mbr {
 		struct chs_entry chs_end;
 		guint32 partition_start;
 		guint32 partition_size;
-	} partition_table[MBR_NUMBER_OF_PARTITIONS];
+	} partition_table[MBR_NUMBER_OF_PARTITIONS] __attribute__((packed));
 	guint8 magic_number[2];
 } __attribute__((packed));
 
