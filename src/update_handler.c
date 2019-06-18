@@ -1168,12 +1168,12 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 	else
 		inactive_part = 1;
 
-	g_message("Found inactive boot partition %d (pos. %luB, size %luB)",
+	g_message("Found inactive boot partition %d (pos. %"G_GUINT64_FORMAT "B, size %"G_GUINT64_FORMAT "B)",
 			inactive_part, dest_partition.start, dest_partition.size);
 
 	if (dest_partition.size < image->checksum.size) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Size of image (%ld) does not fit to slot size %ld",
+				"Size of image (%"G_GSIZE_FORMAT ") does not fit to slot size %"G_GUINT64_FORMAT,
 				image->checksum.size, dest_partition.size);
 		res = FALSE;
 		goto out;
@@ -1204,7 +1204,7 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 	if (lseek(out_fd, dest_partition.start, SEEK_SET) !=
 	    (off_t)dest_partition.start) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Failed to set file to position %lu",
+				"Failed to set file to position %"G_GUINT64_FORMAT,
 				dest_partition.start);
 		res = FALSE;
 		goto out;

@@ -21,6 +21,8 @@ struct chs_entry {
 	guint8 cylinder;
 };
 
+G_STATIC_ASSERT(sizeof(struct chs_entry) == 3);
+
 struct mbr {
 	guint8 bootstrap_code[440];
 	guint32 disk_signature;
@@ -32,7 +34,7 @@ struct mbr {
 		struct chs_entry chs_end;
 		guint32 partition_start;
 		guint32 partition_size;
-	} partition_table[MBR_NUMBER_OF_PARTITIONS];
+	} partition_table[MBR_NUMBER_OF_PARTITIONS] __attribute__((packed));
 	guint8 magic_number[2];
 } __attribute__((packed));
 
@@ -161,8 +163,8 @@ static gboolean is_region_free(guint64 region_start, guint64 region_size,
 		if (region_start >= p_start && region_start <= p_end)
 		{
 			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-					"Region start address 0x%lx is in area of "
-					"partition %d (0x%lx - 0x%lx)",
+					"Region start address 0x%"G_GINT64_MODIFIER "x is in area of "
+					"partition %d (0x%"G_GINT64_MODIFIER "x - 0x%"G_GINT64_MODIFIER "x)",
 					region_start, i, p_start, p_end);
 			break;
 		}
@@ -171,8 +173,8 @@ static gboolean is_region_free(guint64 region_start, guint64 region_size,
 		    p_start <= region_start + region_size - 1)
 		{
 			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-					"Region end address 0x%lx is in area of "
-					"partition %d (0x%lx - 0x%lx)",
+					"Region end address 0x%"G_GINT64_MODIFIER "x is in area of "
+					"partition %d (0x%"G_GINT64_MODIFIER "x - 0x%"G_GINT64_MODIFIER "x)",
 					region_start + region_size - 1, i, p_start,
 					p_end);
 			break;
@@ -353,7 +355,7 @@ gboolean r_mbr_switch_clear_partition(const gchar *device,
 	if (lseek(fd, dest_partition->start, SEEK_SET) !=
 	    (off_t)dest_partition->start) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Failed to set file to position %lu: %s",
+				"Failed to set file to position %"G_GUINT64_FORMAT ": %s",
 				dest_partition->start, g_strerror(errno));
 		goto out;
 	}
