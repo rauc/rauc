@@ -11,6 +11,7 @@
 
 /* partition entry in MBR partition table, the system boots from */
 #define BOOT_PARTITION_ENTRY		0
+#define TBL_ENTRY_ALIGNMENT		2
 #define MBR_NUMBER_OF_PARTITIONS	4
 #define MBR_MAGIC_NUMBER_L		0x55
 #define MBR_MAGIC_NUMBER_H		0xAA
@@ -262,7 +263,7 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 	gboolean res = FALSE;
 	struct mbr mbr;
 	GError *ierror = NULL;
-	struct partition_tbl_entry *boot_part;
+	struct partition_tbl_entry *boot_part, *partition_table;
 	guint sector_size;
 	gint fd;
 
@@ -287,8 +288,12 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 		goto out;
 	}
 
+	partition_table = __builtin_assume_aligned(mbr.partition_table,
+			TBL_ENTRY_ALIGNMENT);
+
+
 	/* check if region overlaps with any partition */
-	res = is_region_free(region_start, region_size, mbr.partition_table,
+	res = is_region_free(region_start, region_size, partition_table,
 			sector_size, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
@@ -296,7 +301,10 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 	}
 	res = FALSE;
 
-	boot_part = &mbr.partition_table[BOOT_PARTITION_ENTRY];
+	boot_part = __builtin_assume_aligned(
+			&mbr.partition_table[BOOT_PARTITION_ENTRY],
+			TBL_ENTRY_ALIGNMENT
+			);
 
 	if (boot_part->partition_start == 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
@@ -415,7 +423,10 @@ gboolean r_mbr_switch_set_boot_partition(const gchar *device,
 		goto out;
 	}
 
-	boot_part = &mbr.partition_table[BOOT_PARTITION_ENTRY];
+	boot_part = __builtin_assume_aligned(
+			&mbr.partition_table[BOOT_PARTITION_ENTRY],
+			TBL_ENTRY_ALIGNMENT
+			);
 
 	res = get_raw_partition_entry(fd, boot_part, partition, &ierror);
 	if (!res) {
