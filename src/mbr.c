@@ -15,30 +15,33 @@
 #define MBR_MAGIC_NUMBER_L		0x55
 #define MBR_MAGIC_NUMBER_H		0xAA
 
+#pragma pack(push,1)
 struct chs_entry {
 	guint8 head;
 	guint8 sector;
 	guint8 cylinder;
 };
-
 G_STATIC_ASSERT(sizeof(struct chs_entry) == 3);
+
+struct partition_tbl_entry {
+	guint8 boot_indicator;
+	struct chs_entry chs_start;
+	guint8 type;
+	struct chs_entry chs_end;
+	guint32 partition_start;
+	guint32 partition_size;
+};
+G_STATIC_ASSERT(sizeof(struct partition_tbl_entry) == 16);
 
 struct mbr {
 	guint8 bootstrap_code[440];
 	guint32 disk_signature;
-	guint16 unused;
-	struct partition_tbl_entry {
-		guint8 boot_indicator;
-		struct chs_entry chs_start;
-		guint8 type;
-		struct chs_entry chs_end;
-		guint32 partition_start;
-		guint32 partition_size;
-	} partition_table[MBR_NUMBER_OF_PARTITIONS] __attribute__((packed));
+	guint8 unused[2];
+	struct partition_tbl_entry partition_table[MBR_NUMBER_OF_PARTITIONS];
 	guint8 magic_number[2];
-} __attribute__((packed));
-
+};
 G_STATIC_ASSERT(sizeof(struct mbr) == 512);
+#pragma pack(pop)
 
 static guint get_sectorsize(gint fd)
 {
