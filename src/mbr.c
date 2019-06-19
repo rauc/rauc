@@ -28,14 +28,14 @@ struct mbr_tbl_entry {
 	struct mbr_chs_entry chs_start;
 	guint8 type;
 	struct mbr_chs_entry chs_end;
-	guint32 partition_start;
-	guint32 partition_size;
+	guint32 partition_start_le;
+	guint32 partition_size_le;
 };
 G_STATIC_ASSERT(sizeof(struct mbr_tbl_entry) == 16);
 
 struct mbr {
 	guint8 bootstrap_code[440];
-	guint32 disk_signature;
+	guint32 disk_signature_le;
 	guint8 unused[2];
 	struct mbr_tbl_entry partition_table[MBR_NUMBER_OF_PARTITIONS];
 	guint8 magic_number[2];
@@ -159,8 +159,8 @@ static gboolean is_region_free(guint64 region_start, guint64 region_size,
 		if (i == BOOT_PARTITION_ENTRY)
 			continue;
 
-		p_start = (guint64)partition_tbl[i].partition_start * sector_size;
-		p_end = (guint64)partition_tbl[i].partition_size * sector_size +
+		p_start = (guint64)GUINT32_FROM_LE(partition_tbl[i].partition_start_le) * sector_size;
+		p_end = (guint64)GUINT32_FROM_LE(partition_tbl[i].partition_size_le) * sector_size +
 		        p_start - 1;
 
 		if (region_start >= p_start && region_start <= p_end)
@@ -222,6 +222,7 @@ static gboolean get_raw_partition_entry(gint fd,
 		const struct mbr_switch_partition *partition, GError **error)
 {
 	gboolean res = FALSE;
+	guint32 start, size;
 	guint sector_size;
 	struct hd_geometry geometry;
 	GError *ierror = NULL;
@@ -245,14 +246,15 @@ static gboolean get_raw_partition_entry(gint fd,
 		goto out;
 	}
 
-	raw_entry->partition_start = partition->start / sector_size;
-	raw_entry->partition_size = partition->size / sector_size;
+	start = partition->start / sector_size;
+	size = partition->size / sector_size;
 
-	get_chs(&raw_entry->chs_start, raw_entry->partition_start, &geometry);
+	raw_entry->partition_start_le = GUINT32_TO_LE(start);
+	raw_entry->partition_size_le = GUINT32_TO_LE(size);
 
-	get_chs(&raw_entry->chs_end,
-			raw_entry->partition_start + raw_entry->partition_size - 1,
-			&geometry);
+	get_chs(&raw_entry->chs_start, start, &geometry);
+
+	get_chs(&raw_entry->chs_end, start + size - 1, &geometry);
 out:
 	return res;
 }
@@ -301,7 +303,7 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 
 	boot_part = &mbr.partition_table[BOOT_PARTITION_ENTRY];
 
-	if (boot_part->partition_start == 0) {
+	if (GUINT32_FROM_LE(boot_part->partition_start_le) == 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"No boot partition found in entry %d",
 				BOOT_PARTITION_ENTRY);
@@ -309,11 +311,11 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 	}
 
 	if ((region_start / sector_size) ==
-	    (guint64)boot_part->partition_start) {
+	    (guint64)GUINT32_FROM_LE(boot_part->partition_start_le)) {
 		partition->start = region_start + region_size / 2;
 	}
 	else if (((region_start + region_size / 2) / sector_size) ==
-	         (guint64)boot_part->partition_start) {
+	         (guint64)GUINT32_FROM_LE(boot_part->partition_start_le)) {
 		partition->start = region_start;
 	}
 	else {
