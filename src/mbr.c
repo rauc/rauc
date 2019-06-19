@@ -16,28 +16,28 @@
 #define MBR_MAGIC_NUMBER_H		0xAA
 
 #pragma pack(push,1)
-struct chs_entry {
+struct mbr_chs_entry {
 	guint8 head;
 	guint8 sector;
 	guint8 cylinder;
 };
-G_STATIC_ASSERT(sizeof(struct chs_entry) == 3);
+G_STATIC_ASSERT(sizeof(struct mbr_chs_entry) == 3);
 
-struct partition_tbl_entry {
+struct mbr_tbl_entry {
 	guint8 boot_indicator;
-	struct chs_entry chs_start;
+	struct mbr_chs_entry chs_start;
 	guint8 type;
-	struct chs_entry chs_end;
+	struct mbr_chs_entry chs_end;
 	guint32 partition_start;
 	guint32 partition_size;
 };
-G_STATIC_ASSERT(sizeof(struct partition_tbl_entry) == 16);
+G_STATIC_ASSERT(sizeof(struct mbr_tbl_entry) == 16);
 
 struct mbr {
 	guint8 bootstrap_code[440];
 	guint32 disk_signature;
 	guint8 unused[2];
-	struct partition_tbl_entry partition_table[MBR_NUMBER_OF_PARTITIONS];
+	struct mbr_tbl_entry partition_table[MBR_NUMBER_OF_PARTITIONS];
 	guint8 magic_number[2];
 };
 G_STATIC_ASSERT(sizeof(struct mbr) == 512);
@@ -146,7 +146,7 @@ static gboolean read_mbr(gint fd, struct mbr *mbr, GError **error)
 }
 
 static gboolean is_region_free(guint64 region_start, guint64 region_size,
-		const struct partition_tbl_entry *partition_tbl, guint sector_size,
+		const struct mbr_tbl_entry *partition_tbl, guint sector_size,
 		GError **error)
 {
 	guint64 p_start, p_end;
@@ -199,7 +199,7 @@ static gboolean is_region_free(guint64 region_start, guint64 region_size,
  *   - 6 bits for SECTOR
  *   - lower 8 bits for CYLINDER
  */
-static void get_chs(struct chs_entry *chs, guint32 lba,
+static void get_chs(struct mbr_chs_entry *chs, guint32 lba,
 		const struct hd_geometry *geometry)
 {
 	g_return_if_fail(chs);
@@ -218,7 +218,7 @@ static void get_chs(struct chs_entry *chs, guint32 lba,
 }
 
 static gboolean get_raw_partition_entry(gint fd,
-		struct partition_tbl_entry *raw_entry,
+		struct mbr_tbl_entry *raw_entry,
 		const struct mbr_switch_partition *partition, GError **error)
 {
 	gboolean res = FALSE;
@@ -265,7 +265,7 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 	gboolean res = FALSE;
 	struct mbr mbr;
 	GError *ierror = NULL;
-	struct partition_tbl_entry *boot_part;
+	struct mbr_tbl_entry *boot_part;
 	guint sector_size;
 	gint fd;
 
@@ -395,7 +395,7 @@ gboolean r_mbr_switch_set_boot_partition(const gchar *device,
 {
 	gboolean res = FALSE;
 	struct mbr mbr;
-	struct partition_tbl_entry *boot_part;
+	struct mbr_tbl_entry *boot_part;
 	GError *ierror = NULL;
 	gint fd;
 
