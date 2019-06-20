@@ -108,7 +108,6 @@ gchar *resolve_path(const gchar *basefile, gchar *path)
 {
 	g_autofree gchar *cwd = NULL;
 	g_autofree gchar *dir = NULL;
-	g_autofree gchar *res = NULL;
 
 	if (path == NULL)
 		return NULL;
