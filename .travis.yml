@@ -11,53 +11,96 @@ env:
     - COVERITY_SCAN_BUILD_COMMAND_PREPEND="cov-configure --comptype gcc --compiler gcc-6 --template && ./autogen.sh && ./configure CC=gcc-6"
     - COVERITY_SCAN_BUILD_COMMAND="make V=1"
 
-before_script:
-  - docker pull rauc/testing:latest
+stages:
+  - name: Main Build and Tests
+  - name: Cross-Builds
 
-script:
-  # Prepare environment for Coverity tool
-  - |
-      PLATFORM=`uname`
-      export TOOL_BASE="/tmp/coverity-scan-analysis"
-      export SCAN_URL="https://scan.coverity.com"
-      export UPLOAD_URL="https://scan.coverity.com/builds"
-      export TOOL_ARCHIVE="/tmp/cov-analysis-${PLATFORM}.tgz"
+jobs:
+  include:
+    - stage: Main Build and Tests
+      before_script:
+        - docker pull rauc/testing:latest
 
-  # Get Coverity tool
-  # - test/get-coverity.sh
-  # - TOOL_DIR="$(find $TOOL_BASE -type d -name 'cov-analysis*' || exit 0)"
+      script:
+        # Prepare environment for Coverity tool
+        - |
+            PLATFORM=`uname`
+            export TOOL_BASE="/tmp/coverity-scan-analysis"
+            export SCAN_URL="https://scan.coverity.com"
+            export UPLOAD_URL="https://scan.coverity.com/builds"
+            export TOOL_ARCHIVE="/tmp/cov-analysis-${PLATFORM}.tgz"
 
-  # Create container and export env variables for Coverity scan
-  - env | grep -E "TRAVIS|COV|TOOL|URL" > .cov-env
-  - |
-      docker run -dit --env-file .cov-env \
-      -v "$PWD":/home/travis -w /home/travis \
-      --tmpfs /tmp/uml:exec,mode=777 \
-      --tmpfs /tmp:exec \
-      -v ${TOOL_BASE}:${TOOL_BASE} \
-      -u travis $ci_env \
-      --name rauc-ci rauc/testing:latest bash
+        # Get Coverity tool
+        # - test/get-coverity.sh
+        # - TOOL_DIR="$(find $TOOL_BASE -type d -name 'cov-analysis*' || exit 0)"
 
-  # Make sure Coverity script is executable
-  # - docker cp test/run-coverity.sh rauc-ci:/usr/local/bin
+        # Create container and export env variables for Coverity scan
+        - env | grep -E "TRAVIS|COV|TOOL|URL" > .cov-env
+        - |
+            docker run -dit --privileged \
+            --env-file .cov-env \
+            -v "$PWD":/home/travis -w /home/travis \
+            --tmpfs /tmp/uml:exec,mode=777 \
+            --tmpfs /tmp:exec \
+            -v ${TOOL_BASE}:${TOOL_BASE} \
+            -u travis $ci_env \
+            --name rauc-ci rauc/testing:latest bash
 
-  # Run Coverity Analysis
-  # - docker exec -it rauc-ci run-coverity.sh build
-  # - docker exec -it rauc-ci run-coverity.sh upload
+        # Make sure Coverity script is executable
+        # - docker cp test/run-coverity.sh rauc-ci:/usr/local/bin
 
-  - docker exec -it rauc-ci ./autogen.sh
-  - docker exec -it rauc-ci ./configure --enable-code-coverage
-  - docker exec -it rauc-ci make clean
-  - docker exec -it rauc-ci make -j2
-  - docker exec -it rauc-ci make doc SPHINXOPTS=-W
-  - docker exec -it rauc-ci make check TESTS=
-  - docker exec -it rauc-ci /bin/sh -c 'export TMPDIR=/tmp/uml && ./uml-test'
-  - docker exec -it rauc-ci make distcheck
-  - docker exec -it rauc-ci /bin/sh -c 'cd /home/travis/contrib/cgi && ./autogen.sh && ./configure && make clean && make -j2 && make distcheck'
-  - ./uncrustify.sh && git diff --exit-code
-after_success:
-  - docker exec -it rauc-ci /usr/bin/codecov -t $CODECOV_TOKEN
-after_failure:
-  - cat test/*.log || true
-  - cat test-suite.log || true
-  - cat rauc-*/_build/sub/test-suite.log || true
+        # Run Coverity Analysis
+        # - docker exec -it rauc-ci run-coverity.sh build
+        # - docker exec -it rauc-ci run-coverity.sh upload
+
+        - docker exec -it rauc-ci ./autogen.sh
+        - docker exec -it rauc-ci ./configure --enable-code-coverage
+        - docker exec -it rauc-ci make clean
+        - docker exec -it rauc-ci make -j2
+        - docker exec -it rauc-ci make doc SPHINXOPTS=-W
+        - docker exec -it rauc-ci make check TESTS=
+        - docker exec -it rauc-ci /bin/sh -c 'export TMPDIR=/tmp/uml && ./uml-test'
+        - docker exec -it rauc-ci make distcheck
+        - docker exec -it rauc-ci /bin/sh -c 'cd /home/travis/contrib/cgi && ./autogen.sh && ./configure && make clean && make -j2 && make distcheck'
+        - ./uncrustify.sh && git diff --exit-code
+      after_success:
+        - docker exec -it rauc-ci /bin/sh -c 'find . -type f -name *.gcno -exec gcov -pbr {} +'
+        - docker exec -it rauc-ci /usr/bin/codecov -X gcov
+      after_failure:
+        - cat test/*.log || true
+        - cat test-suite.log || true
+        - cat rauc-*/_build/sub/test-suite.log || true
+    - &cross
+      stage: Cross-Builds
+      name: armhf
+      before_install:
+        - docker run --rm --privileged multiarch/qemu-user-static:register --reset
+      install:
+        - docker run --name cross -dit -v "$PWD":/home -w /home multiarch/debian-debootstrap:armhf-buster bash
+      before_script:
+        - docker exec -it cross uname -a
+        - docker exec -it cross apt-get update
+        - docker exec -it cross apt-get install -y build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev
+      script:
+        - docker exec -it cross ./autogen.sh
+        - docker exec -it cross ./configure
+        - docker exec -it cross make
+      after_script:
+        - docker stop cross
+      after_failure:
+        - cat config.log || true
+        - cat test/*.log || true
+        - cat test-suite.log || true
+        - cat rauc-*/_build/sub/test-suite.log || true
+    - <<: *cross
+      name: arm64
+      install:
+        - docker run --name cross -dit -v "$PWD":/home -w /home multiarch/debian-debootstrap:arm64-buster bash
+    - <<: *cross
+      name: i386
+      install:
+        - docker run --name cross -dit -v "$PWD":/home -w /home multiarch/debian-debootstrap:i386-buster bash
+    - <<: *cross
+      name: armel
+      install:
+        - docker run --name cross -dit -v "$PWD":/home -w /home multiarch/debian-debootstrap:armel-buster bash
