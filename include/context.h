@@ -87,7 +87,8 @@ void r_context_begin_step(const gchar *name, const gchar *description,
  * @param description that is emitted via DBus on begin/end.
  *   A printf-like format string.
  */
-void r_context_begin_step_formatted(const gchar *name, gint substeps, const gchar *description, ...);
+void r_context_begin_step_formatted(const gchar *name, gint substeps, const gchar *description, ...)
+__attribute__((__format__(__printf__, 3, 4)));
 
 /**
  * Call at the end of a relevant code block. Percentage calculation is done

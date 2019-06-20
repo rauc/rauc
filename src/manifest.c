@@ -591,9 +591,7 @@ gboolean verify_manifest(const gchar *dir, RaucManifest **output, GError **error
 {
 	GError *ierror = NULL;
 	g_autofree gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
-	g_autofree gchar* signaturepath = g_build_filename(dir, "manifest.raucm.sig", NULL);
 	g_autoptr(RaucManifest) manifest = NULL;
-	g_autoptr(GBytes) sig = NULL;
 	gboolean res = FALSE;
 
 	r_context_begin_step("verify_manifest", "Verifying manifest", 2);
