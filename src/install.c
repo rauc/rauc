@@ -410,7 +410,7 @@ GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group
 			RaucSlot *target_slot = NULL;
 
 			/* Not interested in slots of other classes */
-			if (!g_strcmp0(lookup_image->slotclass, *cls) == 0)
+			if (g_strcmp0(lookup_image->slotclass, *cls) != 0)
 				continue;
 
 			/* Check if target_group contains an appropriate slot for this image */
