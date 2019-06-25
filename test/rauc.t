@@ -127,6 +127,10 @@ test -f ${SOFTHSM2_MOD} &&
 faketime "2018-01-01" date &&
   test_set_prereq FAKETIME
 
+# Prerequisite: grub-editenv available [GRUB]
+grub-editenv -V &&
+  test_set_prereq GRUB
+
 test_expect_success "rauc noargs" "
   test_must_fail rauc
 "
@@ -360,19 +364,19 @@ test_expect_success SERVICE "rauc status invalid: via D-Bus" "
   test_must_fail rauc status --output-format=invalid
 "
 
-test_expect_success !SERVICE "rauc status mark-good: internally" "
+test_expect_success !SERVICE,GRUB "rauc status mark-good: internally" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status mark-good
 "
 
-test_expect_success !SERVICE "rauc status mark-bad: internally" "
+test_expect_success !SERVICE,GRUB "rauc status mark-bad: internally" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status mark-bad
 "
 
-test_expect_success !SERVICE "rauc status mark-active: internally" "
+test_expect_success !SERVICE,GRUB "rauc status mark-active: internally" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status mark-active
 "
 
-test_expect_success SERVICE "rauc status mark-good: via D-Bus" "
+test_expect_success SERVICE,GRUB "rauc status mark-good: via D-Bus" "
   start_rauc_dbus_service \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
     --override-boot-slot=system1 &&
@@ -383,7 +387,7 @@ test_expect_success SERVICE "rauc status mark-good: via D-Bus" "
     status mark-good
 "
 
-test_expect_success SERVICE "rauc status mark-bad: via D-Bus" "
+test_expect_success SERVICE,GRUB "rauc status mark-bad: via D-Bus" "
   start_rauc_dbus_service \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
     --override-boot-slot=system1 &&
@@ -394,7 +398,7 @@ test_expect_success SERVICE "rauc status mark-bad: via D-Bus" "
     status mark-bad
 "
 
-test_expect_success SERVICE "rauc status mark-active: via D-Bus" "
+test_expect_success SERVICE,GRUB "rauc status mark-active: via D-Bus" "
   start_rauc_dbus_service \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
     --override-boot-slot=system1 &&
