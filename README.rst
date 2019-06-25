@@ -189,7 +189,9 @@ Running the Test Suite
 
 ::
 
-    sudo apt-get install user-mode-linux slirp
+    sudo apt-get install user-mode-linux slirp squashfs-tools
+    # Optional to run all tests:
+    # sudo apt-get install faketime casync grub-common softhsm2 opensc opensc-pkcs11 libengine-pkcs11-openssl
     make check
     ./uml-test
 
