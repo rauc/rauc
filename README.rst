@@ -189,7 +189,7 @@ Running the Test Suite
 
 ::
 
-    sudo apt-get install user-mode-linux slirp
+    sudo apt-get install user-mode-linux slirp squashfs-tools
     make check
     ./uml-test
 
