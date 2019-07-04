@@ -468,6 +468,10 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 		goto out;
 	}
 
+	/* invalidate keyring to avoid post-signing verification with inappropriate
+	 * keyring */
+	g_clear_pointer(&r_context()->config->keyring_path, g_free);
+
 	res = sign_bundle(outpath, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
