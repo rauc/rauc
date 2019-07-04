@@ -424,8 +424,6 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 		}
 
 		sk_X509_pop_free(verified_chain, X509_free);
-	} else {
-		g_message("No keyring given, skipping signature verification");
 	}
 out:
 	ERR_print_errors_fp(stdout);
