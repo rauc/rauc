@@ -6,7 +6,8 @@ RUN apt-get update && apt-get install -y \
   libtool \
   libglib2.0-dev \
   libcurl3-dev \
-  libssl-dev
+  libssl-dev \
+  libdbus-1-dev
 
 # Reqired for building (extended)
 RUN apt-get update && apt-get install -y \
