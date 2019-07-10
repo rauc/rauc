@@ -7,6 +7,7 @@
 #include <bundle.h>
 #include <context.h>
 #include <manifest.h>
+#include <signature.h>
 #include <utils.h>
 
 #include "common.h"
@@ -172,13 +173,18 @@ static void bundle_test_resign(BundleFixture *fixture,
 	 * the context's 'pending' flag which would cause a re-initialization
 	 * of context and thus overwrite content of 'config' member. */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
-	g_assert_false(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
+	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
+	g_clear_error(&ierror);
+	g_assert_false(res);
 
 	g_clear_pointer(&bundle, free_bundle);
 
 	/* Verify input bundle with 'dev' keyring */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
-	g_assert_true(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
+	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
 
 	/* Use 'rel' key pair for resigning */
 	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
@@ -196,13 +202,17 @@ static void bundle_test_resign(BundleFixture *fixture,
 	 * installing development bundles as well as moving to production
 	 * bundles. */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
-	g_assert_true(check_bundle(resignbundle, &bundle, TRUE, NULL));
+	res = check_bundle(resignbundle, &bundle, TRUE, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
 
 	g_clear_pointer(&bundle, free_bundle);
 
 	/* Verify resigned bundle with rel keyring */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
-	g_assert_true(check_bundle(resignbundle, &bundle, TRUE, NULL));
+	res = check_bundle(resignbundle, &bundle, TRUE, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
 
 	g_clear_pointer(&bundle, free_bundle);
 }
