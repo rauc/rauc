@@ -181,7 +181,7 @@ static void bundle_test_resign(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	/* Verify input bundle with 'dev' keyring */
-	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
+	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-only-ca.pem");
 	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -201,10 +201,11 @@ static void bundle_test_resign(BundleFixture *fixture,
 	 * both the production and the development certificate to allow
 	 * installing development bundles as well as moving to production
 	 * bundles. */
-	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
+	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-only-ca.pem");
 	res = check_bundle(resignbundle, &bundle, TRUE, &ierror);
-	g_assert_no_error(ierror);
-	g_assert_true(res);
+	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
+	g_clear_error(&ierror);
+	g_assert_false(res);
 
 	g_clear_pointer(&bundle, free_bundle);
 
