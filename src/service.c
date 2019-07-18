@@ -94,8 +94,8 @@ out:
 static gboolean r_on_handle_info_verify(RInstaller *interface,
 		GDBusMethodInvocation  *invocation,
 		const gchar *arg_bundle,
-        const gboolean arg_verify
-        )
+		const gboolean arg_verify
+		)
 {
 	g_autofree gchar* tmpdir = NULL;
 	g_autofree gchar* bundledir = NULL;
@@ -167,8 +167,8 @@ static gboolean r_on_handle_info(RInstaller *interface,
 		GDBusMethodInvocation  *invocation,
 		const gchar *arg_bundle)
 {
-    g_message("Using deprecated 'Info' D-Bus Method (replaced by 'InfoVerify')");
-    return r_on_handle_info_verify(interface, invocation, arg_bundle, TRUE);
+	g_message("Using deprecated 'Info' D-Bus Method (replaced by 'InfoVerify')");
+	return r_on_handle_info_verify(interface, invocation, arg_bundle, TRUE);
 }
 
 static gboolean r_on_handle_mark(RInstaller *interface,
@@ -443,9 +443,9 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 			G_CALLBACK(r_on_handle_info),
 			NULL);
 
-    g_signal_connect(r_installer, "handle-info-verify",
-            G_CALLBACK(r_on_handle_info_verify),
-            NULL);
+	g_signal_connect(r_installer, "handle-info-verify",
+			G_CALLBACK(r_on_handle_info_verify),
+			NULL);
 
 	g_signal_connect(r_installer, "handle-mark",
 			G_CALLBACK(r_on_handle_mark),
