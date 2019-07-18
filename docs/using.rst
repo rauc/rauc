@@ -634,6 +634,12 @@ Monitor the D-Bus interface
 
   busctl monitor de.pengutronix.rauc
 
+Read bundle information (optionally skipping verification)
+
+.. code-block:: sh
+
+  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer InfoVerify sb "/path/to/bundle" 1
+
 .. _debugging:
 
 Debugging RAUC

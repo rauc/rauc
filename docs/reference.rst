@@ -512,7 +512,9 @@ Methods
 ~~~~~~~
 :ref:`Install <gdbus-method-de-pengutronix-rauc-Installer.Install>` (IN  s source);
 
-:ref:`Info <gdbus-method-de-pengutronix-rauc-Installer.Info>` (IN  s bundle, s compatible, s version);
+:ref:`Info <gdbus-method-de-pengutronix-rauc-Installer.Info>` (IN  s bundle, s compatible, s version); (deprecated)
+
+:ref:`InfoVerify <gdbus-method-de-pengutronix-rauc-Installer.InfoVerify>` (IN  s bundle, IN b verify, s compatible, s version);
 
 :ref:`Mark <gdbus-method-de-pengutronix-rauc-Installer.Mark>` (IN  s state, IN  s slot_identifier, s slot_name, s message);
 
@@ -566,6 +568,8 @@ IN s *source*:
 The Info() Method
 ^^^^^^^^^^^^^^^^^
 
+.. note:: This method is deprecated (see :ref:`InfoVerify <gdbus-method-de-pengutronix-rauc-Installer.InfoVerify>`)
+
 .. code::
 
   de.pengutronix.rauc.Installer.Info()
@@ -575,6 +579,30 @@ Provides bundle info.
 
 IN s *bundle*:
     Path to bundle information should be shown
+
+s *compatible*:
+    Compatible of bundle
+
+s *version*:
+    Version string of bundle
+
+.. _gdbus-method-de-pengutronix-rauc-Installer.InfoVerify:
+
+The InfoVerify() Method
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer.InfoVerify()
+  Info (IN  s bundle, IN b verify, s compatible, s version);
+
+Provides bundle info.
+
+IN s *bundle*:
+    Path to bundle information should be shown
+
+IN b *verify*:
+    True to verify the bundle, false to disable bundle verification
 
 s *compatible*:
     Compatible of bundle
