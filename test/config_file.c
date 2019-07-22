@@ -61,6 +61,9 @@ max-bundle-download-size=42\n\
 [keyring]\n\
 path=/etc/rauc/keyring/\n\
 \n\
+[casync]\n\
+tmppath=/tmp/\n\
+\n\
 [slot.rescue.0]\n\
 description=Rescue partition\n\
 device=/dev/rescue-0\n\
