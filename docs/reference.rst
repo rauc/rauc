@@ -145,6 +145,14 @@ For more information about using casync support of RAUC, refer to
   By default, the chunk store path is derived from the location of the RAUC
   bundle you install.
 
+``tmppath``
+  Allows to set the path to use as temporary directory for casync.
+  The temporary directory used by casync can be specified using the TMPDIR
+  environment variable. It falls back to /var/tmp if unset.
+  If ``tmppath`` is set then RAUC runs casync with TMPDIR sets to that path.
+  By default, the temporary directory is left unset by RAUC and casync uses its
+  internal default value ``/var/tmp``.
+
 **[autoinstall] section**
 
 The auto-install feature allows to configure a path that will be checked upon

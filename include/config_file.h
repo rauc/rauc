@@ -39,6 +39,7 @@ typedef struct {
 	/* path prefix where rauc may create mount directories */
 	gchar *mount_prefix;
 	gchar *store_path;
+	gchar *tmp_path;
 	gboolean activate_installed;
 	gchar *statusfile_path;
 	gchar *keyring_path;
