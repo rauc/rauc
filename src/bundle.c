@@ -248,7 +248,7 @@ static gboolean input_stream_read_uint64_all(GInputStream *stream,
 	return res;
 }
 
-#define SQUASHFS_MAGIC			0x73717368
+#define SQUASHFS_MAGIC			GUINT32_TO_LE(0x73717368)
 
 /* Attempts to read and verify the squashfs magic to verify having a valid bundle */
 static gboolean input_stream_check_bundle_identifier(GInputStream *stream, GError **error)
