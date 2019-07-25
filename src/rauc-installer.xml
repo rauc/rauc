@@ -50,6 +50,7 @@
     -->
     <method name="GetSlotStatus">
       <arg name="slot_status_array" type="a(sa{sv})" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="RaucSlotStatusArray"/>
     </method>
 
     <!-- Operation: Represents the current (global) operation rauc performs -->
@@ -58,7 +59,9 @@
     <property name="LastError" type="s" access="read"/>
     <!-- Progress: Provides installation progress informations in the form
          (percentage, message, nesting depth) -->
-    <property name="Progress" type="(isi)" access="read"/>
+    <property name="Progress" type="(isi)" access="read">
+      <annotation name="org.qtproject.QtDBus.QtTypeName" value="RaucProgress"/>
+    </property>
     <!-- Compatible: Represents the system's compatible -->
     <property name="Compatible" type="s" access="read"/>
     <!-- Variant: Represents the system's variant -->
