@@ -107,7 +107,7 @@ static ENGINE *get_pkcs11_engine(GError **error)
 	}
 
 	env = g_getenv("RAUC_PKCS11_PIN");
-	if (env != NULL) {
+	if (env != NULL && env[0] != '\0') {
 		if (!ENGINE_ctrl_cmd_string(e, "PIN", env, 0)) {
 			err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 			g_set_error(
