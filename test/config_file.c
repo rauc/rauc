@@ -62,6 +62,7 @@ max-bundle-download-size=42\n\
 path=/etc/rauc/keyring/\n\
 \n\
 [casync]\n\
+storepath=/var/lib/default.castr/\n\
 tmppath=/tmp/\n\
 \n\
 [slot.rescue.0]\n\
