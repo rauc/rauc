@@ -134,7 +134,7 @@ static void assert_progress(GVariant *progress, gint32 percentage, const gchar *
 	g_variant_unref(gv);
 }
 
-static void service_test_install(ServiceFixture *fixture, gconstpointer user_data)
+static void service_test_install(ServiceFixture *fixture, gconstpointer user_data, gboolean deprecated)
 {
 	GQueue *args = g_queue_new();
 	const gchar *operation = NULL, *last_error = NULL;
@@ -215,14 +215,37 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	g_assert_nonnull(bundlepath);
 
 	/* Actually install bundle */
-	ret = r_installer_call_install_sync(installer, bundlepath, NULL,
-			&error);
+	if (deprecated) {
+		ret = r_installer_call_install_sync(
+				installer,
+				bundlepath,
+				NULL,
+				&error);
+	} else {
+		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
+		ret = r_installer_call_install_bundle_sync(
+				installer,
+				bundlepath,
+				g_variant_dict_end(&dict), /* floating, no unref needed */
+				NULL,
+				&error);
+	}
 	g_assert_no_error(error);
 	g_assert_true(ret);
 
 	g_main_loop_run(testloop);
 
 	g_clear_pointer(&installer, g_object_unref);
+}
+
+static void service_test_install_bundle(ServiceFixture *fixture, gconstpointer user_data)
+{
+	service_test_install(fixture, user_data, FALSE);
+}
+
+static void service_test_install_deprecated(ServiceFixture *fixture, gconstpointer user_data)
+{
+	service_test_install(fixture, user_data, TRUE);
 }
 
 static void service_test_info(ServiceFixture *fixture, gconstpointer user_data)
@@ -305,8 +328,12 @@ int main(int argc, char *argv[])
 
 	g_test_init(&argc, &argv, NULL);
 
-	g_test_add("/service/install", ServiceFixture, NULL,
-			service_install_fixture_set_up, service_test_install,
+	g_test_add("/service/install-bundle", ServiceFixture, NULL,
+			service_install_fixture_set_up, service_test_install_bundle,
+			service_fixture_tear_down);
+
+	g_test_add("/service/install-deprecated", ServiceFixture, NULL,
+			service_install_fixture_set_up, service_test_install_deprecated,
 			service_fixture_tear_down);
 
 	g_test_add("/service/info", ServiceFixture, NULL,
