@@ -760,6 +760,40 @@ out:
 	return res;
 }
 
+static gboolean pre_install_checks(gchar* bundledir, GList *install_images, GHashTable *target_group, GError **error)
+{
+	for (GList *l = install_images; l != NULL; l = l->next) {
+		RaucImage *mfimage = l->data;
+		RaucSlot *dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
+
+		/* if image filename is relative, make it absolute */
+		if (!g_path_is_absolute(mfimage->filename)) {
+			gchar *filename = g_build_filename(bundledir, mfimage->filename, NULL);
+			g_free(mfimage->filename);
+			mfimage->filename = filename;
+		}
+
+		if (!g_file_test(mfimage->filename, G_FILE_TEST_EXISTS)) {
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NOSRC,
+					"Source image '%s' not found", mfimage->filename);
+			return FALSE;
+		}
+
+		if (!g_file_test(dest_slot->device, G_FILE_TEST_EXISTS)) {
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NODST,
+					"Destination device '%s' not found", dest_slot->device);
+			return FALSE;
+		}
+
+		if (dest_slot->mount_point || dest_slot->ext_mount_point) {
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
+					"Destination device '%s' already mounted", dest_slot->device);
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
 
 static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error)
 {
@@ -800,6 +834,12 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		goto early_out;
 	}
 
+	res = pre_install_checks(bundledir, install_images, target_group, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto early_out;
+	}
+
 	/* Mark all parent destination slots non-bootable */
 	for (GList *l = install_images; l != NULL; l = l->next) {
 		RaucSlot *dest_slot = g_hash_table_lookup(target_group, ((RaucImage*)l->data)->slotclass);
@@ -834,34 +874,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 		mfimage = l->data;
 		dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
-
-		/* if image filename is relative, make it absolute */
-		if (!g_path_is_absolute(mfimage->filename)) {
-			gchar *filename = g_build_filename(bundledir, mfimage->filename, NULL);
-			g_free(mfimage->filename);
-			mfimage->filename = filename;
-		}
-
-		if (!g_file_test(mfimage->filename, G_FILE_TEST_EXISTS)) {
-			res = FALSE;
-			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NOSRC,
-					"Source image '%s' not found", mfimage->filename);
-			goto out;
-		}
-
-		if (!g_file_test(dest_slot->device, G_FILE_TEST_EXISTS)) {
-			res = FALSE;
-			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NODST,
-					"Destination device '%s' not found", dest_slot->device);
-			goto out;
-		}
-
-		if (dest_slot->mount_point || dest_slot->ext_mount_point) {
-			res = FALSE;
-			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
-					"Destination device '%s' already mounted", dest_slot->device);
-			goto out;
-		}
 
 		/* Verify image checksum (for non-casync images) */
 		if (!g_str_has_suffix(mfimage->filename, ".caibx") && !g_str_has_suffix(mfimage->filename, ".caidx")) {
