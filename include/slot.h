@@ -149,3 +149,25 @@ gchar** r_slot_get_root_classes(GHashTable *slots);
  * @return TRUE if slot was found, FALSE if not
  */
 gboolean r_slot_list_contains(GList *slotlist, const RaucSlot *testslot);
+
+/**
+ * Returns list of slots of given slot class
+ *
+ * @param slots GHashTable of system slots
+ * @param class name of class to find all slots for
+ *
+ * @return list of pointers to all memers of slots hash table that are of
+ *         selected class.
+ */
+GList* r_slot_get_all_of_class(GHashTable *slots, const gchar* class);
+
+/**
+ * Returns list of child slots of given parent slot.
+ *
+ * @param slots GHashTable of system slots
+ * @param parent Slot to find childern for
+ *
+ * @return list of pointers to all memers of slots hash table that are childern
+ *         of given slot.
+ */
+GList* r_slot_get_all_children(GHashTable *slots, RaucSlot *parent);

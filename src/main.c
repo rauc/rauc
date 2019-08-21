@@ -1011,7 +1011,7 @@ static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint 
 {
 	RaucSlotStatus *slot_state = slot->status;
 
-	g_string_append_printf(text, "  %s: class=%s, device=%s, type=%s, bootname=%s\n",
+	g_string_append_printf(text, "\n  %s: class=%s, device=%s, type=%s, bootname=%s\n",
 			slot->name, slot->sclass, slot->device, slot->type, slot->bootname);
 	g_string_append_printf(text, "      state=%s, description=%s", r_slot_slotstate_to_str(slot->state), slot->description);
 	if (slot->parent)
@@ -1052,17 +1052,13 @@ static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint 
 		if (slot_state->status)
 			g_string_append_printf(text, "\n          status=%s", slot_state->status);
 	}
-	g_string_append_c(text, '\n');
 }
 
 static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 {
-	GHashTableIter iter;
-	gint slotcnt = 0;
 	GString *text = g_string_new(NULL);
-	RaucSlot *slot = NULL;
 	RaucSlot *bootedfrom = NULL;
-	gchar *name;
+	gchar **slotclasses = NULL;
 
 	g_return_val_if_fail(status, NULL);
 
@@ -1075,13 +1071,32 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 	g_string_append_printf(text, "Booted from: %s (%s)\n", bootedfrom ? bootedfrom->name : NULL, status->bootslot);
 	g_string_append_printf(text, "Activated:   %s (%s)\n", status->primary ? status->primary->name : NULL, status->primary ? status->primary->bootname : NULL);
 
-	g_string_append(text, "slot states:\n");
-	g_hash_table_iter_init(&iter, status->slots);
-	while (g_hash_table_iter_next(&iter, (gpointer*) &name, (gpointer*) &slot)) {
+	g_string_append(text, "slot states:");
 
-		slotcnt++;
+	slotclasses = r_slot_get_root_classes(status->slots);
 
-		r_string_append_slot(text, slot, status);
+	for (gchar **cls = slotclasses; *cls != NULL; cls++) {
+		GList *slots = NULL;
+
+		slots = r_slot_get_all_of_class(status->slots, *cls);
+
+		for (GList *l = slots; l != NULL; l = l->next) {
+			RaucSlot *xslot = l->data;
+
+			GList *children = NULL;
+
+			r_string_append_slot(text, xslot, status);
+
+			children = r_slot_get_all_children(status->slots, xslot);
+			for (GList *cl = children; cl != NULL; cl = cl->next) {
+				RaucSlot *child_slot = cl->data;
+
+				r_string_append_slot(text, child_slot, status);
+			}
+
+			g_string_append(text, "\n");
+		}
+
 	}
 
 	return g_string_free(text, FALSE);
