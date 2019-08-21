@@ -1007,6 +1007,54 @@ static void free_status_print(RaucStatusPrint *status)
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucStatusPrint, free_status_print);
 
+static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint *status)
+{
+	RaucSlotStatus *slot_state = slot->status;
+
+	g_string_append_printf(text, "  %s: class=%s, device=%s, type=%s, bootname=%s\n",
+			slot->name, slot->sclass, slot->device, slot->type, slot->bootname);
+	g_string_append_printf(text, "      state=%s, description=%s", r_slot_slotstate_to_str(slot->state), slot->description);
+	if (slot->parent)
+		g_string_append_printf(text, ", parent=%s", slot->parent->name);
+	else
+		g_string_append(text, ", parent=(none)");
+	if (slot->mount_point || slot->ext_mount_point)
+		g_string_append_printf(text, ", mountpoint=%s", slot->mount_point ? slot->mount_point : slot->ext_mount_point);
+	else
+		g_string_append(text, ", mountpoint=(none)");
+	if (slot->bootname)
+		g_string_append_printf(text, "\n      boot status=%s", slot->boot_good ? "good" : "bad");
+	if (status_detailed && slot_state) {
+		g_string_append_printf(text, "\n      slot status:");
+		g_string_append_printf(text, "\n          bundle:");
+		g_string_append_printf(text, "\n              compatible=%s", slot_state->bundle_compatible);
+		if (slot_state->bundle_version)
+			g_string_append_printf(text, "\n              version=%s", slot_state->bundle_version);
+		if (slot_state->bundle_description)
+			g_string_append_printf(text, "\n              description=%s", slot_state->bundle_description);
+		if (slot_state->bundle_build)
+			g_string_append_printf(text, "\n              build=%s", slot_state->bundle_build);
+		if (slot_state->checksum.digest && slot_state->checksum.type == G_CHECKSUM_SHA256) {
+			g_string_append_printf(text, "\n          checksum:");
+			g_string_append_printf(text, "\n              sha256=%s", slot_state->checksum.digest);
+			g_string_append_printf(text, "\n              size=%"G_GSIZE_FORMAT, slot_state->checksum.size);
+		}
+		if (slot_state->installed_timestamp) {
+			g_string_append_printf(text, "\n          installed:");
+			g_string_append_printf(text, "\n              timestamp=%s", slot_state->installed_timestamp);
+			g_string_append_printf(text, "\n              count=%u", slot_state->installed_count);
+		}
+		if (slot_state->activated_timestamp) {
+			g_string_append_printf(text, "\n          activated:");
+			g_string_append_printf(text, "\n              timestamp=%s", slot_state->activated_timestamp);
+			g_string_append_printf(text, "\n              count=%u", slot_state->activated_count);
+		}
+		if (slot_state->status)
+			g_string_append_printf(text, "\n          status=%s", slot_state->status);
+	}
+	g_string_append_c(text, '\n');
+}
+
 static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 {
 	GHashTableIter iter;
@@ -1030,52 +1078,10 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 	g_string_append(text, "slot states:\n");
 	g_hash_table_iter_init(&iter, status->slots);
 	while (g_hash_table_iter_next(&iter, (gpointer*) &name, (gpointer*) &slot)) {
-		RaucSlotStatus *slot_state = slot->status;
 
 		slotcnt++;
 
-		g_string_append_printf(text, "  %s: class=%s, device=%s, type=%s, bootname=%s\n",
-				name, slot->sclass, slot->device, slot->type, slot->bootname);
-		g_string_append_printf(text, "      state=%s, description=%s", r_slot_slotstate_to_str(slot->state), slot->description);
-		if (slot->parent)
-			g_string_append_printf(text, ", parent=%s", slot->parent->name);
-		else
-			g_string_append(text, ", parent=(none)");
-		if (slot->mount_point || slot->ext_mount_point)
-			g_string_append_printf(text, ", mountpoint=%s", slot->mount_point ? slot->mount_point : slot->ext_mount_point);
-		else
-			g_string_append(text, ", mountpoint=(none)");
-		if (slot->bootname)
-			g_string_append_printf(text, "\n      boot status=%s", slot->boot_good ? "good" : "bad");
-		if (status_detailed && slot_state) {
-			g_string_append_printf(text, "\n      slot status:");
-			g_string_append_printf(text, "\n          bundle:");
-			g_string_append_printf(text, "\n              compatible=%s", slot_state->bundle_compatible);
-			if (slot_state->bundle_version)
-				g_string_append_printf(text, "\n              version=%s", slot_state->bundle_version);
-			if (slot_state->bundle_description)
-				g_string_append_printf(text, "\n              description=%s", slot_state->bundle_description);
-			if (slot_state->bundle_build)
-				g_string_append_printf(text, "\n              build=%s", slot_state->bundle_build);
-			if (slot_state->checksum.digest && slot_state->checksum.type == G_CHECKSUM_SHA256) {
-				g_string_append_printf(text, "\n          checksum:");
-				g_string_append_printf(text, "\n              sha256=%s", slot_state->checksum.digest);
-				g_string_append_printf(text, "\n              size=%"G_GSIZE_FORMAT, slot_state->checksum.size);
-			}
-			if (slot_state->installed_timestamp) {
-				g_string_append_printf(text, "\n          installed:");
-				g_string_append_printf(text, "\n              timestamp=%s", slot_state->installed_timestamp);
-				g_string_append_printf(text, "\n              count=%u", slot_state->installed_count);
-			}
-			if (slot_state->activated_timestamp) {
-				g_string_append_printf(text, "\n          activated:");
-				g_string_append_printf(text, "\n              timestamp=%s", slot_state->activated_timestamp);
-				g_string_append_printf(text, "\n              count=%u", slot_state->activated_count);
-			}
-			if (slot_state->status)
-				g_string_append_printf(text, "\n          status=%s", slot_state->status);
-		}
-		g_string_append_c(text, '\n');
+		r_string_append_slot(text, slot, status);
 	}
 
 	return g_string_free(text, FALSE);
