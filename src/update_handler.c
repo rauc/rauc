@@ -1151,7 +1151,7 @@ out:
 static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	gboolean res = FALSE;
-	int out_fd, inactive_part;
+	int out_fd = -1, inactive_part;
 	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	struct mbr_switch_partition dest_partition;
