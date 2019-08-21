@@ -904,7 +904,7 @@ static gboolean save_slot_status_globally(GError **error)
 	/* Save all slot status information */
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
-		g_autofree gchar *group;
+		g_autofree gchar *group = NULL;
 
 		if (!slot->status) {
 			continue;
