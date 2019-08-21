@@ -973,23 +973,48 @@ static void free_status_print(RaucStatusPrint *status)
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucStatusPrint, free_status_print);
 
+/* Definition list for terminal colors */
+#define KNRM  "\x1B[0m"
+#define KRED  "\x1B[31m"
+#define KGRN  "\x1B[32m"
+#define KYEL  "\x1B[33m"
+#define KBLU  "\x1B[34m"
+#define KMAG  "\x1B[35m"
+#define KCYN  "\x1B[36m"
+#define KWHT  "\x1B[37m"
+#define KBLD  "\x1B[1m"
+
 static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint *status)
 {
 	RaucSlotStatus *slot_state = slot->status;
 
-	g_string_append_printf(text, "\n  %s: class=%s, device=%s, type=%s, bootname=%s\n",
-			slot->name, slot->sclass, slot->device, slot->type, slot->bootname);
-	g_string_append_printf(text, "      state=%s, description=%s", r_slot_slotstate_to_str(slot->state), slot->description);
-	if (slot->parent)
-		g_string_append_printf(text, ", parent=%s", slot->parent->name);
-	else
-		g_string_append(text, ", parent=(none)");
-	if (slot->mount_point || slot->ext_mount_point)
-		g_string_append_printf(text, ", mountpoint=%s", slot->mount_point ? slot->mount_point : slot->ext_mount_point);
-	else
-		g_string_append(text, ", mountpoint=(none)");
+	/* bootname slots get an empty or full dot depending on whether they
+	 * are primary or not */
+	if (slot->bootname) {
+		if (utf8_supported)
+			g_string_append_unichar(text, slot == status->primary ? 0x23FA :  0x25CB);
+		else
+			g_string_append_c(text, slot == status->primary ? 'o' :  'x');
+	} else {
+		g_string_append_c(text, ' ');
+	}
+	g_string_append_printf(text, "%s%s%s"KBLD "[%s]"KNRM " (%s, %s, %s%s"KWHT ")"KNRM,
+			slot->parent ? "   " : " ",
+			slot->state & ST_ACTIVE ? KGRN : "",
+			slot->state == ST_BOOTED ? KGRN : "",
+			slot->name,
+			slot->device,
+			slot->type,
+			slot->state == ST_BOOTED ? KBLD : "",
+			r_slot_slotstate_to_str(slot->state));
 	if (slot->bootname)
-		g_string_append_printf(text, "\n      boot status=%s", slot->boot_good ? "good" : "bad");
+		g_string_append_printf(text, "\n\tbootname: "KBLU "%s"KNRM, slot->bootname);
+	if (slot->description)
+		g_string_append_printf(text, "\n\tdescription: %s", slot->description);
+	if (slot->mount_point)
+		g_string_append_printf(text, "\n\tmounted: %s", slot->mount_point);
+	if (slot->bootname)
+		g_string_append_printf(text, "\n\tboot status: %s", slot->boot_good ? KGRN "good"KNRM : KRED "bad"KNRM);
 	if (status_detailed && slot_state) {
 		g_string_append_printf(text, "\n      slot status:");
 		g_string_append_printf(text, "\n          bundle:");
@@ -1018,6 +1043,7 @@ static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint 
 		if (slot_state->status)
 			g_string_append_printf(text, "\n          status=%s", slot_state->status);
 	}
+	g_string_append_c(text, '\n');
 }
 
 static gchar* r_status_formatter_readable(RaucStatusPrint *status)
@@ -1032,13 +1058,15 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 	if (!bootedfrom)
 		bootedfrom = r_slot_find_by_bootname(status->slots, status->bootslot);
 
+	g_string_append(text, "=== System Info ===\n");
 	g_string_append_printf(text, "Compatible:  %s\n", status->compatible);
 	g_string_append_printf(text, "Variant:     %s\n", status->variant);
-	g_string_append_printf(text, "Booted from: %s (%s)\n", bootedfrom ? bootedfrom->name : NULL, status->bootslot);
-	g_string_append_printf(text, "Activated:   %s (%s)\n", status->primary ? status->primary->name : NULL, status->primary ? status->primary->bootname : NULL);
+	g_string_append_printf(text, "Booted from: %s (%s)\n\n", bootedfrom ? bootedfrom->name : NULL, status->bootslot);
 
-	g_string_append(text, "slot states:");
+	g_string_append(text, "=== Bootloader ===\n");
+	g_string_append_printf(text, "Activated: %s (%s)\n\n", status->primary ? status->primary->name : NULL, status->primary ? status->primary->bootname : NULL);
 
+	g_string_append(text, "=== Slot States ===\n");
 	slotclasses = r_slot_get_root_classes(status->slots);
 
 	for (gchar **cls = slotclasses; *cls != NULL; cls++) {
