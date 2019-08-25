@@ -266,18 +266,17 @@ static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest)
 /* Gets all classes that do not have a parent
  *
  * @return newly allocated NULL-teminated string array. Free with g_strfreev */
-static gchar** get_root_system_slot_classes(void)
+static gchar** get_root_system_slot_classes(GHashTable *slots)
 {
 	GPtrArray *slotclasses = NULL;
 	GHashTableIter iter;
 	RaucSlot *iterslot = NULL;
 
-	g_assert(r_context()->config != NULL);
-	g_assert(r_context()->config->slots != NULL);
+	g_return_val_if_fail(slots, NULL);
 
 	slotclasses = g_ptr_array_new();
 
-	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	g_hash_table_iter_init(&iter, slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &iterslot)) {
 		const gchar *key = NULL;
 
@@ -368,7 +367,7 @@ GHashTable* determine_target_install_group(void)
 	r_context_begin_step("determine_target_install_group", "Determining target install group", 0);
 
 	/* collect all root classes available in system.conf */
-	rootclasses = get_root_system_slot_classes();
+	rootclasses = get_root_system_slot_classes(r_context()->config->slots);
 
 	for (gchar **rootslot = rootclasses; *rootslot != NULL; rootslot++) {
 		RaucSlot *selected = NULL;
