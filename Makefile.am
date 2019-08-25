@@ -61,6 +61,7 @@ librauc_la_SOURCES = \
 	include/mount.h \
 	include/service.h \
 	include/signature.h \
+	include/slot.h \
 	include/update_handler.h \
 	include/utils.h
 
