@@ -38,32 +38,6 @@ gboolean default_config(RaucConfig **config)
 	return TRUE;
 }
 
-typedef struct {
-	const gchar *name;
-	gboolean mountable;
-} RaucSlotType;
-
-RaucSlotType supported_slot_types[] = {
-	{"raw", FALSE},
-	{"ext4", TRUE},
-	{"ubifs", TRUE},
-	{"ubivol", FALSE},
-	{"nand", FALSE},
-	{"vfat", TRUE},
-	{}
-};
-
-gboolean is_slot_mountable(RaucSlot *slot)
-{
-	for (RaucSlotType *slot_type = supported_slot_types; slot_type->name != NULL; slot_type++) {
-		if (g_strcmp0(slot->type, slot_type->name) == 0) {
-			return slot_type->mountable;
-		}
-	}
-
-	return FALSE;
-}
-
 static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "noop", NULL};
 
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)

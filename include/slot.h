@@ -96,3 +96,12 @@ gchar* slotstate_to_str(SlotState slotstate);
  * @return corresponding SlotState value
  */
 SlotState str_to_slotstate(gchar *str);
+
+/**
+ * Check if slot type is mountable.
+ *
+ * @param slot slot to check
+ *
+ * @return TRUE if mountable, otherwise FALSE
+ */
+gboolean is_slot_mountable(RaucSlot *slot);

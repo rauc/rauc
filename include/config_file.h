@@ -172,12 +172,3 @@ gboolean save_slot_status(RaucSlot *dest_slot, GError **error);
 void r_free_slot(gpointer value);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucSlot, r_free_slot);
-
-/**
- * Check if slot type is mountable.
- *
- * @param slot slot to check
- *
- * @return TRUE if mountable, otherwise FALSE
- */
-gboolean is_slot_mountable(RaucSlot *slot);
