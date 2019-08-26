@@ -46,6 +46,7 @@ librauc_la_SOURCES = \
 	src/mount.c \
 	src/service.c \
 	src/signature.c \
+	src/slot.c \
 	src/utils.c \
 	src/update_handler.c \
 	include/bootchooser.h \
