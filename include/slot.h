@@ -78,3 +78,21 @@ RaucSlot *find_slot_by_device(GHashTable *slots, const gchar *device);
  * @return a RaucSlot pointer or NULL
  */
 RaucSlot *find_slot_by_bootname(GHashTable *slots, const gchar *bootname);
+
+/**
+ * Get string representation of slot state
+ *
+ * @param slotstate state to turn into string
+ *
+ * @return string representation of slot state
+ */
+gchar* slotstate_to_str(SlotState slotstate);
+
+/**
+ * Get SlotState from string representation.
+ *
+ * @param str string representation of state
+ *
+ * @return corresponding SlotState value
+ */
+SlotState str_to_slotstate(gchar *str);

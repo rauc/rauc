@@ -181,21 +181,3 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucSlot, r_free_slot);
  * @return TRUE if mountable, otherwise FALSE
  */
 gboolean is_slot_mountable(RaucSlot *slot);
-
-/**
- * Get string representation of slot state
- *
- * @param slotstate state to turn into string
- *
- * @return string representation of slot state
- */
-gchar* slotstate_to_str(SlotState slotstate);
-
-/**
- * Get SlotState from string representation.
- *
- * @param str string representation of state
- *
- * @return corresponding SlotState value
- */
-SlotState str_to_slotstate(gchar *str);
