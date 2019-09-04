@@ -105,3 +105,15 @@ SlotState str_to_slotstate(gchar *str);
  * @return TRUE if mountable, otherwise FALSE
  */
 gboolean is_slot_mountable(RaucSlot *slot);
+
+/**
+ * Returns the parent root slot for given slot.
+ *
+ * If the given slot is a root slot itself, a pointer to itself will be
+ * returned.
+ *
+ * @param slot slot to find parent root slot for
+ *
+ * @return pointer to RaucSlot
+ */
+RaucSlot* get_parent_root_slot(RaucSlot *slot);

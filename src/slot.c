@@ -104,3 +104,16 @@ gboolean is_slot_mountable(RaucSlot *slot)
 
 	return FALSE;
 }
+
+RaucSlot* get_parent_root_slot(RaucSlot *slot)
+{
+	RaucSlot *base = NULL;
+
+	g_return_val_if_fail(slot, NULL);
+
+	base = slot;
+	while (base != NULL && base->parent != NULL)
+		base = base->parent;
+
+	return base;
+}

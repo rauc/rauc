@@ -217,28 +217,6 @@ gboolean determine_boot_states(GError **error)
 	return TRUE;
 }
 
-/* Returns the parent root slot for given slot.
- *
- * If the given slot is a root slot itself, a pointer to itself will be
- * returned.
- *
- * @param slot slot to find parent root slot for
- *
- * @return pointer to RaucSlot
- */
-static RaucSlot* get_parent_root_slot(RaucSlot *slot)
-{
-	RaucSlot *base = NULL;
-
-	g_return_val_if_fail(slot, NULL);
-
-	base = slot;
-	while (base != NULL && base->parent != NULL)
-		base = base->parent;
-
-	return base;
-}
-
 /* Returns newly allocated NULL-teminated string array of all classes listed in
  * given manifest.
  * Free with g_strfreev */
