@@ -117,3 +117,11 @@ gboolean is_slot_mountable(RaucSlot *slot);
  * @return pointer to RaucSlot
  */
 RaucSlot* get_parent_root_slot(RaucSlot *slot);
+
+/**
+ * Gets all classes that do not have a parent
+ *
+ * @return newly allocated NULL-teminated string array. Free with g_strfreev
+ *         [transfer full]
+ */
+gchar** get_root_system_slot_classes(GHashTable *slots);
