@@ -257,6 +257,8 @@ filename=bootloader.img";
 
 	g_assert_true(load_manifest_file(pathname, &rm, NULL));
 
+	r_context_conf()->bootslot = g_strdup("system0");
+
 	g_assert_true(determine_slot_states(NULL));
 
 	g_assert_nonnull(r_context()->config);
