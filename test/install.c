@@ -222,6 +222,7 @@ static void install_test_target(InstallFixture *fixture,
 	GHashTable *tgrp;
 	GList *selected_images = NULL;
 	GError *error = NULL;
+	gboolean result;
 
 
 	const gchar *manifest_file = "\
@@ -259,7 +260,9 @@ filename=bootloader.img";
 
 	r_context_conf()->bootslot = g_strdup("system0");
 
-	g_assert_true(determine_slot_states(NULL));
+	result = determine_slot_states(&error);
+	g_assert_no_error(error);
+	g_assert_true(result);
 
 	g_assert_nonnull(r_context()->config);
 	g_assert_nonnull(r_context()->config->slots);
@@ -299,8 +302,8 @@ filename=bootloader.img";
 	g_assert_cmpint(g_hash_table_size(tgrp), ==, 6);
 
 	selected_images = get_install_images(rm, tgrp, &error);
-	g_assert_nonnull(selected_images);
 	g_assert_no_error(error);
+	g_assert_nonnull(selected_images);
 
 	g_assert_cmpint(g_list_length(selected_images), ==, 4);
 	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 0))->filename, ==, "rootfs.ext4");
@@ -624,8 +627,8 @@ device=/dev/null\n\
 	g_assert_nonnull(tgrp);
 
 	selected_images = get_install_images(rm, tgrp, &error);
-	g_assert_nonnull(selected_images);
 	g_assert_no_error(error);
+	g_assert_nonnull(selected_images);
 
 	/* We expecte the image selection to return both appfs.img and
 	 * rootfs.img as we have matching slots for them. */
@@ -841,7 +844,8 @@ device=/dev/null\n\
 	g_assert_no_error(error);
 	g_assert_nonnull(rm);
 
-	install_images = get_install_images(rm, tgrp, NULL);
+	install_images = get_install_images(rm, tgrp, &error);
+	g_assert_no_error(error);
 	g_assert_nonnull(install_images);
 	g_clear_pointer(&rm, free_manifest);
 
@@ -857,7 +861,8 @@ device=/dev/null\n\
 	g_assert_no_error(error);
 	g_assert_nonnull(rm);
 
-	install_images = get_install_images(rm, tgrp, NULL);
+	install_images = get_install_images(rm, tgrp, &error);
+	g_assert_no_error(error);
 	g_assert_nonnull(install_images);
 	g_clear_pointer(&rm, free_manifest);
 
@@ -873,8 +878,9 @@ device=/dev/null\n\
 	g_assert_no_error(error);
 	g_assert_nonnull(rm);
 
-	install_images = get_install_images(rm, tgrp, NULL);
+	install_images = get_install_images(rm, tgrp, &error);
 	g_assert_null(install_images);
+	g_assert_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED);
 	g_clear_pointer(&rm, free_manifest);
 
 	g_hash_table_unref(tgrp);
