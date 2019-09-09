@@ -248,7 +248,7 @@ static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest)
  *
  * @return pointer to appropriate slot in system slot list
  */
-static RaucSlot *select_inactive_slot_class_member(gchar *rootclass)
+static RaucSlot *select_inactive_slot_class_member(const gchar *rootclass)
 {
 	RaucSlot *iterslot;
 	GHashTableIter iter;
