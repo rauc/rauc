@@ -62,16 +62,16 @@ typedef struct _RaucSlot {
 /**
  * Frees the memory allocated by a RaucSlot
  */
-void r_free_slot(gpointer value);
+void r_slot_free(gpointer value);
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucSlot, r_free_slot);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucSlot, r_slot_free);
 
 /**
  * Frees the memory allocated by the RaucSlotStatus.
  *
  * @param slotstatus a RaucSlotStatus
  */
-void free_slot_status(RaucSlotStatus *slotstatus);
+void r_slot_free_status(RaucSlotStatus *slotstatus);
 
 /**
  * Finds a slot given its device path.
@@ -81,7 +81,7 @@ void free_slot_status(RaucSlotStatus *slotstatus);
  *
  * @return a RaucSlot pointer or NULL
  */
-RaucSlot *find_slot_by_device(GHashTable *slots, const gchar *device);
+RaucSlot *r_slot_find_by_device(GHashTable *slots, const gchar *device);
 
 /**
  * Finds a slot given its bootname
@@ -91,7 +91,7 @@ RaucSlot *find_slot_by_device(GHashTable *slots, const gchar *device);
  *
  * @return a RaucSlot pointer or NULL
  */
-RaucSlot *find_slot_by_bootname(GHashTable *slots, const gchar *bootname);
+RaucSlot *r_slot_find_by_bootname(GHashTable *slots, const gchar *bootname);
 
 /**
  * Get string representation of slot state
@@ -100,7 +100,7 @@ RaucSlot *find_slot_by_bootname(GHashTable *slots, const gchar *bootname);
  *
  * @return string representation of slot state
  */
-gchar* slotstate_to_str(SlotState slotstate);
+gchar* r_slot_slotstate_to_str(SlotState slotstate);
 
 /**
  * Get SlotState from string representation.
@@ -109,7 +109,7 @@ gchar* slotstate_to_str(SlotState slotstate);
  *
  * @return corresponding SlotState value
  */
-SlotState str_to_slotstate(gchar *str);
+SlotState r_slot_str_to_slotstate(gchar *str);
 
 /**
  * Check if slot type is mountable.
@@ -118,7 +118,7 @@ SlotState str_to_slotstate(gchar *str);
  *
  * @return TRUE if mountable, otherwise FALSE
  */
-gboolean is_slot_mountable(RaucSlot *slot);
+gboolean r_slot_is_mountable(RaucSlot *slot);
 
 /**
  * Returns the parent root slot for given slot.
@@ -130,7 +130,7 @@ gboolean is_slot_mountable(RaucSlot *slot);
  *
  * @return pointer to RaucSlot
  */
-RaucSlot* get_parent_root_slot(RaucSlot *slot);
+RaucSlot* r_slot_get_parent_root(RaucSlot *slot);
 
 /**
  * Gets all classes that do not have a parent
@@ -138,7 +138,7 @@ RaucSlot* get_parent_root_slot(RaucSlot *slot);
  * @return newly allocated NULL-teminated string array. Free with g_strfreev
  *         [transfer full]
  */
-gchar** get_root_system_slot_classes(GHashTable *slots);
+gchar** r_slot_get_root_classes(GHashTable *slots);
 
 /**
  * Test if provided slot list contains slot instance (same pointer!)
@@ -148,4 +148,4 @@ gchar** get_root_system_slot_classes(GHashTable *slots);
  *
  * @return TRUE if slot was found, FALSE if not
  */
-gboolean slot_list_contains(GList *slotlist, const RaucSlot *testslot);
+gboolean r_slot_list_contains(GList *slotlist, const RaucSlot *testslot);

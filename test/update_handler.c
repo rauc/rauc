@@ -382,7 +382,7 @@ out:
 	g_clear_pointer(&hookpath, g_free);
 	g_free(mountprefix);
 	r_free_image(image);
-	r_free_slot(targetslot);
+	r_slot_free(targetslot);
 }
 
 int main(int argc, char *argv[])

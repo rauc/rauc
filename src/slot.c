@@ -1,6 +1,6 @@
 #include "slot.h"
 
-void r_free_slot(gpointer value)
+void r_slot_free(gpointer value)
 {
 	RaucSlot *slot = (RaucSlot*)value;
 
@@ -11,11 +11,11 @@ void r_free_slot(gpointer value)
 	g_free(slot->type);
 	g_free(slot->bootname);
 	g_free(slot->mount_point);
-	g_clear_pointer(&slot->status, free_slot_status);
+	g_clear_pointer(&slot->status, r_slot_free_status);
 	g_free(slot);
 }
 
-void free_slot_status(RaucSlotStatus *slotstatus)
+void r_slot_free_status(RaucSlotStatus *slotstatus)
 {
 	g_return_if_fail(slotstatus);
 
@@ -30,7 +30,7 @@ void free_slot_status(RaucSlotStatus *slotstatus)
 	g_free(slotstatus);
 }
 
-RaucSlot *find_slot_by_device(GHashTable *slots, const gchar *device)
+RaucSlot *r_slot_find_by_device(GHashTable *slots, const gchar *device)
 {
 	GHashTableIter iter;
 	RaucSlot *slot;
@@ -51,7 +51,7 @@ out:
 	return slot;
 }
 
-RaucSlot *find_slot_by_bootname(GHashTable *slots, const gchar *bootname)
+RaucSlot *r_slot_find_by_bootname(GHashTable *slots, const gchar *bootname)
 {
 	GHashTableIter iter;
 	RaucSlot *slot;
@@ -73,7 +73,7 @@ out:
 }
 
 /* returns string representation of slot state */
-gchar* slotstate_to_str(SlotState slotstate)
+gchar* r_slot_slotstate_to_str(SlotState slotstate)
 {
 	gchar *state = NULL;
 
@@ -96,7 +96,7 @@ gchar* slotstate_to_str(SlotState slotstate)
 	return state;
 }
 
-SlotState str_to_slotstate(gchar *str)
+SlotState r_slot_str_to_slotstate(gchar *str)
 {
 	if (g_strcmp0(str, "active") == 0) {
 		return ST_ACTIVE;
@@ -124,7 +124,7 @@ RaucSlotType supported_slot_types[] = {
 	{}
 };
 
-gboolean is_slot_mountable(RaucSlot *slot)
+gboolean r_slot_is_mountable(RaucSlot *slot)
 {
 	for (RaucSlotType *slot_type = supported_slot_types; slot_type->name != NULL; slot_type++) {
 		if (g_strcmp0(slot->type, slot_type->name) == 0) {
@@ -135,7 +135,7 @@ gboolean is_slot_mountable(RaucSlot *slot)
 	return FALSE;
 }
 
-RaucSlot* get_parent_root_slot(RaucSlot *slot)
+RaucSlot* r_slot_get_parent_root(RaucSlot *slot)
 {
 	RaucSlot *base = NULL;
 
@@ -148,7 +148,7 @@ RaucSlot* get_parent_root_slot(RaucSlot *slot)
 	return base;
 }
 
-gchar** get_root_system_slot_classes(GHashTable *slots)
+gchar** r_slot_get_root_classes(GHashTable *slots)
 {
 	GPtrArray *slotclasses = NULL;
 	GHashTableIter iter;
@@ -176,7 +176,7 @@ gchar** get_root_system_slot_classes(GHashTable *slots)
 	return (gchar**) g_ptr_array_free(slotclasses, FALSE);
 }
 
-gboolean slot_list_contains(GList *slotlist, const RaucSlot *testslot)
+gboolean r_slot_list_contains(GList *slotlist, const RaucSlot *testslot)
 {
 
 	g_return_val_if_fail(testslot, FALSE);

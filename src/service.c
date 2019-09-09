@@ -224,7 +224,7 @@ static GVariant* convert_slot_status_to_dict(RaucSlot *slot)
 	if (slot->bootname)
 		g_variant_dict_insert(&dict, "bootname", "s", slot->bootname);
 	if (slot->state)
-		g_variant_dict_insert(&dict, "state", "s", slotstate_to_str(slot->state));
+		g_variant_dict_insert(&dict, "state", "s", r_slot_slotstate_to_str(slot->state));
 	if (slot->description)
 		g_variant_dict_insert(&dict, "description", "s", slot->description);
 	if (slot->parent)

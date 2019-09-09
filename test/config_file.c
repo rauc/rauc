@@ -774,7 +774,7 @@ static void config_file_test_read_slot_status(void)
 	g_assert_cmpstr(ss->checksum.digest, ==,
 			"e437ab217356ee47cd338be0ffe33a3cb6dc1ce679475ea59ff8a8f7f6242b27");
 
-	free_slot_status(ss);
+	r_slot_free_status(ss);
 }
 
 
@@ -788,7 +788,7 @@ static void config_file_test_write_slot_status(void)
 
 	write_slot_status("test/savedslot.raucs", ss, NULL);
 
-	free_slot_status(ss);
+	r_slot_free_status(ss);
 	ss = g_new0(RaucSlotStatus, 1);
 
 	read_slot_status("test/savedslot.raucs", ss, NULL);
@@ -799,7 +799,7 @@ static void config_file_test_write_slot_status(void)
 	g_assert_cmpstr(ss->checksum.digest, ==,
 			"dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551");
 
-	free_slot_status(ss);
+	r_slot_free_status(ss);
 }
 
 static void config_file_system_serial(void)
@@ -822,7 +822,7 @@ static void config_file_test_global_slot_status(ConfigFileFixture *fixture,
 	g_hash_table_iter_init(&iter, slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		if (slot->status)
-			free_slot_status(slot->status);
+			r_slot_free_status(slot->status);
 
 		g_debug("Set default status for slot %s.", slot->name);
 		slot->status = g_new0(RaucSlotStatus, 1);
@@ -842,7 +842,7 @@ static void config_file_test_global_slot_status(ConfigFileFixture *fixture,
 	g_hash_table_iter_init(&iter, slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		if (slot->status)
-			free_slot_status(slot->status);
+			r_slot_free_status(slot->status);
 
 		slot->status = NULL;
 	}

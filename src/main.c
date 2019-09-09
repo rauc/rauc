@@ -1018,9 +1018,9 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 
 	g_return_val_if_fail(status, NULL);
 
-	bootedfrom = find_slot_by_device(status->slots, status->bootslot);
+	bootedfrom = r_slot_find_by_device(status->slots, status->bootslot);
 	if (!bootedfrom)
-		bootedfrom = find_slot_by_bootname(status->slots, status->bootslot);
+		bootedfrom = r_slot_find_by_bootname(status->slots, status->bootslot);
 
 	g_string_append_printf(text, "Compatible:  %s\n", status->compatible);
 	g_string_append_printf(text, "Variant:     %s\n", status->variant);
@@ -1036,7 +1036,7 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 
 		g_string_append_printf(text, "  %s: class=%s, device=%s, type=%s, bootname=%s\n",
 				name, slot->sclass, slot->device, slot->type, slot->bootname);
-		g_string_append_printf(text, "      state=%s, description=%s", slotstate_to_str(slot->state), slot->description);
+		g_string_append_printf(text, "      state=%s, description=%s", r_slot_slotstate_to_str(slot->state), slot->description);
 		if (slot->parent)
 			g_string_append_printf(text, ", parent=%s", slot->parent->name);
 		else
@@ -1125,7 +1125,7 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 
 		slotcnt++;
 
-		formatter_shell_append_n(text, "RAUC_SLOT_STATE", slotcnt, slotstate_to_str(slot->state));
+		formatter_shell_append_n(text, "RAUC_SLOT_STATE", slotcnt, r_slot_slotstate_to_str(slot->state));
 		formatter_shell_append_n(text, "RAUC_SLOT_CLASS", slotcnt, slot->sclass);
 		formatter_shell_append_n(text, "RAUC_SLOT_DEVICE", slotcnt, slot->device);
 		formatter_shell_append_n(text, "RAUC_SLOT_TYPE", slotcnt, slot->type);
@@ -1206,7 +1206,7 @@ static gchar* r_status_formatter_json(RaucStatusPrint *status, gboolean pretty)
 		json_builder_set_member_name(builder, "bootname");
 		json_builder_add_string_value(builder, slot->bootname);
 		json_builder_set_member_name(builder, "state");
-		json_builder_add_string_value(builder, slotstate_to_str(slot->state));
+		json_builder_add_string_value(builder, r_slot_slotstate_to_str(slot->state));
 		json_builder_set_member_name(builder, "parent");
 		json_builder_add_string_value(builder, slot->parent ? slot->parent->name : NULL);
 		json_builder_set_member_name(builder, "mountpoint");
@@ -1338,7 +1338,7 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 	g_return_val_if_fail(slots != NULL && *slots == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	*slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_free_slot);
+	*slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
 
 	proxy = r_installer_proxy_new_for_bus_sync(bus_type,
 			G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
@@ -1386,7 +1386,7 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 		g_variant_dict_lookup(&dict, "type", "s", &slot->type);
 		g_variant_dict_lookup(&dict, "bootname", "s", &slot->bootname);
 		g_variant_dict_lookup(&dict, "state", "s", &state);
-		slot->state = str_to_slotstate(state);
+		slot->state = r_slot_str_to_slotstate(state);
 		g_variant_dict_lookup(&dict, "description", "s", &slot->description);
 		g_variant_dict_lookup(&dict, "parent", "s", &parent);
 		if (parent) {
@@ -1418,7 +1418,7 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 		if (iterslot->parent) {
 			parent_slot = g_hash_table_lookup(*slots, iterslot->parent->name);
 			g_assert_nonnull(parent_slot); /* A valid serialization should not run into this case! */
-			g_clear_pointer(&iterslot->parent, r_free_slot);
+			g_clear_pointer(&iterslot->parent, r_slot_free);
 			iterslot->parent = parent_slot;
 		}
 	}

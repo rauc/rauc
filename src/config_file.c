@@ -284,7 +284,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	g_key_file_remove_group(key_file, "handlers", NULL);
 
 	/* parse [slot.*.#] sections */
-	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_free_slot);
+	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
 
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
@@ -486,7 +486,7 @@ RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device)
 {
 	g_return_val_if_fail(config, NULL);
 
-	return find_slot_by_device(config->slots, device);
+	return r_slot_find_by_device(config->slots, device);
 }
 
 void free_config(RaucConfig *config)
@@ -674,7 +674,7 @@ static void load_slot_status_locally(RaucSlot *dest_slot)
 
 	dest_slot->status = g_new0(RaucSlotStatus, 1);
 
-	if (!is_slot_mountable(dest_slot))
+	if (!r_slot_is_mountable(dest_slot))
 		return;
 
 	/* read slot status */
@@ -772,7 +772,7 @@ static gboolean save_slot_status_locally(RaucSlot *dest_slot, GError **error)
 	g_return_val_if_fail(dest_slot->status, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (!is_slot_mountable(dest_slot)) {
+	if (!r_slot_is_mountable(dest_slot)) {
 		res = TRUE;
 		goto free;
 	}

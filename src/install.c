@@ -293,7 +293,7 @@ GHashTable* determine_target_install_group(void)
 	r_context_begin_step("determine_target_install_group", "Determining target install group", 0);
 
 	/* collect all root classes available in system.conf */
-	rootclasses = get_root_system_slot_classes(r_context()->config->slots);
+	rootclasses = r_slot_get_root_classes(r_context()->config->slots);
 
 	for (gchar **rootslot = rootclasses; *rootslot != NULL; rootslot++) {
 		RaucSlot *selected = NULL;
@@ -312,11 +312,11 @@ GHashTable* determine_target_install_group(void)
 	 * in the selected root slots */
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &iterslot)) {
-		RaucSlot *parent = get_parent_root_slot(iterslot);
+		RaucSlot *parent = r_slot_get_parent_root(iterslot);
 		g_debug("Checking slot: %s", iterslot->name);
 
 
-		if (slot_list_contains(selected_root_slots, parent)) {
+		if (r_slot_list_contains(selected_root_slots, parent)) {
 			g_debug("\tAdding mapping: %s -> %s", iterslot->sclass, iterslot->name);
 			g_hash_table_insert(targetgroup, (gpointer) iterslot->sclass, iterslot);
 		} else {
