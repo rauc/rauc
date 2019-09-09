@@ -281,9 +281,19 @@ filename=bootloader.img";
 	g_assert_true(g_hash_table_contains(tgrp, "prebootloader"));
 	//Deactivated check as the actual behavior is GHashTable-implementation-defined
 	//g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rescue"))->name, ==, "rescue.0");
-	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rootfs"))->name, ==, "rootfs.1");
-	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "appfs"))->name, ==, "appfs.1");
-	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "demofs"))->name, ==, "demofs.1");
+	/* We need to assure that the algorithm did not select the active group '0' */
+	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rootfs"))->name, !=, "rootfs.0");
+	/* The algorithm could select either group '1' or group '2'. The actual
+	 * selection is still GHashTable-implementation-defined.*/
+	if (g_strcmp0(((RaucSlot*)g_hash_table_lookup(tgrp, "rootfs"))->name, "rootfs.1") == 0) {
+		g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rootfs"))->name, ==, "rootfs.1");
+		g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "appfs"))->name, ==, "appfs.1");
+		g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "demofs"))->name, ==, "demofs.1");
+	} else {
+		g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rootfs"))->name, ==, "rootfs.2");
+		g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "appfs"))->name, ==, "appfs.2");
+		g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "demofs"))->name, ==, "demofs.2");
+	}
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "bootloader"))->name, ==, "bootloader.0");
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "prebootloader"))->name, ==, "prebootloader.0");
 	g_assert_cmpint(g_hash_table_size(tgrp), ==, 6);
