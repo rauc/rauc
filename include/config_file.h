@@ -130,13 +130,6 @@ gboolean read_slot_status(const gchar *filename, RaucSlotStatus *slotstatus, GEr
 gboolean write_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error);
 
 /**
- * Frees the memory allocated by the RaucSlotStatus.
- *
- * @param slotstatus a RaucSlotStatus
- */
-void free_slot_status(RaucSlotStatus *slotstatus);
-
-/**
  * Load slot status.
  *
  * Takes care to fill in slot status information into the designated component
@@ -165,10 +158,3 @@ void load_slot_status(RaucSlot *dest_slot);
  * @return TRUE if slot is not mountable or saving status succeeded, FALSE otherwise
  */
 gboolean save_slot_status(RaucSlot *dest_slot, GError **error);
-
-/**
- * Frees the memory allocated by a RaucSlot
- */
-void r_free_slot(gpointer value);
-
-G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucSlot, r_free_slot);

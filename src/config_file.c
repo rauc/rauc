@@ -12,21 +12,6 @@ G_DEFINE_QUARK(r-slot-error-quark, r_slot_error)
 
 #define RAUC_SLOT_PREFIX	"slot"
 
-void r_free_slot(gpointer value)
-{
-	RaucSlot *slot = (RaucSlot*)value;
-
-	g_return_if_fail(slot);
-
-	g_free(slot->description);
-	g_free(slot->device);
-	g_free(slot->type);
-	g_free(slot->bootname);
-	g_free(slot->mount_point);
-	g_clear_pointer(&slot->status, free_slot_status);
-	g_free(slot);
-}
-
 gboolean default_config(RaucConfig **config)
 {
 	RaucConfig *c = g_new0(RaucConfig, 1);
@@ -861,19 +846,4 @@ gboolean save_slot_status(RaucSlot *dest_slot, GError **error)
 		return save_slot_status_globally(error);
 	else
 		return save_slot_status_locally(dest_slot, error);
-}
-
-void free_slot_status(RaucSlotStatus *slotstatus)
-{
-	g_return_if_fail(slotstatus);
-
-	g_free(slotstatus->bundle_compatible);
-	g_free(slotstatus->bundle_version);
-	g_free(slotstatus->bundle_description);
-	g_free(slotstatus->bundle_build);
-	g_free(slotstatus->status);
-	g_free(slotstatus->checksum.digest);
-	g_free(slotstatus->installed_timestamp);
-	g_free(slotstatus->activated_timestamp);
-	g_free(slotstatus);
 }

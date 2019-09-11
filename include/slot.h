@@ -60,6 +60,20 @@ typedef struct _RaucSlot {
 } RaucSlot;
 
 /**
+ * Frees the memory allocated by a RaucSlot
+ */
+void r_free_slot(gpointer value);
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucSlot, r_free_slot);
+
+/**
+ * Frees the memory allocated by the RaucSlotStatus.
+ *
+ * @param slotstatus a RaucSlotStatus
+ */
+void free_slot_status(RaucSlotStatus *slotstatus);
+
+/**
  * Finds a slot given its device path.
  *
  * @param slots a GHashTable containing (gchar, RaucSlot) entries
