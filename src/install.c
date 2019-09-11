@@ -269,28 +269,6 @@ static RaucSlot *select_inactive_slot_class_member(gchar *rootclass)
 	return NULL;
 }
 
-/*
- * Test if provided slot list contains slot instance (same pointer!)
- */
-static gboolean slot_list_contains(GList *slotlist, const RaucSlot *testslot)
-{
-
-	g_return_val_if_fail(testslot, FALSE);
-
-	if (!slotlist)
-		return FALSE;
-
-	for (GList *l = slotlist; l != NULL; l = l->next) {
-		RaucSlot *slot = l->data;
-
-		if (slot == testslot) {
-			return TRUE;
-		}
-	}
-
-	return FALSE;
-}
-
 /* Map each slot class available to a potential target slot.
  *
  * Algorithm:

@@ -139,3 +139,13 @@ RaucSlot* get_parent_root_slot(RaucSlot *slot);
  *         [transfer full]
  */
 gchar** get_root_system_slot_classes(GHashTable *slots);
+
+/**
+ * Test if provided slot list contains slot instance (same pointer!)
+ *
+ * @param slots GHashTable of system slots
+ * @param testslot Slot to find
+ *
+ * @return TRUE if slot was found, FALSE if not
+ */
+gboolean slot_list_contains(GList *slotlist, const RaucSlot *testslot);

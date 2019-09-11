@@ -175,3 +175,22 @@ gchar** get_root_system_slot_classes(GHashTable *slots)
 
 	return (gchar**) g_ptr_array_free(slotclasses, FALSE);
 }
+
+gboolean slot_list_contains(GList *slotlist, const RaucSlot *testslot)
+{
+
+	g_return_val_if_fail(testslot, FALSE);
+
+	if (!slotlist)
+		return FALSE;
+
+	for (GList *l = slotlist; l != NULL; l = l->next) {
+		RaucSlot *slot = l->data;
+
+		if (slot == testslot) {
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
