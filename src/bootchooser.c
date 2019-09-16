@@ -62,7 +62,7 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
 	GInputStream *instream;
-	GDataInputStream *datainstream;
+	g_autoptr(GDataInputStream) datainstream = NULL;
 	gchar* outline;
 	guint64 result[2] = {};
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(6, g_free);
