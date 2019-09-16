@@ -1729,6 +1729,8 @@ static gboolean status_start(int argc, char **argv)
 				G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
 				"de.pengutronix.rauc", "/", NULL, &ierror);
 		if (proxy == NULL) {
+			if (g_dbus_error_is_remote_error(ierror))
+				g_dbus_error_strip_remote_error(ierror);
 			g_printerr("rauc mark: error creating proxy: %s\n", ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
@@ -1737,6 +1739,8 @@ static gboolean status_start(int argc, char **argv)
 		g_debug("Trying to contact rauc service");
 		if (!r_installer_call_mark_sync(proxy, state, slot_identifier,
 				&slot_name, &message, NULL, &ierror)) {
+			if (g_dbus_error_is_remote_error(ierror))
+				g_dbus_error_strip_remote_error(ierror);
 			g_printerr("rauc mark: %s\n", ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
