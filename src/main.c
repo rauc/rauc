@@ -1688,8 +1688,7 @@ static gboolean status_start(int argc, char **argv)
 		status_print->slots = r_context()->config->slots;
 	} else {
 		if (!retrieve_status_via_dbus(&status_print, &ierror)) {
-			message = g_strdup_printf(
-					"error retrieving slot status via D-Bus: %s",
+			g_printerr("Error retrieving slot status via D-Bus: %s\n",
 					ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
@@ -1729,8 +1728,7 @@ static gboolean status_start(int argc, char **argv)
 				G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
 				"de.pengutronix.rauc", "/", NULL, &ierror);
 		if (proxy == NULL) {
-			message = g_strdup_printf("rauc mark: error creating proxy: %s",
-					ierror->message);
+			g_printerr("rauc mark: error creating proxy: %s\n", ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
 			goto out;
@@ -1738,7 +1736,7 @@ static gboolean status_start(int argc, char **argv)
 		g_debug("Trying to contact rauc service");
 		if (!r_installer_call_mark_sync(proxy, state, slot_identifier,
 				&slot_name, &message, NULL, &ierror)) {
-			message = g_strdup(ierror->message);
+			g_printerr("rauc mark: %s\n", ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
 			goto out;
