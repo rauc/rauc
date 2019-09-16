@@ -1655,7 +1655,7 @@ static gboolean status_start(int argc, char **argv)
 			g_printerr("Failed to determine slot states: %s\n", ierror->message);
 			g_clear_error(&ierror);
 			r_exit_status = 1;
-			goto out;
+			return TRUE;
 		}
 
 		res = determine_boot_states(&ierror);
@@ -1691,7 +1691,7 @@ static gboolean status_start(int argc, char **argv)
 					ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
-			goto out;
+			return TRUE;
 		}
 	}
 
@@ -1699,7 +1699,7 @@ static gboolean status_start(int argc, char **argv)
 		if (!print_status(status_print)) {
 			r_exit_status = 1;
 		}
-		goto out;
+		return TRUE;
 	} else if (argc == 3) {
 		slot_identifier = "booted";
 	} else if (argc == 4) {
@@ -1707,7 +1707,7 @@ static gboolean status_start(int argc, char **argv)
 	} else { /* argc > 4 */
 		g_printerr("Too many arguments\n");
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	if (g_strcmp0(argv[2], "mark-good") == 0) {
@@ -1719,7 +1719,7 @@ static gboolean status_start(int argc, char **argv)
 	} else {
 		g_printerr("unknown subcommand %s\n", argv[2]);
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	if (ENABLE_SERVICE) {
@@ -1734,7 +1734,7 @@ static gboolean status_start(int argc, char **argv)
 			g_printerr("rauc mark: error creating proxy: %s\n", ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
-			goto out;
+			return TRUE;
 		}
 		g_debug("Trying to contact rauc service");
 		if (!r_installer_call_mark_sync(proxy, state, slot_identifier,
@@ -1744,13 +1744,15 @@ static gboolean status_start(int argc, char **argv)
 			g_printerr("rauc mark: %s\n", ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
-			goto out;
+			return TRUE;
 		}
 	} else {
 		r_exit_status = mark_run(state, slot_identifier, NULL, &message) ? 0 : 1;
+		if (r_exit_status)
+			g_printerr("rauc mark: %s\n", message);
+		return TRUE;
 	}
 
-out:
 	if (message)
 		g_print("rauc status: %s\n", message);
 
