@@ -1551,7 +1551,6 @@ static gboolean status_start(int argc, char **argv)
 	const gchar *slot_identifier = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	RInstaller *proxy = NULL;
 	g_autoptr(RaucStatusPrint) status_print = NULL;
 
 	g_debug("status start");
@@ -1631,6 +1630,8 @@ static gboolean status_start(int argc, char **argv)
 	}
 
 	if (ENABLE_SERVICE) {
+		RInstaller *proxy = NULL;
+
 		proxy = r_installer_proxy_new_for_bus_sync(bus_type,
 				G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
 				"de.pengutronix.rauc", "/", NULL, &ierror);
@@ -1648,6 +1649,8 @@ static gboolean status_start(int argc, char **argv)
 			r_exit_status = 1;
 			goto out;
 		}
+
+		g_clear_object(&proxy);
 	} else {
 		r_exit_status = mark_run(state, slot_identifier, NULL, &message) ? 0 : 1;
 	}
@@ -1655,7 +1658,6 @@ static gboolean status_start(int argc, char **argv)
 out:
 	if (message)
 		g_print("rauc status: %s\n", message);
-	g_clear_object(&proxy);
 
 	return TRUE;
 }
