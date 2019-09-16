@@ -1707,7 +1707,7 @@ static gboolean status_start(int argc, char **argv)
 	} else if (argc == 4) {
 		slot_identifier = argv[3];
 	} else { /* argc > 4 */
-		g_warning("Too many arguments");
+		g_printerr("Too many arguments\n");
 		r_exit_status = 1;
 		goto out;
 	}
@@ -1719,7 +1719,7 @@ static gboolean status_start(int argc, char **argv)
 	} else if (g_strcmp0(argv[2], "mark-active") == 0) {
 		state = "active";
 	} else {
-		g_message("unknown subcommand %s", argv[2]);
+		g_printerr("unknown subcommand %s\n", argv[2]);
 		r_exit_status = 1;
 		goto out;
 	}
@@ -1749,7 +1749,7 @@ static gboolean status_start(int argc, char **argv)
 
 out:
 	if (message)
-		g_message("rauc status: %s", message);
+		g_print("rauc status: %s\n", message);
 	g_clear_object(&proxy);
 
 	return TRUE;
