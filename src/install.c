@@ -609,7 +609,7 @@ static gboolean launch_and_wait_handler(gchar *update_source, gchar *handler_nam
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GInputStream *instream = NULL;
-	GDataInputStream *datainstream = NULL;
+	g_autoptr(GDataInputStream) datainstream = NULL;
 	gchar *outline;
 
 	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE);
@@ -658,7 +658,7 @@ static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const 
 	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	GInputStream *instream = NULL;
-	GDataInputStream *datainstream = NULL;
+	g_autoptr(GDataInputStream) datainstream = NULL;
 	gboolean res = FALSE;
 	gchar *outline, *hookreturnmsg = NULL;
 
