@@ -88,6 +88,7 @@ gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError
 	gint ret;
 	gboolean res = FALSE;
 	int fd;
+	guint8 extcsd[512];
 	guint8 value = 0;
 
 	g_return_val_if_fail(bootpart_active == 0 || bootpart_active == 1, FALSE);
@@ -99,11 +100,26 @@ gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError
 		goto out;
 	}
 
+	ret = r_emmc_read_extcsd(fd, extcsd);
+	if (ret) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Could not read from extcsd register %d in %s\n",
+				EXT_CSD_PART_CONFIG, device);
+		goto out;
+	}
+
+	/* Keep BOOT_ACK value as it is. Resetting this bit might prevent
+	 * proper boot process on some platforms since in some SoCs, ROM boot
+	 * loaders need this flag to be set.
+	 * The PARTITION_ACCESS value is handled inside the kernel so we do not
+	 * need to take care of it here. */
+	value = extcsd[EXT_CSD_PART_CONFIG] & (1 << 6);
+
 	/* write [5:3] : BOOT_PARTITION_ENABLE of PARTITION_CONFIG */
 	if (bootpart_active == 0)
-		value = 0x08;
+		value |= 0x08;
 	else if (bootpart_active == 1)
-		value = 0x10;
+		value |= 0x10;
 
 	ret = r_emmc_write_extcsd(fd, EXT_CSD_PART_CONFIG, value);
 	if (ret) {
