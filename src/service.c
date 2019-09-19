@@ -1,4 +1,5 @@
 #include <gio/gio.h>
+#include <gio/gunixmounts.h>
 #include <glib-unix.h>
 #include <glib.h>
 #include <stdio.h>
@@ -509,16 +510,43 @@ static gboolean r_on_signal(gpointer user_data)
 	return G_SOURCE_REMOVE;
 }
 
+static void
+mountpoints_changed(GUnixMountMonitor *mount_monitor,
+		gpointer user_data)
+{
+	update_mount_info();
+}
+
+static void
+mounts_changed(GUnixMountMonitor *mount_monitor,
+		gpointer user_data)
+{
+	update_mount_info();
+}
+
 gboolean r_service_run(void)
 {
 	gboolean service_return = TRUE;
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
+	GUnixMountMonitor *monitor = NULL;
 
 	r_context();
 
 	service_loop = g_main_loop_new(NULL, FALSE);
 	g_unix_signal_add(SIGTERM, r_on_signal, NULL);
+
+	/* Install mount monitor */
+	monitor = g_unix_mount_monitor_get();
+
+	g_signal_connect(monitor,
+			"mounts-changed",
+			G_CALLBACK(mounts_changed),
+			monitor);
+	g_signal_connect(monitor,
+			"mountpoints-changed",
+			G_CALLBACK(mountpoints_changed),
+			monitor);
 
 	r_bus_name_id = g_bus_own_name(bus_type,
 			"de.pengutronix.rauc",
