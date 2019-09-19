@@ -71,6 +71,8 @@ gboolean determine_slot_states(GError **error)
 	GList *slotlist = NULL;
 	GList *mountlist = NULL;
 	RaucSlot *booted = NULL;
+	GHashTableIter iter;
+	RaucSlot *slot;
 	gboolean res = FALSE;
 
 	g_assert_nonnull(r_context()->config);
@@ -84,6 +86,13 @@ gboolean determine_slot_states(GError **error)
 		goto out;
 	}
 	g_assert_nonnull(r_context()->config->slots);
+
+	/* Clear all previously detected external mount points as we will
+	 * re-deterrmine them. */
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+		g_clear_pointer(&slot->ext_mount_point, g_free);
+	}
 
 	/* Determine active slot mount points */
 	mountlist = g_unix_mounts_get(NULL);
