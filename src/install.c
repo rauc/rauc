@@ -98,8 +98,18 @@ gboolean determine_slot_states(GError **error)
 	mountlist = g_unix_mounts_get(NULL);
 	for (GList *l = mountlist; l != NULL; l = l->next) {
 		GUnixMountEntry *m = (GUnixMountEntry*)l->data;
-		g_autofree gchar *devicepath = resolve_loop_device(g_unix_mount_get_device_path(m));
-		RaucSlot *s = find_config_slot_by_device(r_context()->config,
+		g_autofree gchar *devicepath = NULL;
+		RaucSlot *s = NULL;
+
+#ifdef GLIB_VERSION_2_60
+		if (g_strcmp0(g_unix_mount_get_root_path(m), "/") != 0)
+			devicepath = g_strdup(g_unix_mount_get_root_path(m));
+		else
+			devicepath = resolve_loop_device(g_unix_mount_get_device_path(m));
+#else
+		devicepath = resolve_loop_device(g_unix_mount_get_device_path(m));
+#endif
+		s = find_config_slot_by_device(r_context()->config,
 				devicepath);
 		if (s) {
 			/* We might have multiple mount entries matching the same device and thus the same slot.
