@@ -123,3 +123,8 @@ gboolean install_run(RaucInstallArgs *args);
  *         or NULL if an error occurred
  */
 GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group, GError **error);
+
+/**
+ * Iterates over slots and updates their mount information
+ */
+void update_mount_info(void);
