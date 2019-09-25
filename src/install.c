@@ -1007,15 +1007,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	g_assert_nonnull(bundlefile);
 	g_assert_null(r_context()->install_info->mounted_bundle);
 
-	r_context_begin_step("do_install_bundle", "Installing", 5);
-
-	r_context_begin_step("determine_slot_states", "Determining slot states", 0);
-	res = determine_slot_states(&ierror);
-	r_context_end_step("determine_slot_states", res);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
+	r_context_begin_step("do_install_bundle", "Installing", 4);
 
 	// TODO: mount info in context ?
 	install_args_update(args, "Checking and mounting bundle...");

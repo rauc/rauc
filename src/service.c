@@ -170,19 +170,11 @@ static gboolean r_on_handle_mark(RInstaller *interface,
 {
 	g_autofree gchar *slot_name = NULL;
 	g_autofree gchar *message = NULL;
-	GError *ierror = NULL;
 	gboolean res;
 
 	res = !r_context_get_busy();
 	if (!res) {
 		message = g_strdup("already processing a different method");
-		goto out;
-	}
-
-	res = determine_slot_states(&ierror);
-	if (!res) {
-		message = g_strdup_printf("Failed to determine slot states: %s\n", ierror->message);
-		g_clear_error(&ierror);
 		goto out;
 	}
 
@@ -285,12 +277,6 @@ static GVariant* create_slotstatus_array(void)
 	g_return_val_if_fail(r_installer, NULL);
 
 	slot_status_tuples = g_new(GVariant*, slot_number);
-
-	res = determine_slot_states(&ierror);
-	if (!res) {
-		g_debug("Failed to determine slot states: %s\n", ierror->message);
-		g_clear_error(&ierror);
-	}
 
 	res = determine_boot_states(&ierror);
 	if (!res) {
@@ -530,8 +516,17 @@ gboolean r_service_run(void)
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 	GUnixMountMonitor *monitor = NULL;
+	GError *ierror = NULL;
+	gboolean res;
 
 	r_context();
+
+	res = determine_slot_states(&ierror);
+	if (!res) {
+		g_warning("Failed to determine slot states: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		return FALSE;
+	}
 
 	service_loop = g_main_loop_new(NULL, FALSE);
 	g_unix_signal_add(SIGTERM, r_on_signal, NULL);

@@ -249,6 +249,13 @@ static gboolean install_start(int argc, char **argv)
 			goto out_loop;
 		}
 	} else {
+		if (!determine_slot_states(&error)) {
+			g_printerr("Failed to determine slot states: %s\n", error->message);
+			g_clear_error(&error);
+			r_exit_status = 1;
+			goto out_loop;
+		}
+
 		install_run(args);
 	}
 
