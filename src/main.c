@@ -25,7 +25,7 @@
 GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
-gboolean install_ignore_compatible = FALSE;
+gboolean install_ignore_compatible, install_progressbar = FALSE;
 gboolean info_noverify, info_dumpcert = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
@@ -102,7 +102,7 @@ static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
 	if (g_variant_lookup(changed, "Operation", "&s", &message)) {
 		g_queue_push_tail(&args->status_messages, g_strdup_printf("%s\n", message));
 	} else if (g_variant_lookup(changed, "Progress", "(i&si)", &percentage, &message, &depth)) {
-		if (isatty(STDOUT_FILENO)) {
+		if (install_progressbar && isatty(STDOUT_FILENO)) {
 			g_autofree gchar *progress = make_progress_line(percentage);
 			/* This does:
 			 * - move to start of line
@@ -1668,6 +1668,7 @@ typedef struct {
 
 GOptionEntry entries_install[] = {
 	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
+	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
 	{0}
 };
 
