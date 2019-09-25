@@ -102,6 +102,12 @@ gboolean determine_slot_states(GError **error)
 		RaucSlot *s = find_config_slot_by_device(r_context()->config,
 				devicepath);
 		if (s) {
+			/* We might have multiple mount entries matching the same device and thus the same slot.
+			 * To avoid leaking the string returned by g_unix_mount_get_mount_path() here, we skip all further matches
+			 */
+			if (s->ext_mount_point) {
+				break;
+			}
 			s->ext_mount_point = g_strdup(g_unix_mount_get_mount_path(m));
 			g_debug("Found external mountpoint for slot %s at %s", s->name, s->ext_mount_point);
 		}
