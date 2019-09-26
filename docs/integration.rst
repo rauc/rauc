@@ -352,7 +352,7 @@ Parsing the ``PARTUUID`` and ``UUID`` is supported, which allows referring to a
 special partition / file system without having to know the
 enumeration-dependent `sdX` name.
 
-RAUC converts the value to the corresponding ``/dev/disk-by-*`` symlink name
+RAUC converts the value to the corresponding ``/dev/disk/by-*`` symlink name
 and then to the actual device name.
 
 ::
