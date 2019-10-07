@@ -1706,6 +1706,9 @@ static void cmdline_handler(int argc, char **argv)
 			"  checksum\tUpdate a manifest with checksums (and optionally sign it)\n"
 			"  install\tInstall a bundle\n"
 			"  info\t\tShow file information\n"
+#if ENABLE_SERVICE == 1
+			"  service\tStart RAUC service\n"
+#endif
 			"  status\tShow status\n"
 			"  write-slot\tWrite image to slot and bypass all update logic\n"
 			"\n"
