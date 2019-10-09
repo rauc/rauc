@@ -275,6 +275,12 @@ static gboolean bundle_start(int argc, char **argv)
 	inpath = resolve_path(NULL, argv[2]);
 	outpath = resolve_path(NULL, argv[3]);
 
+	if (!g_file_test(inpath, G_FILE_TEST_IS_DIR)) {
+		g_printerr("Input path must point to a directory!\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
 	/* strip trailing slash for comparison */
 	if (g_str_has_suffix(inpath, "/")) {
 		inpath[strlen(inpath)-1] = '\0';
