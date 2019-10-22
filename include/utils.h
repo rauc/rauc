@@ -36,6 +36,8 @@ static inline GSubprocess * r_subprocess_launcher_spawnv(GSubprocessLauncher *la
 			(const gchar * const *)args->pdata, error);
 }
 
+GSubprocess *r_subprocess_new(GSubprocessFlags flags, GError **error, const gchar *argv0, ...);
+
 #define R_LOG_LEVEL_TRACE 1 << G_LOG_LEVEL_USER_SHIFT
 #define r_trace(...)   g_log(G_LOG_DOMAIN,         \
 		R_LOG_LEVEL_TRACE,    \

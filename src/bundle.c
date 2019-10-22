@@ -29,7 +29,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 		goto out;
 	}
 
-	sproc = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
+	sproc = r_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
 			&ierror, "mksquashfs",
 			contentdir,
 			bundlename,

@@ -641,7 +641,7 @@ static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
 	g_return_val_if_fail(value && *value == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror,
+	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror,
 			UBOOT_FWPRINTENV_NAME, key, NULL);
 	if (!sub) {
 		g_propagate_prefixed_error(
@@ -696,7 +696,7 @@ static gboolean uboot_env_set(const gchar *key, const gchar *value, GError **err
 	g_return_val_if_fail(value, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, UBOOT_FWSETENV_NAME,
+	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, UBOOT_FWSETENV_NAME,
 			key, value, NULL);
 	if (!sub) {
 		g_propagate_prefixed_error(
@@ -940,8 +940,7 @@ static gboolean efi_bootorder_set(gchar *order, GError **error)
 	g_return_val_if_fail(order, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-
-	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, EFIBOOTMGR_NAME,
+	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, EFIBOOTMGR_NAME,
 			"--bootorder", order, NULL);
 
 	if (!sub) {
@@ -972,7 +971,7 @@ static gboolean efi_set_bootnext(gchar *bootnumber, GError **error)
 	g_return_val_if_fail(bootnumber, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, EFIBOOTMGR_NAME,
+	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, EFIBOOTMGR_NAME,
 			"--bootnext", bootnumber, NULL);
 
 	if (!sub) {
@@ -1041,7 +1040,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	g_return_val_if_fail(bootnext == NULL || *bootnext == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	sub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror,
+	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror,
 			EFIBOOTMGR_NAME, NULL);
 	if (!sub) {
 		g_propagate_prefixed_error(
