@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gio/gio.h>
 #include <glib.h>
 
 /* Use
@@ -15,11 +16,24 @@ void close_preserve_errno(filedesc fd);
 G_DEFINE_AUTO_CLEANUP_FREE_FUNC(filedesc, close_preserve_errno, -1)
 
 #define R_LOG_DOMAIN_SUBPROCESS "rauc-subprocess"
-static inline void r_debug_subprocess(GPtrArray *args)
+
+static inline GSubprocess* r_subprocess_newv(GPtrArray *args, GSubprocessFlags flags, GError **error)
 {
 	gchar *call = g_strjoinv(" ", (gchar**) args->pdata);
 	g_log(R_LOG_DOMAIN_SUBPROCESS, G_LOG_LEVEL_DEBUG, "launching subprocess: %s", call);
 	g_free(call);
+
+	return g_subprocess_newv((const gchar * const *) args->pdata, flags, error);
+}
+
+static inline GSubprocess * r_subprocess_launcher_spawnv(GSubprocessLauncher *launcher, GPtrArray *args, GError **error)
+{
+	gchar *call = g_strjoinv(" ", (gchar**) args->pdata);
+	g_log(R_LOG_DOMAIN_SUBPROCESS, G_LOG_LEVEL_DEBUG, "launching subprocess: %s", call);
+	g_free(call);
+
+	return g_subprocess_launcher_spawnv(launcher,
+			(const gchar * const *)args->pdata, error);
 }
 
 #define R_LOG_LEVEL_TRACE 1 << G_LOG_LEVEL_USER_SHIFT

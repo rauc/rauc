@@ -187,9 +187,7 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, const gchar *seed,
 	if (tmpdir)
 		g_subprocess_launcher_setenv(launcher, "TMPDIR", tmpdir, TRUE);
 
-	r_debug_subprocess(args);
-	sproc = g_subprocess_launcher_spawnv(launcher,
-			(const gchar * const *)args->pdata, &ierror);
+	sproc = r_subprocess_launcher_spawnv(launcher, args, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -369,9 +367,7 @@ static gboolean ubifs_format_slot(RaucSlot *dest_slot, GError **error)
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 
-	r_debug_subprocess(args);
-	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-			G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -404,9 +400,7 @@ static gboolean ext4_resize_slot(RaucSlot *dest_slot, GError **error)
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 
-	r_debug_subprocess(args);
-	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-			G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -444,9 +438,7 @@ static gboolean ext4_format_slot(RaucSlot *dest_slot, GError **error)
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 
-	r_debug_subprocess(args);
-	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-			G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -483,9 +475,7 @@ static gboolean vfat_format_slot(RaucSlot *dest_slot, GError **error)
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 
-	r_debug_subprocess(args);
-	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-			G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -521,9 +511,7 @@ static gboolean nand_format_slot(const gchar *device, GError **error)
 	g_ptr_array_add(args, g_strdup("0"));
 	g_ptr_array_add(args, NULL);
 
-	r_debug_subprocess(args);
-	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-			G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -559,9 +547,7 @@ static gboolean nand_write_slot(const gchar *image, const gchar *device, GError 
 	g_ptr_array_add(args, g_strdup(image));
 	g_ptr_array_add(args, NULL);
 
-	r_debug_subprocess(args);
-	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-			G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -598,9 +584,7 @@ static gboolean untar_image(RaucImage *image, gchar *dest, GError **error)
 	g_ptr_array_add(args, g_strdup("--numeric-owner"));
 	g_ptr_array_add(args, NULL);
 
-	r_debug_subprocess(args);
-	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-			G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,

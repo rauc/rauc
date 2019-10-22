@@ -82,9 +82,7 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 	g_ptr_array_add(args, g_strdup_printf(BOOTSTATE_PREFIX ".%s.remaining_attempts", bootname));
 	g_ptr_array_add(args, NULL);
 
-	r_debug_subprocess(args);
-	sub = g_subprocess_newv((const gchar * const *)args->pdata,
-			G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror);
+	sub = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,
@@ -172,9 +170,7 @@ static gboolean barebox_state_set(GPtrArray *pairs, GError **error)
 	}
 	g_ptr_array_add(args, NULL);
 
-	r_debug_subprocess(args);
-	sub = g_subprocess_newv((const gchar * const *)args->pdata,
-			G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sub = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,
@@ -358,9 +354,7 @@ static gboolean grub_env_get(const gchar *key, GString **value, GError **error)
 	g_ptr_array_add(sub_args, g_strdup("list"));
 	g_ptr_array_add(sub_args, NULL);
 
-	r_debug_subprocess(sub_args);
-	sub = g_subprocess_newv((const gchar * const *)sub_args->pdata,
-			G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE, &ierror);
+	sub = r_subprocess_newv(sub_args, G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE, &ierror);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,
@@ -440,9 +434,7 @@ static gboolean grub_env_set(GPtrArray *pairs, GError **error)
 	g_ptr_array_insert(pairs, 2, g_strdup("set"));
 	g_ptr_array_add(pairs, NULL);
 
-	r_debug_subprocess(pairs);
-	sub = g_subprocess_newv((const gchar * const *)pairs->pdata,
-			G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sub = r_subprocess_newv(pairs, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,
