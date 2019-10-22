@@ -71,6 +71,8 @@ gboolean determine_slot_states(GError **error)
 	GList *slotlist = NULL;
 	GList *mountlist = NULL;
 	RaucSlot *booted = NULL;
+	GHashTableIter iter;
+	RaucSlot *slot;
 	gboolean res = FALSE;
 
 	g_assert_nonnull(r_context()->config);
@@ -85,6 +87,13 @@ gboolean determine_slot_states(GError **error)
 	}
 	g_assert_nonnull(r_context()->config->slots);
 
+	/* Clear all previously detected external mount points as we will
+	 * re-deterrmine them. */
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+		g_clear_pointer(&slot->ext_mount_point, g_free);
+	}
+
 	/* Determine active slot mount points */
 	mountlist = g_unix_mounts_get(NULL);
 	for (GList *l = mountlist; l != NULL; l = l->next) {
@@ -93,6 +102,12 @@ gboolean determine_slot_states(GError **error)
 		RaucSlot *s = find_config_slot_by_device(r_context()->config,
 				devicepath);
 		if (s) {
+			/* We might have multiple mount entries matching the same device and thus the same slot.
+			 * To avoid leaking the string returned by g_unix_mount_get_mount_path() here, we skip all further matches
+			 */
+			if (s->ext_mount_point) {
+				break;
+			}
 			s->ext_mount_point = g_strdup(g_unix_mount_get_mount_path(m));
 			g_debug("Found external mountpoint for slot %s at %s", s->name, s->ext_mount_point);
 		}
