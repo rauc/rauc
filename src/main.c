@@ -1698,19 +1698,22 @@ static void cmdline_handler(int argc, char **argv)
 	g_option_context_set_ignore_unknown_options(context, TRUE);
 	g_option_context_add_main_entries(context, entries, NULL);
 	g_option_context_set_description(context,
-			"List of rauc commands:\n" \
-			"  bundle\tCreate a bundle\n" \
-			"  resign\tResign an already signed bundle\n" \
-			"  extract\tExtract the bundle content\n" \
-			"  convert\tConvert classic to casync bundle\n" \
-			"  checksum\tUpdate a manifest with checksums (and optionally sign it)\n" \
-			"  install\tInstall a bundle\n" \
-			"  info\t\tShow file information\n" \
-			"  status\tShow status\n" \
-			"  write-slot\tWrite image to slot and bypass all update logic\n" \
-			"\n" \
+			"List of rauc commands:\n"
+			"  bundle\tCreate a bundle\n"
+			"  resign\tResign an already signed bundle\n"
+			"  extract\tExtract the bundle content\n"
+			"  convert\tConvert classic to casync bundle\n"
+			"  checksum\tUpdate a manifest with checksums (and optionally sign it)\n"
+			"  install\tInstall a bundle\n"
+			"  info\t\tShow file information\n"
+#if ENABLE_SERVICE == 1
+			"  service\tStart RAUC service\n"
+#endif
+			"  status\tShow status\n"
+			"  write-slot\tWrite image to slot and bypass all update logic\n"
+			"\n"
 			"Environment variables:\n"
-			"  RAUC_PKCS11_MODULE  Library filename for PKCS#11 module (signing only)\n" \
+			"  RAUC_PKCS11_MODULE  Library filename for PKCS#11 module (signing only)\n"
 			"  RAUC_PKCS11_PIN     PIN to use for accessing PKCS#11 keys (signing only)");
 
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
