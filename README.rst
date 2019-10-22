@@ -121,13 +121,14 @@ Host (Build) Prerequisites
 
 -  automake
 -  libtool
+-  libdbus-1-dev
 -  libglib2.0-dev
 -  libcurl3-dev
 -  libssl-dev
 
 ::
 
-   sudo apt-get install automake libtool libglib2.0-dev libcurl3-dev libssl-dev
+   sudo apt-get install automake libtool libdbus-1-dev libglib2.0-dev libcurl3-dev libssl-dev
 
 If you intend to use json-support you also need
 

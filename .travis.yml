@@ -80,7 +80,7 @@ jobs:
       before_script:
         - docker exec -it cross uname -a
         - docker exec -it cross apt-get update
-        - docker exec -it cross apt-get install -y build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev
+        - docker exec -it cross apt-get install -y build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev
       script:
         - docker exec -it cross ./autogen.sh
         - docker exec -it cross ./configure
