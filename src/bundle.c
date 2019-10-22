@@ -29,7 +29,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 		goto out;
 	}
 
-	sproc = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
+	sproc = r_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
 			&ierror, "mksquashfs",
 			contentdir,
 			bundlename,
@@ -82,9 +82,7 @@ static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, con
 
 	g_ptr_array_add(args, NULL);
 
-	r_debug_subprocess(args);
-	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-			G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -150,9 +148,7 @@ static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath,
 	g_ptr_array_add(args, g_strjoinv(" ", (gchar**) g_ptr_array_free(iargs, FALSE)));
 	g_ptr_array_add(args, NULL);
 
-	r_debug_subprocess(args);
-	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-			G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -192,9 +188,7 @@ static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath,
 	}
 	g_ptr_array_add(args, NULL);
 
-	r_debug_subprocess(args);
-	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-			G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,

@@ -34,9 +34,7 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 	g_ptr_array_add(args, g_strdup(mountpoint));
 	g_ptr_array_add(args, NULL);
 
-	r_debug_subprocess(args);
-	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-			G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -80,9 +78,7 @@ gboolean r_umount(const gchar *filename, GError **error)
 	g_ptr_array_add(args, g_strdup(filename));
 	g_ptr_array_add(args, NULL);
 
-	r_debug_subprocess(args);
-	sproc = g_subprocess_newv((const gchar * const *)args->pdata,
-			G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,

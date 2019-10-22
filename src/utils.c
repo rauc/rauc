@@ -9,6 +9,30 @@
 
 #include "utils.h"
 
+GSubprocess *r_subprocess_new(GSubprocessFlags flags, GError **error, const gchar *argv0, ...)
+{
+	GSubprocess *result;
+	g_autoptr(GPtrArray) args = NULL;
+	const gchar *arg;
+	va_list ap;
+
+	g_return_val_if_fail(argv0 != NULL && argv0[0] != '\0', NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	args = g_ptr_array_new();
+
+	va_start(ap, argv0);
+	g_ptr_array_add(args, (gchar *) argv0);
+	while ((arg = va_arg(ap, const gchar *)))
+		g_ptr_array_add(args, (gchar *) arg);
+	g_ptr_array_add(args, NULL);
+	va_end(ap);
+
+	result = r_subprocess_newv(args, flags, error);
+
+	return result;
+}
+
 void close_preserve_errno(int fd)
 {
 	int err;
