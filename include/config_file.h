@@ -4,6 +4,7 @@
 
 #include <checksum.h>
 #include "manifest.h"
+#include "slot.h"
 
 /* Default maximum downloadable bundle size (8 MiB) */
 #define DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE 8*1024*1024
@@ -56,13 +57,6 @@ typedef struct {
 } RaucConfig;
 
 typedef enum {
-	ST_UNKNOWN = 0,
-	ST_ACTIVE = 1,
-	ST_INACTIVE = 2,
-	ST_BOOTED = 4 | ST_ACTIVE,
-} SlotState;
-
-typedef enum {
 	R_SLOT_ERROR_NO_CONFIG,
 	R_SLOT_ERROR_NO_BOOTSLOT,
 	R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
@@ -71,54 +65,6 @@ typedef enum {
 
 #define R_SLOT_ERROR r_slot_error_quark()
 GQuark r_slot_error_quark(void);
-
-typedef struct {
-	gchar *bundle_compatible;
-	gchar *bundle_version;
-	gchar *bundle_description;
-	gchar *bundle_build;
-	gchar *status;
-	RaucChecksum checksum;
-	gchar *installed_timestamp;
-	guint32 installed_count;
-	gchar *activated_timestamp;
-	guint32 activated_count;
-} RaucSlotStatus;
-
-typedef struct _RaucSlot {
-	/** name of the slot. A glib intern string. */
-	const gchar *name;
-	/** user-friendly description of the slot. A glib intern string. */
-	gchar *description;
-	/** slot class the slot belongs to. A glib intern string. */
-	const gchar *sclass;
-	/** device this slot uses */
-	gchar *device;
-	/** the slots partition type */
-	gchar *type;
-	/** the name this slot is known to the bootloader */
-	gchar *bootname;
-	/** flag indicating if the slot is updatable */
-	gboolean readonly;
-	/** flag indicating if slot skipping optimization should be used */
-	gboolean install_same;
-	/** extra mount options for this slot */
-	gchar *extra_mount_opts;
-	/** flag indicating to resize after writing (only for ext4) */
-	gboolean resize;
-	/** start address of first boot-partition (only for boot-mbr-switch) */
-	guint64 region_start;
-	/** size of both partitions(only for boot-mbr-switch) */
-	guint64 region_size;
-
-	/** current state of the slot (runtime) */
-	SlotState state;
-	gboolean boot_good;
-	struct _RaucSlot *parent;
-	gchar *mount_point;
-	gchar *ext_mount_point;
-	RaucSlotStatus *status;
-} RaucSlot;
 
 typedef struct {
 } RaucSlotGroup;
@@ -154,26 +100,6 @@ gboolean default_config(RaucConfig **config);
 RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device);
 
 /**
- * Finds a slot given its device path.
- *
- * @param slots a GHashTable containing (gchar, RaucSlot) entries
- * @param device the device path to search for
- *
- * @return a RaucSlot pointer or NULL
- */
-RaucSlot *find_slot_by_device(GHashTable *slots, const gchar *device);
-
-/**
- * Finds a slot given its bootname
- *
- * @param slots a GHashTable containing (gchar, RaucSlot) entries
- * @param botname the bootname to search for
- *
- * @return a RaucSlot pointer or NULL
- */
-RaucSlot *find_slot_by_bootname(GHashTable *slots, const gchar *bootname);
-
-/**
  * Frees the memory allocated by the RaucConfig.
  *
  * @param config a RaucConfig
@@ -204,13 +130,6 @@ gboolean read_slot_status(const gchar *filename, RaucSlotStatus *slotstatus, GEr
 gboolean write_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error);
 
 /**
- * Frees the memory allocated by the RaucSlotStatus.
- *
- * @param slotstatus a RaucSlotStatus
- */
-void free_slot_status(RaucSlotStatus *slotstatus);
-
-/**
  * Load slot status.
  *
  * Takes care to fill in slot status information into the designated component
@@ -239,37 +158,3 @@ void load_slot_status(RaucSlot *dest_slot);
  * @return TRUE if slot is not mountable or saving status succeeded, FALSE otherwise
  */
 gboolean save_slot_status(RaucSlot *dest_slot, GError **error);
-
-/**
- * Frees the memory allocated by a RaucSlot
- */
-void r_free_slot(gpointer value);
-
-G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucSlot, r_free_slot);
-
-/**
- * Check if slot type is mountable.
- *
- * @param slot slot to check
- *
- * @return TRUE if mountable, otherwise FALSE
- */
-gboolean is_slot_mountable(RaucSlot *slot);
-
-/**
- * Get string representation of slot state
- *
- * @param slotstate state to turn into string
- *
- * @return string representation of slot state
- */
-gchar* slotstate_to_str(SlotState slotstate);
-
-/**
- * Get SlotState from string representation.
- *
- * @param str string representation of state
- *
- * @return corresponding SlotState value
- */
-SlotState str_to_slotstate(gchar *str);

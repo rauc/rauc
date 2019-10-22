@@ -217,28 +217,6 @@ gboolean determine_boot_states(GError **error)
 	return TRUE;
 }
 
-/* Returns the parent root slot for given slot.
- *
- * If the given slot is a root slot itself, a pointer to itself will be
- * returned.
- *
- * @param slot slot to find parent root slot for
- *
- * @return pointer to RaucSlot
- */
-static RaucSlot* get_parent_root_slot(RaucSlot *slot)
-{
-	RaucSlot *base = NULL;
-
-	g_return_val_if_fail(slot, NULL);
-
-	base = slot;
-	while (base != NULL && base->parent != NULL)
-		base = base->parent;
-
-	return base;
-}
-
 /* Returns newly allocated NULL-teminated string array of all classes listed in
  * given manifest.
  * Free with g_strfreev */
@@ -262,37 +240,6 @@ static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest)
 
 	return (gchar**) g_ptr_array_free(slotclasses, FALSE);
 }
-
-/* Gets all classes that do not have a parent
- *
- * @return newly allocated NULL-teminated string array. Free with g_strfreev */
-static gchar** get_root_system_slot_classes(void)
-{
-	GPtrArray *slotclasses = NULL;
-	GHashTableIter iter;
-	RaucSlot *iterslot = NULL;
-
-	g_assert(r_context()->config != NULL);
-	g_assert(r_context()->config->slots != NULL);
-
-	slotclasses = g_ptr_array_new();
-
-	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &iterslot)) {
-		const gchar *key = NULL;
-
-		if (iterslot->parent)
-			continue;
-
-		key = g_intern_string(iterslot->sclass);
-		g_ptr_array_remove_fast(slotclasses, (gpointer)key); /* avoid duplicates */
-		g_ptr_array_add(slotclasses, (gpointer)key);
-	}
-	g_ptr_array_add(slotclasses, NULL);
-
-	return (gchar**) g_ptr_array_free(slotclasses, FALSE);
-}
-
 /* Selects a single appropriate inactive slot of root slot class
  *
  * Note: This function may be extended to be more sophisticated or follow a
@@ -322,28 +269,6 @@ static RaucSlot *select_inactive_slot_class_member(gchar *rootclass)
 	return NULL;
 }
 
-/*
- * Test if provided slot list contains slot instance (same pointer!)
- */
-static gboolean slot_list_contains(GList *slotlist, const RaucSlot *testslot)
-{
-
-	g_return_val_if_fail(testslot, FALSE);
-
-	if (!slotlist)
-		return FALSE;
-
-	for (GList *l = slotlist; l != NULL; l = l->next) {
-		RaucSlot *slot = l->data;
-
-		if (slot == testslot) {
-			return TRUE;
-		}
-	}
-
-	return FALSE;
-}
-
 /* Map each slot class available to a potential target slot.
  *
  * Algorithm:
@@ -368,7 +293,7 @@ GHashTable* determine_target_install_group(void)
 	r_context_begin_step("determine_target_install_group", "Determining target install group", 0);
 
 	/* collect all root classes available in system.conf */
-	rootclasses = get_root_system_slot_classes();
+	rootclasses = r_slot_get_root_classes(r_context()->config->slots);
 
 	for (gchar **rootslot = rootclasses; *rootslot != NULL; rootslot++) {
 		RaucSlot *selected = NULL;
@@ -387,11 +312,11 @@ GHashTable* determine_target_install_group(void)
 	 * in the selected root slots */
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &iterslot)) {
-		RaucSlot *parent = get_parent_root_slot(iterslot);
+		RaucSlot *parent = r_slot_get_parent_root(iterslot);
 		g_debug("Checking slot: %s", iterslot->name);
 
 
-		if (slot_list_contains(selected_root_slots, parent)) {
+		if (r_slot_list_contains(selected_root_slots, parent)) {
 			g_debug("\tAdding mapping: %s -> %s", iterslot->sclass, iterslot->name);
 			g_hash_table_insert(targetgroup, (gpointer) iterslot->sclass, iterslot);
 		} else {

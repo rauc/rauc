@@ -12,21 +12,6 @@ G_DEFINE_QUARK(r-slot-error-quark, r_slot_error)
 
 #define RAUC_SLOT_PREFIX	"slot"
 
-void r_free_slot(gpointer value)
-{
-	RaucSlot *slot = (RaucSlot*)value;
-
-	g_return_if_fail(slot);
-
-	g_free(slot->description);
-	g_free(slot->device);
-	g_free(slot->type);
-	g_free(slot->bootname);
-	g_free(slot->mount_point);
-	g_clear_pointer(&slot->status, free_slot_status);
-	g_free(slot);
-}
-
 gboolean default_config(RaucConfig **config)
 {
 	RaucConfig *c = g_new0(RaucConfig, 1);
@@ -36,32 +21,6 @@ gboolean default_config(RaucConfig **config)
 
 	*config = c;
 	return TRUE;
-}
-
-typedef struct {
-	const gchar *name;
-	gboolean mountable;
-} RaucSlotType;
-
-RaucSlotType supported_slot_types[] = {
-	{"raw", FALSE},
-	{"ext4", TRUE},
-	{"ubifs", TRUE},
-	{"ubivol", FALSE},
-	{"nand", FALSE},
-	{"vfat", TRUE},
-	{}
-};
-
-gboolean is_slot_mountable(RaucSlot *slot)
-{
-	for (RaucSlotType *slot_type = supported_slot_types; slot_type->name != NULL; slot_type++) {
-		if (g_strcmp0(slot->type, slot_type->name) == 0) {
-			return slot_type->mountable;
-		}
-	}
-
-	return FALSE;
 }
 
 static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "noop", NULL};
@@ -325,7 +284,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	g_key_file_remove_group(key_file, "handlers", NULL);
 
 	/* parse [slot.*.#] sections */
-	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_free_slot);
+	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
 
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
@@ -527,49 +486,7 @@ RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device)
 {
 	g_return_val_if_fail(config, NULL);
 
-	return find_slot_by_device(config->slots, device);
-}
-
-RaucSlot *find_slot_by_device(GHashTable *slots, const gchar *device)
-{
-	GHashTableIter iter;
-	RaucSlot *slot;
-
-	g_return_val_if_fail(slots, NULL);
-	g_return_val_if_fail(device, NULL);
-
-	g_hash_table_iter_init(&iter, slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
-		if (g_strcmp0(slot->device, device) == 0) {
-			goto out;
-		}
-	}
-
-	slot = NULL;
-
-out:
-	return slot;
-}
-
-RaucSlot *find_slot_by_bootname(GHashTable *slots, const gchar *bootname)
-{
-	GHashTableIter iter;
-	RaucSlot *slot;
-
-	g_return_val_if_fail(slots, NULL);
-	g_return_val_if_fail(bootname, NULL);
-
-	g_hash_table_iter_init(&iter, slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
-		if (g_strcmp0(slot->bootname, bootname) == 0) {
-			goto out;
-		}
-	}
-
-	slot = NULL;
-
-out:
-	return slot;
+	return r_slot_find_by_device(config->slots, device);
 }
 
 void free_config(RaucConfig *config)
@@ -757,7 +674,7 @@ static void load_slot_status_locally(RaucSlot *dest_slot)
 
 	dest_slot->status = g_new0(RaucSlotStatus, 1);
 
-	if (!is_slot_mountable(dest_slot))
+	if (!r_slot_is_mountable(dest_slot))
 		return;
 
 	/* read slot status */
@@ -855,7 +772,7 @@ static gboolean save_slot_status_locally(RaucSlot *dest_slot, GError **error)
 	g_return_val_if_fail(dest_slot->status, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (!is_slot_mountable(dest_slot)) {
+	if (!r_slot_is_mountable(dest_slot)) {
 		res = TRUE;
 		goto free;
 	}
@@ -929,56 +846,4 @@ gboolean save_slot_status(RaucSlot *dest_slot, GError **error)
 		return save_slot_status_globally(error);
 	else
 		return save_slot_status_locally(dest_slot, error);
-}
-
-void free_slot_status(RaucSlotStatus *slotstatus)
-{
-	g_return_if_fail(slotstatus);
-
-	g_free(slotstatus->bundle_compatible);
-	g_free(slotstatus->bundle_version);
-	g_free(slotstatus->bundle_description);
-	g_free(slotstatus->bundle_build);
-	g_free(slotstatus->status);
-	g_free(slotstatus->checksum.digest);
-	g_free(slotstatus->installed_timestamp);
-	g_free(slotstatus->activated_timestamp);
-	g_free(slotstatus);
-}
-
-/* returns string representation of slot state */
-gchar* slotstate_to_str(SlotState slotstate)
-{
-	gchar *state = NULL;
-
-	switch (slotstate) {
-		case ST_ACTIVE:
-			state = g_strdup("active");
-			break;
-		case ST_INACTIVE:
-			state = g_strdup("inactive");
-			break;
-		case ST_BOOTED:
-			state = g_strdup("booted");
-			break;
-		case ST_UNKNOWN:
-		default:
-			g_error("invalid slot status %d", slotstate);
-			break;
-	}
-
-	return state;
-}
-
-SlotState str_to_slotstate(gchar *str)
-{
-	if (g_strcmp0(str, "active") == 0) {
-		return ST_ACTIVE;
-	} else if (g_strcmp0(str, "inactive") == 0) {
-		return ST_INACTIVE;
-	} else if (g_strcmp0(str, "booted") == 0) {
-		return ST_BOOTED;
-	}
-
-	return ST_UNKNOWN;
 }

@@ -1007,75 +1007,96 @@ static void free_status_print(RaucStatusPrint *status)
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucStatusPrint, free_status_print);
 
+static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint *status)
+{
+	RaucSlotStatus *slot_state = slot->status;
+
+	g_string_append_printf(text, "\n  %s: class=%s, device=%s, type=%s, bootname=%s\n",
+			slot->name, slot->sclass, slot->device, slot->type, slot->bootname);
+	g_string_append_printf(text, "      state=%s, description=%s", r_slot_slotstate_to_str(slot->state), slot->description);
+	if (slot->parent)
+		g_string_append_printf(text, ", parent=%s", slot->parent->name);
+	else
+		g_string_append(text, ", parent=(none)");
+	if (slot->mount_point || slot->ext_mount_point)
+		g_string_append_printf(text, ", mountpoint=%s", slot->mount_point ? slot->mount_point : slot->ext_mount_point);
+	else
+		g_string_append(text, ", mountpoint=(none)");
+	if (slot->bootname)
+		g_string_append_printf(text, "\n      boot status=%s", slot->boot_good ? "good" : "bad");
+	if (status_detailed && slot_state) {
+		g_string_append_printf(text, "\n      slot status:");
+		g_string_append_printf(text, "\n          bundle:");
+		g_string_append_printf(text, "\n              compatible=%s", slot_state->bundle_compatible);
+		if (slot_state->bundle_version)
+			g_string_append_printf(text, "\n              version=%s", slot_state->bundle_version);
+		if (slot_state->bundle_description)
+			g_string_append_printf(text, "\n              description=%s", slot_state->bundle_description);
+		if (slot_state->bundle_build)
+			g_string_append_printf(text, "\n              build=%s", slot_state->bundle_build);
+		if (slot_state->checksum.digest && slot_state->checksum.type == G_CHECKSUM_SHA256) {
+			g_string_append_printf(text, "\n          checksum:");
+			g_string_append_printf(text, "\n              sha256=%s", slot_state->checksum.digest);
+			g_string_append_printf(text, "\n              size=%"G_GSIZE_FORMAT, slot_state->checksum.size);
+		}
+		if (slot_state->installed_timestamp) {
+			g_string_append_printf(text, "\n          installed:");
+			g_string_append_printf(text, "\n              timestamp=%s", slot_state->installed_timestamp);
+			g_string_append_printf(text, "\n              count=%u", slot_state->installed_count);
+		}
+		if (slot_state->activated_timestamp) {
+			g_string_append_printf(text, "\n          activated:");
+			g_string_append_printf(text, "\n              timestamp=%s", slot_state->activated_timestamp);
+			g_string_append_printf(text, "\n              count=%u", slot_state->activated_count);
+		}
+		if (slot_state->status)
+			g_string_append_printf(text, "\n          status=%s", slot_state->status);
+	}
+}
+
 static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 {
-	GHashTableIter iter;
-	gint slotcnt = 0;
 	GString *text = g_string_new(NULL);
-	RaucSlot *slot = NULL;
 	RaucSlot *bootedfrom = NULL;
-	gchar *name;
+	gchar **slotclasses = NULL;
 
 	g_return_val_if_fail(status, NULL);
 
-	bootedfrom = find_slot_by_device(status->slots, status->bootslot);
+	bootedfrom = r_slot_find_by_device(status->slots, status->bootslot);
 	if (!bootedfrom)
-		bootedfrom = find_slot_by_bootname(status->slots, status->bootslot);
+		bootedfrom = r_slot_find_by_bootname(status->slots, status->bootslot);
 
 	g_string_append_printf(text, "Compatible:  %s\n", status->compatible);
 	g_string_append_printf(text, "Variant:     %s\n", status->variant);
 	g_string_append_printf(text, "Booted from: %s (%s)\n", bootedfrom ? bootedfrom->name : NULL, status->bootslot);
 	g_string_append_printf(text, "Activated:   %s (%s)\n", status->primary ? status->primary->name : NULL, status->primary ? status->primary->bootname : NULL);
 
-	g_string_append(text, "slot states:\n");
-	g_hash_table_iter_init(&iter, status->slots);
-	while (g_hash_table_iter_next(&iter, (gpointer*) &name, (gpointer*) &slot)) {
-		RaucSlotStatus *slot_state = slot->status;
+	g_string_append(text, "slot states:");
 
-		slotcnt++;
+	slotclasses = r_slot_get_root_classes(status->slots);
 
-		g_string_append_printf(text, "  %s: class=%s, device=%s, type=%s, bootname=%s\n",
-				name, slot->sclass, slot->device, slot->type, slot->bootname);
-		g_string_append_printf(text, "      state=%s, description=%s", slotstate_to_str(slot->state), slot->description);
-		if (slot->parent)
-			g_string_append_printf(text, ", parent=%s", slot->parent->name);
-		else
-			g_string_append(text, ", parent=(none)");
-		if (slot->mount_point || slot->ext_mount_point)
-			g_string_append_printf(text, ", mountpoint=%s", slot->mount_point ? slot->mount_point : slot->ext_mount_point);
-		else
-			g_string_append(text, ", mountpoint=(none)");
-		if (slot->bootname)
-			g_string_append_printf(text, "\n      boot status=%s", slot->boot_good ? "good" : "bad");
-		if (status_detailed && slot_state) {
-			g_string_append_printf(text, "\n      slot status:");
-			g_string_append_printf(text, "\n          bundle:");
-			g_string_append_printf(text, "\n              compatible=%s", slot_state->bundle_compatible);
-			if (slot_state->bundle_version)
-				g_string_append_printf(text, "\n              version=%s", slot_state->bundle_version);
-			if (slot_state->bundle_description)
-				g_string_append_printf(text, "\n              description=%s", slot_state->bundle_description);
-			if (slot_state->bundle_build)
-				g_string_append_printf(text, "\n              build=%s", slot_state->bundle_build);
-			if (slot_state->checksum.digest && slot_state->checksum.type == G_CHECKSUM_SHA256) {
-				g_string_append_printf(text, "\n          checksum:");
-				g_string_append_printf(text, "\n              sha256=%s", slot_state->checksum.digest);
-				g_string_append_printf(text, "\n              size=%"G_GSIZE_FORMAT, slot_state->checksum.size);
+	for (gchar **cls = slotclasses; *cls != NULL; cls++) {
+		GList *slots = NULL;
+
+		slots = r_slot_get_all_of_class(status->slots, *cls);
+
+		for (GList *l = slots; l != NULL; l = l->next) {
+			RaucSlot *xslot = l->data;
+
+			GList *children = NULL;
+
+			r_string_append_slot(text, xslot, status);
+
+			children = r_slot_get_all_children(status->slots, xslot);
+			for (GList *cl = children; cl != NULL; cl = cl->next) {
+				RaucSlot *child_slot = cl->data;
+
+				r_string_append_slot(text, child_slot, status);
 			}
-			if (slot_state->installed_timestamp) {
-				g_string_append_printf(text, "\n          installed:");
-				g_string_append_printf(text, "\n              timestamp=%s", slot_state->installed_timestamp);
-				g_string_append_printf(text, "\n              count=%u", slot_state->installed_count);
-			}
-			if (slot_state->activated_timestamp) {
-				g_string_append_printf(text, "\n          activated:");
-				g_string_append_printf(text, "\n              timestamp=%s", slot_state->activated_timestamp);
-				g_string_append_printf(text, "\n              count=%u", slot_state->activated_count);
-			}
-			if (slot_state->status)
-				g_string_append_printf(text, "\n          status=%s", slot_state->status);
+
+			g_string_append(text, "\n");
 		}
-		g_string_append_c(text, '\n');
+
 	}
 
 	return g_string_free(text, FALSE);
@@ -1125,7 +1146,7 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 
 		slotcnt++;
 
-		formatter_shell_append_n(text, "RAUC_SLOT_STATE", slotcnt, slotstate_to_str(slot->state));
+		formatter_shell_append_n(text, "RAUC_SLOT_STATE", slotcnt, r_slot_slotstate_to_str(slot->state));
 		formatter_shell_append_n(text, "RAUC_SLOT_CLASS", slotcnt, slot->sclass);
 		formatter_shell_append_n(text, "RAUC_SLOT_DEVICE", slotcnt, slot->device);
 		formatter_shell_append_n(text, "RAUC_SLOT_TYPE", slotcnt, slot->type);
@@ -1206,7 +1227,7 @@ static gchar* r_status_formatter_json(RaucStatusPrint *status, gboolean pretty)
 		json_builder_set_member_name(builder, "bootname");
 		json_builder_add_string_value(builder, slot->bootname);
 		json_builder_set_member_name(builder, "state");
-		json_builder_add_string_value(builder, slotstate_to_str(slot->state));
+		json_builder_add_string_value(builder, r_slot_slotstate_to_str(slot->state));
 		json_builder_set_member_name(builder, "parent");
 		json_builder_add_string_value(builder, slot->parent ? slot->parent->name : NULL);
 		json_builder_set_member_name(builder, "mountpoint");
@@ -1338,7 +1359,7 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 	g_return_val_if_fail(slots != NULL && *slots == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	*slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_free_slot);
+	*slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
 
 	proxy = r_installer_proxy_new_for_bus_sync(bus_type,
 			G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
@@ -1386,7 +1407,7 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 		g_variant_dict_lookup(&dict, "type", "s", &slot->type);
 		g_variant_dict_lookup(&dict, "bootname", "s", &slot->bootname);
 		g_variant_dict_lookup(&dict, "state", "s", &state);
-		slot->state = str_to_slotstate(state);
+		slot->state = r_slot_str_to_slotstate(state);
 		g_variant_dict_lookup(&dict, "description", "s", &slot->description);
 		g_variant_dict_lookup(&dict, "parent", "s", &parent);
 		if (parent) {
@@ -1418,7 +1439,7 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 		if (iterslot->parent) {
 			parent_slot = g_hash_table_lookup(*slots, iterslot->parent->name);
 			g_assert_nonnull(parent_slot); /* A valid serialization should not run into this case! */
-			g_clear_pointer(&iterslot->parent, r_free_slot);
+			g_clear_pointer(&iterslot->parent, r_slot_free);
 			iterslot->parent = parent_slot;
 		}
 	}

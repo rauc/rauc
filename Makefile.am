@@ -46,6 +46,7 @@ librauc_la_SOURCES = \
 	src/mount.c \
 	src/service.c \
 	src/signature.c \
+	src/slot.c \
 	src/utils.c \
 	src/update_handler.c \
 	include/bootchooser.h \
@@ -61,6 +62,7 @@ librauc_la_SOURCES = \
 	include/mount.h \
 	include/service.h \
 	include/signature.h \
+	include/slot.h \
 	include/update_handler.h \
 	include/utils.h
 
@@ -132,7 +134,8 @@ check_PROGRAMS = \
 	test/install.test \
 	test/service.test \
 	test/bundle.test \
-	test/progress.test
+	test/progress.test \
+	test/slot.test
 
 if WANT_NETWORK
 check_PROGRAMS += test/network.test
@@ -205,6 +208,9 @@ test_network_test_LDADD = librauctest.la
 
 test_progress_test_SOURCES = test/progress.c
 test_progress_test_LDADD = librauctest.la
+
+test_slot_test_SOURCES = test/slot.c
+test_slot_test_LDADD = librauctest.la
 
 SED_REPLACE = $(SED) \
        -e 's|[@]bindir[@]|$(bindir)|g' \
