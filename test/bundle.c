@@ -157,6 +157,9 @@ static void bundle_test_extract_manifest(BundleFixture *fixture,
 	free_bundle(bundle);
 }
 
+// Hack to pull-in context for testing modification
+extern RaucContext *context;
+
 static void bundle_test_resign(BundleFixture *fixture,
 		gconstpointer user_data)
 {
@@ -187,8 +190,8 @@ static void bundle_test_resign(BundleFixture *fixture,
 	g_assert_true(res);
 
 	/* Use 'rel' key pair for resigning */
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	context->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
+	context->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
 
 	res = resign_bundle(bundle, resignbundle, &ierror);
 	g_assert_no_error(ierror);
