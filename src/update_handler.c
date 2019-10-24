@@ -160,7 +160,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, G
 	return TRUE;
 }
 
-static gboolean casync_extract(RaucImage *image, gchar *dest, const gchar *seed, const gchar *store, const gchar *tmpdir, GError **error)
+static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const gchar *seed, const gchar *store, const gchar *tmpdir, GError **error)
 {
 	g_autoptr(GSubprocessLauncher) launcher = NULL;
 	g_autoptr(GSubprocess) sproc = NULL;
@@ -180,10 +180,12 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, const gchar *seed,
 	}
 	g_ptr_array_add(args, g_strdup("--seed-output=no"));
 	g_ptr_array_add(args, g_strdup(image->filename));
-	g_ptr_array_add(args, g_strdup(dest));
+	g_ptr_array_add(args, g_strdup(out_fd >= 0 ? "-" : dest));
 	g_ptr_array_add(args, NULL);
 
 	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_NONE);
+	if (out_fd >= 0)
+		g_subprocess_launcher_take_stdout_fd(launcher, out_fd);
 	if (tmpdir)
 		g_subprocess_launcher_setenv(launcher, "TMPDIR", tmpdir, TRUE);
 
@@ -229,7 +231,7 @@ static RaucSlot *get_active_slot_class_member(gchar *slotclass)
 	return NULL;
 }
 
-static gboolean casync_extract_image(RaucImage *image, gchar *dest, GError **error)
+static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -280,7 +282,7 @@ extract:
 		g_debug("Using tmp path: '%s'", tmpdir);
 
 	/* Call casync to extract */
-	res = casync_extract(image, dest, seed, store, tmpdir, &ierror);
+	res = casync_extract(image, dest, out_fd, seed, store, tmpdir, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -337,7 +339,7 @@ static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **er
 		g_message("Extracting %s to %s", image->filename, slot->device);
 
 		/* Extract caibx to device */
-		res = casync_extract_image(image, slot->device, &ierror);
+		res = casync_extract_image(image, slot->device, -1, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -609,9 +611,9 @@ out:
 static gboolean unpack_archive(RaucImage *image, gchar *dest, GError **error)
 {
 	if (g_str_has_suffix(image->filename, ".caidx" ))
-		return casync_extract_image(image, dest, error);
+		return casync_extract_image(image, dest, -1, error);
 	else if (g_str_has_suffix(image->filename, ".catar" ))
-		return casync_extract_image(image, dest, error);
+		return casync_extract_image(image, dest, -1, error);
 	else
 		return untar_image(image, dest, error);
 }
