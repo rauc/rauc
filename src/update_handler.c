@@ -267,6 +267,14 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 		g_debug("Adding as casync directory tree seed: %s", seedslot->mount_point);
 		seed = g_strdup(seedslot->mount_point);
 	} else {
+		GStatBuf seedstat;
+
+		/* For the moment do not utilize UBI volumes as seed because they are
+		 * character devices - additional logic is needed to (temporarily) map
+		 * them to UBIBLOCK devices which are suitable for that purpose */
+		if (g_stat(seedslot->device, &seedstat) < 0 || S_ISCHR(seedstat.st_mode))
+			goto extract;
+
 		g_debug("Adding as casync blob seed: %s", seedslot->device);
 		seed = g_strdup(seedslot->device);
 	}
