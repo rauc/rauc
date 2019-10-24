@@ -783,11 +783,23 @@ static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, con
 		goto out;
 	}
 
-	/* copy */
-	res = copy_raw_image(image, outstream, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
+	/* Handle casync index file */
+	if (g_str_has_suffix(image->filename, ".caibx")) {
+		g_message("Extracting %s to %s", image->filename, dest_slot->device);
+
+		res = casync_extract_image(image, NULL, out_fd, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+	} else {
+		/* copy */
+		res = copy_raw_image(image, outstream, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 	/* run slot post install hook if enabled */
@@ -835,11 +847,23 @@ static gboolean img_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 		goto out;
 	}
 
-	/* copy */
-	res = copy_raw_image(image, outstream, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
+	/* Handle casync index file */
+	if (g_str_has_suffix(image->filename, ".caibx")) {
+		g_message("Extracting %s to %s", image->filename, dest_slot->device);
+
+		res = casync_extract_image(image, NULL, out_fd, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+	} else {
+		/* copy */
+		res = copy_raw_image(image, outstream, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 	/* run slot post install hook if enabled */
@@ -1476,11 +1500,12 @@ RaucUpdatePair updatepairs[] = {
 	{"*.ext4.caibx", "ext4", img_to_fs_handler},
 	{"*.ext4.caibx", "raw", img_to_raw_handler},
 	{"*.vfat.caibx", "raw", img_to_raw_handler},
-	//{"*.ubifs.caibx", "ubivol", img_to_ubivol_handler}, /* unsupported */
-	//{"*.ubifs.caibx", "ubifs", img_to_ubifs_handler}, /* unsupported */
+	{"*.ubifs.caibx", "ubivol", img_to_ubivol_handler},
+	{"*.ubifs.caibx", "ubifs", img_to_ubifs_handler},
 	//{"*.img.caibx", "nand", img_to_nand_handler}, /* unsupported */
-	//{"*.img.caibx", "ubivol", img_to_ubivol_handler}, /* unsupported */
-	//{"*.squashfs.caibx", "ubivol", img_to_ubivol_handler}, /* unsupported */
+	{"*.img.caibx", "ubivol", img_to_ubivol_handler},
+	{"*.img.caibx", "ubifs", img_to_ubifs_handler},
+	{"*.squashfs.caibx", "ubivol", img_to_ubivol_handler},
 	{"*.img.caibx", "*", img_to_raw_handler}, /* fallback */
 	{"*.caidx", "ext4", archive_to_ext4_handler},
 	{"*.caidx", "ubifs", archive_to_ubifs_handler},
