@@ -192,6 +192,7 @@ static void bundle_test_resign(BundleFixture *fixture,
 	/* Use 'rel' key pair for resigning */
 	context->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
 	context->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	context->signing_keyringpath = g_strdup("test/openssl-ca/rel-ca.pem");
 
 	res = resign_bundle(bundle, resignbundle, &ierror);
 	g_assert_no_error(ierror);
