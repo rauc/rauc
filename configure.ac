@@ -44,13 +44,13 @@ AC_ARG_ENABLE([service],
 )
 AS_IF([test "x$enable_service" != "xno"], [
 	AC_DEFINE([ENABLE_SERVICE], [1], [Define to 1 to enable background service])
+	PKG_CHECK_MODULES([DBUS1], [dbus-1])
 ], [
 	AC_DEFINE([ENABLE_SERVICE], [0])
 ])
 
 # Checks for libraries.
 PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.45.8 gio-2.0 gio-unix-2.0])
-PKG_CHECK_MODULES([DBUS1], [dbus-1])
 
 AC_ARG_ENABLE([network],
        AS_HELP_STRING([--disable-network], [Disable network update mode])
