@@ -324,6 +324,7 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 	CMS_ContentInfo *cms = NULL;
 	GBytes *res = NULL;
 	int flags = CMS_DETACHED | CMS_BINARY;
+	gchar *keyring_path = NULL;
 
 	g_return_val_if_fail(content != NULL, NULL);
 	g_return_val_if_fail(certfile != NULL, NULL);
@@ -389,7 +390,13 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 	}
 
 	/* keyring was given, perform verification to obtain trust chain */
-	if (r_context()->config->keyring_path) {
+	if (r_context()->signing_keyringpath) {
+		keyring_path = r_context()->signing_keyringpath;
+	} else if (r_context()->config->keyring_path) {
+		keyring_path = r_context()->config->keyring_path;
+	}
+
+	if (keyring_path) {
 		g_autoptr(CMS_ContentInfo) vcms = NULL;
 		g_autoptr(X509_STORE) store = NULL;
 		STACK_OF(X509) *verified_chain = NULL;
@@ -402,12 +409,12 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 					"failed to allocate new X509 store");
 			goto out;
 		}
-		if (!X509_STORE_load_locations(store, r_context()->config->keyring_path, NULL)) {
+		if (!X509_STORE_load_locations(store, keyring_path, NULL)) {
 			g_set_error(
 					error,
 					R_SIGNATURE_ERROR,
 					R_SIGNATURE_ERROR_CA_LOAD,
-					"failed to load CA file '%s'", r_context()->config->keyring_path);
+					"failed to load CA file '%s'", keyring_path);
 			goto out;
 		}
 
