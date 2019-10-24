@@ -1,3 +1,89 @@
+Release 1.2 (development)
+-------------------------
+
+.. rubric:: Enhancements
+
+* Output of 'rauc status' is now grouped by slot groups to make it easier to
+  identify the redundancy setup.
+  Previously, the present slots were printed in a random order which was
+  confusing, especially when having more than three or four slots.
+* Use pkg-config to obtain valid D-Bus install directories and clean up D-Bus
+  directory handling.
+  This adds libdbus-1-dev as new build dependency. (by Michael Heimpold)
+* Moved various checks that could be performed before actually starting the
+  installation out of the atomic update region.
+  This allows RAUC to fail earlier without leaving behind a disabled slot group
+  with incomplete contents.
+* Added optional ``--progress`` argument to ``rauc install`` that enables a
+  basic text progress bar instead of the default line-by-line log.
+* Added ``tmppath`` to casync system config options to allow setting TMPDIR for
+  casync. (by Gaël PORTAY)
+* Slot skipping was deactivated by default as it turned out to be to unexpected
+  behaviour for many users.
+  The corresponding setting was renamed to 'install-same='
+  ('force-install-same' will remain valid, too).
+  The means skipping writing for slots whose current and intended slot hashes
+  are equal must now be enabled explicitly.
+  This optimization is mainly useful for use-cases with a read-only rootfs.
+* Support for updating boot partition in the MBR. (by Thomas Hämmerle)
+
+.. rubric:: Bug fixes
+
+* Fixed detection of whether the bundle path is located in input directory for a
+  corner case.
+* Fixed off-by-one error in printing the remaining attempts counter in the
+  uboot.sh contrib script (by Ellie Reeves)
+* Fixed detection of mount points disappearing during the service's runtime.
+* Added missing entry of 'service' subcommand to RAUC help text (if compiled
+  with service support).
+* Fixed inappropriate resetting of BOOT_ACK flag in eMMC extCSD register
+  handling which could have prevented proper booting on some SoCs. (by Stephan
+  Michaelsen)
+* Fixed leaking GDataInputStreams in boot selection and install handling that
+  led to steadily increasing number of open file descriptors in some scenarios
+  until exceeding system limits and leading to 'Too many open files' errors.
+  This was only problematic when installing many times without rebooting.
+* Fixed 'uninitialized local' bugs in update_handler and config_file module.
+  (by Gaël PORTAY)
+* PKCS#11 handling now does not silently accept missing (empty) PINs anymore,
+  but allows interactive prompt for entering it.
+* Fixed bundle detection on big endian systems.
+* Fixed size mismatches in printf formatter and struct packing on ARM32.
+
+.. rubric:: Testing
+
+* Fix checks that depended on implicit assumptions regarding the GHashTable
+  behaviour that are not valid anymore for newer glib versions.
+* Added notes on required tools for unit testing and added check for
+  grub-editenv being present.
+* Travis now only runs cross-compilation tests for platforms armhf, i386,
+  arm64, armel to allow early detection of cross-compilation issues with
+  endianness, 32 vs. 64 bit, etc.
+
+.. rubric:: Code
+
+* Reworked subprocess call logging for debugging and added remaining missing
+  log output to users of r_subprocess_new().
+* Refactored slot handling code in new 'slot.c' module to be used for both
+  install and status information handling.
+* Added qdbusxml2cpp annotations to rauc-installer.xml for interface class
+  generation. (by Tobias Junghans)
+* Removed the deprecated 'network mode'.
+  Note that this does not affect RAUCs bundle network capabilities (casync,
+  etc.).
+* Fixed clang compilation warnings (unused variable, printf formatter,
+  non-obvious invert statements).
+* Various code cleanups, structural simplifications
+
+.. rubric:: Documentation
+
+* Extended manpage to cover 'rauc status' subcommands. (by Michael Heimpold)
+* Fixed various typos.
+
+Contributions from: Bastian Krause, Ellie Reeves, Enrico Jörns, Gaël PORTAY,
+Jan Lübbe, Leif Middelschulte, Michael Heimpold , Stephan Michaelsen , Thomas
+Hämmerle, Thorsten Scherer, Tobias Junghans, Uwe Kleine-König
+
 Release 1.1 (released Jun 5, 2019)
 ----------------------------------
 
