@@ -745,13 +745,25 @@ To enable handling of redundant booting in GRUB, manual scripting is required.
 The GRUB bootloader interface of RAUC uses the GRUB environment variables
 ``<bootname>_OK``, ``<bootname>_TRY`` and ``ORDER``.
 
-To enable reading and writing of the GRUB environment, you need to have the tool
-``grub-editenv`` available on your target.
-
 An exemplary GRUB configuration for handling redundant boot setups is located in the
 ``contrib/`` folder of the RAUC source repository (``grub.conf``). As the GRUB
 shell only has limited support for scripting, this example uses only one try
 per enabled slot.
+
+To enable reading and writing of the GRUB environment, you need to have the tool
+``grub-editenv`` available on your target.
+
+By default RAUC expects the grubenv file to be located at
+``/boot/grub/grubenv``, you can specify a custom directory by passing
+``grubenv=/path/to/grubenv`` in your system.conf ``[system]`` section.
+
+Make sure that the grubenv file is located outside your redundant rootfs
+partitions as the rootfs needs to be exchangeable without affecting the
+environment content.
+For UEFI systems, a proper location would be to place it on the EFI partition,
+e.g. at ``/EFI/BOOT/grubenv``.
+The same partition can also be used for your ``grub.cfg`` (which could be
+placed at ``/EFI/BOOT/grub.cfg``).
 
 .. _sec-efi:
 
