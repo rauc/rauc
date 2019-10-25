@@ -73,14 +73,13 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
  *
  * @param content content to verify against signature
  * @param sig signature used to verify
+ * @param store X509 store to use for verification
  * @param cms Return location for the CMS_ContentInfo used for verification
- * @param store Return location for the X509 store used for verification
  * @param error return location for a GError, or NULL
  *
  * @return TRUE if succeeded, FALSE if failed
  */
-gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_STORE **store, GError **error);
-
+gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GError **error);
 
 /**
  * Verify signature for given file.
@@ -88,13 +87,13 @@ gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_ST
  * @param filename name of file with content to verify against signature
  * @param sig signature used to verify
  * @param limit size of content to use, 0 if all should be included
+ * @param store X509 store to use for verification
  * @param cms Return location for the CMS_ContentInfo used for verification
- * @param store Return location for the X509 store used for verification
  * @param error return location for a GError, or NULL
  *
  * @return TRUE if succeeded, FALSE if failed
  */
-gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, CMS_ContentInfo **cms, X509_STORE **store, GError **error);
+gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, X509_STORE *store, CMS_ContentInfo **cms, GError **error);
 
 /**
  * Calculates hash for certificate pubkey info.

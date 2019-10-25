@@ -394,8 +394,25 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 		g_autoptr(X509_STORE) store = NULL;
 		STACK_OF(X509) *verified_chain = NULL;
 
+		if (!(store = X509_STORE_new())) {
+			g_set_error_literal(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_X509_NEW,
+					"failed to allocate new X509 store");
+			goto out;
+		}
+		if (!X509_STORE_load_locations(store, r_context()->config->keyring_path, NULL)) {
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_CA_LOAD,
+					"failed to load CA file '%s'", r_context()->config->keyring_path);
+			goto out;
+		}
+
 		g_message("Keyring given, doing signature verification");
-		if (!cms_verify(content, res, &vcms, &store, &ierror)) {
+		if (!cms_verify(content, res, store, &vcms, &ierror)) {
 			g_propagate_error(error, ierror);
 			res = NULL;
 			goto out;
@@ -712,11 +729,8 @@ static gboolean asn1_time_to_tm(const ASN1_TIME *intime, struct tm *tm)
 	return TRUE;
 }
 
-gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_STORE **store, GError **error)
+gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
 {
-	const gchar *capath = r_context()->config->keyring_path;
-	const gchar *cadir = r_context()->config->keyring_directory;
-	X509_STORE *istore = NULL;
 	CMS_ContentInfo *icms = NULL;
 	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
 			g_bytes_get_size(content));
@@ -726,28 +740,11 @@ gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_ST
 
 	g_return_val_if_fail(content != NULL, FALSE);
 	g_return_val_if_fail(sig != NULL, FALSE);
+	g_return_val_if_fail(store != NULL, FALSE);
 	g_return_val_if_fail(cms == NULL || *cms == NULL, FALSE);
-	g_return_val_if_fail(store == NULL || *store == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	r_context_begin_step("cms_verify", "Verifying signature", 0);
-
-	if (!(istore = X509_STORE_new())) {
-		g_set_error_literal(
-				error,
-				R_SIGNATURE_ERROR,
-				R_SIGNATURE_ERROR_X509_NEW,
-				"failed to allocate new X509 store");
-		goto out;
-	}
-	if (!X509_STORE_load_locations(istore, capath, cadir)) {
-		g_set_error(
-				error,
-				R_SIGNATURE_ERROR,
-				R_SIGNATURE_ERROR_CA_LOAD,
-				"failed to load CA file '%s' and/or directory '%s'", capath, cadir);
-		goto out;
-	}
 
 	if (!(icms = d2i_CMS_bio(insig, NULL))) {
 		g_set_error(
@@ -787,11 +784,11 @@ gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_ST
 
 		/* use signing time for verification */
 		X509_VERIFY_PARAM_set_time(param, signingtime);
-		X509_STORE_set1_param(istore, param);
+		X509_STORE_set1_param(store, param);
 		X509_VERIFY_PARAM_free(param);
 	}
 
-	if (!CMS_verify(icms, NULL, istore, incontent, NULL, CMS_DETACHED | CMS_BINARY)) {
+	if (!CMS_verify(icms, NULL, store, incontent, NULL, CMS_DETACHED | CMS_BINARY)) {
 		unsigned long err;
 		const gchar *data;
 		int flags;
@@ -807,17 +804,11 @@ gboolean cms_verify(GBytes *content, GBytes *sig, CMS_ContentInfo **cms, X509_ST
 	if (cms)
 		*cms = icms;
 
-	if (store)
-		*store = istore;
-
-
 	res = TRUE;
 out:
 	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
 	BIO_free_all(insig);
-	if (!store)
-		X509_STORE_free(istore);
 	if (!cms)
 		CMS_ContentInfo_free(icms);
 	r_context_end_step("cms_verify", res);
@@ -853,7 +844,7 @@ out:
 	return sig;
 }
 
-gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, CMS_ContentInfo **cms, X509_STORE **store, GError **error)
+gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
 {
 	GError *ierror = NULL;
 	g_autoptr(GMappedFile) file = NULL;
@@ -862,8 +853,8 @@ gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, CMS_Co
 
 	g_return_val_if_fail(filename != NULL, FALSE);
 	g_return_val_if_fail(sig != NULL, FALSE);
+	g_return_val_if_fail(store != NULL, FALSE);
 	g_return_val_if_fail(cms == NULL || *cms == NULL, FALSE);
-	g_return_val_if_fail(store == NULL || *store == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	file = g_mapped_file_new(filename, FALSE, &ierror);
@@ -879,7 +870,7 @@ gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, CMS_Co
 		content = tmp;
 	}
 
-	res = cms_verify(content, sig, cms, store, &ierror);
+	res = cms_verify(content, sig, store, cms, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
