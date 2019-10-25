@@ -28,7 +28,9 @@ Release 1.2 (development)
   The means skipping writing for slots whose current and intended slot hashes
   are equal must now be enabled explicitly.
   This optimization is mainly useful for use-cases with a read-only rootfs.
-* Support for updating boot partition in the MBR. (by Thomas Hämmerle)
+* Added new slot type ``boot-mbr-switch`` to support atomic updating of boot
+  partitions in the MBR. (by Thomas Hämmerle)
+  See :ref:`here <sec-mbr-partition>` for details.
 
 .. rubric:: Bug fixes
 
