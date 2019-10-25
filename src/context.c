@@ -36,6 +36,9 @@ static const gchar* get_cmdline_bootname(void)
 	if (!g_file_get_contents("/proc/cmdline", &contents, NULL, NULL))
 		return NULL;
 
+	if (strstr(contents, "rauc.external") != NULL)
+		return "_external_";
+
 	bootname = regex_match("rauc\\.slot=(\\S+)", contents);
 	if (bootname)
 		return bootname;
