@@ -18,7 +18,7 @@ Release 1.2 (development)
   basic text progress bar instead of the default line-by-line log.
 * Added ``tmppath`` to casync system config options to allow setting TMPDIR for
   casync. (by Gaël PORTAY)
-* Slot skipping was deactivated by default as it turned out to be to unexpected
+* Slot skipping was deactivated by default as it turned out to be unexpected
   behaviour for many users.
   The corresponding setting was renamed to 'install-same='
   ('force-install-same' will remain valid, too).
@@ -56,7 +56,7 @@ Release 1.2 (development)
   behaviour that are not valid anymore for newer glib versions.
 * Added notes on required tools for unit testing and added check for
   grub-editenv being present.
-* Travis now only runs cross-compilation tests for platforms armhf, i386,
+* Travis now also runs cross-compilation tests for platforms armhf, i386,
   arm64, armel to allow early detection of cross-compilation issues with
   endianness, 32 vs. 64 bit, etc.
 
@@ -69,7 +69,7 @@ Release 1.2 (development)
 * Added qdbusxml2cpp annotations to rauc-installer.xml for interface class
   generation. (by Tobias Junghans)
 * Removed the deprecated 'network mode'.
-  Note that this does not affect RAUCs bundle network capabilities (casync,
+  Note that this does not affect RAUC's bundle network capabilities (casync,
   etc.).
 * Fixed clang compilation warnings (unused variable, printf formatter,
   non-obvious invert statements).
