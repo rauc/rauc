@@ -3,6 +3,9 @@ Release 1.2 (development)
 
 .. rubric:: Enhancements
 
+* Added ``--signing-keyring`` argument to specify a distinct keyring for
+  post-signing verification. This allows for example to use ``rauc resign``
+  with certs not verifying against the original keyring.
 * Output of 'rauc status' is now grouped by slot groups to make it easier to
   identify the redundancy setup.
   Previously, the present slots were printed in a random order which was
