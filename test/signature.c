@@ -554,28 +554,6 @@ static void signature_cmsverify_pathdir_path(SignatureFixture *fixture,
 	g_assert_nonnull(fixture->cms);
 }
 
-static void signature_cmsverify_nocert(SignatureFixture *fixture,
-		gconstpointer user_data)
-{
-	/* Sign with "A" key and cert */
-	fixture->sig = cms_sign(fixture->content,
-			"test/openssl-ca/dir/a.cert.pem",
-			"test/openssl-ca/dir/private/a.key.pem",
-			NULL,
-			&fixture->error);
-	g_assert_nonnull(fixture->sig);
-	g_assert_no_error(fixture->error);
-	g_clear_error(&fixture->error);
-
-	/* Verify error when not given directory or path */
-	g_assert_false(cms_verify(fixture->content,
-			fixture->sig,
-			fixture->store,
-			&fixture->cms,
-			&fixture->error));
-	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_CA_LOAD);
-}
-
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -604,7 +582,6 @@ int main(int argc, char *argv[])
 	g_test_add("/signature/cmsverify_dir_single_fail", SignatureFixture, NULL, signature_set_up, signature_cmsverify_dir_single_fail, signature_tear_down);
 	g_test_add("/signature/cmsverify_pathdir_dir", SignatureFixture, NULL, signature_set_up, signature_cmsverify_pathdir_dir, signature_tear_down);
 	g_test_add("/signature/cmsverify_pathdir_path", SignatureFixture, NULL, signature_set_up, signature_cmsverify_pathdir_path, signature_tear_down);
-	g_test_add("/signature/cmsverify_nocert", SignatureFixture, NULL, signature_set_up, signature_cmsverify_nocert, signature_tear_down);
 
 	return g_test_run();
 }
