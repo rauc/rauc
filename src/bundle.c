@@ -789,12 +789,32 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	}
 
 	if (verify) {
+		const gchar *load_capath = r_context()->config->keyring_path;
+		const gchar *load_cadir = r_context()->config->keyring_directory;
 		CMS_ContentInfo *cms = NULL;
 		X509_STORE *store = NULL;
 
+		if (!(store = X509_STORE_new())) {
+			g_set_error_literal(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_X509_NEW,
+					"failed to allocate new X509 store");
+			goto out;
+		}
+		if (!X509_STORE_load_locations(store, load_capath, load_cadir)) {
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_CA_LOAD,
+					"failed to load CA file '%s' and/or directory '%s'", load_capath, load_cadir);
+
+			goto out;
+		}
+
 		g_message("Verifying bundle... ");
 		/* the squashfs image size is in offset */
-		res = cms_verify_file(ibundle->path, ibundle->sigdata, offset, &cms, &store, &ierror);
+		res = cms_verify_file(ibundle->path, ibundle->sigdata, offset, store, &cms, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;

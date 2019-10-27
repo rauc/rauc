@@ -29,6 +29,7 @@ gboolean install_ignore_compatible, install_progressbar = FALSE;
 gboolean info_noverify, info_dumpcert = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
+gchar *signing_keyring = NULL;
 
 static gchar* make_progress_line(gint percentage)
 {
@@ -1706,6 +1707,21 @@ GOptionEntry entries_install[] = {
 	{0}
 };
 
+GOptionEntry entries_bundle[] = {
+	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
+	{0}
+};
+
+GOptionEntry entries_resign[] = {
+	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
+	{0}
+};
+
+GOptionEntry entries_convert[] = {
+	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
+	{0}
+};
+
 GOptionEntry entries_info[] = {
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &info_noverify, "disable bundle verification", NULL},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
@@ -1741,6 +1757,9 @@ static void cmdline_handler(int argc, char **argv)
 		{0}
 	};
 	GOptionGroup *install_group = g_option_group_new("install", "Install options:", "help dummy", NULL, NULL);
+	GOptionGroup *bundle_group = g_option_group_new("bundle", "Bundle options:", "help dummy", NULL, NULL);
+	GOptionGroup *resign_group = g_option_group_new("resign", "Resign options:", "help dummy", NULL, NULL);
+	GOptionGroup *convert_group = g_option_group_new("convert", "Convert options:", "help dummy", NULL, NULL);
 	GOptionGroup *info_group = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
 	GOptionGroup *status_group = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
 
@@ -1750,10 +1769,10 @@ static void cmdline_handler(int argc, char **argv)
 	RaucCommand rcommands[] = {
 		{UNKNOWN, "help", "<COMMAND>", "Print help", unknown_start, NULL, TRUE},
 		{INSTALL, "install", "install <BUNDLE>", "Install a bundle", install_start, install_group, FALSE},
-		{BUNDLE, "bundle", "bundle <INPUTDIR> <BUNDLENAME>", "Create a bundle from a content directory", bundle_start, NULL, FALSE},
-		{RESIGN, "resign", "resign <BUNDLENAME>", "Resign an already signed bundle", resign_start, NULL, FALSE},
+		{BUNDLE, "bundle", "bundle <INPUTDIR> <BUNDLENAME>", "Create a bundle from a content directory", bundle_start, bundle_group, FALSE},
+		{RESIGN, "resign", "resign <BUNDLENAME>", "Resign an already signed bundle", resign_start, resign_group, FALSE},
 		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>", "Extract the bundle content", extract_start, NULL, FALSE},
-		{CONVERT, "convert", "convert <INBUNDLE> <OUTBUNDLE>", "Convert to casync index bundle and store", convert_start, NULL, FALSE},
+		{CONVERT, "convert", "convert <INBUNDLE> <OUTBUNDLE>", "Convert to casync index bundle and store", convert_start, convert_group, FALSE},
 		{CHECKSUM, "checksum", "checksum <DIRECTORY>", "Deprecated", checksum_start, NULL, FALSE},
 		{INFO, "info", "info <FILE>", "Print bundle info", info_start, info_group, FALSE},
 		{STATUS, "status", "status", "Show system status", status_start, status_group, TRUE},
@@ -1767,6 +1786,9 @@ static void cmdline_handler(int argc, char **argv)
 	RaucCommand *rcommand = NULL;
 
 	g_option_group_add_entries(install_group, entries_install);
+	g_option_group_add_entries(bundle_group, entries_bundle);
+	g_option_group_add_entries(resign_group, entries_resign);
+	g_option_group_add_entries(convert_group, entries_convert);
 	g_option_group_add_entries(info_group, entries_info);
 	g_option_group_add_entries(status_group, entries_status);
 
@@ -1887,6 +1909,8 @@ static void cmdline_handler(int argc, char **argv)
 			r_context_conf()->keypath = keypath;
 		if (keyring)
 			r_context_conf()->keyringpath = keyring;
+		if (signing_keyring)
+			r_context_conf()->signing_keyringpath = signing_keyring;
 		if (intermediate)
 			r_context_conf()->intermediatepaths = intermediate;
 		if (mount)

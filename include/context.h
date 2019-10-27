@@ -33,6 +33,7 @@ typedef struct {
 	gchar *keypath;
 	gchar *keyringpath;
 	gchar *keyringdirectory;
+	gchar *signing_keyringpath;
 	gchar **intermediatepaths;
 	/* optional global mount prefix overwrite */
 	gchar *mountprefix;

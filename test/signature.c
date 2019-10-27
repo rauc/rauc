@@ -24,7 +24,11 @@ static void signature_set_up(SignatureFixture *fixture,
 	fixture->sig = NULL;
 	fixture->error = NULL;
 	fixture->cms = NULL;
-	fixture->store = NULL;
+
+	fixture->store = X509_STORE_new();
+	g_assert_nonnull(fixture->store);
+	g_assert_true(X509_STORE_load_locations(fixture->store, "test/openssl-ca/dev-ca.pem", NULL));
+
 	fixture->verified_chain = NULL;
 }
 
@@ -46,13 +50,13 @@ static void signature_tear_down(SignatureFixture *fixture,
 static void signature_sign(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	gchar *certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
+	gchar *keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
 
 	// Test valid signing
 	fixture->sig = cms_sign(fixture->content,
-			r_context()->certpath,
-			r_context()->keypath,
+			certpath,
+			keypath,
 			NULL,
 			&fixture->error);
 	g_assert_nonnull(fixture->sig);
@@ -62,7 +66,7 @@ static void signature_sign(SignatureFixture *fixture,
 
 	// Test signing fails with invalid key
 	fixture->sig = cms_sign(fixture->content,
-			r_context()->certpath,
+			certpath,
 			"test/random.dat",
 			NULL,
 			&fixture->error);
@@ -74,7 +78,7 @@ static void signature_sign(SignatureFixture *fixture,
 	// Test signing fails with invalid cert
 	fixture->sig = cms_sign(fixture->content,
 			"test/random.dat",
-			r_context()->keypath,
+			keypath,
 			NULL,
 			&fixture->error);
 	g_assert_null(fixture->sig);
@@ -84,13 +88,13 @@ static void signature_sign(SignatureFixture *fixture,
 static void signature_sign_file(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	gchar *certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
+	gchar *keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
 
 	// Test valid file
 	fixture->sig = cms_sign_file("test/openssl-ca/manifest",
-			r_context()->certpath,
-			r_context()->keypath,
+			certpath,
+			keypath,
 			NULL,
 			&fixture->error);
 	g_assert_nonnull(fixture->sig);
@@ -101,8 +105,8 @@ static void signature_sign_file(SignatureFixture *fixture,
 
 	// Test non-existing file
 	fixture->sig = cms_sign_file("path/to/nonexisting/file",
-			r_context()->certpath,
-			r_context()->keypath,
+			certpath,
+			keypath,
 			NULL,
 			&fixture->error);
 	g_assert_null(fixture->sig);
@@ -113,8 +117,8 @@ static void signature_sign_file(SignatureFixture *fixture,
 
 	// Test invalid certificate (use key instead)
 	fixture->sig = cms_sign_file("test/openssl-ca/manifest",
-			r_context()->keypath,
-			r_context()->keypath,
+			keypath,
+			keypath,
 			NULL,
 			&fixture->error);
 	g_assert_null(fixture->sig);
@@ -124,19 +128,19 @@ static void signature_sign_file(SignatureFixture *fixture,
 static void signature_verify_valid(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gboolean res;
+
 	fixture->sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
 	g_assert_nonnull(fixture->sig);
-	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/dev-ca.pem");
-	r_context();
 
-	g_assert_true(cms_verify(fixture->content,
+	res = cms_verify(fixture->content,
 			fixture->sig,
+			fixture->store,
 			&fixture->cms,
-			&fixture->store,
-			&fixture->error));
+			&fixture->error);
 	g_assert_no_error(fixture->error);
+	g_assert_true(res);
 	g_assert_nonnull(fixture->cms);
-	g_assert_nonnull(fixture->store);
 }
 
 static void signature_verify_invalid(SignatureFixture *fixture,
@@ -144,18 +148,15 @@ static void signature_verify_invalid(SignatureFixture *fixture,
 {
 	fixture->sig = read_file("test/random.dat", NULL);
 	g_assert_nonnull(fixture->sig);
-	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/dev-ca.pem");
-	r_context();
 
 	// Test against invalid signature
 	g_assert_false(cms_verify(fixture->content,
 			fixture->sig,
+			fixture->store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE);
 	g_assert_null(fixture->cms);
-	g_assert_null(fixture->store);
 }
 
 static void signature_verify_file(SignatureFixture *fixture,
@@ -163,33 +164,28 @@ static void signature_verify_file(SignatureFixture *fixture,
 {
 	fixture->sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
 	g_assert_nonnull(fixture->sig);
-	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/dev-ca.pem");
-	r_context();
 
 	// Test valid manifest
 	g_assert_true(cms_verify_file("test/openssl-ca/manifest",
 			fixture->sig,
 			0,
+			fixture->store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_null(fixture->error);
 	g_assert_nonnull(fixture->cms);
-	g_assert_nonnull(fixture->store);
 
-	g_clear_pointer(&fixture->store, X509_STORE_free);
 	g_clear_pointer(&fixture->cms, CMS_ContentInfo_free);
 
 	// Test valid manifest with invalid size limit
 	g_assert_false(cms_verify_file("test/openssl-ca/manifest",
 			fixture->sig,
 			42,
+			fixture->store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_assert_null(fixture->cms);
-	g_assert_null(fixture->store);
 
 	g_clear_error(&fixture->error);
 
@@ -197,29 +193,25 @@ static void signature_verify_file(SignatureFixture *fixture,
 	g_assert_false(cms_verify_file("path/to/nonexisting/file",
 			fixture->sig,
 			0,
+			fixture->store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_error(fixture->error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
 	g_assert_null(fixture->cms);
-	g_assert_null(fixture->store);
 }
 
 static void signature_loopback(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/dev-ca.pem");
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
 	fixture->sig = cms_sign(fixture->content,
-			r_context()->certpath,
-			r_context()->keypath,
+			"test/openssl-ca/rel/release-1.cert.pem",
+			"test/openssl-ca/rel/private/release-1.pem",
 			NULL,
 			NULL);
 	g_assert_nonnull(fixture->sig);
-	g_assert_true(cms_verify(fixture->content, fixture->sig, NULL, NULL, NULL));
+	g_assert_true(cms_verify(fixture->content, fixture->sig, fixture->store, NULL, NULL));
 	((char *)g_bytes_get_data(fixture->content, NULL))[0] = 0x00;
-	g_assert_false(cms_verify(fixture->content, fixture->sig, NULL, NULL, NULL));
+	g_assert_false(cms_verify(fixture->content, fixture->sig, fixture->store, NULL, NULL));
 }
 
 static void signature_get_cert_chain(SignatureFixture *fixture,
@@ -228,17 +220,13 @@ static void signature_get_cert_chain(SignatureFixture *fixture,
 	fixture->sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
 	g_assert_nonnull(fixture->sig);
 
-	/* We verify against the dev-ca keychain */
-	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/dev-ca.pem");
-
 	g_assert_true(cms_verify(fixture->content,
 			fixture->sig,
+			fixture->store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_no_error(fixture->error);
 	g_assert_nonnull(fixture->cms);
-	g_assert_nonnull(fixture->store);
 
 	/* Verify obtaining cert chain works */
 	g_assert_true(cms_get_cert_chain(fixture->cms,
@@ -255,15 +243,13 @@ static void signature_get_cert_chain(SignatureFixture *fixture,
 static void signature_selfsigned(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
-	/* We sign with root CA key and cert */
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/root/ca.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/root/private/ca.key.pem");
-	/* We also verify against the root CA */
-	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/root/ca.cert.pem");
+	X509_STORE *root_store = X509_STORE_new();
+	g_assert_nonnull(root_store);
+	g_assert_true(X509_STORE_load_locations(root_store, "test/openssl-ca/root/ca.cert.pem", NULL));
 
 	fixture->sig = cms_sign(fixture->content,
-			r_context()->certpath,
-			r_context()->keypath,
+			"test/openssl-ca/root/ca.cert.pem",
+			"test/openssl-ca/root/private/ca.key.pem",
 			NULL,
 			&fixture->error);
 	g_assert_nonnull(fixture->sig);
@@ -273,18 +259,17 @@ static void signature_selfsigned(SignatureFixture *fixture,
 
 	g_assert_true(cms_verify(fixture->content,
 			fixture->sig,
+			root_store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_no_error(fixture->error);
 	g_assert_nonnull(fixture->cms);
-	g_assert_nonnull(fixture->store);
 
 	g_clear_error(&fixture->error);
 
 	/* Verify obtaining cert chain works */
 	g_assert_true(cms_get_cert_chain(fixture->cms,
-			fixture->store,
+			root_store,
 			&fixture->verified_chain,
 			&fixture->error));
 	g_assert_no_error(fixture->error);
@@ -298,33 +283,29 @@ static void signature_intermediate(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
 	GPtrArray *interfiles = NULL;
-
-	/* We sign with the release key */
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	X509_STORE *prov_store = X509_STORE_new();
+	g_assert_nonnull(prov_store);
+	/* We verify against the provisioning CA */
+	g_assert_true(X509_STORE_load_locations(prov_store, "test/openssl-ca/provisioning-ca.pem", NULL));
 
 	fixture->sig = cms_sign(fixture->content,
-			r_context()->certpath,
-			r_context()->keypath,
+			"test/openssl-ca/rel/release-1.cert.pem",
+			"test/openssl-ca/rel/private/release-1.pem",
 			NULL,
 			&fixture->error);
 	g_assert_nonnull(fixture->sig);
 	g_assert_no_error(fixture->error);
 
-	/* We verify against the provisioning CA */
-	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/provisioning-ca.pem");
 	/* Without explicit intermediate certificate, this must fail */
 	g_assert_false(cms_verify(fixture->content,
 			fixture->sig,
+			prov_store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_assert_null(fixture->cms);
-	g_assert_null(fixture->store);
 
 	g_clear_pointer(&fixture->cms, CMS_ContentInfo_free);
-	g_clear_pointer(&fixture->store, X509_STORE_free);
 	g_clear_error(&fixture->error);
 
 	/* Include the missing link in the signature */
@@ -333,8 +314,8 @@ static void signature_intermediate(SignatureFixture *fixture,
 	g_ptr_array_add(interfiles, NULL);
 
 	fixture->sig = cms_sign(fixture->content,
-			r_context()->certpath,
-			r_context()->keypath,
+			"test/openssl-ca/rel/release-1.cert.pem",
+			"test/openssl-ca/rel/private/release-1.pem",
 			(gchar**) g_ptr_array_free(interfiles, FALSE),
 			NULL);
 	g_assert_nonnull(fixture->sig);
@@ -342,16 +323,15 @@ static void signature_intermediate(SignatureFixture *fixture,
 	/* With intermediate certificate, this must succeed */
 	g_assert_true(cms_verify(fixture->content,
 			fixture->sig,
+			prov_store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_no_error(fixture->error);
 	g_assert_nonnull(fixture->cms);
-	g_assert_nonnull(fixture->store);
 
 	/* Verify obtaining cert chain works */
 	g_assert_true(cms_get_cert_chain(fixture->cms,
-			fixture->store,
+			prov_store,
 			&fixture->verified_chain,
 			&fixture->error));
 	g_assert_no_error(fixture->error);
@@ -365,35 +345,29 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
 	GPtrArray *interfiles = NULL;
-
-	/* We sign with the release key */
-	r_context_conf();
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	X509_STORE *prov_store = X509_STORE_new();
+	g_assert_nonnull(prov_store);
+	g_assert_true(X509_STORE_load_locations(prov_store, "test/openssl-ca/provisioning-ca.pem", NULL));
 
 	fixture->sig = cms_sign_file("test/openssl-ca/manifest",
-			r_context()->certpath,
-			r_context()->keypath,
+			"test/openssl-ca/rel/release-1.cert.pem",
+			"test/openssl-ca/rel/private/release-1.pem",
 			NULL,
 			&fixture->error);
 	g_assert_nonnull(fixture->sig);
 	g_assert_no_error(fixture->error);
 
-	/* We verify against the provisioning CA */
-	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/provisioning-ca.pem");
 	/* Without explicit intermediate certificate, this must fail */
 	g_assert_false(cms_verify_file("test/openssl-ca/manifest",
 			fixture->sig,
 			0,
+			prov_store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_assert_null(fixture->cms);
-	g_assert_null(fixture->store);
 
 	g_clear_pointer(&fixture->cms, CMS_ContentInfo_free);
-	g_clear_pointer(&fixture->store, X509_STORE_free);
 	g_clear_error(&fixture->error);
 
 	/* Include the missing link in the signature */
@@ -402,8 +376,8 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 	g_ptr_array_add(interfiles, NULL);
 
 	fixture->sig = cms_sign_file("test/openssl-ca/manifest",
-			r_context()->certpath,
-			r_context()->keypath,
+			"test/openssl-ca/rel/release-1.cert.pem",
+			"test/openssl-ca/rel/private/release-1.pem",
 			(gchar**) g_ptr_array_free(interfiles, FALSE),
 			NULL);
 	g_assert_nonnull(fixture->sig);
@@ -412,12 +386,11 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 	g_assert_true(cms_verify_file("test/openssl-ca/manifest",
 			fixture->sig,
 			0,
+			fixture->store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_no_error(fixture->error);
 	g_assert_nonnull(fixture->cms);
-	g_assert_nonnull(fixture->store);
 
 	/* Verify obtaining cert chain works */
 	g_assert_true(cms_get_cert_chain(fixture->cms,
@@ -434,14 +407,14 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 static void signature_cmsverify_path(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dir/a.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dir/private/a.key.pem");
-	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/dir/a.cert.pem");
+	X509_STORE *a_store = X509_STORE_new();
+	g_assert_nonnull(a_store);
+	g_assert_true(X509_STORE_load_locations(a_store, "test/openssl-ca/dir/a.cert.pem", NULL));
 
 	/* Sign with "A" key and cert */
 	fixture->sig = cms_sign(fixture->content,
-			r_context()->certpath,
-			r_context()->keypath,
+			"test/openssl-ca/dir/a.cert.pem",
+			"test/openssl-ca/dir/private/a.key.pem",
 			NULL,
 			&fixture->error);
 	g_assert_nonnull(fixture->sig);
@@ -452,25 +425,24 @@ static void signature_cmsverify_path(SignatureFixture *fixture,
 	/* Verify against "A" cert */
 	g_assert_true(cms_verify(fixture->content,
 			fixture->sig,
+			a_store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_no_error(fixture->error);
 	g_assert_nonnull(fixture->cms);
-	g_assert_nonnull(fixture->store);
 }
 
 static void signature_cmsverify_dir_combined(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dir/a.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dir/private/a.key.pem");
-	r_context_conf()->keyringdirectory = g_strdup("test/openssl-ca/dir/hash/ab");
+	X509_STORE *ab_dir_store = X509_STORE_new();
+	g_assert_nonnull(ab_dir_store);
+	g_assert_true(X509_STORE_load_locations(ab_dir_store, NULL, "test/openssl-ca/dir/hash/ab"));
 
 	/* Sign with "A" key and cert */
 	fixture->sig = cms_sign(fixture->content,
-			r_context()->certpath,
-			r_context()->keypath,
+			"test/openssl-ca/dir/a.cert.pem",
+			"test/openssl-ca/dir/private/a.key.pem",
 			NULL,
 			&fixture->error);
 	g_assert_nonnull(fixture->sig);
@@ -480,24 +452,28 @@ static void signature_cmsverify_dir_combined(SignatureFixture *fixture,
 	/* Verify against certs stored in combined directory (A+B) */
 	g_assert_true(cms_verify(fixture->content,
 			fixture->sig,
+			ab_dir_store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_no_error(fixture->error);
 	g_assert_nonnull(fixture->cms);
-	g_assert_nonnull(fixture->store);
 }
 
 static void signature_cmsverify_dir_single_fail(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dir/b.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dir/private/b.key.pem");
+	X509_STORE *a_store = X509_STORE_new();
+	X509_STORE *ab_dir_store = X509_STORE_new();
+	g_assert_nonnull(a_store);
+	g_assert_nonnull(ab_dir_store);
+	g_assert_true(X509_STORE_load_locations(a_store, "test/openssl-ca/dir/a.cert.pem", NULL));
+	g_assert_true(X509_STORE_load_locations(ab_dir_store, NULL, "test/openssl-ca/dir/hash/ab"));
+
 
 	/* Sign with "B" key and cert */
 	fixture->sig = cms_sign(fixture->content,
-			r_context()->certpath,
-			r_context()->keypath,
+			"test/openssl-ca/dir/b.cert.pem",
+			"test/openssl-ca/dir/private/b.key.pem",
 			NULL,
 			&fixture->error);
 	g_assert_nonnull(fixture->sig);
@@ -505,27 +481,20 @@ static void signature_cmsverify_dir_single_fail(SignatureFixture *fixture,
 	g_clear_error(&fixture->error);
 
 	/* Verify against certs stored in combined directory (A+B) */
-	r_context_conf()->keyringdirectory = g_strdup("test/openssl-ca/dir/hash/ab");
-	r_context();
 	g_assert_true(cms_verify(fixture->content,
 			fixture->sig,
+			ab_dir_store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_no_error(fixture->error);
 	g_assert_nonnull(fixture->cms);
-	g_assert_nonnull(fixture->store);
 
 	/* Verify failure against certs stored in "A" only directory */
 	g_clear_pointer(&fixture->cms, CMS_ContentInfo_free);
-	g_clear_pointer(&fixture->store, X509_STORE_free);
-	g_free(r_context_conf()->keyringdirectory);
-	r_context_conf()->keyringdirectory = g_strdup("test/openssl-ca/dir/hash/a");
-	r_context();
 	g_assert_false(cms_verify(fixture->content,
 			fixture->sig,
+			a_store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 }
@@ -533,15 +502,14 @@ static void signature_cmsverify_dir_single_fail(SignatureFixture *fixture,
 static void signature_cmsverify_pathdir_dir(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dir/a.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dir/private/a.key.pem");
-	r_context_conf()->keyringdirectory = g_strdup("test/openssl-ca/dir/hash/a");
-	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/dir/b.cert.pem");
+	X509_STORE *a_dir_b_store = X509_STORE_new();
+	g_assert_nonnull(a_dir_b_store);
+	g_assert_true(X509_STORE_load_locations(a_dir_b_store, "test/openssl-ca/dir/b.cert.pem", "test/openssl-ca/dir/hash/a"));
 
 	/* Sign with "A" key and cert */
 	fixture->sig = cms_sign(fixture->content,
-			r_context()->certpath,
-			r_context()->keypath,
+			"test/openssl-ca/dir/a.cert.pem",
+			"test/openssl-ca/dir/private/a.key.pem",
 			NULL,
 			&fixture->error);
 	g_assert_nonnull(fixture->sig);
@@ -551,26 +519,24 @@ static void signature_cmsverify_pathdir_dir(SignatureFixture *fixture,
 	/* Verify against certs stored in directory(A) + path(B) */
 	g_assert_true(cms_verify(fixture->content,
 			fixture->sig,
+			a_dir_b_store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_no_error(fixture->error);
 	g_assert_nonnull(fixture->cms);
-	g_assert_nonnull(fixture->store);
 }
 
 static void signature_cmsverify_pathdir_path(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dir/b.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dir/private/b.key.pem");
-	r_context_conf()->keyringdirectory = g_strdup("test/openssl-ca/dir/hash/a");
-	r_context_conf()->keyringpath = g_strdup("test/openssl-ca/dir/b.cert.pem");
+	X509_STORE *a_dir_b_store = X509_STORE_new();
+	g_assert_nonnull(a_dir_b_store);
+	g_assert_true(X509_STORE_load_locations(a_dir_b_store, "test/openssl-ca/dir/b.cert.pem", "test/openssl-ca/dir/hash/a"));
 
 	/* Sign with "B" key and cert */
 	fixture->sig = cms_sign(fixture->content,
-			r_context()->certpath,
-			r_context()->keypath,
+			"test/openssl-ca/dir/b.cert.pem",
+			"test/openssl-ca/dir/private/b.key.pem",
 			NULL,
 			&fixture->error);
 
@@ -581,37 +547,11 @@ static void signature_cmsverify_pathdir_path(SignatureFixture *fixture,
 	/* Verify against certs stored in directory(A) + path(B) */
 	g_assert_true(cms_verify(fixture->content,
 			fixture->sig,
+			a_dir_b_store,
 			&fixture->cms,
-			&fixture->store,
 			&fixture->error));
 	g_assert_no_error(fixture->error);
 	g_assert_nonnull(fixture->cms);
-	g_assert_nonnull(fixture->store);
-}
-
-static void signature_cmsverify_nocert(SignatureFixture *fixture,
-		gconstpointer user_data)
-{
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dir/a.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dir/private/a.key.pem");
-
-	/* Sign with "A" key and cert */
-	fixture->sig = cms_sign(fixture->content,
-			r_context()->certpath,
-			r_context()->keypath,
-			NULL,
-			&fixture->error);
-	g_assert_nonnull(fixture->sig);
-	g_assert_no_error(fixture->error);
-	g_clear_error(&fixture->error);
-
-	/* Verify error when not given directory or path */
-	g_assert_false(cms_verify(fixture->content,
-			fixture->sig,
-			&fixture->cms,
-			&fixture->store,
-			&fixture->error));
-	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_CA_LOAD);
 }
 
 int main(int argc, char *argv[])
@@ -642,7 +582,6 @@ int main(int argc, char *argv[])
 	g_test_add("/signature/cmsverify_dir_single_fail", SignatureFixture, NULL, signature_set_up, signature_cmsverify_dir_single_fail, signature_tear_down);
 	g_test_add("/signature/cmsverify_pathdir_dir", SignatureFixture, NULL, signature_set_up, signature_cmsverify_pathdir_dir, signature_tear_down);
 	g_test_add("/signature/cmsverify_pathdir_path", SignatureFixture, NULL, signature_set_up, signature_cmsverify_pathdir_path, signature_tear_down);
-	g_test_add("/signature/cmsverify_nocert", SignatureFixture, NULL, signature_set_up, signature_cmsverify_nocert, signature_tear_down);
 
 	return g_test_run();
 }
