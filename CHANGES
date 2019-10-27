@@ -77,12 +77,15 @@ Release 1.2 (development)
 
 .. rubric:: Documentation
 
+* Added hints for creating ``/dev/data`` symlink to mount the right data
+  partition in dual data partition setups. (by Fabian Knapp)
 * Extended manpage to cover 'rauc status' subcommands. (by Michael Heimpold)
 * Fixed various typos.
 
-Contributions from: Bastian Krause, Ellie Reeves, Enrico Jörns, Gaël PORTAY,
-Jan Lübbe, Leif Middelschulte, Michael Heimpold , Stephan Michaelsen , Thomas
-Hämmerle, Thorsten Scherer, Tobias Junghans, Uwe Kleine-König
+Contributions from: Bastian Krause, Ellie Reeves, Enrico Jörns, Fabian Knapp,
+Gaël PORTAY, Jan Lübbe, Leif Middelschulte, Michael Heimpold , Stephan
+Michaelsen , Thomas Hämmerle, Thorsten Scherer, Tobias Junghans, Uwe
+Kleine-König
 
 Release 1.1 (released Jun 5, 2019)
 ----------------------------------
