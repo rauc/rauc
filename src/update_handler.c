@@ -118,6 +118,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, G
 {
 	GError *ierror = NULL;
 	gssize size;
+	goffset seeksize;
 	g_autoptr(GFile) srcimagefile = g_file_new_for_path(image->filename);
 	int out_fd = g_unix_output_stream_get_fd(outstream);
 
@@ -132,16 +133,25 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, G
 	g_unix_output_stream_set_close_fd(outstream, FALSE);
 
 	size = g_output_stream_splice((GOutputStream *) outstream, instream,
-			G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE | G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+			G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
 			NULL,
 			&ierror);
 	if (size == -1) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed splicing data: ");
 		return FALSE;
-	} else if (size != (gssize)image->checksum.size) {
+	}
+
+	seeksize = g_seekable_tell((GSeekable*) instream);
+
+	if (seeksize != (goffset)image->checksum.size) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Written size (%"G_GSIZE_FORMAT ") != image size (%"G_GOFFSET_FORMAT ")", size, image->checksum.size);
+				"Written size (%"G_GOFFSET_FORMAT ") != image size (%"G_GOFFSET_FORMAT ")", seeksize, image->checksum.size);
+		return FALSE;
+	}
+
+	if (!g_input_stream_close(instream, NULL, &ierror)) {
+		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
