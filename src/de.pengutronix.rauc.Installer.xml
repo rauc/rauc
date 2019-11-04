@@ -1,3 +1,4 @@
+<!-- License note: This file is considered data and thus no license is needed for any usage. -->
 <node>
   <interface name="de.pengutronix.rauc.Installer">
     <!--
