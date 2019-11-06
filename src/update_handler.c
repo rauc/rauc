@@ -1254,6 +1254,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	int out_fd;
 	gint part_active;
 	g_autofree gchar *part_active_str = NULL;
+	g_autofree gchar *realdev = NULL;
 	gint part_active_after;
 	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
@@ -1273,8 +1274,17 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		}
 	}
 
+	realdev = r_realpath(dest_slot->device);
+	if (!realdev) {
+		g_set_error(error,
+				R_UPDATE_ERROR,
+				R_UPDATE_ERROR_FAILED,
+				"Can't resolve eMMC device %s", dest_slot->device);
+		goto out;
+	}
+
 	/* read active boot partition from ext_csd */
-	res = r_emmc_read_bootpart(dest_slot->device, &part_active, &ierror);
+	res = r_emmc_read_bootpart(realdev, &part_active, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -1284,11 +1294,10 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 			part_active_str = g_strdup("<none>");
 			break;
 		case 6:
-			part_active_str = g_strdup(dest_slot->device);
+			part_active_str = g_strdup(realdev);
 			break;
 		default:
-			part_active_str = g_strdup_printf("%sboot%d", dest_slot->device,
-					part_active);
+			part_active_str = g_strdup_printf("%sboot%d", realdev, part_active);
 	}
 	g_message("Found active eMMC boot partition %s", part_active_str);
 
@@ -1299,7 +1308,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	part_slot = g_new0(RaucSlot, 1);
 	part_slot->device = g_strdup_printf(
 			"%sboot%d",
-			dest_slot->device,
+			realdev,
 			INACTIVE_BOOT_PARTITION(part_active));
 
 	/* disable read-only on determined eMMC boot partition */
@@ -1367,7 +1376,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	 * Read explicitly from root device (this forces another kernel
 	 * partition switch and should trigger the ext_csd bug more reliably).
 	 */
-	res = r_emmc_read_bootpart(dest_slot->device, &part_active_after, &ierror);
+	res = r_emmc_read_bootpart(realdev, &part_active_after, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
