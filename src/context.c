@@ -28,7 +28,7 @@ static const gchar* get_cmdline_bootname(void)
 	g_autofree gchar *contents = NULL;
 	static const char *bootname = NULL;
 	gchar buf[PATH_MAX + 1];
-	gchar *realdev = NULL;
+	g_autofree gchar *realdev = NULL;
 
 	if (bootname != NULL)
 		return bootname;
