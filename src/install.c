@@ -126,8 +126,7 @@ gboolean determine_slot_states(GError **error)
 	slotlist = g_hash_table_get_keys(r_context()->config->slots);
 
 	for (GList *l = slotlist; l != NULL; l = l->next) {
-		gchar buf[PATH_MAX + 1];
-		gchar *realdev = NULL;
+		g_autofree gchar *realdev = NULL;
 
 		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, l->data);
 
@@ -141,10 +140,10 @@ gboolean determine_slot_states(GError **error)
 			break;
 		}
 
-		realdev = realpath(s->device, buf);
+		realdev = r_realpath(s->device);
 		if (realdev == NULL) {
 			g_message("Failed to resolve realpath for '%s'", s->device);
-			realdev = s->device;
+			realdev = g_strdup(s->device);
 		}
 
 		if (g_strcmp0(realdev, r_context()->bootslot) == 0) {

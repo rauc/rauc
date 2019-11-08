@@ -3,6 +3,8 @@
 #include <gio/gio.h>
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <limits.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
@@ -250,4 +252,14 @@ guint64 key_file_consume_binary_suffixed_string(GKeyFile *key_file,
 	}
 
 	return (result << scale_shift);
+}
+
+gchar * r_realpath(const gchar *path)
+{
+	gchar buf[PATH_MAX + 1];
+	gchar *rpath;
+
+	rpath = realpath(path, buf);
+
+	return g_strdup(rpath);
 }

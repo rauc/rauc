@@ -5,6 +5,7 @@
 #include "context.h"
 #include "network.h"
 #include "signature.h"
+#include "utils.h"
 
 RaucContext *context = NULL;
 
@@ -26,9 +27,8 @@ static const gchar *regex_match(const gchar *pattern, const gchar *string)
 static const gchar* get_cmdline_bootname(void)
 {
 	g_autofree gchar *contents = NULL;
+	g_autofree gchar *realdev = NULL;
 	static const char *bootname = NULL;
-	gchar buf[PATH_MAX + 1];
-	gchar *realdev = NULL;
 
 	if (bootname != NULL)
 		return bootname;
@@ -76,7 +76,7 @@ static const gchar* get_cmdline_bootname(void)
 		}
 	}
 
-	realdev = realpath(bootname, buf);
+	realdev = r_realpath(bootname);
 	if (realdev == NULL) {
 		g_message("Failed to resolve realpath for '%s'", bootname);
 		return bootname;

@@ -134,3 +134,5 @@ guint64 key_file_consume_binary_suffixed_string(GKeyFile *key_file,
 		const gchar *group_name,
 		const gchar *key,
 		GError **error);
+
+gchar * r_realpath(const gchar *path);
