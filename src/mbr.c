@@ -235,7 +235,7 @@ static gboolean get_raw_partition_entry(gint fd,
 
 	if (partition->start % sector_size || partition->size % sector_size) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Partition start address or size is not a multipe"
+				"Partition start address or size is not a multiple"
 				" of sector size %d", sector_size);
 		goto out;
 	}
