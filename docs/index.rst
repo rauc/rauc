@@ -141,7 +141,7 @@ Key Features of RAUC
 
 * Storage support:
 
-  * ext2/3/4 filesystem
+  * ext4 filesystem
   * vfat filesystem
   * UBI volumes
   * UBIFS

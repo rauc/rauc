@@ -22,3 +22,21 @@ will be able to compile RAUC without service mode and without D-Bus support::
 
 Then every call of the command line tool will be executed directly rather than
 being forwarded to the RAUC service process running on your machine.
+
+Why does RAUC not have an ext2 / ext3 file type?
+------------------------------------------------
+
+ext4 is the successor of ext3. There is no advantage in using ext3 over ext4.
+
+Some people still tend to select ext2 when they want a file system without
+journaling. This is not necessary, as one can turn off journaling in ext4,
+either during creation::
+
+  mkfs.ext4 -O ^has_journal
+
+or later with::
+
+  tune2fs -O ^has_journal
+
+Note that even if there is only an ext4 slot type available, potentially each
+file system mountable as ext4 should work (with the filename suffix adapted).

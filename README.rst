@@ -49,7 +49,7 @@ Features
   * `EFI <https://de.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface>`_
 * Storage support:
 
-  * ext2/3/4 filesystem
+  * ext4 filesystem
   * eMMC boot partitions (atomic update)
   * vfat filesystem
   * UBI volumes
