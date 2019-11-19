@@ -312,6 +312,8 @@ static gboolean input_stream_read_bytes_all(GInputStream *stream,
 	return TRUE;
 }
 
+/* Appends signature to specified bundle file.
+ * Signature format: N bytes followed by uint64(N) */
 static gboolean sign_bundle(const gchar *bundlename, GError **error)
 {
 	GError *ierror = NULL;
@@ -320,22 +322,7 @@ static gboolean sign_bundle(const gchar *bundlename, GError **error)
 	g_autoptr(GFileOutputStream) bundlestream = NULL;
 	guint64 offset;
 
-	g_assert_nonnull(r_context()->certpath);
-	g_assert_nonnull(r_context()->keypath);
-
-	sig = cms_sign_file(bundlename,
-			r_context()->certpath,
-			r_context()->keypath,
-			r_context()->intermediatepaths,
-			&ierror);
-	if (sig == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed signing bundle: ");
-		return FALSE;
-	}
-
+	/* open file and seek to end */
 	bundlefile = g_file_new_for_path(bundlename);
 	bundlestream = g_file_append_to(bundlefile, G_FILE_CREATE_NONE, NULL, &ierror);
 	if (bundlestream == NULL) {
@@ -355,17 +342,40 @@ static gboolean sign_bundle(const gchar *bundlename, GError **error)
 		return FALSE;
 	}
 
+	/* get current file size */
 	offset = g_seekable_tell((GSeekable *)bundlestream);
-	if (!output_stream_write_bytes_all((GOutputStream *)bundlestream, sig, NULL, &ierror)) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to append signature to bundle: ");
-		return FALSE;
+
+	/* append signature bytes, if not disabled */
+	if (!r_context()->bundle_nosig) {
+		g_assert_nonnull(r_context()->certpath);
+		g_assert_nonnull(r_context()->keypath);
+
+		sig = cms_sign_file(bundlename,
+				r_context()->certpath,
+				r_context()->keypath,
+				r_context()->intermediatepaths,
+				&ierror);
+		if (sig == NULL) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"failed signing bundle: ");
+			return FALSE;
+		}
+
+		if (!output_stream_write_bytes_all((GOutputStream *)bundlestream, sig, NULL, &ierror)) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"failed to append signature to bundle: ");
+			return FALSE;
+		}
 	}
 
-
+	/* get file size size difference */
 	offset = g_seekable_tell((GSeekable *)bundlestream) - offset;
+
+	/* append signature size */
 	if (!output_stream_write_uint64_all((GOutputStream *)bundlestream, offset, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
@@ -743,7 +753,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		goto out;
 	}
 
-	if (sigsize == 0) {
+	if (verify && sigsize == 0) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
 				"Signature size is 0");
 		res = FALSE;
@@ -778,14 +788,16 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		goto out;
 	}
 
-	res = input_stream_read_bytes_all(G_INPUT_STREAM(bundlestream),
-			&ibundle->sigdata, sigsize, NULL, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to read signature from bundle: ");
-		goto out;
+	if (sigsize) {
+		res = input_stream_read_bytes_all(G_INPUT_STREAM(bundlestream),
+				&ibundle->sigdata, sigsize, NULL, &ierror);
+		if (!res) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed to read signature from bundle: ");
+			goto out;
+		}
 	}
 
 	if (verify) {

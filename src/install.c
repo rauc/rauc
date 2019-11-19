@@ -998,7 +998,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	// TODO: mount info in context ?
 	install_args_update(args, "Checking and mounting bundle...");
 
-	res = check_bundle(bundlefile, &bundle, TRUE, &ierror);
+	res = check_bundle(bundlefile, &bundle, !r_context()->bundle_nosig, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;

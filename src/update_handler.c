@@ -662,7 +662,7 @@ static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, Rau
 	}
 	g_subprocess_launcher_setenv(launcher, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
 
-	if (r_context()->install_info->mounted_bundle) {
+	if (r_context()->install_info->mounted_bundle && r_context()->install_info->mounted_bundle->verified_chain) {
 		gchar **hashes = NULL;
 		gchar *string = NULL;
 

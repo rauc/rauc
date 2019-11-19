@@ -212,7 +212,7 @@ test_expect_success "rauc info verification failure" "
 "
 
 test_expect_success "rauc info dump-cert unverified" "
-  rauc --no-verify --dump-cert \
+  rauc --no-signatures --dump-cert \
     info $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
 "
 

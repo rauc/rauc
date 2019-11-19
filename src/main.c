@@ -27,7 +27,8 @@ GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
 gboolean install_ignore_compatible, install_progressbar = FALSE;
-gboolean info_noverify, info_dumpcert = FALSE;
+gboolean bundle_nosig = FALSE;
+gboolean info_dumpcert = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
 gchar *signing_keyring = NULL;
@@ -221,6 +222,7 @@ static gboolean install_start(int argc, char **argv)
 	args->status_result = 2;
 
 	r_context_conf()->ignore_compatible = install_ignore_compatible;
+	r_context_conf()->bundle_nosig = bundle_nosig;
 
 	r_loop = g_main_loop_new(NULL, FALSE);
 	if (ENABLE_SERVICE) {
@@ -309,11 +311,13 @@ static gboolean bundle_start(int argc, char **argv)
 		goto out;
 	}
 
-	if (r_context()->certpath == NULL ||
-	    r_context()->keypath == NULL) {
-		g_printerr("Cert and key files must be provided\n");
-		r_exit_status = 1;
-		goto out;
+	if (!r_context()->bundle_nosig) {
+		if (r_context()->certpath == NULL ||
+		    r_context()->keypath == NULL) {
+			g_printerr("Cert and key files must be provided\n");
+			r_exit_status = 1;
+			goto out;
+		}
 	}
 
 	inpath = resolve_path(NULL, argv[2]);
@@ -478,7 +482,7 @@ static gboolean resign_start(int argc, char **argv)
 		goto out;
 	}
 
-	if (!check_bundle(argv[2], &bundle, TRUE, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, !bundle_nosig, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -523,7 +527,7 @@ static gboolean extract_start(int argc, char **argv)
 	g_debug("input bundle: %s", argv[2]);
 	g_debug("output dir: %s", argv[3]);
 
-	if (!check_bundle(argv[2], &bundle, TRUE, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, !bundle_nosig, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -575,7 +579,7 @@ static gboolean convert_start(int argc, char **argv)
 	g_debug("input bundle: %s", argv[2]);
 	g_debug("output bundle: %s", argv[3]);
 
-	if (!check_bundle(argv[2], &bundle, TRUE, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, !bundle_nosig, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -934,7 +938,7 @@ static gboolean info_start(int argc, char **argv)
 		goto out;
 	g_debug("input bundle: %s", bundlelocation);
 
-	res = check_bundle(bundlelocation, &bundle, !info_noverify, &error);
+	res = check_bundle(bundlelocation, &bundle, !bundle_nosig, &error);
 	if (!res) {
 		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
@@ -1724,7 +1728,6 @@ GOptionEntry entries_convert[] = {
 };
 
 GOptionEntry entries_info[] = {
-	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &info_noverify, "disable bundle verification", NULL},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
 	{"dump-cert", '\0', 0, G_OPTION_ARG_NONE, &info_dumpcert, "dump certificate", NULL},
 	{0}
@@ -1752,6 +1755,7 @@ static void cmdline_handler(int argc, char **argv)
 		{"mount", '\0', 0, G_OPTION_ARG_FILENAME, &mount, "mount prefix", "PATH"},
 		{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "BOOTNAME"},
 		{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handlerextra, "extra handler arguments", "ARGS"},
+		{"no-signatures", '\0', 0, G_OPTION_ARG_NONE, &bundle_nosig, "disable bundle verification", NULL},
 		{"debug", 'd', 0, G_OPTION_ARG_NONE, &debug, "enable debug output", NULL},
 		{"version", '\0', 0, G_OPTION_ARG_NONE, &version, "display version", NULL},
 		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, NULL, NULL},
@@ -1920,6 +1924,7 @@ static void cmdline_handler(int argc, char **argv)
 			r_context_conf()->bootslot = bootslot;
 		if (handlerextra)
 			r_context_conf()->handlerextra = handlerextra;
+		r_context_conf()->bundle_nosig = bundle_nosig;
 	} else {
 		if (confpath != NULL ||
 		    certpath != NULL ||
