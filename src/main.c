@@ -7,6 +7,7 @@
 #include <json-glib/json-gobject.h>
 #endif
 #include <stdio.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
@@ -41,7 +42,7 @@ static gchar* make_progress_line(gint percentage)
 
 	/* obtain terminal window parameters */
 	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == -1) {
-		g_warning("Unable to obtain window parameters: %s", strerror(errno));
+		g_warning("Unable to obtain window parameters: %s", g_strerror(errno));
 		/* default to 80 */
 		w.ws_col = 80;
 	}
