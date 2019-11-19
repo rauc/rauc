@@ -24,6 +24,7 @@ typedef enum {
 
 typedef struct {
 	gchar *name;
+	gboolean ignore_slot_as_seed;
 	GSourceFunc notify;
 	GSourceFunc cleanup;
 	GMutex status_mutex;

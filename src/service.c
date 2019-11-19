@@ -53,7 +53,7 @@ static gboolean service_install_cleanup(gpointer data)
 
 static gboolean r_on_handle_install(RInstaller *interface,
 		GDBusMethodInvocation  *invocation,
-		const gchar *source)
+		const gchar *source, const gboolean arg_ignore_slot_as_seed)
 {
 	RaucInstallArgs *args = install_args_new();
 	gboolean res;
@@ -65,8 +65,10 @@ static gboolean r_on_handle_install(RInstaller *interface,
 		goto out;
 
 	args->name = g_strdup(source);
+	args->ignore_slot_as_seed = arg_ignore_slot_as_seed;
 	args->notify = service_install_notify;
 	args->cleanup = service_install_cleanup;
+	g_message("r_on_handle_install: ignore_slot_as_seed = %s", arg_ignore_slot_as_seed ? "true" : "false");
 
 	r_installer_set_operation(r_installer, "installing");
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));

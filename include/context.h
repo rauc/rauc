@@ -14,6 +14,8 @@ typedef void (*progress_callback) (gint percentage, const gchar *message,
 typedef struct {
 	/* The bundle currently mounted by RAUC */
 	RaucBundle *mounted_bundle;
+	/* Whether to skip the active slot as a seed */
+        gboolean ignore_slot_as_seed;
 } RContextInstallationInfo;
 
 typedef struct {
@@ -45,8 +47,6 @@ typedef struct {
 	gchar *handlerextra;
 	/* ignore compatible check */
 	gboolean ignore_compatible;
-	/* ignore using slot as seed */
-	gboolean ignore_slot_as_seed;
 
 	/* for storing installation runtime informations */
 	RContextInstallationInfo *install_info;
