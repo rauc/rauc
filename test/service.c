@@ -203,7 +203,7 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	g_assert_nonnull(bundlepath);
 
 	/* Actually install bundle */
-	ret = r_installer_call_install_sync(installer, bundlepath, NULL,
+	ret = r_installer_call_install_sync(installer, bundlepath, FALSE, NULL,
 			&error);
 	g_assert_no_error(error);
 	g_assert_true(ret);
