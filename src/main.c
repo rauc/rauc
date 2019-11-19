@@ -25,7 +25,7 @@
 GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
-gboolean install_ignore_compatible, install_progressbar = FALSE;
+gboolean install_ignore_compatible, install_progressbar, install_ignore_slot_as_seed = FALSE;
 gboolean info_noverify, info_dumpcert = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
@@ -220,6 +220,7 @@ static gboolean install_start(int argc, char **argv)
 	args->status_result = 2;
 
 	r_context_conf()->ignore_compatible = install_ignore_compatible;
+	r_context_conf()->ignore_slot_as_seed = install_ignore_slot_as_seed;
 
 	r_loop = g_main_loop_new(NULL, FALSE);
 	if (ENABLE_SERVICE) {
@@ -1703,6 +1704,7 @@ typedef struct {
 
 GOptionEntry entries_install[] = {
 	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
+	{"ignore-seed", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_slot_as_seed, "disable using slot as seed", NULL},
 	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
 	{0}
 };

@@ -261,9 +261,12 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, GError **err
 			}
 			seed_mounted = TRUE;
 		}
-
-		g_debug("Adding as casync directory tree seed: %s", seedslot->mount_point);
-		seed = g_strdup(seedslot->mount_point);
+		if (!r_context()->ignore_compatible) {
+			g_debug("Adding as casync directory tree seed: %s", seedslot->mount_point);
+			seed = g_strdup(seedslot->mount_point);
+		}else {
+			g_debug("Skipping to use tree seed: %s", seedslot->mount_point);
+		}
 	} else {
 		g_debug("Adding as casync blob seed: %s", seedslot->device);
 		seed = g_strdup(seedslot->device);

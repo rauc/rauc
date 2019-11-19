@@ -45,6 +45,8 @@ typedef struct {
 	gchar *handlerextra;
 	/* ignore compatible check */
 	gboolean ignore_compatible;
+	/* ignore using slot as seed */
+	gboolean ignore_slot_as_seed;
 
 	/* for storing installation runtime informations */
 	RContextInstallationInfo *install_info;
