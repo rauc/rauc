@@ -1042,8 +1042,8 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		}
 	}
 
-	if(args->ignore_slot_as_seed)
-	        g_message("Not using slot as a seed for the installation");
+	if (args->ignore_slot_as_seed)
+		g_message("Not using slot as a seed for the installation");
 
 	if (manifest->handler_name) {
 		g_message("Using custom handler: %s", manifest->handler_name);

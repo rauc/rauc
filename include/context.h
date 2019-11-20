@@ -15,7 +15,7 @@ typedef struct {
 	/* The bundle currently mounted by RAUC */
 	RaucBundle *mounted_bundle;
 	/* Whether to skip the active slot as a seed */
-        gboolean ignore_slot_as_seed;
+	gboolean ignore_slot_as_seed;
 } RContextInstallationInfo;
 
 typedef struct {
