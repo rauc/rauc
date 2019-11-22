@@ -1366,6 +1366,8 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 			G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
 			"de.pengutronix.rauc", "/", NULL, &ierror);
 	if (proxy == NULL) {
+		if (g_dbus_error_is_remote_error(ierror))
+			g_dbus_error_strip_remote_error(ierror);
 		g_set_error(error,
 				G_IO_ERROR,
 				G_IO_ERROR_FAILED,
@@ -1376,6 +1378,8 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 
 	g_debug("Trying to contact rauc service");
 	if (!r_installer_call_get_slot_status_sync(proxy, &slot_status_array, NULL, &ierror)) {
+		if (g_dbus_error_is_remote_error(ierror))
+			g_dbus_error_strip_remote_error(ierror);
 		g_set_error(error,
 				G_IO_ERROR,
 				G_IO_ERROR_FAILED,
