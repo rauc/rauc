@@ -1502,7 +1502,6 @@ static gboolean retrieve_status_via_dbus(RaucStatusPrint **status_print, GError 
 	/* Obtain configured slots and their state */
 	if (!retrieve_slot_states_via_dbus(&istatus->slots, &ierror)) {
 		g_propagate_prefixed_error(error, ierror, "rauc status: error retrieving slot status via D-Bus: ");
-		g_error_free(ierror);
 		return FALSE;
 	}
 
