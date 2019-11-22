@@ -1596,7 +1596,7 @@ static gboolean status_start(int argc, char **argv)
 	} else {
 		if (!retrieve_status_via_dbus(&status_print, &ierror)) {
 			message = g_strdup_printf(
-					"rauc status: error retrieving slot status via D-Bus: %s",
+					"error retrieving slot status via D-Bus: %s",
 					ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
@@ -1656,7 +1656,7 @@ static gboolean status_start(int argc, char **argv)
 
 out:
 	if (message)
-		g_message("rauc mark: %s", message);
+		g_message("rauc status: %s", message);
 	g_clear_pointer(&proxy, g_object_unref);
 
 	return TRUE;
