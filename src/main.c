@@ -1366,6 +1366,8 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 			G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
 			"de.pengutronix.rauc", "/", NULL, &ierror);
 	if (proxy == NULL) {
+		if (g_dbus_error_is_remote_error(ierror))
+			g_dbus_error_strip_remote_error(ierror);
 		g_set_error(error,
 				G_IO_ERROR,
 				G_IO_ERROR_FAILED,
@@ -1376,6 +1378,8 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 
 	g_debug("Trying to contact rauc service");
 	if (!r_installer_call_get_slot_status_sync(proxy, &slot_status_array, NULL, &ierror)) {
+		if (g_dbus_error_is_remote_error(ierror))
+			g_dbus_error_strip_remote_error(ierror);
 		g_set_error(error,
 				G_IO_ERROR,
 				G_IO_ERROR_FAILED,
@@ -1501,8 +1505,7 @@ static gboolean retrieve_status_via_dbus(RaucStatusPrint **status_print, GError 
 
 	/* Obtain configured slots and their state */
 	if (!retrieve_slot_states_via_dbus(&istatus->slots, &ierror)) {
-		g_propagate_prefixed_error(error, ierror, "rauc status: error retrieving slot status via D-Bus: ");
-		g_error_free(ierror);
+		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
@@ -1593,7 +1596,7 @@ static gboolean status_start(int argc, char **argv)
 	} else {
 		if (!retrieve_status_via_dbus(&status_print, &ierror)) {
 			message = g_strdup_printf(
-					"rauc status: error retrieving slot status via D-Bus: %s",
+					"error retrieving slot status via D-Bus: %s",
 					ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
@@ -1653,7 +1656,7 @@ static gboolean status_start(int argc, char **argv)
 
 out:
 	if (message)
-		g_message("rauc mark: %s", message);
+		g_message("rauc status: %s", message);
 	g_clear_pointer(&proxy, g_object_unref);
 
 	return TRUE;
