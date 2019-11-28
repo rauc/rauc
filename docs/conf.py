@@ -61,6 +61,8 @@ copyright = u'2016-2019, Jan Luebbe, Enrico Joerns, Juergen Borleis'
 #
 # The short X.Y version.
 version = subprocess.check_output(['../build-aux/git-version-gen', '../.tarball-version']).decode()
+if version.endswith('-dirty'):
+  version = version[:-6]
 # The full version, including alpha/beta/rc tags.
 release = version
 
