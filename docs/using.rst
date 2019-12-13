@@ -37,6 +37,8 @@ Where ``<input-dir>`` must be a directory containing all images and scripts the
 bundle should include, as well as a manifest file ``manifest.raucm`` that
 describes the content of the bundle for the RAUC updater on the target:
 which image to install to which slot, which scripts to execute etc.
+Note that all files in ``<input-dir>`` will be included in the bundle,
+not just those specified in the manifest.
 ``<output-file>`` must be the path of the bundle file to create. Note that RAUC
 bundles must always have a ``.raucb`` file name suffix in order to ensure that
 RAUC treats them as bundles.

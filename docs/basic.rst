@@ -31,6 +31,9 @@ A RAUC bundle consists of the file system image(s) or archive(s) to be installed
 on the system, a *manifest* that lists the images to install and contains
 options and meta-information, and possible scripts to run before, during or
 after installation.
+A bundle may also contain files not referenced in the manifest,
+such as scripts or archives that are referenced by files that *are*
+included in the manifest.
 
 To pack this all together, the default bundle format uses SquashFS.
 This provides good compression while allowing to mount the bundle without
