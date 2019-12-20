@@ -6,7 +6,7 @@
 #include "mount.h"
 #include "utils.h"
 
-gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, gsize size, const gchar* extra_options, GError **error)
+gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, goffset size, const gchar* extra_options, GError **error)
 {
 	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
@@ -24,7 +24,7 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 	}
 	if (size != 0) {
 		g_ptr_array_add(args, g_strdup("-o"));
-		g_ptr_array_add(args, g_strdup_printf("ro,loop,sizelimit=%"G_GSIZE_FORMAT, size));
+		g_ptr_array_add(args, g_strdup_printf("ro,loop,sizelimit=%"G_GOFFSET_FORMAT, size));
 	}
 	if (extra_options) {
 		g_ptr_array_add(args, g_strdup("-o"));
@@ -58,7 +58,7 @@ out:
 }
 
 
-gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, gsize size, GError **error)
+gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, goffset size, GError **error)
 {
 	return r_mount_full(filename, mountpoint, "squashfs", size, NULL, error);
 }

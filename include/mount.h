@@ -19,7 +19,7 @@
  *
  * @return True if succeeded, False if failed
  */
-gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, gsize size, const gchar *extra_options, GError **error);
+gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, goffset size, const gchar *extra_options, GError **error);
 
 /**
  * Loopback mount a file.
@@ -31,7 +31,7 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
  *
  * @return True if succeeded, False if failed
  */
-gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, gsize size, GError **error);
+gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, goffset size, GError **error);
 
 /**
  * Unmount a slot or a file.
