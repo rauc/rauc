@@ -16,7 +16,7 @@ typedef struct {
 	gchar *path;
 	gchar *origpath;
 	gchar *storepath;
-	gsize size;
+	goffset size;
 	GBytes *sigdata;
 	gchar *mount_point;
 	STACK_OF(X509) *verified_chain;
