@@ -159,7 +159,7 @@ gboolean download_file_checksum(const gchar *target, const gchar *url,
 	g_autofree gchar *tmppath = NULL;
 	gboolean res = FALSE;
 
-	tmpname = g_strdup_printf(".rauc_%s_%"G_GSIZE_FORMAT, checksum->digest,
+	tmpname = g_strdup_printf(".rauc_%s_%"G_GOFFSET_FORMAT, checksum->digest,
 			checksum->size);
 	dir = g_path_get_dirname(target);
 	tmppath = g_build_filename(dir, tmpname, NULL);

@@ -683,7 +683,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 		formatter_shell_append_n(text, "RAUC_IMAGE_CLASS", cnt, img->slotclass);
 		formatter_shell_append_n(text, "RAUC_IMAGE_VARIANT", cnt, img->variant);
 		formatter_shell_append_n(text, "RAUC_IMAGE_DIGEST", cnt, img->checksum.digest);
-		g_string_append_printf(text, "RAUC_IMAGE_SIZE_%d=%"G_GSIZE_FORMAT "\n", cnt, img->checksum.size);
+		g_string_append_printf(text, "RAUC_IMAGE_SIZE_%d=%"G_GOFFSET_FORMAT "\n", cnt, img->checksum.size);
 
 		hooks = g_ptr_array_new();
 		if (img->hooks.pre_install == TRUE) {
@@ -712,7 +712,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 		g_string_append_printf(text, "RAUC_FILE_CLASS_%d=%s\n", cnt, file->slotclass);
 		g_string_append_printf(text, "RAUC_FILE_DEST_%d=%s\n", cnt, file->destname);
 		g_string_append_printf(text, "RAUC_FILE_DIGEST_%d=%s\n", cnt, file->checksum.digest);
-		g_string_append_printf(text, "RAUC_FILE_SIZE_%d=%"G_GSIZE_FORMAT "\n", cnt, file->checksum.size);
+		g_string_append_printf(text, "RAUC_FILE_SIZE_%d=%"G_GOFFSET_FORMAT "\n", cnt, file->checksum.size);
 		cnt++;
 	}
 
@@ -753,7 +753,7 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		if (img->variant)
 			g_string_append_printf(text, "\tVariant:   %s\n", img->variant);
 		g_string_append_printf(text, "\tChecksum:  %s\n", img->checksum.digest);
-		g_string_append_printf(text, "\tSize:      %"G_GSIZE_FORMAT "\n", img->checksum.size);
+		g_string_append_printf(text, "\tSize:      %"G_GOFFSET_FORMAT "\n", img->checksum.size);
 
 		hooks = g_ptr_array_new();
 		if (img->hooks.pre_install == TRUE) {
@@ -785,7 +785,7 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		g_string_append_printf(text, "\tSlotclass: %s\n", file->slotclass);
 		g_string_append_printf(text, "\tDest:      %s\n", file->destname);
 		g_string_append_printf(text, "\tChecksum:  %s\n", file->checksum.digest);
-		g_string_append_printf(text, "\tSize:      %"G_GSIZE_FORMAT "\n", file->checksum.size);
+		g_string_append_printf(text, "\tSize:      %"G_GOFFSET_FORMAT "\n", file->checksum.size);
 		cnt++;
 	}
 
@@ -1038,7 +1038,7 @@ static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint 
 		if (slot_state->checksum.digest && slot_state->checksum.type == G_CHECKSUM_SHA256) {
 			g_string_append_printf(text, "\n          checksum:");
 			g_string_append_printf(text, "\n              sha256=%s", slot_state->checksum.digest);
-			g_string_append_printf(text, "\n              size=%"G_GSIZE_FORMAT, slot_state->checksum.size);
+			g_string_append_printf(text, "\n              size=%"G_GOFFSET_FORMAT, slot_state->checksum.size);
 		}
 		if (slot_state->installed_timestamp) {
 			g_string_append_printf(text, "\n          installed:");
@@ -1166,7 +1166,7 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_DESCRIPTION", slotcnt, slot_state->bundle_description);
 			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_BUILD", slotcnt, slot_state->bundle_build);
 			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_CHECKSUM_SHA256", slotcnt, slot_state->checksum.digest);
-			str = g_strdup_printf("%"G_GSIZE_FORMAT, slot_state->checksum.size);
+			str = g_strdup_printf("%"G_GOFFSET_FORMAT, slot_state->checksum.size);
 			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_CHECKSUM_SIZE", slotcnt, str);
 			g_free(str);
 			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_INSTALLED_TIMESTAMP", slotcnt, slot_state->installed_timestamp);
