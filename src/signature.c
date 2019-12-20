@@ -851,7 +851,7 @@ out:
 	return sig;
 }
 
-gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
+gboolean cms_verify_file(const gchar *filename, GBytes *sig, goffset limit, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
 {
 	GError *ierror = NULL;
 	g_autoptr(GMappedFile) file = NULL;
@@ -870,6 +870,21 @@ gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, X509_S
 		goto out;
 	}
 	content = g_mapped_file_get_bytes(file);
+
+	/* On 32 bit systems, G_MAXSIZE will be only 32 bit (unsigned) while
+	 * 'limit' is 64 bit (singed). Thus we must take care of not passing
+	 * 'limit' values exceeding G_MAXSIZE to g_bytes_new_from_bytes.
+	 * However, mmapping for large limit values will cause problems,
+	 * anyway.
+	 */
+	if ((guint64)limit > (guint64)G_MAXSIZE) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE,
+				"Bundle size exceeds maximum size!");
+		goto out;
+	}
 
 	if (limit) {
 		GBytes *tmp = g_bytes_new_from_bytes(content, 0, limit);

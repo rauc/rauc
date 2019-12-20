@@ -93,7 +93,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_Content
  *
  * @return TRUE if succeeded, FALSE if failed
  */
-gboolean cms_verify_file(const gchar *filename, GBytes *sig, gsize limit, X509_STORE *store, CMS_ContentInfo **cms, GError **error);
+gboolean cms_verify_file(const gchar *filename, GBytes *sig, goffset limit, X509_STORE *store, CMS_ContentInfo **cms, GError **error);
 
 /**
  * Calculates hash for certificate pubkey info.
