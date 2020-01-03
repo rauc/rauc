@@ -113,7 +113,7 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 		if (len)
 			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s%s", errbuf, ((errbuf[len - 1] != '\n') ? "\n" : ""));
 		else
-			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s", curl_easy_strerror(res));
+			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s", curl_easy_strerror(r));
 		goto out;
 	}
 	res = TRUE;
