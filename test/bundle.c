@@ -222,6 +222,18 @@ static void bundle_test_resign(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 }
 
+static void bundle_test_wrong_capath(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucBundle *bundle = NULL;
+	GError *ierror = NULL;
+	r_context()->config->keyring_path = g_strdup("does/not/exist.pem");
+
+	g_assert_false(check_bundle(fixture->bundlename, &bundle, TRUE, &ierror));
+	g_assert_null(bundle);
+	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_CA_LOAD);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -255,6 +267,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bundle/resign", BundleFixture, NULL,
 			bundle_fixture_set_up_bundle, bundle_test_resign,
+			bundle_fixture_tear_down);
+
+	g_test_add("/bundle/wrong_capath", BundleFixture, NULL,
+			bundle_fixture_set_up_bundle, bundle_test_wrong_capath,
 			bundle_fixture_tear_down);
 
 	return g_test_run();

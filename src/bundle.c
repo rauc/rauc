@@ -800,6 +800,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 					R_SIGNATURE_ERROR,
 					R_SIGNATURE_ERROR_X509_NEW,
 					"failed to allocate new X509 store");
+			res = FALSE;
 			goto out;
 		}
 		if (!X509_STORE_load_locations(store, load_capath, load_cadir)) {
@@ -808,7 +809,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 					R_SIGNATURE_ERROR,
 					R_SIGNATURE_ERROR_CA_LOAD,
 					"failed to load CA file '%s' and/or directory '%s'", load_capath, load_cadir);
-
+			res = FALSE;
 			goto out;
 		}
 
