@@ -58,7 +58,7 @@ AC_ARG_ENABLE([network],
 AM_CONDITIONAL([WANT_NETWORK], [test x$enable_network != xno])
 AS_IF([test "x$enable_network" != "xno"], [
        AC_DEFINE([ENABLE_NETWORK], [1], [Define to 1 to enable building with network update support])
-       PKG_CHECK_MODULES([CURL], [libcurl])
+       PKG_CHECK_MODULES([CURL], [libcurl >= 7.21.6])
 ], [
        AC_DEFINE([ENABLE_NETWORK], [0])
 ])
