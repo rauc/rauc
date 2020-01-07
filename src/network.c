@@ -18,6 +18,8 @@ typedef struct {
 
 	size_t pos;
 	size_t limit;
+
+	gchar *err;
 } RaucTransfer;
 
 gboolean network_init(GError **error)
@@ -42,8 +44,10 @@ static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata)
 
 	/* check transfer limit */
 	if (xfer->limit) {
-		if ((xfer->pos + size*nmemb) > xfer->limit)
+		if ((xfer->pos + size*nmemb) > xfer->limit) {
+			xfer->err = g_strdup("Maximum bundle download size exceeded. Download aborted.");
 			return 0;
+		}
 	}
 
 	res = fwrite(ptr, size, nmemb, xfer->dl);
@@ -59,10 +63,11 @@ static int xfer_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 
 	/* check transfer limit */
 	if (xfer->limit) {
-		if (dltotal > (curl_off_t)xfer->limit)
+		if ((dlnow > (curl_off_t)xfer->limit)
+		    || (dltotal > (curl_off_t)xfer->limit)) {
+			xfer->err = g_strdup("Maximum bundle download size exceeded. Download aborted.");
 			return 1;
-		if (dlnow > (curl_off_t)xfer->limit)
-			return 1;
+		}
 	}
 
 	return 0;
@@ -111,10 +116,14 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 		goto out;
 	} else if (r != CURLE_OK) {
 		size_t len = strlen(errbuf);
-		if (len)
+		if (xfer->err) {
+			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s", xfer->err);
+			g_clear_pointer(&xfer->err, &g_free);
+		} else if (len) {
 			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s%s", errbuf, ((errbuf[len - 1] != '\n') ? "\n" : ""));
-		else
+		} else {
 			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s", curl_easy_strerror(r));
+		}
 		goto out;
 	}
 	res = TRUE;
