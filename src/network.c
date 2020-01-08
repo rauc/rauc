@@ -226,7 +226,7 @@ gboolean download_mem(GBytes **data, const gchar *url, gsize limit, GError **err
 	}
 
 	g_clear_pointer(&xfer.dl, fclose);
-	*data = g_bytes_new_take(dl_data, xfer.dl_size);
+	*data = g_bytes_new_with_free_func(dl_data, xfer.dl_size, free, dl_data);
 	dl_data = NULL;
 
 out:
