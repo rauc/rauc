@@ -96,7 +96,7 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, xfer);
 	curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xfer_cb);
 	curl_easy_setopt(curl, CURLOPT_XFERINFODATA, xfer);
-	curl_easy_setopt(curl, CURLOPT_FAILONERROR, xfer);
+	curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
 	/* decode all supported Accept-Encoding headers */
 	curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
