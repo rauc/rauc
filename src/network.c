@@ -75,6 +75,9 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 	char errbuf[CURL_ERROR_SIZE];
 	gboolean res = FALSE;
 
+	g_return_val_if_fail(xfer, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	curl = curl_easy_init();
 	if (curl == NULL)
 		goto out;
@@ -129,6 +132,10 @@ gboolean download_file(const gchar *target, const gchar *url, gsize limit, GErro
 	gboolean res = FALSE;
 	GError *ierror = NULL;
 
+	g_return_val_if_fail(target, FALSE);
+	g_return_val_if_fail(url, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	xfer.url = url;
 	xfer.limit = limit;
 
@@ -158,6 +165,10 @@ gboolean download_file_checksum(const gchar *target, const gchar *url,
 	g_autofree gchar *dir = NULL;
 	g_autofree gchar *tmppath = NULL;
 	gboolean res = FALSE;
+
+	g_return_val_if_fail(target, FALSE);
+	g_return_val_if_fail(url, FALSE);
+	g_return_val_if_fail(checksum, FALSE);
 
 	tmpname = g_strdup_printf(".rauc_%s_%"G_GOFFSET_FORMAT, checksum->digest,
 			checksum->size);
@@ -194,6 +205,10 @@ gboolean download_mem(GBytes **data, const gchar *url, gsize limit, GError **err
 	gboolean res = FALSE;
 	GError *ierror = NULL;
 	char *dl_data = NULL;
+
+	g_return_val_if_fail(data && *data == NULL, FALSE);
+	g_return_val_if_fail(url, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	xfer.url = url;
 	xfer.limit = limit;
