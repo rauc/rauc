@@ -107,7 +107,6 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 	r = curl_easy_perform(curl);
 	if (r == CURLE_HTTP_RETURNED_ERROR) {
 		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "HTTP returned >=400");
-		res = FALSE;
 		goto out;
 	} else if (r != CURLE_OK) {
 		size_t len = strlen(errbuf);
@@ -115,7 +114,6 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s%s", errbuf, ((errbuf[len - 1] != '\n') ? "\n" : ""));
 		else
 			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s", curl_easy_strerror(res));
-		res = FALSE;
 		goto out;
 	}
 	res = TRUE;
