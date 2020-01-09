@@ -24,7 +24,7 @@ gboolean network_init(GError **error)
 {
 	CURLcode res;
 
-	g_return_val_if_fail(error == FALSE || *error == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	res = curl_global_init(CURL_GLOBAL_ALL);
 	if (res != CURLE_OK) {
@@ -75,9 +75,14 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 	char errbuf[CURL_ERROR_SIZE];
 	gboolean res = FALSE;
 
+	g_return_val_if_fail(xfer, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	curl = curl_easy_init();
-	if (curl == NULL)
+	if (curl == NULL) {
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Unable to start libcurl easy session");
 		goto out;
+	}
 
 	curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L); /* avoid signals for threading */
@@ -91,18 +96,17 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, xfer);
 	curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xfer_cb);
 	curl_easy_setopt(curl, CURLOPT_XFERINFODATA, xfer);
-	curl_easy_setopt(curl, CURLOPT_FAILONERROR, xfer);
+	curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
 	/* decode all supported Accept-Encoding headers */
 	curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
 
-	/* set error buffer empty before perorming a request */
+	/* set error buffer empty before performing a request */
 	errbuf[0] = 0;
 
 	r = curl_easy_perform(curl);
 	if (r == CURLE_HTTP_RETURNED_ERROR) {
 		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "HTTP returned >=400");
-		res = FALSE;
 		goto out;
 	} else if (r != CURLE_OK) {
 		size_t len = strlen(errbuf);
@@ -110,7 +114,6 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s%s", errbuf, ((errbuf[len - 1] != '\n') ? "\n" : ""));
 		else
 			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s", curl_easy_strerror(res));
-		res = FALSE;
 		goto out;
 	}
 	res = TRUE;
@@ -128,6 +131,10 @@ gboolean download_file(const gchar *target, const gchar *url, gsize limit, GErro
 	RaucTransfer xfer = {0};
 	gboolean res = FALSE;
 	GError *ierror = NULL;
+
+	g_return_val_if_fail(target, FALSE);
+	g_return_val_if_fail(url, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	xfer.url = url;
 	xfer.limit = limit;
@@ -158,6 +165,10 @@ gboolean download_file_checksum(const gchar *target, const gchar *url,
 	g_autofree gchar *dir = NULL;
 	g_autofree gchar *tmppath = NULL;
 	gboolean res = FALSE;
+
+	g_return_val_if_fail(target, FALSE);
+	g_return_val_if_fail(url, FALSE);
+	g_return_val_if_fail(checksum, FALSE);
 
 	tmpname = g_strdup_printf(".rauc_%s_%"G_GOFFSET_FORMAT, checksum->digest,
 			checksum->size);
@@ -195,6 +206,10 @@ gboolean download_mem(GBytes **data, const gchar *url, gsize limit, GError **err
 	GError *ierror = NULL;
 	char *dl_data = NULL;
 
+	g_return_val_if_fail(data && *data == NULL, FALSE);
+	g_return_val_if_fail(url, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	xfer.url = url;
 	xfer.limit = limit;
 
@@ -211,7 +226,7 @@ gboolean download_mem(GBytes **data, const gchar *url, gsize limit, GError **err
 	}
 
 	g_clear_pointer(&xfer.dl, fclose);
-	*data = g_bytes_new_take(dl_data, xfer.dl_size);
+	*data = g_bytes_new_with_free_func(dl_data, xfer.dl_size, free, dl_data);
 	dl_data = NULL;
 
 out:
