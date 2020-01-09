@@ -79,8 +79,10 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	curl = curl_easy_init();
-	if (curl == NULL)
+	if (curl == NULL) {
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Unable to start libcurl easy session");
 		goto out;
+	}
 
 	curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L); /* avoid signals for threading */
