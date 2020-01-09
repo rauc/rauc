@@ -118,6 +118,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, G
 {
 	GError *ierror = NULL;
 	gssize size;
+	goffset seeksize;
 	g_autoptr(GFile) srcimagefile = g_file_new_for_path(image->filename);
 	int out_fd = g_unix_output_stream_get_fd(outstream);
 
@@ -132,16 +133,25 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, G
 	g_unix_output_stream_set_close_fd(outstream, FALSE);
 
 	size = g_output_stream_splice((GOutputStream *) outstream, instream,
-			G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE | G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+			G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
 			NULL,
 			&ierror);
 	if (size == -1) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed splicing data: ");
 		return FALSE;
-	} else if (size != (gssize)image->checksum.size) {
+	}
+
+	seeksize = g_seekable_tell((GSeekable*) instream);
+
+	if (seeksize != (goffset)image->checksum.size) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Written size (%"G_GSIZE_FORMAT ") != image size (%"G_GSIZE_FORMAT ")", size, (gssize)image->checksum.size);
+				"Written size (%"G_GOFFSET_FORMAT ") != image size (%"G_GOFFSET_FORMAT ")", seeksize, image->checksum.size);
+		return FALSE;
+	}
+
+	if (!g_input_stream_close(instream, NULL, &ierror)) {
+		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
@@ -1166,9 +1176,9 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 	g_message("Found inactive boot partition %d (pos. %"G_GUINT64_FORMAT "B, size %"G_GUINT64_FORMAT "B)",
 			inactive_part, dest_partition.start, dest_partition.size);
 
-	if (dest_partition.size < image->checksum.size) {
+	if (dest_partition.size < (guint64)image->checksum.size) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Size of image (%"G_GSIZE_FORMAT ") does not fit to slot size %"G_GUINT64_FORMAT,
+				"Size of image (%"G_GOFFSET_FORMAT ") does not fit to slot size %"G_GUINT64_FORMAT,
 				image->checksum.size, dest_partition.size);
 		res = FALSE;
 		goto out;

@@ -400,7 +400,7 @@ out:
 	return res;
 }
 
-static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, gsize size, GError **error)
+static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffset size, GError **error)
 {
 	g_autoptr(GFile) infile = NULL;
 	g_autoptr(GFile) outfile = NULL;

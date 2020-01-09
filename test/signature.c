@@ -162,17 +162,19 @@ static void signature_verify_invalid(SignatureFixture *fixture,
 static void signature_verify_file(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gboolean res;
 	fixture->sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
 	g_assert_nonnull(fixture->sig);
 
 	// Test valid manifest
-	g_assert_true(cms_verify_file("test/openssl-ca/manifest",
+	res = cms_verify_file("test/openssl-ca/manifest",
 			fixture->sig,
 			0,
 			fixture->store,
 			&fixture->cms,
-			&fixture->error));
-	g_assert_null(fixture->error);
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
 	g_assert_nonnull(fixture->cms);
 
 	g_clear_pointer(&fixture->cms, CMS_ContentInfo_free);
@@ -217,23 +219,26 @@ static void signature_loopback(SignatureFixture *fixture,
 static void signature_get_cert_chain(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gboolean res;
 	fixture->sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
 	g_assert_nonnull(fixture->sig);
 
-	g_assert_true(cms_verify(fixture->content,
+	res = cms_verify(fixture->content,
 			fixture->sig,
 			fixture->store,
 			&fixture->cms,
-			&fixture->error));
+			&fixture->error);
 	g_assert_no_error(fixture->error);
+	g_assert_true(res);
 	g_assert_nonnull(fixture->cms);
 
 	/* Verify obtaining cert chain works */
-	g_assert_true(cms_get_cert_chain(fixture->cms,
+	res = cms_get_cert_chain(fixture->cms,
 			fixture->store,
 			&fixture->verified_chain,
-			&fixture->error));
+			&fixture->error);
 	g_assert_no_error(fixture->error);
+	g_assert_true(res);
 	g_assert_nonnull(fixture->verified_chain);
 
 	/* Chain length must be 3 (release-1 -> rel -> root) */
@@ -243,6 +248,7 @@ static void signature_get_cert_chain(SignatureFixture *fixture,
 static void signature_selfsigned(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gboolean res;
 	X509_STORE *root_store = X509_STORE_new();
 	g_assert_nonnull(root_store);
 	g_assert_true(X509_STORE_load_locations(root_store, "test/openssl-ca/root/ca.cert.pem", NULL));
@@ -252,27 +258,29 @@ static void signature_selfsigned(SignatureFixture *fixture,
 			"test/openssl-ca/root/private/ca.key.pem",
 			NULL,
 			&fixture->error);
-	g_assert_nonnull(fixture->sig);
 	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->sig);
 
 	g_clear_error(&fixture->error);
 
-	g_assert_true(cms_verify(fixture->content,
+	res = cms_verify(fixture->content,
 			fixture->sig,
 			root_store,
 			&fixture->cms,
-			&fixture->error));
+			&fixture->error);
 	g_assert_no_error(fixture->error);
+	g_assert_true(res);
 	g_assert_nonnull(fixture->cms);
 
 	g_clear_error(&fixture->error);
 
 	/* Verify obtaining cert chain works */
-	g_assert_true(cms_get_cert_chain(fixture->cms,
+	res = cms_get_cert_chain(fixture->cms,
 			root_store,
 			&fixture->verified_chain,
-			&fixture->error));
+			&fixture->error);
 	g_assert_no_error(fixture->error);
+	g_assert_true(res);
 	g_assert_nonnull(fixture->verified_chain);
 
 	/* Chain length for self-signed must be 1 */
@@ -282,6 +290,7 @@ static void signature_selfsigned(SignatureFixture *fixture,
 static void signature_intermediate(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gboolean res;
 	GPtrArray *interfiles = NULL;
 	X509_STORE *prov_store = X509_STORE_new();
 	g_assert_nonnull(prov_store);
@@ -293,8 +302,8 @@ static void signature_intermediate(SignatureFixture *fixture,
 			"test/openssl-ca/rel/private/release-1.pem",
 			NULL,
 			&fixture->error);
-	g_assert_nonnull(fixture->sig);
 	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->sig);
 
 	/* Without explicit intermediate certificate, this must fail */
 	g_assert_false(cms_verify(fixture->content,
@@ -321,20 +330,22 @@ static void signature_intermediate(SignatureFixture *fixture,
 	g_assert_nonnull(fixture->sig);
 
 	/* With intermediate certificate, this must succeed */
-	g_assert_true(cms_verify(fixture->content,
+	res = cms_verify(fixture->content,
 			fixture->sig,
 			prov_store,
 			&fixture->cms,
-			&fixture->error));
+			&fixture->error);
 	g_assert_no_error(fixture->error);
+	g_assert_true(res);
 	g_assert_nonnull(fixture->cms);
 
 	/* Verify obtaining cert chain works */
-	g_assert_true(cms_get_cert_chain(fixture->cms,
+	res = cms_get_cert_chain(fixture->cms,
 			prov_store,
 			&fixture->verified_chain,
-			&fixture->error));
+			&fixture->error);
 	g_assert_no_error(fixture->error);
+	g_assert_true(res);
 	g_assert_nonnull(fixture->verified_chain);
 
 	/* Chain length must be 3 (release-1 -> rel -> root) */
@@ -344,6 +355,7 @@ static void signature_intermediate(SignatureFixture *fixture,
 static void signature_intermediate_file(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gboolean res;
 	GPtrArray *interfiles = NULL;
 	X509_STORE *prov_store = X509_STORE_new();
 	g_assert_nonnull(prov_store);
@@ -354,8 +366,8 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 			"test/openssl-ca/rel/private/release-1.pem",
 			NULL,
 			&fixture->error);
-	g_assert_nonnull(fixture->sig);
 	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->sig);
 
 	/* Without explicit intermediate certificate, this must fail */
 	g_assert_false(cms_verify_file("test/openssl-ca/manifest",
@@ -383,21 +395,23 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 	g_assert_nonnull(fixture->sig);
 
 	/* With intermediate certificate, this must succeed */
-	g_assert_true(cms_verify_file("test/openssl-ca/manifest",
+	res = cms_verify_file("test/openssl-ca/manifest",
 			fixture->sig,
 			0,
 			fixture->store,
 			&fixture->cms,
-			&fixture->error));
+			&fixture->error);
 	g_assert_no_error(fixture->error);
+	g_assert_true(res);
 	g_assert_nonnull(fixture->cms);
 
 	/* Verify obtaining cert chain works */
-	g_assert_true(cms_get_cert_chain(fixture->cms,
+	res = cms_get_cert_chain(fixture->cms,
 			fixture->store,
 			&fixture->verified_chain,
-			&fixture->error));
+			&fixture->error);
 	g_assert_no_error(fixture->error);
+	g_assert_true(res);
 	g_assert_nonnull(fixture->verified_chain);
 
 	/* Chain length must be 3 (release-1 -> rel -> root) */
@@ -407,6 +421,7 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 static void signature_cmsverify_path(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gboolean res;
 	X509_STORE *a_store = X509_STORE_new();
 	g_assert_nonnull(a_store);
 	g_assert_true(X509_STORE_load_locations(a_store, "test/openssl-ca/dir/a.cert.pem", NULL));
@@ -417,24 +432,26 @@ static void signature_cmsverify_path(SignatureFixture *fixture,
 			"test/openssl-ca/dir/private/a.key.pem",
 			NULL,
 			&fixture->error);
-	g_assert_nonnull(fixture->sig);
 	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->sig);
 
 	g_clear_error(&fixture->error);
 
 	/* Verify against "A" cert */
-	g_assert_true(cms_verify(fixture->content,
+	res = cms_verify(fixture->content,
 			fixture->sig,
 			a_store,
 			&fixture->cms,
-			&fixture->error));
+			&fixture->error);
 	g_assert_no_error(fixture->error);
+	g_assert_true(res);
 	g_assert_nonnull(fixture->cms);
 }
 
 static void signature_cmsverify_dir_combined(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gboolean res;
 	X509_STORE *ab_dir_store = X509_STORE_new();
 	g_assert_nonnull(ab_dir_store);
 	g_assert_true(X509_STORE_load_locations(ab_dir_store, NULL, "test/openssl-ca/dir/hash/ab"));
@@ -445,23 +462,25 @@ static void signature_cmsverify_dir_combined(SignatureFixture *fixture,
 			"test/openssl-ca/dir/private/a.key.pem",
 			NULL,
 			&fixture->error);
-	g_assert_nonnull(fixture->sig);
 	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->sig);
 	g_clear_error(&fixture->error);
 
 	/* Verify against certs stored in combined directory (A+B) */
-	g_assert_true(cms_verify(fixture->content,
+	res = cms_verify(fixture->content,
 			fixture->sig,
 			ab_dir_store,
 			&fixture->cms,
-			&fixture->error));
+			&fixture->error);
 	g_assert_no_error(fixture->error);
+	g_assert_true(res);
 	g_assert_nonnull(fixture->cms);
 }
 
 static void signature_cmsverify_dir_single_fail(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gboolean res;
 	X509_STORE *a_store = X509_STORE_new();
 	X509_STORE *ab_dir_store = X509_STORE_new();
 	g_assert_nonnull(a_store);
@@ -476,17 +495,18 @@ static void signature_cmsverify_dir_single_fail(SignatureFixture *fixture,
 			"test/openssl-ca/dir/private/b.key.pem",
 			NULL,
 			&fixture->error);
-	g_assert_nonnull(fixture->sig);
 	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->sig);
 	g_clear_error(&fixture->error);
 
 	/* Verify against certs stored in combined directory (A+B) */
-	g_assert_true(cms_verify(fixture->content,
+	res = cms_verify(fixture->content,
 			fixture->sig,
 			ab_dir_store,
 			&fixture->cms,
-			&fixture->error));
+			&fixture->error);
 	g_assert_no_error(fixture->error);
+	g_assert_true(res);
 	g_assert_nonnull(fixture->cms);
 
 	/* Verify failure against certs stored in "A" only directory */
@@ -502,6 +522,7 @@ static void signature_cmsverify_dir_single_fail(SignatureFixture *fixture,
 static void signature_cmsverify_pathdir_dir(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gboolean res;
 	X509_STORE *a_dir_b_store = X509_STORE_new();
 	g_assert_nonnull(a_dir_b_store);
 	g_assert_true(X509_STORE_load_locations(a_dir_b_store, "test/openssl-ca/dir/b.cert.pem", "test/openssl-ca/dir/hash/a"));
@@ -512,23 +533,25 @@ static void signature_cmsverify_pathdir_dir(SignatureFixture *fixture,
 			"test/openssl-ca/dir/private/a.key.pem",
 			NULL,
 			&fixture->error);
-	g_assert_nonnull(fixture->sig);
 	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->sig);
 	g_clear_error(&fixture->error);
 
 	/* Verify against certs stored in directory(A) + path(B) */
-	g_assert_true(cms_verify(fixture->content,
+	res = cms_verify(fixture->content,
 			fixture->sig,
 			a_dir_b_store,
 			&fixture->cms,
-			&fixture->error));
+			&fixture->error);
 	g_assert_no_error(fixture->error);
+	g_assert_true(res);
 	g_assert_nonnull(fixture->cms);
 }
 
 static void signature_cmsverify_pathdir_path(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gboolean res;
 	X509_STORE *a_dir_b_store = X509_STORE_new();
 	g_assert_nonnull(a_dir_b_store);
 	g_assert_true(X509_STORE_load_locations(a_dir_b_store, "test/openssl-ca/dir/b.cert.pem", "test/openssl-ca/dir/hash/a"));
@@ -540,17 +563,18 @@ static void signature_cmsverify_pathdir_path(SignatureFixture *fixture,
 			NULL,
 			&fixture->error);
 
-	g_assert_nonnull(fixture->sig);
 	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->sig);
 	g_clear_error(&fixture->error);
 
 	/* Verify against certs stored in directory(A) + path(B) */
-	g_assert_true(cms_verify(fixture->content,
+	res = cms_verify(fixture->content,
 			fixture->sig,
 			a_dir_b_store,
 			&fixture->cms,
-			&fixture->error));
+			&fixture->error);
 	g_assert_no_error(fixture->error);
+	g_assert_true(res);
 	g_assert_nonnull(fixture->cms);
 }
 

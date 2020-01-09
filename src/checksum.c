@@ -17,10 +17,10 @@ G_STATIC_ASSERT(RAUC_DEFAULT_CHECKSUM != 0);
 G_DEFINE_QUARK(r-checksum-error-quark, r_checksum_error)
 
 static gboolean
-update_from_file(GChecksum *ctx, const gchar *filename, gsize *total, GError **error)
+update_from_file(GChecksum *ctx, const gchar *filename, goffset *total, GError **error)
 {
 	g_auto(filedesc) fd = -1;
-	gsize size = 0;
+	goffset size = 0;
 	gssize r;
 	guchar buf[4096];
 
@@ -51,7 +51,7 @@ gboolean compute_checksum(RaucChecksum *checksum, const gchar *filename, GError 
 {
 	g_autoptr(GChecksum) ctx = NULL;
 	GChecksumType type = checksum->type;
-	gsize total = 0;
+	goffset total = 0;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
