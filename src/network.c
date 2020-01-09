@@ -7,6 +7,9 @@
 
 #include "network.h"
 
+/* We need to make sure that we can support large bundles. */
+G_STATIC_ASSERT(sizeof(curl_off_t) == 8);
+
 typedef struct {
 	const gchar *url;
 
@@ -16,8 +19,8 @@ typedef struct {
 	FILE *dl;
 	size_t dl_size;
 
-	size_t pos;
-	size_t limit;
+	curl_off_t pos;
+	curl_off_t limit;
 
 	gchar *err;
 } RaucTransfer;
@@ -44,7 +47,7 @@ static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata)
 
 	/* check transfer limit */
 	if (xfer->limit) {
-		if ((xfer->pos + size*nmemb) > xfer->limit) {
+		if ((guint64)(xfer->pos + size*nmemb) > (guint64)xfer->limit) {
 			xfer->err = g_strdup("Maximum bundle download size exceeded. Download aborted.");
 			return 0;
 		}
@@ -63,8 +66,8 @@ static int xfer_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 
 	/* check transfer limit */
 	if (xfer->limit) {
-		if ((dlnow > (curl_off_t)xfer->limit)
-		    || (dltotal > (curl_off_t)xfer->limit)) {
+		if ((dlnow > xfer->limit)
+		    || (dltotal > xfer->limit)) {
 			xfer->err = g_strdup("Maximum bundle download size exceeded. Download aborted.");
 			return 1;
 		}
@@ -136,7 +139,7 @@ out:
 	return res;
 }
 
-gboolean download_file(const gchar *target, const gchar *url, gsize limit, GError **error)
+gboolean download_file(const gchar *target, const gchar *url, goffset limit, GError **error)
 {
 	RaucTransfer xfer = {0};
 	gboolean res = FALSE;
@@ -209,7 +212,7 @@ out:
 	return res;
 }
 
-gboolean download_mem(GBytes **data, const gchar *url, gsize limit, GError **error)
+gboolean download_mem(GBytes **data, const gchar *url, goffset limit, GError **error)
 {
 	RaucTransfer xfer = {0};
 	gboolean res = FALSE;
