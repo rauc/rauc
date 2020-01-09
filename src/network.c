@@ -13,9 +13,6 @@ G_STATIC_ASSERT(sizeof(curl_off_t) == 8);
 typedef struct {
 	const gchar *url;
 
-	FILE *ul;
-	size_t ul_size;
-
 	FILE *dl;
 	size_t dl_size;
 
