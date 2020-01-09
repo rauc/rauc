@@ -24,7 +24,7 @@ gboolean network_init(GError **error)
 {
 	CURLcode res;
 
-	g_return_val_if_fail(error == FALSE || *error == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	res = curl_global_init(CURL_GLOBAL_ALL);
 	if (res != CURLE_OK) {
