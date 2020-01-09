@@ -14,7 +14,6 @@ typedef struct {
 	const gchar *url;
 
 	FILE *dl;
-	size_t dl_size;
 
 	curl_off_t pos;
 	curl_off_t limit;
@@ -165,82 +164,5 @@ gboolean download_file(const gchar *target, const gchar *url, goffset limit, GEr
 
 out:
 	g_clear_pointer(&xfer.dl, fclose);
-	return res;
-}
-
-gboolean download_file_checksum(const gchar *target, const gchar *url,
-		const RaucChecksum *checksum)
-{
-	g_autofree gchar *tmpname = NULL;
-	g_autofree gchar *dir = NULL;
-	g_autofree gchar *tmppath = NULL;
-	gboolean res = FALSE;
-
-	g_return_val_if_fail(target, FALSE);
-	g_return_val_if_fail(url, FALSE);
-	g_return_val_if_fail(checksum, FALSE);
-
-	tmpname = g_strdup_printf(".rauc_%s_%"G_GOFFSET_FORMAT, checksum->digest,
-			checksum->size);
-	dir = g_path_get_dirname(target);
-	tmppath = g_build_filename(dir, tmpname, NULL);
-
-	g_unlink(target);
-	g_unlink(tmppath);
-
-	if (g_file_test(target, G_FILE_TEST_EXISTS))
-		goto out;
-	if (g_file_test(tmppath, G_FILE_TEST_EXISTS))
-		goto out;
-
-	res = download_file(tmppath, url, checksum->size, NULL);
-	if (!res)
-		goto out;
-
-	res = verify_checksum(checksum, tmppath, NULL);
-	if (!res)
-		goto out;
-
-	res = (g_rename(tmppath, target) == 0);
-	if (!res)
-		goto out;
-
-out:
-	return res;
-}
-
-gboolean download_mem(GBytes **data, const gchar *url, goffset limit, GError **error)
-{
-	RaucTransfer xfer = {0};
-	gboolean res = FALSE;
-	GError *ierror = NULL;
-	char *dl_data = NULL;
-
-	g_return_val_if_fail(data && *data == NULL, FALSE);
-	g_return_val_if_fail(url, FALSE);
-	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
-
-	xfer.url = url;
-	xfer.limit = limit;
-
-	xfer.dl = open_memstream(&dl_data, &xfer.dl_size);
-	if (xfer.dl == NULL) {
-		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Failed opening memstream");
-		goto out;
-	}
-
-	res = transfer(&xfer, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	g_clear_pointer(&xfer.dl, fclose);
-	*data = g_bytes_new_with_free_func(dl_data, xfer.dl_size, free, dl_data);
-	dl_data = NULL;
-
-out:
-	g_clear_pointer(&xfer.dl, fclose);
-	g_clear_pointer(&dl_data, free);
 	return res;
 }
