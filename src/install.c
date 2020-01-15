@@ -1065,11 +1065,7 @@ skip_filename_checks:
 
 static void update_slot_status(RaucSlotStatus *slot_state, const gchar* status, const RaucManifest *manifest, const RImageInstallPlan *plan, const RaucInstallArgs *args)
 {
-	g_autoptr(GDateTime) now = NULL;
-
 	r_slot_clear_status(slot_state);
-
-	now = g_date_time_new_now_utc();
 
 	slot_state->bundle_compatible = g_strdup(manifest->update_compatible);
 	slot_state->bundle_version = g_strdup(manifest->update_version);
@@ -1081,7 +1077,7 @@ static void update_slot_status(RaucSlotStatus *slot_state, const gchar* status, 
 	slot_state->checksum.digest = g_strdup(plan->image->checksum.digest);
 	slot_state->checksum.size = plan->image->checksum.size;
 	slot_state->installed_txn = g_strdup(args->transaction);
-	slot_state->installed_timestamp = g_date_time_format(now, RAUC_FORMAT_ISO_8601);
+	slot_state->installed_timestamp = g_date_time_new_now_utc();
 	slot_state->installed_count++;
 }
 
