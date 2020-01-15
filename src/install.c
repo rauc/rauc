@@ -318,8 +318,10 @@ static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest)
 
 /* Selects a single appropriate inactive slot of root slot class
  *
- * Note: This function may be extended to be more sophisticated or follow a
- * certain policy for selecting an appropriate slot!
+ * If a global status file is used and multiple candidates are available, the
+ * one with the oldest 'installed' timestamp will be selected.
+ * If a slot with an unset timestamp is found, this one will be preferably
+ * instead.
  *
  * @param rootclass name of root slot class
  *
@@ -328,21 +330,63 @@ static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest)
 static RaucSlot *select_inactive_slot_class_member(const gchar *rootclass)
 {
 	RaucSlot *iterslot;
+	RaucSlot *selectslot = NULL;
 	GHashTableIter iter;
 
 	g_return_val_if_fail(rootclass, NULL);
+
+	if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") == 0) {
+		g_debug("Selecting inactive slot for class '%s'. Strategy: 'first found'", rootclass);
+	} else {
+		g_debug("Selecting inactive slot for class '%s'. Strategy: 'oldest timestamp first')", rootclass);
+	}
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &iterslot)) {
 		if (iterslot->state != ST_INACTIVE)
 			continue;
 
-		if (g_strcmp0(iterslot->sclass, rootclass) == 0) {
+		if (g_strcmp0(iterslot->sclass, rootclass) != 0)
+			continue;
+
+		/* For per-slot status, we don't try to access the timestamp information
+		 * and just take the first appropriate slot */
+		if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") == 0) {
+			g_debug("Selected slot '%s'", iterslot->name);
 			return iterslot;
+		}
+
+		g_assert_nonnull(iterslot->status);
+
+		/* A slot class without a timestamp is always considered out-of-date and updatable */
+		if (!iterslot->status->installed_timestamp) {
+			g_debug("Slot '%s' has no valid timestamp. Considered outdated and select it.", iterslot->name);
+			return iterslot;
+		}
+
+		/* First slot found */
+		if (!selectslot) {
+			g_debug("Consider slot '%s' as first candidate.", iterslot->name);
+			selectslot = iterslot;
+			continue;
+		}
+
+		/* if currently checked slot is older than candidate use as new candidate */
+		gint comp = g_date_time_compare(iterslot->status->installed_timestamp, selectslot->status->installed_timestamp);
+		if (comp < 0) {
+			g_autofree gchar *found = g_date_time_format(iterslot->status->installed_timestamp, RAUC_FORMAT_ISO_8601);
+			g_autofree gchar *current = g_date_time_format(selectslot->status->installed_timestamp, RAUC_FORMAT_ISO_8601);
+			g_debug("Slot '%s' has older timestamp (%s) than slot '%s' (%s). Consider as new candidate.", iterslot->name, found, selectslot->name, current);
+			selectslot = iterslot;
 		}
 	}
 
-	return NULL;
+	if (selectslot)
+		g_debug("Selected slot '%s'", selectslot->name);
+	else
+		g_debug("No slot selected");
+
+	return selectslot;
 }
 
 /* Map each slot class available to a potential target slot.
