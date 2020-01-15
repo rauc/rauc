@@ -189,6 +189,13 @@ Likewise, all slots of a group containing an *inactive* slot will be considered
 
 The slot selection algorithm selects an *inactive* slot group for the images
 contained in the update bundle.
+In case multiple equivalent *inactive* slot groups are available, the default
+algorithm will select the one with the *oldest installation time stamp*
+(requires having a data directory or central status file configured.).
+A slot with no timestamp is always considered the oldest.
+
+This allows to have setups with three redundant slots (A/B/C update) or
+to bootstrap an A/B system from an external or factory system.
 
 Slot Status and Skipping Slot Updates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
