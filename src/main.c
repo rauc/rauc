@@ -1695,6 +1695,34 @@ GOptionEntry entries_status[] = {
 	{0}
 };
 
+static GOptionGroup *install_group;
+static GOptionGroup *bundle_group;
+static GOptionGroup *resign_group;
+static GOptionGroup *convert_group;
+static GOptionGroup *info_group;
+static GOptionGroup *status_group;
+
+static void create_option_groups(void)
+{
+	install_group = g_option_group_new("install", "Install options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(install_group, entries_install);
+
+	bundle_group  = g_option_group_new("bundle", "Bundle options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(bundle_group, entries_bundle);
+
+	resign_group  = g_option_group_new("resign", "Resign options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(resign_group, entries_resign);
+
+	convert_group = g_option_group_new("convert", "Convert options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(convert_group, entries_convert);
+
+	info_group    = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(info_group, entries_info);
+
+	status_group  = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(status_group, entries_status);
+}
+
 static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, debug = FALSE, version = FALSE;
@@ -1716,12 +1744,6 @@ static void cmdline_handler(int argc, char **argv)
 		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, NULL, NULL},
 		{0}
 	};
-	GOptionGroup *install_group = g_option_group_new("install", "Install options:", "help dummy", NULL, NULL);
-	GOptionGroup *bundle_group = g_option_group_new("bundle", "Bundle options:", "help dummy", NULL, NULL);
-	GOptionGroup *resign_group = g_option_group_new("resign", "Resign options:", "help dummy", NULL, NULL);
-	GOptionGroup *convert_group = g_option_group_new("convert", "Convert options:", "help dummy", NULL, NULL);
-	GOptionGroup *info_group = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
-	GOptionGroup *status_group = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
 
 	GError *error = NULL;
 	g_autofree gchar *text = NULL;
@@ -1743,13 +1765,6 @@ static void cmdline_handler(int argc, char **argv)
 	};
 	RaucCommand *rc;
 	RaucCommand *rcommand = NULL;
-
-	g_option_group_add_entries(install_group, entries_install);
-	g_option_group_add_entries(bundle_group, entries_bundle);
-	g_option_group_add_entries(resign_group, entries_resign);
-	g_option_group_add_entries(convert_group, entries_convert);
-	g_option_group_add_entries(info_group, entries_info);
-	g_option_group_add_entries(status_group, entries_status);
 
 	context = g_option_context_new("<COMMAND>");
 	g_option_context_set_help_enabled(context, FALSE);
@@ -1909,6 +1924,7 @@ int main(int argc, char **argv)
 	/* disable remote VFS */
 	g_assert(g_setenv("GIO_USE_VFS", "local", TRUE));
 
+	create_option_groups();
 	cmdline_handler(argc, argv);
 
 	return r_exit_status;
