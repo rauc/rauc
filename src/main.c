@@ -1664,35 +1664,35 @@ typedef struct {
 	gboolean while_busy;
 } RaucCommand;
 
-GOptionEntry entries_install[] = {
+static GOptionEntry entries_install[] = {
 	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
 	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
 	{0}
 };
 
-GOptionEntry entries_bundle[] = {
+static GOptionEntry entries_bundle[] = {
 	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
 	{0}
 };
 
-GOptionEntry entries_resign[] = {
+static GOptionEntry entries_resign[] = {
 	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
 	{0}
 };
 
-GOptionEntry entries_convert[] = {
+static GOptionEntry entries_convert[] = {
 	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
 	{0}
 };
 
-GOptionEntry entries_info[] = {
+static GOptionEntry entries_info[] = {
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &info_noverify, "disable bundle verification", NULL},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
 	{"dump-cert", '\0', 0, G_OPTION_ARG_NONE, &info_dumpcert, "dump certificate", NULL},
 	{0}
 };
 
-GOptionEntry entries_status[] = {
+static GOptionEntry entries_status[] = {
 	{"detailed", '\0', 0, G_OPTION_ARG_NONE, &status_detailed, "show more status details", NULL},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
 	{0}
