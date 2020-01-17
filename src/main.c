@@ -282,6 +282,7 @@ out:
 	return TRUE;
 }
 
+G_GNUC_UNUSED
 static gboolean bundle_start(int argc, char **argv)
 {
 	GError *ierror = NULL;
@@ -445,6 +446,7 @@ out:
 	return TRUE;
 }
 
+G_GNUC_UNUSED
 static gboolean resign_start(int argc, char **argv)
 {
 	g_autoptr(RaucBundle) bundle = NULL;
@@ -540,6 +542,7 @@ out:
 	return TRUE;
 }
 
+G_GNUC_UNUSED
 static gboolean convert_start(int argc, char **argv)
 {
 	RaucBundle *bundle = NULL;
@@ -1707,14 +1710,16 @@ static void create_option_groups(void)
 	install_group = g_option_group_new("install", "Install options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(install_group, entries_install);
 
-	bundle_group  = g_option_group_new("bundle", "Bundle options:", "help dummy", NULL, NULL);
-	g_option_group_add_entries(bundle_group, entries_bundle);
+	if (ENABLE_CREATE) {
+		bundle_group  = g_option_group_new("bundle", "Bundle options:", "help dummy", NULL, NULL);
+		g_option_group_add_entries(bundle_group, entries_bundle);
 
-	resign_group  = g_option_group_new("resign", "Resign options:", "help dummy", NULL, NULL);
-	g_option_group_add_entries(resign_group, entries_resign);
+		resign_group  = g_option_group_new("resign", "Resign options:", "help dummy", NULL, NULL);
+		g_option_group_add_entries(resign_group, entries_resign);
 
-	convert_group = g_option_group_new("convert", "Convert options:", "help dummy", NULL, NULL);
-	g_option_group_add_entries(convert_group, entries_convert);
+		convert_group = g_option_group_new("convert", "Convert options:", "help dummy", NULL, NULL);
+		g_option_group_add_entries(convert_group, entries_convert);
+	}
 
 	info_group    = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(info_group, entries_info);
@@ -1751,10 +1756,12 @@ static void cmdline_handler(int argc, char **argv)
 	RaucCommand rcommands[] = {
 		{UNKNOWN, "help", "<COMMAND>", "Print help", unknown_start, NULL, TRUE},
 		{INSTALL, "install", "install <BUNDLE>", "Install a bundle", install_start, install_group, FALSE},
+#if ENABLE_CREATE == 1
 		{BUNDLE, "bundle", "bundle <INPUTDIR> <BUNDLENAME>", "Create a bundle from a content directory", bundle_start, bundle_group, FALSE},
 		{RESIGN, "resign", "resign <BUNDLENAME>", "Resign an already signed bundle", resign_start, resign_group, FALSE},
-		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>", "Extract the bundle content", extract_start, NULL, FALSE},
 		{CONVERT, "convert", "convert <INBUNDLE> <OUTBUNDLE>", "Convert to casync index bundle and store", convert_start, convert_group, FALSE},
+#endif
+		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>", "Extract the bundle content", extract_start, NULL, FALSE},
 		{INFO, "info", "info <FILE>", "Print bundle info", info_start, info_group, FALSE},
 		{STATUS, "status", "status", "Show system status", status_start, status_group, TRUE},
 		{WRITE_SLOT, "write-slot", "write-slot <SLOTNAME> <IMAGE>", "Write image to slot and bypass all update logic", write_slot_start, NULL, FALSE},
@@ -1772,10 +1779,12 @@ static void cmdline_handler(int argc, char **argv)
 	g_option_context_add_main_entries(context, entries, NULL);
 	g_option_context_set_description(context,
 			"List of rauc commands:\n"
+#if ENABLE_CREATE == 1
 			"  bundle\tCreate a bundle\n"
 			"  resign\tResign an already signed bundle\n"
-			"  extract\tExtract the bundle content\n"
 			"  convert\tConvert classic to casync bundle\n"
+#endif
+			"  extract\tExtract the bundle content\n"
 			"  install\tInstall a bundle\n"
 			"  info\t\tShow file information\n"
 #if ENABLE_SERVICE == 1

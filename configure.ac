@@ -49,6 +49,15 @@ AS_IF([test "x$enable_service" != "xno"], [
 	AC_DEFINE([ENABLE_SERVICE], [0])
 ])
 
+AC_ARG_ENABLE([create],
+	AS_HELP_STRING([--disable-create], [Disable bundle creation and modification commands])
+)
+AS_IF([test "x$enable_create" != "xno"], [
+	AC_DEFINE([ENABLE_CREATE], [1], [Define to 1 to enable bundle, resign and convert commands])
+], [
+	AC_DEFINE([ENABLE_CREATE], [0])
+])
+
 # Checks for libraries.
 PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.45.8 gio-2.0 gio-unix-2.0])
 
