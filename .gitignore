@@ -2,6 +2,7 @@
 /build-aux/*
 !/build-aux/git-version-gen
 /test/*.test
+/test/*.map
 /test/services/de.pengutronix.rauc.service
 /*-generated.[ch]
 Makefile
@@ -14,6 +15,7 @@ config.status
 configure
 libtool
 rauc
+rauc.map
 stamp-h1
 .deps
 .dirstamp
