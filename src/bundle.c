@@ -498,16 +498,18 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 	g_autofree gchar *contentdir = NULL;
 	g_autofree gchar *mfpath = NULL;
 	g_autofree gchar *storepath = NULL;
-	gchar *basepath = NULL;
 	g_autoptr(RaucManifest) manifest = NULL;
 
 	g_return_val_if_fail(bundle, FALSE);
 	g_return_val_if_fail(outbundle, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	basepath = g_strndup(outbundle, strlen(outbundle) - 6);
-	storepath = g_strconcat(basepath, ".castr", NULL);
-	g_free(basepath);
+	if (g_str_has_suffix(outbundle, ".raucb")) {
+		g_autofree gchar *basepath = g_strndup(outbundle, strlen(outbundle) - 6);
+		storepath = g_strconcat(basepath, ".castr", NULL);
+	} else {
+		storepath = g_strconcat(outbundle, ".castr", NULL);
+	}
 
 	/* Assure bundle destination path doe not already exist */
 	if (g_file_test(outbundle, G_FILE_TEST_EXISTS)) {
@@ -682,15 +684,15 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	if (r_context()->config->store_path) {
 		ibundle->storepath = r_context()->config->store_path;
 	} else {
-		gchar *strprfx;
+		gchar *path = ibundle->origpath ?: ibundle->path;
 
-		if (ibundle->origpath)
-			strprfx = g_strndup(ibundle->origpath, strlen(ibundle->origpath) - 6);
-		else
-			strprfx = g_strndup(ibundle->path, strlen(ibundle->path) - 6);
-		ibundle->storepath = g_strconcat(strprfx, ".castr", NULL);
-
-		g_free(strprfx);
+		if (g_str_has_suffix(path, ".raucb")) {
+			g_autofree gchar *strprfx;
+			strprfx = g_strndup(path, strlen(path) - 6);
+			ibundle->storepath = g_strconcat(strprfx, ".castr", NULL);
+		} else {
+			ibundle->storepath = g_strconcat(path, ".castr", NULL);
+		}
 	}
 
 	if (verify && !r_context()->config->keyring_path && !r_context()->config->keyring_directory) {
