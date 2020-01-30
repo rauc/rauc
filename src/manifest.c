@@ -492,47 +492,6 @@ static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *d
 	return res;
 }
 
-static gboolean verify_manifest_checksums(RaucManifest *manifest, const gchar *dir, GError **error)
-{
-	GError *ierror = NULL;
-	gboolean res = TRUE;
-	gboolean had_errors = FALSE;
-
-	r_context_begin_step("verify_manifest_checksums", "Verifying manifest checksums", 0);
-
-	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
-		RaucImage *image = elem->data;
-		g_autofree gchar *filename = g_build_filename(dir, image->filename, NULL);
-		res = verify_checksum(&image->checksum, filename, &ierror);
-		if (!res) {
-			g_warning("Failed verifying checksum: %s", ierror->message);
-			g_clear_error(&ierror);
-			had_errors = TRUE;
-			break;
-		}
-	}
-
-	for (GList *elem = manifest->files; elem != NULL; elem = elem->next) {
-		RaucFile *file = elem->data;
-		g_autofree gchar *filename = g_build_filename(dir, file->filename, NULL);
-		res = verify_checksum(&file->checksum, filename, &ierror);
-		if (!res) {
-			g_warning("Failed verifying checksum: %s", ierror->message);
-			g_clear_error(&ierror);
-			had_errors = TRUE;
-			break;
-		}
-	}
-
-	if (had_errors) {
-		res = FALSE;
-		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_CHECKSUM, "Failed updating all checksums");
-	}
-
-	r_context_end_step("verify_manifest_checksums", res);
-	return res;
-}
-
 gboolean update_manifest(const gchar *dir, gboolean signature, GError **error)
 {
 	GError *ierror = NULL;
@@ -584,36 +543,5 @@ gboolean update_manifest(const gchar *dir, gboolean signature, GError **error)
 	}
 
 out:
-	return res;
-}
-
-gboolean verify_manifest(const gchar *dir, RaucManifest **output, GError **error)
-{
-	GError *ierror = NULL;
-	g_autofree gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
-	g_autoptr(RaucManifest) manifest = NULL;
-	gboolean res = FALSE;
-
-	r_context_begin_step("verify_manifest", "Verifying manifest", 2);
-
-	res = load_manifest_file(manifestpath, &manifest, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(error, ierror, "Failed opening manifest: ");
-		goto out;
-	}
-
-	res = verify_manifest_checksums(manifest, dir, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(error, ierror, "Invalid checksums: ");
-		goto out;
-	}
-
-	if (output != NULL) {
-		*output = manifest;
-		manifest = NULL;
-	}
-
-out:
-	r_context_end_step("verify_manifest", res);
 	return res;
 }

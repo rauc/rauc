@@ -248,7 +248,7 @@ static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest)
  *
  * @return pointer to appropriate slot in system slot list
  */
-static RaucSlot *select_inactive_slot_class_member(gchar *rootclass)
+static RaucSlot *select_inactive_slot_class_member(const gchar *rootclass)
 {
 	RaucSlot *iterslot;
 	GHashTableIter iter;
@@ -740,7 +740,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GList *install_images = NULL;
-	RaucImage *mfimage;
 
 	install_images = get_install_images(manifest, target_group, &ierror);
 	if (install_images == NULL) {
@@ -806,6 +805,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	r_context_begin_step("update_slots", "Updating slots", g_list_length(install_images) * 2);
 	install_args_update(args, "Updating slots...");
 	for (GList *l = install_images; l != NULL; l = l->next) {
+		RaucImage *mfimage;
 		RaucSlot *dest_slot;
 		img_to_slot_handler update_handler = NULL;
 		RaucSlotStatus *slot_state = NULL;
