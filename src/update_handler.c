@@ -684,6 +684,8 @@ static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, Rau
 
 		g_subprocess_launcher_setenv(launcher, "RAUC_BUNDLE_SPKI_HASHES", string, TRUE);
 		g_free(string);
+
+		g_subprocess_launcher_setenv(launcher, "RAUC_BUNDLE_MOUNT_POINT", bundle->mount_point, TRUE);
 	}
 
 	sproc = g_subprocess_launcher_spawn(
