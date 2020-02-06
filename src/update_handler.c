@@ -680,7 +680,7 @@ static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, Rau
 		string = g_strjoinv(" ", hashes);
 		g_strfreev(hashes);
 
-		g_subprocess_launcher_setenv(launcher, "RAUC_BUNDLE_SPKI_HASHES", string, FALSE);
+		g_subprocess_launcher_setenv(launcher, "RAUC_BUNDLE_SPKI_HASHES", string, TRUE);
 		g_free(string);
 	}
 
