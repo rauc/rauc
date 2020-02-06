@@ -260,6 +260,9 @@ static void r_context_configure(void)
 		}
 	}
 
+	if (r_whitespace_removed(context->config->system_variant))
+		g_warning("Ignoring surrounding whitespace in system variant: %s", context->config->system_variant);
+
 	if (context->bootslot == NULL) {
 		context->bootslot = g_strdup(get_cmdline_bootname());
 	}
