@@ -462,8 +462,11 @@ variables.
   ``RAUC_CURRENT_BOOTNAME``
     Bootname of the slot the system is currently booted from
 
-  ``RAUC_UPDATE_SOURCE``
+  ``RAUC_BUNDLE_MOUNT_POINT``
     Path to mounted update bundle, e.g. ``/mnt/rauc/bundle``
+
+  ``RAUC_UPDATE_SOURCE``
+    A deprecated alias for ``RAUC_BUNDLE_MOUNT_POINT``
 
   ``RAUC_MOUNT_PREFIX``
     Provides the path prefix that may be used for RAUC mount points
