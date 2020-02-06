@@ -643,6 +643,7 @@ static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, Rau
 	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+	RaucBundle *bundle;
 
 	g_assert_nonnull(slot);
 	g_assert_nonnull(slot->name);
@@ -672,16 +673,19 @@ static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, Rau
 	}
 	g_subprocess_launcher_setenv(launcher, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
 
-	if (r_context()->install_info->mounted_bundle) {
+	bundle = r_context()->install_info->mounted_bundle;
+	if (bundle) {
 		gchar **hashes = NULL;
 		gchar *string = NULL;
 
-		hashes = get_pubkey_hashes(r_context()->install_info->mounted_bundle->verified_chain);
+		hashes = get_pubkey_hashes(bundle->verified_chain);
 		string = g_strjoinv(" ", hashes);
 		g_strfreev(hashes);
 
 		g_subprocess_launcher_setenv(launcher, "RAUC_BUNDLE_SPKI_HASHES", string, TRUE);
 		g_free(string);
+
+		g_subprocess_launcher_setenv(launcher, "RAUC_BUNDLE_MOUNT_POINT", bundle->mount_point, TRUE);
 	}
 
 	sproc = g_subprocess_launcher_spawn(
