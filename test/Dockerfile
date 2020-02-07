@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y \
   opensc-pkcs11 \
   libengine-pkcs11-openssl \
   faketime \
+  time \
   kmod \
   uncrustify \
   casync \
