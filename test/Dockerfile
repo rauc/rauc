@@ -30,7 +30,8 @@ RUN apt-get update && apt-get install -y \
   faketime \
   kmod \
   uncrustify \
-  casync
+  casync \
+  qemu-system-x86
 
 # Required for test environment setup
 RUN apt-get update && apt-get install -y \
