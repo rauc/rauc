@@ -1,4 +1,5 @@
 language: c
+dist: bionic
 sudo: required
 services:
   - docker
@@ -36,11 +37,14 @@ jobs:
 
         # Create container and export env variables for Coverity scan
         - env | grep -E "TRAVIS|COV|TOOL|URL" > .cov-env
+        - cat /proc/cpuinfo
+        - sudo chmod 666 /dev/kvm
+        - ls -l /dev
         - |
             docker run -dit --privileged \
             --env-file .cov-env \
             -v "$PWD":/home/travis -w /home/travis \
-            --tmpfs /tmp/uml:exec,mode=777 \
+            --tmpfs /tmp/qemu:exec,mode=777 \
             --tmpfs /tmp:exec \
             -v ${TOOL_BASE}:${TOOL_BASE} \
             -u travis $ci_env \
@@ -59,7 +63,7 @@ jobs:
         - docker exec -it rauc-ci make -j2
         - docker exec -it rauc-ci make doc SPHINXOPTS=-W
         - docker exec -it rauc-ci make check TESTS=
-        - docker exec -it rauc-ci /bin/sh -c 'export TMPDIR=/tmp/uml && ./uml-test'
+        - docker exec -it rauc-ci /bin/sh -c 'export TMPDIR=/tmp/qemu && ./qemu-test'
         - docker exec -it rauc-ci make distcheck
         - docker exec -it rauc-ci /bin/sh -c 'cd /home/travis/contrib/cgi && ./autogen.sh && ./configure && make clean && make -j2 && make distcheck'
         - ./uncrustify.sh && git diff --exit-code
