@@ -263,3 +263,20 @@ gchar * r_realpath(const gchar *path)
 
 	return g_strdup(rpath);
 }
+
+gboolean r_whitespace_removed(gchar *str)
+{
+	gsize len;
+
+	if (str == NULL)
+		return FALSE;
+
+	len = strlen(str);
+
+	if (len == 0)
+		return FALSE;
+
+	g_strstrip(str);
+
+	return strlen(str) != len;
+}

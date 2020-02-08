@@ -131,6 +131,7 @@ check_PROGRAMS = \
 	test/manifest.test \
 	test/signature.test \
 	test/update_handler.test \
+	test/utils.test \
 	test/install.test \
 	test/service.test \
 	test/bundle.test \
@@ -199,6 +200,9 @@ test_signature_test_LDADD = librauctest.la
 
 test_update_handler_test_SOURCES = test/update_handler.c
 test_update_handler_test_LDADD = librauc.la librauctest.la
+
+test_utils_test_SOURCES = test/utils.c
+test_utils_test_LDADD = librauctest.la
 
 test_install_test_SOURCES = test/install.c
 test_install_test_LDADD = librauctest.la

@@ -136,3 +136,12 @@ guint64 key_file_consume_binary_suffixed_string(GKeyFile *key_file,
 		GError **error);
 
 gchar * r_realpath(const gchar *path);
+
+/**
+ * Remove surrounding whitespace and signal changes.
+ *
+ * @param str string to modify
+ *
+ * @return TRUE if whitespace was removed, FALSE otherwise
+ */
+gboolean r_whitespace_removed(gchar *str);
