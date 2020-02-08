@@ -7,17 +7,18 @@
 
 #include "network.h"
 
+/* We need to make sure that we can support large bundles. */
+G_STATIC_ASSERT(sizeof(curl_off_t) == 8);
+
 typedef struct {
 	const gchar *url;
 
-	FILE *ul;
-	size_t ul_size;
-
 	FILE *dl;
-	size_t dl_size;
 
-	size_t pos;
-	size_t limit;
+	curl_off_t pos;
+	curl_off_t limit;
+
+	gchar *err;
 } RaucTransfer;
 
 gboolean network_init(GError **error)
@@ -42,8 +43,10 @@ static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata)
 
 	/* check transfer limit */
 	if (xfer->limit) {
-		if ((xfer->pos + size*nmemb) > xfer->limit)
+		if ((guint64)(xfer->pos + size*nmemb) > (guint64)xfer->limit) {
+			xfer->err = g_strdup("Maximum bundle download size exceeded. Download aborted.");
 			return 0;
+		}
 	}
 
 	res = fwrite(ptr, size, nmemb, xfer->dl);
@@ -59,10 +62,11 @@ static int xfer_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 
 	/* check transfer limit */
 	if (xfer->limit) {
-		if (dltotal > (curl_off_t)xfer->limit)
+		if ((dlnow > xfer->limit)
+		    || (dltotal > xfer->limit)) {
+			xfer->err = g_strdup("Maximum bundle download size exceeded. Download aborted.");
 			return 1;
-		if (dlnow > (curl_off_t)xfer->limit)
-			return 1;
+		}
 	}
 
 	return 0;
@@ -98,6 +102,7 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 	curl_easy_setopt(curl, CURLOPT_XFERINFODATA, xfer);
 	curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
+	curl_easy_setopt(curl, CURLOPT_MAXFILESIZE_LARGE, xfer->limit);
 	/* decode all supported Accept-Encoding headers */
 	curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
 
@@ -110,10 +115,14 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 		goto out;
 	} else if (r != CURLE_OK) {
 		size_t len = strlen(errbuf);
-		if (len)
+		if (xfer->err) {
+			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s", xfer->err);
+			g_clear_pointer(&xfer->err, &g_free);
+		} else if (len) {
 			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s%s", errbuf, ((errbuf[len - 1] != '\n') ? "\n" : ""));
-		else
-			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s", curl_easy_strerror(res));
+		} else {
+			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Transfer failed: %s", curl_easy_strerror(r));
+		}
 		goto out;
 	}
 	res = TRUE;
@@ -126,7 +135,7 @@ out:
 	return res;
 }
 
-gboolean download_file(const gchar *target, const gchar *url, gsize limit, GError **error)
+gboolean download_file(const gchar *target, const gchar *url, goffset limit, GError **error)
 {
 	RaucTransfer xfer = {0};
 	gboolean res = FALSE;
@@ -155,82 +164,5 @@ gboolean download_file(const gchar *target, const gchar *url, gsize limit, GErro
 
 out:
 	g_clear_pointer(&xfer.dl, fclose);
-	return res;
-}
-
-gboolean download_file_checksum(const gchar *target, const gchar *url,
-		const RaucChecksum *checksum)
-{
-	g_autofree gchar *tmpname = NULL;
-	g_autofree gchar *dir = NULL;
-	g_autofree gchar *tmppath = NULL;
-	gboolean res = FALSE;
-
-	g_return_val_if_fail(target, FALSE);
-	g_return_val_if_fail(url, FALSE);
-	g_return_val_if_fail(checksum, FALSE);
-
-	tmpname = g_strdup_printf(".rauc_%s_%"G_GOFFSET_FORMAT, checksum->digest,
-			checksum->size);
-	dir = g_path_get_dirname(target);
-	tmppath = g_build_filename(dir, tmpname, NULL);
-
-	g_unlink(target);
-	g_unlink(tmppath);
-
-	if (g_file_test(target, G_FILE_TEST_EXISTS))
-		goto out;
-	if (g_file_test(tmppath, G_FILE_TEST_EXISTS))
-		goto out;
-
-	res = download_file(tmppath, url, checksum->size, NULL);
-	if (!res)
-		goto out;
-
-	res = verify_checksum(checksum, tmppath, NULL);
-	if (!res)
-		goto out;
-
-	res = (g_rename(tmppath, target) == 0);
-	if (!res)
-		goto out;
-
-out:
-	return res;
-}
-
-gboolean download_mem(GBytes **data, const gchar *url, gsize limit, GError **error)
-{
-	RaucTransfer xfer = {0};
-	gboolean res = FALSE;
-	GError *ierror = NULL;
-	char *dl_data = NULL;
-
-	g_return_val_if_fail(data && *data == NULL, FALSE);
-	g_return_val_if_fail(url, FALSE);
-	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
-
-	xfer.url = url;
-	xfer.limit = limit;
-
-	xfer.dl = open_memstream(&dl_data, &xfer.dl_size);
-	if (xfer.dl == NULL) {
-		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Failed opening memstream");
-		goto out;
-	}
-
-	res = transfer(&xfer, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	g_clear_pointer(&xfer.dl, fclose);
-	*data = g_bytes_new_with_free_func(dl_data, xfer.dl_size, free, dl_data);
-	dl_data = NULL;
-
-out:
-	g_clear_pointer(&xfer.dl, fclose);
-	g_clear_pointer(&dl_data, free);
 	return res;
 }

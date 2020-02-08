@@ -1,6 +1,7 @@
 #include <locale.h>
 #include <gio/gio.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 
 #include <context.h>
 #include <utils.h>
@@ -34,53 +35,37 @@ static void test_download_file(NetworkFixture *fixture,
 
 	target = g_build_filename(fixture->tmpdir, "target", NULL);
 
+	/* basic download (no size limit) */
 	res = download_file(target, "http://example.com/", 0, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
-}
-
-static void test_download_mem(void)
-{
-	GBytes *data = NULL;
-	GError *ierror = NULL;
-	gboolean res;
-
-	/* basic download (no size limit) */
-	res = download_mem(&data, "http://example.com/", 0, &ierror);
-	g_assert_no_error(ierror);
-	g_assert_true(res);
-	g_assert_nonnull(data);
-	g_clear_pointer(&data, g_bytes_unref);
+	g_assert_cmpint(g_unlink(target), ==, 0);
 
 	/* download with large limit */
-	res = download_mem(&data, "http://example.com/", 1048576, &ierror);
+	res = download_file(target, "http://example.com/", 1048576, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
-	g_assert_nonnull(data);
-	g_clear_pointer(&data, g_bytes_unref);
+	g_assert_cmpint(g_unlink(target), ==, 0);
 
 	/* abort download for too large files */
-	res = download_mem(&data, "http://example.com/", 1024, &ierror);
+	res = download_file(target, "http://example.com/", 1024, &ierror);
 	g_assert_error(ierror, G_IO_ERROR, G_IO_ERROR_FAILED);
 	g_assert_false(res);
-	g_assert_null(data);
-	g_clear_pointer(&data, g_bytes_unref);
-
 	g_clear_error(&ierror);
+	g_assert_cmpint(g_unlink(target), ==, 0);
 
 	/* download with https */
-	res = download_mem(&data, "https://example.com/", 1048576, &ierror);
+	res = download_file(target, "https://example.com/", 1048576, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
-	g_assert_nonnull(data);
-	g_clear_pointer(&data, g_bytes_unref);
+	g_assert_cmpint(g_unlink(target), ==, 0);
 
 	/* invalid host name */
-	res = download_mem(&data, "http://error.example.com/", 1024, &ierror);
+	res = download_file(target, "http://error.example.com/", 1024, &ierror);
 	g_assert_error(ierror, G_IO_ERROR, G_IO_ERROR_FAILED);
 	g_assert_false(res);
-	g_assert_null(data);
-	g_clear_pointer(&data, g_bytes_unref);
+	g_clear_error(&ierror);
+	g_assert_cmpint(g_unlink(target), ==, 0);
 }
 
 int main(int argc, char *argv[])
@@ -91,8 +76,6 @@ int main(int argc, char *argv[])
 	r_context();
 
 	g_test_init(&argc, &argv, NULL);
-
-	g_test_add_func("/network/download_mem", test_download_mem);
 
 	g_test_add("/network/download_file", NetworkFixture, NULL,
 			network_fixture_set_up, test_download_file,
