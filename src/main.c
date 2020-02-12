@@ -225,11 +225,13 @@ static gboolean install_start(int argc, char **argv)
 	args->cleanup = install_cleanup;
 	args->status_result = 2;
 
-	r_context_conf()->ignore_compatible = install_ignore_compatible;
+	args->ignore_compatible = install_ignore_compatible;
 
 	r_loop = g_main_loop_new(NULL, FALSE);
 	if (ENABLE_SERVICE) {
 		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
+
+		g_variant_dict_insert(&dict, "ignore-compatible", "b", args->ignore_compatible);
 
 		installer = r_installer_proxy_new_for_bus_sync(bus_type,
 				G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,

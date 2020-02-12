@@ -58,6 +58,7 @@ static gboolean r_on_handle_install_bundle(
 		GVariant *arg_args)
 {
 	RaucInstallArgs *args = install_args_new();
+	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(arg_args);
 	gboolean res;
 
 	g_print("input bundle: %s\n", source);
@@ -69,6 +70,8 @@ static gboolean r_on_handle_install_bundle(
 	args->name = g_strdup(source);
 	args->notify = service_install_notify;
 	args->cleanup = service_install_cleanup;
+
+	g_variant_dict_lookup(&dict, "ignore-compatible", "b", &args->ignore_compatible);
 
 	r_installer_set_operation(r_installer, "installing");
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));

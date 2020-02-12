@@ -446,9 +446,9 @@ static void parse_handler_output(gchar* line)
 	}
 }
 
-static gboolean verify_compatible(RaucManifest *manifest)
+static gboolean verify_compatible(RaucInstallArgs *args, RaucManifest *manifest)
 {
-	if (r_context()->ignore_compatible) {
+	if (args->ignore_compatible) {
 		return TRUE;
 	} else if (g_strcmp0(r_context()->config->system_compatible,
 			manifest->update_compatible) == 0) {
@@ -691,7 +691,7 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bun
 			res = FALSE;
 			goto out;
 		}
-	} else if (!verify_compatible(manifest)) {
+	} else if (!verify_compatible(args, manifest)) {
 		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_COMPAT_MISMATCH,
 				"Compatible mismatch");
 		res = FALSE;
@@ -793,7 +793,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			res = FALSE;
 			goto early_out;
 		}
-	} else if (!verify_compatible(manifest)) {
+	} else if (!verify_compatible(args, manifest)) {
 		res = FALSE;
 		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_COMPAT_MISMATCH,
 				"Compatible mismatch");
