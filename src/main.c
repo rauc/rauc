@@ -6,6 +6,7 @@
 #include <json-glib/json-glib.h>
 #include <json-glib/json-gobject.h>
 #endif
+#include <locale.h>
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -31,6 +32,7 @@ gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
 gchar *signing_keyring = NULL;
 gchar *mksquashfs_args = NULL;
+gboolean utf8_supported = FALSE;
 
 static gchar* make_progress_line(gint percentage)
 {
@@ -1942,6 +1944,11 @@ int main(int argc, char **argv)
 {
 	/* disable remote VFS */
 	g_assert(g_setenv("GIO_USE_VFS", "local", TRUE));
+
+	/* Locale needs to support UTF-8, try and flag if unsupported */
+	setlocale(LC_ALL, "");
+	if (g_get_charset(NULL))
+		utf8_supported = TRUE;
 
 	create_option_groups();
 	cmdline_handler(argc, argv);
