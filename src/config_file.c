@@ -322,8 +322,6 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			g_free(value);
 
 			slot->description = key_file_consume_string(key_file, groups[i], "description", NULL);
-			if (!slot->description)
-				slot->description = g_strdup("");
 
 			slot->sclass = g_intern_string(groupsplit[1]);
 
