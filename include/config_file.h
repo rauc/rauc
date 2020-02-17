@@ -34,6 +34,7 @@ typedef struct {
 	gchar *system_bootloader;
 	gchar *system_bb_statename;
 	gchar *grubenv_path;
+	gchar *custom_script;
 	gboolean efi_use_bootnext;
 	/* maximum filesize to download in bytes */
 	guint64 max_bundle_download_size;
