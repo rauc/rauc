@@ -1375,6 +1375,203 @@ static gboolean efi_get_state(RaucSlot* slot, gboolean *good, GError **error)
 	return TRUE;
 }
 
+/* Wrapper for get commands accessing custom script
+ *
+ * @param cmd What to input as command to the custom backend. Mandatory.
+   Valid values:
+   - get-primary
+   - get-state
+ * @param bootname slot.bootname
+ * @param ret_str Return string from stdout after running the command
+ * @param error Return location for a GError
+ */
+static gboolean custom_backend_get(const gchar *cmd, const gchar *bootname, gchar **ret_str, GError **error)
+{
+	g_autoptr(GSubprocess) sub = NULL;
+	GError *ierror = NULL;
+	g_autoptr(GBytes) stdout_buf = NULL;
+	gint ret;
+	gsize size;
+	const gchar *data;
+	gchar *backend_name = r_context()->config->custom_bootloader_backend;
+
+	g_return_val_if_fail(cmd, FALSE);
+	g_return_val_if_fail(ret_str && *ret_str == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (bootname)
+		sub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror, backend_name, cmd, bootname, NULL);
+	else
+		sub = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror, backend_name, cmd, NULL);
+
+	if (!sub) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start: %s", backend_name);
+		return FALSE;
+	}
+
+	if (!g_subprocess_communicate(sub, NULL, NULL, &stdout_buf, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run: %s", backend_name);
+		return FALSE;
+	}
+	data = g_bytes_get_data(stdout_buf, &size);
+	*ret_str = g_strndup(data, size);
+
+	/* Cleanup string for newlines */
+	if (size > 0)
+		g_strstrip(*ret_str);
+
+	ret = g_subprocess_get_exit_status(sub);
+	if (ret != 0) {
+		g_set_error(
+				error,
+				G_SPAWN_EXIT_ERROR,
+				ret,
+				"%s failed with wrong exit code", backend_name);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/* Wrapper for set commands accessing custom script
+ *
+ * @param cmd What to input as command to the custom backend. Mandatory.
+   Valid values:
+   - set-primary
+   - set-state
+ * @param bootname slot.bootname
+ * @param arg extra arguments if needed
+ * @param error Return location for a GError
+ */
+static gboolean custom_backend_set(const gchar *cmd, const gchar *bootname, const gchar *arg, GError **error)
+{
+	g_autoptr(GSubprocess) sub = NULL;
+	GError *ierror = NULL;
+	g_autoptr(GBytes) stdout_buf = NULL;
+	gchar *backend_name = r_context()->config->custom_bootloader_backend;
+
+	g_return_val_if_fail(cmd, FALSE);
+	g_return_val_if_fail(bootname, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (arg)
+		sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, backend_name, cmd, bootname, arg, NULL);
+	else
+		sub = g_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, backend_name, cmd, bootname, NULL);
+
+	if (!sub) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start: %s", backend_name);
+		return FALSE;
+	}
+
+	if (!g_subprocess_wait_check(sub, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run: %s", backend_name);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/* Set slot status values */
+static gboolean custom_set_state(RaucSlot *slot, gboolean good, GError **error)
+{
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	return custom_backend_set("set-state", slot->bootname, good ? "good" : "bad", error);
+}
+
+/* Get slot marked as primary one */
+static RaucSlot* custom_get_primary(GError **error)
+{
+	RaucSlot *slot;
+	GHashTableIter iter;
+	RaucSlot *primary = NULL;
+	GError *ierror = NULL;
+	g_autofree gchar *ret_str = NULL;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!custom_backend_get("get-primary", NULL, &ret_str, &ierror) ) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* Check result. Ensure returned bootname is in the list */
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+		if (!slot->bootname)
+			continue;
+
+		if (g_strcmp0(ret_str, slot->bootname) == 0) {
+			primary = slot;
+			break;
+		}
+	}
+
+	if (!primary) {
+		g_set_error_literal(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Unable to obtain primary slot");
+	}
+
+	return primary;
+}
+
+/* Get state of current slot */
+static gboolean custom_get_state(RaucSlot *slot, gboolean *good, GError **error)
+{
+	GError *ierror = NULL;
+	g_autofree gchar *ret_str = NULL;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!custom_backend_get("get-state", slot->bootname, &ret_str, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (g_strcmp0(ret_str, "good") == 0) {
+		*good = TRUE;
+	} else if (g_strcmp0(ret_str, "bad") == 0) {
+		*good = FALSE;
+	} else {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_FAILED,
+				"Invalid string obtained from custom bootloader backend");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/* Set slot as primary boot slot */
+static gboolean custom_set_primary(RaucSlot *slot, GError **error)
+{
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	return custom_backend_set("set-primary", slot->bootname, NULL, error);
+}
+
+
 gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 {
 	gboolean res = FALSE;
@@ -1392,6 +1589,8 @@ gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 		res = uboot_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = efi_get_state(slot, good, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
+		res = custom_get_state(slot, good, &ierror);
 	} else {
 		g_set_error(
 				error,
@@ -1427,6 +1626,8 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 		res = uboot_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = efi_set_state(slot, good, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
+		res = custom_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "noop") == 0) {
 		g_message("noop bootloader: ignore setting slot %s status to %s", slot->name, good ? "good" : "bad");
 		res = TRUE;
@@ -1464,6 +1665,8 @@ RaucSlot* r_boot_get_primary(GError **error)
 		slot = uboot_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		slot = efi_get_primary(&ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
+		slot = custom_get_primary(&ierror);
 	} else {
 		g_set_error(
 				error,
@@ -1499,6 +1702,8 @@ gboolean r_boot_set_primary(RaucSlot *slot, GError **error)
 		res = uboot_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = efi_set_primary(slot, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
+		res = custom_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "noop") == 0) {
 		g_message("noop bootloader: ignore setting slot %s as primary", slot->name);
 		res = TRUE;
