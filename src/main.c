@@ -1621,7 +1621,7 @@ out:
 	return TRUE;
 }
 
-#if ENABLE_SERVICE == 1
+G_GNUC_UNUSED
 static gboolean service_start(int argc, char **argv)
 {
 	g_debug("service start");
@@ -1630,7 +1630,6 @@ static gboolean service_start(int argc, char **argv)
 
 	return TRUE;
 }
-#endif
 
 static gboolean unknown_start(int argc, char **argv)
 {
