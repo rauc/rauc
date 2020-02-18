@@ -594,47 +594,6 @@ out:
 	return TRUE;
 }
 
-static gboolean checksum_start(int argc, char **argv)
-{
-	GError *error = NULL;
-	gboolean sign = FALSE;
-
-	g_debug("checksum start");
-
-	if (r_context()->certpath != NULL &&
-	    r_context()->keypath != NULL) {
-		sign = TRUE;
-	} else if (r_context()->certpath != NULL ||
-	           r_context()->keypath != NULL) {
-		g_printerr("Either both or none of cert and key files must be provided\n");
-		r_exit_status = 1;
-		goto out;
-	}
-
-	if (argc < 3) {
-		g_printerr("A directory name must be provided\n");
-		r_exit_status = 1;
-		goto out;
-	}
-
-	if (argc > 3) {
-		g_printerr("Excess argument: %s\n", argv[3]);
-		r_exit_status = 1;
-		goto out;
-	}
-
-	g_message("updating checksums for: %s", argv[2]);
-
-	if (!update_manifest(argv[2], sign, &error)) {
-		g_printerr("Failed to update manifest: %s\n", error->message);
-		g_clear_error(&error);
-		r_exit_status = 1;
-	}
-
-out:
-	return TRUE;
-}
-
 /* Takes a shell variable and its desired argument as input and appends it to
  * the provided text with taking care of correct shell quoting */
 static void formatter_shell_append(GString* text, const gchar* varname, const gchar* argument)
@@ -1687,7 +1646,6 @@ typedef enum  {
 	RESIGN,
 	EXTRACT,
 	CONVERT,
-	CHECKSUM,
 	STATUS,
 	INFO,
 	WRITE_SLOT,
@@ -1776,7 +1734,6 @@ static void cmdline_handler(int argc, char **argv)
 		{RESIGN, "resign", "resign <BUNDLENAME>", "Resign an already signed bundle", resign_start, resign_group, FALSE},
 		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>", "Extract the bundle content", extract_start, NULL, FALSE},
 		{CONVERT, "convert", "convert <INBUNDLE> <OUTBUNDLE>", "Convert to casync index bundle and store", convert_start, convert_group, FALSE},
-		{CHECKSUM, "checksum", "checksum <DIRECTORY>", "Deprecated", checksum_start, NULL, FALSE},
 		{INFO, "info", "info <FILE>", "Print bundle info", info_start, info_group, FALSE},
 		{STATUS, "status", "status", "Show system status", status_start, status_group, TRUE},
 		{WRITE_SLOT, "write-slot", "write-slot <SLOTNAME> <IMAGE>", "Write image to slot and bypass all update logic", write_slot_start, NULL, FALSE},
@@ -1805,7 +1762,6 @@ static void cmdline_handler(int argc, char **argv)
 			"  resign\tResign an already signed bundle\n"
 			"  extract\tExtract the bundle content\n"
 			"  convert\tConvert classic to casync bundle\n"
-			"  checksum\tUpdate a manifest with checksums (and optionally sign it)\n"
 			"  install\tInstall a bundle\n"
 			"  info\t\tShow file information\n"
 #if ENABLE_SERVICE == 1

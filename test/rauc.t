@@ -150,7 +150,6 @@ test_expect_success "rauc missing arg" "
   test_expect_code 1 rauc info &&
   test_expect_code 1 rauc bundle &&
   test_expect_code 1 rauc bundle input &&
-  test_expect_code 1 rauc checksum &&
   test_expect_code 1 rauc resign input &&
   test_expect_code 1 rauc info
 "
@@ -160,7 +159,6 @@ test_expect_success "rauc excess args" "
   test_expect_code 1 rauc write-slot source target excess &&
   test_expect_code 1 rauc info bundle excess &&
   test_expect_code 1 rauc bundle indir outbundle excess &&
-  test_expect_code 1 rauc checksum indir excess &&
   test_expect_code 1 rauc resign inbundle outbundle excess &&
   test_expect_code 1 rauc info bundle excess
 "
@@ -175,30 +173,8 @@ test_expect_success "rauc help" "
   rauc write-slot --help &&
   rauc info --help &&
   rauc bundle --help &&
-  rauc checksum --help &&
   rauc resign --help &&
   rauc info --help
-"
-
-test_expect_success "rauc checksum with signing" "
-  mkdir $SHARNESS_TEST_DIRECTORY/tmp
-  cp -t $SHARNESS_TEST_DIRECTORY/tmp -a $SHARNESS_TEST_DIRECTORY/install-content/*
-  rauc \
-    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
-    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
-    checksum $SHARNESS_TEST_DIRECTORY/tmp
-  test -f $SHARNESS_TEST_DIRECTORY/tmp/manifest.raucm.sig
-  rm -r $SHARNESS_TEST_DIRECTORY/tmp
-"
-
-test_expect_success "rauc checksum with extra args" "
-  mkdir $SHARNESS_TEST_DIRECTORY/tmp
-  cp -t $SHARNESS_TEST_DIRECTORY/tmp -a $SHARNESS_TEST_DIRECTORY/install-content/*
-  rauc \
-    --handler-args '--dummy'\
-    checksum $SHARNESS_TEST_DIRECTORY/tmp
-  grep args $SHARNESS_TEST_DIRECTORY/tmp/manifest.raucm | grep dummy
-  rm -r $SHARNESS_TEST_DIRECTORY/tmp
 "
 
 test_expect_success "rauc info" "
