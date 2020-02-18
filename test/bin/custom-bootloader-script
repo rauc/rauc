@@ -1,0 +1,48 @@
+#!/bin/bash
+
+function custom_get_state ()
+{
+	bootname=$1
+	ret=$(grep "STATE_${bootname}" "$CUSTOM_STATE_PATH"| sed 's/.*=\(.*\)/\1/')
+	echo "$ret"
+}
+
+function custom_set_state ()
+{
+	bootname=$1
+	good=$2
+
+	sed -i "s/\(STATE_${bootname}=\).*/\1${good}/" "${CUSTOM_STATE_PATH}"
+}
+
+function custom_get_primary ()
+{
+	bootname=$(grep PRIMARY "$CUSTOM_STATE_PATH" | sed 's/.*=\(.*\)/\1/')
+
+	# Found primary. Checking whether the primary is valid
+	ret=$(grep "STATE_${bootname}" "$CUSTOM_STATE_PATH" | sed 's/.*=\(.*\)/\1/')
+	if [ "x${ret}" = "xgood" ]; then
+		echo "$bootname"
+	fi
+}
+
+function custom_set_primary ()
+{
+	bootname=$1
+
+	sed -i "s/\(PRIMARY=\).*/\1${bootname}/" "${CUSTOM_STATE_PATH}"
+}
+
+if [ "$1" = "get-state" ]; then
+    shift
+    custom_get_state "$@"
+elif [ "$1" = "set-state" ]; then
+    shift
+    custom_set_state "$@"
+elif [ "$1" = "get-primary" ]; then
+    shift
+    custom_get_primary "$@"
+elif [ "$1" = "set-primary" ]; then
+    shift
+    custom_set_primary "$@"
+fi
