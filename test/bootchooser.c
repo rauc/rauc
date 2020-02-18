@@ -824,6 +824,191 @@ bootname=system1\n";
 	g_assert_true(r_boot_set_primary(slot, NULL));
 }
 
+/* Write content to state storage for custom-backend RAUC mock
+ * tools. Content should be similar to:
+ * "\
+ * PRIMARY=A\n\
+ * STATE_A=good\n\
+ * STATE_B=good\n\
+ * "
+ */
+static void test_custom_initialize_state(const gchar *vars)
+{
+	g_autofree gchar *state_path = g_build_filename(g_get_tmp_dir(), "custom-test-state", NULL);
+	g_setenv("CUSTOM_STATE_PATH", state_path, TRUE);
+	g_assert_true(g_file_set_contents(state_path, vars, -1, NULL));
+}
+
+/* Content written should identical to format described for
+ * test_custom_backend_initialize_state().
+ *
+ * Returns TRUE if mock tools state content equals desired content,
+ * FALSE otherwise
+ */
+static gboolean test_custom_post_state(const gchar *compare)
+{
+	g_autofree gchar *state_path = g_build_filename(g_get_tmp_dir(), "custom-test-state", NULL);
+	g_autofree gchar *contents = NULL;
+
+	g_assert_true(g_file_get_contents(state_path, &contents, NULL, NULL));
+
+	if (g_strcmp0(contents, compare) != 0) {
+		g_print("Error: '%s' and '%s' differ\n", contents, compare);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static void bootchooser_custom(BootchooserFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucSlot *rootfs0 = NULL;
+	RaucSlot *rootfs1 = NULL;
+	RaucSlot *primary = NULL;
+	gboolean good;
+	GError *error = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=custom\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[handlers]\n\
+bootloader-custom-backend=custom-bootloader-script\n\
+\n\
+[keyring]\n\
+path=/etc/rauc/keyring/\n\
+\n\
+[slot.rescue.0]\n\
+device=/dev/mtd4\n\
+type=raw\n\
+bootname=R\n\
+readonly=true\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/rootfs-0\n\
+type=ext4\n\
+bootname=A\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/rootfs-1\n\
+type=ext4\n\
+bootname=B\n";
+
+	gchar* pathname = write_tmp_file(fixture->tmpdir, "custom.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_clear_pointer(&r_context_conf()->configpath, g_free);
+	r_context_conf()->configpath = pathname;
+	r_context();
+
+	rootfs0 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-0");
+	g_assert_nonnull(rootfs0);
+	rootfs1 = find_config_slot_by_device(r_context()->config, "/dev/rootfs-1");
+	g_assert_nonnull(rootfs1);
+
+	/* check A and B can be set to bad */
+	test_custom_initialize_state("\
+PRIMARY=A\n\
+STATE_A=good\n\
+STATE_B=good\n\
+");
+	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
+	g_assert_true(good);
+	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	g_assert_true(good);
+
+	g_assert_true(r_boot_set_state(rootfs0, FALSE, NULL));
+	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
+	g_assert_false(good);
+	g_assert_true(r_boot_set_state(rootfs1, FALSE, NULL));
+	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	g_assert_false(good);
+	g_assert_true(test_custom_post_state("\
+PRIMARY=A\n\
+STATE_A=bad\n\
+STATE_B=bad\n\
+"));
+
+	/* check A and B can be set to good */
+	test_custom_initialize_state("\
+PRIMARY=A\n\
+STATE_A=bad\n\
+STATE_B=bad\n\
+");
+	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
+	g_assert_false(good);
+	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	g_assert_false(good);
+	g_assert_true(r_boot_set_state(rootfs0, TRUE, NULL));
+	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
+	g_assert_true(good);
+	g_assert_true(r_boot_set_state(rootfs1, TRUE, NULL));
+	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	g_assert_true(good);
+	g_assert_true(test_custom_post_state("\
+PRIMARY=A\n\
+STATE_A=good\n\
+STATE_B=good\n\
+"));
+
+	/* check B can be set to primary */
+	test_custom_initialize_state("\
+PRIMARY=A\n\
+STATE_A=good\n\
+STATE_B=good\n\
+");
+	primary = r_boot_get_primary(NULL);
+	g_assert_nonnull(primary);
+	g_assert(primary == rootfs0);
+	g_assert(primary != rootfs1);
+
+	g_assert_true(r_boot_set_primary(rootfs1, NULL));
+	primary = r_boot_get_primary(NULL);
+	g_assert_nonnull(primary);
+	g_assert(primary != rootfs0);
+	g_assert(primary == rootfs1);
+	g_assert_true(test_custom_post_state("\
+PRIMARY=B\n\
+STATE_A=good\n\
+STATE_B=good\n\
+"));
+
+	/* check A can be set to primary */
+	test_custom_initialize_state("\
+PRIMARY=B\n\
+STATE_A=good\n\
+STATE_B=good\n\
+");
+	primary = r_boot_get_primary(NULL);
+	g_assert_nonnull(primary);
+	g_assert(primary != rootfs0);
+	g_assert(primary == rootfs1);
+
+	g_assert_true(r_boot_set_primary(rootfs0, NULL));
+	primary = r_boot_get_primary(NULL);
+	g_assert_nonnull(primary);
+	g_assert(primary == rootfs0);
+	g_assert(primary != rootfs1);
+	g_assert_true(test_custom_post_state("\
+PRIMARY=A\n\
+STATE_A=good\n\
+STATE_B=good\n\
+"));
+
+	/* check none is considered primary if both are bad */
+	test_custom_initialize_state("\
+PRIMARY=A\n\
+STATE_A=bad\n\
+STATE_B=bad\n\
+");
+	primary = r_boot_get_primary(&error);
+	g_assert_null(primary);
+	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_PARSE_FAILED);
+	g_clear_error(&error);
+}
 
 int main(int argc, char *argv[])
 {
@@ -858,6 +1043,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bootchooser/efi", BootchooserFixture, NULL,
 			bootchooser_fixture_set_up, bootchooser_efi,
+			bootchooser_fixture_tear_down);
+
+	g_test_add("/bootchooser/custom", BootchooserFixture, NULL,
+			bootchooser_fixture_set_up, bootchooser_custom,
 			bootchooser_fixture_tear_down);
 
 	return g_test_run();
