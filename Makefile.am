@@ -13,8 +13,10 @@ CODE_COVERAGE_IGNORE_PATTERN = "*-generated.c"
 @CODE_COVERAGE_RULES@
 @VALGRIND_CHECK_RULES@
 
-AM_CFLAGS = -DG_LOG_DOMAIN=\"rauc\" $(WARN_CFLAGS) $(GLIB_CFLAGS) $(CURL_CFLAGS)
-AM_LDFLAGS = $(WARN_LDFLAGS) $(GLIB_LDFLAGS) $(CURL_LDFLAGS) $(OPENSSL_LDFLAGS)
+GC_CFLAGS = -fdata-sections -ffunction-sections
+GC_LDFLAGS = -Wl,--gc-sections -Wl,-Map,$@.map
+AM_CFLAGS = -DG_LOG_DOMAIN=\"rauc\" $(GC_CFLAGS) $(WARN_CFLAGS) $(GLIB_CFLAGS) $(CURL_CFLAGS)
+AM_LDFLAGS = $(GC_LDFLAGS) $(WARN_LDFLAGS) $(GLIB_LDFLAGS) $(CURL_LDFLAGS) $(OPENSSL_LDFLAGS)
 AM_CPPFLAGS = -I${top_srcdir}/include -include ${top_builddir}/config.h $(OPENSSL_INCLUDES)
 
 gdbus_installer_generated = \
@@ -254,8 +256,10 @@ CLEANFILES = $(gdbus_installer_generated) \
 	     $(nodist_systemdunit_DATA) \
 	     $(nodist_dbussystemservice_DATA) \
 	     $(nodist_dbuswrapper_SCRIPTS) \
+	     rauc.map \
 	     data/rauc.service \
 	     test/empty.dat \
+	     test/*.map \
 	     test/test-results/rauc.*.counts \
 	     test/savedmanifest.raucm \
 	     test/savedslot.raucs \
