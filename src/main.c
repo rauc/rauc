@@ -1763,7 +1763,13 @@ static void cmdline_handler(int argc, char **argv)
 #endif
 		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>", "Extract the bundle content", extract_start, NULL, FALSE},
 		{INFO, "info", "info <FILE>", "Print bundle info", info_start, info_group, FALSE},
-		{STATUS, "status", "status", "Show system status", status_start, status_group, TRUE},
+		{STATUS, "status", "status",
+		 "Show system status\n\n"
+		 "List of status commands (default slot is the currently booted slot):\n"
+		 "  mark-good [booted | other | <SLOT_NAME>] \tMark the slot as good\n"
+		 "  mark-bad [booted | other | <SLOT_NAME>] \tMark the slot as bad\n"
+		 "  mark-active [booted | other | <SLOT_NAME>] \tMark the slot as active",
+		 status_start, status_group, TRUE},
 		{WRITE_SLOT, "write-slot", "write-slot <SLOTNAME> <IMAGE>", "Write image to slot and bypass all update logic", write_slot_start, NULL, FALSE},
 #if ENABLE_SERVICE == 1
 		{SERVICE, "service", "service", "Start RAUC service", service_start, NULL, TRUE},
