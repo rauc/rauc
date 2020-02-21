@@ -232,6 +232,19 @@ test_expect_success "rauc bundle" "
   rm out.raucb
 "
 
+test_expect_success "rauc bundle mksquashfs extra args" "
+  rm -f out.raucb &&
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    bundle \
+    --mksquashfs-args=\"-comp xz -info -progress\" \
+    $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
+  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info out.raucb &&
+  test -f out.raucb &&
+  rm out.raucb
+"
+
 test_expect_success PKCS11 "rauc bundle with PKCS11 (key 1)" "
   rm -f out.raucb &&
   rauc \

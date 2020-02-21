@@ -30,6 +30,7 @@ gboolean info_noverify, info_dumpcert = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
 gchar *signing_keyring = NULL;
+gchar *mksquashfs_args = NULL;
 
 static gchar* make_progress_line(gint percentage)
 {
@@ -1672,6 +1673,7 @@ static GOptionEntry entries_install[] = {
 
 static GOptionEntry entries_bundle[] = {
 	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
+	{"mksquashfs-args", '\0', 0, G_OPTION_ARG_STRING, &mksquashfs_args, "mksquashfs extra args", "ARGS"},
 	{0}
 };
 
@@ -1899,6 +1901,8 @@ static void cmdline_handler(int argc, char **argv)
 			r_context_conf()->keyringpath = keyring;
 		if (signing_keyring)
 			r_context_conf()->signing_keyringpath = signing_keyring;
+		if (mksquashfs_args)
+			r_context_conf()->mksquashfs_args = mksquashfs_args;
 		if (intermediate)
 			r_context_conf()->intermediatepaths = intermediate;
 		if (mount)

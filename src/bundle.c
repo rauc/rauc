@@ -21,6 +21,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(7, g_free);
 
 	r_context_begin_step("mksquashfs", "Creating squashfs", 0);
 
@@ -29,16 +30,35 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 		goto out;
 	}
 
-	sproc = r_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
-			&ierror, "mksquashfs",
-			contentdir,
-			bundlename,
-			"-all-root",
-			"-noappend",
-			"-no-progress",
-			"-no-xattrs",
-			NULL);
+	g_ptr_array_add(args, g_strdup("mksquashfs"));
+	g_ptr_array_add(args, g_strdup(contentdir));
+	g_ptr_array_add(args, g_strdup(bundlename));
+	g_ptr_array_add(args, g_strdup("-all-root"));
+	g_ptr_array_add(args, g_strdup("-noappend"));
+	g_ptr_array_add(args, g_strdup("-no-progress"));
+	g_ptr_array_add(args, g_strdup("-no-xattrs"));
+
+
+	if (r_context()->mksquashfs_args != NULL) {
+		g_auto(GStrv) mksquashfs_argvp = NULL;
+		res = g_shell_parse_argv(r_context()->mksquashfs_args, NULL, &mksquashfs_argvp, &ierror);
+		if (!res) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed to parse mksquashfs extra args: ");
+			goto out;
+		}
+		for (gchar **mksquashfs_args = mksquashfs_argvp; *mksquashfs_args != NULL; mksquashfs_args++) {
+			g_ptr_array_add(args, g_strdup(*mksquashfs_args));
+		}
+	}
+	g_ptr_array_add(args, NULL);
+
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
+			&ierror);
 	if (sproc == NULL) {
+		res = FALSE;
 		g_propagate_prefixed_error(
 				error,
 				ierror,

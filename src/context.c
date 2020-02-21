@@ -569,11 +569,13 @@ void r_context_clean(void)
 		g_free(context->keyringpath);
 		g_free(context->keyringdirectory);
 		g_free(context->signing_keyringpath);
+		g_free(context->mksquashfs_args);
 		context->certpath = NULL;
 		context->keypath = NULL;
 		context->keyringpath = NULL;
 		context->keyringdirectory = NULL;
 		context->signing_keyringpath = NULL;
+		context->mksquashfs_args = NULL;
 
 		if (context->config) {
 			context->config->keyring_path = NULL;
