@@ -503,4 +503,14 @@ test_expect_success CASYNC "rauc convert" "
     convert $SHARNESS_TEST_DIRECTORY/good-bundle.raucb casync.raucb
 "
 
+test_expect_success CASYNC "rauc convert casync extra args" "
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    convert \
+    --casync-args=\"--chunk-size=64000\" \
+    $SHARNESS_TEST_DIRECTORY/good-bundle.raucb casync-extra-args.raucb
+"
+
 test_done
