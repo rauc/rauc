@@ -35,6 +35,7 @@ typedef struct {
 	gchar *keyringdirectory;
 	gchar *signing_keyringpath;
 	gchar *mksquashfs_args;
+	gchar *casync_args;
 	gchar **intermediatepaths;
 	/* optional global mount prefix overwrite */
 	gchar *mountprefix;

@@ -159,6 +159,21 @@ static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath,
 		g_ptr_array_add(iargs, g_strdup("--store"));
 		g_ptr_array_add(iargs, g_strdup(store));
 	}
+
+	if (r_context()->casync_args != NULL) {
+		g_auto(GStrv) casync_argvp = NULL;
+		res = g_shell_parse_argv(r_context()->casync_args, NULL, &casync_argvp, &ierror);
+		if (!res) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed to parse casync extra args: ");
+			goto out;
+		}
+		for (gchar **casync_args = casync_argvp; *casync_args != NULL; casync_args++) {
+			g_ptr_array_add(iargs, g_strdup(*casync_args));
+		}
+	}
 	g_ptr_array_add(iargs, NULL);
 
 	/* Outer process calll */
@@ -174,6 +189,7 @@ static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath,
 				error,
 				ierror,
 				"Failed to start casync: ");
+		res = FALSE;
 		goto out;
 	}
 
@@ -206,6 +222,21 @@ static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath,
 		g_ptr_array_add(args, g_strdup("--store"));
 		g_ptr_array_add(args, g_strdup(store));
 	}
+
+	if (r_context()->casync_args != NULL) {
+		g_auto(GStrv) casync_argvp = NULL;
+		res = g_shell_parse_argv(r_context()->casync_args, NULL, &casync_argvp, &ierror);
+		if (!res) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed to parse casync extra args: ");
+			goto out;
+		}
+		for (gchar **casync_args = casync_argvp; *casync_args != NULL; casync_args++) {
+			g_ptr_array_add(args, g_strdup(*casync_args));
+		}
+	}
 	g_ptr_array_add(args, NULL);
 
 	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
@@ -214,6 +245,7 @@ static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath,
 				error,
 				ierror,
 				"Failed to start casync: ");
+		res = FALSE;
 		goto out;
 	}
 
