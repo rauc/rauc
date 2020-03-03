@@ -7,6 +7,7 @@
 #include <json-glib/json-gobject.h>
 #endif
 #include <stdio.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
