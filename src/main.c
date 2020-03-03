@@ -1685,6 +1685,7 @@ static GOptionEntry entries_resign[] = {
 
 static GOptionEntry entries_convert[] = {
 	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
+	{"mksquashfs-args", '\0', 0, G_OPTION_ARG_STRING, &mksquashfs_args, "mksquashfs extra args", "ARGS"},
 	{0}
 };
 
