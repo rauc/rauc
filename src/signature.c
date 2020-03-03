@@ -407,6 +407,7 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 					R_SIGNATURE_ERROR,
 					R_SIGNATURE_ERROR_X509_NEW,
 					"failed to allocate new X509 store");
+			g_clear_pointer(&res, g_bytes_unref);
 			goto out;
 		}
 		if (!X509_STORE_load_locations(store, keyring_path, NULL)) {
@@ -415,19 +416,20 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 					R_SIGNATURE_ERROR,
 					R_SIGNATURE_ERROR_CA_LOAD,
 					"failed to load CA file '%s'", keyring_path);
+			g_clear_pointer(&res, g_bytes_unref);
 			goto out;
 		}
 
 		g_message("Keyring given, doing signature verification");
 		if (!cms_verify(content, res, store, &vcms, &ierror)) {
 			g_propagate_error(error, ierror);
-			res = NULL;
+			g_clear_pointer(&res, g_bytes_unref);
 			goto out;
 		}
 
 		if (!cms_get_cert_chain(vcms, store, &verified_chain, &ierror)) {
 			g_propagate_error(error, ierror);
-			res = NULL;
+			g_clear_pointer(&res, g_bytes_unref);
 			goto out;
 		}
 
