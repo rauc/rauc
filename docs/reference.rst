@@ -745,7 +745,11 @@ The "BootSlot" Property
   de.pengutronix.rauc.Installer:BootSlot
   BootSlot  readable   s
 
-Represents the used boot slot.
+Contains the information RAUC uses to identify the booted slot. It is derived
+from the kernel command line.
+This can either be the slot name (e.g. ``rauc.slot=rootfs.0``) or the root device
+path (e.g. ``root=PARTUUID=0815``). If the ``root=`` kernel command line option is
+used, the symlink is resolved to the block device (e.g. ``/dev/mmcblk0p1``).
 
 
 RAUC's Basic Update Procedure
