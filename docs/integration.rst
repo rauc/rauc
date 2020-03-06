@@ -462,7 +462,7 @@ other general and slot-specific variables.
 Setting up Barebox State for Bootchooser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For storing its status information, the botchooser framework requires a
+For storing its status information, the bootchooser framework requires a
 *barebox,state* instance to be set up with a set of variables matching the set
 of virtual boot targets defined.
 
