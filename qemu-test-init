@@ -1,0 +1,55 @@
+#!/bin/sh
+
+set -ex
+
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+mount -t proc none /proc
+mount -t sysfs none /sys
+mount -t tmpfs none /mnt
+mount -t tmpfs none /tmp
+
+# loopback interface
+ip addr add 127.0.0.1 dev lo
+ip link set lo up
+
+# main interface
+ip link set eth0 up
+ip addr add 10.0.2.15/24 dev eth0
+ip link set eth0 up
+ip route add default via 10.0.2.2
+# /etc is not writable from here
+echo "nameserver 10.0.2.3" > /tmp/resolv.conf
+mount --bind /tmp/resolv.conf /etc/resolv.conf
+
+# switch to rauc dir
+cd "$(dirname "$0")"
+
+# fake entropy
+test/fakerand
+
+# grub env
+mkdir -p /tmp/boot/grub
+mount --bind /tmp/boot /boot
+grub-editenv test/grubenv.test create
+touch /tmp/boot/grub/grubenv
+mount --bind test/grubenv.test /tmp/boot/grub/grubenv
+
+# dbus daemon
+cp -a /etc/dbus-1/system.d /tmp
+cp -a data/de.pengutronix.rauc.conf /tmp/system.d
+chown root:root /tmp/system.d/de.pengutronix.rauc.conf
+chmod 644 /tmp/system.d/de.pengutronix.rauc.conf
+mount --bind /tmp/system.d /etc/dbus-1/system.d
+mount -t tmpfs none /var/run
+mkdir -p /var/run/dbus
+time dbus-daemon --system --fork --nopidfile --nosyslog --print-address
+
+echo "system ready"
+
+if make check; then
+  touch qemu-test-ok
+else
+  cat test-suite.log
+fi
+poweroff -f

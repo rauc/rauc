@@ -1,0 +1,41 @@
+#!/bin/sh
+
+set -e
+
+rm -f qemu-test-ok
+
+# TODO use virtfs with multidevs=remap on qemu 4.2
+# https://github.com/qemu/qemu/commit/1a6ed33cc56997479bbe5b48337ff8da44585bd4
+
+KERNEL_URL="https://github.com/jluebbe/linux/releases/download/rauc-test-20200207-1/bzImage"
+KERNEL_SHA256SUM="0c54ff90a1cb03c14afa5d61df876ead7b50c6053ffabf99f99fb69098adc877"
+
+check_kernel() {
+  if test -f bzImage && echo "$KERNEL_SHA256SUM bzImage" | sha256sum --check --status; then
+    return 0
+  fi
+  curl -L "$KERNEL_URL" -o bzImage.tmp
+  if echo "$KERNEL_SHA256SUM bzImage.tmp" | sha256sum --check --status; then
+    mv bzImage.tmp bzImage
+  else
+    echo "bad bzImage hash"
+    return 1
+  fi
+}
+
+check_kernel || exit 1
+
+# make sure the tests are built
+make TESTS= check > /dev/null
+
+qemu-system-x86_64 \
+  -enable-kvm \
+  -machine q35 \
+  -kernel bzImage \
+  -nographic -serial mon:stdio \
+  -no-reboot \
+  -virtfs local,id=rootfs,path=/,security_model=none,mount_tag=/dev/root \
+  -nic user,model=virtio-net-pci \
+  -append "loglevel=6 console=ttyS0 root=/dev/root rootfstype=9p rw init=$(pwd)/qemu-test-init rauc.slot=system0"
+
+test -f qemu-test-ok
