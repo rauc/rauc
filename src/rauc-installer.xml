@@ -8,6 +8,7 @@
     -->
     <method name="Install">
       <arg name="source" type="s"/>
+      <arg name="ignore_slot_as_seed" type="b" direction="in"/>
     </method>
 
    <!--

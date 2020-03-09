@@ -681,7 +681,7 @@ static gint cgi_handler(int argc, char **argv)
 			goto remove_bundle_on_error;
 
 		/* start rauc install */
-		if (!r_installer_call_install_sync(installer, BUNDLE_TARGET_LOCATION, NULL, &error))
+		if (!r_installer_call_install_sync(installer, BUNDLE_TARGET_LOCATION, FALSE, NULL, &error))
 			goto remove_bundle_on_error;
 
 		print_headers("200 OK", "text/plain");

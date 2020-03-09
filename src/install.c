@@ -1016,6 +1016,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	}
 
 	r_context()->install_info->mounted_bundle = bundle;
+	r_context()->install_info->ignore_slot_as_seed = args->ignore_slot_as_seed;
 
 	manifestpath = g_build_filename(bundle->mount_point, "manifest.raucm", NULL);
 	res = load_manifest_file(manifestpath, &manifest, &ierror);
@@ -1043,6 +1044,8 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		}
 	}
 
+	if (args->ignore_slot_as_seed)
+		g_message("Not using slot as a seed for the installation");
 
 	if (manifest->handler_name) {
 		g_message("Using custom handler: %s", manifest->handler_name);

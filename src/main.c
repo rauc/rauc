@@ -26,7 +26,7 @@
 GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
-gboolean install_ignore_compatible, install_progressbar = FALSE;
+gboolean install_ignore_compatible, install_progressbar, install_ignore_slot_as_seed = FALSE;
 gboolean info_noverify, info_dumpcert = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
@@ -43,7 +43,7 @@ static gchar* make_progress_line(gint percentage)
 
 	/* obtain terminal window parameters */
 	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == -1) {
-		g_warning("Unable to obtain window parameters: %s", strerror(errno));
+		g_warning("Unable to obtain window parameters: %s", g_strerror(errno));
 		/* default to 80 */
 		w.ws_col = 80;
 	}
@@ -217,6 +217,7 @@ static gboolean install_start(int argc, char **argv)
 
 	args = install_args_new();
 	args->name = g_steal_pointer(&bundlelocation);
+	args->ignore_slot_as_seed = install_ignore_slot_as_seed;
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 	args->status_result = 2;
@@ -244,7 +245,7 @@ static gboolean install_start(int argc, char **argv)
 			goto out_loop;
 		}
 		g_debug("Trying to contact rauc service");
-		if (!r_installer_call_install_sync(installer, args->name, NULL,
+		if (!r_installer_call_install_sync(installer, args->name, args->ignore_slot_as_seed, NULL,
 				&error)) {
 			g_printerr("Failed %s\n", error->message);
 			g_error_free(error);
@@ -1668,6 +1669,7 @@ typedef struct {
 
 static GOptionEntry entries_install[] = {
 	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
+	{"ignore-slot-seed", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_slot_as_seed, "disable using slot as seed", NULL},
 	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
 	{0}
 };
