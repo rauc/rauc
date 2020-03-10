@@ -16,12 +16,12 @@ AM_SILENT_RULES([yes])
 AC_REQUIRE_AUX_FILE([tap-driver.sh])
 AC_REQUIRE_AUX_FILE([git-version-gen])
 
-AX_IS_RELEASE([git-directory])
 AX_CHECK_ENABLE_DEBUG([yes])
 
 AC_USE_SYSTEM_EXTENSIONS
 AC_SYS_LARGEFILE
-AX_COMPILER_FLAGS
+
+AX_COMPILER_FLAGS(,, [yes])
 
 # Checks for programs.
 AC_PROG_AWK

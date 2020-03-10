@@ -1,1 +1,0 @@
-../../../m4/ax_is_release.m4
