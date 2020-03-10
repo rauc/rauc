@@ -28,10 +28,7 @@ static const gchar* get_cmdline_bootname(void)
 {
 	g_autofree gchar *contents = NULL;
 	g_autofree gchar *realdev = NULL;
-	static const char *bootname = NULL;
-
-	if (bootname != NULL)
-		return bootname;
+	const char *bootname = NULL;
 
 	if (!g_file_get_contents("/proc/cmdline", &contents, NULL, NULL))
 		return NULL;
