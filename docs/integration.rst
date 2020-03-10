@@ -299,7 +299,7 @@ Identification via Kernel Commandline
 RAUC evaluates different kernel commandline parameters in the order they are
 listed below.
 
-.. rubric:: ``rauc.slot=``
+.. rubric:: ``rauc.slot=`` and ``rauc.external``
 
 This is the generic way to explicitly set information about which slot was
 booted by the bootloader.
@@ -313,6 +313,14 @@ mechanism (such as a 'last-resort' recovery fallback that never gets explicitly
 selected) you can also give the name of the slot::
 
   rauc.slot=recovery.0
+
+When booting from a source not configured in your system.conf (for example from
+a USB memory stick), you can tell rauc explicitly with the flag ``
+rauc.external``.
+This means that all slots are known to be inactive and will be valid
+installation targets.
+A possible use case for this is to use RAUC during a bootstrapping procedure to
+perform an initial installation.
 
 .. rubric:: ``bootchooser.active=``
 

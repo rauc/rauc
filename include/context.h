@@ -49,6 +49,12 @@ typedef struct {
 
 	/* for storing installation runtime informations */
 	RContextInstallationInfo *install_info;
+
+	/* mock data for testing, zero during normal usage */
+	struct {
+		/* mock contents of /proc/cmdline */
+		const gchar *proc_cmdline;
+	} mock;
 } RaucContext;
 
 typedef struct {
