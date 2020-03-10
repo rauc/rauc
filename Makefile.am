@@ -24,9 +24,9 @@ gdbus_installer_generated = \
 	rauc-installer-generated.h
 
 BUILT_SOURCES += $(gdbus_installer_generated)
-EXTRA_DIST += src/rauc-installer.xml
+EXTRA_DIST += src/de.pengutronix.rauc.Installer.xml
 
-$(gdbus_installer_generated): src/rauc-installer.xml
+$(gdbus_installer_generated): src/de.pengutronix.rauc.Installer.xml
 	$(AM_V_GEN) gdbus-codegen \
 		--generate-c-code rauc-installer-generated \
 		--c-namespace R \
@@ -99,6 +99,9 @@ nodist_dbussystemservice_DATA = data/de.pengutronix.rauc.service
 
 dbuspolicydir = $(DBUS_POLICYDIR)
 dist_dbuspolicy_DATA = data/de.pengutronix.rauc.conf
+
+dbusinterfacesdir = $(DBUS_INTERFACESDIR)
+dist_dbusinterfaces_DATA = src/de.pengutronix.rauc.Installer.xml
 
 dbuswrapperdir = $(libexecdir)
 nodist_dbuswrapper_SCRIPTS = data/rauc-service.sh
@@ -254,7 +257,8 @@ EXTRA_DIST += $(wildcard docs/*.rst)
 AM_DISTCHECK_CONFIGURE_FLAGS = \
     --with-systemdunitdir=$$dc_install_base/$(systemdunitdir) \
     --with-dbuspolicydir=$$dc_install_base/$(dbuspolicydir) \
-    --with-dbussystemservicedir=$$dc_install_base/$(dbussystemservicedir)
+    --with-dbussystemservicedir=$$dc_install_base/$(dbussystemservicedir) \
+    --with-dbusinterfacesdir=$$dc_install_base/$(dbusinterfacesdir)
 
 CLEANFILES = $(gdbus_installer_generated) \
 	     $(nodist_systemdunit_DATA) \

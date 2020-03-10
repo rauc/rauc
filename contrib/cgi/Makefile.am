@@ -18,9 +18,9 @@ gdbus_installer_generated = \
 	rauc-installer-generated.h
 
 BUILT_SOURCES += $(gdbus_installer_generated)
-EXTRA_DIST += src/rauc-installer.xml
+EXTRA_DIST += src/de.pengutronix.rauc.Installer.xml
 
-$(gdbus_installer_generated): src/rauc-installer.xml
+$(gdbus_installer_generated): src/de.pengutronix.rauc.Installer.xml
 	$(AM_V_GEN) gdbus-codegen \
 		--generate-c-code rauc-installer-generated \
 		--c-namespace R \

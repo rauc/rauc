@@ -111,6 +111,13 @@ AC_ARG_WITH([dbussystemservicedir],
 DBUS_SYSTEMSERVICEDIR="${with_dbussystemservicedir}"
 AC_SUBST(DBUS_SYSTEMSERVICEDIR)
 
+AC_ARG_WITH([dbusinterfacesdir],
+        AS_HELP_STRING([--with-dbusinterfacesdir=DIR], [D-Bus interfaces directory]),
+        [],
+        [with_dbusinterfacesdir="$($PKG_CONFIG --variable=interfaces_dir dbus-1)"])
+DBUS_INTERFACESDIR="${with_dbusinterfacesdir}"
+AC_SUBST(DBUS_INTERFACESDIR)
+
 # Checks for header files.
 
 AC_CHECK_HEADER([linux/mmc/ioctl.h],
