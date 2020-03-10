@@ -33,6 +33,7 @@ gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
 gchar *signing_keyring = NULL;
 gchar *mksquashfs_args = NULL;
+gchar *casync_args = NULL;
 gboolean utf8_supported = FALSE;
 
 static gchar* make_progress_line(gint percentage)
@@ -1716,6 +1717,7 @@ static GOptionEntry entries_resign[] = {
 static GOptionEntry entries_convert[] = {
 	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
 	{"mksquashfs-args", '\0', 0, G_OPTION_ARG_STRING, &mksquashfs_args, "mksquashfs extra args", "ARGS"},
+	{"casync-args", '\0', 0, G_OPTION_ARG_STRING, &casync_args, "casync extra args", "ARGS"},
 	{0}
 };
 
@@ -1935,6 +1937,8 @@ static void cmdline_handler(int argc, char **argv)
 			r_context_conf()->signing_keyringpath = signing_keyring;
 		if (mksquashfs_args)
 			r_context_conf()->mksquashfs_args = mksquashfs_args;
+		if (casync_args)
+			r_context_conf()->casync_args = casync_args;
 		if (intermediate)
 			r_context_conf()->intermediatepaths = intermediate;
 		if (mount)
