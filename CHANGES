@@ -1,3 +1,59 @@
+Release 1.3 (development)
+-------------------------
+
+.. rubric:: Enhancements
+
+* Added support for installing ubifs images via casync (depends on the casync PR
+  https://github.com/systemd/casync/pull/227). (by Ulrich Ölmann)
+* Exposed RAUC_BUNDLE_MOUNT_POINT to hook scripts. This also deprecates the old
+  name RAUC_UPDATE_SOURCE for this value in handler scripts. (by Rasmus Villemoes)
+* Reduced size of the installed ``rauc`` binary. This was done by using
+  --gc-sections and adding a configure switch to disable the bundle, resign and
+  convert commands. (by Rasmus Villemoes)
+* Added the --mksquashfs-args option for bundle creation. This can be used to
+  configure the details of the squashfs compression. (by Louis des Landes)
+* Improved layout of the ``rauc status`` output.
+* Added support for explicitly telling RAUC that all slots are inactive on the
+  kernel command line (``rauc.external``). This is useful for using RAUC in an
+  factory installer. (by Marco Felsch)
+* Added the --casync-args option for the convert command. This can be used to
+  configure the details of the casync conversion. (by Christopher Obbard)
+
+.. rubric:: Bug fixes
+
+* Fixed SD/eMMC detection when using /dev/disk/by-path/ symlinks. (by Marco Felsch)
+* Fixed handling of HTTP Content-Encoding: gzip. (by Jan Kundrát)
+* Fixed reporing of errors during bundle verification. This solves a
+  ``rauc-ERROR **: Not enough substeps: check_bundle`` abort. (by Rouven
+  Czerwinski)
+* Fixed handling of surrounding whitespace in the system variant by removing
+  it. A warning is printed in this case.
+* Fixed the rauc D-Bus interface introspection file name to be consistent with
+  the interface name. (by Michael Tretter)
+
+.. rubric:: Testing
+
+* Switched testing environment from user-mode-linux (UML) to QEMU. This allows
+  us to use our own kernel configuration and avoids the (unusual) dependency.
+
+.. rubric:: Code
+
+* Reduced redundant prefixes in error messages.
+* Removed unused verification functions left over from the old network mode.
+* Removed minor memory leaks.
+* Improved support for large bundles on 32 bit systems, but some work remains
+  to be done.
+* Disabled automatic -Werror and -O0 when building from a git repository. This
+  caused confusion in several cases.
+
+.. rubric:: Documentation
+
+* Fixed minor typos and inconsistencies.
+
+Contributions from: Arnaud Rebillout, Christopher Obbard, Enrico Jörns, Jan
+Kundrát, Jan Lübbe, Louis des Landes, Marco Felsch, Michael Tretter, Rasmus
+Villemoes, Rouven Czerwinski, Ulrich Ölmann
+
 Release 1.2 (released Oct 27, 2019)
 -----------------------------------
 
