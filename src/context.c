@@ -30,7 +30,9 @@ static const gchar* get_cmdline_bootname(void)
 	g_autofree gchar *realdev = NULL;
 	const char *bootname = NULL;
 
-	if (!g_file_get_contents("/proc/cmdline", &contents, NULL, NULL))
+	if (context->mock.proc_cmdline)
+		contents = g_strdup(context->mock.proc_cmdline);
+	else if (!g_file_get_contents("/proc/cmdline", &contents, NULL, NULL))
 		return NULL;
 
 	if (strstr(contents, "rauc.external") != NULL)

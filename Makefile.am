@@ -130,6 +130,7 @@ check_PROGRAMS = \
 	test/bootchooser.test \
 	test/checksum.test \
 	test/config_file.test \
+	test/context.test \
 	test/manifest.test \
 	test/signature.test \
 	test/update_handler.test \
@@ -189,6 +190,9 @@ test_checksum_test_LDADD = librauctest.la
 
 test_config_file_test_SOURCES = test/config_file.c
 test_config_file_test_LDADD = librauctest.la
+
+test_context_test_SOURCES = test/context.c
+test_context_test_LDADD = librauctest.la
 
 test_manifest_test_SOURCES = test/manifest.c
 test_manifest_test_LDADD = librauctest.la
