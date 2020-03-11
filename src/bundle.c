@@ -720,6 +720,10 @@ static X509_STORE* setup_store(GError **error)
 		return NULL;
 	}
 
+	/* Enable CRL checking if configured */
+	if (r_context()->config->keyring_check_crl)
+		X509_STORE_set_flags(store, X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL | X509_V_FLAG_EXTENDED_CRL_SUPPORT);
+
 	return store;
 }
 
