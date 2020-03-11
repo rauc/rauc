@@ -705,7 +705,8 @@ mountprefix=/mnt/myrauc/\n";
 	g_assert_true(load_config(pathname, &config, &ierror));
 	g_assert_null(ierror);
 	g_assert_nonnull(config);
-	g_assert_null(config->statusfile_path);
+	g_assert_nonnull(config->statusfile_path);
+	g_assert_cmpstr(config->statusfile_path, ==, "per-slot");
 
 	free_config(config);
 }

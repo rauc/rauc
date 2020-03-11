@@ -213,8 +213,26 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		c->system_variant = variant_data;
 	}
 
-	c->statusfile_path = resolve_path(filename,
-			key_file_consume_string(key_file, "system", "statusfile", NULL));
+	c->statusfile_path = key_file_consume_string(key_file, "system", "statusfile", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_message("Config option 'statusfile=<path>/per-slot' unset, falling back to per-slot status");
+		c->statusfile_path = g_strdup("per-slot");
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
+
+	if (g_strcmp0(c->statusfile_path, "per-slot") == 0) {
+		g_message("Using per-slot statusfile");
+	} else {
+		gchar *resolved = resolve_path(filename, c->statusfile_path);
+		g_free(c->statusfile_path);
+		c->statusfile_path = resolved;
+		g_message("Using central status file %s", c->statusfile_path);
+	}
+
 	if (!check_remaining_keys(key_file, "system", &ierror)) {
 		g_propagate_error(error, ierror);
 		res = FALSE;
@@ -793,10 +811,10 @@ void load_slot_status(RaucSlot *dest_slot)
 	if (dest_slot->status)
 		return;
 
-	if (r_context()->config->statusfile_path)
-		load_slot_status_globally();
-	else
+	if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") == 0)
 		load_slot_status_locally(dest_slot);
+	else
+		load_slot_status_globally();
 }
 
 static gboolean save_slot_status_locally(RaucSlot *dest_slot, GError **error)
@@ -879,8 +897,8 @@ gboolean save_slot_status(RaucSlot *dest_slot, GError **error)
 	g_return_val_if_fail(dest_slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (r_context()->config->statusfile_path)
-		return save_slot_status_globally(error);
-	else
+	if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") == 0)
 		return save_slot_status_locally(dest_slot, error);
+	else
+		return save_slot_status_globally(error);
 }
