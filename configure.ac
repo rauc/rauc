@@ -44,7 +44,6 @@ AC_ARG_ENABLE([service],
 )
 AS_IF([test "x$enable_service" != "xno"], [
 	AC_DEFINE([ENABLE_SERVICE], [1], [Define to 1 to enable background service])
-	PKG_CHECK_MODULES([DBUS1], [dbus-1])
 ], [
 	AC_DEFINE([ENABLE_SERVICE], [0])
 ])
@@ -97,26 +96,14 @@ if (test -n "${with_systemdunitdir}"); then
 fi
 AM_CONDITIONAL(SYSTEMD, test -n "${with_systemdunitdir}")
 
-AC_ARG_WITH([dbuspolicydir],
-        AS_HELP_STRING([--with-dbuspolicydir=DIR], [D-Bus policy directory]),
-        [],
-        [with_dbuspolicydir="$($PKG_CONFIG --variable=datadir dbus-1)/dbus-1/system.d"])
-DBUS_POLICYDIR="${with_dbuspolicydir}"
-AC_SUBST(DBUS_POLICYDIR)
+AC_ARG_VAR([DBUS_POLICYDIR], [Directory used to store dbus policy config files @<:@default=$DBUS_DATADIR/dbus-1/system.d@:>@])
+AS_VAR_IF([DBUS_POLICYDIR],,
+	  [PKG_CHECK_VAR([DBUS_DATADIR], [dbus-1], [datadir],, [AC_MSG_ERROR([Failed to determine dbus data directory])])
+	   AS_VAR_SET([DBUS_POLICYDIR], [$DBUS_DATADIR/dbus-1/system.d])])
 
-AC_ARG_WITH([dbussystemservicedir],
-        AS_HELP_STRING([--with-dbussystemservicedir=DIR], [D-Bus system service directory]),
-        [],
-        [with_dbussystemservicedir="$($PKG_CONFIG --variable=system_bus_services_dir dbus-1)"])
-DBUS_SYSTEMSERVICEDIR="${with_dbussystemservicedir}"
-AC_SUBST(DBUS_SYSTEMSERVICEDIR)
+PKG_CHECK_VAR([DBUS_SYSTEMBUSSERVICEDIR], [dbus-1], [system_bus_services_dir],, [AC_MSG_ERROR([Failed to determine dbus system bus services directory])])
 
-AC_ARG_WITH([dbusinterfacesdir],
-        AS_HELP_STRING([--with-dbusinterfacesdir=DIR], [D-Bus interfaces directory]),
-        [],
-        [with_dbusinterfacesdir="$($PKG_CONFIG --variable=interfaces_dir dbus-1)"])
-DBUS_INTERFACESDIR="${with_dbusinterfacesdir}"
-AC_SUBST(DBUS_INTERFACESDIR)
+PKG_CHECK_VAR([DBUS_INTERFACESDIR], [dbus-1], [interfaces_dir],, [AC_MSG_ERROR([Failed to determine dbus interfaces directory])])
 
 # Checks for header files.
 
