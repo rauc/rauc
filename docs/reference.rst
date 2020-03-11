@@ -29,6 +29,7 @@ Example configuration:
   [system]
   compatible=FooCorp Super BarBazzer
   bootloader=barebox
+  statusfile=/data/central-status.raucs
 
   [keyring]
   path=/etc/rauc/keyring.pem
