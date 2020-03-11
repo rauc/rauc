@@ -116,17 +116,17 @@ AS_IF([$autodetect_dbuspolicydir || $autodetect_dbussystemservicedir || $autodet
 
        AS_IF([$autodetect_dbuspolicydir], [
 	      AC_MSG_CHECKING([dbus policy dir])
-	      with_dbuspolicydir="$($PKG_CONFIG --variable=datadir dbus-1)/dbus-1/system.d"
+	      PKG_CHECK_VAR([with_dbuspolicydir], [dbus-1], [datadir],, [AC_MSG_ERROR([Failed to determine dbus policy dir])])
 	      AC_MSG_RESULT([$with_dbuspolicydir])])
 
        AS_IF([$autodetect_dbussystemservicedir], [
 	      AC_MSG_CHECKING([dbus systemservice dir])
-	      with_dbussystemservicedir="$($PKG_CONFIG --variable=system_bus_services_dir dbus-1)"
+	      PKG_CHECK_VAR([with_dbussystemservicedir], [dbus-1], [system_bus_services_dir],, [AC_MSG_ERROR([Failed to determine dbus systemservice dir])])
 	      AC_MSG_RESULT([$with_dbussystemservicedir])])
 
        AS_IF([$autodetect_dbusinterfacesdir], [
 	      AC_MSG_CHECKING([dbus interfaces dir])
-	      with_dbusinterfacesdir="$($PKG_CONFIG --variable=interfaces_dir dbus-1)"
+	      PKG_CHECK_VAR([with_dbusinterfacesdir], [dbus-1], [interfaces_dir],, [AC_MSG_ERROR([Failed to determine dbus interfaces dir])])
 	      AC_MSG_RESULT([$with_dbusinterfacesdir])])
 ])
 
