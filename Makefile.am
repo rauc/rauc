@@ -89,10 +89,9 @@ rauc_CFLAGS = $(AM_CFLAGS) $(JSON_GLIB_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 rauc_LDFLAGS = $(AM_LDFLAGS) $(JSON_GLIB_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
 rauc_LDADD = $(JSON_GLIB_LIBS) $(librauc_la_LIBADD) librauc.la
 
-if SYSTEMD
-systemdunitdir=$(SYSTEMD_UNITDIR)
+if ENABLE_SERVICE
+systemdunitdir=$(SYSTEMD_SYSTEMUNITDIR)
 nodist_systemdunit_DATA = data/rauc.service
-endif
 
 dbussystemservicedir = $(DBUS_SYSTEMSERVICEDIR)
 nodist_dbussystemservice_DATA = data/de.pengutronix.rauc.service
@@ -105,6 +104,7 @@ dist_dbusinterfaces_DATA = src/de.pengutronix.rauc.Installer.xml
 
 dbuswrapperdir = $(libexecdir)
 nodist_dbuswrapper_SCRIPTS = data/rauc-service.sh
+endif
 
 EXTRA_DIST += data/rauc.service.in \
 	      data/de.pengutronix.rauc.service.in \

@@ -44,9 +44,20 @@ AC_ARG_ENABLE([service],
 )
 AS_IF([test "x$enable_service" != "xno"], [
 	AC_DEFINE([ENABLE_SERVICE], [1], [Define to 1 to enable background service])
+	AC_ARG_VAR([DBUS_POLICYDIR], [Directory used to store dbus policy config files @<:@default=$DBUS_DATADIR/dbus-1/system.d@:>@])
+	AS_VAR_IF([DBUS_POLICYDIR],,
+		  [PKG_CHECK_VAR([DBUS_DATADIR], [dbus-1], [datadir],, [AC_MSG_ERROR([Failed to determine dbus data directory])])
+		   AS_VAR_SET([DBUS_POLICYDIR], [$DBUS_DATADIR/dbus-1/system.d])])
+
+	PKG_CHECK_VAR([DBUS_SYSTEMBUSSERVICEDIR], [dbus-1], [system_bus_services_dir],, [AC_MSG_ERROR([Failed to determine dbus system bus services directory])])
+
+	PKG_CHECK_VAR([DBUS_INTERFACESDIR], [dbus-1], [interfaces_dir],, [AC_MSG_ERROR([Failed to determine dbus interfaces directory])])
+
+	PKG_CHECK_VAR([SYSTEMD_SYSTEMUNITDIR], [systemd], [systemdsystemunitdir],, [AC_MSG_ERROR([Failed to determine systemd unit directory])])
 ], [
 	AC_DEFINE([ENABLE_SERVICE], [0])
 ])
+AM_CONDITIONAL([ENABLE_SERVICE], [test "x$enable_service" != "xno"])
 
 AC_ARG_ENABLE([create],
 	AS_HELP_STRING([--disable-create], [Disable bundle creation and modification commands])
@@ -83,27 +94,7 @@ AS_IF([test "x$enable_json" != "xno"], [
        AC_DEFINE([ENABLE_JSON], [0])
 ])
 
-
 AX_CHECK_OPENSSL([],[AC_MSG_ERROR([OpenSSL not found])])
-
-AC_ARG_WITH([systemdunitdir],
-        AC_HELP_STRING([--with-systemdunitdir=DIR], [path to systemd service directory]),
-        [],
-        [with_systemdunitdir="$($PKG_CONFIG --variable=systemdsystemunitdir systemd)"])
-if (test -n "${with_systemdunitdir}"); then
-	SYSTEMD_UNITDIR="${with_systemdunitdir}"
-	AC_SUBST(SYSTEMD_UNITDIR)
-fi
-AM_CONDITIONAL(SYSTEMD, test -n "${with_systemdunitdir}")
-
-AC_ARG_VAR([DBUS_POLICYDIR], [Directory used to store dbus policy config files @<:@default=$DBUS_DATADIR/dbus-1/system.d@:>@])
-AS_VAR_IF([DBUS_POLICYDIR],,
-	  [PKG_CHECK_VAR([DBUS_DATADIR], [dbus-1], [datadir],, [AC_MSG_ERROR([Failed to determine dbus data directory])])
-	   AS_VAR_SET([DBUS_POLICYDIR], [$DBUS_DATADIR/dbus-1/system.d])])
-
-PKG_CHECK_VAR([DBUS_SYSTEMBUSSERVICEDIR], [dbus-1], [system_bus_services_dir],, [AC_MSG_ERROR([Failed to determine dbus system bus services directory])])
-
-PKG_CHECK_VAR([DBUS_INTERFACESDIR], [dbus-1], [interfaces_dir],, [AC_MSG_ERROR([Failed to determine dbus interfaces directory])])
 
 # Checks for header files.
 
