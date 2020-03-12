@@ -42,6 +42,15 @@ static void bundle_fixture_set_up_bundle(BundleFixture *fixture,
 	test_create_bundle(fixture->contentdir, fixture->bundlename);
 }
 
+static void bundle_fixture_set_up_bundle_autobuilder2(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/autobuilder-2.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/autobuilder-2.pem");
+
+	bundle_fixture_set_up_bundle(fixture, user_data);
+}
+
 static void bundle_fixture_tear_down(BundleFixture *fixture,
 		gconstpointer user_data)
 {
@@ -214,6 +223,8 @@ static void bundle_test_resign(BundleFixture *fixture,
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 
+	// hacky restore of original signing_keyringpath
+	context->signing_keyringpath = NULL;
 	g_clear_pointer(&bundle, free_bundle);
 }
 
@@ -227,6 +238,45 @@ static void bundle_test_wrong_capath(BundleFixture *fixture,
 	g_assert_false(check_bundle(fixture->bundlename, &bundle, TRUE, &ierror));
 	g_assert_null(bundle);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_CA_LOAD);
+
+	// hacky restore of original keyring_path
+	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
+}
+
+/* Test that checking against a keyring that contains a CRL results in a
+ * warning when check-crl is disabled */
+static void bundle_test_verify_no_crl_warn(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucBundle *bundle = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	r_context()->config->keyring_check_crl = FALSE;
+
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
+			"Reading bundle*");
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+			"Detected CRL but CRL checking is disabled!");
+	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(bundle);
+
+	free_bundle(bundle);
+}
+
+/* Test that verification of a bundle signed with a revoked key actually fails
+ */
+static void bundle_test_verify_revoked(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucBundle *bundle = NULL;
+	GError *ierror = NULL;
+
+	g_assert_false(check_bundle(fixture->bundlename, &bundle, TRUE, &ierror));
+	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
+	g_assert_null(bundle);
 }
 
 int main(int argc, char *argv[])
@@ -266,6 +316,14 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bundle/wrong_capath", BundleFixture, NULL,
 			bundle_fixture_set_up_bundle, bundle_test_wrong_capath,
+			bundle_fixture_tear_down);
+
+	g_test_add("/bundle/verify_no_crl_warn", BundleFixture, NULL,
+			bundle_fixture_set_up_bundle, bundle_test_verify_no_crl_warn,
+			bundle_fixture_tear_down);
+
+	g_test_add("/bundle/verify_revoked", BundleFixture, NULL,
+			bundle_fixture_set_up_bundle_autobuilder2, bundle_test_verify_revoked,
 			bundle_fixture_tear_down);
 
 	return g_test_run();
