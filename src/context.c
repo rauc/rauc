@@ -566,20 +566,13 @@ const RaucContext *r_context(void)
 void r_context_clean(void)
 {
 	if (context) {
-		g_free(context->certpath);
-		g_free(context->keypath);
-		g_free(context->keyringpath);
-		g_free(context->keyringdirectory);
-		g_free(context->signing_keyringpath);
-		g_free(context->mksquashfs_args);
-		g_free(context->casync_args);
-		context->certpath = NULL;
-		context->keypath = NULL;
-		context->keyringpath = NULL;
-		context->keyringdirectory = NULL;
-		context->signing_keyringpath = NULL;
-		context->mksquashfs_args = NULL;
-		context->casync_args = NULL;
+		g_clear_pointer(&context->certpath, g_free);
+		g_clear_pointer(&context->keypath, g_free);
+		g_clear_pointer(&context->keyringpath, g_free);
+		g_clear_pointer(&context->keyringdirectory, g_free);
+		g_clear_pointer(&context->signing_keyringpath, g_free);
+		g_clear_pointer(&context->mksquashfs_args, g_free);
+		g_clear_pointer(&context->casync_args, g_free);
 
 		if (context->config) {
 			context->config->keyring_path = NULL;
