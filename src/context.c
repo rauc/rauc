@@ -573,6 +573,11 @@ void r_context_clean(void)
 		g_clear_pointer(&context->signing_keyringpath, g_free);
 		g_clear_pointer(&context->mksquashfs_args, g_free);
 		g_clear_pointer(&context->casync_args, g_free);
+		g_clear_pointer(&context->intermediatepaths, g_strfreev);
+		g_clear_pointer(&context->mountprefix, g_free);
+		g_clear_pointer(&context->bootslot, g_free);
+		g_clear_pointer(&context->system_serial, g_free);
+		g_clear_pointer(&context->handlerextra, g_free);
 
 		if (context->config) {
 			context->config->keyring_path = NULL;
