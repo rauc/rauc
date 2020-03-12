@@ -563,6 +563,13 @@ const RaucContext *r_context(void)
 	return context;
 }
 
+void r_context_install_info_free(RContextInstallationInfo *info)
+{
+	/* contains only reference to existing bundle instance */
+	info->mounted_bundle = NULL;
+	g_free(info);
+}
+
 void r_context_clean(void)
 {
 	if (context) {
@@ -578,6 +585,8 @@ void r_context_clean(void)
 		g_clear_pointer(&context->bootslot, g_free);
 		g_clear_pointer(&context->system_serial, g_free);
 		g_clear_pointer(&context->handlerextra, g_free);
+
+		g_clear_pointer(&context->install_info, r_context_install_info_free);
 
 		if (context->config) {
 			context->config->keyring_path = NULL;
