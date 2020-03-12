@@ -38,6 +38,7 @@ static void config_file_fixture_tear_down(ConfigFileFixture *fixture,
 {
 	g_assert_true(rm_tree(fixture->tmpdir, NULL));
 	g_free(fixture->tmpdir);
+	r_context_clean();
 }
 
 /* Test: Parse entire config file and check if derived slot / file structures
