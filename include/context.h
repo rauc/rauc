@@ -132,4 +132,5 @@ void r_context_register_progress_callback(progress_callback progress_cb);
 
 RaucContext *r_context_conf(void);
 const RaucContext *r_context(void);
+void r_context_install_info_free(RContextInstallationInfo *info);
 void r_context_clean(void);

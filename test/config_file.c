@@ -38,6 +38,7 @@ static void config_file_fixture_tear_down(ConfigFileFixture *fixture,
 {
 	g_assert_true(rm_tree(fixture->tmpdir, NULL));
 	g_free(fixture->tmpdir);
+	r_context_clean();
 }
 
 /* Test: Parse entire config file and check if derived slot / file structures
@@ -802,7 +803,8 @@ static void config_file_test_write_slot_status(void)
 	r_slot_free_status(ss);
 }
 
-static void config_file_system_serial(void)
+static void config_file_system_serial(ConfigFileFixture *fixture,
+		gconstpointer user_data)
 {
 	g_assert_nonnull(r_context()->system_serial);
 	g_assert_cmpstr(r_context()->system_serial, ==, "1234");
@@ -921,7 +923,9 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add_func("/config-file/read-slot-status", config_file_test_read_slot_status);
 	g_test_add_func("/config-file/write-read-slot-status", config_file_test_write_slot_status);
-	g_test_add_func("/config-file/system-serial", config_file_system_serial);
+	g_test_add("/config-file/system-serial", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_system_serial,
+			config_file_fixture_tear_down);
 	g_test_add("/config-file/statusfile-missing", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_statusfile_missing,
 			config_file_fixture_tear_down);
