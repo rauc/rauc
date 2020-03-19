@@ -254,13 +254,13 @@ test_expect_success PKCS11 "rauc bundle with PKCS11 (key 1)" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info out.raucb
 "
 
-test_expect_success PKCS11 "rauc bundle with PKCS11 (key 2)" "
+test_expect_success PKCS11 "rauc bundle with PKCS11 (key 2, revoked)" "
   rm -f out.raucb &&
   rauc \
     --cert 'pkcs11:token=rauc;object=autobuilder-2' \
     --key 'pkcs11:token=rauc;object=autobuilder-2' \
     bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
-  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info out.raucb
+  test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info out.raucb
 "
 
 test_expect_success PKCS11 "rauc bundle with PKCS11 (key mismatch)" "
