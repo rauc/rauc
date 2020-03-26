@@ -511,6 +511,86 @@ variables.
           eval RAUC_IMAGE_DIGEST=\$RAUC_IMAGE_DIGEST_${i}
   done
 
+Hooks (Interface)
+-----------------
+
+.. _sec-install-hook-interface:
+
+Install Hooks Interface
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The following environment variables will be passed to the hook executable:
+
+.. glossary::
+
+  ``RAUC_SYSTEM_COMPATIBLE``
+    The compatible value set in the system configuration file
+
+  ``RAUC_SYSTEM_VARIANT``
+    The system's variant as obtained by the variant source
+    (refer ref:`sec-variants`)
+
+  ``RAUC_MF_COMPATIBLE``
+    The compatible value provided by the current bundle
+
+  ``RAUC_MF_VERSION``
+    The value of the version field as provided by the current bundle
+
+  ``RAUC_MOUNT_PREFIX``
+    The global RAUC mount prefix path
+
+.. _sec-slot-hook-interface:
+
+Slot Hooks Interface
+~~~~~~~~~~~~~~~~~~~~
+
+The following environment variables will be passed to the hook executable:
+
+.. glossary::
+
+  ``RAUC_SYSTEM_COMPATIBLE``
+    The compatible value set in the system configuration file
+
+  ``RAUC_SYSTEM_VARIANT``
+    The system's variant as obtained by the variant source
+    (refer ref:`sec-variants`)
+
+  ``RAUC_SLOT_NAME``
+    The name of the currently installed slot
+
+  ``RAUC_SLOT_STATE``
+    The state of the currently installed slot
+    (will always be 'inactive' for slots we install to)
+
+  ``RAUC_SLOT_CLASS``
+    The class of the currently installed slot
+
+  ``RAUC_SLOT_TYPE``
+    The type of the currently installed slot
+
+  ``RAUC_SLOT_DEVICE``
+    The device of the currently installed slot
+
+  ``RAUC_SLOT_BOOTNAME``
+    If set, the bootname of the currently installed slot
+
+  ``RAUC_SLOT_PARENT``
+    If set, the parent of the currently installed slot
+
+  ``RAUC_SLOT_MOUNT_POINT``
+    If available, the mount point of the currently installed slot
+
+  ``RAUC_IMAGE_NAME``
+    If set, the file name of the image currently to be installed
+
+  ``RAUC_IMAGE_DIGEST``
+    If set, the digest of the image currently to be installed
+
+  ``RAUC_IMAGE_CLASS``
+    If set, the target class of the image currently to be installed
+
+  ``RAUC_MOUNT_PREFIX``
+    The global RAUC mount prefix path
 
 D-Bus API
 ---------

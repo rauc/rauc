@@ -299,25 +299,8 @@ Install Hooks
 
 Install hooks operate globally on the bundle installation.
 
-The following environment variables will be passed to the hook executable:
-
-.. glossary::
-
-  ``RAUC_SYSTEM_COMPATIBLE``
-    The compatible value set in the system configuration file
-
-  ``RAUC_SYSTEM_VARIANT``
-    The system's variant as obtained by the variant source
-    (refer ref:`sec-variants`)
-
-  ``RAUC_MF_COMPATIBLE``
-    The compatible value provided by the current bundle
-
-  ``RAUC_MF_VERSION``
-    The value of the version field as provided by the current bundle
-
-  ``RAUC_MOUNT_PREFIX``
-    The global RAUC mount prefix path
+For a detailed list of all environment variables exported for the hooks
+executable, see the :ref:`sec-install-hook-interface` section.
 
 .. rubric:: Install-Check Hook
 
@@ -368,53 +351,8 @@ Note that hook slot operations will be passed to the executable with the prefix
 ``slot-``. Thus if you intend to check for the pre-install hook, you have to
 check for the argument to be ``slot-pre-install``.
 
-The following environment variables will be passed to the hook executable:
-
-.. glossary::
-
-  ``RAUC_SYSTEM_COMPATIBLE``
-    The compatible value set in the system configuration file
-
-  ``RAUC_SYSTEM_VARIANT``
-    The system's variant as obtained by the variant source
-    (refer ref:`sec-variants`)
-
-  ``RAUC_SLOT_NAME``
-    The name of the currently installed slot
-
-  ``RAUC_SLOT_STATE``
-    The state of the currently installed slot
-    (will always be 'inactive' for slots we install to)
-
-  ``RAUC_SLOT_CLASS``
-    The class of the currently installed slot
-
-  ``RAUC_SLOT_TYPE``
-    The type of the currently installed slot
-
-  ``RAUC_SLOT_DEVICE``
-    The device of the currently installed slot
-
-  ``RAUC_SLOT_BOOTNAME``
-    If set, the bootname of the currently installed slot
-
-  ``RAUC_SLOT_PARENT``
-    If set, the parent of the currently installed slot
-
-  ``RAUC_SLOT_MOUNT_POINT``
-    If available, the mount point of the currently installed slot
-
-  ``RAUC_IMAGE_NAME``
-    If set, the file name of the image currently to be installed
-
-  ``RAUC_IMAGE_DIGEST``
-    If set, the digest of the image currently to be installed
-
-  ``RAUC_IMAGE_CLASS``
-    If set, the target class of the image currently to be installed
-
-  ``RAUC_MOUNT_PREFIX``
-    The global RAUC mount prefix path
+For a detailed list of all environment variables exported for the hooks
+executable, see the :ref:`sec-slot-hook-interface` section.
 
 .. rubric:: Pre-Install Hook
 
