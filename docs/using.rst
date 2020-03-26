@@ -211,14 +211,18 @@ explained in more detail.
 System Configuration Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Beside providing the basic slot layout, RAUC's system configuration file also
-allows you to configure parts of its runtime behavior, such as handlers (see
-below), paths, etc.
+Beside providing the basic slot layout, RAUC's system configuration file
+(``system.conf``) also allows you to configure parts of its runtime behavior,
+such as handlers (see below), paths, etc.
 For a detailed list of possible configuration options,
 see :ref:`sec_ref_slot_config` section in the :ref:`sec_ref` chapter.
 
 System-Based Customization: Handlers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Handlers are executables located in the target's *root file system* that allow
+extending the installation process on system side.
+They must be specified in the targets :ref:`sec_ref_slot_config`.
 
 For a detailed list of all environment variables exported for the handler
 scripts, see  the :ref:`sec-handler-interface` section.
@@ -275,11 +279,14 @@ The handler script must return a system serial number by echoing
 Bundle-Based Customization: Hooks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Unlike handlers, hooks allow the author of a bundle to add or replace
-functionality for the installation of a specific bundle. This can be useful for
-performing additional migration steps, checking for specific previously
-installed bundle versions or for manually handling updates of images RAUC
-cannot handle natively.
+Unlike handlers, hooks are part of the update bundle and must be
+specified in the bundle's :ref:`sec_ref_manifest` file and handled by a common
+executable.
+Hooks allow the author of a bundle to add or replace functionality for the
+installation of a specific bundle.
+This can be useful for performing additional migration steps, checking for
+specific previously installed bundle versions or for manually handling updates
+of images RAUC cannot handle natively.
 
 To reduce the complexity and number of files in a bundle, all hooks must be
 handled by a single executable that is registered in the bundle's manifest:
