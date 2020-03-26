@@ -268,6 +268,9 @@ hierarchical separator.
 Manifest
 --------
 
+The manifest file located in a RAUC bundle describes the images packed in the
+bundle and their corresponding target slot class.
+
 A valid manifest file must have the file extension ``.raucm``.
 
 .. code-block:: cfg
