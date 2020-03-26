@@ -225,7 +225,7 @@ extending the installation process on system side.
 They must be specified in the targets :ref:`sec_ref_slot_config`.
 
 For a detailed list of all environment variables exported for the handler
-scripts, see  the :ref:`sec-handler-interface` section.
+scripts, see the :ref:`sec-handler-interface` section.
 
 .. rubric:: Pre-Install Handler
 
