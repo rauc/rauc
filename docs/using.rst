@@ -181,13 +181,16 @@ RAUC provides several ways to customize the update process. Some allow adding
 and extending details more fine-grainedly, some allow replacing major parts of
 the default behavior of RAUC.
 
-In general, there exist three major types of customization: configuration,
-handlers and hooks.
+In general, there exist three major types of customization:
 
-The first is configuration through variables.
-This allow controlling the update in a predefined way.
+* configuration parameters (in rootfs config file ``/etc/rauc/system.conf``)
+* handlers (executables in rootfs)
+* hooks (executables in bundle)
 
-The second type is using `handlers`. Handlers allow extending or replacing the
+The first type, configuration parameters, allow controlling parameters of the
+update in a predefined way.
+
+The second type, using `handlers`, allows extending or replacing the
 installation process. They are executables (most likely shell scripts) located
 in the root filesystem and configured in the system's configuration file. They
 control static behavior of the system that should remain the same over future
@@ -201,10 +204,12 @@ configuration migration for a new software version. Hooks are especially useful
 to handle details of installing an update which were not considered in the
 previously deployed version.
 
-In the following, handlers and hooks will be explained in more detail.
 
-System Configuration File
-~~~~~~~~~~~~~~~~~~~~~~~~~
+In the following, configuration parameters, handlers and hooks will be
+explained in more detail.
+
+System Configuration Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Beside providing the basic slot layout, RAUC's system configuration file also
 allows you to configure parts of its runtime behavior, such as handlers (see
