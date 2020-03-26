@@ -1,3 +1,5 @@
+.. _sec_ref:
+
 Reference
 =========
 

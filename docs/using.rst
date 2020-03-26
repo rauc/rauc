@@ -215,7 +215,7 @@ Beside providing the basic slot layout, RAUC's system configuration file also
 allows you to configure parts of its runtime behavior, such as handlers (see
 below), paths, etc.
 For a detailed list of possible configuration options,
-see :ref:`sec_ref_slot_config` section in the Reference chapter.
+see :ref:`sec_ref_slot_config` section in the :ref:`sec_ref` chapter.
 
 System-Based Customization: Handlers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
