@@ -526,20 +526,23 @@ The following environment variables will be passed to the hook executable:
 .. glossary::
 
   ``RAUC_SYSTEM_COMPATIBLE``
-    The compatible value set in the system configuration file
+    The compatible value set in the system configuration file,
+    e.g. ``"My First Product"``
 
   ``RAUC_SYSTEM_VARIANT``
     The system's variant as obtained by the variant source
     (refer ref:`sec-variants`)
 
   ``RAUC_MF_COMPATIBLE``
-    The compatible value provided by the current bundle
+    The compatible value provided by the current bundle,
+    e.g. ``"My Other Product"``
 
   ``RAUC_MF_VERSION``
-    The value of the version field as provided by the current bundle
+    The value of the version field as provided by the current bundle,
+    e.g. ``"V1.2.1-2020-02-28"``
 
   ``RAUC_MOUNT_PREFIX``
-    The global RAUC mount prefix path
+    The global RAUC mount prefix path, e.g. ``"/run/mount/rauc"``
 
 .. _sec-slot-hook-interface:
 
@@ -551,27 +554,28 @@ The following environment variables will be passed to the hook executable:
 .. glossary::
 
   ``RAUC_SYSTEM_COMPATIBLE``
-    The compatible value set in the system configuration file
+    The compatible value set in the system configuration file,
+    e.g. ``"My Special Product"``
 
   ``RAUC_SYSTEM_VARIANT``
     The system's variant as obtained by the variant source
     (refer ref:`sec-variants`)
 
   ``RAUC_SLOT_NAME``
-    The name of the currently installed slot
+    The name of the currently installed slot, e.g ``"rootfs.1"``.
 
   ``RAUC_SLOT_STATE``
     The state of the currently installed slot
-    (will always be 'inactive' for slots we install to)
+    (will always be ``inactive`` for slots we install to)
 
   ``RAUC_SLOT_CLASS``
-    The class of the currently installed slot
+    The class of the currently installed slot, e.g. ``"rootfs"``
 
   ``RAUC_SLOT_TYPE``
-    The type of the currently installed slot
+    The type of the currently installed slot, e.g. ``"ext4"``
 
   ``RAUC_SLOT_DEVICE``
-    The device path of the currently installed slot.
+    The device path of the currently installed slot, e.g. ``"/dev/mmcblk0p2"``
 
     This equals the ``device=`` parameter set in the current slot's system.conf
     entry and represents the target device RAUC installs the update to.
@@ -579,29 +583,34 @@ The following environment variables will be passed to the hook executable:
     to.
 
   ``RAUC_SLOT_BOOTNAME``
-    If set, the bootname of the currently installed slot
+    For slots with a bootname (those that can be selected by the bootloader),
+    the bootname of the currently installed slot, e.g. ``"system1"``
 
   ``RAUC_SLOT_PARENT``
-    If set, the parent of the currently installed slot
+    If set, the parent of the currently installed slot, e.g. ``"rootfs.1"``
 
   ``RAUC_SLOT_MOUNT_POINT``
-    If available, the mount point of the currently installed slot.
+    If available, the mount point of the currently installed slot,
+    e.g. ``"/run/mount/rauc/rootfs.1"``
 
     For mountable slots, i.e. those with a file system type, RAUC will attempt
     to automatically mount the slot if a pre-install or post-install hook is
     given and provide the slot's current mount point under this env variable.
 
   ``RAUC_IMAGE_NAME``
-    If set, the file name of the image currently to be installed
+    If set, the file name of the image currently to be installed,
+    e.g. ``"product-rootfs.img"``
 
   ``RAUC_IMAGE_DIGEST``
-    If set, the digest of the image currently to be installed
+    If set, the digest of the image currently to be installed,
+    e.g. ``"e29364a81c542755fd5b2c2461cd12b0610b67ceacabce41c102bba4202f2b43"``
 
   ``RAUC_IMAGE_CLASS``
-    If set, the target class of the image currently to be installed
+    If set, the target class of the image currently to be installed,
+    e.g. ``"rootfs"``
 
   ``RAUC_MOUNT_PREFIX``
-    The global RAUC mount prefix path
+    The global RAUC mount prefix path, e.g. ``"/run/mount/rauc"``
 
 D-Bus API
 ---------
