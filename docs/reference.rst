@@ -571,7 +571,12 @@ The following environment variables will be passed to the hook executable:
     The type of the currently installed slot
 
   ``RAUC_SLOT_DEVICE``
-    The device of the currently installed slot
+    The device path of the currently installed slot.
+
+    This equals the ``device=`` parameter set in the current slot's system.conf
+    entry and represents the target device RAUC installs the update to.
+    For an ``install`` hook, this is the device the hook executable should write
+    to.
 
   ``RAUC_SLOT_BOOTNAME``
     If set, the bootname of the currently installed slot
@@ -580,7 +585,11 @@ The following environment variables will be passed to the hook executable:
     If set, the parent of the currently installed slot
 
   ``RAUC_SLOT_MOUNT_POINT``
-    If available, the mount point of the currently installed slot
+    If available, the mount point of the currently installed slot.
+
+    For mountable slots, i.e. those with a file system type, RAUC will attempt
+    to automatically mount the slot if a pre-install or post-install hook is
+    given and provide the slot's current mount point under this env variable.
 
   ``RAUC_IMAGE_NAME``
     If set, the file name of the image currently to be installed
