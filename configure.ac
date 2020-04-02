@@ -84,8 +84,7 @@ AS_IF([test "x$enable_json" != "xno"], [
        AC_DEFINE([ENABLE_JSON], [0])
 ])
 
-
-AX_CHECK_OPENSSL([],[AC_MSG_ERROR([OpenSSL not found])])
+PKG_CHECK_MODULES([OPENSSL], [openssl >= 1.1.1])
 
 AC_ARG_WITH([systemdunitdir],
         AC_HELP_STRING([--with-systemdunitdir=DIR], [path to systemd service directory]),
