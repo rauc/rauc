@@ -45,7 +45,11 @@ openssl cms -sign -in manifest -out manifest-a2.sig -signer dev/autobuilder-2.ce
 echo "  without CRL"
 openssl cms -verify -in manifest-a2.sig -content manifest -inform DER -binary -CAfile root/ca.cert.pem || echo FAILED
 echo "  with CRL"
-openssl cms -verify -in manifest-a2.sig -content manifest -inform DER -binary -crl_check -CAfile provisioning-ca.pem && echo FAILED
+if openssl cms -verify -in manifest-a2.sig -content manifest -inform DER -binary -crl_check -CAfile provisioning-ca.pem; then
+  echo UNEXPECTED; exit 1
+else
+  echo EXPECTED
+fi
 
 echo "Encrypt and decrypt with Release-1"
 openssl cms -encrypt -text -in manifest -aes256 -out manifest.mail rel/release-1.cert.pem
