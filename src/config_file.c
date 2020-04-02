@@ -252,6 +252,17 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 	g_key_file_remove_key(key_file, "keyring", "use-bundle-signing-time", NULL);
 
+	c->keyring_check_purpose = key_file_consume_string(key_file, "keyring", "check-purpose", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		c->keyring_check_purpose = NULL;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
+
 	if (!check_remaining_keys(key_file, "keyring", &ierror)) {
 		g_propagate_error(error, ierror);
 		res = FALSE;
@@ -512,6 +523,7 @@ void free_config(RaucConfig *config)
 	g_free(config->statusfile_path);
 	g_free(config->keyring_path);
 	g_free(config->keyring_directory);
+	g_free(config->keyring_check_purpose);
 	g_free(config->autoinstall_path);
 	g_free(config->systeminfo_handler);
 	g_free(config->preinstall_handler);
