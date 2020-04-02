@@ -718,7 +718,7 @@ static gboolean contains_crl(const gchar *load_capath, const gchar *load_cadir)
 		return TRUE;
 
 	if (load_cadir) {
-		GDir *dir;
+		g_autoptr(GDir) dir;
 		const gchar *filename;
 
 		dir = g_dir_open(load_cadir, 0, NULL);
@@ -728,13 +728,9 @@ static gboolean contains_crl(const gchar *load_capath, const gchar *load_cadir)
 		while ((filename = g_dir_read_name(dir))) {
 			g_autofree gchar *certpath = g_build_filename(load_cadir, filename, NULL);
 
-			if (file_contains_crl(certpath)) {
-				g_dir_close(dir);
+			if (file_contains_crl(certpath))
 				return TRUE;
-			}
 		}
-
-		g_dir_close(dir);
 	}
 
 	return FALSE;
