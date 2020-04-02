@@ -170,7 +170,8 @@ EXTRA_DIST += tap-t \
 	      test/test.conf \
 	      test/test-global.conf \
 	      test/get-coverity.sh \
-	      test/openssl-ca.sh \
+	      test/openssl-ca-create.sh \
+	      test/openssl-ca-check.sh \
 	      test/run-coverity.sh
 
 librauctest_la_SOURCES = \
