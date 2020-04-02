@@ -744,7 +744,7 @@ static X509_STORE* setup_store(GError **error)
 {
 	const gchar *load_capath = r_context()->config->keyring_path;
 	const gchar *load_cadir = r_context()->config->keyring_directory;
-	X509_STORE *store = NULL;
+	g_autoptr(X509_STORE) store = NULL;
 
 	if (!(store = X509_STORE_new())) {
 		g_set_error_literal(
@@ -760,7 +760,6 @@ static X509_STORE* setup_store(GError **error)
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_CA_LOAD,
 				"failed to load CA file '%s' and/or directory '%s'", load_capath, load_cadir);
-		X509_STORE_free(store);
 		return NULL;
 	}
 
@@ -770,7 +769,7 @@ static X509_STORE* setup_store(GError **error)
 	else if (contains_crl(load_capath, load_cadir))
 		g_warning("Detected CRL but CRL checking is disabled!");
 
-	return store;
+	return g_steal_pointer(&store);
 }
 
 gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error)
