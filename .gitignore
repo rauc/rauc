@@ -1,8 +1,12 @@
 /autom4te.cache/
 /build-aux/*
 !/build-aux/git-version-gen
+/data/de.pengutronix.rauc.service
+/data/rauc-service.sh
+/data/rauc.service
 /test/*.test
 /test/*.map
+/test/fakerand
 /test/services/de.pengutronix.rauc.service
 /*-generated.[ch]
 Makefile
@@ -19,7 +23,9 @@ rauc.map
 stamp-h1
 .deps
 .dirstamp
+.gdb_history
 .uncrustify/
+.version
 *-coverage/
 *-coverage.info
 *~
