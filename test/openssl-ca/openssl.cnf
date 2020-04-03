@@ -56,3 +56,21 @@ basicConstraints = CA:TRUE,pathlen:0
 subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid:always,issuer:always
 basicConstraints = CA:FALSE
+
+[ v3_leaf_timestamp ]
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+basicConstraints = CA:FALSE
+extendedKeyUsage=critical,timeStamping
+
+[ v3_leaf_email ]
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+basicConstraints = CA:FALSE
+extendedKeyUsage=critical,emailProtection
+
+[ v3_leaf_codesign ]
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+basicConstraints = CA:FALSE
+extendedKeyUsage=critical,codeSigning

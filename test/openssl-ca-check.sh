@@ -54,3 +54,44 @@ fi
 echo "Encrypt and decrypt with Release-1"
 openssl cms -encrypt -text -in manifest -aes256 -out manifest.mail rel/release-1.cert.pem
 openssl cms -decrypt -text -in manifest.mail -recip rel/release-1.cert.pem -inkey rel/private/release-1.pem 
+
+echo "Sign and check with XKU timeStamping"
+openssl cms -sign -in manifest -out manifest-ts1.sig -signer root/xku-timeStamping.cert.pem -inkey root/private/xku-timeStamping.pem -outform DER -nosmimecap -binary
+if openssl cms -verify -in manifest-ts1.sig -content manifest -inform DER -binary -crl_check -CAfile root-ca.pem; then
+  echo UNEXPECTED; exit 1
+else
+  echo EXPECTED
+fi
+openssl cms -verify -in manifest-ts1.sig -content manifest -inform DER -binary -crl_check -CAfile root-ca.pem -purpose any || echo FAILED
+openssl cms -verify -in manifest-ts1.sig -content manifest -inform DER -binary -crl_check -CAfile root-ca.pem -purpose timestampsign || echo FAILED
+if openssl cms -verify -in manifest-ts1.sig -content manifest -inform DER -binary -crl_check -CAfile root-ca.pem -purpose sslserver; then
+  echo UNEXPECTED; exit 1
+else
+  echo EXPECTED
+fi
+
+echo "Sign and check with XKU emailProtection"
+openssl cms -sign -in manifest -out manifest-ep1.sig -signer dev/xku-emailProtection.cert.pem -inkey dev/private/xku-emailProtection.pem -outform DER -nosmimecap -binary -certfile dev/ca.cert.pem
+openssl cms -verify -in manifest-ep1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem || echo FAILED
+openssl cms -verify -in manifest-ep1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem -purpose any || echo FAILED
+openssl cms -verify -in manifest-ep1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem -purpose smimesign || echo FAILED
+if openssl cms -verify -in manifest-ep1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem -purpose sslserver; then
+  echo UNEXPECTED; exit 1
+else
+  echo EXPECTED
+fi
+
+echo "Sign and check with XKU codeSigning"
+openssl cms -sign -in manifest -out manifest-cs1.sig -signer dev/xku-codeSigning.cert.pem -inkey dev/private/xku-codeSigning.pem -outform DER -nosmimecap -binary -certfile dev/ca.cert.pem
+if openssl cms -verify -in manifest-cs1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem; then
+  echo UNEXPECTED; exit 1
+else
+  echo EXPECTED
+fi
+openssl cms -verify -in manifest-cs1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem -purpose any || echo FAILED
+# testing for codesign using cms verify doesn't seem to be possible yet
+if openssl cms -verify -in manifest-cs1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem -purpose smimesign; then
+  echo UNEXPECTED; exit 1
+else
+  echo EXPECTED
+fi
