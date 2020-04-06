@@ -844,7 +844,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 
 	if (verify) {
 		CMS_ContentInfo *cms = NULL;
-		X509_STORE *store = setup_x509_store(&ierror);
+		X509_STORE *store = setup_x509_store(NULL, NULL, &ierror);
 		if (!store) {
 			g_propagate_error(error, ierror);
 			res = FALSE;

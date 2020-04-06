@@ -338,11 +338,16 @@ static gboolean contains_crl(const gchar *load_capath, const gchar *load_cadir)
 	return FALSE;
 }
 
-X509_STORE* setup_x509_store(GError **error)
+X509_STORE* setup_x509_store(const gchar *capath, const gchar *cadir, GError **error)
 {
 	const gchar *load_capath = r_context()->config->keyring_path;
 	const gchar *load_cadir = r_context()->config->keyring_directory;
 	g_autoptr(X509_STORE) store = NULL;
+
+	if (capath)
+		load_capath = strlen(capath) ? capath : NULL;
+	if (cadir)
+		load_cadir = strlen(cadir) ? cadir : NULL;
 
 	if (!(store = X509_STORE_new())) {
 		g_set_error_literal(
@@ -459,21 +464,8 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 		g_autoptr(X509_STORE) store = NULL;
 		STACK_OF(X509) *verified_chain = NULL;
 
-		if (!(store = X509_STORE_new())) {
-			g_set_error_literal(
-					error,
-					R_SIGNATURE_ERROR,
-					R_SIGNATURE_ERROR_X509_NEW,
-					"failed to allocate new X509 store");
-			g_clear_pointer(&res, g_bytes_unref);
-			goto out;
-		}
-		if (!X509_STORE_load_locations(store, keyring_path, NULL)) {
-			g_set_error(
-					error,
-					R_SIGNATURE_ERROR,
-					R_SIGNATURE_ERROR_CA_LOAD,
-					"failed to load CA file '%s'", keyring_path);
+		if (!(store = setup_x509_store(keyring_path, "", &ierror))) {
+			g_propagate_error(error, ierror);
 			g_clear_pointer(&res, g_bytes_unref);
 			goto out;
 		}

@@ -43,14 +43,16 @@ gboolean signature_init(GError **error);
 /**
  * Prepare an OpenSSL X509_STORE for signature verification.
  *
- * This uses the paths and options configured in the [keyring] section in
- * system.conf or the commandline.
+ * When capath or cadir are NULL, this uses the paths and options configured in
+ * the [keyring] section in system.conf or the commandline by default.
  *
+ * @param capath optional ca file path
+ * @param cadir optional ca directory path
  * @param error return location for a GError, or NULL
  *
  * @return X509_STORE, NULL if failed
  */
-X509_STORE* setup_x509_store(GError **error);
+X509_STORE* setup_x509_store(const gchar *capath, const gchar *cadir, GError **error);
 
 /**
  * Sign content with provided certificate and private key

@@ -48,7 +48,12 @@ static void bundle_fixture_set_up_bundle_autobuilder2(BundleFixture *fixture,
 	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/autobuilder-2.cert.pem");
 	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/autobuilder-2.pem");
 
+	/* disable crl checking during bundle creation */
+	r_context()->config->keyring_check_crl = FALSE;
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+			"Detected CRL but CRL checking is disabled!");
 	bundle_fixture_set_up_bundle(fixture, user_data);
+	r_context()->config->keyring_check_crl = TRUE;
 }
 
 static void bundle_fixture_tear_down(BundleFixture *fixture,
