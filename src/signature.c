@@ -16,9 +16,46 @@ GQuark r_signature_error_quark(void)
 	return g_quark_from_static_string("r_signature_error_quark");
 }
 
+/* return 0 for error, 1 for success */
+static int check_purpose_code_sign(const X509_PURPOSE *xp, const X509 *const_x, int ca)
+{
+	/* The external OpenSSL API only takes a non-const X509 pointer, but
+	 * the ex_ variables have already been calculated by other code when
+	 * we are in this callback. */
+	X509 *x = (X509 *)const_x;
+	uint32_t ex_flags = X509_get_extension_flags(x);
+	uint32_t ex_kusage = X509_get_key_usage(x);
+	uint32_t ex_xkusage = X509_get_extended_key_usage(x);
+
+	if (ca) {
+		/* If extended key usage is present, it must contain codeSigning for all
+		 * certs in the chain. */
+		if ((ex_flags & EXFLAG_XKUSAGE) && !(ex_xkusage & XKU_CODE_SIGN)) {
+			g_message("CA certificate extended key usage does not allow code signing");
+			return 0;
+		}
+
+		return X509_check_ca(x);
+	}
+
+	/* If key usage is present, it must contain digitalSignature. */
+	if ((ex_flags & EXFLAG_KUSAGE) && !(ex_kusage & KU_DIGITAL_SIGNATURE)) {
+		g_message("Signer certificate key usage does not allow digital signatures");
+		return 0;
+	}
+
+	/* Extended key usage codeSigning must be present on the leaf. */
+	if (!(ex_flags & EXFLAG_XKUSAGE) || !(ex_xkusage & XKU_CODE_SIGN)) {
+		g_message("Signer certificate does not specify extended key usage code signing");
+		return 0;
+	}
+
+	return 1;
+}
+
 gboolean signature_init(GError **error)
 {
-	int ret;
+	int ret, id;
 
 	g_return_val_if_fail(error == FALSE || *error == NULL, FALSE);
 
@@ -34,6 +71,33 @@ gboolean signature_init(GError **error)
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_CRYPTOINIT_FAILED,
 				"Failed to initialize OpenSSL crypto: %s",
+				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+		return FALSE;
+	}
+
+	id = X509_PURPOSE_get_count() + 1;
+	if (X509_PURPOSE_get_by_id(id) >= 0) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_CRYPTOINIT_FAILED,
+				"Failed to calculate free OpenSSL X509 purpose id");
+		return FALSE;
+	}
+
+	/* X509_TRUST_OBJECT_SIGN maps to the Code Signing ID (via OpenSSL's NID_code_sign) */
+	ret = X509_PURPOSE_add(id, X509_TRUST_OBJECT_SIGN, 0, check_purpose_code_sign, "Code signing", "codesign", NULL);
+	if (!ret) {
+		unsigned long err;
+		const gchar *data;
+		int flags;
+
+		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_CRYPTOINIT_FAILED,
+				"Failed to configure OpenSSL X509 purpose: %s",
 				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		return FALSE;
 	}
