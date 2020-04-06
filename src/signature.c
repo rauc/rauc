@@ -387,7 +387,7 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 	CMS_ContentInfo *cms = NULL;
 	GBytes *res = NULL;
 	int flags = CMS_DETACHED | CMS_BINARY;
-	gchar *keyring_path = NULL;
+	const gchar *keyring_path = NULL, *keyring_dir = NULL;
 
 	g_return_val_if_fail(content != NULL, NULL);
 	g_return_val_if_fail(certfile != NULL, NULL);
@@ -455,16 +455,18 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 	/* keyring was given, perform verification to obtain trust chain */
 	if (r_context()->signing_keyringpath) {
 		keyring_path = r_context()->signing_keyringpath;
-	} else if (r_context()->config->keyring_path) {
+		keyring_dir = "";
+	} else {
 		keyring_path = r_context()->config->keyring_path;
+		keyring_dir = r_context()->config->keyring_directory;
 	}
 
-	if (keyring_path) {
+	if (keyring_path || keyring_dir) {
 		g_autoptr(CMS_ContentInfo) vcms = NULL;
 		g_autoptr(X509_STORE) store = NULL;
 		STACK_OF(X509) *verified_chain = NULL;
 
-		if (!(store = setup_x509_store(keyring_path, "", &ierror))) {
+		if (!(store = setup_x509_store(keyring_path, keyring_dir, &ierror))) {
 			g_propagate_error(error, ierror);
 			g_clear_pointer(&res, g_bytes_unref);
 			goto out;
