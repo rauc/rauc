@@ -696,78 +696,6 @@ static gboolean is_remote_scheme(const gchar *scheme)
 	       (g_strcmp0(scheme, "ftp") == 0);
 }
 
-static gboolean file_contains_crl(const gchar *capath)
-{
-	g_autofree gchar *contents = NULL;
-
-	if (!g_file_test(capath, G_FILE_TEST_IS_REGULAR))
-		return FALSE;
-
-	if (!g_file_get_contents(capath, &contents, NULL, NULL))
-		return FALSE;
-
-	if (strstr(contents, "-----BEGIN X509 CRL-----"))
-		return TRUE;
-
-	return FALSE;
-}
-
-static gboolean contains_crl(const gchar *load_capath, const gchar *load_cadir)
-{
-	if (load_capath && file_contains_crl(load_capath))
-		return TRUE;
-
-	if (load_cadir) {
-		g_autoptr(GDir) dir;
-		const gchar *filename;
-
-		dir = g_dir_open(load_cadir, 0, NULL);
-		if (!dir)
-			return FALSE;
-
-		while ((filename = g_dir_read_name(dir))) {
-			g_autofree gchar *certpath = g_build_filename(load_cadir, filename, NULL);
-
-			if (file_contains_crl(certpath))
-				return TRUE;
-		}
-	}
-
-	return FALSE;
-}
-
-static X509_STORE* setup_store(GError **error)
-{
-	const gchar *load_capath = r_context()->config->keyring_path;
-	const gchar *load_cadir = r_context()->config->keyring_directory;
-	g_autoptr(X509_STORE) store = NULL;
-
-	if (!(store = X509_STORE_new())) {
-		g_set_error_literal(
-				error,
-				R_SIGNATURE_ERROR,
-				R_SIGNATURE_ERROR_X509_NEW,
-				"failed to allocate new X509 store");
-		return NULL;
-	}
-	if (!X509_STORE_load_locations(store, load_capath, load_cadir)) {
-		g_set_error(
-				error,
-				R_SIGNATURE_ERROR,
-				R_SIGNATURE_ERROR_CA_LOAD,
-				"failed to load CA file '%s' and/or directory '%s'", load_capath, load_cadir);
-		return NULL;
-	}
-
-	/* Enable CRL checking if configured */
-	if (r_context()->config->keyring_check_crl)
-		X509_STORE_set_flags(store, X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL | X509_V_FLAG_EXTENDED_CRL_SUPPORT);
-	else if (contains_crl(load_capath, load_cadir))
-		g_warning("Detected CRL but CRL checking is disabled!");
-
-	return g_steal_pointer(&store);
-}
-
 gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error)
 {
 	GError *ierror = NULL;
@@ -916,7 +844,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 
 	if (verify) {
 		CMS_ContentInfo *cms = NULL;
-		X509_STORE *store = setup_store(&ierror);
+		X509_STORE *store = setup_x509_store(&ierror);
 		if (!store) {
 			g_propagate_error(error, ierror);
 			res = FALSE;
