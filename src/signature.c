@@ -342,6 +342,7 @@ X509_STORE* setup_x509_store(const gchar *capath, const gchar *cadir, GError **e
 {
 	const gchar *load_capath = r_context()->config->keyring_path;
 	const gchar *load_cadir = r_context()->config->keyring_directory;
+	const gchar *check_purpose = r_context()->config->keyring_check_purpose;
 	g_autoptr(X509_STORE) store = NULL;
 
 	if (capath)
@@ -371,6 +372,19 @@ X509_STORE* setup_x509_store(const gchar *capath, const gchar *cadir, GError **e
 		X509_STORE_set_flags(store, X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL | X509_V_FLAG_EXTENDED_CRL_SUPPORT);
 	else if (contains_crl(load_capath, load_cadir))
 		g_warning("Detected CRL but CRL checking is disabled!");
+
+	/* Enable purpose checking if configured */
+	if (check_purpose) {
+		const X509_PURPOSE *xp = X509_PURPOSE_get0(X509_PURPOSE_get_by_sname(check_purpose));
+		if (!xp || !X509_STORE_set_purpose(store, X509_PURPOSE_get_id(xp))) {
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_X509_PURPOSE,
+					"failed to configure X509 purpose '%s'", check_purpose);
+			return NULL;
+		}
+	}
 
 	return g_steal_pointer(&store);
 }
