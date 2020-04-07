@@ -518,4 +518,69 @@ test_expect_success CASYNC "rauc convert casync extra args" "
   test -f casync-extra-args.raucb
 "
 
+test_expect_success "rauc resign" "
+  rm -f out.raucb &&
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    resign $SHARNESS_TEST_DIRECTORY/good-bundle.raucb out.raucb &&
+  test -f out.raucb
+"
+
+test_expect_success FAKETIME "rauc resign extend (not expired)" "
+  rm -f out1.raucb out2.raucb &&
+  faketime "2018-01-01" \
+    rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    bundle $SHARNESS_TEST_DIRECTORY/install-content out1.raucb &&
+  test -f out1.raucb &&
+  faketime "2018-10-01" \
+    rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    resign out1.raucb out2.raucb &&
+  test -f out2.raucb
+"
+
+test_expect_success FAKETIME "rauc resign extend (expired)" "
+  rm -f out1.raucb out2.raucb &&
+  faketime "2018-01-01" \
+    rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    bundle $SHARNESS_TEST_DIRECTORY/install-content out1.raucb &&
+  test -f out1.raucb &&
+  test_must_fail faketime "2020-10-01" \
+    rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    resign out1.raucb out2.raucb &&
+  test ! -f out2.raucb
+"
+
+test_expect_success FAKETIME "rauc resign extend (expired, no-verify)" "
+  rm -f out1.raucb out2.raucb &&
+  faketime "2018-01-01" \
+    rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    bundle $SHARNESS_TEST_DIRECTORY/install-content out1.raucb &&
+  test -f out1.raucb &&
+  faketime "2020-10-01" \
+    rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    --no-verify \
+    resign out1.raucb out2.raucb &&
+  test -f out2.raucb
+"
+
 test_done
