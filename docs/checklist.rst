@@ -64,6 +64,9 @@ Security
   * Systems always have correct time ☐ *or*
   * Validity period is large enough ☐
 * Key revocation tested ☐
+
+  * Updated CRLs can be deployed in time ☐ *or*
+  * CRLs do not expire ☐
 * Key rollover tested ☐
 * Separate development and release keys deployed ☐
 * Per-user or per-role keys deployed ☐
