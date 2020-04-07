@@ -118,6 +118,8 @@ This is what the ``resign`` command of RAUC is for::
 
 It verifies the bundle against the given keyring, strips the old signature and
 attaches a new one based on the key and cert files provided.
+If the old signature is no longer valid, you can use the ``--no-verify``
+argument to disable verification.
 
 Switching the Keyring -- SPKI hashes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

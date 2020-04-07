@@ -28,7 +28,8 @@ GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
 gboolean install_ignore_compatible, install_progressbar = FALSE;
-gboolean info_noverify, info_dumpcert = FALSE;
+gboolean verification_disabled = FALSE;
+gboolean info_dumpcert = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
 gchar *signing_keyring = NULL;
@@ -484,7 +485,7 @@ static gboolean resign_start(int argc, char **argv)
 		goto out;
 	}
 
-	if (!check_bundle(argv[2], &bundle, TRUE, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, !verification_disabled, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -899,7 +900,7 @@ static gboolean info_start(int argc, char **argv)
 		goto out;
 	g_debug("input bundle: %s", bundlelocation);
 
-	res = check_bundle(bundlelocation, &bundle, !info_noverify, &error);
+	res = check_bundle(bundlelocation, &bundle, !verification_disabled, &error);
 	if (!res) {
 		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
@@ -1706,6 +1707,7 @@ static GOptionEntry entries_bundle[] = {
 };
 
 static GOptionEntry entries_resign[] = {
+	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
 	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
 	{0}
 };
@@ -1718,7 +1720,7 @@ static GOptionEntry entries_convert[] = {
 };
 
 static GOptionEntry entries_info[] = {
-	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &info_noverify, "disable bundle verification", NULL},
+	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
 	{"dump-cert", '\0', 0, G_OPTION_ARG_NONE, &info_dumpcert, "dump certificate", NULL},
 	{0}
