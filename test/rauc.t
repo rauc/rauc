@@ -228,8 +228,7 @@ test_expect_success "rauc bundle" "
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
     bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info out.raucb &&
-  test -f out.raucb &&
-  rm out.raucb
+  test -f out.raucb
 "
 
 test_expect_success "rauc bundle mksquashfs extra args" "
@@ -240,9 +239,7 @@ test_expect_success "rauc bundle mksquashfs extra args" "
     bundle \
     --mksquashfs-args=\"-comp xz -info -progress\" \
     $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
-  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info out.raucb &&
-  test -f out.raucb &&
-  rm out.raucb
+  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info out.raucb
 "
 
 test_expect_success PKCS11 "rauc bundle with PKCS11 (key 1)" "
@@ -433,84 +430,92 @@ use-bundle-signing-time=true
 cleanup rm $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf
 
 test_expect_success FAKETIME "rauc verify with 'use-bundle-signing-time': valid signing time, invalid current time" "
+  rm -f out.raucb &&
   faketime "2018-01-01" \
-  rauc \
+    rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
     --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
     bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
-  faketime "2022-01-01" rauc --conf $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf info out.raucb &&
-  rm out.raucb
+  test -f out.raucb &&
+  faketime "2022-01-01" rauc --conf $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf info out.raucb
 "
 
 test_expect_success FAKETIME "rauc verfiy with 'use-bundle-signing-time': invalid signing time, valid current time" "
+  rm -f out.raucb &&
   faketime "2022-01-01" \
-  rauc \
+    rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
     bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
-  test_must_fail faketime "2018-01-01" rauc --conf $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf info out.raucb &&
-  rm out.raucb
+  test -f out.raucb &&
+  test_must_fail faketime "2018-01-01" rauc --conf $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf info out.raucb
 "
 
 test_expect_success FAKETIME "rauc sign bundle with expired certificate" "
+  rm -f out.raucb &&
   test_must_fail faketime "2019-07-02" \
-  rauc \
+    rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
     --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
     bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
-    test ! -f out.raucb
+  test ! -f out.raucb
 "
 
 test_expect_success FAKETIME "rauc sign bundle with not yet valid certificate" "
+  rm -f out.raucb &&
   test_must_fail faketime "2017-01-01" \
-  rauc \
+    rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
     --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
-    bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
-    test ! -f out.raucb
+  bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
+  test ! -f out.raucb
 "
 
 test_expect_success FAKETIME "rauc sign bundle with almost expired certificate" "
+  rm -f out.raucb &&
   faketime "2019-06-15" \
-  rauc \
+    rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
     --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
     bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
-    test -f out.raucb &&
-    rm out.raucb
+  test -f out.raucb
 "
 
 test_expect_success FAKETIME "rauc sign bundle with valid certificate" "
+  rm -f out.raucb &&
   faketime "2019-01-01" \
-  rauc \
+    rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
     --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
     bundle $SHARNESS_TEST_DIRECTORY/install-content out.raucb &&
-    test -f out.raucb &&
-    rm out.raucb
+  test -f out.raucb
 "
 
 test_expect_success CASYNC "rauc convert" "
+  rm -f casync.raucb &&
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
     --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
-    convert $SHARNESS_TEST_DIRECTORY/good-bundle.raucb casync.raucb
+    convert $SHARNESS_TEST_DIRECTORY/good-bundle.raucb casync.raucb &&
+  test -f casync.raucb
 "
 
 test_expect_success CASYNC "rauc convert casync extra args" "
+  rm -f casync-extra-args.raucb &&
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
     --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
     convert \
     --casync-args=\"--chunk-size=64000\" \
-    $SHARNESS_TEST_DIRECTORY/good-bundle.raucb casync-extra-args.raucb
+    $SHARNESS_TEST_DIRECTORY/good-bundle.raucb casync-extra-args.raucb &&
+  test -f casync-extra-args.raucb
 "
 
 test_done
