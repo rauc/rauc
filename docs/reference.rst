@@ -428,7 +428,7 @@ Command Line Tool
     --keyring=PEMFILE                 keyring file
     --intermediate=PEMFILE            intermediate CA file name
     --mount=PATH                      mount prefix
-    --override-boot-slot=SLOTNAME     override auto-detection of booted slot
+    --override-boot-slot=BOOTNAME     override auto-detection of booted slot
     --handler-args=ARGS               extra handler arguments
     -d, --debug                       enable debug output
     --version                         display version
@@ -437,9 +437,13 @@ Command Line Tool
   List of rauc commands:
     bundle        Create a bundle
     resign        Resign an already signed bundle
+    convert       Convert classic to casync bundle
+    extract       Extract the bundle content
     install       Install a bundle
     info          Show file information
+    service       Start RAUC service
     status        Show status
+    write-slot    Write image to slot and bypass all update logic
 
   Environment variables:
     RAUC_PKCS11_MODULE  Library filename for PKCS#11 module (signing only)
