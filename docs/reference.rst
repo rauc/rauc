@@ -419,7 +419,7 @@ Command Line Tool
 .. code-block:: man
 
   Usage:
-    rauc [OPTION...] <COMMAND>
+    rauc [OPTION…] <COMMAND>
 
   Options:
     -c, --conf=FILENAME               config file
