@@ -1168,7 +1168,7 @@ static gboolean img_to_fs_handler(RaucImage *image, RaucSlot *dest_slot, const g
 	}
 
 	/* run slot post install hook if enabled */
-	if (hook_name && image->hooks.post_install)  {
+	if (hook_name && image->hooks.post_install) {
 		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
@@ -1580,7 +1580,7 @@ img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, 
 		}
 	}
 
-	if (handler == NULL)  {
+	if (handler == NULL) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_NO_HANDLER, "Unsupported image %s for slot type %s",
 				mfimage->filename, dest);
 		goto out;

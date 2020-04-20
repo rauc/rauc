@@ -377,20 +377,17 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 					if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 						slot->install_same = TRUE;
 						g_clear_error(&ierror);
-					}
-					else if (ierror) {
+					} else if (ierror) {
 						g_propagate_error(error, ierror);
 						res = FALSE;
 						goto free;
 					}
-				}
-				else if (ierror) {
+				} else if (ierror) {
 					g_propagate_error(error, ierror);
 					res = FALSE;
 					goto free;
 				}
-			}
-			else if (ierror) {
+			} else if (ierror) {
 				g_propagate_error(error, ierror);
 				res = FALSE;
 				goto free;
@@ -405,8 +402,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 				slot->resize = FALSE;
 				g_clear_error(&ierror);
-			}
-			else if (ierror) {
+			} else if (ierror) {
 				g_propagate_error(error, ierror);
 				res = FALSE;
 				goto free;
