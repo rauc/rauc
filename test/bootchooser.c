@@ -836,27 +836,27 @@ int main(int argc, char *argv[])
 
 	g_test_init(&argc, &argv, NULL);
 
-	g_test_add("/bootchoser/barebox", BootchooserFixture, NULL,
+	g_test_add("/bootchooser/barebox", BootchooserFixture, NULL,
 			bootchooser_fixture_set_up, bootchooser_barebox,
 			bootchooser_fixture_tear_down);
 
-	g_test_add("/bootchoser/barebox-asymmetric", BootchooserFixture, NULL,
+	g_test_add("/bootchooser/barebox-asymmetric", BootchooserFixture, NULL,
 			bootchooser_fixture_set_up, bootchooser_barebox_asymmetric,
 			bootchooser_fixture_tear_down);
 
-	g_test_add("/bootchoser/grub", BootchooserFixture, NULL,
+	g_test_add("/bootchooser/grub", BootchooserFixture, NULL,
 			bootchooser_fixture_set_up, bootchooser_grub,
 			bootchooser_fixture_tear_down);
 
-	g_test_add("/bootchoser/uboot", BootchooserFixture, NULL,
+	g_test_add("/bootchooser/uboot", BootchooserFixture, NULL,
 			bootchooser_fixture_set_up, bootchooser_uboot,
 			bootchooser_fixture_tear_down);
 
-	g_test_add("/bootchoser/uboot-asymmetric", BootchooserFixture, NULL,
+	g_test_add("/bootchooser/uboot-asymmetric", BootchooserFixture, NULL,
 			bootchooser_fixture_set_up, bootchooser_uboot_asymmetric,
 			bootchooser_fixture_tear_down);
 
-	g_test_add("/bootchoser/efi", BootchooserFixture, NULL,
+	g_test_add("/bootchooser/efi", BootchooserFixture, NULL,
 			bootchooser_fixture_set_up, bootchooser_efi,
 			bootchooser_fixture_tear_down);
 
