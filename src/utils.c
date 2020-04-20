@@ -251,7 +251,7 @@ guint64 key_file_consume_binary_suffixed_string(GKeyFile *key_file,
 			break;
 	}
 
-	return (result << scale_shift);
+	return result << scale_shift;
 }
 
 gchar * r_realpath(const gchar *path)
