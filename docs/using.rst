@@ -181,13 +181,16 @@ RAUC provides several ways to customize the update process. Some allow adding
 and extending details more fine-grainedly, some allow replacing major parts of
 the default behavior of RAUC.
 
-In general, there exist three major types of customization: configuration,
-handlers and hooks.
+In general, there exist three major types of customization:
 
-The first is configuration through variables.
-This allow controlling the update in a predefined way.
+* configuration parameters (in rootfs config file ``/etc/rauc/system.conf``)
+* handlers (executables in rootfs)
+* hooks (executables in bundle)
 
-The second type is using `handlers`. Handlers allow extending or replacing the
+The first type, configuration parameters, allow controlling parameters of the
+update in a predefined way.
+
+The second type, using `handlers`, allows extending or replacing the
 installation process. They are executables (most likely shell scripts) located
 in the root filesystem and configured in the system's configuration file. They
 control static behavior of the system that should remain the same over future
@@ -201,22 +204,28 @@ configuration migration for a new software version. Hooks are especially useful
 to handle details of installing an update which were not considered in the
 previously deployed version.
 
-In the following, handlers and hooks will be explained in more detail.
 
-System Configuration File
-~~~~~~~~~~~~~~~~~~~~~~~~~
+In the following, configuration parameters, handlers and hooks will be
+explained in more detail.
 
-Beside providing the basic slot layout, RAUC's system configuration file also
-allows you to configure parts of its runtime behavior, such as handlers (see
-below), paths, etc.
+System Configuration Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Beside providing the basic slot layout, RAUC's system configuration file
+(``system.conf``) also allows you to configure parts of its runtime behavior,
+such as handlers (see below), paths, etc.
 For a detailed list of possible configuration options,
-see :ref:`sec_ref_slot_config` section in the Reference chapter.
+see :ref:`sec_ref_slot_config` section in the :ref:`sec_ref` chapter.
 
 System-Based Customization: Handlers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Handlers are executables located in the target's *root file system* that allow
+extending the installation process on system side.
+They must be specified in the targets :ref:`sec_ref_slot_config`.
+
 For a detailed list of all environment variables exported for the handler
-scripts, see  the :ref:`sec-handler-interface` section.
+scripts, see the :ref:`sec-handler-interface` section.
 
 .. rubric:: Pre-Install Handler
 
@@ -270,11 +279,14 @@ The handler script must return a system serial number by echoing
 Bundle-Based Customization: Hooks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Unlike handlers, hooks allow the author of a bundle to add or replace
-functionality for the installation of a specific bundle. This can be useful for
-performing additional migration steps, checking for specific previously
-installed bundle versions or for manually handling updates of images RAUC
-cannot handle natively.
+Unlike handlers, hooks are part of the update bundle and must be
+specified in the bundle's :ref:`sec_ref_manifest` file and handled by a common
+executable.
+Hooks allow the author of a bundle to add or replace functionality for the
+installation of a specific bundle.
+This can be useful for performing additional migration steps, checking for
+specific previously installed bundle versions or for manually handling updates
+of images RAUC cannot handle natively.
 
 To reduce the complexity and number of files in a bundle, all hooks must be
 handled by a single executable that is registered in the bundle's manifest:
@@ -299,25 +311,8 @@ Install Hooks
 
 Install hooks operate globally on the bundle installation.
 
-The following environment variables will be passed to the hook executable:
-
-.. glossary::
-
-  ``RAUC_SYSTEM_COMPATIBLE``
-    The compatible value set in the system configuration file
-
-  ``RAUC_SYSTEM_VARIANT``
-    The system's variant as obtained by the variant source
-    (refer ref:`sec-variants`)
-
-  ``RAUC_MF_COMPATIBLE``
-    The compatible value provided by the current bundle
-
-  ``RAUC_MF_VERSION``
-    The value of the version field as provided by the current bundle
-
-  ``RAUC_MOUNT_PREFIX``
-    The global RAUC mount prefix path
+For a detailed list of all environment variables exported for the hooks
+executable, see the :ref:`sec-install-hook-interface` section.
 
 .. rubric:: Install-Check Hook
 
@@ -368,53 +363,8 @@ Note that hook slot operations will be passed to the executable with the prefix
 ``slot-``. Thus if you intend to check for the pre-install hook, you have to
 check for the argument to be ``slot-pre-install``.
 
-The following environment variables will be passed to the hook executable:
-
-.. glossary::
-
-  ``RAUC_SYSTEM_COMPATIBLE``
-    The compatible value set in the system configuration file
-
-  ``RAUC_SYSTEM_VARIANT``
-    The system's variant as obtained by the variant source
-    (refer ref:`sec-variants`)
-
-  ``RAUC_SLOT_NAME``
-    The name of the currently installed slot
-
-  ``RAUC_SLOT_STATE``
-    The state of the currently installed slot
-    (will always be 'inactive' for slots we install to)
-
-  ``RAUC_SLOT_CLASS``
-    The class of the currently installed slot
-
-  ``RAUC_SLOT_TYPE``
-    The type of the currently installed slot
-
-  ``RAUC_SLOT_DEVICE``
-    The device of the currently installed slot
-
-  ``RAUC_SLOT_BOOTNAME``
-    If set, the bootname of the currently installed slot
-
-  ``RAUC_SLOT_PARENT``
-    If set, the parent of the currently installed slot
-
-  ``RAUC_SLOT_MOUNT_POINT``
-    If available, the mount point of the currently installed slot
-
-  ``RAUC_IMAGE_NAME``
-    If set, the file name of the image currently to be installed
-
-  ``RAUC_IMAGE_DIGEST``
-    If set, the digest of the image currently to be installed
-
-  ``RAUC_IMAGE_CLASS``
-    If set, the target class of the image currently to be installed
-
-  ``RAUC_MOUNT_PREFIX``
-    The global RAUC mount prefix path
+For a detailed list of all environment variables exported for the hooks
+executable, see the :ref:`sec-slot-hook-interface` section.
 
 .. rubric:: Pre-Install Hook
 
