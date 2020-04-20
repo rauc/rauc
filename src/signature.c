@@ -888,4 +888,3 @@ gboolean cms_verify_file(const gchar *filename, GBytes *sig, goffset limit, X509
 out:
 	return res;
 }
-

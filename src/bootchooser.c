@@ -1520,4 +1520,3 @@ gboolean r_boot_set_primary(RaucSlot *slot, GError **error)
 
 	return res;
 }
-
