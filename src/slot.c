@@ -178,7 +178,6 @@ gchar** r_slot_get_root_classes(GHashTable *slots)
 
 gboolean r_slot_list_contains(GList *slotlist, const RaucSlot *testslot)
 {
-
 	g_return_val_if_fail(testslot, FALSE);
 
 	if (!slotlist)
@@ -227,7 +226,6 @@ GList* r_slot_get_all_children(GHashTable *slots, RaucSlot *parent)
 
 	g_hash_table_iter_init(&iter, slots);
 	while (g_hash_table_iter_next(&iter, (gpointer*) &name, (gpointer*) &slot)) {
-
 		if (slot == parent)
 			continue;
 

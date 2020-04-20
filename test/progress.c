@@ -13,7 +13,6 @@ static void test_progress_callback(gint percentage,
 		const gchar *message,
 		gint nesting_depth)
 {
-
 	/* percentage sanity checks */
 	g_assert_cmpint(percentage, >=, 0);
 	g_assert_cmpint(percentage, <=, 100);

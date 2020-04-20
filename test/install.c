@@ -27,7 +27,6 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 static void install_fixture_set_up_bundle_central_status(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
 	fixture_helper_set_up_system(fixture->tmpdir, "test/test-global.conf");

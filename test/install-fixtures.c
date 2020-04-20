@@ -176,4 +176,3 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 	g_free(mountdir);
 	g_free(testfilepath);
 }
-

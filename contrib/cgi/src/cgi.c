@@ -665,7 +665,6 @@ static gint cgi_handler(int argc, char **argv)
 			/* ?progress shows progress information */
 			if (!progress_status(installer, &error))
 				goto error;
-
 		} else if (g_strcmp0("status", query_string) == 0) {
 			/* ?status shows slot information */
 			if (!slot_status(installer, &error))
@@ -674,7 +673,6 @@ static gint cgi_handler(int argc, char **argv)
 			g_set_error(&error, CGI_ERROR, CGI_ERROR_BAD_REQUEST, "Resource '%s' unavailable", query_string);
 			goto error;
 		}
-
 	} else if (g_strcmp0("PUT", method) == 0) {
 		/* save stdin to temporary file */
 		if (!stdin_to_file(&error))
@@ -686,7 +684,6 @@ static gint cgi_handler(int argc, char **argv)
 
 		print_headers("200 OK", "text/plain");
 		g_print("Upload and install trigger executed successfully.\n");
-
 	} else {
 		g_set_error(&error, CGI_ERROR, CGI_ERROR_METHOD_NOT_ALLOWED, "Unsupported method '%s'", method);
 		goto error;

@@ -163,8 +163,7 @@ static gboolean is_region_free(guint64 region_start, guint64 region_size,
 		p_end = (guint64)GUINT32_FROM_LE(partition_tbl[i].partition_size_le) * sector_size +
 		        p_start - 1;
 
-		if (region_start >= p_start && region_start <= p_end)
-		{
+		if (region_start >= p_start && region_start <= p_end) {
 			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 					"Region start address 0x%"G_GINT64_MODIFIER "x is in area of "
 					"partition %d (0x%"G_GINT64_MODIFIER "x - 0x%"G_GINT64_MODIFIER "x)",
@@ -173,8 +172,7 @@ static gboolean is_region_free(guint64 region_start, guint64 region_size,
 		}
 
 		if (p_start >= region_start &&
-		    p_start <= region_start + region_size - 1)
-		{
+		    p_start <= region_start + region_size - 1) {
 			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 					"Region end address 0x%"G_GINT64_MODIFIER "x is in area of "
 					"partition %d (0x%"G_GINT64_MODIFIER "x - 0x%"G_GINT64_MODIFIER "x)",
@@ -313,12 +311,10 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 	if ((region_start / sector_size) ==
 	    (guint64)GUINT32_FROM_LE(boot_part->partition_start_le)) {
 		partition->start = region_start + region_size / 2;
-	}
-	else if (((region_start + region_size / 2) / sector_size) ==
-	         (guint64)GUINT32_FROM_LE(boot_part->partition_start_le)) {
+	} else if (((region_start + region_size / 2) / sector_size) ==
+	           (guint64)GUINT32_FROM_LE(boot_part->partition_start_le)) {
 		partition->start = region_start;
-	}
-	else {
+	} else {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Boot partition's start address does not match "
 				"region configuration");

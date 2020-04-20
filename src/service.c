@@ -404,7 +404,6 @@ static void send_progress_callback(gint percentage,
 		const gchar *message,
 		gint nesting_depth)
 {
-
 	GVariant **progress_update;
 	GVariant *progress_update_tuple;
 

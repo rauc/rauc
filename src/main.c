@@ -819,7 +819,6 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 		json_builder_end_array(builder);
 		json_builder_end_object(builder);
 		json_builder_end_object(builder);
-
 	}
 
 	json_builder_end_array(builder);
@@ -940,7 +939,6 @@ static gboolean info_start(int argc, char **argv)
 		text = print_cert_chain(bundle->verified_chain);
 		g_print("%s\n", text);
 		g_free(text);
-
 	}
 
 out:
@@ -1092,7 +1090,6 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 
 			g_string_append(text, "\n");
 		}
-
 	}
 
 	return g_string_free(text, FALSE);
@@ -1587,7 +1584,6 @@ static gboolean status_start(int argc, char **argv)
 		status_print->variant = r_context()->config->system_variant;
 		status_print->bootslot = r_context()->bootslot;
 		status_print->slots = r_context()->config->slots;
-
 	} else {
 		if (!retrieve_status_via_dbus(&status_print, &ierror)) {
 			message = g_strdup_printf(

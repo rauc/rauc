@@ -232,7 +232,6 @@ static void r_context_configure(void)
 
 	if (context->config->systeminfo_handler &&
 	    g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
-
 		GError *ierror = NULL;
 		g_autoptr(GHashTable) vars = NULL;
 		GHashTableIter iter;
@@ -351,7 +350,6 @@ static void r_context_send_progress(gboolean op_finished, gboolean success)
 void r_context_begin_step(const gchar *name, const gchar *description,
 		gint substeps)
 {
-
 	RaucProgressStep *step = g_new0(RaucProgressStep, 1);
 	RaucProgressStep *parent;
 
