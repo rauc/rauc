@@ -89,7 +89,6 @@ static void test_slot_get_all_of_class(void)
 	g_assert_true(r_slot_list_contains(class_slots, datafs_0));
 	g_assert_true(r_slot_list_contains(class_slots, datafs_1));
 	g_assert_cmpint(g_list_length(class_slots), ==, 2);
-
 }
 
 static gboolean string_array_contains(gchar **array, const gchar *searchstring)

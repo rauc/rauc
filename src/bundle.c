@@ -621,7 +621,6 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 				goto out;
 			}
 		} else {
-
 			idxfile = g_strconcat(image->filename, ".caibx", NULL);
 			idxpath = g_build_filename(contentdir, idxfile, NULL);
 

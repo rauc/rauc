@@ -362,7 +362,6 @@ static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **er
 			g_propagate_error(error, ierror);
 			goto out;
 		}
-
 	} else {
 		res = copy_raw_image_to_dev(image, slot, &ierror);
 		if (!res) {
@@ -806,7 +805,6 @@ static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, con
 			g_propagate_error(error, ierror);
 			goto out;
 		}
-
 	} else {
 		/* copy */
 		res = copy_raw_image(image, outstream, &ierror);
@@ -870,7 +868,6 @@ static gboolean img_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 			g_propagate_error(error, ierror);
 			goto out;
 		}
-
 	} else {
 		/* copy */
 		res = copy_raw_image(image, outstream, &ierror);
@@ -1297,7 +1294,6 @@ out:
 #if ENABLE_EMMC_BOOT_SUPPORT == 1
 static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
-
 	gboolean res = FALSE;
 	int out_fd;
 	gint part_active;

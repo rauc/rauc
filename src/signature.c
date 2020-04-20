@@ -332,7 +332,6 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 	intercerts = sk_X509_new_null();
 
 	for (gchar **intercertpath = interfiles; intercertpath && *intercertpath != NULL; intercertpath++) {
-
 		X509 *intercert = load_cert(*intercertpath, &ierror);
 		if (intercert == NULL) {
 			g_propagate_error(error, ierror);

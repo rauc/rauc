@@ -168,9 +168,7 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	/* parse [image.<slotclass>] and [file.<slotclass>/<destname>] sections */
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
-
 		if (g_str_has_prefix(groups[i], RAUC_IMAGE_PREFIX ".")) {
-
 			RaucImage *image = NULL;
 
 			if (!parse_image(key_file, groups[i], &image, &ierror)) {
@@ -179,8 +177,6 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 			}
 
 			raucm->images = g_list_append(raucm->images, image);
-
-
 		} else if (g_str_has_prefix(groups[i], RAUC_FILE_PREFIX ".")) {
 			RaucFile *file;
 			gchar *value;
@@ -227,7 +223,6 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 			}
 			g_key_file_remove_group(key_file, groups[i], NULL);
 		}
-
 	}
 
 	if (!check_remaining_groups(key_file, &ierror)) {

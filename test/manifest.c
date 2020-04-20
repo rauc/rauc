@@ -83,7 +83,6 @@ static void test_load_manifest(void)
 	g_clear_pointer(&rm, free_manifest);
 	g_clear_error(&error);
 	g_assert_null(rm);
-
 }
 
 /* Test manifest/save_load:
