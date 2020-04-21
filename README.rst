@@ -34,7 +34,7 @@ Features
 
   * **Symmetric** setup (Root-FS A & B)
   * **Asymmetric** setup (recovery & normal)
-  * Application partition, Data Partitions, ...
+  * Application partition, data partitions, ...
   * Allows **grouping** of multiple slots (rootfs, appfs) as update targets
 * Network streaming mode using **casync**
 
@@ -57,12 +57,12 @@ Features
   * raw NAND (using nandwrite)
   * squashfs
   * MBR partition table
-* Independent from updates source
+* Independent from update source
 
   * **USB Stick**
-  * Software provisioning server (e.g. **Hawkbit**)
+  * Software provisioning server (e.g. **hawkBit**)
 * Controllable via **D-Bus** interface
-* Supports Data migration
+* Supports data migration
 * Network protocol support using libcurl (https, http, ftp, ssh, ...)
 * Several layers of update customization
 
@@ -80,7 +80,7 @@ Host Features
 Target Features
 ~~~~~~~~~~~~~~~
 
-*  Run as a system service (d-bus interface)
+*  Run as a system service (D-Bus interface)
 *  Install bundles
 *  View system status information
 *  Change status of symmetric/asymmetric/custom slots
