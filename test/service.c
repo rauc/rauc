@@ -9,6 +9,7 @@
 #include <install.h>
 #include <manifest.h>
 #include <mount.h>
+#include <utils.h>
 
 #include "../rauc-installer-generated.h"
 
@@ -57,8 +58,19 @@ Exec="TEST_SERVICES "/rauc -c test/test.conf service\n", NULL);
 
 static void service_fixture_tear_down(ServiceFixture *fixture, gconstpointer user_data)
 {
+	GError *error = NULL;
+	gboolean ret = FALSE;
+
 	g_test_dbus_down(fixture->dbus);
 	g_object_unref(fixture->dbus);
+
+	test_umount(fixture->tmpdir, "slot");
+	test_umount(fixture->tmpdir, "bootloader");
+
+	ret = rm_tree(fixture->tmpdir, &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	g_free(fixture->tmpdir);
 }
 
 static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
