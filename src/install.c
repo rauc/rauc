@@ -707,6 +707,27 @@ out:
 	return res;
 }
 
+static gboolean pre_install_check_slot_mount_status(RaucSlot *slot, RaucImage *mfimage, GError **error)
+{
+	/* OK if the slot is not mounted at all. */
+	if (!(slot->mount_point || slot->ext_mount_point))
+		return TRUE;
+
+	/* OK if the configuration says it may already be mounted and the
+	 * bundle has a custom install hook. */
+	if (slot->allow_mounted && mfimage->hooks.install)
+		return TRUE;
+
+	if (slot->allow_mounted)
+		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
+				"Mounted device '%s' may only be updated by a custom install hook", slot->device);
+	else
+		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
+				"Destination device '%s' already mounted", slot->device);
+
+	return FALSE;
+}
+
 static gboolean pre_install_checks(gchar* bundledir, GList *install_images, GHashTable *target_group, GError **error)
 {
 	for (GList *l = install_images; l != NULL; l = l->next) {
@@ -732,9 +753,8 @@ static gboolean pre_install_checks(gchar* bundledir, GList *install_images, GHas
 			return FALSE;
 		}
 
-		if (dest_slot->mount_point || dest_slot->ext_mount_point) {
-			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
-					"Destination device '%s' already mounted", dest_slot->device);
+		if (!pre_install_check_slot_mount_status(dest_slot, mfimage, error)) {
+			/* error is already set */
 			return FALSE;
 		}
 	}

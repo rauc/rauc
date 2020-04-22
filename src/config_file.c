@@ -365,6 +365,16 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			value = key_file_consume_string(key_file, groups[i], "bootname", NULL);
 			slot->bootname = value;
 
+			slot->allow_mounted = g_key_file_get_boolean(key_file, groups[i], "allow-mounted", &ierror);
+			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+				slot->allow_mounted = FALSE;
+				g_clear_error(&ierror);
+			} else if (ierror) {
+				g_propagate_error(error, ierror);
+				res = FALSE;
+				goto free;
+			}
+
 			slot->readonly = g_key_file_get_boolean(key_file, groups[i], "readonly", &ierror);
 			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 				slot->readonly = FALSE;

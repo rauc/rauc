@@ -39,13 +39,17 @@ case "$1" in
 		echo "RAUC_SLOT_DEVICE: $RAUC_SLOT_DEVICE"
 		echo "RAUC_SLOT_MOUNT_POINT: $RAUC_SLOT_MOUNT_POINT"
 		echo "RAUC_MOUNT_PREFIX: $RAUC_MOUNT_PREFIX"
-		echo "$RAUC_MOUNT_PREFIX/hook-slot"
-		mkdir "$RAUC_MOUNT_PREFIX/hook-slot"
-		mount "$RAUC_SLOT_DEVICE" "$RAUC_MOUNT_PREFIX/hook-slot"
-		echo "$RAUC_MOUNT_PREFIX/hook-slot/hook-install"
-		touch "$RAUC_MOUNT_PREFIX/hook-slot/hook-install"
-		umount "$RAUC_MOUNT_PREFIX/hook-slot"
-		rmdir  "$RAUC_MOUNT_PREFIX/hook-slot"
+		if [ -z "$RAUC_SLOT_MOUNT_POINT" ] ; then
+		    echo "$RAUC_MOUNT_PREFIX/hook-slot"
+		    mkdir "$RAUC_MOUNT_PREFIX/hook-slot"
+		    mount "$RAUC_SLOT_DEVICE" "$RAUC_MOUNT_PREFIX/hook-slot"
+		    echo "$RAUC_MOUNT_PREFIX/hook-slot/hook-install"
+		    touch "$RAUC_MOUNT_PREFIX/hook-slot/hook-install"
+		    umount "$RAUC_MOUNT_PREFIX/hook-slot"
+		    rmdir  "$RAUC_MOUNT_PREFIX/hook-slot"
+		else
+		    touch "$RAUC_SLOT_MOUNT_POINT/hook-install-mounted"
+		fi
 		;;
 	*)
 		exit 1
