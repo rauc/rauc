@@ -999,7 +999,7 @@ static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint 
 	} else {
 		g_string_append_c(text, ' ');
 	}
-	g_string_append_printf(text, "%s%s%s"KBLD "[%s]"KNRM " (%s, %s, %s%s"KWHT ")"KNRM,
+	g_string_append_printf(text, "%s%s%s"KBLD "[%s]"KNRM " (%s, %s, %s%s"KNRM ")",
 			slot->parent ? "   " : " ",
 			slot->state & ST_ACTIVE ? KGRN : "",
 			slot->state == ST_BOOTED ? KGRN : "",
