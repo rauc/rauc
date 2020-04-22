@@ -61,12 +61,14 @@ static gboolean r_on_handle_install_bundle(
 	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(arg_args);
 	GVariantIter iter;
 	gchar *key;
+	g_autofree gchar *message = NULL;
 	gboolean res;
 
 	g_print("input bundle: %s\n", source);
 
 	res = !r_context_get_busy();
 	if (!res) {
+		message = g_strdup("Already processing a different method");
 		args->status_result = 1;
 		goto out;
 	}
@@ -81,7 +83,7 @@ static gboolean r_on_handle_install_bundle(
 	/* Check for unhandled keys */
 	g_variant_iter_init(&iter, g_variant_dict_end(&dict));
 	while (g_variant_iter_next(&iter, "{sv}", &key, NULL)) {
-		g_message("Unsupported key: %s", key);
+		message = g_strdup_printf("Unsupported key: %s", key);
 		g_free(key);
 		res = FALSE;
 		args->status_result = 2;
@@ -92,6 +94,7 @@ static gboolean r_on_handle_install_bundle(
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
 	res = install_run(args);
 	if (!res) {
+		message = g_strdup("Failed to launch install thread");
 		args->status_result = 1;
 		goto out;
 	}
@@ -106,7 +109,7 @@ out:
 		g_dbus_method_invocation_return_error(invocation,
 				G_IO_ERROR,
 				G_IO_ERROR_FAILED_HANDLED,
-				"rauc installer error");
+				"%s", message);
 	}
 
 	return TRUE;
