@@ -443,12 +443,15 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 	res = sign_bundle(bundlename, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		g_remove(bundlename);
 		goto out;
 	}
 
 	res = TRUE;
 out:
+	/* Remove output file on error */
+	if (!res && g_file_test(bundlename, G_FILE_TEST_IS_REGULAR))
+		if (g_remove(bundlename) != 0)
+			g_warning("failed to remove %s", bundlename);
 	return res;
 }
 
@@ -461,6 +464,12 @@ static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffs
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gssize ssize;
+
+	if (g_file_test(outpath, G_FILE_TEST_EXISTS)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "bundle %s already exists", outpath);
+		res = FALSE;
+		goto out;
+	}
 
 	infile = g_file_new_for_path(inpath);
 	outfile = g_file_new_for_path(outpath);
@@ -523,12 +532,15 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 	res = sign_bundle(outpath, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		g_remove(outpath);
 		goto out;
 	}
 
 	res = TRUE;
 out:
+	/* Remove output file on error */
+	if (!res && g_file_test(outpath, G_FILE_TEST_IS_REGULAR))
+		if (g_remove(outpath) != 0)
+			g_warning("failed to remove %s", outpath);
 	return res;
 }
 
@@ -640,7 +652,7 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 
 		/* Remove original file */
 		if (g_remove(imgpath) != 0) {
-			g_warning("Failed removing %s", imgpath);
+			g_warning("failed to remove %s", imgpath);
 		}
 	}
 
@@ -982,10 +994,10 @@ void free_bundle(RaucBundle *bundle)
 {
 	g_return_if_fail(bundle);
 
-	/* In case of a temporary donwload artifact, remove it. */
+	/* In case of a temporary download artifact, remove it. */
 	if (bundle->origpath)
-		if (g_remove(bundle->path) == -1) {
-			g_warning("Failed removing download artifact %s: %s\n", bundle->path, g_strerror(errno));
+		if (g_remove(bundle->path) != 0) {
+			g_warning("failed to remove download artifact %s: %s\n", bundle->path, g_strerror(errno));
 		}
 
 	g_free(bundle->path);
