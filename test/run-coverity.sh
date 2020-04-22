@@ -22,21 +22,12 @@ UPLOAD_URL=${UPLOAD_URL:="https://scan.coverity.com/builds"}
 echo -e "\033[33;1mNote: COVERITY_SCAN_PROJECT_NAME and COVERITY_SCAN_TOKEN are available on Project Settings page on scan.coverity.com\033[0m"
 [ -z "$COVERITY_SCAN_PROJECT_NAME" ] && echo "ERROR: COVERITY_SCAN_PROJECT_NAME must be set" && exit 1
 [ -z "$COVERITY_SCAN_NOTIFICATION_EMAIL" ] && echo "ERROR: COVERITY_SCAN_NOTIFICATION_EMAIL must be set" && exit 1
-[ -z "$COVERITY_SCAN_BRANCH_PATTERN" ] && echo "ERROR: COVERITY_SCAN_BRANCH_PATTERN must be set" && exit 1
 [ -z "$COVERITY_SCAN_BUILD_COMMAND" ] && echo "ERROR: COVERITY_SCAN_BUILD_COMMAND must be set" && exit 1
 [ -z "$COVERITY_SCAN_TOKEN" ] && echo "ERROR: COVERITY_SCAN_TOKEN must be set" && exit 1
 
 # Do not run on pull requests
 if [ "${TRAVIS_PULL_REQUEST}" = "true" ]; then
   echo -e "\033[33;1mINFO: Skipping Coverity Analysis: branch is a pull request.\033[0m"
-  exit 0
-fi
-
-# Verify this branch should run
-if [[ "${TRAVIS_BRANCH^^}" =~ "${COVERITY_SCAN_BRANCH_PATTERN^^}" ]]; then
-  echo -e "\033[33;1mCoverity Scan configured to run on branch ${TRAVIS_BRANCH}\033[0m"
-else
-  echo -e "\033[33;1mCoverity Scan NOT configured to run on branch ${TRAVIS_BRANCH}\033[0m"
   exit 0
 fi
 

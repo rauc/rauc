@@ -8,13 +8,13 @@ env:
     - ci_env=`bash <(curl -s https://codecov.io/env)`
     - COVERITY_SCAN_PROJECT_NAME="jluebbe/rauc"
     - COVERITY_SCAN_NOTIFICATION_EMAIL="jlu@pengutronix.de"
-    - COVERITY_SCAN_BRANCH_PATTERN="coverity"
     - COVERITY_SCAN_BUILD_COMMAND_PREPEND="cov-configure --comptype gcc --compiler gcc-8 --template && ./autogen.sh && ./configure CC=gcc-8"
     - COVERITY_SCAN_BUILD_COMMAND="make V=1"
 
 stages:
   - name: Main Build and Tests
   - name: Cross-Builds
+  - name: Static Analysis
 
 jobs:
   include:
@@ -23,26 +23,12 @@ jobs:
         - docker pull rauc/testing:latest
 
       script:
-        # Prepare environment for Coverity tool
-        - |
-            PLATFORM=`uname`
-            export TOOL_BASE="/tmp/coverity-scan-analysis"
-            export SCAN_URL="https://scan.coverity.com"
-            export UPLOAD_URL="https://scan.coverity.com/builds"
-            export TOOL_ARCHIVE="/tmp/cov-analysis-${PLATFORM}.tgz"
-
-        # Get Coverity tool
-        - test/get-coverity.sh
-        - TOOL_DIR="$(find $TOOL_BASE -type d -name 'cov-analysis*' || exit 0)"
-
         # Create container and export env variables for Coverity scan
-        - env | grep -E "TRAVIS|COV|TOOL|URL" > .cov-env
         - cat /proc/cpuinfo
         - sudo chmod 666 /dev/kvm
         - ls -l /dev/kvm
         - |
             docker run -dit --privileged \
-            --env-file .cov-env \
             -v "$PWD":/home/travis -w /home/travis \
             --tmpfs /tmp/qemu:exec,mode=777 \
             --tmpfs /tmp:exec \
@@ -50,13 +36,6 @@ jobs:
             -u travis $ci_env \
             --name rauc-ci rauc/testing:latest bash
         - docker exec -it rauc-ci gcc --version
-
-        # Make sure Coverity script is executable
-        - docker cp test/run-coverity.sh rauc-ci:/usr/local/bin
-
-        # Run Coverity Analysis
-        - docker exec -it rauc-ci run-coverity.sh build
-        - docker exec -it rauc-ci run-coverity.sh upload
 
         - docker exec -it rauc-ci ./autogen.sh
         - docker exec -it rauc-ci ./configure --enable-code-coverage CFLAGS=-Werror
@@ -109,3 +88,41 @@ jobs:
       name: armel
       install:
         - docker run --name cross -dit -v "$PWD":/home -w /home multiarch/debian-debootstrap:armel-buster bash
+    - stage: Static Analysis
+      if: |
+        env(COVERITY_SCAN_TOKEN) IS present AND
+        branch IN (master, coverity) AND
+        type NOT IN (pull_request)
+      before_script:
+        - docker pull rauc/testing:latest
+      script:
+        # Prepare environment for Coverity tool
+        - |
+            PLATFORM=`uname`
+            export TOOL_BASE="/tmp/coverity-scan-analysis"
+            export SCAN_URL="https://scan.coverity.com"
+            export UPLOAD_URL="https://scan.coverity.com/builds"
+            export TOOL_ARCHIVE="/tmp/cov-analysis-${PLATFORM}.tgz"
+
+        # Get Coverity tool
+        - test/get-coverity.sh
+        - TOOL_DIR="$(find $TOOL_BASE -type d -name 'cov-analysis*' || exit 0)"
+
+        # Create container and export env variables for Coverity scan
+        - env | grep -E "TRAVIS|COV|TOOL|URL" > .cov-env
+        - |
+            docker run -dit --privileged \
+            --env-file .cov-env \
+            -v "$PWD":/home/travis -w /home/travis \
+            --tmpfs /tmp:exec \
+            -v ${TOOL_BASE}:${TOOL_BASE} \
+            -u travis $ci_env \
+            --name rauc-ci rauc/testing:latest bash
+        - docker exec -it rauc-ci gcc --version
+
+        # Make sure Coverity script is executable
+        - docker cp test/run-coverity.sh rauc-ci:/usr/local/bin
+
+        # Run Coverity Analysis
+        - docker exec -it rauc-ci run-coverity.sh build
+        - docker exec -it rauc-ci run-coverity.sh upload
