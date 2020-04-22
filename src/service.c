@@ -59,6 +59,8 @@ static gboolean r_on_handle_install_bundle(
 {
 	RaucInstallArgs *args = install_args_new();
 	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(arg_args);
+	GVariantIter iter;
+	gchar *key;
 	gboolean res;
 
 	g_print("input bundle: %s\n", source);
@@ -73,7 +75,18 @@ static gboolean r_on_handle_install_bundle(
 	args->notify = service_install_notify;
 	args->cleanup = service_install_cleanup;
 
-	g_variant_dict_lookup(&dict, "ignore-compatible", "b", &args->ignore_compatible);
+	if (g_variant_dict_lookup(&dict, "ignore-compatible", "b", &args->ignore_compatible))
+		g_variant_dict_remove(&dict, "ignore-compatible");
+
+	/* Check for unhandled keys */
+	g_variant_iter_init(&iter, g_variant_dict_end(&dict));
+	while (g_variant_iter_next(&iter, "{sv}", &key, NULL)) {
+		g_message("Unsupported key: %s", key);
+		g_free(key);
+		res = FALSE;
+		args->status_result = 2;
+		goto out;
+	}
 
 	r_installer_set_operation(r_installer, "installing");
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
