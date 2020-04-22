@@ -64,6 +64,10 @@ fi
 if make check; then
   touch qemu-test-ok
 else
-  cat test-suite.log
+  cat test-suite.log || true
+  # show system status on error
+  mount || true
+  df -h || true
+  free || true
 fi
 echo o > /proc/sysrq-trigger
