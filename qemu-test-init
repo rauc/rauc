@@ -9,6 +9,15 @@ mount -t sysfs none /sys
 mount -t tmpfs none /mnt
 mount -t tmpfs none /tmp
 
+# parse cmdline
+for x in $(cat /proc/cmdline); do
+  if [ "$x" = "shell" ]; then
+    SHELL=1
+  fi
+done
+
+hostname qemu-test
+
 # loopback interface
 ip addr add 127.0.0.1 dev lo
 ip link set lo up
@@ -46,6 +55,11 @@ mkdir -p /var/run/dbus
 time dbus-daemon --system --fork --nopidfile --nosyslog --print-address
 
 echo "system ready"
+
+if [ -n "$SHELL" ]; then
+  setsid bash </dev/ttyS0 >/dev/ttyS0 2>&1 || echo exit-code=$?
+  echo o > /proc/sysrq-trigger
+fi
 
 if make check; then
   touch qemu-test-ok
