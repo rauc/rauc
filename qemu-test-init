@@ -52,4 +52,4 @@ if make check; then
 else
   cat test-suite.log
 fi
-poweroff -f
+echo o > /proc/sysrq-trigger
