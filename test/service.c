@@ -201,7 +201,7 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	g_assert_cmpint(g_signal_connect(installer, "g-properties-changed",
 			G_CALLBACK(on_installer_changed), args), !=, 0);
 	g_assert_cmpint(g_signal_connect(installer, "completed",
-			G_CALLBACK(on_installer_completed), args), !=, 0);
+			G_CALLBACK(on_installer_completed), NULL), !=, 0);
 
 	/* initial operation must be 'idle', initial last_error must be empty */
 	operation = r_installer_get_operation(installer);
