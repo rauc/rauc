@@ -995,11 +995,11 @@ static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint 
 		if (utf8_supported)
 			g_string_append_unichar(text, slot == status->primary ? 0x23FA :  0x25CB);
 		else
-			g_string_append_c(text, slot == status->primary ? 'o' :  'x');
+			g_string_append(text, slot == status->primary ? KBLD "x"KNRM :  "o");
 	} else {
 		g_string_append_c(text, ' ');
 	}
-	g_string_append_printf(text, "%s%s%s"KBLD "[%s]"KNRM " (%s, %s, %s%s"KWHT ")"KNRM,
+	g_string_append_printf(text, "%s%s%s"KBLD "[%s]"KNRM " (%s, %s, %s%s"KNRM ")",
 			slot->parent ? "   " : " ",
 			slot->state & ST_ACTIVE ? KGRN : "",
 			slot->state == ST_BOOTED ? KGRN : "",
