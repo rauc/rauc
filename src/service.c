@@ -64,8 +64,10 @@ static gboolean r_on_handle_install_bundle(
 	g_print("input bundle: %s\n", source);
 
 	res = !r_context_get_busy();
-	if (!res)
+	if (!res) {
+		args->status_result = 1;
 		goto out;
+	}
 
 	args->name = g_strdup(source);
 	args->notify = service_install_notify;
@@ -77,12 +79,13 @@ static gboolean r_on_handle_install_bundle(
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
 	res = install_run(args);
 	if (!res) {
+		args->status_result = 1;
 		goto out;
 	}
 	args = NULL;
 
 out:
-	g_clear_pointer(&args, g_free);
+	g_clear_pointer(&args, install_args_free);
 	if (res) {
 		r_installer_complete_install(interface, invocation);
 	} else {
