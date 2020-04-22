@@ -46,6 +46,7 @@ typedef struct {
 	gchar *keyring_path;
 	gchar *keyring_directory;
 	gboolean keyring_check_crl;
+	gchar *keyring_check_purpose;
 	gboolean use_bundle_signing_time;
 
 	gchar *autoinstall_path;

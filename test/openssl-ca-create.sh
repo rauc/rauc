@@ -91,6 +91,24 @@ basicConstraints = CA:TRUE,pathlen:0
 subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid:always,issuer:always
 basicConstraints = CA:FALSE
+
+[ v3_leaf_timestamp ]
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+basicConstraints = CA:FALSE
+extendedKeyUsage=critical,timeStamping
+
+[ v3_leaf_email ]
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+basicConstraints = CA:FALSE
+extendedKeyUsage=critical,emailProtection
+
+[ v3_leaf_codesign ]
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+basicConstraints = CA:FALSE
+extendedKeyUsage=critical,codeSigning
 EOF
 
 export OPENSSL_CONF=$BASE/openssl.cnf
@@ -99,6 +117,11 @@ echo "Root CA"
 cd $BASE/root
 openssl req -newkey rsa -keyout private/ca.key.pem -out ca.csr.pem -subj "/O=$ORG/CN=$ORG $CA Root"
 openssl ca -batch -selfsign -extensions v3_ca -in ca.csr.pem -out ca.cert.pem -keyfile private/ca.key.pem
+
+echo "Key with XKU timeStamping"
+cd $BASE/root
+openssl req -newkey rsa -keyout private/xku-timeStamping.pem -out xku-timeStamping.csr.pem -subj "/O=$ORG/CN=$ORG XKU timeStamping"
+openssl ca -batch -extensions v3_leaf_timestamp -in xku-timeStamping.csr.pem -out xku-timeStamping.cert.pem
 
 echo "Release Intermediate CA"
 cd $BASE/rel
@@ -129,6 +152,16 @@ openssl ca -batch -extensions v3_leaf -in release-1.csr.pem -out release-1.cert.
 openssl req -newkey rsa -keyout private/release-2018.pem -out release-2018.csr.pem -subj "/O=$ORG/CN=$ORG Release-2018"
 openssl ca -batch -extensions v3_leaf -in release-2018.csr.pem -out release-2018.cert.pem -startdate 20180101000000Z -enddate 20190701000000Z
 
+echo "Signing Key with XKU emailProtection"
+cd $BASE/dev
+openssl req -newkey rsa -keyout private/xku-emailProtection.pem -out xku-emailProtection.csr.pem -subj "/O=$ORG/CN=$ORG XKU emailProtection"
+openssl ca -batch -extensions v3_leaf_email -in xku-emailProtection.csr.pem -out xku-emailProtection.cert.pem
+
+echo "Signing Key with XKU codeSigning"
+cd $BASE/dev
+openssl req -newkey rsa -keyout private/xku-codeSigning.pem -out xku-codeSigning.csr.pem -subj "/O=$ORG/CN=$ORG XKU codeSigning"
+openssl ca -batch -extensions v3_leaf_codesign -in xku-codeSigning.csr.pem -out xku-codeSigning.cert.pem
+
 echo "Generate CRL"
 cd $BASE/root
 openssl ca -gencrl $CRL -out crl.pem
@@ -139,6 +172,7 @@ openssl ca -gencrl $CRL -out crl.pem
 
 echo "Build CA PEM"
 cd $BASE
+cat root/ca.cert.pem root/crl.pem > root-ca.pem
 cat root/ca.cert.pem root/crl.pem rel/crl.pem dev/crl.pem > provisioning-ca.pem
 cat root/ca.cert.pem root/crl.pem rel/ca.cert.pem rel/crl.pem dev/ca.cert.pem dev/crl.pem > dev-ca.pem
 cat root/ca.cert.pem root/crl.pem dev/ca.cert.pem dev/crl.pem > dev-only-ca.pem
@@ -159,45 +193,3 @@ mkdir -p $DIRHASH_A $DIRHASH_AB
 cp dir/a.cert.pem $DIRHASH_A/$(openssl x509 -in dir/a.cert.pem -hash -noout).0
 cp dir/a.cert.pem $DIRHASH_AB/$(openssl x509 -in dir/a.cert.pem -hash -noout).0
 cp dir/b.cert.pem $DIRHASH_AB/$(openssl x509 -in dir/b.cert.pem -hash -noout).0
-
-cd $BASE
-cat > manifest <<EOF
-# example update manifest
-
-[update]
-compatible=FooCorp Super BarBazzer
-version=2015.04-1
-
-[keyring]
-archive=release.tar
-
-[handler]
-filename=custom_handler.sh
-
-[image.rootfs]
-sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
-filename=rootfs.ext4
-
-[image.appfs]
-sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca
-filename=appfs.ext4
-EOF
-
-echo "Sign and check with Release-1"
-openssl cms -sign -in manifest -out manifest-r1.sig -signer rel/release-1.cert.pem -inkey rel/private/release-1.pem -outform DER -nosmimecap -binary -certfile rel/ca.cert.pem
-openssl cms -verify -in manifest-r1.sig -content manifest -inform DER -binary -crl_check -CAfile provisioning-ca.pem || echo FAILED
-
-echo "Sign and check with Autobuilder-1"
-openssl cms -sign -in manifest -out manifest-a1.sig -signer dev/autobuilder-1.cert.pem -inkey dev/private/autobuilder-1.pem -outform DER -nosmimecap -binary -certfile dev/ca.cert.pem
-openssl cms -verify -in manifest-a1.sig -content manifest -inform DER -binary -crl_check -CAfile provisioning-ca.pem || echo FAILED
-
-echo "Sign and check with Autobuilder-2 (revoked)"
-openssl cms -sign -in manifest -out manifest-a2.sig -signer dev/autobuilder-2.cert.pem -inkey dev/private/autobuilder-2.pem -outform DER -nosmimecap -binary -certfile dev/ca.cert.pem
-echo "  without CRL"
-openssl cms -verify -in manifest-a2.sig -content manifest -inform DER -binary -CAfile root/ca.cert.pem || echo FAILED
-echo "  with CRL"
-openssl cms -verify -in manifest-a2.sig -content manifest -inform DER -binary -crl_check -CAfile provisioning-ca.pem && echo FAILED
-
-echo "Encrypt and decrypt with Release-1"
-openssl cms -encrypt -text -in manifest -aes256 -out manifest.mail rel/release-1.cert.pem
-openssl cms -decrypt -text -in manifest.mail -recip rel/release-1.cert.pem -inkey rel/private/release-1.pem 

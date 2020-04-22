@@ -44,14 +44,56 @@ exceeds the scope of this documentation.
 As a starting point, the OpenSSL manual pages (especially ca_, req_, x509_, cms_,
 verify_ and config_) and Stefan H. Holek's pki-tutorial_ are useful.
 
-.. _ca: https://www.openssl.org/docs/manmaster/man1/ca.html
-.. _req: https://www.openssl.org/docs/manmaster/man1/req.html
-.. _x509: https://www.openssl.org/docs/manmaster/man1/x509.html
-.. _cms: https://www.openssl.org/docs/manmaster/man1/cms.html
-.. _verify: https://www.openssl.org/docs/manmaster/man1/verify.html
-.. _config: https://www.openssl.org/docs/manmaster/man5/config.html
+.. _ca: https://www.openssl.org/docs/man1.1.1/man1/ca.html
+.. _req: https://www.openssl.org/docs/man1.1.1/man1/req.html
+.. _x509: https://www.openssl.org/docs/man1.1.1/man1/x509.html
+.. _cms: https://www.openssl.org/docs/man1.1.1/man1/cms.html
+.. _verify: https://www.openssl.org/docs/man1.1.1/man1/verify.html
+.. _config: https://www.openssl.org/docs/man1.1.1/man5/config.html
 
 .. _pki-tutorial: https://pki-tutorial.readthedocs.io/
+
+.. _sec-key-usage:
+
+Certificate Key Usage Attributes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default (for backwards compatibility reasons), RAUC does not check the
+certificate's key usage attributes.
+When not using a stand-alone PKI for RAUC, it can be useful to enable checking
+via the ``check-purpose`` configuration option to allow only specific
+certificates for bundle installation.
+
+When using OpenSSL to create your certificates, the key usage attributes can be
+configured in the `X.509 V3 extension sections
+<https://www.openssl.org/docs/man1.1.1/man5/x509v3_config.html>`_ in your
+OpenSSL configuration file.
+The extension configuration section to be used by ``openssl ca`` is selected
+via the ``-extensions`` argument.
+For example, RAUC uses a certificate created with the following extensions to
+test the handling of the *codeSigning* *extended key usage* attribute::
+
+  [ v3_leaf_codesign ]
+  subjectKeyIdentifier=hash
+  authorityKeyIdentifier=keyid:always,issuer:always
+  basicConstraints = CA:FALSE
+  extendedKeyUsage=critical,codeSigning
+
+As OpenSSL does not (yet) provide a purpose check for code signing, RAUC
+contains its own implementation, which can be enabled with the
+:ref:`check-purpose=codesign <check-purpose>` configuration option.
+For the leaf (signer) certificate, the *extendedKeyUsage* attribute must exist
+and contain (at least) the *codeSigning* value.
+Also, if it has the *keyUsage* attribute, it must contain at least *digitalSignature*.
+For all other (issuer) certificates in the chain, the *extendedKeyUsage*
+attribute is optional, but if it is present, it must contain at least the
+*codeSigning* value.
+
+This means that only signatures using certificates explicitly issued for code
+signing are accepted for the ``codesign`` purpose.
+Also, you can optionally use *extendedKeyUsage* attributes on intermediate CA
+certificates to limit which ones are allowed to issue code signing
+certificates.
 
 Single Key
 ~~~~~~~~~~

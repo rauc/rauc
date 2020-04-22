@@ -134,6 +134,28 @@ signature.
   If this boolean value is set to ``true`` then the bundle signing time
   is used instead of the current system time for certificate validation.
 
+``check-crl=<true/false>``
+  If this boolean value is set to ``true``, RAUC will enable checking of CRLs
+  (Certificate Revocation Lists) stored in the keyring together with the CA
+  certificates.
+  Note that CRLs have an expiration time in their signature, so you need to
+  make sure you don't end up with an expired CRL on your device (which would
+  block further updates).
+
+.. _check-purpose:
+
+``check-purpose``
+  This option can be used to set the OpenSSL certificate purpose used during
+  chain verification.
+  Certificates in the chain with incompatible purposes are rejected.
+  Possible values are provided by OpenSSL (``any``, ``sslclient``,
+  ``sslserver``, ``nssslserver``, ``smimesign``, ``smimeencrypt``) and RAUC
+  (``codesign``).
+  See ``-purpose`` and ``VERIFY OPERATION`` in the OpenSSL verify_ manual page
+  and the :ref:`sec-key-usage` section for more information.
+
+.. _verify: https://www.openssl.org/docs/man1.1.1/man1/verify.html
+
 **[casync] section**
 
 The ``casync`` section contains casync-related settings.

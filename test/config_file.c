@@ -861,6 +861,54 @@ static void config_file_test_global_slot_status(ConfigFileFixture *fixture,
 	}
 }
 
+static void config_file_keyring_checks(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	gchar* pathname;
+
+	const gchar *simple_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+[keyring]\n\
+path=/dev/null\n";
+	const gchar *checking_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+[keyring]\n\
+path=/dev/null\n\
+check-crl=true\n\
+check-purpose=codesign\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "simple.conf", simple_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(config);
+	g_assert_false(config->keyring_check_crl);
+	g_assert_cmpstr(config->keyring_check_purpose, ==, NULL);
+
+	free_config(config);
+
+	pathname = write_tmp_file(fixture->tmpdir, "checking.conf", checking_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(config);
+	g_assert_true(config->keyring_check_crl);
+	g_assert_cmpstr(config->keyring_check_purpose, ==, "codesign");
+
+	free_config(config);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -931,6 +979,9 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/global-slot-staus", ConfigFileFixture, NULL,
 			config_file_fixture_set_up_global, config_file_test_global_slot_status,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/keyring-checks", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_keyring_checks,
 			config_file_fixture_tear_down);
 
 	return g_test_run();

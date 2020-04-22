@@ -21,9 +21,9 @@ typedef enum {
 	R_SIGNATURE_ERROR_VERIFY_CERT,
 	R_SIGNATURE_ERROR_GET_SIGNER,
 	R_SIGNATURE_ERROR_NUM_SIGNER,
-
 	R_SIGNATURE_ERROR_X509_NEW,
 	R_SIGNATURE_ERROR_X509_LOOKUP,
+	R_SIGNATURE_ERROR_X509_PURPOSE,
 	R_SIGNATURE_ERROR_CA_LOAD,
 	R_SIGNATURE_ERROR_PARSE,
 	R_SIGNATURE_ERROR_INVALID,
@@ -39,6 +39,20 @@ typedef enum {
  * @return TRUE if succeeded, FALSE if failed
  */
 gboolean signature_init(GError **error);
+
+/**
+ * Prepare an OpenSSL X509_STORE for signature verification.
+ *
+ * When capath or cadir are NULL, this uses the paths and options configured in
+ * the [keyring] section in system.conf or the commandline by default.
+ *
+ * @param capath optional ca file path
+ * @param cadir optional ca directory path
+ * @param error return location for a GError, or NULL
+ *
+ * @return X509_STORE, NULL if failed
+ */
+X509_STORE* setup_x509_store(const gchar *capath, const gchar *cadir, GError **error);
 
 /**
  * Sign content with provided certificate and private key

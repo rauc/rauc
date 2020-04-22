@@ -16,9 +16,46 @@ GQuark r_signature_error_quark(void)
 	return g_quark_from_static_string("r_signature_error_quark");
 }
 
+/* return 0 for error, 1 for success */
+static int check_purpose_code_sign(const X509_PURPOSE *xp, const X509 *const_x, int ca)
+{
+	/* The external OpenSSL API only takes a non-const X509 pointer, but
+	 * the ex_ variables have already been calculated by other code when
+	 * we are in this callback. */
+	X509 *x = (X509 *)const_x;
+	uint32_t ex_flags = X509_get_extension_flags(x);
+	uint32_t ex_kusage = X509_get_key_usage(x);
+	uint32_t ex_xkusage = X509_get_extended_key_usage(x);
+
+	if (ca) {
+		/* If extended key usage is present, it must contain codeSigning for all
+		 * certs in the chain. */
+		if ((ex_flags & EXFLAG_XKUSAGE) && !(ex_xkusage & XKU_CODE_SIGN)) {
+			g_message("CA certificate extended key usage does not allow code signing");
+			return 0;
+		}
+
+		return X509_check_ca(x);
+	}
+
+	/* If key usage is present, it must contain digitalSignature. */
+	if ((ex_flags & EXFLAG_KUSAGE) && !(ex_kusage & KU_DIGITAL_SIGNATURE)) {
+		g_message("Signer certificate key usage does not allow digital signatures");
+		return 0;
+	}
+
+	/* Extended key usage codeSigning must be present on the leaf. */
+	if (!(ex_flags & EXFLAG_XKUSAGE) || !(ex_xkusage & XKU_CODE_SIGN)) {
+		g_message("Signer certificate does not specify extended key usage code signing");
+		return 0;
+	}
+
+	return 1;
+}
+
 gboolean signature_init(GError **error)
 {
-	int ret;
+	int ret, id;
 
 	g_return_val_if_fail(error == FALSE || *error == NULL, FALSE);
 
@@ -34,6 +71,33 @@ gboolean signature_init(GError **error)
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_CRYPTOINIT_FAILED,
 				"Failed to initialize OpenSSL crypto: %s",
+				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+		return FALSE;
+	}
+
+	id = X509_PURPOSE_get_count() + 1;
+	if (X509_PURPOSE_get_by_id(id) >= 0) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_CRYPTOINIT_FAILED,
+				"Failed to calculate free OpenSSL X509 purpose id");
+		return FALSE;
+	}
+
+	/* X509_TRUST_OBJECT_SIGN maps to the Code Signing ID (via OpenSSL's NID_code_sign) */
+	ret = X509_PURPOSE_add(id, X509_TRUST_OBJECT_SIGN, 0, check_purpose_code_sign, "Code signing", "codesign", NULL);
+	if (!ret) {
+		unsigned long err;
+		const gchar *data;
+		int flags;
+
+		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_CRYPTOINIT_FAILED,
+				"Failed to configure OpenSSL X509 purpose: %s",
 				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		return FALSE;
 	}
@@ -298,6 +362,97 @@ static GBytes *bytes_from_bio(BIO *bio)
 	return g_bytes_new(data, size);
 }
 
+static gboolean file_contains_crl(const gchar *capath)
+{
+	g_autofree gchar *contents = NULL;
+
+	if (!g_file_test(capath, G_FILE_TEST_IS_REGULAR))
+		return FALSE;
+
+	if (!g_file_get_contents(capath, &contents, NULL, NULL))
+		return FALSE;
+
+	if (strstr(contents, "-----BEGIN X509 CRL-----"))
+		return TRUE;
+
+	return FALSE;
+}
+
+static gboolean contains_crl(const gchar *load_capath, const gchar *load_cadir)
+{
+	if (load_capath && file_contains_crl(load_capath))
+		return TRUE;
+
+	if (load_cadir) {
+		g_autoptr(GDir) dir;
+		const gchar *filename;
+
+		dir = g_dir_open(load_cadir, 0, NULL);
+		if (!dir)
+			return FALSE;
+
+		while ((filename = g_dir_read_name(dir))) {
+			g_autofree gchar *certpath = g_build_filename(load_cadir, filename, NULL);
+
+			if (file_contains_crl(certpath))
+				return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+X509_STORE* setup_x509_store(const gchar *capath, const gchar *cadir, GError **error)
+{
+	const gchar *load_capath = r_context()->config->keyring_path;
+	const gchar *load_cadir = r_context()->config->keyring_directory;
+	const gchar *check_purpose = r_context()->config->keyring_check_purpose;
+	g_autoptr(X509_STORE) store = NULL;
+
+	if (capath)
+		load_capath = strlen(capath) ? capath : NULL;
+	if (cadir)
+		load_cadir = strlen(cadir) ? cadir : NULL;
+
+	if (!(store = X509_STORE_new())) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_X509_NEW,
+				"failed to allocate new X509 store");
+		return NULL;
+	}
+	if (!X509_STORE_load_locations(store, load_capath, load_cadir)) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_CA_LOAD,
+				"failed to load CA file '%s' and/or directory '%s'", load_capath, load_cadir);
+		return NULL;
+	}
+
+	/* Enable CRL checking if configured */
+	if (r_context()->config->keyring_check_crl)
+		X509_STORE_set_flags(store, X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL | X509_V_FLAG_EXTENDED_CRL_SUPPORT);
+	else if (contains_crl(load_capath, load_cadir))
+		g_warning("Detected CRL but CRL checking is disabled!");
+
+	/* Enable purpose checking if configured */
+	if (check_purpose) {
+		const X509_PURPOSE *xp = X509_PURPOSE_get0(X509_PURPOSE_get_by_sname(check_purpose));
+		if (!xp || !X509_STORE_set_purpose(store, X509_PURPOSE_get_id(xp))) {
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_X509_PURPOSE,
+					"failed to configure X509 purpose '%s'", check_purpose);
+			return NULL;
+		}
+	}
+
+	return g_steal_pointer(&store);
+}
+
 GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
 {
 	GError *ierror = NULL;
@@ -310,7 +465,7 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 	CMS_ContentInfo *cms = NULL;
 	GBytes *res = NULL;
 	int flags = CMS_DETACHED | CMS_BINARY;
-	gchar *keyring_path = NULL;
+	const gchar *keyring_path = NULL, *keyring_dir = NULL;
 
 	g_return_val_if_fail(content != NULL, NULL);
 	g_return_val_if_fail(certfile != NULL, NULL);
@@ -377,30 +532,19 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 	/* keyring was given, perform verification to obtain trust chain */
 	if (r_context()->signing_keyringpath) {
 		keyring_path = r_context()->signing_keyringpath;
-	} else if (r_context()->config->keyring_path) {
+		keyring_dir = "";
+	} else {
 		keyring_path = r_context()->config->keyring_path;
+		keyring_dir = r_context()->config->keyring_directory;
 	}
 
-	if (keyring_path) {
+	if (keyring_path || keyring_dir) {
 		g_autoptr(CMS_ContentInfo) vcms = NULL;
 		g_autoptr(X509_STORE) store = NULL;
 		STACK_OF(X509) *verified_chain = NULL;
 
-		if (!(store = X509_STORE_new())) {
-			g_set_error_literal(
-					error,
-					R_SIGNATURE_ERROR,
-					R_SIGNATURE_ERROR_X509_NEW,
-					"failed to allocate new X509 store");
-			g_clear_pointer(&res, g_bytes_unref);
-			goto out;
-		}
-		if (!X509_STORE_load_locations(store, keyring_path, NULL)) {
-			g_set_error(
-					error,
-					R_SIGNATURE_ERROR,
-					R_SIGNATURE_ERROR_CA_LOAD,
-					"failed to load CA file '%s'", keyring_path);
+		if (!(store = setup_x509_store(keyring_path, keyring_dir, &ierror))) {
+			g_propagate_error(error, ierror);
 			g_clear_pointer(&res, g_bytes_unref);
 			goto out;
 		}

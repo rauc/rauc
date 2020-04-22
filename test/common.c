@@ -334,8 +334,16 @@ void test_create_content(gchar *contentdir)
 
 void test_create_bundle(gchar *contentdir, gchar *bundlename)
 {
-	g_assert_true(update_manifest(contentdir, FALSE, NULL));
-	g_assert_true(create_bundle(bundlename, contentdir, NULL));
+	GError *error = NULL;
+	gboolean res = FALSE;
+
+	res = update_manifest(contentdir, FALSE, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	res = create_bundle(bundlename, contentdir, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 }
 
 gboolean test_running_as_root(void)
