@@ -39,7 +39,7 @@ jobs:
         - env | grep -E "TRAVIS|COV|TOOL|URL" > .cov-env
         - cat /proc/cpuinfo
         - sudo chmod 666 /dev/kvm
-        - ls -l /dev
+        - ls -l /dev/kvm
         - |
             docker run -dit --privileged \
             --env-file .cov-env \
