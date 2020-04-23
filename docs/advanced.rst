@@ -710,6 +710,10 @@ in the eMMC (*ext_csd registers*).
 
 .. _JESD84-B51: http://www.jedec.org/standards-documents/results/jesd84-b51
 
+.. image:: images/emmc-bootloader-update.svg
+  :width: 400
+  :align: center
+
 The required slot type is ``boot-emmc``.
 The device to be specified is expected to be the root device.
 The boot partitions are derived automatically.
