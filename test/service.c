@@ -9,6 +9,7 @@
 #include <install.h>
 #include <manifest.h>
 #include <mount.h>
+#include <utils.h>
 
 #include "../rauc-installer-generated.h"
 
@@ -57,8 +58,19 @@ Exec="TEST_SERVICES "/rauc -c test/test.conf service\n", NULL);
 
 static void service_fixture_tear_down(ServiceFixture *fixture, gconstpointer user_data)
 {
+	GError *error = NULL;
+	gboolean ret = FALSE;
+
 	g_test_dbus_down(fixture->dbus);
 	g_object_unref(fixture->dbus);
+
+	test_umount(fixture->tmpdir, "slot");
+	test_umount(fixture->tmpdir, "bootloader");
+
+	ret = rm_tree(fixture->tmpdir, &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	g_free(fixture->tmpdir);
 }
 
 static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
@@ -99,6 +111,16 @@ static void on_installer_completed(GDBusProxy *proxy, gint result,
 	g_main_loop_quit(testloop);
 }
 
+static void on_installer_completed_failed(GDBusProxy *proxy, gint result,
+		gpointer data)
+{
+	const gchar *last_error = NULL;
+	last_error = r_installer_get_last_error(installer);
+	g_assert_cmpstr(last_error, !=, "");
+	g_assert_cmpint(result, !=, 0);
+	g_main_loop_quit(testloop);
+}
+
 static void assert_progress(GVariant *progress, gint32 percentage, const gchar *message, gint32 depth)
 {
 	gint32 comp_percentage, comp_depth;
@@ -122,7 +144,7 @@ static void assert_progress(GVariant *progress, gint32 percentage, const gchar *
 	g_variant_unref(gv);
 }
 
-static void service_test_install(ServiceFixture *fixture, gconstpointer user_data)
+static void service_test_install(ServiceFixture *fixture, gconstpointer user_data, gboolean deprecated)
 {
 	GQueue *args = g_queue_new();
 	const gchar *operation = NULL, *last_error = NULL;
@@ -179,7 +201,7 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	g_assert_cmpint(g_signal_connect(installer, "g-properties-changed",
 			G_CALLBACK(on_installer_changed), args), !=, 0);
 	g_assert_cmpint(g_signal_connect(installer, "completed",
-			G_CALLBACK(on_installer_completed), args), !=, 0);
+			G_CALLBACK(on_installer_completed), NULL), !=, 0);
 
 	/* initial operation must be 'idle', initial last_error must be empty */
 	operation = r_installer_get_operation(installer);
@@ -203,14 +225,100 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	g_assert_nonnull(bundlepath);
 
 	/* Actually install bundle */
-	ret = r_installer_call_install_sync(installer, bundlepath, NULL,
-			&error);
+	if (deprecated) {
+		ret = r_installer_call_install_sync(
+				installer,
+				bundlepath,
+				NULL,
+				&error);
+	} else {
+		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
+		ret = r_installer_call_install_bundle_sync(
+				installer,
+				bundlepath,
+				g_variant_dict_end(&dict), /* floating, no unref needed */
+				NULL,
+				&error);
+	}
 	g_assert_no_error(error);
 	g_assert_true(ret);
 
 	g_main_loop_run(testloop);
 
 	g_clear_pointer(&installer, g_object_unref);
+}
+
+static void service_test_install_bundle(ServiceFixture *fixture, gconstpointer user_data)
+{
+	service_test_install(fixture, user_data, FALSE);
+}
+
+static void service_test_install_api(ServiceFixture *fixture, gconstpointer user_data)
+{
+	GError *error = NULL;
+	gboolean ret = FALSE;
+	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
+
+	testloop = g_main_loop_new(NULL, FALSE);
+
+	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
+			G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
+			"de.pengutronix.rauc", "/", NULL, NULL);
+
+	g_assert_cmpint(g_signal_connect(installer, "completed",
+			G_CALLBACK(on_installer_completed_failed), NULL), !=, 0);
+
+	/* Test with invalid key */
+	g_variant_dict_insert(&dict, "invalid-key", "b", TRUE);
+
+	ret = r_installer_call_install_bundle_sync(
+			installer,
+			g_strdup("dummy path"),
+			g_variant_dict_end(&dict), /* floating, no unref needed */
+			NULL,
+			&error);
+
+	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_FAILED_HANDLED);
+	g_assert_false(ret);
+	g_clear_error(&error);
+
+	/* Test with valid key but invalid type */
+	g_variant_dict_init(&dict, NULL);
+	g_variant_dict_insert(&dict, "ignore-compatible", "s", "buhlean");
+
+	ret = r_installer_call_install_bundle_sync(
+			installer,
+			g_strdup("dummy path"),
+			g_variant_dict_end(&dict), /* floating, no unref needed */
+			NULL,
+			&error);
+
+	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_FAILED_HANDLED);
+	g_assert_false(ret);
+	g_clear_error(&error);
+
+	/* Test with valid key and valid type */
+	g_variant_dict_init(&dict, NULL);
+	g_variant_dict_insert(&dict, "ignore-compatible", "b", TRUE);
+
+	ret = r_installer_call_install_bundle_sync(
+			installer,
+			g_strdup("dummy path"),
+			g_variant_dict_end(&dict), /* floating, no unref needed */
+			NULL,
+			&error);
+	/* (actual installation will fail as 'dummy path' does not exist) */
+	g_assert_no_error(error);
+	g_assert_true(ret);
+
+	g_main_loop_run(testloop);
+
+	g_clear_pointer(&installer, g_object_unref);
+}
+
+static void service_test_install_deprecated(ServiceFixture *fixture, gconstpointer user_data)
+{
+	service_test_install(fixture, user_data, TRUE);
 }
 
 static void service_test_info(ServiceFixture *fixture, gconstpointer user_data)
@@ -293,8 +401,16 @@ int main(int argc, char *argv[])
 
 	g_test_init(&argc, &argv, NULL);
 
-	g_test_add("/service/install", ServiceFixture, NULL,
-			service_install_fixture_set_up, service_test_install,
+	g_test_add("/service/install-bundle", ServiceFixture, NULL,
+			service_install_fixture_set_up, service_test_install_bundle,
+			service_fixture_tear_down);
+
+	g_test_add("/service/install-deprecated", ServiceFixture, NULL,
+			service_install_fixture_set_up, service_test_install_deprecated,
+			service_fixture_tear_down);
+
+	g_test_add("/service/install-api", ServiceFixture, NULL,
+			service_install_fixture_set_up, service_test_install_api,
 			service_fixture_tear_down);
 
 	g_test_add("/service/info", ServiceFixture, NULL,

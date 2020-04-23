@@ -10,6 +10,18 @@
       <arg name="source" type="s"/>
     </method>
 
+    <!--
+         InstallBundle:
+         @source: Path to bundle to be installed
+         @args: Additional arguments to pass
+
+         Triggers an installation.
+    -->
+    <method name="InstallBundle">
+      <arg name="source" type="s"/>
+      <arg name="args" type="a{sv}" direction="in"/>
+    </method>
+
    <!--
     Info: D-Bus variant of rauc info <bundle>
     @bundle: full path to the queried bundle.

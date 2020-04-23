@@ -51,33 +51,57 @@ static gboolean service_install_cleanup(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean r_on_handle_install(RInstaller *interface,
-		GDBusMethodInvocation  *invocation,
-		const gchar *source)
+static gboolean r_on_handle_install_bundle(
+		RInstaller *interface,
+		GDBusMethodInvocation *invocation,
+		const gchar *source,
+		GVariant *arg_args)
 {
 	RaucInstallArgs *args = install_args_new();
+	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(arg_args);
+	GVariantIter iter;
+	gchar *key;
+	g_autofree gchar *message = NULL;
 	gboolean res;
 
 	g_print("input bundle: %s\n", source);
 
 	res = !r_context_get_busy();
-	if (!res)
+	if (!res) {
+		message = g_strdup("Already processing a different method");
+		args->status_result = 1;
 		goto out;
+	}
 
 	args->name = g_strdup(source);
 	args->notify = service_install_notify;
 	args->cleanup = service_install_cleanup;
 
+	if (g_variant_dict_lookup(&dict, "ignore-compatible", "b", &args->ignore_compatible))
+		g_variant_dict_remove(&dict, "ignore-compatible");
+
+	/* Check for unhandled keys */
+	g_variant_iter_init(&iter, g_variant_dict_end(&dict));
+	while (g_variant_iter_next(&iter, "{sv}", &key, NULL)) {
+		message = g_strdup_printf("Unsupported key: %s", key);
+		g_free(key);
+		res = FALSE;
+		args->status_result = 2;
+		goto out;
+	}
+
 	r_installer_set_operation(r_installer, "installing");
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
 	res = install_run(args);
 	if (!res) {
+		message = g_strdup("Failed to launch install thread");
+		args->status_result = 1;
 		goto out;
 	}
 	args = NULL;
 
 out:
-	g_clear_pointer(&args, g_free);
+	g_clear_pointer(&args, install_args_free);
 	if (res) {
 		r_installer_complete_install(interface, invocation);
 	} else {
@@ -85,12 +109,19 @@ out:
 		g_dbus_method_invocation_return_error(invocation,
 				G_IO_ERROR,
 				G_IO_ERROR_FAILED_HANDLED,
-				"rauc installer error");
+				"%s", message);
 	}
 
 	return TRUE;
 }
 
+static gboolean r_on_handle_install(RInstaller *interface,
+		GDBusMethodInvocation  *invocation,
+		const gchar *arg_source)
+{
+	g_message("Using deprecated 'Install' D-Bus Method (replaced by 'InstallBundle')");
+	return r_on_handle_install_bundle(interface, invocation, arg_source, NULL);
+}
 
 static gboolean r_on_handle_info(RInstaller *interface,
 		GDBusMethodInvocation  *invocation,
@@ -427,6 +458,10 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 
 	g_signal_connect(r_installer, "handle-install",
 			G_CALLBACK(r_on_handle_install),
+			NULL);
+
+	g_signal_connect(r_installer, "handle-install-bundle",
+			G_CALLBACK(r_on_handle_install_bundle),
 			NULL);
 
 	g_signal_connect(r_installer, "handle-info",
