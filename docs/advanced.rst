@@ -932,14 +932,26 @@ One of it worth being mentioned is
 also provides some strategies for rollout management for larger-scale device
 farms.
 
-The RAUC hawkBit client
-^^^^^^^^^^^^^^^^^^^^^^^
+RAUC hawkBit updater (C)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The rauc-hawkbit-updater is a separate application project developed under the
+rauc organization umbrella.
+It aims to provide a ready-to-use bridge between the hawkBit REST DDR API on
+one side and the RAUC D-Bus API on the other.
+
+For more information visit it on GitHub:
+
+https://github.com/rauc/rauc-hawkbit-updater
+
+The RAUC hawkBit client (python)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 As a separate project, the RAUC development team provides a Python-based
 example application that acts as a hawkBit client via its REST DDI-API while
 controlling RAUC via D-Bus.
 
-For more information and testing it, visit it on GitHub:
+For more information visit it on GitHub:
 
 https://github.com/rauc/rauc-hawkbit
 
