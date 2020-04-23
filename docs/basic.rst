@@ -100,6 +100,7 @@ of a rootfs and application slot each that will be used together.
 
 .. image:: images/rauc-multi-image.svg
    :width: 500
+   :align: center
 
 To detect the active slots, RAUC attempts to detect the currently booted slot.
 For this, it relies on explicit mapping information provided via kernel command
