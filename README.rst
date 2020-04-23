@@ -245,11 +245,11 @@ section for more details.
 
 .. |LGPLv2.1| image:: https://img.shields.io/badge/license-LGPLv2.1-blue.svg
    :target: https://raw.githubusercontent.com/rauc/rauc/master/COPYING
-.. |Travis_branch| image:: https://img.shields.io/travis/com/rauc/rauc/master.svg
+.. |Travis_branch| image:: https://api.travis-ci.com/rauc/rauc.svg?branch=master
    :target: https://travis-ci.com/rauc/rauc
 .. |Codecov_branch| image:: https://codecov.io/gh/rauc/rauc/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/rauc/rauc
-.. |Coverity| image:: https://img.shields.io/coverity/scan/5085.svg
+.. |Coverity| image:: https://scan.coverity.com/projects/5085/badge.svg
    :target: https://scan.coverity.com/projects/5085
 .. |Documentation| image:: https://readthedocs.org/projects/rauc/badge/?version=latest
    :target: http://rauc.readthedocs.org/en/latest/?badge=latest
