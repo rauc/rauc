@@ -414,6 +414,7 @@ void r_free_image(gpointer data)
 	g_return_if_fail(image);
 
 	g_free(image->slotclass);
+	g_free(image->variant);
 	g_free(image->checksum.digest);
 	g_free(image->filename);
 	g_free(image);

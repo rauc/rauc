@@ -136,20 +136,20 @@ gboolean mark_run(const gchar *state,
 		*message = res ? g_strdup_printf("marked slot %s as bad", slot->name) : g_strdup(ierror->message);
 	} else if (!g_strcmp0(state, "active")) {
 		mark_active(slot, &ierror);
-		if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE)) {
+		if (!ierror) {
+			res = TRUE;
+			*message = g_strdup_printf("activated slot %s", slot->name);
+		} else if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE)) {
 			res = FALSE;
 			*message = g_strdup(ierror->message);
 		} else if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED)) {
 			res = TRUE;
 			*message = g_strdup_printf("activated slot %s, but failed to write status file: %s",
 					slot->name, ierror->message);
-		} else if (ierror) {
+		} else {
 			res = FALSE;
 			*message = g_strdup_printf("unexpected error while trying to activate slot %s: %s",
 					slot->name, ierror->message);
-		} else {
-			res = TRUE;
-			*message = g_strdup_printf("activated slot %s", slot->name);
 		}
 		g_clear_error(&ierror);
 	} else {

@@ -868,13 +868,14 @@ device=/dev/null\n\
 	install_images = get_install_images(rm, tgrp, &error);
 	g_assert_no_error(error);
 	g_assert_nonnull(install_images);
-	g_clear_pointer(&rm, free_manifest);
 
 	g_assert_cmpint(g_list_length(install_images), ==, 1);
 
 	test_img = (RaucImage*)g_list_nth_data(install_images, 0);
 	g_assert_nonnull(test_img);
 	g_assert_cmpstr(test_img->variant, ==, "variant-1");
+
+	g_clear_pointer(&rm, free_manifest);
 
 	/* Test with manifest containing only default variant */
 	data = g_bytes_new_static(MANIFEST_DEFAULT_VARIANT, sizeof(MANIFEST_DEFAULT_VARIANT));
@@ -885,13 +886,14 @@ device=/dev/null\n\
 	install_images = get_install_images(rm, tgrp, &error);
 	g_assert_no_error(error);
 	g_assert_nonnull(install_images);
-	g_clear_pointer(&rm, free_manifest);
 
 	g_assert_cmpint(g_list_length(install_images), ==, 1);
 
 	test_img = (RaucImage*)g_list_nth_data(install_images, 0);
 	g_assert_nonnull(test_img);
 	g_assert_null(test_img->variant);
+
+	g_clear_pointer(&rm, free_manifest);
 
 	/* Test with manifest containing only non-matching specific variant (must fail) */
 	data = g_bytes_new_static(MANIFEST_OTHER_VARIANT, sizeof(MANIFEST_OTHER_VARIANT));
@@ -902,9 +904,10 @@ device=/dev/null\n\
 	install_images = get_install_images(rm, tgrp, &error);
 	g_assert_null(install_images);
 	g_assert_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED);
-	g_clear_pointer(&rm, free_manifest);
 
 	g_hash_table_unref(tgrp);
+
+	g_clear_pointer(&rm, free_manifest);
 }
 
 static gboolean r_quit(gpointer data)
