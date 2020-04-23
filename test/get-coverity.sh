@@ -9,14 +9,6 @@ if [[ "${TRAVIS_PULL_REQUEST}" != "false" ]]; then
   exit 0
 fi
 
-# Verify this branch should run
-if [[ "${TRAVIS_BRANCH^^}" =~ "${COVERITY_SCAN_BRANCH_PATTERN^^}" ]]; then
-  echo -e "\033[33;1mCoverity Scan configured to run on branch ${TRAVIS_BRANCH}\033[0m"
-else
-  echo -e "\033[33;1mCoverity Scan NOT configured to run on branch ${TRAVIS_BRANCH}\033[0m"
-  exit 0
-fi
-
 # Environment check, note that secure tokens are not available for PR's not coming form the main repo
 [ -z "$COVERITY_SCAN_TOKEN" ] && echo 'ERROR: COVERITY_SCAN_TOKEN must be set' && exit 1
 
