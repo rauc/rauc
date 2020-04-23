@@ -26,6 +26,7 @@ Features
   * An update may be interrupted at any point without breaking the running
     system.
   * Update compatibility check
+  * Atomic bootloader updates (eMMC boot partitions, MBR)
 * **Cryptographic signing and verification** of updates using OpenSSL (signatures
   based on x.509 certificates)
 
