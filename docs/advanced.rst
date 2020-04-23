@@ -393,7 +393,8 @@ Application Data Migration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. image:: images/data_migration.svg
-  :width: 500
+  :width: 600
+  :align: center
 
 Both a single and a redundant data storage have their advantages and
 disadvantages.
