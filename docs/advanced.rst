@@ -488,6 +488,10 @@ single repository, for a whole systems with multiple images as well as for
 multiple systems in different versions, etc.
 This makes the approach quite flexible.
 
+.. image:: images/casync-basics.svg
+  :width: 500
+  :align: center
+
 Creating casync Bundles
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -539,6 +543,10 @@ generic location that is valid for all installations.
 When installing a bundle, the casync implementation will automatically handle
 the chunk download via an unprivileged helper binary.
 
+.. image:: images/casync-extract.svg
+  :width: 400
+  :align: center
+
 Reducing Download Size -- Seeding
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -558,6 +566,10 @@ For each casync image that RAUC extracts to the target slot, it determines an
 appropriate seed.
 This is normally a redundant slot of the same class as the target slot but from
 the currently booted slot group.
+
+.. image:: images/casync-rauc.svg
+  :width: 500
+  :align: center
 
 .. note::
   Depending on your targets processing and storage speed, updating slots with
