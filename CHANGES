@@ -1,8 +1,10 @@
-Release 1.3 (development)
--------------------------
+Release 1.3 (released Apr 23, 2020)
+-----------------------------------
 
 .. rubric:: Enhancements
 
+* Added a new D-Bus method (InstallBundle) which supports optional parameters
+  ("ignore-compatible" for now).
 * Added support for X.509 key usage attributes (code signing and others).
 * Added a ``check-crl`` configuration option to require Certificate Revocation
   List (CRL) checking during installation.
