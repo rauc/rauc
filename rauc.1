@@ -102,6 +102,19 @@ print usage
 .RS 4
 Create a bundle from a content directory.
 
+\fBOptions:\fR
+
+.RS 4
+
+.TP
+\fB\-\-signing\-keyring=\fR\fIPEMFILE\fR
+verification keyring file
+
+.TP
+\fB\-\-mksquashfs\-args=\fR\fIARGS\fR
+mksquashfs extra args
+
+.RE
 .RE
 .PP
 \fBresign\fR \fIBUNDLE\fR
@@ -116,6 +129,10 @@ Resign an already signed bundle.
 .TP
 \fB\-\-no\-verify\fR
 disable bundle verification
+
+.TP
+\fB\-\-signing\-keyring=\fR\fIPEMFILE\fR
+verification keyring file
 
 .RE
 .RE
@@ -132,6 +149,23 @@ Extract the bundle content to a directory.
 .RS 4
 Convert an existing bundle to casync index bundle and store.
 
+\fBOptions:\fR
+
+.RS 4
+
+.TP
+\fB\-\-signing\-keyring=\fR\fIPEMFILE\fR
+verification keyring file
+
+.TP
+\fB\-\-mksquashfs\-args=\fR\fIARGS\fR
+mksquashfs extra args
+
+.TP
+\fB\-\-casync\-args=\fR\fIARGS\fR
+casync extra args
+
+.RE
 .RE
 .PP
 \fBinstall\fR \fIBUNDLE\fR
@@ -146,6 +180,10 @@ Install a bundle.
 .TP
 \fB\-\-ignore\-compatible\fR
 disable compatible check
+
+.TP
+\fB\-\-progress\fR
+show progress bar
 
 .RE
 .RE
