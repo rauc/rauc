@@ -13,6 +13,10 @@ format.
 Before installation, the signature is verified against the keyring(s) already
 stored on the system.
 
+.. image:: images/rauc-bundle.svg
+  :width: 400
+  :align: center
+
 .. _RFC5652: https://tools.ietf.org/html/rfc5652
 
 We selected the CMS to avoid designing and implementing our own custom security
