@@ -893,8 +893,8 @@ successfully. It could look similar to this:
 D-Bus Integration
 -----------------
 
-The D-Bus interface RAUC provides makes it easy to integrate it into your custom
-application.
+The :ref:`D-Bus <sec_ref_dbus-api>` interface RAUC provides makes it easy to
+integrate it into your customapplication.
 In order to allow sending data, make sure the D-Bus config file
 ``de.pengutronix.rauc.conf`` from the ``data/`` dir gets installed properly.
 

@@ -659,6 +659,8 @@ The following environment variables will be passed to the hook executable:
   ``RAUC_MOUNT_PREFIX``
     The global RAUC mount prefix path, e.g. ``"/run/mount/rauc"``
 
+.. _sec_ref_dbus-api:
+
 D-Bus API
 ---------
 
