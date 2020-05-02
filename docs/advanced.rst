@@ -6,7 +6,7 @@ Advanced Topics
 Security
 --------
 
-The RAUC bundle format consists of a squashfs image containing the images and
+The RAUC bundle format consists of a SquashFS image containing the images and
 the manifest, which is followed by a public key signature over the full image.
 This signature is stored in the CMS (Cryptographic Message Syntax, see RFC5652_)
 format.
@@ -18,7 +18,7 @@ stored on the system.
 We selected the CMS to avoid designing and implementing our own custom security
 mechanism (which often results in vulnerabilities).
 CMS is well proven in S/MIME and has widely available implementations, while
-supporting simple and as well as complex PKI use-cases (certificate expiry,
+supporting simple as well as complex PKI use-cases (certificate expiry,
 intermediate CAs, revocation, algorithm selection, hardware security modules…)
 without additional complexity in RAUC itself.
 
