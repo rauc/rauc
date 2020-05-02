@@ -6,12 +6,14 @@ Advanced Topics
 Security
 --------
 
-The RAUC bundle format consists of a SquashFS image containing the images and
-the manifest, which is followed by a public key signature over the full image.
-This signature is stored in the CMS (Cryptographic Message Syntax, see RFC5652_)
-format.
-Before installation, the signature is verified against the keyring(s) already
-stored on the system.
+The RAUC bundle format consists of the images and a manifest, contained in a
+SquashFS image.
+The SquashFS is followed by a public key signature over the full image.
+The signature is stored (together with the signer's certificate) in the CMS
+(Cryptographic Message Syntax, see RFC5652_) format.
+Before installation, the signer certificate is verified against the keyring(s)
+already stored on the system and the signers pulic key is then used to verify
+the bundle signature.
 
 .. _RFC5652: https://tools.ietf.org/html/rfc5652
 
