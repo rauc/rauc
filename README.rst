@@ -120,6 +120,7 @@ Prerequisites
 Host (Build) Prerequisites
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+-  build-essential
 -  automake
 -  libtool
 -  libdbus-1-dev
@@ -129,7 +130,7 @@ Host (Build) Prerequisites
 
 ::
 
-   sudo apt-get install automake libtool libdbus-1-dev libglib2.0-dev libcurl3-dev libssl-dev
+   sudo apt-get install build-essential automake libtool libdbus-1-dev libglib2.0-dev libcurl3-dev libssl-dev
 
 If you intend to use json-support you also need
 
@@ -191,7 +192,7 @@ Running the Test Suite
 
 ::
 
-    sudo apt-get install qemu-system-x86 squashfs-tools
+    sudo apt-get install qemu-system-x86 time squashfs-tools
     # Optional to run all tests:
     # sudo apt-get install faketime casync grub-common softhsm2 opensc opensc-pkcs11 libengine-pkcs11-openssl
     make check
