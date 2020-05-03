@@ -749,6 +749,10 @@ one active boot partition (i.e. the partition is defined in the MBR partition ta
 and one inactive partition (i.e. there is no entry for it in the MBR partition
 table) which is used to update the bootloader.
 
+.. image:: images/rauc-mbr-switch.svg
+  :width: 400
+  :align: center
+
 A memory region, where the two partitions are stored has to be defined in the
 configuration (see below) and initially a boot partition has to exist at either
 the start of the region or start + size / 2.
