@@ -257,8 +257,10 @@ To select the bootloader you have or intend to use on your system, set the
 
 .. note::
 
-  If in doubt about choosing the right bootloader, we recommend to use Barebox
-  as it provides a dedicated boot handling framework, called `bootchooser`.
+  If in doubt about choosing the right bootloader, we recommend to use
+  `barebox <https://barebox.org/>`__
+  as it provides a dedicated boot handling framework, called
+  `bootchooser <https://barebox.org/doc/latest/user/bootchooser.html>`__.
 
 To let RAUC handle a bootable slot, you have to mark it as bootable in your
 ``system.conf`` and configure the name under which the bootloader identifies this
