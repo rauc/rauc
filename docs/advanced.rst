@@ -926,6 +926,10 @@ Some influential factors on the method to used can be:
 Deployment via Storage Media
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. image:: images/usb-updates.svg
+  :width: 300
+  :align: center
+
 This method is mainly used for decentralized updates of devices without network
 access (either due to missing infrastructure or because of security concerns).
 
@@ -939,6 +943,10 @@ media and trigger an installation.
 
 Deployment via Deployment Server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. image:: images/ota-updates.svg
+  :width: 300
+  :align: center
 
 Deployment over a network is especially useful when having a larger set of
 devices to update or direct access to these devices is tricky.
