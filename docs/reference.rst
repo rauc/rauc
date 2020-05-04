@@ -106,6 +106,22 @@ Example configuration:
   a simple integer value (without unit) greater than zero.
   It overwrites the compiled-in default value of 8 MiB.
 
+``variant-name``
+  String to be used as variant name for this board.
+  If set, neither ``variant-file`` nor ``variant-dtb`` must be set.
+  Refer chapter :ref:`sec-variants` for more information.
+
+``variant-file``
+  File containing variant name for this board.
+  If set, neither ``variant-name`` nor ``variant-dtb`` must be set.
+  Refer chapter :ref:`sec-variants` for more information.
+
+``variant-dtb``
+  If set to ``true``, use current device tree compatible as this boards variant
+  name.
+  If set, neither ``variant-name`` nor ``variant-file`` must be set.
+  Refer chapter :ref:`sec-variants` for more information.
+
 .. _keyring-section:
 
 **[keyring] section**
