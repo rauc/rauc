@@ -100,6 +100,7 @@ of a rootfs and application slot each that will be used together.
 
 .. image:: images/rauc-multi-image.svg
    :width: 500
+   :align: center
 
 To detect the active slots, RAUC attempts to detect the currently booted slot.
 For this, it relies on explicit mapping information provided via kernel command
@@ -145,6 +146,7 @@ bootloaders (e.g. GRUB, Barebox, U-Boot) or boot selection methods.
 
 .. image:: images/bootloader_interface.svg
    :width: 500
+   :align: center
 
 In order to enable RAUC to switch the correct slot, its system configuration
 must specify the name of the respective slot from the bootloader's perspective.
@@ -180,7 +182,8 @@ algorithm that uses a matching table to define valid combinations of image and
 slot type while specifying the appropriate handling.
 
 .. image:: images/rauc_update_handler.svg
-   :width: 600
+   :width: 400
+   :align: center
 
 Boot Confirmation & Fallback
 ----------------------------

@@ -983,11 +983,11 @@ It provides two base functions:
    and command line tool option `rauc status mark-active`
 
 The default flow of how they will be called during the installation of a new
-bundle (on Slot 'A') looks as follows::
+bundle (on Slot 'A') looks as follows:
 
-  start   ->  install  ->  reboot  -> operating state  ->
-          |            |                               |
-     set A bad   set A primary                     set A good/bad
+.. image:: images/bootloader-interaction_install.svg
+  :width: 400
+  :align: center
 
 The aim of setting state 'bad' is to disable a slot in a way that the
 bootloader will not select it for booting anymore.
@@ -1014,11 +1014,11 @@ Usually, bootloaders implement this fallback mechanism by some kind of counters
 they maintain and decrease upon each boot.
 In these cases *marking good* means resetting these counters.
 
-A normal reboot of the system will look as follows::
+A normal reboot of the system will look as follows:
 
-  operating state  ->  reboot  -> operating state  ->
-                                                   |
-                                             set A good/bad
+.. image:: images/bootloader-interaction_boot.svg
+  :width: 400
+  :align: center
 
 Some bootloaders do not require explicitly setting state 'good' as they are able
 to differentiate between a POR and a watchdog reset, for example.

@@ -32,6 +32,10 @@ not before being very sure that the update successfully completed.
 Additionally, the operation that switches the boot device must be atomic
 itself.
 
+.. image:: images/atomicity-redundancy-seq1-4.svg
+  :width: 700
+  :align: center
+
 Storage Type and Size
 ---------------------
 

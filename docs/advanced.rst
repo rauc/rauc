@@ -15,6 +15,10 @@ Before installation, the signer certificate is verified against the keyring(s)
 already stored on the system and the signers pulic key is then used to verify
 the bundle signature.
 
+.. image:: images/rauc-bundle.svg
+  :width: 400
+  :align: center
+
 .. _RFC5652: https://tools.ietf.org/html/rfc5652
 
 We selected the CMS to avoid designing and implementing our own custom security
@@ -395,7 +399,8 @@ Application Data Migration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. image:: images/data_migration.svg
-  :width: 500
+  :width: 600
+  :align: center
 
 Both a single and a redundant data storage have their advantages and
 disadvantages.
@@ -489,6 +494,10 @@ single repository, for a whole systems with multiple images as well as for
 multiple systems in different versions, etc.
 This makes the approach quite flexible.
 
+.. image:: images/casync-basics.svg
+  :width: 500
+  :align: center
+
 Creating casync Bundles
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -540,6 +549,10 @@ generic location that is valid for all installations.
 When installing a bundle, the casync implementation will automatically handle
 the chunk download via an unprivileged helper binary.
 
+.. image:: images/casync-extract.svg
+  :width: 400
+  :align: center
+
 Reducing Download Size -- Seeding
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -559,6 +572,10 @@ For each casync image that RAUC extracts to the target slot, it determines an
 appropriate seed.
 This is normally a redundant slot of the same class as the target slot but from
 the currently booted slot group.
+
+.. image:: images/casync-rauc.svg
+  :width: 500
+  :align: center
 
 .. note::
   Depending on your targets processing and storage speed, updating slots with
@@ -699,6 +716,10 @@ in the eMMC (*ext_csd registers*).
 
 .. _JESD84-B51: http://www.jedec.org/standards-documents/results/jesd84-b51
 
+.. image:: images/emmc-bootloader-update.svg
+  :width: 400
+  :align: center
+
 The required slot type is ``boot-emmc``.
 The device to be specified is expected to be the root device.
 The boot partitions are derived automatically.
@@ -729,6 +750,10 @@ the MBR partition table and thus switching between two partitions of the same si
 one active boot partition (i.e. the partition is defined in the MBR partition table)
 and one inactive partition (i.e. there is no entry for it in the MBR partition
 table) which is used to update the bootloader.
+
+.. image:: images/rauc-mbr-switch.svg
+  :width: 400
+  :align: center
 
 A memory region, where the two partitions are stored has to be defined in the
 configuration (see below) and initially a boot partition has to exist at either
@@ -907,6 +932,10 @@ Some influential factors on the method to used can be:
 Deployment via Storage Media
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. image:: images/usb-updates.svg
+  :width: 300
+  :align: center
+
 This method is mainly used for decentralized updates of devices without network
 access (either due to missing infrastructure or because of security concerns).
 
@@ -920,6 +949,10 @@ media and trigger an installation.
 
 Deployment via Deployment Server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. image:: images/ota-updates.svg
+  :width: 300
+  :align: center
 
 Deployment over a network is especially useful when having a larger set of
 devices to update or direct access to these devices is tricky.
