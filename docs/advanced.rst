@@ -6,19 +6,21 @@ Advanced Topics
 Security
 --------
 
-The RAUC bundle format consists of a squashfs image containing the images and
-the manifest, which is followed by a public key signature over the full image.
-This signature is stored in the CMS (Cryptographic Message Syntax, see RFC5652_)
-format.
-Before installation, the signature is verified against the keyring(s) already
-stored on the system.
+The RAUC bundle format consists of the images and a manifest, contained in a
+SquashFS image.
+The SquashFS is followed by a public key signature over the full image.
+The signature is stored (together with the signer's certificate) in the CMS
+(Cryptographic Message Syntax, see RFC5652_) format.
+Before installation, the signer certificate is verified against the keyring(s)
+already stored on the system and the signers pulic key is then used to verify
+the bundle signature.
 
 .. _RFC5652: https://tools.ietf.org/html/rfc5652
 
 We selected the CMS to avoid designing and implementing our own custom security
 mechanism (which often results in vulnerabilities).
 CMS is well proven in S/MIME and has widely available implementations, while
-supporting simple and as well as complex PKI use-cases (certificate expiry,
+supporting simple as well as complex PKI use-cases (certificate expiry,
 intermediate CAs, revocation, algorithm selection, hardware security modules…)
 without additional complexity in RAUC itself.
 
@@ -932,14 +934,26 @@ One of it worth being mentioned is
 also provides some strategies for rollout management for larger-scale device
 farms.
 
-The RAUC hawkBit client
-^^^^^^^^^^^^^^^^^^^^^^^
+RAUC hawkBit updater (C)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The rauc-hawkbit-updater is a separate application project developed under the
+rauc organization umbrella.
+It aims to provide a ready-to-use bridge between the hawkBit REST DDR API on
+one side and the RAUC D-Bus API on the other.
+
+For more information visit it on GitHub:
+
+https://github.com/rauc/rauc-hawkbit-updater
+
+The RAUC hawkBit client (python)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 As a separate project, the RAUC development team provides a Python-based
 example application that acts as a hawkBit client via its REST DDI-API while
 controlling RAUC via D-Bus.
 
-For more information and testing it, visit it on GitHub:
+For more information visit it on GitHub:
 
 https://github.com/rauc/rauc-hawkbit
 

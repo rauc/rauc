@@ -257,8 +257,10 @@ To select the bootloader you have or intend to use on your system, set the
 
 .. note::
 
-  If in doubt about choosing the right bootloader, we recommend to use Barebox
-  as it provides a dedicated boot handling framework, called `bootchooser`.
+  If in doubt about choosing the right bootloader, we recommend to use
+  `barebox <https://barebox.org/>`__
+  as it provides a dedicated boot handling framework, called
+  `bootchooser <https://barebox.org/doc/latest/user/bootchooser.html>`__.
 
 To let RAUC handle a bootable slot, you have to mark it as bootable in your
 ``system.conf`` and configure the name under which the bootloader identifies this
@@ -893,8 +895,8 @@ successfully. It could look similar to this:
 D-Bus Integration
 -----------------
 
-The D-Bus interface RAUC provides makes it easy to integrate it into your custom
-application.
+The :ref:`D-Bus <sec_ref_dbus-api>` interface RAUC provides makes it easy to
+integrate it into your customapplication.
 In order to allow sending data, make sure the D-Bus config file
 ``de.pengutronix.rauc.conf`` from the ``data/`` dir gets installed properly.
 
