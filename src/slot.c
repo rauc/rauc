@@ -4,7 +4,8 @@ void r_slot_free(gpointer value)
 {
 	RaucSlot *slot = (RaucSlot*)value;
 
-	g_return_if_fail(slot);
+	if (!slot)
+		return;
 
 	g_free(slot->description);
 	g_free(slot->device);
@@ -20,7 +21,8 @@ void r_slot_free(gpointer value)
 
 void r_slot_free_status(RaucSlotStatus *slotstatus)
 {
-	g_return_if_fail(slotstatus);
+	if (!slotstatus)
+		return;
 
 	g_free(slotstatus->bundle_compatible);
 	g_free(slotstatus->bundle_version);

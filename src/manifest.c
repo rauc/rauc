@@ -573,7 +573,8 @@ void r_free_image(gpointer data)
 {
 	RaucImage *image = (RaucImage*) data;
 
-	g_return_if_fail(image);
+	if (!image)
+		return;
 
 	g_free(image->slotclass);
 	g_free(image->variant);
@@ -584,7 +585,8 @@ void r_free_image(gpointer data)
 
 void free_manifest(RaucManifest *manifest)
 {
-	g_return_if_fail(manifest);
+	if (!manifest)
+		return;
 
 	g_free(manifest->update_compatible);
 	g_free(manifest->update_version);
