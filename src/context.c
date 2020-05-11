@@ -193,14 +193,23 @@ static gchar* get_variant_from_file(const gchar* filename, GError **error)
 {
 	gchar *contents = NULL;
 	GError *ierror = NULL;
+	gsize length;
 
 	g_return_val_if_fail(filename, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	if (!g_file_get_contents(filename, &contents, NULL, &ierror)) {
+	if (!g_file_get_contents(filename, &contents, &length, &ierror)) {
 		g_propagate_error(error, ierror);
 		return NULL;
 	}
+
+	/*
+	 * We'll discard surrounding whitespace later anyway, but as it's
+	 * customary for UNIX files to have a trailing new line, we chomp
+	 * it off here to avoid a runtime warning.
+	 */
+	if (length && contents[length - 1] == '\n')
+		contents[length - 1] = '\0';
 
 	return contents;
 }
