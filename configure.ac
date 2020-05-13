@@ -86,6 +86,17 @@ AS_IF([test "x$enable_json" != "xno"], [
 
 PKG_CHECK_MODULES([OPENSSL], [openssl >= 1.1.1])
 
+AC_ARG_ENABLE([gpt],
+       AS_HELP_STRING([--enable-gpt], [Enable GPT support])
+)
+AM_CONDITIONAL([WANT_GPT], [test x$enable_gpt = xyes])
+AS_IF([test "x$enable_gpt" = "xyes"], [
+       AC_DEFINE([ENABLE_GPT], [1], [Define to 1 to enable building with GPT support])
+       PKG_CHECK_MODULES([FDISK], [fdisk >= 2.29])
+], [
+       AC_DEFINE([ENABLE_GPT], [0])
+])
+
 AC_ARG_WITH([systemdunitdir],
         AC_HELP_STRING([--with-systemdunitdir=DIR], [path to systemd service directory]),
         [],

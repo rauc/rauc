@@ -57,6 +57,7 @@ librauc_la_SOURCES = \
 	include/config_file.h \
 	include/context.h \
 	include/emmc.h \
+	include/gpt.h \
 	include/install.h \
 	include/manifest.h \
 	include/mark.h \
@@ -75,11 +76,16 @@ endif
 if WANT_NETWORK
 librauc_la_SOURCES += src/network.c include/network.h
 endif
+
+if WANT_GPT
+librauc_la_SOURCES += src/gpt.c
+endif
+
 nodist_librauc_la_SOURCES = \
 	$(gdbus_installer_generated)
 librauc_la_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 librauc_la_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
-librauc_la_LIBADD = $(GLIB_LIBS) $(CURL_LIBS) $(OPENSSL_LIBS)
+librauc_la_LIBADD = $(GLIB_LIBS) $(CURL_LIBS) $(OPENSSL_LIBS) $(FDISK_LIBS)
 
 bin_PROGRAMS = rauc
 
@@ -269,7 +275,8 @@ AM_DISTCHECK_CONFIGURE_FLAGS = \
     --with-systemdunitdir=$$dc_install_base/$(systemdunitdir) \
     --with-dbuspolicydir=$$dc_install_base/$(dbuspolicydir) \
     --with-dbussystemservicedir=$$dc_install_base/$(dbussystemservicedir) \
-    --with-dbusinterfacesdir=$$dc_install_base/$(dbusinterfacesdir)
+    --with-dbusinterfacesdir=$$dc_install_base/$(dbusinterfacesdir) \
+    --enable-gpt
 
 CLEANFILES = $(gdbus_installer_generated) \
 	     $(nodist_systemdunit_DATA) \
