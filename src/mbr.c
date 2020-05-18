@@ -217,7 +217,7 @@ static void get_chs(struct mbr_chs_entry *chs, guint32 lba,
 
 static gboolean get_raw_partition_entry(gint fd,
 		struct mbr_tbl_entry *raw_entry,
-		const struct mbr_switch_partition *partition, GError **error)
+		const struct boot_switch_partition *partition, GError **error)
 {
 	gboolean res = FALSE;
 	guint32 start, size;
@@ -258,7 +258,7 @@ out:
 }
 
 gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
-		struct mbr_switch_partition *partition,
+		struct boot_switch_partition *partition,
 		guint64 region_start, guint64 region_size,
 		GError **error)
 {
@@ -330,65 +330,8 @@ out:
 	return res;
 }
 
-gboolean r_mbr_switch_clear_partition(const gchar *device,
-		const struct mbr_switch_partition *dest_partition,
-		GError **error)
-{
-	gboolean res = FALSE;
-	static gchar zerobuf[512] = {};
-	gint clear_size = sizeof(zerobuf);
-	guint clear_count = 0;
-	gint tmp_count = 0;
-	gint fd;
-
-	g_return_val_if_fail(device, FALSE);
-	g_return_val_if_fail(dest_partition, FALSE);
-	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
-
-	fd = g_open(device, O_RDWR);
-	if (fd == -1) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Opening device failed: %s",
-				g_strerror(errno));
-		goto out;
-	}
-
-	if (lseek(fd, dest_partition->start, SEEK_SET) !=
-	    (off_t)dest_partition->start) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Failed to set file to position %"G_GUINT64_FORMAT ": %s",
-				dest_partition->start, g_strerror(errno));
-		goto out;
-	}
-
-	while (clear_count < dest_partition->size) {
-		if ((dest_partition->size - clear_count) < sizeof(zerobuf))
-			clear_size = dest_partition->size - clear_count;
-
-		tmp_count = write(fd, zerobuf, clear_size);
-
-		if (tmp_count < 0)
-			break;
-
-		clear_count += tmp_count;
-	}
-
-	if (clear_count != dest_partition->size) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Failed to clear partition: %s",
-				g_strerror(errno));
-		goto out;
-	}
-	res = TRUE;
-out:
-	if (fd >= 0)
-		g_close(fd, NULL);
-
-	return res;
-}
-
 gboolean r_mbr_switch_set_boot_partition(const gchar *device,
-		const struct mbr_switch_partition *partition,
+		const struct boot_switch_partition *partition,
 		GError **error)
 {
 	gboolean res = FALSE;

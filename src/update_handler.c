@@ -98,6 +98,72 @@ static gboolean clear_slot(RaucSlot *slot, GError **error)
 }
 #endif
 
+/**
+ * Clear the the memory area defined in dest_partition.
+ *
+ * @param device dev path (/dev/mmcblkX)
+ * @param dest_partition partition to be cleared (start & size) *
+ * @param error return location for a GError, or NULL
+ *
+ * @return True if succeeded, False if failed
+ */
+static gboolean clear_boot_switch_partition(const gchar *device,
+		const struct boot_switch_partition *dest_partition,
+		GError **error)
+{
+	gboolean res = FALSE;
+	static gchar zerobuf[512] = {};
+	gint clear_size = sizeof(zerobuf);
+	guint clear_count = 0;
+	gint tmp_count = 0;
+	gint fd;
+
+	g_return_val_if_fail(device, FALSE);
+	g_return_val_if_fail(dest_partition, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	fd = g_open(device, O_RDWR);
+	if (fd == -1) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Opening device failed: %s",
+				g_strerror(errno));
+		goto out;
+	}
+
+	if (lseek(fd, dest_partition->start, SEEK_SET) !=
+	    (off_t)dest_partition->start) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Failed to set file to position %"G_GUINT64_FORMAT ": %s",
+				dest_partition->start, g_strerror(errno));
+		goto out;
+	}
+
+	while (clear_count < dest_partition->size) {
+		if ((dest_partition->size - clear_count) < sizeof(zerobuf))
+			clear_size = dest_partition->size - clear_count;
+
+		tmp_count = write(fd, zerobuf, clear_size);
+
+		if (tmp_count < 0)
+			break;
+
+		clear_count += tmp_count;
+	}
+
+	if (clear_count != dest_partition->size) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Failed to clear partition: %s",
+				g_strerror(errno));
+		goto out;
+	}
+	res = TRUE;
+out:
+	if (fd >= 0)
+		g_close(fd, NULL);
+
+	return res;
+}
+
 static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 {
 	int ret;
@@ -1186,7 +1252,7 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 	int out_fd = -1, inactive_part;
 	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
-	struct mbr_switch_partition dest_partition;
+	struct boot_switch_partition dest_partition;
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
@@ -1225,7 +1291,7 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 	g_message("Clearing inactive boot partition %d on %s", inactive_part,
 			dest_slot->device);
 
-	res = r_mbr_switch_clear_partition(dest_slot->device, &dest_partition, &ierror);
+	res = clear_boot_switch_partition(dest_slot->device, &dest_partition, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to clear inactive partition: ");

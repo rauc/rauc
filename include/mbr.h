@@ -2,10 +2,7 @@
 
 #include <glib.h>
 
-struct mbr_switch_partition {
-	guint64 start;          /* address in bytes */
-	guint64 size;           /* size in bytes */
-};
+#include "update_handler.h"
 
 /**
  * Get the address and size of the inactive boot partition
@@ -21,21 +18,8 @@ struct mbr_switch_partition {
  * @return True if succeeded, False if failed
  */
 gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
-		struct mbr_switch_partition *partition,
+		struct boot_switch_partition *partition,
 		guint64 region_start, guint64 region_size,
-		GError **error);
-
-/**
- * Clear the the memory area defined in dest_partition.
- *
- * @param device dev path (/dev/mmcblkX)
- * @param dest_partition partition to be cleared (start & size) *
- * @param error return location for a GError, or NULL
- *
- * @return True if succeeded, False if failed
- */
-gboolean r_mbr_switch_clear_partition(const gchar *device,
-		const struct mbr_switch_partition *dest_partition,
 		GError **error);
 
 /**
@@ -49,5 +33,5 @@ gboolean r_mbr_switch_clear_partition(const gchar *device,
  * @return True if succeeded, False if failed
  */
 gboolean r_mbr_switch_set_boot_partition(const gchar *device,
-		const struct mbr_switch_partition *partition,
+		const struct boot_switch_partition *partition,
 		GError **error);
