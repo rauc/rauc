@@ -1551,8 +1551,11 @@ RaucUpdatePair updatepairs[] = {
 	{"*.squashfs", "ubivol", img_to_ubivol_handler},
 #if ENABLE_EMMC_BOOT_SUPPORT == 1
 	{"*.img", "boot-emmc", img_to_boot_emmc_handler},
+	{"*", "boot-emmc", NULL},
 #endif
 	{"*.vfat", "boot-mbr-switch", img_to_boot_mbr_switch_handler},
+	{"*.img", "boot-mbr-switch", img_to_boot_mbr_switch_handler},
+	{"*", "boot-mbr-switch", NULL},
 	{"*.img", "*", img_to_raw_handler}, /* fallback */
 	{0}
 };
@@ -1570,7 +1573,7 @@ img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, 
 
 	g_message("Checking image type for slot type: %s", dest);
 
-	for (RaucUpdatePair *updatepair = updatepairs; updatepair->handler != NULL; updatepair++) {
+	for (RaucUpdatePair *updatepair = updatepairs; updatepair->src != NULL; updatepair++) {
 		if (g_pattern_match_simple(updatepair->src, src) &&
 		    g_pattern_match_simple(updatepair->dest, dest)) {
 			g_message("Image detected as type: %s", updatepair->src);
