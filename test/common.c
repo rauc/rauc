@@ -217,6 +217,7 @@ gboolean test_make_filesystem(const gchar *dirname, const gchar *filename)
 			&error,
 			"/sbin/mkfs.ext4",
 			"-F",
+			"-I256",
 			path,
 			NULL);
 
