@@ -38,6 +38,6 @@ qemu-system-x86_64 \
   -no-reboot \
   -virtfs local,id=rootfs,path=/,security_model=none,mount_tag=/dev/root \
   -nic user,model=virtio-net-pci \
-  -append "loglevel=6 console=ttyS0 root=/dev/root rootfstype=9p rw init=$(pwd)/qemu-test-init rauc.slot=system0 $*"
+  -append "loglevel=6 console=ttyS0 nandsim.id_bytes=0x20,0xa2,0x00,0x15 nandsim.parts=0x100, root=/dev/root rootfstype=9p rw init=$(pwd)/qemu-test-init rauc.slot=system0 $*"
 
 test -f qemu-test-ok

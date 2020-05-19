@@ -54,6 +54,21 @@ mount -t tmpfs none /var/run
 mkdir -p /var/run/dbus
 time dbus-daemon --system --fork --nopidfile --nosyslog --print-address
 
+if type losetup; then
+  dd if=/dev/zero of=/tmp/rauc-disk.img bs=1M count=64
+  losetup -P /dev/loop0 /tmp/rauc-disk.img
+  export RAUC_TEST_BLOCK_LOOP=/dev/loop0
+fi
+
+if [ -c /dev/mtd2 ]; then
+  export RAUC_TEST_MTD_NAND=/dev/mtd2
+fi
+
+if [ -c /dev/mtd3 ] && type ubiattach; then
+  ubiattach -m 3 -d 0
+  export RAUC_TEST_MTD_UBI=/dev/ubi0
+fi
+
 echo "system ready"
 
 if [ -n "$SHELL" ]; then

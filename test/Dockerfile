@@ -33,7 +33,8 @@ RUN apt-get update && apt-get install -y \
   kmod \
   uncrustify \
   casync \
-  qemu-system-x86
+  qemu-system-x86 \
+  mtd-utils
 
 # Required for test environment setup
 RUN apt-get update && apt-get install -y \
