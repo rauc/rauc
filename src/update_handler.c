@@ -454,6 +454,7 @@ static gboolean ext4_format_slot(RaucSlot *dest_slot, GError **error)
 		g_ptr_array_add(args, g_strdup("-L"));
 		g_ptr_array_add(args, g_strdup(dest_slot->name));
 	}
+	g_ptr_array_add(args, g_strdup("-I256"));
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 

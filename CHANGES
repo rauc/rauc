@@ -3,6 +3,12 @@ Release 1.4 (development)
 
 .. rubric:: Enhancements
 
+* Changed ext4 filesystem creation options to always use 256 byte inodes.
+  Without it, mkfs.ext4 will default to 128 byte inodes on filesystems smaller
+  than 512MiB.
+  This avoids the "ext4 filesystem being mounted at /foo supports timestamps
+  until 2038" message on newer kernels.
+
 .. rubric:: Bug fixes
 
 .. rubric:: Testing
