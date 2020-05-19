@@ -148,6 +148,10 @@ if WANT_NETWORK
 check_PROGRAMS += test/network.test
 endif
 
+if WANT_JSON
+check_PROGRAMS += test/boot_switch.test
+endif
+
 noinst_PROGRAMS = test/fakerand
 
 test_fakerand_SOURCES = test/fakerand.c
@@ -186,6 +190,11 @@ TESTS = $(check_PROGRAMS) test/rauc.t
 
 test_bootchooser_test_SOURCES = test/bootchooser.c
 test_bootchooser_test_LDADD = librauctest.la
+
+test_boot_switch_test_CFLAGS = $(AM_CFLAGS) $(JSON_GLIB_CFLAGS)
+test_boot_switch_test_LDFLAGS = $(AM_LDFLAGS) $(JSON_GLIB_LDFLAGS)
+test_boot_switch_test_SOURCES = test/boot_switch.c
+test_boot_switch_test_LDADD = librauctest.la $(JSON_GLIB_LIBS)
 
 test_bundle_test_SOURCES = test/bundle.c
 test_bundle_test_LDADD = librauctest.la
