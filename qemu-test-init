@@ -71,3 +71,4 @@ else
   free || true
 fi
 echo o > /proc/sysrq-trigger
+sleep 1
