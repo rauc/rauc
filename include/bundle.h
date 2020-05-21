@@ -5,6 +5,7 @@
 #include <gio/gio.h>
 
 #include "manifest.h"
+#include "utils.h"
 
 #define R_BUNDLE_ERROR r_bundle_error_quark()
 GQuark r_bundle_error_quark(void);
@@ -35,6 +36,14 @@ typedef struct {
 	STACK_OF(X509) *verified_chain;
 } RaucBundle;
 
+typedef enum {
+	CHECK_BUNDLE_DEFAULT       = 0,
+	/* skip BIT(0) for now to avoid interpreting a TRUE as NO_VERIFY by mistake */
+	CHECK_BUNDLE_NO_VERIFY     = BIT(1),      // If not set the bundle signature
+	                                          // will be verified, if set this
+	                                          // step will be skipped.
+} CheckBundleParams;
+
 /**
  * Create a bundle.
  *
@@ -56,13 +65,12 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @param bundle return location for a RaucBundle struct.
  *               This will contain all bundle information obtained by
  *               check_bundle
- * @param verify If set to true the bundle signature will also be verified, if
- *               set to FALSE this step will be skipped
+ * @param params bit-field enum CheckBundleParams with additional flags for the check
  * @param error Return location for a GError
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error)
+gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleParams params, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
