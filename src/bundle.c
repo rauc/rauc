@@ -1469,13 +1469,19 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 	if (verify) {
 		CMS_ContentInfo *cms = NULL;
 		X509_STORE *store = setup_x509_store(NULL, NULL, &ierror);
+		X509_VERIFY_PARAM *param = NULL;
 		if (!store) {
 			g_propagate_error(error, ierror);
 			res = FALSE;
 			goto out;
 		}
+		param = X509_STORE_get0_param(store);
 
 		g_message("Verifying bundle signature... ");
+
+		if (params & CHECK_BUNDLE_NO_CHECK_TIME)
+			X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_NO_CHECK_TIME);
+
 		if (detached) {
 			int fd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(ibundle->stream));
 

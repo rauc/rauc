@@ -29,6 +29,7 @@ int r_exit_status = 0;
 
 gboolean install_ignore_compatible, install_progressbar = FALSE;
 gboolean verification_disabled = FALSE;
+gboolean no_check_time = FALSE;
 gboolean info_dumpcert = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
@@ -498,6 +499,8 @@ static gboolean resign_start(int argc, char **argv)
 
 	if (verification_disabled)
 		check_bundle_params |= CHECK_BUNDLE_NO_VERIFY;
+	if (no_check_time)
+		check_bundle_params |= CHECK_BUNDLE_NO_CHECK_TIME;
 
 	if (!check_bundle(argv[2], &bundle, check_bundle_params, &ierror)) {
 		g_printerr("%s\n", ierror->message);
@@ -946,6 +949,8 @@ static gboolean info_start(int argc, char **argv)
 
 	if (verification_disabled)
 		check_bundle_params |= CHECK_BUNDLE_NO_VERIFY;
+	if (no_check_time)
+		check_bundle_params |= CHECK_BUNDLE_NO_CHECK_TIME;
 
 	res = check_bundle(bundlelocation, &bundle, check_bundle_params, &error);
 	if (!res) {
@@ -1799,6 +1804,7 @@ static GOptionEntry entries_bundle[] = {
 
 static GOptionEntry entries_resign[] = {
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
+	{"no-check-time", '\0', 0, G_OPTION_ARG_NONE, &no_check_time, "don't check validity period of certificates against current time", NULL},
 	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
 	{0}
 };
@@ -1812,6 +1818,7 @@ static GOptionEntry entries_convert[] = {
 
 static GOptionEntry entries_info[] = {
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
+	{"no-check-time", '\0', 0, G_OPTION_ARG_NONE, &no_check_time, "don't check validity period of certificates against current time", NULL},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
 	{"dump-cert", '\0', 0, G_OPTION_ARG_NONE, &info_dumpcert, "dump certificate", NULL},
 	{0}

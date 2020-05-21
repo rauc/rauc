@@ -501,6 +501,19 @@ test_expect_success FAKETIME "rauc verfiy with 'use-bundle-signing-time': invali
   test_must_fail faketime "2018-01-01" rauc --conf $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf info ${TEST_TMPDIR}/out.raucb
 "
 
+test_expect_success FAKETIME "rauc info --no-check-time" "
+  rm -f ${TEST_TMPDIR}/out.raucb &&
+  faketime "2018-01-01" \
+    rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
+    bundle $SHARNESS_TEST_DIRECTORY/install-content ${TEST_TMPDIR}/out.raucb &&
+  test -f ${TEST_TMPDIR}/out.raucb &&
+  faketime "2018-01-01" rauc info --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem ${TEST_TMPDIR}/out.raucb &&
+  test_must_fail faketime "2022-01-01" rauc info --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem ${TEST_TMPDIR}/out.raucb &&
+  faketime "2022-01-01" rauc info --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem --no-check-time ${TEST_TMPDIR}/out.raucb
+"
+
 test_expect_success FAKETIME "rauc sign bundle with expired certificate" "
   rm -f ${TEST_TMPDIR}/out.raucb &&
   test_must_fail faketime "2019-07-02" \
