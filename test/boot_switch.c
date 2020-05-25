@@ -519,5 +519,115 @@ int main(int argc, char *argv[])
 			test_boot_switch,
 			boot_switch_fixture_tear_down);
 
+#if ENABLE_GPT == 1
+	data = &(BootSwitchData) {
+		.params = BOOT_SWITCH_GPT | BOOT_SWITCH_WRITE_SECOND,
+		.err_domain = 0, .err_code = 0,
+		.slottype = "boot-gpt-switch",
+		.sfdisk_setup =
+			"label: gpt\n"
+			"label-id: 823CC890-4129-584D-9BD9-ED291FD87CDA\n"
+			"unit: sectors\n"
+			"first-lba: 2048\n"
+			"last-lba: 131038\n"
+			"\n"
+			"start=        2048, size=        6144, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, uuid=0C25253D-6578-2C47-8C3C-8E03EED3141B\n"
+			"start=       14336, size=       65536, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, uuid=3C97736F-F91A-F641-BF0D-A8C71DEBABBD\n"
+			"start=       79872, size=       32768, type=0657FD6D-A4AB-43C4-84E5-0933C84B4F4F, uuid=29836434-34FB-0744-AB30-9BD2F0D7C383\n"
+		,
+		.sfdisk_expect = R_QUOTE({
+			/* *INDENT-OFF* */
+			"partitiontable" : {
+				"label" : "gpt",
+				"id" : "823CC890-4129-584D-9BD9-ED291FD87CDA",
+				"unit" : "sectors",
+				"firstlba" : 2048,
+				"lastlba" : 131038,
+				"partitions" : [
+				{
+					"start" : 8192,
+					"size" : 6144,
+					"type" : "C12A7328-F81F-11D2-BA4B-00A0C93EC93B",
+					"uuid" : "0C25253D-6578-2C47-8C3C-8E03EED3141B"
+				},
+				{
+					"start" : 14336,
+					"size" : 65536,
+					"type" : "0FC63DAF-8483-4772-8E79-3D69D8477DE4",
+					"uuid" : "3C97736F-F91A-F641-BF0D-A8C71DEBABBD"
+				},
+				{
+					"start" : 79872,
+					"size" : 32768,
+					"type" : "0657FD6D-A4AB-43C4-84E5-0933C84B4F4F",
+					"uuid" : "29836434-34FB-0744-AB30-9BD2F0D7C383"
+				}
+				]
+			}
+			/* *INDENT-ON* */
+		}),
+	};
+	g_test_add("/boot_switch/gpt/active-first",
+			BootSwitchFixture,
+			data,
+			boot_switch_fixture_set_up,
+			test_boot_switch,
+			boot_switch_fixture_tear_down);
+
+	data = &(BootSwitchData) {
+		.params = BOOT_SWITCH_GPT | BOOT_SWITCH_WRITE_FIRST,
+		.err_domain = 0, .err_code = 0,
+		.slottype = "boot-gpt-switch",
+		.sfdisk_setup =
+			"label: gpt\n"
+			"label-id: 823CC890-4129-584D-9BD9-ED291FD87CDA\n"
+			"unit: sectors\n"
+			"first-lba: 2048\n"
+			"last-lba: 131038\n"
+			"\n"
+			"start=        8192, size=        6144, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, uuid=0C25253D-6578-2C47-8C3C-8E03EED3141B\n"
+			"start=       14336, size=       65536, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, uuid=3C97736F-F91A-F641-BF0D-A8C71DEBABBD\n"
+			"start=       79872, size=       32768, type=0657FD6D-A4AB-43C4-84E5-0933C84B4F4F, uuid=29836434-34FB-0744-AB30-9BD2F0D7C383\n"
+		,
+		.sfdisk_expect = R_QUOTE({
+			/* *INDENT-OFF* */
+			"partitiontable" : {
+				"label" : "gpt",
+				"id" : "823CC890-4129-584D-9BD9-ED291FD87CDA",
+				"unit" : "sectors",
+				"firstlba" : 2048,
+				"lastlba" : 131038,
+				"partitions" : [
+				{
+					"start" : 2048,
+					"size" : 6144,
+					"type" : "C12A7328-F81F-11D2-BA4B-00A0C93EC93B",
+					"uuid" : "0C25253D-6578-2C47-8C3C-8E03EED3141B"
+				},
+				{
+					"start" : 14336,
+					"size" : 65536,
+					"type" : "0FC63DAF-8483-4772-8E79-3D69D8477DE4",
+					"uuid" : "3C97736F-F91A-F641-BF0D-A8C71DEBABBD"
+				},
+				{
+					"start" : 79872,
+					"size" : 32768,
+					"type" : "0657FD6D-A4AB-43C4-84E5-0933C84B4F4F",
+					"uuid" : "29836434-34FB-0744-AB30-9BD2F0D7C383"
+				}
+				]
+			}
+			/* *INDENT-ON* */
+		}),
+	};
+	g_test_add("/boot_switch/gpt/active-second",
+			BootSwitchFixture,
+			data,
+			boot_switch_fixture_set_up,
+			test_boot_switch,
+			boot_switch_fixture_tear_down);
+#endif
+
 	return g_test_run();
 }
