@@ -742,8 +742,8 @@ A ``system.conf`` could look like this:
 
 .. _sec-mbr-partition:
 
-Update Boot Partitions in MBR
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Update Boot Partition in MBR
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some SOCs (like Xilinx ZynqMP) contain a fixed ROM code, which boots from the first
 partition in the MBR partition table of a storage medium.
@@ -786,12 +786,13 @@ After the update the bootloader is switched by changing the first partition entr
 and writing the whole 512 bytes MBR atomically.
 
 The required slot type is ``boot-mbr-switch``.
-The device to be specified is expected to be the root device.
+The device to be specified is expected to be the underlying block device.
 The boot partitions are derived by the definition of the values ``region-start``
-and ``region-size``. Both values have to be set in integer decimal bytes and can be
-postfixed with K/M/G/T.
+and ``region-size``.
+Both values have to be set in integer decimal bytes and can be post-fixed with
+K/M/G/T.
 
-A ``system.conf`` could look like this:
+A ``system.conf`` section could look like this:
 
 .. code-block:: cfg
 
@@ -800,6 +801,51 @@ A ``system.conf`` could look like this:
   type=boot-mbr-switch
   region-start=164352
   region-size=66M
+
+.. _sec-gpt-partition:
+
+Update Boot Partition in GPT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Systems booting via UEFI have a special partition, called the *EFI system
+partition (ESP)*, which contains the bootloader to be started by the UEFI
+firmware.
+Also, some newer ARM SoCs support loading the bootloader directly from a GPT
+partition.
+
+To allow atomic updates of these partitions, RAUC supports changing the GPT to
+switch the first GPT partition between the lower and upper halves of a region
+configured for that purpose.
+This works similarly to the handling of a MBR boot partition as described in the
+previous section.
+It requires RAUC to be compiled with GPT support (``./configure --enable-gpt``)
+and adds a dependency on libfdisk.
+
+The required slot type is ``boot-gpt-switch``.
+The device to be specified is expected to be the underlying block device.
+The boot partitions are derived by the definition of the values ``region-start``
+and ``region-size``.
+Both values have to be set in integer decimal bytes and can be post-fixed with
+K/M/G/T.
+
+To ensure that the resulting GPT entries are well aligned, the region start must
+be a multiple of the *grain* value (as used by ``sfdisk``), which is 1MB by
+default.
+Accordingly, the region size must be aligned to twice the *grain* value (to
+ensure that the start of the upper half is aligned).
+
+Note that RAUC expects that the partition table always points exactly to one of
+the halves.
+
+A ``system.conf`` section could look like this:
+
+.. code-block:: cfg
+
+  [slot.esp.0]
+  device=/dev/sda
+  type=boot-gpt-switch
+  region-start=1M
+  region-size=32M
 
 Bootloader Update Ideas
 ~~~~~~~~~~~~~~~~~~~~~~~
