@@ -20,6 +20,7 @@
     <method name="InstallBundle">
       <arg name="source" type="s"/>
       <arg name="args" type="a{sv}" direction="in"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.In1" value="QVariantMap"/>
     </method>
 
    <!--
