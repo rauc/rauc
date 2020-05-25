@@ -100,10 +100,17 @@ static gboolean validate_region(gint fd, guint64 start, guint64 size,
 		goto out;
 	}
 
-	if ((start % (2 * sector_size)) != 0 || (size % (2 * sector_size)) != 0) {
+	if ((start % sector_size) != 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Region configuration is not aligned to the double"
-				"sector-size %d", 2 * sector_size);
+				"Region start %"G_GINT64_MODIFIER "d is not aligned to the sector-size %d",
+				start, sector_size);
+		goto out;
+	}
+
+	if ((size % (2 * sector_size)) != 0) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Region size %"G_GINT64_MODIFIER "d is not aligned to the double sector-size %d",
+				size, 2 * sector_size);
 		goto out;
 	}
 
