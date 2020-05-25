@@ -9,10 +9,14 @@ mount -t sysfs none /sys
 mount -t tmpfs none /mnt
 mount -t tmpfs none /tmp
 
+MAKE_TARGET="check"
+
 # parse cmdline
 for x in $(cat /proc/cmdline); do
   if [ "$x" = "shell" ]; then
     SHELL=1
+  elif [ "$x" = "coverage" ]; then
+    MAKE_TARGET="check-code-coverage"
   fi
 done
 
@@ -76,7 +80,7 @@ if [ -n "$SHELL" ]; then
   echo o > /proc/sysrq-trigger
 fi
 
-if make check; then
+if make $MAKE_TARGET; then
   touch qemu-test-ok
 else
   cat test-suite.log || true
