@@ -35,6 +35,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	gsize group_count;
 	GList *slotlist = NULL;
 	GHashTable *slots = NULL;
+	g_autoptr(GHashTable) bootnames = NULL;
 	GList *l;
 	gchar *bootloader;
 	const gchar **pointer;
@@ -319,6 +320,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 	/* parse [slot.*.#] sections */
 	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
+	bootnames = g_hash_table_new(g_str_hash, g_str_equal);
 
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
@@ -375,6 +377,20 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 			value = key_file_consume_string(key_file, groups[i], "bootname", NULL);
 			slot->bootname = value;
+			if (slot->bootname) {
+				/* check if we have seen this bootname on another slot */
+				if (g_hash_table_contains(bootnames, slot->bootname)) {
+					g_set_error(
+							error,
+							R_CONFIG_ERROR,
+							R_CONFIG_ERROR_DUPLICATE_BOOTNAME,
+							"Bootname '%s' is set on more than one slot",
+							slot->bootname);
+					res = FALSE;
+					goto free;
+				}
+				g_hash_table_add(bootnames, slot->bootname);
+			}
 
 			slot->allow_mounted = g_key_file_get_boolean(key_file, groups[i], "allow-mounted", &ierror);
 			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {

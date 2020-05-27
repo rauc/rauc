@@ -314,6 +314,34 @@ bootname=slotchild0\n";
 	g_clear_error(&ierror);
 }
 
+static void config_file_duplicate_bootname(ConfigFileFixture *fixture, gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
+
+	const gchar *contents = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/null\n\
+bootname=theslot\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/null\n\
+bootname=theslot\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "duplicate_bootname.conf", contents, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_DUPLICATE_BOOTNAME);
+	g_assert_cmpstr(ierror->message, ==, "Bootname 'theslot' is set on more than one slot");
+	g_clear_error(&ierror);
+}
+
 static void config_file_typo(ConfigFileFixture *fixture, const gchar *cfg_file)
 {
 	RaucConfig *config;
@@ -904,6 +932,9 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/bootname-set-on-child", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_bootname_set_on_child,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/duplicate-bootname", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_duplicate_bootname,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-boolean-allow-mounted-key", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_typo_in_boolean_allow_mounted_key,
