@@ -261,9 +261,28 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	if (!test_running_as_root())
 		return;
 
+	g_test_message("installing '%s' image to '%s' slot", test_pair->imagetype, test_pair->slottype);
+
 	/* prepare image and slot information */
 	imagename = g_strconcat("image.", test_pair->imagetype, NULL);
-	slotpath = g_build_filename(fixture->tmpdir, "rootfs-0", NULL);
+	if (g_strcmp0(test_pair->slottype, "ubivol") == 0||
+	    g_strcmp0(test_pair->slottype, "ubifs") == 0) {
+		slotpath = g_strdup(g_getenv("RAUC_TEST_MTD_UBIVOL"));
+		if (!slotpath) {
+			g_test_message("no UBI volume for testing found (define RAUC_TEST_MTD_UBIVOL)");
+			g_test_skip("RAUC_TEST_MTD_UBIVOL undefined");
+			return;
+		}
+	} else if (g_strcmp0(test_pair->slottype, "nand") == 0) {
+		slotpath = g_strdup(g_getenv("RAUC_TEST_MTD_NAND"));
+		if (!slotpath) {
+			g_test_message("no MTD NAND device for testing found (define RAUC_TEST_MTD_NAND)");
+			g_test_skip("RAUC_TEST_MTD_NAND undefined");
+			return;
+		}
+	} else {
+		slotpath = g_build_filename(fixture->tmpdir, "rootfs-0", NULL);
+	}
 	imagepath = g_build_filename(fixture->tmpdir, imagename, NULL);
 
 	/* create source image */
@@ -451,6 +470,14 @@ int main(int argc, char *argv[])
 		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+
+		/* ubifs tests */
+		{"ubifs", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"ubifs", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"ubivol", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+
+		/* nand tests */
+		{"nand", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 
 		{0}
 	};
@@ -780,6 +807,34 @@ int main(int argc, char *argv[])
 	g_test_add("/update_handler/update_handler/tar_to_vfat/install-hook/fail",
 			UpdateHandlerFixture,
 			&testpair_matrix[50],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+
+	/* ubifs tests */
+	g_test_add("/update_handler/update_handler/tar_to_ubifs",
+			UpdateHandlerFixture,
+			&testpair_matrix[51],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/img_to_ubifs",
+			UpdateHandlerFixture,
+			&testpair_matrix[52],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/img_to_ubivol",
+			UpdateHandlerFixture,
+			&testpair_matrix[53],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+
+	/* nand tests */
+	g_test_add("/update_handler/update_handler/img_to_nand",
+			UpdateHandlerFixture,
+			&testpair_matrix[54],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
