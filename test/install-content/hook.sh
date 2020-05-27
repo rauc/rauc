@@ -21,6 +21,7 @@ case "$1" in
 		test -n "$RAUC_SLOT_NAME" || die_error "missing RAUC_SLOT_NAME"
 		test -n "$RAUC_SLOT_CLASS" || die_error "missing RAUC_SLOT_CLASS"
 		test -n "$RAUC_SLOT_TYPE" || die_error "missing RAUC_SLOT_TYPE"
+		test -n "$RAUC_SLOT_BOOTNAME" || die_error "missing RAUC_SLOT_BOOTNAME"
 
 		# only rootfs needs to be handled
 		test "$RAUC_SLOT_CLASS" = "rootfs" || exit 0
@@ -34,6 +35,7 @@ case "$1" in
 		test -n "$RAUC_SLOT_NAME" || die_error "missing RAUC_SLOT_NAME"
 		test -n "$RAUC_SLOT_CLASS" || die_error "missing RAUC_SLOT_CLASS"
 		test -n "$RAUC_SLOT_TYPE" || die_error "missing RAUC_SLOT_TYPE"
+		test -n "$RAUC_SLOT_BOOTNAME" || die_error "missing RAUC_SLOT_BOOTNAME"
 
 		echo "RAUC_IMAGE_PATH: $RAUC_IMAGE_PATH"
 		echo "RAUC_SLOT_DEVICE: $RAUC_SLOT_DEVICE"
