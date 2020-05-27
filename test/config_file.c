@@ -285,6 +285,35 @@ parent=invalid\n\
 	g_clear_error(&ierror);
 }
 
+static void config_file_bootname_set_on_child(ConfigFileFixture *fixture, gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
+
+	const gchar *contents = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.parent.0]\n\
+device=/dev/null\n\
+bootname=slot0\n\
+\n\
+[slot.child.0]\n\
+device=/dev/null\n\
+parent=parent.0\n\
+bootname=slotchild0\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "bootname_set_on_child.conf", contents, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_CHILD_HAS_BOOTNAME);
+	g_assert_cmpstr(ierror->message, ==, "Child slot 'child.0' has bootname set");
+	g_clear_error(&ierror);
+}
+
 static void config_file_typo(ConfigFileFixture *fixture, const gchar *cfg_file)
 {
 	RaucConfig *config;
@@ -872,6 +901,9 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/invalid-parent", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_invalid_parent,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/bootname-set-on-child", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_bootname_set_on_child,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-boolean-allow-mounted-key", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_typo_in_boolean_allow_mounted_key,

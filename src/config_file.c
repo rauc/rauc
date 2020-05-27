@@ -468,7 +468,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	/* Add parent pointers */
 	slotlist = g_hash_table_get_keys(slots);
 	for (l = slotlist; l != NULL; l = l->next) {
-		RaucSlot *s;
+		RaucSlot *parent;
+		RaucSlot *child;
 		g_autofree gchar* group_name = NULL;
 		gchar* value;
 
@@ -479,8 +480,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			continue;
 		}
 
-		s = g_hash_table_lookup(slots, value);
-		if (!s) {
+		parent = g_hash_table_lookup(slots, value);
+		if (!parent) {
 			g_set_error(
 					error,
 					R_CONFIG_ERROR,
@@ -490,8 +491,19 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			goto free;
 		}
 
-		((RaucSlot*)g_hash_table_lookup(slots, l->data))->parent = s;
+		child = g_hash_table_lookup(slots, l->data);
+		child->parent = parent;
 
+		if (child->bootname) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_CHILD_HAS_BOOTNAME,
+					"Child slot '%s' has bootname set",
+					child->name);
+			res = FALSE;
+			goto free;
+		}
 
 		if (!check_remaining_keys(key_file, group_name, &ierror)) {
 			g_propagate_error(error, ierror);
