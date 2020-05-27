@@ -1270,7 +1270,7 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
-	g_message("Setting MBR to switch boot partitions");
+	g_message("Setting MBR to switch boot partition");
 
 	res = r_mbr_switch_set_boot_partition(dest_slot->device, &dest_partition, &ierror);
 	if (!res) {
