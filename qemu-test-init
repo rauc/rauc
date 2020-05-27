@@ -64,13 +64,15 @@ if type losetup; then
   export RAUC_TEST_BLOCK_LOOP=/dev/loop0
 fi
 
-if [ -c /dev/mtd2 ]; then
+if [ -c /dev/mtd2 ] && type flash_erase; then
   export RAUC_TEST_MTD_NAND=/dev/mtd2
 fi
 
 if [ -c /dev/mtd3 ] && type ubiattach; then
   ubiattach -m 3 -d 0
+  ubimkvol /dev/ubi0 -s 12096KiB -N rauc-test
   export RAUC_TEST_MTD_UBI=/dev/ubi0
+  export RAUC_TEST_MTD_UBIVOL=/dev/ubi0_0
 fi
 
 echo "system ready"
