@@ -285,6 +285,43 @@ parent=invalid\n\
 	g_clear_error(&ierror);
 }
 
+static void config_file_parent_has_parent(ConfigFileFixture *fixture, gconstpointer user_data)
+{
+	RaucConfig *config;
+	RaucSlot *parentslot;
+	RaucSlot *childslot;
+	RaucSlot *grandchildslot;
+	gchar* pathname;
+
+	const gchar *contents = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/null\n\
+\n\
+[slot.child.0]\n\
+device=/dev/null\n\
+parent=rootfs.0\n\
+\n\
+[slot.grandchild.0]\n\
+device=/dev/null\n\
+parent=child.0\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "parent_has_parent.conf", contents, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_true(load_config(pathname, &config, NULL));
+	g_assert_nonnull(config);
+
+	parentslot = g_hash_table_lookup(config->slots, "rootfs.0");
+	childslot = g_hash_table_lookup(config->slots, "child.0");
+	g_assert(childslot->parent == parentslot);
+	grandchildslot = g_hash_table_lookup(config->slots, "grandchild.0");
+	g_assert(grandchildslot->parent == parentslot);
+}
+
 static void config_file_bootname_set_on_child(ConfigFileFixture *fixture, gconstpointer user_data)
 {
 	RaucConfig *config;
@@ -929,6 +966,9 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/invalid-parent", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_invalid_parent,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/parent-has-parent", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_parent_has_parent,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/bootname-set-on-child", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_bootname_set_on_child,
