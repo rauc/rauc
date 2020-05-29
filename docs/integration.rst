@@ -1075,33 +1075,33 @@ To enable building RAUC for your target, set::
 
   CONFIG_RAUC=y
 
-in your ptxconfig (by selection ``RAUC`` via ``ptxdist menuconfig``).
+in your ptxconfig (by selecting ``RAUC`` via ``ptxdist menuconfig``).
 
-You should also customize the compatible RAUC uses for your System. For this
-set ``CONFIG_RAUC_COMPATIBLE`` to a string that uniquely identifies your device
-type. The default value will be ``"${PTXCONF_PROJECT_VENDOR}\ ${PTXCONF_PROJECT}"``.
+You should also customize the compatible RAUC uses for your system.
+To do this, set ``PTXCONF_RAUC_COMPATIBLE`` to a string that uniquely
+identifies your device type.
+The default value will be ``"${PTXCONF_PROJECT_VENDOR}\ ${PTXCONF_PROJECT}"``.
 
 Place your system configuration file in
-``configs/platform-<yourplatform>/projectroot/etc/rauc/system.conf`` to let the
+``$(PTXDIST_PLATFORMCONFIGDIR)/projectroot/etc/rauc/system.conf`` to let the
 RAUC package install it into the rootfs you build.
-Also place the keyring for your device in
-``configs/platform-<yourplatform>/projectroot/etc/rauc/ca.cert.pem``.
-If using a keyring directory, place the keyrings for your device in
-``configs/platform-<yourplatform>/projectroot/etc/rauc/certs/``.
 
-.. note:: You should use your local PKI infrastructure for generating valid
-  certificates and keys for your target. For debugging and testing purpose,
-  PTXdist provides a script that generates a set of example certificates. It is
-  named ``rauc-gen-test-certs.sh`` and located in PTXdist's ``scripts`` folder.
+.. note:: PTXdist versions since 2020.06.0 use their `code signing infrastructure
+  <ptxdist-code-signing_>`_ for keyring creation.
+  Previous PTXdist versions expected the keyring in
+  ``$(PTXDIST_PLATFORMCONFIGDIR)/projectroot/etc/rauc/ca.cert.pem``.
+  The keyring is installed into the rootfs to ``/etc/rauc/ca.cert.pem``.
 
 If using systemd, the recipes install both the default ``systemd.service`` file
 for RAUC as well as a ``rauc-mark-good.service`` file.
 This additional good-marking-service runs after user space is brought up and
 notifies the underlying bootloader implementation about a successful boot of
-the system.  This is typically used in conjunction with a boot attempts counter
-in the bootloader that is decremented before starting the system and reset by
+the system.
+This is typically used in conjunction with a boot attempts counter in the
+bootloader that is decremented before starting the system and reset by
 `rauc status mark-good` to indicate a successful system startup.
 
+.. _ptxdist-code-signing: https://www.ptxdist.org/doc/dev_code_signing.html
 
 Create Update Bundles from your RootFS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1113,22 +1113,27 @@ To enable building RAUC bundles, set::
 in your platformconfig (by using ``ptxdist platformconfig``).
 
 This adds a default image recipe for building a RAUC update bundle out of the
-system's rootfs. As for all image recipes, the `genimage` tool is used to
-configure and generate the update bundle.
+system's rootfs.
+As for most image recipes, the `genimage <genimage_>` tool is used to configure
+and generate the update bundle.
 
 PTXdist's default bundle configuration is placed in
-`config/images/rauc.config`. You may also copy this to your platform directory
-to use this as a base for custom bundle configuration.
+`config/images/rauc.config`.
+You may also copy this to your platform directory to use this as a base for
+custom bundle configuration.
 
-In order to sign your update (mandatory) you also need to place a valid
-certificate and key file in your BSP at the following paths::
-
-  $(PTXDIST_PLATFORMCONFIGDIR)/config/rauc/rauc.key.pem (key)
-  $(PTXDIST_PLATFORMCONFIGDIR)/config/rauc/rauc.cert.pem (cert)
+RAUC enforces signing of update bundles.
+PTXdist versions since 2020.06.0 use its `code signing infrastructure
+<ptxdist-code-signing_>`_ for signing and keyring verification.
+Previous versions expected the signing key in
+``$(PTXDIST_PLATFORMCONFIGDIR)/config/rauc/rauc.key.pem``.
 
 Once you are done with your setup, PTXdist will automatically create a RAUC
-update bundle for you during the run of ``ptxdist images``.  It will be placed
-under ``<platform-builddir>/images/update.raucb``.
+update bundle for you during the run of ``ptxdist images``.
+It will be placed under ``$(PTXDIST_PLATFORMDIR)/images/update.raucb``.
+
+.. _genimage: https://github.com/pengutronix/genimage
+.. _ptxdist-code-signing: https://www.ptxdist.org/doc/dev_code_signing.html
 
 Buildroot
 ---------
