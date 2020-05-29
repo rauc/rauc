@@ -225,8 +225,8 @@ cannot fully know how you intend to use your system.
   compression formats you use are enabled:
 
     * ``CONFIG_FEATURE_TAR_AUTODETECT=y``
-    * ``CONFIG_FEATURE_SEAMLESS_XZ=y``
     * ``CONFIG_FEATURE_TAR_LONG_OPTIONS=y``
+    * select needed ``CONFIG_FEATURE_SEAMLESS_*=y`` options
 
 :ext4: mkfs.ext4 (from `e2fsprogs
   <git://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git>`_)
