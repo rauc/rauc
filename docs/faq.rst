@@ -40,3 +40,28 @@ or later with::
 
 Note that even if there is only an ext4 slot type available, potentially each
 file system mountable as ext4 should work (with the filename suffix adapted).
+
+Is the RAUC bundle format forwards/backwards compatible?
+--------------------------------------------------------
+
+The basic bundle format has not changed so far (squashfs containing images and
+the manifest, with a CMS signature), which means that newer versions can
+install old bundles.
+Going forward, any issue with installing old bundles would be considered a bug.
+
+Newer RAUC versions have added features and slot types, though (such as casync,
+eMMC boot partitions, MBR/GPT partition switching).
+If you use those features, older versions of RAUC that cannot handle them will
+refuse to install the bundle.
+As long as you don't use new features, our intention is that bundles created by
+newer versions will be installable by older versions.
+
+There are ideas of introducing a new bundle format to allow streaming
+installation (over the network), but we won't remove support for the original
+format.
+
+If there are ever reasons that require an incompatible change, you can use a
+two step migration:
+You can use an intermediate update to ship a new RAUC binary in a bundle
+created by the old (compatible) version.
+Then use the newly installed RAUC binary for the real update.
