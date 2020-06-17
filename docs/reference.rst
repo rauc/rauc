@@ -97,10 +97,19 @@ Example configuration:
 .. _statusfile:
 
 ``statusfile``
-  If this key exists, it points to a file where slot status information should
-  be stored (e.g. slot specific metadata, see :ref:`slot-status`).
-  This file should be located on a filesystem which is not overwritten during
-  updates.
+  This key should be set to point to a central file where slot status
+  information should be stored (e.g. slot-specific metadata, see
+  :ref:`slot-status`).
+  This file must be located on a non-redundant filesystem which is not
+  overwritten during updates.
+  In most cases, a central status file is preferable to per-slot status files
+  as it allows to store data also for read-only or (temporary) filesystem-less
+  slots.
+  However, if a per-slot status is required as one of the above-noted
+  requirements cannot be met, one can use the value ``per-slot`` to document
+  this decision.
+  For background compatibility this option is not mandatory and will default to
+  per-slot status files if not set.
 
 ``max-bundle-download-size``
   Defines the maximum downloadable bundle size in bytes, and thus must be
