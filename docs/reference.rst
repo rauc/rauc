@@ -297,6 +297,8 @@ hierarchical separator.
   Marks the slot as existing but not updatable. May be used for sanity checking
   or informative purpose. A ``readonly`` slot cannot be a target slot.
 
+.. _install-same:
+
 ``install-same=<true/false>``
   If set to ``false``, this will tell RAUC to skip writing slots that already
   have the same content as the one that should be installed.

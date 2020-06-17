@@ -116,21 +116,22 @@ RAUC hashes each image or archive when packing it into a bundle and stores this
 hash in the bundle's manifest file.
 This hash allows to reliably identify and distinguish the image's content.
 
-When installing an image to a writable file system, RAUC will write an
-additional slot status file after having completed the write operation
-successfully.
-This file contains the slots hash.
+When installing an image, RAUC can write the images hash together with some
+status information to a central or per-slot status file
+(refer :ref:`statusfile <statusfile>` option).
 
 The next time RAUC attempts to install an image to this slot, it will first
-check the current hash of the slot by reading its status file, if possible.
-If this hash equals the hash of the image to write, RAUC will skip updating this
-slot as a performance optimization.
+check the current hash of the slot by reading its status information, if
+available.
+If this hash equals the hash of the image to write, RAUC can skip updating this
+slot as a configurable performance optimization
+(refer :ref:`install-same <install-same>` per-slot option).
 
 This is especially useful when having a setup with, for example, two redundant
 application file systems and two redundant root file systems. In case you
-update the application file system content much more frequently, RAUC will save
-update time by skipping the root file system automatically and only installing
-the changed application.
+update the application file system content much more frequently while keeping
+the exact same rootfs content, RAUC will save update time by skipping the root
+file system automatically and only installing the changed application.
 
 Boot Slot Selection
 -------------------
