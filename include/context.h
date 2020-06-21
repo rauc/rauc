@@ -69,10 +69,6 @@ typedef struct {
 	gint last_explicit_percent;
 } RaucProgressStep;
 
-gboolean r_context_get_busy(void)
-G_GNUC_WARN_UNUSED_RESULT;
-void r_context_set_busy(gboolean busy);
-
 /**
  * Call at the beginning of a relevant code block. Provides progress
  * information via DBus when rauc service is running.
@@ -128,6 +124,10 @@ void r_context_free_progress_step(RaucProgressStep *step);
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucProgressStep, r_context_free_progress_step);
 
 void r_context_register_progress_callback(progress_callback progress_cb);
+
+gboolean r_context_get_busy(void)
+G_GNUC_WARN_UNUSED_RESULT;
+void r_context_set_busy(gboolean busy);
 
 RaucContext *r_context_conf(void);
 const RaucContext *r_context(void);
