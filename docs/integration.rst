@@ -844,12 +844,80 @@ argument in the ``efibootmgr`` call above:
   type=ext4
   bootname=system1
 
-Others
+.. _sec-custom-bootloader-backend:
+
+Custom
 ~~~~~~
 
-It is planned to add support for a `custom` boot selection implementation that
-will allow you to use also non-conventional or yet unimplemented approaches for
-selecting your boot slot.
+If none of the previously mentioned approaches can be applied on the system,
+RAUC also offers the possibility to use customization scripts or applications
+as bootloader backend.
+
+To enable the custom bootloader backend support in RAUC, select it in your
+`system.conf`:
+
+.. code-block:: cfg
+
+  [system]
+  ...
+  bootloader=custom
+
+Configure custom bootloader backend
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The custom bootloader backed based on a handler that is called to get the
+desired information or set the appropriate configuration of the custom
+bootloader environment.
+
+To register the custom bootloader backend handler, assign your handler to the
+``bootloader-custom-backend`` key in section ``handlers`` in your `system.conf`:
+
+.. code-block:: cfg
+
+  [handlers]
+  ...
+  bootloader-custom-backed=custom-bootloader-script
+
+Custom bootloader backend interface
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+According to :ref:`sec-boot-slot` the custom bootloader handler is called by 
+RAUC to trigger the following actions:
+
+* get the primary slot
+* set the primary slot
+* get the boot state
+* set the boot state
+
+To get the primary slot, the handler is called with the argument ``get-primary``.
+The handler must output the current primary slot on the `stdout`,
+and return ``0`` on exit, if no error occurred.
+In case of failure, the handler must return with non-zero value.
+Accordingly, in order to set the primary slot,
+the custom bootloader handler is called with argument ``set-primary <slot.name>``.
+The ``<slot.name>`` must match one of the slots defined in your `system.conf`.
+If the set was successful, the handler must also return with a ``0``,
+otherwise the return value must non-zero.
+
+In addition to the primary slot,
+RAUC must also be able to determine the boot state of a specific slot.
+RAUC determines the necessary boot state by calling the custom bootloader
+handler with the argument ``get-state <slot.name>``. 
+Whereupon the handler has to output the state ``good`` or ``bad`` to `stdout`
+and exit with the return value ``0``.
+If the state cannot be determined or another error occurs,
+the custom bootloader handler must exit with non-zero return value.
+To set the boot state to the desire slot,
+the handler is called with argument ``set-state <slot.name> <state>``.
+As already mentioned in the paragraph above,
+the ``<slot.name>`` must match one of the slots defined in your `system.conf`.
+The ``<state>`` argument corresponds to one of the following values:
+
+* ``good`` if the last start of the slot was successful or
+* ``bad`` if the last start of the slot failed.
+
+The return value must be ``0`` if the boot state was set successfully,
+or non-zero if an error occurred.
 
 Init System and Service Startup
 -------------------------------

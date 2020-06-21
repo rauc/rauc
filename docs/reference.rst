@@ -240,6 +240,17 @@ See details about using handlers in `Custom Handlers (Interface)`_.
   The bundle is still mounted at this moment, thus you could access data in it
   if required.
 
+``bootloader-custom-backend``
+  This handler will be called to trigger the following actions:
+
+  * get the primary slot
+  * set the primary slot
+  * get the boot state
+  * set the boot state
+
+  if a custom bootloader backend is used.
+  See :ref:`sec-custom-bootloader-backend` for more details.
+
 .. note::
   When using a full custom installation
   (see :ref:`[handler] section <sec-manifest-handler>`)
