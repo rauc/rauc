@@ -132,6 +132,8 @@ update the application file system content much more frequently, RAUC will save
 update time by skipping the root file system automatically and only installing
 the changed application.
 
+.. _sec-boot-slot:
+
 Boot Slot Selection
 -------------------
 
