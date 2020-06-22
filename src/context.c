@@ -206,35 +206,37 @@ static gchar* get_variant_from_file(const gchar* filename, GError **error)
 }
 
 
-static void r_context_configure(void)
+static gboolean r_context_configure(GError **error)
 {
 	gboolean res = TRUE;
-	GError *error = NULL;
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_assert_nonnull(context);
 	g_assert_false(context->busy);
 
 	g_clear_pointer(&context->config, free_config);
-	res = load_config(context->configpath, &context->config, &error);
-	if (!res && error->domain==g_file_error_quark()) {
+	res = load_config(context->configpath, &context->config, &ierror);
+	if (!res && ierror->domain==g_file_error_quark()) {
 		g_debug("system config not found, using default values");
-		g_clear_error(&error);
+		g_clear_error(&ierror);
 		default_config(&context->config);
 	}
 
 	if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_DTB) {
-		gchar *compatible = get_system_dtb_compatible(&error);
+		gchar *compatible = get_system_dtb_compatible(&ierror);
 		if (!compatible) {
-			g_warning("Failed to read dtb compatible: %s", error->message);
-			g_clear_error(&error);
+			g_warning("Failed to read dtb compatible: %s", ierror->message);
+			g_clear_error(&ierror);
 		}
 		g_free(context->config->system_variant);
 		context->config->system_variant = compatible;
 	} else if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_FILE) {
-		gchar *variant = get_variant_from_file(context->config->system_variant, &error);
+		gchar *variant = get_variant_from_file(context->config->system_variant, &ierror);
 		if (!variant) {
-			g_warning("Failed to read system variant from file: %s", error->message);
-			g_clear_error(&error);
+			g_warning("Failed to read system variant from file: %s", ierror->message);
+			g_clear_error(&ierror);
 		}
 		g_free(context->config->system_variant);
 		context->config->system_variant = variant;
@@ -242,7 +244,6 @@ static void r_context_configure(void)
 
 	if (context->config->systeminfo_handler &&
 	    g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
-		GError *ierror = NULL;
 		g_autoptr(GHashTable) vars = NULL;
 		GHashTableIter iter;
 		gchar *key = NULL;
@@ -253,8 +254,8 @@ static void r_context_configure(void)
 		g_message("Getting Systeminfo: %s", context->config->systeminfo_handler);
 		res = launch_and_wait_variables_handler(context->config->systeminfo_handler, vars, &ierror);
 		if (!res) {
-			g_error("Failed to read system-info variables: %s", ierror->message);
-			g_clear_error(&ierror);
+			g_propagate_prefixed_error(error, ierror, "Failed to read system-info variables: ");
+			return FALSE;
 		}
 
 		g_hash_table_iter_init(&iter, vars);
@@ -292,6 +293,8 @@ static void r_context_configure(void)
 	}
 
 	context->pending = FALSE;
+
+	return TRUE;
 }
 
 gboolean r_context_get_busy(void)
@@ -305,11 +308,14 @@ gboolean r_context_get_busy(void)
 
 void r_context_set_busy(gboolean busy)
 {
+	GError *ierror = NULL;
+
 	g_assert_nonnull(context);
 	g_assert(context->busy != busy);
 
 	if (!context->busy && context->pending)
-		r_context_configure();
+		if (!r_context_configure(&ierror))
+			g_error("Failed to initialize context: %s", ierror->message);
 
 	context->busy = busy;
 }
@@ -563,10 +569,13 @@ RaucContext *r_context_conf(void)
 
 const RaucContext *r_context(void)
 {
+	GError *ierror = NULL;
+
 	g_assert_nonnull(context);
 
 	if (context->pending)
-		r_context_configure();
+		if (!r_context_configure(&ierror))
+			g_error("Failed to initialize context: %s", ierror->message);
 
 	return context;
 }
