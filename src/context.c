@@ -219,7 +219,7 @@ gboolean r_context_configure(GError **error)
 	g_clear_pointer(&context->config, free_config);
 	if (context->configpath) {
 		if (!load_config(context->configpath, &context->config, &ierror)) {
-			g_propagate_error(error, ierror);
+			g_propagate_prefixed_error(error, ierror, "Failed to load system config (%s): ", context->configpath);
 			return FALSE;
 		}
 	} else {
