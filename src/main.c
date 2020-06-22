@@ -210,6 +210,13 @@ static gboolean install_start(int argc, char **argv)
 
 	r_exit_status = 1;
 
+	if (!ENABLE_SERVICE) {
+		if (!r_context_conf()->configpath) {
+			g_debug("Using default system config path '/etc/rauc/system.conf'");
+			r_context_conf()->configpath = g_strdup("/etc/rauc/system.conf");
+		}
+	}
+
 	if (argc < 3) {
 		g_printerr("A bundle filename name must be provided\n");
 		goto out;
@@ -1558,6 +1565,13 @@ static gboolean status_start(int argc, char **argv)
 	r_exit_status = 0;
 
 	if (!ENABLE_SERVICE) {
+		if (!r_context_conf()->configpath) {
+			g_debug("Using default system config path '/etc/rauc/system.conf'");
+			r_context_conf()->configpath = g_strdup("/etc/rauc/system.conf");
+		}
+	}
+
+	if (!ENABLE_SERVICE) {
 		res = determine_slot_states(&ierror);
 		if (!res) {
 			g_printerr("Failed to determine slot states: %s\n", ierror->message);
@@ -1666,6 +1680,11 @@ G_GNUC_UNUSED
 static gboolean service_start(int argc, char **argv)
 {
 	g_debug("service start");
+
+	if (!r_context_conf()->configpath) {
+		g_debug("Using default system config path '/etc/rauc/system.conf'");
+		r_context_conf()->configpath = g_strdup("/etc/rauc/system.conf");
+	}
 
 	r_exit_status = r_service_run() ? 0 : 1;
 

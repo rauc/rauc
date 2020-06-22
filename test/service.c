@@ -269,6 +269,10 @@ static void service_test_install_api(ServiceFixture *fixture, gconstpointer user
 		return;
 	}
 
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
 	testloop = g_main_loop_new(NULL, FALSE);
 
 	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
