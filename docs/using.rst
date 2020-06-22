@@ -674,3 +674,40 @@ Example invocation:
 
   G_MESSAGES_DEBUG="rauc rauc-subprocess" rauc service
 
+Reproducing Issues using QEMU Test Setup
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The RAUC source code repository provides a :ref:``qemu-test
+sec-contributing-qemu-test`` script, mainly meant to be used for running the
+unit tests in a safe environment. But this can also be used to reproduce and
+debug basic functionality of rauc.
+
+When running::
+
+  $ ./qemu-test system
+
+you will boot into a QEMU shell that has a mocked RAUC setup allowing you to
+inspect status, install procedure, etc.
+For example::
+
+  root@qemu-test:/home/user/git/rauc# rauc status
+  === System Info ===
+  Compatible:  Test Config
+  Variant:
+  Booted from: rootfs.0 (A)
+
+  === Bootloader ===
+  Activated: rootfs.0 (A)
+
+  === Slot States ===
+  x [rootfs.0] (/dev/root, raw, booted)
+          bootname: A
+          mounted: /
+          boot status: good
+      [appfs.0] (/dev/null, raw, active)
+
+  o [rootfs.1] (/tmp/rootdev, raw, inactive)
+          bootname: B
+          boot status: good
+      [appfs.1] (/tmp/appdev, raw, inactive)
+

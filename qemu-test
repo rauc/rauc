@@ -16,6 +16,7 @@
 #   distcheck   Run distcheck make target
 #   passthrough Enable passthrough of the host's CPU features
 #   shell       Setup qemu test system and provide an interactive shell
+#   system      Setup qemu dummy system that behaves like a target (without reboot!)
 #
 # When no argument is given, the default test suite will be executed
 
@@ -48,9 +49,12 @@ check_kernel || exit 1
 make TESTS= check > /dev/null
 
 QEMU_ARGS=""
+BOOTNAME="system0"
 for x in "$@"; do
   if [ "$x" = "passthrough" ]; then
     QEMU_ARGS="$QEMU_ARGS -cpu host"
+  elif [ "$x" = "system" ]; then
+    BOOTNAME="A"
   fi
 done
 
@@ -70,6 +74,6 @@ qemu-system-x86_64 \
   -no-reboot \
   -virtfs local,id=rootfs,path=/,security_model=none,mount_tag=/dev/root \
   -nic user,model=virtio-net-pci \
-  -append "loglevel=6 console=ttyS0 nandsim.id_bytes=0x20,0xa2,0x00,0x15 nandsim.parts=0x100, mtdram.total_size=32768 root=/dev/root rootfstype=9p rw init=$(pwd)/qemu-test-init rauc.slot=system0 $*"
+  -append "loglevel=6 console=ttyS0 nandsim.id_bytes=0x20,0xa2,0x00,0x15 nandsim.parts=0x100, mtdram.total_size=32768 root=/dev/root rootfstype=9p rw init=$(pwd)/qemu-test-init rauc.slot=$BOOTNAME $*"
 
 test -f qemu-test-ok

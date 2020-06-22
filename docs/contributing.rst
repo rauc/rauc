@@ -99,6 +99,8 @@ This will also run the sharness CLI tests mentioned above.
 .. note:: Although some of the tests need to run as root, do NOT use 'sudo', but
    use our ``qemu-test`` helper instead!
 
+.. _sec-contributing-qemu-test:
+
 QEMU Test Runner - qemu-test
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
