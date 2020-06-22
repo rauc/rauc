@@ -219,11 +219,7 @@ static void r_context_configure(void)
 	if (!res && error->domain==g_file_error_quark()) {
 		g_debug("system config not found, using default values");
 		g_clear_error(&error);
-		res = default_config(&context->config);
-	}
-	if (!res) {
-		g_error("failed to initialize context: %s", error->message);
-		g_clear_error(&error);
+		default_config(&context->config);
 	}
 
 	if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_DTB) {
