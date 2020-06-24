@@ -176,7 +176,7 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const 
 	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	g_autoptr(GPtrArray) args = g_ptr_array_new_full(5, g_free);
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(7, g_free);
 
 	g_ptr_array_add(args, g_strdup("casync"));
 	g_ptr_array_add(args, g_strdup("extract"));
@@ -189,6 +189,8 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const 
 		g_ptr_array_add(args, g_strdup(store));
 	}
 	g_ptr_array_add(args, g_strdup("--seed-output=no"));
+	g_ptr_array_add(args, g_strdup("--with=permissions"));
+	g_ptr_array_add(args, g_strdup("--with=symlinks"));
 	g_ptr_array_add(args, g_strdup(image->filename));
 	g_ptr_array_add(args, g_strdup(out_fd >= 0 ? "-" : dest));
 	g_ptr_array_add(args, NULL);
