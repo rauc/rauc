@@ -1088,6 +1088,9 @@ RAUC package install it into the rootfs you build.
 
 .. note:: PTXdist versions since 2020.06.0 use their `code signing infrastructure
   <ptxdist-code-signing_>`_ for keyring creation.
+  See PTXdist's `Managing Certificate Authority Keyrings
+  <ptxdist-manage-ca-keyrings_>`_ for different scenarios (refer to RAUC's
+  :ref:`sec-ca-configuration`).
   Previous PTXdist versions expected the keyring in
   ``$(PTXDIST_PLATFORMCONFIGDIR)/projectroot/etc/rauc/ca.cert.pem``.
   The keyring is installed into the rootfs to ``/etc/rauc/ca.cert.pem``.
@@ -1102,6 +1105,7 @@ bootloader that is decremented before starting the system and reset by
 `rauc status mark-good` to indicate a successful system startup.
 
 .. _ptxdist-code-signing: https://www.ptxdist.org/doc/dev_code_signing.html
+.. _ptxdist-manage-ca-keyrings: https://www.ptxdist.org/doc/dev_code_signing.html#managing-certificate-authority-keyrings
 
 Create Update Bundles from your RootFS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -39,6 +39,8 @@ be useful as an example for creating your own PKI.
 In the following sections, general CA configuration, some use-cases and
 corresponding PKI setups are described.
 
+.. _sec-ca-configuration:
+
 CA Configuration
 ~~~~~~~~~~~~~~~~
 
