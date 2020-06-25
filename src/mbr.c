@@ -428,6 +428,7 @@ gboolean r_mbr_switch_set_boot_partition(const gchar *device,
 	if (lseek(fd, 0, SEEK_SET) != 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Failed to seek to position 0");
+		res = FALSE;
 		goto out;
 	}
 
@@ -435,6 +436,7 @@ gboolean r_mbr_switch_set_boot_partition(const gchar *device,
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Could not write new MBR: %s",
 				g_strerror(errno));
+		res = FALSE;
 		goto out;
 	}
 
