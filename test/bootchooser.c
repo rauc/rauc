@@ -877,6 +877,7 @@ static void bootchooser_custom(BootchooserFixture *fixture,
 	RaucSlot *primary = NULL;
 	gboolean good;
 	GError *error = NULL;
+	gboolean res;
 
 	const gchar *cfg_file = "\
 [system]\n\
@@ -924,16 +925,28 @@ PRIMARY=A\n\
 STATE_A=good\n\
 STATE_B=good\n\
 ");
-	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
+	res = r_boot_get_state(rootfs0, &good, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 	g_assert_true(good);
-	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	res = r_boot_get_state(rootfs1, &good, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 	g_assert_true(good);
 
-	g_assert_true(r_boot_set_state(rootfs0, FALSE, NULL));
-	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
+	res = r_boot_set_state(rootfs0, FALSE, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+	res = r_boot_get_state(rootfs0, &good, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 	g_assert_false(good);
-	g_assert_true(r_boot_set_state(rootfs1, FALSE, NULL));
-	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	res = r_boot_set_state(rootfs1, FALSE, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+	res = r_boot_get_state(rootfs1, &good, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 	g_assert_false(good);
 	g_assert_true(test_custom_post_state("\
 PRIMARY=A\n\
@@ -947,15 +960,23 @@ PRIMARY=A\n\
 STATE_A=bad\n\
 STATE_B=bad\n\
 ");
-	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
+	res = r_boot_get_state(rootfs0, &good, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 	g_assert_false(good);
-	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	res = r_boot_get_state(rootfs1, &good, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 	g_assert_false(good);
-	g_assert_true(r_boot_set_state(rootfs0, TRUE, NULL));
-	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
+	res = r_boot_set_state(rootfs0, TRUE, &error);
+	res = r_boot_get_state(rootfs0, &good, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 	g_assert_true(good);
-	g_assert_true(r_boot_set_state(rootfs1, TRUE, NULL));
-	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	res = r_boot_set_state(rootfs1, TRUE, &error);
+	res = r_boot_get_state(rootfs1, &good, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 	g_assert_true(good);
 	g_assert_true(test_custom_post_state("\
 PRIMARY=A\n\
@@ -969,13 +990,17 @@ PRIMARY=A\n\
 STATE_A=good\n\
 STATE_B=good\n\
 ");
-	primary = r_boot_get_primary(NULL);
+	primary = r_boot_get_primary(&error);
+	g_assert_no_error(error);
 	g_assert_nonnull(primary);
 	g_assert(primary == rootfs0);
 	g_assert(primary != rootfs1);
 
-	g_assert_true(r_boot_set_primary(rootfs1, NULL));
-	primary = r_boot_get_primary(NULL);
+	res = r_boot_set_primary(rootfs1, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+	primary = r_boot_get_primary(&error);
+	g_assert_no_error(error);
 	g_assert_nonnull(primary);
 	g_assert(primary != rootfs0);
 	g_assert(primary == rootfs1);
@@ -991,13 +1016,17 @@ PRIMARY=B\n\
 STATE_A=good\n\
 STATE_B=good\n\
 ");
-	primary = r_boot_get_primary(NULL);
+	primary = r_boot_get_primary(&error);
+	g_assert_no_error(error);
 	g_assert_nonnull(primary);
 	g_assert(primary != rootfs0);
 	g_assert(primary == rootfs1);
 
-	g_assert_true(r_boot_set_primary(rootfs0, NULL));
-	primary = r_boot_get_primary(NULL);
+	res = r_boot_set_primary(rootfs0, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+	primary = r_boot_get_primary(&error);
+	g_assert_no_error(error);
 	g_assert_nonnull(primary);
 	g_assert(primary == rootfs0);
 	g_assert(primary != rootfs1);
