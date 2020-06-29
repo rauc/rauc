@@ -890,27 +890,29 @@ RAUC to trigger the following actions:
 * set the boot state
 
 To get the primary slot, the handler is called with the argument ``get-primary``.
-The handler must output the current primary slot on the `stdout`,
+The handler must output the current primary slot's bootname on the `stdout`,
 and return ``0`` on exit, if no error occurred.
 In case of failure, the handler must return with non-zero value.
 Accordingly, in order to set the primary slot,
-the custom bootloader handler is called with argument ``set-primary <slot.name>``.
-The ``<slot.name>`` must match one of the slots defined in your `system.conf`.
+the custom bootloader handler is called with argument ``set-primary <slot.bootname>``
+where ``<slot.bootname>`` matches the ``bootname=`` key defined for the
+respective slot in your `system.conf`.
 If the set was successful, the handler must also return with a ``0``,
-otherwise the return value must non-zero.
+otherwise the return value must be non-zero.
 
 In addition to the primary slot,
 RAUC must also be able to determine the boot state of a specific slot.
 RAUC determines the necessary boot state by calling the custom bootloader
-handler with the argument ``get-state <slot.name>``. 
+handler with the argument ``get-state <slot.bootname>``.
 Whereupon the handler has to output the state ``good`` or ``bad`` to `stdout`
 and exit with the return value ``0``.
 If the state cannot be determined or another error occurs,
 the custom bootloader handler must exit with non-zero return value.
 To set the boot state to the desire slot,
-the handler is called with argument ``set-state <slot.name> <state>``.
+the handler is called with argument ``set-state <slot.bootname> <state>``.
 As already mentioned in the paragraph above,
-the ``<slot.name>`` must match one of the slots defined in your `system.conf`.
+the ``<slot.bootname>`` matches the ``bootname=`` key defined for the
+respective slot in your `system.conf`.
 The ``<state>`` argument corresponds to one of the following values:
 
 * ``good`` if the last start of the slot was successful or
