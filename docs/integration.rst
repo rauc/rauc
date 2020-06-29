@@ -876,7 +876,7 @@ To register the custom bootloader backend handler, assign your handler to the
 
   [handlers]
   ...
-  bootloader-custom-backed=custom-bootloader-script
+  bootloader-custom-backend=custom-bootloader-script
 
 Custom bootloader backend interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
