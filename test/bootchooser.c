@@ -19,6 +19,15 @@ static void bootchooser_fixture_set_up(BootchooserFixture *fixture,
 	g_assert_nonnull(fixture->tmpdir);
 }
 
+static void custom_bootchooser_fixture_set_up(BootchooserFixture *fixture,
+		gconstpointer user_data)
+{
+	bootchooser_fixture_set_up(fixture, user_data);
+
+	g_assert_true(test_copy_file("test/bin/custom-bootloader-script", NULL,
+			fixture->tmpdir, "custom-bootloader-script"));
+}
+
 static void bootchooser_fixture_tear_down(BootchooserFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1046,7 +1055,7 @@ int main(int argc, char *argv[])
 			bootchooser_fixture_tear_down);
 
 	g_test_add("/bootchooser/custom", BootchooserFixture, NULL,
-			bootchooser_fixture_set_up, bootchooser_custom,
+			custom_bootchooser_fixture_set_up, bootchooser_custom,
 			bootchooser_fixture_tear_down);
 
 	return g_test_run();
