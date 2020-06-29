@@ -1408,7 +1408,7 @@ static gboolean custom_backend_get(const gchar *cmd, const gchar *bootname, gcha
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed to start: %s", backend_name);
+				"Failed to start %s: ", backend_name);
 		return FALSE;
 	}
 
@@ -1416,7 +1416,7 @@ static gboolean custom_backend_get(const gchar *cmd, const gchar *bootname, gcha
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed to run: %s", backend_name);
+				"Failed to run %s: ", backend_name);
 		return FALSE;
 	}
 	data = g_bytes_get_data(stdout_buf, &size);
@@ -1469,7 +1469,7 @@ static gboolean custom_backend_set(const gchar *cmd, const gchar *bootname, cons
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed to start: %s", backend_name);
+				"Failed to start %s: ", backend_name);
 		return FALSE;
 	}
 
@@ -1477,7 +1477,7 @@ static gboolean custom_backend_set(const gchar *cmd, const gchar *bootname, cons
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed to run: %s", backend_name);
+				"Failed to run %s: ", backend_name);
 		return FALSE;
 	}
 
