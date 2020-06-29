@@ -23,7 +23,7 @@ gboolean default_config(RaucConfig **config)
 	return TRUE;
 }
 
-static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "noop", NULL};
+static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "custom", "noop", NULL};
 
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 {
@@ -106,6 +106,17 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			goto free;
 		}
 		g_key_file_remove_key(key_file, "system", "efi-use-bootnext", NULL);
+	} else if (g_strcmp0(c->system_bootloader, "custom") == 0) {
+		c->custom_bootloader_backend = key_file_consume_string(key_file, "handlers", "bootloader-custom-backend", NULL);
+		if (!c->custom_bootloader_backend) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_BOOTLOADER,
+					"No custom bootloader backend defined");
+			res = FALSE;
+			goto free;
+		}
 	}
 
 	c->max_bundle_download_size = g_key_file_get_uint64(key_file, "system", "max-bundle-download-size", &ierror);
