@@ -48,6 +48,7 @@ Features
   * `barebox <http://barebox.org/>`_
   * `u-boot <http://www.denx.de/wiki/U-Boot>`_
   * `EFI <https://de.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface>`_
+  * Custom implementation
 * Storage support:
 
   * ext4 filesystem
@@ -95,6 +96,7 @@ Target Requirements
   * Barebox: State partition on EEPROM/FRAM/MRAM or NAND flash
   * U-Boot: environment variable
   * EFI: EFI variables
+  * Custom: depends on implementation
 * Boot target selection support in the bootloader
 * Enough mass storage for two symmetric/asymmetric/custom slots
 * For normal bundle mode:
