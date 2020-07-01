@@ -69,20 +69,22 @@ static gboolean get_number_of_sectors(gint fd, guint *sectors,
 	return TRUE;
 }
 
-static gboolean get_hd_geometry(gint fd, struct hd_geometry *geometry,
-		GError **error)
+static void get_hd_geometry(gint fd, guint8 *heads, guint8 *sectors)
 {
-	g_return_val_if_fail(geometry, FALSE);
-	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+	struct hd_geometry geometry;
 
-	if (ioctl(fd, HDIO_GETGEO, geometry) != 0) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"ioctl command 0x%04x failed: %s",
-				HDIO_GETGEO, g_strerror(errno));
-		return FALSE;
+	g_return_if_fail(heads);
+	g_return_if_fail(sectors);
+
+	if (ioctl(fd, HDIO_GETGEO, &geometry) == 0) {
+		*heads = geometry.heads;
+		*sectors = geometry.sectors;
+	} else {
+		g_message("Failed to get disk geometry, using LBA addressing: %s",
+				g_strerror(errno));
+		*heads = 255;
+		*sectors = 63;
 	}
-
-	return TRUE;
 }
 
 static gboolean validate_region(gint fd, guint64 start, guint64 size,
@@ -100,10 +102,17 @@ static gboolean validate_region(gint fd, guint64 start, guint64 size,
 		goto out;
 	}
 
-	if ((start % (2 * sector_size)) != 0 || (size % (2 * sector_size)) != 0) {
+	if ((start % sector_size) != 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Region configuration is not aligned to the double"
-				"sector-size %d", 2 * sector_size);
+				"Region start %"G_GINT64_MODIFIER "d is not aligned to the sector-size %d",
+				start, sector_size);
+		goto out;
+	}
+
+	if ((size % (2 * sector_size)) != 0) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Region size %"G_GINT64_MODIFIER "d is not aligned to the double sector-size %d",
+				size, 2 * sector_size);
 		goto out;
 	}
 
@@ -198,17 +207,18 @@ static gboolean is_region_free(guint64 region_start, guint64 region_size,
  *   - lower 8 bits for CYLINDER
  */
 static void get_chs(struct mbr_chs_entry *chs, guint32 lba,
-		const struct hd_geometry *geometry)
+		guint8 heads, guint8 sectors)
 {
 	g_return_if_fail(chs);
-	g_return_if_fail(geometry);
+	g_return_if_fail(heads);
+	g_return_if_fail(sectors);
 
-	chs->sector = lba % geometry->sectors + 1;
+	chs->sector = lba % sectors + 1;
 
-	lba /= geometry->sectors;
-	chs->head = lba % geometry->heads;
+	lba /= sectors;
+	chs->head = lba % heads;
 
-	lba /= geometry->heads;
+	lba /= heads;
 	chs->cylinder = lba & 0xFF;
 
 	/* Move bit 8 & 9 of cylinder to bit 6 & 7 of sector */
@@ -217,13 +227,12 @@ static void get_chs(struct mbr_chs_entry *chs, guint32 lba,
 
 static gboolean get_raw_partition_entry(gint fd,
 		struct mbr_tbl_entry *raw_entry,
-		const struct mbr_switch_partition *partition, GError **error)
+		const struct boot_switch_partition *partition, GError **error)
 {
 	gboolean res = FALSE;
 	guint32 start, size;
 	guint sector_size;
-	struct hd_geometry geometry;
-	GError *ierror = NULL;
+	guint8 heads, sectors;
 
 	g_return_val_if_fail(raw_entry, FALSE);
 	g_return_val_if_fail(partition, FALSE);
@@ -238,27 +247,25 @@ static gboolean get_raw_partition_entry(gint fd,
 		goto out;
 	}
 
-	res = get_hd_geometry(fd, &geometry, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
 	start = partition->start / sector_size;
 	size = partition->size / sector_size;
 
 	raw_entry->partition_start_le = GUINT32_TO_LE(start);
 	raw_entry->partition_size_le = GUINT32_TO_LE(size);
 
-	get_chs(&raw_entry->chs_start, start, &geometry);
+	get_hd_geometry(fd, &heads, &sectors);
 
-	get_chs(&raw_entry->chs_end, start + size - 1, &geometry);
+	get_chs(&raw_entry->chs_start, start, heads, sectors);
+
+	get_chs(&raw_entry->chs_end, start + size - 1, heads, sectors);
+
+	res = TRUE;
 out:
 	return res;
 }
 
 gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
-		struct mbr_switch_partition *partition,
+		struct boot_switch_partition *partition,
 		guint64 region_start, guint64 region_size,
 		GError **error)
 {
@@ -330,65 +337,8 @@ out:
 	return res;
 }
 
-gboolean r_mbr_switch_clear_partition(const gchar *device,
-		const struct mbr_switch_partition *dest_partition,
-		GError **error)
-{
-	gboolean res = FALSE;
-	static gchar zerobuf[512] = {};
-	gint clear_size = sizeof(zerobuf);
-	guint clear_count = 0;
-	gint tmp_count = 0;
-	gint fd;
-
-	g_return_val_if_fail(device, FALSE);
-	g_return_val_if_fail(dest_partition, FALSE);
-	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
-
-	fd = g_open(device, O_RDWR);
-	if (fd == -1) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Opening device failed: %s",
-				g_strerror(errno));
-		goto out;
-	}
-
-	if (lseek(fd, dest_partition->start, SEEK_SET) !=
-	    (off_t)dest_partition->start) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Failed to set file to position %"G_GUINT64_FORMAT ": %s",
-				dest_partition->start, g_strerror(errno));
-		goto out;
-	}
-
-	while (clear_count < dest_partition->size) {
-		if ((dest_partition->size - clear_count) < sizeof(zerobuf))
-			clear_size = dest_partition->size - clear_count;
-
-		tmp_count = write(fd, zerobuf, clear_size);
-
-		if (tmp_count < 0)
-			break;
-
-		clear_count += tmp_count;
-	}
-
-	if (clear_count != dest_partition->size) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Failed to clear partition: %s",
-				g_strerror(errno));
-		goto out;
-	}
-	res = TRUE;
-out:
-	if (fd >= 0)
-		g_close(fd, NULL);
-
-	return res;
-}
-
 gboolean r_mbr_switch_set_boot_partition(const gchar *device,
-		const struct mbr_switch_partition *partition,
+		const struct boot_switch_partition *partition,
 		GError **error)
 {
 	gboolean res = FALSE;

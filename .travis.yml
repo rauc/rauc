@@ -8,7 +8,7 @@ env:
     - ci_env=`bash <(curl -s https://codecov.io/env)`
     - COVERITY_SCAN_PROJECT_NAME="jluebbe/rauc"
     - COVERITY_SCAN_NOTIFICATION_EMAIL="jlu@pengutronix.de"
-    - COVERITY_SCAN_BUILD_COMMAND_PREPEND="cov-configure --comptype gcc --compiler gcc-8 --template && ./autogen.sh && ./configure CC=gcc-8"
+    - COVERITY_SCAN_BUILD_COMMAND_PREPEND="cov-configure --comptype gcc --compiler gcc-8 --template && ./autogen.sh && ./configure --enable-gpt CC=gcc-8"
     - COVERITY_SCAN_BUILD_COMMAND="make V=1"
 
 stages:
@@ -38,7 +38,7 @@ jobs:
         - docker exec -it rauc-ci gcc --version
 
         - docker exec -it rauc-ci ./autogen.sh
-        - docker exec -it rauc-ci ./configure --enable-code-coverage CFLAGS=-Werror
+        - docker exec -it rauc-ci ./configure --enable-code-coverage --enable-gpt CFLAGS=-Werror
         - docker exec -it rauc-ci make clean
         - docker exec -it rauc-ci make -j2
         - docker exec -it rauc-ci make doc SPHINXOPTS=-W
@@ -64,10 +64,10 @@ jobs:
       before_script:
         - docker exec -it cross uname -a
         - docker exec -it cross apt-get update
-        - docker exec -it cross apt-get install -y build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev
+        - docker exec -it cross apt-get install -y build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev
       script:
         - docker exec -it cross ./autogen.sh
-        - docker exec -it cross ./configure CFLAGS=-Werror
+        - docker exec -it cross ./configure --enable-gpt CFLAGS=-Werror
         - docker exec -it cross make
       after_script:
         - docker stop cross

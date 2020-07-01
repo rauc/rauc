@@ -17,3 +17,8 @@ typedef enum {
 typedef gboolean (*img_to_slot_handler) (RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error);
 
 img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot  *dest_slot, GError **error);
+
+struct boot_switch_partition {
+	guint64 start;          /* address in bytes */
+	guint64 size;           /* size in bytes */
+};
