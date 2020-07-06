@@ -62,6 +62,21 @@ stop_rauc_dbus_service ()
   kill ${RAUC_DBUS_SERVICE_PID}
   wait ${RAUC_DBUS_SERVICE_PID}
 }
+start_rauc_dbus_service_with_system ()
+{
+  rm -rf ${SHARNESS_TEST_DIRECTORY}/images &&
+  mkdir ${SHARNESS_TEST_DIRECTORY}/images &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/rootfs-0 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/appfs-0 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/appfs-1 &&
+  start_rauc_dbus_service "$@"
+}
+stop_rauc_dbus_service_with_system ()
+{
+  stop_rauc_dbus_service &&
+  rm -r ${SHARNESS_TEST_DIRECTORY}/images
+}
 
 prepare_softhsm2 ()
 {
@@ -130,6 +145,10 @@ faketime "2018-01-01" date &&
 # Prerequisite: grub-editenv available [GRUB]
 grub-editenv -V &&
   test_set_prereq GRUB
+
+# Prerequisite: root available [ROOT]
+whoami | grep -q root &&
+  test_set_prereq ROOT
 
 test_expect_success "rauc noargs" "
   test_must_fail rauc
@@ -611,6 +630,26 @@ test_expect_success FAKETIME "rauc resign extend (expired, no-verify)" "
     --no-verify \
     resign out1.raucb out2.raucb &&
   test -f out2.raucb
+"
+
+test_expect_success ROOT,SERVICE "rauc install" "
+  start_rauc_dbus_service_with_system \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service_with_system &&
+  rauc \
+    install $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
+"
+
+test_expect_success ROOT,SERVICE "rauc install --progress" "
+  start_rauc_dbus_service_with_system \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service_with_system &&
+  rauc \
+    install --progress $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
 "
 
 test_done
