@@ -6,6 +6,8 @@ test_description="rauc binary tests"
 
 export G_DEBUG="fatal-criticals"
 
+TEST_TMPDIR=$(mktemp -d)
+
 CA_DEV="${SHARNESS_TEST_DIRECTORY}/openssl-ca/dev"
 CA_REL="${SHARNESS_TEST_DIRECTORY}/openssl-ca/rel"
 if [ -e "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so" ]; then
@@ -515,6 +517,19 @@ test_expect_success FAKETIME "rauc sign bundle with valid certificate" "
   test -f out.raucb
 "
 
+
+test_expect_success "rauc extract" "
+  rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    extract $SHARNESS_TEST_DIRECTORY/good-bundle.raucb $TEST_TMPDIR/bundle-extract &&
+  test -f $TEST_TMPDIR/bundle-extract/appfs.img &&
+  test -f $TEST_TMPDIR/bundle-extract/custom_handler.sh &&
+  test -f $TEST_TMPDIR/bundle-extract/hook.sh &&
+  test -f $TEST_TMPDIR/bundle-extract/manifest.raucm &&
+  test -f $TEST_TMPDIR/bundle-extract/rootfs.img &&
+  rm -rf $TEST_TMPDIR/bundle-extract
+"
+
 test_expect_success CASYNC "rauc convert" "
   rm -f casync.raucb &&
   rauc \
@@ -651,5 +666,7 @@ test_expect_success ROOT,SERVICE "rauc install --progress" "
   rauc \
     install --progress $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
 "
+
+rm -rf $TEST_TMPDIR
 
 test_done
