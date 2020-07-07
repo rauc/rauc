@@ -667,6 +667,12 @@ test_expect_success ROOT,SERVICE "rauc install --progress" "
     install --progress $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
 "
 
+test_expect_success ROOT,!SERVICE "rauc install (no service)" "
+  rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    install $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
+"
+
 rm -rf $TEST_TMPDIR
 
 test_done
