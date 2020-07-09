@@ -189,6 +189,12 @@ static gchar *resolve_bundle_path(char *path)
 	return g_steal_pointer(&bundlelocation);
 }
 
+static void print_progress_callback(gint percentage,
+		const gchar *message,
+		gint nesting_depth)
+{
+	g_print("%3"G_GINT32_FORMAT "%% %s\n", percentage, message);
+}
 
 static gboolean install_start(int argc, char **argv)
 {
@@ -263,6 +269,7 @@ static gboolean install_start(int argc, char **argv)
 			goto out_loop;
 		}
 	} else {
+		r_context_register_progress_callback(print_progress_callback);
 		install_run(args);
 	}
 
