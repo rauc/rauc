@@ -322,6 +322,33 @@ parent=child.0\n";
 	g_assert(grandchildslot->parent == parentslot);
 }
 
+static void config_file_parent_loop(ConfigFileFixture *fixture, gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
+
+	const gchar *contents = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/null\n\
+parent=child.0\n\
+\n\
+[slot.child.0]\n\
+device=/dev/null\n\
+parent=rootfs.0\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "parent_loop.conf", contents, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_PARENT_LOOP);
+	g_clear_error(&ierror);
+}
+
 static void config_file_bootname_set_on_child(ConfigFileFixture *fixture, gconstpointer user_data)
 {
 	RaucConfig *config;
@@ -969,6 +996,9 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/parent-has-parent", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_parent_has_parent,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/parent-loop", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_parent_loop,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/bootname-set-on-child", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_bootname_set_on_child,

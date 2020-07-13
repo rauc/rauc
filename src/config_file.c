@@ -23,7 +23,7 @@ gboolean default_config(RaucConfig **config)
 	return TRUE;
 }
 
-static void fix_grandparent_links(GHashTable *slots)
+static gboolean fix_grandparent_links(GHashTable *slots, GError **error)
 {
 	/* Every child slot in a group must refer to the same parent.
 	 * Some kind of grandparent relationship makes no sense, but if the
@@ -31,15 +31,29 @@ static void fix_grandparent_links(GHashTable *slots)
 	 * it up for them here. */
 	GHashTableIter iter;
 	gpointer value;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	g_hash_table_iter_init(&iter, slots);
 	while (g_hash_table_iter_next(&iter, NULL, &value)) {
 		RaucSlot *slot = value;
 		RaucSlot *realparent;
+		unsigned int steps = 0;
 		if (slot->parent == NULL)
 			continue; /* not part of a group */
 		realparent = slot->parent;
-		while (realparent->parent)
+		while (realparent->parent) {
 			realparent = realparent->parent;
+			steps++;
+			if (steps > 100) {
+				g_set_error(
+						error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_PARENT_LOOP,
+						"Slot '%s' has a parent loop!", slot->name);
+				return FALSE;
+			}
+		}
 		if (realparent != slot->parent) {
 			g_message("Updating slot %s parent link to %s",
 					slot->name,
@@ -47,6 +61,7 @@ static void fix_grandparent_links(GHashTable *slots)
 			slot->parent = realparent;
 		}
 	}
+	return TRUE;
 }
 
 static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "custom", "noop", NULL};
@@ -556,7 +571,11 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 	g_list_free(slotlist);
 
-	fix_grandparent_links(slots);
+	if (!fix_grandparent_links(slots, &ierror)) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
 
 	c->slots = slots;
 
