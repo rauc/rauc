@@ -152,25 +152,17 @@ gboolean determine_slot_states(GError **error)
 		}
 	}
 
-
-	if (booted) {
-		booted->state = ST_BOOTED;
-		g_debug("Found booted slot: %s on %s", booted->name, booted->device);
-	}
-
 	/* Determine active group members */
 	for (GList *l = slotlist; l != NULL; l = l->next) {
 		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, l->data);
 
-		if (s->parent) {
-			if (s->parent->state & ST_ACTIVE) {
-				s->state |= ST_ACTIVE;
-			} else {
-				s->state |= ST_INACTIVE;
-			}
+		if (s == booted) {
+			s->state = ST_BOOTED;
+			g_debug("Found booted slot: %s on %s", s->name, s->device);
+		} else if (s->parent && s->parent == booted) {
+			s->state = ST_ACTIVE;
 		} else {
-			if (s->state == ST_UNKNOWN)
-				s->state |= ST_INACTIVE;
+			s->state = ST_INACTIVE;
 		}
 	}
 

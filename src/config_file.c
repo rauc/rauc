@@ -23,6 +23,47 @@ gboolean default_config(RaucConfig **config)
 	return TRUE;
 }
 
+static gboolean fix_grandparent_links(GHashTable *slots, GError **error)
+{
+	/* Every child slot in a group must refer to the same parent.
+	 * Some kind of grandparent relationship makes no sense, but if the
+	 * user has accidentally constructed such a configuration we will fix
+	 * it up for them here. */
+	GHashTableIter iter;
+	gpointer value;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_hash_table_iter_init(&iter, slots);
+	while (g_hash_table_iter_next(&iter, NULL, &value)) {
+		RaucSlot *slot = value;
+		RaucSlot *realparent;
+		unsigned int steps = 0;
+		if (slot->parent == NULL)
+			continue; /* not part of a group */
+		realparent = slot->parent;
+		while (realparent->parent) {
+			realparent = realparent->parent;
+			steps++;
+			if (steps > 100) {
+				g_set_error(
+						error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_PARENT_LOOP,
+						"Slot '%s' has a parent loop!", slot->name);
+				return FALSE;
+			}
+		}
+		if (realparent != slot->parent) {
+			g_message("Updating slot %s parent link to %s",
+					slot->name,
+					realparent->name);
+			slot->parent = realparent;
+		}
+	}
+	return TRUE;
+}
+
 static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "custom", "noop", NULL};
 
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
@@ -35,6 +76,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	gsize group_count;
 	GList *slotlist = NULL;
 	GHashTable *slots = NULL;
+	g_autoptr(GHashTable) bootnames = NULL;
 	GList *l;
 	gchar *bootloader;
 	const gchar **pointer;
@@ -338,6 +380,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 	/* parse [slot.*.#] sections */
 	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
+	bootnames = g_hash_table_new(g_str_hash, g_str_equal);
 
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
@@ -394,6 +437,20 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 			value = key_file_consume_string(key_file, groups[i], "bootname", NULL);
 			slot->bootname = value;
+			if (slot->bootname) {
+				/* check if we have seen this bootname on another slot */
+				if (g_hash_table_contains(bootnames, slot->bootname)) {
+					g_set_error(
+							error,
+							R_CONFIG_ERROR,
+							R_CONFIG_ERROR_DUPLICATE_BOOTNAME,
+							"Bootname '%s' is set on more than one slot",
+							slot->bootname);
+					res = FALSE;
+					goto free;
+				}
+				g_hash_table_add(bootnames, slot->bootname);
+			}
 
 			slot->allow_mounted = g_key_file_get_boolean(key_file, groups[i], "allow-mounted", &ierror);
 			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
@@ -487,7 +544,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	/* Add parent pointers */
 	slotlist = g_hash_table_get_keys(slots);
 	for (l = slotlist; l != NULL; l = l->next) {
-		RaucSlot *s;
+		RaucSlot *parent;
+		RaucSlot *child;
 		g_autofree gchar* group_name = NULL;
 		gchar* value;
 
@@ -498,8 +556,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			continue;
 		}
 
-		s = g_hash_table_lookup(slots, value);
-		if (!s) {
+		parent = g_hash_table_lookup(slots, value);
+		if (!parent) {
 			g_set_error(
 					error,
 					R_CONFIG_ERROR,
@@ -509,8 +567,19 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			goto free;
 		}
 
-		((RaucSlot*)g_hash_table_lookup(slots, l->data))->parent = s;
+		child = g_hash_table_lookup(slots, l->data);
+		child->parent = parent;
 
+		if (child->bootname) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_CHILD_HAS_BOOTNAME,
+					"Child slot '%s' has bootname set",
+					child->name);
+			res = FALSE;
+			goto free;
+		}
 
 		if (!check_remaining_keys(key_file, group_name, &ierror)) {
 			g_propagate_error(error, ierror);
@@ -520,6 +589,12 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_key_file_remove_group(key_file, group_name, NULL);
 	}
 	g_list_free(slotlist);
+
+	if (!fix_grandparent_links(slots, &ierror)) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
 
 	c->slots = slots;
 

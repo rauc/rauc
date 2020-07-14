@@ -289,12 +289,15 @@ hierarchical separator.
   Registers the slot for being handled by the
   :ref:`bootselection interface <bootloader-interaction>` with the ``<name>``
   specified.
+  The value must be unique across all slots.
+  Only slots without a ``parent`` entry can have a ``bootname``.
   The actual meaning of the name provided depends on the bootloader
   implementation used.
 
 ``parent=<slot>``
   The ``parent`` entry is used to bind additional slots to a bootable root
   file system ``<slot>``.
+  Indirect parent references are discouraged, but supported for now.
   This is used together with the ``bootname`` to identify the set of currently
   active slots, so that the inactive one can be selected as the update target.
   The parent slot is referenced using the form ``<slot-class>.<idx>``.
