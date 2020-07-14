@@ -16,6 +16,7 @@ General
 * Bundles are created automatically by a build system ☐
 * Bundle deployment mechanism defined (pull or push via the network, from
   USB/SD, …) ☐
+* Proper slot status file location(s) defined (preferably central status) ☐
 
 Slot Layout
 -----------
