@@ -26,7 +26,7 @@ Features
   * An update may be interrupted at any point without breaking the running
     system.
   * Update compatibility check
-  * Atomic bootloader updates (eMMC boot partitions, MBR)
+  * Atomic bootloader updates (eMMC boot partitions, MBR, GPT)
 * **Cryptographic signing and verification** of updates using OpenSSL (signatures
   based on x.509 certificates)
 
@@ -59,6 +59,7 @@ Features
   * raw NAND (using nandwrite)
   * squashfs
   * MBR partition table
+  * GPT partition table
 * Independent from update source
 
   * **USB Stick**

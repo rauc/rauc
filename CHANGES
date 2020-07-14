@@ -1,12 +1,20 @@
 Release 1.4 (development)
 -------------------------
 
+.. note::
+
+  Slots with both a ``parent=`` and a ``bootname=`` entry are now rejected when
+  parsing the system configuration.
+  While the intention was to have either a bootname or a parent link, this was
+  not enforced in previous versions.
+  Move the bootname to the parent slot when updating to RAUC 1.4.
+
 .. rubric:: Enhancements
 
-* Added support for custom boot selection scripts/binaries
+* Added support for custom boot selection scripts/binaries.
   This allows handling special cases where none of the standard bootloaders
-  is available for switching the redundant slots (by Christian Bräuner
-  Sørensen, Andreas Schmidt (docs))
+  is available for switching the redundant slots. (by Christian Bräuner
+  Sørensen, docs by Andreas Schmidt)
 * Changed ext4 filesystem creation options to always use 256 byte inodes.
   Without it, mkfs.ext4 will default to 128 byte inodes on filesystems smaller
   than 512MiB.
@@ -14,15 +22,30 @@ Release 1.4 (development)
   until 2038" message on newer kernels.
 * Added new slot type ``boot-gpt-switch`` to support atomic updating of boot
   partitions in the GPT.
+  This is useful if the firmware does not support atomic bootloader updates by
+  itself.
   See :ref:`here <sec-gpt-partition>` for details.
 
 .. rubric:: Bug fixes
 
+* Improve parent and bootname consistency checks when loading the system
+  config. (by Dan Callaghan)
+* Fix minor memory leaks.
+
 .. rubric:: Testing
+
+* Added tests for UBIFS and NAND slot types via nandsim in qemu.
+* Added CI testing of the --disable-service configure option.
 
 .. rubric:: Code
 
+* Clarified licensing of the D-Bus API file. (by Michael Heimpold)
+
 .. rubric:: Documentation
+
+* Manual pages have been updated with new options. (by Michael Heimpold)
+* Improved documentation around central and pre-slot status files.
+* Improved images and various text sections.
 
 Contributions from:
 
