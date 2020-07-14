@@ -655,6 +655,10 @@ The following environment variables will be passed to the hook executable:
   ``RAUC_SLOT_BOOTNAME``
     For slots with a bootname (those that can be selected by the bootloader),
     the bootname of the currently installed slot, e.g. ``"system1"``
+    For slots with a parent, the parent's bootname is used.
+    Note that in many cases, it's better to use the explicit ``RAUC_SLOT_NAME``
+    to select different behaviour in the hook, than to rely indirectly on the
+    bootname.
 
   ``RAUC_SLOT_PARENT``
     If set, the parent of the currently installed slot, e.g. ``"rootfs.1"``
