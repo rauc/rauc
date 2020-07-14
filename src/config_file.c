@@ -107,7 +107,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		}
 		g_key_file_remove_key(key_file, "system", "efi-use-bootnext", NULL);
 	} else if (g_strcmp0(c->system_bootloader, "custom") == 0) {
-		c->custom_bootloader_backend = key_file_consume_string(key_file, "handlers", "bootloader-custom-backend", NULL);
+		c->custom_bootloader_backend = resolve_path(filename,
+				key_file_consume_string(key_file, "handlers", "bootloader-custom-backend", NULL));
 		if (!c->custom_bootloader_backend) {
 			g_set_error(
 					error,

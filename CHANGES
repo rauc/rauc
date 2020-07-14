@@ -3,6 +3,10 @@ Release 1.4 (development)
 
 .. rubric:: Enhancements
 
+* Added support for custom boot selection scripts/binaries
+  This allows handling special cases where none of the standard bootloaders
+  is available for switching the redundant slots (by Christian Bräuner
+  Sørensen, Andreas Schmidt (docs))
 * Changed ext4 filesystem creation options to always use 256 byte inodes.
   Without it, mkfs.ext4 will default to 128 byte inodes on filesystems smaller
   than 512MiB.
