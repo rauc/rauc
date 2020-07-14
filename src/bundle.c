@@ -449,7 +449,9 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 	res = TRUE;
 out:
 	/* Remove output file on error */
-	if (!res && g_file_test(bundlename, G_FILE_TEST_IS_REGULAR))
+	if (!res &&
+	    g_file_test(bundlename, G_FILE_TEST_IS_REGULAR) &&
+	    !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_EXIST))
 		if (g_remove(bundlename) != 0)
 			g_warning("failed to remove %s", bundlename);
 	return res;
@@ -538,7 +540,9 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 	res = TRUE;
 out:
 	/* Remove output file on error */
-	if (!res && g_file_test(outpath, G_FILE_TEST_IS_REGULAR))
+	if (!res &&
+	    g_file_test(outpath, G_FILE_TEST_IS_REGULAR) &&
+	    !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_EXIST))
 		if (g_remove(outpath) != 0)
 			g_warning("failed to remove %s", outpath);
 	return res;

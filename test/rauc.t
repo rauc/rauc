@@ -528,6 +528,16 @@ test_expect_success "rauc resign" "
   test -f out.raucb
 "
 
+test_expect_success "rauc resign (output exists)" "
+  touch out.raucb &&
+  test_must_fail rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    resign $SHARNESS_TEST_DIRECTORY/good-bundle.raucb out.raucb &&
+  test -f out.raucb
+"
+
 test_expect_success FAKETIME "rauc resign extend (not expired)" "
   rm -f out1.raucb out2.raucb &&
   faketime "2018-01-01" \
