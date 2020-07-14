@@ -700,6 +700,12 @@ gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError
 
 	res = TRUE;
 out:
+	/* Remove output file on error */
+	if (!res &&
+	    g_file_test(outbundle, G_FILE_TEST_IS_REGULAR) &&
+	    !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_EXIST))
+		if (g_remove(outbundle) != 0)
+			g_warning("failed to remove %s", outbundle);
 	return res;
 }
 

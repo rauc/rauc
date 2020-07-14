@@ -506,6 +506,26 @@ test_expect_success CASYNC "rauc convert" "
   test -f casync.raucb
 "
 
+test_expect_success CASYNC "rauc convert (output exists)" "
+  touch casync.raucb &&
+  test_must_fail rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    convert $SHARNESS_TEST_DIRECTORY/good-bundle.raucb casync.raucb &&
+  test -f casync.raucb
+"
+
+test_expect_success CASYNC "rauc convert (error)" "
+  rm -f casync.raucb &&
+  test_must_fail rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    convert $SHARNESS_TEST_DIRECTORY/good-bundle.raucb casync.raucb &&
+  test ! -f casync.raucb
+"
+
 test_expect_success CASYNC "rauc convert casync extra args" "
   rm -f casync-extra-args.raucb &&
   rauc \
