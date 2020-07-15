@@ -668,6 +668,12 @@ test_expect_success ROOT,SERVICE "rauc install --progress" "
 "
 
 test_expect_success ROOT,!SERVICE "rauc install (no service)" "
+  rm -rf ${SHARNESS_TEST_DIRECTORY}/images &&
+  mkdir ${SHARNESS_TEST_DIRECTORY}/images &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/rootfs-0 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/appfs-0 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/appfs-1 &&
   rauc \
     --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
     install $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
