@@ -193,8 +193,9 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 
 	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
 			G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
-			"de.pengutronix.rauc", "/", NULL, NULL);
+			"de.pengutronix.rauc", "/", NULL, &error);
 
+	g_assert_no_error(error);
 	g_assert_nonnull(installer);
 
 	/* connect signals to test callbacks */
@@ -268,7 +269,9 @@ static void service_test_install_api(ServiceFixture *fixture, gconstpointer user
 
 	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
 			G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
-			"de.pengutronix.rauc", "/", NULL, NULL);
+			"de.pengutronix.rauc", "/", NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(installer);
 
 	g_assert_cmpint(g_signal_connect(installer, "completed",
 			G_CALLBACK(on_installer_completed_failed), NULL), !=, 0);
@@ -342,7 +345,8 @@ static void service_test_info(ServiceFixture *fixture, gconstpointer user_data)
 			"de.pengutronix.rauc",
 			"/",
 			NULL,
-			NULL);
+			&error);
+	g_assert_no_error(error);
 
 	if (installer == NULL) {
 		g_error("failed to install proxy");
@@ -380,7 +384,8 @@ static void service_test_slot_status(ServiceFixture *fixture, gconstpointer user
 			"de.pengutronix.rauc",
 			"/",
 			NULL,
-			NULL);
+			&error);
+	g_assert_no_error(error);
 
 	if (installer == NULL) {
 		g_error("failed to install proxy");

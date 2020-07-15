@@ -6,6 +6,8 @@ test_description="rauc binary tests"
 
 export G_DEBUG="fatal-criticals"
 
+TEST_TMPDIR=$(mktemp -d)
+
 CA_DEV="${SHARNESS_TEST_DIRECTORY}/openssl-ca/dev"
 CA_REL="${SHARNESS_TEST_DIRECTORY}/openssl-ca/rel"
 if [ -e "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so" ]; then
@@ -61,6 +63,21 @@ stop_rauc_dbus_service ()
 {
   kill ${RAUC_DBUS_SERVICE_PID}
   wait ${RAUC_DBUS_SERVICE_PID}
+}
+start_rauc_dbus_service_with_system ()
+{
+  rm -rf ${SHARNESS_TEST_DIRECTORY}/images &&
+  mkdir ${SHARNESS_TEST_DIRECTORY}/images &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/rootfs-0 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/appfs-0 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/appfs-1 &&
+  start_rauc_dbus_service "$@"
+}
+stop_rauc_dbus_service_with_system ()
+{
+  stop_rauc_dbus_service &&
+  rm -r ${SHARNESS_TEST_DIRECTORY}/images
 }
 
 prepare_softhsm2 ()
@@ -130,6 +147,10 @@ faketime "2018-01-01" date &&
 # Prerequisite: grub-editenv available [GRUB]
 grub-editenv -V &&
   test_set_prereq GRUB
+
+# Prerequisite: root available [ROOT]
+whoami | grep -q root &&
+  test_set_prereq ROOT
 
 test_expect_success "rauc noargs" "
   test_must_fail rauc
@@ -496,6 +517,19 @@ test_expect_success FAKETIME "rauc sign bundle with valid certificate" "
   test -f out.raucb
 "
 
+
+test_expect_success "rauc extract" "
+  rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    extract $SHARNESS_TEST_DIRECTORY/good-bundle.raucb $TEST_TMPDIR/bundle-extract &&
+  test -f $TEST_TMPDIR/bundle-extract/appfs.img &&
+  test -f $TEST_TMPDIR/bundle-extract/custom_handler.sh &&
+  test -f $TEST_TMPDIR/bundle-extract/hook.sh &&
+  test -f $TEST_TMPDIR/bundle-extract/manifest.raucm &&
+  test -f $TEST_TMPDIR/bundle-extract/rootfs.img &&
+  rm -rf $TEST_TMPDIR/bundle-extract
+"
+
 test_expect_success CASYNC "rauc convert" "
   rm -f casync.raucb &&
   rauc \
@@ -612,5 +646,33 @@ test_expect_success FAKETIME "rauc resign extend (expired, no-verify)" "
     resign out1.raucb out2.raucb &&
   test -f out2.raucb
 "
+
+test_expect_success ROOT,SERVICE "rauc install" "
+  start_rauc_dbus_service_with_system \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service_with_system &&
+  rauc \
+    install $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
+"
+
+test_expect_success ROOT,SERVICE "rauc install --progress" "
+  start_rauc_dbus_service_with_system \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service_with_system &&
+  rauc \
+    install --progress $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
+"
+
+test_expect_success ROOT,!SERVICE "rauc install (no service)" "
+  rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    install $SHARNESS_TEST_DIRECTORY/good-bundle.raucb
+"
+
+rm -rf $TEST_TMPDIR
 
 test_done
