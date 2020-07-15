@@ -27,7 +27,7 @@ typedef struct {
 typedef struct _RaucSlot {
 	/** name of the slot. A glib intern string. */
 	const gchar *name;
-	/** user-friendly description of the slot. A glib intern string. */
+	/** user-friendly description of the slot. */
 	gchar *description;
 	/** slot class the slot belongs to. A glib intern string. */
 	const gchar *sclass;
