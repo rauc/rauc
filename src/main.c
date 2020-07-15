@@ -1711,7 +1711,9 @@ typedef struct {
 
 static GOptionEntry entries_install[] = {
 	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
+#if ENABLE_SERVICE == 1
 	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
+#endif
 	{0}
 };
 
