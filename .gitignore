@@ -9,6 +9,7 @@
 /test/fakerand
 /test/services/de.pengutronix.rauc.service
 /*-generated.[ch]
+/.qemu_bash_history
 Makefile
 Makefile.in
 aclocal.m4
