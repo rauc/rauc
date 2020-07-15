@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
   libjson-glib-dev \
   libfdisk-dev
 
-# Rquired for testing
+# Required for testing
 RUN apt-get update && apt-get install -y \
   squashfs-tools \
   dosfstools \
@@ -34,6 +34,7 @@ RUN apt-get update && apt-get install -y \
   uncrustify \
   casync \
   qemu-system-x86 \
+  procps \
   mtd-utils
 
 # Required for test environment setup
