@@ -266,6 +266,10 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const 
 	if (tmpdir)
 		g_subprocess_launcher_setenv(launcher, "TMPDIR", tmpdir, TRUE);
 
+	if (getenv("RAUC_CURLOPT_PROXY") != NULL) {
+		g_subprocess_launcher_setenv(launcher, "CASYNC_CURLOPT_PROXY", getenv("RAUC_CURLOPT_PROXY"), TRUE);
+	}
+
 	sproc = r_subprocess_launcher_spawnv(launcher, args, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(

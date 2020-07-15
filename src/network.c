@@ -106,6 +106,10 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 	/* decode all supported Accept-Encoding headers */
 	curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
 
+	if (getenv("RAUC_CURLOPT_PROXY") != NULL) {
+		curl_easy_setopt(curl, CURLOPT_PROXY, getenv("RAUC_CURLOPT_PROXY"));
+	}
+
 	/* set error buffer empty before performing a request */
 	errbuf[0] = 0;
 
