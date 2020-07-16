@@ -214,9 +214,9 @@ gboolean determine_boot_states(GError **error)
 	return TRUE;
 }
 
-/* Returns newly allocated NULL-teminated string array of all classes listed in
+/* Returns NULL-teminated intern string array of all classes listed in
  * given manifest.
- * Free with g_strfreev */
+ * Free with g_free */
 static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest)
 {
 	GPtrArray *slotclasses = NULL;
@@ -330,7 +330,7 @@ GHashTable* determine_target_install_group(void)
 GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group, GError **error)
 {
 	GList *install_images = NULL;
-	gchar **slotclasses = NULL;
+	g_autofree gchar **slotclasses = NULL;
 
 	g_return_val_if_fail(manifest != NULL, NULL);
 	g_return_val_if_fail(target_group != NULL, NULL);
