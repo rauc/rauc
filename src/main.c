@@ -1066,7 +1066,7 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 {
 	GString *text = g_string_new(NULL);
 	RaucSlot *bootedfrom = NULL;
-	gchar **slotclasses = NULL;
+	g_autofree gchar **slotclasses = NULL;
 
 	g_return_val_if_fail(status, NULL);
 

@@ -137,8 +137,7 @@ RaucSlot* r_slot_get_parent_root(RaucSlot *slot);
 /**
  * Gets all classes that do not have a parent
  *
- * @return newly allocated NULL-teminated string array. Free with g_strfreev
- *         [transfer full]
+ * @return NULL-teminated array of intern strings. Free with g_free().
  */
 gchar** r_slot_get_root_classes(GHashTable *slots);
 

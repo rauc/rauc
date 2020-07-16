@@ -281,7 +281,7 @@ static RaucSlot *select_inactive_slot_class_member(const gchar *rootclass)
  */
 GHashTable* determine_target_install_group(void)
 {
-	gchar **rootclasses = NULL;
+	g_autofree gchar **rootclasses = NULL;
 	GHashTable *targetgroup = NULL;
 	GHashTableIter iter;
 	RaucSlot *iterslot = NULL;
