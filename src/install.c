@@ -127,8 +127,8 @@ gboolean determine_slot_states(GError **error)
 
 	for (GList *l = slotlist; l != NULL; l = l->next) {
 		g_autofree gchar *realdev = NULL;
-
-		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, l->data);
+		RaucSlot *s = g_hash_table_lookup(r_context()->config->slots, l->data);
+		g_assert_nonnull(s);
 
 		if (g_strcmp0(s->bootname, r_context()->bootslot) == 0) {
 			booted = s;
@@ -154,7 +154,8 @@ gboolean determine_slot_states(GError **error)
 
 	/* Determine active group members */
 	for (GList *l = slotlist; l != NULL; l = l->next) {
-		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, l->data);
+		RaucSlot *s = g_hash_table_lookup(r_context()->config->slots, l->data);
+		g_assert_nonnull(s);
 
 		if (s == booted) {
 			s->state = ST_BOOTED;
