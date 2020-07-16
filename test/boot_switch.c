@@ -322,8 +322,8 @@ static void test_boot_switch(BootSwitchFixture *fixture,
 
 	/* create target slot */
 	targetslot = g_new0(RaucSlot, 1);
-	targetslot->name = g_strdup("bootloader.0");
-	targetslot->sclass = g_strdup("bootloader");
+	targetslot->name = g_intern_string("bootloader.0");
+	targetslot->sclass = g_intern_string("bootloader");
 	targetslot->device = g_strdup(slotpath);
 	targetslot->type = g_strdup(data->slottype);
 	targetslot->region_start = REGION_START;

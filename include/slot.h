@@ -27,7 +27,7 @@ typedef struct {
 typedef struct _RaucSlot {
 	/** name of the slot. A glib intern string. */
 	const gchar *name;
-	/** user-friendly description of the slot. A glib intern string. */
+	/** user-friendly description of the slot. */
 	gchar *description;
 	/** slot class the slot belongs to. A glib intern string. */
 	const gchar *sclass;
@@ -137,8 +137,7 @@ RaucSlot* r_slot_get_parent_root(RaucSlot *slot);
 /**
  * Gets all classes that do not have a parent
  *
- * @return newly allocated NULL-teminated string array. Free with g_strfreev
- *         [transfer full]
+ * @return NULL-teminated array of intern strings. Free with g_free().
  */
 gchar** r_slot_get_root_classes(GHashTable *slots);
 
