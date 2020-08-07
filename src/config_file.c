@@ -384,13 +384,13 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
-		RaucSlot *slot = g_new0(RaucSlot, 1);
 		gchar **groupsplit;
 
 		groupsplit = g_strsplit(groups[i], ".", -1);
 
 		/* We treat sections starting with "slot." as slots */
 		if (g_str_equal(groupsplit[0], RAUC_SLOT_PREFIX)) {
+			g_autoptr(RaucSlot) slot = g_new0(RaucSlot, 1);
 			gchar* value;
 
 			/* Assure slot strings consist of 3 parts, delimited by dots */
@@ -537,6 +537,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			}
 
 			g_hash_table_insert(slots, (gchar*)slot->name, slot);
+			slot = NULL;
 		}
 		g_strfreev(groupsplit);
 	}

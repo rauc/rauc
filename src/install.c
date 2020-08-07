@@ -127,8 +127,8 @@ gboolean determine_slot_states(GError **error)
 
 	for (GList *l = slotlist; l != NULL; l = l->next) {
 		g_autofree gchar *realdev = NULL;
-
-		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, l->data);
+		RaucSlot *s = g_hash_table_lookup(r_context()->config->slots, l->data);
+		g_assert_nonnull(s);
 
 		if (g_strcmp0(s->bootname, r_context()->bootslot) == 0) {
 			booted = s;
@@ -154,7 +154,8 @@ gboolean determine_slot_states(GError **error)
 
 	/* Determine active group members */
 	for (GList *l = slotlist; l != NULL; l = l->next) {
-		RaucSlot *s = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, l->data);
+		RaucSlot *s = g_hash_table_lookup(r_context()->config->slots, l->data);
+		g_assert_nonnull(s);
 
 		if (s == booted) {
 			s->state = ST_BOOTED;
@@ -214,9 +215,9 @@ gboolean determine_boot_states(GError **error)
 	return TRUE;
 }
 
-/* Returns newly allocated NULL-teminated string array of all classes listed in
+/* Returns NULL-teminated intern string array of all classes listed in
  * given manifest.
- * Free with g_strfreev */
+ * Free with g_free */
 static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest)
 {
 	GPtrArray *slotclasses = NULL;
@@ -281,7 +282,7 @@ static RaucSlot *select_inactive_slot_class_member(const gchar *rootclass)
  */
 GHashTable* determine_target_install_group(void)
 {
-	gchar **rootclasses = NULL;
+	g_autofree gchar **rootclasses = NULL;
 	GHashTable *targetgroup = NULL;
 	GHashTableIter iter;
 	RaucSlot *iterslot = NULL;
@@ -330,7 +331,7 @@ GHashTable* determine_target_install_group(void)
 GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group, GError **error)
 {
 	GList *install_images = NULL;
-	gchar **slotclasses = NULL;
+	g_autofree gchar **slotclasses = NULL;
 
 	g_return_val_if_fail(manifest != NULL, NULL);
 	g_return_val_if_fail(target_group != NULL, NULL);

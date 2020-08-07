@@ -56,8 +56,8 @@ static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer
 	image->filename = g_strconcat("rootfs.", test_pair->imagetype, NULL);
 
 	targetslot = g_new0(RaucSlot, 1);
-	targetslot->name = g_strdup("rootfs.0");
-	targetslot->sclass = g_strdup("rootfs");
+	targetslot->name = g_intern_string("rootfs.0");
+	targetslot->sclass = g_intern_string("rootfs");
 	targetslot->device = g_strdup("/dev/null");
 	targetslot->type = g_strdup(test_pair->slottype);
 
@@ -89,8 +89,8 @@ static void test_get_custom_update_handler(UpdateHandlerFixture *fixture, gconst
 	image->hooks.install = TRUE;
 
 	targetslot = g_new0(RaucSlot, 1);
-	targetslot->name = g_strdup("rootfs.0");
-	targetslot->sclass = g_strdup("rootfs");
+	targetslot->name = g_intern_string("rootfs.0");
+	targetslot->sclass = g_intern_string("rootfs");
 	targetslot->device = g_strdup("/dev/null");
 	targetslot->type = g_strdup("nand");
 
@@ -325,8 +325,8 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 no_image:
 	/* create target slot */
 	targetslot = g_new0(RaucSlot, 1);
-	targetslot->name = g_strdup("rootfs.0");
-	targetslot->sclass = g_strdup("rootfs");
+	targetslot->name = g_intern_string("rootfs.0");
+	targetslot->sclass = g_intern_string("rootfs");
 	targetslot->device = g_strdup(slotpath);
 	targetslot->type = g_strdup(test_pair->slottype);
 	targetslot->state = ST_INACTIVE;

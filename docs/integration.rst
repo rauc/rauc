@@ -317,8 +317,8 @@ selected) you can also give the name of the slot::
   rauc.slot=recovery.0
 
 When booting from a source not configured in your system.conf (for example from
-a USB memory stick), you can tell rauc explicitly with the flag ``
-rauc.external``.
+a USB memory stick), you can tell rauc explicitly with the flag
+``rauc.external``.
 This means that all slots are known to be inactive and will be valid
 installation targets.
 A possible use case for this is to use RAUC during a bootstrapping procedure to

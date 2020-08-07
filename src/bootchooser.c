@@ -573,6 +573,7 @@ static RaucSlot* grub_get_primary(GError **error)
 				g_propagate_error(error, ierror);
 				return NULL;
 			}
+			g_free(key);
 			key = g_strdup_printf("%s_TRY", slot->bootname);
 			if (!grub_env_get(key, &slot_try, &ierror)) {
 				g_propagate_error(error, ierror);

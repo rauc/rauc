@@ -72,7 +72,7 @@ static gboolean install_notify(gpointer data)
 	g_mutex_lock(&args->status_mutex);
 	while (!g_queue_is_empty(&args->status_messages)) {
 		gchar *msg = g_queue_pop_head(&args->status_messages);
-		g_print("%s", msg);
+		g_print("%s\n", msg);
 		g_free(msg);
 	}
 	r_exit_status = args->status_result;
@@ -107,7 +107,7 @@ static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
 
 	g_mutex_lock(&args->status_mutex);
 	if (g_variant_lookup(changed, "Operation", "&s", &message)) {
-		g_queue_push_tail(&args->status_messages, g_strdup_printf("%s\n", message));
+		g_queue_push_tail(&args->status_messages, g_strdup(message));
 	} else if (g_variant_lookup(changed, "Progress", "(i&si)", &percentage, &message, &depth)) {
 		if (install_progressbar && isatty(STDOUT_FILENO)) {
 			g_autofree gchar *progress = make_progress_line(percentage);
@@ -117,12 +117,12 @@ static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
 			 * - print 2 lines
 			 * - move to previous line
 			 */
-			g_queue_push_tail(&args->status_messages, g_strdup_printf("\r\033[J%3"G_GINT32_FORMAT "%% %s\n%s\033[F", percentage, message, progress));
+			g_queue_push_tail(&args->status_messages, g_strdup_printf("\r\033[F\033[J%3"G_GINT32_FORMAT "%% %s\n%s", percentage, message, progress));
 		} else {
-			g_queue_push_tail(&args->status_messages, g_strdup_printf("%3"G_GINT32_FORMAT "%% %s\n", percentage, message));
+			g_queue_push_tail(&args->status_messages, g_strdup_printf("%3"G_GINT32_FORMAT "%% %s", percentage, message));
 		}
 	} else if (g_variant_lookup(changed, "LastError", "&s", &message) && message[0] != '\0') {
-		g_queue_push_tail(&args->status_messages, g_strdup_printf("%sLastError: %s\n", isatty(STDOUT_FILENO) ? "\033[J" : "", message));
+		g_queue_push_tail(&args->status_messages, g_strdup_printf("%sLastError: %s", isatty(STDOUT_FILENO) ? "\033[J" : "", message));
 	}
 	g_mutex_unlock(&args->status_mutex);
 
@@ -189,6 +189,12 @@ static gchar *resolve_bundle_path(char *path)
 	return g_steal_pointer(&bundlelocation);
 }
 
+static void print_progress_callback(gint percentage,
+		const gchar *message,
+		gint nesting_depth)
+{
+	g_print("%3"G_GINT32_FORMAT "%% %s\n", percentage, message);
+}
 
 static gboolean install_start(int argc, char **argv)
 {
@@ -263,6 +269,7 @@ static gboolean install_start(int argc, char **argv)
 			goto out_loop;
 		}
 	} else {
+		r_context_register_progress_callback(print_progress_callback);
 		install_run(args);
 	}
 
@@ -376,7 +383,7 @@ static gboolean write_slot_start(int argc, char **argv)
 {
 	GError *ierror = NULL;
 	g_autoptr(RaucImage) image = g_new0(RaucImage, 1);
-	g_autoptr(RaucSlot) slot = g_new0(RaucSlot, 1);
+	RaucSlot *slot = NULL;
 	g_autoptr(GFileInfo) info = NULL;
 	g_autoptr(GInputStream) instream = NULL;
 	g_autoptr(GFile) imagefile = NULL;
@@ -1059,7 +1066,7 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 {
 	GString *text = g_string_new(NULL);
 	RaucSlot *bootedfrom = NULL;
-	gchar **slotclasses = NULL;
+	g_autofree gchar **slotclasses = NULL;
 
 	g_return_val_if_fail(status, NULL);
 
@@ -1704,7 +1711,9 @@ typedef struct {
 
 static GOptionEntry entries_install[] = {
 	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
+#if ENABLE_SERVICE == 1
 	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
+#endif
 	{0}
 };
 
