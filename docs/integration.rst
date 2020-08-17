@@ -185,6 +185,12 @@ In kernel Kconfig you have to enable the following options:
   CONFIG_BLK_DEV_LOOP=y
   CONFIG_SQUASHFS=y
 
+.. note::
+   These drivers may also be loaded as modules. Kernel versions v5.0 to v5.7
+   will require the patch ``7e81f99afd91c937f0e66dc135e26c1c4f78b003``
+   backporting to fix a bug where the bundles cannot be mounted in a small
+   number of cases.
+
 .. _sec_ref_host_tools:
 
 Required Host Tools
