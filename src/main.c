@@ -1809,7 +1809,7 @@ static void cmdline_handler(int argc, char **argv)
 		{INSTALL, "install", "install <BUNDLE>", "Install a bundle", install_start, install_group, FALSE},
 #if ENABLE_CREATE == 1
 		{BUNDLE, "bundle", "bundle <INPUTDIR> <BUNDLENAME>", "Create a bundle from a content directory", bundle_start, bundle_group, FALSE},
-		{RESIGN, "resign", "resign <BUNDLENAME>", "Resign an already signed bundle", resign_start, resign_group, FALSE},
+		{RESIGN, "resign", "resign <INBUNDLE> <OUTBUNDLE>", "Resign an already signed bundle", resign_start, resign_group, FALSE},
 		{CONVERT, "convert", "convert <INBUNDLE> <OUTBUNDLE>", "Convert to casync index bundle and store", convert_start, convert_group, FALSE},
 #endif
 		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>", "Extract the bundle content", extract_start, NULL, FALSE},
