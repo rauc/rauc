@@ -469,7 +469,7 @@ For a description of ``sha256`` and ``size`` keys see :ref:`this
 <image.slot-class-section>` part of the section :ref:`Manifest
 <sec_ref_manifest>`.
 Having the slot's content's size allows to re-calculate the hash via ``head -c
-<size> <slot-device> | sha256sum` or `dd bs=<size> count=1 if=<slot-device> |
+<size> <slot-device> | sha256sum`` or ``dd bs=<size> count=1 if=<slot-device> |
 sha256sum``.
 
 The properties ``bundle.compatible``, ``bundle.version``, ``bundle.description``
