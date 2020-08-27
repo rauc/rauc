@@ -521,7 +521,10 @@ static void r_on_name_lost(GDBusConnection *connection,
 	                             ? "session" : "system";
 
 	if (connection == NULL) {
-		g_printerr("Connection to the %s bus can't be made for %s\n", bus_type_name, name);
+		if (r_installer)
+			g_printerr("Lost connection to the %s bus\n", bus_type_name);
+		else
+			g_printerr("Connection to the %s bus can't be made for %s\n", bus_type_name, name);
 	} else {
 		g_printerr("Failed to obtain name %s on %s bus\n", name, bus_type_name);
 	}
