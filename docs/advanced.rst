@@ -234,13 +234,13 @@ Example hook shell script code for above trust chain:
   			# Test for development intermediate certificate
   			if [ "$i" == "46:9E:16:E2:DC:1E:09:F8:5B:7F:71:D5:DF:D0:A4:91:7F:FE:AD:24:7B:47:E4:37:BF:76:21:3A:38:49:89:5B" ]; then
   				echo "Activating development key chain"
-  				mv /etc/rauc/devel-keyring.pem /etc/rauc/keyring.pem
+  				mv "$RAUC_SLOT_MOUNT_POINT/etc/rauc/devel-keyring.pem" "$RAUC_SLOT_MOUNT_POINT/etc/rauc/keyring.pem"
   				break
   			fi
   			# Test for release intermediate certificate
   			if [ "$i" == "47:D4:9D:73:9B:11:FB:FD:AB:79:2A:07:36:B7:EF:89:3F:34:5F:D4:9B:F3:55:0F:C1:04:E7:CC:2F:32:DB:11" ]; then
   				echo "Activating release key chain"
-  				mv /etc/rauc/release-keyring.pem /etc/rauc/keyring.pem
+  				mv "$RAUC_SLOT_MOUNT_POINT/etc/rauc/release-keyring.pem" "$RAUC_SLOT_MOUNT_POINT/etc/rauc/keyring.pem"
   				break
   			fi
   		done
