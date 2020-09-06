@@ -8,12 +8,12 @@
 #include "common.h"
 #include "context.h"
 #include "mount.h"
+#include "utils.h"
 
 typedef struct {
 	gchar *tmpdir;
 } UpdateHandlerFixture;
 
-#define BIT(nr) (1UL << (nr))
 typedef enum {
 	TEST_UPDATE_HANDLER_DEFAULT       = 0,
 	TEST_UPDATE_HANDLER_EXPECT_FAIL   = BIT(0),

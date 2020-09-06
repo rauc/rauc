@@ -717,7 +717,7 @@ static gboolean is_remote_scheme(const gchar *scheme)
 	       (g_strcmp0(scheme, "ftp") == 0);
 }
 
-gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error)
+gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleParams params, GError **error)
 {
 	GError *ierror = NULL;
 	g_autoptr(GFile) bundlefile = NULL;
@@ -727,6 +727,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	gboolean res = FALSE;
 	g_autoptr(RaucBundle) ibundle = g_new0(RaucBundle, 1);
 	gchar *bundlescheme = NULL;
+	gboolean verify = !(params & CHECK_BUNDLE_NO_VERIFY);
 
 	g_return_val_if_fail(bundle == NULL || *bundle == NULL, FALSE);
 
@@ -865,12 +866,19 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 
 	if (verify) {
 		CMS_ContentInfo *cms = NULL;
+		X509_VERIFY_PARAM *param = X509_VERIFY_PARAM_new();
 		X509_STORE *store = setup_x509_store(NULL, NULL, &ierror);
 		if (!store) {
 			g_propagate_error(error, ierror);
 			res = FALSE;
 			goto out;
 		}
+
+		if (params & CHECK_BUNDLE_NO_CHECK_TIME)
+			X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_NO_CHECK_TIME);
+
+		X509_STORE_set1_param(store, param);
+		X509_VERIFY_PARAM_free(param);
 
 		g_message("Verifying bundle... ");
 		/* the squashfs image size is in offset */

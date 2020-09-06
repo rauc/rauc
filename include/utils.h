@@ -3,6 +3,8 @@
 #include <gio/gio.h>
 #include <glib.h>
 
+#define BIT(nr) (1UL << (nr))
+
 /* Use
  *
  *   g_auto(filedesc) fd = -1

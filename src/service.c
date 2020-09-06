@@ -152,7 +152,7 @@ static gboolean r_on_handle_info(RInstaller *interface,
 	bundledir = g_build_filename(tmpdir, "bundle-content", NULL);
 	manifestpath = g_build_filename(bundledir, "manifest.raucm", NULL);
 
-	res = check_bundle(arg_bundle, &bundle, TRUE, &error);
+	res = check_bundle(arg_bundle, &bundle, CHECK_BUNDLE_DEFAULT, &error);
 	if (!res) {
 		g_warning("%s", error->message);
 		g_clear_error(&error);

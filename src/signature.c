@@ -899,7 +899,7 @@ gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_Content
 		CMS_SignerInfo *si;
 		X509_ATTRIBUTE *xa;
 		ASN1_TYPE *so;
-		X509_VERIFY_PARAM *param = X509_VERIFY_PARAM_new();
+		X509_VERIFY_PARAM *param = X509_STORE_get0_param(store);
 		struct tm tm;
 		time_t signingtime;
 
@@ -922,8 +922,6 @@ gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_Content
 
 		/* use signing time for verification */
 		X509_VERIFY_PARAM_set_time(param, signingtime);
-		X509_STORE_set1_param(store, param);
-		X509_VERIFY_PARAM_free(param);
 	}
 
 	if (!CMS_verify(icms, NULL, store, incontent, NULL, CMS_DETACHED | CMS_BINARY)) {

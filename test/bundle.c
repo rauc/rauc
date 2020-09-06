@@ -106,7 +106,7 @@ static void test_check_empty_bundle(BundleFixture *fixture,
 	bundlename = write_random_file(fixture->tmpdir, "bundle.raucb", 0, 1234);
 	g_assert_nonnull(bundlename);
 
-	res = check_bundle(bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_false(res);
 	g_assert_error(ierror, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT);
 	g_assert_null(bundle);
@@ -125,7 +125,7 @@ static void test_check_invalid_bundle(BundleFixture *fixture,
 	bundlename = write_random_file(fixture->tmpdir, "bundle.raucb", 1024, 1234);
 	g_assert_nonnull(bundlename);
 
-	res = check_bundle(bundlename, &bundle, FALSE, &ierror);
+	res = check_bundle(bundlename, &bundle, CHECK_BUNDLE_NO_VERIFY, &ierror);
 	g_assert_false(res);
 	g_assert_error(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_IDENTIFIER);
 	g_assert_null(bundle);
@@ -142,7 +142,7 @@ static void bundle_test_create_extract(BundleFixture *fixture,
 	outputdir = g_build_filename(fixture->tmpdir, "output", NULL);
 	g_assert_nonnull(outputdir);
 
-	g_assert_true(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
+	g_assert_true(check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL));
 	g_assert_nonnull(bundle);
 
 	g_assert_true(extract_bundle(bundle, outputdir, NULL));
@@ -161,7 +161,7 @@ static void bundle_test_create_mount_extract(BundleFixture *fixture,
 	if (!test_running_as_root())
 		return;
 
-	res = check_bundle(fixture->bundlename, &bundle, FALSE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_NO_VERIFY, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
@@ -189,7 +189,7 @@ static void bundle_test_extract_manifest(BundleFixture *fixture,
 	manifestpath = g_build_filename(fixture->tmpdir, "/output/manifest.raucm", NULL);
 	g_assert_nonnull(manifestpath);
 
-	g_assert_true(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
+	g_assert_true(check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL));
 	g_assert_nonnull(bundle);
 
 	g_assert_true(extract_file_from_bundle(bundle, outputdir, "manifest.raucm", NULL));
@@ -217,7 +217,7 @@ static void bundle_test_resign(BundleFixture *fixture,
 	 * the context's 'pending' flag which would cause a re-initialization
 	 * of context and thus overwrite content of 'config' member. */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
-	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
 	g_assert_false(res);
@@ -226,7 +226,7 @@ static void bundle_test_resign(BundleFixture *fixture,
 
 	/* Verify input bundle with 'dev' keyring */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-only-ca.pem");
-	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 
@@ -247,7 +247,7 @@ static void bundle_test_resign(BundleFixture *fixture,
 	 * installing development bundles as well as moving to production
 	 * bundles. */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-only-ca.pem");
-	res = check_bundle(resignbundle, &bundle, TRUE, &ierror);
+	res = check_bundle(resignbundle, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
 	g_assert_false(res);
@@ -256,7 +256,7 @@ static void bundle_test_resign(BundleFixture *fixture,
 
 	/* Verify resigned bundle with rel keyring */
 	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
-	res = check_bundle(resignbundle, &bundle, TRUE, &ierror);
+	res = check_bundle(resignbundle, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 
@@ -272,7 +272,7 @@ static void bundle_test_wrong_capath(BundleFixture *fixture,
 	GError *ierror = NULL;
 	r_context()->config->keyring_path = g_strdup("does/not/exist.pem");
 
-	g_assert_false(check_bundle(fixture->bundlename, &bundle, TRUE, &ierror));
+	g_assert_false(check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror));
 	g_assert_null(bundle);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_CA_LOAD);
 
@@ -295,7 +295,7 @@ static void bundle_test_verify_no_crl_warn(BundleFixture *fixture,
 			"Reading bundle*");
 	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
 			"Detected CRL but CRL checking is disabled!");
-	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
@@ -311,7 +311,7 @@ static void bundle_test_verify_revoked(BundleFixture *fixture,
 	RaucBundle *bundle = NULL;
 	GError *ierror = NULL;
 
-	g_assert_false(check_bundle(fixture->bundlename, &bundle, TRUE, &ierror));
+	g_assert_false(check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror));
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_assert_null(bundle);
 }
@@ -327,7 +327,7 @@ static void bundle_test_purpose_default(BundleFixture *fixture,
 
 	g_message("testing default purpose with default cert");
 	r_context()->config->keyring_check_purpose = NULL;
-	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
@@ -335,7 +335,7 @@ static void bundle_test_purpose_default(BundleFixture *fixture,
 
 	g_message("testing purpose 'smimesign' with default cert");
 	r_context()->config->keyring_check_purpose = g_strdup("smimesign");
-	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
@@ -343,14 +343,14 @@ static void bundle_test_purpose_default(BundleFixture *fixture,
 
 	g_message("testing purpose 'codesign' with default cert");
 	r_context()->config->keyring_check_purpose = g_strdup("codesign");
-	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
 	g_assert_false(res);
 
 	g_message("testing purpose 'any' with default cert");
 	r_context()->config->keyring_check_purpose = g_strdup("any");
-	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
@@ -370,7 +370,7 @@ static void bundle_test_purpose_email(BundleFixture *fixture,
 
 	g_message("testing default purpose with 'smimesign' cert");
 	r_context()->config->keyring_check_purpose = NULL;
-	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
@@ -378,7 +378,7 @@ static void bundle_test_purpose_email(BundleFixture *fixture,
 
 	g_message("testing purpose 'smimesign' with 'smimesign' cert");
 	r_context()->config->keyring_check_purpose = g_strdup("smimesign");
-	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
@@ -386,7 +386,7 @@ static void bundle_test_purpose_email(BundleFixture *fixture,
 
 	g_message("testing purpose 'codesign' with 'smimesign' cert");
 	r_context()->config->keyring_check_purpose = g_strdup("codesign");
-	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
 	g_assert_false(res);
@@ -394,7 +394,7 @@ static void bundle_test_purpose_email(BundleFixture *fixture,
 
 	g_message("testing purpose 'any' with 'smimesign' cert");
 	r_context()->config->keyring_check_purpose = g_strdup("any");
-	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
@@ -414,7 +414,7 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 
 	g_message("testing default purpose with 'codesign' cert");
 	r_context()->config->keyring_check_purpose = NULL;
-	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
 	g_assert_false(res);
@@ -422,7 +422,7 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 
 	g_message("testing purpose 'smimesign' with 'codesign' cert");
 	r_context()->config->keyring_check_purpose = g_strdup("smimesign");
-	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
 	g_assert_false(res);
@@ -430,7 +430,7 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 
 	g_message("testing purpose 'codesign' with 'codesign' cert");
 	r_context()->config->keyring_check_purpose = g_strdup("codesign");
-	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
@@ -438,7 +438,7 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 
 	g_message("testing purpose 'any' with 'codesign' cert");
 	r_context()->config->keyring_check_purpose = g_strdup("any");
-	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);

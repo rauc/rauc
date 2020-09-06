@@ -2,6 +2,7 @@
 
 #include <openssl/cms.h>
 #include <glib.h>
+#include "utils.h"
 
 #define R_BUNDLE_ERROR r_bundle_error_quark()
 GQuark r_bundle_error_quark(void);
@@ -21,6 +22,18 @@ typedef struct {
 	gchar *mount_point;
 	STACK_OF(X509) *verified_chain;
 } RaucBundle;
+
+typedef enum {
+	CHECK_BUNDLE_DEFAULT       = 0,
+	CHECK_BUNDLE_NO_VERIFY     = BIT(0),      // If not set the bundle signature
+	                                          // will be verified, if set this
+	                                          // step will be skipped.
+	CHECK_BUNDLE_NO_CHECK_TIME = BIT(1),      // If set, X509_V_FLAG_NO_CHECK_TIME
+	                                          // is passed to openssl to suppress
+	                                          // checking the validity period of
+	                                          // certificates and CRLs against
+	                                          // the current time.
+} CheckBundleParams;
 
 /**
  * Create a bundle.
@@ -42,13 +55,12 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
  * @param bundle return location for a RaucBundle struct.
  *               This will contain all bundle information obtained by
  *               check_bundle
- * @param verify If set to true the bundle signature will also be verified, if
- *               set to FALSE this step will be skipped
+ * @param params bit-field enum CheckBundleParams with additional flags for the check
  * @param error Return location for a GError
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error);
+gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleParams params, GError **error);
 
 /**
  * Resign a bundle.
