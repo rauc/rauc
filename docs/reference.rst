@@ -764,6 +764,8 @@ IN a{sv} *args*:
         installation of bundles on platforms that a compatible not matching the one
         of the bundle to be installed
 
+    :STRING 'store-path', VARIANT 's': Override the configured casync store path
+
 .. _gdbus-method-de-pengutronix-rauc-Installer.Install:
 
 The Install() Method

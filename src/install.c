@@ -1006,6 +1006,11 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	g_assert_nonnull(bundlefile);
 	g_assert_null(r_context()->install_info->mounted_bundle);
 
+	if (args->store_path) {
+		g_debug("Using casync store path: %s", args->store_path);
+		r_context()->install_info->store_path = args->store_path;
+	}
+
 	r_context_begin_step("do_install_bundle", "Installing", 5);
 
 	r_context_begin_step("determine_slot_states", "Determining slot states", 0);
@@ -1156,6 +1161,7 @@ RaucInstallArgs *install_args_new(void)
 void install_args_free(RaucInstallArgs *args)
 {
 	g_free(args->name);
+	g_free(args->store_path);
 	g_mutex_clear(&args->status_mutex);
 	g_assert_cmpint(args->status_result, >=, 0);
 	g_assert_true(g_queue_is_empty(&args->status_messages));

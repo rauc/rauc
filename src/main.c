@@ -35,6 +35,7 @@ gchar *output_format = NULL;
 gchar *signing_keyring = NULL;
 gchar *mksquashfs_args = NULL;
 gchar *casync_args = NULL;
+gchar *install_store_path = NULL;
 gboolean utf8_supported = FALSE;
 
 static gchar* make_progress_line(gint percentage)
@@ -232,12 +233,15 @@ static gboolean install_start(int argc, char **argv)
 	args->status_result = 2;
 
 	args->ignore_compatible = install_ignore_compatible;
+	args->store_path = g_steal_pointer(&install_store_path);
 
 	r_loop = g_main_loop_new(NULL, FALSE);
 	if (ENABLE_SERVICE) {
 		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
 
 		g_variant_dict_insert(&dict, "ignore-compatible", "b", args->ignore_compatible);
+		if (args->store_path)
+			g_variant_dict_insert(&dict, "store-path", "s", args->store_path);
 
 		installer = r_installer_proxy_new_for_bus_sync(bus_type,
 				G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
@@ -1714,6 +1718,7 @@ static GOptionEntry entries_install[] = {
 #if ENABLE_SERVICE == 1
 	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
 #endif
+	{"store-path", '\0', 0, G_OPTION_ARG_STRING, &install_store_path, "override configured casync store path", "STOREPATH"},
 	{0}
 };
 
