@@ -133,6 +133,85 @@ static void test_check_invalid_bundle(BundleFixture *fixture,
 	g_free(bundlename);
 }
 
+static void test_check_default_store_path(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *storepath;
+	RaucBundle *bundle = NULL;
+
+	storepath = g_build_filename(fixture->tmpdir, "bundle.castr", NULL);
+	g_assert_nonnull(storepath);
+
+	g_assert_true(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
+	g_assert_nonnull(bundle);
+	g_assert_cmpstr(bundle->storepath, ==, storepath);
+
+	g_free(storepath);
+	free_bundle(bundle);
+}
+
+static void test_check_config_store_path(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *storepath;
+	RaucBundle *bundle = NULL;
+
+	storepath = g_strdup("http://something.com/config.castr");
+	g_assert_nonnull(storepath);
+
+	r_context()->config->store_path = storepath;
+	g_assert_true(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
+	g_assert_nonnull(bundle);
+	g_assert_cmpstr(bundle->storepath, ==, storepath);
+
+	r_context()->config->store_path = NULL;
+	g_free(storepath);
+	free_bundle(bundle);
+}
+
+static void test_check_override_default_store_path(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *storepath;
+	RaucBundle *bundle = NULL;
+
+	storepath = g_strdup("http://something.com/override.castr");
+	g_assert_nonnull(storepath);
+
+	r_context()->install_info->store_path = storepath;
+	g_assert_true(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
+	g_assert_nonnull(bundle);
+	g_assert_cmpstr(bundle->storepath, ==, storepath);
+
+	r_context()->install_info->store_path = NULL;
+	g_free(storepath);
+	free_bundle(bundle);
+}
+
+static void test_check_override_config_store_path(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *storepath, *cfgstorepath;
+	RaucBundle *bundle = NULL;
+
+	cfgstorepath = g_strdup("http://something.com/config.castr");
+	g_assert_nonnull(cfgstorepath);
+	storepath = g_strdup("http://something.com/override.castr");
+	g_assert_nonnull(storepath);
+
+	r_context()->config->store_path = cfgstorepath;
+	r_context()->install_info->store_path = storepath;
+	g_assert_true(check_bundle(fixture->bundlename, &bundle, TRUE, NULL));
+	g_assert_nonnull(bundle);
+	g_assert_cmpstr(bundle->storepath, ==, storepath);
+
+	r_context()->install_info->store_path = NULL;
+	r_context()->config->store_path = NULL;
+	g_free(storepath);
+	g_free(cfgstorepath);
+	free_bundle(bundle);
+}
+
 static void bundle_test_create_extract(BundleFixture *fixture,
 		gconstpointer user_data)
 {
@@ -464,6 +543,22 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bundle/check/invalid", BundleFixture, NULL,
 			bundle_fixture_set_up, test_check_invalid_bundle,
+			bundle_fixture_tear_down);
+
+	g_test_add("/bundle/check/default_store_path", BundleFixture, NULL,
+			bundle_fixture_set_up_bundle, test_check_default_store_path,
+			bundle_fixture_tear_down);
+
+	g_test_add("/bundle/check/config_store_path", BundleFixture, NULL,
+			bundle_fixture_set_up_bundle, test_check_config_store_path,
+			bundle_fixture_tear_down);
+
+	g_test_add("/bundle/check/override_default_store_path", BundleFixture, NULL,
+			bundle_fixture_set_up_bundle, test_check_override_default_store_path,
+			bundle_fixture_tear_down);
+
+	g_test_add("/bundle/check/override_config_store_path", BundleFixture, NULL,
+			bundle_fixture_set_up_bundle, test_check_override_config_store_path,
 			bundle_fixture_tear_down);
 
 	g_test_add("/bundle/create_extract", BundleFixture, NULL,

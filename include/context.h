@@ -14,6 +14,7 @@ typedef void (*progress_callback) (gint percentage, const gchar *message,
 typedef struct {
 	/* The bundle currently mounted by RAUC */
 	RaucBundle *mounted_bundle;
+	gchar *store_path;
 } RContextInstallationInfo;
 
 typedef struct {

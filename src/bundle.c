@@ -754,7 +754,9 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	}
 
 	/* Determine store path for casync, defaults to bundle */
-	if (r_context()->config->store_path) {
+	if (r_context()->install_info->store_path) {
+		ibundle->storepath = r_context()->install_info->store_path;
+	} else if (r_context()->config->store_path) {
 		ibundle->storepath = r_context()->config->store_path;
 	} else {
 		gchar *path = ibundle->origpath ?: ibundle->path;

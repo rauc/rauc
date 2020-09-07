@@ -79,6 +79,8 @@ static gboolean r_on_handle_install_bundle(
 
 	if (g_variant_dict_lookup(&dict, "ignore-compatible", "b", &args->ignore_compatible))
 		g_variant_dict_remove(&dict, "ignore-compatible");
+	if (g_variant_dict_lookup(&dict, "store-path", "s", &args->store_path))
+		g_variant_dict_remove(&dict, "store-path");
 
 	/* Check for unhandled keys */
 	g_variant_iter_init(&iter, g_variant_dict_end(&dict));

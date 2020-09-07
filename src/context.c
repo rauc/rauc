@@ -565,6 +565,7 @@ void r_context_install_info_free(RContextInstallationInfo *info)
 {
 	/* contains only reference to existing bundle instance */
 	info->mounted_bundle = NULL;
+	info->store_path = NULL;
 	g_free(info);
 }
 
