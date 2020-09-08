@@ -338,10 +338,6 @@ void test_create_bundle(gchar *contentdir, gchar *bundlename)
 	GError *error = NULL;
 	gboolean res = FALSE;
 
-	res = update_manifest(contentdir, &error);
-	g_assert_no_error(error);
-	g_assert_true(res);
-
 	res = create_bundle(bundlename, contentdir, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);

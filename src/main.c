@@ -362,13 +362,6 @@ static gboolean bundle_start(int argc, char **argv)
 	g_debug("input directory: %s", inpath);
 	g_debug("output bundle: %s", outpath);
 
-	if (!update_manifest(argv[2], &ierror)) {
-		g_printerr("Failed to update manifest: %s\n", ierror->message);
-		g_clear_error(&ierror);
-		r_exit_status = 1;
-		goto out;
-	}
-
 	if (!create_bundle(argv[3], argv[2], &ierror)) {
 		g_printerr("Failed to create bundle: %s\n", ierror->message);
 		g_clear_error(&ierror);

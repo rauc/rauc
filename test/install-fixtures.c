@@ -177,9 +177,6 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 				tmpdir, "content/hook.sh"));
 	}
 
-	/* Update checksums in manifest */
-	g_assert_true(update_manifest(contentdir, NULL));
-
 	/* Create bundle */
 	res = create_bundle(bundlepath, contentdir, &error);
 	g_assert_no_error(error);

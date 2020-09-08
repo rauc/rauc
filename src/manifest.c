@@ -445,7 +445,7 @@ void free_manifest(RaucManifest *manifest)
 	g_free(manifest);
 }
 
-static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *dir, GError **error)
+gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *dir, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = TRUE;
@@ -480,34 +480,5 @@ static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *d
 		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_CHECKSUM, "Failed updating all checksums");
 	}
 
-	return res;
-}
-
-gboolean update_manifest(const gchar *dir, GError **error)
-{
-	GError *ierror = NULL;
-	g_autofree gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
-	g_autoptr(RaucManifest) manifest = NULL;
-	gboolean res = FALSE;
-
-	res = load_manifest_file(manifestpath, &manifest, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	res = update_manifest_checksums(manifest, dir, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	res = save_manifest_file(manifestpath, manifest, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-out:
 	return res;
 }
