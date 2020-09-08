@@ -104,17 +104,16 @@ void free_manifest(RaucManifest *manifest);
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucManifest, free_manifest);
 
 /**
- * Updates a manifest file in the given bundle directory.
+ * Updates checksums for files and images listed in the manifest and found in
+ * the bundle directory.
  *
- * This means updating checksums for files and images listed in the manifestx
- * and placed in the bundle directory
- *
+ * @param manifest pointer to the manifest
  * @param dir Directory with the bundle content
  * @param error return location for a GError, or NULL
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean update_manifest(const gchar *dir, GError **error)
+gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *dir, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**

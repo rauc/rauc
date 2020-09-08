@@ -432,7 +432,27 @@ static gboolean sign_bundle(const gchar *bundlename, GError **error)
 gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error)
 {
 	GError *ierror = NULL;
+	g_autofree gchar* manifestpath = g_build_filename(contentdir, "manifest.raucm", NULL);
+	g_autoptr(RaucManifest) manifest = NULL;
 	gboolean res = FALSE;
+
+	res = load_manifest_file(manifestpath, &manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = update_manifest_checksums(manifest, contentdir, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = save_manifest_file(manifestpath, manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
 
 	res = mksquashfs(bundlename, contentdir, &ierror);
 	if (!res) {
@@ -447,6 +467,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 	}
 
 	res = TRUE;
+
 out:
 	/* Remove output file on error */
 	if (!res &&
