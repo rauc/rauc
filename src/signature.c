@@ -598,6 +598,7 @@ out:
 	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
 	BIO_free_all(outsig);
+	EVP_PKEY_free(pkey);
 	return res;
 }
 
