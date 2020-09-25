@@ -452,6 +452,10 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				g_hash_table_add(bootnames, slot->bootname);
 			}
 
+			/* Collect name of parent here for easing remaining key checking.
+			 * Will be resolved to slot->parent pointer after config parsing loop. */
+			slot->parent_name = key_file_consume_string(key_file, groups[i], "parent", NULL);
+
 			slot->allow_mounted = g_key_file_get_boolean(key_file, groups[i], "allow-mounted", &ierror);
 			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 				slot->allow_mounted = FALSE;
@@ -537,6 +541,14 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				}
 			}
 
+			if (!check_remaining_keys(key_file, groups[i], &ierror)) {
+				g_propagate_error(error, ierror);
+				res = FALSE;
+				goto free;
+			}
+
+			g_key_file_remove_group(key_file, groups[i], NULL);
+
 			g_hash_table_insert(slots, (gchar*)slot->name, slot);
 			slot = NULL;
 		}
@@ -546,25 +558,22 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	/* Add parent pointers */
 	slotlist = g_hash_table_get_keys(slots);
 	for (l = slotlist; l != NULL; l = l->next) {
+		RaucSlot *slot;
 		RaucSlot *parent;
 		RaucSlot *child;
-		g_autofree gchar* group_name = NULL;
-		gchar* value;
 
-		group_name = g_strconcat(RAUC_SLOT_PREFIX ".", l->data, NULL);
-		value = key_file_consume_string(key_file, group_name, "parent", NULL);
-		if (!value) {
-			g_key_file_remove_group(key_file, group_name, NULL);
+		slot = g_hash_table_lookup(slots, l->data);
+		if (!slot->parent_name) {
 			continue;
 		}
 
-		parent = g_hash_table_lookup(slots, value);
+		parent = g_hash_table_lookup(slots, slot->parent_name);
 		if (!parent) {
 			g_set_error(
 					error,
 					R_CONFIG_ERROR,
 					R_CONFIG_ERROR_PARENT,
-					"Parent slot '%s' not found!", value);
+					"Parent slot '%s' not found!", slot->parent_name);
 			res = FALSE;
 			goto free;
 		}
@@ -582,13 +591,6 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			res = FALSE;
 			goto free;
 		}
-
-		if (!check_remaining_keys(key_file, group_name, &ierror)) {
-			g_propagate_error(error, ierror);
-			res = FALSE;
-			goto free;
-		}
-		g_key_file_remove_group(key_file, group_name, NULL);
 	}
 	g_list_free(slotlist);
 
