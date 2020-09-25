@@ -461,6 +461,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				res = FALSE;
 				goto free;
 			}
+			g_key_file_remove_key(key_file, groups[i], "allow-mounted", NULL);
 
 			slot->readonly = g_key_file_get_boolean(key_file, groups[i], "readonly", &ierror);
 			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
