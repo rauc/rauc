@@ -61,7 +61,7 @@ Example configuration:
 ``bootloader``
   The bootloader implementation RAUC should use for its slot switching
   mechanism. Currently supported values (and bootloaders) are ``barebox``,
-  ``grub``, ``uboot``.
+  ``grub``, ``uboot``, ``efi``, ``custom``, ``noop``.
 
 ``mountprefix``
   Prefix of the path where bundles and slots will be mounted. Can be overwritten
