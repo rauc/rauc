@@ -410,33 +410,40 @@ out:
 	return install_images;
 }
 
-static void parse_handler_output(gchar* line)
+static gchar* parse_handler_output(gchar* line)
 {
+	gchar *message = NULL;
 	g_auto(GStrv) split = NULL;
 
 	g_assert_nonnull(line);
 
 	if (!g_str_has_prefix(line, "<< ")) {
 		g_print("# %s\n", line);
-		return;
+		return NULL;
 	}
 
 	split = g_strsplit(line, " ", 5);
 
 	if (!split[1])
-		return;
+		return NULL;
 
 	if (g_strcmp0(split[1], "handler") == 0) {
-		g_print("Handler status: %s\n", split[2]);
+		message = g_strdup_printf("Handler status: %s", split[2]);
 	} else if (g_strcmp0(split[1], "image") == 0) {
-		g_print("Image '%s' status: %s\n", split[2], split[3]);
-	} else if (g_strcmp0(split[1], "error") == 0) {
-		g_print("error: '%s'\n", split[2]);
+		message = g_strdup_printf("Image '%s' status: %s", split[2], split[3]);
 	} else if (g_strcmp0(split[1], "bootloader") == 0) {
-		g_print("error: '%s'\n", split[2]);
+		message = g_strdup_printf("Bootloader status: %s", split[2]);
+	} else if (g_strcmp0(split[1], "error") == 0) {
+		g_autofree gchar *joined = g_strjoinv(" ", &split[2]);
+		message = g_strdup_printf("Error: %s", joined);
+	} else if (g_strcmp0(split[1], "debug") == 0) {
+		g_autofree gchar *joined = g_strjoinv(" ", &split[2]);
+		message = g_strdup_printf("Debug: %s", joined);
 	} else {
-		g_print("Unknown command: %s\n", split[1]);
+		message = g_strdup_printf("Unknown handler output: %s", line);
 	}
+
+	return message;
 }
 
 static gboolean verify_compatible(RaucInstallArgs *args, RaucManifest *manifest)
