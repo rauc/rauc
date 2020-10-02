@@ -69,7 +69,8 @@ typedef struct {
 	gint last_explicit_percent;
 } RaucProgressStep;
 
-gboolean r_context_get_busy(void);
+gboolean r_context_get_busy(void)
+G_GNUC_WARN_UNUSED_RESULT;
 void r_context_set_busy(gboolean busy);
 
 /**

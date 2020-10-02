@@ -84,7 +84,8 @@ typedef struct {
  *
  * @return TRUE if the configuration was sucessfully loaded. FALSE if there were errors.
  */
-gboolean load_config(const gchar *filename, RaucConfig **config, GError **error);
+gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Creates a default rauc system configuration.
@@ -93,7 +94,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
  *
  * @return TRUE if the configuration was sucessfully created. FALSE if there were errors.
  */
-gboolean default_config(RaucConfig **config);
+gboolean default_config(RaucConfig **config)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Finds a config slot given the device path.
@@ -103,7 +105,8 @@ gboolean default_config(RaucConfig **config);
  *
  * @return a RaucSlot pointer or NULL
  */
-RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device);
+RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Finds a config slot given its name.
@@ -116,7 +119,8 @@ RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device);
  *
  * @return a RaucSlot pointer or NULL
  */
-RaucSlot *find_config_slot_by_name(RaucConfig *config, const gchar *name);
+RaucSlot *find_config_slot_by_name(RaucConfig *config, const gchar *name)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Frees the memory allocated by the RaucConfig.
@@ -137,7 +141,8 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucConfig, free_config);
  *
  * @return TRUE if the slot status was sucessfully loaded. FALSE if there were errors.
  */
-gboolean read_slot_status(const gchar *filename, RaucSlotStatus *slotstatus, GError **error);
+gboolean read_slot_status(const gchar *filename, RaucSlotStatus *slotstatus, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Save slot status file.
@@ -146,7 +151,8 @@ gboolean read_slot_status(const gchar *filename, RaucSlotStatus *slotstatus, GEr
  * @param ss the slot status to save
  * @param error a GError, or NULL
  */
-gboolean write_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error);
+gboolean write_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Load slot status.
@@ -176,4 +182,5 @@ void load_slot_status(RaucSlot *dest_slot);
  *
  * @return TRUE if slot is not mountable or saving status succeeded, FALSE otherwise
  */
-gboolean save_slot_status(RaucSlot *dest_slot, GError **error);
+gboolean save_slot_status(RaucSlot *dest_slot, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;

@@ -20,7 +20,8 @@
 gboolean r_gpt_switch_get_inactive_partition(const gchar *device,
 		struct boot_switch_partition *partition,
 		guint64 region_start, guint64 region_size,
-		GError **error);
+		GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Set the boot partition in the GPT to point to the partion at address and
@@ -34,4 +35,5 @@ gboolean r_gpt_switch_get_inactive_partition(const gchar *device,
  */
 gboolean r_gpt_switch_set_boot_partition(const gchar *device,
 		const struct boot_switch_partition *partition,
-		GError **error);
+		GError **error)
+G_GNUC_WARN_UNUSED_RESULT;

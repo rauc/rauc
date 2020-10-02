@@ -41,7 +41,8 @@ typedef struct {
  *
  * @return TRUE if succeeded, FALSE if failed
  */
-gboolean determine_slot_states(GError **error);
+gboolean determine_slot_states(GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Obtains boot status information for all relevant slots and stores
@@ -51,7 +52,8 @@ gboolean determine_slot_states(GError **error);
  *
  * @return TRUE if succeeded, FALSE if failed
  */
-gboolean determine_boot_states(GError **error);
+gboolean determine_boot_states(GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Returns hash table of slot classes for that a potential installation target
@@ -60,7 +62,8 @@ gboolean determine_boot_states(GError **error);
  * @return GHashTable mapping a slotclass (gchar*) to a slot instance
  * (RaucSlot*)
  */
-GHashTable* determine_target_install_group(void);
+GHashTable* determine_target_install_group(void)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Basic bundle installation procedure.
@@ -70,7 +73,8 @@ GHashTable* determine_target_install_group(void);
  *
  * @return TRUE if installation succeeded, FALSE if any critical error occurred
  */
-gboolean do_install_bundle(RaucInstallArgs *args, GError **error);
+gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Basic network installation procedure.
@@ -83,7 +87,8 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error);
  *
  * @return TRUE if installation succeeded, FALSE if any critical error occurred
  */
-gboolean do_install_network(const gchar *url, GError **error);
+gboolean do_install_network(const gchar *url, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Initialize new RaucInstallArgs structure
@@ -91,7 +96,8 @@ gboolean do_install_network(const gchar *url, GError **error);
  * @return returns newly allocated RaucInstallArgs.
  *         Free with install_args_free.
  */
-RaucInstallArgs *install_args_new(void);
+RaucInstallArgs *install_args_new(void)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Free allocated RaucInstallArgs structure
@@ -124,4 +130,5 @@ gboolean install_run(RaucInstallArgs *args);
  * @return Returns a map slotclass (gchar*) -> image (RaucImage *),
  *         or NULL if an error occurred
  */
-GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group, GError **error);
+GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;

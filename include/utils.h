@@ -36,7 +36,8 @@ static inline GSubprocess * r_subprocess_launcher_spawnv(GSubprocessLauncher *la
 			(const gchar * const *)args->pdata, error);
 }
 
-GSubprocess *r_subprocess_new(GSubprocessFlags flags, GError **error, const gchar *argv0, ...);
+GSubprocess *r_subprocess_new(GSubprocessFlags flags, GError **error, const gchar *argv0, ...)
+G_GNUC_WARN_UNUSED_RESULT;
 
 #define R_LOG_LEVEL_TRACE 1 << G_LOG_LEVEL_USER_SHIFT
 #define r_trace(...)   g_log(G_LOG_DOMAIN,         \
@@ -51,7 +52,8 @@ GSubprocess *r_subprocess_new(GSubprocessFlags flags, GError **error, const gcha
  *
  * @return A newly allocated GBytes on success, NULL if an error occurred
  */
-GBytes *read_file(const gchar *filename, GError **error);
+GBytes *read_file(const gchar *filename, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Read file content into a gchar.
@@ -61,7 +63,8 @@ GBytes *read_file(const gchar *filename, GError **error);
  *
  * @return A newly allocated gchar on success, NULL if an error occurred
  */
-gchar *read_file_str(const gchar *filename, GError **error);
+gchar *read_file_str(const gchar *filename, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Write content of a GBytes to file.
@@ -72,7 +75,8 @@ gchar *read_file_str(const gchar *filename, GError **error);
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean write_file(const gchar *filename, GBytes *bytes, GError **error);
+gboolean write_file(const gchar *filename, GBytes *bytes, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Copy a file.
@@ -86,7 +90,8 @@ gboolean write_file(const gchar *filename, GBytes *bytes, GError **error);
  * @return TRUE on success, FALSE if an error occurred
  */
 gboolean copy_file(const gchar *srcprefix, const gchar *srcfile,
-		const gchar *dstprefix, const gchar *dstfile, GError **error);
+		const gchar *dstprefix, const gchar *dstfile, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Recursively delete directory contents.
@@ -118,24 +123,30 @@ gboolean rm_tree(const gchar *path, GError **error);
  * @return An absolute path name, determined as described above, NULL if undeterminable
  *         [transfer full]
  */
-gchar *resolve_path(const gchar *basefile, gchar *path);
+gchar *resolve_path(const gchar *basefile, gchar *path)
+G_GNUC_WARN_UNUSED_RESULT;
 
 
-gboolean check_remaining_groups(GKeyFile *key_file, GError **error);
-gboolean check_remaining_keys(GKeyFile *key_file, const gchar *groupname, GError **error);
+gboolean check_remaining_groups(GKeyFile *key_file, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+gboolean check_remaining_keys(GKeyFile *key_file, const gchar *groupname, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 gchar * key_file_consume_string(
 		GKeyFile *key_file,
 		const gchar *group_name,
 		const gchar *key,
-		GError **error);
+		GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 guint64 key_file_consume_binary_suffixed_string(GKeyFile *key_file,
 		const gchar *group_name,
 		const gchar *key,
-		GError **error);
+		GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
-gchar * r_realpath(const gchar *path);
+gchar * r_realpath(const gchar *path)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Remove surrounding whitespace and signal changes.
@@ -144,4 +155,5 @@ gchar * r_realpath(const gchar *path);
  *
  * @return TRUE if whitespace was removed, FALSE otherwise
  */
-gboolean r_whitespace_removed(gchar *str);
+gboolean r_whitespace_removed(gchar *str)
+G_GNUC_WARN_UNUSED_RESULT;

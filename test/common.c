@@ -316,7 +316,7 @@ gboolean test_make_slot_user_writable(const gchar* path, const gchar* file)
 
 	test_do_chmod(mountpath);
 
-	r_umount(mountpath, NULL);
+	g_assert_true(r_umount(mountpath, NULL));
 
 	res = TRUE;
 

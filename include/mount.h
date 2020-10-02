@@ -19,7 +19,8 @@
  *
  * @return True if succeeded, False if failed
  */
-gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, goffset size, const gchar *extra_options, GError **error);
+gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, goffset size, const gchar *extra_options, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Loopback mount a file.
@@ -31,7 +32,8 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
  *
  * @return True if succeeded, False if failed
  */
-gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, goffset size, GError **error);
+gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, goffset size, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Unmount a slot or a file.
@@ -41,7 +43,8 @@ gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, goffset si
  *
  * @return True if succeeded, False if failed
  */
-gboolean r_umount(const gchar *dirdev, GError **error);
+gboolean r_umount(const gchar *dirdev, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Create a mount directory.
@@ -53,7 +56,8 @@ gboolean r_umount(const gchar *dirdev, GError **error);
  *
  * @return A newly allocated string containing the created mount path
  */
-gchar* r_create_mount_point(const gchar *name, GError **error);
+gchar* r_create_mount_point(const gchar *name, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Mount a slot.
@@ -65,7 +69,8 @@ gchar* r_create_mount_point(const gchar *name, GError **error);
  *
  * @return True if succeeded, False if failed
  */
-gboolean r_mount_slot(RaucSlot *slot, GError **error);
+gboolean r_mount_slot(RaucSlot *slot, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Unmount a slot.

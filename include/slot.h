@@ -83,7 +83,8 @@ void r_slot_free_status(RaucSlotStatus *slotstatus);
  *
  * @return a RaucSlot pointer or NULL
  */
-RaucSlot *r_slot_find_by_device(GHashTable *slots, const gchar *device);
+RaucSlot *r_slot_find_by_device(GHashTable *slots, const gchar *device)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Finds a slot given its bootname
@@ -93,7 +94,8 @@ RaucSlot *r_slot_find_by_device(GHashTable *slots, const gchar *device);
  *
  * @return a RaucSlot pointer or NULL
  */
-RaucSlot *r_slot_find_by_bootname(GHashTable *slots, const gchar *bootname);
+RaucSlot *r_slot_find_by_bootname(GHashTable *slots, const gchar *bootname)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Get string representation of slot state
@@ -102,7 +104,8 @@ RaucSlot *r_slot_find_by_bootname(GHashTable *slots, const gchar *bootname);
  *
  * @return string representation of slot state
  */
-gchar* r_slot_slotstate_to_str(SlotState slotstate);
+gchar* r_slot_slotstate_to_str(SlotState slotstate)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Get SlotState from string representation.
@@ -111,7 +114,8 @@ gchar* r_slot_slotstate_to_str(SlotState slotstate);
  *
  * @return corresponding SlotState value
  */
-SlotState r_slot_str_to_slotstate(gchar *str);
+SlotState r_slot_str_to_slotstate(gchar *str)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Check if slot type is mountable.
@@ -120,7 +124,8 @@ SlotState r_slot_str_to_slotstate(gchar *str);
  *
  * @return TRUE if mountable, otherwise FALSE
  */
-gboolean r_slot_is_mountable(RaucSlot *slot);
+gboolean r_slot_is_mountable(RaucSlot *slot)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Returns the parent root slot for given slot.
@@ -132,14 +137,16 @@ gboolean r_slot_is_mountable(RaucSlot *slot);
  *
  * @return pointer to RaucSlot
  */
-RaucSlot* r_slot_get_parent_root(RaucSlot *slot);
+RaucSlot* r_slot_get_parent_root(RaucSlot *slot)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Gets all classes that do not have a parent
  *
  * @return NULL-teminated array of intern strings. Free with g_free().
  */
-gchar** r_slot_get_root_classes(GHashTable *slots);
+gchar** r_slot_get_root_classes(GHashTable *slots)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Test if provided slot list contains slot instance (same pointer!)
@@ -149,7 +156,8 @@ gchar** r_slot_get_root_classes(GHashTable *slots);
  *
  * @return TRUE if slot was found, FALSE if not
  */
-gboolean r_slot_list_contains(GList *slotlist, const RaucSlot *testslot);
+gboolean r_slot_list_contains(GList *slotlist, const RaucSlot *testslot)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Returns list of slots of given slot class
@@ -160,7 +168,8 @@ gboolean r_slot_list_contains(GList *slotlist, const RaucSlot *testslot);
  * @return list of pointers to all memers of slots hash table that are of
  *         selected class.
  */
-GList* r_slot_get_all_of_class(GHashTable *slots, const gchar* class);
+GList* r_slot_get_all_of_class(GHashTable *slots, const gchar* class)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Returns list of child slots of given parent slot.
@@ -171,4 +180,5 @@ GList* r_slot_get_all_of_class(GHashTable *slots, const gchar* class);
  * @return list of pointers to all memers of slots hash table that are childern
  *         of given slot.
  */
-GList* r_slot_get_all_children(GHashTable *slots, RaucSlot *parent);
+GList* r_slot_get_all_children(GHashTable *slots, RaucSlot *parent)
+G_GNUC_WARN_UNUSED_RESULT;

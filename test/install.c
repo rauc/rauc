@@ -596,6 +596,7 @@ static void test_install_image_selection(void)
 	GError *error = NULL;
 	GList *selected_images = NULL;
 	RaucImage *image = NULL;
+	gboolean res;
 
 #define MANIFEST2 "\
 [update]\n\
@@ -641,11 +642,13 @@ device=/dev/null\n\
 	r_context();
 
 	data = g_bytes_new_static(MANIFEST2, sizeof(MANIFEST2));
-	load_manifest_mem(data, &rm, &error);
+	res = load_manifest_mem(data, &rm, &error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
-	determine_slot_states(&error);
+	res = determine_slot_states(&error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
 	tgrp = determine_target_install_group();
 	g_assert_nonnull(tgrp);
@@ -678,6 +681,7 @@ static void test_install_image_selection_no_matching_slot(void)
 	GHashTable *tgrp = NULL;
 	GError *error = NULL;
 	GList *selected_images = NULL;
+	gboolean res;
 
 #define MANIFEST2 "\
 [update]\n\
@@ -714,11 +718,13 @@ device=/dev/null\n\
 	r_context();
 
 	data = g_bytes_new_static(MANIFEST2, sizeof(MANIFEST2));
-	load_manifest_mem(data, &rm, &error);
+	res = load_manifest_mem(data, &rm, &error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
-	determine_slot_states(&error);
+	res = determine_slot_states(&error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
 	tgrp = determine_target_install_group();
 	g_assert_nonnull(tgrp);
@@ -741,6 +747,7 @@ static void test_install_image_readonly(void)
 	GHashTable *tgrp = NULL;
 	GError *error = NULL;
 	GList *selected_images = NULL;
+	gboolean res;
 
 #define MANIFEST "\
 [update]\n\
@@ -774,11 +781,13 @@ readonly=true\n\
 	r_context();
 
 	data = g_bytes_new_static(MANIFEST, sizeof(MANIFEST));
-	load_manifest_mem(data, &rm, &error);
+	res = load_manifest_mem(data, &rm, &error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
-	determine_slot_states(&error);
+	res = determine_slot_states(&error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
 	tgrp = determine_target_install_group();
 	g_assert_nonnull(tgrp);
@@ -803,6 +812,7 @@ static void test_install_image_variants(void)
 	GList *install_images = NULL;
 	RaucImage *test_img = NULL;
 	GError *error = NULL;
+	gboolean res;
 
 #define MANIFEST_VARIANT "\
 [update]\n\
@@ -856,16 +866,18 @@ device=/dev/null\n\
 	r_context_conf()->bootslot = g_strdup("system1");
 	r_context();
 
-	determine_slot_states(&error);
+	res = determine_slot_states(&error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
 	tgrp = determine_target_install_group();
 	g_assert_nonnull(tgrp);
 
 	/* Test with manifest containing default and specific variant */
 	data = g_bytes_new_static(MANIFEST_VARIANT, sizeof(MANIFEST_VARIANT));
-	load_manifest_mem(data, &rm, &error);
+	res = load_manifest_mem(data, &rm, &error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 	g_assert_nonnull(rm);
 
 	install_images = get_install_images(rm, tgrp, &error);
@@ -882,8 +894,9 @@ device=/dev/null\n\
 
 	/* Test with manifest containing only default variant */
 	data = g_bytes_new_static(MANIFEST_DEFAULT_VARIANT, sizeof(MANIFEST_DEFAULT_VARIANT));
-	load_manifest_mem(data, &rm, &error);
+	res = load_manifest_mem(data, &rm, &error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 	g_assert_nonnull(rm);
 
 	install_images = get_install_images(rm, tgrp, &error);
@@ -900,8 +913,9 @@ device=/dev/null\n\
 
 	/* Test with manifest containing only non-matching specific variant (must fail) */
 	data = g_bytes_new_static(MANIFEST_OTHER_VARIANT, sizeof(MANIFEST_OTHER_VARIANT));
-	load_manifest_mem(data, &rm, &error);
+	res = load_manifest_mem(data, &rm, &error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 	g_assert_nonnull(rm);
 
 	install_images = get_install_images(rm, tgrp, &error);

@@ -67,7 +67,8 @@ typedef struct {
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error);
+gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Loads a manifest file.
@@ -80,7 +81,8 @@ gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GError **error);
+gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Creates a manifest file.
@@ -91,7 +93,8 @@ gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GErr
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean save_manifest_file(const gchar *filename, RaucManifest *manifest, GError **error);
+gboolean save_manifest_file(const gchar *filename, RaucManifest *manifest, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Frees the memory allocated by a RaucManifest.
@@ -111,7 +114,8 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucManifest, free_manifest);
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean update_manifest(const gchar *dir, GError **error);
+gboolean update_manifest(const gchar *dir, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Frees a rauc image

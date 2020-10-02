@@ -38,7 +38,8 @@ typedef enum {
  *
  * @return TRUE if succeeded, FALSE if failed
  */
-gboolean signature_init(GError **error);
+gboolean signature_init(GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Prepare an OpenSSL X509_STORE for signature verification.
@@ -52,7 +53,8 @@ gboolean signature_init(GError **error);
  *
  * @return X509_STORE, NULL if failed
  */
-X509_STORE* setup_x509_store(const gchar *capath, const gchar *cadir, GError **error);
+X509_STORE* setup_x509_store(const gchar *capath, const gchar *cadir, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Sign content with provided certificate and private key
@@ -66,7 +68,8 @@ X509_STORE* setup_x509_store(const gchar *capath, const gchar *cadir, GError **e
  *
  * @return signature bytes, NULL if failed
  */
-GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error);
+GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Sign file with provided certificate and private key
@@ -80,7 +83,8 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
  *
  * @return signature bytes, NULL if failed
  */
-GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error);
+GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Verify signature for given content.
@@ -93,7 +97,8 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
  *
  * @return TRUE if succeeded, FALSE if failed
  */
-gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GError **error);
+gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Verify signature for given file.
@@ -107,7 +112,8 @@ gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_Content
  *
  * @return TRUE if succeeded, FALSE if failed
  */
-gboolean cms_verify_file(const gchar *filename, GBytes *sig, goffset limit, X509_STORE *store, CMS_ContentInfo **cms, GError **error);
+gboolean cms_verify_file(const gchar *filename, GBytes *sig, goffset limit, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Calculates hash for certificate pubkey info.
@@ -119,7 +125,8 @@ gboolean cms_verify_file(const gchar *filename, GBytes *sig, goffset limit, X509
  *
  * @return colon-separated hexadecimal representation of subject key hash
  */
-gchar* get_pubkey_hash(X509 *cert);
+gchar* get_pubkey_hash(X509 *cert)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Calculates all hashes for certificate stacks pubkeys
@@ -128,7 +135,8 @@ gchar* get_pubkey_hash(X509 *cert);
  *
  * @return Array of pointers to string representations of hashes
  */
-gchar** get_pubkey_hashes(STACK_OF(X509) *certs);
+gchar** get_pubkey_hashes(STACK_OF(X509) *certs)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Returns string representation of certificate.
@@ -139,7 +147,8 @@ gchar** get_pubkey_hashes(STACK_OF(X509) *certs);
  * @return allocated string containing default OpenSSL text representation of
  *         signer certificate (first in chain)
  */
-gchar* sigdata_to_string(GBytes *sig, GError **error);
+gchar* sigdata_to_string(GBytes *sig, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Return string representation of certificate chain.
@@ -149,7 +158,8 @@ gchar* sigdata_to_string(GBytes *sig, GError **error);
  * @return allocated string containing text representation of certificate chain
  *         (signer and issuer)
  */
-gchar* print_cert_chain(STACK_OF(X509) *verified_chain);
+gchar* print_cert_chain(STACK_OF(X509) *verified_chain)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Get infos about signer and verification chain.
@@ -164,4 +174,5 @@ gchar* print_cert_chain(STACK_OF(X509) *verified_chain);
  *
  * @return TRUE if succeeded, FALSE if failed
  */
-gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error);
+gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
