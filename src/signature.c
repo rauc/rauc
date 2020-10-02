@@ -464,7 +464,7 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 	STACK_OF(X509) *intercerts = NULL;
 	CMS_ContentInfo *cms = NULL;
 	GBytes *res = NULL;
-	int flags = CMS_DETACHED | CMS_BINARY;
+	int flags = CMS_DETACHED | CMS_BINARY | CMS_NOSMIMECAP;
 	const gchar *keyring_path = NULL, *keyring_dir = NULL;
 
 	g_return_val_if_fail(content != NULL, NULL);
