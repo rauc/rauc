@@ -2,6 +2,8 @@
 
 set -e
 
+echo "<< debug $*"
+
 echo "<< handler [STARTED]"
 
 function exit_if_empty {

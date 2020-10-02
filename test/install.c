@@ -14,6 +14,9 @@
 
 GMainLoop *r_loop = NULL;
 
+typedef struct {
+	const gchar **message_needles;
+} InstallData;
 
 static void install_fixture_set_up_bundle(InstallFixture *fixture,
 		gconstpointer user_data)
@@ -943,9 +946,20 @@ static gboolean install_cleanup(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
+static gint find_str_custom(gconstpointer a, gconstpointer b)
+{
+	return g_strcmp0((gchar*) a, (gchar *) b);
+}
+
+static gboolean install_args_find_message(RaucInstallArgs *args, const gchar *needle)
+{
+	return g_queue_find_custom(&args->status_messages, needle, find_str_custom) != NULL;
+}
+
 static void install_test_bundle(InstallFixture *fixture,
 		gconstpointer user_data)
 {
+	InstallData *data = (InstallData*) user_data;
 	g_autofree gchar *bundlepath = NULL;
 	g_autofree gchar *mountprefix = NULL;
 	g_autofree gchar *slotfile = NULL;
@@ -983,6 +997,14 @@ static void install_test_bundle(InstallFixture *fixture,
 	g_assert(test_mount(slotfile, mountdir));
 	g_assert(g_file_test(testfilepath, G_FILE_TEST_IS_REGULAR));
 	g_assert(test_umount(fixture->tmpdir, "mnt"));
+
+	if (data != NULL) {
+		const gchar **message_needles = data->message_needles;
+		while (*message_needles != NULL) {
+			g_assert_true(install_args_find_message(args, *message_needles));
+			message_needles++;
+		}
+	}
 
 	args->status_result = 0;
 }
@@ -1204,6 +1226,7 @@ static void install_fixture_set_up_system_user(InstallFixture *fixture,
 
 int main(int argc, char *argv[])
 {
+	InstallData *install_data;
 	gchar *path;
 	setlocale(LC_ALL, "C");
 
@@ -1212,6 +1235,9 @@ int main(int argc, char *argv[])
 	g_free(path);
 
 	g_test_init(&argc, &argv, NULL);
+
+	r_context_conf()->handlerextra = g_strdup("--dummy1 --dummy2");
+	r_context();
 
 	g_test_add("/install/bootname", InstallFixture, NULL,
 			install_fixture_set_up_system_user, install_test_bootname,
@@ -1251,7 +1277,17 @@ int main(int argc, char *argv[])
 			install_fixture_set_up_bundle, install_test_bundle_thread,
 			install_fixture_tear_down);
 
-	g_test_add("/install/bundle-custom-handler", InstallFixture, NULL,
+	install_data = &(InstallData) {
+		.message_needles = (const gchar *[]) {
+			"Checking and mounting bundle...",
+			"Debug: --dummy1 --dummy2",
+			"Handler status: [STARTED]",
+			"Bootloader status: [DONE]",
+			"Handler status: [DONE]",
+			NULL,
+		},
+	};
+	g_test_add("/install/bundle-custom-handler", InstallFixture, install_data,
 			install_fixture_set_up_bundle_custom_handler, install_test_bundle,
 			install_fixture_tear_down);
 
