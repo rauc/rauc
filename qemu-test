@@ -24,8 +24,8 @@ rm -f qemu-test-ok
 # TODO use virtfs with multidevs=remap on qemu 4.2
 # https://github.com/qemu/qemu/commit/1a6ed33cc56997479bbe5b48337ff8da44585bd4
 
-KERNEL_URL="https://github.com/jluebbe/linux/releases/download/rauc-test-20200519-1/bzImage"
-KERNEL_SHA256SUM="8627a663bdf13e8665ad9087774a0461dc77c6f23f0f21246b384b7f5971639b"
+KERNEL_URL="https://github.com/jluebbe/linux/releases/download/rauc-test-20200908-1/bzImage"
+KERNEL_SHA256SUM="6d12c543dc35deaa3b0946779cd88f258b6f2ad6b55775bba0bd04f52487d0e9"
 
 check_kernel() {
   if test -f bzImage && echo "$KERNEL_SHA256SUM bzImage" | sha256sum --check --status; then
