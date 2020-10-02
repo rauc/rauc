@@ -488,19 +488,12 @@ static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *d
 	return res;
 }
 
-gboolean update_manifest(const gchar *dir, gboolean signature, GError **error)
+gboolean update_manifest(const gchar *dir, GError **error)
 {
 	GError *ierror = NULL;
 	g_autofree gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
-	g_autofree gchar* signaturepath = g_build_filename(dir, "manifest.raucm.sig", NULL);
 	g_autoptr(RaucManifest) manifest = NULL;
-	g_autoptr(GBytes) sig = NULL;
 	gboolean res = FALSE;
-
-	if (signature) {
-		g_assert_nonnull(r_context()->certpath);
-		g_assert_nonnull(r_context()->keypath);
-	}
 
 	res = load_manifest_file(manifestpath, &manifest, &ierror);
 	if (!res) {
@@ -518,24 +511,6 @@ gboolean update_manifest(const gchar *dir, gboolean signature, GError **error)
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
-	}
-
-	if (signature) {
-		sig = cms_sign_file(manifestpath,
-				r_context()->certpath,
-				r_context()->keypath,
-				NULL,
-				&ierror);
-		if (sig == NULL) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-
-		res = write_file(signaturepath, sig, &ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
 	}
 
 out:
