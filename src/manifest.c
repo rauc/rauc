@@ -132,14 +132,6 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	/* parse [handler] section */
 	raucm->handler_name = key_file_consume_string(key_file, "handler", "filename", NULL);
 	raucm->handler_args = key_file_consume_string(key_file, "handler", "args", NULL);
-	if (r_context()->handlerextra) {
-		GString *str = g_string_new(raucm->handler_args);
-		if (str->len)
-			g_string_append_c(str, ' ');
-		g_string_append(str, r_context()->handlerextra);
-		g_free(raucm->handler_args);
-		raucm->handler_args = g_string_free(str, FALSE);
-	}
 	if (!check_remaining_keys(key_file, "handler", &ierror)) {
 		g_propagate_error(error, ierror);
 		goto free;

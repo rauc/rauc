@@ -558,15 +558,23 @@ static gboolean launch_and_wait_handler(RaucInstallArgs *args, gchar *update_sou
 	GInputStream *instream = NULL;
 	g_autoptr(GDataInputStream) datainstream = NULL;
 	gchar *outline;
+	g_autoptr(GString) handler_args = NULL;
 
 	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE);
 
 	prepare_environment(handlelaunch, update_source, manifest, target_group);
 
+	handler_args = g_string_new(manifest->handler_args);
+	if (r_context()->handlerextra) {
+		if (handler_args->len)
+			g_string_append_c(handler_args, ' ');
+		g_string_append(handler_args, r_context()->handlerextra);
+	}
+
 	handleproc = g_subprocess_launcher_spawn(
 			handlelaunch, &ierror,
 			handler_name,
-			manifest->handler_args,
+			handler_args->str,
 			NULL);
 	if (handleproc == NULL) {
 		g_propagate_error(error, ierror);
