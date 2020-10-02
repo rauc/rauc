@@ -946,7 +946,11 @@ static gboolean install_cleanup(gpointer data)
 static void install_test_bundle(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *bundlepath, *mountprefix, *slotfile, *testfilepath, *mountdir;
+	g_autofree gchar *bundlepath = NULL;
+	g_autofree gchar *mountprefix = NULL;
+	g_autofree gchar *slotfile = NULL;
+	g_autofree gchar *testfilepath = NULL;
+	g_autofree gchar *mountdir = NULL;
 	RaucInstallArgs *args;
 	GError *ierror = NULL;
 	gboolean res;
@@ -958,7 +962,7 @@ static void install_test_bundle(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountprefix = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountprefix);
-	r_context_conf()->mountprefix = mountprefix;
+	r_context_conf()->mountprefix = g_strdup(mountprefix);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -981,11 +985,6 @@ static void install_test_bundle(InstallFixture *fixture,
 	g_assert(test_umount(fixture->tmpdir, "mnt"));
 
 	args->status_result = 0;
-
-	g_free(bundlepath);
-	g_free(slotfile);
-	g_free(mountdir);
-	g_free(testfilepath);
 }
 
 static void install_test_bundle_thread(InstallFixture *fixture,
