@@ -1556,53 +1556,53 @@ static gboolean status_start(int argc, char **argv)
 	g_debug("status start");
 	r_exit_status = 0;
 
-	if (!ENABLE_SERVICE) {
-		res = determine_slot_states(&ierror);
-		if (!res) {
-			g_printerr("Failed to determine slot states: %s\n", ierror->message);
-			g_clear_error(&ierror);
-			r_exit_status = 1;
-			return TRUE;
-		}
-
-		res = determine_boot_states(&ierror);
-		if (!res) {
-			g_printerr("Failed to determine boot states: %s\n", ierror->message);
-			g_clear_error(&ierror);
-		}
-
-		if (status_detailed) {
-			GHashTableIter iter;
-			RaucSlot *slot;
-
-			g_hash_table_iter_init(&iter, r_context()->config->slots);
-			while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot))
-				load_slot_status(slot);
-		}
-
-		status_print = g_new0(RaucStatusPrint, 1);
-
-		status_print->primary = r_boot_get_primary(&ierror);
-		if (!status_print->primary) {
-			g_printerr("%s\n", ierror->message);
-			g_clear_error(&ierror);
-		}
-
-		status_print->compatible = r_context()->config->system_compatible;
-		status_print->variant = r_context()->config->system_variant;
-		status_print->bootslot = r_context()->bootslot;
-		status_print->slots = r_context()->config->slots;
-	} else {
-		if (!retrieve_status_via_dbus(&status_print, &ierror)) {
-			g_printerr("Error retrieving slot status via D-Bus: %s\n",
-					ierror->message);
-			g_error_free(ierror);
-			r_exit_status = 1;
-			return TRUE;
-		}
-	}
-
 	if (argc < 3) {
+		if (!ENABLE_SERVICE) {
+			res = determine_slot_states(&ierror);
+			if (!res) {
+				g_printerr("Failed to determine slot states: %s\n", ierror->message);
+				g_clear_error(&ierror);
+				r_exit_status = 1;
+				return TRUE;
+			}
+
+			res = determine_boot_states(&ierror);
+			if (!res) {
+				g_printerr("Failed to determine boot states: %s\n", ierror->message);
+				g_clear_error(&ierror);
+			}
+
+			if (status_detailed) {
+				GHashTableIter iter;
+				RaucSlot *slot;
+
+				g_hash_table_iter_init(&iter, r_context()->config->slots);
+				while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot))
+					load_slot_status(slot);
+			}
+
+			status_print = g_new0(RaucStatusPrint, 1);
+
+			status_print->primary = r_boot_get_primary(&ierror);
+			if (!status_print->primary) {
+				g_printerr("%s\n", ierror->message);
+				g_clear_error(&ierror);
+			}
+
+			status_print->compatible = r_context()->config->system_compatible;
+			status_print->variant = r_context()->config->system_variant;
+			status_print->bootslot = r_context()->bootslot;
+			status_print->slots = r_context()->config->slots;
+		} else {
+			if (!retrieve_status_via_dbus(&status_print, &ierror)) {
+				g_printerr("Error retrieving slot status via D-Bus: %s\n",
+						ierror->message);
+				g_error_free(ierror);
+				r_exit_status = 1;
+				return TRUE;
+			}
+		}
+
 		if (!print_status(status_print)) {
 			r_exit_status = 1;
 		}
@@ -1656,6 +1656,13 @@ static gboolean status_start(int argc, char **argv)
 
 		g_clear_object(&proxy);
 	} else {
+		if (!determine_slot_states(&ierror)) {
+			g_printerr("Failed to determine slot states: %s\n", ierror->message);
+			g_clear_error(&ierror);
+			r_exit_status = 1;
+			return TRUE;
+		}
+
 		r_exit_status = mark_run(state, slot_identifier, NULL, &message) ? 0 : 1;
 		if (r_exit_status)
 			g_printerr("rauc mark: %s\n", message);
