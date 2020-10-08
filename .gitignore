@@ -19,8 +19,8 @@ config.h.in
 config.status
 configure
 libtool
-rauc
-rauc.map
+/rauc
+/rauc.map
 stamp-h1
 .deps
 .dirstamp
