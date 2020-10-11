@@ -56,6 +56,17 @@ static const gchar* get_cmdline_bootname(void)
 	if (!bootname)
 		return NULL;
 
+	if (strncmp(bootname, "PARTLABEL=", 10) == 0) {
+		gchar *partlabelpath = g_build_filename(
+				"/dev/disk/by-partlabel/",
+				&bootname[10],
+				NULL);
+		if (partlabelpath) {
+			g_free((gchar*) bootname);
+			bootname = partlabelpath;
+		}
+	}
+
 	if (strncmp(bootname, "PARTUUID=", 9) == 0) {
 		gchar *partuuidpath = g_build_filename(
 				"/dev/disk/by-partuuid/",
