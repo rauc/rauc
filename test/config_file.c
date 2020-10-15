@@ -884,12 +884,12 @@ static void config_file_test_write_slot_status(void)
 	ss->checksum.type = G_CHECKSUM_SHA256;
 	ss->checksum.digest = g_strdup("dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551");
 
-	write_slot_status("test/savedslot.raucs", ss, NULL);
+	g_assert_true(write_slot_status("test/savedslot.raucs", ss, NULL));
 
 	r_slot_free_status(ss);
 	ss = g_new0(RaucSlotStatus, 1);
 
-	read_slot_status("test/savedslot.raucs", ss, NULL);
+	g_assert_true(read_slot_status("test/savedslot.raucs", ss, NULL));
 
 	g_assert_nonnull(ss);
 	g_assert_cmpstr(ss->status, ==, "ok");
@@ -914,6 +914,7 @@ static void config_file_test_global_slot_status(ConfigFileFixture *fixture,
 	GHashTableIter iter;
 	GError *ierror = NULL;
 	RaucSlot *slot;
+	gboolean res;
 
 	g_assert_nonnull(r_context()->config->statusfile_path);
 
@@ -933,8 +934,9 @@ static void config_file_test_global_slot_status(ConfigFileFixture *fixture,
 	/* Save status for all slots */
 	g_hash_table_iter_init(&iter, slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
-		save_slot_status(slot, &ierror);
+		res = save_slot_status(slot, &ierror);
 		g_assert_no_error(ierror);
+		g_assert_true(res);
 	}
 
 	/* Clear status for all slots */

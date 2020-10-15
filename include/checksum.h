@@ -27,7 +27,8 @@ typedef struct {
  * @param error return location for a GError, or NULL
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean compute_checksum(RaucChecksum *checksum, const gchar *filename, GError **error);
+gboolean compute_checksum(RaucChecksum *checksum, const gchar *filename, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Verifies provided file checksum.
@@ -38,4 +39,5 @@ gboolean compute_checksum(RaucChecksum *checksum, const gchar *filename, GError 
  * @param filename name of file to verify checksum against
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename, GError **error);
+gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;

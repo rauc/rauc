@@ -20,7 +20,8 @@ GQuark r_bootchooser_error_quark(void);
  *
  * @return TRUE if successful, FALSE if failed
  */
-gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error);
+gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Mark slot as primary boot option of its slot class.
@@ -30,7 +31,8 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error);
  *
  * @return TRUE if successful, FALSE if failed
  */
-gboolean r_boot_set_primary(RaucSlot *slot, GError **error);
+gboolean r_boot_set_primary(RaucSlot *slot, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Get primary boot slot.
@@ -39,7 +41,8 @@ gboolean r_boot_set_primary(RaucSlot *slot, GError **error);
  *
  * @return Primary slot, NULL if detection failed
  */
-RaucSlot* r_boot_get_primary(GError **error);
+RaucSlot* r_boot_get_primary(GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Get bootloader state.
@@ -51,4 +54,5 @@ RaucSlot* r_boot_get_primary(GError **error);
  *
  * @return TRUE if successful, FALSE if failed
  */
-gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error);
+gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;

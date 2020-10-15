@@ -47,7 +47,8 @@
  *
  * @return True if succeeded, False if failed
  */
-gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError **error);
+gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Set the given boot partition (by index) active.
@@ -58,7 +59,8 @@ gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError
  *
  * @return True if succeeded, False if failed
  */
-gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError **error);
+gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Set eMMC boot partition to read-only.
@@ -78,4 +80,5 @@ gboolean r_emmc_force_part_ro(const gchar *device, GError **error);
  *
  * @return True if succeeded, False if failed
  */
-gboolean r_emmc_force_part_rw(const gchar *device, GError **error);
+gboolean r_emmc_force_part_rw(const gchar *device, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;

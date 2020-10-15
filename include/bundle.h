@@ -31,7 +31,8 @@ typedef struct {
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error);
+gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Check a bundle.
@@ -48,7 +49,8 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error);
+gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Resign a bundle.
@@ -65,7 +67,8 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error);
+gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Extract a bundle.
@@ -81,7 +84,8 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **error);
+gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Extract a single file from a bundle.
@@ -98,7 +102,8 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, const gchar *file, GError **error);
+gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, const gchar *file, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Create casync bundle.
@@ -107,7 +112,8 @@ gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, co
  * @param outbundle output location for converted casync bundle
  * @param error Return location for a GError
  */
-gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error);
+gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Mount a bundle.
@@ -120,7 +126,8 @@ gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean mount_bundle(RaucBundle *bundle, GError **error);
+gboolean mount_bundle(RaucBundle *bundle, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Unmount a bundle.

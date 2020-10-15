@@ -22,7 +22,7 @@ static void manifest_check_common(RaucManifest *rm)
 	g_assert_cmpstr(rm->update_version, ==, "2015.04-1");
 	g_assert_cmpstr(rm->keyring, ==, "release.tar");
 	g_assert_cmpstr(rm->handler_name, ==, "custom_handler.sh");
-	g_assert_cmpstr(rm->handler_args, ==, "--dummy1 --dummy2");
+	g_assert_cmpstr(rm->handler_args, ==, NULL);
 	g_assert_cmpstr(rm->hook_name, ==, "hook.sh");
 	g_assert_nonnull(rm->images);
 
@@ -158,7 +158,7 @@ static void test_save_load_manifest(void)
 	g_assert_cmpstr(rm->update_version, ==, "2011.03-1");
 	g_assert_cmpstr(rm->keyring, ==, "mykeyring.tar");
 	g_assert_cmpstr(rm->handler_name, ==, "myhandler.sh");
-	g_assert_cmpstr(rm->handler_args, ==, "--foo --dummy1 --dummy2");
+	g_assert_cmpstr(rm->handler_args, ==, "--foo");
 	g_assert_cmpstr(rm->hook_name, ==, "hook.sh");
 
 	g_assert_cmpuint(g_list_length(rm->images), ==, 3);

@@ -67,7 +67,8 @@ typedef struct {
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error);
+gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Loads a manifest file.
@@ -80,7 +81,8 @@ gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GError **error);
+gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Creates a manifest file.
@@ -91,7 +93,8 @@ gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GErr
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean save_manifest_file(const gchar *filename, RaucManifest *manifest, GError **error);
+gboolean save_manifest_file(const gchar *filename, RaucManifest *manifest, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Frees the memory allocated by a RaucManifest.
@@ -107,28 +110,12 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucManifest, free_manifest);
  * and placed in the bundle directory
  *
  * @param dir Directory with the bundle content
- * @param signature If true, a signature file is created
  * @param error return location for a GError, or NULL
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean update_manifest(const gchar *dir, gboolean signature, GError **error);
-
-/**
- * Loads and verifies manifest in directory.
- *
- * The manifest itself must be named 'manifest.raucm'.
- * An optional signature file must be named 'manifest.raucm.sig'
- *
- * @param dir Directory the manifest is located in
- * @param output Returns newly allocated manifest if RaucManifest pointerpointer
- *        is provided.
- *        If output is NULL, manifest will be freed an nothing returned.
- * @param error return location for a GError, or NULL
- *
- * @return TRUE on success, FALSE if an error occurred
- */
-gboolean verify_manifest(const gchar *dir, RaucManifest **output, GError **error);
+gboolean update_manifest(const gchar *dir, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Frees a rauc image

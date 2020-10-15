@@ -7,4 +7,5 @@ void mark_active(RaucSlot *slot, GError **error);
 gboolean mark_run(const gchar *state,
 		const gchar *slot_identifier,
 		gchar **slot_name,
-		gchar **message);
+		gchar **message)
+G_GNUC_WARN_UNUSED_RESULT;

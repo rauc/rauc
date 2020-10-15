@@ -181,7 +181,7 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 	}
 
 	/* Update checksums in manifest */
-	g_assert_true(update_manifest(contentdir, FALSE, NULL));
+	g_assert_true(update_manifest(contentdir, NULL));
 
 	/* Create bundle */
 	g_assert_true(create_bundle(bundlepath, contentdir, NULL));

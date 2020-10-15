@@ -35,6 +35,7 @@ gchar *output_format = NULL;
 gchar *signing_keyring = NULL;
 gchar *mksquashfs_args = NULL;
 gchar *casync_args = NULL;
+gchar *handler_args = NULL;
 gboolean utf8_supported = FALSE;
 
 static gchar* make_progress_line(gint percentage)
@@ -361,7 +362,7 @@ static gboolean bundle_start(int argc, char **argv)
 	g_debug("input directory: %s", inpath);
 	g_debug("output bundle: %s", outpath);
 
-	if (!update_manifest(argv[2], FALSE, &ierror)) {
+	if (!update_manifest(argv[2], &ierror)) {
 		g_printerr("Failed to update manifest: %s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -1713,6 +1714,8 @@ static GOptionEntry entries_install[] = {
 	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
 #if ENABLE_SERVICE == 1
 	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
+#else
+	{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handler_args, "extra handler arguments", "ARGS"},
 #endif
 	{0}
 };
@@ -1749,12 +1752,18 @@ static GOptionEntry entries_status[] = {
 	{0}
 };
 
+static GOptionEntry entries_service[] = {
+	{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handler_args, "extra handler arguments", "ARGS"},
+	{0}
+};
+
 static GOptionGroup *install_group;
 static GOptionGroup *bundle_group;
 static GOptionGroup *resign_group;
 static GOptionGroup *convert_group;
 static GOptionGroup *info_group;
 static GOptionGroup *status_group;
+static GOptionGroup *service_group;
 
 static void create_option_groups(void)
 {
@@ -1777,13 +1786,16 @@ static void create_option_groups(void)
 
 	status_group  = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(status_group, entries_status);
+
+	service_group  = g_option_group_new("service", "Service options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(service_group, entries_service);
 }
 
 static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, debug = FALSE, version = FALSE;
 	gchar *confpath = NULL, *certpath = NULL, *keypath = NULL, *keyring = NULL, **intermediate = NULL, *mount = NULL,
-	      *handlerextra = NULL, *bootslot = NULL;
+	      *bootslot = NULL;
 	char *cmdarg = NULL;
 	g_autoptr(GOptionContext) context = NULL;
 	GOptionEntry entries[] = {
@@ -1794,7 +1806,6 @@ static void cmdline_handler(int argc, char **argv)
 		{"intermediate", '\0', 0, G_OPTION_ARG_FILENAME_ARRAY, &intermediate, "intermediate CA file name", "PEMFILE"},
 		{"mount", '\0', 0, G_OPTION_ARG_FILENAME, &mount, "mount prefix", "PATH"},
 		{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "BOOTNAME"},
-		{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handlerextra, "extra handler arguments", "ARGS"},
 		{"debug", 'd', 0, G_OPTION_ARG_NONE, &debug, "enable debug output", NULL},
 		{"version", '\0', 0, G_OPTION_ARG_NONE, &version, "display version", NULL},
 		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, NULL, NULL},
@@ -1823,7 +1834,7 @@ static void cmdline_handler(int argc, char **argv)
 		 status_start, status_group, TRUE},
 		{WRITE_SLOT, "write-slot", "write-slot <SLOTNAME> <IMAGE>", "Write image to slot and bypass all update logic", write_slot_start, NULL, FALSE},
 #if ENABLE_SERVICE == 1
-		{SERVICE, "service", "service", "Start RAUC service", service_start, NULL, TRUE},
+		{SERVICE, "service", "service", "Start RAUC service", service_start, service_group, TRUE},
 #endif
 		{0}
 	};
@@ -1960,8 +1971,8 @@ static void cmdline_handler(int argc, char **argv)
 			r_context_conf()->mountprefix = mount;
 		if (bootslot)
 			r_context_conf()->bootslot = bootslot;
-		if (handlerextra)
-			r_context_conf()->handlerextra = handlerextra;
+		if (handler_args)
+			r_context_conf()->handlerextra = handler_args;
 	} else {
 		if (confpath != NULL ||
 		    certpath != NULL ||

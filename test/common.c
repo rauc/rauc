@@ -316,7 +316,7 @@ gboolean test_make_slot_user_writable(const gchar* path, const gchar* file)
 
 	test_do_chmod(mountpath);
 
-	r_umount(mountpath, NULL);
+	g_assert_true(r_umount(mountpath, NULL));
 
 	res = TRUE;
 
@@ -338,7 +338,7 @@ void test_create_bundle(gchar *contentdir, gchar *bundlename)
 	GError *error = NULL;
 	gboolean res = FALSE;
 
-	res = update_manifest(contentdir, FALSE, &error);
+	res = update_manifest(contentdir, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
 

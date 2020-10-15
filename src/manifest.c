@@ -132,14 +132,6 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	/* parse [handler] section */
 	raucm->handler_name = key_file_consume_string(key_file, "handler", "filename", NULL);
 	raucm->handler_args = key_file_consume_string(key_file, "handler", "args", NULL);
-	if (r_context()->handlerextra) {
-		GString *str = g_string_new(raucm->handler_args);
-		if (str->len)
-			g_string_append_c(str, ' ');
-		g_string_append(str, r_context()->handlerextra);
-		g_free(raucm->handler_args);
-		raucm->handler_args = g_string_free(str, FALSE);
-	}
 	if (!check_remaining_keys(key_file, "handler", &ierror)) {
 		g_propagate_error(error, ierror);
 		goto free;
@@ -488,19 +480,12 @@ static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *d
 	return res;
 }
 
-gboolean update_manifest(const gchar *dir, gboolean signature, GError **error)
+gboolean update_manifest(const gchar *dir, GError **error)
 {
 	GError *ierror = NULL;
 	g_autofree gchar* manifestpath = g_build_filename(dir, "manifest.raucm", NULL);
-	g_autofree gchar* signaturepath = g_build_filename(dir, "manifest.raucm.sig", NULL);
 	g_autoptr(RaucManifest) manifest = NULL;
-	g_autoptr(GBytes) sig = NULL;
 	gboolean res = FALSE;
-
-	if (signature) {
-		g_assert_nonnull(r_context()->certpath);
-		g_assert_nonnull(r_context()->keypath);
-	}
 
 	res = load_manifest_file(manifestpath, &manifest, &ierror);
 	if (!res) {
@@ -518,24 +503,6 @@ gboolean update_manifest(const gchar *dir, gboolean signature, GError **error)
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
-	}
-
-	if (signature) {
-		sig = cms_sign_file(manifestpath,
-				r_context()->certpath,
-				r_context()->keypath,
-				NULL,
-				&ierror);
-		if (sig == NULL) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-
-		res = write_file(signaturepath, sig, &ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
 	}
 
 out:

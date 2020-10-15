@@ -14,6 +14,9 @@
 
 GMainLoop *r_loop = NULL;
 
+typedef struct {
+	const gchar **message_needles;
+} InstallData;
 
 static void install_fixture_set_up_bundle(InstallFixture *fixture,
 		gconstpointer user_data)
@@ -593,6 +596,7 @@ static void test_install_image_selection(void)
 	GError *error = NULL;
 	GList *selected_images = NULL;
 	RaucImage *image = NULL;
+	gboolean res;
 
 #define MANIFEST2 "\
 [update]\n\
@@ -638,11 +642,13 @@ device=/dev/null\n\
 	r_context();
 
 	data = g_bytes_new_static(MANIFEST2, sizeof(MANIFEST2));
-	load_manifest_mem(data, &rm, &error);
+	res = load_manifest_mem(data, &rm, &error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
-	determine_slot_states(&error);
+	res = determine_slot_states(&error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
 	tgrp = determine_target_install_group();
 	g_assert_nonnull(tgrp);
@@ -675,6 +681,7 @@ static void test_install_image_selection_no_matching_slot(void)
 	GHashTable *tgrp = NULL;
 	GError *error = NULL;
 	GList *selected_images = NULL;
+	gboolean res;
 
 #define MANIFEST2 "\
 [update]\n\
@@ -711,11 +718,13 @@ device=/dev/null\n\
 	r_context();
 
 	data = g_bytes_new_static(MANIFEST2, sizeof(MANIFEST2));
-	load_manifest_mem(data, &rm, &error);
+	res = load_manifest_mem(data, &rm, &error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
-	determine_slot_states(&error);
+	res = determine_slot_states(&error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
 	tgrp = determine_target_install_group();
 	g_assert_nonnull(tgrp);
@@ -738,6 +747,7 @@ static void test_install_image_readonly(void)
 	GHashTable *tgrp = NULL;
 	GError *error = NULL;
 	GList *selected_images = NULL;
+	gboolean res;
 
 #define MANIFEST "\
 [update]\n\
@@ -771,11 +781,13 @@ readonly=true\n\
 	r_context();
 
 	data = g_bytes_new_static(MANIFEST, sizeof(MANIFEST));
-	load_manifest_mem(data, &rm, &error);
+	res = load_manifest_mem(data, &rm, &error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
-	determine_slot_states(&error);
+	res = determine_slot_states(&error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
 	tgrp = determine_target_install_group();
 	g_assert_nonnull(tgrp);
@@ -800,6 +812,7 @@ static void test_install_image_variants(void)
 	GList *install_images = NULL;
 	RaucImage *test_img = NULL;
 	GError *error = NULL;
+	gboolean res;
 
 #define MANIFEST_VARIANT "\
 [update]\n\
@@ -853,16 +866,18 @@ device=/dev/null\n\
 	r_context_conf()->bootslot = g_strdup("system1");
 	r_context();
 
-	determine_slot_states(&error);
+	res = determine_slot_states(&error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
 	tgrp = determine_target_install_group();
 	g_assert_nonnull(tgrp);
 
 	/* Test with manifest containing default and specific variant */
 	data = g_bytes_new_static(MANIFEST_VARIANT, sizeof(MANIFEST_VARIANT));
-	load_manifest_mem(data, &rm, &error);
+	res = load_manifest_mem(data, &rm, &error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 	g_assert_nonnull(rm);
 
 	install_images = get_install_images(rm, tgrp, &error);
@@ -879,8 +894,9 @@ device=/dev/null\n\
 
 	/* Test with manifest containing only default variant */
 	data = g_bytes_new_static(MANIFEST_DEFAULT_VARIANT, sizeof(MANIFEST_DEFAULT_VARIANT));
-	load_manifest_mem(data, &rm, &error);
+	res = load_manifest_mem(data, &rm, &error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 	g_assert_nonnull(rm);
 
 	install_images = get_install_images(rm, tgrp, &error);
@@ -897,8 +913,9 @@ device=/dev/null\n\
 
 	/* Test with manifest containing only non-matching specific variant (must fail) */
 	data = g_bytes_new_static(MANIFEST_OTHER_VARIANT, sizeof(MANIFEST_OTHER_VARIANT));
-	load_manifest_mem(data, &rm, &error);
+	res = load_manifest_mem(data, &rm, &error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 	g_assert_nonnull(rm);
 
 	install_images = get_install_images(rm, tgrp, &error);
@@ -943,10 +960,25 @@ static gboolean install_cleanup(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
+static gint find_str_custom(gconstpointer a, gconstpointer b)
+{
+	return g_strcmp0((gchar*) a, (gchar *) b);
+}
+
+static gboolean install_args_find_message(RaucInstallArgs *args, const gchar *needle)
+{
+	return g_queue_find_custom(&args->status_messages, needle, find_str_custom) != NULL;
+}
+
 static void install_test_bundle(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *bundlepath, *mountprefix, *slotfile, *testfilepath, *mountdir;
+	InstallData *data = (InstallData*) user_data;
+	g_autofree gchar *bundlepath = NULL;
+	g_autofree gchar *mountprefix = NULL;
+	g_autofree gchar *slotfile = NULL;
+	g_autofree gchar *testfilepath = NULL;
+	g_autofree gchar *mountdir = NULL;
 	RaucInstallArgs *args;
 	GError *ierror = NULL;
 	gboolean res;
@@ -958,7 +990,7 @@ static void install_test_bundle(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountprefix = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountprefix);
-	r_context_conf()->mountprefix = mountprefix;
+	r_context_conf()->mountprefix = g_strdup(mountprefix);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -980,12 +1012,15 @@ static void install_test_bundle(InstallFixture *fixture,
 	g_assert(g_file_test(testfilepath, G_FILE_TEST_IS_REGULAR));
 	g_assert(test_umount(fixture->tmpdir, "mnt"));
 
-	args->status_result = 0;
+	if (data != NULL) {
+		const gchar **message_needles = data->message_needles;
+		while (*message_needles != NULL) {
+			g_assert_true(install_args_find_message(args, *message_needles));
+			message_needles++;
+		}
+	}
 
-	g_free(bundlepath);
-	g_free(slotfile);
-	g_free(mountdir);
-	g_free(testfilepath);
+	args->status_result = 0;
 }
 
 static void install_test_bundle_thread(InstallFixture *fixture,
@@ -1205,6 +1240,7 @@ static void install_fixture_set_up_system_user(InstallFixture *fixture,
 
 int main(int argc, char *argv[])
 {
+	InstallData *install_data;
 	gchar *path;
 	setlocale(LC_ALL, "C");
 
@@ -1213,6 +1249,9 @@ int main(int argc, char *argv[])
 	g_free(path);
 
 	g_test_init(&argc, &argv, NULL);
+
+	r_context_conf()->handlerextra = g_strdup("--dummy1 --dummy2");
+	r_context();
 
 	g_test_add("/install/bootname", InstallFixture, NULL,
 			install_fixture_set_up_system_user, install_test_bootname,
@@ -1252,7 +1291,17 @@ int main(int argc, char *argv[])
 			install_fixture_set_up_bundle, install_test_bundle_thread,
 			install_fixture_tear_down);
 
-	g_test_add("/install/bundle-custom-handler", InstallFixture, NULL,
+	install_data = &(InstallData) {
+		.message_needles = (const gchar *[]) {
+			"Checking and mounting bundle...",
+			"Debug: --dummy1 --dummy2",
+			"Handler status: [STARTED]",
+			"Bootloader status: [DONE]",
+			"Handler status: [DONE]",
+			NULL,
+		},
+	};
+	g_test_add("/install/bundle-custom-handler", InstallFixture, install_data,
 			install_fixture_set_up_bundle_custom_handler, install_test_bundle,
 			install_fixture_tear_down);
 
