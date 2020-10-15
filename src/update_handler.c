@@ -1714,7 +1714,6 @@ RaucUpdatePair updatepairs[] = {
 	{"*.img.caibx", "ubivol", img_to_ubivol_handler},
 	{"*.img.caibx", "ubifs", img_to_ubifs_handler},
 	{"*.squashfs.caibx", "ubivol", img_to_ubivol_handler},
-	{"*.img.caibx", "*", img_to_raw_handler}, /* fallback */
 	{"*.caidx", "ext4", archive_to_ext4_handler},
 	{"*.caidx", "ubifs", archive_to_ubifs_handler},
 	{"*.caidx", "vfat", archive_to_vfat_handler},
@@ -1748,6 +1747,7 @@ RaucUpdatePair updatepairs[] = {
 	{"*.img", "boot-gpt-switch", img_to_boot_gpt_switch_handler},
 #endif
 	{"*", "boot-gpt-switch", NULL},
+	{"*.img.caibx", "*", img_to_raw_handler}, /* fallback */
 	{"*.img", "*", img_to_raw_handler}, /* fallback */
 	{0}
 };
