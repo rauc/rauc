@@ -98,9 +98,9 @@ static void bundle_fixture_tear_down_autobuilder2(BundleFixture *fixture,
 static void test_check_empty_bundle(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *bundlename;
-	RaucBundle *bundle = NULL;
-	GError *ierror = NULL;
+	g_autofree gchar *bundlename = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
 
 	bundlename = write_random_file(fixture->tmpdir, "bundle.raucb", 0, 1234);
@@ -110,16 +110,14 @@ static void test_check_empty_bundle(BundleFixture *fixture,
 	g_assert_false(res);
 	g_assert_error(ierror, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT);
 	g_assert_null(bundle);
-
-	g_free(bundlename);
 }
 
 static void test_check_invalid_bundle(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *bundlename;
-	RaucBundle *bundle = NULL;
-	GError *ierror = NULL;
+	g_autofree gchar *bundlename = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
 
 	bundlename = write_random_file(fixture->tmpdir, "bundle.raucb", 1024, 1234);
@@ -129,16 +127,14 @@ static void test_check_invalid_bundle(BundleFixture *fixture,
 	g_assert_false(res);
 	g_assert_error(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_IDENTIFIER);
 	g_assert_null(bundle);
-
-	g_free(bundlename);
 }
 
 static void bundle_test_create_extract(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *outputdir;
-	RaucBundle *bundle = NULL;
-	GError *ierror = NULL;
+	g_autofree gchar *outputdir = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
 
 	outputdir = g_build_filename(fixture->tmpdir, "output", NULL);
@@ -152,15 +148,13 @@ static void bundle_test_create_extract(BundleFixture *fixture,
 	res = extract_bundle(bundle, outputdir, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
-
-	free_bundle(bundle);
 }
 
 static void bundle_test_create_mount_extract(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucBundle *bundle = NULL;
-	GError *ierror = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
 
 	/* mount needs to run as root */
@@ -179,16 +173,15 @@ static void bundle_test_create_mount_extract(BundleFixture *fixture,
 	res = umount_bundle(bundle, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
-
-	free_bundle(bundle);
 }
 
 static void bundle_test_extract_manifest(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *outputdir, *manifestpath;
-	RaucBundle *bundle = NULL;
-	GError *ierror = NULL;
+	g_autofree gchar *outputdir = NULL;
+	g_autofree gchar *manifestpath = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
 
 	outputdir = g_build_filename(fixture->tmpdir, "output", NULL);
@@ -206,8 +199,6 @@ static void bundle_test_extract_manifest(BundleFixture *fixture,
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_true(g_file_test(manifestpath, G_FILE_TEST_EXISTS));
-
-	free_bundle(bundle);
 }
 
 // Hack to pull-in context for testing modification
@@ -216,9 +207,9 @@ extern RaucContext *context;
 static void bundle_test_resign(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *resignbundle;
-	RaucBundle *bundle = NULL;
-	GError *ierror = NULL;
+	g_autofree gchar *resignbundle = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
 
 	resignbundle = g_build_filename(fixture->tmpdir, "resigned-bundle.raucb", NULL);
@@ -274,14 +265,13 @@ static void bundle_test_resign(BundleFixture *fixture,
 
 	// hacky restore of original signing_keyringpath
 	context->signing_keyringpath = NULL;
-	g_clear_pointer(&bundle, free_bundle);
 }
 
 static void bundle_test_wrong_capath(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucBundle *bundle = NULL;
-	GError *ierror = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
 	r_context()->config->keyring_path = g_strdup("does/not/exist.pem");
 
 	g_assert_false(check_bundle(fixture->bundlename, &bundle, TRUE, &ierror));
@@ -297,8 +287,8 @@ static void bundle_test_wrong_capath(BundleFixture *fixture,
 static void bundle_test_verify_no_crl_warn(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucBundle *bundle = NULL;
-	GError *ierror = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
 
 	r_context()->config->keyring_check_crl = FALSE;
@@ -311,8 +301,6 @@ static void bundle_test_verify_no_crl_warn(BundleFixture *fixture,
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
-
-	free_bundle(bundle);
 }
 
 /* Test that verification of a bundle signed with a revoked key actually fails
@@ -320,8 +308,8 @@ static void bundle_test_verify_no_crl_warn(BundleFixture *fixture,
 static void bundle_test_verify_revoked(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucBundle *bundle = NULL;
-	GError *ierror = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
 
 	g_assert_false(check_bundle(fixture->bundlename, &bundle, TRUE, &ierror));
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
@@ -331,8 +319,8 @@ static void bundle_test_verify_revoked(BundleFixture *fixture,
 static void bundle_test_purpose_default(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucBundle *bundle = NULL;
-	GError *ierror = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
 
 	/* When the cert specifies no purpose, everything except 'codesign' is allowed */
@@ -374,8 +362,8 @@ static void bundle_test_purpose_default(BundleFixture *fixture,
 static void bundle_test_purpose_email(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucBundle *bundle = NULL;
-	GError *ierror = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
 
 	/* When the cert specifies the 'smimesign' usage, only default and that is allowed */
@@ -418,8 +406,8 @@ static void bundle_test_purpose_email(BundleFixture *fixture,
 static void bundle_test_purpose_codesign(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucBundle *bundle = NULL;
-	GError *ierror = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
 
 	/* When the cert specifies the 'codesign' usage, only that is allowed */
