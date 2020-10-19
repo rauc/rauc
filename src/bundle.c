@@ -840,7 +840,12 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	}
 
 	offset -= sigsize;
-
+	if (offset % 4096) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
+				"Payload size (%"G_GUINT64_FORMAT ") is not a multiple of 4KiB", offset);
+		res = FALSE;
+		goto out;
+	}
 	ibundle->size = offset;
 
 	res = g_seekable_seek(G_SEEKABLE(bundlestream),
