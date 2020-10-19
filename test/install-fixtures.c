@@ -123,6 +123,8 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 	g_autofree gchar *bundlepath = NULL;
 	g_autofree gchar *mountdir = NULL;
 	g_autofree gchar *testfilepath = NULL;
+	g_autoptr(GError) error = NULL;
+	gboolean res = FALSE;
 
 	/* needs to run as root */
 	if (!test_running_as_root())
@@ -179,5 +181,7 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 	g_assert_true(update_manifest(contentdir, NULL));
 
 	/* Create bundle */
-	g_assert_true(create_bundle(bundlepath, contentdir, NULL));
+	res = create_bundle(bundlepath, contentdir, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 }
