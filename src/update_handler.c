@@ -48,7 +48,7 @@ static GUnixOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **err
 		return NULL;
 	}
 
-	outstream = (GUnixOutputStream *) g_unix_output_stream_new(fd_out, TRUE);
+	outstream = G_UNIX_OUTPUT_STREAM(g_unix_output_stream_new(fd_out, TRUE));
 	if (outstream == NULL) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to open file for writing: ");
@@ -69,7 +69,7 @@ static gboolean clear_slot(RaucSlot *slot, GError **error)
 	g_autoptr(GOutputStream) outstream = NULL;
 	gint write_count = 0;
 
-	outstream = (GOutputStream *) open_slot_device(slot, NULL, &ierror);
+	outstream = G_OUTPUT_STREAM(open_slot_device(slot, NULL, &ierror));
 	if (outstream == NULL) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -189,7 +189,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, G
 	g_autoptr(GFile) srcimagefile = g_file_new_for_path(image->filename);
 	int out_fd = g_unix_output_stream_get_fd(outstream);
 
-	g_autoptr(GInputStream) instream = (GInputStream*)g_file_read(srcimagefile, NULL, &ierror);
+	g_autoptr(GInputStream) instream = G_INPUT_STREAM(g_file_read(srcimagefile, NULL, &ierror));
 	if (instream == NULL) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to open file for reading: ");
@@ -199,7 +199,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, G
 	/* Do not close fd automatically to give us the chance to call fsync() on it before closing */
 	g_unix_output_stream_set_close_fd(outstream, FALSE);
 
-	size = g_output_stream_splice((GOutputStream *) outstream, instream,
+	size = g_output_stream_splice(G_OUTPUT_STREAM(outstream), instream,
 			G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
 			NULL,
 			&ierror);
@@ -209,7 +209,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, G
 		return FALSE;
 	}
 
-	seeksize = g_seekable_tell((GSeekable*) instream);
+	seeksize = g_seekable_tell(G_SEEKABLE(instream));
 
 	if (seeksize != (goffset)image->checksum.size) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
@@ -1324,7 +1324,7 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
-	outstream = (GUnixOutputStream *)g_unix_output_stream_new(out_fd, FALSE);
+	outstream = G_UNIX_OUTPUT_STREAM(g_unix_output_stream_new(out_fd, FALSE));
 	if (outstream == NULL) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to open file for writing: ");
@@ -1439,7 +1439,7 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
-	outstream = (GUnixOutputStream *)g_unix_output_stream_new(out_fd, FALSE);
+	outstream = G_UNIX_OUTPUT_STREAM(g_unix_output_stream_new(out_fd, FALSE));
 	if (outstream == NULL) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to open file for writing: ");

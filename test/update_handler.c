@@ -160,7 +160,7 @@ static gsize get_file_size(gchar* filename, GError **error)
 		goto out;
 	}
 
-	size = g_seekable_tell((GSeekable *)filestream);
+	size = g_seekable_tell(G_SEEKABLE(filestream));
 
 out:
 	g_clear_object(&filestream);
