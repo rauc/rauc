@@ -685,36 +685,57 @@ To enable U-Boot support in RAUC, select it in your system.conf:
   ...
   bootloader=uboot
 
-Set up U-Boot Environment for RAUC
+Set up U-Boot Boot Script for RAUC
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The U-Boot bootloader interface of RAUC will rely on setting the U-Boot
-environment variables:
+U-Boot as the bootloader needs to decide which slot (partition) to boot.
+For this decision it needs to read and process some state information set by
+RAUC or previous boot attempts.
 
-* ``BOOT_ORDER``, which will contain a space-separated list of boot targets in
-  the order they should be tried.
-* ``BOOT_<bootname>_LEFT``, which contains the number of remaining boot
+The U-Boot bootloader interface of RAUC will rely on setting the following
+U-Boot environment variables:
+
+:``BOOT_ORDER``: Contains a space-separated list of boot names in
+  the order they should be tried, e.g. ``A B``.
+:``BOOT_<bootname>_LEFT``: Contains the number of remaining boot
   attempts to perform for the respective slot.
 
 An example U-Boot script for handling redundant A/B boot setups is located in
 the ``contrib/`` folder of the RAUC source repository (``contrib/uboot.sh``).
 
-You must integrate your boot selection script into U-Boot.
-Refer the
-`U-Boot Scripting Capabilities <https://www.denx.de/wiki/DULG/UBootScripts>`_
-chapter in the U-Boot user documentation on how to achieve this.
+.. note:: You must adapt the script's boot commands to match the requirements
+   of your platform.
 
-The script uses the names ``A`` and ``B`` as the ``bootname`` for the two
+You should integrate your boot selection script as ``boot.scr`` default boot
+script into U-Boot.
+
+For this you have to convert it to a U-boot readable default script
+(``boot.scr``) first::
+
+  mkimage -A arm -T script -C none -n "Boot script" -d <path-to-input-script> boot.scr
+
+If you place this on a partition next to U-Boot, it will use it as its boot
+script.
+
+For more details, refer the
+`U-Boot Scripting Capabilities <https://www.denx.de/wiki/DULG/UBootScripts>`_
+chapter in the U-Boot user documentation.
+
+The example script uses the names ``A`` and ``B`` as the ``bootname`` for the two
 different boot targets.
-Thus the resulting boot attempts variables will be ``BOOT_A_LEFT`` and
+These names need to be set in your system.conf as the ``bootname`` of the
+respective slots.
+The resulting boot attempts variables will be ``BOOT_A_LEFT`` and
 ``BOOT_B_LEFT``.
 The ``BOOT_ORDER`` variable will contain ``A B`` if ``A`` is the primary slot or
-``B A`` if ``B`` is the primary slot.
+``B A`` if ``B`` is the primary slot to boot.
 
 .. note::
-   If you want to implement different behavior or use other variable names, you
-   might need to modify the ``uboot_set_state()`` and ``uboot_set_primary()``
-   functions in ``src/bootchooser.c``.
+   For minor changes in boot logic or variable names simply change the boot
+   script and/or the RAUC system.conf ``bootname`` settings.
+   If you want to implement a fully different behavior, you might need to modify
+   the ``uboot_set_state()`` and ``uboot_set_primary()``
+   functions in ``src/bootchooser.c`` of RAUC.
 
 Support for Fail-Safe Environment Update
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
