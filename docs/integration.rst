@@ -668,11 +668,14 @@ U-Boot
 To enable handling of redundant booting in U-Boot, manual scripting is
 required.
 U-Boot allows storing and modifying variables in its *Environment*.
-Properly configured it can be accessed both from U-Boot itself as
+Properly configured, the environment can be accessed both from U-Boot itself as
 well as from Linux userspace.
+U-Boot also supports setting up the environment redundantly for atomic
+modifications.
 
-The RAUC U-Boot boot selection implementation uses a custom U-Boot script
-together with the environment for managing and persisting slot selection.
+The default RAUC U-Boot boot selection implementation requires a U-Boot
+boot script using specific set of variables that are persisted to the
+environment as stateful slot selection information.
 
 To enable U-Boot support in RAUC, select it in your system.conf:
 
