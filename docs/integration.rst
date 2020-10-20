@@ -713,20 +713,6 @@ The ``BOOT_ORDER`` variable will contain ``A B`` if ``A`` is the primary slot or
    might need to modify the ``uboot_set_state()`` and ``uboot_set_primary()``
    functions in ``src/bootchooser.c``.
 
-Enable Accessing U-Boot Environment from Userspace
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-To enable reading and writing of the U-Boot environment from Linux userspace,
-you need to have:
-
-* U-Boot target tools ``fw_printenv`` and ``fw_setenv`` available on your devices rootfs.
-* Environment configuration file ``/etc/fw_env.config`` in your target root filesystem.
-
-See the corresponding
-`HowTo <https://www.denx.de/wiki/DULG/HowCanIAccessUBootEnvironmentVariablesInLinux>`_
-section from the U-Boot documentation for more details on how to set up the
-environment config file for your device.
-
 Support for Fail-Safe Environment Update
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -741,6 +727,20 @@ config::
   CONFIG_ENV_ADDR_REDUND=xxx
 
 Refer to U-Boot source code and README for more details on this.
+
+Enable Accessing U-Boot Environment from Userspace
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To enable reading and writing of the U-Boot environment from Linux userspace,
+you need to have:
+
+* U-Boot target tools ``fw_printenv`` and ``fw_setenv`` available on your devices rootfs.
+* Environment configuration file ``/etc/fw_env.config`` in your target root filesystem.
+
+See the corresponding
+`HowTo <https://www.denx.de/wiki/DULG/HowCanIAccessUBootEnvironmentVariablesInLinux>`_
+section from the U-Boot documentation for more details on how to set up the
+environment config file for your device.
 
 GRUB
 ~~~~
