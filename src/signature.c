@@ -780,6 +780,40 @@ gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
 	return bio_mem_unwrap(text);
 }
 
+static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
+{
+	STACK_OF(X509) *signers = NULL;
+	BIO *text = NULL;
+
+	g_return_val_if_fail(cms != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	signers = CMS_get0_signers(cms);
+	if (signers == NULL) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_GET_SIGNER,
+				"Failed to obtain signer info");
+		goto out;
+	}
+
+	text = BIO_new(BIO_s_mem());
+	for (int i = 0; i < sk_X509_num(signers); i++) {
+		if (i)
+			BIO_printf(text, ", ");
+		X509_NAME_print_ex(text, X509_get_subject_name(sk_X509_value(signers, i)), 0, XN_FLAG_ONELINE);
+	}
+
+out:
+	if (signers)
+		sk_X509_free(signers);
+	if (text)
+		return bio_mem_unwrap(text);
+	else
+		return NULL;
+}
+
 gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error)
 {
 	STACK_OF(X509) *signers = NULL;
@@ -894,11 +928,13 @@ static gboolean asn1_time_to_tm(const ASN1_TIME *intime, struct tm *tm)
 
 gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
 {
+	GError *ierror = NULL;
 	CMS_ContentInfo *icms = NULL;
 	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
 			g_bytes_get_size(content));
 	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
 			g_bytes_get_size(sig));
+	g_autofree gchar *signers = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(content != NULL, FALSE);
@@ -963,6 +999,13 @@ gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_Content
 				"signature verification failed: %s", (flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		goto out;
 	}
+
+	signers = cms_get_signers(icms, &ierror);
+	if (!signers) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+	g_message("Verified signature by %s", signers);
 
 	if (cms)
 		*cms = icms;
