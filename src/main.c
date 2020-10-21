@@ -953,7 +953,7 @@ static gboolean info_start(int argc, char **argv)
 			goto out;
 		}
 
-		text = print_cert_chain(bundle->verified_chain);
+		text = format_cert_chain(bundle->verified_chain);
 		g_print("%s\n", text);
 		g_free(text);
 	}

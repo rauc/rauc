@@ -732,27 +732,41 @@ static gchar* get_cert_time(const ASN1_TIME *time)
 	return ret;
 }
 
-gchar* print_cert_chain(STACK_OF(X509) *verified_chain)
+static gchar* bio_mem_unwrap(BIO *mem)
 {
-	GString *text = NULL;
-	char buf[BUFSIZ];
+	long size;
+	gchar *data, *ret;
+
+	g_return_val_if_fail(mem != NULL, NULL);
+
+	size = BIO_get_mem_data(mem, &data);
+	ret = g_strndup(data, size);
+	BIO_free(mem);
+
+	return ret;
+}
+
+gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
+{
+	BIO *text = NULL;
 
 	g_return_val_if_fail(verified_chain != NULL, NULL);
 
-	text = g_string_new("Certificate Chain:\n");
+	text = BIO_new(BIO_s_mem());
+	BIO_printf(text, "Certificate Chain:\n");
 	for (int i = 0; i < sk_X509_num(verified_chain); i++) {
-		X509_NAME_oneline(X509_get_subject_name(sk_X509_value(verified_chain, i)),
-				buf, sizeof buf);
-		g_string_append_printf(text, "%2d Subject: %s\n", i, buf);
-		X509_NAME_oneline(X509_get_issuer_name(sk_X509_value(verified_chain, i)),
-				buf, sizeof buf);
-		g_string_append_printf(text, "   Issuer: %s\n", buf);
-		g_string_append_printf(text, "   SPKI sha256: %s\n", get_pubkey_hash(sk_X509_value(verified_chain, i)));
-		g_string_append_printf(text, "   Not Before: %s\n", get_cert_time(X509_get0_notBefore((const X509*) sk_X509_value(verified_chain, i))));
-		g_string_append_printf(text, "   Not After:  %s\n", get_cert_time(X509_get0_notAfter((const X509*) sk_X509_value(verified_chain, i))));
+		BIO_printf(text, "%2d Subject: ", i);
+		X509_NAME_print_ex(text, X509_get_subject_name(sk_X509_value(verified_chain, i)), 0, XN_FLAG_ONELINE);
+		BIO_printf(text, "\n");
+		BIO_printf(text, "   Issuer: ");
+		X509_NAME_print_ex(text, X509_get_issuer_name(sk_X509_value(verified_chain, i)), 0, XN_FLAG_ONELINE);
+		BIO_printf(text, "\n");
+		BIO_printf(text, "   SPKI sha256: %s\n", get_pubkey_hash(sk_X509_value(verified_chain, i)));
+		BIO_printf(text, "   Not Before: %s\n", get_cert_time(X509_get0_notBefore((const X509*) sk_X509_value(verified_chain, i))));
+		BIO_printf(text, "   Not After:  %s\n", get_cert_time(X509_get0_notAfter((const X509*) sk_X509_value(verified_chain, i))));
 	}
 
-	return g_string_free(text, FALSE);
+	return bio_mem_unwrap(text);
 }
 
 gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error)
