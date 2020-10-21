@@ -737,18 +737,35 @@ The ``BOOT_ORDER`` variable will contain ``A B`` if ``A`` is the primary slot or
    the ``uboot_set_state()`` and ``uboot_set_primary()``
    functions in ``src/bootchooser.c`` of RAUC.
 
-Support for Fail-Safe Environment Update
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Setting up the (Fail-Safe) U-Boot Environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For atomic updates of environment, U-Boot can use redundant environment
-storages that allow to write one copy while using the other as fallback if
-writing fails, e.g. due to sudden power cut.
+The U-Boot environment is used to store stateful boot selection information and
+serves as the interface between userspace and bootloader.
+The information stored in the environment needs to be preserved, even if the
+bootloader should be updated.
+Thus the environment should be placed outside the bootloader partition!
 
-In order to enable redundant environment storage, you have to set in your U-Boot
-config::
+The storage location for the environment can be controlled with
+``CONFIG_ENV_IS_IN_*`` U-Boot Kconfig options like ``CONFIG_ENV_IS_IN_FAT`` or
+``CONFIG_ENV_IS_IN_MMC``.
+You may either select a different storage than your bootloader, or a different
+location/partition/volume on the same storage.
 
-  CONFIG_ENV_OFFSET_REDUND=y
-  CONFIG_ENV_ADDR_REDUND=xxx
+For fail-safe (atomic) updates of the environment, U-Boot can use redundant
+environments that allow to write to one copy while keeping the other as
+fallback if writing fails, e.g. due to sudden power cut.
+
+In order to enable redundant environment storage, you have to additionally set in your U-Boot config:
+
+.. code-block:: cfg
+
+  CONFIG_SYS_REDUNDAND_ENVIRONMENT=y
+  CONFIG_ENV_SIZE=<size-of-env>
+  CONFIG_ENV_OFFSET=<offset-in-device>
+  CONFIG_ENV_OFFSET_REDUND=<copy-offset-in-device>
+
+.. note:: Above switches refer to U-Boot >= v2020.01.
 
 Refer to U-Boot source code and README for more details on this.
 
