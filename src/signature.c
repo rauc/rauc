@@ -799,11 +799,13 @@ static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
 	}
 
 	text = BIO_new(BIO_s_mem());
+	BIO_printf(text, "'");
 	for (int i = 0; i < sk_X509_num(signers); i++) {
 		if (i)
-			BIO_printf(text, ", ");
+			BIO_printf(text, "', '");
 		X509_NAME_print_ex(text, X509_get_subject_name(sk_X509_value(signers, i)), 0, XN_FLAG_ONELINE);
 	}
+	BIO_printf(text, "'");
 
 out:
 	if (signers)
