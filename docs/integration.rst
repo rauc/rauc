@@ -783,6 +783,72 @@ See the corresponding
 section from the U-Boot documentation for more details on how to set up the
 environment config file for your device.
 
+Example: Setting up U-Boot Environment on eMMC/SD Card
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For this example we assume a simple redundancy boot partition layout with a
+bootloader partition and two rootfs partitions.
+
+Another additional partition we use exclusively for storing the environment.
+
+.. note:: It is not strictly required to have the env on an actual MBR/GPT
+   partition, but we use this here as it better protects against accidentially
+   overwriting relevant data of other partitions.
+
+Parition table (excerpt with partition offsets):
+
+.. code-block:: text
+
+   /dev/mmcblk0p1 StartLBA:   8192 -> u-boot etc.
+   /dev/mmcblk0p2 StartLBA: 114688 -> u-boot environment
+   /dev/mmcblk0p3 StartLBA: 139264 -> rootfs A
+   /dev/mmcblk0p4 StartLBA: 475136 -> rootfs B
+
+We enable redundant environment and storage in MMC (not in vfat/ext4 partition)
+in the u-boot config:
+
+.. code-block:: cfg
+
+   CONFIG_SYS_REDUNDAND_ENVIRONMENT=y
+   CONFIG_ENV_IS_IN_MMC=y
+
+The default should be to use mmc device 0 and HW partition 0.
+Since U-Boot 2020.10.0 we can set this also explicitly if required:
+
+.. code-block:: cfg
+
+   CONFIG_SYS_MMC_ENV_DEV=0
+   CONFIG_SYS_MMC_ENV_PART=0
+
+.. important:: With ``CONFIG_SYS_MMC_ENV_PART`` we can specify a eMMC HW
+   partition only, not an MBR/GPT partition!
+   HW partitions are e.g. 0=user data area, 1=boot partition.
+
+Then we must specify the env storage size and its offset relative to the
+currently used device.
+Here the device is the eMMC user data area (or SD Card).
+For placing the content in partition 2 now, we must calculate the offset as
+``offset=hex(n sector * 512 bytes/sector)``.
+With ``n=114688`` (start of /dev/mmcblk0p2 according to above partition table)
+we get an offset of ``0x3800000``.
+As size we pick ``0x4000`` (16kB) here. The offset of the redundant copy must
+be the offset of the first copy + size of first copy. This results in:
+
+.. code-block:: cfg
+
+   CONFIG_ENV_SIZE=0x4000
+   CONFIG_ENV_OFFSET=0x3800000
+   CONFIG_ENV_OFFSET_REDUND=0x3804000
+
+Finally, we need to configure userspace to access the same location.
+This can be referenced directly by its partition device name (/dev/mmcblk0p2)
+in the ``/etc/fw_env.config``:
+
+.. code-block:: text
+
+   /dev/mmcblk0p2 0x0000 0x4000
+   /dev/mmcblk0p2 0x4000 0x4000
+
 GRUB
 ~~~~
 
