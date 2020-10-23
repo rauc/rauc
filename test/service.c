@@ -53,7 +53,7 @@ static void service_info_fixture_set_up(ServiceFixture *fixture, gconstpointer u
 	write_tmp_file(fixture->tmpdir, "de.pengutronix.rauc.service", "\
 [D-BUS Service]\n\
 Name=de.pengutronix.rauc\n\
-Exec="TEST_SERVICES "/rauc -c test/test.conf service\n", NULL);
+Exec="TEST_SERVICES "/rauc -c test/test.conf --override-boot-slot=system0 service\n", NULL);
 
 	fixture->dbus = g_test_dbus_new(G_TEST_DBUS_NONE);
 	g_test_dbus_add_service_dir(fixture->dbus, fixture->tmpdir);
