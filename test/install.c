@@ -151,7 +151,7 @@ hooks=post-install";
 static void install_fixture_set_up_system_conf(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar* pathname = NULL;
+	g_autofree gchar* pathname = NULL;
 	const gchar *cfg_file = "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
@@ -218,8 +218,6 @@ device=/path/to/prebootloader";
 	pathname = write_tmp_file(fixture->tmpdir, "system.conf", cfg_file, NULL);
 	g_assert_nonnull(pathname);
 	r_context_conf()->configpath = g_strdup(pathname);
-
-	g_free(pathname);
 }
 
 static void install_fixture_tear_down(InstallFixture *fixture,
@@ -242,10 +240,10 @@ static void install_test_bootname(InstallFixture *fixture,
 static void install_test_target(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucManifest *rm = NULL;
-	GHashTable *tgrp;
+	g_autoptr(RaucManifest) rm = NULL;
+	g_autoptr(GHashTable) tgrp = NULL;
 	GList *selected_images = NULL;
-	GError *error = NULL;
+	g_autoptr(GError) error = NULL;
 	gboolean result;
 
 
@@ -334,16 +332,14 @@ filename=bootloader.img";
 	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 1))->filename, ==, "appfs.ext4");
 	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 2))->filename, ==, "demofs.ext4");
 	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 3))->filename, ==, "bootloader.img");
-
-	g_hash_table_unref(tgrp);
 }
 
 /* Test with image for non-redundant active target slot. */
 static void test_install_determine_target_group_non_redundant(void)
 {
-	gchar *tmpdir = NULL;
-	gchar* sysconfpath = NULL;
-	GHashTable *tgrp = NULL;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *sysconfpath = NULL;
+	g_autoptr(GHashTable) tgrp = NULL;
 
 	const gchar *system_conf = "\
 [system]\n\
@@ -359,7 +355,6 @@ device=/dev/null\n\
 
 	sysconfpath = write_tmp_file(tmpdir, "test.conf", system_conf, NULL);
 	g_assert_nonnull(sysconfpath);
-	g_free(tmpdir);
 
 	/* Set up context */
 	r_context_conf()->configpath = sysconfpath;
@@ -373,17 +368,15 @@ device=/dev/null\n\
 
 	/* We must not have any updatable slot detected */
 	g_assert_cmpint(g_hash_table_size(tgrp), ==, 0);
-
-	g_hash_table_unref(tgrp);
 }
 
 /* Test a typical asynchronous slot setup (rootfs + rescuefs) with additional
  * childs */
 static void test_install_target_group_async(void)
 {
-	gchar *tmpdir = NULL;
-	gchar* sysconfpath = NULL;
-	GHashTable *tgrp = NULL;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *sysconfpath = NULL;
+	g_autoptr(GHashTable) tgrp = NULL;
 
 	const gchar *system_conf = "\
 [system]\n\
@@ -411,7 +404,6 @@ device=/dev/null\n\
 
 	sysconfpath = write_tmp_file(tmpdir, "test.conf", system_conf, NULL);
 	g_assert_nonnull(sysconfpath);
-	g_free(tmpdir);
 
 	/* Set up context */
 	r_context_conf()->configpath = sysconfpath;
@@ -430,16 +422,14 @@ device=/dev/null\n\
 
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rootfs"))->name, ==, "rootfs.0");
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "appfs"))->name, ==, "appfs.0");
-
-	g_hash_table_unref(tgrp);
 }
 
 /* Test a typical synchronous slot setup (rootfs a + b) with appfs childs */
 static void test_install_target_group_sync(void)
 {
-	gchar *tmpdir = NULL;
-	gchar* sysconfpath = NULL;
-	GHashTable *tgrp = NULL;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *sysconfpath = NULL;
+	g_autoptr(GHashTable) tgrp = NULL;
 
 	const gchar *system_conf = "\
 [system]\n\
@@ -484,16 +474,14 @@ device=/dev/null\n\
 
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rootfs"))->name, ==, "rootfs.0");
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "appfs"))->name, ==, "appfs.0");
-
-	g_hash_table_unref(tgrp);
 }
 
 /* Test with extra loose (non-booted) groups in parent child relation */
 static void test_install_target_group_loose(void)
 {
-	gchar *tmpdir = NULL;
-	gchar* sysconfpath = NULL;
-	GHashTable *tgrp = NULL;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *sysconfpath = NULL;
+	g_autoptr(GHashTable) tgrp = NULL;
 
 	const gchar *system_conf = "\
 [system]\n\
@@ -533,16 +521,14 @@ device=/dev/null\n\
 
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "xloader"))->name, ==, "xloader.0");
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "bootloader"))->name, ==, "bootloader.0");
-
-	g_hash_table_unref(tgrp);
 }
 
 /* Test with 3 redundant slots */
 static void test_install_target_group_n_redundant(void)
 {
-	gchar *tmpdir = NULL;
-	gchar* sysconfpath = NULL;
-	GHashTable *tgrp = NULL;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *sysconfpath = NULL;
+	g_autoptr(GHashTable) tgrp = NULL;
 
 	const gchar *system_conf = "\
 [system]\n\
@@ -581,19 +567,17 @@ device=/dev/null\n\
 	g_assert_true(g_hash_table_contains(tgrp, "rootfs"));
 
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "rootfs"))->name, ==, "rootfs.0");
-
-	g_hash_table_unref(tgrp);
 }
 
 /* Test image selection, default redundancy setup */
 static void test_install_image_selection(void)
 {
-	gchar *tmpdir = NULL;
-	gchar* sysconfpath = NULL;
-	GBytes *data = NULL;
-	RaucManifest *rm = NULL;
-	GHashTable *tgrp = NULL;
-	GError *error = NULL;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *sysconfpath = NULL;
+	g_autoptr(GBytes) data = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
+	g_autoptr(GHashTable) tgrp = NULL;
+	g_autoptr(GError) error = NULL;
 	GList *selected_images = NULL;
 	RaucImage *image = NULL;
 	gboolean res;
@@ -668,18 +652,16 @@ device=/dev/null\n\
 	image = (RaucImage*) g_list_nth_data(selected_images, 1);
 	g_assert_nonnull(image);
 	g_assert_cmpstr(image->filename, ==, "appfs.img");
-
-	g_hash_table_unref(tgrp);
 }
 
 static void test_install_image_selection_no_matching_slot(void)
 {
-	gchar *tmpdir = NULL;
-	gchar* sysconfpath = NULL;
-	GBytes *data = NULL;
-	RaucManifest *rm = NULL;
-	GHashTable *tgrp = NULL;
-	GError *error = NULL;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *sysconfpath = NULL;
+	g_autoptr(GBytes) data = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
+	g_autoptr(GHashTable) tgrp = NULL;
+	g_autoptr(GError) error = NULL;
 	GList *selected_images = NULL;
 	gboolean res;
 
@@ -734,18 +716,16 @@ device=/dev/null\n\
 	selected_images = get_install_images(rm, tgrp, &error);
 	g_assert_null(selected_images);
 	g_assert_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED);
-
-	g_hash_table_unref(tgrp);
 }
 
 static void test_install_image_readonly(void)
 {
-	gchar *tmpdir = NULL;
-	gchar* sysconfpath = NULL;
-	GBytes *data = NULL;
-	RaucManifest *rm = NULL;
-	GHashTable *tgrp = NULL;
-	GError *error = NULL;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *sysconfpath = NULL;
+	g_autoptr(GBytes) data = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
+	g_autoptr(GHashTable) tgrp = NULL;
+	g_autoptr(GError) error = NULL;
 	GList *selected_images = NULL;
 	gboolean res;
 
@@ -797,21 +777,19 @@ readonly=true\n\
 	selected_images = get_install_images(rm, tgrp, &error);
 	g_assert_null(selected_images);
 	g_assert_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED);
-
-	g_hash_table_unref(tgrp);
 }
 
 
 static void test_install_image_variants(void)
 {
-	gchar *tmpdir = NULL;
-	gchar* sysconfpath = NULL;
-	GBytes *data = NULL;
-	RaucManifest *rm = NULL;
-	GHashTable *tgrp = NULL;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *sysconfpath = NULL;
+	g_autoptr(GBytes) data = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
+	g_autoptr(GHashTable) tgrp = NULL;
 	GList *install_images = NULL;
 	RaucImage *test_img = NULL;
-	GError *error = NULL;
+	g_autoptr(GError) error = NULL;
 	gboolean res;
 
 #define MANIFEST_VARIANT "\
@@ -891,6 +869,7 @@ device=/dev/null\n\
 	g_assert_cmpstr(test_img->variant, ==, "variant-1");
 
 	g_clear_pointer(&rm, free_manifest);
+	g_clear_pointer(&data, g_bytes_unref);
 
 	/* Test with manifest containing only default variant */
 	data = g_bytes_new_static(MANIFEST_DEFAULT_VARIANT, sizeof(MANIFEST_DEFAULT_VARIANT));
@@ -910,6 +889,7 @@ device=/dev/null\n\
 	g_assert_null(test_img->variant);
 
 	g_clear_pointer(&rm, free_manifest);
+	g_clear_pointer(&data, g_bytes_unref);
 
 	/* Test with manifest containing only non-matching specific variant (must fail) */
 	data = g_bytes_new_static(MANIFEST_OTHER_VARIANT, sizeof(MANIFEST_OTHER_VARIANT));
@@ -921,10 +901,6 @@ device=/dev/null\n\
 	install_images = get_install_images(rm, tgrp, &error);
 	g_assert_null(install_images);
 	g_assert_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED);
-
-	g_hash_table_unref(tgrp);
-
-	g_clear_pointer(&rm, free_manifest);
 }
 
 static gboolean r_quit(gpointer data)
@@ -980,7 +956,7 @@ static void install_test_bundle(InstallFixture *fixture,
 	g_autofree gchar *testfilepath = NULL;
 	g_autofree gchar *mountdir = NULL;
 	RaucInstallArgs *args;
-	GError *ierror = NULL;
+	g_autoptr(GError) ierror = NULL;
 	gboolean res;
 
 	/* needs to run as root */
@@ -1027,7 +1003,8 @@ static void install_test_bundle_thread(InstallFixture *fixture,
 		gconstpointer user_data)
 {
 	RaucInstallArgs *args = install_args_new();
-	gchar *bundlepath, *mountdir;
+	g_autofree gchar *bundlepath = NULL;
+	g_autofree gchar *mountdir = NULL;
 
 	/* needs to run as root */
 	if (!test_running_as_root())
@@ -1050,16 +1027,15 @@ static void install_test_bundle_thread(InstallFixture *fixture,
 	g_assert_true(install_run(args));
 	g_main_loop_run(r_loop);
 	g_clear_pointer(&r_loop, g_main_loop_unref);
-
-	g_free(bundlepath);
 }
 
 static void install_test_bundle_hook_install_check(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *bundlepath, *mountdir;
+	g_autofree gchar *bundlepath = NULL;
+	g_autofree gchar *mountdir = NULL;
 	RaucInstallArgs *args;
-	GError *ierror = NULL;
+	g_autoptr(GError) ierror = NULL;
 
 	/* needs to run as root */
 	if (!test_running_as_root())
@@ -1082,17 +1058,18 @@ static void install_test_bundle_hook_install_check(InstallFixture *fixture,
 	g_assert_cmpstr(ierror->message, ==, "Installation error: Bundle rejected: Hook returned: No, I won't install this!");
 
 	args->status_result = 0;
-
-	g_free(bundlepath);
-	g_free(mountdir);
 }
 
 static void install_test_bundle_hook_install(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *bundlepath, *mountdir, *slotfile, *stamppath, *hookfilepath;
+	g_autofree gchar *bundlepath = NULL;
+	g_autofree gchar *mountdir = NULL;
+	g_autofree gchar *slotfile = NULL;
+	g_autofree gchar *stamppath = NULL;
+	g_autofree gchar *hookfilepath = NULL;
 	RaucInstallArgs *args;
-	GError *ierror = NULL;
+	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
 
 	/* needs to run as root */
@@ -1123,27 +1100,26 @@ static void install_test_bundle_hook_install(InstallFixture *fixture,
 	g_assert_true(g_file_test(hookfilepath, G_FILE_TEST_IS_REGULAR));
 	g_assert_false(g_file_test(stamppath, G_FILE_TEST_IS_REGULAR));
 	g_assert(test_umount(fixture->tmpdir, "mount"));
-	g_free(hookfilepath);
-	g_free(stamppath);
-	g_free(slotfile);
 
+	g_free(slotfile);
 	slotfile = g_build_filename(fixture->tmpdir, "images/appfs-1", NULL);
+	g_free(stamppath);
 	stamppath = g_build_filename(mountdir, "hook-stamp", NULL);
 	g_assert(test_mount(slotfile, mountdir));
 	g_assert_false(g_file_test(stamppath, G_FILE_TEST_IS_REGULAR));
 	g_assert(test_umount(fixture->tmpdir, "mount"));
-	g_free(stamppath);
-	g_free(slotfile);
 
 	args->status_result = 0;
-
-	g_free(bundlepath);
 }
 
 static void install_test_bundle_hook_post_install(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *bundlepath, *mountdir, *slotfile, *testfilepath, *stamppath;
+	g_autofree gchar *bundlepath = NULL;
+	g_autofree gchar *mountdir = NULL;
+	g_autofree gchar *slotfile = NULL;
+	g_autofree gchar *testfilepath = NULL;
+	g_autofree gchar *stamppath = NULL;
 	RaucInstallArgs *args;
 
 	/* needs to run as root */
@@ -1172,30 +1148,27 @@ static void install_test_bundle_hook_post_install(InstallFixture *fixture,
 	g_assert(g_file_test(testfilepath, G_FILE_TEST_IS_REGULAR));
 	g_assert(g_file_test(stamppath, G_FILE_TEST_IS_REGULAR));
 	g_assert(test_umount(fixture->tmpdir, "mount"));
-	g_free(stamppath);
-	g_free(slotfile);
-	g_free(testfilepath);
 
+	g_free(slotfile);
 	slotfile = g_build_filename(fixture->tmpdir, "images/appfs-1", NULL);
+	g_free(stamppath);
 	stamppath = g_build_filename(mountdir, "hook-stamp", NULL);
 	g_assert(test_mount(slotfile, mountdir));
 	g_assert(!g_file_test(stamppath, G_FILE_TEST_IS_REGULAR));
 	g_assert(test_umount(fixture->tmpdir, "mount"));
-	g_free(stamppath);
-	g_free(slotfile);
 
 	args->status_result = 0;
-
-	g_free(bundlepath);
 }
 
 /* Test with already mounted slot */
 static void install_test_already_mounted(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *bundlepath, *mountprefix, *hookfilepath;
+	g_autofree gchar *bundlepath = NULL;
+	g_autofree gchar *mountprefix = NULL;
+	g_autofree gchar *hookfilepath = NULL;
 	RaucInstallArgs *args;
-	GError *ierror = NULL;
+	g_autoptr(GError) ierror = NULL;
 	gboolean res;
 
 	/* needs to run as root */
@@ -1226,8 +1199,6 @@ static void install_test_already_mounted(InstallFixture *fixture,
 	g_assert_true(g_file_test(hookfilepath, G_FILE_TEST_IS_REGULAR));
 
 	args->status_result = 0;
-
-	g_free(bundlepath);
 }
 
 static void install_fixture_set_up_system_user(InstallFixture *fixture,
@@ -1241,12 +1212,11 @@ static void install_fixture_set_up_system_user(InstallFixture *fixture,
 int main(int argc, char *argv[])
 {
 	InstallData *install_data;
-	gchar *path;
+	g_autofree gchar *path = NULL;
 	setlocale(LC_ALL, "C");
 
 	path = g_strdup_printf("%s:%s", g_getenv("PATH"), "test/bin");
 	g_setenv("PATH", path, TRUE);
-	g_free(path);
 
 	g_test_init(&argc, &argv, NULL);
 
