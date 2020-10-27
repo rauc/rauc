@@ -1,6 +1,7 @@
 [Unit]
 Description=Rauc Update Service
 Documentation=https://rauc.readthedocs.io
+After=dbus.service
 
 [Service]
 Type=dbus

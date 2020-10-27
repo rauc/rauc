@@ -517,11 +517,16 @@ static void r_on_name_lost(GDBusConnection *connection,
 		gpointer user_data)
 {
 	gboolean *service_return = (gboolean*)user_data;
+	const gchar *bus_type_name = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
+	                             ? "session" : "system";
 
 	if (connection == NULL) {
-		g_printerr("Connection to the bus can't be made for %s\n", name);
+		if (r_installer)
+			g_printerr("Lost connection to the %s bus\n", bus_type_name);
+		else
+			g_printerr("Connection to the %s bus can't be made for %s\n", bus_type_name, name);
 	} else {
-		g_printerr("Failed to obtain name %s\n", name);
+		g_printerr("Failed to obtain name %s on %s bus\n", name, bus_type_name);
 	}
 
 	/* Abort service with exit code */
