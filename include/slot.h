@@ -56,6 +56,8 @@ typedef struct _RaucSlot {
 	SlotState state;
 	gboolean boot_good;
 	struct _RaucSlot *parent;
+	/** the name of the parent as parsed by config (parsing-internal use only) */
+	gchar *parent_name;
 	gchar *mount_point;
 	gchar *ext_mount_point;
 	RaucSlotStatus *status;

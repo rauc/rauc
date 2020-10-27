@@ -11,6 +11,7 @@ void r_slot_free(gpointer value)
 	g_free(slot->type);
 	g_free(slot->bootname);
 	g_free(slot->extra_mount_opts);
+	g_free(slot->parent_name);
 	g_free(slot->mount_point);
 	g_free(slot->ext_mount_point);
 	g_clear_pointer(&slot->status, r_slot_free_status);
