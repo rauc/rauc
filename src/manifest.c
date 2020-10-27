@@ -292,6 +292,7 @@ out:
 gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **error)
 {
 	g_autoptr(GKeyFile) key_file = NULL;
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *hooks = g_ptr_array_new_full(3, g_free);
 
@@ -391,9 +392,11 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **er
 			g_key_file_set_string(key_file, group, "filename", file->filename);
 	}
 
-	res = g_key_file_save_to_file(key_file, filename, NULL);
-	if (!res)
+	res = g_key_file_save_to_file(key_file, filename, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto free;
+	}
 
 free:
 	return res;

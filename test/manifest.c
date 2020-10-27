@@ -190,6 +190,23 @@ static void test_save_load_manifest(void)
 	free_manifest(rm);
 }
 
+/* Test manifest/save/writefail:
+ *
+ * Tests error handling for saving a manifest file
+ *
+ * Test cases:
+ * - try to save a manifest file to a non-existing directory
+ */
+static void test_save_manifest_writefail(void)
+{
+	GError *error = NULL;
+	gboolean res;
+	g_autoptr(RaucManifest) rm = g_new0(RaucManifest, 1);
+
+	res = save_manifest_file("test/nonexistingdir/savedmanifest.raucm", rm, &error);
+	g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
+	g_assert_false(res);
+}
 
 /* Test manifest/load_mem:
  *
@@ -376,6 +393,7 @@ int main(int argc, char *argv[])
 
 	g_test_add_func("/manifest/load", test_load_manifest);
 	g_test_add_func("/manifest/save_load", test_save_load_manifest);
+	g_test_add_func("/manifest/save/writefail", test_save_manifest_writefail);
 	g_test_add_func("/manifest/load_mem", test_load_manifest_mem);
 	g_test_add_func("/manifest/load_variants", test_manifest_load_variants);
 	g_test_add_func("/manifest/invalid_data", test_invalid_data);
