@@ -9,10 +9,10 @@
 void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 		const gchar *configname)
 {
-	gchar *configpath;
-	gchar *certpath;
-	gchar *keypath;
-	gchar *capath;
+	g_autofree gchar *configpath = NULL;
+	g_autofree gchar *certpath = NULL;
+	g_autofree gchar *keypath = NULL;
+	g_autofree gchar *capath = NULL;
 
 	g_assert_nonnull(tmpdir);
 	g_print("bundle tmpdir: %s\n", tmpdir);
@@ -78,11 +78,6 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 
 	/* Set dummy bootname provider */
 	r_context_conf()->bootslot = g_strdup("system0");
-
-	g_free(configpath);
-	g_free(certpath);
-	g_free(keypath);
-	g_free(capath);
 }
 
 void fixture_helper_set_up_system(gchar *tmpdir,
@@ -124,10 +119,12 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 		gboolean handler,
 		gboolean hook)
 {
-	gchar *contentdir;
-	gchar *bundlepath;
-	gchar *mountdir;
-	gchar *testfilepath;
+	g_autofree gchar *contentdir = NULL;
+	g_autofree gchar *bundlepath = NULL;
+	g_autofree gchar *mountdir = NULL;
+	g_autofree gchar *testfilepath = NULL;
+	g_autoptr(GError) error = NULL;
+	gboolean res = FALSE;
 
 	/* needs to run as root */
 	if (!test_running_as_root())
@@ -184,10 +181,7 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 	g_assert_true(update_manifest(contentdir, NULL));
 
 	/* Create bundle */
-	g_assert_true(create_bundle(bundlepath, contentdir, NULL));
-
-	g_free(bundlepath);
-	g_free(contentdir);
-	g_free(mountdir);
-	g_free(testfilepath);
+	res = create_bundle(bundlepath, contentdir, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 }
