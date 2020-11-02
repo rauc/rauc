@@ -966,14 +966,14 @@ static void install_test_bundle(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountprefix = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountprefix);
-	r_context_conf()->mountprefix = g_strdup(mountprefix);
+	r_context_conf()->mountprefix = g_steal_pointer(&mountprefix);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
 
 	args = install_args_new();
-	args->name = g_strdup(bundlepath);
+	args->name = g_steal_pointer(&bundlepath);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 	res = do_install_bundle(args, &ierror);
