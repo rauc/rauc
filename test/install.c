@@ -938,7 +938,7 @@ static gboolean install_cleanup(gpointer data)
 
 static gint find_str_custom(gconstpointer a, gconstpointer b)
 {
-	return g_strcmp0((gchar*) a, (gchar *) b);
+	return g_strcmp0((const char*) a, (const char *) b);
 }
 
 static gboolean install_args_find_message(RaucInstallArgs *args, const gchar *needle)
