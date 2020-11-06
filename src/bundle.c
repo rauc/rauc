@@ -407,7 +407,7 @@ static gboolean sign_bundle(const gchar *bundlename, GError **error)
 		return FALSE;
 	}
 
-	offset = g_seekable_tell((GSeekable *)bundlestream);
+	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
 	if (!output_stream_write_bytes_all((GOutputStream *)bundlestream, sig, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
@@ -417,7 +417,7 @@ static gboolean sign_bundle(const gchar *bundlename, GError **error)
 	}
 
 
-	offset = g_seekable_tell((GSeekable *)bundlestream) - offset;
+	offset = g_seekable_tell(G_SEEKABLE(bundlestream)) - offset;
 	if (!output_stream_write_uint64_all((GOutputStream *)bundlestream, offset, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
@@ -827,7 +827,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 				"Failed to seek to end of bundle: ");
 		goto out;
 	}
-	offset = g_seekable_tell((GSeekable *)bundlestream);
+	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
 
 	res = input_stream_read_uint64_all(G_INPUT_STREAM(bundlestream),
 			&sigsize, NULL, &ierror);
