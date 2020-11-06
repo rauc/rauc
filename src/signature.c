@@ -732,27 +732,86 @@ static gchar* get_cert_time(const ASN1_TIME *time)
 	return ret;
 }
 
-gchar* print_cert_chain(STACK_OF(X509) *verified_chain)
+static gchar* bio_mem_unwrap(BIO *mem)
 {
-	GString *text = NULL;
-	char buf[BUFSIZ];
+	long size;
+	gchar *data, *ret;
+
+	g_return_val_if_fail(mem != NULL, NULL);
+
+	size = BIO_get_mem_data(mem, &data);
+	ret = g_strndup(data, size);
+	BIO_free(mem);
+
+	return ret;
+}
+
+gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
+{
+	BIO *text = NULL;
+	gchar *tmp = NULL;
 
 	g_return_val_if_fail(verified_chain != NULL, NULL);
 
-	text = g_string_new("Certificate Chain:\n");
+	text = BIO_new(BIO_s_mem());
+	BIO_printf(text, "Certificate Chain:\n");
 	for (int i = 0; i < sk_X509_num(verified_chain); i++) {
-		X509_NAME_oneline(X509_get_subject_name(sk_X509_value(verified_chain, i)),
-				buf, sizeof buf);
-		g_string_append_printf(text, "%2d Subject: %s\n", i, buf);
-		X509_NAME_oneline(X509_get_issuer_name(sk_X509_value(verified_chain, i)),
-				buf, sizeof buf);
-		g_string_append_printf(text, "   Issuer: %s\n", buf);
-		g_string_append_printf(text, "   SPKI sha256: %s\n", get_pubkey_hash(sk_X509_value(verified_chain, i)));
-		g_string_append_printf(text, "   Not Before: %s\n", get_cert_time(X509_get0_notBefore((const X509*) sk_X509_value(verified_chain, i))));
-		g_string_append_printf(text, "   Not After:  %s\n", get_cert_time(X509_get0_notAfter((const X509*) sk_X509_value(verified_chain, i))));
+		BIO_printf(text, "%2d Subject: ", i);
+		X509_NAME_print_ex(text, X509_get_subject_name(sk_X509_value(verified_chain, i)), 0, XN_FLAG_ONELINE);
+		BIO_printf(text, "\n");
+
+		BIO_printf(text, "   Issuer: ");
+		X509_NAME_print_ex(text, X509_get_issuer_name(sk_X509_value(verified_chain, i)), 0, XN_FLAG_ONELINE);
+		BIO_printf(text, "\n");
+
+		tmp = get_pubkey_hash(sk_X509_value(verified_chain, i));
+		BIO_printf(text, "   SPKI sha256: %s\n", tmp);
+		g_free(tmp);
+
+		tmp = get_cert_time(X509_get0_notBefore((const X509*) sk_X509_value(verified_chain, i)));
+		BIO_printf(text, "   Not Before: %s\n", tmp);
+		g_free(tmp);
+
+		tmp = get_cert_time(X509_get0_notAfter((const X509*) sk_X509_value(verified_chain, i)));
+		BIO_printf(text, "   Not After:  %s\n", tmp);
+		g_free(tmp);
 	}
 
-	return g_string_free(text, FALSE);
+	return bio_mem_unwrap(text);
+}
+
+static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
+{
+	STACK_OF(X509) *signers = NULL;
+	BIO *text = NULL;
+
+	g_return_val_if_fail(cms != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	signers = CMS_get0_signers(cms);
+	if (signers == NULL) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_GET_SIGNER,
+				"Failed to obtain signer info");
+		goto out;
+	}
+
+	text = BIO_new(BIO_s_mem());
+	for (int i = 0; i < sk_X509_num(signers); i++) {
+		if (i)
+			BIO_printf(text, ", ");
+		X509_NAME_print_ex(text, X509_get_subject_name(sk_X509_value(signers, i)), 0, XN_FLAG_ONELINE);
+	}
+
+out:
+	if (signers)
+		sk_X509_free(signers);
+	if (text)
+		return bio_mem_unwrap(text);
+	else
+		return NULL;
 }
 
 gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error)
@@ -869,11 +928,13 @@ static gboolean asn1_time_to_tm(const ASN1_TIME *intime, struct tm *tm)
 
 gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
 {
+	GError *ierror = NULL;
 	CMS_ContentInfo *icms = NULL;
 	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
 			g_bytes_get_size(content));
 	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
 			g_bytes_get_size(sig));
+	g_autofree gchar *signers = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(content != NULL, FALSE);
@@ -938,6 +999,13 @@ gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_Content
 				"signature verification failed: %s", (flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		goto out;
 	}
+
+	signers = cms_get_signers(icms, &ierror);
+	if (!signers) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+	g_message("Verified signature by %s", signers);
 
 	if (cms)
 		*cms = icms;

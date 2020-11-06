@@ -158,7 +158,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return allocated string containing text representation of certificate chain
  *         (signer and issuer)
  */
-gchar* print_cert_chain(STACK_OF(X509) *verified_chain)
+gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
