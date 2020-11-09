@@ -258,7 +258,7 @@ section for more details.
    :target: https://scan.coverity.com/projects/5085
 .. |Documentation| image:: https://readthedocs.org/projects/rauc/badge/?version=latest
    :target: http://rauc.readthedocs.org/en/latest/?badge=latest
-.. |Matrix| image:: https://matrix.to/img/matrix-badge.svg
+.. |Matrix| image:: https://img.shields.io/matrix/rauc:matrix.org?label=matrix%20chat
    :target: https://app.element.io/#/room/#rauc:matrix.org
 .. |lgtm| image:: https://img.shields.io/lgtm/grade/cpp/g/rauc/rauc.svg?logo=lgtm&logoWidth=18
    :target: https://lgtm.com/projects/g/rauc/rauc/context:cpp
