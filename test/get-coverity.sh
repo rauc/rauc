@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Based on systemd's travis-ci/tools/get-coverity.sh
 
 # Download and extract coverity tool
@@ -32,7 +34,7 @@ if [ ! -d $TOOL_BASE ]; then
   echo -e "\033[33;1mExtracting Coverity Scan Analysis Tool...\033[0m"
   mkdir -p $TOOL_BASE
   pushd $TOOL_BASE
-  tar xzf $TOOL_ARCHIVE
+  tar xzf $TOOL_ARCHIVE || rm -r $TOOL_BASE && exit 1
   popd
 fi
 
