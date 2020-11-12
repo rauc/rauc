@@ -303,6 +303,9 @@ static gboolean input_stream_check_bundle_identifier(GInputStream *stream, GErro
 	gboolean res;
 	gsize bytes_read;
 
+	g_return_val_if_fail(stream, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	res = g_input_stream_read_all(stream, &squashfs_id, sizeof(squashfs_id), &bytes_read, NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
@@ -748,7 +751,9 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	g_autoptr(RaucBundle) ibundle = g_new0(RaucBundle, 1);
 	gchar *bundlescheme = NULL;
 
-	g_return_val_if_fail(bundle == NULL || *bundle == NULL, FALSE);
+	g_return_val_if_fail(bundlename, FALSE);
+	g_return_val_if_fail(bundle != NULL && *bundle == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	r_context_begin_step("check_bundle", "Checking bundle", verify);
 
@@ -915,8 +920,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		CMS_ContentInfo_free(cms);
 	}
 
-	if (bundle)
-		*bundle = g_steal_pointer(&ibundle);
+	*bundle = g_steal_pointer(&ibundle);
 
 	res = TRUE;
 out:
