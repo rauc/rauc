@@ -13,6 +13,7 @@
 /test/test-results
 /*-generated.[ch]
 /.qemu_bash_history
+/qemu-test-ok
 Makefile
 Makefile.in
 aclocal.m4
