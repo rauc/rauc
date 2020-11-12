@@ -823,6 +823,7 @@ static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hoo
 
 	/* finally umount slot */
 	g_message("Unmounting slot %s", slot->device);
+	ierror = NULL; /* any previous error was propagated already */
 	if (!r_umount_slot(slot, &ierror)) {
 		res = FALSE;
 		if (error && *error) {
@@ -1016,6 +1017,7 @@ static gboolean archive_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, 
 unmount_out:
 	/* finally umount ubi volume */
 	g_message("Unmounting ubifs slot %s", dest_slot->device);
+	ierror = NULL; /* any previous error was propagated already */
 	if (!r_umount_slot(dest_slot, &ierror)) {
 		res = FALSE;
 		if (error && *error) {
@@ -1083,6 +1085,7 @@ static gboolean archive_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, c
 unmount_out:
 	/* finally umount ext4 volume */
 	g_message("Unmounting ext4 slot %s", dest_slot->device);
+	ierror = NULL; /* any previous error was propagated already */
 	if (!r_umount_slot(dest_slot, &ierror)) {
 		res = FALSE;
 		if (error && *error) {
@@ -1150,6 +1153,7 @@ static gboolean archive_to_vfat_handler(RaucImage *image, RaucSlot *dest_slot, c
 unmount_out:
 	/* finally umount vfat volume */
 	g_message("Unmounting vfat slot %s", dest_slot->device);
+	ierror = NULL; /* any previous error was propagated already */
 	if (!r_umount_slot(dest_slot, &ierror)) {
 		res = FALSE;
 		if (error && *error) {
