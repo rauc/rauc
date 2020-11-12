@@ -13,6 +13,10 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(10, g_free);
 
+	g_return_val_if_fail(source != NULL, FALSE);
+	g_return_val_if_fail(mountpoint != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	if (getuid() != 0) {
 		g_ptr_array_add(args, g_strdup("sudo"));
 		g_ptr_array_add(args, g_strdup("--non-interactive"));
@@ -70,6 +74,9 @@ gboolean r_umount(const gchar *filename, GError **error)
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(10, g_free);
 
+	g_return_val_if_fail(filename != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	if (getuid() != 0) {
 		g_ptr_array_add(args, g_strdup("sudo"));
 		g_ptr_array_add(args, g_strdup("--non-interactive"));
@@ -108,6 +115,9 @@ gchar* r_create_mount_point(const gchar *name, GError **error)
 	gchar* prefix;
 	gchar* mountpoint = NULL;
 
+	g_return_val_if_fail(name != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	prefix = r_context()->config->mount_prefix;
 	mountpoint = g_build_filename(prefix, name, NULL);
 
@@ -138,8 +148,9 @@ gboolean r_mount_slot(RaucSlot *slot, GError **error)
 	gboolean res = FALSE;
 	gchar *mount_point = NULL;
 
-	g_assert_nonnull(slot);
-	g_assert_null(slot->mount_point);
+	g_return_val_if_fail(slot != NULL, FALSE);
+	g_return_val_if_fail(slot->mount_point == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (!g_file_test(slot->device, G_FILE_TEST_EXISTS)) {
 		g_set_error(
@@ -184,8 +195,9 @@ gboolean r_umount_slot(RaucSlot *slot, GError **error)
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
-	g_assert_nonnull(slot);
-	g_assert_nonnull(slot->mount_point);
+	g_return_val_if_fail(slot != NULL, FALSE);
+	g_return_val_if_fail(slot->mount_point != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	res = r_umount(slot->mount_point, &ierror);
 	if (!res) {
