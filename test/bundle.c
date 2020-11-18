@@ -94,6 +94,8 @@ static void bundle_fixture_tear_down(BundleFixture *fixture,
 {
 	g_assert_true(rm_tree(fixture->tmpdir, NULL));
 	g_free(fixture->tmpdir);
+
+	g_test_assert_expected_messages();
 }
 
 static void bundle_fixture_tear_down_autobuilder2(BundleFixture *fixture,
