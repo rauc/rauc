@@ -26,9 +26,11 @@ static void bundle_fixture_set_up(BundleFixture *fixture,
 	g_print("bundle tmpdir: %s\n", fixture->tmpdir);
 }
 
-static void bundle_fixture_set_up_bundle(BundleFixture *fixture,
-		gconstpointer user_data)
+static void prepare_bundle(BundleFixture *fixture, gconstpointer user_data)
 {
+	/* the context needs to be setup before calling this */
+	r_context();
+
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
 
@@ -39,7 +41,21 @@ static void bundle_fixture_set_up_bundle(BundleFixture *fixture,
 
 	test_create_content(fixture->contentdir);
 
+	/* disable crl checking during bundle creation */
+	r_context()->config->keyring_check_crl = FALSE;
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+			"Detected CRL but CRL checking is disabled!");
 	test_create_bundle(fixture->contentdir, fixture->bundlename);
+	r_context()->config->keyring_check_crl = TRUE;
+}
+
+static void bundle_fixture_set_up_bundle(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/autobuilder-1.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/autobuilder-1.pem");
+
+	prepare_bundle(fixture, user_data);
 }
 
 static void bundle_fixture_set_up_bundle_autobuilder2(BundleFixture *fixture,
@@ -48,12 +64,7 @@ static void bundle_fixture_set_up_bundle_autobuilder2(BundleFixture *fixture,
 	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/autobuilder-2.cert.pem");
 	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/autobuilder-2.pem");
 
-	/* disable crl checking during bundle creation */
-	r_context()->config->keyring_check_crl = FALSE;
-	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
-			"Detected CRL but CRL checking is disabled!");
-	bundle_fixture_set_up_bundle(fixture, user_data);
-	r_context()->config->keyring_check_crl = TRUE;
+	prepare_bundle(fixture, user_data);
 }
 
 static void bundle_fixture_set_up_bundle_email(BundleFixture *fixture,
@@ -64,7 +75,7 @@ static void bundle_fixture_set_up_bundle_email(BundleFixture *fixture,
 	/* cert is already checked once during signing */
 	r_context()->config->keyring_check_purpose = g_strdup("smimesign");
 
-	bundle_fixture_set_up_bundle(fixture, user_data);
+	prepare_bundle(fixture, user_data);
 }
 
 static void bundle_fixture_set_up_bundle_codesign(BundleFixture *fixture,
@@ -75,7 +86,7 @@ static void bundle_fixture_set_up_bundle_codesign(BundleFixture *fixture,
 	/* cert is already checked once during signing */
 	r_context()->config->keyring_check_purpose = g_strdup("codesign");
 
-	bundle_fixture_set_up_bundle(fixture, user_data);
+	prepare_bundle(fixture, user_data);
 }
 
 static void bundle_fixture_tear_down(BundleFixture *fixture,
@@ -88,10 +99,6 @@ static void bundle_fixture_tear_down(BundleFixture *fixture,
 static void bundle_fixture_tear_down_autobuilder2(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	/* restore old paths */
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/autobuilder-1.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/autobuilder-1.pem");
-
 	bundle_fixture_tear_down(fixture, user_data);
 }
 
