@@ -1,3 +1,46 @@
+Release 1.5 (development)
+-------------------------
+
+.. rubric:: Enhancements
+
+* Support resolving the `root=PARTLABEL=xxx` kernel command line option. (by
+  Gaël PORTAY)
+* Disable the unneccessary SMIMECapabilities information in the bundle
+  signature, saving ~100 bytes.
+* Remove redundant checksum verification for source images during installation.
+  The RAUC bundle is already verified at this point, so there is no need to
+  verify the checksum of each file individually. (by Bastian Krause)
+
+.. rubric:: Bug fixes
+
+* Fix install handler selection for *.img files for boot-* slots when used with
+  casync. (by Martin Schwan)
+* Fix checking for unknown keys in the slot configuration.
+* Fix some corner cases related to stopping the D-Bus daemon.
+* Propagate error if unable to save manifest. (by Stefan Wahren)
+* Apply `--handler-args` only during installation (and not during bundle
+  creation).
+
+.. rubric:: Testing
+
+* Ship `test/minimal-test.conf` to fix testing when running as root. (by Uwe
+  Kleine-König)
+* Increase usage of g_autofree/g_autoptr in the test suite.
+
+.. rubric:: Code
+
+* Remove unused code for signed manifests (outside of a bundle).
+* Add G_GNUC_WARN_UNUSED_RESULT to many functions.
+
+.. rubric:: Documentation
+
+* Fix multiple smaller errors. (by Christoph Steiger, Christopher Obbard and
+  Michael Heimpold)
+* Improve documentation related to u-boot scripting and environment storage.
+
+Contributions from: Bastian Krause, Christoph Steiger, Christopher Obbard, Gaël
+PORTAY, Martin Schwan, Michael Heimpold, Stefan Wahren, Uwe Kleine-König
+
 Release 1.4 (released Jul 20, 2020)
 -----------------------------------
 
