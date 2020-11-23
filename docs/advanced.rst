@@ -666,7 +666,7 @@ it is mandatory to also have a default or specific variant for the same slot
 class for any other system you intend to update.
 RAUC will report an error if for example a bootloader image is only present for
 variant A when you try to install on variant B.
-This should prevent from bricking your device by unintentional partial updates.
+This should prevent bricking your device by unintentional partial updates.
 
 .. _sec-manual-write:
 

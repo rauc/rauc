@@ -50,7 +50,7 @@ While the ``--cert`` and ``--key`` argument are mandatory for signing and must
 provide the certificate and private key that should be used for creating the
 signature, the ``--keyring`` argument is optional and (if given) will be used
 for verifying the trust chain validity of the signature after creation.
-Note that this is very useful to prevent from signing with obsolete
+Note that this is very useful to prevent signing with obsolete
 certificates, etc.
 
 Obtaining Bundle Information
