@@ -211,6 +211,25 @@ gchar * key_file_consume_string(
 	return result;
 }
 
+/* get integer argument from key and remove key from key_file */
+gint key_file_consume_integer(
+		GKeyFile *key_file,
+		const gchar *group_name,
+		const gchar *key,
+		GError **error)
+{
+	gint result;
+	GError *ierror = NULL;
+
+	result = g_key_file_get_integer(key_file, group_name, key, &ierror);
+	if (ierror == NULL)
+		g_key_file_remove_key(key_file, group_name, key, NULL);
+	else
+		g_propagate_error(error, ierror);
+
+	return result;
+}
+
 guint64 key_file_consume_binary_suffixed_string(GKeyFile *key_file,
 		const gchar *group_name,
 		const gchar *key,
