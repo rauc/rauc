@@ -297,7 +297,7 @@ out_loop:
 
 	if (installer)
 		g_signal_handlers_disconnect_by_data(installer, args);
-	g_clear_pointer(&installer, g_object_unref);
+	g_clear_object(&installer);
 	install_args_free(args);
 
 out:
@@ -1658,7 +1658,7 @@ static gboolean status_start(int argc, char **argv)
 out:
 	if (message)
 		g_message("rauc status: %s", message);
-	g_clear_pointer(&proxy, g_object_unref);
+	g_clear_object(&proxy);
 
 	return TRUE;
 }

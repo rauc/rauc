@@ -205,7 +205,7 @@ static gboolean tar_image(const gchar *dest, const gchar *dir, GError **error)
 
 out:
 	g_ptr_array_unref(args);
-	g_clear_pointer(&sproc, g_object_unref);
+	g_clear_object(&sproc);
 	return res;
 }
 

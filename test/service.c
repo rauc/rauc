@@ -246,7 +246,7 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 
 	g_main_loop_run(testloop);
 
-	g_clear_pointer(&installer, g_object_unref);
+	g_clear_object(&installer);
 }
 
 static void service_test_install_bundle(ServiceFixture *fixture, gconstpointer user_data)
@@ -321,7 +321,7 @@ static void service_test_install_api(ServiceFixture *fixture, gconstpointer user
 
 	g_main_loop_run(testloop);
 
-	g_clear_pointer(&installer, g_object_unref);
+	g_clear_object(&installer);
 }
 
 static void service_test_install_deprecated(ServiceFixture *fixture, gconstpointer user_data)
@@ -364,7 +364,7 @@ static void service_test_info(ServiceFixture *fixture, gconstpointer user_data)
 	g_assert_cmpstr(version, ==, "2011.03-2");
 
 out:
-	g_clear_pointer(&installer, g_object_unref);
+	g_clear_object(&installer);
 	g_free(compatible);
 	g_free(version);
 }
@@ -401,7 +401,7 @@ static void service_test_slot_status(ServiceFixture *fixture, gconstpointer user
 	g_assert_cmpint(g_variant_n_children(slot_status_array), ==, 6);
 
 out:
-	g_clear_pointer(&installer, g_object_unref);
+	g_clear_object(&installer);
 	g_variant_unref(slot_status_array);
 }
 

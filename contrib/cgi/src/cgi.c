@@ -720,7 +720,7 @@ error:
 
 	g_free(method);
 	g_free(query_string);
-	g_clear_pointer(&installer, g_object_unref);
+	g_clear_object(&installer);
 
 	return ret;
 }
