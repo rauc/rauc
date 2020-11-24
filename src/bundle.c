@@ -96,7 +96,6 @@ static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, con
 	g_ptr_array_add(args, g_strdup(bundlename));
 
 	if (extractfile) {
-		g_ptr_array_add(args, g_strdup("-e"));
 		g_ptr_array_add(args, g_strdup(extractfile));
 	}
 
