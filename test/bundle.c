@@ -133,6 +133,7 @@ static void bundle_test_create_extract(BundleFixture *fixture,
 		gconstpointer user_data)
 {
 	g_autofree gchar *outputdir = NULL;
+	g_autofree gchar *filepath = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
 	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
@@ -148,6 +149,18 @@ static void bundle_test_create_extract(BundleFixture *fixture,
 	res = extract_bundle(bundle, outputdir, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
+
+	filepath = g_build_filename(outputdir, "manifest.raucm", NULL);
+	g_assert_true(g_file_test(filepath, G_FILE_TEST_IS_REGULAR));
+	g_clear_pointer(&filepath, g_free);
+
+	filepath = g_build_filename(outputdir, "rootfs.ext4", NULL);
+	g_assert_true(g_file_test(filepath, G_FILE_TEST_IS_REGULAR));
+	g_clear_pointer(&filepath, g_free);
+
+	filepath = g_build_filename(outputdir, "appfs.ext4", NULL);
+	g_assert_true(g_file_test(filepath, G_FILE_TEST_IS_REGULAR));
+	g_clear_pointer(&filepath, g_free);
 }
 
 static void bundle_test_create_mount_extract(BundleFixture *fixture,
@@ -179,16 +192,13 @@ static void bundle_test_extract_manifest(BundleFixture *fixture,
 		gconstpointer user_data)
 {
 	g_autofree gchar *outputdir = NULL;
-	g_autofree gchar *manifestpath = NULL;
+	g_autofree gchar *filepath = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
 	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
 
 	outputdir = g_build_filename(fixture->tmpdir, "output", NULL);
 	g_assert_nonnull(outputdir);
-
-	manifestpath = g_build_filename(fixture->tmpdir, "/output/manifest.raucm", NULL);
-	g_assert_nonnull(manifestpath);
 
 	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
 	g_assert_no_error(ierror);
@@ -198,7 +208,18 @@ static void bundle_test_extract_manifest(BundleFixture *fixture,
 	res = extract_file_from_bundle(bundle, outputdir, "manifest.raucm", &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
-	g_assert_true(g_file_test(manifestpath, G_FILE_TEST_EXISTS));
+
+	filepath = g_build_filename(outputdir, "manifest.raucm", NULL);
+	g_assert_true(g_file_test(filepath, G_FILE_TEST_IS_REGULAR));
+	g_clear_pointer(&filepath, g_free);
+
+	filepath = g_build_filename(outputdir, "rootfs.ext4", NULL);
+	g_assert_false(g_file_test(filepath, G_FILE_TEST_EXISTS));
+	g_clear_pointer(&filepath, g_free);
+
+	filepath = g_build_filename(outputdir, "appfs.ext4", NULL);
+	g_assert_false(g_file_test(filepath, G_FILE_TEST_EXISTS));
+	g_clear_pointer(&filepath, g_free);
 }
 
 // Hack to pull-in context for testing modification
