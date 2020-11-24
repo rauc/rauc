@@ -252,6 +252,9 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		}
 	}
 
+	c->boot_default_attempts = key_file_consume_integer(key_file, "system", "boot-attempts", NULL);
+	c->boot_attempts_primary = key_file_consume_integer(key_file, "system", "boot-attempts-primary", NULL);
+
 	c->max_bundle_download_size = g_key_file_get_uint64(key_file, "system", "max-bundle-download-size", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 		g_debug("No value for key \"max-bundle-download-size\" in [system] defined "
