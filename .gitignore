@@ -26,6 +26,7 @@ libtool
 /rauc
 /rauc.map
 stamp-h1
+.ccls-cache
 .deps
 .dirstamp
 .gdb_history
