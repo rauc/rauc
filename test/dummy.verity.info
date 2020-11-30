@@ -1,0 +1,9 @@
+VERITY header information for dummy.verity
+UUID:            	
+Hash type:       	1
+Data blocks:     	129
+Data block size: 	4096
+Hash block size: 	4096
+Hash algorithm:  	sha256
+Salt:            	799ea94008bbdc6555d7895d1b647e2abfd213171f0e8b670e1da951406f4691
+Root hash:      	3049cbffaa49c6dc12e9cd1dd4604ef5a290e3d13b379c5a50d356e68423de23
