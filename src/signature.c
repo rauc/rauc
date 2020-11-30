@@ -1072,6 +1072,37 @@ out:
 	return sig;
 }
 
+GBytes *cms_sign_manifest(RaucManifest *manifest, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(GMappedFile) file = NULL;
+	g_autoptr(GBytes) content = NULL;
+	GBytes *sig = NULL;
+
+	g_return_val_if_fail(manifest != NULL, FALSE);
+	g_return_val_if_fail(certfile != NULL, FALSE);
+	g_return_val_if_fail(keyfile != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!save_manifest_mem(&content, manifest)) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_UNKNOWN,
+				"Failed to serialize manifest!");
+		goto out;
+	}
+
+	sig = cms_sign(content, FALSE, certfile, keyfile, interfiles, &ierror);
+	if (sig == NULL) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+out:
+	return sig;
+}
+
 gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
 {
 	GError *ierror = NULL;

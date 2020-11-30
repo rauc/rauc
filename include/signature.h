@@ -3,6 +3,8 @@
 #include <openssl/cms.h>
 #include <glib.h>
 
+#include "manifest.h"
+
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(CMS_ContentInfo, CMS_ContentInfo_free)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(X509_STORE, X509_STORE_free)
 
@@ -85,6 +87,21 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return signature bytes, NULL if failed
  */
 GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Sign manifest with provided certificate and private key
+ *
+ * @param manifest manifest that should be serialized and signed
+ * @param certfile certificate file name
+ * @param keyfile private key file name
+ * @param interfiles NULL-terminated array of intermediate certificate file
+ *                   name strings to include in the bundle signature
+ * @param error return location for a GError, or NULL
+ *
+ * @return signature bytes, NULL if failed
+ */
+GBytes *cms_sign_manifest(RaucManifest *manifest, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
