@@ -1,9 +1,11 @@
 #include <errno.h>
 #include <gio/gio.h>
 #include <gio/gfiledescriptorbased.h>
+#include <gio/gunixmounts.h>
 #include <glib/gstdio.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/vfs.h>
 
 #include "bundle.h"
 #include "context.h"
@@ -13,8 +15,65 @@
 #include "network.h"
 
 /* from statfs(2) man page, as linux/magic.h may not have all of them */
+#ifndef AFS_SUPER_MAGIC
+#define AFS_SUPER_MAGIC 0x5346414f
+#endif
+#ifndef BTRFS_SUPER_MAGIC
+#define BTRFS_SUPER_MAGIC 0x9123683e
+#endif
+#ifndef CRAMFS_MAGIC
+#define CRAMFS_MAGIC 0x28cd3d45
+#endif
+#ifndef EXT4_SUPER_MAGIC /* also covers ext2/3 */
+#define EXT4_SUPER_MAGIC 0xef53
+#endif
+#ifndef F2FS_SUPER_MAGIC
+#define F2FS_SUPER_MAGIC 0xf2f52010
+#endif
+#ifndef FUSE_SUPER_MAGIC
+#define FUSE_SUPER_MAGIC 0x65735546
+#endif
+#ifndef HOSTFS_SUPER_MAGIC
+#define HOSTFS_SUPER_MAGIC 0x00c0ffee
+#endif
+#ifndef ISOFS_SUPER_MAGIC
+#define ISOFS_SUPER_MAGIC 0x9660
+#endif
+#ifndef JFFS2_SUPER_MAGIC
+#define JFFS2_SUPER_MAGIC 0x72b6
+#endif
+#ifndef MSDOS_SUPER_MAGIC
+#define MSDOS_SUPER_MAGIC 0x4d44
+#endif
+#ifndef NFS_SUPER_MAGIC
+#define NFS_SUPER_MAGIC 0x6969
+#endif
+#ifndef NTFS_SB_MAGIC
+#define NTFS_SB_MAGIC 0x5346544e
+#endif
+#ifndef OVERLAYFS_SUPER_MAGIC
+#define OVERLAYFS_SUPER_MAGIC 0x794c7630
+#endif
+#ifndef RAMFS_MAGIC
+#define RAMFS_MAGIC 0x858458f6
+#endif
+#ifndef ROMFS_MAGIC
+#define ROMFS_MAGIC 0x7275
+#endif
 #ifndef SQUASHFS_MAGIC
 #define SQUASHFS_MAGIC 0x73717368
+#endif
+#ifndef TMPFS_MAGIC
+#define TMPFS_MAGIC 0x01021994
+#endif
+#ifndef UBIFS_SUPER_MAGIC
+#define UBIFS_SUPER_MAGIC 0x24051905
+#endif
+#ifndef UDF_SUPER_MAGIC
+#define UDF_SUPER_MAGIC 0x15013346
+#endif
+#ifndef XFS_SUPER_MAGIC
+#define XFS_SUPER_MAGIC 0x58465342
 #endif
 
 GQuark
@@ -739,6 +798,292 @@ static gboolean is_remote_scheme(const gchar *scheme)
 	       (g_strcmp0(scheme, "ftp") == 0);
 }
 
+static gboolean take_bundle_ownership(int bundle_fd, GError **error)
+{
+	struct stat stat = {};
+	mode_t perm_orig = 0, perm_new = 0;
+	gboolean res = FALSE;
+
+	if (fstat(bundle_fd, &stat)) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"failed to fstat bundle: %s", g_strerror(err));
+		res = FALSE;
+		goto out;
+	}
+
+	/* if it belongs to someone else, try to fchown */
+	if ((stat.st_uid != 0) && (stat.st_uid != geteuid())) {
+		if (fchown(bundle_fd, 0, -1)) {
+			int err = errno;
+			g_set_error(error,
+					G_FILE_ERROR,
+					g_file_error_from_errno(err),
+					"failed to chown bundle to root: %s", g_strerror(err));
+			res = FALSE;
+			goto out;
+		}
+	}
+
+	/* allow write permission for user only */
+	perm_orig = stat.st_mode & 07777;
+	perm_new = perm_orig & (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	if (perm_orig != perm_new) {
+		if (fchmod(bundle_fd, perm_new)) {
+			int err = errno;
+			g_set_error(error,
+					G_FILE_ERROR,
+					g_file_error_from_errno(err),
+					"failed to chmod bundle: %s", g_strerror(err));
+			res = FALSE;
+			goto out;
+		}
+	}
+
+	res = TRUE;
+
+out:
+	return res;
+}
+
+static gboolean check_bundle_access(int bundle_fd, GError **error)
+{
+	struct stat bundle_stat = {};
+	struct stat root_stat = {};
+	struct statfs bundle_statfs = {};
+	mode_t perm = 0;
+	GList *mountlist = NULL;
+	gboolean mount_checked = FALSE;
+	gboolean res = FALSE;
+
+	/* This checks if another user could get or already has write access
+	 * the bundle contents.
+	 *
+	 * Prohibited are:
+	 * - ownership or permissions that allow other users to open it for writing
+	 * - storage on unsafe filesystems such as FUSE or NFS, where the data
+	 *   is supplied by an untrusted source (the rootfs is explicitly
+	 *   trusted, though)
+	 * - storage on an filesystem mounted from a block device with a non-root owner
+	 * - existing open file descriptors (via F_SETLEASE)
+	 */
+
+	if (fstat(bundle_fd, &bundle_stat)) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"failed to fstat bundle: %s", g_strerror(err));
+		res = FALSE;
+		goto out;
+	}
+	perm = bundle_stat.st_mode & 07777;
+
+	if (fstatfs(bundle_fd, &bundle_statfs)) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"failed to fstatfs bundle: %s", g_strerror(err));
+		res = FALSE;
+		goto out;
+	}
+
+	/* unexpected file type */
+	if (!S_ISREG(bundle_stat.st_mode)) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE, "unsafe bundle (not a regular file)");
+		res = FALSE;
+		goto out;
+	}
+
+	/* owned by other user (except root) */
+	if ((bundle_stat.st_uid != 0) && (bundle_stat.st_uid != geteuid())) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE, "unsafe bundle uid %ju", (uintmax_t)bundle_stat.st_uid);
+		res = FALSE;
+		goto out;
+	}
+
+	/* unsafe permissions (not a subset of 0755) */
+	if (perm & ~(0755)) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE, "unsafe bundle permissions 0%jo", (uintmax_t)perm);
+		res = FALSE;
+		goto out;
+	}
+
+	/* the root filesystem is trusted */
+	if (stat("/", &root_stat)) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"failed to stat rootfs: %s", g_strerror(err));
+		res = FALSE;
+		goto out;
+	}
+	if (root_stat.st_dev == bundle_stat.st_dev)
+		mount_checked = TRUE;
+
+	/* reject unsafe filesystem types */
+	if (!mount_checked) {
+		switch (bundle_statfs.f_type) {
+			/* fuse doesn't ensure consistency */
+			case FUSE_SUPER_MAGIC:
+			case NFS_SUPER_MAGIC:
+				g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE, "bundle is stored on an unsafe filesystem");
+				res = FALSE;
+				goto out;
+				break;
+			/* local filesystem permissions are enforced by the kernel */
+			case AFS_SUPER_MAGIC:
+			case BTRFS_SUPER_MAGIC:
+			case CRAMFS_MAGIC:
+			case EXT4_SUPER_MAGIC: /* also covers ext2/3 */
+			case F2FS_SUPER_MAGIC:
+			case ISOFS_SUPER_MAGIC:
+			case JFFS2_SUPER_MAGIC:
+			case MSDOS_SUPER_MAGIC:
+			case NTFS_SB_MAGIC:
+			case RAMFS_MAGIC:
+			case ROMFS_MAGIC:
+			case SQUASHFS_MAGIC:
+			case UDF_SUPER_MAGIC:
+			case XFS_SUPER_MAGIC:
+				break;
+			/* these are prepared by root */
+			case HOSTFS_SUPER_MAGIC:
+			case OVERLAYFS_SUPER_MAGIC:
+			case TMPFS_MAGIC:
+			case UBIFS_SUPER_MAGIC:
+				mount_checked = TRUE;
+				break;
+			default:
+				g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE, "bundle is stored on an unkown filesystem (type=%0jx)", (uintmax_t)bundle_statfs.f_type);
+				res = FALSE;
+				goto out;
+				break;
+		}
+	}
+
+	/* check if the underlying device is acceptable */
+	if (!mount_checked) {
+		mountlist = g_unix_mounts_get(NULL);
+		for (GList *l = mountlist; l != NULL; l = l->next) {
+			GUnixMountEntry *m = l->data;
+			const gchar *dev_path = g_unix_mount_get_device_path(m);
+			struct stat dev_stat = {};
+			if (stat(dev_path, &dev_stat))
+				continue;
+			if (dev_stat.st_rdev != bundle_stat.st_dev)
+				continue;
+			/* check owner is root */
+			if (dev_stat.st_uid != 0) {
+				g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE, "unsafe uid 0%ju for mounted device %s", (uintmax_t)dev_stat.st_uid, dev_path);
+				res = FALSE;
+				goto out;
+			}
+			/* As mode 0660 is very widespread for disks,
+			 * permission checks would either have many false
+			 * positives or be very complex. So we have to trust
+			 * that the system integrator has configured the device
+			 * group permissions properly.
+			 */
+			mount_checked = TRUE;
+			break;
+		}
+	}
+
+	if (!mount_checked) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE, "unable to find mounted device for bundle");
+		res = FALSE;
+		goto out;
+	}
+
+	/* check for other open file descriptors via leases (see fcntl(2)) */
+	if (fcntl(bundle_fd, F_SETLEASE, F_RDLCK)) {
+		const gchar *message = NULL;
+		int err = errno;
+		if (err == EAGAIN) {
+			message = "EAGAIN: existing open file descriptor";
+		} else if (err == EACCES) {
+			message = "EACCES: missing capability CAP_LEASE?";
+		} else {
+			message = g_strerror(err);
+		}
+		g_set_error(error,
+				R_BUNDLE_ERROR,
+				R_BUNDLE_ERROR_UNSAFE,
+				"could not ensure exclusive bundle access (F_SETLEASE): %s", message);
+		res = FALSE;
+		goto out;
+	}
+	if (fcntl(bundle_fd, F_GETLEASE) != F_RDLCK) {
+		int err = errno;
+		g_set_error(error,
+				R_BUNDLE_ERROR,
+				R_BUNDLE_ERROR_UNSAFE,
+				"could not ensure exclusive bundle access (F_GETLEASE): %s", g_strerror(err));
+		res = FALSE;
+		goto out;
+	}
+	if (fcntl(bundle_fd, F_SETLEASE, F_UNLCK)) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"failed to remove file lease on bundle: %s", g_strerror(err));
+		res = FALSE;
+		goto out;
+	}
+
+	res = TRUE;
+
+out:
+	if (mountlist)
+		g_list_free_full(mountlist, (GDestroyNotify)g_unix_mount_free);
+	return res;
+}
+
+static gboolean enforce_bundle_exclusive(int bundle_fd, GError **error)
+{
+	GError *ierror_take = NULL, *ierror_check = NULL;
+	gboolean res_take = FALSE, res = FALSE;
+
+	/* first check if the current state is good */
+	if (check_bundle_access(bundle_fd, &ierror_check)) {
+		/* no need to do anything else */
+		res = TRUE;
+		goto out;
+	}
+	g_debug("initial check_bundle_access failed with: %s", ierror_check->message);
+	g_clear_error(&ierror_check);
+
+	/* try to take ownership (will fail for normal users and RO filesystems) */
+	res_take = take_bundle_ownership(bundle_fd, &ierror_take);
+
+	/* check if it is better now */
+	if (!check_bundle_access(bundle_fd, &ierror_check)) {
+		if (res_take) {
+			/* taking ownership was successful, the relevant error is ierror_check */
+			g_propagate_error(error, ierror_check);
+		} else {
+			/* taking ownership was unsucessful, the relevant error is ierror_take */
+			g_clear_error(&ierror_check);
+			g_propagate_prefixed_error(error, ierror_take, "failed to take ownership of bundle: ");
+			ierror_take = NULL;
+		}
+		res = FALSE;
+		goto out;
+	}
+
+	res = TRUE;
+
+out:
+	g_clear_error(&ierror_take);
+	return res;
+}
+
 gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error)
 {
 	GError *ierror = NULL;
@@ -924,6 +1269,13 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		g_message("Verifying bundle signature... ");
 		{
 			int fd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(ibundle->stream));
+
+			if (!enforce_bundle_exclusive(fd, &ierror)) {
+				g_propagate_error(error, ierror);
+				res = FALSE;
+				goto out;
+			}
+
 			/* the squashfs image size is in offset */
 			res = cms_verify_fd(fd, ibundle->sigdata, offset, store, &cms, &ierror);
 			if (!res) {
