@@ -15,6 +15,7 @@ typedef enum {
 	R_BUNDLE_ERROR_IDENTIFIER,
 	R_BUNDLE_ERROR_UNSAFE,
 	R_BUNDLE_ERROR_PAYLOAD,
+	R_BUNDLE_ERROR_FORMAT,
 } RBundleError;
 
 typedef struct {

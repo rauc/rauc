@@ -1430,6 +1430,13 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		if (detached) {
 			int fd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(ibundle->stream));
 
+			if (!(r_context()->config->bundle_formats_mask & 1 << R_MANIFEST_FORMAT_PLAIN)) {
+				g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
+						"Bundle format 'plain' not allowed");
+				res = FALSE;
+				goto out;
+			}
+
 			if (!enforce_bundle_exclusive(fd, &ierror)) {
 				g_propagate_error(error, ierror);
 				res = FALSE;
@@ -1445,6 +1452,13 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 			ibundle->signature_verified = TRUE;
 			ibundle->payload_verified = TRUE;
 		} else {
+			if (!(r_context()->config->bundle_formats_mask & 1 << R_MANIFEST_FORMAT_VERITY)) {
+				g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
+						"Bundle format 'verity' not allowed");
+				res = FALSE;
+				goto out;
+			}
+
 			res = cms_verify_sig(ibundle->sigdata, store, &cms, &manifest_bytes, &ierror);
 			if (!res) {
 				g_propagate_error(error, ierror);
@@ -1477,6 +1491,13 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror,
 					"Failed to load manifest: ");
+			goto out;
+		}
+
+		if (ibundle->manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
+					"Bundle format 'plain' not allowed for external manifest");
+			res = FALSE;
 			goto out;
 		}
 	}
