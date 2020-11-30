@@ -10,6 +10,11 @@
 #include "utils.h"
 #include "network.h"
 
+/* from statfs(2) man page, as linux/magic.h may not have all of them */
+#ifndef SQUASHFS_MAGIC
+#define SQUASHFS_MAGIC 0x73717368
+#endif
+
 GQuark
 r_bundle_error_quark(void)
 {
@@ -293,8 +298,6 @@ static gboolean input_stream_read_uint64_all(GInputStream *stream,
 	return res;
 }
 
-#define SQUASHFS_MAGIC			GUINT32_TO_LE(0x73717368)
-
 /* Attempts to read and verify the squashfs magic to verify having a valid bundle */
 static gboolean input_stream_check_bundle_identifier(GInputStream *stream, GError **error)
 {
@@ -321,7 +324,7 @@ static gboolean input_stream_check_bundle_identifier(GInputStream *stream, GErro
 		return FALSE;
 	}
 
-	if (squashfs_id != SQUASHFS_MAGIC) {
+	if (squashfs_id != GUINT32_TO_LE(SQUASHFS_MAGIC)) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_IDENTIFIER, "Invalid identifier. Did you pass a valid RAUC bundle?");
 		return FALSE;
 	}
