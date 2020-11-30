@@ -168,7 +168,7 @@ gboolean test_rm_tree(const gchar *dirname, const gchar *filename)
 	return res;
 }
 
-int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, gboolean custom_handler, gboolean hooks)
+int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, const ManifestTestOptions *options)
 {
 	gchar *path = g_build_filename(dirname, filename, NULL);
 	RaucManifest *rm = g_new0(RaucManifest, 1);
@@ -177,10 +177,10 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, gboo
 	rm->update_compatible = g_strdup("Test Config");
 	rm->update_version = g_strdup("2011.03-2");
 
-	if (custom_handler)
+	if (options->custom_handler)
 		rm->handler_name = g_strdup("custom_handler.sh");
 
-	if (hooks) {
+	if (options->hooks) {
 		rm->hook_name = g_strdup("hook.sh");
 	}
 
@@ -188,7 +188,7 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, gboo
 
 	img->slotclass = g_strdup("rootfs");
 	img->filename = g_strdup("rootfs.ext4");
-	if (hooks)
+	if (options->hooks)
 		img->hooks.post_install = TRUE;
 	rm->images = g_list_append(rm->images, img);
 
@@ -330,7 +330,11 @@ void test_create_content(gchar *contentdir)
 			1024*1024, "/dev/urandom") == 0);
 	g_assert(test_prepare_dummy_file(contentdir, "appfs.ext4",
 			64*1024, "/dev/urandom") == 0);
-	g_assert(test_prepare_manifest_file(contentdir, "manifest.raucm", FALSE, FALSE) == 0);
+	g_assert(test_prepare_manifest_file(contentdir, "manifest.raucm",
+			&(ManifestTestOptions) {
+		.custom_handler = FALSE,
+		.hooks = FALSE,
+	}) == 0);
 }
 
 void test_create_bundle(gchar *contentdir, gchar *bundlename)

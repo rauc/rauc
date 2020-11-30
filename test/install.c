@@ -16,29 +16,33 @@ GMainLoop *r_loop = NULL;
 
 typedef struct {
 	const gchar **message_needles;
+	ManifestTestOptions manifest_test_options;
 } InstallData;
 
 static void install_fixture_set_up_bundle(InstallFixture *fixture,
 		gconstpointer user_data)
 {
+	InstallData *data = (InstallData*) user_data;
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
 	fixture_helper_set_up_system(fixture->tmpdir, NULL);
-	fixture_helper_set_up_bundle(fixture->tmpdir, NULL, FALSE, FALSE);
+	fixture_helper_set_up_bundle(fixture->tmpdir, NULL, &data->manifest_test_options);
 }
 
 static void install_fixture_set_up_bundle_central_status(InstallFixture *fixture,
 		gconstpointer user_data)
 {
+	InstallData *data = (InstallData*) user_data;
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
 	fixture_helper_set_up_system(fixture->tmpdir, "test/test-global.conf");
-	fixture_helper_set_up_bundle(fixture->tmpdir, NULL, FALSE, FALSE);
+	fixture_helper_set_up_bundle(fixture->tmpdir, NULL, &data->manifest_test_options);
 }
 
 static void install_fixture_set_up_bundle_already_mounted(InstallFixture *fixture,
 		gconstpointer user_data)
 {
+	InstallData *data = (InstallData*) user_data;
 	const gchar *manifest_file = "\
 [update]\n\
 compatible=Test Config\n\
@@ -54,12 +58,13 @@ hooks=install\n\
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
 	fixture_helper_set_up_system(fixture->tmpdir, NULL);
-	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, TRUE, TRUE);
+	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
 static void install_fixture_set_up_bundle_custom_handler(InstallFixture *fixture,
 		gconstpointer user_data)
 {
+	InstallData *data = (InstallData*) user_data;
 	const gchar *manifest_file = "\
 [update]\n\
 compatible=Test Config\n\
@@ -74,12 +79,13 @@ filename=rootfs.ext4\n\
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
 	fixture_helper_set_up_system(fixture->tmpdir, NULL);
-	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, TRUE, FALSE);
+	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
 static void install_fixture_set_up_bundle_install_check_hook(InstallFixture *fixture,
 		gconstpointer user_data)
 {
+	InstallData *data = (InstallData*) user_data;
 	const gchar *manifest_file = "\
 [update]\n\
 compatible=Test Config\n\
@@ -97,12 +103,13 @@ filename=appfs.ext4";
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
 	fixture_helper_set_up_system(fixture->tmpdir, NULL);
-	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, FALSE, TRUE);
+	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
 static void install_fixture_set_up_bundle_install_hook(InstallFixture *fixture,
 		gconstpointer user_data)
 {
+	InstallData *data = (InstallData*) user_data;
 	const gchar *manifest_file = "\
 [update]\n\
 compatible=Test Config\n\
@@ -121,12 +128,13 @@ hooks=install";
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
 	fixture_helper_set_up_system(fixture->tmpdir, NULL);
-	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, FALSE, TRUE);
+	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
 static void install_fixture_set_up_bundle_post_hook(InstallFixture *fixture,
 		gconstpointer user_data)
 {
+	InstallData *data = (InstallData*) user_data;
 	const gchar *manifest_file = "\
 [update]\n\
 compatible=Test Config\n\
@@ -145,7 +153,7 @@ hooks=post-install";
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
 	fixture_helper_set_up_system(fixture->tmpdir, NULL);
-	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, FALSE, TRUE);
+	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
 static void install_fixture_set_up_system_conf(InstallFixture *fixture,
@@ -988,7 +996,7 @@ static void install_test_bundle(InstallFixture *fixture,
 	g_assert(g_file_test(testfilepath, G_FILE_TEST_IS_REGULAR));
 	g_assert(test_umount(fixture->tmpdir, "mnt"));
 
-	if (data != NULL) {
+	if (data != NULL && data->message_needles != NULL) {
 		const gchar **message_needles = data->message_needles;
 		while (*message_needles != NULL) {
 			g_assert_true(install_args_find_message(args, *message_needles));
@@ -1223,11 +1231,12 @@ int main(int argc, char *argv[])
 	r_context_conf()->handlerextra = g_strdup("--dummy1 --dummy2");
 	r_context();
 
-	g_test_add("/install/bootname", InstallFixture, NULL,
+	install_data = &(InstallData) {};
+	g_test_add("/install/bootname", InstallFixture, install_data,
 			install_fixture_set_up_system_user, install_test_bootname,
 			install_fixture_tear_down);
 
-	g_test_add("/install/target", InstallFixture, NULL,
+	g_test_add("/install/target", InstallFixture, install_data,
 			install_fixture_set_up_system_conf, install_test_target,
 			install_fixture_tear_down);
 
@@ -1249,15 +1258,15 @@ int main(int argc, char *argv[])
 
 	g_test_add_func("/install/image-mapping/variants", test_install_image_variants);
 
-	g_test_add("/install/bundle", InstallFixture, NULL,
+	g_test_add("/install/bundle", InstallFixture, install_data,
 			install_fixture_set_up_bundle, install_test_bundle,
 			install_fixture_tear_down);
 
-	g_test_add("/install/bundle/central-status", InstallFixture, NULL,
+	g_test_add("/install/bundle/central-status", InstallFixture, install_data,
 			install_fixture_set_up_bundle_central_status, install_test_bundle,
 			install_fixture_tear_down);
 
-	g_test_add("/install/bundle-thread", InstallFixture, NULL,
+	g_test_add("/install/bundle-thread", InstallFixture, install_data,
 			install_fixture_set_up_bundle, install_test_bundle_thread,
 			install_fixture_tear_down);
 
@@ -1270,24 +1279,56 @@ int main(int argc, char *argv[])
 			"Handler status: [DONE]",
 			NULL,
 		},
+		.manifest_test_options = {
+			.custom_handler = TRUE,
+			.hooks = FALSE,
+		},
 	};
 	g_test_add("/install/bundle-custom-handler", InstallFixture, install_data,
 			install_fixture_set_up_bundle_custom_handler, install_test_bundle,
 			install_fixture_tear_down);
 
-	g_test_add("/install/bundle-hook/install-check", InstallFixture, NULL,
+	install_data = &(InstallData) {
+		.message_needles = NULL,
+		.manifest_test_options = {
+			.custom_handler = FALSE,
+			.hooks = TRUE,
+		},
+	};
+	g_test_add("/install/bundle-hook/install-check", InstallFixture, install_data,
 			install_fixture_set_up_bundle_install_check_hook, install_test_bundle_hook_install_check,
 			install_fixture_tear_down);
 
-	g_test_add("/install/bundle-hook/slot-install", InstallFixture, NULL,
+	install_data = &(InstallData) {
+		.message_needles = NULL,
+		.manifest_test_options = {
+			.custom_handler = FALSE,
+			.hooks = TRUE,
+		},
+	};
+	g_test_add("/install/bundle-hook/slot-install", InstallFixture, install_data,
 			install_fixture_set_up_bundle_install_hook, install_test_bundle_hook_install,
 			install_fixture_tear_down);
 
-	g_test_add("/install/bundle-hook/slot-post-install", InstallFixture, NULL,
+	install_data = &(InstallData) {
+		.message_needles = NULL,
+		.manifest_test_options = {
+			.custom_handler = FALSE,
+			.hooks = TRUE,
+		},
+	};
+	g_test_add("/install/bundle-hook/slot-post-install", InstallFixture, install_data,
 			install_fixture_set_up_bundle_post_hook, install_test_bundle_hook_post_install,
 			install_fixture_tear_down);
 
-	g_test_add("/install/already-mounted", InstallFixture, NULL,
+	install_data = &(InstallData) {
+		.message_needles = NULL,
+		.manifest_test_options = {
+			.custom_handler = TRUE,
+			.hooks = TRUE,
+		},
+	};
+	g_test_add("/install/already-mounted", InstallFixture, install_data,
 			install_fixture_set_up_bundle_already_mounted, install_test_already_mounted,
 			install_fixture_tear_down);
 

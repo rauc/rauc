@@ -116,8 +116,7 @@ void fixture_helper_set_up_system(gchar *tmpdir,
 
 void fixture_helper_set_up_bundle(gchar *tmpdir,
 		const gchar* manifest_content,
-		gboolean handler,
-		gboolean hook)
+		const ManifestTestOptions *options)
 {
 	g_autofree gchar *contentdir = NULL;
 	g_autofree gchar *bundlepath = NULL;
@@ -150,7 +149,7 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 	if (manifest_content) {
 		g_assert_true(write_tmp_file(tmpdir, "content/manifest.raucm", manifest_content, NULL));
 	} else {
-		g_assert(test_prepare_manifest_file(tmpdir, "content/manifest.raucm", FALSE, hook) == 0);
+		g_assert(test_prepare_manifest_file(tmpdir, "content/manifest.raucm", options) == 0);
 	}
 
 	/* Make images user-writable */
@@ -166,13 +165,13 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 	g_assert(test_rmdir(tmpdir, "mnt") == 0);
 
 	/* Copy custom handler */
-	if (handler) {
+	if (options->custom_handler) {
 		g_assert_true(test_copy_file("test/install-content/custom_handler.sh", NULL,
 				tmpdir, "content/custom_handler.sh"));
 	}
 
 	/* Copy hook */
-	if (hook) {
+	if (options->hooks) {
 		g_assert_true(test_copy_file("test/install-content/hook.sh", NULL,
 				tmpdir, "content/hook.sh"));
 	}

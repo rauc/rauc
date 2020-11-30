@@ -29,7 +29,11 @@ static void service_install_fixture_set_up(ServiceFixture *fixture, gconstpointe
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
 	fixture_helper_set_up_system(fixture->tmpdir, NULL);
-	fixture_helper_set_up_bundle(fixture->tmpdir, NULL, FALSE, FALSE);
+	fixture_helper_set_up_bundle(fixture->tmpdir, NULL,
+			&(ManifestTestOptions) {
+		.custom_handler = FALSE,
+		.hooks = FALSE,
+	});
 
 	/* Write a D-Bus service file with current tmpdir */
 	write_tmp_file(fixture->tmpdir, "de.pengutronix.rauc.service", g_strdup_printf("\

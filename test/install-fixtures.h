@@ -2,6 +2,8 @@
 
 #include <glib.h>
 
+#include "common.h"
+
 #define SLOT_SIZE (10*1024*1024)
 
 typedef struct {
@@ -20,8 +22,7 @@ typedef struct {
  */
 void fixture_helper_set_up_bundle(gchar *tmpdir,
 		const gchar* manifest_content,
-		gboolean handler,
-		gboolean hook);
+		const ManifestTestOptions *options);
 
 /**
  * Fixture helper to set up a fake target system for testing.

@@ -2,6 +2,11 @@
 
 #include <glib.h>
 
+typedef struct {
+	gboolean custom_handler;
+	gboolean hooks;
+} ManifestTestOptions;
+
 guint8* random_bytes(gsize size, guint32 seed);
 gchar* write_random_file(const gchar *tmpdir, const gchar *filename,
 		gsize size, const guint32 seed);
@@ -12,7 +17,7 @@ int test_mkdir_relative(const gchar *dirname, const gchar *filename, int mode);
 int test_rmdir(const gchar *dirname, const gchar *filename);
 int test_remove(const gchar *dirname, const gchar *filename);
 gboolean test_rm_tree(const gchar *dirname, const gchar *filename);
-int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, gboolean custom_handler, gboolean hook);
+int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, const ManifestTestOptions *options);
 gboolean test_make_filesystem(const gchar *dirname, const gchar *filename);
 gboolean test_mount(const gchar *src, const gchar *dest);
 gboolean test_umount(const gchar *dirname, const gchar *mountpoint);
