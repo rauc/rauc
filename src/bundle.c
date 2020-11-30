@@ -88,19 +88,19 @@ out:
 	return res;
 }
 
-static gboolean unsquashfs(const gchar *bundlename, const gchar *contentdir, const gchar *extractfile, GError **error)
+static gboolean unsquashfs(gint fd, const gchar *contentdir, const gchar *extractfile, GError **error)
 {
 	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	GPtrArray *args = g_ptr_array_new_full(7, g_free);
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(7, g_free);
 
 	r_context_begin_step("unsquashfs", "Uncompressing squashfs", 0);
 
 	g_ptr_array_add(args, g_strdup("unsquashfs"));
 	g_ptr_array_add(args, g_strdup("-dest"));
 	g_ptr_array_add(args, g_strdup(contentdir));
-	g_ptr_array_add(args, g_strdup(bundlename));
+	g_ptr_array_add(args, g_strdup_printf("/proc/%jd/fd/%d", (intmax_t)getpid(), fd));
 
 	if (extractfile) {
 		g_ptr_array_add(args, g_strdup(extractfile));
@@ -938,7 +938,7 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
 
 	r_context_begin_step("extract_bundle", "Extracting bundle", 1);
 
-	res = unsquashfs(bundle->path, outputdir, NULL, &ierror);
+	res = unsquashfs(g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream)), outputdir, NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -957,7 +957,7 @@ gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, co
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 
-	res = unsquashfs(bundle->path, outputdir, file, &ierror);
+	res = unsquashfs(g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream)), outputdir, file, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
