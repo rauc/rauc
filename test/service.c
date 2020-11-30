@@ -334,11 +334,15 @@ static void service_test_info(ServiceFixture *fixture, gconstpointer user_data)
 	GError *error = NULL;
 	gchar *compatible;
 	gchar *version;
+	g_autofree gchar *bundlepath = NULL;
 
 	if (!ENABLE_SERVICE) {
 		g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
 		return;
 	}
+
+	bundlepath = g_build_filename(fixture->tmpdir, "good-bundle.raucb", NULL);
+	g_assert_true(test_copy_file("test", "good-bundle.raucb", fixture->tmpdir, "good-bundle.raucb"));
 
 	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
 			G_DBUS_PROXY_FLAGS_NONE,
@@ -354,7 +358,7 @@ static void service_test_info(ServiceFixture *fixture, gconstpointer user_data)
 	}
 
 	r_installer_call_info_sync(installer,
-			"test/good-bundle.raucb",
+			bundlepath,
 			&compatible,
 			&version,
 			NULL,
