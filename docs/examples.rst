@@ -146,6 +146,8 @@ scope for RAUC. A common approach is to generate a complete disk image
 (including the partition table) using a build system such as
 OpenEmbedded/Yocto, PTXdist or buildroot.
 
+.. _sec-example-bundle-generation:
+
 Bundle Generation
 ~~~~~~~~~~~~~~~~~
 

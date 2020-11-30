@@ -1111,10 +1111,13 @@ Yocto support for using RAUC is provided by the `meta-rauc
 <https://github.com/rauc/meta-rauc>`_ layer.
 
 The layer supports building RAUC both for the target as well as as a host tool.
-With the `bundle.bbclass` it provides a mechanism to specify and build bundles
-directly with the help of Yocto.
+With the `bundle.bbclass
+<https://github.com/rauc/meta-rauc/blob/master/classes/bundle.bbclass>`_ it
+provides a mechanism to specify and build bundles directly with the help of
+Yocto.
 
-For more information on how to use the layer, also see the layers README file.
+For more information on how to use the layer, also see the layer's `README
+<https://github.com/rauc/meta-rauc/blob/master/README.rst>`_ file.
 
 Target System Setup
 ~~~~~~~~~~~~~~~~~~~
@@ -1147,7 +1150,8 @@ single system, create a keyring directory containing each certificate.
 
 .. note::
   For information on how to create a testing / development
-  key/cert/keyring, please refer to `scripts/README` in meta-rauc.
+  key/cert/keyring, please refer to `scripts/README
+  <https://github.com/rauc/meta-rauc/blob/master/scripts/README>`_ in meta-rauc.
 
 For a reference of allowed configuration options in system.conf,
 see :ref:`sec_ref_slot_config`.
@@ -1328,5 +1332,5 @@ Buildroot
 
 .. note:: RAUC support in Buildroot is available since version 2017.08.0.
 
-To build RAUC using buildroot, enable ``BR2_PACKAGE_RAUC`` in your
+To build RAUC using Buildroot, enable ``BR2_PACKAGE_RAUC`` in your
 configuration.
