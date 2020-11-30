@@ -1995,6 +1995,12 @@ print_help:
 
 int main(int argc, char **argv)
 {
+	GLogLevelFlags fatal_mask;
+
+	fatal_mask = g_log_set_always_fatal(G_LOG_FATAL_MASK);
+	fatal_mask |= G_LOG_LEVEL_CRITICAL;
+	g_log_set_always_fatal(fatal_mask);
+
 	/* disable remote VFS */
 	g_assert(g_setenv("GIO_USE_VFS", "local", TRUE));
 
