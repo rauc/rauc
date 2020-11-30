@@ -105,6 +105,18 @@ GBytes *cms_sign_manifest(RaucManifest *manifest, const gchar *certfile, const g
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Check whether the CMS signature is detached or not
+ *
+ * @param sig signature to be checked
+ * @param detached return location for the detached/inline result
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if succeeded, FALSE if failed
+ */
+gboolean cms_is_detached(GBytes *sig, gboolean *detached, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Verify signature for given content.
  *
  * @param content content to verify against signature

@@ -54,6 +54,7 @@ static void signature_sign(SignatureFixture *fixture,
 {
 	gchar *certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
 	gchar *keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	gboolean detached = FALSE;
 
 	// Test valid signing
 	fixture->sig = cms_sign(fixture->content,
@@ -62,8 +63,13 @@ static void signature_sign(SignatureFixture *fixture,
 			keypath,
 			NULL,
 			&fixture->error);
+	g_assert_no_error(fixture->error);
 	g_assert_nonnull(fixture->sig);
 	g_assert_null(fixture->error);
+
+	g_assert_true(cms_is_detached(fixture->sig, &detached, &fixture->error));
+	g_assert_no_error(fixture->error);
+	g_assert_true(detached);
 
 	g_bytes_unref(fixture->sig);
 
@@ -133,10 +139,15 @@ static void signature_sign_file(SignatureFixture *fixture,
 static void signature_verify_valid(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gboolean detached = FALSE;
 	gboolean res;
 
 	fixture->sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
 	g_assert_nonnull(fixture->sig);
+
+	g_assert_true(cms_is_detached(fixture->sig, &detached, &fixture->error));
+	g_assert_no_error(fixture->error);
+	g_assert_true(detached);
 
 	res = cms_verify(fixture->content,
 			fixture->sig,
@@ -151,10 +162,18 @@ static void signature_verify_valid(SignatureFixture *fixture,
 static void signature_verify_invalid(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gboolean detached = TRUE;
+
 	fixture->sig = read_file("test/random.dat", NULL);
 	g_assert_nonnull(fixture->sig);
 
 	// Test against invalid signature
+	g_assert_false(cms_is_detached(fixture->sig, &detached, &fixture->error));
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE);
+	g_assert_true(detached); /* should not be touched in the error case */
+
+	g_clear_error(&fixture->error);
+
 	g_assert_false(cms_verify(fixture->content,
 			fixture->sig,
 			fixture->store,

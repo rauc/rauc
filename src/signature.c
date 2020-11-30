@@ -946,6 +946,36 @@ static void debug_cms_ci(CMS_ContentInfo *cms)
 	BIO_free_all(out);
 }
 
+gboolean cms_is_detached(GBytes *sig, gboolean *detached, GError **error)
+{
+	CMS_ContentInfo *cms = NULL;
+	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
+			g_bytes_get_size(sig));
+	gboolean res = FALSE;
+
+	g_return_val_if_fail(sig != NULL, FALSE);
+	g_return_val_if_fail(detached != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!(cms = d2i_CMS_bio(insig, NULL))) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE,
+				"failed to parse signature");
+		goto out;
+	}
+
+	*detached = CMS_is_detached(cms);
+
+	res = TRUE;
+
+out:
+	if (cms)
+		CMS_ContentInfo_free(cms);
+	return res;
+}
+
 gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
 {
 	GError *ierror = NULL;
