@@ -20,6 +20,7 @@ typedef struct {
 
 typedef struct {
 	ManifestTestOptions manifest_test_options;
+	const gchar *bundle_formats;
 } BundleData;
 
 static void bundle_fixture_set_up(BundleFixture *fixture,
@@ -33,6 +34,8 @@ static void bundle_fixture_set_up(BundleFixture *fixture,
 static void prepare_bundle(BundleFixture *fixture, gconstpointer user_data)
 {
 	BundleData *data = (BundleData*)user_data;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res = FALSE;
 
 	/* the context needs to be setup before calling this */
 	r_context();
@@ -53,6 +56,12 @@ static void prepare_bundle(BundleFixture *fixture, gconstpointer user_data)
 			"Detected CRL but CRL checking is disabled!");
 	test_create_bundle(fixture->contentdir, fixture->bundlename);
 	r_context()->config->keyring_check_crl = TRUE;
+
+	if (data->bundle_formats) {
+		res = parse_bundle_formats(&r_context()->config->bundle_formats_mask, data->bundle_formats, &ierror);
+		g_assert_no_error(ierror);
+		g_assert_true(res);
+	}
 }
 
 static void bundle_fixture_set_up_bundle(BundleFixture *fixture,
@@ -141,6 +150,19 @@ static void test_check_invalid_bundle(BundleFixture *fixture,
 	res = check_bundle(bundlename, &bundle, FALSE, &ierror);
 	g_assert_false(res);
 	g_assert_error(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_IDENTIFIER);
+	g_assert_null(bundle);
+}
+
+static void bundle_test_create_check_error(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res = FALSE;
+
+	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	g_assert_false(res);
+	g_assert_error(ierror, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT);
 	g_assert_null(bundle);
 }
 
@@ -562,6 +584,118 @@ int main(int argc, char *argv[])
 				bundle_fixture_set_up_bundle_codesign, bundle_test_purpose_codesign,
 				bundle_fixture_tear_down);
 	}
+
+	/* test plain bundles against possible masks */
+	bundle_data = memdup((&(BundleData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_PLAIN,
+		},
+		.bundle_formats = "plain",
+	}));
+	g_test_add(g_strdup_printf("/bundle/format/plain/set-plain"),
+			BundleFixture, bundle_data,
+			bundle_fixture_set_up_bundle, bundle_test_create_extract,
+			bundle_fixture_tear_down);
+
+	bundle_data = memdup((&(BundleData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_PLAIN,
+		},
+		.bundle_formats = "verity",
+	}));
+	g_test_add(g_strdup_printf("/bundle/format/plain/set-verity"),
+			BundleFixture, bundle_data,
+			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
+			bundle_fixture_tear_down);
+
+	bundle_data = memdup((&(BundleData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_PLAIN,
+		},
+		.bundle_formats = "plain verity",
+	}));
+	g_test_add(g_strdup_printf("/bundle/format/plain/set-both"),
+			BundleFixture, bundle_data,
+			bundle_fixture_set_up_bundle, bundle_test_create_extract,
+			bundle_fixture_tear_down);
+
+	bundle_data = memdup((&(BundleData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_PLAIN,
+		},
+		.bundle_formats = "-plain",
+	}));
+	g_test_add(g_strdup_printf("/bundle/format/plain/deny-plain"),
+			BundleFixture, bundle_data,
+			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
+			bundle_fixture_tear_down);
+
+	bundle_data = memdup((&(BundleData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_PLAIN,
+		},
+		.bundle_formats = "-verity",
+	}));
+	g_test_add(g_strdup_printf("/bundle/format/plain/deny-verity"),
+			BundleFixture, bundle_data,
+			bundle_fixture_set_up_bundle, bundle_test_create_extract,
+			bundle_fixture_tear_down);
+
+	/* test verity bundles against possible masks */
+	bundle_data = memdup((&(BundleData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_VERITY,
+		},
+		.bundle_formats = "plain",
+	}));
+	g_test_add(g_strdup_printf("/bundle/format/verity/set-plain"),
+			BundleFixture, bundle_data,
+			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
+			bundle_fixture_tear_down);
+
+	bundle_data = memdup((&(BundleData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_VERITY,
+		},
+		.bundle_formats = "verity",
+	}));
+	g_test_add(g_strdup_printf("/bundle/format/verity/set-verity"),
+			BundleFixture, bundle_data,
+			bundle_fixture_set_up_bundle, bundle_test_create_extract,
+			bundle_fixture_tear_down);
+
+	bundle_data = memdup((&(BundleData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_VERITY,
+		},
+		.bundle_formats = "plain verity",
+	}));
+	g_test_add(g_strdup_printf("/bundle/format/verity/set-both"),
+			BundleFixture, bundle_data,
+			bundle_fixture_set_up_bundle, bundle_test_create_extract,
+			bundle_fixture_tear_down);
+
+	bundle_data = memdup((&(BundleData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_VERITY,
+		},
+		.bundle_formats = "-plain",
+	}));
+	g_test_add(g_strdup_printf("/bundle/format/verity/deny-plain"),
+			BundleFixture, bundle_data,
+			bundle_fixture_set_up_bundle, bundle_test_create_extract,
+			bundle_fixture_tear_down);
+
+	bundle_data = memdup((&(BundleData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_VERITY,
+		},
+		.bundle_formats = "-verity",
+	}));
+	g_test_add(g_strdup_printf("/bundle/format/verity/deny-verity"),
+			BundleFixture, bundle_data,
+			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
+			bundle_fixture_tear_down);
 
 	return g_test_run();
 }
