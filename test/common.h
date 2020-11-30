@@ -2,7 +2,7 @@
 
 #include <glib.h>
 
-gchar* random_bytes(gsize size, guint32 seed);
+guint8* random_bytes(gsize size, guint32 seed);
 gchar* write_random_file(const gchar *tmpdir, const gchar *filename,
 		gsize size, const guint32 seed);
 gchar* write_tmp_file(const gchar* tmpdir, const gchar* filename, const gchar* content, GError **error);

@@ -52,6 +52,7 @@ librauc_la_SOURCES = \
 	src/slot.c \
 	src/utils.c \
 	src/update_handler.c \
+	src/verity_hash.c \
 	include/bootchooser.h \
 	include/bundle.h \
 	include/checksum.h \
@@ -69,7 +70,8 @@ librauc_la_SOURCES = \
 	include/signature.h \
 	include/slot.h \
 	include/update_handler.h \
-	include/utils.h
+	include/utils.h \
+	include/verity_hash.h
 
 if WANT_EMMC_BOOT_SUPPORT
 librauc_la_SOURCES += src/emmc.c

@@ -15,28 +15,28 @@ typedef struct {
 	gchar *tmpdir;
 } InstallFixture;
 
-gchar* random_bytes(gsize size, guint32 seed)
+guint8* random_bytes(gsize size, guint32 seed)
 {
-	gchar *str = g_new0(gchar, size + 1);
+	guint8 *bytes = g_malloc0(size);
 	GRand *rand = g_rand_new_with_seed(seed);
 	for (gsize i = 0; i < size; i++) {
-		str[i] = (gchar) g_rand_int(rand) & 0xFF;
+		bytes[i] = g_rand_int(rand) & 0xFF;
 	}
-	return str;
+	return bytes;
 }
 
 gchar* write_random_file(const gchar *tmpdir, const gchar *filename,
 		gsize size, const guint32 seed)
 {
 	gchar *pathname;
-	gchar *content;
+	guint8 *content;
 
 	pathname = g_build_filename(tmpdir, filename, NULL);
 	g_assert_nonnull(pathname);
 
 	content = random_bytes(size, seed);
 
-	if (!g_file_set_contents(pathname, content, size, NULL)) {
+	if (!g_file_set_contents(pathname, (gchar *)content, size, NULL)) {
 		return NULL;
 	}
 
