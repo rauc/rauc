@@ -2,9 +2,14 @@
 
 #include <glib.h>
 
+#include "manifest.h"
+
+#define memdup(x) (g_memdup(x, sizeof(*x)))
+
 typedef struct {
 	gboolean custom_handler;
 	gboolean hooks;
+	RManifestBundleFormat format;
 } ManifestTestOptions;
 
 guint8* random_bytes(gsize size, guint32 seed);

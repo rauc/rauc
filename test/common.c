@@ -177,6 +177,8 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, cons
 	rm->update_compatible = g_strdup("Test Config");
 	rm->update_version = g_strdup("2011.03-2");
 
+	rm->bundle_format = options->format;
+
 	if (options->custom_handler)
 		rm->handler_name = g_strdup("custom_handler.sh");
 
