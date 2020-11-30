@@ -18,6 +18,10 @@ typedef struct {
 	gchar *contentdir;
 } BundleFixture;
 
+typedef struct {
+	ManifestTestOptions manifest_test_options;
+} BundleData;
+
 static void bundle_fixture_set_up(BundleFixture *fixture,
 		gconstpointer user_data)
 {
@@ -28,6 +32,8 @@ static void bundle_fixture_set_up(BundleFixture *fixture,
 
 static void prepare_bundle(BundleFixture *fixture, gconstpointer user_data)
 {
+	BundleData *data = (BundleData*)user_data;
+
 	/* the context needs to be setup before calling this */
 	r_context();
 
@@ -39,7 +45,7 @@ static void prepare_bundle(BundleFixture *fixture, gconstpointer user_data)
 	fixture->bundlename = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(fixture->bundlename);
 
-	test_create_content(fixture->contentdir);
+	test_create_content(fixture->contentdir, &data->manifest_test_options);
 
 	/* disable crl checking during bundle creation */
 	r_context()->config->keyring_check_crl = FALSE;
@@ -479,62 +485,83 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 
 int main(int argc, char *argv[])
 {
+	BundleData *bundle_data;
 	setlocale(LC_ALL, "C");
 
 	r_context_conf()->configpath = g_strdup("test/test.conf");
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/autobuilder-1.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/autobuilder-1.pem");
 	r_context();
 
 	g_test_init(&argc, &argv, NULL);
 
-	g_test_add("/bundle/check/empty", BundleFixture, NULL,
-			bundle_fixture_set_up, test_check_empty_bundle,
-			bundle_fixture_tear_down);
+	for (RManifestBundleFormat format = R_MANIFEST_FORMAT_PLAIN; format <= R_MANIFEST_FORMAT_VERITY; format++) {
+		const gchar *format_name = r_manifest_bundle_format_to_str(format);
 
-	g_test_add("/bundle/check/invalid", BundleFixture, NULL,
-			bundle_fixture_set_up, test_check_invalid_bundle,
-			bundle_fixture_tear_down);
+		bundle_data = memdup((&(BundleData) {
+			.manifest_test_options = {
+			        .format = format,
+			},
+		}));
 
-	g_test_add("/bundle/create_extract", BundleFixture, NULL,
-			bundle_fixture_set_up_bundle, bundle_test_create_extract,
-			bundle_fixture_tear_down);
+		g_test_add(g_strdup_printf("/bundle/check/empty/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up, test_check_empty_bundle,
+				bundle_fixture_tear_down);
 
-	g_test_add("/bundle/create_mount_extract", BundleFixture, NULL,
-			bundle_fixture_set_up_bundle, bundle_test_create_mount_extract,
-			bundle_fixture_tear_down);
+		g_test_add(g_strdup_printf("/bundle/check/invalid/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up, test_check_invalid_bundle,
+				bundle_fixture_tear_down);
 
-	g_test_add("/bundle/extract_manifest", BundleFixture, NULL,
-			bundle_fixture_set_up_bundle, bundle_test_extract_manifest,
-			bundle_fixture_tear_down);
+		g_test_add(g_strdup_printf("/bundle/create_extract/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up_bundle, bundle_test_create_extract,
+				bundle_fixture_tear_down);
 
-	g_test_add("/bundle/resign", BundleFixture, NULL,
-			bundle_fixture_set_up_bundle, bundle_test_resign,
-			bundle_fixture_tear_down);
+		g_test_add(g_strdup_printf("/bundle/create_mount_extract/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up_bundle, bundle_test_create_mount_extract,
+				bundle_fixture_tear_down);
 
-	g_test_add("/bundle/wrong_capath", BundleFixture, NULL,
-			bundle_fixture_set_up_bundle, bundle_test_wrong_capath,
-			bundle_fixture_tear_down);
+		g_test_add(g_strdup_printf("/bundle/extract_manifest/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up_bundle, bundle_test_extract_manifest,
+				bundle_fixture_tear_down);
 
-	g_test_add("/bundle/verify_no_crl_warn", BundleFixture, NULL,
-			bundle_fixture_set_up_bundle, bundle_test_verify_no_crl_warn,
-			bundle_fixture_tear_down);
+		g_test_add(g_strdup_printf("/bundle/resign/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up_bundle, bundle_test_resign,
+				bundle_fixture_tear_down);
 
-	g_test_add("/bundle/verify_revoked", BundleFixture, NULL,
-			bundle_fixture_set_up_bundle_autobuilder2, bundle_test_verify_revoked,
-			bundle_fixture_tear_down_autobuilder2);
+		g_test_add(g_strdup_printf("/bundle/wrong_capath/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up_bundle, bundle_test_wrong_capath,
+				bundle_fixture_tear_down);
 
-	g_test_add("/bundle/purpose/default", BundleFixture, NULL,
-			bundle_fixture_set_up_bundle, bundle_test_purpose_default,
-			bundle_fixture_tear_down);
+		g_test_add(g_strdup_printf("/bundle/verify_no_crl_warn/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up_bundle, bundle_test_verify_no_crl_warn,
+				bundle_fixture_tear_down);
 
-	g_test_add("/bundle/purpose/email", BundleFixture, NULL,
-			bundle_fixture_set_up_bundle_email, bundle_test_purpose_email,
-			bundle_fixture_tear_down);
+		g_test_add(g_strdup_printf("/bundle/verify_revoked/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up_bundle_autobuilder2, bundle_test_verify_revoked,
+				bundle_fixture_tear_down_autobuilder2);
 
-	g_test_add("/bundle/purpose/codesign", BundleFixture, NULL,
-			bundle_fixture_set_up_bundle_codesign, bundle_test_purpose_codesign,
-			bundle_fixture_tear_down);
+		g_test_add(g_strdup_printf("/bundle/purpose/default/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up_bundle, bundle_test_purpose_default,
+				bundle_fixture_tear_down);
+
+		g_test_add(g_strdup_printf("/bundle/purpose/email/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up_bundle_email, bundle_test_purpose_email,
+				bundle_fixture_tear_down);
+
+		g_test_add(g_strdup_printf("/bundle/purpose/codesign/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up_bundle_codesign, bundle_test_purpose_codesign,
+				bundle_fixture_tear_down);
+	}
 
 	return g_test_run();
 }

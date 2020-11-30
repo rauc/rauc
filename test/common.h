@@ -29,6 +29,6 @@ gboolean test_umount(const gchar *dirname, const gchar *mountpoint);
 gboolean test_do_chmod(const gchar *path);
 gboolean test_copy_file(const gchar *srcprefix, const gchar *srcfile, const gchar *dstprefix, const gchar *dstfile);
 gboolean test_make_slot_user_writable(const gchar* path, const gchar* file);
-void test_create_content(gchar *contentdir);
+void test_create_content(gchar *contentdir, const ManifestTestOptions *options);
 void test_create_bundle(gchar *contentdir, gchar *bundlename);
 gboolean test_running_as_root(void);

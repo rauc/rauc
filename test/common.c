@@ -325,7 +325,7 @@ gboolean test_make_slot_user_writable(const gchar* path, const gchar* file)
 	return res;
 }
 
-void test_create_content(gchar *contentdir)
+void test_create_content(gchar *contentdir, const ManifestTestOptions *options)
 {
 	g_assert(g_mkdir(contentdir, 0777) == 0);
 	g_assert(test_prepare_dummy_file(contentdir, "rootfs.ext4",
@@ -333,10 +333,7 @@ void test_create_content(gchar *contentdir)
 	g_assert(test_prepare_dummy_file(contentdir, "appfs.ext4",
 			64*1024, "/dev/urandom") == 0);
 	g_assert(test_prepare_manifest_file(contentdir, "manifest.raucm",
-			&(ManifestTestOptions) {
-		.custom_handler = FALSE,
-		.hooks = FALSE,
-	}) == 0);
+			options) == 0);
 }
 
 void test_create_bundle(gchar *contentdir, gchar *bundlename)
