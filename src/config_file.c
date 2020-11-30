@@ -18,6 +18,12 @@ gboolean default_config(RaucConfig **config)
 
 	c->max_bundle_download_size = DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE;
 	c->mount_prefix = g_strdup("/mnt/rauc/");
+	/* When installing, we need a system.conf anyway, so this is used only
+	 * for info/convert/extract/...
+	 */
+	c->bundle_formats_mask =
+		1 << R_MANIFEST_FORMAT_PLAIN |
+		        1 << R_MANIFEST_FORMAT_VERITY;
 
 	*config = c;
 	return TRUE;
@@ -66,6 +72,89 @@ static gboolean fix_grandparent_links(GHashTable *slots, GError **error)
 
 static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "custom", "noop", NULL};
 
+gboolean parse_bundle_formats(guint *mask, const gchar *config, GError **error)
+{
+	gboolean res = TRUE;
+	guint imask = 0;
+	g_auto(GStrv) tokens = NULL;
+	guint set = FALSE, modify = FALSE;
+
+	g_return_val_if_fail(mask != NULL, FALSE);
+	g_return_val_if_fail(config != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	imask = *mask;
+	tokens = g_strsplit(config, " ", -1);
+
+	for (size_t i = 0; tokens[i]; i++) {
+		const gchar *token = tokens[i];
+		gboolean plus = FALSE, minus = FALSE;
+		RManifestBundleFormat format;
+
+		if (!token[0]) /* empty string */
+			continue;
+		if (token[0] == '-') {
+			minus = TRUE;
+			token++;
+		} else if (token[0] == '+') {
+			plus = TRUE;
+			token++;
+		}
+
+		if (g_strcmp0(token, "plain") == 0) {
+			format = R_MANIFEST_FORMAT_PLAIN;
+		} else if (g_strcmp0(token, "verity") == 0) {
+			format = R_MANIFEST_FORMAT_VERITY;
+		} else {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_INVALID_FORMAT,
+					"Invalid bundle format '%s'", token);
+			res = FALSE;
+			goto out;
+		}
+
+		if (plus || minus) {
+			modify = TRUE;
+		} else {
+			if (!set)
+				imask = 0;
+			set = TRUE;
+		}
+
+		if (minus)
+			imask &= ~(1 << format);
+		else
+			imask |= 1 << format;
+	}
+
+	if (set && modify) {
+		g_set_error(
+				error,
+				R_CONFIG_ERROR,
+				R_CONFIG_ERROR_INVALID_FORMAT,
+				"Invalid bundle format configuration '%s', cannot combine fixed value with modification (+/-)", config);
+		res = FALSE;
+		goto out;
+	}
+
+	if (!imask) {
+		g_set_error(
+				error,
+				R_CONFIG_ERROR,
+				R_CONFIG_ERROR_INVALID_FORMAT,
+				"Invalid bundle format configuration '%s', no remaining formats", config);
+		res = FALSE;
+		goto out;
+	}
+
+out:
+	if (res)
+		*mask = imask;
+	return res;
+}
+
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 {
 	GError *ierror = NULL;
@@ -82,6 +171,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	const gchar **pointer;
 	gboolean dtbvariant;
 	gchar *variant_data;
+	g_autofree gchar *bundle_formats = NULL;
 
 	key_file = g_key_file_new();
 
@@ -285,6 +375,25 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_free(c->statusfile_path);
 		c->statusfile_path = resolved;
 		g_message("Using central status file %s", c->statusfile_path);
+	}
+
+	/* parse bundle formats */
+	c->bundle_formats_mask =
+		1 << R_MANIFEST_FORMAT_PLAIN |
+		        1 << R_MANIFEST_FORMAT_VERITY;
+	bundle_formats = key_file_consume_string(key_file, "system", "bundle-formats", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	} else {
+		if (!parse_bundle_formats(&c->bundle_formats_mask, bundle_formats, &ierror)) {
+			g_propagate_error(error, ierror);
+			res = FALSE;
+			goto free;
+		}
 	}
 
 	if (!check_remaining_keys(key_file, "system", &ierror)) {

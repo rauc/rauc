@@ -52,6 +52,8 @@ typedef struct {
 	gboolean keyring_check_crl;
 	gchar *keyring_check_purpose;
 	gboolean use_bundle_signing_time;
+	/* bit mask for allowed formats */
+	guint bundle_formats_mask;
 
 	gchar *autoinstall_path;
 	gchar *preinstall_handler;
@@ -74,6 +76,18 @@ GQuark r_slot_error_quark(void);
 
 typedef struct {
 } RaucSlotGroup;
+
+/**
+ * Parses a bundle format list into a mask.
+ *
+ * @param mask pointer to the mask to be updated
+ * @param config space separated list of formats (prefixed with +/- for modification)
+ * @param error a GError, or NULL
+ *
+ * @return TRUE if the bundle format was sucessfully parsed. FALSE if there were errors.
+ */
+gboolean parse_bundle_formats(guint *mask, const gchar *config, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Loads rauc system configuration from file.

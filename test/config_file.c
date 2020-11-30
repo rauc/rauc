@@ -60,6 +60,7 @@ bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
 statusfile=/mnt/persistent-rw-fs/system.raucs\n\
 max-bundle-download-size=42\n\
+bundle-formats=verity\n\
 \n\
 [keyring]\n\
 path=/etc/rauc/keyring/\n\
@@ -118,6 +119,7 @@ install-same=false\n";
 	g_assert_true(config->activate_installed);
 	g_assert_cmpstr(config->statusfile_path, ==, "/mnt/persistent-rw-fs/system.raucs");
 	g_assert_cmpint(config->max_bundle_download_size, ==, 42);
+	g_assert_cmphex(config->bundle_formats_mask, ==, 0x2);
 
 	g_assert_nonnull(config->slots);
 	slotlist = g_hash_table_get_keys(config->slots);
@@ -1008,6 +1010,131 @@ check-purpose=codesign\n";
 	free_config(config);
 }
 
+static void config_file_bundle_formats(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res = FALSE;
+	gchar* pathname;
+
+	const gchar *default_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n";
+	const gchar *set_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+bundle-formats=plain\n";
+	const gchar *modify_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+bundle-formats=-plain\n";
+	const gchar *none_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+bundle-formats=-plain -verity\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "default.conf", default_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(config);
+	g_assert_cmphex(config->bundle_formats_mask, ==, 0x3);
+
+	free_config(config);
+
+	pathname = write_tmp_file(fixture->tmpdir, "set.conf", set_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(config);
+	g_assert_cmphex(config->bundle_formats_mask, ==, 0x1);
+
+	free_config(config);
+
+	pathname = write_tmp_file(fixture->tmpdir, "modify.conf", modify_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(config);
+	g_assert_cmphex(config->bundle_formats_mask, ==, 0x2);
+
+	free_config(config);
+
+	pathname = write_tmp_file(fixture->tmpdir, "none.conf", none_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT);
+	g_assert_cmpstr(ierror->message, ==, "Invalid bundle format configuration '-plain -verity', no remaining formats");
+	g_assert_false(res);
+	g_assert_null(config);
+	g_clear_error(&ierror);
+}
+
+static void config_file_test_parse_bundle_formats(void)
+{
+	guint mask;
+	gboolean res;
+	g_autoptr(GError) ierror = NULL;
+
+	mask = 0x0;
+	res = parse_bundle_formats(&mask, "plain  verity", &ierror);
+	g_assert_no_error(ierror);
+	g_assert_cmphex(mask, ==, 0x3);
+	g_assert_true(res);
+
+	mask = 0x2;
+	res = parse_bundle_formats(&mask, "+plain -verity", &ierror);
+	g_assert_no_error(ierror);
+	g_assert_cmphex(mask, ==, 0x1);
+	g_assert_true(res);
+
+	mask = 0x3;
+	res = parse_bundle_formats(&mask, "-verity", &ierror);
+	g_assert_no_error(ierror);
+	g_assert_cmphex(mask, ==, 0x1);
+	g_assert_true(res);
+
+	mask = 0x3;
+	res = parse_bundle_formats(&mask, "-verity +verity", &ierror);
+	g_assert_no_error(ierror);
+	g_assert_cmphex(mask, ==, 0x3);
+	g_assert_true(res);
+
+	mask = 0x3;
+	res = parse_bundle_formats(&mask, "-verity plain", &ierror);
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT);
+	g_assert_cmpstr(ierror->message, ==, "Invalid bundle format configuration '-verity plain', cannot combine fixed value with modification (+/-)");
+	g_assert_cmphex(mask, ==, 0x3);
+	g_assert_false(res);
+	g_clear_error(&ierror);
+
+	mask = 0x3;
+	res = parse_bundle_formats(&mask, "", &ierror);
+	g_assert_no_error(ierror);
+	g_assert_cmphex(mask, ==, 0x3);
+	g_assert_true(res);
+
+	mask = 0x3;
+	res = parse_bundle_formats(&mask, "-verity -plain", &ierror);
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT);
+	g_assert_cmpstr(ierror->message, ==, "Invalid bundle format configuration '-verity -plain', no remaining formats");
+	g_assert_cmphex(mask, ==, 0x3);
+	g_assert_false(res);
+	g_clear_error(&ierror);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -1097,6 +1224,10 @@ int main(int argc, char *argv[])
 	g_test_add("/config-file/keyring-checks", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_keyring_checks,
 			config_file_fixture_tear_down);
+	g_test_add("/config-file/bundle-formats", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_bundle_formats,
+			config_file_fixture_tear_down);
+	g_test_add_func("/config-file/parse-bundle-formats", config_file_test_parse_bundle_formats);
 
 	return g_test_run();
 }
