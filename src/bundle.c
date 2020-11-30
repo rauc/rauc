@@ -1442,6 +1442,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 				res = FALSE;
 				goto out;
 			}
+			ibundle->exclusive_verified = TRUE;
 
 			/* the squashfs image size is in offset */
 			res = cms_verify_fd(fd, ibundle->sigdata, offset, store, &cms, &ierror);
@@ -1452,6 +1453,8 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 			ibundle->signature_verified = TRUE;
 			ibundle->payload_verified = TRUE;
 		} else {
+			int fd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(ibundle->stream));
+
 			if (!(r_context()->config->bundle_formats_mask & 1 << R_MANIFEST_FORMAT_VERITY)) {
 				g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
 						"Bundle format 'verity' not allowed");
@@ -1459,6 +1462,12 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 				goto out;
 			}
 
+			if (!check_bundle_access(fd, &ierror)) {
+				ibundle->exclusive_check_error = g_strdup(ierror->message);
+				g_clear_error(&ierror);
+			} else {
+				ibundle->exclusive_verified = TRUE;
+			}
 			res = cms_verify_sig(ibundle->sigdata, store, &cms, &manifest_bytes, &ierror);
 			if (!res) {
 				g_propagate_error(error, ierror);
@@ -1525,6 +1534,13 @@ gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 	}
 
 	g_message("Verifying bundle payload... ");
+
+	if (!bundle->exclusive_verified) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE,
+				"cannot check bundle payload without exclusive access: %s", bundle->exclusive_check_error);
+		res = FALSE;
+		goto out;
+	}
 
 	if (!bundle->manifest) { /* plain format */
 		g_error("plain bundles must be verified during signature check");
@@ -1844,6 +1860,7 @@ void free_bundle(RaucBundle *bundle)
 	g_free(bundle->mount_point);
 	if (bundle->manifest)
 		free_manifest(bundle->manifest);
+	g_free(bundle->exclusive_check_error);
 	if (bundle->verified_chain)
 		sk_X509_pop_free(bundle->verified_chain, X509_free);
 	g_free(bundle);

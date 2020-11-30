@@ -30,6 +30,8 @@ typedef struct {
 	gboolean verification_disabled;
 	gboolean signature_verified;
 	gboolean payload_verified;
+	gboolean exclusive_verified;
+	gchar *exclusive_check_error;
 	STACK_OF(X509) *verified_chain;
 } RaucBundle;
 
