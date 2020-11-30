@@ -38,7 +38,8 @@ bundle should include, as well as a manifest file ``manifest.raucm`` that
 describes the content of the bundle for the RAUC updater on the target:
 which image to install to which slot, which scripts to execute etc.
 Note that all files in ``<input-dir>`` will be included in the bundle,
-not just those specified in the manifest.
+not just those specified in the manifest (see also the :ref:`example
+<sec-example-bundle-generation>` and the :ref:`reference <sec_ref_manifest>`).
 ``<output-file>`` must be the path of the bundle file to create.
 
 Instead of the ``certfile`` and ``keyfile`` arguments, PKCS#11 URLs such as
