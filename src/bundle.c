@@ -1678,6 +1678,9 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 		goto out;
 	}
 
+	if (!(bundle->signature_verified || bundle->verification_disabled))
+		g_error("bundle signature must be verfied before mounting");
+
 	g_message("Mounting bundle '%s' to '%s'", bundle->path, mount_point);
 
 	bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream));
@@ -1687,9 +1690,44 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 		goto out;
 	}
 
-	res = r_mount_full(loopname, mount_point, "squashfs", "ro", &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
+	if (!bundle->manifest) { /* plain format */
+		if (!(bundle->payload_verified || bundle->verification_disabled))
+			g_error("bundle payload must be verfied before mounting for plain bundles");
+
+		res = r_mount_full(loopname, mount_point, "squashfs", "ro", &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	} else if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
+		g_autoptr(GError) ierror_dm = NULL;
+		g_autoptr(RaucDMVerity) dm_verity = new_dm_verity();
+
+		dm_verity->lower_dev = g_strdup(loopname);
+		dm_verity->data_size = bundle->size - bundle->manifest->bundle_verity_size;
+		dm_verity->root_digest = g_strdup(bundle->manifest->bundle_verity_hash);
+		dm_verity->salt = g_strdup(bundle->manifest->bundle_verity_salt);
+
+		res = setup_dm_verity(dm_verity, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+		res = r_mount_full(dm_verity->upper_dev, mount_point, "squashfs", "ro", &ierror);
+
+		if (!remove_dm_verity(dm_verity, TRUE, &ierror_dm)) {
+			g_warning("failed to mark dm verity device for removal: %s", ierror_dm->message);
+			g_clear_error(&ierror);
+		}
+
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	} else {
+		g_error("unsupported bundle format");
+		res = FALSE;
 		goto out;
 	}
 
