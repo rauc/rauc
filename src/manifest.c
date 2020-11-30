@@ -99,6 +99,7 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	GError *ierror = NULL;
 	RaucManifest *raucm = g_new0(RaucManifest, 1);
 	gboolean res = FALSE;
+	g_autofree gchar *tmp = NULL;
 	gchar **groups;
 	gsize group_count;
 	gchar **bundle_hooks;
@@ -120,6 +121,29 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 		goto free;
 	}
 	g_key_file_remove_group(key_file, "update", NULL);
+
+	/* parse [bundle] section */
+	tmp = key_file_consume_string(key_file, "bundle", "format", NULL);
+	if (tmp == NULL || g_strcmp0(tmp, "plain") == 0) {
+		raucm->bundle_format = R_MANIFEST_FORMAT_PLAIN;
+	} else if (g_strcmp0(tmp, "verity") == 0) {
+		/* only SHA256 is supported for now */
+		raucm->bundle_format = R_MANIFEST_FORMAT_VERITY;
+		raucm->bundle_verity_hash = key_file_consume_string(key_file, "bundle", "verity-hash", NULL);
+		raucm->bundle_verity_salt = key_file_consume_string(key_file, "bundle", "verity-salt", NULL);
+		raucm->bundle_verity_size = g_key_file_get_uint64(key_file, "bundle", "verity-size", NULL);
+		/* values are checked in check_manifest */
+		g_key_file_remove_key(key_file, "bundle", "verity-size", NULL);
+	} else {
+		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+				"Invalid format value '%s' in group '[bundle]'", tmp);
+		goto free;
+	}
+	if (!check_remaining_keys(key_file, "bundle", &ierror)) {
+		g_propagate_error(error, ierror);
+		goto free;
+	}
+	g_key_file_remove_group(key_file, "bundle", NULL);
 
 	/* parse [keyring] section */
 	raucm->keyring = key_file_consume_string(key_file, "keyring", "archive", NULL);
@@ -308,6 +332,24 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 	if (mf->update_build)
 		g_key_file_set_string(key_file, "update", "build", mf->update_build);
 
+	switch (mf->bundle_format) {
+		case R_MANIFEST_FORMAT_PLAIN:
+			break;
+		case R_MANIFEST_FORMAT_VERITY: {
+			g_key_file_set_string(key_file, "bundle", "format", "verity");
+			if (mf->bundle_verity_hash)
+				g_key_file_set_string(key_file, "bundle", "verity-hash", mf->bundle_verity_hash);
+			if (mf->bundle_verity_salt)
+				g_key_file_set_string(key_file, "bundle", "verity-salt", mf->bundle_verity_salt);
+			if (mf->bundle_verity_size)
+				g_key_file_set_uint64(key_file, "bundle", "verity-size", mf->bundle_verity_size);
+
+			break;
+		};
+		default:
+			break;
+	}
+
 	if (mf->keyring)
 		g_key_file_set_string(key_file, "keyring", "archive", mf->keyring);
 
@@ -462,6 +504,8 @@ void free_manifest(RaucManifest *manifest)
 	g_free(manifest->update_version);
 	g_free(manifest->update_description);
 	g_free(manifest->update_build);
+	g_free(manifest->bundle_verity_hash);
+	g_free(manifest->bundle_verity_salt);
 	g_free(manifest->keyring);
 	g_free(manifest->handler_name);
 	g_free(manifest->handler_args);

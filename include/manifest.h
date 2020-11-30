@@ -38,11 +38,21 @@ typedef struct {
 	gchar* destname;
 } RaucFile;
 
+typedef enum {
+	R_MANIFEST_FORMAT_PLAIN = 0,
+	R_MANIFEST_FORMAT_VERITY,
+} RManifestBundleFormat;
+
 typedef struct {
 	gchar *update_compatible;
 	gchar *update_version;
 	gchar *update_description;
 	gchar *update_build;
+
+	RManifestBundleFormat bundle_format;
+	gchar *bundle_verity_salt;
+	gchar *bundle_verity_hash;
+	guint64 bundle_verity_size;
 
 	gchar *keyring;
 
@@ -140,3 +150,15 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucImage, r_free_image);
 void r_free_file(gpointer data);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucFile, r_free_file);
+
+static inline const gchar *r_manifest_bundle_format_to_str(RManifestBundleFormat format)
+{
+	switch (format) {
+		case R_MANIFEST_FORMAT_PLAIN:
+			return "plain";
+		case R_MANIFEST_FORMAT_VERITY:
+			return "verity";
+		default:
+			return "invalid";
+	}
+}
