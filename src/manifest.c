@@ -292,8 +292,6 @@ gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GErr
 	g_autoptr(GKeyFile) key_file = NULL;
 	gboolean res = FALSE;
 
-	r_context_begin_step("load_manifest_file", "Loading manifest file", 0);
-
 	key_file = g_key_file_new();
 
 	res = g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror);
@@ -309,7 +307,6 @@ gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GErr
 	}
 
 out:
-	r_context_end_step("load_manifest_file", res);
 	return res;
 }
 

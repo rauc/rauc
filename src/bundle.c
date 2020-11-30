@@ -1691,6 +1691,9 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 	}
 
 	if (!bundle->manifest) { /* plain format */
+		g_autoptr(RaucManifest) manifest = NULL;
+		g_autofree gchar* manifestpath = NULL;
+
 		if (!(bundle->payload_verified || bundle->verification_disabled))
 			g_error("bundle payload must be verfied before mounting for plain bundles");
 
@@ -1699,9 +1702,39 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 			g_propagate_error(error, ierror);
 			goto out;
 		}
+
+		manifestpath = g_build_filename(mount_point, "manifest.raucm", NULL);
+		res = load_manifest_file(manifestpath, &manifest, &ierror);
+		if (!res) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"failed to load manifest from bundle: ");
+			goto umount;
+		}
+		res = check_manifest_internal(manifest, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto umount;
+		}
+
+		if (manifest->bundle_format != R_MANIFEST_FORMAT_PLAIN) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_PAYLOAD,
+					"plain bundles can only contain plain manifests");
+			res = FALSE;
+			goto umount;
+		}
+
+		bundle->manifest = g_steal_pointer(&manifest);
 	} else if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
 		g_autoptr(GError) ierror_dm = NULL;
 		g_autoptr(RaucDMVerity) dm_verity = new_dm_verity();
+
+		res = check_manifest_external(bundle->manifest, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 
 		dm_verity->lower_dev = g_strdup(loopname);
 		dm_verity->data_size = bundle->size - bundle->manifest->bundle_verity_size;
@@ -1733,7 +1766,13 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 
 	bundle->mount_point = g_steal_pointer(&mount_point);
 	res = TRUE;
+	goto out;
 
+umount:
+	if (!r_umount(mount_point, &ierror)) {
+		g_warning("ignoring umount error after initial error: %s", ierror->message);
+		g_clear_error(&ierror);
+	}
 out:
 	if (mount_point) {
 		g_rmdir(mount_point);
