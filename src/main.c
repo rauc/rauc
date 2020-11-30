@@ -718,6 +718,13 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	g_string_append_printf(text, "Hooks:      \t'%s'\n", hookstring);
 	g_free(hookstring);
 
+	g_string_append_printf(text, "Bundle Format: \t%s\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
+		g_string_append_printf(text, "  Verity Salt: \t'%s'\n", manifest->bundle_verity_salt);
+		g_string_append_printf(text, "  Verity Hash: \t'%s'\n", manifest->bundle_verity_hash);
+		g_string_append_printf(text, "  Verity Size: \t%"G_GUINT64_FORMAT "\n", manifest->bundle_verity_size);
+	}
+
 	g_ptr_array_unref(hooks);
 
 	cnt = g_list_length(manifest->images);
