@@ -280,3 +280,46 @@ gboolean r_whitespace_removed(gchar *str)
 
 	return strlen(str) != len;
 }
+
+guint8 *r_hex_decode(const gchar *hex, size_t len)
+{
+	g_autofree guint8 *raw = NULL;
+	size_t input_len = 0;
+
+	g_assert(hex != NULL);
+
+	input_len = strlen(hex);
+	if (input_len != (len * 2))
+		return NULL;
+
+	raw = g_malloc0(len);
+	for (size_t i = 0; i < len; i++) {
+		gint upper = g_ascii_xdigit_value(hex[i*2]);
+		gint lower = g_ascii_xdigit_value(hex[i*2+1]);
+
+		if ((upper < 0) || (lower < 0))
+			return NULL;
+
+		raw[i] = upper << 4 | lower;
+	}
+
+	return g_steal_pointer(&raw);
+}
+
+gchar *r_hex_encode(const guint8 *raw, size_t len)
+{
+	const char hex_chars[] = "0123456789abcdef";
+	gchar *hex = NULL;
+
+	g_assert(raw != NULL);
+	g_assert(len > 0);
+
+	len *= 2;
+	hex = g_malloc0(len+1);
+	for (size_t i = 0; i < len; i += 2) {
+		hex[i] = hex_chars[(raw[i/2] >> 4)];
+		hex[i+1] = hex_chars[(raw[i/2] & 0xf)];
+	}
+
+	return hex;
+}
