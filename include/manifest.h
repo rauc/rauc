@@ -85,15 +85,26 @@ gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GErr
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Stores the manifest to memory.
+ *
+ * @param mem location to store manifest
+ * @param manifest pointer to the manifest
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean save_manifest_mem(GBytes **mem, const RaucManifest *mf)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Creates a manifest file.
  *
  * @param filename Name of manifest file to save
- * @param manifest location to store manifest
+ * @param manifest pointer to the manifest
  * @param error return location for a GError, or NULL
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean save_manifest_file(const gchar *filename, RaucManifest *manifest, GError **error)
+gboolean save_manifest_file(const gchar *filename, const RaucManifest *manifest, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**

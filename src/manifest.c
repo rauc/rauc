@@ -289,11 +289,9 @@ out:
 	return res;
 }
 
-gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **error)
+static GKeyFile *prepare_manifest(const RaucManifest *mf)
 {
 	g_autoptr(GKeyFile) key_file = NULL;
-	GError *ierror = NULL;
-	gboolean res = FALSE;
 	GPtrArray *hooks = g_ptr_array_new_full(3, g_free);
 
 	key_file = g_key_file_new();
@@ -330,7 +328,6 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **er
 		g_key_file_set_string_list(key_file, "hooks", "hooks",
 				(const gchar **)hooks->pdata, hooks->len);
 	}
-
 	g_ptr_array_unref(hooks);
 
 	for (GList *l = mf->images; l != NULL; l = l->next) {
@@ -392,13 +389,42 @@ gboolean save_manifest_file(const gchar *filename, RaucManifest *mf, GError **er
 			g_key_file_set_string(key_file, group, "filename", file->filename);
 	}
 
-	res = g_key_file_save_to_file(key_file, filename, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto free;
-	}
+	return g_steal_pointer(&key_file);
+}
 
-free:
+gboolean save_manifest_mem(GBytes **mem, const RaucManifest *mf)
+{
+	g_autoptr(GKeyFile) key_file = NULL;
+	guint8 *data = NULL;
+	gsize length = 0;
+
+	g_return_val_if_fail(mem != NULL && *mem == NULL, FALSE);
+	g_return_val_if_fail(mf != NULL, FALSE);
+
+	key_file = prepare_manifest(mf);
+
+	/* according to the docs, this never fails */
+	data = (guint8*)g_key_file_to_data(key_file, &length, NULL);
+	g_assert(data != NULL);
+	g_assert(length > 0);
+
+	*mem = g_bytes_new(data, length);
+
+	return TRUE;
+}
+
+gboolean save_manifest_file(const gchar *filename, const RaucManifest *mf, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(GKeyFile) key_file = NULL;
+	gboolean res = FALSE;
+
+	key_file = prepare_manifest(mf);
+
+	res = g_key_file_save_to_file(key_file, filename, &ierror);
+	if (!res)
+		g_propagate_error(error, ierror);
+
 	return res;
 }
 

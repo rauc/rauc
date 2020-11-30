@@ -85,6 +85,43 @@ static void test_load_manifest(void)
 	g_assert_null(rm);
 }
 
+static void check_manifest_contents(const RaucManifest *rm)
+{
+	g_assert_nonnull(rm);
+	g_assert_cmpstr(rm->update_compatible, ==, "BarCorp FooBazzer");
+	g_assert_cmpstr(rm->update_version, ==, "2011.03-1");
+	g_assert_cmpstr(rm->keyring, ==, "mykeyring.tar");
+	g_assert_cmpstr(rm->handler_name, ==, "myhandler.sh");
+	g_assert_cmpstr(rm->handler_args, ==, "--foo");
+	g_assert_cmpstr(rm->hook_name, ==, "hook.sh");
+
+	g_assert_cmpuint(g_list_length(rm->images), ==, 3);
+	g_assert_cmpuint(g_list_length(rm->files), ==, 1);
+
+	for (GList *l = rm->images; l != NULL; l = l->next) {
+		RaucImage *image = (RaucImage*) l->data;
+		g_assert_nonnull(image);
+		g_assert_nonnull(image->slotclass);
+		g_assert_nonnull(image->checksum.digest);
+		g_assert_nonnull(image->filename);
+	}
+
+	for (GList *l = rm->files; l != NULL; l = l->next) {
+		RaucFile *file = l->data;
+		g_assert_nonnull(file);
+		g_assert_nonnull(file->slotclass);
+		g_assert_nonnull(file->destname);
+		g_assert_nonnull(file->checksum.digest);
+		g_assert_nonnull(file->filename);
+	}
+
+	g_assert_nonnull(g_list_nth_data(rm->images, 0));
+	g_assert_true(((RaucImage*)g_list_nth_data(rm->images, 0))->hooks.pre_install);
+	g_assert_true(((RaucImage*)g_list_nth_data(rm->images, 0))->hooks.post_install);
+
+	g_assert_true(rm->hooks.install_check);
+}
+
 /* Test manifest/save_load:
  *
  * Tests saving manifest structure to file and load again.
@@ -94,9 +131,12 @@ static void test_load_manifest(void)
  */
 static void test_save_load_manifest(void)
 {
+	GError *error = NULL;
+	gboolean res = FALSE;
 	RaucManifest *rm = g_new0(RaucManifest, 1);
 	RaucImage *new_image;
 	RaucFile *new_file;
+	GBytes *mem = NULL;
 
 	rm->update_compatible = g_strdup("BarCorp FooBazzer");
 	rm->update_version = g_strdup("2011.03-1");
@@ -147,45 +187,32 @@ static void test_save_load_manifest(void)
 	g_assert_cmpuint(g_list_length(rm->images), ==, 3);
 	g_assert_cmpuint(g_list_length(rm->files), ==, 1);
 
-	g_assert_true(save_manifest_file("test/savedmanifest.raucm", rm, NULL));
+	res = save_manifest_file("test/savedmanifest.raucm", rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 
 	g_clear_pointer(&rm, free_manifest);
 
-	g_assert_true(load_manifest_file("test/savedmanifest.raucm", &rm, NULL));
+	res = load_manifest_file("test/savedmanifest.raucm", &rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 
-	g_assert_nonnull(rm);
-	g_assert_cmpstr(rm->update_compatible, ==, "BarCorp FooBazzer");
-	g_assert_cmpstr(rm->update_version, ==, "2011.03-1");
-	g_assert_cmpstr(rm->keyring, ==, "mykeyring.tar");
-	g_assert_cmpstr(rm->handler_name, ==, "myhandler.sh");
-	g_assert_cmpstr(rm->handler_args, ==, "--foo");
-	g_assert_cmpstr(rm->hook_name, ==, "hook.sh");
+	check_manifest_contents(rm);
 
-	g_assert_cmpuint(g_list_length(rm->images), ==, 3);
-	g_assert_cmpuint(g_list_length(rm->files), ==, 1);
+	res = save_manifest_mem(&mem, rm);
+	g_assert_no_error(error);
+	g_assert_true(res);
 
-	for (GList *l = rm->images; l != NULL; l = l->next) {
-		RaucImage *image = (RaucImage*) l->data;
-		g_assert_nonnull(image);
-		g_assert_nonnull(image->slotclass);
-		g_assert_nonnull(image->checksum.digest);
-		g_assert_nonnull(image->filename);
-	}
+	g_clear_pointer(&rm, free_manifest);
 
-	for (GList *l = rm->files; l != NULL; l = l->next) {
-		RaucFile *file = l->data;
-		g_assert_nonnull(file);
-		g_assert_nonnull(file->slotclass);
-		g_assert_nonnull(file->destname);
-		g_assert_nonnull(file->checksum.digest);
-		g_assert_nonnull(file->filename);
-	}
+	g_message("manifest in memory:\n%s", (gchar*)g_bytes_get_data(mem, NULL));
+	res = load_manifest_mem(mem, &rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+	g_bytes_unref(mem);
+	mem = NULL;
 
-	g_assert_nonnull(g_list_nth_data(rm->images, 0));
-	g_assert_true(((RaucImage*)g_list_nth_data(rm->images, 0))->hooks.pre_install);
-	g_assert_true(((RaucImage*)g_list_nth_data(rm->images, 0))->hooks.post_install);
-
-	g_assert_true(rm->hooks.install_check);
+	check_manifest_contents(rm);
 
 	free_manifest(rm);
 }
