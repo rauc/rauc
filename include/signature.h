@@ -117,6 +117,18 @@ gboolean cms_is_detached(GBytes *sig, gboolean *detached, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Extract manifest included in a signature without verification.
+ *
+ * @param sig signature containing the manifest
+ * @param manifest return location for included manifest
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if succeeded, FALSE if failed
+ */
+gboolean cms_get_unverified_manifest(GBytes *sig, GBytes **manifest, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Verify detached and inline signatures.
  *
  * This function is only used by the tests and internally for cms_verify_fd and

@@ -984,6 +984,73 @@ out:
 	return res;
 }
 
+gboolean cms_get_unverified_manifest(GBytes *sig, GBytes **manifest, GError **error)
+{
+	CMS_ContentInfo *cms = NULL;
+	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
+			g_bytes_get_size(sig));
+	ASN1_OCTET_STRING **content = NULL;
+	GBytes *tmp = NULL;
+	gboolean res = FALSE;
+
+	g_return_val_if_fail(sig != NULL, FALSE);
+	g_return_val_if_fail(manifest != NULL && *manifest == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!(cms = d2i_CMS_bio(insig, NULL))) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE,
+				"failed to parse signature");
+		goto out;
+	}
+
+	content = CMS_get0_content(cms);
+	if (!content) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE,
+				"unsupported signature content type");
+		goto out;
+	}
+	if (!(*content)) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE,
+				"missing manifest in inline signature");
+		goto out;
+	}
+	if (!(*content)->data || ((*content)->length <= 0)) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE,
+				"invalid manifest length in inline signature");
+		goto out;
+	}
+
+	tmp = g_bytes_new((*content)->data, (*content)->length);
+	if (!tmp) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_UNKNOWN,
+				"failed to get manifest from inline signature");
+		goto out;
+	}
+	*manifest = tmp;
+
+	res = TRUE;
+
+out:
+	if (cms)
+		CMS_ContentInfo_free(cms);
+	return res;
+}
+
 gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GBytes **manifest, GError **error)
 {
 	GError *ierror = NULL;
