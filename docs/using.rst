@@ -658,6 +658,11 @@ This allows enabling different log domains. Currently available are:
 
 :rauc: enable default RAUC log domain (same as calling with ``-d``)
 
+:rauc-signature: enable logging of signature details
+
+  This will dump the full CMS structure during verification and can help
+  identify problems with the signature details.
+
 :rauc-subprocess: enable logging of subprocess calls
 
   This will dump the entire program call invoked by RAUC and can help tracing

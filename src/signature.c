@@ -928,6 +928,21 @@ static gboolean asn1_time_to_tm(const ASN1_TIME *intime, struct tm *tm)
 	return TRUE;
 }
 
+static void debug_cms_ci(CMS_ContentInfo *cms)
+{
+	BIO *out = BIO_new(BIO_s_mem());
+	gchar *out_str = NULL;
+	long size;
+
+	CMS_ContentInfo_print_ctx(out, cms, 2, NULL);
+	if ((size = BIO_get_mem_data(out, &out_str)) > 0) {
+		/* replace final newline with nul */
+		out_str[size-1] = '\0';
+		g_log(G_LOG_DOMAIN "-signature", G_LOG_LEVEL_DEBUG, "\n%s", out_str);
+	}
+	BIO_free_all(out);
+}
+
 gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
 {
 	GError *ierror = NULL;
@@ -955,6 +970,8 @@ gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_Content
 				"failed to parse signature");
 		goto out;
 	}
+
+	debug_cms_ci(icms);
 
 	/* Optionally use certificate signing timestamp for verification */
 	if (r_context()->config->use_bundle_signing_time) {
