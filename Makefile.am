@@ -41,6 +41,7 @@ librauc_la_SOURCES = \
 	src/checksum.c \
 	src/config_file.c \
 	src/context.c \
+	src/dm.c \
 	src/install.c \
 	src/manifest.c \
 	src/mark.c \
@@ -56,6 +57,7 @@ librauc_la_SOURCES = \
 	include/checksum.h \
 	include/config_file.h \
 	include/context.h \
+	include/dm.h \
 	include/emmc.h \
 	include/gpt.h \
 	include/install.h \
@@ -140,6 +142,7 @@ check_PROGRAMS = \
 	test/checksum.test \
 	test/config_file.test \
 	test/context.test \
+	test/dm.test \
 	test/manifest.test \
 	test/signature.test \
 	test/update_handler.test \
@@ -214,6 +217,9 @@ test_config_file_test_LDADD = librauctest.la
 
 test_context_test_SOURCES = test/context.c
 test_context_test_LDADD = librauctest.la
+
+test_dm_test_SOURCES = test/dm.c
+test_dm_test_LDADD = librauctest.la
 
 test_manifest_test_SOURCES = test/manifest.c
 test_manifest_test_LDADD = librauctest.la
