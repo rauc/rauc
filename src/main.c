@@ -866,10 +866,8 @@ static gchar* info_formatter_json_pretty(RaucManifest *manifest)
 static gboolean info_start(int argc, char **argv)
 {
 	g_autofree gchar* tmpdir = NULL;
-	g_autofree gchar* bundledir = NULL;
-	g_autofree gchar* manifestpath = NULL;
 	g_autofree gchar *bundlelocation = NULL;
-	RaucManifest *manifest = NULL;
+	g_autoptr(RaucManifest) manifest = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
 	GError *error = NULL;
 	gboolean res = FALSE;
@@ -908,9 +906,6 @@ static gboolean info_start(int argc, char **argv)
 		goto out;
 	}
 
-	bundledir = g_build_filename(tmpdir, "bundle-content", NULL);
-	manifestpath = g_build_filename(bundledir, "manifest.raucm", NULL);
-
 	bundlelocation = resolve_bundle_path(argv[2]);
 	if (bundlelocation == NULL)
 		goto out;
@@ -923,18 +918,15 @@ static gboolean info_start(int argc, char **argv)
 		goto out;
 	}
 
-	res = extract_file_from_bundle(bundle, bundledir, "manifest.raucm", &error);
-	if (!res) {
-		g_printerr("%s\n", error->message);
-		g_clear_error(&error);
-		goto out;
-	}
-
-	res = load_manifest_file(manifestpath, &manifest, &error);
-	if (!res) {
-		g_printerr("%s\n", error->message);
-		g_clear_error(&error);
-		goto out;
+	if (bundle->manifest) {
+		manifest = g_steal_pointer(&bundle->manifest);
+	} else {
+		res = load_manifest_from_bundle(bundle, &manifest, &error);
+		if (!res) {
+			g_printerr("%s\n", error->message);
+			g_clear_error(&error);
+			goto out;
+		}
 	}
 
 	text = formatter(manifest);
