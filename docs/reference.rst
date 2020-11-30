@@ -30,6 +30,7 @@ Example configuration:
   compatible=FooCorp Super BarBazzer
   bootloader=barebox
   statusfile=/data/central-status.raucs
+  bundle-formats=-plain
 
   [keyring]
   path=/etc/rauc/keyring.pem
@@ -62,6 +63,21 @@ Example configuration:
   The bootloader implementation RAUC should use for its slot switching
   mechanism. Currently supported values (and bootloaders) are ``barebox``,
   ``grub``, ``uboot``, ``efi``, ``custom``, ``noop``.
+
+.. _bundle-formats:
+
+``bundle-formats``
+  This option controls which :ref:`bundle formats<sec_ref_formats>` are allowed
+  when verifying a bundle.
+  You can either specify them explicitly by using a space-separated list for
+  format names (such as ``plain verity``).
+  In this case, any any future changes of the built-in defaults will have no
+  effect.
+
+  Alternatively, you can use format names prefixed by ``-`` or ``+`` (such as
+  ``-plain``) to enable or disable formats relative to the default
+  configuration. This way, formats added in newer releases will be active
+  automatically.
 
 ``mountprefix``
   Prefix of the path where bundles and slots will be mounted. Can be overwritten
@@ -350,6 +366,12 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
   compatible=FooCorp Super BarBazzer
   version=2016.08-1
 
+  [bundle]
+  format=verity
+  verity-hash=3fcb193cb4fd475aa174efa1f1e979b2d649bf7f8224cc97f4413b5ee141a4e9
+  verity-salt=4b7b8657d03759d387f24fb7bb46891771e1b370fff38c70488e6381d6a10e49
+  verity-size=24576
+
   [image.rootfs]
   filename=rootfs.ext4
   size=419430400
@@ -383,6 +405,29 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
   information provided by the bundle creation environment. This can help to
   determine the date and origin of the built bundle.
 
+**[bundle] section**
+
+``format``
+  Either ``plain`` (default) or ``verity``.
+  This selects the :ref:`format<sec_ref_formats>` use when wrapping the payload
+  during bundle creation.
+
+.. _verity-metadata:
+
+``verity-hash``
+  The dm-verity root hash over the bundle payload in hexadecimal.
+  RAUC determines this value automatically, so it should be left unspecified
+  when preparing a manifest for bundle creation.
+
+``verity-salt``
+  The dm-verity salt over the bundle payload in hexadecimal.
+  RAUC determines this value automatically, so it should be left unspecified
+  when preparing a manifest for bundle creation.
+
+``verity-size``
+  The size of the dm-verity hash tree.
+  RAUC determines this value automatically, so it should be left unspecified
+  when preparing a manifest for bundle creation.
 
 **[hooks] section**
 
@@ -431,6 +476,73 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
   See :ref:`sec-slot-hooks` for more details.
 
   Valid items are: ``pre-install``, ``install``, ``post-install``
+
+.. _sec_ref_formats:
+
+Bundle Formats
+--------------
+
+RAUC currently supports two bundle formats (``plain`` and ``verity``) and
+additional formats could be added to support features such as encryption.
+Version 1.4 (released on 2020-06-20) and earlier only supported a single format
+which is now named ``plain``, which should be used as long as compatibility to
+those versions is required.
+
+The ``verity`` format was added to prepare for future use cases (such as
+network streaming and encryption), for better parallelization of installation
+with hash verification and to detect modification of the bundle during
+installation.
+
+The bundle format is detected when reading a bundle and checked against the set
+of allowed formats configured in the ``system.conf`` (see :ref:`bundle-formats
+<bundle-formats>`).
+
+.. _sec_ref_format_plain:
+
+plain Format
+~~~~~~~~~~~~
+
+In this case, a bundle consists of:
+
+- squashfs filesystem containing manifest and images
+- detached CMS signature over the squashfs filesystem
+- size of the CMS signature
+
+With this format, the signature is checked in a full pass over the squashfs
+before mounting or accessing it.
+This makes it necessary to protect the bundle against modification by untrusted
+processes.
+To ensure exclusive access, RAUC takes ownership of the file (using chown) and
+uses file leases to detect other open file descriptors.
+
+.. _sec_ref_format_verity:
+
+verity Format
+~~~~~~~~~~~~~
+
+In this case, a bundle consists of:
+
+- squashfs filesystem containing manifest (without verity metadata) and images
+- `dm-verity <https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/verity.html>`_
+  hash tree over the squashfs filesystem
+- CMS signature over an inline manifest (with verity metadata)
+- size of the CMS signature
+
+With this format, the manifest is contained in the CMS signature itself, making
+it accessible without first hashing the full squashfs.
+The manifest contains the additional metadata (:ref:`root hash, salt and size
+<verity-metadata>`) necessary to authenticate the hash tree and in turn each
+block of the squashfs filesystem.
+
+During installation, the kernel's verity device mapper target is used on top of
+the loopback block device to authenticate each filesystem block as needed.
+
+When using `rauc extract` (or other commands which need access to the squashfs
+except `install`), the squashfs is checked before accessing it by RAUC itself
+without using the kernel's device mapper target, as they are often used by
+normal users on their development hosts.
+It this case, the same mechanism for ensuring exclusive access as with plain
+bundles is used.
 
 .. _slot-status:
 

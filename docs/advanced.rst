@@ -342,6 +342,40 @@ When working with PKCS#11, some tools are useful to configure and show your toke
   The ``prepare_softhsm2`` shell function in ``test/rauc.t`` can be used as an
   example on how to initialize SoftHSM2 token.
 
+Protection Against Concurrent Bundle Modification
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As the ``plain`` :ref:`bundle format <sec_ref_formats>` consists of a squashfs
+image with an appended CMS signature, RAUC must check the signature before
+accessing the squashfs.
+If an unprivileged process can manipulate the squashfs part of the bundle after
+the signature has been checked, it could use this to elevate its privileges.
+
+The ``verity`` format is not affected by this problem, as the kernel checks the
+squashfs data as it is read.
+
+To mitigate this problem when using the ``plain`` format, RAUC will check the
+bundle file for possible issues before accessing the squashfs:
+
+* ownership or permissions that would allow other users to open it for writing
+* storage on unsafe filesystems such as FUSE or NFS, where the data is supplied
+  by an untrusted source (the rootfs is explicitly trusted, though)
+* storage on a filesystem mounted from a block device with a non-root owner
+* existing open file descriptors (via ``F_SETLEASE``)
+
+If the check fails, RAUC will attempt to take ownership of the bundle file and
+removes write permissions.
+This protects against processes trying to open writable file descriptors from
+this point on.
+Then, the checks above a repeated before setting up the loopback device and
+mounting the squashfs.
+If this second check fails, RAUC will abort the installation.
+
+If RAUC had to take ownership of the bundle, this change is not reverted after
+the installation is completed.
+Note that, if the original user has write access to the containing directory,
+they can still delete the file.
+
 Data Storage and Migration
 --------------------------
 

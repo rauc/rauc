@@ -35,10 +35,11 @@ A bundle may also contain files not referenced in the manifest,
 such as scripts or archives that are referenced by files that *are*
 included in the manifest.
 
-To pack this all together, the default bundle format uses SquashFS.
+To pack this all together, these contents are collected into a SquashFS image.
 This provides good compression while allowing to mount the bundle without
 having to unpack it on the target system.
 This way, no additional intermediate storage is required.
+For more details see the :ref:`sec_ref_formats` section.
 
 A key design decision of RAUC is that signing a bundle is mandatory.
 For development purpose a self-signed certificate might be sufficient,

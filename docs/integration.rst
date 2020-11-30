@@ -176,13 +176,18 @@ Kernel Configuration
 --------------------
 
 The kernel used on the target device must support both loop block devices and the
-SquashFS file system to allow installing RAUC bundles.
+SquashFS file system to allow installing RAUC bundles. For the recommended
+``verity`` :ref:`bundle format<sec_ref_formats>`, dm-verity must be supported as
+well.
 
 In kernel Kconfig you have to enable the following options:
 
 .. code-block:: cfg
 
+  CONFIG_MD=y
+  CONFIG_BLK_DEV_DM=y
   CONFIG_BLK_DEV_LOOP=y
+  CONFIG_DM_VERITY=y
   CONFIG_SQUASHFS=y
 
 .. note::
@@ -1203,6 +1208,10 @@ For using the built-in bundle generation, you need to specify some variables:
   A value of ``"rootfs appfs"`` for example will create a manifest with images
   for two slot classes; rootfs and appfs.
 
+``RAUC_BUNDLE_FORMAT``
+  Use this to choose the :ref:`sec_ref_formats` for the generated bundle.
+  It currently defaults to ``plain``, but you should use ``verity`` if possible.
+
 ``RAUC_SLOT_<slotclass>``
   For each slot class, set this to the image (recipe) name which builds the
   artifact you intend to place in the slot class.
@@ -1224,6 +1233,8 @@ meta-rauc will look as follows::
   RAUC_BUNDLE_COMPATIBLE ?= "Demo Board"
 
   RAUC_BUNDLE_SLOTS ?= "rootfs"
+
+  RAUC_BUNDLE_FORMAT ?= "verity"
 
   RAUC_SLOT_rootfs ?= "core-image-minimal"
 
@@ -1334,3 +1345,70 @@ Buildroot
 
 To build RAUC using Buildroot, enable ``BR2_PACKAGE_RAUC`` in your
 configuration.
+
+.. _sec_int_migration:
+
+Bundle Format Migration
+-----------------------
+
+Migrating from the `plain` to the `verity` :ref:`bundle format
+<sec_ref_formats>` should be simple in most cases and can be done in a single
+update.
+The high-level functionality of RAUC (certificate checking, update installation,
+hooks/handlers, …) is independent of the low-level bundle format.
+
+The required steps are:
+
+* Configure your build system to build RAUC v1.5 (or newer).
+* Enable ``CONFIG_MD``, ``CONFIG_BLK_DEV_DM`` and ``CONFIG_DM_VERITY`` in your
+  kernel configuration.
+  These may already be enabled if you are using dm-verity for verified boot.
+* Add a new bundle output configured for the `verity` format by adding the
+  following to the manifest:
+
+  .. code-block:: cfg
+
+    [bundle]
+    format=verity
+
+.. note::
+
+   For OE/Yocto with an up-to-date meta-rauc, you can choose the bundle format
+   by adding the ``RAUC_BUNDLE_FORMAT = "verity"`` option in your bundle
+   recipe.
+   The bundle.bbclass will insert the necessary option into the manifest.
+
+   For PTXdist or Buildroot with genimage, you can add the manifest option
+   above to the template in your genimage config file.
+
+With these changes, the build system should produce two bundles (one in either
+format).
+A `verity` bundle will only be installable on systems that have already
+received the migration update.
+A `plain` bundle will be installable on both migrated and unmigrated systems.
+
+You should then test that *both* bundle formats can be installed on a migrated
+system, as RAUC will now perform additional checks when installing a ``plain``
+bundle to protect against potential modification during installation.
+This testing should include all bundle sources (USB, network, …) that you will
+need in the field to ensure that these new checks don't trigger in your case
+(which would prohibit further updates).
+
+.. note::
+
+  When installing bundles from a FAT filesystem (for example on a USB memory
+  stick), check that the mount option ``fmask`` is set to ``0022`` or ``0133``.
+
+When you no longer need to be able to install previously built bundles in the
+`plain` format, you should also disable it in the ``system.conf``:
+
+.. code-block:: cfg
+
+  [system]
+  …
+  bundle-formats=-plain
+  …
+
+If you later need to support downgrades, you can use ``rauc extract`` and ``rauc
+bundle`` to convert a `plain` bundle to a `verity` bundle, allowing installation
+to systems that have already been migrated.

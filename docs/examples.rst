@@ -47,6 +47,7 @@ updated
   compatible=rauc-demo-x86
   bootloader=grub
   mountprefix=/mnt/rauc
+  bundle-formats=-plain
 
   [keyring]
   path=demo.cert.pem
@@ -164,6 +165,9 @@ This must be named  ``manifest.raucm``::
   [update]
   compatible=rauc-demo-x86
   version=2015.04-1
+
+  [bundle]
+  format=verity
 
   [image.rootfs]
   filename=rootfs.ext4.img

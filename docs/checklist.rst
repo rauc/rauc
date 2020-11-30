@@ -14,6 +14,8 @@ General
 * Bundle version policy defined ☐
 * Bundle contains all software components ☐
 * Bundles are created automatically by a build system ☐
+* Bundles use the ``verity`` :ref:`format <sec_ref_format_verity>` ☐
+* Bundle :ref:`format <sec_ref_format_plain>` ``plain`` is disabled in ``system.conf`` ☐
 * Bundle deployment mechanism defined (pull or push via the network, from
   USB/SD, …) ☐
 * Proper slot status file location(s) defined (preferably central status) ☐
