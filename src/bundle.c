@@ -1094,6 +1094,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	gboolean res = FALSE;
 	g_autoptr(RaucBundle) ibundle = g_new0(RaucBundle, 1);
 	gchar *bundlescheme = NULL;
+	gboolean detached;
 
 	g_return_val_if_fail(bundlename, FALSE);
 	g_return_val_if_fail(bundle != NULL && *bundle == NULL, FALSE);
@@ -1257,6 +1258,12 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		goto out;
 	}
 
+	res = cms_is_detached(ibundle->sigdata, &detached, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
 	if (verify) {
 		CMS_ContentInfo *cms = NULL;
 		X509_STORE *store = setup_x509_store(NULL, NULL, &ierror);
@@ -1267,7 +1274,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		}
 
 		g_message("Verifying bundle signature... ");
-		{
+		if (detached) {
 			int fd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(ibundle->stream));
 
 			if (!enforce_bundle_exclusive(fd, &ierror)) {
@@ -1282,6 +1289,8 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 				g_propagate_error(error, ierror);
 				goto out;
 			}
+		} else {
+			g_abort(); /* not yet implemented */
 		}
 
 		res = cms_get_cert_chain(cms, store, &ibundle->verified_chain, &ierror);

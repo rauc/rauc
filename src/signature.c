@@ -545,6 +545,7 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 		g_autoptr(CMS_ContentInfo) vcms = NULL;
 		g_autoptr(X509_STORE) store = NULL;
 		STACK_OF(X509) *verified_chain = NULL;
+		g_autoptr(GBytes) manifest = NULL;
 
 		if (!(store = setup_x509_store(keyring_path, keyring_dir, &ierror))) {
 			g_propagate_error(error, ierror);
@@ -553,12 +554,19 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 		}
 
 		g_message("Keyring given, doing signature verification");
-		if (!cms_verify(content, res, store, &vcms, &ierror)) {
-			g_propagate_error(error, ierror);
-			g_clear_pointer(&res, g_bytes_unref);
-			goto out;
+		if (detached) {
+			if (!cms_verify_bytes(content, res, store, &vcms, NULL, &ierror)) {
+				g_propagate_error(error, ierror);
+				g_clear_pointer(&res, g_bytes_unref);
+				goto out;
+			}
+		} else {
+			if (!cms_verify_bytes(NULL, res, store, &vcms, &manifest, &ierror)) {
+				g_propagate_error(error, ierror);
+				g_clear_pointer(&res, g_bytes_unref);
+				goto out;
+			}
 		}
-
 		if (!cms_get_cert_chain(vcms, store, &verified_chain, &ierror)) {
 			g_propagate_error(error, ierror);
 			g_clear_pointer(&res, g_bytes_unref);
@@ -976,21 +984,23 @@ out:
 	return res;
 }
 
-gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
+gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GBytes **manifest, GError **error)
 {
 	GError *ierror = NULL;
 	CMS_ContentInfo *icms = NULL;
-	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
-			g_bytes_get_size(content));
+	BIO *incontent = NULL;
 	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
 			g_bytes_get_size(sig));
+	BIO *outcontent = BIO_new(BIO_s_mem());
 	g_autofree gchar *signers = NULL;
 	gboolean res = FALSE;
+	gboolean verified = FALSE;
+	gboolean detached;
 
-	g_return_val_if_fail(content != NULL, FALSE);
 	g_return_val_if_fail(sig != NULL, FALSE);
 	g_return_val_if_fail(store != NULL, FALSE);
 	g_return_val_if_fail(cms == NULL || *cms == NULL, FALSE);
+	g_return_val_if_fail(manifest == NULL || *manifest == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	r_context_begin_step("cms_verify", "Verifying signature", 0);
@@ -1005,6 +1015,49 @@ gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_Content
 	}
 
 	debug_cms_ci(icms);
+
+	detached = CMS_is_detached(icms);
+	if (detached) {
+		if (content == NULL) {
+			/* we have a detached signature but no content to verify */
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_INVALID,
+					"no content provided for detached signature");
+			goto out;
+		}
+		if (manifest != NULL) {
+			/* we have a detached signature but a place for the manifest */
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_INVALID,
+					"unexpected manifest output location for detached signature");
+			goto out;
+		}
+		incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
+				g_bytes_get_size(content));
+	} else {
+		if (content != NULL) {
+			/* we have an inline signature but some content to verify */
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_INVALID,
+					"unexpected content provided for inline signature");
+			goto out;
+		}
+		if (manifest == NULL) {
+			/* we have an inline signature but no place to store manifest */
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_INVALID,
+					"no manifest output location for inline signature");
+			goto out;
+		}
+	}
 
 	/* Optionally use certificate signing timestamp for verification */
 	if (r_context()->config->use_bundle_signing_time) {
@@ -1039,7 +1092,11 @@ gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_Content
 		X509_VERIFY_PARAM_free(param);
 	}
 
-	if (!CMS_verify(icms, NULL, store, incontent, NULL, CMS_DETACHED | CMS_BINARY)) {
+	if (detached)
+		verified = CMS_verify(icms, NULL, store, incontent, NULL, CMS_DETACHED | CMS_BINARY);
+	else
+		verified = CMS_verify(icms, NULL, store, NULL, outcontent, CMS_BINARY);
+	if (!verified) {
 		unsigned long err;
 		const gchar *data;
 		int flags;
@@ -1057,7 +1114,20 @@ gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_Content
 		g_propagate_error(error, ierror);
 		goto out;
 	}
-	g_message("Verified signature by %s", signers);
+	g_message("Verified %s signature by %s", detached ? "detached" : "inline", signers);
+
+	if (!detached) {
+		GBytes *tmp = bytes_from_bio(outcontent);
+		if (!tmp) {
+			g_set_error_literal(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_UNKNOWN,
+					"missing manifest in inline signature");
+			goto out;
+		}
+		*manifest = tmp;
+	}
 
 	if (cms)
 		*cms = icms;
@@ -1067,6 +1137,7 @@ out:
 	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
 	BIO_free_all(insig);
+	BIO_free_all(outcontent);
 	if (!cms)
 		CMS_ContentInfo_free(icms);
 	r_context_end_step("cms_verify", res);
@@ -1174,7 +1245,27 @@ gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, C
 		content = tmp;
 	}
 
-	res = cms_verify(content, sig, store, cms, &ierror);
+	res = cms_verify_bytes(content, sig, store, cms, NULL, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+out:
+	return res;
+}
+
+gboolean cms_verify_sig(GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GBytes **manifest, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	g_return_val_if_fail(sig != NULL, FALSE);
+	g_return_val_if_fail(store != NULL, FALSE);
+	g_return_val_if_fail(cms == NULL || *cms == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	res = cms_verify_bytes(NULL, sig, store, cms, manifest, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;

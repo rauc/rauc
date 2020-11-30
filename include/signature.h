@@ -117,21 +117,25 @@ gboolean cms_is_detached(GBytes *sig, gboolean *detached, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
- * Verify signature for given content.
+ * Verify detached and inline signatures.
  *
- * @param content content to verify against signature
+ * This function is only used by the tests and internally for cms_verify_fd and
+ * cms_verify_sig.
+ *
+ * @param content content to verify against signature, or NULL (for inline signature)
  * @param sig signature used to verify
  * @param store X509 store to use for verification
  * @param cms Return location for the CMS_ContentInfo used for verification
+ * @param manifest return location for included manifest, or NULL (for detached signature)
  * @param error return location for a GError, or NULL
  *
  * @return TRUE if succeeded, FALSE if failed
  */
-gboolean cms_verify(GBytes *content, GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
+gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GBytes **manifest, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
- * Verify signature for given file.
+ * Verify detached signature for given file.
  *
  * @param fd file descriptor to verify against signature
  * @param sig signature used to verify
@@ -143,6 +147,20 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return TRUE if succeeded, FALSE if failed
  */
 gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Verify inline signature and return included manifest.
+ *
+ * @param sig signature to verify
+ * @param store X509 store to use for verification
+ * @param cms Return location for the CMS_ContentInfo used for verification
+ * @param manifest return location for included manifest
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if succeeded, FALSE if failed
+ */
+gboolean cms_verify_sig(GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GBytes **manifest, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**

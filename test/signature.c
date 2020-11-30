@@ -49,7 +49,7 @@ static void signature_tear_down(SignatureFixture *fixture,
 	r_context_clean();
 }
 
-static void signature_sign(SignatureFixture *fixture,
+static void signature_sign_detached(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
 	gchar *certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
@@ -88,6 +88,53 @@ static void signature_sign(SignatureFixture *fixture,
 	// Test signing fails with invalid cert
 	fixture->sig = cms_sign(fixture->content,
 			TRUE,
+			"test/random.dat",
+			keypath,
+			NULL,
+			&fixture->error);
+	g_assert_null(fixture->sig);
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE_ERROR);
+}
+
+static void signature_sign_inline(SignatureFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
+	gchar *keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	gboolean detached = TRUE;
+
+	// Test valid signing
+	fixture->sig = cms_sign(fixture->content,
+			FALSE,
+			certpath,
+			keypath,
+			NULL,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->sig);
+	g_assert_null(fixture->error);
+
+	g_assert_true(cms_is_detached(fixture->sig, &detached, &fixture->error));
+	g_assert_no_error(fixture->error);
+	g_assert_false(detached);
+
+	g_bytes_unref(fixture->sig);
+
+	// Test signing fails with invalid key
+	fixture->sig = cms_sign(fixture->content,
+			FALSE,
+			certpath,
+			"test/random.dat",
+			NULL,
+			&fixture->error);
+	g_assert_null(fixture->sig);
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE_ERROR);
+
+	g_clear_error(&fixture->error);
+
+	// Test signing fails with invalid cert
+	fixture->sig = cms_sign(fixture->content,
+			FALSE,
 			"test/random.dat",
 			keypath,
 			NULL,
@@ -149,10 +196,11 @@ static void signature_verify_valid(SignatureFixture *fixture,
 	g_assert_no_error(fixture->error);
 	g_assert_true(detached);
 
-	res = cms_verify(fixture->content,
+	res = cms_verify_bytes(fixture->content,
 			fixture->sig,
 			fixture->store,
 			&fixture->cms,
+			NULL,
 			&fixture->error);
 	g_assert_no_error(fixture->error);
 	g_assert_true(res);
@@ -174,10 +222,11 @@ static void signature_verify_invalid(SignatureFixture *fixture,
 
 	g_clear_error(&fixture->error);
 
-	g_assert_false(cms_verify(fixture->content,
+	g_assert_false(cms_verify_bytes(fixture->content,
 			fixture->sig,
 			fixture->store,
 			&fixture->cms,
+			NULL,
 			&fixture->error));
 	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE);
 	g_assert_null(fixture->cms);
@@ -224,19 +273,78 @@ static void signature_verify_file(SignatureFixture *fixture,
 	g_clear_error(&fixture->error);
 }
 
-static void signature_loopback(SignatureFixture *fixture,
+static void signature_loopback_detached(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gboolean res;
+
 	fixture->sig = cms_sign(fixture->content,
 			TRUE,
 			"test/openssl-ca/rel/release-1.cert.pem",
 			"test/openssl-ca/rel/private/release-1.pem",
 			NULL,
-			NULL);
+			&fixture->error);
+	g_assert_no_error(fixture->error);
 	g_assert_nonnull(fixture->sig);
-	g_assert_true(cms_verify(fixture->content, fixture->sig, fixture->store, NULL, NULL));
+
+	res = cms_verify_bytes(fixture->content,
+			fixture->sig,
+			fixture->store,
+			NULL,
+			NULL,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+
 	((char *)g_bytes_get_data(fixture->content, NULL))[0] = 0x00;
-	g_assert_false(cms_verify(fixture->content, fixture->sig, fixture->store, NULL, NULL));
+	res = cms_verify_bytes(fixture->content,
+			fixture->sig,
+			fixture->store,
+			NULL,
+			NULL,
+			&fixture->error);
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
+	g_assert_false(res);
+}
+
+static void signature_loopback_inline(SignatureFixture *fixture,
+		gconstpointer user_data)
+{
+	gboolean res;
+	GBytes *manifest = NULL;
+
+	fixture->sig = cms_sign(fixture->content,
+			FALSE,
+			"test/openssl-ca/rel/release-1.cert.pem",
+			"test/openssl-ca/rel/private/release-1.pem",
+			NULL,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->sig);
+
+	res = cms_verify_bytes(NULL,
+			fixture->sig,
+			fixture->store,
+			NULL,
+			&manifest,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+	g_assert_nonnull(manifest);
+	g_assert_true(g_bytes_equal(fixture->content, manifest));
+
+	g_clear_pointer(&manifest, g_bytes_unref);
+
+	((char *)g_bytes_get_data(fixture->sig, NULL))[0x10] = 0x00;
+	res = cms_verify_bytes(NULL,
+			fixture->sig,
+			fixture->store,
+			NULL,
+			&manifest,
+			&fixture->error);
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE);
+	g_assert_false(res);
+	g_assert_null(manifest);
 }
 
 static void signature_get_cert_chain(SignatureFixture *fixture,
@@ -246,10 +354,11 @@ static void signature_get_cert_chain(SignatureFixture *fixture,
 	fixture->sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
 	g_assert_nonnull(fixture->sig);
 
-	res = cms_verify(fixture->content,
+	res = cms_verify_bytes(fixture->content,
 			fixture->sig,
 			fixture->store,
 			&fixture->cms,
+			NULL,
 			&fixture->error);
 	g_assert_no_error(fixture->error);
 	g_assert_true(res);
@@ -287,10 +396,11 @@ static void signature_selfsigned(SignatureFixture *fixture,
 
 	g_clear_error(&fixture->error);
 
-	res = cms_verify(fixture->content,
+	res = cms_verify_bytes(fixture->content,
 			fixture->sig,
 			root_store,
 			&fixture->cms,
+			NULL,
 			&fixture->error);
 	g_assert_no_error(fixture->error);
 	g_assert_true(res);
@@ -331,10 +441,11 @@ static void signature_intermediate(SignatureFixture *fixture,
 	g_assert_nonnull(fixture->sig);
 
 	/* Without explicit intermediate certificate, this must fail */
-	g_assert_false(cms_verify(fixture->content,
+	g_assert_false(cms_verify_bytes(fixture->content,
 			fixture->sig,
 			prov_store,
 			&fixture->cms,
+			NULL,
 			&fixture->error));
 	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_assert_null(fixture->cms);
@@ -356,10 +467,11 @@ static void signature_intermediate(SignatureFixture *fixture,
 	g_assert_nonnull(fixture->sig);
 
 	/* With intermediate certificate, this must succeed */
-	res = cms_verify(fixture->content,
+	res = cms_verify_bytes(fixture->content,
 			fixture->sig,
 			prov_store,
 			&fixture->cms,
+			NULL,
 			&fixture->error);
 	g_assert_no_error(fixture->error);
 	g_assert_true(res);
@@ -473,10 +585,11 @@ static void signature_cmsverify_path(SignatureFixture *fixture,
 	g_clear_error(&fixture->error);
 
 	/* Verify against "A" cert */
-	res = cms_verify(fixture->content,
+	res = cms_verify_bytes(fixture->content,
 			fixture->sig,
 			a_store,
 			&fixture->cms,
+			NULL,
 			&fixture->error);
 	g_assert_no_error(fixture->error);
 	g_assert_true(res);
@@ -503,10 +616,11 @@ static void signature_cmsverify_dir_combined(SignatureFixture *fixture,
 	g_clear_error(&fixture->error);
 
 	/* Verify against certs stored in combined directory (A+B) */
-	res = cms_verify(fixture->content,
+	res = cms_verify_bytes(fixture->content,
 			fixture->sig,
 			ab_dir_store,
 			&fixture->cms,
+			NULL,
 			&fixture->error);
 	g_assert_no_error(fixture->error);
 	g_assert_true(res);
@@ -537,10 +651,11 @@ static void signature_cmsverify_dir_single_fail(SignatureFixture *fixture,
 	g_clear_error(&fixture->error);
 
 	/* Verify against certs stored in combined directory (A+B) */
-	res = cms_verify(fixture->content,
+	res = cms_verify_bytes(fixture->content,
 			fixture->sig,
 			ab_dir_store,
 			&fixture->cms,
+			NULL,
 			&fixture->error);
 	g_assert_no_error(fixture->error);
 	g_assert_true(res);
@@ -548,10 +663,11 @@ static void signature_cmsverify_dir_single_fail(SignatureFixture *fixture,
 
 	/* Verify failure against certs stored in "A" only directory */
 	g_clear_pointer(&fixture->cms, CMS_ContentInfo_free);
-	g_assert_false(cms_verify(fixture->content,
+	g_assert_false(cms_verify_bytes(fixture->content,
 			fixture->sig,
 			a_store,
 			&fixture->cms,
+			NULL,
 			&fixture->error));
 	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 }
@@ -576,10 +692,11 @@ static void signature_cmsverify_pathdir_dir(SignatureFixture *fixture,
 	g_clear_error(&fixture->error);
 
 	/* Verify against certs stored in directory(A) + path(B) */
-	res = cms_verify(fixture->content,
+	res = cms_verify_bytes(fixture->content,
 			fixture->sig,
 			a_dir_b_store,
 			&fixture->cms,
+			NULL,
 			&fixture->error);
 	g_assert_no_error(fixture->error);
 	g_assert_true(res);
@@ -607,10 +724,11 @@ static void signature_cmsverify_pathdir_path(SignatureFixture *fixture,
 	g_clear_error(&fixture->error);
 
 	/* Verify against certs stored in directory(A) + path(B) */
-	res = cms_verify(fixture->content,
+	res = cms_verify_bytes(fixture->content,
 			fixture->sig,
 			a_dir_b_store,
 			&fixture->cms,
+			NULL,
 			&fixture->error);
 	g_assert_no_error(fixture->error);
 	g_assert_true(res);
@@ -630,12 +748,14 @@ int main(int argc, char *argv[])
 
 	g_test_init(&argc, &argv, NULL);
 
-	g_test_add("/signature/sign", SignatureFixture, NULL, signature_set_up, signature_sign, signature_tear_down);
+	g_test_add("/signature/sign_detached", SignatureFixture, NULL, signature_set_up, signature_sign_detached, signature_tear_down);
+	g_test_add("/signature/sign_inline", SignatureFixture, NULL, signature_set_up, signature_sign_inline, signature_tear_down);
 	g_test_add("/signature/sign_file", SignatureFixture, NULL, signature_set_up, signature_sign_file, signature_tear_down);
 	g_test_add("/signature/verify_valid", SignatureFixture, NULL, signature_set_up, signature_verify_valid, signature_tear_down);
 	g_test_add("/signature/verify_invalid", SignatureFixture, NULL, signature_set_up, signature_verify_invalid, signature_tear_down);
 	g_test_add("/signature/verify_file", SignatureFixture, NULL, signature_set_up, signature_verify_file, signature_tear_down);
-	g_test_add("/signature/loopback", SignatureFixture, NULL, signature_set_up, signature_loopback, signature_tear_down);
+	g_test_add("/signature/loopback_detached", SignatureFixture, NULL, signature_set_up, signature_loopback_detached, signature_tear_down);
+	g_test_add("/signature/loopback_inline", SignatureFixture, NULL, signature_set_up, signature_loopback_inline, signature_tear_down);
 	g_test_add("/signature/get_cert_chain", SignatureFixture, NULL, signature_set_up, signature_get_cert_chain, signature_tear_down);
 	g_test_add("/signature/selfsigned", SignatureFixture, NULL, signature_set_up, signature_selfsigned, signature_tear_down);
 	g_test_add("/signature/intermediate", SignatureFixture, NULL, signature_set_up, signature_intermediate, signature_tear_down);
