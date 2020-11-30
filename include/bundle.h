@@ -4,6 +4,8 @@
 #include <glib.h>
 #include <gio/gio.h>
 
+#include "manifest.h"
+
 #define R_BUNDLE_ERROR r_bundle_error_quark()
 GQuark r_bundle_error_quark(void);
 
@@ -106,6 +108,24 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return TRUE on success, FALSE if an error occurred
  */
 gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, const gchar *file, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Extract and load the manifest from a bundle.
+ *
+ * This is mainly useful for plain bundles, as the manifest is already contained in
+ * the signature in other cases and available after signature verification.
+ *
+ * Note that check_bundle() must be called prior to this, to obtain a
+ * RaucBundle struct.
+ *
+ * @param bundle RaucBundle struct as returned by check_bundle()
+ * @param manifest return location for extracted manifest
+ * @param error Return location for a GError
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean load_manifest_from_bundle(RaucBundle *bundle, RaucManifest **manifest, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**

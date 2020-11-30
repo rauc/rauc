@@ -313,6 +313,157 @@ out:
 	return res;
 }
 
+static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
+{
+	gboolean res = FALSE;
+
+	switch (mf->bundle_format) {
+		case R_MANIFEST_FORMAT_PLAIN:
+			break; /* no additional data needed */
+		case R_MANIFEST_FORMAT_VERITY:
+			break; /* data checked in _detached/_inline */
+		default: {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported bundle format");
+			goto out;
+		}
+	}
+
+	for (GList *l = mf->images; l != NULL; l = l->next) {
+		RaucImage *image = l->data;
+
+		g_assert(image);
+		g_assert(image->filename);
+
+		if (image->checksum.type != G_CHECKSUM_SHA256) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported checksum algorithm for image %s", image->filename);
+			goto out;
+		}
+		if (!image->checksum.digest) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing digest for image %s", image->filename);
+			goto out;
+		}
+		if (!image->checksum.size) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing size for image %s", image->filename);
+			goto out;
+		}
+	}
+
+	res = TRUE;
+out:
+	return res;
+}
+
+gboolean check_manifest_internal(const RaucManifest *mf, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	r_context_begin_step("check_manifest", "Checking manifest contents", 0);
+
+	res = check_manifest_common(mf, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	switch (mf->bundle_format) {
+		case R_MANIFEST_FORMAT_PLAIN:
+			break; /* no additional data needed */
+		case R_MANIFEST_FORMAT_VERITY: {
+			if (mf->bundle_verity_hash) {
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected hash for verity bundle in internal manifest");
+				goto out;
+			}
+			if (mf->bundle_verity_salt) {
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected hash for verity bundle in internal manifest");
+				goto out;
+			}
+			if (mf->bundle_verity_size) {
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected hash for verity bundle in internal manifest");
+				goto out;
+			}
+
+			break;
+		};
+		default: {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported bundle format");
+			goto out;
+		}
+	}
+
+	res = TRUE;
+out:
+	r_context_end_step("check_manifest", res);
+	return res;
+}
+
+gboolean check_manifest_external(const RaucManifest *mf, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	r_context_begin_step("check_manifest", "Checking manifest contents", 0);
+
+	res = check_manifest_common(mf, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	switch (mf->bundle_format) {
+		case R_MANIFEST_FORMAT_PLAIN: {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported bundle format 'plain' for external manifest");
+			goto out;
+		}
+		case R_MANIFEST_FORMAT_VERITY: {
+			guint8 *tmp;
+
+			if (!mf->bundle_verity_hash) {
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing hash for verity bundle");
+				goto out;
+			}
+			tmp = r_hex_decode(mf->bundle_verity_hash, 32);
+			if (!tmp) {
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Invalid hash for verity bundle");
+				goto out;
+			}
+			g_free(tmp);
+
+			if (!mf->bundle_verity_salt) {
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing salt for verity bundle");
+				goto out;
+			}
+			tmp = r_hex_decode(mf->bundle_verity_salt, 32);
+			if (!tmp) {
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Invalid salt for verity bundle");
+				goto out;
+			}
+			g_free(tmp);
+
+			if (!mf->bundle_verity_size) {
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing size for verity bundle");
+				goto out;
+			}
+
+			if (mf->bundle_verity_size % 4096) {
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unaligned size for verity bundle");
+				goto out;
+			}
+
+			break;
+		};
+		default: {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported bundle format");
+			goto out;
+		}
+	}
+
+	res = TRUE;
+out:
+	r_context_end_step("check_manifest", res);
+	return res;
+}
+
 static GKeyFile *prepare_manifest(const RaucManifest *mf)
 {
 	g_autoptr(GKeyFile) key_file = NULL;

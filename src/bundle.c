@@ -7,12 +7,15 @@
 #include <fcntl.h>
 #include <sys/vfs.h>
 
+#include <openssl/rand.h>
+
 #include "bundle.h"
 #include "context.h"
 #include "mount.h"
 #include "signature.h"
 #include "utils.h"
 #include "network.h"
+#include "verity_hash.h"
 
 /* from statfs(2) man page, as linux/magic.h may not have all of them */
 #ifndef AFS_SUPER_MAGIC
@@ -430,37 +433,134 @@ static gboolean input_stream_read_bytes_all(GInputStream *stream,
 	return TRUE;
 }
 
-static gboolean sign_bundle(const gchar *bundlename, GError **error)
+static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GError **error)
 {
 	GError *ierror = NULL;
 	g_autoptr(GBytes) sig = NULL;
 	g_autoptr(GFile) bundlefile = NULL;
-	g_autoptr(GFileOutputStream) bundlestream = NULL;
+	g_autoptr(GFileIOStream) bundlestream = NULL;
+	GOutputStream *bundleoutstream = NULL; /* owned by the bundle stream */
 	guint64 offset;
+
+	g_return_val_if_fail(bundlename, FALSE);
+	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_assert_nonnull(r_context()->certpath);
 	g_assert_nonnull(r_context()->keypath);
 
-	sig = cms_sign_file(bundlename,
-			r_context()->certpath,
-			r_context()->keypath,
-			r_context()->intermediatepaths,
-			&ierror);
-	if (sig == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed signing bundle: ");
-		return FALSE;
-	}
-
 	bundlefile = g_file_new_for_path(bundlename);
-	bundlestream = g_file_append_to(bundlefile, G_FILE_CREATE_NONE, NULL, &ierror);
+	bundlestream = g_file_open_readwrite(bundlefile, NULL, &ierror);
 	if (bundlestream == NULL) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to open bundle for appending: ");
+				"failed to open bundle for signing: ");
+		return FALSE;
+	}
+	bundleoutstream = g_io_stream_get_output_stream(G_IO_STREAM(bundlestream));
+
+	if (!g_seekable_seek(G_SEEKABLE(bundlestream),
+			0, G_SEEK_END, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to seek to end of bundle: ");
+		return FALSE;
+	}
+
+	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
+	g_debug("Payload size: %" G_GUINT64_FORMAT " bytes.", offset);
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
+		g_print("Creating bundle in 'plain' format\n");
+
+		if (!check_manifest_internal(manifest, &ierror)) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"cannot sign bundle containing inconsistent manifest: ");
+			return FALSE;
+		}
+
+		sig = cms_sign_file(bundlename,
+				r_context()->certpath,
+				r_context()->keypath,
+				r_context()->intermediatepaths,
+				&ierror);
+		if (sig == NULL) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"failed to sign bundle: ");
+			return FALSE;
+		}
+	} else if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
+		int bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundleoutstream));
+		guint8 salt[32] = {0};
+		guint8 hash[32] = {0};
+		off_t combined_size = 0;
+		guint64 verity_size = 0;
+
+		g_print("Creating bundle in 'verity' format\n");
+
+		/* check we have a clean manifest */
+		g_assert(manifest->bundle_verity_salt == NULL);
+		g_assert(manifest->bundle_verity_hash == NULL);
+		g_assert(manifest->bundle_verity_size == 0);
+
+		/* dm-verity hash table generation */
+		if (RAND_bytes((unsigned char *)&salt, sizeof(salt)) != 1) {
+			g_set_error(error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_CREATE_SIG,
+					"failed to generate verity salt");
+			return FALSE;
+		}
+		if (offset % 4096 != 0) {
+			g_set_error(error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_CREATE_SIG,
+					"squashfs size (%"G_GUINT64_FORMAT ") is not a multiple of 4096 bytes", offset);
+			return FALSE;
+		}
+		if (verity_create_or_verify_hash(0, bundlefd, offset/4096, &combined_size, hash, salt) != 0) {
+			g_set_error(error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_CREATE_SIG,
+					"failed to generate verity hash tree");
+			return FALSE;
+		}
+		/* for a squashfs <= 4096 bytes, we don't have a hash table */
+		g_assert(combined_size*4096 >= (off_t)offset);
+		verity_size = combined_size*4096 - offset;
+		g_assert(verity_size % 4096 == 0);
+
+		manifest->bundle_verity_salt = r_hex_encode(salt, sizeof(salt));
+		manifest->bundle_verity_hash = r_hex_encode(hash, sizeof(hash));
+		manifest->bundle_verity_size = verity_size;
+
+		if (!check_manifest_external(manifest, &ierror)) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"cannot sign inconsistent manifest: ");
+			return FALSE;
+		}
+
+		sig = cms_sign_manifest(manifest,
+				r_context()->certpath,
+				r_context()->keypath,
+				r_context()->intermediatepaths,
+				&ierror);
+		if (sig == NULL) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"failed to sign manifest: ");
+			return FALSE;
+		}
+	} else {
+		g_error("unsupported bundle format");
 		return FALSE;
 	}
 
@@ -474,7 +574,8 @@ static gboolean sign_bundle(const gchar *bundlename, GError **error)
 	}
 
 	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
-	if (!output_stream_write_bytes_all((GOutputStream *)bundlestream, sig, NULL, &ierror)) {
+	g_debug("Signature offset: %" G_GUINT64_FORMAT " bytes.", offset);
+	if (!output_stream_write_bytes_all(bundleoutstream, sig, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
@@ -482,15 +583,17 @@ static gboolean sign_bundle(const gchar *bundlename, GError **error)
 		return FALSE;
 	}
 
-
 	offset = g_seekable_tell(G_SEEKABLE(bundlestream)) - offset;
-	if (!output_stream_write_uint64_all((GOutputStream *)bundlestream, offset, NULL, &ierror)) {
+	if (!output_stream_write_uint64_all(bundleoutstream, offset, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
 				"failed to append signature size to bundle: ");
 		return FALSE;
 	}
+
+	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
+	g_debug("Bundle size: %" G_GUINT64_FORMAT " bytes.", offset);
 
 	return TRUE;
 }
@@ -526,7 +629,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		goto out;
 	}
 
-	res = sign_bundle(bundlename, &ierror);
+	res = sign_bundle(bundlename, manifest, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -607,18 +710,44 @@ out:
 
 gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 {
+	g_autoptr(RaucManifest) manifest = NULL;
+	goffset squashfs_size;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail(outpath != NULL, FALSE);
 
-	res = truncate_bundle(bundle->path, outpath, bundle->size, &ierror);
+	res = load_manifest_from_bundle(bundle, &manifest, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
 
-	res = sign_bundle(outpath, &ierror);
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
+		g_print("Reading bundle in 'plain' format\n");
+		squashfs_size = bundle->size;
+	} else if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
+		g_print("Reading bundle in 'verity' format\n");
+		g_assert(bundle->size > (goffset)manifest->bundle_verity_size);
+		squashfs_size = bundle->size - manifest->bundle_verity_size;
+	} else {
+		g_error("unsupported bundle format");
+		res = FALSE;
+		goto out;
+	}
+
+	g_clear_pointer(&manifest->bundle_verity_salt, g_free);
+	g_clear_pointer(&manifest->bundle_verity_hash, g_free);
+	manifest->bundle_verity_size = 0;
+
+	res = truncate_bundle(bundle->path, outpath, squashfs_size, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = sign_bundle(outpath, manifest, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -1347,6 +1476,54 @@ gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, co
 
 	res = TRUE;
 out:
+	return res;
+}
+
+gboolean load_manifest_from_bundle(RaucBundle *bundle, RaucManifest **manifest, GError **error)
+{
+	g_autofree gchar* tmpdir = NULL;
+	g_autofree gchar* bundledir = NULL;
+	g_autofree gchar* manifestpath = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail(manifest != NULL && *manifest == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	tmpdir = g_dir_make_tmp("arch-XXXXXX", &ierror);
+	if (tmpdir == NULL) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to create tmp dir: ");
+		goto out;
+	}
+
+	bundledir = g_build_filename(tmpdir, "bundle-content", NULL);
+	res = unsquashfs(g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream)), bundledir, "manifest.raucm", &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to extract manifest from bundle: ");
+		goto out;
+	}
+
+	manifestpath = g_build_filename(bundledir, "manifest.raucm", NULL);
+	res = load_manifest_file(manifestpath, manifest, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to load manifest: ");
+		goto out;
+	}
+
+	res = check_manifest_internal(*manifest, &ierror);
+	if (!res) {
+		g_clear_pointer(manifest, free_manifest);
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to check manifest: ");
+		goto out;
+	}
+out:
+	if (tmpdir)
+		rm_tree(tmpdir, NULL);
 	return res;
 }
 
