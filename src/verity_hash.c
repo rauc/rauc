@@ -57,16 +57,16 @@ static int verify_zero(struct crypt_device *cd, FILE *wr, size_t bytes)
 	for (i = 0; i < bytes; i++)
 		if (block[i]) {
 			log_err(cd, _("Spare area is not zeroed at position %" PRIu64 "."),
-				ftello(wr) - bytes);
+					ftello(wr) - bytes);
 			return -EPERM;
 		}
 	return 0;
 }
 
 static int verify_hash_block(const char *hash_name, int version,
-			      char *hash, size_t hash_size,
-			      const char *data, size_t data_size,
-			      const char *salt, size_t salt_size)
+		char *hash, size_t hash_size,
+		const char *data, size_t data_size,
+		const char *salt, size_t salt_size)
 {
 	struct crypt_hash *ctx = NULL;
 	int r;
@@ -98,8 +98,8 @@ static int mult_overflow(off_t *u, off_t b, size_t size)
 }
 
 static int hash_levels(size_t hash_block_size, size_t digest_size,
-		       off_t data_file_blocks, off_t *hash_position, int *levels,
-		       off_t *hash_level_block, off_t *hash_level_size)
+		off_t data_file_blocks, off_t *hash_position, int *levels,
+		off_t *hash_level_block, off_t *hash_level_size)
 {
 	size_t hash_per_block_bits;
 	off_t s, s_shift;
@@ -140,12 +140,12 @@ static int hash_levels(size_t hash_block_size, size_t digest_size,
 }
 
 static int create_or_verify(struct crypt_device *cd, FILE *rd, FILE *wr,
-				   off_t data_block, size_t data_block_size,
-				   off_t hash_block, size_t hash_block_size,
-				   off_t blocks, int version,
-				   const char *hash_name, int verify,
-				   char *calculated_digest, size_t digest_size,
-				   const char *salt, size_t salt_size)
+		off_t data_block, size_t data_block_size,
+		off_t hash_block, size_t hash_block_size,
+		off_t blocks, int version,
+		const char *hash_name, int verify,
+		char *calculated_digest, size_t digest_size,
+		const char *salt, size_t salt_size)
 {
 	char left_block[hash_block_size];
 	char data_buffer[data_block_size];
@@ -201,7 +201,7 @@ static int create_or_verify(struct crypt_device *cd, FILE *rd, FILE *wr,
 				}
 				if (memcmp(read_digest, calculated_digest, digest_size)) {
 					log_err(cd, _("Verification failed at position %" PRIu64 "."),
-						ftello(rd) - data_block_size);
+							ftello(rd) - data_block_size);
 					return -EPERM;
 				}
 			} else {
@@ -228,7 +228,7 @@ static int create_or_verify(struct crypt_device *cd, FILE *rd, FILE *wr,
 		}
 		if (wr && left_bytes) {
 			if (verify) {
-				r = verify_zero(cd , wr, left_bytes);
+				r = verify_zero(cd, wr, left_bytes);
 				if (r)
 					return r;
 			} else if (fwrite(left_block, left_bytes, 1, wr) != 1) {
@@ -242,19 +242,19 @@ static int create_or_verify(struct crypt_device *cd, FILE *rd, FILE *wr,
 }
 
 static int VERITY_create_or_verify_hash(struct crypt_device *cd,
-	int verify,
-	int version,
-	const char *hash_name,
-	struct device *hash_device,
-	struct device *data_device,
-	size_t hash_block_size,
-	size_t data_block_size,
-	off_t data_blocks,
-	off_t hash_position,
-	char *root_hash,
-	size_t digest_size,
-	const char *salt,
-	size_t salt_size)
+		int verify,
+		int version,
+		const char *hash_name,
+		struct device *hash_device,
+		struct device *data_device,
+		size_t hash_block_size,
+		size_t data_block_size,
+		off_t data_blocks,
+		off_t hash_position,
+		char *root_hash,
+		size_t digest_size,
+		const char *salt,
+		size_t salt_size)
 {
 	char calculated_digest[digest_size];
 	FILE *data_file = NULL;
@@ -267,10 +267,10 @@ static int VERITY_create_or_verify_hash(struct crypt_device *cd,
 	int levels, i, r;
 
 	log_dbg(cd, "Hash %s %s, data device %s, data blocks %" PRIu64
-		", hash_device %s, offset %" PRIu64 ".",
-		verify ? "verification" : "creation", hash_name,
-		device_path(data_device), data_blocks,
-		device_path(hash_device), hash_position);
+			", hash_device %s, offset %" PRIu64 ".",
+			verify ? "verification" : "creation", hash_name,
+			device_path(data_device), data_blocks,
+			device_path(hash_device), hash_position);
 
 	if (data_blocks < 0 || hash_position < 0) {
 		log_err(cd, _("Invalid size parameters for verity device."));
@@ -292,7 +292,7 @@ static int VERITY_create_or_verify_hash(struct crypt_device *cd,
 	}
 
 	if (hash_levels(hash_block_size, digest_size, data_file_blocks, &hash_position,
-		&levels, &hash_level_block[0], &hash_level_size[0])) {
+			&levels, &hash_level_block[0], &hash_level_size[0])) {
 		log_err(cd, _("Hash area overflow."));
 		return -EINVAL;
 	}
@@ -305,22 +305,22 @@ static int VERITY_create_or_verify_hash(struct crypt_device *cd,
 	}
 
 	log_dbg(cd, "Data device size required: %" PRIu64 " bytes.",
-		data_device_size);
+			data_device_size);
 	data_file = fopen(device_path(data_device), "r");
 	if (!data_file) {
 		log_err(cd, _("Cannot open device %s."),
-			device_path(data_device)
-		);
+				device_path(data_device)
+				);
 		r = -EIO;
 		goto out;
 	}
 
 	log_dbg(cd, "Hash device size required: %" PRIu64 " bytes.",
-		hash_device_size);
+			hash_device_size);
 	hash_file = fopen(device_path(hash_device), verify ? "r" : "r+");
 	if (!hash_file) {
 		log_err(cd, _("Cannot open device %s."),
-			device_path(hash_device));
+				device_path(hash_device));
 		r = -EIO;
 		goto out;
 	}
@@ -330,25 +330,25 @@ static int VERITY_create_or_verify_hash(struct crypt_device *cd,
 	for (i = 0; i < levels; i++) {
 		if (!i) {
 			r = create_or_verify(cd, data_file, hash_file,
-						    0, data_block_size,
-						    hash_level_block[i], hash_block_size,
-						    data_file_blocks, version, hash_name, verify,
-						    calculated_digest, digest_size, salt, salt_size);
+					0, data_block_size,
+					hash_level_block[i], hash_block_size,
+					data_file_blocks, version, hash_name, verify,
+					calculated_digest, digest_size, salt, salt_size);
 			if (r)
 				goto out;
 		} else {
 			hash_file_2 = fopen(device_path(hash_device), "r");
 			if (!hash_file_2) {
 				log_err(cd, _("Cannot open device %s."),
-					device_path(hash_device));
+						device_path(hash_device));
 				r = -EIO;
 				goto out;
 			}
 			r = create_or_verify(cd, hash_file_2, hash_file,
-						    hash_level_block[i - 1], hash_block_size,
-						    hash_level_block[i], hash_block_size,
-						    hash_level_size[i - 1], version, hash_name, verify,
-						    calculated_digest, digest_size, salt, salt_size);
+					hash_level_block[i - 1], hash_block_size,
+					hash_level_block[i], hash_block_size,
+					hash_level_size[i - 1], version, hash_name, verify,
+					calculated_digest, digest_size, salt, salt_size);
 			fclose(hash_file_2);
 			if (r)
 				goto out;
@@ -357,16 +357,16 @@ static int VERITY_create_or_verify_hash(struct crypt_device *cd,
 
 	if (levels)
 		r = create_or_verify(cd, hash_file, NULL,
-					    hash_level_block[levels - 1], hash_block_size,
-					    0, hash_block_size,
-					    1, version, hash_name, verify,
-					    calculated_digest, digest_size, salt, salt_size);
+				hash_level_block[levels - 1], hash_block_size,
+				0, hash_block_size,
+				1, version, hash_name, verify,
+				calculated_digest, digest_size, salt, salt_size);
 	else
 		r = create_or_verify(cd, data_file, NULL,
-					    0, data_block_size,
-					    0, hash_block_size,
-					    data_file_blocks, version, hash_name, verify,
-					    calculated_digest, digest_size, salt, salt_size);
+				0, data_block_size,
+				0, hash_block_size,
+				data_file_blocks, version, hash_name, verify,
+				calculated_digest, digest_size, salt, salt_size);
 out:
 	if (verify) {
 		if (r)
@@ -399,30 +399,30 @@ out:
 
 /* Verify verity device using userspace crypto backend */
 int VERITY_verify(struct crypt_device *cd,
-		  struct crypt_params_verity *verity_hdr,
-		  const char *root_hash,
-		  size_t root_hash_size)
+		struct crypt_params_verity *verity_hdr,
+		const char *root_hash,
+		size_t root_hash_size)
 {
 	return VERITY_create_or_verify_hash(cd, 1,
-		verity_hdr->hash_type,
-		verity_hdr->hash_name,
-		crypt_metadata_device(cd),
-		crypt_data_device(cd),
-		verity_hdr->hash_block_size,
-		verity_hdr->data_block_size,
-		verity_hdr->data_size,
-		VERITY_hash_offset_block(verity_hdr),
-		CONST_CAST(char*)root_hash,
-		root_hash_size,
-		verity_hdr->salt,
-		verity_hdr->salt_size);
+			verity_hdr->hash_type,
+			verity_hdr->hash_name,
+			crypt_metadata_device(cd),
+			crypt_data_device(cd),
+			verity_hdr->hash_block_size,
+			verity_hdr->data_block_size,
+			verity_hdr->data_size,
+			VERITY_hash_offset_block(verity_hdr),
+			CONST_CAST(char*) root_hash,
+			root_hash_size,
+			verity_hdr->salt,
+			verity_hdr->salt_size);
 }
 
 /* Create verity hash */
 int VERITY_create(struct crypt_device *cd,
-		  struct crypt_params_verity *verity_hdr,
-		  const char *root_hash,
-		  size_t root_hash_size)
+		struct crypt_params_verity *verity_hdr,
+		const char *root_hash,
+		size_t root_hash_size)
 {
 	unsigned pgsize = (unsigned)crypt_getpagesize();
 
@@ -431,21 +431,21 @@ int VERITY_create(struct crypt_device *cd,
 
 	if (verity_hdr->data_block_size > pgsize)
 		log_err(cd, _("WARNING: Kernel cannot activate device if data "
-			      "block size exceeds page size (%u)."), pgsize);
+				"block size exceeds page size (%u)."), pgsize);
 
 	return VERITY_create_or_verify_hash(cd, 0,
-		verity_hdr->hash_type,
-		verity_hdr->hash_name,
-		crypt_metadata_device(cd),
-		crypt_data_device(cd),
-		verity_hdr->hash_block_size,
-		verity_hdr->data_block_size,
-		verity_hdr->data_size,
-		VERITY_hash_offset_block(verity_hdr),
-		CONST_CAST(char*)root_hash,
-		root_hash_size,
-		verity_hdr->salt,
-		verity_hdr->salt_size);
+			verity_hdr->hash_type,
+			verity_hdr->hash_name,
+			crypt_metadata_device(cd),
+			crypt_data_device(cd),
+			verity_hdr->hash_block_size,
+			verity_hdr->data_block_size,
+			verity_hdr->data_size,
+			VERITY_hash_offset_block(verity_hdr),
+			CONST_CAST(char*) root_hash,
+			root_hash_size,
+			verity_hdr->salt,
+			verity_hdr->salt_size);
 }
 
 uint64_t VERITY_hash_blocks(struct crypt_device *cd, struct crypt_params_verity *params)
@@ -454,7 +454,7 @@ uint64_t VERITY_hash_blocks(struct crypt_device *cd, struct crypt_params_verity 
 	int levels = 0;
 
 	if (hash_levels(params->hash_block_size, crypt_get_volume_key_size(cd),
-		params->data_size, &hash_position, &levels, NULL, NULL))
+			params->data_size, &hash_position, &levels, NULL, NULL))
 		return 0;
 
 	return (uint64_t)hash_position;
