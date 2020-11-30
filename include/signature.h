@@ -103,7 +103,7 @@ G_GNUC_WARN_UNUSED_RESULT;
 /**
  * Verify signature for given file.
  *
- * @param filename name of file with content to verify against signature
+ * @param fd file descriptor to verify against signature
  * @param sig signature used to verify
  * @param limit size of content to use, 0 if all should be included
  * @param store X509 store to use for verification
@@ -112,7 +112,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  *
  * @return TRUE if succeeded, FALSE if failed
  */
-gboolean cms_verify_file(const gchar *filename, GBytes *sig, goffset limit, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
+gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**

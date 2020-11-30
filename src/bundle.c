@@ -1,7 +1,9 @@
 #include <errno.h>
 #include <gio/gio.h>
+#include <gio/gfiledescriptorbased.h>
 #include <glib/gstdio.h>
 #include <string.h>
+#include <fcntl.h>
 
 #include "bundle.h"
 #include "context.h"
@@ -741,7 +743,6 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 {
 	GError *ierror = NULL;
 	g_autoptr(GFile) bundlefile = NULL;
-	g_autoptr(GFileInputStream) bundlestream = NULL;
 	guint64 sigsize;
 	goffset offset;
 	gboolean res = FALSE;
@@ -799,8 +800,8 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	g_message("Reading bundle: %s", ibundle->path);
 
 	bundlefile = g_file_new_for_path(ibundle->path);
-	bundlestream = g_file_read(bundlefile, NULL, &ierror);
-	if (bundlestream == NULL) {
+	ibundle->stream = G_INPUT_STREAM(g_file_read(bundlefile, NULL, &ierror));
+	if (ibundle->stream == NULL) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
@@ -809,7 +810,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		goto out;
 	}
 
-	res = input_stream_check_bundle_identifier(G_INPUT_STREAM(bundlestream), &ierror);
+	res = input_stream_check_bundle_identifier(ibundle->stream, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -819,7 +820,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	}
 
 	offset = sizeof(sigsize);
-	res = g_seekable_seek(G_SEEKABLE(bundlestream),
+	res = g_seekable_seek(G_SEEKABLE(ibundle->stream),
 			-offset, G_SEEK_END, NULL, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
@@ -828,9 +829,9 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 				"Failed to seek to end of bundle: ");
 		goto out;
 	}
-	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
+	offset = g_seekable_tell(G_SEEKABLE(ibundle->stream));
 
-	res = input_stream_read_uint64_all(G_INPUT_STREAM(bundlestream),
+	res = input_stream_read_uint64_all(ibundle->stream,
 			&sigsize, NULL, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
@@ -870,7 +871,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	}
 	ibundle->size = offset;
 
-	res = g_seekable_seek(G_SEEKABLE(bundlestream),
+	res = g_seekable_seek(G_SEEKABLE(ibundle->stream),
 			offset, G_SEEK_SET, NULL, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
@@ -880,7 +881,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		goto out;
 	}
 
-	res = input_stream_read_bytes_all(G_INPUT_STREAM(bundlestream),
+	res = input_stream_read_bytes_all(ibundle->stream,
 			&ibundle->sigdata, sigsize, NULL, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
@@ -899,12 +900,15 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 			goto out;
 		}
 
-		g_message("Verifying bundle... ");
-		/* the squashfs image size is in offset */
-		res = cms_verify_file(ibundle->path, ibundle->sigdata, offset, store, &cms, &ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
+		g_message("Verifying bundle signature... ");
+		{
+			int fd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(ibundle->stream));
+			/* the squashfs image size is in offset */
+			res = cms_verify_fd(fd, ibundle->sigdata, offset, store, &cms, &ierror);
+			if (!res) {
+				g_propagate_error(error, ierror);
+				goto out;
+			}
 		}
 
 		res = cms_get_cert_chain(cms, store, &ibundle->verified_chain, &ierror);
@@ -966,8 +970,11 @@ out:
 
 gboolean mount_bundle(RaucBundle *bundle, GError **error)
 {
-	gchar *mount_point = NULL;
 	GError *ierror = NULL;
+	g_autofree gchar *mount_point = NULL;
+	g_autofree gchar *loopname = NULL;
+	gint bundlefd = -1;
+	gint loopfd = -1;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
@@ -987,18 +994,28 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 
 	g_message("Mounting bundle '%s' to '%s'", bundle->path, mount_point);
 
-	res = r_mount_loop(bundle->path, mount_point, bundle->size, &ierror);
+	bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream));
+	res = r_setup_loop(bundlefd, &loopfd, &loopname, bundle->size, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		g_rmdir(mount_point);
-		g_free(mount_point);
 		goto out;
 	}
 
-	bundle->mount_point = mount_point;
+	res = r_mount_full(loopname, mount_point, "squashfs", "ro", &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
 
+	bundle->mount_point = g_steal_pointer(&mount_point);
 	res = TRUE;
+
 out:
+	if (mount_point) {
+		g_rmdir(mount_point);
+	}
+	if (loopfd >= 0)
+		g_close(loopfd, NULL);
 	return res;
 }
 
@@ -1037,6 +1054,8 @@ void free_bundle(RaucBundle *bundle)
 		}
 
 	g_free(bundle->path);
+	if (bundle->stream)
+		g_object_unref(bundle->stream);
 	g_bytes_unref(bundle->sigdata);
 	g_free(bundle->mount_point);
 	if (bundle->verified_chain)

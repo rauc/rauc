@@ -1,12 +1,16 @@
 #include <gio/gio.h>
 #include <glib/gstdio.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <linux/loop.h>
+#include <errno.h>
+#include <sys/ioctl.h>
 
 #include "context.h"
 #include "mount.h"
 #include "utils.h"
 
-gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, goffset size, const gchar* extra_options, GError **error)
+gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, const gchar* extra_options, GError **error)
 {
 	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
@@ -25,10 +29,6 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 	if (type != NULL) {
 		g_ptr_array_add(args, g_strdup("-t"));
 		g_ptr_array_add(args, g_strdup(type));
-	}
-	if (size != 0) {
-		g_ptr_array_add(args, g_strdup("-o"));
-		g_ptr_array_add(args, g_strdup_printf("ro,loop,sizelimit=%"G_GOFFSET_FORMAT, size));
 	}
 	if (extra_options) {
 		g_ptr_array_add(args, g_strdup("-o"));
@@ -61,10 +61,128 @@ out:
 	return res;
 }
 
-
-gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, goffset size, GError **error)
+gboolean r_setup_loop(gint fd, gint *loopfd_out, gchar **loopname_out, goffset size, GError **error)
 {
-	return r_mount_full(filename, mountpoint, "squashfs", size, NULL, error);
+	gboolean res = FALSE;
+	gint controlfd = -1;
+	g_autofree gchar *loopname = NULL;
+	gint loopfd = -1, looprc;
+	guint tries;
+	struct loop_info64 loopinfo = {0};
+
+	g_return_val_if_fail(fd >= 0, FALSE);
+	g_return_val_if_fail(loopfd_out != NULL, FALSE);
+	g_return_val_if_fail(loopname_out != NULL && *loopname_out == NULL, FALSE);
+	g_return_val_if_fail(size > 0, FALSE);
+	g_return_val_if_fail(size % 4096 == 0, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	controlfd = open("/dev/loop-control", O_RDWR|O_CLOEXEC);
+	if (controlfd < 0) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to open /dev/loop-control: %s", g_strerror(err));
+		res = FALSE;
+		goto out;
+	}
+
+	for (tries = 10; tries > 0; tries--) {
+		gint loopidx;
+
+		g_clear_pointer(&loopname, g_free);
+		if (loopfd >= 0)
+			g_close(loopfd, NULL);
+
+		loopidx = ioctl(controlfd, LOOP_CTL_GET_FREE);
+		if (loopidx < 0) {
+			int err = errno;
+			g_set_error(error,
+					G_FILE_ERROR,
+					g_file_error_from_errno(err),
+					"Failed to get free loop device: %s", g_strerror(err));
+			res = FALSE;
+			goto out;
+		}
+
+		loopname = g_strdup_printf("/dev/loop%d", loopidx);
+
+		loopfd = open(loopname, O_RDWR|O_CLOEXEC);
+		if (loopfd < 0) {
+			int err = errno;
+			/* is this loop dev gone already? */
+			if ((err == ENOENT) || (err == ENXIO))
+				continue; /* retry */
+			g_set_error(error,
+					G_FILE_ERROR,
+					g_file_error_from_errno(err),
+					"Failed to open %s: %s", loopname, g_strerror(err));
+			res = FALSE;
+			goto out;
+		}
+
+		looprc = ioctl(loopfd, LOOP_SET_FD, fd);
+		if (looprc < 0) {
+			int err = errno;
+			/* is this loop dev is already in use by someone else? */
+			if (err == EBUSY)
+				continue; /* retry */
+			g_set_error(error,
+					G_FILE_ERROR,
+					g_file_error_from_errno(err),
+					"Failed to set loop device file descriptor: %s", g_strerror(err));
+			res = FALSE;
+			goto out;
+		} else {
+			break; /* claimed a loop dev */
+		}
+	}
+
+	if (!tries) {
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(EBUSY),
+				"Failed to find free loop device");
+		res = FALSE;
+		goto out;
+	}
+
+	loopinfo.lo_sizelimit = size;
+	loopinfo.lo_flags = LO_FLAGS_READ_ONLY | LO_FLAGS_AUTOCLEAR;
+
+	do {
+		looprc = ioctl(loopfd, LOOP_SET_STATUS64, &loopinfo);
+	} while (looprc && errno == EAGAIN);
+	if (looprc < 0) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to set loop device configuration: %s", g_strerror(err));
+		ioctl(loopfd, LOOP_CLR_FD, 0);
+		res = FALSE;
+		goto out;
+	}
+
+	looprc = ioctl(loopfd, LOOP_SET_BLOCK_SIZE, 4096);
+	if (looprc < 0) {
+		g_debug("Failed to set loop device block size to 4096, continuing");
+	}
+
+	g_message("Configured loop device '%s' for %" G_GOFFSET_FORMAT " bytes", loopname, size);
+
+	*loopfd_out = loopfd;
+	loopfd = -1;
+	*loopname_out = g_steal_pointer(&loopname);
+	res = TRUE;
+
+out:
+	if (loopfd >= 0)
+		g_close(loopfd, NULL);
+	if (controlfd >= 0)
+		g_close(controlfd, NULL);
+	return res;
 }
 
 gboolean r_umount(const gchar *filename, GError **error)
@@ -172,7 +290,7 @@ gboolean r_mount_slot(RaucSlot *slot, GError **error)
 		goto out;
 	}
 
-	res = r_mount_full(slot->device, mount_point, slot->type, 0, slot->extra_mount_opts, &ierror);
+	res = r_mount_full(slot->device, mount_point, slot->type, slot->extra_mount_opts, &ierror);
 	if (!res) {
 		res = FALSE;
 		g_propagate_prefixed_error(

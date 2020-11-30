@@ -1052,20 +1052,20 @@ out:
 	return sig;
 }
 
-gboolean cms_verify_file(const gchar *filename, GBytes *sig, goffset limit, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
+gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
 {
 	GError *ierror = NULL;
 	g_autoptr(GMappedFile) file = NULL;
 	g_autoptr(GBytes) content = NULL;
 	gboolean res = FALSE;
 
-	g_return_val_if_fail(filename != NULL, FALSE);
+	g_return_val_if_fail(fd >= 0, FALSE);
 	g_return_val_if_fail(sig != NULL, FALSE);
 	g_return_val_if_fail(store != NULL, FALSE);
 	g_return_val_if_fail(cms == NULL || *cms == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	file = g_mapped_file_new(filename, FALSE, &ierror);
+	file = g_mapped_file_new_from_fd(fd, FALSE, &ierror);
 	if (file == NULL) {
 		g_propagate_error(error, ierror);
 		goto out;

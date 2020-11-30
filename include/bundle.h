@@ -2,6 +2,7 @@
 
 #include <openssl/cms.h>
 #include <glib.h>
+#include <gio/gio.h>
 
 #define R_BUNDLE_ERROR r_bundle_error_quark()
 GQuark r_bundle_error_quark(void);
@@ -16,6 +17,7 @@ typedef struct {
 	gchar *path;
 	gchar *origpath;
 	gchar *storepath;
+	GInputStream *stream;
 	goffset size;
 	GBytes *sigdata;
 	gchar *mount_point;

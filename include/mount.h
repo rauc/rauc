@@ -12,27 +12,29 @@
  * @param source source path for mount
  * @param mountpoint destination path for mount
  * @param type type of image to mount (results in -t option)
- * @param size maximum size of image to mount (for loop mounts)
  * @param extra_options additional mount options that will be passed to mount
  *        via `-o` argument
  * @param error return location for a GError, or NULL
  *
  * @return True if succeeded, False if failed
  */
-gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, goffset size, const gchar *extra_options, GError **error)
+gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, const gchar *extra_options, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
- * Loopback mount a file.
+ * Setup a loopback device for a file.
  *
- * @param filename name of file to mount
- * @param mountpoint destination mount point
- * @param size limit accessable size of file, If 0, entire file is used
+ * The size must be > 0, as we always know the exact size of the payload.
+ *
+ * @param fd file descriptor of file to mount
+ * @param loopfd_out file descriptor of the open loop device
+ * @param loopname_out device name of loop device
+ * @param size limit accessable size of file
  * @param error return location for a GError, or NULL
  *
  * @return True if succeeded, False if failed
  */
-gboolean r_mount_loop(const gchar *filename, const gchar *mountpoint, goffset size, GError **error)
+gboolean r_setup_loop(gint fd, gint *loopfd_out, gchar **loopname_out, goffset size, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**

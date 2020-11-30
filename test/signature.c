@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <locale.h>
 #include <glib.h>
+#include <glib/gstdio.h>
+#include <fcntl.h>
 
 #include <context.h>
 #include <utils.h>
@@ -162,17 +164,21 @@ static void signature_verify_invalid(SignatureFixture *fixture,
 static void signature_verify_file(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gint fd;
 	gboolean res;
 	fixture->sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
 	g_assert_nonnull(fixture->sig);
 
 	// Test valid manifest
-	res = cms_verify_file("test/openssl-ca/manifest",
+	fd = g_open("test/openssl-ca/manifest", O_RDONLY|O_CLOEXEC, 0);
+	g_assert_cmpint(fd, >=, 0);
+	res = cms_verify_fd(fd,
 			fixture->sig,
 			0,
 			fixture->store,
 			&fixture->cms,
 			&fixture->error);
+	g_close(fd, NULL);
 	g_assert_no_error(fixture->error);
 	g_assert_true(res);
 	g_assert_nonnull(fixture->cms);
@@ -180,26 +186,20 @@ static void signature_verify_file(SignatureFixture *fixture,
 	g_clear_pointer(&fixture->cms, CMS_ContentInfo_free);
 
 	// Test valid manifest with invalid size limit
-	g_assert_false(cms_verify_file("test/openssl-ca/manifest",
+	fd = g_open("test/openssl-ca/manifest", O_RDONLY|O_CLOEXEC, 0);
+	g_assert_cmpint(fd, >=, 0);
+	res = cms_verify_fd(fd,
 			fixture->sig,
 			42,
 			fixture->store,
 			&fixture->cms,
-			&fixture->error));
+			&fixture->error);
+	g_close(fd, NULL);
+	g_assert_false(res);
 	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_assert_null(fixture->cms);
 
 	g_clear_error(&fixture->error);
-
-	// Test non-existing file
-	g_assert_false(cms_verify_file("path/to/nonexisting/file",
-			fixture->sig,
-			0,
-			fixture->store,
-			&fixture->cms,
-			&fixture->error));
-	g_assert_error(fixture->error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
-	g_assert_null(fixture->cms);
 }
 
 static void signature_loopback(SignatureFixture *fixture,
@@ -355,6 +355,7 @@ static void signature_intermediate(SignatureFixture *fixture,
 static void signature_intermediate_file(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	gint fd;
 	gboolean res;
 	GPtrArray *interfiles = NULL;
 	X509_STORE *prov_store = X509_STORE_new();
@@ -370,12 +371,16 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 	g_assert_nonnull(fixture->sig);
 
 	/* Without explicit intermediate certificate, this must fail */
-	g_assert_false(cms_verify_file("test/openssl-ca/manifest",
+	fd = g_open("test/openssl-ca/manifest", O_RDONLY|O_CLOEXEC, 0);
+	g_assert_cmpint(fd, >=, 0);
+	res = cms_verify_fd(fd,
 			fixture->sig,
 			0,
 			prov_store,
 			&fixture->cms,
-			&fixture->error));
+			&fixture->error);
+	g_close(fd, NULL);
+	g_assert_false(res);
 	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_assert_null(fixture->cms);
 
@@ -395,12 +400,15 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 	g_assert_nonnull(fixture->sig);
 
 	/* With intermediate certificate, this must succeed */
-	res = cms_verify_file("test/openssl-ca/manifest",
+	fd = g_open("test/openssl-ca/manifest", O_RDONLY|O_CLOEXEC, 0);
+	g_assert_cmpint(fd, >=, 0);
+	res = cms_verify_fd(fd,
 			fixture->sig,
 			0,
 			fixture->store,
 			&fixture->cms,
 			&fixture->error);
+	g_close(fd, NULL);
 	g_assert_no_error(fixture->error);
 	g_assert_true(res);
 	g_assert_nonnull(fixture->cms);
