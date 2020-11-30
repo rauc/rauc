@@ -743,6 +743,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 {
 	GError *ierror = NULL;
 	g_autoptr(GFile) bundlefile = NULL;
+	g_autoptr(GFileInfo) bundleinfo = NULL;
 	guint64 sigsize;
 	goffset offset;
 	gboolean res = FALSE;
@@ -806,6 +807,26 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 				error,
 				ierror,
 				"Failed to open bundle for reading: ");
+		res = FALSE;
+		goto out;
+	}
+
+	bundleinfo = g_file_input_stream_query_info(
+			G_FILE_INPUT_STREAM(ibundle->stream),
+			G_FILE_ATTRIBUTE_STANDARD_TYPE,
+			NULL, &ierror);
+	if (bundleinfo == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to query bundle file info: ");
+		res = FALSE;
+		goto out;
+	}
+
+	if (g_file_info_get_file_type(bundleinfo) != G_FILE_TYPE_REGULAR) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE,
+				"Bundle is not a regular file");
 		res = FALSE;
 		goto out;
 	}
