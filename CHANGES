@@ -1,8 +1,31 @@
 Release 1.5 (development)
 -------------------------
 
+.. note::
+
+  This version introduces the new ``verity`` bundle format (the old format is
+  now called ``plain``).
+  The ``verity`` format was added to prepare for future use cases (such as
+  network streaming and encryption), for better parallelization of installation
+  with hash verification and to detect modification of the bundle during
+  installation.
+  The bundle format is detected when reading a bundle and checked against the set
+  of allowed formats configured in the system.conf (see :ref:`sec_ref_formats`).
+
+  As the old ``plain`` format does not offer protection against modification
+  during the installation process, RAUC now takes ownership of the bundle file,
+  removes write permissions and checks for existing open file descriptors.
+  This is intended as a mitigation to protect against a compromised update
+  service running as a non-root user, which would otherwise be able to modify
+  the bundle between signature check and actual bundle installation.
+
+  See :ref:`sec_int_migration` for more details on how to switch to the
+  ``verity`` format.
+
 .. rubric:: Enhancements
 
+* Add support for the ``verity`` bundle format. See the :ref:`reference for
+  details <sec_ref_format_verity>`.
 * Support resolving the `root=PARTLABEL=xxx` kernel command line option. (by
   Gaël PORTAY)
 * Disable the unneccessary SMIMECapabilities information in the bundle
@@ -10,6 +33,22 @@ Release 1.5 (development)
 * Remove redundant checksum verification for source images during installation.
   The RAUC bundle is already verified at this point, so there is no need to
   verify the checksum of each file individually. (by Bastian Krause)
+
+.. rubric:: Security
+
+* Take ownership of bundle files if they are not owned by root and remove write
+  permissions. Then check that no writable file descriptors are open for the
+  bundle file (using the ``F_SETLEASE`` fcntl). This fixes CVE-2020-25860. See
+  the advisory for more details:
+  https://github.com/rauc/rauc/security/advisories/GHSA-cgf3-h62j-w9vv
+
+.. note::
+
+  The https://github.com/rauc/rauc-1.5-integration repository contains examples
+  to simplify integrating the RAUC update into existing projects.
+  You can subscribe to https://github.com/rauc/rauc-1.5-integration/issues/1 to
+  receive notifications of important updates to this repository and of
+  integration into the upstream build systems.
 
 .. rubric:: Bug fixes
 
@@ -38,8 +77,9 @@ Release 1.5 (development)
   Michael Heimpold)
 * Improve documentation related to u-boot scripting and environment storage.
 
-Contributions from: Bastian Krause, Christoph Steiger, Christopher Obbard, Gaël
-PORTAY, Martin Schwan, Michael Heimpold, Stefan Wahren, Uwe Kleine-König
+Contributions from: Bastian Krause, Christoph Steiger, Christopher Obbard,
+Enrico Jörns, Gaël PORTAY, Jan Lübbe, Martin Schwan, Michael Heimpold, Stefan
+Wahren, Uwe Kleine-König
 
 Release 1.4 (released Jul 20, 2020)
 -----------------------------------
