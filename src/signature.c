@@ -453,7 +453,7 @@ X509_STORE* setup_x509_store(const gchar *capath, const gchar *cadir, GError **e
 	return g_steal_pointer(&store);
 }
 
-GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
+GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
 {
 	GError *ierror = NULL;
 	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
@@ -464,7 +464,7 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 	STACK_OF(X509) *intercerts = NULL;
 	CMS_ContentInfo *cms = NULL;
 	GBytes *res = NULL;
-	int flags = CMS_DETACHED | CMS_BINARY | CMS_NOSMIMECAP;
+	int flags = CMS_BINARY | CMS_NOSMIMECAP;
 	const gchar *keyring_path = NULL, *keyring_dir = NULL;
 
 	g_return_val_if_fail(content != NULL, NULL);
@@ -495,6 +495,9 @@ GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, g
 
 		sk_X509_push(intercerts, intercert);
 	}
+
+	if (detached)
+		flags |= CMS_DETACHED;
 
 	cms = CMS_sign(signcert, pkey, intercerts, incontent, flags);
 	if (cms == NULL) {
@@ -1059,7 +1062,7 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
 	}
 	content = g_mapped_file_get_bytes(file);
 
-	sig = cms_sign(content, certfile, keyfile, interfiles, &ierror);
+	sig = cms_sign(content, TRUE, certfile, keyfile, interfiles, &ierror);
 	if (sig == NULL) {
 		g_propagate_error(error, ierror);
 		goto out;

@@ -60,6 +60,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  * Sign content with provided certificate and private key
  *
  * @param content content that should be signed
+ * @param detached whether the signature should be detached
  * @param certfile certificate file name
  * @param keyfile private key file name
  * @param interfiles NULL-terminated array of intermediate certificate file
@@ -68,7 +69,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  *
  * @return signature bytes, NULL if failed
  */
-GBytes *cms_sign(GBytes *content, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
+GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**

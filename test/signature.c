@@ -57,6 +57,7 @@ static void signature_sign(SignatureFixture *fixture,
 
 	// Test valid signing
 	fixture->sig = cms_sign(fixture->content,
+			TRUE,
 			certpath,
 			keypath,
 			NULL,
@@ -68,6 +69,7 @@ static void signature_sign(SignatureFixture *fixture,
 
 	// Test signing fails with invalid key
 	fixture->sig = cms_sign(fixture->content,
+			TRUE,
 			certpath,
 			"test/random.dat",
 			NULL,
@@ -79,6 +81,7 @@ static void signature_sign(SignatureFixture *fixture,
 
 	// Test signing fails with invalid cert
 	fixture->sig = cms_sign(fixture->content,
+			TRUE,
 			"test/random.dat",
 			keypath,
 			NULL,
@@ -206,6 +209,7 @@ static void signature_loopback(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
 	fixture->sig = cms_sign(fixture->content,
+			TRUE,
 			"test/openssl-ca/rel/release-1.cert.pem",
 			"test/openssl-ca/rel/private/release-1.pem",
 			NULL,
@@ -254,6 +258,7 @@ static void signature_selfsigned(SignatureFixture *fixture,
 	g_assert_true(X509_STORE_load_locations(root_store, "test/openssl-ca/root/ca.cert.pem", NULL));
 
 	fixture->sig = cms_sign(fixture->content,
+			TRUE,
 			"test/openssl-ca/root/ca.cert.pem",
 			"test/openssl-ca/root/private/ca.key.pem",
 			NULL,
@@ -298,6 +303,7 @@ static void signature_intermediate(SignatureFixture *fixture,
 	g_assert_true(X509_STORE_load_locations(prov_store, "test/openssl-ca/provisioning-ca.pem", NULL));
 
 	fixture->sig = cms_sign(fixture->content,
+			TRUE,
 			"test/openssl-ca/rel/release-1.cert.pem",
 			"test/openssl-ca/rel/private/release-1.pem",
 			NULL,
@@ -323,6 +329,7 @@ static void signature_intermediate(SignatureFixture *fixture,
 	g_ptr_array_add(interfiles, NULL);
 
 	fixture->sig = cms_sign(fixture->content,
+			TRUE,
 			"test/openssl-ca/rel/release-1.cert.pem",
 			"test/openssl-ca/rel/private/release-1.pem",
 			(gchar**) g_ptr_array_free(interfiles, FALSE),
@@ -436,6 +443,7 @@ static void signature_cmsverify_path(SignatureFixture *fixture,
 
 	/* Sign with "A" key and cert */
 	fixture->sig = cms_sign(fixture->content,
+			TRUE,
 			"test/openssl-ca/dir/a.cert.pem",
 			"test/openssl-ca/dir/private/a.key.pem",
 			NULL,
@@ -466,6 +474,7 @@ static void signature_cmsverify_dir_combined(SignatureFixture *fixture,
 
 	/* Sign with "A" key and cert */
 	fixture->sig = cms_sign(fixture->content,
+			TRUE,
 			"test/openssl-ca/dir/a.cert.pem",
 			"test/openssl-ca/dir/private/a.key.pem",
 			NULL,
@@ -499,6 +508,7 @@ static void signature_cmsverify_dir_single_fail(SignatureFixture *fixture,
 
 	/* Sign with "B" key and cert */
 	fixture->sig = cms_sign(fixture->content,
+			TRUE,
 			"test/openssl-ca/dir/b.cert.pem",
 			"test/openssl-ca/dir/private/b.key.pem",
 			NULL,
@@ -537,6 +547,7 @@ static void signature_cmsverify_pathdir_dir(SignatureFixture *fixture,
 
 	/* Sign with "A" key and cert */
 	fixture->sig = cms_sign(fixture->content,
+			TRUE,
 			"test/openssl-ca/dir/a.cert.pem",
 			"test/openssl-ca/dir/private/a.key.pem",
 			NULL,
@@ -566,6 +577,7 @@ static void signature_cmsverify_pathdir_path(SignatureFixture *fixture,
 
 	/* Sign with "B" key and cert */
 	fixture->sig = cms_sign(fixture->content,
+			TRUE,
 			"test/openssl-ca/dir/b.cert.pem",
 			"test/openssl-ca/dir/private/b.key.pem",
 			NULL,
