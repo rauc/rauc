@@ -528,9 +528,9 @@ ORDER=B A\n\
  * BOOT_B_LEFT=3\n\
  * "
  */
-static void test_uboot_initialize_state(const gchar *vars)
+static void test_uboot_initialize_state(const BootchooserFixture *fixture, const gchar *vars)
 {
-	g_autofree gchar *state_path = g_build_filename(g_get_tmp_dir(), "uboot-test-state", NULL);
+	g_autofree gchar *state_path = g_build_filename(fixture->tmpdir, "uboot-test-state", NULL);
 	g_setenv("UBOOT_STATE_PATH", state_path, TRUE);
 	g_assert_true(g_file_set_contents(state_path, vars, -1, NULL));
 }
@@ -543,9 +543,9 @@ static void test_uboot_initialize_state(const gchar *vars)
  * Returns TRUE if mock tools state content equals desired content,
  * FALSE otherwise
  */
-static gboolean test_uboot_post_state(const gchar *compare)
+static gboolean test_uboot_post_state(const BootchooserFixture *fixture, const gchar *compare)
 {
-	g_autofree gchar *state_path = g_build_filename(g_get_tmp_dir(), "uboot-test-state", NULL);
+	g_autofree gchar *state_path = g_build_filename(fixture->tmpdir, "uboot-test-state", NULL);
 	g_autofree gchar *contents = NULL;
 
 	g_assert_true(g_file_get_contents(state_path, &contents, NULL, NULL));
@@ -605,7 +605,7 @@ bootname=B\n";
 	g_assert_nonnull(rootfs1);
 
 	/* check rootfs.0 and rootfs.1 are considered bad (as not in BOOT_ORDER / no attempts left) */
-	test_uboot_initialize_state("\
+	test_uboot_initialize_state(fixture, "\
 BOOT_ORDER=B\n\
 BOOT_A_LEFT=3\n\
 BOOT_B_LEFT=0\n\
@@ -616,7 +616,7 @@ BOOT_B_LEFT=0\n\
 	g_assert_false(good);
 
 	/* check rootfs.1 is considered primary (as rootfs.0 has BOOT_A_LEFT set to 0) */
-	test_uboot_initialize_state("\
+	test_uboot_initialize_state(fixture, "\
 BOOT_ORDER=A B\n\
 BOOT_A_LEFT=0\n\
 BOOT_B_LEFT=3\n\
@@ -627,7 +627,7 @@ BOOT_B_LEFT=3\n\
 	g_assert(primary == rootfs1);
 
 	/* check none is considered primary (as rootfs.0 has BOOT_A_LEFT set to 0 and rootfs.1 is not in BOOT_ORDER) */
-	test_uboot_initialize_state("\
+	test_uboot_initialize_state(fixture, "\
 BOOT_ORDER=A\n\
 BOOT_A_LEFT=0\n\
 BOOT_B_LEFT=3\n\
@@ -638,7 +638,7 @@ BOOT_B_LEFT=3\n\
 	g_clear_error(&error);
 
 	/* check rootfs.0 + rootfs.1 are considered good */
-	test_uboot_initialize_state("\
+	test_uboot_initialize_state(fixture, "\
 BOOT_ORDER=A B\n\
 BOOT_A_LEFT=3\n\
 BOOT_B_LEFT=3\n\
@@ -650,7 +650,7 @@ BOOT_B_LEFT=3\n\
 
 	/* check rootfs.0 is marked bad (BOOT_A_LEFT set to 0) */
 	g_assert_true(r_boot_set_state(rootfs0, FALSE, NULL));
-	g_assert_true(test_uboot_post_state("\
+	g_assert_true(test_uboot_post_state(fixture, "\
 BOOT_ORDER=B\n\
 BOOT_A_LEFT=0\n\
 BOOT_B_LEFT=3\n\
@@ -661,33 +661,33 @@ BOOT_B_LEFT=3\n\
 
 	/* check rootfs.0 is marked good again (BOOT_A_LEFT reset to 3) */
 	g_assert_true(r_boot_set_state(rootfs0, TRUE, NULL));
-	g_assert_true(test_uboot_post_state("\
+	g_assert_true(test_uboot_post_state(fixture, "\
 BOOT_ORDER=B\n\
 BOOT_A_LEFT=3\n\
 BOOT_B_LEFT=3\n\
 "));
 
 	/* check rootfs.1 is marked primary (first in BOOT_ORDER, BOOT_B_LEFT reset to 3) */
-	test_uboot_initialize_state("\
+	test_uboot_initialize_state(fixture, "\
 BOOT_ORDER=A B\n\
 BOOT_A_LEFT=3\n\
 BOOT_B_LEFT=1\n\
 ");
 	g_assert_true(r_boot_set_primary(rootfs1, NULL));
-	g_assert_true(test_uboot_post_state("\
+	g_assert_true(test_uboot_post_state(fixture, "\
 BOOT_ORDER=B A\n\
 BOOT_A_LEFT=3\n\
 BOOT_B_LEFT=3\n\
 "));
 
 	/* check rootfs.1 is marked primary while rootfs.0 remains disabled (BOOT_A_LEFT remains 0)  */
-	test_uboot_initialize_state("\
+	test_uboot_initialize_state(fixture, "\
 BOOT_ORDER=A B\n\
 BOOT_A_LEFT=0\n\
 BOOT_B_LEFT=0\n\
 ");
 	g_assert_true(r_boot_set_primary(rootfs1, NULL));
-	g_assert_true(test_uboot_post_state("\
+	g_assert_true(test_uboot_post_state(fixture, "\
 BOOT_ORDER=B A\n\
 BOOT_A_LEFT=0\n\
 BOOT_B_LEFT=3\n\
@@ -736,7 +736,7 @@ bootname=A\n";
 	g_assert_nonnull(rootfs0);
 
 	/* check rootfs.0 is marked bad (not in BOOT_ORDER, BOOT_R_LEFT = 0) */
-	test_uboot_initialize_state("\
+	test_uboot_initialize_state(fixture, "\
 BOOT_ORDER=R A\n\
 BOOT_R_LEFT=3\n\
 BOOT_A_LEFT=3\n\
@@ -744,14 +744,14 @@ BOOT_A_LEFT=3\n\
 	res = r_boot_set_state(rootfs0, FALSE, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
-	g_assert_true(test_uboot_post_state("\
+	g_assert_true(test_uboot_post_state(fixture, "\
 BOOT_ORDER=R\n\
 BOOT_R_LEFT=3\n\
 BOOT_A_LEFT=0\n\
 "));
 
 	/* check rootfs.0 is marked primary (first in BOOT_ORDER) */
-	test_uboot_initialize_state("\
+	test_uboot_initialize_state(fixture, "\
 BOOT_ORDER=R A\n\
 BOOT_R_LEFT=3\n\
 BOOT_A_LEFT=1\n\
@@ -759,14 +759,14 @@ BOOT_A_LEFT=1\n\
 	res = r_boot_set_primary(rootfs0, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
-	g_assert_true(test_uboot_post_state("\
+	g_assert_true(test_uboot_post_state(fixture, "\
 BOOT_ORDER=A R\n\
 BOOT_R_LEFT=3\n\
 BOOT_A_LEFT=3\n\
 "));
 
 	/* check rootfs.0 is considered primary (as rootfs.0 has BOOT_A_LEFT set to 0) */
-	test_uboot_initialize_state("\
+	test_uboot_initialize_state(fixture, "\
 BOOT_ORDER=A R\n\
 BOOT_R_LEFT=3\n\
 BOOT_A_LEFT=3\n\
