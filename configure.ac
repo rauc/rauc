@@ -152,6 +152,7 @@ AC_CONFIG_LINKS([test/bin/custom-bootloader-script:test/bin/custom-bootloader-sc
 AC_CONFIG_LINKS([test/bin/preinstall.sh:test/bin/preinstall.sh])
 AC_CONFIG_LINKS([test/bin/systeminfo.sh:test/bin/systeminfo.sh])
 AC_CONFIG_LINKS([test/good-bundle.raucb:test/good-bundle.raucb])
+AC_CONFIG_LINKS([test/invalid-sig-bundle.raucb:test/invalid-sig-bundle.raucb])
 AC_CONFIG_LINKS([test/manifest.raucm:test/manifest.raucm])
 AC_CONFIG_LINKS([test/openssl-ca/manifest:test/openssl-ca/manifest])
 AC_CONFIG_LINKS([test/openssl-ca/root/ca.cert.pem:test/openssl-ca/root/ca.cert.pem])
