@@ -841,9 +841,9 @@ bootname=system1\n";
  * STATE_B=good\n\
  * "
  */
-static void test_custom_initialize_state(const gchar *vars)
+static void test_custom_initialize_state(const BootchooserFixture *fixture, const gchar *vars)
 {
-	g_autofree gchar *state_path = g_build_filename(g_get_tmp_dir(), "custom-test-state", NULL);
+	g_autofree gchar *state_path = g_build_filename(fixture->tmpdir, "custom-test-state", NULL);
 	g_setenv("CUSTOM_STATE_PATH", state_path, TRUE);
 	g_assert_true(g_file_set_contents(state_path, vars, -1, NULL));
 }
@@ -854,9 +854,9 @@ static void test_custom_initialize_state(const gchar *vars)
  * Returns TRUE if mock tools state content equals desired content,
  * FALSE otherwise
  */
-static gboolean test_custom_post_state(const gchar *compare)
+static gboolean test_custom_post_state(const BootchooserFixture *fixture, const gchar *compare)
 {
-	g_autofree gchar *state_path = g_build_filename(g_get_tmp_dir(), "custom-test-state", NULL);
+	g_autofree gchar *state_path = g_build_filename(fixture->tmpdir, "custom-test-state", NULL);
 	g_autofree gchar *contents = NULL;
 
 	g_assert_true(g_file_get_contents(state_path, &contents, NULL, NULL));
@@ -920,7 +920,7 @@ bootname=B\n";
 	g_assert_nonnull(rootfs1);
 
 	/* check A and B can be set to bad */
-	test_custom_initialize_state("\
+	test_custom_initialize_state(fixture, "\
 PRIMARY=A\n\
 STATE_A=good\n\
 STATE_B=good\n\
@@ -948,14 +948,14 @@ STATE_B=good\n\
 	g_assert_no_error(error);
 	g_assert_true(res);
 	g_assert_false(good);
-	g_assert_true(test_custom_post_state("\
+	g_assert_true(test_custom_post_state(fixture, "\
 PRIMARY=A\n\
 STATE_A=bad\n\
 STATE_B=bad\n\
 "));
 
 	/* check A and B can be set to good */
-	test_custom_initialize_state("\
+	test_custom_initialize_state(fixture, "\
 PRIMARY=A\n\
 STATE_A=bad\n\
 STATE_B=bad\n\
@@ -978,14 +978,14 @@ STATE_B=bad\n\
 	g_assert_no_error(error);
 	g_assert_true(res);
 	g_assert_true(good);
-	g_assert_true(test_custom_post_state("\
+	g_assert_true(test_custom_post_state(fixture, "\
 PRIMARY=A\n\
 STATE_A=good\n\
 STATE_B=good\n\
 "));
 
 	/* check B can be set to primary */
-	test_custom_initialize_state("\
+	test_custom_initialize_state(fixture, "\
 PRIMARY=A\n\
 STATE_A=good\n\
 STATE_B=good\n\
@@ -1004,14 +1004,14 @@ STATE_B=good\n\
 	g_assert_nonnull(primary);
 	g_assert(primary != rootfs0);
 	g_assert(primary == rootfs1);
-	g_assert_true(test_custom_post_state("\
+	g_assert_true(test_custom_post_state(fixture, "\
 PRIMARY=B\n\
 STATE_A=good\n\
 STATE_B=good\n\
 "));
 
 	/* check A can be set to primary */
-	test_custom_initialize_state("\
+	test_custom_initialize_state(fixture, "\
 PRIMARY=B\n\
 STATE_A=good\n\
 STATE_B=good\n\
@@ -1030,14 +1030,14 @@ STATE_B=good\n\
 	g_assert_nonnull(primary);
 	g_assert(primary == rootfs0);
 	g_assert(primary != rootfs1);
-	g_assert_true(test_custom_post_state("\
+	g_assert_true(test_custom_post_state(fixture, "\
 PRIMARY=A\n\
 STATE_A=good\n\
 STATE_B=good\n\
 "));
 
 	/* check none is considered primary if both are bad */
-	test_custom_initialize_state("\
+	test_custom_initialize_state(fixture, "\
 PRIMARY=A\n\
 STATE_A=bad\n\
 STATE_B=bad\n\
