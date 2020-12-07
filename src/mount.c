@@ -5,10 +5,43 @@
 #include <linux/loop.h>
 #include <errno.h>
 #include <sys/ioctl.h>
+#include <sys/mount.h>
 
 #include "context.h"
 #include "mount.h"
 #include "utils.h"
+
+gboolean r_mount_bundle(const gchar *source, const gchar *mountpoint, GError **error)
+{
+	const unsigned long flags = MS_NODEV | MS_NOSUID | MS_RDONLY;
+
+	if (mount(source, mountpoint, "squashfs", flags, NULL)) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"failed to mount bundle: %s", g_strerror(err));
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+gboolean r_umount_bundle(const gchar *mountpoint, GError **error)
+{
+	const int flags = UMOUNT_NOFOLLOW;
+
+	if (umount2(mountpoint, flags)) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"failed to umount bundle: %s", g_strerror(err));
+		return FALSE;
+	}
+
+	return TRUE;
+}
 
 gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, const gchar* extra_options, GError **error)
 {

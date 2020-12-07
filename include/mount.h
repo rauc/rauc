@@ -5,6 +5,37 @@
 #include "config_file.h"
 
 /**
+ * Wrapper for the mount() system call with a configuration intended for use
+ * with bundles.
+ *
+ * Using the external 'mount' command is not needed in this case, as all options
+ * are fixed.
+ *
+ * @param source source path for mount
+ * @param mountpoint destination path for mount
+ * @param error return location for a GError, or NULL
+ *
+ * @return True if succeeded, False if failed
+ */
+gboolean r_mount_bundle(const gchar *source, const gchar *mountpoint, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Wrapper for the umount() system call with a configuration intended for use
+ * with bundles.
+ *
+ * Using the external 'umount' command is not needed in this case, as all
+ * options are fixed.
+ *
+ * @param mountpoint destination path for mount
+ * @param error return location for a GError, or NULL
+ *
+ * @return True if succeeded, False if failed
+ */
+gboolean r_umount_bundle(const gchar *mountpoint, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Wrapper for calling systems 'mount' command.
  *
  * If invoked as a user, mount command will be called using 'sudo'.

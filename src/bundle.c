@@ -1734,7 +1734,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 		if (!(bundle->payload_verified || bundle->verification_disabled))
 			g_error("bundle payload must be verfied before mounting for plain bundles");
 
-		res = r_mount_full(loopname, mount_point, "squashfs", "ro", &ierror);
+		res = r_mount_bundle(loopname, mount_point, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1784,7 +1784,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 			goto out;
 		}
 
-		res = r_mount_full(dm_verity->upper_dev, mount_point, "squashfs", "ro", &ierror);
+		res = r_mount_bundle(dm_verity->upper_dev, mount_point, &ierror);
 
 		if (!remove_dm_verity(dm_verity, TRUE, &ierror_dm)) {
 			g_warning("failed to mark dm verity device for removal: %s", ierror_dm->message);
@@ -1806,7 +1806,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 	goto out;
 
 umount:
-	if (!r_umount(mount_point, &ierror)) {
+	if (!r_umount_bundle(mount_point, &ierror)) {
 		g_warning("ignoring umount error after initial error: %s", ierror->message);
 		g_clear_error(&ierror);
 	}
@@ -1829,7 +1829,7 @@ gboolean umount_bundle(RaucBundle *bundle, GError **error)
 
 	g_assert_nonnull(bundle->mount_point);
 
-	res = r_umount(bundle->mount_point, &ierror);
+	res = r_umount_bundle(bundle->mount_point, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
