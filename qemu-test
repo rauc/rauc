@@ -57,7 +57,7 @@ qemu-system-x86_64 \
   $QEMU_ARGS \
   -enable-kvm \
   -machine q35 \
-  -m 256M \
+  -m 512M \
   -smp 2 \
   -kernel bzImage \
   -nographic -serial mon:stdio \
