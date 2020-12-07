@@ -13,6 +13,7 @@
 # Optional arguments:
 #
 #   coverage    Run with coverage report generation enabled
+#   passthrough Enable passthrough of the host's CPU features
 #   shell       Setup qemu test system and provide an interactive shell
 #
 # When no argument is given, the default test suite will be executed
@@ -45,7 +46,15 @@ check_kernel || exit 1
 # make sure the tests are built
 make TESTS= check > /dev/null
 
+QEMU_ARGS=""
+for x in "$@"; do
+  if [ "$x" = "passthrough" ]; then
+    QEMU_ARGS="$QEMU_ARGS -cpu host"
+  fi
+done
+
 qemu-system-x86_64 \
+  $QEMU_ARGS \
   -enable-kvm \
   -machine q35 \
   -m 256M \
