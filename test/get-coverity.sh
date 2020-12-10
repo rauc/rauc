@@ -34,7 +34,10 @@ if [ ! -d $TOOL_BASE ]; then
   echo -e "\033[33;1mExtracting Coverity Scan Analysis Tool...\033[0m"
   mkdir -p $TOOL_BASE
   pushd $TOOL_BASE
-  tar xzf $TOOL_ARCHIVE || rm -r $TOOL_BASE && exit 1
+  if ! tar xzf $TOOL_ARCHIVE; then
+    rm -r $TOOL_BASE
+    exit 1
+  fi
   popd
 fi
 
