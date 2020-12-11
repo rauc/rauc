@@ -15,6 +15,7 @@
 #include "signature.h"
 #include "utils.h"
 #include "network.h"
+#include "dm.h"
 #include "verity_hash.h"
 
 /* from statfs(2) man page, as linux/magic.h may not have all of them */
@@ -718,6 +719,12 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(outpath != NULL, FALSE);
 
+	res = check_bundle_payload(bundle, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
 	res = load_manifest_from_bundle(bundle, &manifest, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
@@ -832,6 +839,10 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 		goto out;
 	}
 
+	g_clear_pointer(&manifest->bundle_verity_salt, g_free);
+	g_clear_pointer(&manifest->bundle_verity_hash, g_free);
+	manifest->bundle_verity_size = 0;
+
 	/* Iterate over each image and convert */
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		RaucImage *image = l->data;
@@ -901,6 +912,16 @@ gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+
+	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail(outbundle != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	res = check_bundle_payload(bundle, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
 
 	res = convert_to_casync_bundle(bundle, outbundle, &ierror);
 	if (!res) {
@@ -1468,6 +1489,65 @@ out:
 	return res;
 }
 
+gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	g_return_val_if_fail(bundle != NULL, FALSE);
+
+	if (bundle->verification_disabled || bundle->payload_verified) {
+		r_context_begin_step("skip_bundle_payload", "Bundle payload verification not needed", 0);
+		r_context_end_step("skip_bundle_payload", TRUE);
+		res = TRUE;
+		goto out;
+	}
+
+	g_message("Verifying bundle payload... ");
+
+	if (!bundle->manifest) { /* plain format */
+		g_error("plain bundles must be verified during signature check");
+		/* g_error always aborts the program */
+	} else {
+		res = check_manifest_external(bundle->manifest, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
+		g_error("plain bundles must be verified during signature check");
+	} else if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
+		int bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream));
+		guint8 *root_digest = r_hex_decode(bundle->manifest->bundle_verity_hash, 32);
+		guint8 *salt = r_hex_decode(bundle->manifest->bundle_verity_salt, 32);
+		off_t combined_size = bundle->size;
+		off_t data_size = bundle->size - bundle->manifest->bundle_verity_size;
+		g_assert(root_digest);
+		g_assert(salt);
+		g_assert(combined_size % 4096 == 0);
+		g_assert(data_size % 4096 == 0);
+
+		if (verity_create_or_verify_hash(1, bundlefd, data_size/4096, NULL, root_digest, salt)) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_PAYLOAD,
+					"bundle payload is corrupted");
+			res = FALSE;
+			goto out;
+		}
+	} else {
+		g_error("unsupported bundle format");
+		res = FALSE;
+		goto out;
+	}
+
+	bundle->payload_verified = TRUE;
+
+	res = TRUE;
+out:
+	return res;
+}
+
 gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **error)
 {
 	GError *ierror = NULL;
@@ -1475,7 +1555,13 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 
-	r_context_begin_step("extract_bundle", "Extracting bundle", 1);
+	r_context_begin_step("extract_bundle", "Extracting bundle", 2);
+
+	res = check_bundle_payload(bundle, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
 
 	res = unsquashfs(g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream)), outputdir, NULL, &ierror);
 	if (!res) {
@@ -1495,6 +1581,12 @@ gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, co
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
+
+	res = check_bundle_payload(bundle, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
 
 	res = unsquashfs(g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream)), outputdir, file, &ierror);
 	if (!res) {
@@ -1519,10 +1611,17 @@ gboolean load_manifest_from_bundle(RaucBundle *bundle, RaucManifest **manifest, 
 	g_return_val_if_fail(manifest != NULL && *manifest == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	res = check_bundle_payload(bundle, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
 	tmpdir = g_dir_make_tmp("arch-XXXXXX", &ierror);
 	if (tmpdir == NULL) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to create tmp dir: ");
+		res = FALSE;
 		goto out;
 	}
 

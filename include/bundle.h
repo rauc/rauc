@@ -14,6 +14,7 @@ typedef enum {
 	R_BUNDLE_ERROR_KEYRING,
 	R_BUNDLE_ERROR_IDENTIFIER,
 	R_BUNDLE_ERROR_UNSAFE,
+	R_BUNDLE_ERROR_PAYLOAD,
 } RBundleError;
 
 typedef struct {
@@ -59,6 +60,26 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return TRUE on success, FALSE if an error occurred
  */
 gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Check the bundle payload, if needed and possible.
+ *
+ * For verity bundles, this checks the full squashfs against the dm-verity hash
+ * tree and the root hash against the one contained in the manifest.
+ * This is mainly useful for when extracting the bundle contents without
+ * mounting.
+ * It will set the payload_verified struct member to remember that the payload
+ * has been verified.
+ *
+ * @param bundle the RaucBundle struct to verify
+ *               This will contain all bundle information obtained by
+ *               check_bundle
+ * @param error Return location for a GError
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
