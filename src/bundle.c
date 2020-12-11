@@ -1222,6 +1222,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	goffset offset;
 	gboolean res = FALSE;
 	g_autoptr(RaucBundle) ibundle = g_new0(RaucBundle, 1);
+	g_autoptr(GBytes) manifest_bytes = NULL;
 	gchar *bundlescheme = NULL;
 	gboolean detached;
 
@@ -1230,6 +1231,8 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	r_context_begin_step("check_bundle", "Checking bundle", verify);
+
+	ibundle->verification_disabled = !verify;
 
 	/* Download Bundle to temporary location if remote URI is given */
 	bundlescheme = g_uri_parse_scheme(bundlename);
@@ -1418,8 +1421,16 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 				g_propagate_error(error, ierror);
 				goto out;
 			}
+			ibundle->signature_verified = TRUE;
+			ibundle->payload_verified = TRUE;
 		} else {
-			g_abort(); /* not yet implemented */
+			res = cms_verify_sig(ibundle->sigdata, store, &cms, &manifest_bytes, &ierror);
+			if (!res) {
+				g_propagate_error(error, ierror);
+				goto out;
+			}
+			ibundle->signature_verified = TRUE;
+			ibundle->payload_verified = FALSE;
 		}
 
 		res = cms_get_cert_chain(cms, store, &ibundle->verified_chain, &ierror);
@@ -1430,6 +1441,23 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 
 		X509_STORE_free(store);
 		CMS_ContentInfo_free(cms);
+	} else {
+		if (!detached) {
+			res = cms_get_unverified_manifest(ibundle->sigdata, &manifest_bytes, &ierror);
+			if (!res) {
+				g_propagate_error(error, ierror);
+				goto out;
+			}
+		}
+	}
+
+	if (manifest_bytes) {
+		res = load_manifest_mem(manifest_bytes, &ibundle->manifest, &ierror);
+		if (!res) {
+			g_propagate_prefixed_error(error, ierror,
+					"Failed to load manifest: ");
+			goto out;
+		}
 	}
 
 	*bundle = g_steal_pointer(&ibundle);
@@ -1617,6 +1645,8 @@ void free_bundle(RaucBundle *bundle)
 		g_object_unref(bundle->stream);
 	g_bytes_unref(bundle->sigdata);
 	g_free(bundle->mount_point);
+	if (bundle->manifest)
+		free_manifest(bundle->manifest);
 	if (bundle->verified_chain)
 		sk_X509_pop_free(bundle->verified_chain, X509_free);
 	g_free(bundle);

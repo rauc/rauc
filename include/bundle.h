@@ -24,6 +24,10 @@ typedef struct {
 	goffset size;
 	GBytes *sigdata;
 	gchar *mount_point;
+	RaucManifest *manifest;
+	gboolean verification_disabled;
+	gboolean signature_verified;
+	gboolean payload_verified;
 	STACK_OF(X509) *verified_chain;
 } RaucBundle;
 
