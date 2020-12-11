@@ -128,9 +128,7 @@ static gboolean r_on_handle_info(RInstaller *interface,
 		const gchar *arg_bundle)
 {
 	g_autofree gchar* tmpdir = NULL;
-	g_autofree gchar* bundledir = NULL;
-	g_autofree gchar* manifestpath = NULL;
-	RaucManifest *manifest = NULL;
+	g_autoptr(RaucManifest) manifest = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
 	GError *error = NULL;
 	gboolean res = TRUE;
@@ -141,17 +139,6 @@ static gboolean r_on_handle_info(RInstaller *interface,
 	if (!res)
 		goto out;
 
-	tmpdir = g_dir_make_tmp("bundle-XXXXXX", &error);
-	if (!tmpdir) {
-		g_warning("%s", error->message);
-		g_clear_error(&error);
-		res = FALSE;
-		goto out;
-	}
-
-	bundledir = g_build_filename(tmpdir, "bundle-content", NULL);
-	manifestpath = g_build_filename(bundledir, "manifest.raucm", NULL);
-
 	res = check_bundle(arg_bundle, &bundle, TRUE, &error);
 	if (!res) {
 		g_warning("%s", error->message);
@@ -159,24 +146,18 @@ static gboolean r_on_handle_info(RInstaller *interface,
 		goto out;
 	}
 
-	res = extract_file_from_bundle(bundle, bundledir, "manifest.raucm", &error);
-	if (!res) {
-		g_warning("%s", error->message);
-		g_clear_error(&error);
-		goto out;
-	}
-
-	res = load_manifest_file(manifestpath, &manifest, &error);
-	if (!res) {
-		g_warning("%s", error->message);
-		g_clear_error(&error);
-		goto out;
+	if (bundle->manifest) {
+		manifest = g_steal_pointer(&bundle->manifest);
+	} else {
+		res = load_manifest_from_bundle(bundle, &manifest, &error);
+		if (!res) {
+			g_warning("%s\n", error->message);
+			g_clear_error(&error);
+			goto out;
+		}
 	}
 
 out:
-	if (tmpdir)
-		rm_tree(tmpdir, NULL);
-
 	if (res) {
 		r_installer_complete_info(
 				interface,
