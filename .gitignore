@@ -25,6 +25,7 @@ configure
 libtool
 /rauc
 /rauc.map
+/rauc-1.*
 stamp-h1
 .ccls-cache
 .deps
