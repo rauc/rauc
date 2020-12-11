@@ -715,12 +715,6 @@ gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError
 		goto out;
 	}
 
-	res = sign_bundle(outbundle, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
 	res = TRUE;
 out:
 	/* Remove output file on error */
