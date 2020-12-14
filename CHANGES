@@ -1,5 +1,5 @@
-Release 1.5 (development)
--------------------------
+Release 1.5 (released Dec 14, 2020)
+-----------------------------------
 
 .. note::
 
@@ -8,7 +8,7 @@ Release 1.5 (development)
   The ``verity`` format was added to prepare for future use cases (such as
   network streaming and encryption), for better parallelization of installation
   with hash verification and to detect modification of the bundle during
-  installation.
+  installation (CVE-2020-25860).
   The bundle format is detected when reading a bundle and checked against the set
   of allowed formats configured in the system.conf (see :ref:`sec_ref_formats`).
 
