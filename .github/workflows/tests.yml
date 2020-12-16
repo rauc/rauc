@@ -1,0 +1,128 @@
+name: tests
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: rauc/testing:latest
+      # allow mounting and devtmpfs in the container
+      options: --user=root --privileged -v /dev:/dev
+    steps:
+    - name: Inspect environment
+      run: |
+        whoami
+        gcc --version
+
+    - uses: actions/checkout@v2
+
+    - name: Run autogen.sh
+      run: |
+        ./autogen.sh
+
+    - name: Test with service and gpt
+      run: |
+        ./configure --enable-code-coverage --enable-gpt CFLAGS=-Werror
+        make clean
+        make -j4
+        make -j4 check TESTS=
+        ./qemu-test
+        lcov --directory . --capture --output-file "service.info"
+        
+    - name: Test without service and gpt
+      run: |
+        ./configure --enable-code-coverage --disable-service CFLAGS=-Werror
+        make clean
+        make -j4
+        make -j4 check TESTS=
+        ./qemu-test
+        lcov --directory . --capture --output-file "noservice.info"
+
+    - uses: codecov/codecov-action@v1
+
+    - name: Build documentation
+      run: |
+        make doc SPHINXOPTS=-W
+
+    - name: Run distcheck
+      run: |
+        make -j4 distcheck
+
+    - name: Build CGI example
+      run: |
+        cd contrib/cgi
+        ./autogen.sh
+        ./configure CFLAGS=-Werror
+        make clean
+        make -j4
+        make -j4 distcheck
+
+    - uses: codecov/codecov-action@v1
+      with:
+        files: service.info,noservice.info
+        verbose: true
+
+    - name: Show system status
+      if: ${{ failure() }}
+      run: |
+        dmesg | tail -n 100
+        mount || true
+        losetup || true
+        dmsetup table || true
+        dmsetup targets || true
+
+    - name: Show logs
+      if: ${{ failure() }}
+      run: |
+        cat config.log || true
+        cat test/*.log || true
+        cat test-suite.log || true
+        cat rauc-*/_build/sub/test-suite.log || true
+        dmesg | tail -n 100
+
+  cross:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture:
+        - armhf
+        - arm64
+        - armel
+        - i386
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Prepare ${{ matrix.architecture }} container
+      run: |
+        docker run --rm --privileged multiarch/qemu-user-static:register --reset
+        docker run --name cross -di -v "$PWD":/home -w /home multiarch/debian-debootstrap:${{ matrix.architecture }}-buster bash
+        docker exec -i cross uname -a
+        docker exec -i cross apt-get update
+        docker exec -i cross apt-get install -qy build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev squashfs-tools
+
+    - name: Build
+      run: |
+        docker exec -i cross whoami
+        docker exec -i cross ./autogen.sh
+        docker exec -i cross ./configure --enable-gpt CFLAGS=-Werror
+        docker exec -i cross make
+        # don't run make check here, as we don't have full access to the kernel (mount, loopback, dm)
+
+    - name: Show logs
+      if: ${{ failure() }}
+      run: |
+        cat config.log || true
+        cat test/*.log || true
+        cat test-suite.log || true
+        cat rauc-*/_build/sub/test-suite.log || true
+
+  uncrustify:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Run uncrustify check
+      run: |
+        ./uncrustify.sh
+        git diff --exit-code

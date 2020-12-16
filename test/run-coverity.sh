@@ -7,11 +7,6 @@
 
 set -e
 
-if [[ "${TRAVIS_PULL_REQUEST}" != "false" ]]; then
-  echo -e "\033[33;1mCoverity Scan skipped for pull-request \033[0m"
-  exit 0
-fi
-
 # Environment check
 # Use default values if not set
 SCAN_URL=${SCAN_URL:="https://scan.coverity.com"}
@@ -24,12 +19,6 @@ echo -e "\033[33;1mNote: COVERITY_SCAN_PROJECT_NAME and COVERITY_SCAN_TOKEN are 
 [ -z "$COVERITY_SCAN_NOTIFICATION_EMAIL" ] && echo "ERROR: COVERITY_SCAN_NOTIFICATION_EMAIL must be set" && exit 1
 [ -z "$COVERITY_SCAN_BUILD_COMMAND" ] && echo "ERROR: COVERITY_SCAN_BUILD_COMMAND must be set" && exit 1
 [ -z "$COVERITY_SCAN_TOKEN" ] && echo "ERROR: COVERITY_SCAN_TOKEN must be set" && exit 1
-
-# Do not run on pull requests
-if [ "${TRAVIS_PULL_REQUEST}" = "true" ]; then
-  echo -e "\033[33;1mINFO: Skipping Coverity Analysis: branch is a pull request.\033[0m"
-  exit 0
-fi
 
 # Verify upload is permitted
 AUTH_RES=`curl -s --form project="$COVERITY_SCAN_PROJECT_NAME" --form token="$COVERITY_SCAN_TOKEN" $SCAN_URL/api/upload_permitted`

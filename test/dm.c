@@ -53,6 +53,7 @@ static void flip_bits_filename(gchar *filename, off_t offset, guint8 mask)
 	int fd = g_open(filename, O_RDWR|O_CLOEXEC, 0);
 	g_assert_cmpint(fd, >, 0);
 	flip_bits_fd(fd, offset, mask);
+	g_assert(fsync(fd) == 0);
 	g_close(fd, NULL);
 }
 

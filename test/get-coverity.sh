@@ -4,13 +4,6 @@ set -e
 
 # Based on systemd's travis-ci/tools/get-coverity.sh
 
-# Download and extract coverity tool
-
-if [[ "${TRAVIS_PULL_REQUEST}" != "false" ]]; then
-  echo -e "\033[33;1mCoverity Scan skipped for pull-request \033[0m"
-  exit 0
-fi
-
 # Environment check, note that secure tokens are not available for PR's not coming form the main repo
 [ -z "$COVERITY_SCAN_TOKEN" ] && echo 'ERROR: COVERITY_SCAN_TOKEN must be set' && exit 1
 

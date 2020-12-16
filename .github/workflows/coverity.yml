@@ -1,0 +1,36 @@
+name: coverity check
+
+on:
+  workflow_dispatch: {}
+  schedule:
+  - cron: "30 12 */2 * *"
+
+jobs:
+  coverity:
+    runs-on: ubuntu-latest
+    container:
+      image: rauc/testing:latest
+      options: --user=root
+    steps:
+    - uses: actions/checkout@v2
+    - run: |
+        PLATFORM=`uname`
+        export TOOL_BASE="/tmp/coverity-scan-analysis"
+        export SCAN_URL="https://scan.coverity.com"
+        export UPLOAD_URL="https://scan.coverity.com/builds"
+        export TOOL_ARCHIVE="/tmp/cov-analysis-${PLATFORM}.tgz"
+        export COVERITY_SCAN_PROJECT_NAME="${{ github.repository }}"
+        export COVERITY_SCAN_NOTIFICATION_EMAIL="jlu@pengutronix.de"
+        export COVERITY_SCAN_BUILD_COMMAND="make"
+        export COVERITY_SCAN_TOKEN="${{ secrets.COVERITY_SCAN_TOKEN }}"
+
+        test/get-coverity.sh
+
+        gcc --version
+
+        ./autogen.sh
+        ./configure --enable-gpt
+
+        # Run Coverity Analysis
+        test/run-coverity.sh build
+        test/run-coverity.sh upload
