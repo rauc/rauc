@@ -53,9 +53,14 @@ for x in "$@"; do
   fi
 done
 
+if test -w /dev/kvm; then
+  QEMU_ARGS="$QEMU_ARGS -enable-kvm"
+else
+  echo "/dev/kvm is not accessible, using emulation"
+fi
+
 qemu-system-x86_64 \
   $QEMU_ARGS \
-  -enable-kvm \
   -machine q35 \
   -m 512M \
   -smp 2 \
