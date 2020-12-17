@@ -13,6 +13,7 @@
 # Optional arguments:
 #
 #   coverage    Run with coverage report generation enabled
+#   distcheck   Run distcheck make target
 #   passthrough Enable passthrough of the host's CPU features
 #   shell       Setup qemu test system and provide an interactive shell
 #
