@@ -302,6 +302,7 @@ static void test_boot_switch(BootSwitchFixture *fixture,
 	if (!slotpath) {
 		g_test_message("no block device for testing found (define RAUC_TEST_BLOCK_LOOP)");
 		g_test_skip("RAUC_TEST_BLOCK_LOOP undefined");
+		return;
 	}
 	clear_device(slotpath);
 
