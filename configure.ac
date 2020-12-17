@@ -142,6 +142,7 @@ AM_CONDITIONAL([WANT_EMMC_BOOT_SUPPORT], [test x$ac_cv_header_linux_mmc_ioctl_h 
 
 AC_CONFIG_LINKS([test/test.conf:test/test.conf])
 AC_CONFIG_LINKS([test/test-global.conf:test/test-global.conf])
+AC_CONFIG_LINKS([test/minimal-test.conf:test/minimal-test.conf])
 AC_CONFIG_LINKS([test/bin/postinstall.sh:test/bin/postinstall.sh])
 AC_CONFIG_LINKS([test/bin/efibootmgr:test/bin/efibootmgr])
 AC_CONFIG_LINKS([test/bin/fw_setenv:test/bin/fw_setenv])
