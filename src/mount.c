@@ -11,6 +11,10 @@
 #include "mount.h"
 #include "utils.h"
 
+#ifndef LOOP_SET_BLOCK_SIZE
+#define LOOP_SET_BLOCK_SIZE 0x4C09
+#endif
+
 gboolean r_mount_bundle(const gchar *source, const gchar *mountpoint, GError **error)
 {
 	const unsigned long flags = MS_NODEV | MS_NOSUID | MS_RDONLY;
