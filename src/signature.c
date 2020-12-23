@@ -7,6 +7,7 @@
 #include <openssl/crypto.h>
 #include <openssl/engine.h>
 #include <openssl/x509.h>
+#include <string.h>
 
 #include "context.h"
 #include "signature.h"
