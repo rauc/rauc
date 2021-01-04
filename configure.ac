@@ -59,7 +59,7 @@ AS_IF([test "x$enable_create" != "xno"], [
 ])
 
 # Checks for libraries.
-PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.45.8 gio-2.0 gio-unix-2.0])
+PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.49.3 gio-2.0 gio-unix-2.0])
 
 AC_ARG_ENABLE([network],
        AS_HELP_STRING([--disable-network], [Disable network update mode])
