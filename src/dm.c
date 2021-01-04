@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <linux/dm-ioctl.h>
 #include <errno.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/sysmacros.h>
 
