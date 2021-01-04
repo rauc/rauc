@@ -894,7 +894,13 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 		goto out;
 	}
 
-	res = create_bundle(outbundle, contentdir, &ierror);
+	res = mksquashfs(outbundle, contentdir, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = sign_bundle(outbundle, manifest, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
