@@ -171,7 +171,6 @@ check_LTLIBRARIES = librauctest.la
 
 EXTRA_DIST += tap-t \
 	      tap-test \
-	      uml-test uml-test-init \
 	      qemu-test qemu-test-init \
 	      test/Dockerfile \
 	      test/bin \
