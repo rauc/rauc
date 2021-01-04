@@ -60,6 +60,11 @@ AS_IF([test "x$enable_create" != "xno"], [
 
 # Checks for libraries.
 PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.49.3 gio-2.0 gio-unix-2.0])
+# Sanity checks to not use new glib methods unintentionally.
+# package check, minimum and maximum required version must be updated
+# explicitly when using newer glib APIs
+AC_DEFINE(GLIB_VERSION_MAX_ALLOWED, G_ENCODE_VERSION(2,52), [Prevent post-2.52 APIs])
+AC_DEFINE(GLIB_VERSION_MIN_REQUIRED, G_ENCODE_VERSION(2,50), [Set to minimum supported API version])
 
 AC_ARG_ENABLE([network],
        AS_HELP_STRING([--disable-network], [Disable network update mode])
