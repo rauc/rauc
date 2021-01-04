@@ -40,6 +40,9 @@ jobs:
         lcov --directory . --capture --output-file "noservice.info"
 
     - uses: codecov/codecov-action@v1
+      with:
+        files: service.info,noservice.info
+        verbose: true
 
     - name: Build documentation
       run: |
@@ -57,11 +60,6 @@ jobs:
         make clean
         make -j4
         make -j4 distcheck
-
-    - uses: codecov/codecov-action@v1
-      with:
-        files: service.info,noservice.info
-        verbose: true
 
     - name: Show system status
       if: ${{ failure() }}
