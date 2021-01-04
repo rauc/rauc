@@ -68,10 +68,11 @@ gboolean setup_dm_verity(RaucDMVerity *dm_verity, GError **error)
 
 	dmfd = open("/dev/mapper/control", O_RDWR|O_CLOEXEC);
 	if (dmfd < 0) {
+		int err = errno;
 		g_set_error(error,
 				G_FILE_ERROR,
 				G_FILE_ERROR_FAILED,
-				"Failed to open /dev/mapper/control");
+				"Failed to open /dev/mapper/control: %s", g_strerror(err));
 		res = FALSE;
 		goto out;
 	}
@@ -146,10 +147,11 @@ gboolean setup_dm_verity(RaucDMVerity *dm_verity, GError **error)
 
 	checkfd = g_open(dm_verity->upper_dev, O_RDONLY|O_CLOEXEC, 0);
 	if (checkfd < 0) {
+		int err = errno;
 		g_set_error(error,
 				G_FILE_ERROR,
 				G_FILE_ERROR_FAILED,
-				"Failed to open %s", dm_verity->upper_dev);
+				"Failed to open %s: %s", dm_verity->upper_dev, g_strerror(err));
 		res = FALSE;
 		goto out_remove_dm;
 	}
