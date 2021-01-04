@@ -150,14 +150,14 @@ static gboolean r_emmc_force_part_write(const gchar *device, gchar value, GError
 	g_return_val_if_fail(value == '0' || value == '1', FALSE);
 
 	sysfs_path = g_strdup_printf("/sys/block/%s/force_ro", device_basename);
-	if (!g_file_test(sysfs_path, G_FILE_TEST_EXISTS)) {
+	f = g_fopen(sysfs_path, "w");
+	if (!f) {
+		int err = errno;
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Block device does not have force_ro attribute: %s does not exist",
-				sysfs_path);
+				"Could not open device attribute %s: %s",
+				sysfs_path, g_strerror(err));
 		goto out;
 	}
-
-	f = g_fopen(sysfs_path, "w");
 
 	if (fwrite(&value, 1, 1, f) != 1) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
