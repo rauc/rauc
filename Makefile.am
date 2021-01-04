@@ -171,7 +171,6 @@ check_LTLIBRARIES = librauctest.la
 
 EXTRA_DIST += tap-t \
 	      tap-test \
-	      uml-test uml-test-init \
 	      qemu-test qemu-test-init \
 	      test/Dockerfile \
 	      test/bin \
@@ -179,6 +178,7 @@ EXTRA_DIST += tap-t \
 	      test/openssl-ca \
 	      $(wildcard test/*.raucb) \
 	      $(wildcard test/*.raucm) \
+	      test/dummy.verity \
 	      test/minimal-test.conf \
 	      test/rauc.t \
 	      test/rootfs.raucs \

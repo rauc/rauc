@@ -13,6 +13,7 @@
 # Optional arguments:
 #
 #   coverage    Run with coverage report generation enabled
+#   distcheck   Run distcheck make target
 #   passthrough Enable passthrough of the host's CPU features
 #   shell       Setup qemu test system and provide an interactive shell
 #
@@ -53,9 +54,14 @@ for x in "$@"; do
   fi
 done
 
+if test -w /dev/kvm; then
+  QEMU_ARGS="$QEMU_ARGS -enable-kvm"
+else
+  echo "/dev/kvm is not accessible, using emulation"
+fi
+
 qemu-system-x86_64 \
   $QEMU_ARGS \
-  -enable-kvm \
   -machine q35 \
   -m 512M \
   -smp 2 \

@@ -26,11 +26,11 @@ stop_session_bus ()
   kill ${DBUS_SESSION_BUS_PID}
 }
 
-# If running under user mode linux use the prepared system bus otherwise start a
+# If running under qemu use the prepared system bus otherwise start a
 # dedicated session bus
 select_system_or_session_bus ()
 {
-  if grep -q "init=[^ ]*/uml-test-init" /proc/cmdline; then
+  if grep -q "init=[^ ]*/qemu-test-init" /proc/cmdline; then
     export DBUS_STARTER_BUS_TYPE=system
   else
     start_session_bus

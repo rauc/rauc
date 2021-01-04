@@ -17,6 +17,8 @@ for x in $(cat /proc/cmdline); do
     SHELL=1
   elif [ "$x" = "coverage" ]; then
     MAKE_TARGET="check-code-coverage"
+  elif [ "$x" = "distcheck" ]; then
+    MAKE_TARGET="distcheck"
   fi
 done
 

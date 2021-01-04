@@ -53,6 +53,7 @@ static void flip_bits_filename(gchar *filename, off_t offset, guint8 mask)
 	int fd = g_open(filename, O_RDWR|O_CLOEXEC, 0);
 	g_assert_cmpint(fd, >, 0);
 	flip_bits_fd(fd, offset, mask);
+	g_assert(fsync(fd) == 0);
 	g_close(fd, NULL);
 }
 
@@ -190,7 +191,7 @@ static void verity_hash_test(void)
 	if (!test_running_as_root())
 		return;
 
-	bundlefd = g_open("test/dummy.verity", O_RDWR);
+	bundlefd = g_open("test/dummy.verity", O_RDONLY);
 	g_assert_cmpint(bundlefd, >, 0);
 
 	ret = verity_create_or_verify_hash(1, bundlefd, 129, NULL, root_hash, salt);
