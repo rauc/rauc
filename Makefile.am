@@ -179,6 +179,7 @@ EXTRA_DIST += tap-t \
 	      test/openssl-ca \
 	      $(wildcard test/*.raucb) \
 	      $(wildcard test/*.raucm) \
+	      test/dummy.verity \
 	      test/minimal-test.conf \
 	      test/rauc.t \
 	      test/rootfs.raucs \

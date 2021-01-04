@@ -190,7 +190,7 @@ static void verity_hash_test(void)
 	if (!test_running_as_root())
 		return;
 
-	bundlefd = g_open("test/dummy.verity", O_RDWR);
+	bundlefd = g_open("test/dummy.verity", O_RDONLY);
 	g_assert_cmpint(bundlefd, >, 0);
 
 	ret = verity_create_or_verify_hash(1, bundlefd, 129, NULL, root_hash, salt);
