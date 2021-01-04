@@ -40,8 +40,9 @@ gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError
 
 	fd = g_open(device, O_RDONLY);
 	if (fd == -1) {
+		int err = errno;
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"opening eMMC device failed: %s", g_strerror(errno));
+				"opening eMMC device failed: %s", g_strerror(err));
 		goto out;
 	}
 
@@ -95,8 +96,9 @@ gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError
 
 	fd = g_open(device, O_RDWR | O_EXCL);
 	if (fd == -1) {
+		int err = errno;
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"opening eMMC device failed: %s", g_strerror(errno));
+				"opening eMMC device failed: %s", g_strerror(err));
 		goto out;
 	}
 
