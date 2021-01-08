@@ -57,7 +57,7 @@ static gchar *resolve_loop_device(const gchar *devicepath)
 
 	content = read_file_str(syspath, &ierror);
 	if (!content) {
-		g_message("%s", ierror->message);
+		g_message("Error getting loop backing_file for %s: %s", devicepath, ierror->message);
 		g_clear_error(&ierror);
 		return NULL;
 	}
