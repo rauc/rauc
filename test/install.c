@@ -341,6 +341,8 @@ static void test_install_determine_target_group_non_redundant(void)
 	g_autofree gchar *tmpdir = NULL;
 	g_autofree gchar *sysconfpath = NULL;
 	g_autoptr(GHashTable) tgrp = NULL;
+	g_autoptr(GError) error = NULL;
+	gboolean res;
 
 	const gchar *system_conf = "\
 [system]\n\
@@ -362,7 +364,9 @@ device=/dev/null\n\
 	r_context_conf()->bootslot = g_strdup("system0");
 	r_context();
 
-	g_assert_true(determine_slot_states(NULL));
+	res = determine_slot_states(&error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 
 	tgrp = determine_target_install_group();
 	g_assert_nonnull(tgrp);
@@ -378,6 +382,8 @@ static void test_install_target_group_async(void)
 	g_autofree gchar *tmpdir = NULL;
 	g_autofree gchar *sysconfpath = NULL;
 	g_autoptr(GHashTable) tgrp = NULL;
+	g_autoptr(GError) error = NULL;
+	gboolean res;
 
 	const gchar *system_conf = "\
 [system]\n\
@@ -411,7 +417,9 @@ device=/dev/null\n\
 	r_context_conf()->bootslot = g_strdup("rescue");
 	r_context();
 
-	g_assert_true(determine_slot_states(NULL));
+	res = determine_slot_states(&error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 
 	tgrp = determine_target_install_group();
 	g_assert_nonnull(tgrp);
@@ -431,6 +439,8 @@ static void test_install_target_group_sync(void)
 	g_autofree gchar *tmpdir = NULL;
 	g_autofree gchar *sysconfpath = NULL;
 	g_autoptr(GHashTable) tgrp = NULL;
+	g_autoptr(GError) error = NULL;
+	gboolean res;
 
 	const gchar *system_conf = "\
 [system]\n\
@@ -463,7 +473,9 @@ device=/dev/null\n\
 	r_context_conf()->bootslot = g_strdup("system1");
 	r_context();
 
-	g_assert_true(determine_slot_states(NULL));
+	res = determine_slot_states(&error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 
 	tgrp = determine_target_install_group();
 	g_assert_nonnull(tgrp);
@@ -483,6 +495,8 @@ static void test_install_target_group_loose(void)
 	g_autofree gchar *tmpdir = NULL;
 	g_autofree gchar *sysconfpath = NULL;
 	g_autoptr(GHashTable) tgrp = NULL;
+	g_autoptr(GError) error = NULL;
+	gboolean res;
 
 	const gchar *system_conf = "\
 [system]\n\
@@ -510,7 +524,9 @@ device=/dev/null\n\
 	r_context_conf()->bootslot = g_strdup("system0");
 	r_context();
 
-	g_assert_true(determine_slot_states(NULL));
+	res = determine_slot_states(&error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 
 	tgrp = determine_target_install_group();
 	g_assert_nonnull(tgrp);
@@ -530,6 +546,8 @@ static void test_install_target_group_n_redundant(void)
 	g_autofree gchar *tmpdir = NULL;
 	g_autofree gchar *sysconfpath = NULL;
 	g_autoptr(GHashTable) tgrp = NULL;
+	g_autoptr(GError) error = NULL;
+	gboolean res;
 
 	const gchar *system_conf = "\
 [system]\n\
@@ -558,7 +576,9 @@ device=/dev/null\n\
 	r_context_conf()->bootslot = g_strdup("system1");
 	r_context();
 
-	g_assert_true(determine_slot_states(NULL));
+	res = determine_slot_states(&error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 
 	tgrp = determine_target_install_group();
 	g_assert_nonnull(tgrp);
