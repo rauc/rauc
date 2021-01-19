@@ -29,6 +29,7 @@ static const gchar* get_cmdline_bootname(void)
 	g_autofree gchar *contents = NULL;
 	g_autofree gchar *realdev = NULL;
 	const char *bootname = NULL;
+	const char *suffix = NULL;
 
 	if (context->mock.proc_cmdline)
 		contents = g_strdup(context->mock.proc_cmdline);
@@ -50,6 +51,20 @@ static const gchar* get_cmdline_bootname(void)
 				contents);
 		if (bootname)
 			return bootname;
+	}
+
+	/* Support NVIDIA's CBoot bootloader.
+	*
+	*  If /proc/cmdline contains an entry for boot.slot_suffix= with an empty value,
+	*  it implies that A partition is selected. If the value is '_b' then the system
+	*  was booted from B parition. */
+	suffix = regex_match("boot\\.slot_suffix=((\\s+|\\S+))", contents);
+	if (suffix) {
+		if (g_strcmp0(suffix, " ") == 0) {
+			return "APP";
+		} else if (g_strcmp0(suffix, "_b") == 0) {
+			return "APP_b";
+		}
 	}
 
 	bootname = regex_match("root=(\\S+)", contents);
