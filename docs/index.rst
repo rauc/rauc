@@ -145,7 +145,8 @@ Key Features of RAUC
   * vfat filesystem
   * UBI volumes
   * UBIFS
-  * raw NAND (using nandwrite)
+  * raw NAND flash (using nandwrite)
+  * raw NOR flash (using flashcp)
   * squashfs
 
 * Independent from update sources

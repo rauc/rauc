@@ -56,7 +56,8 @@ Features
   * vfat filesystem
   * UBI volumes
   * UBIFS
-  * raw NAND (using nandwrite)
+  * raw NAND flash (using nandwrite)
+  * raw NOR flash (using flashcp)
   * squashfs
   * MBR partition table
   * GPT partition table
