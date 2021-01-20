@@ -584,7 +584,7 @@ out:
 	return res;
 }
 
-static gboolean nand_format_slot(const gchar *device, GError **error)
+static gboolean flash_format_slot(const gchar *device, GError **error)
 {
 	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
@@ -1185,7 +1185,7 @@ static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, const
 
 	/* erase */
 	g_message("erasing slot device %s", dest_slot->device);
-	res = nand_format_slot(dest_slot->device, &ierror);
+	res = flash_format_slot(dest_slot->device, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
