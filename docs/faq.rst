@@ -75,3 +75,18 @@ To ensure RAUC does not corrupt the partition by executing hooks or writing
 slot status information, use ``type=raw`` in the respective slot config and
 use a global (see :ref:`slot status file <statusfile>`) on a separate
 non-redundant partition with setting ``statusfile=</path/to/global.status>``.
+
+What causes a payload size that is not a multiple of 4kiB?
+----------------------------------------------------------
+
+RAUC versions up to 1.4 had an issue in the casync bundle signature generation,
+which caused two signatures to be appended.
+While the squashfs payload size is a multiple of 4kiB, the end of the first
+signature was not aligned.
+As RAUC uses the second ("outer") signature during verification, this didn't
+cause problems.
+RAUC 1.5 fixed the casync bundle generation and added stricter checks, which
+rejected the older bundles.
+In RAUC 1.5.1, this was reduced to a notification message.
+
+To avoid the message, you can recreate the bundle with RAUC 1.5 and newer.

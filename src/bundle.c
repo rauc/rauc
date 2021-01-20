@@ -1390,10 +1390,10 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 
 	offset -= sigsize;
 	if (offset % 4096) {
-		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
-				"Payload size (%"G_GUINT64_FORMAT ") is not a multiple of 4KiB", offset);
-		res = FALSE;
-		goto out;
+		g_message(
+				"Payload size (%"G_GUINT64_FORMAT ") is not a multiple of 4KiB. "
+				"See https://rauc.readthedocs.io/en/latest/faq.html#what-causes-a-payload-size-that-is-not-a-multiple-of-4kib",
+				offset);
 	}
 	ibundle->size = offset;
 
