@@ -1,4 +1,5 @@
 #include <curl/curl.h>
+#include <errno.h>
 #include <gio/gio.h>
 #include <glib/gstdio.h>
 #include <stdio.h>
@@ -164,6 +165,13 @@ gboolean download_file(const gchar *target, const gchar *url, goffset limit, GEr
 	}
 
 out:
-	g_clear_pointer(&xfer.dl, fclose);
+	if (xfer.dl) {
+		if (fclose(xfer.dl)) {
+			int err = errno;
+			g_debug("Failed to close download file '%s': %s", target, g_strerror(err));
+		}
+		xfer.dl = NULL;
+	}
+
 	return res;
 }
