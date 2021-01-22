@@ -97,7 +97,7 @@ jobs:
         docker run --name cross -di -v "$PWD":/home -w /home multiarch/debian-debootstrap:${{ matrix.architecture }}-buster bash
         docker exec -i cross uname -a
         docker exec -i cross apt-get update
-        docker exec -i cross apt-get install -qy build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev squashfs-tools
+        docker exec -e DEBIAN_FRONTEND='noninteractive' -i cross apt-get install -qy build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev squashfs-tools
 
     - name: Build
       run: |
@@ -106,6 +106,54 @@ jobs:
         docker exec -i cross ./configure --enable-gpt CFLAGS=-Werror
         docker exec -i cross make
         # don't run make check here, as we don't have full access to the kernel (mount, loopback, dm)
+
+    - name: Show logs
+      if: ${{ failure() }}
+      run: |
+        cat config.log || true
+        cat test/*.log || true
+        cat test-suite.log || true
+        cat rauc-*/_build/sub/test-suite.log || true
+
+  stable:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        release:
+        - 16.04
+        - 18.04
+        - 20.04
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Prepare ubuntu ${{ matrix.release }} container
+      run: |
+        docker run --name stable -di -v "$PWD":/home -w /home ubuntu:${{ matrix.release }} bash
+        docker exec -i stable uname -a
+        docker exec -i stable apt-get update
+        docker exec -e DEBIAN_FRONTEND='noninteractive' -i stable apt-get install -qy build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev squashfs-tools
+
+    - name: Patch & prepare
+      run: |
+        docker exec -i stable whoami
+        docker exec -i stable uname -a
+        docker exec -i stable find .github/workflows/patches/${{ matrix.release}}/ -type f -name "*.patch" -print0 | sort -z | xargs -t -n 1 -r -0 patch -p1 -f -i
+        docker exec -i stable ./autogen.sh
+
+    - name: Configure (without GPT)
+      if: matrix.release == '16.04'
+      run: |
+        docker exec -i stable ./configure CFLAGS=-Werror
+
+    - name: Configure
+      if: matrix.release != '16.04'
+      run: |
+        docker exec -i stable ./configure --disable-gpt CFLAGS=-Werror
+
+    - name: Build
+      run: |
+        docker exec -i stable make
+        #docker exec -i stable make check
 
     - name: Show logs
       if: ${{ failure() }}
