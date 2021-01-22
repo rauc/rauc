@@ -259,6 +259,85 @@ static void bundle_test_extract_manifest(BundleFixture *fixture,
 	g_clear_pointer(&filepath, g_free);
 }
 
+
+static void assert_casync_manifest(RaucManifest *rm)
+{
+	RaucImage *test_img = NULL;
+
+	g_assert_cmpuint(g_list_length(rm->images), ==, 2);
+
+	test_img = g_list_nth_data(rm->images, 0);
+	g_assert_nonnull(test_img);
+	g_assert_cmpstr(test_img->filename, ==, "rootfs.img.caibx");
+	g_assert_cmpstr(test_img->checksum.digest, ==, "de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31");
+	g_assert_cmpuint(test_img->checksum.size, ==, 65536);
+
+	test_img = g_list_nth_data(rm->images, 1);
+	g_assert_nonnull(test_img);
+	g_assert_cmpstr(test_img->filename, ==, "appfs.img.caibx");
+	g_assert_cmpstr(test_img->checksum.digest, ==, "c35020473aed1b4642cd726cad727b63fff2824ad68cedd7ffb73c7cbd890479");
+	g_assert_cmpuint(test_img->checksum.size, ==, 32768);
+}
+
+static void bundle_test_check_casync_old(BundleFixture *fixture, gconstpointer user_data)
+{
+	g_autofree gchar *bundlepath = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res = FALSE;
+
+	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_true(test_copy_file("test", "good-casync-bundle-1.4.raucb", fixture->tmpdir, "bundle.raucb"));
+
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
+			"Reading bundle*" );
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
+			"Payload size (5661) is not a multiple of 4KiB.*");
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
+			"Verifying bundle signature*" );
+
+	res = check_bundle(bundlepath, &bundle, TRUE, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(bundle);
+
+	res = load_manifest_from_bundle(bundle, &bundle->manifest, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(bundle->manifest);
+
+
+	assert_casync_manifest(bundle->manifest);
+}
+
+static void bundle_test_check_casync_new(BundleFixture *fixture, gconstpointer user_data)
+{
+	g_autofree gchar *bundlepath = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res = FALSE;
+
+	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_true(test_copy_file("test", "good-casync-bundle-1.5.1.raucb", fixture->tmpdir, "bundle.raucb"));
+
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
+			"Reading bundle*");
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
+			"Verifying bundle signature*" );
+
+	res = check_bundle(bundlepath, &bundle, TRUE, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(bundle);
+
+	res = load_manifest_from_bundle(bundle, &bundle->manifest, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(bundle->manifest);
+
+	assert_casync_manifest(bundle->manifest);
+}
+
 // Hack to pull-in context for testing modification
 extern RaucContext *context;
 
@@ -584,6 +663,17 @@ int main(int argc, char *argv[])
 				bundle_fixture_set_up_bundle_codesign, bundle_test_purpose_codesign,
 				bundle_fixture_tear_down);
 	}
+
+	/* test casync manifest contents */
+	g_test_add(g_strdup_printf("/bundle/check_casync/old"),
+			BundleFixture, bundle_data,
+			bundle_fixture_set_up, bundle_test_check_casync_old,
+			bundle_fixture_tear_down);
+
+	g_test_add(g_strdup_printf("/bundle/check_casync/new"),
+			BundleFixture, bundle_data,
+			bundle_fixture_set_up, bundle_test_check_casync_new,
+			bundle_fixture_tear_down);
 
 	/* test plain bundles against possible masks */
 	bundle_data = memdup((&(BundleData) {

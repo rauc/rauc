@@ -111,7 +111,6 @@ gboolean r_setup_loop(gint fd, gint *loopfd_out, gchar **loopname_out, goffset s
 	g_return_val_if_fail(loopfd_out != NULL, FALSE);
 	g_return_val_if_fail(loopname_out != NULL && *loopname_out == NULL, FALSE);
 	g_return_val_if_fail(size > 0, FALSE);
-	g_return_val_if_fail(size % 4096 == 0, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	controlfd = open("/dev/loop-control", O_RDWR|O_CLOEXEC);
