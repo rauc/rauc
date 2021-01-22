@@ -1,3 +1,23 @@
+Release 1.5.1 (development)
+---------------------------
+
+.. rubric:: Bug fixes
+
+* Fix building with kernel headers < 4.14. (by Fabrice Fontaine)
+* Fix manifest generation for casync bundles.
+* Fix too strict payload size check which triggered on casync bundles generated
+  by versions up to 1.4.
+* Restore compatibility with glib 2.50.
+
+.. rubric:: Testing
+
+* Switch from Travis-CI to GitHub actions.
+* Add test builds on Ubuntu 16.04, 18.04 and 20.04 to catch build problems with
+  older environments.
+
+Contributions from: Enrico Jörns, Fabrice Fontaine, Jan Lübbe
+
+
 Release 1.5 (released Dec 14, 2020)
 -----------------------------------
 
