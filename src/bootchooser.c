@@ -20,8 +20,8 @@ GQuark r_bootchooser_error_quark(void)
 #define BAREBOX_STATE_PRIORITY_PRIMARY	20
 #define UBOOT_FWSETENV_NAME "fw_setenv"
 #define UBOOT_FWPRINTENV_NAME "fw_printenv"
-#define UBOOT_DEFAULT_ATTEMPTS		"3"
-#define UBOOT_ATTEMPTS_PRIMARY		"3"
+#define UBOOT_DEFAULT_ATTEMPTS  3
+#define UBOOT_ATTEMPTS_PRIMARY  3
 #define EFIBOOTMGR_NAME "efibootmgr"
 #define GRUB_EDITENV "grub-editenv"
 
@@ -767,6 +767,8 @@ static gboolean uboot_set_state(RaucSlot *slot, gboolean good, GError **error)
 {
 	GError *ierror = NULL;
 	g_autofree gchar *key = NULL;
+	g_autofree gchar *val = NULL;
+	gint attempts = 0;
 
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -810,7 +812,15 @@ set_left:
 
 	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
 
-	if (!uboot_env_set(key, good ? UBOOT_DEFAULT_ATTEMPTS : "0", &ierror)) {
+	if (good) {
+		attempts = r_context()->config->boot_default_attempts;
+		if (attempts <= 0)
+			attempts = UBOOT_DEFAULT_ATTEMPTS;
+	}
+
+	val = g_strdup_printf("%d", attempts);
+
+	if (!uboot_env_set(key, val, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
@@ -884,6 +894,8 @@ static gboolean uboot_set_primary(RaucSlot *slot, GError **error)
 	g_auto(GStrv) bootnames = NULL;
 	GError *ierror = NULL;
 	g_autofree gchar *key = NULL;
+	g_autofree gchar *val = NULL;
+	gint attempts;
 
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -915,7 +927,13 @@ static gboolean uboot_set_primary(RaucSlot *slot, GError **error)
 
 	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
 
-	if (!uboot_env_set(key, UBOOT_ATTEMPTS_PRIMARY, &ierror)) {
+	attempts = r_context()->config->boot_attempts_primary;
+	if (attempts <= 0)
+		attempts = UBOOT_ATTEMPTS_PRIMARY;
+
+	val = g_strdup_printf("%d", attempts);
+
+	if (!uboot_env_set(key, val, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}

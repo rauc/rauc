@@ -36,6 +36,8 @@ typedef struct {
 	gchar *system_variant;
 	gchar *system_bootloader;
 	gchar *system_bb_statename;
+	gint boot_default_attempts;
+	gint boot_attempts_primary;
 	gchar *grubenv_path;
 	gchar *custom_bootloader_backend;
 	gboolean efi_use_bootnext;

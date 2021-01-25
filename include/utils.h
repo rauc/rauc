@@ -139,6 +139,13 @@ gchar * key_file_consume_string(
 		GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
+gint key_file_consume_integer(
+		GKeyFile *key_file,
+		const gchar *group_name,
+		const gchar *key,
+		GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
 guint64 key_file_consume_binary_suffixed_string(GKeyFile *key_file,
 		const gchar *group_name,
 		const gchar *key,
