@@ -79,6 +79,10 @@
 #ifndef XFS_SUPER_MAGIC
 #define XFS_SUPER_MAGIC 0x58465342
 #endif
+#ifndef ZFS_SUPER_MAGIC
+/* Taken from https://github.com/openzfs/zfs/blob/master/include/sys/fs/zfs.h#L1198 */
+#define ZFS_SUPER_MAGIC 0x2fc12fc1
+#endif
 
 GQuark
 r_bundle_error_quark(void)
@@ -1112,6 +1116,7 @@ static gboolean check_bundle_access(int bundle_fd, GError **error)
 			case OVERLAYFS_SUPER_MAGIC:
 			case TMPFS_MAGIC:
 			case UBIFS_SUPER_MAGIC:
+			case ZFS_SUPER_MAGIC:
 				mount_checked = TRUE;
 				break;
 			default:
