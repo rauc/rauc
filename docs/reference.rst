@@ -309,7 +309,7 @@ hierarchical separator.
 
 ``type=<type>``
   The type describing the slot. Currently supported ``<type>`` values are ``raw``,
-  ``nand``, ``ubivol``, ``ubifs``, ``ext4``, ``vfat``.
+  ``nand``, ``nor``, ``ubivol``, ``ubifs``, ``ext4``, ``vfat``.
   See table :ref:`sec-slot-type` for a more detailed list of these different types.
   Defaults to ``raw`` if none given.
 

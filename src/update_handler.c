@@ -584,7 +584,41 @@ out:
 	return res;
 }
 
-static gboolean nand_format_slot(const gchar *device, GError **error)
+static gboolean nor_write_slot(const gchar *image, const gchar *device, GError **error)
+{
+	g_autoptr(GSubprocess) sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(5, g_free);
+
+	g_ptr_array_add(args, g_strdup("flashcp"));
+	g_ptr_array_add(args, g_strdup(image));
+	g_ptr_array_add(args, g_strdup(device));
+	g_ptr_array_add(args, NULL);
+
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start flashcp: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run flashcp: ");
+		goto out;
+	}
+
+out:
+	return res;
+}
+
+static gboolean flash_format_slot(const gchar *device, GError **error)
 {
 	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
@@ -1169,6 +1203,49 @@ out:
 	return res;
 }
 
+static gboolean img_to_nor_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	/* erase */
+	g_message("erasing slot device %s", dest_slot->device);
+	res = flash_format_slot(dest_slot->device, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* write */
+	g_message("writing slot device %s", dest_slot->device);
+	res = nor_write_slot(image->filename, dest_slot->device, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+out:
+	return res;
+}
+
 static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GError *ierror = NULL;
@@ -1185,7 +1262,7 @@ static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, const
 
 	/* erase */
 	g_message("erasing slot device %s", dest_slot->device);
-	res = nand_format_slot(dest_slot->device, &ierror);
+	res = flash_format_slot(dest_slot->device, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -1733,6 +1810,7 @@ RaucUpdatePair updatepairs[] = {
 	{"*.ubifs", "ubivol", img_to_ubivol_handler},
 	{"*.ubifs", "ubifs", img_to_ubifs_handler},
 	{"*.img", "ext4", img_to_fs_handler},
+	{"*.img", "nor", img_to_nor_handler},
 	{"*.img", "nand", img_to_nand_handler},
 	{"*.img", "ubifs", img_to_ubifs_handler},
 	{"*.img", "ubivol", img_to_ubivol_handler},

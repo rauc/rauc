@@ -66,6 +66,12 @@ if type losetup; then
   export RAUC_TEST_BLOCK_LOOP=/dev/loop0
 fi
 
+cat /proc/mtd
+
+if [ -c /dev/mtd0 ] && type flashcp; then
+  export RAUC_TEST_MTD_NOR=/dev/mtd0
+fi
+
 if [ -c /dev/mtd2 ] && type flash_erase; then
   export RAUC_TEST_MTD_NAND=/dev/mtd2
 fi

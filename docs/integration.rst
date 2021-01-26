@@ -114,7 +114,9 @@ A list of slot storage types currently supported by RAUC:
 +----------+-------------------------------------------------------------------+-------------+
 | ext4     | A block device holding an ext4 filesystem.                        |     x       |
 +----------+-------------------------------------------------------------------+-------------+
-| nand     | A raw NAND partition.                                             |             |
+| nand     | A raw NAND flash partition.                                       |             |
++----------+-------------------------------------------------------------------+-------------+
+| nor      | A raw NOR flash partition.                                        |             |
 +----------+-------------------------------------------------------------------+-------------+
 | ubivol   | An UBI partition in NAND.                                         |             |
 +----------+-------------------------------------------------------------------+-------------+
@@ -227,6 +229,8 @@ cannot fully know how you intend to use your system.
 
 :NAND Flash: flash_erase & nandwrite (from `mtd-utils
              <git://git.infradead.org/mtd-utils.git>`_)
+:NOR Flash: flash_erase & flashcp (from `mtd-utils
+            <git://git.infradead.org/mtd-utils.git>`_)
 :UBIFS: mkfs.ubifs (from `mtd-utils
                   <git://git.infradead.org/mtd-utils.git>`_)
 :TAR archives: You may either use `GNU tar <http://www.gnu.org/software/tar/>`_

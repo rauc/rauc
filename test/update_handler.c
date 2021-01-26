@@ -280,6 +280,13 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 			g_test_skip("RAUC_TEST_MTD_NAND undefined");
 			return;
 		}
+	} else if (g_strcmp0(test_pair->slottype, "nor") == 0) {
+		slotpath = g_strdup(g_getenv("RAUC_TEST_MTD_NOR"));
+		if (!slotpath) {
+			g_test_message("no MTD NOR device for testing found (define RAUC_TEST_MTD_NOR)");
+			g_test_skip("RAUC_TEST_MTD_NOR undefined");
+			return;
+		}
 	} else {
 		slotpath = g_build_filename(fixture->tmpdir, "rootfs-0", NULL);
 	}
@@ -478,6 +485,9 @@ int main(int argc, char *argv[])
 
 		/* nand tests */
 		{"nand", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+
+		/* nor tests */
+		{"nor", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 
 		{0}
 	};
@@ -835,6 +845,13 @@ int main(int argc, char *argv[])
 	g_test_add("/update_handler/update_handler/img_to_nand",
 			UpdateHandlerFixture,
 			&testpair_matrix[54],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	/* nor tests */
+	g_test_add("/update_handler/update_handler/img_to_nor",
+			UpdateHandlerFixture,
+			&testpair_matrix[55],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
