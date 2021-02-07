@@ -86,7 +86,7 @@ typedef struct {
  * @param config space separated list of formats (prefixed with +/- for modification)
  * @param error a GError, or NULL
  *
- * @return TRUE if the bundle format was sucessfully parsed. FALSE if there were errors.
+ * @return TRUE if the bundle format was successfully parsed. FALSE if there were errors.
  */
 gboolean parse_bundle_formats(guint *mask, const gchar *config, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
@@ -98,7 +98,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @param config a location to place the loaded config
  * @param error a GError, or NULL
  *
- * @return TRUE if the configuration was sucessfully loaded. FALSE if there were errors.
+ * @return TRUE if the configuration was successfully loaded. FALSE if there were errors.
  */
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
@@ -108,7 +108,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  *
  * @param config a location to place the new config
  *
- * @return TRUE if the configuration was sucessfully created. FALSE if there were errors.
+ * @return TRUE if the configuration was successfully created. FALSE if there were errors.
  */
 gboolean default_config(RaucConfig **config)
 G_GNUC_WARN_UNUSED_RESULT;
@@ -155,7 +155,7 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucConfig, free_config);
  * @param slotstatus pointer to the pre-allocated structure going to store the slot status
  * @param error a GError, or NULL
  *
- * @return TRUE if the slot status was sucessfully loaded. FALSE if there were errors.
+ * @return TRUE if the slot status was successfully loaded. FALSE if there were errors.
  */
 gboolean read_slot_status(const gchar *filename, RaucSlotStatus *slotstatus, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;

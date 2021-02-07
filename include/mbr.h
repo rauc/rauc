@@ -25,7 +25,7 @@ G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Set the boot partition in master boot record to point to the
- * partion at address and size in partition.
+ * partition at address and size in partition.
  *
  * @param device dev path (/dev/mmcblkX)
  * @param partition updated boot partition (start & size)

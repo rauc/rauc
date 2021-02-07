@@ -178,7 +178,7 @@ index dace95e9..25d8c354 100644
  #include "context.h"
  #include "signature.h"
  
-+/* Define for OpenSSL 1.0.x backwards compatiblity.
++/* Define for OpenSSL 1.0.x backwards compatibility.
 + * We use newer get0 names to be clear about memory ownership and to not use
 + * API deprecated in OpenSSL 1.1.x */
 +#if (OPENSSL_VERSION_NUMBER < 0x10100000L)

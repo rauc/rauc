@@ -593,7 +593,7 @@ Debugging RAUC
 When RAUC fails to start on your target during integration or later during
 installation of new bundles it can have a variety of causes.
 
-This section will lead you trough the most common options you have for
+This section will lead you through the most common options you have for
 debugging what actually went wrong.
 
 In each case it is quite essential to know that RAUC, if not compiled with

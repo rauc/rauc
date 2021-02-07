@@ -1120,7 +1120,7 @@ static gboolean check_bundle_access(int bundle_fd, GError **error)
 				mount_checked = TRUE;
 				break;
 			default:
-				g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE, "bundle is stored on an unkown filesystem (type=%0jx)", (uintmax_t)bundle_statfs.f_type);
+				g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE, "bundle is stored on an unknown filesystem (type=%0jx)", (uintmax_t)bundle_statfs.f_type);
 				res = FALSE;
 				goto out;
 				break;
@@ -1229,7 +1229,7 @@ static gboolean enforce_bundle_exclusive(int bundle_fd, GError **error)
 			/* taking ownership was successful, the relevant error is ierror_check */
 			g_propagate_error(error, ierror_check);
 		} else {
-			/* taking ownership was unsucessful, the relevant error is ierror_take */
+			/* taking ownership was unsuccessful, the relevant error is ierror_take */
 			g_clear_error(&ierror_check);
 			g_propagate_prefixed_error(error, ierror_take, "failed to take ownership of bundle: ");
 			ierror_take = NULL;
@@ -1727,7 +1727,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 	}
 
 	if (!(bundle->signature_verified || bundle->verification_disabled))
-		g_error("bundle signature must be verfied before mounting");
+		g_error("bundle signature must be verified before mounting");
 
 	g_message("Mounting bundle '%s' to '%s'", bundle->path, mount_point);
 

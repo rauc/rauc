@@ -46,7 +46,7 @@
              "activated slot rootfs.0")
 
          Keeps a slot bootable (state == "good"), makes it unbootable (state ==
-         "bad") or explicitely activates it for the next boot (state == "active").
+         "bad") or explicitly activates it for the next boot (state == "active").
     -->
     <method name="Mark">
       <arg name="state" type="s" direction="in"/>
@@ -71,7 +71,7 @@
     <property name="Operation" type="s" access="read"/>
     <!-- LastError: Holds a message describing the last error that occurred -->
     <property name="LastError" type="s" access="read"/>
-    <!-- Progress: Provides installation progress informations in the form
+    <!-- Progress: Provides installation progress information in the form
          (percentage, message, nesting depth) -->
     <property name="Progress" type="(isi)" access="read">
       <annotation name="org.qtproject.QtDBus.QtTypeName" value="RaucProgress"/>

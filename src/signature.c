@@ -586,7 +586,7 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 				char buf[BUFSIZ];
 				X509_NAME_oneline(X509_get_subject_name(sk_X509_value(verified_chain, i)),
 						buf, sizeof buf);
-				g_warning("Certificate %d (%s) will exipre in less than a month!", i + 1, buf);
+				g_warning("Certificate %d (%s) will expire in less than a month!", i + 1, buf);
 			}
 		}
 
@@ -1143,7 +1143,7 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 		xa = CMS_signed_get_attr(si, CMS_signed_get_attr_by_NID(si, NID_pkcs9_signingTime, -1));
 		so = X509_ATTRIBUTE_get0_type(xa, 0);
 
-		/* convert to time_t to make it usable for seting verify parameter */
+		/* convert to time_t to make it usable for setting verify parameter */
 		if (!asn1_time_to_tm(so->value.utctime, &tm)) {
 			g_set_error(
 					error,
@@ -1293,7 +1293,7 @@ gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, C
 	content = g_mapped_file_get_bytes(file);
 
 	/* On 32 bit systems, G_MAXSIZE will be only 32 bit (unsigned) while
-	 * 'limit' is 64 bit (singed). Thus we must take care of not passing
+	 * 'limit' is 64 bit (signed). Thus we must take care of not passing
 	 * 'limit' values exceeding G_MAXSIZE to g_bytes_new_from_bytes.
 	 * However, mmapping for large limit values will cause problems,
 	 * anyway.

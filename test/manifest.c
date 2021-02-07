@@ -327,7 +327,7 @@ filename=rootfs-var2.ext4\n\
  * Tests parsing invalid data: *
  * Test cases:
  * - file does not start with a group
- * - compatible is mising
+ * - compatible is missing
  * - compatible has no value
  * - invalid key
  * - invalid group
@@ -343,7 +343,7 @@ static void test_invalid_data(void)
 compatible=SuperBazzer\n\
 "
 
-	// compatible is mising
+	// compatible is missing
 #define MANIFEST2 "\
 [update]\n\
 "

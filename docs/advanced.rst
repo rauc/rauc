@@ -321,7 +321,7 @@ When working with PKCS#11, some tools are useful to configure and show your toke
 
   It provides ``pkcs11-tool``, which is useful to prepare a token for usage
   with RAUC.
-  It can list, read/write objects, generate keypairs and more.
+  It can list, read/write objects, generate key pairs and more.
 
 `libp11 <https://github.com/OpenSC/libp11>`_
   libp11 is an engine plugin for OpenSSL, which allows using keys on PKCS#11
@@ -478,7 +478,7 @@ For example with ubifs, a udev ruleset can be used for this::
 This example first determines if ubiX_Y is a data slot with an active parent
 rootfs slot by calling the script below.
 Then, the current ubiX_Y partition is bound to /dev/data if the secript
-retured ``1`` as its output.
+returned ``1`` as its output.
 
 ``/usr/bin/is-parent-active`` is a simple bash script::
 

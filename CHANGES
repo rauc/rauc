@@ -48,7 +48,7 @@ Release 1.5 (released Dec 14, 2020)
   details <sec_ref_format_verity>`.
 * Support resolving the `root=PARTLABEL=xxx` kernel command line option. (by
   Gaël PORTAY)
-* Disable the unneccessary SMIMECapabilities information in the bundle
+* Disable the unnecessary SMIMECapabilities information in the bundle
   signature, saving ~100 bytes.
 * Remove redundant checksum verification for source images during installation.
   The RAUC bundle is already verified at this point, so there is no need to
@@ -216,7 +216,7 @@ Release 1.3 (released Apr 23, 2020)
 
 * Switched testing environment from user-mode-linux (UML) to QEMU. This allows
   us to use our own kernel configuration and avoids the (unusual) dependency.
-* Reenabled support for coverity, as they have added support for GCC 8.
+* Re-enabled support for coverity, as they have added support for GCC 8.
 * Added some more tests in several areas.
 
 .. rubric:: Code
