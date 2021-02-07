@@ -4,7 +4,7 @@
 
 #if ENABLE_NETWORK
 /**
- * Network initalization routine.
+ * Network initialization routine.
  *
  * Sets up libcurl.
  *

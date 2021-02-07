@@ -75,7 +75,7 @@ static gboolean check_gpt(struct fdisk_context *cxt,
 	}
 	if (fdisk_get_alignment_offset(cxt) != 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Non-zero aligment offset (%ld) is not supported",
+				"Non-zero alignment offset (%ld) is not supported",
 				fdisk_get_alignment_offset(cxt));
 		return FALSE;
 	}

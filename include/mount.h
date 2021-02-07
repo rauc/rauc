@@ -60,7 +60,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @param fd file descriptor of file to mount
  * @param loopfd_out file descriptor of the open loop device
  * @param loopname_out device name of loop device
- * @param size limit accessable size of file
+ * @param size limit accessible size of file
  * @param error return location for a GError, or NULL
  *
  * @return True if succeeded, False if failed

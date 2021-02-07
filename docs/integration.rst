@@ -400,7 +400,7 @@ provides a dedicated boot source selection framework, called *bootchooser*,
 backed by an atomic and redundant storage backend, named *state*.
 
 *Barebox state* allows you to save the variables required by bootchooser with
-memory specific storage strategies in all common storage medias,
+memory specific storage strategies in all common storage mediums,
 such as block devices, mtd (NAND/NOR), EEPROM, and UEFI variables.
 
 The *Bootchooser* framework maintains information about priority and remaining
@@ -807,10 +807,10 @@ bootloader partition and two rootfs partitions.
 Another additional partition we use exclusively for storing the environment.
 
 .. note:: It is not strictly required to have the env on an actual MBR/GPT
-   partition, but we use this here as it better protects against accidentially
+   partition, but we use this here as it better protects against accidentally
    overwriting relevant data of other partitions.
 
-Parition table (excerpt with partition offsets):
+Partition table (excerpt with partition offsets):
 
 .. code-block:: text
 

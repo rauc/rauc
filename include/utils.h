@@ -8,7 +8,7 @@
  *   g_auto(filedesc) fd = -1
  *
  * to declare a file descriptor that will be automatically closed when
- * fd goes out of scope. The desctructor is guaranteed to preserve
+ * fd goes out of scope. The destructor is guaranteed to preserve
  * errno.
  */
 typedef int filedesc;
@@ -112,7 +112,7 @@ gboolean rm_tree(const gchar *path, GError **error);
  * config file itself.
  *
  * If given path itself is absolute, this will be returned.
- * If `basefile` is given and absolute, its location (whith the pathname
+ * If `basefile` is given and absolute, its location (with the pathname
  * stripped) will be used as the prefix path for `path`.
  * If `basefile` is not an absolute path, the current workding dir will be used
  * as the prefix path for `path` instead.

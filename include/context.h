@@ -46,7 +46,7 @@ typedef struct {
 	/* optional custom handler extra arguments */
 	gchar *handlerextra;
 
-	/* for storing installation runtime informations */
+	/* for storing installation runtime information */
 	RContextInstallationInfo *install_info;
 
 	/* mock data for testing, zero during normal usage */

@@ -379,7 +379,7 @@ device=/dev/null\n\
 }
 
 /* Test a typical asynchronous slot setup (rootfs + rescuefs) with additional
- * childs */
+ * children */
 static void test_install_target_group_async(void)
 {
 	g_autofree gchar *tmpdir = NULL;
@@ -432,7 +432,7 @@ device=/dev/null\n\
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "appfs"))->name, ==, "appfs.0");
 }
 
-/* Test a typical synchronous slot setup (rootfs a + b) with appfs childs */
+/* Test a typical synchronous slot setup (rootfs a + b) with appfs children */
 static void test_install_target_group_sync(void)
 {
 	g_autofree gchar *tmpdir = NULL;
@@ -649,7 +649,7 @@ device=/dev/null\n\
 	g_assert_no_error(error);
 	g_assert_nonnull(selected_images);
 
-	/* We expecte the image selection to return both appfs.img and
+	/* We expect the image selection to return both appfs.img and
 	 * rootfs.img as we have matching slots for them. */
 	g_assert_cmpint(g_list_length(selected_images), ==, 2);
 

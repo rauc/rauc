@@ -24,7 +24,7 @@ gboolean r_gpt_switch_get_inactive_partition(const gchar *device,
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
- * Set the boot partition in the GPT to point to the partion at address and
+ * Set the boot partition in the GPT to point to the partition at address and
  * size in partition.
  *
  * @param device dev path (/dev/sdX)

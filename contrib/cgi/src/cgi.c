@@ -107,7 +107,7 @@ out:
 }
 
 /*
- * Last installation was successfull if LastError D-Bus property is an empty
+ * Last installation was successful if LastError D-Bus property is an empty
  * string.
  */
 static gboolean get_last_installation_success(RInstaller *installer, gboolean *last_install_success, GError **error)
@@ -246,7 +246,7 @@ static void try_cleanup_status_on_install_failure(RInstaller *installer)
 
 	/* Previous install failure is identified by "LastError" D-Bus property (also
 	 * set if no previous install happened), 100% install percentage of D-Bus
-	 * "Pogress" property and an existing status file (means the previous
+	 * "Progress" property and an existing status file (means the previous
 	 * installation was started via CGI).
 	 */
 	if (!last_install_success && install_percentage == 100 && g_file_test(STATUS_FILE_LOCATION, G_FILE_TEST_EXISTS)) {

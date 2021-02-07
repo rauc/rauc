@@ -1205,7 +1205,7 @@ static gboolean efi_set_temp_primary(RaucSlot *slot, GError **error)
 }
 
 /* Deletes given slot from efi bootorder list.
- * Prepends it to bootorder list if prepend arguemnt is set to TRUE */
+ * Prepends it to bootorder list if prepend argument is set to TRUE */
 static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend, GError **error)
 {
 	GList *entries = NULL;

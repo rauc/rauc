@@ -32,7 +32,7 @@ typedef enum {
 } RSignatureError;
 
 /**
- * Initalization routine.
+ * Initialization routine.
  *
  * Sets up OpenSSL (libcrypto).
  *

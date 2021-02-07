@@ -1437,7 +1437,7 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 		g_hash_table_insert(*slots, (gchar*)slot->name, slot);
 	}
 
-	/* Now we replace the dummy parent slots with the poitner to the real
+	/* Now we replace the dummy parent slots with the pointer to the real
 	 * parent slots */
 	g_hash_table_iter_init(&hiter, *slots);
 	while (g_hash_table_iter_next(&hiter, (gpointer*) &slot_name, (gpointer*) &iterslot)) {

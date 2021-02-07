@@ -1660,7 +1660,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		goto out;
 	}
 
-	/* reenable read-only on determined eMMC boot partition */
+	/* re-enable read-only on determined eMMC boot partition */
 	g_debug("Reenabling read-only mode of slot device partition %s",
 			part_slot->device);
 	res = r_emmc_force_part_ro(part_slot->device, &ierror);

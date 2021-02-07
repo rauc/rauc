@@ -177,9 +177,9 @@ G_GNUC_WARN_UNUSED_RESULT;
  * Returns list of child slots of given parent slot.
  *
  * @param slots GHashTable of system slots
- * @param parent Slot to find childern for
+ * @param parent Slot to find children for
  *
- * @return list of pointers to all memers of slots hash table that are childern
+ * @return list of pointers to all memers of slots hash table that are children
  *         of given slot.
  */
 GList* r_slot_get_all_children(GHashTable *slots, RaucSlot *parent)
