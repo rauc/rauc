@@ -1055,6 +1055,9 @@ You can start the RAUC service manually by executing::
 
   $ rauc service
 
+Keep in mind that rauc service reads the system.conf during startup and needs to be
+restarted for changes in the system.conf to take affect.
+
 Systemd Integration
 ~~~~~~~~~~~~~~~~~~~
 
