@@ -1664,6 +1664,20 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		goto out;
 	}
 
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook(
+				hook_name,
+				R_SLOT_HOOK_POST_INSTALL,
+				image,
+				dest_slot,
+				&ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
 	/* re-enable read-only on determined eMMC boot partition */
 	g_debug("Reenabling read-only mode of slot device partition %s",
 			part_slot->device);
@@ -1708,20 +1722,6 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	}
 
 	g_message("Boot partition %s is now active", part_slot->device);
-
-	/* run slot post install hook if enabled */
-	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(
-				hook_name,
-				R_SLOT_HOOK_POST_INSTALL,
-				image,
-				dest_slot,
-				&ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-	}
 
 out:
 	/* ensure that the eMMC boot partition is read-only afterwards */
