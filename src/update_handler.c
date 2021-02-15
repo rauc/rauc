@@ -1578,20 +1578,6 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	GError *ierror = NULL;
 	g_autoptr(RaucSlot) part_slot = NULL;
 
-	/* run slot pre install hook if enabled */
-	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(
-				hook_name,
-				R_SLOT_HOOK_PRE_INSTALL,
-				image,
-				dest_slot,
-				&ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-	}
-
 	realdev = r_realpath(dest_slot->device);
 	if (!realdev) {
 		g_set_error(error,
@@ -1636,6 +1622,20 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
+	}
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook(
+				hook_name,
+				R_SLOT_HOOK_PRE_INSTALL,
+				image,
+				dest_slot,
+				&ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 	/* clear block device partition */
