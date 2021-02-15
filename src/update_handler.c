@@ -738,7 +738,7 @@ static gboolean unpack_archive(RaucImage *image, gchar *dest, GError **error)
 }
 
 /**
- * Executes the per-slot hook script.
+ * Executes the per-slot hook script with extra environment variables.
  *
  * @param hook_name file name of the hook script
  * @param hook_cmd first argument to the hook script
@@ -748,7 +748,7 @@ static gboolean unpack_archive(RaucImage *image, gchar *dest, GError **error)
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, RaucImage *image, RaucSlot *slot, GError **error)
+static gboolean run_slot_hook_extra_env(const gchar *hook_name, const gchar *hook_cmd, RaucImage *image, RaucSlot *slot, GHashTable *variables, GError **error)
 {
 	g_autoptr(GSubprocessLauncher) launcher = NULL;
 	g_autoptr(GSubprocess) sproc = NULL;
@@ -808,6 +808,19 @@ static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, Rau
 		g_subprocess_launcher_setenv(launcher, "RAUC_BUNDLE_MOUNT_POINT", bundle->mount_point, TRUE);
 	}
 
+	if (variables) {
+		GHashTableIter iter;
+		gchar *key = NULL;
+		gchar *value = NULL;
+
+		/* copy the variables from the hashtable and add them to the
+		   subprocess environment */
+		g_hash_table_iter_init(&iter, variables);
+		while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
+			g_subprocess_launcher_setenv(launcher, g_strdup(key), g_strdup(value), TRUE);
+		}
+	}
+
 	sproc = g_subprocess_launcher_spawn(
 			launcher, &ierror,
 			hook_name,
@@ -832,6 +845,22 @@ static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, Rau
 
 out:
 	return res;
+}
+
+/**
+ * Executes the per-slot hook script without setting extra environment variables.
+ *
+ * @param hook_name file name of the hook script
+ * @param hook_cmd first argument to the hook script
+ * @param image image to be installed (optional)
+ * @param slot target slot
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, RaucImage *image, RaucSlot *slot, GError **error)
+{
+	return run_slot_hook_extra_env(hook_name, hook_cmd, image, slot, NULL, error);
 }
 
 static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, RaucImage *image, RaucSlot *slot, GError **error)
