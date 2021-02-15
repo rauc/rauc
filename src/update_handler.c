@@ -1541,14 +1541,6 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
-	g_message("Setting GPT to switch boot partition");
-
-	res = r_gpt_switch_set_boot_partition(dest_slot->device, &dest_partition, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
 		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image,
@@ -1557,6 +1549,14 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 			g_propagate_error(error, ierror);
 			goto out;
 		}
+	}
+
+	g_message("Setting GPT to switch boot partition");
+
+	res = r_gpt_switch_set_boot_partition(dest_slot->device, &dest_partition, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
 	}
 out:
 	if (out_fd >= 0)
