@@ -1495,6 +1495,7 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	struct boot_switch_partition dest_partition;
+	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
 	res = r_gpt_switch_get_inactive_partition(dest_slot->device,
 			&dest_partition, dest_slot->region_start,
@@ -1520,10 +1521,17 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_ACTIVATING"),
+			g_strdup_printf("%d", inactive_part));
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_START"),
+			g_strdup_printf("%"G_GUINT64_FORMAT, dest_partition.start));
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_SIZE"),
+			g_strdup_printf("%"G_GUINT64_FORMAT, dest_partition.size));
+
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image,
-				dest_slot, &ierror);
+		res = run_slot_hook_extra_env(hook_name, R_SLOT_HOOK_PRE_INSTALL, image,
+				dest_slot, vars, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1580,8 +1588,8 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image,
-				dest_slot, &ierror);
+		res = run_slot_hook_extra_env(hook_name, R_SLOT_HOOK_POST_INSTALL, image,
+				dest_slot, vars, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;

@@ -819,16 +819,16 @@ The following environment variables will be passed to the hook executable:
 
   ``RAUC_BOOT_PARTITION_ACTIVATING``
     The to be activated boot partition (0 or 1).
-    ``boot-mbr-switch`` slot type only.
+    ``boot-mbr-switch`` and ``boot-gpt-switch`` slot types only.
 
   ``RAUC_BOOT_PARTITION_START``
     The absolute partition offset of the to be activated boot partition in
     bytes.
-    ``boot-mbr-switch`` slot type only.
+    ``boot-mbr-switch`` and ``boot-gpt-switch`` slot types only.
 
   ``RAUC_BOOT_PARTITION_SIZE``
     The partition size of the to be activated boot partition in bytes.
-    ``boot-mbr-switch`` slot type only.
+    ``boot-mbr-switch`` and ``boot-gpt-switch`` slot types only.
 
 .. _sec_ref_dbus-api:
 
