@@ -1622,6 +1622,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	g_autoptr(RaucSlot) part_slot = NULL;
+	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
 	realdev = r_realpath(dest_slot->device);
 	if (!realdev) {
@@ -1669,13 +1670,17 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		goto out;
 	}
 
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_ACTIVATING"),
+			g_strdup_printf("%d", INACTIVE_BOOT_PARTITION(part_active)));
+
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(
+		res = run_slot_hook_extra_env(
 				hook_name,
 				R_SLOT_HOOK_PRE_INSTALL,
 				image,
 				dest_slot,
+				vars,
 				&ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
@@ -1711,11 +1716,12 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(
+		res = run_slot_hook_extra_env(
 				hook_name,
 				R_SLOT_HOOK_POST_INSTALL,
 				image,
 				dest_slot,
+				vars,
 				&ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);

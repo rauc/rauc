@@ -819,7 +819,7 @@ The following environment variables will be passed to the hook executable:
 
   ``RAUC_BOOT_PARTITION_ACTIVATING``
     The to be activated boot partition (0 or 1).
-    ``boot-mbr-switch`` and ``boot-gpt-switch`` slot types only.
+    ``boot-mbr-switch``, ``boot-gpt-switch``, ``boot-emmc`` slot types only.
 
   ``RAUC_BOOT_PARTITION_START``
     The absolute partition offset of the to be activated boot partition in
