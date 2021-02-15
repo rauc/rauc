@@ -1343,16 +1343,6 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 	GError *ierror = NULL;
 	struct boot_switch_partition dest_partition;
 
-	/* run slot pre install hook if enabled */
-	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image,
-				dest_slot, &ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-	}
-
 	res = r_mbr_switch_get_inactive_partition(dest_slot->device,
 			&dest_partition, dest_slot->region_start,
 			dest_slot->region_size, &ierror);
@@ -1375,6 +1365,16 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 				image->checksum.size, dest_partition.size);
 		res = FALSE;
 		goto out;
+	}
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image,
+				dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 	g_message("Clearing inactive boot partition %d on %s", inactive_part,
