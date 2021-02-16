@@ -834,7 +834,7 @@ out:
 	return res;
 }
 
-static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, RaucSlot *slot, GError **error)
+static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, RaucImage *image, RaucSlot *slot, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -853,7 +853,7 @@ static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hoo
 
 	/* run slot install hook */
 	g_message("Running slot '%s' hook for %s", hook_cmd, slot->name);
-	res = run_slot_hook(hook_name, hook_cmd, NULL, slot, &ierror);
+	res = run_slot_hook(hook_name, hook_cmd, image, slot, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 	}
@@ -885,7 +885,7 @@ static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, con
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -928,7 +928,7 @@ static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, con
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -948,7 +948,7 @@ static gboolean img_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, dest_slot, &ierror);
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -991,7 +991,7 @@ static gboolean img_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, dest_slot, &ierror);
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1011,7 +1011,7 @@ static gboolean archive_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, 
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, dest_slot, &ierror);
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1044,7 +1044,7 @@ static gboolean archive_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, 
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto unmount_out;
@@ -1079,7 +1079,7 @@ static gboolean archive_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, c
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1112,7 +1112,7 @@ static gboolean archive_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, c
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto unmount_out;
@@ -1147,7 +1147,7 @@ static gboolean archive_to_vfat_handler(RaucImage *image, RaucSlot *dest_slot, c
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1180,7 +1180,7 @@ static gboolean archive_to_vfat_handler(RaucImage *image, RaucSlot *dest_slot, c
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto unmount_out;
@@ -1213,7 +1213,7 @@ static gboolean img_to_nor_handler(RaucImage *image, RaucSlot *dest_slot, const 
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1238,7 +1238,7 @@ static gboolean img_to_nor_handler(RaucImage *image, RaucSlot *dest_slot, const 
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1256,7 +1256,7 @@ static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, const
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1281,7 +1281,7 @@ static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, const
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1299,7 +1299,7 @@ static gboolean img_to_fs_handler(RaucImage *image, RaucSlot *dest_slot, const g
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, dest_slot, &ierror);
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1324,7 +1324,7 @@ static gboolean img_to_fs_handler(RaucImage *image, RaucSlot *dest_slot, const g
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, dest_slot, &ierror);
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1345,7 +1345,7 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL,
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image,
 				dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
@@ -1435,7 +1435,7 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL,
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image,
 				dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
@@ -1460,7 +1460,7 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL,
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image,
 				dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
@@ -1550,7 +1550,7 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL,
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image,
 				dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
@@ -1582,7 +1582,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		res = run_slot_hook(
 				hook_name,
 				R_SLOT_HOOK_PRE_INSTALL,
-				NULL,
+				image,
 				dest_slot,
 				&ierror);
 		if (!res) {
@@ -1713,7 +1713,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		res = run_slot_hook(
 				hook_name,
 				R_SLOT_HOOK_POST_INSTALL,
-				NULL,
+				image,
 				dest_slot,
 				&ierror);
 		if (!res) {
@@ -1738,7 +1738,7 @@ static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const 
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, NULL, dest_slot, &ierror);
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1754,7 +1754,7 @@ static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const 
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, NULL, dest_slot, &ierror);
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
