@@ -802,6 +802,10 @@ The following environment variables will be passed to the hook executable:
     If set, the file name of the image currently to be installed,
     e.g. ``"product-rootfs.img"``
 
+  ``RAUC_IMAGE_SIZE``
+    If set, the size of the image currently to be installed,
+    e.g. ``"82628"``
+
   ``RAUC_IMAGE_DIGEST``
     If set, the digest of the image currently to be installed,
     e.g. ``"e29364a81c542755fd5b2c2461cd12b0610b67ceacabce41c102bba4202f2b43"``
