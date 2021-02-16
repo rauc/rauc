@@ -752,6 +752,7 @@ static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, Rau
 {
 	g_autoptr(GSubprocessLauncher) launcher = NULL;
 	g_autoptr(GSubprocess) sproc = NULL;
+	g_autofree gchar* image_size = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	RaucBundle *bundle;
@@ -784,7 +785,9 @@ static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, Rau
 		g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_MOUNT_POINT", slot->ext_mount_point, TRUE);
 	}
 	if (image) {
+		image_size = g_strdup_printf("%" G_GOFFSET_FORMAT, image->checksum.size);
 		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_NAME", image->filename, TRUE);
+		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_SIZE", image_size, TRUE);
 		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_DIGEST", image->checksum.digest, TRUE);
 		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_CLASS", image->slotclass, TRUE);
 	}
