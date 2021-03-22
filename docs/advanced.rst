@@ -1075,3 +1075,16 @@ https://github.com/rauc/rauc-hawkbit
 It is also available via pypi:
 
 https://pypi.python.org/pypi/rauc-hawkbit/
+
+Upparat: Client for AWS IoT Jobs (python)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Upparat acts as a client for `AWS IoT Jobs <https://docs.aws.amazon.com/iot/latest/developerguide/iot-jobs.html>`_ that can be used together with RAUC.
+
+For more information visit it on GitHub:
+
+https://github.com/caruhome/upparat
+
+It is also available via pypi:
+
+https://pypi.org/project/upparat/
