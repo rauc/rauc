@@ -757,7 +757,7 @@ static gboolean uboot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
-	*good = (atoi(attempts->str) > 0) ? TRUE : FALSE;
+	*good = (g_ascii_strtoull(attempts->str, NULL, 16) > 0) ? TRUE : FALSE;
 
 	return TRUE;
 }
@@ -818,7 +818,7 @@ set_left:
 			attempts = UBOOT_DEFAULT_ATTEMPTS;
 	}
 
-	val = g_strdup_printf("%d", attempts);
+	val = g_strdup_printf("%x", attempts);
 
 	if (!uboot_env_set(key, val, &ierror)) {
 		g_propagate_error(error, ierror);
@@ -864,7 +864,7 @@ static RaucSlot* uboot_get_primary(GError **error)
 				return NULL;
 			}
 
-			if (atoi(attempts->str) <= 0)
+			if (g_ascii_strtoull(attempts->str, NULL, 16) <= 0)
 				continue;
 
 			primary = slot;
