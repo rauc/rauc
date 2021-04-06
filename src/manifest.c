@@ -65,7 +65,7 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 			iimage->hooks.post_install = TRUE;
 		} else {
 			g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
-					"hook key %s not supported", hooks[j]);
+					"slot hook type '%s' not supported", hooks[j]);
 			goto out;
 		}
 	}
@@ -173,7 +173,7 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 			raucm->hooks.install_check = TRUE;
 		} else {
 			g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
-					"hook key %s not supported", bundle_hooks[j]);
+					"install hook type '%s' not supported", bundle_hooks[j]);
 			goto free;
 		}
 	}
