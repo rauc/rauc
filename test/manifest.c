@@ -321,6 +321,35 @@ filename=rootfs-var2.ext4\n\
 	free_manifest(rm);
 }
 
+static void test_manifest_invalid_hook_name(void)
+{
+	g_autofree gchar *tmpdir;
+	g_autofree gchar *manifestpath = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
+	gboolean res = FALSE;
+	g_autoptr(GError) error = NULL;
+	const gchar *mffile = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs-default.ext4\n\
+hooks=doesnotexist\n\
+";
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
+	g_assert_nonnull(manifestpath);
+
+	res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE);
+	g_assert_false(res);
+	g_assert_null(rm);
+}
+
 
 /* Test manifest/invalid_data:
  *
@@ -423,6 +452,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/manifest/save/writefail", test_save_manifest_writefail);
 	g_test_add_func("/manifest/load_mem", test_load_manifest_mem);
 	g_test_add_func("/manifest/load_variants", test_manifest_load_variants);
+	g_test_add_func("/manifest/invalid_hook_name", test_manifest_invalid_hook_name);
 	g_test_add_func("/manifest/invalid_data", test_invalid_data);
 
 	return g_test_run();

@@ -64,7 +64,9 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 		} else if (g_strcmp0(hooks[j], "post-install") == 0) {
 			iimage->hooks.post_install = TRUE;
 		} else {
-			g_warning("hook key %s not supported", hooks[j]);
+			g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+					"hook key %s not supported", hooks[j]);
+			goto out;
 		}
 	}
 	g_key_file_remove_key(key_file, group, "hooks", NULL);
@@ -170,7 +172,9 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 		if (g_strcmp0(bundle_hooks[j], "install-check") == 0) {
 			raucm->hooks.install_check = TRUE;
 		} else {
-			g_warning("hook key %s not supported", bundle_hooks[j]);
+			g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+					"hook key %s not supported", bundle_hooks[j]);
+			goto free;
 		}
 	}
 	g_strfreev(bundle_hooks);
