@@ -692,7 +692,17 @@ void free_manifest(RaucManifest *manifest)
 	g_free(manifest);
 }
 
-gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *dir, GError **error)
+/**
+ * Updates checksums for files and images listed in the manifest and found in
+ * the bundle directory.
+ *
+ * @param manifest pointer to the manifest
+ * @param dir Directory with the bundle content
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *dir, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = TRUE;
@@ -728,4 +738,33 @@ gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *dir, GEr
 	}
 
 	return res;
+}
+
+gboolean sync_manifest_with_contentdir(RaucManifest *manifest, const gchar *dir, GError **error)
+{
+	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(dir, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* Check for missing image files */
+	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
+		RaucImage *image = elem->data;
+		g_autofree gchar *filename = g_build_filename(dir, image->filename, NULL);
+		if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_CHECKSUM, "image file '%s' for slot '%s' does not exist in bundle content dir (%s)", image->filename, image->slotclass, dir);
+			return FALSE;
+		}
+	}
+
+	/* Check for missing hook file */
+	if (manifest->hook_name) {
+		g_autofree gchar *hookpath = NULL;
+		hookpath = g_build_filename(dir, manifest->hook_name, NULL);
+		if (!g_file_test(hookpath, G_FILE_TEST_EXISTS)) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_CHECKSUM, "hook file '%s' does not exist in bundle content dir (%s)", manifest->hook_name, dir);
+			return FALSE;
+		}
+	}
+
+	return update_manifest_checksums(manifest, dir, error);
 }
