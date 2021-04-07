@@ -361,8 +361,7 @@ gboolean check_manifest_internal(const RaucManifest *mf, GError **error)
 
 	r_context_begin_step("check_manifest", "Checking manifest contents", 0);
 
-	res = check_manifest_common(mf, &ierror);
-	if (!res) {
+	if (!check_manifest_common(mf, &ierror)) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
@@ -405,8 +404,7 @@ gboolean check_manifest_external(const RaucManifest *mf, GError **error)
 
 	r_context_begin_step("check_manifest", "Checking manifest contents", 0);
 
-	res = check_manifest_common(mf, &ierror);
-	if (!res) {
+	if (!check_manifest_common(mf, &ierror)) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
