@@ -316,6 +316,7 @@ out:
 
 static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 {
+	gboolean have_hooks = FALSE;
 	gboolean res = FALSE;
 
 	switch (mf->bundle_format) {
@@ -347,6 +348,32 @@ static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing size for image %s", image->filename);
 			goto out;
 		}
+	}
+
+	/* Check for hook file set if hooks are enabled */
+
+	if (mf->hooks.install_check == TRUE)
+		have_hooks = TRUE;
+
+	for (GList *l = mf->images; l != NULL; l = l->next) {
+		RaucImage *image = l->data;
+		if (image->hooks.pre_install == TRUE) {
+			have_hooks = TRUE;
+			break;
+		}
+		if (image->hooks.install == TRUE) {
+			have_hooks = TRUE;
+			break;
+		}
+		if (image->hooks.post_install == TRUE) {
+			have_hooks = TRUE;
+			break;
+		}
+	}
+
+	if (have_hooks && !mf->hook_name) {
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Hooks used, but no hook 'filename' defined in [hooks] section");
+		goto out;
 	}
 
 	res = TRUE;
