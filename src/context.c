@@ -54,6 +54,9 @@ static const gchar* get_cmdline_bootname(void)
 
 	bootname = regex_match("root=(\\S+)", contents);
 	if (!bootname)
+		bootname = regex_match("systemd\\.verity_root_data=(\\S+)", contents);
+
+	if (!bootname)
 		return NULL;
 
 	if (strncmp(bootname, "PARTLABEL=", 10) == 0) {
