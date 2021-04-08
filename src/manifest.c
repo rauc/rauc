@@ -64,7 +64,9 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 		} else if (g_strcmp0(hooks[j], "post-install") == 0) {
 			iimage->hooks.post_install = TRUE;
 		} else {
-			g_warning("hook key %s not supported", hooks[j]);
+			g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+					"slot hook type '%s' not supported", hooks[j]);
+			goto out;
 		}
 	}
 	g_key_file_remove_key(key_file, group, "hooks", NULL);
@@ -170,7 +172,9 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 		if (g_strcmp0(bundle_hooks[j], "install-check") == 0) {
 			raucm->hooks.install_check = TRUE;
 		} else {
-			g_warning("hook key %s not supported", bundle_hooks[j]);
+			g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+					"install hook type '%s' not supported", bundle_hooks[j]);
+			goto free;
 		}
 	}
 	g_strfreev(bundle_hooks);
@@ -312,6 +316,7 @@ out:
 
 static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 {
+	gboolean have_hooks = FALSE;
 	gboolean res = FALSE;
 
 	switch (mf->bundle_format) {
@@ -345,6 +350,32 @@ static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 		}
 	}
 
+	/* Check for hook file set if hooks are enabled */
+
+	if (mf->hooks.install_check == TRUE)
+		have_hooks = TRUE;
+
+	for (GList *l = mf->images; l != NULL; l = l->next) {
+		RaucImage *image = l->data;
+		if (image->hooks.pre_install == TRUE) {
+			have_hooks = TRUE;
+			break;
+		}
+		if (image->hooks.install == TRUE) {
+			have_hooks = TRUE;
+			break;
+		}
+		if (image->hooks.post_install == TRUE) {
+			have_hooks = TRUE;
+			break;
+		}
+	}
+
+	if (have_hooks && !mf->hook_name) {
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Hooks used, but no hook 'filename' defined in [hooks] section");
+		goto out;
+	}
+
 	res = TRUE;
 out:
 	return res;
@@ -357,8 +388,7 @@ gboolean check_manifest_internal(const RaucManifest *mf, GError **error)
 
 	r_context_begin_step("check_manifest", "Checking manifest contents", 0);
 
-	res = check_manifest_common(mf, &ierror);
-	if (!res) {
+	if (!check_manifest_common(mf, &ierror)) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
@@ -401,8 +431,7 @@ gboolean check_manifest_external(const RaucManifest *mf, GError **error)
 
 	r_context_begin_step("check_manifest", "Checking manifest contents", 0);
 
-	res = check_manifest_common(mf, &ierror);
-	if (!res) {
+	if (!check_manifest_common(mf, &ierror)) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
@@ -663,7 +692,17 @@ void free_manifest(RaucManifest *manifest)
 	g_free(manifest);
 }
 
-gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *dir, GError **error)
+/**
+ * Updates checksums for files and images listed in the manifest and found in
+ * the bundle directory.
+ *
+ * @param manifest pointer to the manifest
+ * @param dir Directory with the bundle content
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *dir, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = TRUE;
@@ -699,4 +738,33 @@ gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *dir, GEr
 	}
 
 	return res;
+}
+
+gboolean sync_manifest_with_contentdir(RaucManifest *manifest, const gchar *dir, GError **error)
+{
+	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(dir, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* Check for missing image files */
+	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
+		RaucImage *image = elem->data;
+		g_autofree gchar *filename = g_build_filename(dir, image->filename, NULL);
+		if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_CHECKSUM, "image file '%s' for slot '%s' does not exist in bundle content dir (%s)", image->filename, image->slotclass, dir);
+			return FALSE;
+		}
+	}
+
+	/* Check for missing hook file */
+	if (manifest->hook_name) {
+		g_autofree gchar *hookpath = NULL;
+		hookpath = g_build_filename(dir, manifest->hook_name, NULL);
+		if (!g_file_test(hookpath, G_FILE_TEST_EXISTS)) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_CHECKSUM, "hook file '%s' does not exist in bundle content dir (%s)", manifest->hook_name, dir);
+			return FALSE;
+		}
+	}
+
+	return update_manifest_checksums(manifest, dir, error);
 }

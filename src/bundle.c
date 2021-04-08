@@ -616,7 +616,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		goto out;
 	}
 
-	res = update_manifest_checksums(manifest, contentdir, &ierror);
+	res = sync_manifest_with_contentdir(manifest, contentdir, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
