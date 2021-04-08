@@ -167,7 +167,7 @@ static gboolean check_region(struct fdisk_context *cxt,
 					"Region (sectors 0x%"G_GINT64_MODIFIER "x - 0x%"G_GINT64_MODIFIER "x) overlaps "
 					"with partition %zd (sectors 0x%"G_GINT64_MODIFIER "x - 0x%"G_GINT64_MODIFIER "x)",
 					region_start_sector, region_end_sector,
-					fdisk_partition_get_partno(pa),
+					fdisk_partition_get_partno(pa) + 1,
 					p_start_sector, p_end_sector);
 			goto out_table;
 		}

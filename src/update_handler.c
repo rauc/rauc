@@ -738,7 +738,7 @@ static gboolean unpack_archive(RaucImage *image, gchar *dest, GError **error)
 }
 
 /**
- * Executes the per-slot hook script.
+ * Executes the per-slot hook script with extra environment variables.
  *
  * @param hook_name file name of the hook script
  * @param hook_cmd first argument to the hook script
@@ -748,7 +748,7 @@ static gboolean unpack_archive(RaucImage *image, gchar *dest, GError **error)
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, RaucImage *image, RaucSlot *slot, GError **error)
+static gboolean run_slot_hook_extra_env(const gchar *hook_name, const gchar *hook_cmd, RaucImage *image, RaucSlot *slot, GHashTable *variables, GError **error)
 {
 	g_autoptr(GSubprocessLauncher) launcher = NULL;
 	g_autoptr(GSubprocess) sproc = NULL;
@@ -808,6 +808,19 @@ static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, Rau
 		g_subprocess_launcher_setenv(launcher, "RAUC_BUNDLE_MOUNT_POINT", bundle->mount_point, TRUE);
 	}
 
+	if (variables) {
+		GHashTableIter iter;
+		gchar *key = NULL;
+		gchar *value = NULL;
+
+		/* copy the variables from the hashtable and add them to the
+		   subprocess environment */
+		g_hash_table_iter_init(&iter, variables);
+		while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
+			g_subprocess_launcher_setenv(launcher, g_strdup(key), g_strdup(value), TRUE);
+		}
+	}
+
 	sproc = g_subprocess_launcher_spawn(
 			launcher, &ierror,
 			hook_name,
@@ -832,6 +845,22 @@ static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, Rau
 
 out:
 	return res;
+}
+
+/**
+ * Executes the per-slot hook script without setting extra environment variables.
+ *
+ * @param hook_name file name of the hook script
+ * @param hook_cmd first argument to the hook script
+ * @param image image to be installed (optional)
+ * @param slot target slot
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+static gboolean run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, RaucImage *image, RaucSlot *slot, GError **error)
+{
+	return run_slot_hook_extra_env(hook_name, hook_cmd, image, slot, NULL, error);
 }
 
 static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hook_cmd, RaucImage *image, RaucSlot *slot, GError **error)
@@ -1342,16 +1371,7 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	struct boot_switch_partition dest_partition;
-
-	/* run slot pre install hook if enabled */
-	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image,
-				dest_slot, &ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-	}
+	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
 	res = r_mbr_switch_get_inactive_partition(dest_slot->device,
 			&dest_partition, dest_slot->region_start,
@@ -1377,6 +1397,23 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_ACTIVATING"),
+			g_strdup_printf("%d", inactive_part));
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_START"),
+			g_strdup_printf("%"G_GUINT64_FORMAT, dest_partition.start));
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_SIZE"),
+			g_strdup_printf("%"G_GUINT64_FORMAT, dest_partition.size));
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook_extra_env(hook_name, R_SLOT_HOOK_PRE_INSTALL, image,
+				dest_slot, vars, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
 	g_message("Clearing inactive boot partition %d on %s", inactive_part,
 			dest_slot->device);
 
@@ -1425,6 +1462,16 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook_extra_env(hook_name, R_SLOT_HOOK_POST_INSTALL, image,
+				dest_slot, vars, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
 	g_message("Setting MBR to switch boot partition");
 
 	res = r_mbr_switch_set_boot_partition(dest_slot->device, &dest_partition, &ierror);
@@ -1433,15 +1480,6 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
-	/* run slot post install hook if enabled */
-	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image,
-				dest_slot, &ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-	}
 out:
 	if (out_fd >= 0)
 		close(out_fd);
@@ -1457,16 +1495,7 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	struct boot_switch_partition dest_partition;
-
-	/* run slot pre install hook if enabled */
-	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image,
-				dest_slot, &ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-	}
+	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
 	res = r_gpt_switch_get_inactive_partition(dest_slot->device,
 			&dest_partition, dest_slot->region_start,
@@ -1492,6 +1521,23 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_ACTIVATING"),
+			g_strdup_printf("%d", inactive_part));
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_START"),
+			g_strdup_printf("%"G_GUINT64_FORMAT, dest_partition.start));
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_SIZE"),
+			g_strdup_printf("%"G_GUINT64_FORMAT, dest_partition.size));
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook_extra_env(hook_name, R_SLOT_HOOK_PRE_INSTALL, image,
+				dest_slot, vars, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
 	g_message("Clearing inactive boot partition %d on %s", inactive_part,
 			dest_slot->device);
 
@@ -1540,22 +1586,22 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook_extra_env(hook_name, R_SLOT_HOOK_POST_INSTALL, image,
+				dest_slot, vars, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
 	g_message("Setting GPT to switch boot partition");
 
 	res = r_gpt_switch_set_boot_partition(dest_slot->device, &dest_partition, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
-	}
-
-	/* run slot post install hook if enabled */
-	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image,
-				dest_slot, &ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
 	}
 out:
 	if (out_fd >= 0)
@@ -1576,20 +1622,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	g_autoptr(RaucSlot) part_slot = NULL;
-
-	/* run slot pre install hook if enabled */
-	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(
-				hook_name,
-				R_SLOT_HOOK_PRE_INSTALL,
-				image,
-				dest_slot,
-				&ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-	}
+	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
 	realdev = r_realpath(dest_slot->device);
 	if (!realdev) {
@@ -1637,6 +1670,24 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		goto out;
 	}
 
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_ACTIVATING"),
+			g_strdup_printf("%d", INACTIVE_BOOT_PARTITION(part_active)));
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook_extra_env(
+				hook_name,
+				R_SLOT_HOOK_PRE_INSTALL,
+				image,
+				dest_slot,
+				vars,
+				&ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
 	/* clear block device partition */
 	g_message("Clearing slot device %s", part_slot->device);
 	res = clear_slot(part_slot, &ierror);
@@ -1661,6 +1712,21 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
+	}
+
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook_extra_env(
+				hook_name,
+				R_SLOT_HOOK_POST_INSTALL,
+				image,
+				dest_slot,
+				vars,
+				&ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 	/* re-enable read-only on determined eMMC boot partition */
@@ -1707,20 +1773,6 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	}
 
 	g_message("Boot partition %s is now active", part_slot->device);
-
-	/* run slot post install hook if enabled */
-	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(
-				hook_name,
-				R_SLOT_HOOK_POST_INSTALL,
-				image,
-				dest_slot,
-				&ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-	}
 
 out:
 	/* ensure that the eMMC boot partition is read-only afterwards */

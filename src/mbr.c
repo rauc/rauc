@@ -176,7 +176,7 @@ static gboolean is_region_free(guint64 region_start, guint64 region_size,
 			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 					"Region start address 0x%"G_GINT64_MODIFIER "x is in area of "
 					"partition %d (0x%"G_GINT64_MODIFIER "x - 0x%"G_GINT64_MODIFIER "x)",
-					region_start, i, p_start, p_end);
+					region_start, i+1, p_start, p_end);
 			break;
 		}
 
@@ -185,7 +185,7 @@ static gboolean is_region_free(guint64 region_start, guint64 region_size,
 			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 					"Region end address 0x%"G_GINT64_MODIFIER "x is in area of "
 					"partition %d (0x%"G_GINT64_MODIFIER "x - 0x%"G_GINT64_MODIFIER "x)",
-					region_start + region_size - 1, i, p_start,
+					region_start + region_size - 1, i+1, p_start,
 					p_end);
 			break;
 		}
