@@ -391,6 +391,14 @@ There is no extra slot configuration needed for this as RAUC assumes it is safe
 to update all available slots in case the currently running system comes from
 NFS.
 
+.. rubric:: ``systemd.verity_root_data=``
+
+RAUC handles the ``systemd.verity_root_data=`` parameter the same as ``root=``
+above.
+See the `systemd-veritysetup-generator documentation
+<https://www.freedesktop.org/software/systemd/man/systemd-veritysetup-generator.html#systemd.verity_root_data=>`_
+for details.
+
 Barebox
 ~~~~~~~
 
