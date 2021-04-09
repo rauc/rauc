@@ -19,7 +19,7 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 	g_autoptr(RaucImage) iimage = g_new0(RaucImage, 1);
 	g_auto(GStrv) groupsplit = NULL;
 	gchar *value;
-	gchar **hooks;
+	g_auto(GStrv) hooks = NULL;
 	gsize entries;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -71,8 +71,6 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 	}
 	g_key_file_remove_key(key_file, group, "hooks", NULL);
 
-	g_strfreev(hooks);
-
 	if (!check_remaining_keys(key_file, group, &ierror)) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -104,7 +102,7 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	g_autofree gchar *tmp = NULL;
 	gchar **groups;
 	gsize group_count;
-	gchar **bundle_hooks;
+	g_auto(GStrv) bundle_hooks = NULL;
 	gsize hook_entries;
 
 	g_assert_null(*manifest);
@@ -177,7 +175,6 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 			goto free;
 		}
 	}
-	g_strfreev(bundle_hooks);
 
 	if (!check_remaining_keys(key_file, "hooks", &ierror)) {
 		g_propagate_error(error, ierror);
