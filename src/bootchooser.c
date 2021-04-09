@@ -80,6 +80,10 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 	g_ptr_array_add(args, g_strdup_printf(BOOTSTATE_PREFIX ".%s.priority", bootname));
 	g_ptr_array_add(args, g_strdup("-g"));
 	g_ptr_array_add(args, g_strdup_printf(BOOTSTATE_PREFIX ".%s.remaining_attempts", bootname));
+	if (r_context()->config->system_bb_dtbpath) {
+		g_ptr_array_add(args, g_strdup("-i"));
+		g_ptr_array_add(args, g_strdup(r_context()->config->system_bb_dtbpath));
+	}
 	g_ptr_array_add(args, NULL);
 
 	sub = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror);
