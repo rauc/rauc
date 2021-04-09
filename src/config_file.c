@@ -220,6 +220,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 	if (g_strcmp0(c->system_bootloader, "barebox") == 0) {
 		c->system_bb_statename = key_file_consume_string(key_file, "system", "barebox-statename", NULL);
+		c->system_bb_dtbpath = key_file_consume_string(key_file, "system", "barebox-dtbpath", NULL);
 	} else if (g_strcmp0(c->system_bootloader, "grub") == 0) {
 		c->grubenv_path = resolve_path(filename,
 				key_file_consume_string(key_file, "system", "grubenv", NULL));

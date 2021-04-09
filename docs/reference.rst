@@ -93,6 +93,17 @@ Example configuration:
   key not exists, the bootchooser framework searches per default for ``/state``
   or ``/aliases/state``.
 
+``barebox-dtbpath``
+  Only valid when ``bootloader`` is set to ``barebox``.
+  Allows to set a path to a separate devicetree (dtb) file to be used for
+  reading `barebox state <https://www.barebox.org/doc/latest/user/state.html>`_
+  definition from.
+  This is mainly useful for systems that do not use devicetrees by default,
+  like x86 systems.
+
+  .. note:: Requires to have at least `dt-utils
+     <https://git.pengutronix.de/cgit/tools/dt-utils>`_ version 2021.03.0
+
 ``boot-attempts``
   This configures the number of boot attempts to set when a slot is marked good
   through the D-Bus API or via the command line tool.

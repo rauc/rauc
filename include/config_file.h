@@ -36,6 +36,7 @@ typedef struct {
 	gchar *system_variant;
 	gchar *system_bootloader;
 	gchar *system_bb_statename;
+	gchar *system_bb_dtbpath;
 	gint boot_default_attempts;
 	gint boot_attempts_primary;
 	gchar *grubenv_path;
