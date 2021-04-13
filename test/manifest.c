@@ -20,7 +20,6 @@ static void manifest_check_common(RaucManifest *rm)
 	g_assert_nonnull(rm);
 	g_assert_cmpstr(rm->update_compatible, ==, "FooCorp Super BarBazzer");
 	g_assert_cmpstr(rm->update_version, ==, "2015.04-1");
-	g_assert_cmpstr(rm->keyring, ==, "release.tar");
 	g_assert_cmpstr(rm->handler_name, ==, "custom_handler.sh");
 	g_assert_cmpstr(rm->handler_args, ==, NULL);
 	g_assert_cmpstr(rm->hook_name, ==, "hook.sh");
@@ -90,7 +89,6 @@ static void check_manifest_contents(const RaucManifest *rm)
 	g_assert_nonnull(rm);
 	g_assert_cmpstr(rm->update_compatible, ==, "BarCorp FooBazzer");
 	g_assert_cmpstr(rm->update_version, ==, "2011.03-1");
-	g_assert_cmpstr(rm->keyring, ==, "mykeyring.tar");
 	g_assert_cmpstr(rm->handler_name, ==, "myhandler.sh");
 	g_assert_cmpstr(rm->handler_args, ==, "--foo");
 	g_assert_cmpstr(rm->hook_name, ==, "hook.sh");
@@ -140,7 +138,6 @@ static void test_save_load_manifest(void)
 
 	rm->update_compatible = g_strdup("BarCorp FooBazzer");
 	rm->update_version = g_strdup("2011.03-1");
-	rm->keyring = g_strdup("mykeyring.tar");
 	rm->handler_name = g_strdup("myhandler.sh");
 	rm->handler_args = g_strdup("--foo");
 	rm->hook_name = g_strdup("hook.sh");
@@ -266,9 +263,6 @@ static void test_manifest_load_variants(void)
 [update]\n\
 compatible=FooCorp Super BarBazzer\n\
 version=2015.04-1\n\
-\n\
-[keyring]\n\
-archive=release.tar\n\
 \n\
 [handler]\n\
 filename=custom_handler.sh\n\

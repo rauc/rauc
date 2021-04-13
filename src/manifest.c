@@ -145,14 +145,6 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	}
 	g_key_file_remove_group(key_file, "bundle", NULL);
 
-	/* parse [keyring] section */
-	raucm->keyring = key_file_consume_string(key_file, "keyring", "archive", NULL);
-	if (!check_remaining_keys(key_file, "keyring", &ierror)) {
-		g_propagate_error(error, ierror);
-		goto free;
-	}
-	g_key_file_remove_group(key_file, "keyring", NULL);
-
 	/* parse [handler] section */
 	raucm->handler_name = key_file_consume_string(key_file, "handler", "filename", NULL);
 	raucm->handler_args = key_file_consume_string(key_file, "handler", "args", NULL);
@@ -524,9 +516,6 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 			break;
 	}
 
-	if (mf->keyring)
-		g_key_file_set_string(key_file, "keyring", "archive", mf->keyring);
-
 	if (mf->handler_name)
 		g_key_file_set_string(key_file, "handler", "filename", mf->handler_name);
 
@@ -680,7 +669,6 @@ void free_manifest(RaucManifest *manifest)
 	g_free(manifest->update_build);
 	g_free(manifest->bundle_verity_hash);
 	g_free(manifest->bundle_verity_salt);
-	g_free(manifest->keyring);
 	g_free(manifest->handler_name);
 	g_free(manifest->handler_args);
 	g_free(manifest->hook_name);

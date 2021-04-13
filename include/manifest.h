@@ -55,8 +55,6 @@ typedef struct {
 	gchar *bundle_verity_hash;
 	guint64 bundle_verity_size;
 
-	gchar *keyring;
-
 	gchar *handler_name;
 	gchar *handler_args;
 
