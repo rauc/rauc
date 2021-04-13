@@ -26,7 +26,6 @@ static void manifest_check_common(RaucManifest *rm)
 	g_assert_nonnull(rm->images);
 
 	g_assert_cmpuint(g_list_length(rm->images), ==, 2);
-	g_assert_cmpuint(g_list_length(rm->files), ==, 2);
 
 	for (GList *l = rm->images; l != NULL; l = l->next) {
 		RaucImage *img = l->data;
@@ -34,15 +33,6 @@ static void manifest_check_common(RaucManifest *rm)
 		g_assert_nonnull(img->slotclass);
 		g_assert_nonnull(img->checksum.digest);
 		g_assert_nonnull(img->filename);
-	}
-
-	for (GList *l = rm->files; l != NULL; l = l->next) {
-		RaucFile *file = l->data;
-		g_assert_nonnull(file);
-		g_assert_nonnull(file->slotclass);
-		g_assert_nonnull(file->destname);
-		g_assert_nonnull(file->checksum.digest);
-		g_assert_nonnull(file->filename);
 	}
 }
 
@@ -94,7 +84,6 @@ static void check_manifest_contents(const RaucManifest *rm)
 	g_assert_cmpstr(rm->hook_name, ==, "hook.sh");
 
 	g_assert_cmpuint(g_list_length(rm->images), ==, 3);
-	g_assert_cmpuint(g_list_length(rm->files), ==, 1);
 
 	for (GList *l = rm->images; l != NULL; l = l->next) {
 		RaucImage *image = (RaucImage*) l->data;
@@ -102,15 +91,6 @@ static void check_manifest_contents(const RaucManifest *rm)
 		g_assert_nonnull(image->slotclass);
 		g_assert_nonnull(image->checksum.digest);
 		g_assert_nonnull(image->filename);
-	}
-
-	for (GList *l = rm->files; l != NULL; l = l->next) {
-		RaucFile *file = l->data;
-		g_assert_nonnull(file);
-		g_assert_nonnull(file->slotclass);
-		g_assert_nonnull(file->destname);
-		g_assert_nonnull(file->checksum.digest);
-		g_assert_nonnull(file->filename);
 	}
 
 	g_assert_nonnull(g_list_nth_data(rm->images, 0));
@@ -133,7 +113,6 @@ static void test_save_load_manifest(void)
 	gboolean res = FALSE;
 	RaucManifest *rm = g_new0(RaucManifest, 1);
 	RaucImage *new_image;
-	RaucFile *new_file;
 	GBytes *mem = NULL;
 
 	rm->update_compatible = g_strdup("BarCorp FooBazzer");
@@ -172,17 +151,7 @@ static void test_save_load_manifest(void)
 	new_image->filename = g_strdup("myappimg.ext4");
 	rm->images = g_list_append(rm->images, new_image);
 
-	new_file = g_new0(RaucFile, 1);
-
-	new_file->slotclass = g_strdup("rootfs");
-	new_file->destname = g_strdup("vmlinuz");
-	new_file->checksum.type = G_CHECKSUM_SHA256;
-	new_file->checksum.digest = g_strdup("5ce231b9683db16623783b8bcff120c11969e8d29755f25bc87a6fae92e06741");
-	new_file->filename = g_strdup("mykernel.img");
-	rm->files = g_list_append(rm->files, new_file);
-
 	g_assert_cmpuint(g_list_length(rm->images), ==, 3);
-	g_assert_cmpuint(g_list_length(rm->files), ==, 1);
 
 	res = save_manifest_file("test/savedmanifest.raucm", rm, &error);
 	g_assert_no_error(error);

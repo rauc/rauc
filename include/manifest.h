@@ -32,13 +32,6 @@ typedef struct {
 	SlotHooks hooks;
 } RaucImage;
 
-typedef struct {
-	gchar* slotclass;
-	RaucChecksum checksum;
-	gchar* filename;
-	gchar* destname;
-} RaucFile;
-
 typedef enum {
 	R_MANIFEST_FORMAT_PLAIN = 0,
 	R_MANIFEST_FORMAT_VERITY,
@@ -62,7 +55,6 @@ typedef struct {
 	InstallHooks hooks;
 
 	GList *images;
-	GList *files;
 } RaucManifest;
 
 /**
@@ -174,13 +166,6 @@ G_GNUC_WARN_UNUSED_RESULT;
 void r_free_image(gpointer data);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucImage, r_free_image);
-
-/**
- * Frees a rauc file
- */
-void r_free_file(gpointer data);
-
-G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucFile, r_free_file);
 
 static inline const gchar *r_manifest_bundle_format_to_str(RManifestBundleFormat format)
 {
