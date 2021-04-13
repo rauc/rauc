@@ -162,6 +162,7 @@ AC_CONFIG_LINKS([test/good-casync-bundle-1.4.raucb:test/good-casync-bundle-1.4.r
 AC_CONFIG_LINKS([test/good-casync-bundle-1.5.1.raucb:test/good-casync-bundle-1.5.1.raucb])
 AC_CONFIG_LINKS([test/invalid-sig-bundle.raucb:test/invalid-sig-bundle.raucb])
 AC_CONFIG_LINKS([test/manifest.raucm:test/manifest.raucm])
+AC_CONFIG_LINKS([test/broken-manifest.raucm:test/broken-manifest.raucm])
 AC_CONFIG_LINKS([test/dummy.verity:test/dummy.verity])
 AC_CONFIG_LINKS([test/openssl-ca/manifest:test/openssl-ca/manifest])
 AC_CONFIG_LINKS([test/openssl-ca/root/ca.cert.pem:test/openssl-ca/root/ca.cert.pem])
