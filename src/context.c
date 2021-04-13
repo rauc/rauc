@@ -206,7 +206,7 @@ static gchar* get_variant_from_file(const gchar* filename, GError **error)
 }
 
 
-static gboolean r_context_configure(GError **error)
+gboolean r_context_configure(GError **error)
 {
 	gboolean res = TRUE;
 	GError *ierror = NULL;

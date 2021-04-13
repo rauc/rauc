@@ -167,6 +167,26 @@ RaucContext *r_context_conf(void);
 const RaucContext *r_context(void);
 
 /**
+ * Sets up global context.
+ *
+ * Removes 'pending' flag from the context object.
+ *
+ * * Loads RAUC configuration file (system.conf)
+ * * Reads basic system information like variant, system info, etc. (if
+ *   configured)
+ * * Reads 'bootname' from kernel commandline
+ * * Overrides config file values by commandline argument values where required.
+ *
+ * Note: Must not be called when context is 'busy'.
+ *
+ * @param[out] error Return location for a GError, or NULL
+ *
+ * @return TRUE if context configuration succeeded, otherwise FALSE
+ */
+gboolean r_context_configure(GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Cleans up provided RContextInstallationInfo.
  *
  * @param[in] info RContextInstallationInfo to free
