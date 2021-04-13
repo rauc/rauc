@@ -639,7 +639,6 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 	formatter_shell_append(text, "RAUC_MF_DESCRIPTION", manifest->update_description);
 	formatter_shell_append(text, "RAUC_MF_BUILD", manifest->update_build);
 	g_string_append_printf(text, "RAUC_MF_IMAGES=%d\n", g_list_length(manifest->images));
-	g_string_append_printf(text, "RAUC_MF_FILES=%d\n", g_list_length(manifest->files));
 
 	hooks = g_ptr_array_new();
 	if (manifest->hooks.install_check == TRUE) {
@@ -679,17 +678,6 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 		g_free(hookstring);
 
 		g_ptr_array_unref(hooks);
-		cnt++;
-	}
-
-	cnt = 0;
-	for (GList *l = manifest->files; l != NULL; l = l->next) {
-		RaucFile *file = l->data;
-		g_string_append_printf(text, "RAUC_FILE_NAME_%d=%s\n", cnt, file->filename);
-		g_string_append_printf(text, "RAUC_FILE_CLASS_%d=%s\n", cnt, file->slotclass);
-		g_string_append_printf(text, "RAUC_FILE_DEST_%d=%s\n", cnt, file->destname);
-		g_string_append_printf(text, "RAUC_FILE_DIGEST_%d=%s\n", cnt, file->checksum.digest);
-		g_string_append_printf(text, "RAUC_FILE_SIZE_%d=%"G_GOFFSET_FORMAT "\n", cnt, file->checksum.size);
 		cnt++;
 	}
 
@@ -757,19 +745,6 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 
 		g_ptr_array_unref(hooks);
 
-		cnt++;
-	}
-
-	cnt = g_list_length(manifest->files);
-	g_string_append_printf(text, "%d File%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
-	cnt = 1;
-	for (GList *l = manifest->files; l != NULL; l = l->next) {
-		RaucFile *file = l->data;
-		g_string_append_printf(text, "(%d)\t%s\n", cnt, file->filename);
-		g_string_append_printf(text, "\tSlotclass: %s\n", file->slotclass);
-		g_string_append_printf(text, "\tDest:      %s\n", file->destname);
-		g_string_append_printf(text, "\tChecksum:  %s\n", file->checksum.digest);
-		g_string_append_printf(text, "\tSize:      %"G_GOFFSET_FORMAT "\n", file->checksum.size);
 		cnt++;
 	}
 

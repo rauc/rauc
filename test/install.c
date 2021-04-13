@@ -272,14 +272,6 @@ filename=appfs.ext4\n\
 sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca\n\
 filename=demofs.ext4\n\
 \n\
-[file.rootfs/vmlinuz]\n\
-sha256=5fb50868cd1f2e34ff531d6680c9b734ba35ed4944072f396a50871e9c2d5155\n\
-filename=linux.img\n\
-\n\
-[file.rootfs/initramfs]\n\
-sha256=d37328d0d80779573b204762ee8aa011c22a5c43088f7541a8c1f591f8e3be6a\n\
-filename=initramfs.cpio.gz\n\
-\n\
 [image.bootloader]\n\
 sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca\n\
 filename=bootloader.img";

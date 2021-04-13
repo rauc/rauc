@@ -20,14 +20,12 @@ static void manifest_check_common(RaucManifest *rm)
 	g_assert_nonnull(rm);
 	g_assert_cmpstr(rm->update_compatible, ==, "FooCorp Super BarBazzer");
 	g_assert_cmpstr(rm->update_version, ==, "2015.04-1");
-	g_assert_cmpstr(rm->keyring, ==, "release.tar");
 	g_assert_cmpstr(rm->handler_name, ==, "custom_handler.sh");
 	g_assert_cmpstr(rm->handler_args, ==, NULL);
 	g_assert_cmpstr(rm->hook_name, ==, "hook.sh");
 	g_assert_nonnull(rm->images);
 
 	g_assert_cmpuint(g_list_length(rm->images), ==, 2);
-	g_assert_cmpuint(g_list_length(rm->files), ==, 2);
 
 	for (GList *l = rm->images; l != NULL; l = l->next) {
 		RaucImage *img = l->data;
@@ -35,15 +33,6 @@ static void manifest_check_common(RaucManifest *rm)
 		g_assert_nonnull(img->slotclass);
 		g_assert_nonnull(img->checksum.digest);
 		g_assert_nonnull(img->filename);
-	}
-
-	for (GList *l = rm->files; l != NULL; l = l->next) {
-		RaucFile *file = l->data;
-		g_assert_nonnull(file);
-		g_assert_nonnull(file->slotclass);
-		g_assert_nonnull(file->destname);
-		g_assert_nonnull(file->checksum.digest);
-		g_assert_nonnull(file->filename);
 	}
 }
 
@@ -59,26 +48,30 @@ static void test_load_manifest(void)
 {
 	RaucManifest *rm = NULL;
 	GError *error = NULL;
+	gboolean res;
 
 	// Load valid manifest file
-	g_assert_true(load_manifest_file("test/manifest.raucm", &rm, &error));
-	g_assert_null(error);
+	res = load_manifest_file("test/manifest.raucm", &rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 	manifest_check_common(rm);
 
 	g_clear_pointer(&rm, free_manifest);
 	g_assert_null(rm);
 
 	// Load non-existing manifest file
-	g_assert_false(load_manifest_file("test/nonexisting.raucm", &rm, &error));
-	g_assert_nonnull(error);
+	res = load_manifest_file("test/nonexisting.raucm", &rm, &error);
+	g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
+	g_assert_false(res);
 
 	g_clear_pointer(&rm, free_manifest);
 	g_clear_error(&error);
 	g_assert_null(rm);
 
 	// Load broken manifest file
-	g_assert_false(load_manifest_file("test/broken-manifest.raucm", &rm, &error));
-	g_assert_nonnull(error);
+	res = load_manifest_file("test/broken-manifest.raucm", &rm, &error);
+	g_assert_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND);
+	g_assert_false(res);
 
 	g_clear_pointer(&rm, free_manifest);
 	g_clear_error(&error);
@@ -90,13 +83,11 @@ static void check_manifest_contents(const RaucManifest *rm)
 	g_assert_nonnull(rm);
 	g_assert_cmpstr(rm->update_compatible, ==, "BarCorp FooBazzer");
 	g_assert_cmpstr(rm->update_version, ==, "2011.03-1");
-	g_assert_cmpstr(rm->keyring, ==, "mykeyring.tar");
 	g_assert_cmpstr(rm->handler_name, ==, "myhandler.sh");
 	g_assert_cmpstr(rm->handler_args, ==, "--foo");
 	g_assert_cmpstr(rm->hook_name, ==, "hook.sh");
 
 	g_assert_cmpuint(g_list_length(rm->images), ==, 3);
-	g_assert_cmpuint(g_list_length(rm->files), ==, 1);
 
 	for (GList *l = rm->images; l != NULL; l = l->next) {
 		RaucImage *image = (RaucImage*) l->data;
@@ -104,15 +95,6 @@ static void check_manifest_contents(const RaucManifest *rm)
 		g_assert_nonnull(image->slotclass);
 		g_assert_nonnull(image->checksum.digest);
 		g_assert_nonnull(image->filename);
-	}
-
-	for (GList *l = rm->files; l != NULL; l = l->next) {
-		RaucFile *file = l->data;
-		g_assert_nonnull(file);
-		g_assert_nonnull(file->slotclass);
-		g_assert_nonnull(file->destname);
-		g_assert_nonnull(file->checksum.digest);
-		g_assert_nonnull(file->filename);
 	}
 
 	g_assert_nonnull(g_list_nth_data(rm->images, 0));
@@ -135,12 +117,10 @@ static void test_save_load_manifest(void)
 	gboolean res = FALSE;
 	RaucManifest *rm = g_new0(RaucManifest, 1);
 	RaucImage *new_image;
-	RaucFile *new_file;
 	GBytes *mem = NULL;
 
 	rm->update_compatible = g_strdup("BarCorp FooBazzer");
 	rm->update_version = g_strdup("2011.03-1");
-	rm->keyring = g_strdup("mykeyring.tar");
 	rm->handler_name = g_strdup("myhandler.sh");
 	rm->handler_args = g_strdup("--foo");
 	rm->hook_name = g_strdup("hook.sh");
@@ -175,17 +155,7 @@ static void test_save_load_manifest(void)
 	new_image->filename = g_strdup("myappimg.ext4");
 	rm->images = g_list_append(rm->images, new_image);
 
-	new_file = g_new0(RaucFile, 1);
-
-	new_file->slotclass = g_strdup("rootfs");
-	new_file->destname = g_strdup("vmlinuz");
-	new_file->checksum.type = G_CHECKSUM_SHA256;
-	new_file->checksum.digest = g_strdup("5ce231b9683db16623783b8bcff120c11969e8d29755f25bc87a6fae92e06741");
-	new_file->filename = g_strdup("mykernel.img");
-	rm->files = g_list_append(rm->files, new_file);
-
 	g_assert_cmpuint(g_list_length(rm->images), ==, 3);
-	g_assert_cmpuint(g_list_length(rm->files), ==, 1);
 
 	res = save_manifest_file("test/savedmanifest.raucm", rm, &error);
 	g_assert_no_error(error);
@@ -260,15 +230,13 @@ static void test_manifest_load_variants(void)
 	gchar *tmpdir;
 	RaucManifest *rm = NULL;
 	gchar* manifestpath = NULL;
+	gboolean res;
 	GError *error = NULL;
 	RaucImage *test_img = NULL;
 	const gchar *mffile = "\
 [update]\n\
 compatible=FooCorp Super BarBazzer\n\
 version=2015.04-1\n\
-\n\
-[keyring]\n\
-archive=release.tar\n\
 \n\
 [handler]\n\
 filename=custom_handler.sh\n\
@@ -294,8 +262,9 @@ filename=rootfs-var2.ext4\n\
 
 	g_free(tmpdir);
 
-	g_assert_true(load_manifest_file(manifestpath, &rm, &error));
+	res = load_manifest_file(manifestpath, &rm, &error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
 	g_clear_error(&error);
 	g_free(manifestpath);
