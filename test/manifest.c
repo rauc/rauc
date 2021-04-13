@@ -48,26 +48,30 @@ static void test_load_manifest(void)
 {
 	RaucManifest *rm = NULL;
 	GError *error = NULL;
+	gboolean res;
 
 	// Load valid manifest file
-	g_assert_true(load_manifest_file("test/manifest.raucm", &rm, &error));
-	g_assert_null(error);
+	res = load_manifest_file("test/manifest.raucm", &rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 	manifest_check_common(rm);
 
 	g_clear_pointer(&rm, free_manifest);
 	g_assert_null(rm);
 
 	// Load non-existing manifest file
-	g_assert_false(load_manifest_file("test/nonexisting.raucm", &rm, &error));
-	g_assert_nonnull(error);
+	res = load_manifest_file("test/nonexisting.raucm", &rm, &error);
+	g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
+	g_assert_false(res);
 
 	g_clear_pointer(&rm, free_manifest);
 	g_clear_error(&error);
 	g_assert_null(rm);
 
 	// Load broken manifest file
-	g_assert_false(load_manifest_file("test/broken-manifest.raucm", &rm, &error));
-	g_assert_nonnull(error);
+	res = load_manifest_file("test/broken-manifest.raucm", &rm, &error);
+	g_assert_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND);
+	g_assert_false(res);
 
 	g_clear_pointer(&rm, free_manifest);
 	g_clear_error(&error);
@@ -226,6 +230,7 @@ static void test_manifest_load_variants(void)
 	gchar *tmpdir;
 	RaucManifest *rm = NULL;
 	gchar* manifestpath = NULL;
+	gboolean res;
 	GError *error = NULL;
 	RaucImage *test_img = NULL;
 	const gchar *mffile = "\
@@ -257,8 +262,9 @@ filename=rootfs-var2.ext4\n\
 
 	g_free(tmpdir);
 
-	g_assert_true(load_manifest_file(manifestpath, &rm, &error));
+	res = load_manifest_file(manifestpath, &rm, &error);
 	g_assert_no_error(error);
+	g_assert_true(res);
 
 	g_clear_error(&error);
 	g_free(manifestpath);
