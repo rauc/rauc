@@ -829,9 +829,9 @@ static gboolean run_slot_hook_extra_env(const gchar *hook_name, const gchar *hoo
 	}
 	if (image) {
 		image_size = g_strdup_printf("%" G_GOFFSET_FORMAT, image->checksum.size);
-		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_NAME", image->filename, TRUE);
+		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_NAME", image->filename ? image->filename : "", TRUE);
 		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_SIZE", image_size, TRUE);
-		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_DIGEST", image->checksum.digest, TRUE);
+		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_DIGEST", image->checksum.digest ? image->checksum.digest : "", TRUE);
 		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_CLASS", image->slotclass, TRUE);
 	}
 	g_subprocess_launcher_setenv(launcher, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
