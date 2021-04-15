@@ -430,8 +430,9 @@ An example on how to use a post-install hook:
 
 The install hook will replace the entire default installation process for the
 target slot of the image it was specified for. Note that when having the install
-hook enabled, pre- and post-install hooks will *not* be executed.
-The install hook allows to fully customize the way an image is installed. This
+hook enabled, pre- and post-install hooks will *not* be executed and having
+an image (i.e. ``filename`` set) is optional, too!
+The install hook allows to fully customize the way a slot is updated. This
 allows performing special installation methods that are not natively supported
 by RAUC, for example to upgrade the bootloader to a new version while also
 migrating configuration settings.
@@ -446,6 +447,17 @@ migrating configuration settings.
   size=...
   sha256=...
   hooks=install
+
+or, without ``filename``:
+
+.. code-block:: cfg
+
+  [hooks]
+  filename=hook
+
+  [image.datafs]
+  hooks=install
+
 
 Full Custom Update
 ~~~~~~~~~~~~~~~~~~

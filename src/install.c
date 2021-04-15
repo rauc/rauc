@@ -499,11 +499,11 @@ static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_sou
 				RaucImage *img = l->data;
 				if (g_str_equal(slot->sclass, img->slotclass)) {
 					varname = g_strdup_printf("RAUC_IMAGE_NAME_%i", slotcnt);
-					g_subprocess_launcher_setenv(launcher, varname, img->filename, TRUE);
+					g_subprocess_launcher_setenv(launcher, varname, img->filename ?: "", TRUE);
 					g_clear_pointer(&varname, g_free);
 
 					varname = g_strdup_printf("RAUC_IMAGE_DIGEST_%i", slotcnt);
-					g_subprocess_launcher_setenv(launcher, varname, img->checksum.digest, TRUE);
+					g_subprocess_launcher_setenv(launcher, varname, img->checksum.digest ?: "", TRUE);
 					g_clear_pointer(&varname, g_free);
 
 					varname = g_strdup_printf("RAUC_IMAGE_CLASS_%i", slotcnt);
@@ -744,6 +744,10 @@ static gboolean pre_install_checks(gchar* bundledir, GList *install_images, GHas
 		RaucImage *mfimage = l->data;
 		RaucSlot *dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
 
+		/* skip source image checks if filename is not set (install hook) */
+		if (!mfimage->filename && mfimage->hooks.install)
+			goto skip_filename_checks;
+
 		/* if image filename is relative, make it absolute */
 		if (!g_path_is_absolute(mfimage->filename)) {
 			gchar *filename = g_build_filename(bundledir, mfimage->filename, NULL);
@@ -757,6 +761,7 @@ static gboolean pre_install_checks(gchar* bundledir, GList *install_images, GHas
 			return FALSE;
 		}
 
+skip_filename_checks:
 		if (!g_file_test(dest_slot->device, G_FILE_TEST_EXISTS)) {
 			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NODST,
 					"Destination device '%s' not found", dest_slot->device);
