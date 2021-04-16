@@ -778,11 +778,15 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		RaucImage *img = l->data;
 		g_string_append_printf(text, "  "KBLD "[%s]"KNRM "\n", img->slotclass);
-		g_string_append_printf(text, "\tFilename:  %s\n", img->filename);
 		if (img->variant)
 			g_string_append_printf(text, "\tVariant:   %s\n", img->variant);
-		g_string_append_printf(text, "\tChecksum:  %s\n", img->checksum.digest);
-		g_string_append_printf(text, "\tSize:      %"G_GOFFSET_FORMAT "\n", img->checksum.size);
+		if (img->filename) {
+			g_string_append_printf(text, "\tFilename:  %s\n", img->filename);
+			g_string_append_printf(text, "\tChecksum:  %s\n", img->checksum.digest);
+			g_string_append_printf(text, "\tSize:      %"G_GOFFSET_FORMAT "\n", img->checksum.size);
+		} else {
+			g_string_append_printf(text, "\t(no image file)\n");
+		}
 
 		hooks = g_ptr_array_new();
 		if (img->hooks.pre_install == TRUE) {
