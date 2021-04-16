@@ -35,6 +35,91 @@ Documentation
 - Use `semantic linefeeds
   <http://rhodesmill.org/brandon/2012/one-sentence-per-line/>`_ in .rst files.
 
+Check Scripts & Test Suite
+--------------------------
+
+To ensure we do not break existing behavior and detect potential bugs, RAUC
+runs a test suite consisting of several components.
+Some of them only run in CI, but most of them can be executed locally.
+When working on a new feature or fixing a bug, please make sure these tests
+succeed.
+
+Code Style - uncrustify 
+~~~~~~~~~~~~~~~~~~~~~~~
+
+To maintain a consistent code style, we use the `uncrustify
+<https://github.com/uncrustify/uncrustify>`_ code beautifier that also runs in
+the CI loop.
+
+To make sure your changes match the expected code style, run::
+
+  ./uncrustify.sh
+
+from the RAUC source code's root directory.
+It will adapt style where necessary.
+
+CLI Tests - sharness
+~~~~~~~~~~~~~~~~~~~~
+
+For high-level tests of the RAUC command line interface we use the `sharness
+<https://github.com/chriscool/sharness>`_ shell library.
+
+You can run these checks manually by executing::
+
+  cd test
+  ./rauc.t
+
+from the RAUC source code's root directory but they will also be triggered by
+the general test suite run (see below).
+If you add or change subcommands or arguments of the CLI tool, make sure these
+tests succeed and extend them if possible.
+As many of these tests need root permissions, we recommend running them using the 
+``qemu-test`` helper below.
+
+glib Unit Tests - gtest
+~~~~~~~~~~~~~~~~~~~~~~~
+
+For testing the different C modules of RAUC's source code, we use the `glib
+Test Framework <https://developer.gnome.org/glib/stable/glib-Testing.html>`_.
+
+All tests reside in the ``test/`` folder and are named according to the module
+they test (``test/bundle.c`` contains tests for ``src/bundle.c``).
+
+To build and run an individual test, do::
+
+  make test/bundle.test
+  ./test/bundle.test
+
+To run all tests, run::
+
+  make check
+
+This will also run the sharness CLI tests mentioned above.
+
+.. note:: Although some of the tests need to run as root, do NOT use 'sudo', but
+   use our ``qemu-test`` helper instead!
+
+QEMU Test Runner - qemu-test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As many of the unit tests require root privileges and thus could potentially
+damage your host system, we provide a QEMU-based test environment where one can
+safely run all checks in a virtual environment.
+
+To run the entire test suite, type::
+
+  ./qemu-test
+
+For optimal performance, run::
+
+  ./qemu-test passthrough
+
+which will pass through your host's CPU features to the guest.
+
+For interactive access to the test environment, use::
+
+  ./qemu-test shell
+
 Developer's Certificate of Origin
 ---------------------------------
 

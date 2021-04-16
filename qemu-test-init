@@ -83,6 +83,8 @@ if [ -c /dev/mtd3 ] && type ubiattach; then
   export RAUC_TEST_MTD_UBIVOL=/dev/ubi0_0
 fi
 
+echo "use ctrl-a x to exit and ctrl-a c to access the qemu monitor"
+
 echo "system ready"
 
 if [ -n "$SHELL" ]; then
