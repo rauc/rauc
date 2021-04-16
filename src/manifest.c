@@ -44,8 +44,16 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 		iimage->checksum.type = G_CHECKSUM_SHA256;
 		iimage->checksum.digest = value;
 	}
+
 	iimage->checksum.size = g_key_file_get_uint64(key_file,
-			group, "size", NULL);
+			group, "size", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		iimage->checksum.size = -1;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
 	g_key_file_remove_key(key_file, group, "size", NULL);
 
 	iimage->filename = key_file_consume_string(key_file, group, "filename", &ierror);
@@ -287,7 +295,7 @@ static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing digest for image %s", image->filename);
 			goto out;
 		}
-		if (!image->checksum.size) {
+		if (image->checksum.size < 0) {
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing size for image %s", image->filename);
 			goto out;
 		}
@@ -507,7 +515,7 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 
 		if (image->checksum.type == G_CHECKSUM_SHA256)
 			g_key_file_set_string(key_file, group, "sha256", image->checksum.digest);
-		if (image->checksum.size)
+		if (image->checksum.size >= 0)
 			g_key_file_set_uint64(key_file, group, "size", image->checksum.size);
 
 		if (image->filename)
