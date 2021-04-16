@@ -894,8 +894,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		g_free(slot_state->status);
 		slot_state->status = g_strdup("update");
 
-		g_message("Slot needs to be updated with %s", mfimage->filename);
-
 		r_context_end_step("check_slot", TRUE);
 
 		install_args_update(args, g_strdup_printf("Updating slot %s", dest_slot->name));
