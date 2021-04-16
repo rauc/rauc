@@ -547,6 +547,51 @@ out:
 	return res;
 }
 
+/**
+ * Create valid / safe vfat label names.
+ *
+ * mkfs.vfat label requirements:
+ *
+ * | mkfs.fat: Warning: lowercase labels might not work properly on some systems
+ * | mkfs.vfat: Labels with characters *?.,;:/\|+=<>[]" are not allowed
+ * | mkfs.vfat: Label can be no longer than 11 characters
+ *
+ * This cuts input at 11 characters, makes all characters uppercase and
+ * replaces all invalid characters by '_' (underscore)
+ *
+ * @param name input name to create vfat label from
+ * @return newly-allocated string to be used as "-n" argument for mkfs.vfat
+ */
+static gchar* vfat_label_generator(const gchar *name)
+{
+	gchar *label_name;
+	const gchar *invalid_chars = "*?.,;:/\\|+=<>[]\"";
+
+	g_return_val_if_fail(name, NULL);
+
+	/* limit label length to 11 characters */
+	if (strlen(name) > 11)
+		label_name = g_strndup(name, 11);
+	else
+		label_name = g_strdup(name);
+
+	for (gchar *c = label_name; *c != '\0'; c++) {
+		/* make chars uppercase */
+		if (g_ascii_islower(*c))
+			*c = g_ascii_toupper(*c);
+		/* replace invalid chars */
+		for (size_t i = 0; i < strlen(invalid_chars); i++) {
+			g_message("r: %c", invalid_chars[i]);
+			if (*c == invalid_chars[i]) {
+				*c = '_';
+				break;
+			}
+		}
+	}
+
+	return label_name;
+}
+
 static gboolean vfat_format_slot(RaucSlot *dest_slot, GError **error)
 {
 	g_autoptr(GSubprocess) sproc = NULL;
@@ -555,10 +600,8 @@ static gboolean vfat_format_slot(RaucSlot *dest_slot, GError **error)
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(4, g_free);
 
 	g_ptr_array_add(args, g_strdup("mkfs.vfat"));
-	if (strlen(dest_slot->name) <= 16) {
-		g_ptr_array_add(args, g_strdup("-n"));
-		g_ptr_array_add(args, g_strdup(dest_slot->name));
-	}
+	g_ptr_array_add(args, g_strdup("-n"));
+	g_ptr_array_add(args, vfat_label_generator(dest_slot->name));
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 
