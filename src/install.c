@@ -904,10 +904,14 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		install_args_update(args, g_strdup_printf("Updating slot %s", dest_slot->name));
 
 		/* update slot */
-		if (mfimage->variant)
-			g_message("Updating %s with %s (variant: %s)", dest_slot->device, mfimage->filename, mfimage->variant);
-		else
-			g_message("Updating %s with %s", dest_slot->device, mfimage->filename);
+		if (mfimage->hooks.install) {
+			g_message("Updating %s with 'install' slot hook", dest_slot->device);
+		} else {
+			if (mfimage->variant)
+				g_message("Updating %s with %s (variant: %s)", dest_slot->device, mfimage->filename, mfimage->variant);
+			else
+				g_message("Updating %s with %s", dest_slot->device, mfimage->filename);
+		}
 
 		r_context_begin_step_formatted("copy_image", 0, "Copying image to %s", dest_slot->name);
 
