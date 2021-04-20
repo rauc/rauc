@@ -408,7 +408,6 @@ test_expect_success SERVICE,GRUB "rauc status mark-good: via D-Bus" "
   test_when_finished stop_rauc_dbus_service &&
   rauc \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
-    --override-boot-slot=system1 \
     status mark-good
 "
 
@@ -419,7 +418,6 @@ test_expect_success SERVICE,GRUB "rauc status mark-bad: via D-Bus" "
   test_when_finished stop_rauc_dbus_service &&
   rauc \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
-    --override-boot-slot=system1 \
     status mark-bad
 "
 
@@ -430,7 +428,6 @@ test_expect_success SERVICE,GRUB "rauc status mark-active: via D-Bus" "
   test_when_finished stop_rauc_dbus_service &&
   rauc \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
-    --override-boot-slot=system1 \
     status mark-active
 "
 
