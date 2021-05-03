@@ -779,54 +779,62 @@ A ``system.conf`` could look like this:
 Update Boot Partition in MBR
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Some SOCs (like Xilinx ZynqMP) contain a fixed ROM code, which boots from the first
-partition in the MBR partition table of a storage medium.
-In order to atomically update the bootloader of such systems, RAUC supports changing
-the MBR partition table and thus switching between two partitions of the same size -
-one active boot partition (i.e. the partition is defined in the MBR partition table)
-and one inactive partition (i.e. there is no entry for it in the MBR partition
-table) which is used to update the bootloader.
+Some SoCs (like Xilinx ZynqMP) contain a fixed ROM code, which boots from the
+first partition in the MBR partition table of a storage medium.
+In order to atomically update the bootloader of such systems, RAUC supports
+modifying the MBR to switch the actual location of the first partition
+between the first and second halves of a pre-defined disk region.
+The active half of the region is the one currently referenced by the MBR's
+first partition entry (i.e. the first partition) while the inactive half is
+not referenced by the MBR at all.
+A Bootloader update is written into the currently inactive half of the region.
+After having written the bootloader, RAUC modifies the MBR's first partition
+entry to point to the formerly inactive half.
 
 .. image:: images/rauc-mbr-switch.svg
   :width: 400
   :align: center
 
-A memory region, where the two partitions are stored has to be defined in the
-configuration (see below) and initially a boot partition has to exist at either
-the start of the region or start + size / 2.
+The disk region for the MBR boot partition switch has to be configured
+in the corresponding slot's system config section (see below).
+This configured disk region must span *both* potential locations of the boot
+partition, i.e. both the first and second halves mentioned above.
+The initial MBR must define a boot partition at either the first or the second
+half of the configured region.
 
 Consider the following example layout of a storage medium with a boot partition size
-of 33 Mbytes:
+of 33 MiB:
 
 +--------------+----------------+-----------------------------------------------+
 | Start        | Size           |                                               |
 +==============+================+===============================================+
 | 0x00000000   |  512 bytes     | MBR                                           |
 +--------------+----------------+-----------------------------------------------+
-| 0x00000200   |  160 Kbytes    | Space for state, barebox-environment, ...     |
+| 0x00000200   |  160 KiB       | Space for state, barebox-environment, ...     |
 +--------------+----------------+-----------------------------------------------+
-| | 0x00028200 | | 66 Mbytes    | | MBR switch region containing:               |
-| | 0x00028200 | | 33 Mbytes    | | - active boot partition (entry in MBR)      |
-| | 0x02128200 | | 33 Mbytes    | | - inactive boot partition (no entry in MBR) |
+| | 0x00028200 | | 66 MiB       | | MBR switch region containing:               |
+| | 0x00028200 | | 33 MiB       | | - active first half (entry in MBR)          |
+| | 0x02128200 | | 33 MiB       | | - inactive second half (no entry in MBR)    |
 +--------------+----------------+-----------------------------------------------+
 | 0x04228200   | Remaining size | other partitions                              |
 |              |                | (partition table entries 2, 3, 4)             |
 +--------------+----------------+-----------------------------------------------+
 
-RAUC uses the start address and size defined in the first entry in the MBR partition
-table, to distinguish between active and inactive boot partition and updates the
-hidden, inactive partition.
-After the update the bootloader is switched by changing the first partition entry
-and writing the whole 512 bytes MBR atomically.
+RAUC uses the start address and size defined in the first entry of the MBR partition
+table to detect whether the first or second half is currently active as the
+boot partition and updates the hidden, other half:
+After the update, the bootloader is switched by changing the first partition entry
+and writing the whole MBR (512 bytes) atomically.
 
 The required slot type is ``boot-mbr-switch``.
-The device to be specified is expected to be the underlying block device.
-The boot partitions are derived by the definition of the values ``region-start``
-and ``region-size``.
+The device to be specified is the **underlying block device** (not the boot
+partition!), as the MBR itself is outside of the region.
+The region containing both halves is configured using ``region-start`` and
+``region-size``.
 Both values have to be set in integer decimal bytes and can be post-fixed with
 K/M/G/T.
 
-A ``system.conf`` section could look like this:
+A ``system.conf`` section for the example above could look like this:
 
 .. code-block:: cfg
 
@@ -835,6 +843,16 @@ A ``system.conf`` section could look like this:
   type=boot-mbr-switch
   region-start=164352
   region-size=66M
+
+It defines a region starting at ``0x00028200`` with a size of ``66M``.
+This region will be split up into two region halves of equal size by RAUC
+internally.
+The resulting first half begins at the start of the region, i.e.
+``0x00028200``, and have a size of ``33M``.
+The second half begins in the middle of the region (``0x00028200 + 33M``) and
+ends at the end of the defined region.
+The MBR's boot partition entry should initially point to ``0x00028200``, with a
+size of ``33M``.
 
 .. _sec-gpt-partition:
 
