@@ -353,6 +353,74 @@ hooks=install\n\
 	g_assert_false(res);
 }
 
+/* Check if missing 'size=' parameter in manifest image section causes and error.
+ * Also check that this does NOT cause an error when using a custom 'install'
+ * hook (to stay compatible with bundles having zero-size images generated with
+ * RAUC <1.5)
+ */
+static void test_manifest_missing_image_size(void)
+{
+	g_autofree gchar *tmpdir;
+	g_autofree gchar *manifestpath = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
+	gboolean res = FALSE;
+	g_autoptr(GError) error = NULL;
+	const gchar *mffile_invalid = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[hooks]\n\
+filename=demo.hook\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs-default.ext4\n\
+sha256=0815\n\
+";
+	const gchar *mffile_valid = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[hooks]\n\
+filename=demo.hook\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs-default.ext4\n\
+sha256=0815\n\
+hooks=install\n\
+";
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	manifestpath = write_tmp_file(tmpdir, "invalid-manifest.raucm", mffile_invalid, NULL);
+	g_assert_nonnull(manifestpath);
+
+	res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	res = check_manifest_internal(rm, &error);
+	g_assert_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR);
+	g_assert_false(res);
+
+	/* free */
+	g_free(manifestpath);
+	g_clear_pointer(&rm, free_manifest);
+	g_clear_error(&error);
+
+	manifestpath = write_tmp_file(tmpdir, "valid-manifest.raucm", mffile_valid, NULL);
+	g_assert_nonnull(manifestpath);
+
+	res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	res = check_manifest_internal(rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+}
 
 /* Test manifest/invalid_data:
  *
@@ -457,6 +525,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/manifest/load_variants", test_manifest_load_variants);
 	g_test_add_func("/manifest/invalid_hook_name", test_manifest_invalid_hook_name);
 	g_test_add_func("/manifest/missing_hook_name", test_manifest_missing_hook_name);
+	g_test_add_func("/manifest/missing_image_size", test_manifest_missing_image_size);
 	g_test_add_func("/manifest/invalid_data", test_invalid_data);
 
 	return g_test_run();
