@@ -816,13 +816,21 @@ slightly faster if the changes are small.
 RAUC casync Support
 -------------------
 
-.. warning:: casync support is still experimental and lacks some unit tests.
+.. note:: Make sure to use a recent casync version (e.g. from the
+  `git <https://github.com/systemd/casync>`_ repository).
 
-  When evaluating, make sure to compile a recent casync version from the
-  `git <https://github.com/systemd/casync>`_ for testing.
+  Also, for using UBI support, make sure to add casync patches from
+  https://github.com/systemd/casync/pull/227.
 
-  For compatiblitiy with RAUC's built-in streaming support, refer to
-  :ref:`sec-casync-vs-streaming`.
+  If file system images are sufficient, also check the more lightweight
+  `casync-nano <https://github.com/florolf/casync-nano>`_ tool which can be
+  used as a drop-in replacement for these use cases.
+
+  Since 1.8, RAUC also supports the alternative `desync
+  <https://github.com/folbricht/desync>`_ written in Go.
+
+  For compatiblitiy and comparison with RAUC's built-in streaming support,
+  refer to :ref:`sec-casync-vs-streaming`.
 
 Using the Content-Addressable Data Synchronization tool `casync` for updating
 embedded / IoT devices provides a couple of benefits.
