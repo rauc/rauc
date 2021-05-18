@@ -6,6 +6,8 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 mount -t proc none /proc
 mount -t sysfs none /sys
+mount -t debugfs debugfs /sys/kernel/debug/ || true
+mount -t tracefs tracefs /sys/kernel/tracing/ || true
 mount -t tmpfs none /mnt
 mount -t tmpfs none /tmp
 
