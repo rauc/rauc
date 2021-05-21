@@ -19,6 +19,9 @@ for x in $(cat /proc/cmdline); do
     MAKE_TARGET="check-code-coverage"
   elif [ "$x" = "distcheck" ]; then
     MAKE_TARGET="distcheck"
+  elif [ "$x" = "system" ]; then
+    SHELL=1
+    SERVICE=1
   fi
 done
 
@@ -50,6 +53,14 @@ grub-editenv test/grubenv.test create
 touch /tmp/boot/grub/grubenv
 mount --bind test/grubenv.test /tmp/boot/grub/grubenv
 
+grub-editenv /tmp/boot/grub/grubenv set ORDER="A B" A_TRY="0" B_TRY="0" A_OK="1" B_OK="1"
+
+# fake slot devices
+truncate --size=64M /tmp/rootdev
+mkfs.ext4 /tmp/rootdev
+truncate --size=64M /tmp/appdev
+mkfs.ext4 /tmp/appdev
+
 # dbus daemon
 cp -a /etc/dbus-1/system.d /tmp
 cp -a data/de.pengutronix.rauc.conf /tmp/system.d
@@ -60,8 +71,15 @@ mount -t tmpfs none /var/run
 mkdir -p /var/run/dbus
 time dbus-daemon --system --fork --nopidfile --nosyslog --print-address
 
+# rauc binary in PATH
+if [ -n "$SHELL" ]; then
+  mkdir /tmp/bin
+  cp -a rauc /tmp/bin/rauc
+  export PATH=/tmp/bin:$PATH
+fi
+
 if type losetup; then
-  dd if=/dev/zero of=/tmp/rauc-disk.img bs=1M count=64
+  truncate --size=64M /tmp/rauc-disk.img
   losetup -P /dev/loop0 /tmp/rauc-disk.img
   export RAUC_TEST_BLOCK_LOOP=/dev/loop0
 fi
@@ -83,12 +101,26 @@ if [ -c /dev/mtd3 ] && type ubiattach; then
   export RAUC_TEST_MTD_UBIVOL=/dev/ubi0_0
 fi
 
+# rauc system config & service start
+if [ -n "$SERVICE" ]; then
+  mkdir /tmp/rauc
+  cp qemu-test-rauc-config /tmp/rauc/system.conf
+  cp test/openssl-ca/dev-ca.pem /tmp/rauc/ca.cert.pem
+  rauc service --conf=/tmp/rauc/system.conf &
+fi
+
+echo "use ctrl-a x to exit and ctrl-a c to access the qemu monitor"
+
 echo "system ready"
 
 if [ -n "$SHELL" ]; then
   HISTFILE="$(pwd)/.qemu_bash_history" \
   setsid bash </dev/ttyS0 >/dev/ttyS0 2>&1 || echo exit-code=$?
   echo o > /proc/sysrq-trigger
+fi
+
+if [ -n "$SERVICE" ]; then
+  rauc status mark-good
 fi
 
 if make $MAKE_TARGET; then

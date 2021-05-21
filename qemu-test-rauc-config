@@ -1,0 +1,25 @@
+[system]
+compatible=Test Config
+bootloader=grub
+grubenv=/tmp/boot/grub/grubenv
+# HACK: must be on a separate partition for real systems
+statusfile=/tmp/rauc.status
+
+[keyring]
+path=ca.cert.pem
+
+[slot.rootfs.0]
+device=/dev/root
+bootname=A
+
+[slot.rootfs.1]
+device=/tmp/rootdev
+bootname=B
+
+[slot.appfs.0]
+device=/dev/null
+parent=rootfs.0
+
+[slot.appfs.1]
+device=/tmp/appdev
+parent=rootfs.1
