@@ -61,7 +61,7 @@ mkdir -p /var/run/dbus
 time dbus-daemon --system --fork --nopidfile --nosyslog --print-address
 
 if type losetup; then
-  dd if=/dev/zero of=/tmp/rauc-disk.img bs=1M count=64
+  truncate --size=64M /tmp/rauc-disk.img
   losetup -P /dev/loop0 /tmp/rauc-disk.img
   export RAUC_TEST_BLOCK_LOOP=/dev/loop0
 fi
