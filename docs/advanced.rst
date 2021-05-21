@@ -866,10 +866,10 @@ Also, some newer ARM SoCs support loading the bootloader directly from a GPT
 partition.
 
 To allow atomic updates of these partitions, RAUC supports changing the GPT to
-switch the first GPT partition between the lower and upper halves of a region
-configured for that purpose.
-This works similarly to the handling of a MBR boot partition as described in the
-previous section.
+switch the first GPT partition entry between the first and second halves of a
+region configured for that purpose.
+This works similarly to the handling of a MBR boot partition entry as described
+in the previous section.
 It requires RAUC to be compiled with GPT support (``./configure --enable-gpt``)
 and adds a dependency on libfdisk.
 
@@ -884,7 +884,7 @@ To ensure that the resulting GPT entries are well aligned, the region start must
 be a multiple of the *grain* value (as used by ``sfdisk``), which is 1MB by
 default.
 Accordingly, the region size must be aligned to twice the *grain* value (to
-ensure that the start of the upper half is aligned).
+ensure that the start of the second half is aligned as well).
 
 Note that RAUC expects that the partition table always points exactly to one of
 the halves.
