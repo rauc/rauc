@@ -803,22 +803,22 @@ The initial MBR must define a boot partition at either the first or the second
 half of the configured region.
 
 Consider the following example layout of a storage medium with a boot partition size
-of 33 MiB:
+of 32 MiB:
 
-+--------------+----------------+-----------------------------------------------+
-| Start        | Size           |                                               |
-+==============+================+===============================================+
-| 0x00000000   |  512 bytes     | MBR                                           |
-+--------------+----------------+-----------------------------------------------+
-| 0x00000200   |  160 KiB       | Space for state, barebox-environment, ...     |
-+--------------+----------------+-----------------------------------------------+
-| | 0x00028200 | | 66 MiB       | | MBR switch region containing:               |
-| | 0x00028200 | | 33 MiB       | | - active first half (entry in MBR)          |
-| | 0x02128200 | | 33 MiB       | | - inactive second half (no entry in MBR)    |
-+--------------+----------------+-----------------------------------------------+
-| 0x04228200   | Remaining size | other partitions                              |
-|              |                | (partition table entries 2, 3, 4)             |
-+--------------+----------------+-----------------------------------------------+
++-----------------------+----------------+--------------------------------------------+
+| Start…End             | Size           |                                            |
++=======================+================+============================================+
+| 0x0000000…0x00001ff   |  512 bytes     | MBR                                        |
++-----------------------+----------------+--------------------------------------------+
+| 0x0000200…0x00fffff   |  almost 1MiB   | alignment, state, barebox-environment, …   |
++-----------------------+----------------+--------------------------------------------+
+| | 0x0100000…0x40fffff | | 64 MiB       | | MBR switch region containing:            |
+| | 0x0100000…0x20fffff | | 32 MiB       | | - active first half (entry in MBR)       |
+| | 0x2100000…0x40fffff | | 32 MiB       | | - inactive second half (no entry in MBR) |
++-----------------------+----------------+--------------------------------------------+
+| 0x4100000…            | Remaining size | other partitions                           |
+|                       |                | (partition table entries 2, 3, 4)          |
++-----------------------+----------------+--------------------------------------------+
 
 RAUC uses the start address and size defined in the first entry of the MBR partition
 table to detect whether the first or second half is currently active as the
@@ -841,18 +841,20 @@ A ``system.conf`` section for the example above could look like this:
   [slot.bootloader.0]
   device=/dev/mmcblk1
   type=boot-mbr-switch
-  region-start=164352
-  region-size=66M
+  region-start=1048576
+  region-size=64M
 
-It defines a region starting at ``0x00028200`` with a size of ``66M``.
+It defines a region starting at ``0x100000`` with a size of ``64M``.
 This region will be split up into two region halves of equal size by RAUC
 internally.
 The resulting first half begins at the start of the region, i.e.
-``0x00028200``, and have a size of ``33M``.
-The second half begins in the middle of the region (``0x00028200 + 33M``) and
-ends at the end of the defined region.
-The MBR's boot partition entry should initially point to ``0x00028200``, with a
-size of ``33M``.
+``0x100000``, and has a size of ``32M``.
+The second half begins in the middle of the region (``0x100000 + 32M =
+0x2100000``) and ends at the end of the defined region.
+The MBR's boot partition entry should initially point to ``0x100000``, with a
+size of ``32M``.
+This must be followed by a "hole" with a size of ``32MB`` before the start of
+the next partition entry (at ``0x4100000``).
 
 .. _sec-gpt-partition:
 
@@ -897,7 +899,7 @@ A ``system.conf`` section could look like this:
   device=/dev/sda
   type=boot-gpt-switch
   region-start=1M
-  region-size=32M
+  region-size=64M
 
 Bootloader Update Ideas
 ~~~~~~~~~~~~~~~~~~~~~~~
