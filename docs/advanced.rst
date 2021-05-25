@@ -779,62 +779,82 @@ A ``system.conf`` could look like this:
 Update Boot Partition in MBR
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Some SOCs (like Xilinx ZynqMP) contain a fixed ROM code, which boots from the first
-partition in the MBR partition table of a storage medium.
-In order to atomically update the bootloader of such systems, RAUC supports changing
-the MBR partition table and thus switching between two partitions of the same size -
-one active boot partition (i.e. the partition is defined in the MBR partition table)
-and one inactive partition (i.e. there is no entry for it in the MBR partition
-table) which is used to update the bootloader.
+Some SoCs (like Xilinx ZynqMP) contain a fixed ROM code, which boots from the
+first partition in the MBR partition table of a storage medium.
+In order to atomically update the bootloader of such systems, RAUC supports
+modifying the MBR to switch the actual location of the first partition
+between the first and second halves of a pre-defined disk region.
+The active half of the region is the one currently referenced by the MBR's
+first partition entry (i.e. the first partition) while the inactive half is
+not referenced by the MBR at all.
+A Bootloader update is written into the currently inactive half of the region.
+After having written the bootloader, RAUC modifies the MBR's first partition
+entry to point to the formerly inactive half.
 
 .. image:: images/rauc-mbr-switch.svg
   :width: 400
   :align: center
 
-A memory region, where the two partitions are stored has to be defined in the
-configuration (see below) and initially a boot partition has to exist at either
-the start of the region or start + size / 2.
+The disk region for the MBR boot partition switch has to be configured
+in the corresponding slot's system config section (see below).
+This configured disk region must span *both* potential locations of the boot
+partition, i.e. both the first and second halves mentioned above.
+The initial MBR must define a boot partition at either the first or the second
+half of the configured region.
 
 Consider the following example layout of a storage medium with a boot partition size
-of 33 Mbytes:
+of 32 MiB:
 
-+--------------+----------------+-----------------------------------------------+
-| Start        | Size           |                                               |
-+==============+================+===============================================+
-| 0x00000000   |  512 bytes     | MBR                                           |
-+--------------+----------------+-----------------------------------------------+
-| 0x00000200   |  160 Kbytes    | Space for state, barebox-environment, ...     |
-+--------------+----------------+-----------------------------------------------+
-| | 0x00028200 | | 66 Mbytes    | | MBR switch region containing:               |
-| | 0x00028200 | | 33 Mbytes    | | - active boot partition (entry in MBR)      |
-| | 0x02128200 | | 33 Mbytes    | | - inactive boot partition (no entry in MBR) |
-+--------------+----------------+-----------------------------------------------+
-| 0x04228200   | Remaining size | other partitions                              |
-|              |                | (partition table entries 2, 3, 4)             |
-+--------------+----------------+-----------------------------------------------+
++-----------------------+----------------+--------------------------------------------+
+| Start…End             | Size           |                                            |
++=======================+================+============================================+
+| 0x0000000…0x00001ff   |  512 bytes     | MBR                                        |
++-----------------------+----------------+--------------------------------------------+
+| 0x0000200…0x00fffff   |  almost 1MiB   | alignment, state, barebox-environment, …   |
++-----------------------+----------------+--------------------------------------------+
+| | 0x0100000…0x40fffff | | 64 MiB       | | MBR switch region containing:            |
+| | 0x0100000…0x20fffff | | 32 MiB       | | - active first half (entry in MBR)       |
+| | 0x2100000…0x40fffff | | 32 MiB       | | - inactive second half (no entry in MBR) |
++-----------------------+----------------+--------------------------------------------+
+| 0x4100000…            | Remaining size | other partitions                           |
+|                       |                | (partition table entries 2, 3, 4)          |
++-----------------------+----------------+--------------------------------------------+
 
-RAUC uses the start address and size defined in the first entry in the MBR partition
-table, to distinguish between active and inactive boot partition and updates the
-hidden, inactive partition.
-After the update the bootloader is switched by changing the first partition entry
-and writing the whole 512 bytes MBR atomically.
+RAUC uses the start address and size defined in the first entry of the MBR partition
+table to detect whether the first or second half is currently active as the
+boot partition and updates the hidden, other half:
+After the update, the bootloader is switched by changing the first partition entry
+and writing the whole MBR (512 bytes) atomically.
 
 The required slot type is ``boot-mbr-switch``.
-The device to be specified is expected to be the underlying block device.
-The boot partitions are derived by the definition of the values ``region-start``
-and ``region-size``.
+The device to be specified is the **underlying block device** (not the boot
+partition!), as the MBR itself is outside of the region.
+The region containing both halves is configured using ``region-start`` and
+``region-size``.
 Both values have to be set in integer decimal bytes and can be post-fixed with
 K/M/G/T.
 
-A ``system.conf`` section could look like this:
+A ``system.conf`` section for the example above could look like this:
 
 .. code-block:: cfg
 
   [slot.bootloader.0]
   device=/dev/mmcblk1
   type=boot-mbr-switch
-  region-start=164352
-  region-size=66M
+  region-start=1048576
+  region-size=64M
+
+It defines a region starting at ``0x100000`` with a size of ``64M``.
+This region will be split up into two region halves of equal size by RAUC
+internally.
+The resulting first half begins at the start of the region, i.e.
+``0x100000``, and has a size of ``32M``.
+The second half begins in the middle of the region (``0x100000 + 32M =
+0x2100000``) and ends at the end of the defined region.
+The MBR's boot partition entry should initially point to ``0x100000``, with a
+size of ``32M``.
+This must be followed by a "hole" with a size of ``32MB`` before the start of
+the next partition entry (at ``0x4100000``).
 
 .. _sec-gpt-partition:
 
@@ -848,10 +868,10 @@ Also, some newer ARM SoCs support loading the bootloader directly from a GPT
 partition.
 
 To allow atomic updates of these partitions, RAUC supports changing the GPT to
-switch the first GPT partition between the lower and upper halves of a region
-configured for that purpose.
-This works similarly to the handling of a MBR boot partition as described in the
-previous section.
+switch the first GPT partition entry between the first and second halves of a
+region configured for that purpose.
+This works similarly to the handling of a MBR boot partition entry as described
+in the previous section.
 It requires RAUC to be compiled with GPT support (``./configure --enable-gpt``)
 and adds a dependency on libfdisk.
 
@@ -866,7 +886,7 @@ To ensure that the resulting GPT entries are well aligned, the region start must
 be a multiple of the *grain* value (as used by ``sfdisk``), which is 1MB by
 default.
 Accordingly, the region size must be aligned to twice the *grain* value (to
-ensure that the start of the upper half is aligned).
+ensure that the start of the second half is aligned as well).
 
 Note that RAUC expects that the partition table always points exactly to one of
 the halves.
@@ -879,7 +899,7 @@ A ``system.conf`` section could look like this:
   device=/dev/sda
   type=boot-gpt-switch
   region-start=1M
-  region-size=32M
+  region-size=64M
 
 Bootloader Update Ideas
 ~~~~~~~~~~~~~~~~~~~~~~~
