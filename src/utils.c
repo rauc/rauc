@@ -340,3 +340,59 @@ gchar *r_hex_encode(const guint8 *raw, size_t len)
 
 	return hex;
 }
+
+gboolean r_read_exact(const int fd, guint8 *data, size_t size, GError **error)
+{
+	size_t pos = 0;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	while (pos < size) {
+		size_t remaining = size - pos;
+		ssize_t ret = TEMP_FAILURE_RETRY(read(fd, data+pos, remaining));
+		if (ret < 0) {
+			int err = errno;
+			g_set_error(error,
+					G_FILE_ERROR,
+					g_file_error_from_errno(err),
+					"Failed to read: %s", g_strerror(err));
+			return FALSE;
+		} else if (ret == 0) { /* end of file */
+			return FALSE;
+		} else if ((size_t)ret <= remaining) {
+			pos += ret;
+		} else if ((size_t)ret > remaining) {
+			g_assert_not_reached();
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+gboolean r_write_exact(const int fd, const guint8 *data, size_t size, GError **error)
+{
+	size_t pos = 0;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	while (pos < size) {
+		size_t remaining = size - pos;
+		ssize_t ret = TEMP_FAILURE_RETRY(write(fd, data+pos, remaining));
+		if (ret < 0) {
+			int err = errno;
+			g_set_error(error,
+					G_FILE_ERROR,
+					g_file_error_from_errno(err),
+					"Failed to write: %s", g_strerror(err));
+			return FALSE;
+		} else if ((size_t)ret <= remaining) {
+			pos += ret;
+		} else if ((size_t)ret > remaining) {
+			g_assert_not_reached();
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}

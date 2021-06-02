@@ -191,3 +191,8 @@ guint8 *r_hex_decode(const gchar *hex, size_t len)
 G_GNUC_WARN_UNUSED_RESULT;
 gchar *r_hex_encode(const guint8 *raw, size_t len)
 G_GNUC_WARN_UNUSED_RESULT;
+
+gboolean r_read_exact(const int fd, guint8 *data, size_t size, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+gboolean r_write_exact(const int fd, const guint8 *data, size_t size, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
