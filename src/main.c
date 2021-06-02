@@ -1878,8 +1878,6 @@ static void cmdline_handler(int argc, char **argv)
 		goto print_help;
 	}
 
-
-
 	/* try to get known command */
 	rc = rcommands;
 	while (rc->name) {
