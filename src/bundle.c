@@ -1245,13 +1245,139 @@ out:
 	return res;
 }
 
-gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error)
+static gboolean open_local_bundle(RaucBundle *bundle, GError **error)
 {
+	gboolean res = FALSE;
 	GError *ierror = NULL;
 	g_autoptr(GFile) bundlefile = NULL;
 	g_autoptr(GFileInfo) bundleinfo = NULL;
 	guint64 sigsize;
 	goffset offset;
+
+	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_assert_null(bundle->stream);
+
+	bundlefile = g_file_new_for_path(bundle->path);
+	bundle->stream = G_INPUT_STREAM(g_file_read(bundlefile, NULL, &ierror));
+	if (bundle->stream == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to open bundle for reading: ");
+		res = FALSE;
+		goto out;
+	}
+
+	bundleinfo = g_file_input_stream_query_info(
+			G_FILE_INPUT_STREAM(bundle->stream),
+			G_FILE_ATTRIBUTE_STANDARD_TYPE,
+			NULL, &ierror);
+	if (bundleinfo == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to query bundle file info: ");
+		res = FALSE;
+		goto out;
+	}
+
+	if (g_file_info_get_file_type(bundleinfo) != G_FILE_TYPE_REGULAR) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE,
+				"Bundle is not a regular file");
+		res = FALSE;
+		goto out;
+	}
+
+	res = input_stream_check_bundle_identifier(bundle->stream, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to check bundle identifier: ");
+		goto out;
+	}
+
+	offset = sizeof(sigsize);
+	res = g_seekable_seek(G_SEEKABLE(bundle->stream),
+			-offset, G_SEEK_END, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to seek to end of bundle: ");
+		goto out;
+	}
+	offset = g_seekable_tell(G_SEEKABLE(bundle->stream));
+
+	res = input_stream_read_uint64_all(bundle->stream,
+			&sigsize, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to read signature size from bundle: ");
+		goto out;
+	}
+
+	if (sigsize == 0) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
+				"Signature size is 0");
+		res = FALSE;
+		goto out;
+	}
+	/* sanity check: signature should be smaller than bundle size */
+	if (sigsize > (guint64)offset) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
+				"Signature size (%"G_GUINT64_FORMAT ") exceeds bundle size", sigsize);
+		res = FALSE;
+		goto out;
+	}
+	/* sanity check: signature should be smaller than 64kiB */
+	if (sigsize > 0x4000000) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
+				"Signature size (%"G_GUINT64_FORMAT ") exceeds 64KiB", sigsize);
+		res = FALSE;
+		goto out;
+	}
+
+	offset -= sigsize;
+	if (offset % 4096) {
+		g_message(
+				"Payload size (%"G_GUINT64_FORMAT ") is not a multiple of 4KiB. "
+				"See https://rauc.readthedocs.io/en/latest/faq.html#what-causes-a-payload-size-that-is-not-a-multiple-of-4kib",
+				offset);
+	}
+	bundle->size = offset;
+
+	res = g_seekable_seek(G_SEEKABLE(bundle->stream),
+			offset, G_SEEK_SET, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to seek to start of bundle signature: ");
+		goto out;
+	}
+
+	res = input_stream_read_bytes_all(bundle->stream,
+			&bundle->sigdata, sigsize, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to read signature from bundle: ");
+		goto out;
+	}
+
+out:
+	return res;
+}
+
+gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean verify, GError **error)
+{
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(RaucBundle) ibundle = g_new0(RaucBundle, 1);
 	g_autoptr(GBytes) manifest_bytes = NULL;
@@ -1310,115 +1436,9 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 
 	g_message("Reading bundle: %s", ibundle->path);
 
-	bundlefile = g_file_new_for_path(ibundle->path);
-	ibundle->stream = G_INPUT_STREAM(g_file_read(bundlefile, NULL, &ierror));
-	if (ibundle->stream == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to open bundle for reading: ");
-		res = FALSE;
-		goto out;
-	}
-
-	bundleinfo = g_file_input_stream_query_info(
-			G_FILE_INPUT_STREAM(ibundle->stream),
-			G_FILE_ATTRIBUTE_STANDARD_TYPE,
-			NULL, &ierror);
-	if (bundleinfo == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to query bundle file info: ");
-		res = FALSE;
-		goto out;
-	}
-
-	if (g_file_info_get_file_type(bundleinfo) != G_FILE_TYPE_REGULAR) {
-		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE,
-				"Bundle is not a regular file");
-		res = FALSE;
-		goto out;
-	}
-
-	res = input_stream_check_bundle_identifier(ibundle->stream, &ierror);
+	res = open_local_bundle(ibundle, &ierror);
 	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to check bundle identifier: ");
-		goto out;
-	}
-
-	offset = sizeof(sigsize);
-	res = g_seekable_seek(G_SEEKABLE(ibundle->stream),
-			-offset, G_SEEK_END, NULL, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to seek to end of bundle: ");
-		goto out;
-	}
-	offset = g_seekable_tell(G_SEEKABLE(ibundle->stream));
-
-	res = input_stream_read_uint64_all(ibundle->stream,
-			&sigsize, NULL, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to read signature size from bundle: ");
-		goto out;
-	}
-
-	if (sigsize == 0) {
-		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
-				"Signature size is 0");
-		res = FALSE;
-		goto out;
-	}
-	/* sanity check: signature should be smaller than bundle size */
-	if (sigsize > (guint64)offset) {
-		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
-				"Signature size (%"G_GUINT64_FORMAT ") exceeds bundle size", sigsize);
-		res = FALSE;
-		goto out;
-	}
-	/* sanity check: signature should be smaller than 64kiB */
-	if (sigsize > 0x4000000) {
-		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
-				"Signature size (%"G_GUINT64_FORMAT ") exceeds 64KiB", sigsize);
-		res = FALSE;
-		goto out;
-	}
-
-	offset -= sigsize;
-	if (offset % 4096) {
-		g_message(
-				"Payload size (%"G_GUINT64_FORMAT ") is not a multiple of 4KiB. "
-				"See https://rauc.readthedocs.io/en/latest/faq.html#what-causes-a-payload-size-that-is-not-a-multiple-of-4kib",
-				offset);
-	}
-	ibundle->size = offset;
-
-	res = g_seekable_seek(G_SEEKABLE(ibundle->stream),
-			offset, G_SEEK_SET, NULL, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to seek to start of bundle signature: ");
-		goto out;
-	}
-
-	res = input_stream_read_bytes_all(ibundle->stream,
-			&ibundle->sigdata, sigsize, NULL, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to read signature from bundle: ");
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 
@@ -1455,8 +1475,8 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 			}
 			ibundle->exclusive_verified = TRUE;
 
-			/* the squashfs image size is in offset */
-			res = cms_verify_fd(fd, ibundle->sigdata, offset, store, &cms, &ierror);
+			/* the squashfs image size is in ibundle->size */
+			res = cms_verify_fd(fd, ibundle->sigdata, ibundle->size, store, &cms, &ierror);
 			if (!res) {
 				g_propagate_error(error, ierror);
 				goto out;
