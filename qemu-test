@@ -64,6 +64,11 @@ else
   echo "/dev/kvm is not accessible, using emulation"
 fi
 
+if test -f /usr/share/qemu/qboot.rom; then
+  echo "found qboot, enabling"
+  QEMU_ARGS="$QEMU_ARGS -bios /usr/share/qemu/qboot.rom"
+fi
+
 qemu-system-x86_64 \
   $QEMU_ARGS \
   -machine q35 \
