@@ -1244,7 +1244,6 @@ out:
 GBytes *cms_sign_manifest(RaucManifest *manifest, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
 {
 	GError *ierror = NULL;
-	g_autoptr(GMappedFile) file = NULL;
 	g_autoptr(GBytes) content = NULL;
 	GBytes *sig = NULL;
 
