@@ -528,6 +528,13 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 					"squashfs size (%"G_GUINT64_FORMAT ") is not a multiple of 4096 bytes", offset);
 			return FALSE;
 		}
+		if (offset <= 4096) {
+			g_set_error(error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_CREATE_SIG,
+					"squashfs size (%"G_GUINT64_FORMAT ") must be larger than 4096 bytes", offset);
+			return FALSE;
+		}
 		if (verity_create_or_verify_hash(0, bundlefd, offset/4096, &combined_size, hash, salt) != 0) {
 			g_set_error(error,
 					R_SIGNATURE_ERROR,
@@ -536,7 +543,7 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 			return FALSE;
 		}
 		/* for a squashfs <= 4096 bytes, we don't have a hash table */
-		g_assert(combined_size*4096 >= (off_t)offset);
+		g_assert(combined_size*4096 > (off_t)offset);
 		verity_size = combined_size*4096 - offset;
 		g_assert(verity_size % 4096 == 0);
 
