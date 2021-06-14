@@ -1399,6 +1399,12 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 
 	r_context_begin_step("check_bundle", "Checking bundle", verify);
 
+	if (verify && !r_context()->config->keyring_path && !r_context()->config->keyring_directory) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_KEYRING, "No keyring file or directory provided");
+		res = FALSE;
+		goto out;
+	}
+
 	ibundle->verification_disabled = !verify;
 
 	/* Download Bundle to temporary location if remote URI is given */
@@ -1435,12 +1441,6 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 		} else {
 			ibundle->storepath = g_strconcat(path, ".castr", NULL);
 		}
-	}
-
-	if (verify && !r_context()->config->keyring_path && !r_context()->config->keyring_directory) {
-		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_KEYRING, "No keyring file or directory provided");
-		res = FALSE;
-		goto out;
 	}
 
 	g_message("Reading bundle: %s", ibundle->path);
