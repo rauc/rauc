@@ -84,6 +84,8 @@
 #define ZFS_SUPER_MAGIC 0x2fc12fc1
 #endif
 
+#define MAX_BUNDLE_SIGNATURE_SIZE 0x10000
+
 GQuark
 r_bundle_error_quark(void)
 {
@@ -1334,8 +1336,8 @@ static gboolean open_local_bundle(RaucBundle *bundle, GError **error)
 		res = FALSE;
 		goto out;
 	}
-	/* sanity check: signature should be smaller than 64kiB */
-	if (sigsize > 0x4000000) {
+	/* sanity check: signature should be smaller than 64KiB */
+	if (sigsize > MAX_BUNDLE_SIGNATURE_SIZE) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
 				"Signature size (%"G_GUINT64_FORMAT ") exceeds 64KiB", sigsize);
 		res = FALSE;
