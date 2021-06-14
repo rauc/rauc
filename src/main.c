@@ -841,7 +841,6 @@ static gchar* info_formatter_json_pretty(RaucManifest *manifest)
 
 static gboolean info_start(int argc, char **argv)
 {
-	g_autofree gchar* tmpdir = NULL;
 	g_autofree gchar *bundlelocation = NULL;
 	g_autoptr(RaucManifest) manifest = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
@@ -872,13 +871,6 @@ static gboolean info_start(int argc, char **argv)
 		formatter = info_formatter_json_pretty;
 	} else {
 		g_printerr("Unknown output format: '%s'\n", output_format);
-		goto out;
-	}
-
-	tmpdir = g_dir_make_tmp("bundle-XXXXXX", &error);
-	if (!tmpdir) {
-		g_printerr("%s\n", error->message);
-		g_clear_error(&error);
 		goto out;
 	}
 
@@ -928,8 +920,6 @@ static gboolean info_start(int argc, char **argv)
 
 out:
 	r_exit_status = res ? 0 : 1;
-	if (tmpdir)
-		rm_tree(tmpdir, NULL);
 	return TRUE;
 }
 
