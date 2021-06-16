@@ -15,7 +15,7 @@ Source Code: https://github.com/rauc/rauc
 
 Documentation: https://rauc.readthedocs.org/
 
-Chat: IRC channel ``#rauc`` on freenode (bridged to the
+Chat: IRC channel ``#rauc`` on libera.chat (bridged to the
 `Matrix channel #rauc:matrix.org <https://app.element.io/#/room/#rauc:matrix.org>`_)
 
 Features
