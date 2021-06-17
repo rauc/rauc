@@ -674,12 +674,13 @@ static gint cgi_handler(int argc, char **argv)
 			goto error;
 		}
 	} else if (g_strcmp0("PUT", method) == 0) {
+		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
 		/* save stdin to temporary file */
 		if (!stdin_to_file(&error))
 			goto remove_bundle_on_error;
 
 		/* start rauc install */
-		if (!r_installer_call_install_sync(installer, BUNDLE_TARGET_LOCATION, NULL, &error))
+		if (!r_installer_call_install_bundle_sync(installer, BUNDLE_TARGET_LOCATION, g_variant_dict_end(&dict), NULL, &error))
 			goto remove_bundle_on_error;
 
 		print_headers("200 OK", "text/plain");
