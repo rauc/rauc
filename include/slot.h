@@ -83,6 +83,10 @@ void r_slot_free_status(RaucSlotStatus *slotstatus);
  * @param slots a GHashTable containing (gchar, RaucSlot) entries
  * @param device the device path to search for
  *
+ * This matches not only the name of the device, but also matches the actual
+ * device referred to by the filesystem path to actual device a slot refers to,
+ * as it is possible for more than one path to reference the same device.
+ *
  * @return a RaucSlot pointer or NULL
  */
 RaucSlot *r_slot_find_by_device(GHashTable *slots, const gchar *device)
