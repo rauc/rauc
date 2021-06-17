@@ -17,7 +17,7 @@ Features
   `signals <http://rauc.readthedocs.io/en/latest/reference.html#signal-details>`_
   and `properties <http://rauc.readthedocs.io/en/latest/reference.html#property-details>`_
 * **PUT /**: uploading a bundle and triggering RAUC to install it via RAUC's
-  `Install method <http://rauc.readthedocs.io/en/latest/reference.html#the-install-method>`_
+  `InstallBundle method <http://rauc.readthedocs.io/en/latest/reference.html#the-installbundle-method>`_
 
 Building from Sources
 ---------------------
