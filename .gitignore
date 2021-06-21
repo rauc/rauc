@@ -8,6 +8,7 @@
 /test/*.test
 /test/*.map
 /test/*.rauc*
+!/test/good-*.rauc*
 /test/fakerand
 /test/services/de.pengutronix.rauc.service
 /test/test-results
