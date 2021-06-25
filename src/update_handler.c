@@ -804,7 +804,7 @@ static gboolean run_slot_hook_extra_env(const gchar *hook_name, const gchar *hoo
 	g_assert_nonnull(slot->name);
 	g_assert_nonnull(slot->sclass);
 
-	g_message("Running slot hook %s for %s", hook_cmd, slot->name);
+	g_message("Running slot hook '%s' for %s", hook_cmd, slot->name);
 
 	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_NONE);
 
@@ -829,9 +829,9 @@ static gboolean run_slot_hook_extra_env(const gchar *hook_name, const gchar *hoo
 	}
 	if (image) {
 		image_size = g_strdup_printf("%" G_GOFFSET_FORMAT, image->checksum.size);
-		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_NAME", image->filename, TRUE);
+		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_NAME", image->filename ? image->filename : "", TRUE);
 		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_SIZE", image_size, TRUE);
-		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_DIGEST", image->checksum.digest, TRUE);
+		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_DIGEST", image->checksum.digest ? image->checksum.digest : "", TRUE);
 		g_subprocess_launcher_setenv(launcher, "RAUC_IMAGE_CLASS", image->slotclass, TRUE);
 	}
 	g_subprocess_launcher_setenv(launcher, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
@@ -1866,7 +1866,6 @@ static gboolean hook_install_handler(RaucImage *image, RaucSlot *dest_slot, cons
 	gboolean res = FALSE;
 
 	/* run slot install hook */
-	g_message("Running custom slot install hook for %s", dest_slot->name);
 	res = run_slot_hook(hook_name, R_SLOT_HOOK_INSTALL, image, dest_slot, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
