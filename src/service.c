@@ -138,7 +138,7 @@ static gboolean r_on_handle_info(RInstaller *interface,
 	if (!res)
 		goto out;
 
-	res = check_bundle(arg_bundle, &bundle, CHECK_BUNDLE_DEFAULT, &error);
+	res = check_bundle(arg_bundle, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &error);
 	if (!res) {
 		g_warning("%s", error->message);
 		g_clear_error(&error);

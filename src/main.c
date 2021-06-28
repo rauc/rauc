@@ -503,7 +503,7 @@ static gboolean resign_start(int argc, char **argv)
 	if (no_check_time)
 		check_bundle_params |= CHECK_BUNDLE_NO_CHECK_TIME;
 
-	if (!check_bundle(argv[2], &bundle, check_bundle_params, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, check_bundle_params, NULL, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -561,7 +561,7 @@ static gboolean replace_signature_start(int argc, char **argv)
 	if (trust_environment)
 		check_bundle_params |= CHECK_BUNDLE_TRUST_ENV;
 
-	if (!check_bundle(argv[2], &bundle, check_bundle_params, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, check_bundle_params, NULL, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -606,7 +606,7 @@ static gboolean extract_signature_start(int argc, char **argv)
 	g_debug("input bundle: %s", argv[2]);
 	g_debug("output file: %s", argv[3]);
 
-	if (!check_bundle(argv[2], &bundle, CHECK_BUNDLE_DEFAULT, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -651,7 +651,7 @@ static gboolean extract_start(int argc, char **argv)
 	g_debug("input bundle: %s", argv[2]);
 	g_debug("output dir: %s", argv[3]);
 
-	if (!check_bundle(argv[2], &bundle, CHECK_BUNDLE_DEFAULT, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -710,7 +710,7 @@ static gboolean convert_start(int argc, char **argv)
 	if (trust_environment)
 		check_bundle_params |= CHECK_BUNDLE_TRUST_ENV;
 
-	if (!check_bundle(argv[2], &bundle, check_bundle_params, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, check_bundle_params, NULL, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -1017,7 +1017,7 @@ static gboolean info_start(int argc, char **argv)
 	if (no_check_time)
 		check_bundle_params |= CHECK_BUNDLE_NO_CHECK_TIME;
 
-	res = check_bundle(bundlelocation, &bundle, check_bundle_params, &error);
+	res = check_bundle(bundlelocation, &bundle, check_bundle_params, NULL, &error);
 	if (!res) {
 		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
@@ -1791,7 +1791,7 @@ static gboolean mount_start(int argc, char **argv)
 		goto out; /* an error message was already printed by resolve_bundle_path */
 	g_debug("input bundle: %s", bundlelocation);
 
-	res = check_bundle(bundlelocation, &bundle, CHECK_BUNDLE_DEFAULT, &error);
+	res = check_bundle(bundlelocation, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &error);
 	if (!res) {
 		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
