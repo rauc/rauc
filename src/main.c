@@ -40,6 +40,7 @@ gchar *casync_args = NULL;
 gchar *handler_args = NULL;
 gchar *bootslot = NULL;
 gboolean utf8_supported = FALSE;
+RaucBundleAccessArgs access_args = {0};
 
 static gchar* make_progress_line(gint percentage)
 {
@@ -1919,6 +1920,15 @@ static GOptionEntry entries_service[] = {
 	{0}
 };
 
+static GOptionEntry entries_bundle_access[] = {
+	{"tls-cert", '\0', 0, G_OPTION_ARG_STRING, &access_args.tls_cert, "TLS client certificate file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
+	{"tls-key", '\0', 0, G_OPTION_ARG_STRING, &access_args.tls_key, "TLS client key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
+	{"tls-ca", '\0', 0, G_OPTION_ARG_FILENAME, &access_args.tls_ca, "TLS CA file", "PEMFILE"},
+	{"tls-no-verify", '\0', 0, G_OPTION_ARG_NONE, &access_args.tls_no_verify, "do not verify TLS server certificate", NULL},
+	{"http-header", 'H', 0, G_OPTION_ARG_STRING_ARRAY, &access_args.http_headers, "HTTP request header (multiple uses supported)", "'HEADER: VALUE'"},
+	{0}
+};
+
 static GOptionGroup *install_group;
 static GOptionGroup *bundle_group;
 static GOptionGroup *resign_group;
@@ -1932,6 +1942,8 @@ static void create_option_groups(void)
 {
 	install_group = g_option_group_new("install", "Install options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(install_group, entries_install);
+	if (ENABLE_STREAMING)
+		g_option_group_add_entries(install_group, entries_bundle_access);
 
 	if (ENABLE_CREATE) {
 		bundle_group  = g_option_group_new("bundle", "Bundle options:", "help dummy", NULL, NULL);
@@ -1949,6 +1961,8 @@ static void create_option_groups(void)
 
 	info_group    = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(info_group, entries_info);
+	if (ENABLE_STREAMING)
+		g_option_group_add_entries(info_group, entries_bundle_access);
 
 	status_group  = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(status_group, entries_status);
