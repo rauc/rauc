@@ -116,6 +116,12 @@ AS_IF([test "x$enable_streaming" = "xyes"], [
         enable_streaming=no
 ])
 
+AC_ARG_WITH([streaming_user],
+        AS_HELP_STRING([--with-streaming-user=USERNAME], [unpriviledged user for the streaming subprocess]),
+        [],
+        [with_streaming_user=nobody])
+AC_DEFINE_UNQUOTED([STREAMING_USER], ["$with_streaming_user"], [Set the unpriviledged user for the streaming subprocess])
+
 AC_ARG_ENABLE([json],
         AS_HELP_STRING([--disable-json], [Disable JSON support])
 )
