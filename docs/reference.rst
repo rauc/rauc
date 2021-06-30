@@ -567,6 +567,22 @@ normal users on their development hosts.
 It this case, the same mechanism for ensuring exclusive access as with plain
 bundles is used.
 
+External Signing and PKI
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Many industrialization procedure requires to sign any artifact in a dedicated
+secure room with restricted access (as Public Key Infrastructure aka PKI).
+
+This way using `rauc bundle --external-signing`, RAUC will generate an intermediary
+artifact to sign externally.
+
+The result for the respective formats:
+
+- `plain` produces an unsigned raw bundle
+- `verity` produces also an unsigned raw bundle but additionally creates
+  a RAUC `verity` manifest named `manifest-dm.raucm` in the same directory
+  than the unsigned raw bundle
+
 .. _slot-status:
 
 Slot Status
