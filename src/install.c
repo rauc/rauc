@@ -466,8 +466,8 @@ static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_sou
 	GHashTableIter iter;
 	RaucSlot *slot;
 	gint slotcnt = 0;
-	g_autofree gchar *targetlist = NULL;
-	g_autofree gchar *slotlist = NULL;
+	g_autoptr(GString) slots = g_string_sized_new(128);
+	g_autoptr(GString) target_slots = g_string_sized_new(128);
 
 	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_CONFIG", r_context()->configpath, TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_CURRENT_BOOTNAME", r_context()->bootslot, TRUE);
@@ -479,15 +479,14 @@ static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_sou
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		gchar *varname;
-		gchar *tmp;
 		GHashTableIter iiter;
 		gpointer member;
 
 		slotcnt++;
 
-		tmp = g_strdup_printf("%s%i ", slotlist ? slotlist : "", slotcnt);
-		g_clear_pointer(&slotlist, g_free);
-		slotlist = tmp;
+		if (slots->len)
+			g_string_append_c(slots, ' ');
+		g_string_append_printf(slots, "%i", slotcnt);
 
 		g_hash_table_iter_init(&iiter, target_group);
 		while (g_hash_table_iter_next(&iiter, NULL, &member)) {
@@ -515,9 +514,9 @@ static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_sou
 				}
 			}
 
-			tmp = g_strdup_printf("%s%i ", targetlist ? targetlist : "", slotcnt);
-			g_clear_pointer(&targetlist, g_free);
-			targetlist = tmp;
+			if (target_slots->len)
+				g_string_append_c(target_slots, ' ');
+			g_string_append_printf(target_slots, "%i", slotcnt);
 		}
 
 		varname = g_strdup_printf("RAUC_SLOT_NAME_%i", slotcnt);
@@ -545,8 +544,8 @@ static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_sou
 		g_clear_pointer(&varname, g_free);
 	}
 
-	g_subprocess_launcher_setenv(launcher, "RAUC_SLOTS", slotlist, TRUE);
-	g_subprocess_launcher_setenv(launcher, "RAUC_TARGET_SLOTS", targetlist, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_SLOTS", slots->str, TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_TARGET_SLOTS", target_slots->str, TRUE);
 }
 
 static gboolean launch_and_wait_handler(RaucInstallArgs *args, gchar *update_source, gchar *handler_name, RaucManifest *manifest, GHashTable *target_group, GError **error)
