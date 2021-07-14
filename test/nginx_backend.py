@@ -19,6 +19,16 @@ async def sporadic_get(request):
         return web.FileResponse(path="test/good-verity-bundle.raucb")
 
 
+@routes.get("/token.raucb")
+async def token_get(request):
+    if "token" not in request.cookies:
+        raise web.HTTPUnauthorized(text="missing cookie token")
+    elif request.cookies["token"] != "secret":
+        raise web.HTTPUnauthorized(text="bad cookie token")
+    else:
+        return web.FileResponse(path="test/good-verity-bundle.raucb")
+
+
 app = web.Application()
 app["sporadic_counter"] = -1
 app.add_routes(routes)
