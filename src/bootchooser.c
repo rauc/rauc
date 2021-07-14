@@ -172,6 +172,10 @@ static gboolean barebox_state_set(GPtrArray *pairs, GError **error)
 		g_ptr_array_add(args, g_strdup("-s"));
 		g_ptr_array_add(args, g_strdup(pairs->pdata[i]));
 	}
+	if (r_context()->config->system_bb_dtbpath) {
+		g_ptr_array_add(args, g_strdup("-i"));
+		g_ptr_array_add(args, g_strdup(r_context()->config->system_bb_dtbpath));
+	}
 	g_ptr_array_add(args, NULL);
 
 	sub = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
