@@ -453,8 +453,10 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 	g_return_val_if_fail(manifest, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	g_assert_nonnull(r_context()->certpath);
-	g_assert_nonnull(r_context()->keypath);
+	if (!r_context()->external_signing) {
+		g_assert_nonnull(r_context()->certpath);
+		g_assert_nonnull(r_context()->keypath);
+	}
 
 	bundlefile = g_file_new_for_path(bundlename);
 	bundlestream = g_file_open_readwrite(bundlefile, NULL, &ierror);
@@ -479,7 +481,7 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
 	g_debug("Payload size: %" G_GUINT64_FORMAT " bytes.", offset);
 	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
-		g_print("Creating bundle in 'plain' format\n");
+		g_print("Creating %sbundle in 'plain' format\n", r_context()->external_signing ? "unsigned raw " : "");
 
 		if (!check_manifest_internal(manifest, &ierror)) {
 			g_propagate_prefixed_error(
@@ -488,6 +490,9 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 					"cannot sign bundle containing inconsistent manifest: ");
 			return FALSE;
 		}
+
+		if (r_context()->external_signing)
+			goto out;
 
 		sig = cms_sign_file(bundlename,
 				r_context()->certpath,
@@ -508,7 +513,10 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 		off_t combined_size = 0;
 		guint64 verity_size = 0;
 
-		g_print("Creating bundle in 'verity' format\n");
+		if (r_context()->external_signing)
+			g_print("Creating unsigned raw bundle in 'verity' format with external dm-verity manifest\n");
+		else
+			g_print("Creating bundle in 'verity' format\n");
 
 		/* check we have a clean manifest */
 		g_assert(manifest->bundle_verity_salt == NULL);
@@ -561,6 +569,20 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 			return FALSE;
 		}
 
+		if (r_context()->external_signing) {
+			g_autofree gchar *bundle_dirname = g_path_get_dirname(bundlename);
+			g_autofree gchar *dm_manifestpath = g_build_filename(bundle_dirname, "manifest-dm.raucm", NULL);
+
+			if (!save_manifest_file(dm_manifestpath, manifest, &ierror)) {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"cannot save dm_verity manifest: ");
+				return FALSE;
+			}
+			goto out;
+		}
+
 		sig = cms_sign_manifest(manifest,
 				r_context()->certpath,
 				r_context()->keypath,
@@ -609,6 +631,7 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
 	g_debug("Bundle size: %" G_GUINT64_FORMAT " bytes.", offset);
 
+out:
 	return TRUE;
 }
 

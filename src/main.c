@@ -38,6 +38,7 @@ gchar *casync_args = NULL;
 gchar *handler_args = NULL;
 gchar *bootslot = NULL;
 gboolean utf8_supported = FALSE;
+gboolean external_signing = FALSE;
 
 static gchar* make_progress_line(gint percentage)
 {
@@ -332,8 +333,9 @@ static gboolean bundle_start(int argc, char **argv)
 		goto out;
 	}
 
-	if (r_context()->certpath == NULL ||
-	    r_context()->keypath == NULL) {
+	if (!r_context()->external_signing &&
+	    (r_context()->certpath == NULL ||
+	     r_context()->keypath == NULL)) {
 		g_printerr("Cert and key files must be provided\n");
 		r_exit_status = 1;
 		goto out;
@@ -1682,6 +1684,7 @@ static GOptionEntry entries_install[] = {
 static GOptionEntry entries_bundle[] = {
 	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
 	{"mksquashfs-args", '\0', 0, G_OPTION_ARG_STRING, &mksquashfs_args, "mksquashfs extra args", "ARGS"},
+	{"external-signing", '\0', 0, G_OPTION_ARG_NONE, &external_signing, "disable bundle signing (e.g: PKI rooms)", NULL},
 	{0}
 };
 
@@ -1932,6 +1935,8 @@ static void cmdline_handler(int argc, char **argv)
 			r_context_conf()->bootslot = bootslot;
 		if (handler_args)
 			r_context_conf()->handlerextra = handler_args;
+		if (external_signing)
+			r_context_conf()->external_signing = external_signing;
 	} else {
 		if (confpath != NULL ||
 		    certpath != NULL ||

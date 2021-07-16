@@ -46,6 +46,9 @@ typedef struct {
 	/* optional custom handler extra arguments */
 	gchar *handlerextra;
 
+	/* external bundle signing */
+	gboolean external_signing;
+
 	/* for storing installation runtime information */
 	RContextInstallationInfo *install_info;
 
