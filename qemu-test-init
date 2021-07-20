@@ -111,6 +111,22 @@ if [ -n "$SERVICE" ]; then
   rauc service --conf=/tmp/rauc/system.conf &
 fi
 
+if type nginx; then
+  mount -t tmpfs tmpfs /var/lib/nginx
+  mount -t tmpfs tmpfs /var/log/nginx
+  nginx -c test/nginx.conf -p "$PWD"
+  export RAUC_TEST_HTTP_SERVER=1
+fi
+
+if python3 -m aiohttp.web --help > /dev/null; then
+  python3 test/nginx_backend.py &
+  while sleep 1; do
+    test -e /tmp/backend.sock && break
+  done
+  chmod a=rw /tmp/backend.sock
+  export RAUC_TEST_HTTP_BACKEND=1
+fi
+
 echo "use ctrl-a x to exit and ctrl-a c to access the qemu monitor"
 
 echo "system ready"

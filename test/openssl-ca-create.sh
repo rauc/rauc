@@ -27,6 +27,10 @@ mkdir -p $BASE/dev/{private,certs}
 touch $BASE/dev/index.txt
 echo 01 > $BASE/dev/serial
 
+mkdir -p $BASE/web/{private,certs}
+touch $BASE/web/index.txt
+echo 01 > $BASE/web/serial
+
 mkdir -p $BASE/dir/{private,certs,hash}
 touch $BASE/dir/index.txt
 echo 01 > $BASE/dir/serial
@@ -109,6 +113,21 @@ subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid:always,issuer:always
 basicConstraints = CA:FALSE
 extendedKeyUsage=critical,codeSigning
+
+[ v3_leaf_client ]
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+basicConstraints = CA:FALSE
+keyUsage=critical,digitalSignature,keyEncipherment
+extendedKeyUsage=clientAuth
+
+[ v3_leaf_server ]
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+basicConstraints = CA:FALSE
+keyUsage=critical,digitalSignature,keyEncipherment
+extendedKeyUsage=serverAuth
+subjectAltName=IP:127.0.0.1,IP:127.0.0.2,IP:127.0.0.3,IP:127.0.0.4
 EOF
 
 export OPENSSL_CONF=$BASE/openssl.cnf
@@ -162,12 +181,31 @@ cd $BASE/dev
 openssl req -newkey rsa -keyout private/xku-codeSigning.pem -out xku-codeSigning.csr.pem -subj "/O=$ORG/CN=$ORG XKU codeSigning"
 openssl ca -batch -extensions v3_leaf_codesign -in xku-codeSigning.csr.pem -out xku-codeSigning.cert.pem
 
+echo "Web Intermediate CA"
+cd $BASE/web
+openssl req -newkey rsa -keyout private/ca.key.pem -out ca.csr.pem -subj "/O=$ORG/CN=$ORG $CA Web"
+cd $BASE/root
+openssl ca -batch -extensions v3_inter -in $BASE/web/ca.csr.pem -out $BASE/web/ca.cert.pem
+
+echo "Web Server Key"
+cd $BASE/web
+openssl req -newkey rsa -keyout private/server.pem -out server.csr.pem -subj "/O=$ORG/CN=$ORG Web Server"
+openssl ca -batch -extensions v3_leaf_server -in server.csr.pem -out server.cert.pem
+cat server.cert.pem ca.cert.pem > server.chain.pem
+
+echo "Web Client Key 1"
+cd $BASE/web
+openssl req -newkey rsa -keyout private/client-1.pem -out client-1.csr.pem -subj "/O=$ORG/CN=$ORG Web Client 1"
+openssl ca -batch -extensions v3_leaf_client -in client-1.csr.pem -out client-1.cert.pem
+
 echo "Generate CRL"
 cd $BASE/root
 openssl ca -gencrl $CRL -out crl.pem
 cd $BASE/rel
 openssl ca -gencrl $CRL -out crl.pem
 cd $BASE/dev
+openssl ca -gencrl $CRL -out crl.pem
+cd $BASE/web
 openssl ca -gencrl $CRL -out crl.pem
 
 echo "Build CA PEM"
@@ -177,6 +215,7 @@ cat root/ca.cert.pem root/crl.pem rel/crl.pem dev/crl.pem > provisioning-ca.pem
 cat root/ca.cert.pem root/crl.pem rel/ca.cert.pem rel/crl.pem dev/ca.cert.pem dev/crl.pem > dev-ca.pem
 cat root/ca.cert.pem root/crl.pem dev/ca.cert.pem dev/crl.pem > dev-only-ca.pem
 cat root/ca.cert.pem root/crl.pem rel/ca.cert.pem rel/crl.pem > rel-ca.pem
+cat root/ca.cert.pem root/crl.pem web/ca.cert.pem web/crl.pem > web-ca.pem
 
 echo "Build Directory Test Keys"
 cd $BASE/dir
