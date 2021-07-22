@@ -1,18 +1,16 @@
 FROM debian:buster
 
-# Required for building (base)
+# Required for building
 RUN apt-get update && apt-get install -y \
   automake \
   libtool \
   libglib2.0-dev \
   libcurl3-dev \
   libssl-dev \
-  libdbus-1-dev
-
-# Reqired for building (extended)
-RUN apt-get update && apt-get install -y \
+  libdbus-1-dev \
   libjson-glib-dev \
-  libfdisk-dev
+  libfdisk-dev \
+  libnl-genl-3-dev
 
 # Required for testing
 RUN apt-get update && apt-get install -y \
@@ -35,7 +33,9 @@ RUN apt-get update && apt-get install -y \
   casync \
   qemu-system-x86 \
   procps \
-  mtd-utils
+  mtd-utils \
+  python3-aiohttp \
+  nginx-light
 
 # Required for test environment setup
 RUN apt-get update && apt-get install -y \
@@ -43,6 +43,7 @@ RUN apt-get update && apt-get install -y \
   git \
   gcc-7 \
   curl && \
+  rm -rf /var/lib/apt/lists/* && \
   curl -sLo /usr/bin/codecov https://codecov.io/bash && \
   chmod +x /usr/bin/codecov
 
