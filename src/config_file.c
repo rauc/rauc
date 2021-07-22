@@ -167,8 +167,6 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	GHashTable *slots = NULL;
 	g_autoptr(GHashTable) bootnames = NULL;
 	GList *l;
-	gchar *bootloader;
-	const gchar **pointer;
 	gboolean dtbvariant;
 	gchar *variant_data;
 	g_autofree gchar *bundle_formats = NULL;
@@ -188,8 +186,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		res = FALSE;
 		goto free;
 	}
-	bootloader = key_file_consume_string(key_file, "system", "bootloader", NULL);
-	if (!bootloader) {
+	c->system_bootloader = key_file_consume_string(key_file, "system", "bootloader", NULL);
+	if (!c->system_bootloader) {
 		g_set_error_literal(
 				error,
 				R_CONFIG_ERROR,
@@ -199,21 +197,12 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		goto free;
 	}
 
-	pointer = &supported_bootloaders[0];
-	while (*pointer) {
-		if (g_strcmp0(bootloader, *pointer) == 0) {
-			c->system_bootloader = bootloader;
-			break;
-		}
-		pointer++;
-	}
-
-	if (!c->system_bootloader) {
+	if (!g_strv_contains(supported_bootloaders, c->system_bootloader)) {
 		g_set_error(
 				error,
 				R_CONFIG_ERROR,
 				R_CONFIG_ERROR_BOOTLOADER,
-				"Unsupported bootloader '%s' selected in system config", bootloader);
+				"Unsupported bootloader '%s' selected in system config", c->system_bootloader);
 		res = FALSE;
 		goto free;
 	}
