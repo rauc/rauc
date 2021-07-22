@@ -43,6 +43,7 @@ RUN apt-get update && apt-get install -y \
   git \
   gcc-7 \
   curl && \
+  rm -rf /var/lib/apt/lists/* && \
   curl -sLo /usr/bin/codecov https://codecov.io/bash && \
   chmod +x /usr/bin/codecov
 
