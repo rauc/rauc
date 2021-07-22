@@ -2,6 +2,7 @@
 
 #include <glib.h>
 
+#include "bundle.h"
 #include "manifest.h"
 
 #define R_INSTALL_ERROR r_install_error_quark()
@@ -31,6 +32,7 @@ typedef struct {
 	gint status_result;
 	/* install options */
 	gboolean ignore_compatible;
+	RaucBundleAccessArgs access_args;
 } RaucInstallArgs;
 
 /**

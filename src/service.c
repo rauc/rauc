@@ -79,6 +79,16 @@ static gboolean r_on_handle_install_bundle(
 
 	if (g_variant_dict_lookup(&dict, "ignore-compatible", "b", &args->ignore_compatible))
 		g_variant_dict_remove(&dict, "ignore-compatible");
+	if (g_variant_dict_lookup(&dict, "tls-cert", "s", &args->access_args.tls_cert))
+		g_variant_dict_remove(&dict, "tls-cert");
+	if (g_variant_dict_lookup(&dict, "tls-key", "s", &args->access_args.tls_key))
+		g_variant_dict_remove(&dict, "tls-key");
+	if (g_variant_dict_lookup(&dict, "tls-ca", "s", &args->access_args.tls_ca))
+		g_variant_dict_remove(&dict, "tls-ca");
+	if (g_variant_dict_lookup(&dict, "tls-no-verify", "b", &args->access_args.tls_no_verify))
+		g_variant_dict_remove(&dict, "tls-no-verify");
+	if (g_variant_dict_lookup(&dict, "http-headers", "^as", &args->access_args.http_headers))
+		g_variant_dict_remove(&dict, "http-headers");
 
 	/* Check for unhandled keys */
 	g_variant_iter_init(&iter, g_variant_dict_end(&dict));

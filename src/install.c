@@ -1073,7 +1073,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	// TODO: mount info in context ?
 	install_args_update(args, "Checking and mounting bundle...");
 
-	res = check_bundle(bundlefile, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
+	res = check_bundle(bundlefile, &bundle, CHECK_BUNDLE_DEFAULT, &args->access_args, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -1202,6 +1202,7 @@ void install_args_free(RaucInstallArgs *args)
 	g_mutex_clear(&args->status_mutex);
 	g_assert_cmpint(args->status_result, >=, 0);
 	g_assert_true(g_queue_is_empty(&args->status_messages));
+	clear_bundle_access_args(&args->access_args);
 	g_free(args);
 }
 

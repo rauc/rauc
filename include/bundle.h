@@ -5,6 +5,7 @@
 #include <gio/gio.h>
 
 #include "manifest.h"
+#include "nbd.h"
 #include "utils.h"
 
 #define R_BUNDLE_ERROR r_bundle_error_quark()
@@ -31,7 +32,12 @@ typedef struct {
 	gchar *path;
 	gchar *origpath;
 	gchar *storepath;
+
+	RaucNBDDevice *nbd_dev;
+	RaucNBDServer *nbd_srv;
+
 	GInputStream *stream;
+
 	goffset size;
 	GBytes *sigdata;
 	gchar *mount_point;
