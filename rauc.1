@@ -23,6 +23,9 @@ rauc \- safe and secure updating
 [\fIOPTIONS\fR...] \fBinfo\fR \fIBUNDLE\fR
 
 .B rauc
+[\fIOPTIONS\fR...] \fBmount\fR \fIBUNDLE\fR
+
+.B rauc
 [\fIOPTIONS\fR...] \fBstatus\fR [\fISLOTNAME\fR | \fBmark-\fR{\fBgood\fR,\fBbad\fR,\fBactive\fR} [\fBbooted\fR|\fBother\fR|\fISLOTNAME\fR]]
 
 .B rauc
@@ -72,7 +75,7 @@ intermediate CA file name
 
 .TP
 \fB\-\-mount=\fR\fIPATH\fR
-mount prefix
+mount prefix (/mnt/rauc by default)
 
 .TP
 \fB\-\-override\-boot\-slot=\fR\fIBOOTNAME\fR
@@ -208,6 +211,16 @@ select output format
 .TP
 \fB\-\-dump\-cert\fR
 dump certificate
+
+
+.RE
+.RE
+.PP
+\fBmount\fR \fIBUNDLE\fR
+
+.RS 4
+Mount a bundle for development purposes to the bundle directory in RAUC's mount
+prefix. It must be unmounted manually by the user.
 
 .RE
 .RE

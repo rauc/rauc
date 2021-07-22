@@ -1683,6 +1683,59 @@ static gboolean service_start(int argc, char **argv)
 	return TRUE;
 }
 
+static gboolean mount_start(int argc, char **argv)
+{
+	g_autofree gchar *bundlelocation = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	GError *error = NULL;
+	gboolean res = FALSE;
+
+	if (argc < 3) {
+		g_printerr("A file name must be provided\n");
+		goto out;
+	}
+
+	if (argc > 3) {
+		g_printerr("Excess argument: %s\n", argv[3]);
+		goto out;
+	}
+
+	bundlelocation = resolve_bundle_path(argv[2]);
+	if (bundlelocation == NULL)
+		goto out; /* an error message was already printed by resolve_bundle_path */
+	g_debug("input bundle: %s", bundlelocation);
+
+	res = check_bundle(bundlelocation, &bundle, TRUE, &error);
+	if (!res) {
+		g_printerr("%s\n", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+	g_debug("bundle payload size: %"G_GOFFSET_FORMAT, bundle->size);
+
+	res = mount_bundle(bundle, &error);
+	if (!res) {
+		g_printerr("%s\n", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
+
+	g_print("Mounted bundle at %s. Use 'umount %s' to unmount.\n", bundle->mount_point, bundle->mount_point);
+
+	/* The device mapper target and loopback devices are configured to remove
+	 * themselves on close. They are kept active by the mounted filesystem and
+	 * are automatically cleaned up when the user performs a normal unmount.
+	 * To avoid running the g_autoptr cleanup for the bundle, we use exit(0)
+	 * here.
+	 **/
+	exit(0);
+
+out:
+	r_exit_status = 1;
+	return FALSE;
+}
+
 static gboolean unknown_start(int argc, char **argv)
 {
 	g_debug("unknown start");
@@ -1702,6 +1755,7 @@ typedef enum  {
 	INFO,
 	WRITE_SLOT,
 	SERVICE,
+	MOUNT,
 } RaucCommandType;
 
 typedef struct {
@@ -1844,6 +1898,7 @@ static void cmdline_handler(int argc, char **argv)
 #if ENABLE_SERVICE == 1
 		{SERVICE, "service", "service", "Start RAUC service", service_start, service_group, TRUE},
 #endif
+		{MOUNT, "mount", "mount <BUNDLENAME>", "Mount a bundle (for development purposes)", mount_start, NULL, TRUE},
 		{0}
 	};
 	RaucCommand *rc;
@@ -1864,6 +1919,7 @@ static void cmdline_handler(int argc, char **argv)
 			"  extract\t\tExtract the bundle content\n"
 			"  install\t\tInstall a bundle\n"
 			"  info\t\t\tShow file information\n"
+			"  mount\t\t\tMount a bundle\n"
 #if ENABLE_SERVICE == 1
 			"  service\t\tStart RAUC service\n"
 #endif

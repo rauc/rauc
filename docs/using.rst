@@ -627,6 +627,40 @@ It may also be worth starting the RAUC service via command line on a second
 shell to have a live view of what is going on when you invoke e.g. ``rauc
 install`` on the first shell.
 
+Inspecting Bundle Contents
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sometimes during development, it is useful to check whether the bundle contents
+are as expected.
+While RAUC bundles could just be mounted as a squashfs, using ``rauc mount``
+also uses the same checks and mechanisms as ``rauc install``
+(device-mapper/loopback & network support).
+The bundle is mounted below the configured mount prefix (``/mnt/rauc/bundle`` by
+default).
+When you are done, just use ``umount <mount point>`` to unmount the bundle.
+
+.. code-block:: sh
+
+  $ rauc mount /var/tmp/test/good-verity-bundle.raucb
+  rauc-Message: 12:37:36.869: Reading bundle: /var/tmp/test/good-verity-bundle.raucb
+  rauc-Message: 12:37:36.889: Verifying bundle signature...
+  rauc-Message: 12:37:36.894: Verified inline signature by 'O = Test Org, CN = Test Org Release-1'
+  rauc-Message: 12:37:36.896: Mounting bundle '/var/tmp/test/good-verity-bundle.raucb' to '/mnt/rauc/bundle'
+  rauc-Message: 12:37:36.931: Configured loop device '/dev/loop0' for 24576 bytes
+  rauc-Message: 12:37:36.934: Configured dm-verity device '/dev/dm-0'
+  Mounted bundle at /mnt/rauc/bundle. Use 'umount /mnt/rauc/bundle' to unmount.
+  $ ls -l /mnt/rauc/bundle
+  total 21
+  -rw-r--r-- 1 root root 8192 Jun 21 14:51 appfs.img
+  -rwxr-xr-x 1 root root 2241 Sep 15  2017 custom_handler.sh
+  -rwxr-xr-x 1 root root 1421 Aug 31  2017 hook.sh
+  -rw-r--r-- 1 root root  308 Jun 21 14:51 manifest.raucm
+  -rw-r--r-- 1 root root 8192 Jun 21 14:51 rootfs.img
+  $ umount /mnt/rauc/bundle
+
+.. note::
+  This command is only intended for use during development.
+
 Increasing Debug Verbosity
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
