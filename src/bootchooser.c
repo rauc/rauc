@@ -25,6 +25,13 @@ GQuark r_bootchooser_error_quark(void)
 #define EFIBOOTMGR_NAME "efibootmgr"
 #define GRUB_EDITENV "grub-editenv"
 
+static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "custom", "noop", NULL};
+
+gboolean r_boot_is_supported_bootloader(const gchar *bootloader)
+{
+	return g_strv_contains(supported_bootloaders, bootloader);
+}
+
 static GString *bootchooser_order_primay(RaucSlot *slot)
 {
 	GString *order = NULL;

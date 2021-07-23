@@ -12,6 +12,16 @@ GQuark r_bootchooser_error_quark(void);
 #define R_BOOTCHOOSER_ERROR_PARSE_FAILED	20
 
 /**
+ * Check if bootloader (name) is supported
+ *
+ * @param typename Name of bootloader as represented in config
+ *
+ * @return TRUE if it is supported, otherwise FALSE
+ */
+gboolean r_boot_is_supported_bootloader(const gchar *bootloader)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Mark slot as good or bad.
  *
  * @param slot Slot to mark

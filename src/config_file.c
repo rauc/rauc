@@ -1,6 +1,7 @@
 #include <glib.h>
 #include <string.h>
 
+#include "bootchooser.h"
 #include "config_file.h"
 #include "context.h"
 #include "manifest.h"
@@ -69,8 +70,6 @@ static gboolean fix_grandparent_links(GHashTable *slots, GError **error)
 	}
 	return TRUE;
 }
-
-static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "custom", "noop", NULL};
 
 gboolean parse_bundle_formats(guint *mask, const gchar *config, GError **error)
 {
@@ -197,7 +196,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		goto free;
 	}
 
-	if (!g_strv_contains(supported_bootloaders, c->system_bootloader)) {
+	if (!r_boot_is_supported_bootloader(c->system_bootloader)) {
 		g_set_error(
 				error,
 				R_CONFIG_ERROR,
