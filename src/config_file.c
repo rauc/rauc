@@ -536,6 +536,16 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				value = g_strdup("raw");
 			slot->type = value;
 
+			if (!r_slot_is_valid_type(slot->type)) {
+				g_set_error(
+						error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_SLOT_TYPE,
+						"Unsupported slot type '%s' for slot %s selected in system config", slot->type, slot->name);
+				res = FALSE;
+				goto free;
+			}
+
 			value = key_file_consume_string(key_file, groups[i], "bootname", NULL);
 			slot->bootname = value;
 			if (slot->bootname) {
