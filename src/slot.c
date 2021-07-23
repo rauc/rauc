@@ -123,9 +123,24 @@ RaucSlotType supported_slot_types[] = {
 	{"ubifs", TRUE},
 	{"ubivol", FALSE},
 	{"nand", FALSE},
+	{"nor", FALSE},
+	{"boot-emmc", FALSE},
+	{"boot-mbr-switch", FALSE},
+	{"boot-gpt-switch", FALSE},
 	{"vfat", TRUE},
 	{}
 };
+
+gboolean r_slot_is_valid_type(const gchar *type)
+{
+	for (RaucSlotType *slot_type = supported_slot_types; slot_type->name != NULL; slot_type++) {
+		if (g_strcmp0(type, slot_type->name) == 0) {
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
 
 gboolean r_slot_is_mountable(RaucSlot *slot)
 {

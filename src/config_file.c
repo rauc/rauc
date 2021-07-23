@@ -1,6 +1,7 @@
 #include <glib.h>
 #include <string.h>
 
+#include "bootchooser.h"
 #include "config_file.h"
 #include "context.h"
 #include "manifest.h"
@@ -69,8 +70,6 @@ static gboolean fix_grandparent_links(GHashTable *slots, GError **error)
 	}
 	return TRUE;
 }
-
-static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "custom", "noop", NULL};
 
 gboolean parse_bundle_formats(guint *mask, const gchar *config, GError **error)
 {
@@ -167,8 +166,6 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	GHashTable *slots = NULL;
 	g_autoptr(GHashTable) bootnames = NULL;
 	GList *l;
-	gchar *bootloader;
-	const gchar **pointer;
 	gboolean dtbvariant;
 	gchar *variant_data;
 	g_autofree gchar *bundle_formats = NULL;
@@ -188,8 +185,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		res = FALSE;
 		goto free;
 	}
-	bootloader = key_file_consume_string(key_file, "system", "bootloader", NULL);
-	if (!bootloader) {
+	c->system_bootloader = key_file_consume_string(key_file, "system", "bootloader", NULL);
+	if (!c->system_bootloader) {
 		g_set_error_literal(
 				error,
 				R_CONFIG_ERROR,
@@ -199,21 +196,12 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		goto free;
 	}
 
-	pointer = &supported_bootloaders[0];
-	while (*pointer) {
-		if (g_strcmp0(bootloader, *pointer) == 0) {
-			c->system_bootloader = bootloader;
-			break;
-		}
-		pointer++;
-	}
-
-	if (!c->system_bootloader) {
+	if (!r_boot_is_supported_bootloader(c->system_bootloader)) {
 		g_set_error(
 				error,
 				R_CONFIG_ERROR,
 				R_CONFIG_ERROR_BOOTLOADER,
-				"Unsupported bootloader '%s' selected in system config", bootloader);
+				"Unsupported bootloader '%s' selected in system config", c->system_bootloader);
 		res = FALSE;
 		goto free;
 	}
@@ -547,6 +535,16 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			if (!value)
 				value = g_strdup("raw");
 			slot->type = value;
+
+			if (!r_slot_is_valid_type(slot->type)) {
+				g_set_error(
+						error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_SLOT_TYPE,
+						"Unsupported slot type '%s' for slot %s selected in system config", slot->type, slot->name);
+				res = FALSE;
+				goto free;
+			}
 
 			value = key_file_consume_string(key_file, groups[i], "bootname", NULL);
 			slot->bootname = value;

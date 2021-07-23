@@ -264,6 +264,33 @@ mountprefix=/mnt/myrauc/\n";
 	g_clear_error(&ierror);
 }
 
+static void config_file_slots_invalid_type(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
+
+	const gchar *invalid_slot_type = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/null\n\
+type=oups\n\
+\t";
+
+
+	pathname = write_tmp_file(fixture->tmpdir, "system.conf", invalid_slot_type, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_SLOT_TYPE);
+	g_assert_cmpstr(ierror->message, ==, "Unsupported slot type 'oups' for slot rootfs.0 selected in system config");
+	g_clear_error(&ierror);
+}
+
 static void config_file_invalid_parent(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1149,6 +1176,9 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/bootloaders", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_bootloaders,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/slots/invalid_type", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_slots_invalid_type,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/invalid-parent", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_invalid_parent,

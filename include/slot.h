@@ -120,6 +120,16 @@ SlotState r_slot_str_to_slotstate(gchar *str)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Check if slot type name is valid.
+ *
+ * @param typename Name of type as string
+ *
+ * @return TRUE if it is a valid (known) slot type, otherwise FALSE
+ */
+gboolean r_slot_is_valid_type(const gchar *type)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Check if slot type is mountable.
  *
  * @param slot slot to check
