@@ -123,6 +123,10 @@ RaucSlotType supported_slot_types[] = {
 	{"ubifs", TRUE},
 	{"ubivol", FALSE},
 	{"nand", FALSE},
+	{"nor", FALSE},
+	{"boot-emmc", FALSE},
+	{"boot-mbr-switch", FALSE},
+	{"boot-gpt-switch", FALSE},
 	{"vfat", TRUE},
 	{}
 };
