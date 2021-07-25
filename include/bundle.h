@@ -104,6 +104,23 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Extract a bundle signature.
+ *
+ * This will extract the bundle signature into a given file.
+ *
+ * @param bundle RaucBundle struct as returned by check_bundle()
+ * @param outputsig file to extract signature
+ * @param error Return location for a GError
+ *
+ * Note that check_bundle() must be called prior to this, to obtain a
+ * RaucBundle struct.
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean extract_signature(RaucBundle *bundle, const gchar *outputsig, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Extract a bundle.
  *
  * This will extract the entire bundle content into a given directory.

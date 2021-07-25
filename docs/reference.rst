@@ -567,6 +567,25 @@ normal users on their development hosts.
 It this case, the same mechanism for ensuring exclusive access as with plain
 bundles is used.
 
+.. _sec_ref_external_signing:
+
+External Signing and PKI
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some industrialization procedures require signing artifacts in a dedicated
+secure room with restricted access (as Public Key Infrastructure aka PKI).
+
+For this case `rauc extract-signature` can extract the bundle signature.
+
+As a `verity` format bundle signature is a detached CMS, you can easily resign
+it externally.
+For the `plain` format bundle signature it's slightly different, as the
+signature is detached, it contains just the message digest.
+You can use `openssl asn1parse` for retrieving the message digest in the CMS.
+
+.. note::
+  The `asn1parse` method can also be used for the `verity` bundle
+
 .. _slot-status:
 
 Slot Status
@@ -644,15 +663,16 @@ Command Line Tool
     -h, --help
 
   List of rauc commands:
-    bundle        Create a bundle
-    resign        Resign an already signed bundle
-    convert       Convert classic to casync bundle
-    extract       Extract the bundle content
-    install       Install a bundle
-    info          Show file information
-    service       Start RAUC service
-    status        Show status
-    write-slot    Write image to slot and bypass all update logic
+    bundle                Create a bundle
+    resign                Resign an already signed bundle
+    convert               Convert classic to casync bundle
+    extract-signature     Extract the bundle signature
+    extract               Extract the bundle content
+    install               Install a bundle
+    info                  Show file information
+    service               Start RAUC service
+    status                Show status
+    write-slot            Write image to slot and bypass all update logic
 
   Environment variables:
     RAUC_PKCS11_MODULE  Library filename for PKCS#11 module (signing only)

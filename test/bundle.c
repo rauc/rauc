@@ -259,6 +259,29 @@ static void bundle_test_extract_manifest(BundleFixture *fixture,
 	g_clear_pointer(&filepath, g_free);
 }
 
+static void bundle_test_extract_signature(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autofree gchar *outputsig = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res = FALSE;
+
+	outputsig = g_build_filename(fixture->tmpdir, "bundle.sig", NULL);
+	g_assert_nonnull(outputsig);
+
+	res = check_bundle(fixture->bundlename, &bundle, TRUE, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(bundle);
+
+	res = extract_signature(bundle, outputsig, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	g_assert_true(g_file_test(outputsig, G_FILE_TEST_IS_REGULAR));
+	g_clear_pointer(&outputsig, g_free);
+}
 
 static void assert_casync_manifest(RaucManifest *rm)
 {
@@ -621,6 +644,11 @@ int main(int argc, char *argv[])
 		g_test_add(g_strdup_printf("/bundle/create_mount_extract/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_create_mount_extract,
+				bundle_fixture_tear_down);
+
+		g_test_add(g_strdup_printf("/bundle/extract_signature/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up_bundle, bundle_test_extract_signature,
 				bundle_fixture_tear_down);
 
 		g_test_add(g_strdup_printf("/bundle/extract_manifest/%s", format_name),
