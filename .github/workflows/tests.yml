@@ -6,7 +6,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: rauc/testing:latest
+      image: ghcr.io/rauc/rauc/rauc-ci:latest
       # allow mounting and devtmpfs in the container
       options: --user=root --privileged -v /dev:/dev
     steps:

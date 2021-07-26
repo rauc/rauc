@@ -9,7 +9,7 @@ jobs:
   coverity:
     runs-on: ubuntu-latest
     container:
-      image: rauc/testing:latest
+      image: ghcr.io/rauc/rauc/rauc-ci:latest
       options: --user=root
     steps:
     - uses: actions/checkout@v2
