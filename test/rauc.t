@@ -533,6 +533,17 @@ test_expect_success FAKETIME "rauc sign bundle with valid certificate" "
 "
 
 
+test_expect_success "rauc extract signature" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
+  rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    extract-signature ${TEST_TMPDIR}/good-bundle.raucb $TEST_TMPDIR/bundle.sig &&
+  test -f $TEST_TMPDIR/bundle.sig &&
+  openssl asn1parse -inform DER -in $TEST_TMPDIR/bundle.sig -noout > /dev/null 2>&1 && \
+  rm -rf $TEST_TMPDIR/bundle.sig
+"
+
 test_expect_success "rauc extract" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&

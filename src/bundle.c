@@ -1625,6 +1625,43 @@ out:
 	return res;
 }
 
+gboolean extract_signature(RaucBundle *bundle, const gchar *outputsig, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(GFile) sigfile = NULL;
+	g_autoptr(GOutputStream) sigoutstream = NULL;
+	gboolean res = FALSE;
+
+	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail(outputsig != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	r_context_begin_step("extract_signature", "Extracting bundle signature", 0);
+
+	sigfile = g_file_new_for_path(outputsig);
+	sigoutstream = (GOutputStream*)g_file_create(sigfile, G_FILE_CREATE_PRIVATE, NULL, &ierror);
+	if (sigoutstream == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to create file to store signature: ");
+		goto out;
+	}
+
+	if (!output_stream_write_bytes_all(sigoutstream, bundle->sigdata, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to write signature to file: ");
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	r_context_end_step("extract_signature", res);
+	return res;
+}
+
 gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **error)
 {
 	GError *ierror = NULL;
