@@ -153,7 +153,7 @@ Example configuration:
 ``max-bundle-download-size``
   Defines the maximum downloadable bundle size in bytes, and thus must be
   a simple integer value (without unit) greater than zero.
-  It overwrites the compiled-in default value of 8 MiB.
+  It overwrites the compiled-in default value of 8388608 (8 MiB).
 
 ``variant-name``
   String to be used as variant name for this board.
