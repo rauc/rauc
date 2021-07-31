@@ -528,6 +528,64 @@ out:
 	return TRUE;
 }
 
+static gboolean replace_signature_start(int argc, char **argv)
+{
+	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
+	RaucBundle *bundle = NULL;
+	GError *ierror = NULL;
+	g_debug("replace signature start");
+
+	if (argc < 3) {
+		g_printerr("An input bundle must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc < 4) {
+		g_printerr("An input signature file must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc < 5) {
+		g_printerr("An output bundle must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc > 5) {
+		g_printerr("Excess argument: %s\n", argv[4]);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	g_debug("input bundle: %s", argv[2]);
+	g_debug("input signature: %s", argv[3]);
+	g_debug("output file: %s", argv[4]);
+
+	if (verification_disabled)
+		check_bundle_params |= CHECK_BUNDLE_NO_VERIFY;
+	if (trust_environment)
+		check_bundle_params |= CHECK_BUNDLE_TRUST_ENV;
+
+	if (!check_bundle(argv[2], &bundle, check_bundle_params, &ierror)) {
+		g_printerr("%s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (!replace_signature(bundle, argv[3], argv[4], check_bundle_params, &ierror)) {
+		g_printerr("Failed to replace signature: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+out:
+	return TRUE;
+}
+
 static gboolean extract_signature_start(int argc, char **argv)
 {
 	RaucBundle *bundle = NULL;
@@ -1791,6 +1849,7 @@ typedef enum  {
 	INSTALL,
 	BUNDLE,
 	RESIGN,
+	REPLACE_SIG,
 	EXTRACT_SIG,
 	EXTRACT,
 	CONVERT,
@@ -1835,6 +1894,13 @@ static GOptionEntry entries_resign[] = {
 	{0}
 };
 
+static GOptionEntry entries_replace[] = {
+	{"trust-environment", '\0', 0, G_OPTION_ARG_NONE, &trust_environment, "trust environment and skip bundle access checks", NULL},
+	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
+	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
+	{0}
+};
+
 static GOptionEntry entries_convert[] = {
 	{"trust-environment", '\0', 0, G_OPTION_ARG_NONE, &trust_environment, "trust environment and skip bundle access checks", NULL},
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
@@ -1870,6 +1936,7 @@ static GOptionEntry entries_service[] = {
 static GOptionGroup *install_group;
 static GOptionGroup *bundle_group;
 static GOptionGroup *resign_group;
+static GOptionGroup *replace_group;
 static GOptionGroup *convert_group;
 static GOptionGroup *info_group;
 static GOptionGroup *status_group;
@@ -1886,6 +1953,9 @@ static void create_option_groups(void)
 
 		resign_group  = g_option_group_new("resign", "Resign options:", "help dummy", NULL, NULL);
 		g_option_group_add_entries(resign_group, entries_resign);
+
+		replace_group  = g_option_group_new("replace-signature", "Replace signature options:", "help dummy", NULL, NULL);
+		g_option_group_add_entries(replace_group, entries_replace);
 
 		convert_group = g_option_group_new("convert", "Convert options:", "help dummy", NULL, NULL);
 		g_option_group_add_entries(convert_group, entries_convert);
@@ -1930,8 +2000,9 @@ static void cmdline_handler(int argc, char **argv)
 		{BUNDLE, "bundle", "bundle <INPUTDIR> <BUNDLENAME>", "Create a bundle from a content directory", bundle_start, bundle_group, FALSE},
 		{RESIGN, "resign", "resign <INBUNDLE> <OUTBUNDLE>", "Resign an already signed bundle", resign_start, resign_group, FALSE},
 		{CONVERT, "convert", "convert <INBUNDLE> <OUTBUNDLE>", "Convert to casync index bundle and store", convert_start, convert_group, FALSE},
-#endif
+		{REPLACE_SIG, "replace-signature", "replace-signature <INBUMDLE> <INPUTSIG> <OUTBUNDLE>", "Replaces the signature of an already signed bundle", replace_signature_start, replace_group, FALSE},
 		{EXTRACT_SIG, "extract-signature", "extract-signature <BUNDLENAME> <OUTPUTSIG>", "Extract the bundle signature", extract_signature_start, NULL, FALSE},
+#endif
 		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>", "Extract the bundle content", extract_start, NULL, FALSE},
 		{INFO, "info", "info <FILE>", "Print bundle info", info_start, info_group, FALSE},
 		{STATUS, "status", "status",
@@ -1964,8 +2035,9 @@ static void cmdline_handler(int argc, char **argv)
 			"  bundle\t\tCreate a bundle\n"
 			"  resign\t\tResign an already signed bundle\n"
 			"  convert\t\tConvert classic to casync bundle\n"
-#endif
+			"  replace-signature\tReplaces the signature of an already signed bundle\n"
 			"  extract-signature\tExtract the bundle signature\n"
+#endif
 			"  extract\t\tExtract the bundle content\n"
 			"  install\t\tInstall a bundle\n"
 			"  info\t\t\tShow file information\n"

@@ -122,6 +122,26 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Replace a bundle signature.
+ *
+ * This will create a copy of a bundle with a new given signature
+ * but unmodified content.
+ *
+ * @param bundle RaucBundle struct as returned by check_bundle()
+ * @param insig filename of the signature for replacement
+ * @param outpath filename of the output bundle
+ * @param params bit-field enum CheckBundleParams with additional flags for the check
+ * @param error Return location for a GError
+ *
+ * Note that check_bundle() must be called prior to this, to obtain a
+ * RaucBundle struct.
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *outpath, CheckBundleParams params, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Extract a bundle signature.
  *
  * This will extract the bundle signature into a given file.

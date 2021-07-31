@@ -575,16 +575,140 @@ External Signing and PKI
 Some industrialization procedures require signing artifacts in a dedicated
 secure room with restricted access (as Public Key Infrastructure aka PKI).
 
-For this case `rauc extract-signature` can extract the bundle signature.
+For this case ``rauc extract-signature`` can extract the bundle signature and
+``rauc replace-signature`` can replace the bundle signature with a new one.
 
-As a `verity` format bundle signature is a detached CMS, you can easily resign
-it externally.
+As a `verity` format bundle signature is not a detached CMS, you can easily
+resign it externally.
+
+.. code-block:: shell
+
+  # Extract the bundle signature
+  $ rauc extract-signature --keyring ca.cert.pem bundle.raucb extracted-signature.cms
+  # Extract embedded manifest from the verity bundle CMS
+  $ openssl cms -verify -CAfile ca.cert.pem -out manifest.raucm -inform DER -in extracted-signature.cms
+  # Or without trust chain verification
+  $ openssl cms -verify -noverify -out manifest.raucm -inform DER -in extracted-signature.cms
+  # Sign the manifest with your external PKI (for this example, it was made by an `openssl` command)
+  $ openssl cms -sign -signer new-signer.cert.pem -CAfile new-ca-cert.pem -inkey new-signer.key.pem -nodetach -in manifest.raucm -outform der -out new-signature.cms
+  # Finally replace the bundle signature
+  $ rauc replace-signature --keyring ca-cert.pem --signing-keyring new-ca-cert.pem bundle.raucb new-signature.cms new-bundle.raucb
+
 For the `plain` format bundle signature it's slightly different, as the
 signature is detached, it contains just the message digest.
-You can use `openssl asn1parse` for retrieving the message digest in the CMS.
+You can use ``openssl asn1parse`` for retrieving the message digest in the CMS.
+
+.. code-block:: shell
+  :emphasize-lines: 9,11
+
+  # Find the line which contains `:messageDigest` in `OBJECT` section
+  # and get offset of the next line which contains `OCTET STRING` (1125 in this case)
+  $ openssl asn1parse -inform der -in extracted-signature.cms | grep -C 3 messageDigest
+  1093:d=7  hl=2 l=  15 cons: SET
+  1095:d=8  hl=2 l=  13 prim: UTCTIME           :170926142121Z
+  1110:d=6  hl=2 l=  47 cons: SEQUENCE
+  1112:d=7  hl=2 l=   9 prim: OBJECT            :messageDigest
+  1123:d=7  hl=2 l=  34 cons: SET
+  1125:d=8  hl=2 l=  32 prim: OCTET STRING      [HEX DUMP]:F3C783DF3F76D658798A7232255A155BB4E5DD90B0DDFFA57EE01968055161C5
+  1159:d=6  hl=2 l= 121 cons: SEQUENCE
+  # And extract the digest
+  $ openssl asn1parse -strparse 1125 -inform DER -in extracted-signature.cms -noout -out - | xxd -ps -c 32
+  f3c783df3f76d658798a7232255a155bb4e5dd90b0ddffa57ee01968055161c5
+
+Unfortunately the OpenSSL command line tool does not support signing a
+pre-existing digest, so you may need to use the PR `openssl/openssl#15348
+<https://github.com/openssl/openssl/pull/15348>`_.
+This is not necessary for a verity bundle format, as its CMS signature directly
+contains the manifest.
+
+Another method could be to extract the original binary from the RAUC bundle.
+
+.. code-block:: shell
+
+  $ BUNDLE_SIZE="$(stat -L -c%s bundle.raucb)"
+  $ CMS_SIZE="$(printf "%u" "0x$(tail -c "+$((( ${BUNDLE_SIZE} - 7 )))" bundle.raucb | xxd -ps)")"
+  $ CMS_OFFSET=$((( ${BUNDLE_SIZE} - ${CMS_SIZE} - 7 )))
+  # Extract binary to sign from the bundle
+  $ dd if=bundle.raucb of=bundle.rauci bs=1 count=$((( ${CMS_OFFSET} - 1 )))
+  $ sha256sum bundle.rauci
+  f3c783df3f76d658798a7232255a155bb4e5dd90b0ddffa57ee01968055161c5  bundle.rauci
+  # Sign the binary with your PKI (for this example, it was made by an `openssl` command)
+  $ openssl cms -sign -signer new-signer.cert.pem -CAfile new-ca-cert.pem -inkey new-signer.key.pem -binary -in bundle.rauci -outform der -out new-signature.cms
+  # Finally replace the bundle signature
+  $ rauc replace-signature --keyring ca-cert.pem --signing-keyring new-ca-cert.pem bundle.raucb new-signature.cms new-bundle.raucb
 
 .. note::
-  The `asn1parse` method can also be used for the `verity` bundle
+  The `asn1parse` method can also be used for the `verity` bundle but replacing
+  `:messageDigest` by `:pkcs7-data` as follows
+
+  .. code-block:: shell
+    :emphasize-lines: 13,15
+
+    # Find the line which contains `:pkcs7-data` in `OBJECT` section
+    # and get offset of the next line which contains `OCTET STRING` (60 in this case)
+    $ openssl asn1parse -inform der -in extracted-signature.cms
+    0:d=0  hl=4 l=1918 cons: SEQUENCE
+    4:d=1  hl=2 l=   9 prim: OBJECT            :pkcs7-signedData
+    15:d=1  hl=4 l=1903 cons: cont [ 0 ]
+    19:d=2  hl=4 l=1899 cons: SEQUENCE
+    23:d=3  hl=2 l=   1 prim: INTEGER           :01
+    26:d=3  hl=2 l=  13 cons: SET
+    28:d=4  hl=2 l=  11 cons: SEQUENCE
+    30:d=5  hl=2 l=   9 prim: OBJECT            :sha256
+    41:d=3  hl=4 l= 498 cons: SEQUENCE
+    45:d=4  hl=2 l=   9 prim: OBJECT            :pkcs7-data
+    56:d=4  hl=4 l= 483 cons: cont [ 0 ]
+    60:d=5  hl=4 l= 479 prim: OCTET STRING      :[update]
+    compatible=Test Config
+    version=2011.03-2
+
+    [bundle]
+    format=verity
+    verity-hash=931b44c2989432c0fcfcd215ec94384576b973d70530fdc75b6c4c67b0a60297
+    verity-salt=ea12cb34c699ebbad0ebee8f6aca0049ee991f289011345d9cdb473ba4fdd285
+    verity-size=4096
+
+    [image.rootfs]
+    sha256=101a4fc5c369a5c89a51a61bcbacedc9016e9510e59a4383f739ef55521f678d
+    size=8192
+    filename=rootfs.img
+
+    [image.appfs]
+    sha256=f95c0891937265df18ff962869b78e32148e7e97eab53fad7341536a24242450
+    size=8192
+    filename=appfs.img
+
+    543:d=3  hl=4 l= 900 cons: cont [ 0 ]
+    547:d=4  hl=4 l= 896 cons: SEQUENCE
+    551:d=5  hl=4 l= 616 cons: SEQUENCE
+    555:d=6  hl=2 l=   3 cons: cont [ 0 ]
+    557:d=7  hl=2 l=   1 prim: INTEGER           :02
+    560:d=6  hl=2 l=   1 prim: INTEGER           :01
+    563:d=6  hl=2 l=  13 cons: SEQUENCE
+    565:d=7  hl=2 l=   9 prim: OBJECT            :sha256WithRSAEncryption
+    [...]
+    # And extract the manifest
+    $ openssl asn1parse -strparse 60 -inform DER -in extracted-signature.cms -noout -out -
+    [update]
+    compatible=Test Config
+    version=2011.03-2
+
+    [bundle]
+    format=verity
+    verity-hash=931b44c2989432c0fcfcd215ec94384576b973d70530fdc75b6c4c67b0a60297
+    verity-salt=ea12cb34c699ebbad0ebee8f6aca0049ee991f289011345d9cdb473ba4fdd285
+    verity-size=4096
+
+    [image.rootfs]
+    sha256=101a4fc5c369a5c89a51a61bcbacedc9016e9510e59a4383f739ef55521f678d
+    size=8192
+    filename=rootfs.img
+
+    [image.appfs]
+    sha256=f95c0891937265df18ff962869b78e32148e7e97eab53fad7341536a24242450
+    size=8192
+    filename=appfs.img
+
 
 .. _slot-status:
 
