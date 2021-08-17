@@ -1114,7 +1114,6 @@ static gboolean check_bundle_access(int bundle_fd, GError **error)
 			case JFFS2_SUPER_MAGIC:
 			case MSDOS_SUPER_MAGIC:
 			case NTFS_SB_MAGIC:
-			case RAMFS_MAGIC:
 			case ROMFS_MAGIC:
 			case SQUASHFS_MAGIC:
 			case UDF_SUPER_MAGIC:
@@ -1123,6 +1122,7 @@ static gboolean check_bundle_access(int bundle_fd, GError **error)
 			/* these are prepared by root */
 			case HOSTFS_SUPER_MAGIC:
 			case OVERLAYFS_SUPER_MAGIC:
+			case RAMFS_MAGIC:
 			case TMPFS_MAGIC:
 			case UBIFS_SUPER_MAGIC:
 			case ZFS_SUPER_MAGIC:
