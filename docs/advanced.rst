@@ -383,6 +383,80 @@ the installation is completed.
 Note that, if the original user has write access to the containing directory,
 they can still delete the file.
 
+.. _http-streaming:
+
+HTTP Streaming
+--------------
+
+RAUC supports installing bundles directly from a HTTP(S) server, without having
+to download and store the bundle locally.
+Streaming works with the sub-commands ``install``, ``info`` and ``mount`` as
+well as with the DBus API.
+
+To use streaming, some prerequisites need to be fulfilled:
+
+* configure RAUC with ``--enable-streaming``
+* create bundles using the :ref:`verity format <sec_ref_format_verity>`
+* host the bundle on a server which supports HTTP Range Requests
+* enable NBD (network block device) support in the kernel
+
+Some options can be configured in the :ref:`[streaming] section
+<streaming-config-section>` in RAUC's ``system.conf``.
+
+RAUC's streaming support works by creating a NBD device (instead of the
+loopback device used for local bundles) and an unprivileged helper process to
+convert the NBD read requests to HTTP Range Requests.
+By using the `curl library <https://curl.se/libcurl/>`_, streaming
+supports:
+
+* HTTP versions 1.1 and 2
+* Basic Authentication (``user:password@…``)
+* HTTPS (optionally with client certificates, either file- or PKCS#11-based)
+* custom HTTP headers (i.e. for bearer tokens)
+
+When using TLS client certificates, you need to ensure that the key (or PKCS#11
+token) is accessible to the streaming sandbox user.
+
+You can configure a proxy by setting the ``http_proxy``/``https_proxy`` (`lower
+case only
+<https://everything.curl.dev/usingcurl/proxies#http_proxy-in-lower-case-only>`_)
+environment variables, which are `handled by curl directly
+<https://everything.curl.dev/usingcurl/proxies#proxy-environment-variables>`_.
+
+Authentication
+~~~~~~~~~~~~~~
+
+To use Basic Authentication, you can add the username and password to the bundle
+URL (``rauc install https//user:password@example.com/update.raucb``).
+
+To pass HTTP headers for authentication, use the ``--http-header='HEADER:
+VALUE'`` option of ``rauc install`` or set them via the ``http-headers`` options
+of the :ref:`D-Bus InstallBundle
+method<gdbus-method-de-pengutronix-rauc-Installer.InstallBundle>`.
+This could be used for session cookies, bearer tokens or any custom headers.
+
+For HTTPS client certificates, use the ``--tls-cert/key=PEMFILE|PKCS11-URL``
+options of ``rauc install`` or the ``tls-cert/key`` options of the D-Bus
+InstallBundle method.
+
+If you need to temporarily disable verification of the server certificate, you
+can use ``--tls-no-verify``.
+
+Performance
+~~~~~~~~~~~
+
+As a rough guide, with a relatively fast network, streaming installation is
+about as fast as downloading and then installing.
+For example, when installing a 190MiB bundle on a STM32MP1 SoC (dual ARM
+Cortex-A7) with an eMMC, streaming took 1m43s, while downloading followed by
+local installation took 1m42s (13s+1m29s).
+
+As each chunk of compressed data is only requested incrementally when needed by
+the installation processes, you should expect that network connections with
+higher round-trip-time (RTT) lead to longer installation times.
+This can be compensated somewhat by using a HTTP/2 server, as this supports
+multiplexing and better connection reuse.
+
 Data Storage and Migration
 --------------------------
 

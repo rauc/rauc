@@ -221,10 +221,37 @@ signature.
 
 .. _verify: https://www.openssl.org/docs/man1.1.1/man1/verify.html
 
+.. _streaming-config-section:
+
+**[streaming] section**
+
+The ``streaming`` section contains streaming-related settings.
+For more information about using the streaming support of RAUC, refer to
+:ref:`http-streaming`.
+
+``sandbox-user``
+  This option can be used to set the user name which is used to run the
+  streaming helper process.
+  By default, the `nobody` user is used.
+  At compile time, the default can be defined using the
+  ``--with-streaming-user=USERNAME`` configure option.
+
+``tls-cert``
+  This option can be used to set the path or PKCS#11 URL for the TLS/HTTPS
+  client certificate.
+
+``tls-key``
+  This option can be used to set the path or PKCS#11 URL for the TLS/HTTPS
+  client private key.
+
+``tls-ca``
+  This option can be used to set the path of the CA certificate which should be
+  used instead of the system wide store of trusted TLS/HTTPS certificates.
+
 **[casync] section**
 
 The ``casync`` section contains casync-related settings.
-For more information about using casync support of RAUC, refer to
+For more information about using the casync support of RAUC, refer to
 :ref:`casync-support`.
 
 ``storepath``
@@ -1054,6 +1081,22 @@ IN a{sv} *args*:
     :STRING 'ignore-compatible', VARIANT 'b' <true/false>: Ignore the default compatible check for forcing
         installation of bundles on platforms that a compatible not matching the one
         of the bundle to be installed
+
+    :STRING 'tls-cert', VARIANT 's' <filename/pkcs11-url>: Use the provided
+        certificate for TLS client authentication
+
+    :STRING 'tls-key', VARIANT 's' <filename/pkcs11-url>: Use the provided
+        private key for TLS client authentication
+
+    :STRING 'tls-ca', VARIANT 's' <filename/pkcs11-url>: Use the provided
+        certificate to authenticate the server (instead of the system wide
+        store)
+
+    :STRING 'http-headers', VARIANT 'as' <array of strings>: Add the provided
+        headers to every request (i.e. for bearer tokens)
+
+    :STRING 'tls-no-verify', VARIANT 'b' <true/false>: Ignore verification
+        errors for the server certificate
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.Install:
 

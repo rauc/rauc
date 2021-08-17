@@ -720,6 +720,15 @@ Example invocation:
 
   G_MESSAGES_DEBUG="rauc rauc-subprocess" rauc service
 
+Enabling Verbose CURL Output
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you suspect an issue is related to network access (using the CURL library),
+you can set ``RAUC_CURL_VERBOSE=1``.
+This will cause RAUC to enable `CURLOPT_VERBOSE
+<https://curl.se/libcurl/c/CURLOPT_VERBOSE.html>`_ when configuring a CURL
+context.
+
 Reproducing Issues using QEMU Test Setup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

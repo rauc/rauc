@@ -216,3 +216,21 @@ unusable.
 For most cases it might be desired to either select one of the redundant slots
 as fallback or boot into a recovery system.
 This handling is up to your bootloader.
+
+HTTP Streaming
+--------------
+
+Since RAUC 1.6, bundles can be installed directly from a HTTP(S) server,
+without having to download and store the bundle locally.
+Simply use the bundle URL as the ``rauc install`` argument instead of a local
+file.
+
+Using streaming has a few requirements:
+
+* configure RAUC with ``--enable-streaming``
+* create bundles using the :ref:`verity format <sec_ref_format_verity>`
+* host the bundle on a server which supports HTTP Range Requests
+* enable NBD support in the kernel
+
+See the :ref:`HTTP Streaming <http-streaming>` section in the Advanced chapter
+for more details.
