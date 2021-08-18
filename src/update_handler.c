@@ -1410,7 +1410,7 @@ out:
 static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	gboolean res = FALSE;
-	int out_fd = -1, inactive_part;
+	int out_fd = -1, inactive_half;
 	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	struct boot_switch_partition dest_partition;
@@ -1425,12 +1425,12 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 	}
 
 	if (dest_partition.start == dest_slot->region_start)
-		inactive_part = 0;
+		inactive_half = 0;
 	else
-		inactive_part = 1;
+		inactive_half = 1;
 
-	g_message("Found inactive boot partition %d (pos. %"G_GUINT64_FORMAT "B, size %"G_GUINT64_FORMAT "B)",
-			inactive_part, dest_partition.start, dest_partition.size);
+	g_message("Found inactive (%s) half of boot partition region (pos. %"G_GUINT64_FORMAT "B, size %"G_GUINT64_FORMAT "B)",
+			inactive_half == 0 ? "first" : "second", dest_partition.start, dest_partition.size);
 
 	if (dest_partition.size < (guint64)image->checksum.size) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
@@ -1441,7 +1441,7 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 	}
 
 	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_ACTIVATING"),
-			g_strdup_printf("%d", inactive_part));
+			g_strdup_printf("%d", inactive_half));
 	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_START"),
 			g_strdup_printf("%"G_GUINT64_FORMAT, dest_partition.start));
 	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_SIZE"),
@@ -1457,17 +1457,17 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 		}
 	}
 
-	g_message("Clearing inactive boot partition %d on %s", inactive_part,
+	g_message("Clearing inactive (%s) half of boot partition region on %s", inactive_half == 0 ? "first" : "second",
 			dest_slot->device);
 
 	res = clear_boot_switch_partition(dest_slot->device, &dest_partition, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(error, ierror,
-				"Failed to clear inactive partition: ");
+				"Failed to clear inactive region: ");
 		goto out;
 	}
 
-	g_message("Opening inactive boot partition %d on %s", inactive_part,
+	g_message("Opening inactive (%s) half of boot partition region on %s", inactive_half == 0 ? "first" : "second",
 			dest_slot->device);
 
 	out_fd = open(dest_slot->device, O_WRONLY);
@@ -1496,8 +1496,8 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
-	g_message("Copying image to inactive boot partition %d on %s",
-			inactive_part, dest_slot->device);
+	g_message("Copying image to inactive (%s) half of boot partition region on %s",
+			inactive_half == 0 ? "first" : "second", dest_slot->device);
 
 	res = copy_raw_image(image, outstream, &ierror);
 	if (!res) {
@@ -1515,7 +1515,7 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 		}
 	}
 
-	g_message("Setting MBR to switch boot partition");
+	g_message("Setting %s half of boot partition region active in MBR", inactive_half == 0 ? "first" : "second");
 
 	res = r_mbr_switch_set_boot_partition(dest_slot->device, &dest_partition, &ierror);
 	if (!res) {
@@ -1534,7 +1534,7 @@ G_GNUC_UNUSED
 static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	gboolean res = FALSE;
-	int out_fd = -1, inactive_part;
+	int out_fd = -1, inactive_half;
 	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	struct boot_switch_partition dest_partition;
@@ -1549,12 +1549,12 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 	}
 
 	if (dest_partition.start == dest_slot->region_start)
-		inactive_part = 0;
+		inactive_half = 0;
 	else
-		inactive_part = 1;
+		inactive_half = 1;
 
-	g_message("Found inactive boot partition %d (pos. %"G_GUINT64_FORMAT "B, size %"G_GUINT64_FORMAT "B)",
-			inactive_part, dest_partition.start, dest_partition.size);
+	g_message("Found inactive (%s) half of boot partition region (pos. %"G_GUINT64_FORMAT "B, size %"G_GUINT64_FORMAT "B)",
+			inactive_half == 0 ? "first" : "second", dest_partition.start, dest_partition.size);
 
 	if (dest_partition.size < (guint64)image->checksum.size) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
@@ -1565,7 +1565,7 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 	}
 
 	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_ACTIVATING"),
-			g_strdup_printf("%d", inactive_part));
+			g_strdup_printf("%d", inactive_half));
 	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_START"),
 			g_strdup_printf("%"G_GUINT64_FORMAT, dest_partition.start));
 	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_SIZE"),
@@ -1581,7 +1581,7 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 		}
 	}
 
-	g_message("Clearing inactive boot partition %d on %s", inactive_part,
+	g_message("Clearing inactive (%s) half of boot partition region on %s", inactive_half == 0 ? "first" : "second",
 			dest_slot->device);
 
 	res = clear_boot_switch_partition(dest_slot->device, &dest_partition, &ierror);
@@ -1591,7 +1591,7 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
-	g_message("Opening inactive boot partition %d on %s", inactive_part,
+	g_message("Opening inactive (%s) half of boot partition region on %s", inactive_half == 0 ? "first" : "second",
 			dest_slot->device);
 
 	out_fd = open(dest_slot->device, O_WRONLY);
@@ -1620,8 +1620,8 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
-	g_message("Copying image to inactive boot partition %d on %s",
-			inactive_part, dest_slot->device);
+	g_message("Copying image to inactive (%s) half of boot partition region on %s",
+			inactive_half == 0 ? "first" : "second", dest_slot->device);
 
 	res = copy_raw_image(image, outstream, &ierror);
 	if (!res) {
@@ -1639,7 +1639,7 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 		}
 	}
 
-	g_message("Setting GPT to switch boot partition");
+	g_message("Setting %s half of boot partition region active in GPT", inactive_half == 0 ? "first" : "second");
 
 	res = r_gpt_switch_set_boot_partition(dest_slot->device, &dest_partition, &ierror);
 	if (!res) {
