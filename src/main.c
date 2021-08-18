@@ -1624,7 +1624,7 @@ static gboolean status_start(int argc, char **argv)
 		slot_identifier = "booted";
 	} else if (argc == 4) {
 		slot_identifier = argv[3];
-	} else if (argc > 4) {
+	} else { /* argc > 4 */
 		g_warning("Too many arguments");
 		r_exit_status = 1;
 		goto out;
