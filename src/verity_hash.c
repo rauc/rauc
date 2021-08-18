@@ -120,20 +120,20 @@ out:
 	return r;
 }
 
-static int mult_overflow(off_t *u, off_t b, size_t size)
+static gboolean uint64_mult_overflow(uint64_t *u, uint64_t b, size_t size)
 {
 	*u = (uint64_t)b * size;
-	if ((off_t)(*u / size) != b || (off_t)*u < 0)
-		return 1;
-	return 0;
+	if ((uint64_t)(*u / size) != b)
+		return TRUE;
+	return FALSE;
 }
 
 static int hash_levels(
-		off_t data_file_blocks, off_t *hash_position, int *levels,
-		off_t *hash_level_block, off_t *hash_level_size)
+		uint64_t data_file_blocks, uint64_t *hash_position, int *levels,
+		uint64_t *hash_level_block, uint64_t *hash_level_size)
 {
 	size_t hash_per_block_bits;
-	off_t s, s_shift;
+	uint64_t s, s_shift;
 	int i;
 
 	if (!digest_size)
@@ -158,11 +158,10 @@ static int hash_levels(
 		s_shift = (i + 1) * hash_per_block_bits;
 		if (s_shift > 63)
 			return -EINVAL;
-		s = (data_file_blocks + ((off_t)1 << s_shift) - 1) >> ((i + 1) * hash_per_block_bits);
+		s = (data_file_blocks + ((uint64_t)1 << s_shift) - 1) >> ((i + 1) * hash_per_block_bits);
 		if (hash_level_size)
 			hash_level_size[i] = s;
-		if ((*hash_position + s) < *hash_position ||
-		    (*hash_position + s) < 0)
+		if ((*hash_position + s) < *hash_position)
 			return -EINVAL;
 		*hash_position += s;
 	}
@@ -171,9 +170,9 @@ static int hash_levels(
 }
 
 static int create_or_verify(FILE *rd, FILE *wr,
-		off_t data_block,
-		off_t hash_block,
-		off_t blocks,
+		uint64_t data_block,
+		uint64_t hash_block,
+		uint64_t blocks,
 		int verify,
 		uint8_t *calculated_digest,
 		const uint8_t *salt)
@@ -183,14 +182,14 @@ static int create_or_verify(FILE *rd, FILE *wr,
 	uint8_t read_digest[digest_size];
 	size_t hash_per_block = 1 << get_bits_down(hash_block_size / digest_size);
 	size_t digest_size_full = 1 << get_bits_up(digest_size);
-	off_t blocks_to_write = (blocks + hash_per_block - 1) / hash_per_block;
-	off_t seek_rd, seek_wr;
+	uint64_t blocks_to_write = (blocks + hash_per_block - 1) / hash_per_block;
+	uint64_t seek_rd, seek_wr;
 	size_t left_bytes;
 	unsigned i;
 	int r;
 
-	if (mult_overflow(&seek_rd, data_block, data_block_size) ||
-	    mult_overflow(&seek_wr, hash_block, hash_block_size)) {
+	if (uint64_mult_overflow(&seek_rd, data_block, data_block_size) ||
+	    uint64_mult_overflow(&seek_wr, hash_block, hash_block_size)) {
 		g_message("Device offset overflow.");
 		return -EINVAL;
 	}
@@ -273,31 +272,26 @@ static int create_or_verify(FILE *rd, FILE *wr,
 int verity_create_or_verify_hash(
 		int verify,
 		int fd,
-		off_t data_blocks,
-		off_t *combined_blocks,
+		uint64_t data_blocks,
+		uint64_t *combined_blocks,
 		uint8_t *root_hash,
 		const uint8_t *salt)
 {
 	g_autofree gchar *file = NULL;
-	off_t hash_position = data_blocks;
+	uint64_t hash_position = data_blocks;
 	uint8_t calculated_digest[digest_size];
 	FILE *data_file = NULL;
 	FILE *hash_file = NULL, *hash_file_2;
-	off_t hash_level_block[VERITY_MAX_LEVELS];
-	off_t hash_level_size[VERITY_MAX_LEVELS];
-	off_t data_device_size = 0, hash_device_size = 0;
+	uint64_t hash_level_block[VERITY_MAX_LEVELS];
+	uint64_t hash_level_size[VERITY_MAX_LEVELS];
+	uint64_t data_device_size = 0, hash_device_size = 0;
 	int levels, i, r;
 
 	g_debug("Hash %s %s, data blocks %" PRIu64 ".",
 			verify ? "verification" : "creation", "SHA256",
 			data_blocks);
 
-	if (data_blocks < 0 || hash_position < 0) {
-		g_message("Invalid size parameters for verity device.");
-		return -EINVAL;
-	}
-
-	if (mult_overflow(&data_device_size, data_blocks, data_block_size)) {
+	if (uint64_mult_overflow(&data_device_size, data_blocks, data_block_size)) {
 		g_message("Device offset overflow.");
 		return -EINVAL;
 	}
@@ -310,7 +304,7 @@ int verity_create_or_verify_hash(
 
 	g_debug("Using %d hash levels.", levels);
 
-	if (mult_overflow(&hash_device_size, hash_position, hash_block_size)) {
+	if (uint64_mult_overflow(&hash_device_size, hash_position, hash_block_size)) {
 		g_message("Device offset overflow.");
 		return -EINVAL;
 	}
