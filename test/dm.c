@@ -19,8 +19,8 @@ typedef struct {
 } DMFixture;
 
 typedef struct {
-	off_t data_size;
-	off_t combined_size;
+	uint64_t data_size;
+	uint64_t combined_size;
 } DMData;
 
 static void dm_fixture_set_up(DMFixture *fixture,
@@ -211,7 +211,7 @@ static void verity_hash_create(DMFixture *fixture,
 	g_autofree gchar *root_hash_hex = NULL;
 	g_autofree guint8 *salt = random_bytes(32, 0xd6368505);
 	g_autofree gchar *salt_hex = r_hex_encode(salt, 32);
-	off_t combined_size;
+	uint64_t combined_size;
 	int dmfd = -1;
 
 	/* needs to run as root */

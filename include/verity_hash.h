@@ -18,7 +18,7 @@
 int verity_create_or_verify_hash(
 		int verify,
 		int fd,
-		off_t data_blocks,
-		off_t *combined_blocks,
+		uint64_t data_blocks,
+		uint64_t *combined_blocks,
 		uint8_t *root_hash,
 		const uint8_t *salt);

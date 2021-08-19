@@ -505,7 +505,7 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 		int bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundleoutstream));
 		guint8 salt[32] = {0};
 		guint8 hash[32] = {0};
-		off_t combined_size = 0;
+		uint64_t combined_size = 0;
 		guint64 verity_size = 0;
 
 		g_print("Creating bundle in 'verity' format\n");
@@ -545,7 +545,7 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 			return FALSE;
 		}
 		/* for a squashfs <= 4096 bytes, we don't have a hash table */
-		g_assert(combined_size*4096 > (off_t)offset);
+		g_assert(combined_size*4096 > (uint64_t)offset);
 		verity_size = combined_size*4096 - offset;
 		g_assert(verity_size % 4096 == 0);
 
