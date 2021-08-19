@@ -191,12 +191,18 @@ In kernel Kconfig you have to enable the following options:
   CONFIG_BLK_DEV_LOOP=y
   CONFIG_DM_VERITY=y
   CONFIG_SQUASHFS=y
+  CONFIG_CRYPTO_SHA256=y
 
 .. note::
    These drivers may also be loaded as modules. Kernel versions v5.0 to v5.7
    will require the patch ``7e81f99afd91c937f0e66dc135e26c1c4f78b003``
    backporting to fix a bug where the bundles cannot be mounted in a small
    number of cases.
+
+.. note::
+   On ARM SoCs, there are optimized alternative SHA256 implementations
+   available (for example ``CONFIG_CRYPTO_SHA2_ARM_CE``, ``CRYPTO_SHA256_ARM``
+   or hardware accellerators such as ``CONFIG_CRYPTO_DEV_FSL_CAAM_AHASH_API``).
 
 .. _sec_ref_host_tools:
 

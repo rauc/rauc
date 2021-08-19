@@ -147,8 +147,12 @@ Target Prerequisites
 
 Required kernel options:
 
+-  ``CONFIG_MD=y``
+-  ``CONFIG_BLK_DEV_DM=y``
 -  ``CONFIG_BLK_DEV_LOOP=y``
+-  ``CONFIG_DM_VERITY=y``
 -  ``CONFIG_SQUASHFS=y``
+-  ``CONFIG_CRYPTO_SHA256=y``
 
 For using tar archive in RAUC bundles with Busybox tar, you have to enable the
 following Busybox feature:
