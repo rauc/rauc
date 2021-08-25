@@ -307,6 +307,19 @@ test_expect_success PKCS11 "rauc bundle with PKCS11 (key mismatch)" "
     bundle $SHARNESS_TEST_DIRECTORY/install-content ${TEST_TMPDIR}/out.raucb
 "
 
+test_expect_success ROOT "rauc mount" "
+  test ! -f /mnt/rauc/bundle/manifest.raucm &&
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
+  test_when_finished umount /mnt/rauc/bundle &&
+  ls ${TEST_TMPDIR} &&
+  rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    mount ${TEST_TMPDIR}/good-bundle.raucb &&
+  mount &&
+  test -f /mnt/rauc/bundle/manifest.raucm &&
+  test -f /mnt/rauc/bundle/rootfs.img
+"
+
 test_expect_success SERVICE "rauc service double-init failure" "
   start_rauc_dbus_service \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \

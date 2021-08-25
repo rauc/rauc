@@ -670,6 +670,7 @@ Command Line Tool
     extract               Extract the bundle content
     install               Install a bundle
     info                  Show file information
+    mount                 Mount a bundle (for development purposes)
     service               Start RAUC service
     status                Show status
     write-slot            Write image to slot and bypass all update logic
