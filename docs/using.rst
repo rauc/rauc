@@ -600,7 +600,7 @@ In each case it is quite essential to know that RAUC, if not compiled with
 ``--disable-service`` runs as a service on your target that is either
 controlled by your custom application or by the RAUC command line interface.
 
-The frontend will always only show the 'high level' error outpt, e.g. when an
+The frontend will always only show the 'high level' error output, e.g. when an
 installation failed:
 
 .. code-block:: sh
