@@ -613,6 +613,7 @@ out:
 G_GNUC_UNUSED
 static gboolean convert_start(int argc, char **argv)
 {
+	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
 	RaucBundle *bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("convert start");
@@ -645,7 +646,10 @@ static gboolean convert_start(int argc, char **argv)
 	g_debug("input bundle: %s", argv[2]);
 	g_debug("output bundle: %s", argv[3]);
 
-	if (!check_bundle(argv[2], &bundle, CHECK_BUNDLE_DEFAULT, &ierror)) {
+	if (verification_disabled)
+		check_bundle_params |= CHECK_BUNDLE_NO_VERIFY;
+
+	if (!check_bundle(argv[2], &bundle, check_bundle_params, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -1810,6 +1814,7 @@ static GOptionEntry entries_resign[] = {
 };
 
 static GOptionEntry entries_convert[] = {
+	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
 	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
 	{"mksquashfs-args", '\0', 0, G_OPTION_ARG_STRING, &mksquashfs_args, "mksquashfs extra args", "ARGS"},
 	{"casync-args", '\0', 0, G_OPTION_ARG_STRING, &casync_args, "casync extra args", "ARGS"},
