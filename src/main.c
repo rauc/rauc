@@ -638,7 +638,7 @@ static gboolean convert_start(int argc, char **argv)
 	g_debug("input bundle: %s", argv[2]);
 	g_debug("output bundle: %s", argv[3]);
 
-	if (!check_bundle(argv[2], &bundle, TRUE, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, !verification_disabled, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -1792,6 +1792,7 @@ static GOptionEntry entries_resign[] = {
 };
 
 static GOptionEntry entries_convert[] = {
+	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
 	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
 	{"mksquashfs-args", '\0', 0, G_OPTION_ARG_STRING, &mksquashfs_args, "mksquashfs extra args", "ARGS"},
 	{"casync-args", '\0', 0, G_OPTION_ARG_STRING, &casync_args, "casync extra args", "ARGS"},
