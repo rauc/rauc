@@ -1509,6 +1509,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 			ibundle->payload_verified = TRUE;
 		} else {
 			int fd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(ibundle->stream));
+			gboolean trust_env = (params & CHECK_BUNDLE_TRUST_ENV);
 
 			if (!(r_context()->config->bundle_formats_mask & 1 << R_MANIFEST_FORMAT_VERITY)) {
 				g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
@@ -1517,7 +1518,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 				goto out;
 			}
 
-			if (!check_bundle_access(fd, &ierror)) {
+			if (!trust_env && !check_bundle_access(fd, &ierror)) {
 				ibundle->exclusive_check_error = g_strdup(ierror->message);
 				g_clear_error(&ierror);
 			} else {

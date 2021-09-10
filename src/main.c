@@ -28,6 +28,7 @@ GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
 gboolean install_ignore_compatible, install_progressbar = FALSE;
+gboolean trust_environment = FALSE;
 gboolean verification_disabled = FALSE;
 gboolean no_check_time = FALSE;
 gboolean info_dumpcert = FALSE;
@@ -648,6 +649,8 @@ static gboolean convert_start(int argc, char **argv)
 
 	if (verification_disabled)
 		check_bundle_params |= CHECK_BUNDLE_NO_VERIFY;
+	if (trust_environment)
+		check_bundle_params |= CHECK_BUNDLE_TRUST_ENV;
 
 	if (!check_bundle(argv[2], &bundle, check_bundle_params, &ierror)) {
 		g_printerr("%s\n", ierror->message);
@@ -1814,6 +1817,7 @@ static GOptionEntry entries_resign[] = {
 };
 
 static GOptionEntry entries_convert[] = {
+	{"trust-environment", '\0', 0, G_OPTION_ARG_NONE, &trust_environment, "trust environment and skip bundle access checks", NULL},
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
 	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
 	{"mksquashfs-args", '\0', 0, G_OPTION_ARG_STRING, &mksquashfs_args, "mksquashfs extra args", "ARGS"},
