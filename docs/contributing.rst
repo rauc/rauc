@@ -16,7 +16,7 @@ Workflow
 - Changes should be submitted via a `GitHub pull request
   <https://github.com/rauc/rauc/pulls>`_.
 - Try to limit each commit to a single conceptual change.
-- Add a signed-of-by line to your commits according to the `Developer's
+- Add a signed-off-by line to your commits according to the `Developer's
   Certificate of Origin` (see below).
 - Check that the tests still work before submitting the pull request. Also
   check the CI's feedback on the pull request after submission.
