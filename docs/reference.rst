@@ -1241,18 +1241,18 @@ U-Boot
 ~~~~~~
 
 The U-Boot implementation assumes to have variables `BOOT_ORDER` and
-`BOOT_x_ATTEMPTS` handled by the bootloader scripting.
+`BOOT_x_LEFT` handled by the bootloader scripting.
 
 :state bad:
-  Sets the `BOOT_x_ATTEMPTS` variable of the slot to `0` and removes it from
+  Sets the `BOOT_x_LEFT` variable of the slot to `0` and removes it from
   the `BOOT_ORDER` list
 
 :state good:
-  Sets the `BOOT_x_ATTEMPTS` variable back to its default value (`3`).
+  Sets the `BOOT_x_LEFT` variable back to its default value (`3`).
 
 :primary:
   Moves the slot from its current position in the list in `BOOT_ORDER` to the
-  first place and sets `BOOT_x_ATTEMPTS` to its initial value (`3`).
+  first place and sets `BOOT_x_LEFT` to its initial value (`3`).
   If BOOT_ORDER was unset before, it generates a new list of all slots known to
   RAUC with the one to activate at the first position.
 
