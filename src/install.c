@@ -179,11 +179,11 @@ gboolean determine_slot_states(GError **error)
 			goto out;
 		}
 
-		g_set_error_literal(
+		g_set_error(
 				error,
 				R_SLOT_ERROR,
 				R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
-				"Did not find booted slot");
+				"Did not find booted slot (matching '%s')", r_context()->bootslot);
 		goto out;
 	}
 
