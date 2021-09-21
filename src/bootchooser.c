@@ -1709,12 +1709,8 @@ RaucSlot* r_boot_get_primary(GError **error)
 		return NULL;
 	}
 
-	if (!slot) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed getting primary slot: ");
-	}
+	if (!slot)
+		g_propagate_error(error, ierror);
 
 	return slot;
 }

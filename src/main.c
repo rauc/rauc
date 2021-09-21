@@ -1809,7 +1809,7 @@ static gboolean status_start(int argc, char **argv)
 
 		status_print->primary = r_boot_get_primary(&ierror);
 		if (!status_print->primary) {
-			g_printerr("%s\n", ierror->message);
+			g_printerr("Failed getting primary slot: %s\n", ierror->message);
 			g_clear_error(&ierror);
 		}
 
