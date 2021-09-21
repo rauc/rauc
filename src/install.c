@@ -152,6 +152,41 @@ gboolean determine_slot_states(GError **error)
 		}
 	}
 
+	if (!booted) {
+		gboolean extboot = FALSE;
+
+		if (g_strcmp0(r_context()->bootslot, "/dev/nfs") == 0) {
+			g_message("Detected nfs boot, ignoring missing active slot");
+			extboot = TRUE;
+		}
+
+		if (g_strcmp0(r_context()->bootslot, "_external_") == 0) {
+			g_message("Detected explicit external boot, ignoring missing active slot");
+			extboot = TRUE;
+		}
+
+		if (extboot) {
+			/* mark all as inactive */
+			g_debug("Marking all slots as 'inactive'");
+			for (GList *l = slotlist; l != NULL; l = l->next) {
+				RaucSlot *s = g_hash_table_lookup(r_context()->config->slots, l->data);
+				g_assert_nonnull(s);
+
+				s->state = ST_INACTIVE;
+			}
+
+			res = TRUE;
+			goto out;
+		}
+
+		g_set_error_literal(
+				error,
+				R_SLOT_ERROR,
+				R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
+				"Did not find booted slot");
+		goto out;
+	}
+
 	/* Determine active group members */
 	for (GList *l = slotlist; l != NULL; l = l->next) {
 		RaucSlot *s = g_hash_table_lookup(r_context()->config->slots, l->data);
@@ -165,27 +200,6 @@ gboolean determine_slot_states(GError **error)
 		} else {
 			s->state = ST_INACTIVE;
 		}
-	}
-
-	if (!booted) {
-		if (g_strcmp0(r_context()->bootslot, "/dev/nfs") == 0) {
-			g_message("Detected nfs boot, ignoring missing active slot");
-			res = TRUE;
-			goto out;
-		}
-
-		if (g_strcmp0(r_context()->bootslot, "_external_") == 0) {
-			g_message("Detected explicit external boot, ignoring missing active slot");
-			res = TRUE;
-			goto out;
-		}
-
-		g_set_error_literal(
-				error,
-				R_SLOT_ERROR,
-				R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
-				"Did not find booted slot");
-		goto out;
 	}
 
 	res = TRUE;
