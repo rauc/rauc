@@ -177,3 +177,17 @@ guint8 *r_hex_decode(const gchar *hex, size_t len)
 G_GNUC_WARN_UNUSED_RESULT;
 gchar *r_hex_encode(const guint8 *raw, size_t len)
 G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Take the value of a root= cmdline argument and resolve it to a
+ * device path, for example:
+ *
+ * - PARTLABEL=mylabel -> /dev/disk/by-partlabel/mylabel
+ * - PARTUUID=4f8bb419-01 -> /dev/disk/by-partuuid/4f8bb419-01
+ * - UUID=9e8b0c3e-e20f-4119-b419-ec20a132aa94 -> /dev/disk/by-uuid/9e8b0c3e-e20f-4119-b419-ec20a132aa94
+ *
+ * @param dev "device" string
+ *
+ * @return Resolved device part (newly allocated string) or NULL in case of an error.
+ */
+gchar *r_resolve_device(const gchar *dev);

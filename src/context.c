@@ -29,6 +29,7 @@ static const gchar* get_cmdline_bootname(void)
 	g_autofree gchar *contents = NULL;
 	g_autofree gchar *realdev = NULL;
 	const char *bootname = NULL;
+	gchar *devpath = NULL;
 
 	if (context->mock.proc_cmdline)
 		contents = g_strdup(context->mock.proc_cmdline);
@@ -59,37 +60,10 @@ static const gchar* get_cmdline_bootname(void)
 	if (!bootname)
 		return NULL;
 
-	if (strncmp(bootname, "PARTLABEL=", 10) == 0) {
-		gchar *partlabelpath = g_build_filename(
-				"/dev/disk/by-partlabel/",
-				&bootname[10],
-				NULL);
-		if (partlabelpath) {
-			g_free((gchar*) bootname);
-			bootname = partlabelpath;
-		}
-	}
-
-	if (strncmp(bootname, "PARTUUID=", 9) == 0) {
-		gchar *partuuidpath = g_build_filename(
-				"/dev/disk/by-partuuid/",
-				&bootname[9],
-				NULL);
-		if (partuuidpath) {
-			g_free((gchar*) bootname);
-			bootname = partuuidpath;
-		}
-	}
-
-	if (strncmp(bootname, "UUID=", 5) == 0) {
-		gchar *uuidpath = g_build_filename(
-				"/dev/disk/by-uuid/",
-				&bootname[5],
-				NULL);
-		if (uuidpath) {
-			g_free((gchar*) bootname);
-			bootname = uuidpath;
-		}
+	devpath = r_resolve_device(bootname);
+	if (devpath) {
+		g_free((gchar*) bootname);
+		bootname = devpath;
 	}
 
 	realdev = r_realpath(bootname);

@@ -340,3 +340,24 @@ gchar *r_hex_encode(const guint8 *raw, size_t len)
 
 	return hex;
 }
+
+gchar *r_resolve_device(const gchar *dev)
+{
+	gchar *idev = NULL;
+
+	if (!dev)
+		return NULL;
+
+	if (strncmp(dev, "PARTLABEL=", 10) == 0) {
+		idev = g_build_filename("/dev/disk/by-partlabel/",
+				&dev[10], NULL);
+	} else if (strncmp(dev, "PARTUUID=", 9) == 0) {
+		idev = g_build_filename("/dev/disk/by-partuuid/",
+				&dev[9], NULL);
+	} else if (strncmp(dev, "UUID=", 5) == 0) {
+		idev = g_build_filename("/dev/disk/by-uuid/",
+				&dev[5], NULL);
+	}
+
+	return idev;
+}
