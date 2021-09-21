@@ -468,6 +468,11 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 		 * file systems, additional mounts, etc. */
 		if (!seedslot->mount_point) {
 			g_debug("Mounting %s to use as casync seed", seedslot->device);
+			if (r_slot_mount_is_readonly(seedslot)) {
+				gchar* old_mount_opts = seedslot->extra_mount_opts;
+				seedslot->extra_mount_opts = g_strjoin(",", "ro", old_mount_opts, NULL);
+				g_free(old_mount_opts);
+			}
 			res = r_mount_slot(seedslot, &ierror);
 			if (!res) {
 				g_warning("Failed mounting for seeding: %s", ierror->message);
