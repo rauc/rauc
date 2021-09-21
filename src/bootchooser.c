@@ -1556,11 +1556,11 @@ static RaucSlot* custom_get_primary(GError **error)
 	}
 
 	if (!primary) {
-		g_set_error_literal(
+		g_set_error(
 				error,
 				R_BOOTCHOOSER_ERROR,
 				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
-				"Unable to obtain primary slot");
+				"'%s' does not match any configured bootname", ret_str);
 	}
 
 	return primary;
