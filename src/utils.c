@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <errno.h>
 #include <ftw.h>
 #include <gio/gio.h>
@@ -9,6 +10,34 @@
 #include <unistd.h>
 
 #include "utils.h"
+
+#define R_SYSFS_UBI_BASE_PATH	"/sys/class/ubi"
+
+/**
+ * Resolve UBI volume sysfs path to device path.
+ *
+ * This is done through major:minor device number.
+ *
+ * @param path sysfs path like "/sys/class/ubi/ubiX/ubiX_Y"
+ *
+ * @return device path like "/dev/ubi0_2" (newly-allocated string) or NULL.
+ */
+static gchar *r_ubi_sysfs_to_dev_path(const gchar *path);
+
+/**
+ * Search sysfs for UBI volume name.
+ *
+ * UBI volume names can be read from sysfs path
+ * '/sys/class/ubi/ubiX/ubiX_Y/name', so to get the volume id Y by
+ * name, step through all volumes of dev X, and compare name until
+ * match.
+ *
+ * @param dev UBI device number, e.g. 0 for ubi0.
+ * @param name UBI volume name, e.g. the NAME part of a 'ubiX:NAME'
+ *
+ * @return sysfs path like "/sys/class/ubi/ubiX/ubiX_Y" (newly-allocated string) or NULL.
+ */
+static gchar *r_ubi_volname_to_sysfs_path(unsigned int dev, const gchar *name);
 
 GSubprocess *r_subprocess_new(GSubprocessFlags flags, GError **error, const gchar *argv0, ...)
 {
@@ -360,4 +389,150 @@ gchar *r_resolve_device(const gchar *dev)
 	}
 
 	return idev;
+}
+
+gchar *r_ubi_name_to_sysfs_path(const gchar *name)
+{
+	unsigned long int dev;
+	char *endptr;
+
+	if (!name)
+		return NULL;
+
+	if (strlen(name) < 4)
+		return NULL;
+
+	/* see kernel function 'open_ubi()' in file 'fs/ubifs/super.c'
+	 * for reference. */
+
+	if (name[0] != 'u' || name[1] != 'b' || name[2] != 'i')
+		return NULL;
+
+	/* ubi:NAME method */
+	if ((name[3] == ':' || name[3] == '!') && name[4] != '\0')
+		return r_ubi_volname_to_sysfs_path(0, name + 4);
+
+	/* every other method proceeds with a digit */
+	if (!isdigit(name[3]))
+		return NULL;
+
+	dev = strtoul(name + 3, &endptr, 0);
+
+	/* ubiY method */
+	if (*endptr == '\0')
+		return g_strdup_printf("%s/ubi0/ubi0_%lu",
+				R_SYSFS_UBI_BASE_PATH, dev);
+
+	/* ubiX_Y method */
+	if (*endptr == '_' && isdigit(endptr[1])) {
+		unsigned long int vol;
+
+		vol = strtoul(endptr + 1, &endptr, 0);
+		if (*endptr != '\0')
+			return NULL;
+		return g_strdup_printf("%s/ubi%lu/ubi%lu_%lu",
+				R_SYSFS_UBI_BASE_PATH, dev, dev, vol);
+	}
+
+	/* ubiX:NAME method */
+	if ((*endptr == ':' || *endptr == '!') && endptr[1] != '\0')
+		return r_ubi_volname_to_sysfs_path(dev, ++endptr);
+
+	/* no match */
+	return NULL;
+}
+
+gchar *r_ubi_sysfs_to_dev_path(const gchar *path)
+{
+	g_autoptr(GFileInputStream) finstream = NULL;
+	g_autoptr(GDataInputStream) dinstream = NULL;
+	g_autoptr(GFile) infile = NULL;
+	gchar *dev = NULL, *devnum, *spath;
+	char *line;
+
+	/* open path/dev, store major:minor */
+	spath = g_build_filename(path, "dev", NULL);
+	devnum = read_file_str(spath, NULL);
+	g_free(spath);
+	if (!devnum)
+		return NULL;
+	g_strchomp(devnum);
+
+	/* open /sys/dev/char/major:minor/uevent */
+	spath = g_build_filename("/sys/dev/char", devnum, "uevent", NULL);
+
+	/* find and parse DEVNAME */
+	infile = g_file_new_for_path(spath);
+	g_free(spath);
+
+	finstream = g_file_read(infile, NULL, NULL);
+	if (!finstream)
+		return NULL;
+
+	dinstream = g_data_input_stream_new( G_INPUT_STREAM(finstream) );
+
+	while ( (line = g_data_input_stream_read_line( dinstream, NULL, NULL, NULL )) )
+	{
+		g_auto(GStrv) split = g_strsplit(line, "=", 2);
+		free(line);
+
+		if (g_strv_length(split) != 2)
+			continue;
+
+		if (g_strcmp0(split[0], "DEVNAME") == 0) {
+			dev = g_build_filename("/dev", split[1], NULL);
+			break;
+		}
+	}
+
+	return dev;
+}
+
+gchar *r_ubi_volname_to_sysfs_path(unsigned int dev, const gchar *name)
+{
+	g_autoptr(GRegex) regex = NULL;
+	g_autoptr(GDir) dir = NULL;
+	gchar *spath = NULL, *upath;
+	const gchar *dir_entry;
+
+	if (!name)
+		return NULL;
+
+	regex = g_regex_new("^ubi\\d+_\\d+$", 0, 0, NULL);
+	if (!regex)
+		return NULL;
+
+	/* files to be looked at: /sys/class/ubi/ubiX/ubiX_Y/name with X
+	 * the same as parameter 'dev' */
+	upath = g_strdup_printf("%s/ubi%u", R_SYSFS_UBI_BASE_PATH, dev);
+
+	dir = g_dir_open(upath, 0, NULL);
+	if (!dir) {
+		g_free(upath);
+		return NULL;
+	}
+
+	while ((dir_entry = g_dir_read_name(dir))) {
+		/* match entry to ubiX_Y, skip everything else */
+		if (g_regex_match(regex, dir_entry, 0, NULL)) {
+			gchar *npath, *sname;
+			int cmpres;
+
+			npath = g_build_filename(upath, dir_entry, "name", NULL);
+			sname = g_strchomp(read_file_str(npath, NULL));
+			g_free(npath);
+
+			cmpres = g_strcmp0(name, sname);
+			g_free(sname);
+
+			if (cmpres == 0) {
+				spath = g_build_filename(upath, dir_entry, NULL);
+				break;
+			}
+		}
+	}
+
+	g_free(upath);
+
+	return spath;
 }

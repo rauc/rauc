@@ -191,3 +191,25 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return Resolved device part (newly allocated string) or NULL in case of an error.
  */
 gchar *r_resolve_device(const gchar *dev);
+
+/**
+ * Parse UBI device name string the same way the kernel does and return
+ * sysfs path of that volume.
+ *
+ * Those names are used in kernel cmdline for mounting rootfs, e.g. like
+ * 'root=ubi0:volname', possible names are:
+ *
+ * - ubiX_Y	UBI device number X, volume Y
+ * - ubiY	UBI device number 0, volume Y
+ * - ubiX:NAME	UBI device X, volume with name NAME
+ * - ubi:NAME	UBI device 0, volume with name NAME
+ *
+ * The kernel allows '!' as an alternative separator instead of ':'
+ * (because some shells like busybox may interpret ':' as an NFS host
+ * name separator).
+ *
+ * @param name string, one of format "ubiX_Y", "ubiY", "ubiX:NAME", "ubi:NAME".
+ *
+ * @return sysfs path like "/sys/class/ubi/ubiX/ubiX_Y" (newly-allocated string) or NULL.
+ */
+gchar *r_ubi_name_to_sysfs_path(const gchar *name);
