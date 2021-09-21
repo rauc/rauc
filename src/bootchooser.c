@@ -1589,7 +1589,7 @@ static gboolean custom_get_state(RaucSlot *slot, gboolean *good, GError **error)
 				error,
 				R_BOOTCHOOSER_ERROR,
 				R_BOOTCHOOSER_ERROR_FAILED,
-				"Invalid string obtained from custom bootloader backend: '%s'", ret_str);
+				"Obtained string does not match \"good\" or \"bad\": '%s'", ret_str);
 		return FALSE;
 	}
 
