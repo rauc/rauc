@@ -185,6 +185,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  * - PARTLABEL=mylabel -> /dev/disk/by-partlabel/mylabel
  * - PARTUUID=4f8bb419-01 -> /dev/disk/by-partuuid/4f8bb419-01
  * - UUID=9e8b0c3e-e20f-4119-b419-ec20a132aa94 -> /dev/disk/by-uuid/9e8b0c3e-e20f-4119-b419-ec20a132aa94
+ * - ubi0:rootfs1 -> /dev/ubi0_3
  *
  * @param dev "device" string
  *

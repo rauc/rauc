@@ -14,6 +14,25 @@
 #define R_SYSFS_UBI_BASE_PATH	"/sys/class/ubi"
 
 /**
+ * Resolve UBI device name string to device path.
+ *
+ * This is just calling internal functions and putting all pieces
+ * together for simpler usage from outside.
+ *
+ * For example:
+ *
+ * - ubi1_3 -> /dev/ubi1_3
+ * - ubi2 -> /dev/ubi0_2
+ * - ubi0:rootfs -> /dev/ubi0_1
+ * - ubi!home -> /dev/ubi0_4
+ *
+ * @param name string, one of format "ubiX_Y", "ubiY", "ubiX:NAME", "ubi:NAME".
+ *
+ * @return device path like "/dev/ubi0_2" (newly-allocated string) or NULL.
+ */
+static gchar *r_ubi_name_to_dev_path(const gchar *name);
+
+/**
  * Resolve UBI volume sysfs path to device path.
  *
  * This is done through major:minor device number.
@@ -386,9 +405,29 @@ gchar *r_resolve_device(const gchar *dev)
 	} else if (strncmp(dev, "UUID=", 5) == 0) {
 		idev = g_build_filename("/dev/disk/by-uuid/",
 				&dev[5], NULL);
+	} else if (strncmp(dev, "ubi", 3) == 0) {
+		idev = r_ubi_name_to_dev_path( dev );
 	}
 
 	return idev;
+}
+
+gchar *r_ubi_name_to_dev_path(const gchar *name)
+{
+	gchar *dev, *spath;
+
+	if (!name)
+		return NULL;
+
+	spath = r_ubi_name_to_sysfs_path(name);
+
+	if (!spath)
+		return NULL;
+
+	dev = r_ubi_sysfs_to_dev_path(spath);
+	g_free(spath);
+
+	return dev;
 }
 
 gchar *r_ubi_name_to_sysfs_path(const gchar *name)
