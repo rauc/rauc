@@ -1656,7 +1656,10 @@ gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 	}
 
 	if (!res) {
-		g_propagate_error(error, ierror);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"%s backend: ", r_context()->config->system_bootloader);
 	}
 
 	return res;
@@ -1693,7 +1696,10 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 	}
 
 	if (!res) {
-		g_propagate_error(error, ierror);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"%s backend: ", r_context()->config->system_bootloader);
 	}
 
 	return res;
@@ -1725,8 +1731,12 @@ RaucSlot* r_boot_get_primary(GError **error)
 		return NULL;
 	}
 
-	if (!slot)
-		g_propagate_error(error, ierror);
+	if (!slot) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"%s backend: ", r_context()->config->system_bootloader);
+	}
 
 	return slot;
 }
@@ -1762,7 +1772,10 @@ gboolean r_boot_set_primary(RaucSlot *slot, GError **error)
 	}
 
 	if (!res) {
-		g_propagate_error(error, ierror);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"%s backend: ", r_context()->config->system_bootloader);
 	}
 
 	return res;
