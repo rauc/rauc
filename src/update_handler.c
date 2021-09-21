@@ -508,20 +508,28 @@ extract:
 	res = casync_extract(image, dest, out_fd, seed, store, tmpdir, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	/* Cleanup seed */
-	if (seed_mounted) {
-		res = r_umount_slot(seedslot, &ierror);
-		if (!res) {
-			g_propagate_prefixed_error(error, ierror, "Failed unmounting seed slot: ");
-			goto out;
-		}
+		goto unmount_out;
 	}
 
 	res = TRUE;
-out:
+
+unmount_out:
+	/* Cleanup seed */
+	if (seed_mounted) {
+		g_message("Unmounting seed slot %s", seedslot->device);
+		ierror = NULL; /* any previous error was propagated already */
+		if (!r_umount_slot(seedslot, &ierror)) {
+			res = FALSE;
+			if (error && *error) {
+				/* the previous error is more relevant here */
+				g_warning("Ignoring umount error after previous error: %s", ierror->message);
+				g_clear_error(&ierror);
+			} else {
+				g_propagate_error(error, ierror);
+			}
+		}
+	}
+
 	return res;
 }
 
