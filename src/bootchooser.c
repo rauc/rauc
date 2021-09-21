@@ -1460,7 +1460,7 @@ static gboolean custom_backend_get(const gchar *cmd, const gchar *bootname, gcha
 				error,
 				G_SPAWN_EXIT_ERROR,
 				ret,
-				"%s failed with wrong exit code", backend_name);
+				"%s failed with exit code %d", backend_name, ret);
 		return FALSE;
 	}
 
