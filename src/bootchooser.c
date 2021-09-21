@@ -1453,12 +1453,6 @@ static gboolean custom_backend_get(const gchar *cmd, const gchar *bootname, gcha
 				"Failed to run %s: ", backend_name);
 		return FALSE;
 	}
-	data = g_bytes_get_data(stdout_buf, &size);
-	*ret_str = g_strndup(data, size);
-
-	/* Cleanup string for newlines */
-	if (size > 0)
-		g_strstrip(*ret_str);
 
 	ret = g_subprocess_get_exit_status(sub);
 	if (ret != 0) {
@@ -1469,6 +1463,13 @@ static gboolean custom_backend_get(const gchar *cmd, const gchar *bootname, gcha
 				"%s failed with wrong exit code", backend_name);
 		return FALSE;
 	}
+
+	data = g_bytes_get_data(stdout_buf, &size);
+	*ret_str = g_strndup(data, size);
+
+	/* Cleanup string for newlines */
+	if (size > 0)
+		g_strstrip(*ret_str);
 
 	return TRUE;
 }
