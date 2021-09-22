@@ -1633,6 +1633,9 @@ gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 	g_return_val_if_fail(good, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	/* Function must not be called for slots without a bootname! */
+	g_assert_nonnull(slot->bootname);
+
 	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
 		res = barebox_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
