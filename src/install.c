@@ -200,19 +200,30 @@ gboolean determine_boot_states(GError **error)
 {
 	GHashTableIter iter;
 	RaucSlot *slot;
+	gboolean had_errors;
 
 	/* get boot state */
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		GError *ierror = NULL;
 
-		if (slot->bootname && !r_boot_get_state(slot, &slot->boot_good, &ierror)) {
-			g_propagate_error(error, ierror);
-			return FALSE;
+		if (!slot->bootname)
+			continue;
+
+		if (!r_boot_get_state(slot, &slot->boot_good, &ierror)) {
+			g_message("Failed to get boot state of %s: %s", slot->name, ierror->message);
+			had_errors = TRUE;
 		}
 	}
 
-	return TRUE;
+	if (had_errors)
+		g_set_error_literal(
+				error,
+				R_SLOT_ERROR,
+				R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
+				"Could not determine all boot states");
+
+	return !had_errors;
 }
 
 /* Returns NULL-teminated intern string array of all classes listed in
