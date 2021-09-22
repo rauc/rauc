@@ -1454,6 +1454,15 @@ static gboolean custom_backend_get(const gchar *cmd, const gchar *bootname, gcha
 		return FALSE;
 	}
 
+	if (!g_subprocess_get_if_exited(sub)) {
+		g_set_error(
+				error,
+				G_SPAWN_ERROR,
+				G_SPAWN_ERROR_FAILED,
+				"%s did not exit normally", backend_name);
+		return FALSE;
+	}
+
 	ret = g_subprocess_get_exit_status(sub);
 	if (ret != 0) {
 		g_set_error(
