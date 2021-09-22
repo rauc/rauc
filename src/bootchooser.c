@@ -609,11 +609,11 @@ static RaucSlot* grub_get_primary(GError **error)
 	}
 
 	if (!primary) {
-		g_set_error_literal(
+		g_set_error(
 				error,
 				R_BOOTCHOOSER_ERROR,
 				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
-				"Unable to detect primary slot");
+				"No bootable slot found in ORDER '%s'", order->str);
 	}
 
 	return primary;
