@@ -200,12 +200,12 @@ gboolean determine_boot_states(GError **error)
 {
 	GHashTableIter iter;
 	RaucSlot *slot;
-	gchar *name;
-	GError *ierror = NULL;
 
 	/* get boot state */
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, (gpointer*) &name, (gpointer*) &slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+		GError *ierror = NULL;
+
 		if (slot->bootname && !r_boot_get_state(slot, &slot->boot_good, &ierror)) {
 			g_propagate_error(error, ierror);
 			return FALSE;
