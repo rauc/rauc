@@ -568,6 +568,15 @@ static RaucSlot* grub_get_primary(GError **error)
 		return NULL;
 	}
 
+	if (!order->len) {
+		g_set_error_literal(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Variable ORDER is empty");
+		return NULL;
+	}
+
 	/* Iterate over current boot order */
 	bootnames = g_strsplit(order->str, " ", -1);
 	for (gchar **bootname = bootnames; *bootname; bootname++) {
