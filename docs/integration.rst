@@ -380,7 +380,7 @@ Giving the plain device name is supported, of course.
   root=PARTUUID=01234
   root=UUID=01234
 
-Parsing the ``PARTLABEL, ``PARTUUID`` and ``UUID`` is supported, which allows
+Parsing the ``PARTLABEL``, ``PARTUUID`` and ``UUID`` is supported, which allows
 referring to a special partition / file system without having to know the
 enumeration-dependent `sdX` name.
 
