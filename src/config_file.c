@@ -493,6 +493,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		if (g_str_equal(groupsplit[0], RAUC_SLOT_PREFIX)) {
 			g_autoptr(RaucSlot) slot = g_new0(RaucSlot, 1);
 			gchar* value;
+			gchar *ival;
 
 			/* Assure slot strings consist of 3 parts, delimited by dots */
 			if (g_strv_length(groupsplit) != 3) {
@@ -522,14 +523,30 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 			slot->sclass = g_intern_string(groupsplit[1]);
 
-			value = resolve_path(filename,
-					key_file_consume_string(key_file, groups[i], "device", &ierror));
+			/* Try to resolve special device name to an actual
+			 * device path. If it is no special device name,
+			 * just use ordinary resolve path logic. */
+			value = key_file_consume_string(key_file, groups[i], "device", &ierror);
 			if (!value) {
 				g_propagate_error(error, ierror);
 				res = FALSE;
 				goto free;
 			}
-			slot->device = value;
+			ival = r_resolve_device(value);
+			if (!ival) {
+				ival = resolve_path(filename, value);
+			}
+			g_free(value);
+			if (!ival) {
+				g_set_error(
+						error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_INVALID_FORMAT,
+						"Invalid device");
+				res = FALSE;
+				goto free;
+			}
+			slot->device = ival;
 
 			value = key_file_consume_string(key_file, groups[i], "type", NULL);
 			if (!value)
