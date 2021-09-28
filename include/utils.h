@@ -134,6 +134,8 @@ G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Get string argument from key and remove key from key_file.
+ *
+ * @return A newly allocated string or NULL on error.
  */
 gchar * key_file_consume_string(
 		GKeyFile *key_file,
