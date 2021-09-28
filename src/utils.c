@@ -204,6 +204,7 @@ gchar * key_file_consume_string(
 	if (result[0] == '\0') {
 		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
 				"Missing value for key '%s'", key);
+		g_free(result);
 		return NULL;
 	}
 
