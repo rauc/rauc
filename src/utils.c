@@ -183,7 +183,6 @@ gboolean check_remaining_keys(GKeyFile *key_file, const gchar *groupname, GError
 	return TRUE;
 }
 
-/* get string argument from key and remove key from key_file */
 gchar * key_file_consume_string(
 		GKeyFile *key_file,
 		const gchar *group_name,
@@ -211,7 +210,6 @@ gchar * key_file_consume_string(
 	return result;
 }
 
-/* get integer argument from key and remove key from key_file */
 gint key_file_consume_integer(
 		GKeyFile *key_file,
 		const gchar *group_name,
