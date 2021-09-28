@@ -369,10 +369,13 @@ RAUC supports parsing different variants for giving these device as listed below
 
 Giving the plain device name is supported, of course.
 
-.. note::
+::
 
-  The alternative ubi rootfs format with ``root=ubi0:volname`` is currently
-  unsupported.
+  root=ubi0:volname
+
+The alternative ubi rootfs format with ``ubi0:volname`` is supported.
+The volume ID and like it the plain device path is dependent on volume creation order.
+RAUC converts the value to the actual device path by resolving it through sysfs.
 
 ::
 
