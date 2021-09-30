@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
 
 #include "utils.h"
 
@@ -184,7 +183,6 @@ gboolean check_remaining_keys(GKeyFile *key_file, const gchar *groupname, GError
 	return TRUE;
 }
 
-/* get string argument from key and remove key from key_file */
 gchar * key_file_consume_string(
 		GKeyFile *key_file,
 		const gchar *group_name,
@@ -205,13 +203,13 @@ gchar * key_file_consume_string(
 	if (result[0] == '\0') {
 		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
 				"Missing value for key '%s'", key);
+		g_free(result);
 		return NULL;
 	}
 
 	return result;
 }
 
-/* get integer argument from key and remove key from key_file */
 gint key_file_consume_integer(
 		GKeyFile *key_file,
 		const gchar *group_name,
