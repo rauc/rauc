@@ -1900,6 +1900,7 @@ RaucUpdatePair updatepairs[] = {
 	{"*.ext4", "raw", img_to_raw_handler},
 	{"*.vfat", "raw", img_to_raw_handler},
 	{"*.squashfs", "raw", img_to_raw_handler},
+	{"*.verity", "raw", img_to_raw_handler},
 	{"*.vfat", "vfat", img_to_fs_handler},
 	{"*.tar*", "ext4", archive_to_ext4_handler},
 	{"*.catar", "ext4", archive_to_ext4_handler},
