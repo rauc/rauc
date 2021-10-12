@@ -1909,6 +1909,9 @@ static void cmdline_handler(int argc, char **argv)
 	g_option_context_set_ignore_unknown_options(context, TRUE);
 	g_option_context_add_main_entries(context, entries, NULL);
 	g_option_context_set_description(context,
+			"Command-specific help:\n"
+			"  rauc <COMMAND> --help\n"
+			"\n"
 			"List of rauc commands:\n"
 #if ENABLE_CREATE == 1
 			"  bundle\t\tCreate a bundle\n"
