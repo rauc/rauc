@@ -320,14 +320,33 @@ static void print_progress_callback(gint percentage,
 
 static gboolean install_start(int argc, char **argv)
 {
+	g_autoptr(GOptionContext) context = NULL;
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 	RInstaller *installer = NULL;
 	RaucInstallArgs *args = NULL;
 	GError *error = NULL;
 	g_autofree gchar *bundlelocation = NULL;
+	g_autofree gchar *text = NULL;
 
 	g_debug("install started");
+
+	context = g_option_context_new("install <BUNDLE>");
+	g_option_context_set_summary(context, "Install a bundle");
+	g_option_context_set_help_enabled(context, FALSE);
+	g_option_context_add_main_entries(context, entries, NULL);
+	g_option_context_add_group(context, install_group);
+
+	/* parse command-specific options */
+	if (!g_option_context_parse(context, &argc, &argv, &error)) {
+		g_printerr("%s\n", error->message);
+		g_error_free(error);
+		r_exit_status = 1;
+		goto print_help;
+	}
+
+	if (help)
+		goto print_help;
 
 	r_exit_status = 1;
 
@@ -423,16 +442,40 @@ out_loop:
 
 out:
 	return TRUE;
+
+print_help:
+	text = g_option_context_get_help(context, FALSE, NULL);
+	g_print("%s", text);
+	return TRUE;
 }
 
 G_GNUC_UNUSED
 static gboolean bundle_start(int argc, char **argv)
 {
+	g_autoptr(GOptionContext) context = NULL;
 	GError *ierror = NULL;
 	g_autofree gchar *inpath = NULL;
 	g_autofree gchar *outpath = NULL;
 	g_autofree gchar *outdir = NULL;
+	g_autofree gchar *text = NULL;
 	g_debug("bundle start");
+
+	context = g_option_context_new("bundle <INPUTDIR> <BUNDLENAME>");
+	g_option_context_set_summary(context, "Create a bundle from a content directory");
+	g_option_context_set_help_enabled(context, FALSE);
+	g_option_context_add_main_entries(context, entries, NULL);
+	g_option_context_add_group(context, bundle_group);
+
+	/* parse command-specific options */
+	if (!g_option_context_parse(context, &argc, &argv, &ierror)) {
+		g_printerr("%s\n", ierror->message);
+		g_error_free(ierror);
+		r_exit_status = 1;
+		goto print_help;
+	}
+
+	if (help)
+		goto print_help;
 
 	if (argc < 3) {
 		g_printerr("An input directory name must be provided\n");
@@ -492,10 +535,16 @@ static gboolean bundle_start(int argc, char **argv)
 
 out:
 	return TRUE;
+
+print_help:
+	text = g_option_context_get_help(context, FALSE, NULL);
+	g_print("%s", text);
+	return TRUE;
 }
 
 static gboolean write_slot_start(int argc, char **argv)
 {
+	g_autoptr(GOptionContext) context = NULL;
 	GError *ierror = NULL;
 	g_autoptr(RaucImage) image = g_new0(RaucImage, 1);
 	RaucSlot *slot = NULL;
@@ -503,8 +552,25 @@ static gboolean write_slot_start(int argc, char **argv)
 	g_autoptr(GInputStream) instream = NULL;
 	g_autoptr(GFile) imagefile = NULL;
 	img_to_slot_handler update_handler = NULL;
+	g_autofree gchar *text = NULL;
 
 	g_debug("write_slot_start");
+
+	context = g_option_context_new("write-slot <SLOTNAME> <IMAGE>");
+	g_option_context_set_summary(context, "Write image to slot and bypass all update logic");
+	g_option_context_set_help_enabled(context, FALSE);
+	g_option_context_add_main_entries(context, entries, NULL);
+
+	/* parse command-specific options */
+	if (!g_option_context_parse(context, &argc, &argv, &ierror)) {
+		g_printerr("%s\n", ierror->message);
+		g_error_free(ierror);
+		r_exit_status = 1;
+		goto print_help;
+	}
+
+	if (help)
+		goto print_help;
 
 	if (argc < 3) {
 		g_printerr("A target slot name must be provided\n");
@@ -580,15 +646,39 @@ static gboolean write_slot_start(int argc, char **argv)
 
 out:
 	return TRUE;
+
+print_help:
+	text = g_option_context_get_help(context, FALSE, NULL);
+	g_print("%s", text);
+	return TRUE;
 }
 
 G_GNUC_UNUSED
 static gboolean resign_start(int argc, char **argv)
 {
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
+	g_autoptr(GOptionContext) context = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
 	GError *ierror = NULL;
+	g_autofree gchar *text = NULL;
 	g_debug("resign start");
+
+	context = g_option_context_new("resign <INBUNDLE> <OUTBUNDLE>");
+	g_option_context_set_summary(context, "Resign an already signed bundle");
+	g_option_context_set_help_enabled(context, FALSE);
+	g_option_context_add_main_entries(context, entries, NULL);
+	g_option_context_add_group(context, resign_group);
+
+	/* parse command-specific options */
+	if (!g_option_context_parse(context, &argc, &argv, &ierror)) {
+		g_printerr("%s\n", ierror->message);
+		g_error_free(ierror);
+		r_exit_status = 1;
+		goto print_help;
+	}
+
+	if (help)
+		goto print_help;
 
 	if (argc < 3) {
 		g_printerr("An input bundle must be provided\n");
@@ -637,14 +727,25 @@ static gboolean resign_start(int argc, char **argv)
 
 out:
 	return TRUE;
+
+print_help:
+	text = g_option_context_get_help(context, FALSE, NULL);
+	g_print("%s", text);
+	return TRUE;
 }
 
 static gboolean replace_signature_start(int argc, char **argv)
 {
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
+	g_autoptr(GOptionContext) context = NULL;
 	RaucBundle *bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("replace signature start");
+
+	context = g_option_context_new("replace-signature <INBUMDLE> <INPUTSIG> <OUTBUNDLE>");
+	g_option_context_set_summary(context, "Replaces the signature of an already signed bundle");
+	g_option_context_set_help_enabled(context, FALSE);
+	g_option_context_add_main_entries(context, entries, NULL);
 
 	if (argc < 3) {
 		g_printerr("An input bundle must be provided\n");
@@ -699,9 +800,27 @@ out:
 
 static gboolean extract_signature_start(int argc, char **argv)
 {
+	g_autoptr(GOptionContext) context = NULL;
 	RaucBundle *bundle = NULL;
 	GError *ierror = NULL;
+	g_autofree gchar *text = NULL;
 	g_debug("extract signature start");
+
+	context = g_option_context_new("extract-signature <BUNDLENAME> <OUTPUTSIG>");
+	g_option_context_set_summary(context, "Extract the bundle signature");
+	g_option_context_set_help_enabled(context, FALSE);
+	g_option_context_add_main_entries(context, entries, NULL);
+
+	/* parse command-specific options */
+	if (!g_option_context_parse(context, &argc, &argv, &ierror)) {
+		g_printerr("%s\n", ierror->message);
+		g_error_free(ierror);
+		r_exit_status = 1;
+		goto print_help;
+	}
+
+	if (help)
+		goto print_help;
 
 	if (argc < 3) {
 		g_printerr("An input bundle must be provided\n");
@@ -740,13 +859,36 @@ static gboolean extract_signature_start(int argc, char **argv)
 
 out:
 	return TRUE;
+
+print_help:
+	text = g_option_context_get_help(context, FALSE, NULL);
+	g_print("%s", text);
+	return TRUE;
 }
 
 static gboolean extract_start(int argc, char **argv)
 {
+	g_autoptr(GOptionContext) context = NULL;
 	RaucBundle *bundle = NULL;
 	GError *ierror = NULL;
+	g_autofree gchar *text = NULL;
 	g_debug("extract start");
+
+	context = g_option_context_new("extract <BUNDLENAME> <OUTPUTDIR>");
+	g_option_context_set_summary(context, "Extract the bundle content");
+	g_option_context_set_help_enabled(context, FALSE);
+	g_option_context_add_main_entries(context, entries, NULL);
+
+	/* parse command-specific options */
+	if (!g_option_context_parse(context, &argc, &argv, &ierror)) {
+		g_printerr("%s\n", ierror->message);
+		g_error_free(ierror);
+		r_exit_status = 1;
+		goto print_help;
+	}
+
+	if (help)
+		goto print_help;
 
 	if (argc < 3) {
 		g_printerr("An input bundle must be provided\n");
@@ -785,15 +927,39 @@ static gboolean extract_start(int argc, char **argv)
 
 out:
 	return TRUE;
+
+print_help:
+	text = g_option_context_get_help(context, FALSE, NULL);
+	g_print("%s", text);
+	return TRUE;
 }
 
 G_GNUC_UNUSED
 static gboolean convert_start(int argc, char **argv)
 {
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
+	g_autoptr(GOptionContext) context = NULL;
 	RaucBundle *bundle = NULL;
 	GError *ierror = NULL;
+	g_autofree gchar *text = NULL;
 	g_debug("convert start");
+
+	context = g_option_context_new("convert <INBUNDLE> <OUTBUNDLE>");
+	g_option_context_set_summary(context, "Convert to casync index bundle and store");
+	g_option_context_set_help_enabled(context, FALSE);
+	g_option_context_add_main_entries(context, entries, NULL);
+	g_option_context_add_group(context, convert_group);
+
+	/* parse command-specific options */
+	if (!g_option_context_parse(context, &argc, &argv, &ierror)) {
+		g_printerr("%s\n", ierror->message);
+		g_error_free(ierror);
+		r_exit_status = 1;
+		goto print_help;
+	}
+
+	if (help)
+		goto print_help;
 
 	if (r_context()->certpath == NULL ||
 	    r_context()->keypath == NULL) {
@@ -845,6 +1011,11 @@ static gboolean convert_start(int argc, char **argv)
 	g_print("Bundle written to %s\n", argv[3]);
 
 out:
+	return TRUE;
+
+print_help:
+	text = g_option_context_get_help(context, FALSE, NULL);
+	g_print("%s", text);
 	return TRUE;
 }
 
@@ -1091,6 +1262,7 @@ static gchar* info_formatter_json_pretty(RaucManifest *manifest)
 
 static gboolean info_start(int argc, char **argv)
 {
+	g_autoptr(GOptionContext) context = NULL;
 	g_autofree gchar *bundlelocation = NULL;
 	g_autoptr(RaucManifest) manifest = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
@@ -1099,6 +1271,24 @@ static gboolean info_start(int argc, char **argv)
 	gchar* (*formatter)(RaucManifest *manifest) = NULL;
 	gchar *text;
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
+
+	g_set_prgname("rauc info");
+	context = g_option_context_new("<FILE>");
+	g_option_context_set_summary(context, "Print bundle info");
+	g_option_context_set_help_enabled(context, FALSE);
+	g_option_context_add_main_entries(context, entries, NULL);
+	g_option_context_add_group(context, info_group);
+
+	/* parse command-specific options */
+	if (!g_option_context_parse(context, &argc, &argv, &error)) {
+		g_printerr("%s\n", error->message);
+		g_error_free(error);
+		r_exit_status = 1;
+		goto print_help;
+	}
+
+	if (help)
+		goto print_help;
 
 	if (argc < 3) {
 		g_printerr("A file name must be provided\n");
@@ -1176,6 +1366,11 @@ static gboolean info_start(int argc, char **argv)
 
 out:
 	r_exit_status = res ? 0 : 1;
+	return TRUE;
+
+print_help:
+	text = g_option_context_get_help(context, FALSE, NULL);
+	g_print("%s", text);
 	return TRUE;
 }
 
@@ -1754,6 +1949,7 @@ static gboolean print_status(RaucStatusPrint *status_print)
 
 static gboolean status_start(int argc, char **argv)
 {
+	g_autoptr(GOptionContext) context = NULL;
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 	g_autofree gchar *slot_name = NULL;
@@ -1764,6 +1960,29 @@ static gboolean status_start(int argc, char **argv)
 	gboolean res = FALSE;
 	RInstaller *proxy = NULL;
 	g_autoptr(RaucStatusPrint) status_print = NULL;
+	g_autofree gchar *text = NULL;
+
+	g_set_prgname("rauc");
+	context = g_option_context_new("status <FILE>");
+	g_option_context_set_summary(context, "Show system status\n\n"
+			"List of status commands (default slot is the currently booted slot):\n"
+			"  mark-good [booted | other | <SLOT_NAME>] \tMark the slot as good\n"
+			"  mark-bad [booted | other | <SLOT_NAME>] \tMark the slot as bad\n"
+			"  mark-active [booted | other | <SLOT_NAME>] \tMark the slot as active");
+	g_option_context_set_help_enabled(context, FALSE);
+	g_option_context_add_main_entries(context, entries, NULL);
+	g_option_context_add_group(context, status_group);
+
+	/* parse command-specific options */
+	if (!g_option_context_parse(context, &argc, &argv, &ierror)) {
+		g_printerr("%s\n", ierror->message);
+		g_error_free(ierror);
+		r_exit_status = 1;
+		goto print_help;
+	}
+
+	if (help)
+		goto print_help;
 
 	g_debug("status start");
 	r_exit_status = 0;
@@ -1871,24 +2090,75 @@ out:
 	g_clear_object(&proxy);
 
 	return TRUE;
+
+print_help:
+	text = g_option_context_get_help(context, FALSE, NULL);
+	g_print("%s", text);
+	return TRUE;
 }
 
 G_GNUC_UNUSED
 static gboolean service_start(int argc, char **argv)
 {
+	g_autoptr(GOptionContext) context = NULL;
+	GError *error = NULL;
+	g_autofree gchar *text = NULL;
+
+	g_set_prgname("rauc");
+	context = g_option_context_new("service ");
+	g_option_context_set_summary(context, "Start RAUC service");
+	g_option_context_set_help_enabled(context, FALSE);
+	g_option_context_add_main_entries(context, entries, NULL);
+	g_option_context_add_group(context, service_group);
+
+	/* parse command-specific options */
+	if (!g_option_context_parse(context, &argc, &argv, &error)) {
+		g_printerr("%s\n", error->message);
+		g_error_free(error);
+		r_exit_status = 1;
+		goto print_help;
+	}
+
+	if (help)
+		goto print_help;
+
 	g_debug("service start");
 
 	r_exit_status = r_service_run() ? 0 : 1;
 
 	return TRUE;
+
+print_help:
+	text = g_option_context_get_help(context, FALSE, NULL);
+	g_print("%s", text);
+	return TRUE;
 }
 
 static gboolean mount_start(int argc, char **argv)
 {
+	g_autoptr(GOptionContext) context = NULL;
 	g_autofree gchar *bundlelocation = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
 	GError *error = NULL;
 	gboolean res = FALSE;
+	g_autofree gchar *text = NULL;
+
+	g_set_prgname("rauc");
+	context = g_option_context_new("mount <BUNDLENAME>");
+	g_option_context_set_summary(context, "Mount a bundle (for development purposes)");
+	g_option_context_set_help_enabled(context, FALSE);
+	g_option_context_add_main_entries(context, entries, NULL);
+
+	/* parse command-specific options */
+	if (!g_option_context_parse(context, &argc, &argv, &error)) {
+		g_printerr("%s\n", error->message);
+		g_error_free(error);
+		r_exit_status = 1;
+		goto print_help;
+	}
+
+	if (help)
+		goto print_help;
 
 	if (argc < 3) {
 		g_printerr("A file name must be provided\n");
@@ -1934,6 +2204,11 @@ static gboolean mount_start(int argc, char **argv)
 out:
 	r_exit_status = 1;
 	return FALSE;
+
+print_help:
+	text = g_option_context_get_help(context, FALSE, NULL);
+	g_print("%s", text);
+	return TRUE;
 }
 
 static gboolean unknown_start(int argc, char **argv)
@@ -1962,10 +2237,7 @@ typedef enum  {
 typedef struct {
 	const RaucCommandType type;
 	const gchar* name;
-	const gchar* usage;
-	const gchar* summary;
 	gboolean (*cmd_handler)(int argc, char **argv);
-	GOptionGroup* options;
 	RContextConfigMode configmode;
 	gboolean while_busy;
 } RaucCommand;
@@ -1978,53 +2250,23 @@ static void cmdline_handler(int argc, char **argv)
 	g_autofree gchar *text = NULL;
 
 	RaucCommand rcommands[] = {
-		{UNKNOWN, "help", "<COMMAND>",
-		 "Print help",
-		 unknown_start, NULL, R_CONTEXT_CONFIG_MODE_NONE, TRUE},
-		{INSTALL, "install", "install <BUNDLE>",
-		 "Install a bundle",
-		 install_start, install_group, R_CONTEXT_CONFIG_MODE_REQUIRED, FALSE},
+		{UNKNOWN, "help", unknown_start, R_CONTEXT_CONFIG_MODE_NONE, TRUE},
+		{INSTALL, "install", install_start, R_CONTEXT_CONFIG_MODE_REQUIRED, FALSE},
 #if ENABLE_CREATE == 1
-		{BUNDLE, "bundle", "bundle <INPUTDIR> <BUNDLENAME>",
-		 "Create a bundle from a content directory",
-		 bundle_start, bundle_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
-		{RESIGN, "resign", "resign <INBUNDLE> <OUTBUNDLE>",
-		 "Resign an already signed bundle",
-		 resign_start, resign_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
-		{CONVERT, "convert", "convert <INBUNDLE> <OUTBUNDLE>",
-		 "Convert to casync index bundle and store",
-		 convert_start, convert_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
-		{REPLACE_SIG, "replace-signature", "replace-signature <INBUMDLE> <INPUTSIG> <OUTBUNDLE>",
-		 "Replaces the signature of an already signed bundle",
-		 replace_signature_start, replace_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
-		{EXTRACT_SIG, "extract-signature", "extract-signature <BUNDLENAME> <OUTPUTSIG>",
-		 "Extract the bundle signature",
-		 extract_signature_start, NULL, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
+		{BUNDLE, "bundle", bundle_start, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
+		{RESIGN, "resign", resign_start, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
+		{CONVERT, "convert", convert_start, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
+		{REPLACE_SIG, "replace-signature", replace_signature_start, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
+		{EXTRACT_SIG, "extract-signature", extract_signature_start, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
 #endif
-		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>",
-		 "Extract the bundle content",
-		 extract_start, NULL, R_CONTEXT_CONFIG_MODE_AUTO, FALSE},
-		{INFO, "info", "info <FILE>",
-		 "Print bundle info",
-		 info_start, info_group, R_CONTEXT_CONFIG_MODE_AUTO, FALSE},
-		{STATUS, "status", "status",
-		 "Show system status\n\n"
-		 "List of status commands (default slot is the currently booted slot):\n"
-		 "  mark-good [booted | other | <SLOT_NAME>] \tMark the slot as good\n"
-		 "  mark-bad [booted | other | <SLOT_NAME>] \tMark the slot as bad\n"
-		 "  mark-active [booted | other | <SLOT_NAME>] \tMark the slot as active",
-		 status_start, status_group, R_CONTEXT_CONFIG_MODE_REQUIRED, TRUE},
-		{WRITE_SLOT, "write-slot", "write-slot <SLOTNAME> <IMAGE>",
-		 "Write image to slot and bypass all update logic",
-		 write_slot_start, NULL, R_CONTEXT_CONFIG_MODE_REQUIRED, FALSE},
+		{EXTRACT, "extract", extract_start, R_CONTEXT_CONFIG_MODE_AUTO, FALSE},
+		{INFO, "info", info_start, R_CONTEXT_CONFIG_MODE_AUTO, FALSE},
+		{STATUS, "status", status_start, R_CONTEXT_CONFIG_MODE_REQUIRED, TRUE},
+		{WRITE_SLOT, "write-slot", write_slot_start, R_CONTEXT_CONFIG_MODE_REQUIRED, FALSE},
 #if ENABLE_SERVICE == 1
-		{SERVICE, "service", "service",
-		 "Start RAUC service",
-		 service_start, service_group, R_CONTEXT_CONFIG_MODE_REQUIRED, TRUE},
+		{SERVICE, "service", service_start, R_CONTEXT_CONFIG_MODE_REQUIRED, TRUE},
 #endif
-		{MOUNT, "mount", "mount <BUNDLENAME>",
-		 "Mount a bundle (for development purposes)",
-		 mount_start, NULL, R_CONTEXT_CONFIG_MODE_REQUIRED, TRUE},
+		{MOUNT, "mount", mount_start, R_CONTEXT_CONFIG_MODE_REQUIRED, TRUE},
 		{0}
 	};
 	RaucCommand *rc;
@@ -2116,28 +2358,6 @@ static void cmdline_handler(int argc, char **argv)
 		/* INVALID COMMAND given */
 		g_message("Invalid command '%s' given", cmdarg);
 		r_exit_status = 1;
-		goto print_help;
-	}
-
-	/* re-setup option context for showing command-specific help */
-	g_clear_pointer(&context, g_option_context_free);
-	context = g_option_context_new(rcommand->usage);
-	if (rcommand->summary)
-		g_option_context_set_summary(context, rcommand->summary);
-	g_option_context_set_help_enabled(context, FALSE);
-	g_option_context_add_main_entries(context, entries, NULL);
-	if (rcommand->options)
-		g_option_context_add_group(context, rcommand->options);
-
-	/* parse command-specific options */
-	if (!g_option_context_parse(context, &argc, &argv, &error)) {
-		g_printerr("%s\n", error->message);
-		g_error_free(error);
-		r_exit_status = 1;
-		goto print_help;
-	}
-
-	if (help) {
 		goto print_help;
 	}
 
