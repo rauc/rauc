@@ -41,6 +41,124 @@ gchar *handler_args = NULL;
 gchar *bootslot = NULL;
 gboolean utf8_supported = FALSE;
 
+gchar *confpath = NULL, *certpath = NULL, *keypath = NULL, *keyring = NULL, **intermediate = NULL, *mount = NULL;
+gboolean help = FALSE, debug = FALSE, version = FALSE;
+
+GOptionEntry entries[] = {
+	{"conf", 'c', 0, G_OPTION_ARG_FILENAME, &confpath, "config file", "FILENAME"},
+	{"cert", '\0', 0, G_OPTION_ARG_FILENAME, &certpath, "cert file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
+	{"key", '\0', 0, G_OPTION_ARG_FILENAME, &keypath, "key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
+	{"keyring", '\0', 0, G_OPTION_ARG_FILENAME, &keyring, "keyring file", "PEMFILE"},
+	{"intermediate", '\0', 0, G_OPTION_ARG_FILENAME_ARRAY, &intermediate, "intermediate CA file name", "PEMFILE"},
+	{"mount", '\0', 0, G_OPTION_ARG_FILENAME, &mount, "mount prefix", "PATH"},
+	{"debug", 'd', 0, G_OPTION_ARG_NONE, &debug, "enable debug output", NULL},
+	{"version", '\0', 0, G_OPTION_ARG_NONE, &version, "display version", NULL},
+	{"help", 'h', 0, G_OPTION_ARG_NONE, &help, NULL, NULL},
+	{0}
+};
+
+static GOptionEntry entries_install[] = {
+	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
+#if ENABLE_SERVICE == 1
+	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
+#else
+	{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handler_args, "extra handler arguments", "ARGS"},
+	{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "BOOTNAME"},
+#endif
+	{0}
+};
+
+static GOptionEntry entries_bundle[] = {
+	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
+	{"mksquashfs-args", '\0', 0, G_OPTION_ARG_STRING, &mksquashfs_args, "mksquashfs extra args", "ARGS"},
+	{0}
+};
+
+static GOptionEntry entries_resign[] = {
+	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
+	{"no-check-time", '\0', 0, G_OPTION_ARG_NONE, &no_check_time, "don't check validity period of certificates against current time", NULL},
+	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
+	{0}
+};
+
+static GOptionEntry entries_replace[] = {
+	{"trust-environment", '\0', 0, G_OPTION_ARG_NONE, &trust_environment, "trust environment and skip bundle access checks", NULL},
+	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
+	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
+	{0}
+};
+
+static GOptionEntry entries_convert[] = {
+	{"trust-environment", '\0', 0, G_OPTION_ARG_NONE, &trust_environment, "trust environment and skip bundle access checks", NULL},
+	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
+	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
+	{"mksquashfs-args", '\0', 0, G_OPTION_ARG_STRING, &mksquashfs_args, "mksquashfs extra args", "ARGS"},
+	{"casync-args", '\0', 0, G_OPTION_ARG_STRING, &casync_args, "casync extra args", "ARGS"},
+	{0}
+};
+
+static GOptionEntry entries_info[] = {
+	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
+	{"no-check-time", '\0', 0, G_OPTION_ARG_NONE, &no_check_time, "don't check validity period of certificates against current time", NULL},
+	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
+	{"dump-cert", '\0', 0, G_OPTION_ARG_NONE, &info_dumpcert, "dump certificate", NULL},
+	{0}
+};
+
+static GOptionEntry entries_status[] = {
+	{"detailed", '\0', 0, G_OPTION_ARG_NONE, &status_detailed, "show more status details", NULL},
+	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
+#if ENABLE_SERVICE == 0
+	{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "BOOTNAME"},
+#endif
+	{0}
+};
+
+static GOptionEntry entries_service[] = {
+	{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handler_args, "extra handler arguments", "ARGS"},
+	{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "BOOTNAME"},
+	{0}
+};
+
+static GOptionGroup *install_group;
+static GOptionGroup *bundle_group;
+static GOptionGroup *resign_group;
+static GOptionGroup *replace_group;
+static GOptionGroup *convert_group;
+static GOptionGroup *info_group;
+static GOptionGroup *status_group;
+static GOptionGroup *service_group;
+
+static void create_option_groups(void)
+{
+	install_group = g_option_group_new("install", "Install options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(install_group, entries_install);
+
+	if (ENABLE_CREATE) {
+		bundle_group  = g_option_group_new("bundle", "Bundle options:", "help dummy", NULL, NULL);
+		g_option_group_add_entries(bundle_group, entries_bundle);
+
+		resign_group  = g_option_group_new("resign", "Resign options:", "help dummy", NULL, NULL);
+		g_option_group_add_entries(resign_group, entries_resign);
+
+		replace_group  = g_option_group_new("replace-signature", "Replace signature options:", "help dummy", NULL, NULL);
+		g_option_group_add_entries(replace_group, entries_replace);
+
+		convert_group = g_option_group_new("convert", "Convert options:", "help dummy", NULL, NULL);
+		g_option_group_add_entries(convert_group, entries_convert);
+	}
+
+	info_group    = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(info_group, entries_info);
+
+	status_group  = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(status_group, entries_status);
+
+	service_group  = g_option_group_new("service", "Service options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(service_group, entries_service);
+}
+
+
 static gchar* make_progress_line(gint percentage)
 {
 	struct winsize w;
@@ -1852,126 +1970,10 @@ typedef struct {
 	gboolean while_busy;
 } RaucCommand;
 
-static GOptionEntry entries_install[] = {
-	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
-#if ENABLE_SERVICE == 1
-	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
-#else
-	{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handler_args, "extra handler arguments", "ARGS"},
-	{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "BOOTNAME"},
-#endif
-	{0}
-};
-
-static GOptionEntry entries_bundle[] = {
-	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
-	{"mksquashfs-args", '\0', 0, G_OPTION_ARG_STRING, &mksquashfs_args, "mksquashfs extra args", "ARGS"},
-	{0}
-};
-
-static GOptionEntry entries_resign[] = {
-	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
-	{"no-check-time", '\0', 0, G_OPTION_ARG_NONE, &no_check_time, "don't check validity period of certificates against current time", NULL},
-	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
-	{0}
-};
-
-static GOptionEntry entries_replace[] = {
-	{"trust-environment", '\0', 0, G_OPTION_ARG_NONE, &trust_environment, "trust environment and skip bundle access checks", NULL},
-	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
-	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
-	{0}
-};
-
-static GOptionEntry entries_convert[] = {
-	{"trust-environment", '\0', 0, G_OPTION_ARG_NONE, &trust_environment, "trust environment and skip bundle access checks", NULL},
-	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
-	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
-	{"mksquashfs-args", '\0', 0, G_OPTION_ARG_STRING, &mksquashfs_args, "mksquashfs extra args", "ARGS"},
-	{"casync-args", '\0', 0, G_OPTION_ARG_STRING, &casync_args, "casync extra args", "ARGS"},
-	{0}
-};
-
-static GOptionEntry entries_info[] = {
-	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
-	{"no-check-time", '\0', 0, G_OPTION_ARG_NONE, &no_check_time, "don't check validity period of certificates against current time", NULL},
-	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
-	{"dump-cert", '\0', 0, G_OPTION_ARG_NONE, &info_dumpcert, "dump certificate", NULL},
-	{0}
-};
-
-static GOptionEntry entries_status[] = {
-	{"detailed", '\0', 0, G_OPTION_ARG_NONE, &status_detailed, "show more status details", NULL},
-	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
-#if ENABLE_SERVICE == 0
-	{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "BOOTNAME"},
-#endif
-	{0}
-};
-
-static GOptionEntry entries_service[] = {
-	{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handler_args, "extra handler arguments", "ARGS"},
-	{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "BOOTNAME"},
-	{0}
-};
-
-static GOptionGroup *install_group;
-static GOptionGroup *bundle_group;
-static GOptionGroup *resign_group;
-static GOptionGroup *replace_group;
-static GOptionGroup *convert_group;
-static GOptionGroup *info_group;
-static GOptionGroup *status_group;
-static GOptionGroup *service_group;
-
-static void create_option_groups(void)
-{
-	install_group = g_option_group_new("install", "Install options:", "help dummy", NULL, NULL);
-	g_option_group_add_entries(install_group, entries_install);
-
-	if (ENABLE_CREATE) {
-		bundle_group  = g_option_group_new("bundle", "Bundle options:", "help dummy", NULL, NULL);
-		g_option_group_add_entries(bundle_group, entries_bundle);
-
-		resign_group  = g_option_group_new("resign", "Resign options:", "help dummy", NULL, NULL);
-		g_option_group_add_entries(resign_group, entries_resign);
-
-		replace_group  = g_option_group_new("replace-signature", "Replace signature options:", "help dummy", NULL, NULL);
-		g_option_group_add_entries(replace_group, entries_replace);
-
-		convert_group = g_option_group_new("convert", "Convert options:", "help dummy", NULL, NULL);
-		g_option_group_add_entries(convert_group, entries_convert);
-	}
-
-	info_group    = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
-	g_option_group_add_entries(info_group, entries_info);
-
-	status_group  = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
-	g_option_group_add_entries(status_group, entries_status);
-
-	service_group  = g_option_group_new("service", "Service options:", "help dummy", NULL, NULL);
-	g_option_group_add_entries(service_group, entries_service);
-}
-
 static void cmdline_handler(int argc, char **argv)
 {
-	gboolean help = FALSE, debug = FALSE, version = FALSE;
-	gchar *confpath = NULL, *certpath = NULL, *keypath = NULL, *keyring = NULL, **intermediate = NULL, *mount = NULL;
 	char *cmdarg = NULL;
 	g_autoptr(GOptionContext) context = NULL;
-	GOptionEntry entries[] = {
-		{"conf", 'c', 0, G_OPTION_ARG_FILENAME, &confpath, "config file", "FILENAME"},
-		{"cert", '\0', 0, G_OPTION_ARG_FILENAME, &certpath, "cert file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
-		{"key", '\0', 0, G_OPTION_ARG_FILENAME, &keypath, "key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
-		{"keyring", '\0', 0, G_OPTION_ARG_FILENAME, &keyring, "keyring file", "PEMFILE"},
-		{"intermediate", '\0', 0, G_OPTION_ARG_FILENAME_ARRAY, &intermediate, "intermediate CA file name", "PEMFILE"},
-		{"mount", '\0', 0, G_OPTION_ARG_FILENAME, &mount, "mount prefix", "PATH"},
-		{"debug", 'd', 0, G_OPTION_ARG_NONE, &debug, "enable debug output", NULL},
-		{"version", '\0', 0, G_OPTION_ARG_NONE, &version, "display version", NULL},
-		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, NULL, NULL},
-		{0}
-	};
-
 	GError *error = NULL;
 	g_autofree gchar *text = NULL;
 
