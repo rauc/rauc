@@ -331,7 +331,8 @@ static gboolean install_start(int argc, char **argv)
 
 	g_debug("install started");
 
-	context = g_option_context_new("install <BUNDLE>");
+	g_set_prgname("rauc install");
+	context = g_option_context_new("<BUNDLE>");
 	g_option_context_set_summary(context, "Install a bundle");
 	g_option_context_set_help_enabled(context, FALSE);
 	g_option_context_add_main_entries(context, entries, NULL);
@@ -460,7 +461,8 @@ static gboolean bundle_start(int argc, char **argv)
 	g_autofree gchar *text = NULL;
 	g_debug("bundle start");
 
-	context = g_option_context_new("bundle <INPUTDIR> <BUNDLENAME>");
+	g_set_prgname("rauc bundle");
+	context = g_option_context_new("<INPUTDIR> <BUNDLENAME>");
 	g_option_context_set_summary(context, "Create a bundle from a content directory");
 	g_option_context_set_help_enabled(context, FALSE);
 	g_option_context_add_main_entries(context, entries, NULL);
@@ -556,7 +558,8 @@ static gboolean write_slot_start(int argc, char **argv)
 
 	g_debug("write_slot_start");
 
-	context = g_option_context_new("write-slot <SLOTNAME> <IMAGE>");
+	g_set_prgname("rauc write-slot");
+	context = g_option_context_new("<SLOTNAME> <IMAGE>");
 	g_option_context_set_summary(context, "Write image to slot and bypass all update logic");
 	g_option_context_set_help_enabled(context, FALSE);
 	g_option_context_add_main_entries(context, entries, NULL);
@@ -663,7 +666,8 @@ static gboolean resign_start(int argc, char **argv)
 	g_autofree gchar *text = NULL;
 	g_debug("resign start");
 
-	context = g_option_context_new("resign <INBUNDLE> <OUTBUNDLE>");
+	g_set_prgname("rauc resign");
+	context = g_option_context_new("<INBUNDLE> <OUTBUNDLE>");
 	g_option_context_set_summary(context, "Resign an already signed bundle");
 	g_option_context_set_help_enabled(context, FALSE);
 	g_option_context_add_main_entries(context, entries, NULL);
@@ -806,7 +810,8 @@ static gboolean extract_signature_start(int argc, char **argv)
 	g_autofree gchar *text = NULL;
 	g_debug("extract signature start");
 
-	context = g_option_context_new("extract-signature <BUNDLENAME> <OUTPUTSIG>");
+	g_set_prgname("rauc extract-signature");
+	context = g_option_context_new("<BUNDLENAME> <OUTPUTSIG>");
 	g_option_context_set_summary(context, "Extract the bundle signature");
 	g_option_context_set_help_enabled(context, FALSE);
 	g_option_context_add_main_entries(context, entries, NULL);
@@ -874,7 +879,8 @@ static gboolean extract_start(int argc, char **argv)
 	g_autofree gchar *text = NULL;
 	g_debug("extract start");
 
-	context = g_option_context_new("extract <BUNDLENAME> <OUTPUTDIR>");
+	g_set_prgname("rauc extract");
+	context = g_option_context_new("<BUNDLENAME> <OUTPUTDIR>");
 	g_option_context_set_summary(context, "Extract the bundle content");
 	g_option_context_set_help_enabled(context, FALSE);
 	g_option_context_add_main_entries(context, entries, NULL);
@@ -944,7 +950,8 @@ static gboolean convert_start(int argc, char **argv)
 	g_autofree gchar *text = NULL;
 	g_debug("convert start");
 
-	context = g_option_context_new("convert <INBUNDLE> <OUTBUNDLE>");
+	g_set_prgname("rauc convert");
+	context = g_option_context_new("<INBUNDLE> <OUTBUNDLE>");
 	g_option_context_set_summary(context, "Convert to casync index bundle and store");
 	g_option_context_set_help_enabled(context, FALSE);
 	g_option_context_add_main_entries(context, entries, NULL);
@@ -2104,8 +2111,8 @@ static gboolean service_start(int argc, char **argv)
 	GError *error = NULL;
 	g_autofree gchar *text = NULL;
 
-	g_set_prgname("rauc");
-	context = g_option_context_new("service ");
+	g_set_prgname("rauc service");
+	context = g_option_context_new(NULL);
 	g_option_context_set_summary(context, "Start RAUC service");
 	g_option_context_set_help_enabled(context, FALSE);
 	g_option_context_add_main_entries(context, entries, NULL);
@@ -2143,8 +2150,8 @@ static gboolean mount_start(int argc, char **argv)
 	gboolean res = FALSE;
 	g_autofree gchar *text = NULL;
 
-	g_set_prgname("rauc");
-	context = g_option_context_new("mount <BUNDLENAME>");
+	g_set_prgname("rauc mount");
+	context = g_option_context_new("<BUNDLENAME>");
 	g_option_context_set_summary(context, "Mount a bundle (for development purposes)");
 	g_option_context_set_help_enabled(context, FALSE);
 	g_option_context_add_main_entries(context, entries, NULL);
