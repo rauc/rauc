@@ -340,7 +340,7 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 			}
 			seed_mounted = TRUE;
 		}
-		if (!r_context()->install_info->ignore_slot_as_seed) {
+		if (!r_context()->config->ignore_slot_as_seed) {
 			g_debug("Adding as casync directory tree seed: %s", seedslot->mount_point);
 			seed = g_strdup(seedslot->mount_point);
 		} else {

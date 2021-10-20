@@ -411,6 +411,143 @@ out:
 	r_slot_free(targetslot);
 }
 
+/* Test update_handler/get_custom_handler:
+ *
+ * Tests for casync_extract staring the subprocess with proper arguments
+ * based on set configuration
+ */
+static void test_casync_ignore_slot_argument(UpdateHandlerFixture *fixture,
+		gconstpointer user_data)
+{
+	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair*) user_data;
+	gchar *casync_output_file;
+	gchar *pathname, *mountprefix;
+	RaucImage *image;
+	RaucSlot *rootfs0, *rootfs1;
+	RaucSlot *targetslot;
+	img_to_slot_handler handler;
+	gchar *contents = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	gchar *path;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[casync]\n\
+\n\
+[slot.rootfs.0]\n\
+type=raw\n\
+device=/dev/null\n\
+\n\
+[slot.rootfs.1]\n\
+type=raw\n\
+device=/dev/null\n";
+
+	/* This test currently only runs with the following types
+	 * TODO: Need more imagetypes in test_make_filesystem to make different tests */
+	g_assert_cmpstr(test_pair->slottype, ==, "ext4");
+	g_assert_cmpstr(test_pair->imagetype, ==, "caidx");
+
+	if (!test_running_as_root())
+		return;
+
+	mountprefix = g_build_filename(fixture->tmpdir, "testmount", NULL);
+	g_assert_nonnull(mountprefix);
+	pathname = write_tmp_file(fixture->tmpdir, "minimal-casync.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+	g_clear_pointer(&r_context_conf()->configpath, g_free);
+	r_context_conf()->configpath = g_strdup(pathname);
+	r_context_conf()->mountprefix = mountprefix;
+	r_context();
+	g_assert(g_mkdir(mountprefix, 0777) == 0);
+	g_free(pathname);
+
+	g_assert_true(test_remove(fixture->tmpdir,"minimal-casync.conf") == 0);
+	g_assert_nonnull(r_context()->config);
+
+	/* Setup PATH and output path so we can run casync mockup */
+	path = g_strdup_printf("%s:%s", "test/bin", g_getenv("PATH"));
+	g_setenv("PATH", path, TRUE);
+	g_free(path);
+
+	/* Setup envvar CASYNC_OUTPUT needed by casync mockup */
+	casync_output_file = g_strdup_printf("%s/%s", fixture->tmpdir, "casync_output");
+	g_setenv("CASYNC_OUTPUT", casync_output_file, TRUE);
+
+	/* Setup slot files */
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "rootfs-0",
+			SLOT_SIZE, "/dev/zero") == 0);
+	g_assert(test_make_filesystem(fixture->tmpdir, "rootfs-0"));
+
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "rootfs-1",
+			SLOT_SIZE, "/dev/zero") == 0);
+	g_assert(test_make_filesystem(fixture->tmpdir, "rootfs-1"));
+
+	r_context()->config->store_path = g_strdup_printf("%s/%s",fixture->tmpdir,"store");
+
+	/* Replace both dummy slot devices to valid ones for testing. */
+	rootfs0 = find_config_slot_by_name(r_context()->config, "rootfs.0");
+	g_free(rootfs0->device);
+	g_free(rootfs0->type);
+	rootfs0->device = g_strdup_printf("%s/%s",fixture->tmpdir,"rootfs-0");
+	rootfs0->type = g_strdup(test_pair->slottype);
+	rootfs0->state = ST_ACTIVE;
+
+	rootfs1 = find_config_slot_by_name(r_context()->config, "rootfs.1");
+	g_free(rootfs1->device);
+	g_free(rootfs1->type);
+	rootfs1->device = g_strdup_printf("%s/%s",fixture->tmpdir,"rootfs-1");
+	rootfs1->type = g_strdup(test_pair->slottype);
+	rootfs1->state = ST_INACTIVE;
+
+	/* Setup parameters to get casync running */
+	targetslot = g_memdup(rootfs1, sizeof(RaucSlot));
+
+	image = g_new0(RaucImage, 1);
+	image->slotclass = g_strdup("rootfs");
+	image->filename = g_strdup_printf("rootfs.%s",test_pair->imagetype);
+
+	handler = get_update_handler(image, targetslot, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_nonnull(handler);
+
+	/* Run with default setting */
+	res = handler(image, targetslot, NULL, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	/* Check result */
+	g_assert_true(g_file_get_contents(casync_output_file, &contents, NULL, NULL));
+	test_remove(fixture->tmpdir,"casync_output");
+	g_assert_true(g_strrstr(contents, " --seed ") != NULL);
+	g_free(contents);
+
+	/* Rerun with ignore set to TRUE */
+	r_context()->config->ignore_slot_as_seed = TRUE;
+
+	res = handler(image, targetslot, NULL, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	/* Check result */
+	g_assert_true(g_file_get_contents(casync_output_file, &contents, NULL, NULL));
+	test_remove(fixture->tmpdir,"casync_output");
+	g_assert_true(g_strrstr(contents, " --seed ") == NULL);
+	g_free(contents);
+
+	/* Cleanup */
+	g_rmdir(mountprefix);
+	g_free(mountprefix);
+	g_free(targetslot);
+	g_free(casync_output_file);
+	test_remove(fixture->tmpdir,"rootfs-1");
+	test_remove(fixture->tmpdir,"rootfs-0");
+}
+
+
 int main(int argc, char *argv[])
 {
 	UpdateHandlerTestPair testpair_matrix[] = {
@@ -489,6 +626,8 @@ int main(int argc, char *argv[])
 		/* nor tests */
 		{"nor", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 
+		/* casync test */
+		{"ext4", "caidx", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_NO_TARGET_DEV, 0, 0},
 		{0}
 	};
 	setlocale(LC_ALL, "C");
@@ -854,6 +993,14 @@ int main(int argc, char *argv[])
 			&testpair_matrix[55],
 			update_handler_fixture_set_up,
 			test_update_handler,
+			update_handler_fixture_tear_down);
+
+	/* Casync test */
+	g_test_add("/update_handler/update_handler/ignore-seed-slot",
+			UpdateHandlerFixture,
+			&testpair_matrix[56],
+			update_handler_fixture_set_up,
+			test_casync_ignore_slot_argument,
 			update_handler_fixture_tear_down);
 
 	return g_test_run();

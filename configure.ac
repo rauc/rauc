@@ -146,6 +146,7 @@ AM_CONDITIONAL([WANT_EMMC_BOOT_SUPPORT], [test x$ac_cv_header_linux_mmc_ioctl_h 
 # Checks for library functions.
 
 AC_CONFIG_LINKS([test/bin/barebox-state:test/bin/barebox-state])
+AC_CONFIG_LINKS([test/bin/casync:test/bin/casync])
 AC_CONFIG_LINKS([test/bin/custom-bootloader-script:test/bin/custom-bootloader-script])
 AC_CONFIG_LINKS([test/bin/efibootmgr:test/bin/efibootmgr])
 AC_CONFIG_LINKS([test/bin/fw_printenv:test/bin/fw_printenv])

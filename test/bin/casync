@@ -1,0 +1,6 @@
+#!/bin/bash -e
+# Mockup script to replace casync. It just outputs passed
+# commands to file defined by $CASYNC_OUTPUT envvar
+[[ -z "$CASYNC_OUTPUT" ]] && exit 22
+
+echo $@ > $CASYNC_OUTPUT
