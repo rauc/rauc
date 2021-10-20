@@ -361,7 +361,16 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 
 extract:
 	/* Set store */
-	store = r_context()->install_info->mounted_bundle->storepath;
+	if (r_context()->config->store_path) {
+		/* This is also set elsewhere during installation, but this quirk
+		 * is needed for testing.
+		 * TODO: Fix test routines OR setting of storepath, so that update_handler
+		 * can be called with more isolation in tests */
+		store = r_context()->config->store_path;
+	} else {
+		store = r_context()->install_info->mounted_bundle->storepath;
+	}
+
 	g_debug("Using store path: '%s'", store);
 
 	/* Set temporary directory */
