@@ -242,6 +242,15 @@ For more information about using casync support of RAUC, refer to
   By default, the temporary directory is left unset by RAUC and casync uses its
   internal default value ``/var/tmp``.
 
+.. _ignore-slot-seed:
+
+``ignore-slot-seed``
+  Allows to disable using the current active slot as seed in casync installation.
+  Refer to --seed option in `casync author's blog post \
+  <http://0pointer.net/blog/casync-a-tool-for-distributing-file-system-images.html>`_ 
+  For more info on seeding and using or not using seeding.   
+  By default, this option is set to false.
+
 **[autoinstall] section**
 
 The auto-install feature allows to configure a path that will be checked upon

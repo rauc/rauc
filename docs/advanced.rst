@@ -628,6 +628,10 @@ the currently booted slot group.
   After this is done it will start writing the data and fetch missing chunks
   via the network.
 
+  Seed slot usage can be disabled by using ignore-slot-seed -option in
+  the configuration. See :ref:`ignore-slot-seed <ignore-slot-seed>` for
+  more information
+
 .. _sec-variants:
 
 Handling Board Variants With a Single Bundle
