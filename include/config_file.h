@@ -49,6 +49,8 @@ typedef struct {
 	gchar *mount_prefix;
 	gchar *store_path;
 	gchar *tmp_path;
+	/* Option to ignore target slot as seed when using casync */
+	gboolean ignore_slot_as_seed;
 	gboolean activate_installed;
 	gchar *statusfile_path;
 	gchar *keyring_path;

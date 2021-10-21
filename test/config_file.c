@@ -1162,6 +1162,82 @@ static void config_file_test_parse_bundle_formats(void)
 	g_clear_error(&ierror);
 }
 
+static void config_file_test_casync_options(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar* pathname;
+	GError *ierror = NULL;
+	RaucConfig *config;
+
+	const gchar *cfg_file_default = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[casync]\n\
+storepath=/var/lib/default.castr/\n\
+tmppath=/tmp/\n";
+
+	const gchar *cfg_file_ignore_seed_false = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[casync]\n\
+ignore-slot-seed=false\n";
+
+	const gchar *cfg_file_ignore_seed_true = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[casync]\n\
+ignore-slot-seed=true\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "casync-options-default.conf", cfg_file_default, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_true(load_config(pathname, &config, &ierror));
+	g_free(pathname);
+	g_assert_null(ierror);
+	g_assert_nonnull(config);
+
+	g_assert_cmpstr(config->store_path, ==, "/var/lib/default.castr/");
+	g_assert_cmpstr(config->tmp_path, ==, "/tmp/");
+
+	/* Make sure that ignore_seed is set to false by default. */
+	g_assert_false(config->ignore_slot_as_seed);
+
+	free_config(config);
+
+	pathname = write_tmp_file(fixture->tmpdir, "casync-options-ignore-seed-false.conf", cfg_file_ignore_seed_false, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_true(load_config(pathname, &config, &ierror));
+	g_free(pathname);
+	g_assert_null(ierror);
+	g_assert_nonnull(config);
+
+	g_assert_false(config->ignore_slot_as_seed);
+
+	free_config(config);
+
+	pathname = write_tmp_file(fixture->tmpdir, "casync-options-ignore-seed-true.conf", cfg_file_ignore_seed_true, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_true(load_config(pathname, &config, &ierror));
+	g_free(pathname);
+	g_assert_null(ierror);
+	g_assert_nonnull(config);
+
+	g_assert_true(config->ignore_slot_as_seed);
+
+	free_config(config);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -1258,6 +1334,10 @@ int main(int argc, char *argv[])
 			config_file_fixture_set_up, config_file_bundle_formats,
 			config_file_fixture_tear_down);
 	g_test_add_func("/config-file/parse-bundle-formats", config_file_test_parse_bundle_formats);
+
+	g_test_add("/config-file/casync-options", ConfigFileFixture, NULL,
+			config_file_fixture_set_up_global, config_file_test_casync_options,
+			config_file_fixture_tear_down);
 
 	return g_test_run();
 }
