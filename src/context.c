@@ -396,6 +396,11 @@ static void r_context_send_progress(gboolean op_finished, gboolean success)
 		iter = g_list_next(iter);
 	}
 
+	/* This step is not 100% itself, so it must not be the root step even though the
+	   previous steps sum to 100. Max out the percentage at 99% in that case. */
+	if (step->percent_done < 100.0f && percentage > 99.0f)
+		percentage = 99.0f;
+
 	g_assert_cmpint(percentage, <=, 100);
 
 	/* call installer callback with percentage and message */
