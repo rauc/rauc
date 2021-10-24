@@ -8,7 +8,7 @@
          Triggers an installation.
     -->
     <method name="Install">
-      <arg name="source" type="s"/>
+      <arg name="source" type="s" direction="in"/>
     </method>
 
     <!--
@@ -19,7 +19,7 @@
          Triggers an installation.
     -->
     <method name="InstallBundle">
-      <arg name="source" type="s"/>
+      <arg name="source" type="s" direction="in"/>
       <arg name="args" type="a{sv}" direction="in"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.In1" value="QVariantMap"/>
     </method>
