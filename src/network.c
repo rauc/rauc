@@ -99,6 +99,7 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 	//curl_easy_setopt(curl,  CURLOPT_LOW_SPEED_TIME, 60L);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, xfer);
+	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0); /* allow XFERINFOFUNCTION callbacks */
 	curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xfer_cb);
 	curl_easy_setopt(curl, CURLOPT_XFERINFODATA, xfer);
 	curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
