@@ -979,7 +979,8 @@ typedef struct {
 
 static void free_status_print(RaucStatusPrint *status)
 {
-	g_return_if_fail(status);
+	if (!status)
+		return;
 
 	g_free(status->compatible);
 	g_free(status->variant);
@@ -988,7 +989,6 @@ static void free_status_print(RaucStatusPrint *status)
 		g_hash_table_destroy(status->slots);
 
 	g_free(status);
-	return;
 }
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucStatusPrint, free_status_print);

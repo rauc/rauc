@@ -1922,7 +1922,8 @@ out:
 
 void free_bundle(RaucBundle *bundle)
 {
-	g_return_if_fail(bundle);
+	if (!bundle)
+		return;
 
 	/* In case of a temporary download artifact, remove it. */
 	if (bundle->origpath)

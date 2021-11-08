@@ -75,7 +75,8 @@ RaucDMVerity *new_dm_verity(void)
 
 void free_dm_verity(RaucDMVerity *dm_verity)
 {
-	g_return_if_fail(dm_verity);
+	if (!dm_verity)
+		return;
 
 	g_free(dm_verity->uuid);
 	g_free(dm_verity->lower_dev);

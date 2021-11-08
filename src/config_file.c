@@ -748,7 +748,8 @@ RaucSlot *find_config_slot_by_name(RaucConfig *config, const gchar *name)
 
 void free_config(RaucConfig *config)
 {
-	g_return_if_fail(config);
+	if (!config)
+		return;
 
 	g_free(config->system_compatible);
 	g_free(config->system_bootloader);

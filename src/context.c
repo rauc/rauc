@@ -520,7 +520,8 @@ void r_context_set_step_percentage(const gchar *name, gint custom_percent)
 
 void r_context_free_progress_step(RaucProgressStep *step)
 {
-	g_return_if_fail(step);
+	if (!step)
+		return;
 
 	g_free(step->name);
 	g_free(step->description);
