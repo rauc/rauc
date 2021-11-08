@@ -45,14 +45,15 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 		iimage->checksum.digest = value;
 	}
 	iimage->checksum.size = g_key_file_get_uint64(key_file,
-			group, "size", NULL);
-	g_key_file_remove_key(key_file, group, "size", NULL);
-
-	iimage->filename = key_file_consume_string(key_file, group, "filename", &ierror);
-	if (iimage->filename == NULL) {
+			group, "size", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		iimage->checksum.size = -1;
+		g_clear_error(&ierror);
+	} else if (ierror) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
+	g_key_file_remove_key(key_file, group, "size", NULL);
 
 	hooks = g_key_file_get_string_list(key_file, group, "hooks", &entries, NULL);
 	for (gsize j = 0; j < entries; j++) {
@@ -69,6 +70,13 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 		}
 	}
 	g_key_file_remove_key(key_file, group, "hooks", NULL);
+
+	iimage->filename = key_file_consume_string(key_file, group, "filename", &ierror);
+	/* 'filename' is optional only for 'install' hooks */
+	if (iimage->filename == NULL && !iimage->hooks.install) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
 
 	if (!check_remaining_keys(key_file, group, &ierror)) {
 		g_propagate_error(error, ierror);
@@ -277,7 +285,12 @@ static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 		RaucImage *image = l->data;
 
 		g_assert(image);
-		g_assert(image->filename);
+
+		/* Having no 'filename' set is valid for 'install' hook only.
+		 * This is already ensured during manifest parsing, thus simply
+		 * skip further checks here */
+		if (!image->filename)
+			continue;
 
 		if (image->checksum.type != G_CHECKSUM_SHA256) {
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported checksum algorithm for image %s", image->filename);
@@ -287,9 +300,19 @@ static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing digest for image %s", image->filename);
 			goto out;
 		}
-		if (!image->checksum.size) {
-			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing size for image %s", image->filename);
-			goto out;
+		if (image->checksum.size < 0) {
+			/* RAUC versions before v1.5 allowed zero-size images but did not handle this explicitly.
+			 * Thus, bundles created did have a valid 'filename=' manifest entry
+			 * but the 'size=' entry was considered as empty and not set at all.
+			 * Retain support for this case, at least for the 'install' per-slot hook use-case
+			 * where an image file can be optional. */
+			if (image->hooks.install) {
+				g_message("Missing size parameter for image '%s'", image->filename);
+				image->checksum.size = 0;
+			} else {
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing size for image %s", image->filename);
+				goto out;
+			}
 		}
 	}
 
@@ -507,7 +530,7 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 
 		if (image->checksum.type == G_CHECKSUM_SHA256)
 			g_key_file_set_string(key_file, group, "sha256", image->checksum.digest);
-		if (image->checksum.size)
+		if (image->checksum.size >= 0)
 			g_key_file_set_uint64(key_file, group, "size", image->checksum.size);
 
 		if (image->filename)
@@ -619,7 +642,15 @@ static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *d
 
 	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
 		RaucImage *image = elem->data;
-		g_autofree gchar *filename = g_build_filename(dir, image->filename, NULL);
+		g_autofree gchar *filename = NULL;
+
+		/* If no filename is set (valid for 'install' hook) explicitly set size to -1 */
+		if (!image->filename) {
+			image->checksum.size = -1;
+			continue;
+		}
+
+		filename = g_build_filename(dir, image->filename, NULL);
 		res = compute_checksum(&image->checksum, filename, &ierror);
 		if (!res) {
 			g_warning("Failed updating checksum: %s", ierror->message);

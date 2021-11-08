@@ -106,6 +106,8 @@ filename=appfs.ext4";
 	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
+/* Note: Also ensures having no image in a slot with an 'install' per-slot hook
+ * is valid. */
 static void install_fixture_set_up_bundle_install_hook(InstallFixture *fixture,
 		gconstpointer user_data)
 {
@@ -122,7 +124,6 @@ filename=rootfs.ext4\n\
 hooks=install\n\
 \n\
 [image.appfs]\n\
-filename=appfs.ext4\n\
 hooks=install";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);

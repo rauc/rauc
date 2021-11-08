@@ -658,6 +658,17 @@ out:
 	return TRUE;
 }
 
+/* Definition list for terminal colors */
+#define KNRM  "\x1B[0m"
+#define KRED  "\x1B[31m"
+#define KGRN  "\x1B[32m"
+#define KYEL  "\x1B[33m"
+#define KBLU  "\x1B[34m"
+#define KMAG  "\x1B[35m"
+#define KCYN  "\x1B[36m"
+#define KWHT  "\x1B[37m"
+#define KBLD  "\x1B[1m"
+
 /* Takes a shell variable and its desired argument as input and appends it to
  * the provided text with taking care of correct shell quoting */
 static void formatter_shell_append(GString* text, const gchar* varname, const gchar* argument)
@@ -762,16 +773,20 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	g_ptr_array_unref(hooks);
 
 	cnt = g_list_length(manifest->images);
-	g_string_append_printf(text, "%d Image%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
+	g_string_append_printf(text, "\n%d Image%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
 	cnt = 1;
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		RaucImage *img = l->data;
-		g_string_append_printf(text, "(%d)\t%s\n", cnt, img->filename);
-		g_string_append_printf(text, "\tSlotclass: %s\n", img->slotclass);
+		g_string_append_printf(text, "  "KBLD "[%s]"KNRM "\n", img->slotclass);
 		if (img->variant)
 			g_string_append_printf(text, "\tVariant:   %s\n", img->variant);
-		g_string_append_printf(text, "\tChecksum:  %s\n", img->checksum.digest);
-		g_string_append_printf(text, "\tSize:      %"G_GOFFSET_FORMAT "\n", img->checksum.size);
+		if (img->filename) {
+			g_string_append_printf(text, "\tFilename:  %s\n", img->filename);
+			g_string_append_printf(text, "\tChecksum:  %s\n", img->checksum.digest);
+			g_string_append_printf(text, "\tSize:      %"G_GOFFSET_FORMAT "\n", img->checksum.size);
+		} else {
+			g_string_append_printf(text, "\t(no image file)\n");
+		}
 
 		hooks = g_ptr_array_new();
 		if (img->hooks.pre_install == TRUE) {
@@ -992,17 +1007,6 @@ static void free_status_print(RaucStatusPrint *status)
 }
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucStatusPrint, free_status_print);
-
-/* Definition list for terminal colors */
-#define KNRM  "\x1B[0m"
-#define KRED  "\x1B[31m"
-#define KGRN  "\x1B[32m"
-#define KYEL  "\x1B[33m"
-#define KBLU  "\x1B[34m"
-#define KMAG  "\x1B[35m"
-#define KCYN  "\x1B[36m"
-#define KWHT  "\x1B[37m"
-#define KBLD  "\x1B[1m"
 
 static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint *status)
 {
