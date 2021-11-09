@@ -744,9 +744,16 @@ static gboolean pre_install_checks(gchar* bundledir, GList *install_images, GHas
 		RaucImage *mfimage = l->data;
 		RaucSlot *dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
 
-		/* skip source image checks if filename is not set (install hook) */
-		if (!mfimage->filename && mfimage->hooks.install)
-			goto skip_filename_checks;
+		if (!mfimage->filename) {
+			/* having no filename is valid for install hook only */
+			if (mfimage->hooks.install)
+				goto skip_filename_checks;
+			else
+				/* Should not be reached as the pre-conditions for optional 'filename' are already
+				 * checked during manifest parsing in manifest.c: parse_image() */
+				g_assert_not_reached();
+		}
+
 
 		/* if image filename is relative, make it absolute */
 		if (!g_path_is_absolute(mfimage->filename)) {
