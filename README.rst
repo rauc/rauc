@@ -259,8 +259,8 @@ section for more details.
    :target: https://github.com/rauc/rauc/actions?query=workflow%3Atests
 .. |Codecov_branch| image:: https://codecov.io/gh/rauc/rauc/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/rauc/rauc
-.. |Coverity| image:: https://scan.coverity.com/projects/5085/badge.svg
-   :target: https://scan.coverity.com/projects/5085
+.. |Coverity| image:: https://scan.coverity.com/projects/22299/badge.svg
+   :target: https://scan.coverity.com/projects/22299
 .. |Documentation| image:: https://readthedocs.org/projects/rauc/badge/?version=latest
    :target: http://rauc.readthedocs.org/en/latest/?badge=latest
 .. |Matrix| image:: https://img.shields.io/matrix/rauc:matrix.org?label=matrix%20chat
