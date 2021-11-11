@@ -1117,22 +1117,70 @@ out:
 	return res;
 }
 
+struct suffix_tar_flag {
+	const char *suffix;
+	const char *tar_flag;
+};
+
+static struct suffix_tar_flag suffixes[] = {
+	{"tar",		NULL},
+	{"gz",		"-z"},
+	{"tgz",		"-z"},
+	{"taz",		"-z"},
+	{"Z",		"-Z"},
+	{"taZ",		"-Z"},
+	{"bz2",		"-j"},
+	{"tbz",		"-j"},
+	{"tbz2",	"-j"},
+	{"tz2",		"-j"},
+	{"lz",		"--lzip"},
+	{"lzma",	"--lzma"},
+	{"tlz",		"--lzma"},
+	{"lzo",		"--lzop"},
+	{"xz",		"-J"},
+	{"txz",		"-J"},
+	{"zst",		"--zstd"},
+	{"tzst",	"--zstd"},
+	{NULL,		NULL}
+};
+
+static const gchar *suffix_to_tar_flag(const gchar *filename)
+{
+	for (int i = 0; suffixes[i].suffix != NULL; i++) {
+		if (g_str_has_suffix(filename, suffixes[i].suffix))
+			return suffixes[i].tar_flag;
+	}
+
+	return NULL;
+}
+
 static gboolean untar_image(RaucImage *image, gchar *dest, GError **error)
 {
 	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(5, g_free);
+	g_autoptr(GFile) image_file;
+	g_autoptr(GFileInfo) image_info;
+	goffset image_size;
+	GFileInputStream *image_stream;
+	GOutputStream *tar_stream;
+	guint8 buffer[4096];
+	gssize in_size = 1;
+	gsize out_size, sum_size = 0;
+	gboolean ret = TRUE;
+	gint last_percent = -1, percent;
 
 	g_ptr_array_add(args, g_strdup("tar"));
 	g_ptr_array_add(args, g_strdup("xf"));
-	g_ptr_array_add(args, g_strdup(image->filename));
+	g_ptr_array_add(args, g_strdup("-"));
 	g_ptr_array_add(args, g_strdup("-C"));
 	g_ptr_array_add(args, g_strdup(dest));
 	g_ptr_array_add(args, g_strdup("--numeric-owner"));
+	g_ptr_array_add(args, g_strdup(suffix_to_tar_flag(image->filename)));
 	g_ptr_array_add(args, NULL);
 
-	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDIN_PIPE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -1141,15 +1189,85 @@ static gboolean untar_image(RaucImage *image, gchar *dest, GError **error)
 		goto out;
 	}
 
+	tar_stream = g_subprocess_get_stdin_pipe(sproc);
+	if (tar_stream == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to open tar stdin: ");
+		goto out;
+	}
+
+	image_file = g_file_new_for_path(image->filename);
+	image_info = g_file_query_info(image_file,
+			G_FILE_ATTRIBUTE_STANDARD_SIZE,
+			G_FILE_QUERY_INFO_NONE,
+			NULL,
+			&ierror);
+	if (image_info == NULL) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	image_size = g_file_info_get_size(image_info);
+	image_stream = g_file_read(image_file, NULL, &ierror);
+	if (image_stream == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to read image file for tar extracting");
+		goto out_image_stream;
+	}
+
+	while ((in_size > 0) && ret) {
+		in_size = g_input_stream_read(G_INPUT_STREAM(image_stream),
+				buffer, 4096, NULL, &ierror);
+		ret = g_output_stream_write_all(tar_stream, buffer,
+				in_size, &out_size, NULL, &ierror);
+		sum_size += out_size;
+		percent = sum_size * 100 / image_size;
+		if (percent != last_percent) {
+			last_percent = percent;
+			r_context_set_step_percentage("copy_image", percent);
+		}
+	}
+
+	if ((in_size < 0) || ret == FALSE) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed delivering data to tar: ");
+		goto out_image_stream;
+	}
+
+	if (g_output_stream_close(tar_stream, NULL, &ierror) != TRUE) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed closing pipe to tar: ");
+		goto out_image_stream;
+	}
+
+	if (g_input_stream_close(G_INPUT_STREAM(image_stream), NULL,
+				&ierror) != TRUE) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed closing image file: ");
+		goto out_image_stream;
+	}
+
 	res = g_subprocess_wait_check(sproc, NULL, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
 				"failed to run tar extract: ");
-		goto out;
+		goto out_image_stream;
 	}
 
+out_image_stream:
+	g_object_unref(image_stream);
 out:
 	return res;
 }
