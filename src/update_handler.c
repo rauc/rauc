@@ -180,6 +180,97 @@ static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 	return TRUE;
 }
 
+static gboolean file_to_process_stdin(const gchar *filename, GSubprocess *sproc,
+		GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE, ret = TRUE;
+	g_autoptr(GFile) image_file;
+	g_autoptr(GFileInfo) image_info;
+	goffset image_size;
+	GFileInputStream *image_stream;
+	GOutputStream *out_stream;
+	guint8 buffer[4096];
+	gssize in_size = 1;
+	gsize out_size, sum_size = 0;
+	gint last_percent = -1, percent;
+
+	out_stream = g_subprocess_get_stdin_pipe(sproc);
+	if (out_stream == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to open tar stdin: ");
+		goto out;
+	}
+
+	image_file = g_file_new_for_path(filename);
+	image_info = g_file_query_info(image_file,
+			G_FILE_ATTRIBUTE_STANDARD_SIZE,
+			G_FILE_QUERY_INFO_NONE,
+			NULL,
+			&ierror);
+	if (image_info == NULL) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	image_size = g_file_info_get_size(image_info);
+	image_stream = g_file_read(image_file, NULL, &ierror);
+	if (image_stream == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to read image file for copying ");
+		goto out;
+	}
+
+	while ((in_size > 0) && ret) {
+		in_size = g_input_stream_read(G_INPUT_STREAM(image_stream),
+				buffer, 4096, NULL, &ierror);
+		ret = g_output_stream_write_all(out_stream, buffer,
+				in_size, &out_size, NULL, &ierror);
+		sum_size += out_size;
+		percent = sum_size * 100 / image_size;
+		if (percent != last_percent) {
+			last_percent = percent;
+			r_context_set_step_percentage("copy_image", percent);
+		}
+	}
+
+	if ((in_size < 0) || ret == FALSE) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed delivering data through pipe: ");
+		goto out_image_stream;
+	}
+
+	if (g_output_stream_close(out_stream, NULL, &ierror) != TRUE) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed closing output pipe: ");
+		goto out_image_stream;
+	}
+
+	if (g_input_stream_close(G_INPUT_STREAM(image_stream), NULL,
+			&ierror) != TRUE) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed closing image file: ");
+		goto out_image_stream;
+	}
+
+	res = TRUE;
+
+out_image_stream:
+	g_object_unref(image_stream);
+out:
+	return res;
+}
+
 static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, gsize len_header_last, GError **error)
 {
 	GError *ierror = NULL;
@@ -1160,16 +1251,6 @@ static gboolean untar_image(RaucImage *image, gchar *dest, GError **error)
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(5, g_free);
-	g_autoptr(GFile) image_file;
-	g_autoptr(GFileInfo) image_info;
-	goffset image_size;
-	GFileInputStream *image_stream;
-	GOutputStream *tar_stream;
-	guint8 buffer[4096];
-	gssize in_size = 1;
-	gsize out_size, sum_size = 0;
-	gboolean ret = TRUE;
-	gint last_percent = -1, percent;
 
 	g_ptr_array_add(args, g_strdup("tar"));
 	g_ptr_array_add(args, g_strdup("xf"));
@@ -1189,72 +1270,13 @@ static gboolean untar_image(RaucImage *image, gchar *dest, GError **error)
 		goto out;
 	}
 
-	tar_stream = g_subprocess_get_stdin_pipe(sproc);
-	if (tar_stream == NULL) {
+	res =  file_to_process_stdin(image->filename, sproc, &ierror);
+	if (!res) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"failed to open tar stdin: ");
+				"io failure during running tar extract: ");
 		goto out;
-	}
-
-	image_file = g_file_new_for_path(image->filename);
-	image_info = g_file_query_info(image_file,
-			G_FILE_ATTRIBUTE_STANDARD_SIZE,
-			G_FILE_QUERY_INFO_NONE,
-			NULL,
-			&ierror);
-	if (image_info == NULL) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	image_size = g_file_info_get_size(image_info);
-	image_stream = g_file_read(image_file, NULL, &ierror);
-	if (image_stream == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to read image file for tar extracting");
-		goto out_image_stream;
-	}
-
-	while ((in_size > 0) && ret) {
-		in_size = g_input_stream_read(G_INPUT_STREAM(image_stream),
-				buffer, 4096, NULL, &ierror);
-		ret = g_output_stream_write_all(tar_stream, buffer,
-				in_size, &out_size, NULL, &ierror);
-		sum_size += out_size;
-		percent = sum_size * 100 / image_size;
-		if (percent != last_percent) {
-			last_percent = percent;
-			r_context_set_step_percentage("copy_image", percent);
-		}
-	}
-
-	if ((in_size < 0) || ret == FALSE) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed delivering data to tar: ");
-		goto out_image_stream;
-	}
-
-	if (g_output_stream_close(tar_stream, NULL, &ierror) != TRUE) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed closing pipe to tar: ");
-		goto out_image_stream;
-	}
-
-	if (g_input_stream_close(G_INPUT_STREAM(image_stream), NULL,
-				&ierror) != TRUE) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed closing image file: ");
-		goto out_image_stream;
 	}
 
 	res = g_subprocess_wait_check(sproc, NULL, &ierror);
@@ -1263,11 +1285,9 @@ static gboolean untar_image(RaucImage *image, gchar *dest, GError **error)
 				error,
 				ierror,
 				"failed to run tar extract: ");
-		goto out_image_stream;
+		goto out;
 	}
 
-out_image_stream:
-	g_object_unref(image_stream);
 out:
 	return res;
 }
