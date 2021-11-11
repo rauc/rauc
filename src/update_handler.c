@@ -1265,15 +1265,24 @@ static gboolean nand_write_slot(const gchar *image, const gchar *device, GError 
 	g_ptr_array_add(args, g_strdup("--pad"));
 	g_ptr_array_add(args, g_strdup("--quiet"));
 	g_ptr_array_add(args, g_strdup(device));
-	g_ptr_array_add(args, g_strdup(image));
+	g_ptr_array_add(args, g_strdup("-"));
 	g_ptr_array_add(args, NULL);
 
-	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDIN_PIPE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
 				"failed to start nandwrite: ");
+		goto out;
+	}
+
+	res = splice_file_to_process_stdin(image, sproc, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to splice data to nandwrite: ");
 		goto out;
 	}
 
