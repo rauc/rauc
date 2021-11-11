@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <gio/gunixinputstream.h>
 #include <gio/gunixoutputstream.h>
 #include <mtd/ubi-user.h>
 #include <string.h>
@@ -86,6 +87,35 @@ static GUnixOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **err
 		*fd = fd_out;
 
 	return outstream;
+}
+
+static GUnixInputStream* open_file_as_unix_input_stream(const gchar *filename, int *fd, GError **error)
+{
+	GUnixInputStream *instream = NULL;
+	int fd_out;
+
+	g_return_val_if_fail(filename, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	fd_out = g_open(filename, O_RDONLY);
+	if (fd_out < 0) {
+		int err = errno;
+		g_set_error(error, G_IO_ERROR, g_io_error_from_errno(err),
+				"Failed to open file %s: %s", filename, g_strerror(err));
+		return NULL;
+	}
+
+	instream = G_UNIX_INPUT_STREAM(g_unix_input_stream_new(fd_out, TRUE));
+	if (instream == NULL) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Failed to create stream for file %s", filename);
+		return NULL;
+	}
+
+	if (fd != NULL)
+		*fd = fd_out;
+
+	return instream;
 }
 
 #if ENABLE_EMMC_BOOT_SUPPORT == 1
@@ -206,6 +236,100 @@ static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 	}
 
 	return TRUE;
+}
+
+static gboolean splice_with_progress(GUnixInputStream *image_stream,
+		GUnixOutputStream *out_stream, GError **error)
+{
+	int in_fd = g_unix_input_stream_get_fd(image_stream);
+	int out_fd = g_unix_output_stream_get_fd(out_stream);
+	struct stat stat = {};
+	ssize_t out_size = 0;
+	goffset sum_size = 0;
+	gint last_percent = -1, percent;
+
+	if (fstat(in_fd, &stat)) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"failed to fstat input: %s", g_strerror(err));
+		return FALSE;
+	}
+
+	do {
+		/* Splice in 1M blocks */
+		out_size = splice(in_fd, NULL, out_fd, NULL, 1UL*1024*1024, 0);
+		if (out_size == -1) {
+			int err = errno;
+			g_set_error(error, G_IO_ERROR, g_io_error_from_errno(err),
+					"%s", g_strerror(err));
+			return FALSE;
+		}
+
+		sum_size += out_size;
+
+		percent = sum_size * 100 / stat.st_size;
+		/* emit progress info (but only when in progress context) */
+		if (r_context()->progress && percent != last_percent) {
+			last_percent = percent;
+			r_context_set_step_percentage("copy_image", percent);
+		}
+	} while (out_size);
+
+	return TRUE;
+}
+
+static gboolean splice_file_to_outstream(const gchar *filename,
+		GUnixOutputStream *out_stream, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(GUnixInputStream) image_stream = NULL;
+
+	g_return_val_if_fail(filename, FALSE);
+	g_return_val_if_fail(out_stream, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	image_stream = open_file_as_unix_input_stream(filename, NULL, &ierror);
+	if (image_stream == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to open input file for splicing: ");
+		return FALSE;
+	}
+
+	if (!splice_with_progress(image_stream, out_stream, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (g_output_stream_close(G_OUTPUT_STREAM(out_stream), NULL, &ierror) != TRUE) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed closing output pipe: ");
+		return FALSE;
+	}
+
+	if (g_input_stream_close(G_INPUT_STREAM(image_stream), NULL, &ierror) != TRUE) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed closing input file: ");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static gboolean splice_file_to_process_stdin(const gchar *filename, GSubprocess *sproc,
+		GError **error)
+{
+	GUnixOutputStream *out_stream = G_UNIX_OUTPUT_STREAM(g_subprocess_get_stdin_pipe(sproc));
+	g_assert_nonnull(out_stream);
+
+	return splice_file_to_outstream(filename, out_stream, error);
 }
 
 static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, gsize len_header_last, GError **error)
@@ -1166,6 +1290,45 @@ out:
 	return res;
 }
 
+struct suffix_tar_flag {
+	const char *suffix;
+	const char *tar_flag;
+};
+
+static struct suffix_tar_flag suffixes[] = {
+	{".tar",	NULL},
+	{".gz",		"-z"},
+	{".tgz",	"-z"},
+	{".taz",	"-z"},
+	{".Z",		"-Z"},
+	{".taZ",	"-Z"},
+	{".bz2",	"-j"},
+	{".tbz",	"-j"},
+	{".tbz2",	"-j"},
+	{".tz2",	"-j"},
+	{".lz",		"--lzip"},
+	{".lzma",	"--lzma"},
+	{".tlz",	"--lzma"},
+	{".lzo",	"--lzop"},
+	{".xz",		"-J"},
+	{".txz",	"-J"},
+	{".zst",	"--zstd"},
+	{".tzst",	"--zstd"},
+	{NULL,		NULL}
+};
+
+static const gchar *suffix_to_tar_flag(const gchar *filename)
+{
+	g_return_val_if_fail(filename, NULL);
+
+	for (int i = 0; suffixes[i].suffix != NULL; i++) {
+		if (g_str_has_suffix(filename, suffixes[i].suffix))
+			return suffixes[i].tar_flag;
+	}
+
+	return NULL;
+}
+
 static gboolean untar_image(RaucImage *image, gchar *dest, GError **error)
 {
 	g_autoptr(GSubprocess) sproc = NULL;
@@ -1175,18 +1338,28 @@ static gboolean untar_image(RaucImage *image, gchar *dest, GError **error)
 
 	g_ptr_array_add(args, g_strdup("tar"));
 	g_ptr_array_add(args, g_strdup("xf"));
-	g_ptr_array_add(args, g_strdup(image->filename));
+	g_ptr_array_add(args, g_strdup("-"));
 	g_ptr_array_add(args, g_strdup("-C"));
 	g_ptr_array_add(args, g_strdup(dest));
 	g_ptr_array_add(args, g_strdup("--numeric-owner"));
+	g_ptr_array_add(args, g_strdup(suffix_to_tar_flag(image->filename)));
 	g_ptr_array_add(args, NULL);
 
-	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDIN_PIPE, &ierror);
 	if (sproc == NULL) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
 				"failed to start tar extract: ");
+		goto out;
+	}
+
+	res = splice_file_to_process_stdin(image->filename, sproc, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to splice data to tar: ");
 		goto out;
 	}
 
