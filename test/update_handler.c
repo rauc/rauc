@@ -429,11 +429,15 @@ no_image:
 	g_assert_no_error(ierror);
 	g_assert_nonnull(handler);
 
+	r_context_begin_step("test_parent", "Test step dummy parent", 1);
+	r_context_begin_step_formatted("copy_image", 0, "Copying image to %s", targetslot->name);
 	/* Run to perform an update */
 	r_test_stats_start();
 	res = handler(image, targetslot, hookpath, &ierror);
 	r_test_stats_stop();
 
+	r_context_end_step("copy_image", TRUE);
+	r_context_end_step("test_parent", TRUE);
 	if (test_pair->params & TEST_UPDATE_HANDLER_EXPECT_FAIL) {
 		g_assert_error(ierror, test_pair->err_domain, test_pair->err_code);
 		g_assert_false(res);
@@ -581,7 +585,7 @@ int main(int argc, char *argv[])
 		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 
-		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 2},
+		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_IO_ERROR, G_IO_ERROR_NOT_FOUND},
 		{"raw", "img", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_IO_ERROR, G_IO_ERROR_NOT_FOUND},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_IO_ERROR, G_IO_ERROR_NOT_FOUND},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_IO_ERROR, G_IO_ERROR_NOT_FOUND},
@@ -626,7 +630,7 @@ int main(int argc, char *argv[])
 		/* vfat tests */
 		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
-		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 2},
+		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_IO_ERROR, G_IO_ERROR_NOT_FOUND},
 		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_NO_TARGET_DEV | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK, 0, 0},
 		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK, 0, 0},
