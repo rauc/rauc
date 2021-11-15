@@ -187,10 +187,18 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  80, "Checking slot rootfs.1", 3));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  85, "Checking slot rootfs.1 done.", 3));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  85, "Copying image to rootfs.1", 3));
+	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  86, "Copying image to rootfs.1", 3));
+	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  87, "Copying image to rootfs.1", 3));
+	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  88, "Copying image to rootfs.1", 3));
+	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  89, "Copying image to rootfs.1", 3));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  90, "Copying image to rootfs.1 done.", 3));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  90, "Checking slot appfs.1", 3));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  95, "Checking slot appfs.1 done.", 3));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  95, "Copying image to appfs.1", 3));
+	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  96, "Copying image to appfs.1", 3));
+	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  97, "Copying image to appfs.1", 3));
+	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  98, "Copying image to appfs.1", 3));
+	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  99, "Copying image to appfs.1", 3));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  99, "Copying image to appfs.1 done.", 3));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  99, "Updating slots done.", 2));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)", 100, "Installing done.", 1));
