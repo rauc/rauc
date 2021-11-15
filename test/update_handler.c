@@ -137,7 +137,7 @@ static void update_handler_fixture_tear_down(UpdateHandlerFixture *fixture,
 	g_assert(test_rmdir(fixture->tmpdir, "") == 0);
 }
 
-static gboolean tar_image(const gchar *dest, const gchar *dir, GError **error)
+static gboolean tar_bz2_image(const gchar *dest, const gchar *dir, GError **error)
 {
 	GSubprocess *sproc = NULL;
 	GError *ierror = NULL;
@@ -145,7 +145,7 @@ static gboolean tar_image(const gchar *dest, const gchar *dir, GError **error)
 	GPtrArray *args = g_ptr_array_new_full(5, g_free);
 
 	g_ptr_array_add(args, g_strdup("tar"));
-	g_ptr_array_add(args, g_strdup("cf"));
+	g_ptr_array_add(args, g_strdup("cjf"));
 	g_ptr_array_add(args, g_strdup(dest));
 	g_ptr_array_add(args, g_strdup("-C"));
 	g_ptr_array_add(args, g_strdup(dir));
@@ -238,7 +238,7 @@ static gboolean test_prepare_dummy_archive(const gchar *path, const gchar *archn
 			FILE_SIZE, "/dev/zero") == 0);
 
 	/* tar file to pseudo image */
-	res = tar_image(archpath, contentpath, &ierror);
+	res = tar_bz2_image(archpath, contentpath, &ierror);
 	if (!res) {
 		g_warning("%s", ierror->message);
 		goto out;
