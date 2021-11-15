@@ -180,8 +180,8 @@ static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 	return TRUE;
 }
 
-static gboolean file_to_process_stdin(const gchar *filename, GSubprocess *sproc,
-		GError **error)
+static gboolean file_to_outstream(const gchar *filename,
+		GOutputStream *out_stream, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE, ret = TRUE;
@@ -189,20 +189,10 @@ static gboolean file_to_process_stdin(const gchar *filename, GSubprocess *sproc,
 	g_autoptr(GFileInfo) image_info;
 	goffset image_size;
 	GFileInputStream *image_stream;
-	GOutputStream *out_stream;
 	guint8 buffer[4096];
 	gssize in_size = 1;
 	gsize out_size, sum_size = 0;
 	gint last_percent = -1, percent;
-
-	out_stream = g_subprocess_get_stdin_pipe(sproc);
-	if (out_stream == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to open tar stdin: ");
-		goto out;
-	}
 
 	image_file = g_file_new_for_path(filename);
 	image_info = g_file_query_info(image_file,
@@ -269,6 +259,23 @@ out_image_stream:
 	g_object_unref(image_stream);
 out:
 	return res;
+}
+
+static gboolean file_to_process_stdin(const gchar *filename, GSubprocess *sproc,
+		GError **error)
+{
+	GOutputStream *out_stream;
+
+	out_stream = g_subprocess_get_stdin_pipe(sproc);
+	if (out_stream == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				NULL,
+				"failed to open tar stdin: ");
+		return FALSE;
+	}
+
+	return file_to_outstream(filename, out_stream, error);
 }
 
 static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, gsize len_header_last, GError **error)
