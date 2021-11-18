@@ -90,3 +90,52 @@ rejected the older bundles.
 In RAUC 1.5.1, this was reduced to a notification message.
 
 To avoid the message, you can recreate the bundle with RAUC 1.5 and newer.
+
+.. _faq-udev-symlinks:
+
+How can I refer to devices if the numbering is not fixed?
+---------------------------------------------------------
+
+There are many reasons why device numbering might change from one kernel
+version to the next, across boots or even between hardware variants.
+In the context of RAUC, this is mainly relevant for block, MTD and UBI devices.
+
+In almost all cases, the proper way to configure this is to use `udev rules
+<https://www.freedesktop.org/software/systemd/man/udev.html>`_.
+
+For block devices, udev ships with rules which create symlinks in
+``/dev/disk/by-path/``.
+These are not affected by changes in the probe order or by other devices that
+are not always connected.
+For example, on an emulated ARM machine, this results in::
+
+  root@qemuarm:~# ls -l /dev/disk/by-path
+  lrwxrwxrwx    1 root     root             9 Nov 18 12:46 platform-a003c00.virtio_mmio -> ../../vda
+
+By using ``/dev/disk/by-path/platform-a003c00.virtio_mmio`` in your
+configuration, you ensure that you always refer to the same block device.
+
+For UBI volumes, no equivalent rules are currently shipped by udev, so custom
+rules can be used.
+Depending on how the symlinks should be named, different rules could be used::
+
+  # Use the volume name instead of the number
+  SUBSYSTEM=="ubi", KERNEL=="ubi*_*", ATTRS{mtd_num}=="*", SYMLINK+="$parent_%s{name}"
+  # Use the MTD device number instead of the UBI device number
+  SUBSYSTEM=="ubi", KERNEL=="ubi*_*", ATTRS{mtd_num}=="*", SYMLINK+="ubi_mtd%s{mtd_num}_%s{name}"
+  # Use the MTD device name instead of the UBI device number
+  SUBSYSTEM=="ubi", KERNEL=="ubi*_*", ATTRS{mtd_num}=="*", IMPORT{program}="/bin/sh -ec 'echo MTD_NAME=$(cat /sys/class/mtd/mtd%s{mtd_num}/name)'" SYMLINK+="ubi_%E{MTD_NAME}_%s{name}"
+
+When enabling all of these rules (which you should not do), you will get
+something like::
+
+  crw------- 1 root root 249,  0 Nov 18 13:46 /dev/ubi0
+  crw------- 1 root root 249,  1 Nov 18 13:46 /dev/ubi0_0
+  lrwxrwxrwx 1 root root       6 Nov 18 13:46 /dev/ubi0_rauc-test -> ubi0_0
+  lrwxrwxrwx 1 root root       6 Nov 18 13:46 /dev/ubi_nandsim_rauc-test -> ubi0_0
+  crw------- 1 root root  10, 59 Nov 18 13:46 /dev/ubi_ctrl
+  lrwxrwxrwx 1 root root       6 Nov 18 13:46 /dev/ubi_mtd3_rauc-test -> ubi0_0
+
+Custom udev rules can also be very useful when you want to refer to the active
+data partition (in a scenario with redundant data partitions) with a fixed
+name.

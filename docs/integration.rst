@@ -373,6 +373,8 @@ Giving the plain device name is supported, of course.
 
   The alternative ubi rootfs format with ``root=ubi0:volname`` is currently
   unsupported.
+  If you want to refer to UBI volumes via name in your ``system.conf``, check
+  the FAQ entry :ref:`faq-udev-symlinks`.
 
 ::
 
