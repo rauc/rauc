@@ -161,7 +161,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	g_autoptr(GKeyFile) key_file = NULL;
 	g_auto(GStrv) groups = NULL;
 	gsize group_count;
-	GList *slotlist = NULL;
+	g_autoptr(GList) slotlist = NULL;
 	GHashTable *slots = NULL;
 	g_autoptr(GHashTable) bootnames = NULL;
 	GList *l;
@@ -725,7 +725,6 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			goto free;
 		}
 	}
-	g_list_free(slotlist);
 
 	if (!fix_grandparent_links(slots, &ierror)) {
 		g_propagate_error(error, ierror);
