@@ -13,6 +13,7 @@
 
 #include "bundle.h"
 #include "context.h"
+#include "crypt.h"
 #include "mount.h"
 #include "signature.h"
 #include "utils.h"
@@ -581,6 +582,59 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 	return TRUE;
 }
 
+static gboolean encrypt_bundle_payload(const gchar *bundlepath, RaucManifest *manifest, GError **error)
+{
+	gboolean res = FALSE;
+	guint8 key[32] = {0};
+	GError *ierror = NULL;
+	g_autofree gchar* tmpdir = NULL;
+	g_autofree gchar* encpath = NULL;
+
+	g_return_val_if_fail(bundlepath, FALSE);
+	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", &ierror);
+	if (tmpdir == NULL) {
+		g_propagate_prefixed_error(error, ierror, "Failed to create tmp dir: ");
+		res = FALSE;
+		goto out;
+	}
+	encpath = g_strconcat(tmpdir, "encrypted.raucb", NULL);
+
+	/* check we have a clean manifest */
+	g_assert(manifest->bundle_crypt_key == NULL);
+
+	if (RAND_bytes((unsigned char *)&key, sizeof(key)) != 1) {
+		g_set_error(error,
+				R_BUNDLE_ERROR,
+				R_BUNDLE_ERROR_CRYPT,
+				"Failed to generate crypt key");
+		res = FALSE;
+		goto out;
+	}
+
+	res = r_crypt_encrypt(bundlepath, encpath, key, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	manifest->bundle_crypt_key = r_hex_encode(key, sizeof(key));
+
+	/* Uncomment for debugging purpose */
+	//g_message("encrypted image saved as %s with key %s", encpath, manifest->bundle_crypt_key);
+
+	g_rename(encpath, bundlepath);
+
+out:
+	/* Remove temporary bundle creation directory */
+	if (tmpdir)
+		rm_tree(tmpdir, NULL);
+
+	return res;
+}
+
 gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error)
 {
 	GError *ierror = NULL;
@@ -610,6 +664,14 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
+	}
+
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
+		res = encrypt_bundle_payload(bundlename, manifest, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 	res = sign_bundle(bundlename, manifest, &ierror);
