@@ -959,20 +959,26 @@ static void debug_cms_ci(CMS_ContentInfo *cms)
 gboolean cms_is_detached(GBytes *sig, gboolean *detached, GError **error)
 {
 	CMS_ContentInfo *cms = NULL;
-	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
-			g_bytes_get_size(sig));
+	BIO *insig = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(sig != NULL, FALSE);
 	g_return_val_if_fail(detached != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	g_assert(g_bytes_get_size(sig) > 0);
+
+	insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
+			g_bytes_get_size(sig));
+	if (!insig)
+		g_error("BIO_new_mem_buf() failed");
+
 	if (!(cms = d2i_CMS_bio(insig, NULL))) {
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE,
-				"failed to parse signature");
+				"Signature data is no valid CMS");
 		goto out;
 	}
 

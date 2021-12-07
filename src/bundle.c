@@ -372,40 +372,6 @@ static gboolean input_stream_read_uint64_all(GInputStream *stream,
 	return res;
 }
 
-/* Attempts to read and verify the squashfs magic to verify having a valid bundle */
-static gboolean input_stream_check_bundle_identifier(GInputStream *stream, GError **error)
-{
-	GError *ierror = NULL;
-	guint32 squashfs_id;
-	gboolean res;
-	gsize bytes_read;
-
-	g_return_val_if_fail(stream, FALSE);
-	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
-
-	res = g_input_stream_read_all(stream, &squashfs_id, sizeof(squashfs_id), &bytes_read, NULL, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	if (bytes_read != sizeof(squashfs_id)) {
-		g_set_error(error,
-				G_IO_ERROR,
-				G_IO_ERROR_PARTIAL_INPUT,
-				"Only %"G_GSIZE_FORMAT " of %zu bytes read",
-				bytes_read,
-				sizeof(squashfs_id));
-		return FALSE;
-	}
-
-	if (squashfs_id != GUINT32_TO_LE(SQUASHFS_MAGIC)) {
-		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_IDENTIFIER, "Invalid identifier. Did you pass a valid RAUC bundle?");
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
 static gboolean output_stream_write_bytes_all(GOutputStream *stream,
 		GBytes *bytes,
 		GCancellable *cancellable,
@@ -1308,15 +1274,6 @@ static gboolean open_local_bundle(RaucBundle *bundle, GError **error)
 		goto out;
 	}
 
-	res = input_stream_check_bundle_identifier(bundle->stream, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to check bundle identifier: ");
-		goto out;
-	}
-
 	offset = sizeof(sigsize);
 	res = g_seekable_seek(G_SEEKABLE(bundle->stream),
 			-offset, G_SEEK_END, NULL, &ierror);
@@ -1581,20 +1538,20 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 	if (!ibundle->nbd_srv) { /* local or downloaded */
 		res = open_local_bundle(ibundle, &ierror);
 		if (!res) {
-			g_propagate_error(error, ierror);
+			g_propagate_prefixed_error(error, ierror, "Invalid bundle format: ");
 			goto out;
 		}
 	} else { /* streaming */
 		res = open_remote_bundle(ibundle, &ierror);
 		if (!res) {
-			g_propagate_error(error, ierror);
+			g_propagate_prefixed_error(error, ierror, "Invalid bundle format: ");
 			goto out;
 		}
 	}
 
 	res = cms_is_detached(ibundle->sigdata, &detached, &ierror);
 	if (!res) {
-		g_propagate_error(error, ierror);
+		g_propagate_prefixed_error(error, ierror, "Invalid bundle format: ");
 		goto out;
 	}
 
