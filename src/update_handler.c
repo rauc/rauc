@@ -1142,6 +1142,74 @@ out:
 	return res;
 }
 
+static gboolean archive_to_jffs2_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	/* erase */
+	g_message("Erasing slot mtd device %s", dest_slot->device);
+	res = flash_format_slot(dest_slot->device, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* jffs2 needs no formatting - mount directly */
+	g_message("Mounting jffs2 slot %s", dest_slot->device);
+	res = r_mount_slot(dest_slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* extract tar into mounted jffs2 volume */
+	g_message("Extracting %s to %s", image->filename, dest_slot->mount_point);
+	res = unpack_archive(image, dest_slot->mount_point, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto unmount_out;
+	}
+
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto unmount_out;
+		}
+	}
+
+unmount_out:
+	/* finally umount jffs2 volume */
+	g_message("Unmounting jffs2 slot %s", dest_slot->device);
+	ierror = NULL; /* any previous error was propagated already */
+	if (!r_umount_slot(dest_slot, &ierror)) {
+		res = FALSE;
+		if (error && *error) {
+			/* the previous error is more relevant here */
+			g_warning("Ignoring umount error after previous error: %s", ierror->message);
+			g_clear_error(&ierror);
+		} else {
+			g_propagate_error(error, ierror);
+		}
+	}
+
+out:
+	return res;
+}
+
 static gboolean archive_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GError *ierror = NULL;
@@ -1903,6 +1971,7 @@ RaucUpdatePair updatepairs[] = {
 	{"*.tar*", "ext4", archive_to_ext4_handler},
 	{"*.catar", "ext4", archive_to_ext4_handler},
 	{"*.tar*", "ubifs", archive_to_ubifs_handler},
+	{"*.tar*", "jffs2", archive_to_jffs2_handler},
 	{"*.tar*", "vfat", archive_to_vfat_handler},
 	{"*.ubifs", "ubivol", img_to_ubivol_handler},
 	{"*.ubifs", "ubifs", img_to_ubifs_handler},

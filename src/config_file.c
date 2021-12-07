@@ -546,6 +546,17 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				goto free;
 			}
 
+			/* check if the device has an appropriate path */
+			if (g_str_equal(slot->type, "jffs2") && !g_str_has_prefix(slot->device, "/dev/")) {
+				g_set_error(
+						error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_INVALID_DEVICE,
+						"%s: device must be located in /dev/ for jffs2", groups[i]);
+				res = FALSE;
+				goto free;
+			}
+
 			value = key_file_consume_string(key_file, groups[i], "bootname", NULL);
 			slot->bootname = value;
 			if (slot->bootname) {
