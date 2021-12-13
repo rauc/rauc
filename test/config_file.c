@@ -68,6 +68,7 @@ path=/etc/rauc/keyring/\n\
 [casync]\n\
 storepath=/var/lib/default.castr/\n\
 tmppath=/tmp/\n\
+install-args=--verbose\n\
 \n\
 [slot.rescue.0]\n\
 description=Rescue partition\n\
@@ -120,6 +121,9 @@ install-same=false\n";
 	g_assert_cmpstr(config->statusfile_path, ==, "/mnt/persistent-rw-fs/system.raucs");
 	g_assert_cmpint(config->max_bundle_download_size, ==, 42);
 	g_assert_cmphex(config->bundle_formats_mask, ==, 0x2);
+	g_assert_cmpstr(config->store_path, ==, "/var/lib/default.castr/");
+	g_assert_cmpstr(config->tmp_path, ==, "/tmp/");
+	g_assert_cmpstr(config->casync_install_args, ==, "--verbose");
 
 	g_assert_nonnull(config->slots);
 	slotlist = g_hash_table_get_keys(config->slots);

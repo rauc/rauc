@@ -283,6 +283,11 @@ The ``casync`` section contains casync-related settings.
 For more information about using the casync support of RAUC, refer to
 :ref:`casync-support`.
 
+``install-args``
+  Allows to specify additional arguments that will be passed to casync when
+  installing an update. For example it can be used to include additional
+  seeds or stores.
+
 ``storepath``
   Allows to set the path to use as chunk store path for casync to a fixed one.
   This is useful if your chunk store is on a dedicated server and will be the

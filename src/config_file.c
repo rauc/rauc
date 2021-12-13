@@ -461,6 +461,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	/* parse [casync] section */
 	c->store_path = key_file_consume_string(key_file, "casync", "storepath", NULL);
 	c->tmp_path = key_file_consume_string(key_file, "casync", "tmppath", NULL);
+	c->casync_install_args = key_file_consume_string(key_file, "casync", "install-args", NULL);
 	if (!check_remaining_keys(key_file, "casync", &ierror)) {
 		g_propagate_error(error, ierror);
 		res = FALSE;
