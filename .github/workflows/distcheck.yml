@@ -1,0 +1,37 @@
+name: distcheck
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Inspect environment
+      run: |
+        whoami
+        gcc --version
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install automake libtool libglib2.0-dev libcurl3-dev libssl-dev libdbus-1-dev libjson-glib-dev libfdisk-dev libnl-genl-3-dev dbus-x11
+
+    - uses: actions/checkout@v2
+
+    - name: Run autogen.sh
+      run: |
+        ./autogen.sh
+        ./configure
+
+    - name: Run distcheck
+      run: |
+        sudo make -j4 distcheck
+
+    - name: Show system status and logs
+      if: ${{ failure() }}
+      run: |
+        sudo dmesg | tail -n 100
+        mount || true
+        losetup || true
+        cat config.log || true
+        cat rauc-*/_build/sub/test-suite.log || true

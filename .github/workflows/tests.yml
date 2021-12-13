@@ -48,10 +48,6 @@ jobs:
       run: |
         make doc SPHINXOPTS=-W
 
-    - name: Run distcheck
-      run: |
-        make -j4 distcheck
-
     - name: Build CGI example
       run: |
         cd contrib/cgi
