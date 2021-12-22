@@ -35,6 +35,7 @@ typedef struct {
 typedef enum {
 	R_MANIFEST_FORMAT_PLAIN = 0,
 	R_MANIFEST_FORMAT_VERITY,
+	R_MANIFEST_FORMAT_CRYPT,
 } RManifestBundleFormat;
 
 typedef struct {
@@ -174,6 +175,8 @@ static inline const gchar *r_manifest_bundle_format_to_str(RManifestBundleFormat
 			return "plain";
 		case R_MANIFEST_FORMAT_VERITY:
 			return "verity";
+		case R_MANIFEST_FORMAT_CRYPT:
+			return "crypt";
 		default:
 			return "invalid";
 	}

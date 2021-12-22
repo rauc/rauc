@@ -103,6 +103,8 @@ gboolean parse_bundle_formats(guint *mask, const gchar *config, GError **error)
 			format = R_MANIFEST_FORMAT_PLAIN;
 		} else if (g_strcmp0(token, "verity") == 0) {
 			format = R_MANIFEST_FORMAT_VERITY;
+		} else if (g_strcmp0(token, "crypt") == 0) {
+			format = R_MANIFEST_FORMAT_CRYPT;
 		} else {
 			g_set_error(
 					error,
