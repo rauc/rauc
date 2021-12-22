@@ -839,6 +839,7 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	GString *text = g_string_new(NULL);
 	GPtrArray *hooks = NULL;
 	gchar *hookstring = NULL;
+	gboolean show_crypt_key = FALSE; /* change to TRUE to display dm-crypt key */
 	gint cnt;
 
 	g_string_append_printf(text, "Compatible: \t'%s'\n", manifest->update_compatible);
@@ -857,7 +858,11 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	g_free(hookstring);
 
 	g_string_append_printf(text, "Bundle Format: \t%s\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
-	if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
+
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
+		g_string_append_printf(text, "  Crypt Key: \t'%s'\n", show_crypt_key ? manifest->bundle_crypt_key : "<hidden>");
+	}
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY || manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
 		g_string_append_printf(text, "  Verity Salt: \t'%s'\n", manifest->bundle_verity_salt);
 		g_string_append_printf(text, "  Verity Hash: \t'%s'\n", manifest->bundle_verity_hash);
 		g_string_append_printf(text, "  Verity Size: \t%"G_GUINT64_FORMAT "\n", manifest->bundle_verity_size);
