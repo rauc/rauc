@@ -471,14 +471,14 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 					"failed to sign bundle: ");
 			return FALSE;
 		}
-	} else if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
+	} else if ((manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) || (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT)) {
 		int bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundleoutstream));
 		guint8 salt[32] = {0};
 		guint8 hash[32] = {0};
 		uint64_t combined_size = 0;
 		guint64 verity_size = 0;
 
-		g_print("Creating bundle in 'verity' format\n");
+		g_print("Creating bundle in '%s' format\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
 
 		/* check we have a clean manifest */
 		g_assert(manifest->bundle_verity_salt == NULL);
@@ -1789,7 +1789,7 @@ gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 
 	if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
 		g_error("plain bundles must be verified during signature check");
-	} else if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
+	} else if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_VERITY || bundle->manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
 		int bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream));
 		g_autofree guint8 *root_digest = r_hex_decode(bundle->manifest->bundle_verity_hash, 32);
 		g_autofree guint8 *salt = r_hex_decode(bundle->manifest->bundle_verity_salt, 32);
