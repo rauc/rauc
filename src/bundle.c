@@ -2145,6 +2145,82 @@ static gboolean prepare_verity(RaucBundle *bundle, gchar *loopname, gchar* mount
 	return TRUE;
 }
 
+/*
+ * Sets up dm-verity and dm-crypt for reading crypt bundles.
+ *
+ * [ /dev/dm-x ]
+ *      🠗
+ * [ dm-crypt  ]
+ *      🠗
+ * [ dm-verity ]
+ *      🠗
+ * [  bundle   ]
+ */
+static gboolean prepare_crypt(RaucBundle *bundle, gchar *loopname, gchar* mount_point, GError **error)
+{
+	gboolean res = FALSE;
+	GError *ierror = NULL;
+	g_autoptr(GError) ierror_dm = NULL;
+	g_autoptr(RaucDM) dm_verity = r_dm_new_verity();
+	g_autoptr(RaucDM) dm_crypt = r_dm_new_crypt();
+
+	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail(loopname != NULL, FALSE);
+	g_return_val_if_fail(mount_point != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	res = check_manifest_external(bundle->manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	/* setup dm-verity */
+	dm_verity->lower_dev = g_strdup(loopname);
+	dm_verity->data_size = bundle->size - bundle->manifest->bundle_verity_size;
+	dm_verity->root_digest = g_strdup(bundle->manifest->bundle_verity_hash);
+	dm_verity->salt = g_strdup(bundle->manifest->bundle_verity_salt);
+
+	res = r_dm_setup(dm_verity, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	/* setup dm-crypt */
+	dm_crypt->lower_dev = g_strdup(dm_verity->upper_dev);
+	dm_crypt->data_size = bundle->size - bundle->manifest->bundle_verity_size;
+	dm_crypt->key = g_strdup(bundle->manifest->bundle_crypt_key);
+
+	res = r_dm_setup(dm_crypt, &ierror);
+	if (!res) {
+		/* ensure the already-set-up dm-verity layer is cleaned */
+		if (!r_dm_remove(dm_verity, FALSE, &ierror_dm)) {
+			g_warning("Failed to remove dm-verity device: %s", ierror_dm->message);
+		}
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	res = r_mount_bundle(dm_crypt->upper_dev, mount_point, &ierror);
+
+	if (!r_dm_remove(dm_crypt, TRUE, &ierror_dm)) {
+		g_warning("Failed to mark dm-crypt device for removal: %s", ierror_dm->message);
+		g_clear_error(&ierror_dm);
+	}
+
+	if (!r_dm_remove(dm_verity, TRUE, &ierror_dm)) {
+		g_warning("Failed to mark dm-verity device for removal: %s", ierror_dm->message);
+	}
+
+	if (!res) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 gboolean mount_bundle(RaucBundle *bundle, GError **error)
 {
 	GError *ierror = NULL;
@@ -2236,6 +2312,12 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 		bundle->manifest = g_steal_pointer(&manifest);
 	} else if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
 		res = prepare_verity(bundle, loopname, mount_point, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	} else if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
+		res = prepare_crypt(bundle, loopname, mount_point, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
