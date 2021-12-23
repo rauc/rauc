@@ -224,6 +224,18 @@ gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Encrypt a crypt bundle.
+ *
+ * @param bundle RaucBundle struct as returned by check_bundle()
+ * @param outbundle output location for encrypted crypt bundle
+ * @param error Return location for a GError
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Mount a bundle.
  *
  * Note that check_bundle() must be called prior to this, to obtain a

@@ -644,6 +644,7 @@ void r_context_clean(void)
 		g_clear_pointer(&context->signing_keyringpath, g_free);
 		g_clear_pointer(&context->mksquashfs_args, g_free);
 		g_clear_pointer(&context->casync_args, g_free);
+		g_clear_pointer(&context->recipients, g_strfreev);
 		g_clear_pointer(&context->intermediatepaths, g_strfreev);
 		g_clear_pointer(&context->mountprefix, g_free);
 		g_clear_pointer(&context->bootslot, g_free);

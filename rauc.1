@@ -20,6 +20,9 @@ rauc \- safe and secure updating
 [\fIOPTIONS\fR...] \fBconvert\fR \fIINBUNDLE\fR \fIOUTBUNDLE\fR
 
 .B rauc
+[\fIOPTIONS\fR...] \fBencrypt\fR \fIINBUNDLE\fR \fIOUTBUNDLE\fR
+
+.B rauc
 [\fIOPTIONS\fR...] \fBinstall\fR \fIBUNDLE\fR
 
 .B rauc
@@ -191,6 +194,22 @@ mksquashfs extra args
 .TP
 \fB\-\-casync\-args=\fR\fIARGS\fR
 casync extra args
+
+.RE
+.RE
+.PP
+\fBencrypt\fR \fIINBUNDLE\fR \fIOUTBUNDLE\fR
+
+.RS 4
+Encrypt a crypt bundle.
+
+\fBOptions:\fR
+
+.RS 4
+
+.TP
+\fB\-\-to\fR \fIPEMFILE\fR
+recipient cert(s)
 
 .RE
 .RE

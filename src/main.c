@@ -37,6 +37,7 @@ gchar *output_format = NULL;
 gchar *signing_keyring = NULL;
 gchar *mksquashfs_args = NULL;
 gchar *casync_args = NULL;
+gchar **recipients = NULL;
 gchar *handler_args = NULL;
 gchar *bootslot = NULL;
 gboolean utf8_supported = FALSE;
@@ -746,6 +747,60 @@ static gboolean convert_start(int argc, char **argv)
 	}
 
 	g_print("Bundle written to %s\n", argv[3]);
+
+out:
+	return TRUE;
+}
+
+G_GNUC_UNUSED
+static gboolean encrypt_start(int argc, char **argv)
+{
+	RaucBundle *bundle = NULL;
+	GError *ierror = NULL;
+	g_debug("encrypt start");
+
+	if (r_context()->recipients == NULL) {
+		g_printerr("One or multiple recipient certificates must be provided (via --to)\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc < 3) {
+		g_printerr("An input bundle must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc < 4) {
+		g_printerr("An output bundle name must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc > 4) {
+		g_printerr("Excess argument: %s\n", argv[4]);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	g_debug("input bundle: %s", argv[2]);
+	g_debug("output bundle: %s", argv[3]);
+
+	if (!check_bundle(argv[2], &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror)) {
+		g_printerr("%s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (!encrypt_bundle(bundle, argv[3], &ierror)) {
+		g_printerr("Failed to create bundle: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	g_print("Encrypted bundle written to %s\n", argv[3]);
 
 out:
 	return TRUE;
@@ -1864,6 +1919,7 @@ typedef enum  {
 	EXTRACT_SIG,
 	EXTRACT,
 	CONVERT,
+	ENCRYPT,
 	STATUS,
 	INFO,
 	WRITE_SLOT,
@@ -1954,11 +2010,17 @@ static GOptionEntry entries_bundle_access[] = {
 	{0}
 };
 
+static GOptionEntry entries_encryption[] = {
+	{"to", '\0', 0, G_OPTION_ARG_FILENAME_ARRAY, &recipients, "recipient cert(s)", "PEMFILE"},
+	{0}
+};
+
 static GOptionGroup *install_group;
 static GOptionGroup *bundle_group;
 static GOptionGroup *resign_group;
 static GOptionGroup *replace_group;
 static GOptionGroup *convert_group;
+static GOptionGroup *encrypt_group;
 static GOptionGroup *info_group;
 static GOptionGroup *status_group;
 static GOptionGroup *service_group;
@@ -1982,6 +2044,9 @@ static void create_option_groups(void)
 
 		convert_group = g_option_group_new("convert", "Convert options:", "help dummy", NULL, NULL);
 		g_option_group_add_entries(convert_group, entries_convert);
+
+		encrypt_group = g_option_group_new("encrypt", "Encryption options:", "help dummy", NULL, NULL);
+		g_option_group_add_entries(encrypt_group, entries_encryption);
 	}
 
 	info_group    = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
@@ -2035,6 +2100,8 @@ static void cmdline_handler(int argc, char **argv)
 		{CONVERT, "convert", "convert <INBUNDLE> <OUTBUNDLE>",
 		 "Convert to casync index bundle and store",
 		 convert_start, convert_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
+		{ENCRYPT, "encrypt", "encrypt <INBUNDLE> <OUTBUNDLE>", "Encrypt a crypt bundle",
+		 encrypt_start, encrypt_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
 		{REPLACE_SIG, "replace-signature", "replace-signature <INBUMDLE> <INPUTSIG> <OUTBUNDLE>",
 		 "Replaces the signature of an already signed bundle",
 		 replace_signature_start, replace_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
@@ -2084,6 +2151,7 @@ static void cmdline_handler(int argc, char **argv)
 			"  bundle\t\tCreate a bundle\n"
 			"  resign\t\tResign an already signed bundle\n"
 			"  convert\t\tConvert classic to casync bundle\n"
+			"  encrypt\t\tEncrypt a crypt bundle\n"
 			"  replace-signature\tReplaces the signature of an already signed bundle\n"
 			"  extract-signature\tExtract the bundle signature\n"
 #endif
@@ -2206,6 +2274,8 @@ static void cmdline_handler(int argc, char **argv)
 			r_context_conf()->mksquashfs_args = mksquashfs_args;
 		if (casync_args)
 			r_context_conf()->casync_args = casync_args;
+		if (recipients)
+			r_context_conf()->recipients = recipients;
 		if (intermediate)
 			r_context_conf()->intermediatepaths = intermediate;
 		if (mount)
