@@ -300,6 +300,62 @@ out:
 	return res;
 }
 
+static STACK_OF(X509) *load_certs_from_file(const gchar *certfile, GError **error)
+{
+	BIO *cert_bio = NULL;
+	X509 *cert_x509 = NULL;
+	STACK_OF(X509) *certs = NULL;
+	unsigned long err;
+	const gchar *data;
+	int flags;
+
+	g_return_val_if_fail(certfile != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	cert_bio = BIO_new_file(certfile, "r");
+	if (cert_bio == NULL) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_LOAD_FAILED,
+				"Failed to load cert file '%s'", certfile);
+		goto out;
+	}
+
+	certs = sk_X509_new_null();
+
+	for (;;) {
+		cert_x509 = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL);
+		if (cert_x509 == NULL) {
+			err = ERR_peek_last_error();
+
+			if (ERR_GET_REASON(err) == PEM_R_NO_START_LINE) {
+				/* simply reached end of file */
+				ERR_clear_error();
+				break;
+			}
+
+			err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_PARSE_ERROR,
+					"Failed to parse cert file '%s': %s", certfile,
+					(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+			/* other certs loaded so far are not required anymore and must be freed */
+			sk_X509_pop_free(certs, X509_free);
+			certs = NULL;
+			goto out;
+		}
+
+		sk_X509_push(certs, cert_x509);
+	}
+
+out:
+	BIO_free_all(cert_bio);
+	return certs;
+}
+
 static X509 *load_cert_pkcs11(const gchar *url, GError **error)
 {
 	X509 *res = NULL;
@@ -1338,5 +1394,168 @@ gboolean cms_verify_sig(GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, G
 	}
 
 out:
+	return res;
+}
+
+GBytes *cms_encrypt(GBytes *content, gchar **recipients, GError **error)
+{
+	GError *ierror = NULL;
+	BIO *incontent = NULL;
+	BIO *outsig = BIO_new(BIO_s_mem());
+	STACK_OF(X509) *recipcerts = NULL;
+	g_autoptr(CMS_ContentInfo) cms = NULL;
+	GBytes *res = NULL;
+
+	g_return_val_if_fail(content, NULL);
+	g_return_val_if_fail(recipients, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
+			g_bytes_get_size(content));
+	if (!incontent)
+		g_error("BIO_new_mem_buf() failed");
+
+	recipcerts = sk_X509_new_null();
+
+	/* load all recipient certificates from all provided PEM files */
+	for (gchar **recipcertpath = recipients; recipcertpath && *recipcertpath != NULL; recipcertpath++) {
+		STACK_OF(X509) *filecerts = load_certs_from_file(*recipcertpath, &ierror);
+		if (filecerts == NULL) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+		/* add all recipient certs from recent file */
+		for (gint i = 0; i < sk_X509_num(filecerts); i++) {
+			sk_X509_push(recipcerts, sk_X509_value(filecerts, i));
+		}
+
+		sk_X509_free(filecerts);
+	}
+
+	cms = CMS_encrypt(recipcerts, incontent, EVP_aes_256_cbc(), CMS_BINARY);
+	if (cms == NULL) {
+		unsigned long err;
+		const gchar *data;
+		int errflags;
+		err = ERR_get_error_line_data(NULL, NULL, &data, &errflags);
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_INVALID,
+				"Failed to encrypt: %s", (errflags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+		goto out;
+	}
+	if (!i2d_CMS_bio(outsig, cms)) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_SERIALIZE_SIG,
+				"Failed to serialize signature");
+		goto out;
+	}
+
+	res = bytes_from_bio(outsig);
+	if (!res) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_UNKNOWN,
+				"Read zero bytes");
+		goto out;
+	}
+
+	g_message("Encrypted for %d recipient%s", sk_X509_num(recipcerts), sk_X509_num(recipcerts) > 1 ? "s" : "");
+
+out:
+	ERR_print_errors_fp(stdout);
+	sk_X509_pop_free(recipcerts, X509_free);
+	BIO_free_all(incontent);
+	BIO_free_all(outsig);
+	return res;
+}
+
+GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(CMS_ContentInfo) icms = NULL;
+	g_autoptr(X509) decrypt_cert = NULL;
+	g_autoptr(EVP_PKEY) privkey = NULL;
+	gint decrypted;
+	BIO *outdecrypt = BIO_new(BIO_s_mem());
+	BIO *inenc = NULL;
+	GBytes *res = NULL;
+
+	g_return_val_if_fail(content != NULL, NULL);
+	g_return_val_if_fail(keyfile != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	inenc = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
+			g_bytes_get_size(content));
+	if (!inenc)
+		g_error("BIO_new_mem_buf() failed");
+
+	if (certfile) {
+		decrypt_cert = load_cert(certfile, &ierror);
+		if (decrypt_cert == NULL) {
+			g_propagate_error(error, ierror);
+			res = FALSE;
+			goto out;
+		}
+	}
+
+	privkey = load_key(keyfile, &ierror);
+	if (privkey == NULL) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto out;
+	}
+
+	g_message("Decrypting signature...");
+
+	if (!(icms = d2i_CMS_bio(inenc, NULL))) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE,
+				"Failed to parse CMS");
+		res = FALSE;
+		goto out;
+	}
+
+	/* assert we receied envelopedData */
+	if (OBJ_obj2nid(CMS_get0_type(icms)) != NID_pkcs7_enveloped) {
+		g_set_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID, "Expected CMS of type '%s' but got '%s'", OBJ_nid2sn(NID_pkcs7_enveloped), OBJ_nid2sn(OBJ_obj2nid(CMS_get0_type(icms))));
+		res = FALSE;
+		goto out;
+	}
+
+	decrypted = CMS_decrypt(icms, privkey, decrypt_cert, NULL, outdecrypt, 0);
+	if (!decrypted) {
+		unsigned long err;
+		const gchar *data;
+		int errflags;
+		err = ERR_get_error_line_data(NULL, NULL, &data, &errflags);
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_INVALID,
+				"Failed to decrypt CMS EnvelopedData: %s", (errflags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+		goto out;
+	}
+
+	res = bytes_from_bio(outdecrypt);
+	if (!res) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_UNKNOWN,
+				"Read zero bytes");
+		goto out;
+	}
+out:
+	ERR_print_errors_fp(stdout);
+	BIO_free_all(inenc);
+	BIO_free_all(outdecrypt);
 	return res;
 }

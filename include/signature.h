@@ -238,3 +238,32 @@ G_GNUC_WARN_UNUSED_RESULT;
  */
 gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Encrypt content for provided recipients
+ *
+ * @param[in] content content to encrypt
+ * @param[in] recipients NULL-terminated array of recipient certificate file
+ *                   name strings.
+ *                   If the file contains multiple concatenated
+ *                   certificates, all will be read.
+ * @param[out] error return location for a GError, or NULL
+ *
+ * @return encrypted CMS data, NULL if failed
+ */
+GBytes *cms_encrypt(GBytes *content, gchar **recipients, GError **error);
+
+/**
+ * Decrypt content with provided keyfile.
+ *
+ * A cert file of the recipient may be passed to speed up finding the right
+ * recipient in the CMS structure (otherwise each must be tried).
+ *
+ * @param[in] content content to decrypt
+ * @param[in] certfile recipient cert file to use for decryption, or NULL
+ * @param[in] keyfile recipient key file to use for decryption
+ * @param[out] error return location for a GError, or NULL
+ *
+ * @return decrypted CMS data, NULL if failed
+ */
+GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile, GError **error);
