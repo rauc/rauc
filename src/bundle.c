@@ -521,29 +521,29 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 		/* dm-verity hash table generation */
 		if (RAND_bytes((unsigned char *)&salt, sizeof(salt)) != 1) {
 			g_set_error(error,
-					R_SIGNATURE_ERROR,
-					R_SIGNATURE_ERROR_CREATE_SIG,
+					R_BUNDLE_ERROR,
+					R_BUNDLE_ERROR_VERITY,
 					"failed to generate verity salt");
 			return FALSE;
 		}
 		if (offset % 4096 != 0) {
 			g_set_error(error,
-					R_SIGNATURE_ERROR,
-					R_SIGNATURE_ERROR_CREATE_SIG,
+					R_BUNDLE_ERROR,
+					R_BUNDLE_ERROR_VERITY,
 					"squashfs size (%"G_GUINT64_FORMAT ") is not a multiple of 4096 bytes", offset);
 			return FALSE;
 		}
 		if (offset <= 4096) {
 			g_set_error(error,
-					R_SIGNATURE_ERROR,
-					R_SIGNATURE_ERROR_CREATE_SIG,
+					R_BUNDLE_ERROR,
+					R_BUNDLE_ERROR_VERITY,
 					"squashfs size (%"G_GUINT64_FORMAT ") must be larger than 4096 bytes", offset);
 			return FALSE;
 		}
 		if (verity_create_or_verify_hash(0, bundlefd, offset/4096, &combined_size, hash, salt) != 0) {
 			g_set_error(error,
-					R_SIGNATURE_ERROR,
-					R_SIGNATURE_ERROR_CREATE_SIG,
+					R_BUNDLE_ERROR,
+					R_BUNDLE_ERROR_VERITY,
 					"failed to generate verity hash tree");
 			return FALSE;
 		}

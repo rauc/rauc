@@ -509,7 +509,7 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
-				R_SIGNATURE_ERROR_INVALID,
+				R_SIGNATURE_ERROR_CREATE_SIG,
 				"failed to create signature: %s", (errflags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		goto out;
 	}
