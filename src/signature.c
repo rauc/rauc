@@ -1045,6 +1045,29 @@ out:
 	return res;
 }
 
+gboolean cms_is_envelopeddata(GBytes *cms_data)
+{
+	g_autoptr(CMS_ContentInfo) cms = NULL;
+	BIO *insig = NULL;
+	gboolean res = FALSE;
+
+	g_return_val_if_fail(cms_data != NULL, FALSE);
+
+	insig = BIO_new_mem_buf((void *)g_bytes_get_data(cms_data, NULL),
+			g_bytes_get_size(cms_data));
+	if (!insig)
+		g_error("BIO_new_mem_buf() failed");
+
+	if (!(cms = d2i_CMS_bio(insig, NULL)))
+		goto out;
+
+	res = (OBJ_obj2nid(CMS_get0_type(cms)) == NID_pkcs7_enveloped);
+
+out:
+	BIO_free(insig);
+	return res;
+}
+
 gboolean cms_get_unverified_manifest(GBytes *sig, GBytes **manifest, GError **error)
 {
 	g_autoptr(CMS_ContentInfo) cms = NULL;

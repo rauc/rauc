@@ -119,6 +119,15 @@ gboolean cms_is_detached(GBytes *sig, gboolean *detached, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Check whether the CMS data is 'enveloped' (i.e. encrypted)
+ *
+ * @param cms raw (ASN.1/DER-encoded) CMS data to check
+ *
+ * @return TRUE if CMS data type is 'enveloped', FALSE otherwise
+ */
+gboolean cms_is_envelopeddata(GBytes *cms_data);
+
+/**
  * Extract manifest included in a signature without verification.
  *
  * @param sig signature containing the manifest
