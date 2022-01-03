@@ -339,6 +339,10 @@ gboolean r_context_configure(GError **error)
 		context->config->keyring_directory = g_strdup(context->keyringdirectory);
 	}
 
+	if (context->encryption_key) {
+		context->config->encryption_key = g_strdup(context->encryption_key);
+	}
+
 	context->pending = FALSE;
 
 	return TRUE;
@@ -642,6 +646,7 @@ void r_context_clean(void)
 		g_clear_pointer(&context->keyringpath, g_free);
 		g_clear_pointer(&context->keyringdirectory, g_free);
 		g_clear_pointer(&context->signing_keyringpath, g_free);
+		g_clear_pointer(&context->encryption_key, g_free);
 		g_clear_pointer(&context->mksquashfs_args, g_free);
 		g_clear_pointer(&context->casync_args, g_free);
 		g_clear_pointer(&context->recipients, g_strfreev);

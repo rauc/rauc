@@ -41,6 +41,7 @@ typedef struct {
 	gchar *keyringpath;
 	gchar *keyringdirectory;
 	gchar *signing_keyringpath;
+	gchar *encryption_key;
 	gchar *mksquashfs_args;
 	gchar *casync_args;
 	gchar **recipients;

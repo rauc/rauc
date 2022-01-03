@@ -2264,8 +2264,14 @@ static void cmdline_handler(int argc, char **argv)
 			r_context_conf()->configpath = confpath;
 		if (certpath)
 			r_context_conf()->certpath = certpath;
-		if (keypath)
-			r_context_conf()->keypath = keypath;
+		if (keypath) {
+			/* 'key' means encryption key for 'info', 'extract' or 'extract-signature',
+			 * signing key otherwise */
+			if (rcommand->type == INFO || rcommand->type == EXTRACT || rcommand->type == EXTRACT_SIG)
+				r_context_conf()->encryption_key = keypath;
+			else
+				r_context_conf()->keypath = keypath;
+		}
 		if (keyring)
 			r_context_conf()->keyringpath = keyring;
 		if (signing_keyring)

@@ -1747,11 +1747,42 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 		goto out;
 	}
 
+	g_debug("Found valid CMS data");
+
 	if (detached && ibundle->nbd_srv) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
 				"Bundle format 'plain' not supported in streaming mode");
 		res = FALSE;
 		goto out;
+	}
+
+	/* For encrypted bundles, the 'signed' CMS is the payload of the
+	 * 'enveloped' CMS. Thus we must decrypt it first before forwarding.
+	 */
+	if (cms_is_envelopeddata(ibundle->sigdata)) {
+		GBytes *decrypted_sigdata = NULL;
+
+		g_debug("CMS type is 'enveloped'. Attempting to decrypt..");
+
+		if (r_context()->config->encryption_key == NULL) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE, "Encrypted bundle detected, but no decryption key given");
+			res = FALSE;
+			goto out;
+		}
+
+		decrypted_sigdata = cms_decrypt(ibundle->sigdata, r_context()->config->encryption_cert, r_context()->config->encryption_key, &ierror);
+		if (decrypted_sigdata == NULL) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed to decrypt bundle: ");
+			res = FALSE;
+			goto out;
+		}
+
+		/* replace sigdata by decrypted payload */
+		g_bytes_unref(ibundle->sigdata);
+		ibundle->sigdata = decrypted_sigdata;
 	}
 
 	if (verify) {
