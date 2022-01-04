@@ -1525,6 +1525,14 @@ static gboolean check_allowed_bundle_format(RaucManifest *manifest, GError **err
 		}
 	}
 
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
+		if (!(r_context()->config->bundle_formats_mask & 1 << R_MANIFEST_FORMAT_CRYPT)) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
+					"Bundle format 'crypt' not allowed");
+			return FALSE;
+		}
+	}
+
 	return TRUE;
 }
 

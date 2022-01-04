@@ -24,7 +24,8 @@ void default_config(RaucConfig **config)
 	 */
 	c->bundle_formats_mask =
 		1 << R_MANIFEST_FORMAT_PLAIN |
-		        1 << R_MANIFEST_FORMAT_VERITY;
+		        1 << R_MANIFEST_FORMAT_VERITY |
+		        1 << R_MANIFEST_FORMAT_CRYPT;
 
 	*config = c;
 }
@@ -373,7 +374,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	/* parse bundle formats */
 	c->bundle_formats_mask =
 		1 << R_MANIFEST_FORMAT_PLAIN |
-		        1 << R_MANIFEST_FORMAT_VERITY;
+		        1 << R_MANIFEST_FORMAT_VERITY |
+		        1 << R_MANIFEST_FORMAT_CRYPT;
 	bundle_formats = key_file_consume_string(key_file, "system", "bundle-formats", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 		g_clear_error(&ierror);
