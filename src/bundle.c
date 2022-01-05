@@ -1411,8 +1411,15 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, gboolean ver
 	bundlescheme = g_uri_parse_scheme(bundlename);
 	if (is_remote_scheme(bundlescheme)) {
 #if ENABLE_NETWORK
+		g_autofree gchar *tmpdir = g_dir_make_tmp("rauc-XXXXXX", &ierror);
+		if (tmpdir == NULL) {
+			g_propagate_prefixed_error(error, ierror, "Failed to create tmp dir: ");
+			res = FALSE;
+			goto out;
+		}
+
 		ibundle->origpath = g_strdup(bundlename);
-		ibundle->path = g_build_filename(g_get_tmp_dir(), "_download.raucb", NULL);
+		ibundle->path = g_build_filename(tmpdir, "download.raucb", NULL);
 
 		g_message("Remote URI detected, downloading bundle to %s...", ibundle->path);
 		res = download_file(ibundle->path, ibundle->origpath, r_context()->config->max_bundle_download_size, &ierror);
@@ -1926,10 +1933,15 @@ void free_bundle(RaucBundle *bundle)
 		return;
 
 	/* In case of a temporary download artifact, remove it. */
-	if (bundle->origpath)
+	if (bundle->origpath) {
+		g_autofree gchar *tmpdir = g_path_get_dirname(bundle->path);
 		if (g_remove(bundle->path) != 0) {
 			g_warning("failed to remove download artifact %s: %s\n", bundle->path, g_strerror(errno));
 		}
+		if (g_rmdir(tmpdir) != 0) {
+			g_warning("failed to remove download directory %s: %s\n", tmpdir, g_strerror(errno));
+		}
+	}
 
 	g_free(bundle->path);
 	if (bundle->stream)
