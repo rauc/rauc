@@ -635,6 +635,57 @@ out:
 	return res;
 }
 
+static gboolean decrypt_bundle_payload(RaucBundle *bundle, RaucManifest *manifest, GError **error)
+{
+	gboolean res = FALSE;
+	GError *ierror = NULL;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree guint8 *key = NULL;
+	g_autofree gchar* decpath = NULL;
+	g_autoptr(GFile) decgfile = NULL;
+
+	g_return_val_if_fail(bundle, FALSE);
+	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", &ierror);
+	if (tmpdir == NULL) {
+		g_propagate_prefixed_error(error, ierror, "Failed to create tmp dir: ");
+		res = FALSE;
+		goto out;
+	}
+	decpath = g_strconcat(tmpdir, "decrypted.raucb", NULL);
+
+	/* check we have a crypt key set in manifest */
+	g_assert(manifest->bundle_crypt_key != NULL);
+
+	/* Uncomment for debugging purpose */
+	//g_message("Decrypting with key: %s", manifest->bundle_crypt_key);
+	key = r_hex_decode(manifest->bundle_crypt_key, 32);
+	g_assert(key);
+
+	res = r_crypt_decrypt(bundle->path, decpath, key, bundle->size - bundle->manifest->bundle_verity_size, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	g_message("decrypted image saved as %s", decpath);
+
+	/* let bundle->stream point to decrypted bundle */
+	g_object_unref(bundle->stream);
+	decgfile = g_file_new_for_path(decpath);
+	bundle->stream = G_INPUT_STREAM(g_file_read(decgfile, NULL, error));
+
+out:
+	/* Remove temporary bundle creation directory.
+	 * RAUC will still have access to the decrypted bundle via the opened GFile */
+	if (tmpdir)
+		rm_tree(tmpdir, NULL);
+
+	return res;
+}
+
 gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error)
 {
 	GError *ierror = NULL;
@@ -2160,6 +2211,14 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
+	}
+
+	if (bundle->manifest && bundle->manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
+		res = decrypt_bundle_payload(bundle, bundle->manifest, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 	res = unsquashfs(g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream)), outputdir, NULL, &ierror);
