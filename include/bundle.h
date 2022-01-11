@@ -176,24 +176,6 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
- * Extract a single file from a bundle.
- *
- * This will extract a single file into a given directory.
- *
- * Note that check_bundle() must be called prior to this, to obtain a
- * RaucBundle struct.
- *
- * @param bundle RaucBundle struct as returned by check_bundle()
- * @param outputdir directory to extract the file into
- * @param file filename of file to extract from bundle
- * @param error Return location for a GError
- *
- * @return TRUE on success, FALSE if an error occurred
- */
-gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, const gchar *file, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-/**
  * Extract and load the manifest from a bundle.
  *
  * This is mainly useful for plain bundles, as the manifest is already contained in

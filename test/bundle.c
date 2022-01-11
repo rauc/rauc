@@ -225,40 +225,6 @@ static void bundle_test_create_mount_extract(BundleFixture *fixture,
 	g_assert_true(res);
 }
 
-static void bundle_test_extract_manifest(BundleFixture *fixture,
-		gconstpointer user_data)
-{
-	g_autofree gchar *outputdir = NULL;
-	g_autofree gchar *filepath = NULL;
-	g_autoptr(RaucBundle) bundle = NULL;
-	g_autoptr(GError) ierror = NULL;
-	gboolean res = FALSE;
-
-	outputdir = g_build_filename(fixture->tmpdir, "output", NULL);
-	g_assert_nonnull(outputdir);
-
-	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, &ierror);
-	g_assert_no_error(ierror);
-	g_assert_true(res);
-	g_assert_nonnull(bundle);
-
-	res = extract_file_from_bundle(bundle, outputdir, "manifest.raucm", &ierror);
-	g_assert_no_error(ierror);
-	g_assert_true(res);
-
-	filepath = g_build_filename(outputdir, "manifest.raucm", NULL);
-	g_assert_true(g_file_test(filepath, G_FILE_TEST_IS_REGULAR));
-	g_clear_pointer(&filepath, g_free);
-
-	filepath = g_build_filename(outputdir, "rootfs.ext4", NULL);
-	g_assert_false(g_file_test(filepath, G_FILE_TEST_EXISTS));
-	g_clear_pointer(&filepath, g_free);
-
-	filepath = g_build_filename(outputdir, "appfs.ext4", NULL);
-	g_assert_false(g_file_test(filepath, G_FILE_TEST_EXISTS));
-	g_clear_pointer(&filepath, g_free);
-}
-
 static void bundle_test_extract_signature(BundleFixture *fixture,
 		gconstpointer user_data)
 {
@@ -766,11 +732,6 @@ int main(int argc, char *argv[])
 		g_test_add(g_strdup_printf("/bundle/extract_signature/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_extract_signature,
-				bundle_fixture_tear_down);
-
-		g_test_add(g_strdup_printf("/bundle/extract_manifest/%s", format_name),
-				BundleFixture, bundle_data,
-				bundle_fixture_set_up_bundle, bundle_test_extract_manifest,
 				bundle_fixture_tear_down);
 
 		g_test_add(g_strdup_printf("/bundle/resign/%s", format_name),
