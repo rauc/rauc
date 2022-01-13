@@ -53,7 +53,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'RAUC'
-copyright = u'2016-2022, Jan Luebbe, Enrico Joerns, the RAUC contributors'
+author = u'Jan Luebbe, Enrico Joerns, the RAUC contributors'
+copyright = u'2016-2022, ' + author
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -213,7 +214,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   ('index', 'rauc.tex', u'RAUC Documentation',
-   u'Jan Luebbe, Enrico Joerns, Juergen Borleis', 'manual'),
+   author, 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
