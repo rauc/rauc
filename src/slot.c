@@ -1,3 +1,6 @@
+#include <errno.h>
+#include <glib/gstdio.h>
+
 #include "slot.h"
 
 void r_slot_free(gpointer value)
@@ -35,21 +38,74 @@ void r_slot_free_status(RaucSlotStatus *slotstatus)
 	g_free(slotstatus);
 }
 
+// Something that is, or can be, mounted onto a mount point
+typedef struct {
+	gboolean is_device;  // vs being a loop mounted file
+	dev_t dev;  // the device, or for a file, the device the file is on
+	ino_t inode;  // inode of file for a non-device
+} MountableObj;
+
+// Take a device (or file) path and normalize it
+static MountableObj *normalize_mountable_object(const gchar *devicepath)
+{
+	MountableObj *obj;
+	GStatBuf st;
+
+	if (g_stat(devicepath, &st) == -1) {
+		/* Virtual filesystems like devpts trigger case */
+		g_debug("Can't stat '%s', assuming unmountable: %s", devicepath, g_strerror(errno));
+		return NULL;
+	}
+
+	obj = g_new0(MountableObj, 1);
+	if (S_ISBLK(st.st_mode)) {
+		obj->is_device = TRUE;
+		obj->dev = st.st_rdev;
+	} else if (S_ISREG(st.st_mode)) {
+		obj->is_device = FALSE;
+		obj->dev = st.st_dev;
+		obj->inode = st.st_ino;
+	} else {
+		g_debug("Device '%s' is not something which is mountable", devicepath);
+		g_clear_pointer(&obj, g_free);
+	}
+	return obj;
+}
+
+/* Compare two MountableObj for equality */
+static gboolean is_same_mountable_object(const MountableObj *a, const MountableObj *b)
+{
+	return a->is_device == b->is_device && a->dev == b->dev &&
+	       (a->is_device || a->inode == b->inode);
+}
+
 RaucSlot *r_slot_find_by_device(GHashTable *slots, const gchar *device)
 {
 	GHashTableIter iter;
 	RaucSlot *slot;
+	g_autofree MountableObj *obj = NULL;
 
 	g_return_val_if_fail(slots, NULL);
 	g_return_val_if_fail(device, NULL);
 
+	obj = normalize_mountable_object(device);
+
 	g_hash_table_iter_init(&iter, slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
-		if (g_strcmp0(slot->device, device) == 0) {
+		if (g_strcmp0(slot->device, device) == 0)
 			goto out;
+
+		// Path doesn't match, but maybe device is same?
+		if (obj) {
+			g_autofree MountableObj *slot_obj =
+				normalize_mountable_object(slot->device);
+
+			if (slot_obj && is_same_mountable_object(obj, slot_obj))
+				goto out;
 		}
 	}
 
+	/* not found */
 	slot = NULL;
 
 out:
