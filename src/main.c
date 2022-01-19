@@ -29,6 +29,7 @@ int r_exit_status = 0;
 
 gboolean install_ignore_compatible, install_progressbar = FALSE;
 gboolean verification_disabled = FALSE;
+gboolean disable_security_checks = FALSE;
 gboolean info_dumpcert = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
@@ -585,7 +586,7 @@ static gboolean extract_start(int argc, char **argv)
 	g_debug("input bundle: %s", argv[2]);
 	g_debug("output dir: %s", argv[3]);
 
-	if (!check_bundle(argv[2], &bundle, TRUE, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, !disable_security_checks, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -1809,6 +1810,11 @@ static GOptionEntry entries_info[] = {
 	{0}
 };
 
+static GOptionEntry entries_extract[] = {
+	{"disable-security-measures", '\0', 0, G_OPTION_ARG_NONE, &disable_security_checks, "disable security measures that protect from in-flight data modifications", NULL},
+	{0}
+};
+
 static GOptionEntry entries_status[] = {
 	{"detailed", '\0', 0, G_OPTION_ARG_NONE, &status_detailed, "show more status details", NULL},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
@@ -1829,6 +1835,7 @@ static GOptionGroup *bundle_group;
 static GOptionGroup *resign_group;
 static GOptionGroup *convert_group;
 static GOptionGroup *info_group;
+static GOptionGroup *extract_group;
 static GOptionGroup *status_group;
 static GOptionGroup *service_group;
 
@@ -1850,6 +1857,9 @@ static void create_option_groups(void)
 
 	info_group    = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(info_group, entries_info);
+
+	extract_group = g_option_group_new("info", "Extract options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(extract_group, entries_extract);
 
 	status_group  = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(status_group, entries_status);
@@ -1889,7 +1899,7 @@ static void cmdline_handler(int argc, char **argv)
 		{CONVERT, "convert", "convert <INBUNDLE> <OUTBUNDLE>", "Convert to casync index bundle and store", convert_start, convert_group, FALSE},
 #endif
 		{EXTRACT_SIG, "extract-signature", "extract-signature <BUNDLENAME> <OUTPUTSIG>", "Extract the bundle signature", extract_signature_start, NULL, FALSE},
-		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>", "Extract the bundle content", extract_start, NULL, FALSE},
+		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>", "Extract the bundle content", extract_start, extract_group, FALSE},
 		{INFO, "info", "info <FILE>", "Print bundle info", info_start, info_group, FALSE},
 		{STATUS, "status", "status",
 		 "Show system status\n\n"
