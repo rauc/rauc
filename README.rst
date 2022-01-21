@@ -56,6 +56,7 @@ Features
   * vfat filesystem
   * UBI volumes
   * UBIFS
+  * JFFS2
   * raw NAND flash (using nandwrite)
   * raw NOR flash (using flashcp)
   * squashfs

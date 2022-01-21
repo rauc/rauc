@@ -71,7 +71,17 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 		g_ptr_array_add(args, g_strdup("-o"));
 		g_ptr_array_add(args, g_strdup(extra_options));
 	}
-	g_ptr_array_add(args, g_strdup(source));
+
+	/*
+	 * jffs2 mount must be called without /dev/ path. As we have already
+	 * checked for the device name having a (/dev/-)path we can go with
+	 * get_basename here.
+	 */
+	if ((type != NULL) && g_str_equal(type, "jffs2")) {
+		g_ptr_array_add(args, g_path_get_basename(source));
+	} else {
+		g_ptr_array_add(args, g_strdup(source));
+	}
 	g_ptr_array_add(args, g_strdup(mountpoint));
 	g_ptr_array_add(args, NULL);
 
