@@ -421,7 +421,7 @@ int main(int argc, char *argv[])
 
 		{"raw", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 		{"ext4", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
-		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0},
+		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 
 		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 2},

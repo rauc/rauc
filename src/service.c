@@ -127,7 +127,6 @@ static gboolean r_on_handle_info(RInstaller *interface,
 		GDBusMethodInvocation  *invocation,
 		const gchar *arg_bundle)
 {
-	g_autofree gchar* tmpdir = NULL;
 	g_autoptr(RaucManifest) manifest = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
 	GError *error = NULL;
