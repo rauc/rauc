@@ -1487,7 +1487,6 @@ static gboolean custom_backend_set(const gchar *cmd, const gchar *bootname, cons
 {
 	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
-	g_autoptr(GBytes) stdout_buf = NULL;
 	gchar *backend_name = r_context()->config->custom_bootloader_backend;
 
 	g_return_val_if_fail(cmd, FALSE);
