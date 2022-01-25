@@ -116,7 +116,6 @@ jobs:
     strategy:
       matrix:
         release:
-        - 16.04
         - 18.04
         - 20.04
     steps:
@@ -136,13 +135,7 @@ jobs:
         docker exec -i stable find .github/workflows/patches/${{ matrix.release}}/ -type f -name "*.patch" -print0 | sort -z | xargs -t -n 1 -r -0 patch -p1 -f -i
         docker exec -i stable ./autogen.sh
 
-    - name: Configure (without GPT)
-      if: matrix.release == '16.04'
-      run: |
-        docker exec -i stable ./configure CFLAGS=-Werror
-
     - name: Configure
-      if: matrix.release != '16.04'
       run: |
         docker exec -i stable ./configure --disable-gpt CFLAGS=-Werror
 
