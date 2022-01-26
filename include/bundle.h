@@ -47,6 +47,11 @@ typedef enum {
 	                                          // checking the validity period of
 	                                          // certificates and CRLs against
 	                                          // the current time.
+	CHECK_BUNDLE_TRUST_ENV     = BIT(3),      // If set, the runtime environment
+	                                          // is fully trusted and no attempts
+	                                          // will be made to protect against
+	                                          // concurrent modification of the
+	                                          // bundle.
 } CheckBundleParams;
 
 /**
