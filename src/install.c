@@ -42,7 +42,7 @@ static void install_args_update(RaucInstallArgs *args, const gchar *msg)
 	g_main_context_invoke(NULL, args->notify, args);
 }
 
-static gchar *resolve_loop_device(const gchar *devicepath)
+static gchar *resolve_loop_device(const gchar *devicepath, GError **error)
 {
 	g_autofree gchar *devicename = NULL;
 	g_autofree gchar *syspath = NULL;
@@ -57,8 +57,10 @@ static gchar *resolve_loop_device(const gchar *devicepath)
 
 	content = read_file_str(syspath, &ierror);
 	if (!content) {
-		g_message("%s", ierror->message);
-		g_clear_error(&ierror);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Error getting loop backing_file for %s: ", devicepath);
 		return NULL;
 	}
 
@@ -74,6 +76,7 @@ gboolean determine_slot_states(GError **error)
 	GHashTableIter iter;
 	RaucSlot *slot;
 	gboolean res = FALSE;
+	GError *ierror = NULL;
 
 	g_assert_nonnull(r_context()->config);
 
@@ -98,8 +101,14 @@ gboolean determine_slot_states(GError **error)
 	mountlist = g_unix_mounts_get(NULL);
 	for (GList *l = mountlist; l != NULL; l = l->next) {
 		GUnixMountEntry *m = (GUnixMountEntry*)l->data;
-		g_autofree gchar *devicepath = resolve_loop_device(g_unix_mount_get_device_path(m));
-		RaucSlot *s = find_config_slot_by_device(r_context()->config,
+		g_autofree gchar *devicepath = NULL;
+		RaucSlot *s;
+		devicepath = resolve_loop_device(g_unix_mount_get_device_path(m), &ierror);
+		if (!devicepath) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+		s = find_config_slot_by_device(r_context()->config,
 				devicepath);
 		if (s) {
 			/* We might have multiple mount entries matching the same device and thus the same slot.
