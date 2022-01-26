@@ -1,4 +1,4 @@
-FROM debian:buster
+FROM debian:bullseye
 
 # Required for building
 RUN apt-get update && apt-get install -y \
@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
   dosfstools \
   lcov \
   slirp \
-  python-sphinx \
+  python3-sphinx \
   dbus-x11 \
   user-mode-linux \
   grub-common \
@@ -35,13 +35,14 @@ RUN apt-get update && apt-get install -y \
   procps \
   mtd-utils \
   python3-aiohttp \
-  nginx-light
+  nginx-light \
+  fdisk
 
 # Required for test environment setup
 RUN apt-get update && apt-get install -y \
   python3-pip \
   git \
-  gcc-7 \
+  gcc-10 \
   curl && \
   rm -rf /var/lib/apt/lists/* && \
   curl -sLo /usr/bin/codecov https://codecov.io/bash && \

@@ -687,51 +687,49 @@ Custom Handlers (Interface)
 Interaction between RAUC and custom handler shell scripts is done using shell
 variables.
 
-.. glossary::
+``RAUC_SYSTEM_CONFIG``
+  Path to the system configuration file (default path is ``/etc/rauc/system.conf``)
 
-  ``RAUC_SYSTEM_CONFIG``
-    Path to the system configuration file (default path is ``/etc/rauc/system.conf``)
+``RAUC_CURRENT_BOOTNAME``
+  Bootname of the slot the system is currently booted from
 
-  ``RAUC_CURRENT_BOOTNAME``
-    Bootname of the slot the system is currently booted from
+``RAUC_BUNDLE_MOUNT_POINT``
+  Path to mounted update bundle, e.g. ``/mnt/rauc/bundle``
 
-  ``RAUC_BUNDLE_MOUNT_POINT``
-    Path to mounted update bundle, e.g. ``/mnt/rauc/bundle``
+``RAUC_UPDATE_SOURCE``
+  A deprecated alias for ``RAUC_BUNDLE_MOUNT_POINT``
 
-  ``RAUC_UPDATE_SOURCE``
-    A deprecated alias for ``RAUC_BUNDLE_MOUNT_POINT``
+``RAUC_MOUNT_PREFIX``
+  Provides the path prefix that may be used for RAUC mount points
 
-  ``RAUC_MOUNT_PREFIX``
-    Provides the path prefix that may be used for RAUC mount points
+``RAUC_SLOTS``
+  An iterator list to loop over all existing slots. Each item in the list is
+  an integer referencing one of the slots. To get the slot parameters, you have to
+  resolve the per-slot variables (suffixed with <N> placeholder for the
+  respective slot number).
 
-  ``RAUC_SLOTS``
-    An iterator list to loop over all existing slots. Each item in the list is
-    an integer referencing one of the slots. To get the slot parameters, you have to
-    resolve the per-slot variables (suffixed with <N> placeholder for the
-    respective slot number).
+``RAUC_TARGET_SLOTS``
+  An iterator list similar to ``RAUC_SLOTS`` but only containing slots that
+  were selected as target slots by the RAUC target slot selection algorithm.
+  You may use this list for safely installing images into these slots.
 
-  ``RAUC_TARGET_SLOTS``
-    An iterator list similar to ``RAUC_SLOTS`` but only containing slots that
-    were selected as target slots by the RAUC target slot selection algorithm.
-    You may use this list for safely installing images into these slots.
+``RAUC_SLOT_NAME_<N>``
+  The name of slot number <N>, e.g. ``rootfs.0``
 
-  ``RAUC_SLOT_NAME_<N>``
-    The name of slot number <N>, e.g. ``rootfs.0``
+``RAUC_SLOT_CLASS_<N>``
+  The class of slot number <N>, e.g. ``rootfs``
 
-  ``RAUC_SLOT_CLASS_<N>``
-    The class of slot number <N>, e.g. ``rootfs``
+``RAUC_SLOT_TYPE_<N>``
+  The type of slot number <N>, e.g. ``raw``
 
-  ``RAUC_SLOT_TYPE_<N>``
-    The type of slot number <N>, e.g. ``raw``
+``RAUC_SLOT_DEVICE_<N>``
+  The device path of slot number <N>, e.g. ``/dev/sda1``
 
-  ``RAUC_SLOT_DEVICE_<N>``
-    The device path of slot number <N>, e.g. ``/dev/sda1``
+``RAUC_SLOT_BOOTNAME_<N>``
+  The bootloader name of slot number <N>, e.g. ``system0``
 
-  ``RAUC_SLOT_BOOTNAME_<N>``
-    The bootloader name of slot number <N>, e.g. ``system0``
-
-  ``RAUC_SLOT_PARENT_<N>``
-    The name of slot number <N>, empty if none, otherwise name of parent slot
+``RAUC_SLOT_PARENT_<N>``
+  The name of slot number <N>, empty if none, otherwise name of parent slot
 
 
 .. code::
@@ -752,26 +750,24 @@ Install Hooks Interface
 
 The following environment variables will be passed to the hook executable:
 
-.. glossary::
+``RAUC_SYSTEM_COMPATIBLE``
+  The compatible value set in the system configuration file,
+  e.g. ``"My First Product"``
 
-  ``RAUC_SYSTEM_COMPATIBLE``
-    The compatible value set in the system configuration file,
-    e.g. ``"My First Product"``
+``RAUC_SYSTEM_VARIANT``
+  The system's variant as obtained by the variant source
+  (refer ref:`sec-variants`)
 
-  ``RAUC_SYSTEM_VARIANT``
-    The system's variant as obtained by the variant source
-    (refer ref:`sec-variants`)
+``RAUC_MF_COMPATIBLE``
+  The compatible value provided by the current bundle,
+  e.g. ``"My Other Product"``
 
-  ``RAUC_MF_COMPATIBLE``
-    The compatible value provided by the current bundle,
-    e.g. ``"My Other Product"``
+``RAUC_MF_VERSION``
+  The value of the version field as provided by the current bundle,
+  e.g. ``"V1.2.1-2020-02-28"``
 
-  ``RAUC_MF_VERSION``
-    The value of the version field as provided by the current bundle,
-    e.g. ``"V1.2.1-2020-02-28"``
-
-  ``RAUC_MOUNT_PREFIX``
-    The global RAUC mount prefix path, e.g. ``"/run/mount/rauc"``
+``RAUC_MOUNT_PREFIX``
+  The global RAUC mount prefix path, e.g. ``"/run/mount/rauc"``
 
 .. _sec-slot-hook-interface:
 
@@ -780,87 +776,85 @@ Slot Hooks Interface
 
 The following environment variables will be passed to the hook executable:
 
-.. glossary::
+``RAUC_SYSTEM_COMPATIBLE``
+  The compatible value set in the system configuration file,
+  e.g. ``"My Special Product"``
 
-  ``RAUC_SYSTEM_COMPATIBLE``
-    The compatible value set in the system configuration file,
-    e.g. ``"My Special Product"``
+``RAUC_SYSTEM_VARIANT``
+  The system's variant as obtained by the variant source
+  (refer ref:`sec-variants`)
 
-  ``RAUC_SYSTEM_VARIANT``
-    The system's variant as obtained by the variant source
-    (refer ref:`sec-variants`)
+``RAUC_SLOT_NAME``
+  The name of the currently installed slot, e.g ``"rootfs.1"``.
 
-  ``RAUC_SLOT_NAME``
-    The name of the currently installed slot, e.g ``"rootfs.1"``.
+``RAUC_SLOT_STATE``
+  The state of the currently installed slot
+  (will always be ``inactive`` for slots we install to)
 
-  ``RAUC_SLOT_STATE``
-    The state of the currently installed slot
-    (will always be ``inactive`` for slots we install to)
+``RAUC_SLOT_CLASS``
+  The class of the currently installed slot, e.g. ``"rootfs"``
 
-  ``RAUC_SLOT_CLASS``
-    The class of the currently installed slot, e.g. ``"rootfs"``
+``RAUC_SLOT_TYPE``
+  The type of the currently installed slot, e.g. ``"ext4"``
 
-  ``RAUC_SLOT_TYPE``
-    The type of the currently installed slot, e.g. ``"ext4"``
+``RAUC_SLOT_DEVICE``
+  The device path of the currently installed slot, e.g. ``"/dev/mmcblk0p2"``
 
-  ``RAUC_SLOT_DEVICE``
-    The device path of the currently installed slot, e.g. ``"/dev/mmcblk0p2"``
+  This equals the ``device=`` parameter set in the current slot's system.conf
+  entry and represents the target device RAUC installs the update to.
+  For an ``install`` hook, this is the device the hook executable should write
+  to.
 
-    This equals the ``device=`` parameter set in the current slot's system.conf
-    entry and represents the target device RAUC installs the update to.
-    For an ``install`` hook, this is the device the hook executable should write
-    to.
+``RAUC_SLOT_BOOTNAME``
+  For slots with a bootname (those that can be selected by the bootloader),
+  the bootname of the currently installed slot, e.g. ``"system1"``
+  For slots with a parent, the parent's bootname is used.
+  Note that in many cases, it's better to use the explicit ``RAUC_SLOT_NAME``
+  to select different behaviour in the hook, than to rely indirectly on the
+  bootname.
 
-  ``RAUC_SLOT_BOOTNAME``
-    For slots with a bootname (those that can be selected by the bootloader),
-    the bootname of the currently installed slot, e.g. ``"system1"``
-    For slots with a parent, the parent's bootname is used.
-    Note that in many cases, it's better to use the explicit ``RAUC_SLOT_NAME``
-    to select different behaviour in the hook, than to rely indirectly on the
-    bootname.
+``RAUC_SLOT_PARENT``
+  If set, the parent of the currently installed slot, e.g. ``"rootfs.1"``
 
-  ``RAUC_SLOT_PARENT``
-    If set, the parent of the currently installed slot, e.g. ``"rootfs.1"``
+``RAUC_SLOT_MOUNT_POINT``
+  If available, the mount point of the currently installed slot,
+  e.g. ``"/run/mount/rauc/rootfs.1"``
 
-  ``RAUC_SLOT_MOUNT_POINT``
-    If available, the mount point of the currently installed slot,
-    e.g. ``"/run/mount/rauc/rootfs.1"``
+  For mountable slots, i.e. those with a file system type, RAUC will attempt
+  to automatically mount the slot if a pre-install or post-install hook is
+  given and provide the slot's current mount point under this env variable.
 
-    For mountable slots, i.e. those with a file system type, RAUC will attempt
-    to automatically mount the slot if a pre-install or post-install hook is
-    given and provide the slot's current mount point under this env variable.
+``RAUC_IMAGE_NAME``
+  If set, the file name of the image currently to be installed,
+  e.g. ``"product-rootfs.img"``
 
-  ``RAUC_IMAGE_NAME``
-    If set, the file name of the image currently to be installed,
-    e.g. ``"product-rootfs.img"``
+``RAUC_IMAGE_SIZE``
+  If set, the size of the image currently to be installed,
+  e.g. ``"82628"``
 
-  ``RAUC_IMAGE_SIZE``
-    If set, the size of the image currently to be installed,
-    e.g. ``"82628"``
+``RAUC_IMAGE_DIGEST``
+  If set, the digest of the image currently to be installed,
+  e.g. ``"e29364a81c542755fd5b2c2461cd12b0610b67ceacabce41c102bba4202f2b43"``
 
-  ``RAUC_IMAGE_DIGEST``
-    If set, the digest of the image currently to be installed,
-    e.g. ``"e29364a81c542755fd5b2c2461cd12b0610b67ceacabce41c102bba4202f2b43"``
+``RAUC_IMAGE_CLASS``
+  If set, the target class of the image currently to be installed,
+  e.g. ``"rootfs"``
 
-  ``RAUC_IMAGE_CLASS``
-    If set, the target class of the image currently to be installed,
-    e.g. ``"rootfs"``
+``RAUC_MOUNT_PREFIX``
+  The global RAUC mount prefix path, e.g. ``"/run/mount/rauc"``
 
-  ``RAUC_MOUNT_PREFIX``
-    The global RAUC mount prefix path, e.g. ``"/run/mount/rauc"``
+``RAUC_BOOT_PARTITION_ACTIVATING``
+  The to be activated boot partition (0 or 1).
+  ``boot-mbr-switch``, ``boot-gpt-switch``, ``boot-emmc`` slot types only.
 
-  ``RAUC_BOOT_PARTITION_ACTIVATING``
-    The to be activated boot partition (0 or 1).
-    ``boot-mbr-switch``, ``boot-gpt-switch``, ``boot-emmc`` slot types only.
+``RAUC_BOOT_PARTITION_START``
+  The absolute partition offset of the to be activated boot partition in
+  bytes.
+  ``boot-mbr-switch`` and ``boot-gpt-switch`` slot types only.
 
-  ``RAUC_BOOT_PARTITION_START``
-    The absolute partition offset of the to be activated boot partition in
-    bytes.
-    ``boot-mbr-switch`` and ``boot-gpt-switch`` slot types only.
-
-  ``RAUC_BOOT_PARTITION_SIZE``
-    The partition size of the to be activated boot partition in bytes.
-    ``boot-mbr-switch`` and ``boot-gpt-switch`` slot types only.
+``RAUC_BOOT_PARTITION_SIZE``
+  The partition size of the to be activated boot partition in bytes.
+  ``boot-mbr-switch`` and ``boot-gpt-switch`` slot types only.
 
 .. _sec_ref_dbus-api:
 
