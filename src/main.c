@@ -29,6 +29,7 @@ int r_exit_status = 0;
 
 gboolean install_ignore_compatible, install_progressbar = FALSE;
 gboolean verification_disabled = FALSE;
+gboolean no_check_time = FALSE;
 gboolean info_dumpcert = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
@@ -465,6 +466,7 @@ out:
 G_GNUC_UNUSED
 static gboolean resign_start(int argc, char **argv)
 {
+	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
 	g_autoptr(RaucBundle) bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("resign start");
@@ -495,7 +497,12 @@ static gboolean resign_start(int argc, char **argv)
 		goto out;
 	}
 
-	if (!check_bundle(argv[2], &bundle, !verification_disabled, &ierror)) {
+	if (verification_disabled)
+		check_bundle_params |= CHECK_BUNDLE_NO_VERIFY;
+	if (no_check_time)
+		check_bundle_params |= CHECK_BUNDLE_NO_CHECK_TIME;
+
+	if (!check_bundle(argv[2], &bundle, check_bundle_params, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -540,7 +547,7 @@ static gboolean extract_signature_start(int argc, char **argv)
 	g_debug("input bundle: %s", argv[2]);
 	g_debug("output file: %s", argv[3]);
 
-	if (!check_bundle(argv[2], &bundle, TRUE, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, CHECK_BUNDLE_DEFAULT, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -585,7 +592,7 @@ static gboolean extract_start(int argc, char **argv)
 	g_debug("input bundle: %s", argv[2]);
 	g_debug("output dir: %s", argv[3]);
 
-	if (!check_bundle(argv[2], &bundle, TRUE, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, CHECK_BUNDLE_DEFAULT, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -638,7 +645,7 @@ static gboolean convert_start(int argc, char **argv)
 	g_debug("input bundle: %s", argv[2]);
 	g_debug("output bundle: %s", argv[3]);
 
-	if (!check_bundle(argv[2], &bundle, TRUE, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, CHECK_BUNDLE_DEFAULT, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -908,6 +915,7 @@ static gboolean info_start(int argc, char **argv)
 	gboolean res = FALSE;
 	gchar* (*formatter)(RaucManifest *manifest) = NULL;
 	gchar *text;
+	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
 
 	if (argc < 3) {
 		g_printerr("A file name must be provided\n");
@@ -939,7 +947,12 @@ static gboolean info_start(int argc, char **argv)
 		goto out;
 	g_debug("input bundle: %s", bundlelocation);
 
-	res = check_bundle(bundlelocation, &bundle, !verification_disabled, &error);
+	if (verification_disabled)
+		check_bundle_params |= CHECK_BUNDLE_NO_VERIFY;
+	if (no_check_time)
+		check_bundle_params |= CHECK_BUNDLE_NO_CHECK_TIME;
+
+	res = check_bundle(bundlelocation, &bundle, check_bundle_params, &error);
 	if (!res) {
 		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
@@ -1709,7 +1722,7 @@ static gboolean mount_start(int argc, char **argv)
 		goto out; /* an error message was already printed by resolve_bundle_path */
 	g_debug("input bundle: %s", bundlelocation);
 
-	res = check_bundle(bundlelocation, &bundle, TRUE, &error);
+	res = check_bundle(bundlelocation, &bundle, CHECK_BUNDLE_DEFAULT, &error);
 	if (!res) {
 		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
@@ -1791,6 +1804,7 @@ static GOptionEntry entries_bundle[] = {
 
 static GOptionEntry entries_resign[] = {
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
+	{"no-check-time", '\0', 0, G_OPTION_ARG_NONE, &no_check_time, "don't check validity period of certificates against current time", NULL},
 	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
 	{0}
 };
@@ -1804,6 +1818,7 @@ static GOptionEntry entries_convert[] = {
 
 static GOptionEntry entries_info[] = {
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
+	{"no-check-time", '\0', 0, G_OPTION_ARG_NONE, &no_check_time, "don't check validity period of certificates against current time", NULL},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
 	{"dump-cert", '\0', 0, G_OPTION_ARG_NONE, &info_dumpcert, "dump certificate", NULL},
 	{0}
