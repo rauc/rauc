@@ -281,7 +281,7 @@ static GVariant* convert_slot_status_to_dict(RaucSlot *slot)
 /*
  * Makes slot status information available via DBUS.
  */
-static GVariant* create_slotstatus_array(void)
+static GVariant* create_slotstatus_array(GError **error)
 {
 	gint slot_number = g_hash_table_size(r_context()->config->slots);
 	GVariant **slot_status_tuples;
@@ -292,21 +292,26 @@ static GVariant* create_slotstatus_array(void)
 	GHashTableIter iter;
 	RaucSlot *slot;
 
-	g_return_val_if_fail(r_installer, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	slot_status_tuples = g_new(GVariant*, slot_number);
+	g_assert_nonnull(r_installer);
 
 	res = determine_slot_states(&ierror);
 	if (!res) {
-		g_debug("Failed to determine slot states: %s\n", ierror->message);
-		g_clear_error(&ierror);
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to determine slot states: ");
+		return NULL;
 	}
 
 	res = determine_boot_states(&ierror);
 	if (!res) {
-		g_debug("Failed to determine boot states: %s\n", ierror->message);
+		g_message("Failed to determine boot states: %s", ierror->message);
 		g_clear_error(&ierror);
 	}
+
+	slot_status_tuples = g_new(GVariant*, slot_number);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
@@ -329,18 +334,27 @@ static GVariant* create_slotstatus_array(void)
 static gboolean r_on_handle_get_slot_status(RInstaller *interface,
 		GDBusMethodInvocation  *invocation)
 {
+	GVariant *slotstatus;
+	GError *ierror = NULL;
 	gboolean res;
 
 	res = !r_context_get_busy();
 
-	if (res) {
-		r_installer_complete_get_slot_status(interface, invocation, create_slotstatus_array());
-	} else {
+	if (!res) {
 		g_dbus_method_invocation_return_error(invocation,
 				G_IO_ERROR,
 				G_IO_ERROR_FAILED_HANDLED,
 				"already processing a different method");
+		return TRUE;
 	}
+
+	slotstatus = create_slotstatus_array(&ierror);
+	if (!slotstatus) {
+		g_dbus_method_invocation_return_gerror(invocation, ierror);
+		return TRUE;
+	}
+
+	r_installer_complete_get_slot_status(interface, invocation, slotstatus);
 
 	return TRUE;
 }

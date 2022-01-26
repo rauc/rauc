@@ -719,6 +719,79 @@ device=/dev/null\n\
 	g_assert_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED);
 }
 
+/* Test that get_install_images() returns non-NULL if there is no booted slot
+ * but the boot was marked as 'external' explicitly */
+static void test_install_image_selection_boot_external(void)
+{
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *sysconfpath = NULL;
+	g_autoptr(GBytes) data = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
+	g_autoptr(GHashTable) tgrp = NULL;
+	g_autoptr(GError) error = NULL;
+	GList *selected_images = NULL;
+	RaucImage *image = NULL;
+	gboolean res;
+
+#define MANIFEST3 "\
+[update]\n\
+compatible=foo\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.img\n\
+"
+
+	const gchar *system_conf = "\
+[system]\n\
+compatible=foo\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+bootname=system0\n\
+device=/dev/null\n\
+\n\
+[slot.rootfs.1]\n\
+bootname=system1\n\
+device=/dev/null\n\
+";
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	sysconfpath = write_tmp_file(tmpdir, "test.conf", system_conf, NULL);
+	g_assert_nonnull(sysconfpath);
+
+	/* Set up context */
+	r_context_conf()->configpath = sysconfpath;
+	r_context_conf()->bootslot = g_strdup("_external_"); /* mark as external */
+	r_context();
+
+	g_message("Bootname is: %s", r_context()->bootslot);
+
+	data = g_bytes_new_static(MANIFEST3, sizeof(MANIFEST3));
+	res = load_manifest_mem(data, &rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	res = determine_slot_states(&error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	tgrp = determine_target_install_group();
+	g_assert_nonnull(tgrp);
+
+	/* we expect the image mapping to fail as there is no slot candidate
+	 * for image.appfs */
+	selected_images = get_install_images(rm, tgrp, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(selected_images);
+
+	/* We expect a single rootfs slot to match */
+	g_assert_cmpint(g_list_length(selected_images), ==, 1);
+
+	image = (RaucImage*) g_list_nth_data(selected_images, 0);
+	g_assert_nonnull(image);
+	g_assert_cmpstr(image->filename, ==, "rootfs.img");
+}
+
 static void test_install_image_readonly(void)
 {
 	g_autofree gchar *tmpdir = NULL;
@@ -1237,6 +1310,8 @@ int main(int argc, char *argv[])
 	g_test_add_func("/install/image-selection/redundant", test_install_image_selection);
 
 	g_test_add_func("/install/image-selection/non-matching", test_install_image_selection_no_matching_slot);
+
+	g_test_add_func("/install/image-selection/boot-external", test_install_image_selection_boot_external);
 
 	g_test_add_func("/install/image-selection/readonly", test_install_image_readonly);
 

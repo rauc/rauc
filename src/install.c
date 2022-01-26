@@ -152,6 +152,41 @@ gboolean determine_slot_states(GError **error)
 		}
 	}
 
+	if (!booted) {
+		gboolean extboot = FALSE;
+
+		if (g_strcmp0(r_context()->bootslot, "/dev/nfs") == 0) {
+			g_message("Detected nfs boot, ignoring missing active slot");
+			extboot = TRUE;
+		}
+
+		if (g_strcmp0(r_context()->bootslot, "_external_") == 0) {
+			g_message("Detected explicit external boot, ignoring missing active slot");
+			extboot = TRUE;
+		}
+
+		if (extboot) {
+			/* mark all as inactive */
+			g_debug("Marking all slots as 'inactive'");
+			for (GList *l = slotlist; l != NULL; l = l->next) {
+				RaucSlot *s = g_hash_table_lookup(r_context()->config->slots, l->data);
+				g_assert_nonnull(s);
+
+				s->state = ST_INACTIVE;
+			}
+
+			res = TRUE;
+			goto out;
+		}
+
+		g_set_error(
+				error,
+				R_SLOT_ERROR,
+				R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
+				"Did not find booted slot (matching '%s')", r_context()->bootslot);
+		goto out;
+	}
+
 	/* Determine active group members */
 	for (GList *l = slotlist; l != NULL; l = l->next) {
 		RaucSlot *s = g_hash_table_lookup(r_context()->config->slots, l->data);
@@ -167,27 +202,6 @@ gboolean determine_slot_states(GError **error)
 		}
 	}
 
-	if (!booted) {
-		if (g_strcmp0(r_context()->bootslot, "/dev/nfs") == 0) {
-			g_message("Detected nfs boot, ignoring missing active slot");
-			res = TRUE;
-			goto out;
-		}
-
-		if (g_strcmp0(r_context()->bootslot, "_external_") == 0) {
-			g_message("Detected explicit external boot, ignoring missing active slot");
-			res = TRUE;
-			goto out;
-		}
-
-		g_set_error_literal(
-				error,
-				R_SLOT_ERROR,
-				R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
-				"Did not find booted slot");
-		goto out;
-	}
-
 	res = TRUE;
 
 out:
@@ -200,19 +214,30 @@ gboolean determine_boot_states(GError **error)
 {
 	GHashTableIter iter;
 	RaucSlot *slot;
-	gchar *name;
-	GError *ierror = NULL;
+	gboolean had_errors;
 
 	/* get boot state */
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, (gpointer*) &name, (gpointer*) &slot)) {
-		if (slot->bootname && !r_boot_get_state(slot, &slot->boot_good, &ierror)) {
-			g_propagate_error(error, ierror);
-			return FALSE;
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+		GError *ierror = NULL;
+
+		if (!slot->bootname)
+			continue;
+
+		if (!r_boot_get_state(slot, &slot->boot_good, &ierror)) {
+			g_message("Failed to get boot state of %s: %s", slot->name, ierror->message);
+			had_errors = TRUE;
 		}
 	}
 
-	return TRUE;
+	if (had_errors)
+		g_set_error_literal(
+				error,
+				R_SLOT_ERROR,
+				R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
+				"Could not determine all boot states");
+
+	return !had_errors;
 }
 
 /* Returns NULL-teminated intern string array of all classes listed in
