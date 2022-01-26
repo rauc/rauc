@@ -196,11 +196,8 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, G
 		return FALSE;
 	}
 
-	/* Do not close fd automatically to give us the chance to call fsync() on it before closing */
-	g_unix_output_stream_set_close_fd(outstream, FALSE);
-
 	size = g_output_stream_splice(G_OUTPUT_STREAM(outstream), instream,
-			G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+			G_OUTPUT_STREAM_SPLICE_NONE,
 			NULL,
 			&ierror);
 	if (size == -1) {
@@ -224,13 +221,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, G
 
 	/* flush to block device before closing to assure content is written to disk */
 	if (fsync(out_fd) == -1) {
-		close(out_fd); /* Silent attempt to close as we failed, anyway */
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Syncing content to disk failed: %s", strerror(errno));
-		return FALSE;
-	}
-
-	if (close(out_fd) == -1) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Closing output device failed: %s", strerror(errno));
 		return FALSE;
 	}
 
@@ -405,6 +396,12 @@ static gboolean copy_raw_image_to_dev(RaucImage *image, RaucSlot *slot, GError *
 	/* copy */
 	g_message("writing data to device %s", slot->device);
 	res = copy_raw_image(image, outstream, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -998,6 +995,12 @@ static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, con
 		}
 	}
 
+	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
 		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
@@ -1059,6 +1062,12 @@ static gboolean img_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 			g_propagate_error(error, ierror);
 			goto out;
 		}
+	}
+
+	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		return FALSE;
 	}
 
 	/* run slot post install hook if enabled */
@@ -1573,6 +1582,12 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
+	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
 		res = run_slot_hook_extra_env(hook_name, R_SLOT_HOOK_POST_INSTALL, image,
@@ -1692,6 +1707,12 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 			inactive_half == 0 ? "first" : "second", dest_slot->device);
 
 	res = copy_raw_image(image, outstream, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -1820,6 +1841,12 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	g_message("Copying image to slot device partition %s",
 			part_slot->device);
 	res = copy_raw_image(image, outstream, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
