@@ -13,7 +13,7 @@ G_DEFINE_QUARK(r-slot-error-quark, r_slot_error)
 
 #define RAUC_SLOT_PREFIX	"slot"
 
-gboolean default_config(RaucConfig **config)
+void default_config(RaucConfig **config)
 {
 	RaucConfig *c = g_new0(RaucConfig, 1);
 
@@ -27,7 +27,6 @@ gboolean default_config(RaucConfig **config)
 		        1 << R_MANIFEST_FORMAT_VERITY;
 
 	*config = c;
-	return TRUE;
 }
 
 static gboolean fix_grandparent_links(GHashTable *slots, GError **error)

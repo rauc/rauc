@@ -110,11 +110,8 @@ G_GNUC_WARN_UNUSED_RESULT;
  * Creates a default rauc system configuration.
  *
  * @param config a location to place the new config
- *
- * @return TRUE if the configuration was successfully created. FALSE if there were errors.
  */
-gboolean default_config(RaucConfig **config)
-G_GNUC_WARN_UNUSED_RESULT;
+void default_config(RaucConfig **config);
 
 /**
  * Finds a config slot given the device path.
