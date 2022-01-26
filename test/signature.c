@@ -21,6 +21,8 @@ typedef struct {
 static void signature_set_up(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	r_context_conf();
+
 	fixture->content = read_file("test/openssl-ca/manifest", NULL);
 	g_assert_nonnull(fixture->content);
 	fixture->sig = NULL;
@@ -738,7 +740,6 @@ static void signature_cmsverify_pathdir_path(SignatureFixture *fixture,
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
-	r_context_conf();
 
 	g_assert(test_prepare_dummy_file("test/", "random.dat",
 			256 * 1024, "/dev/urandom") == 0);
