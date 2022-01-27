@@ -364,6 +364,123 @@ static void bundle_test_check_casync_new(BundleFixture *fixture, gconstpointer u
 // Hack to pull-in context for testing modification
 extern RaucContext *context;
 
+static void bundle_test_replace_signature(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autofree gchar *resignbundle = NULL;
+	g_autofree gchar *replacebundle = NULL;
+	g_autofree gchar *sigpath = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res = FALSE;
+
+	replacebundle = g_build_filename(fixture->tmpdir, "replaced-bundle.raucb", NULL);
+	g_assert_nonnull(replacebundle);
+	resignbundle = g_build_filename(fixture->tmpdir, "resigned-bundle.raucb", NULL);
+	g_assert_nonnull(resignbundle);
+
+	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_TRUST_ENV, &ierror);
+	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
+	g_clear_error(&ierror);
+	g_assert_false(res);
+	g_clear_pointer(&bundle, free_bundle);
+
+	/* Verify input bundle with 'dev' keyring */
+	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-only-ca.pem");
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_TRUST_ENV, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	/* Use 'rel' key pair for resigning */
+	context->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
+	context->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	context->signing_keyringpath = g_strdup("test/openssl-ca/rel-ca.pem");
+
+	/* Resign bundle with 'rel' key to extract the signature below */
+	res = resign_bundle(bundle, resignbundle, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_clear_pointer(&bundle, free_bundle);
+
+	/* Verify resigned bundle with old 'dev' key */
+	res = check_bundle(resignbundle, &bundle, CHECK_BUNDLE_TRUST_ENV, &ierror);
+	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
+	g_clear_error(&ierror);
+	g_assert_false(res);
+
+	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
+	res = check_bundle(resignbundle, &bundle, CHECK_BUNDLE_TRUST_ENV, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	sigpath = g_build_filename(fixture->tmpdir, "bundle.sig", NULL);
+	g_assert_nonnull(sigpath);
+
+	/* Extract 'rel' signature to replace it in the bundle */
+	res = extract_signature(bundle, sigpath, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_true(g_file_test(sigpath, G_FILE_TEST_IS_REGULAR));
+	g_clear_pointer(&bundle, free_bundle);
+
+	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-only-ca.pem");
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_TRUST_ENV, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	res = replace_signature(bundle, sigpath, replacebundle, CHECK_BUNDLE_TRUST_ENV, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_clear_pointer(&bundle, free_bundle);
+
+	res = check_bundle(replacebundle, &bundle, CHECK_BUNDLE_TRUST_ENV, &ierror);
+	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
+	g_clear_error(&ierror);
+	g_assert_false(res);
+	g_clear_pointer(&bundle, free_bundle);
+
+	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
+	res = check_bundle(replacebundle, &bundle, CHECK_BUNDLE_TRUST_ENV, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_clear_pointer(&bundle, free_bundle);
+
+	/* Test without verify */
+	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-only-ca.pem");
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_TRUST_ENV, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	/* Test will fail as we trying to replace existing bundle */
+	res = replace_signature(bundle, sigpath, replacebundle, CHECK_BUNDLE_NO_VERIFY, &ierror);
+	g_assert_error(ierror, G_FILE_ERROR, G_FILE_ERROR_EXIST);
+	g_clear_error(&ierror);
+	g_assert_false(res);
+
+	/* Now it should works */
+	g_remove(replacebundle);
+	res = replace_signature(bundle, sigpath, replacebundle, CHECK_BUNDLE_NO_VERIFY, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_clear_pointer(&bundle, free_bundle);
+	g_clear_pointer(&sigpath, g_free);
+
+	res = check_bundle(replacebundle, &bundle, CHECK_BUNDLE_TRUST_ENV, &ierror);
+	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
+	g_clear_pointer(&bundle, free_bundle);
+	g_clear_error(&ierror);
+	g_assert_false(res);
+
+	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
+	res = check_bundle(replacebundle, &bundle, CHECK_BUNDLE_TRUST_ENV, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	// hacky restore of original signing_keyringpath
+	context->signing_keyringpath = NULL;
+}
+
 static void bundle_test_resign(BundleFixture *fixture,
 		gconstpointer user_data)
 {
@@ -659,6 +776,11 @@ int main(int argc, char *argv[])
 		g_test_add(g_strdup_printf("/bundle/resign/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_resign,
+				bundle_fixture_tear_down);
+
+		g_test_add(g_strdup_printf("/bundle/replace_signature/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up_bundle, bundle_test_replace_signature,
 				bundle_fixture_tear_down);
 
 		g_test_add(g_strdup_printf("/bundle/wrong_capath/%s", format_name),

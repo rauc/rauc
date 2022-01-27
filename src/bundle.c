@@ -1641,6 +1641,161 @@ out:
 	return res;
 }
 
+gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *outpath, CheckBundleParams params, GError **error)
+{
+	g_autoptr(RaucManifest) manifest = NULL;
+	g_autoptr(RaucBundle) outbundle = NULL;
+	g_autoptr(GFile) bundleoutfile = NULL;
+	GFileIOStream* bundlestream = NULL;
+	GOutputStream* bundleoutstream = NULL;
+	g_autoptr(GBytes) sig = NULL;
+	gchar* keyringpath = NULL;
+	gchar* keyringdirectory = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	gsize sigsize;
+
+	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail(outpath != NULL, FALSE);
+	g_return_val_if_fail(insig != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	r_context_begin_step("replace_signature", "Replacing bundle signature", 5);
+
+	res = check_bundle_payload(bundle, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = load_manifest_from_bundle(bundle, &manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
+		g_print("Reading bundle in 'plain' format\n");
+	} else if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
+		g_print("Reading bundle in 'verity' format\n");
+	} else {
+		g_error("unsupported bundle format");
+		res = FALSE;
+		goto out;
+	}
+
+	sig = read_file(insig, &ierror);
+	if (!sig) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to read signature file: ");
+		res = FALSE;
+		goto out;
+	}
+
+	res = truncate_bundle(bundle->path, outpath, bundle->size, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	bundleoutfile = g_file_new_for_path(outpath);
+	bundlestream = g_file_open_readwrite(bundleoutfile, NULL, &ierror);
+	if (!bundlestream) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to open new bundle for adding signature: ");
+		res = FALSE;
+		goto out;
+	}
+
+	bundleoutstream = g_io_stream_get_output_stream(G_IO_STREAM(bundlestream));
+
+	res = g_seekable_seek(G_SEEKABLE(bundleoutstream),
+			0, G_SEEK_END, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to seek to end of new bundle: ");
+		goto out;
+	}
+
+	res = output_stream_write_bytes_all(bundleoutstream, sig, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to append signature to temporary bundle: ");
+		goto out;
+	}
+
+	sigsize = g_bytes_get_size(sig);
+	res = output_stream_write_uint64_all(bundleoutstream, (guint64)sigsize, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to append signature size to new bundle: ");
+		goto out;
+	}
+
+	/* Necessary to release associated fd before perform check_bundle */
+	g_clear_object(&bundlestream);
+
+	/*
+	 * If signing_keyringpath is given, replace config->keyring_path, so we can
+	 * use check_bundle() as is.
+	 */
+	if (r_context()->signing_keyringpath) {
+		keyringpath = r_context()->config->keyring_path;
+		keyringdirectory = r_context()->config->keyring_directory;
+		r_context()->config->keyring_path = r_context()->signing_keyringpath;
+		r_context()->config->keyring_directory = NULL;
+	}
+
+	/* Let the user control verification by optionally providing a keyring. */
+	if (r_context()->config->keyring_path || r_context()->config->keyring_directory) {
+		g_message("Keyring given, enabling signature verification");
+		params &= ~CHECK_BUNDLE_NO_VERIFY;
+	} else {
+		g_message("No keyring given, disabling signature verification");
+		params |= CHECK_BUNDLE_NO_VERIFY;
+	}
+
+	res = check_bundle(outpath, &outbundle, params, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to verify the new bundle: ");
+		goto out;
+	}
+
+	res = TRUE;
+out:
+	/* Remove output file on error */
+	if (!res &&
+	    g_file_test(outpath, G_FILE_TEST_IS_REGULAR) &&
+	    !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_EXIST))
+		if (g_remove(outpath) != 0)
+			g_warning("failed to remove %s", outpath);
+
+	if (bundlestream)
+		g_clear_object(&bundlestream);
+
+	/* Restore saved paths if necessary */
+	if (keyringpath || keyringdirectory) {
+		r_context()->config->keyring_path = keyringpath;
+		r_context()->config->keyring_directory = keyringdirectory;
+	}
+
+	r_context_end_step("replace_signature", res);
+	return res;
+}
+
 gboolean extract_signature(RaucBundle *bundle, const gchar *outputsig, GError **error)
 {
 	GError *ierror = NULL;
