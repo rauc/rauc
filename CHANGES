@@ -1,3 +1,76 @@
+Release 1.6 (development)
+-------------------------
+
+.. rubric:: Enhancements
+
+* Added support for NOR flash devices. (by Ladislav Michl)
+* Added support for configuring the number of boot attempts for U-Boot. (by
+  Daniel Mack)
+* Implemented passing the image size to hooks as ``RAUC_IMAGE_SIZE``. (by Marcel
+  Hellwig)
+* Added support to use ``systemd.verity_root_data=`` to find the booted slot.
+  (by Arnaud Rebillout)
+* Implemented passing additional information to hooks for the ``boot-*`` slot types.
+  (by Bastian Krause)
+* Added support for extracting and replacing the bundle signature, which is
+  useful for scenarios with strict limitations on how HSMs can be used. (by
+  Jean-Pierre Geslin)
+* Implemented a ``rauc mount`` command to allow inspection of bundles without
+  extraction.
+* Allowed omitting the image filename when using the ``install`` slot hook.
+* Implemented support for extracting tar archives to jffs2 slots. (by Holger Assmann)
+* Added option for the ``resign`` and ``info`` commands to ignore expired
+  certificates (``--no-check-time``). (by Michael Heimpold)
+* Added option for the ``convert`` command to disable the concurrent access
+  checks for plain bundles (``--trust-environment``).
+* Simplified usage of compressed SquashFS images with extensions as created by
+  OpenEmbedded. (by Omer Akram)
+* Improved checks of the manifest contents to avoid common misconfigurations.
+
+.. rubric:: Bug fixes
+
+* Fixed installing plain bundles from ZFS partitions. (by Daniel Mack)
+* Fixed the order of pre-/post-install hooks for the ``boot-*`` slot types. (by Bastian Krause)
+* Fixed generation of VFAT filesystem labels which were rejected by newer
+  ``mkfs.vfat``.
+* Added checking of slot types configured in ``system.conf``.
+* Fixed installing plain bundles from ramfs. (by Ian Abbott)
+* Fixed curl download size limit handling. (by Christoph Steiger)
+* Fixed missing file descriptor closing in some error cases. (by Christian Hitz)
+* Fixed ``rauc service`` startup to handle missing or invalid configuration
+  correctly during startup.
+* Fixed an issue with slot boot status determination that could accidentally
+  detect 'good' slots as 'bad'.
+* Fixed inconsistent slot status reporting via the D-Bus API.
+
+.. rubric:: Testing
+
+* Updated kernel used for qemu testing.
+* Introduced an interactive mode for qemu-test.
+* Moved testing container building to GitHub Actions.
+* Updated testing container to Debian bullseye. (by Ludovico de Nitti)
+
+.. rubric:: Code
+
+* Removed some code left over after the removal of the deprecated file support.
+* Refactored bundle opening as preparation for HTTP streaming.
+* Added infrastructure for HTTP streaming tests.
+* Completed D-Bus interface definitions. (by Taras Zaporozhets)
+
+.. rubric:: Documentation
+
+* Improved documentation of the ``boot-mbr/gpt-switch`` slot types.
+* Fixed and improved documentation and comments in several places. (by Alexander
+  Dahl)
+* Documented a common approach to handle UBIFS device names via udev.
+
+Contributions from: Ahmad Fatoum, Alexander Dahl, Arnaud Rebillout, Bastian
+Krause, Christian Hitz, Christoph Steiger, Daniel Mack, Enrico Joerns, Holger
+Assmann, Ian Abbott, Jan Lübbe, Jean-Pierre Geslin, Ladislav Michl, Livio Bieri,
+Ludovico de Nittis, Marcel Hellwig, Michael Heimpold, Omer Akram, Pascal Huerst,
+Richard Forro, Roland Hieber, Rouven Czerwinski, Sijmen Huizenga, Taras
+Zaporozhets, Vivien Didelot, Vyacheslav Yurkov
+
 Release 1.5.1 (released Jan 22, 2021)
 -------------------------------------
 
@@ -16,7 +89,6 @@ Release 1.5.1 (released Jan 22, 2021)
   older environments.
 
 Contributions from: Enrico Jörns, Fabrice Fontaine, Jan Lübbe
-
 
 Release 1.5 (released Dec 14, 2020)
 -----------------------------------
