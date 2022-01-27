@@ -550,7 +550,7 @@ gboolean r_service_run(void)
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 
 	if (!r_context_configure(&ierror)) {
-		g_printerr("Failed to initialize context: %s", ierror->message);
+		g_printerr("Failed to initialize context: %s\n", ierror->message);
 		g_clear_error(&ierror);
 		return FALSE;
 	}
