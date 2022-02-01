@@ -544,16 +544,9 @@ static gboolean r_on_signal(gpointer user_data)
 
 gboolean r_service_run(void)
 {
-	GError *ierror = NULL;
 	gboolean service_return = TRUE;
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
-
-	if (!r_context_configure(&ierror)) {
-		g_printerr("Failed to initialize context: %s\n", ierror->message);
-		g_clear_error(&ierror);
-		return FALSE;
-	}
 
 	service_loop = g_main_loop_new(NULL, FALSE);
 	g_unix_signal_add(SIGTERM, r_on_signal, NULL);

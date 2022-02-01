@@ -220,6 +220,13 @@ static gboolean install_start(int argc, char **argv)
 		}
 	}
 
+	if (!r_context_configure(&error)) {
+		g_printerr("Failed to initialize context: %s\n", error->message);
+		g_clear_error(&error);
+		r_exit_status = 1;
+		goto out;
+	}
+
 	if (argc < 3) {
 		g_printerr("A bundle filename name must be provided\n");
 		goto out;
@@ -323,6 +330,13 @@ static gboolean bundle_start(int argc, char **argv)
 	g_autofree gchar *outdir = NULL;
 	g_debug("bundle start");
 
+	if (!r_context_configure(&ierror)) {
+		g_printerr("Failed to initialize context: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
 	if (argc < 3) {
 		g_printerr("An input directory name must be provided\n");
 		r_exit_status = 1;
@@ -394,6 +408,13 @@ static gboolean write_slot_start(int argc, char **argv)
 	img_to_slot_handler update_handler = NULL;
 
 	g_debug("write_slot_start");
+
+	if (!r_context_configure(&ierror)) {
+		g_printerr("Failed to initialize context: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
 
 	if (argc < 3) {
 		g_printerr("A target slot name must be provided\n");
@@ -479,6 +500,13 @@ static gboolean resign_start(int argc, char **argv)
 	GError *ierror = NULL;
 	g_debug("resign start");
 
+	if (!r_context_configure(&ierror)) {
+		g_printerr("Failed to initialize context: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
 	if (argc < 3) {
 		g_printerr("An input bundle must be provided\n");
 		r_exit_status = 1;
@@ -534,6 +562,13 @@ static gboolean replace_signature_start(int argc, char **argv)
 	RaucBundle *bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("replace signature start");
+
+	if (!r_context_configure(&ierror)) {
+		g_printerr("Failed to initialize context: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
 
 	if (argc < 3) {
 		g_printerr("An input bundle must be provided\n");
@@ -592,6 +627,13 @@ static gboolean extract_signature_start(int argc, char **argv)
 	GError *ierror = NULL;
 	g_debug("extract signature start");
 
+	if (!r_context_configure(&ierror)) {
+		g_printerr("Failed to initialize context: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
 	if (argc < 3) {
 		g_printerr("An input bundle must be provided\n");
 		r_exit_status = 1;
@@ -636,6 +678,13 @@ static gboolean extract_start(int argc, char **argv)
 	RaucBundle *bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("extract start");
+
+	if (!r_context_configure(&ierror)) {
+		g_printerr("Failed to initialize context: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
 
 	if (argc < 3) {
 		g_printerr("An input bundle must be provided\n");
@@ -683,6 +732,13 @@ static gboolean convert_start(int argc, char **argv)
 	RaucBundle *bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("convert start");
+
+	if (!r_context_configure(&ierror)) {
+		g_printerr("Failed to initialize context: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
 
 	if (r_context()->certpath == NULL ||
 	    r_context()->keypath == NULL) {
@@ -988,6 +1044,13 @@ static gboolean info_start(int argc, char **argv)
 	gchar* (*formatter)(RaucManifest *manifest) = NULL;
 	gchar *text;
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
+
+	if (!r_context_configure(&error)) {
+		g_printerr("Failed to initialize context: %s\n", error->message);
+		g_clear_error(&error);
+		r_exit_status = 1;
+		return FALSE;
+	}
 
 	if (argc < 3) {
 		g_printerr("A file name must be provided\n");
@@ -1664,6 +1727,13 @@ static gboolean status_start(int argc, char **argv)
 		}
 	}
 
+	if (!r_context_configure(&ierror)) {
+		g_printerr("Failed to initialize context: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
 	if (!ENABLE_SERVICE) {
 		res = determine_slot_states(&ierror);
 		if (!res) {
@@ -1772,11 +1842,20 @@ out:
 G_GNUC_UNUSED
 static gboolean service_start(int argc, char **argv)
 {
+	GError *error = NULL;
+
 	g_debug("service start");
 
 	if (!r_context_conf()->configpath) {
 		g_debug("Using default system config path '/etc/rauc/system.conf'");
 		r_context_conf()->configpath = g_strdup("/etc/rauc/system.conf");
+	}
+
+	if (!r_context_configure(&error)) {
+		g_printerr("Failed to initialize context: %s\n", error->message);
+		g_clear_error(&error);
+		r_exit_status = 1;
+		return TRUE;
 	}
 
 	r_exit_status = r_service_run() ? 0 : 1;
@@ -1790,6 +1869,12 @@ static gboolean mount_start(int argc, char **argv)
 	g_autoptr(RaucBundle) bundle = NULL;
 	GError *error = NULL;
 	gboolean res = FALSE;
+
+	if (!r_context_configure(&error)) {
+		g_printerr("Failed to initialize context: %s\n", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
 
 	if (argc < 3) {
 		g_printerr("A file name must be provided\n");
