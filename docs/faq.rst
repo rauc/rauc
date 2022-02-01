@@ -76,6 +76,25 @@ slot status information, use ``type=raw`` in the respective slot config and
 use a global (see :ref:`slot status file <statusfile>`) on a separate
 non-redundant partition with setting ``statusfile=</path/to/global.status>``.
 
+Can I use RAUC with a dm-crypt-protected partition?
+---------------------------------------------------
+
+Yes you can, by using the ``/dev/mapper/<devicename>`` as the device for the
+slot (with the type of the filesystem of your choice).
+This way, RAUC interacts only with the unencrypted device/content.
+
+For example, with an encrypted root filesystem slot (perhaps unlocked by an
+initramfs loaded from a different partition):
+
+.. code-block:: cfg
+
+  [slot.rootfs.0]
+  device=/dev/mapper/crypt-rootfs0
+  type=ext4
+  bootname=system0
+
+Remember to unlock the inactive slots as well so that RAUC can write to them.
+
 What causes a payload size that is not a multiple of 4kiB?
 ----------------------------------------------------------
 
