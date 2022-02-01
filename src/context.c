@@ -232,8 +232,17 @@ gboolean r_context_configure(GError **error)
 			return FALSE;
 		}
 	} else {
-		/* This is a hack as we cannot get rid of config easily */
-		default_config(&context->config);
+		/* Fallback: Always try loading config from default path */
+		if (load_config("/etc/rauc/system.conf", &context->config, &ierror)) {
+			g_message("valid system config found, using it");
+		} else {
+			if (ierror->domain != G_FILE_ERROR) {
+				g_propagate_prefixed_error(error, ierror, "Failed to load system config (/etc/rauc/system.conf): ");
+				return FALSE;
+			}
+			/* This is a hack as we cannot get rid of config easily */
+			default_config(&context->config);
+		}
 	}
 
 	if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_DTB) {
