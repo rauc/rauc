@@ -1980,7 +1980,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 		g_autofree gchar* manifestpath = NULL;
 
 		if (!(bundle->payload_verified || bundle->verification_disabled))
-			g_error("bundle payload must be verfied before mounting for plain bundles");
+			g_error("bundle payload must be verified before mounting for plain bundles");
 
 		res = r_mount_bundle(loopname, mount_point, &ierror);
 		if (!res) {
