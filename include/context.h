@@ -16,12 +16,19 @@ typedef struct {
 	RaucBundle *mounted_bundle;
 } RContextInstallationInfo;
 
+typedef enum {
+	R_CONTEXT_CONFIG_MODE_NONE, /* use default config values */
+	R_CONTEXT_CONFIG_MODE_AUTO, /* load config file if it exists */
+	R_CONTEXT_CONFIG_MODE_REQUIRED, /* require config file */
+} RContextConfigMode;
+
 typedef struct {
 	/* a busy context must not be reconfigured */
 	gboolean busy;
 	gboolean pending;
 
 	/* system configuration data */
+	RContextConfigMode configmode;
 	gchar *configpath;
 	RaucConfig *config;
 

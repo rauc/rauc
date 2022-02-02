@@ -318,7 +318,8 @@ test_expect_success ROOT "rauc mount" "
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   test_when_finished umount /mnt/rauc/bundle &&
   ls ${TEST_TMPDIR} &&
-  rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+  rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
     mount ${TEST_TMPDIR}/good-bundle.raucb &&
   mount &&
   test -f /mnt/rauc/bundle/manifest.raucm &&
