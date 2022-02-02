@@ -210,6 +210,14 @@ test_expect_success "rauc info" "
     info ${TEST_TMPDIR}/good-bundle.raucb
 "
 
+test_expect_success "rauc info with config" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
+  rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
+    info ${TEST_TMPDIR}/good-bundle.raucb
+"
+
 test_expect_success "rauc info verification failure" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/invalid-sig-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/invalid-sig-bundle.raucb &&
