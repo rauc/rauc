@@ -2143,6 +2143,12 @@ static void cmdline_handler(int argc, char **argv)
 	if (!r_context_get_busy()) {
 		r_context_conf();
 		r_context_conf()->configmode = rcommand->configmode;
+		if (ENABLE_SERVICE) {
+			/* these commands are handled by the service and need no client config */
+			if (rcommand->type == INSTALL ||
+			    rcommand->type == STATUS)
+				r_context_conf()->configmode = R_CONTEXT_CONFIG_MODE_NONE;
+		}
 		if (confpath)
 			r_context_conf()->configpath = confpath;
 		if (certpath)
