@@ -219,6 +219,8 @@ gboolean r_context_configure(GError **error)
 {
 	gboolean res = TRUE;
 	GError *ierror = NULL;
+	RContextConfigMode configmode;
+	const gchar *configpath = NULL;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
@@ -226,14 +228,39 @@ gboolean r_context_configure(GError **error)
 	g_assert_false(context->busy);
 
 	g_clear_pointer(&context->config, free_config);
+	configmode = context->configmode;
 	if (context->configpath) {
-		if (!load_config(context->configpath, &context->config, &ierror)) {
-			g_propagate_prefixed_error(error, ierror, "Failed to load system config (%s): ", context->configpath);
-			return FALSE;
-		}
+		/* explicitly set on the command line */
+		configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
+		configpath = context->configpath;
 	} else {
-		/* This is a hack as we cannot get rid of config easily */
-		default_config(&context->config);
+		/* the default path */
+		configpath = "/etc/rauc/system.conf";
+	}
+	switch (configmode) {
+		case R_CONTEXT_CONFIG_MODE_NONE:
+			default_config(&context->config);
+			break;
+		case R_CONTEXT_CONFIG_MODE_AUTO:
+			if (load_config(configpath, &context->config, &ierror)) {
+				g_message("valid %s found, using it", configpath);
+			} else if (ierror->domain != G_FILE_ERROR) {
+				g_propagate_prefixed_error(error, ierror, "Failed to load system config (%s): ", configpath);
+				return FALSE;
+			} else {
+				/* This is a hack as we cannot get rid of config easily */
+				default_config(&context->config);
+			}
+			break;
+		case R_CONTEXT_CONFIG_MODE_REQUIRED:
+			if (!load_config(configpath, &context->config, &ierror)) {
+				g_propagate_prefixed_error(error, ierror, "Failed to load system config (%s): ", configpath);
+				return FALSE;
+			}
+			break;
+		default:
+			g_error("invalid context config mode %d", configmode);
+			break;
 	}
 
 	if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_DTB) {

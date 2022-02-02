@@ -210,6 +210,14 @@ test_expect_success "rauc info" "
     info ${TEST_TMPDIR}/good-bundle.raucb
 "
 
+test_expect_success "rauc info with config" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
+  rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
+    info ${TEST_TMPDIR}/good-bundle.raucb
+"
+
 test_expect_success "rauc info verification failure" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/invalid-sig-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/invalid-sig-bundle.raucb &&
@@ -318,7 +326,8 @@ test_expect_success ROOT "rauc mount" "
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   test_when_finished umount /mnt/rauc/bundle &&
   ls ${TEST_TMPDIR} &&
-  rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+  rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
     mount ${TEST_TMPDIR}/good-bundle.raucb &&
   mount &&
   test -f /mnt/rauc/bundle/manifest.raucm &&

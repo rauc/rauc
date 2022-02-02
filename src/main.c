@@ -213,13 +213,6 @@ static gboolean install_start(int argc, char **argv)
 
 	r_exit_status = 1;
 
-	if (!ENABLE_SERVICE) {
-		if (!r_context_conf()->configpath) {
-			g_debug("Using default system config path '/etc/rauc/system.conf'");
-			r_context_conf()->configpath = g_strdup("/etc/rauc/system.conf");
-		}
-	}
-
 	if (argc < 3) {
 		g_printerr("A bundle filename name must be provided\n");
 		goto out;
@@ -1658,13 +1651,6 @@ static gboolean status_start(int argc, char **argv)
 	r_exit_status = 0;
 
 	if (!ENABLE_SERVICE) {
-		if (!r_context_conf()->configpath) {
-			g_debug("Using default system config path '/etc/rauc/system.conf'");
-			r_context_conf()->configpath = g_strdup("/etc/rauc/system.conf");
-		}
-	}
-
-	if (!ENABLE_SERVICE) {
 		res = determine_slot_states(&ierror);
 		if (!res) {
 			g_printerr("Failed to determine slot states: %s\n", ierror->message);
@@ -1774,11 +1760,6 @@ static gboolean service_start(int argc, char **argv)
 {
 	g_debug("service start");
 
-	if (!r_context_conf()->configpath) {
-		g_debug("Using default system config path '/etc/rauc/system.conf'");
-		r_context_conf()->configpath = g_strdup("/etc/rauc/system.conf");
-	}
-
 	r_exit_status = r_service_run() ? 0 : 1;
 
 	return TRUE;
@@ -1867,6 +1848,7 @@ typedef struct {
 	const gchar* summary;
 	gboolean (*cmd_handler)(int argc, char **argv);
 	GOptionGroup* options;
+	RContextConfigMode configmode;
 	gboolean while_busy;
 } RaucCommand;
 
@@ -1994,29 +1976,53 @@ static void cmdline_handler(int argc, char **argv)
 	g_autofree gchar *text = NULL;
 
 	RaucCommand rcommands[] = {
-		{UNKNOWN, "help", "<COMMAND>", "Print help", unknown_start, NULL, TRUE},
-		{INSTALL, "install", "install <BUNDLE>", "Install a bundle", install_start, install_group, FALSE},
+		{UNKNOWN, "help", "<COMMAND>",
+		 "Print help",
+		 unknown_start, NULL, R_CONTEXT_CONFIG_MODE_NONE, TRUE},
+		{INSTALL, "install", "install <BUNDLE>",
+		 "Install a bundle",
+		 install_start, install_group, R_CONTEXT_CONFIG_MODE_REQUIRED, FALSE},
 #if ENABLE_CREATE == 1
-		{BUNDLE, "bundle", "bundle <INPUTDIR> <BUNDLENAME>", "Create a bundle from a content directory", bundle_start, bundle_group, FALSE},
-		{RESIGN, "resign", "resign <INBUNDLE> <OUTBUNDLE>", "Resign an already signed bundle", resign_start, resign_group, FALSE},
-		{CONVERT, "convert", "convert <INBUNDLE> <OUTBUNDLE>", "Convert to casync index bundle and store", convert_start, convert_group, FALSE},
-		{REPLACE_SIG, "replace-signature", "replace-signature <INBUMDLE> <INPUTSIG> <OUTBUNDLE>", "Replaces the signature of an already signed bundle", replace_signature_start, replace_group, FALSE},
-		{EXTRACT_SIG, "extract-signature", "extract-signature <BUNDLENAME> <OUTPUTSIG>", "Extract the bundle signature", extract_signature_start, NULL, FALSE},
+		{BUNDLE, "bundle", "bundle <INPUTDIR> <BUNDLENAME>",
+		 "Create a bundle from a content directory",
+		 bundle_start, bundle_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
+		{RESIGN, "resign", "resign <INBUNDLE> <OUTBUNDLE>",
+		 "Resign an already signed bundle",
+		 resign_start, resign_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
+		{CONVERT, "convert", "convert <INBUNDLE> <OUTBUNDLE>",
+		 "Convert to casync index bundle and store",
+		 convert_start, convert_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
+		{REPLACE_SIG, "replace-signature", "replace-signature <INBUMDLE> <INPUTSIG> <OUTBUNDLE>",
+		 "Replaces the signature of an already signed bundle",
+		 replace_signature_start, replace_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
+		{EXTRACT_SIG, "extract-signature", "extract-signature <BUNDLENAME> <OUTPUTSIG>",
+		 "Extract the bundle signature",
+		 extract_signature_start, NULL, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
 #endif
-		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>", "Extract the bundle content", extract_start, NULL, FALSE},
-		{INFO, "info", "info <FILE>", "Print bundle info", info_start, info_group, FALSE},
+		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>",
+		 "Extract the bundle content",
+		 extract_start, NULL, R_CONTEXT_CONFIG_MODE_AUTO, FALSE},
+		{INFO, "info", "info <FILE>",
+		 "Print bundle info",
+		 info_start, info_group, R_CONTEXT_CONFIG_MODE_AUTO, FALSE},
 		{STATUS, "status", "status",
 		 "Show system status\n\n"
 		 "List of status commands (default slot is the currently booted slot):\n"
 		 "  mark-good [booted | other | <SLOT_NAME>] \tMark the slot as good\n"
 		 "  mark-bad [booted | other | <SLOT_NAME>] \tMark the slot as bad\n"
 		 "  mark-active [booted | other | <SLOT_NAME>] \tMark the slot as active",
-		 status_start, status_group, TRUE},
-		{WRITE_SLOT, "write-slot", "write-slot <SLOTNAME> <IMAGE>", "Write image to slot and bypass all update logic", write_slot_start, NULL, FALSE},
+		 status_start, status_group, R_CONTEXT_CONFIG_MODE_REQUIRED, TRUE},
+		{WRITE_SLOT, "write-slot", "write-slot <SLOTNAME> <IMAGE>",
+		 "Write image to slot and bypass all update logic",
+		 write_slot_start, NULL, R_CONTEXT_CONFIG_MODE_REQUIRED, FALSE},
 #if ENABLE_SERVICE == 1
-		{SERVICE, "service", "service", "Start RAUC service", service_start, service_group, TRUE},
+		{SERVICE, "service", "service",
+		 "Start RAUC service",
+		 service_start, service_group, R_CONTEXT_CONFIG_MODE_REQUIRED, TRUE},
 #endif
-		{MOUNT, "mount", "mount <BUNDLENAME>", "Mount a bundle (for development purposes)", mount_start, NULL, TRUE},
+		{MOUNT, "mount", "mount <BUNDLENAME>",
+		 "Mount a bundle (for development purposes)",
+		 mount_start, NULL, R_CONTEXT_CONFIG_MODE_REQUIRED, TRUE},
 		{0}
 	};
 	RaucCommand *rc;
@@ -2136,6 +2142,13 @@ static void cmdline_handler(int argc, char **argv)
 	/* configuration updates are handled here */
 	if (!r_context_get_busy()) {
 		r_context_conf();
+		r_context_conf()->configmode = rcommand->configmode;
+		if (ENABLE_SERVICE) {
+			/* these commands are handled by the service and need no client config */
+			if (rcommand->type == INSTALL ||
+			    rcommand->type == STATUS)
+				r_context_conf()->configmode = R_CONTEXT_CONFIG_MODE_NONE;
+		}
 		if (confpath)
 			r_context_conf()->configpath = confpath;
 		if (certpath)
@@ -2170,6 +2183,13 @@ static void cmdline_handler(int argc, char **argv)
 
 	if (r_context_get_busy() && !rcommand->while_busy) {
 		g_printerr("rauc busy: cannot run %s\n", rcommand->name);
+		r_exit_status = 1;
+		return;
+	}
+
+	if (!r_context_configure(&error)) {
+		g_printerr("Failed to initialize context: %s\n", error->message);
+		g_clear_error(&error);
 		r_exit_status = 1;
 		return;
 	}
