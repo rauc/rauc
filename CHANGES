@@ -1,5 +1,5 @@
-Release 1.6 (development)
--------------------------
+Release 1.6 (released Feb 4, 2022)
+----------------------------------
 
 .. rubric:: Enhancements
 
@@ -26,6 +26,8 @@ Release 1.6 (development)
 * Simplified usage of compressed SquashFS images with extensions as created by
   OpenEmbedded. (by Omer Akram)
 * Improved checks of the manifest contents to avoid common misconfigurations.
+* Improved handling of ``system.conf`` loading according to the use-cases of
+  the different commands.
 
 .. rubric:: Bug fixes
 
@@ -37,8 +39,6 @@ Release 1.6 (development)
 * Fixed installing plain bundles from ramfs. (by Ian Abbott)
 * Fixed curl download size limit handling. (by Christoph Steiger)
 * Fixed missing file descriptor closing in some error cases. (by Christian Hitz)
-* Fixed ``rauc service`` startup to handle missing or invalid configuration
-  correctly during startup.
 * Fixed an issue with slot boot status determination that could accidentally
   detect 'good' slots as 'bad'.
 * Fixed inconsistent slot status reporting via the D-Bus API.
@@ -63,13 +63,16 @@ Release 1.6 (development)
 * Fixed and improved documentation and comments in several places. (by Alexander
   Dahl)
 * Documented a common approach to handle UBIFS device names via udev.
+* Added a FAQ entry covering the use of dm-crypt partitions. (by Fabian
+  Büttner)
 
 Contributions from: Ahmad Fatoum, Alexander Dahl, Arnaud Rebillout, Bastian
-Krause, Christian Hitz, Christoph Steiger, Daniel Mack, Enrico Joerns, Holger
-Assmann, Ian Abbott, Jan Lübbe, Jean-Pierre Geslin, Ladislav Michl, Livio Bieri,
-Ludovico de Nittis, Marcel Hellwig, Michael Heimpold, Omer Akram, Pascal Huerst,
-Richard Forro, Roland Hieber, Rouven Czerwinski, Sijmen Huizenga, Taras
-Zaporozhets, Vivien Didelot, Vyacheslav Yurkov
+Krause, Christian Hitz, Christoph Steiger, Daniel Mack, Enrico Jörns, Fabian
+Büttner, Holger Assmann, Ian Abbott, Jan Lübbe, Jean-Pierre Geslin, Ladislav
+Michl, Livio Bieri, Ludovico de Nittis, Marcel Hellwig, Michael Heimpold,
+Michael Tretter, Omer Akram, Pascal Huerst, Richard Forro, Roland Hieber,
+Rouven Czerwinski, Sijmen Huizenga, Taras Zaporozhets, Vivien Didelot,
+Vyacheslav Yurkov
 
 Release 1.5.1 (released Jan 22, 2021)
 -------------------------------------
