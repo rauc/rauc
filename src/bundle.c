@@ -826,7 +826,7 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 	}
 
 	if (g_file_test(storepath, G_FILE_TEST_EXISTS)) {
-		g_warning("Store path '%s' already exists, appending new chunks", outbundle);
+		g_warning("Store path '%s' already exists, appending new chunks", storepath);
 	}
 
 	/* Set up tmp dir for conversion */
