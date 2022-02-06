@@ -786,6 +786,9 @@ out:
 
 static gboolean image_is_archive(RaucImage* image)
 {
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(image->filename, FALSE);
+
 	if (g_pattern_match_simple("*.tar*", image->filename) ||
 	    g_pattern_match_simple("*.catar", image->filename)) {
 		return TRUE;
@@ -864,6 +867,9 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 		g_autofree gchar *idxpath = NULL;
 
 		imgpath = g_build_filename(contentdir, image->filename, NULL);
+
+		if (!image->filename)
+			continue;
 
 		if (image_is_archive(image)) {
 			idxfile = g_strconcat(image->filename, ".caidx", NULL);
