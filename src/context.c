@@ -186,6 +186,8 @@ static gchar* get_system_dtb_compatible(GError **error)
 		return NULL;
 	}
 
+	g_assert_nonnull(contents); /* fixes scan-build false positive */
+
 	return contents;
 }
 
@@ -202,6 +204,8 @@ static gchar* get_variant_from_file(const gchar* filename, GError **error)
 		g_propagate_error(error, ierror);
 		return NULL;
 	}
+
+	g_assert_nonnull(contents); /* fixes scan-build false positive */
 
 	/*
 	 * We'll discard surrounding whitespace later anyway, but as it's
