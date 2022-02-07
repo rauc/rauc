@@ -244,6 +244,8 @@ gboolean r_context_configure(GError **error)
 		case R_CONTEXT_CONFIG_MODE_AUTO:
 			if (load_config(configpath, &context->config, &ierror)) {
 				g_message("valid %s found, using it", configpath);
+				if (!context->configpath)
+					context->configpath = g_strdup(configpath);
 			} else if (ierror->domain != G_FILE_ERROR) {
 				g_propagate_prefixed_error(error, ierror, "Failed to load system config (%s): ", configpath);
 				return FALSE;
@@ -257,6 +259,8 @@ gboolean r_context_configure(GError **error)
 				g_propagate_prefixed_error(error, ierror, "Failed to load system config (%s): ", configpath);
 				return FALSE;
 			}
+			if (!context->configpath)
+				context->configpath = g_strdup(configpath);
 			break;
 		default:
 			g_error("invalid context config mode %d", configmode);
