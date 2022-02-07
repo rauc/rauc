@@ -223,7 +223,7 @@ gboolean determine_boot_states(GError **error)
 {
 	GHashTableIter iter;
 	RaucSlot *slot;
-	gboolean had_errors;
+	gboolean had_errors = FALSE;
 
 	/* get boot state */
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
