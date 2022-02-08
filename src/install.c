@@ -139,6 +139,9 @@ gboolean determine_slot_states(GError **error)
 		RaucSlot *s = g_hash_table_lookup(r_context()->config->slots, l->data);
 		g_assert_nonnull(s);
 
+		if (!s->bootname)
+			continue;
+
 		if (g_strcmp0(s->bootname, r_context()->bootslot) == 0) {
 			booted = s;
 			break;
