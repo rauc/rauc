@@ -1,0 +1,32 @@
+name: scan-build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:unstable
+      options: --user=root
+    steps:
+    - name: Install dependencies
+      run: |
+        apt-get update
+        DEBIAN_FRONTEND='noninteractive' apt-get install -qy automake make libtool libglib2.0-dev libcurl3-dev libssl-dev libdbus-1-dev libjson-glib-dev libfdisk-dev libnl-genl-3-dev dbus-x11 clang-tools
+
+    - name: Inspect environment
+      run: |
+        whoami
+        gcc --version
+        ls -la /usr/bin/clang*
+
+    - uses: actions/checkout@v2
+
+    - name: Run autogen.sh
+      run: |
+        ./autogen.sh
+
+    - name: Run scan-build
+      run: |
+        scan-build --status-bugs ./configure --disable-dependency-tracking
+        scan-build --status-bugs -disable-checker unix.Malloc make
