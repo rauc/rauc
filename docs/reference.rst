@@ -880,7 +880,7 @@ The following environment variables will be passed to the hook executable:
 
 ``RAUC_SYSTEM_VARIANT``
   The system's variant as obtained by the variant source
-  (refer ref:`sec-variants`)
+  (refer :ref:`sec-variants`)
 
 ``RAUC_MF_COMPATIBLE``
   The compatible value provided by the current bundle,
@@ -906,7 +906,7 @@ The following environment variables will be passed to the hook executable:
 
 ``RAUC_SYSTEM_VARIANT``
   The system's variant as obtained by the variant source
-  (refer ref:`sec-variants`)
+  (refer :ref:`sec-variants`)
 
 ``RAUC_SLOT_NAME``
   The name of the currently installed slot, e.g ``"rootfs.1"``.
