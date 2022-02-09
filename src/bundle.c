@@ -1866,30 +1866,6 @@ out:
 	return res;
 }
 
-gboolean extract_file_from_bundle(RaucBundle *bundle, const gchar *outputdir, const gchar *file, GError **error)
-{
-	GError *ierror = NULL;
-	gboolean res = FALSE;
-
-	g_return_val_if_fail(bundle != NULL, FALSE);
-
-	res = check_bundle_payload(bundle, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	res = unsquashfs(g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream)), outputdir, file, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	res = TRUE;
-out:
-	return res;
-}
-
 gboolean load_manifest_from_bundle(RaucBundle *bundle, RaucManifest **manifest, GError **error)
 {
 	g_autofree gchar* tmpdir = NULL;
