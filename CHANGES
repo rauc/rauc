@@ -1,4 +1,4 @@
-Release 1.6 (released Feb 4, 2022)
+Release 1.6 (released Feb 9, 2022)
 ----------------------------------
 
 .. rubric:: Enhancements
@@ -49,6 +49,7 @@ Release 1.6 (released Feb 4, 2022)
 * Introduced an interactive mode for qemu-test.
 * Moved testing container building to GitHub Actions.
 * Updated testing container to Debian bullseye. (by Ludovico de Nitti)
+* Added a scan-build workflow.
 
 .. rubric:: Code
 
