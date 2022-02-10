@@ -171,7 +171,7 @@ check_LTLIBRARIES = librauctest.la
 
 EXTRA_DIST += tap-t \
 	      tap-test \
-	      qemu-test qemu-test-init \
+	      qemu-test qemu-test-init qemu-test-rauc-config \
 	      test/Dockerfile \
 	      test/bin \
 	      test/install-content \
@@ -179,7 +179,11 @@ EXTRA_DIST += tap-t \
 	      $(wildcard test/*.raucb) \
 	      $(wildcard test/*.raucm) \
 	      test/dummy.verity \
+	      test/dummy.verity.info \
 	      test/minimal-test.conf \
+	      test/nginx.conf \
+	      test/nginx.htpasswd \
+	      test/nginx_backend.py \
 	      test/rauc.t \
 	      test/rootfs.raucs \
 	      test/sharness.sh \
@@ -278,6 +282,7 @@ EXTRA_DIST += docs/conf.py
 EXTRA_DIST += docs/images
 EXTRA_DIST += docs/extensions
 EXTRA_DIST += docs/release-checklist.txt
+EXTRA_DIST += docs/favicon.ico docs/RAUC_Logo_outline.svg
 EXTRA_DIST += $(wildcard docs/*.rst)
 
 AM_DISTCHECK_CONFIGURE_FLAGS = \
