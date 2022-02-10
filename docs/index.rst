@@ -172,10 +172,15 @@ Key Features of RAUC
   .. |ptxdist_logo| image:: images/ptxdist_logo.png
      :width: 200
 
-  +-----------------------------+----------------------------------+
-  ||yocto_logo|                 | |ptxdist_logo|                   |
-  +-----------------------------+----------------------------------+
-  |Yocto support in meta-rauc_  | PTXdist support since 2017.04.0. |
-  +-----------------------------+----------------------------------+
+  .. |buildroot_logo| image:: images/buildroot_logo.png
+     :width: 200
+
+  +-----------------------------+----------------------------------+----------------------------------+
+  ||yocto_logo|                 | |ptxdist_logo|                   | |buildroot_logo|                 |
+  +-----------------------------+----------------------------------+----------------------------------+
+  |Yocto support in meta-rauc_  | PTXdist support since 2017.04.0. | Buildroot_ support since 2017.08 |
+  +-----------------------------+----------------------------------+----------------------------------+
 
 .. _meta-rauc: https://github.com/rauc/meta-rauc
+
+.. _buildroot: https://www.buildroot.org
