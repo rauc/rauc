@@ -131,6 +131,10 @@ grep -q "ENABLE_SERVICE 1" $SHARNESS_TEST_DIRECTORY/../config.h &&
   test_set_prereq SERVICE &&
   select_system_or_session_bus
 
+# Prerequisite: openssl available [OPENSSL]
+openssl asn1parse -help &&
+  test_set_prereq OPENSSL
+
 # Prerequisite: casync available [CASYNC]
 casync --version &&
   test_set_prereq CASYNC
@@ -572,7 +576,7 @@ test_expect_success FAKETIME "rauc sign bundle with valid certificate" "
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success "rauc extract signature" "
+test_expect_success OPENSSL "rauc extract signature" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rauc \
@@ -726,7 +730,7 @@ test_expect_success FAKETIME "rauc resign extend (expired, no-verify)" "
   test -f ${TEST_TMPDIR}/out2.raucb
 "
 
-test_expect_success "rauc replace signature (plain)" "
+test_expect_success OPENSSL "rauc replace signature (plain)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f ${TEST_TMPDIR}/out1.raucb && rm -f ${TEST_TMPDIR}/out2.raucb &&
@@ -750,7 +754,7 @@ test_expect_success "rauc replace signature (plain)" "
   test -f ${TEST_TMPDIR}/out2.raucb
 "
 
-test_expect_success "rauc replace signature (verity)" "
+test_expect_success OPENSSL "rauc replace signature (verity)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-verity-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-verity-bundle.raucb &&
   rm -f ${TEST_TMPDIR}/out1.raucb && rm -f ${TEST_TMPDIR}/out2.raucb &&
@@ -774,7 +778,7 @@ test_expect_success "rauc replace signature (verity)" "
   test -f ${TEST_TMPDIR}/out2.raucb
 "
 
-test_expect_success "rauc replace signature (output exists)" "
+test_expect_success OPENSSL "rauc replace signature (output exists)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f ${TEST_TMPDIR}/out1.raucb && rm -f ${TEST_TMPDIR}/out2.raucb &&
@@ -798,7 +802,7 @@ test_expect_success "rauc replace signature (output exists)" "
   test -f ${TEST_TMPDIR}/out2.raucb
 "
 
-test_expect_success "rauc replace signature (bad keyring)" "
+test_expect_success OPENSSL "rauc replace signature (bad keyring)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f ${TEST_TMPDIR}/out1.raucb && rm -f ${TEST_TMPDIR}/out2.raucb &&
@@ -820,7 +824,7 @@ test_expect_success "rauc replace signature (bad keyring)" "
   test ! -f ${TEST_TMPDIR}/out2.raucb
 "
 
-test_expect_success "rauc replace signature (no-verify)" "
+test_expect_success OPENSSL "rauc replace signature (no-verify)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f ${TEST_TMPDIR}/out1.raucb && rm -f ${TEST_TMPDIR}/out2.raucb &&
@@ -844,7 +848,7 @@ test_expect_success "rauc replace signature (no-verify)" "
   test -f ${TEST_TMPDIR}/out2.raucb
 "
 
-test_expect_success "rauc replace signature (invalid bundle/signature/output)" "
+test_expect_success OPENSSL "rauc replace signature (invalid bundle/signature/output)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f ${TEST_TMPDIR}/invalid.raucb ${TEST_TMPDIR}/invalid.sig \

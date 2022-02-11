@@ -203,7 +203,7 @@ Running the Test Suite
 
     sudo apt-get install qemu-system-x86 time squashfs-tools
     # Optional to run all tests:
-    # sudo apt-get install faketime casync grub-common softhsm2 opensc opensc-pkcs11 libengine-pkcs11-openssl mtd-utils
+    # sudo apt-get install faketime casync grub-common openssl softhsm2 opensc opensc-pkcs11 libengine-pkcs11-openssl mtd-utils
     ./qemu-test
 
 Creating a Bundle (Host)
