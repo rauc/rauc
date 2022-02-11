@@ -1476,6 +1476,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 		CMS_ContentInfo *cms = NULL;
 		X509_STORE *store = setup_x509_store(NULL, NULL, &ierror);
 		X509_VERIFY_PARAM *param = NULL;
+		gboolean trust_env = (params & CHECK_BUNDLE_TRUST_ENV);
 		if (!store) {
 			g_propagate_error(error, ierror);
 			res = FALSE;
@@ -1498,7 +1499,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 				goto out;
 			}
 
-			if (!enforce_bundle_exclusive(fd, &ierror)) {
+			if (!trust_env && !enforce_bundle_exclusive(fd, &ierror)) {
 				g_propagate_error(error, ierror);
 				res = FALSE;
 				goto out;
@@ -1515,7 +1516,6 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 			ibundle->payload_verified = TRUE;
 		} else {
 			int fd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(ibundle->stream));
-			gboolean trust_env = (params & CHECK_BUNDLE_TRUST_ENV);
 
 			if (!(r_context()->config->bundle_formats_mask & 1 << R_MANIFEST_FORMAT_VERITY)) {
 				g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
