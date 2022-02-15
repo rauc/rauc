@@ -4,7 +4,11 @@
 
 #include "manifest.h"
 
+#ifndef GLIB_VERSION_2_68
 #define memdup(x) (g_memdup(x, sizeof(*x)))
+#else
+#define memdup(x) (g_memdup2(x, sizeof(*x)))
+#endif
 
 typedef struct {
 	gboolean custom_handler;
