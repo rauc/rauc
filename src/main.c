@@ -1644,7 +1644,6 @@ static gboolean status_start(int argc, char **argv)
 	const gchar *slot_identifier = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	RInstaller *proxy = NULL;
 	g_autoptr(RaucStatusPrint) status_print = NULL;
 
 	g_debug("status start");
@@ -1656,7 +1655,7 @@ static gboolean status_start(int argc, char **argv)
 			g_printerr("Failed to determine slot states: %s\n", ierror->message);
 			g_clear_error(&ierror);
 			r_exit_status = 1;
-			goto out;
+			return TRUE;
 		}
 
 		res = determine_boot_states(&ierror);
@@ -1688,12 +1687,11 @@ static gboolean status_start(int argc, char **argv)
 		status_print->slots = r_context()->config->slots;
 	} else {
 		if (!retrieve_status_via_dbus(&status_print, &ierror)) {
-			message = g_strdup_printf(
-					"error retrieving slot status via D-Bus: %s",
+			g_printerr("Error retrieving slot status via D-Bus: %s\n",
 					ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
-			goto out;
+			return TRUE;
 		}
 	}
 
@@ -1701,15 +1699,15 @@ static gboolean status_start(int argc, char **argv)
 		if (!print_status(status_print)) {
 			r_exit_status = 1;
 		}
-		goto out;
+		return TRUE;
 	} else if (argc == 3) {
 		slot_identifier = "booted";
 	} else if (argc == 4) {
 		slot_identifier = argv[3];
 	} else { /* argc > 4 */
-		g_warning("Too many arguments");
+		g_printerr("Too many arguments\n");
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	if (g_strcmp0(argv[2], "mark-good") == 0) {
@@ -1719,38 +1717,44 @@ static gboolean status_start(int argc, char **argv)
 	} else if (g_strcmp0(argv[2], "mark-active") == 0) {
 		state = "active";
 	} else {
-		g_message("unknown subcommand %s", argv[2]);
+		g_printerr("unknown subcommand %s\n", argv[2]);
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	if (ENABLE_SERVICE) {
+		g_autoptr(RInstaller) proxy = NULL;
+
 		proxy = r_installer_proxy_new_for_bus_sync(bus_type,
 				G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES,
 				"de.pengutronix.rauc", "/", NULL, &ierror);
 		if (proxy == NULL) {
-			message = g_strdup_printf("rauc mark: error creating proxy: %s",
-					ierror->message);
+			if (g_dbus_error_is_remote_error(ierror))
+				g_dbus_error_strip_remote_error(ierror);
+			g_printerr("rauc mark: error creating proxy: %s\n", ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
-			goto out;
+			return TRUE;
 		}
 		g_debug("Trying to contact rauc service");
 		if (!r_installer_call_mark_sync(proxy, state, slot_identifier,
 				&slot_name, &message, NULL, &ierror)) {
-			message = g_strdup(ierror->message);
+			if (g_dbus_error_is_remote_error(ierror))
+				g_dbus_error_strip_remote_error(ierror);
+			g_printerr("rauc mark: %s\n", ierror->message);
 			g_error_free(ierror);
 			r_exit_status = 1;
-			goto out;
+			return TRUE;
 		}
 	} else {
 		r_exit_status = mark_run(state, slot_identifier, NULL, &message) ? 0 : 1;
+		if (r_exit_status)
+			g_printerr("rauc mark: %s\n", message);
+		return TRUE;
 	}
 
-out:
 	if (message)
-		g_message("rauc status: %s", message);
-	g_clear_object(&proxy);
+		g_print("rauc status: %s\n", message);
 
 	return TRUE;
 }

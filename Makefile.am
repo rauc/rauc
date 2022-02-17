@@ -29,6 +29,7 @@ EXTRA_DIST += src/de.pengutronix.rauc.Installer.xml
 $(gdbus_installer_generated): src/de.pengutronix.rauc.Installer.xml
 	$(AM_V_GEN) gdbus-codegen \
 		--generate-c-code rauc-installer-generated \
+		--c-generate-autocleanup all \
 		--c-namespace R \
 		--interface-prefix de.pengutronix.rauc. \
 		$<
