@@ -93,7 +93,7 @@ jobs:
         docker run --name cross -di -v "$PWD":/home -w /home multiarch/debian-debootstrap:${{ matrix.architecture }}-buster bash
         docker exec -i cross uname -a
         docker exec -i cross apt-get update
-        docker exec -e DEBIAN_FRONTEND='noninteractive' -i cross apt-get install -qy build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev squashfs-tools
+        docker exec -e DEBIAN_FRONTEND='noninteractive' -i cross apt-get install -qy build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev libnl-genl-3-dev squashfs-tools
 
     - name: Build
       run: |
@@ -126,7 +126,7 @@ jobs:
         docker run --name stable -di -v "$PWD":/home -w /home ubuntu:${{ matrix.release }} bash
         docker exec -i stable uname -a
         docker exec -i stable apt-get update
-        docker exec -e DEBIAN_FRONTEND='noninteractive' -i stable apt-get install -qy build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev squashfs-tools
+        docker exec -e DEBIAN_FRONTEND='noninteractive' -i stable apt-get install -qy build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev libnl-genl-3-dev squashfs-tools
 
     - name: Patch & prepare
       run: |

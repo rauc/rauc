@@ -69,12 +69,22 @@ AC_DEFINE(GLIB_VERSION_MIN_REQUIRED, G_ENCODE_VERSION(2,50), [Set to minimum sup
 AC_ARG_ENABLE([network],
         AS_HELP_STRING([--disable-network], [Disable network update mode])
 )
-AM_CONDITIONAL([WANT_NETWORK], [test x$enable_network != xno])
 AS_IF([test "x$enable_network" != "xno"], [
+        PKG_CHECK_MODULES([CURL], [libcurl >= 7.32.0], [have_curl=yes], [
+                AS_IF([test "x$enable_network" = "xyes"], [
+                        AC_MSG_ERROR([network support requested but curl not found])
+                ])
+        ])
+        AS_IF([test "x$have_curl" = "xyes"], [
+                enable_network=yes
+        ])
+])
+AM_CONDITIONAL([WANT_NETWORK], [test "x$enable_network" = "xyes"])
+AS_IF([test "x$enable_network" = "xyes"], [
         AC_DEFINE([ENABLE_NETWORK], [1], [Define to 1 to enable building with network update support])
-        PKG_CHECK_MODULES([CURL], [libcurl >= 7.32.0])
 ], [
         AC_DEFINE([ENABLE_NETWORK], [0])
+        enable_network=no
 ])
 
 
