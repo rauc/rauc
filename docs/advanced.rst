@@ -12,7 +12,7 @@ The SquashFS is followed by a public key signature over the full image.
 The signature is stored (together with the signer's certificate) in the CMS
 (Cryptographic Message Syntax, see RFC5652_) format.
 Before installation, the signer certificate is verified against the keyring(s)
-already stored on the system and the signers pulic key is then used to verify
+already stored on the system and the signers public key is then used to verify
 the bundle signature.
 
 .. image:: images/rauc-bundle.svg
@@ -478,13 +478,13 @@ Managing a ``/dev/data`` Symbolic Link
 
 For redundant data partitions the active rootfs slot has to mount the correct
 data partition dynamically.
-For example with ubifs, a udev ruleset can be used for this::
+For example with ubifs, a udev rule set can be used for this::
 
   KERNEL=="ubi[0-9]_[0-9]", PROGRAM="/usr/bin/is-parent-active %k", RESULT=="1", SYMLINK+="data"
 
 This example first determines if ubiX_Y is a data slot with an active parent
 rootfs slot by calling the script below.
-Then, the current ubiX_Y partition is bound to /dev/data if the secript
+Then, the current ubiX_Y partition is bound to /dev/data if the script
 returned ``1`` as its output.
 
 ``/usr/bin/is-parent-active`` is a simple bash script::
@@ -654,7 +654,7 @@ setting exactly one of the keys ``variant-dtb``, ``variant-file`` or
   ...
   variant-dtb=true
 
-The ``variant-dtb`` is a boolean that allows (on device-tree based boards)
+The ``variant-dtb`` is a Boolean that allows (on device-tree based boards)
 to use the systems compatible string as the board variant.
 
 .. code-block:: cfg
