@@ -1385,8 +1385,8 @@ hooks/handlers, …) is independent of the low-level bundle format.
 The required steps are:
 
 * Configure your build system to build RAUC v1.5 (or newer).
-* Enable ``CONFIG_MD``, ``CONFIG_BLK_DEV_DM`` and ``CONFIG_DM_VERITY`` in your
-  kernel configuration.
+* Enable ``CONFIG_CRYPTO_SHA256``, ``CONFIG_MD``, ``CONFIG_BLK_DEV_DM`` and
+  ``CONFIG_DM_VERITY`` in your  kernel configuration.
   These may already be enabled if you are using dm-verity for verified boot.
 * Add a new bundle output configured for the `verity` format by adding the
   following to the manifest:
