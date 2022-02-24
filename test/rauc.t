@@ -135,6 +135,11 @@ grep -q "ENABLE_SERVICE 1" $SHARNESS_TEST_DIRECTORY/../config.h &&
 openssl asn1parse -help &&
   test_set_prereq OPENSSL
 
+# Prerequisite: streaming support enabled [STREAMING]
+grep -q "ENABLE_STREAMING 1" $SHARNESS_TEST_DIRECTORY/../config.h &&
+  test -n "$RAUC_TEST_HTTP_SERVER" &&
+  test_set_prereq STREAMING
+
 # Prerequisite: casync available [CASYNC]
 casync --version &&
   test_set_prereq CASYNC
@@ -889,8 +894,48 @@ test_expect_success ROOT,SERVICE "rauc install" "
     --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
     --override-boot-slot=system0 &&
   test_when_finished stop_rauc_dbus_service_with_system &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
   rauc \
-    install ${TEST_TMPDIR}/good-bundle.raucb
+    install ${TEST_TMPDIR}/good-bundle.raucb &&
+  test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
+"
+
+test_expect_success ROOT,SERVICE "rauc install (verity)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-verity-bundle.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-verity-bundle.raucb &&
+  start_rauc_dbus_service_with_system \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service_with_system &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  rauc \
+    install ${TEST_TMPDIR}/good-verity-bundle.raucb &&
+  test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
+"
+
+test_expect_success ROOT,SERVICE,STREAMING "rauc install (streaming)" "
+  start_rauc_dbus_service_with_system \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service_with_system &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  rauc \
+    install http://127.0.0.1/test/good-verity-bundle.raucb &&
+  test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
+"
+
+test_expect_success ROOT,SERVICE,STREAMING "rauc install (streaming error)" "
+  start_rauc_dbus_service_with_system \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service_with_system &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  test_must_fail rauc \
+    install http://127.0.0.1/test/missing-bundle.raucb &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
 "
 
 test_expect_success ROOT,SERVICE "rauc install --progress" "
@@ -901,8 +946,10 @@ test_expect_success ROOT,SERVICE "rauc install --progress" "
     --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
     --override-boot-slot=system0 &&
   test_when_finished stop_rauc_dbus_service_with_system &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
   rauc \
-    install --progress ${TEST_TMPDIR}/good-bundle.raucb
+    install --progress ${TEST_TMPDIR}/good-bundle.raucb &&
+  test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
 "
 
 test_expect_success ROOT,!SERVICE "rauc install (no service)" "
@@ -914,9 +961,39 @@ test_expect_success ROOT,!SERVICE "rauc install (no service)" "
   touch ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
   touch ${SHARNESS_TEST_DIRECTORY}/images/appfs-0 &&
   touch ${SHARNESS_TEST_DIRECTORY}/images/appfs-1 &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
   rauc \
     --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
-    install ${TEST_TMPDIR}/good-bundle.raucb
+    install ${TEST_TMPDIR}/good-bundle.raucb &&
+  test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
+"
+
+test_expect_success ROOT,!SERVICE,STREAMING "rauc install (no service, streaming)" "
+  rm -rf ${SHARNESS_TEST_DIRECTORY}/images &&
+  mkdir ${SHARNESS_TEST_DIRECTORY}/images &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/rootfs-0 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/appfs-0 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/appfs-1 &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    install http://127.0.0.1/test/good-verity-bundle.raucb &&
+  test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
+"
+
+test_expect_success ROOT,!SERVICE,STREAMING "rauc install (no service, streaming error)" "
+  rm -rf ${SHARNESS_TEST_DIRECTORY}/images &&
+  mkdir ${SHARNESS_TEST_DIRECTORY}/images &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/rootfs-0 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/appfs-0 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/images/appfs-1 &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  test_must_fail rauc \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    install http://127.0.0.1/test/missing-bundle.raucb &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
 "
 
 rm -rf $TEST_TMPDIR

@@ -40,6 +40,7 @@ gchar *casync_args = NULL;
 gchar *handler_args = NULL;
 gchar *bootslot = NULL;
 gboolean utf8_supported = FALSE;
+RaucBundleAccessArgs access_args = {0};
 
 static gchar* make_progress_line(gint percentage)
 {
@@ -236,12 +237,32 @@ static gboolean install_start(int argc, char **argv)
 	args->status_result = 2;
 
 	args->ignore_compatible = install_ignore_compatible;
+	if (access_args.tls_cert)
+		args->access_args.tls_cert = g_strdup(access_args.tls_cert);
+	if (access_args.tls_key)
+		args->access_args.tls_key = g_strdup(access_args.tls_key);
+	if (access_args.tls_ca)
+		args->access_args.tls_ca = g_strdup(access_args.tls_ca);
+	if (access_args.tls_no_verify)
+		args->access_args.tls_no_verify = access_args.tls_no_verify;
+	if (access_args.http_headers)
+		args->access_args.http_headers = g_strdupv(access_args.http_headers);
 
 	r_loop = g_main_loop_new(NULL, FALSE);
 	if (ENABLE_SERVICE) {
 		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
 
 		g_variant_dict_insert(&dict, "ignore-compatible", "b", args->ignore_compatible);
+		if (args->access_args.tls_cert)
+			g_variant_dict_insert(&dict, "tls-cert", "s", args->access_args.tls_cert);
+		if (args->access_args.tls_key)
+			g_variant_dict_insert(&dict, "tls-key", "s", args->access_args.tls_key);
+		if (args->access_args.tls_ca)
+			g_variant_dict_insert(&dict, "tls-ca", "s", args->access_args.tls_ca);
+		if (args->access_args.tls_no_verify)
+			g_variant_dict_insert(&dict, "tls-no-verify", "b", args->access_args.tls_no_verify);
+		if (args->access_args.http_headers)
+			g_variant_dict_insert(&dict, "http-headers", "^as", args->access_args.http_headers);
 
 		installer = r_installer_proxy_new_for_bus_sync(bus_type,
 				G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
@@ -503,7 +524,7 @@ static gboolean resign_start(int argc, char **argv)
 	if (no_check_time)
 		check_bundle_params |= CHECK_BUNDLE_NO_CHECK_TIME;
 
-	if (!check_bundle(argv[2], &bundle, check_bundle_params, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, check_bundle_params, NULL, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -561,7 +582,7 @@ static gboolean replace_signature_start(int argc, char **argv)
 	if (trust_environment)
 		check_bundle_params |= CHECK_BUNDLE_TRUST_ENV;
 
-	if (!check_bundle(argv[2], &bundle, check_bundle_params, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, check_bundle_params, NULL, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -606,7 +627,7 @@ static gboolean extract_signature_start(int argc, char **argv)
 	g_debug("input bundle: %s", argv[2]);
 	g_debug("output file: %s", argv[3]);
 
-	if (!check_bundle(argv[2], &bundle, CHECK_BUNDLE_DEFAULT, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -651,7 +672,7 @@ static gboolean extract_start(int argc, char **argv)
 	g_debug("input bundle: %s", argv[2]);
 	g_debug("output dir: %s", argv[3]);
 
-	if (!check_bundle(argv[2], &bundle, CHECK_BUNDLE_DEFAULT, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -710,7 +731,7 @@ static gboolean convert_start(int argc, char **argv)
 	if (trust_environment)
 		check_bundle_params |= CHECK_BUNDLE_TRUST_ENV;
 
-	if (!check_bundle(argv[2], &bundle, check_bundle_params, &ierror)) {
+	if (!check_bundle(argv[2], &bundle, check_bundle_params, NULL, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -1017,7 +1038,7 @@ static gboolean info_start(int argc, char **argv)
 	if (no_check_time)
 		check_bundle_params |= CHECK_BUNDLE_NO_CHECK_TIME;
 
-	res = check_bundle(bundlelocation, &bundle, check_bundle_params, &error);
+	res = check_bundle(bundlelocation, &bundle, check_bundle_params, &access_args, &error);
 	if (!res) {
 		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
@@ -1791,7 +1812,7 @@ static gboolean mount_start(int argc, char **argv)
 		goto out; /* an error message was already printed by resolve_bundle_path */
 	g_debug("input bundle: %s", bundlelocation);
 
-	res = check_bundle(bundlelocation, &bundle, CHECK_BUNDLE_DEFAULT, &error);
+	res = check_bundle(bundlelocation, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &error);
 	if (!res) {
 		g_printerr("%s\n", error->message);
 		g_clear_error(&error);
@@ -1919,6 +1940,15 @@ static GOptionEntry entries_service[] = {
 	{0}
 };
 
+static GOptionEntry entries_bundle_access[] = {
+	{"tls-cert", '\0', 0, G_OPTION_ARG_STRING, &access_args.tls_cert, "TLS client certificate file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
+	{"tls-key", '\0', 0, G_OPTION_ARG_STRING, &access_args.tls_key, "TLS client key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
+	{"tls-ca", '\0', 0, G_OPTION_ARG_FILENAME, &access_args.tls_ca, "TLS CA file", "PEMFILE"},
+	{"tls-no-verify", '\0', 0, G_OPTION_ARG_NONE, &access_args.tls_no_verify, "do not verify TLS server certificate", NULL},
+	{"http-header", 'H', 0, G_OPTION_ARG_STRING_ARRAY, &access_args.http_headers, "HTTP request header (multiple uses supported)", "'HEADER: VALUE'"},
+	{0}
+};
+
 static GOptionGroup *install_group;
 static GOptionGroup *bundle_group;
 static GOptionGroup *resign_group;
@@ -1932,6 +1962,8 @@ static void create_option_groups(void)
 {
 	install_group = g_option_group_new("install", "Install options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(install_group, entries_install);
+	if (ENABLE_STREAMING)
+		g_option_group_add_entries(install_group, entries_bundle_access);
 
 	if (ENABLE_CREATE) {
 		bundle_group  = g_option_group_new("bundle", "Bundle options:", "help dummy", NULL, NULL);
@@ -1949,6 +1981,8 @@ static void create_option_groups(void)
 
 	info_group    = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(info_group, entries_info);
+	if (ENABLE_STREAMING)
+		g_option_group_add_entries(info_group, entries_bundle_access);
 
 	status_group  = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(status_group, entries_status);
@@ -2224,6 +2258,21 @@ int main(int argc, char **argv)
 	setlocale(LC_ALL, "");
 	if (g_get_charset(NULL))
 		utf8_supported = TRUE;
+
+	if (ENABLE_STREAMING && g_getenv("RAUC_NBD_SERVER")) {
+		GError *ierror = NULL;
+		pthread_setname_np(pthread_self(), "rauc-nbd");
+		if (r_nbd_run_server(RAUC_SOCKET_FD, &ierror)) {
+			return 0;
+		} else {
+			if (ierror) {
+				g_message("nbd server failed with: %s", ierror->message);
+			} else {
+				g_message("nbd server failed");
+			}
+			return 1;
+		}
+	}
 
 	create_option_groups();
 	cmdline_handler(argc, argv);

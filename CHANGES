@@ -3,6 +3,10 @@ Release 1.7 (development)
 
 .. rubric:: Enhancements
 
+* Add support for streaming installation from a HTTP(S) server for verity
+  bundles.
+  This avoids the need for a temporary bundle storage location and prepares for
+  more efficient incremental updates.
 
 .. rubric:: Bug fixes
 

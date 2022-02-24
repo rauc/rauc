@@ -15,7 +15,7 @@ CODE_COVERAGE_IGNORE_PATTERN = "*-generated.c"
 
 GC_CFLAGS = -fdata-sections -ffunction-sections
 GC_LDFLAGS = -Wl,--gc-sections -Wl,-Map,$@.map
-AM_CFLAGS = -DG_LOG_DOMAIN=\"rauc\" $(GC_CFLAGS) $(WARN_CFLAGS) $(GLIB_CFLAGS) $(CURL_CFLAGS)
+AM_CFLAGS = -DG_LOG_DOMAIN=\"rauc\" $(GC_CFLAGS) $(WARN_CFLAGS) $(GLIB_CFLAGS) $(CURL_CFLAGS) $(NL3_CFLAGS)
 AM_LDFLAGS = $(GC_LDFLAGS) $(WARN_LDFLAGS) $(GLIB_LDFLAGS) $(CURL_LDFLAGS) $(OPENSSL_LDFLAGS)
 AM_CPPFLAGS = -I${top_srcdir}/include -include ${top_builddir}/config.h $(OPENSSL_INCLUDES)
 
@@ -86,11 +86,15 @@ if WANT_GPT
 librauc_la_SOURCES += src/gpt.c
 endif
 
+if ENABLE_STREAMING
+librauc_la_SOURCES += src/nbd.c include/nbd.h src/stats.c include/stats.h
+endif
+
 nodist_librauc_la_SOURCES = \
 	$(gdbus_installer_generated)
 librauc_la_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
 librauc_la_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
-librauc_la_LIBADD = $(GLIB_LIBS) $(CURL_LIBS) $(OPENSSL_LIBS) $(FDISK_LIBS)
+librauc_la_LIBADD = $(GLIB_LIBS) $(CURL_LIBS) $(OPENSSL_LIBS) $(FDISK_LIBS) $(NL3_LIBS)
 
 bin_PROGRAMS = rauc
 
@@ -158,6 +162,10 @@ check_PROGRAMS = \
 
 if WANT_NETWORK
 check_PROGRAMS += test/network.test
+endif
+
+if ENABLE_STREAMING
+check_PROGRAMS += test/nbd.test
 endif
 
 if WANT_JSON
@@ -230,6 +238,9 @@ test_dm_test_LDADD = librauctest.la
 
 test_manifest_test_SOURCES = test/manifest.c
 test_manifest_test_LDADD = librauctest.la
+
+test_nbd_test_SOURCES = test/nbd.c
+test_nbd_test_LDADD = librauctest.la
 
 test_service_test_CFLAGS = $(AM_CFLAGS) -DTEST_SERVICES=\""$(abs_top_builddir)"\"
 test_service_test_SOURCES = test/service.c rauc-installer-generated.h

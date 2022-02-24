@@ -452,6 +452,18 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 	g_key_file_remove_group(key_file, "casync", NULL);
 
+	/* parse [streaming] section */
+	c->streaming_sandbox_user = key_file_consume_string(key_file, "streaming", "sandbox-user", NULL);
+	c->streaming_tls_cert = key_file_consume_string(key_file, "streaming", "tls-cert", NULL);
+	c->streaming_tls_key = key_file_consume_string(key_file, "streaming", "tls-key", NULL);
+	c->streaming_tls_ca = key_file_consume_string(key_file, "streaming", "tls-ca", NULL);
+	if (!check_remaining_keys(key_file, "streaming", &ierror)) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
+	g_key_file_remove_group(key_file, "streaming", NULL);
+
 	/* parse [autoinstall] section */
 	c->autoinstall_path = resolve_path(filename,
 			key_file_consume_string(key_file, "autoinstall", "path", NULL));
@@ -775,6 +787,10 @@ void free_config(RaucConfig *config)
 	g_free(config->systeminfo_handler);
 	g_free(config->preinstall_handler);
 	g_free(config->postinstall_handler);
+	g_free(config->streaming_sandbox_user);
+	g_free(config->streaming_tls_cert);
+	g_free(config->streaming_tls_key);
+	g_free(config->streaming_tls_ca);
 	g_clear_pointer(&config->slots, g_hash_table_destroy);
 	g_free(config);
 }

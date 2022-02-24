@@ -5,6 +5,7 @@
 #include <gio/gio.h>
 
 #include "manifest.h"
+#include "nbd.h"
 #include "utils.h"
 
 #define R_BUNDLE_ERROR r_bundle_error_quark()
@@ -20,10 +21,23 @@ typedef enum {
 } RBundleError;
 
 typedef struct {
+	gchar *tls_cert;
+	gchar *tls_key;
+	gchar *tls_ca;
+	gboolean tls_no_verify;
+	GStrv http_headers;
+} RaucBundleAccessArgs;
+
+typedef struct {
 	gchar *path;
 	gchar *origpath;
 	gchar *storepath;
+
+	RaucNBDDevice *nbd_dev;
+	RaucNBDServer *nbd_srv;
+
 	GInputStream *stream;
+
 	goffset size;
 	GBytes *sigdata;
 	gchar *mount_point;
@@ -76,11 +90,12 @@ G_GNUC_WARN_UNUSED_RESULT;
  *               This will contain all bundle information obtained by
  *               check_bundle
  * @param params bit-field enum CheckBundleParams with additional flags for the check
+ * @param access_args Optional arguments to control streaming access
  * @param error Return location for a GError
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleParams params, GError **error)
+gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleParams params, RaucBundleAccessArgs *access_args, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
@@ -238,3 +253,11 @@ gboolean umount_bundle(RaucBundle *bundle, GError **error);
 void free_bundle(RaucBundle *bundle);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucBundle, free_bundle);
+
+/**
+ * Frees the memory pointed to by the RaucBundleAccessArgs, but not the
+ * structure itself.
+ *
+ * @param access_args RaucBundleAccessArgs to clear
+ */
+void clear_bundle_access_args(RaucBundleAccessArgs *access_args);

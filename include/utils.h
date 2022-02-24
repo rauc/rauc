@@ -5,6 +5,18 @@
 
 #define BIT(nr) (1UL << (nr))
 
+/* Evaluate EXPRESSION, and repeat as long as it returns -1 with `errno'
+ * set to EINTR. Needed for builds against musl, taken from glibc's unistd.h.
+ */
+#ifndef TEMP_FAILURE_RETRY
+#define TEMP_FAILURE_RETRY(expression) \
+	(__extension__ \
+		 ({ long int __result; \
+		    do {__result = (long int) (expression);} \
+		    while (__result == -1L && errno == EINTR); \
+		    __result; }))
+#endif
+
 /* Use
  *
  *   g_auto(filedesc) fd = -1
@@ -178,4 +190,9 @@ G_GNUC_WARN_UNUSED_RESULT;
 guint8 *r_hex_decode(const gchar *hex, size_t len)
 G_GNUC_WARN_UNUSED_RESULT;
 gchar *r_hex_encode(const guint8 *raw, size_t len)
+G_GNUC_WARN_UNUSED_RESULT;
+
+gboolean r_read_exact(const int fd, guint8 *data, size_t size, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+gboolean r_write_exact(const int fd, const guint8 *data, size_t size, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;

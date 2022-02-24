@@ -79,6 +79,7 @@ if [ -n "$SHELL" ]; then
   cp -a rauc /tmp/bin/rauc
   export PATH=/tmp/bin:$PATH
 fi
+export RAUC_TEST_NBD_SERVER="$(realpath rauc)"
 
 if type losetup; then
   truncate --size=64M /tmp/rauc-disk.img
