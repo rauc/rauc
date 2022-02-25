@@ -35,7 +35,7 @@ gboolean r_boot_is_supported_bootloader(const gchar *bootloader)
 static GString *bootchooser_order_primay(RaucSlot *slot)
 {
 	GString *order = NULL;
-	GList *slots;
+	g_autoptr(GList) slots = NULL;
 
 	g_return_val_if_fail(slot, NULL);
 
@@ -302,7 +302,7 @@ static gboolean barebox_set_primary(RaucSlot *slot, GError **error)
 {
 	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(10, g_free);
 	GError *ierror = NULL;
-	GList *slots;
+	g_autoptr(GList) slots = NULL;
 
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
