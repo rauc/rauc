@@ -159,7 +159,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	g_autoptr(RaucConfig) c = g_new0(RaucConfig, 1);
 	gboolean res = FALSE;
 	g_autoptr(GKeyFile) key_file = NULL;
-	gchar **groups;
+	g_auto(GStrv) groups = NULL;
 	gsize group_count;
 	GList *slotlist = NULL;
 	GHashTable *slots = NULL;
@@ -740,8 +740,6 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		res = FALSE;
 		goto free;
 	}
-
-	g_strfreev(groups);
 
 	res = TRUE;
 free:
