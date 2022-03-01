@@ -104,7 +104,7 @@ out:
 static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GError **error)
 {
 	GError *ierror = NULL;
-	RaucManifest *raucm = g_new0(RaucManifest, 1);
+	g_autoptr(RaucManifest) raucm = g_new0(RaucManifest, 1);
 	gboolean res = FALSE;
 	g_autofree gchar *tmp = NULL;
 	g_auto(GStrv) groups = NULL;
