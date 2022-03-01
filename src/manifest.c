@@ -111,7 +111,9 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	g_auto(GStrv) bundle_hooks = NULL;
 	gsize hook_entries;
 
-	g_assert_null(*manifest);
+	g_return_val_if_fail(key_file != NULL, FALSE);
+	g_return_val_if_fail(manifest != NULL && *manifest == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* parse [update] section */
 	raucm->update_compatible = key_file_consume_string(key_file, "update", "compatible", &ierror);
