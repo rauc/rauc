@@ -722,6 +722,7 @@ gchar* sigdata_to_string(GBytes *sig, GError **error)
 	ret = dump_cms(signers);
 
 	sk_X509_free(signers);
+	BIO_free(insig);
 
 	return ret;
 }
@@ -982,6 +983,7 @@ gboolean cms_is_detached(GBytes *sig, gboolean *detached, GError **error)
 out:
 	if (cms)
 		CMS_ContentInfo_free(cms);
+	BIO_free(insig);
 	return res;
 }
 
@@ -1049,6 +1051,7 @@ gboolean cms_get_unverified_manifest(GBytes *sig, GBytes **manifest, GError **er
 out:
 	if (cms)
 		CMS_ContentInfo_free(cms);
+	BIO_free(insig);
 	return res;
 }
 
