@@ -107,7 +107,7 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	RaucManifest *raucm = g_new0(RaucManifest, 1);
 	gboolean res = FALSE;
 	g_autofree gchar *tmp = NULL;
-	gchar **groups;
+	g_auto(GStrv) groups = NULL;
 	gsize group_count;
 	g_auto(GStrv) bundle_hooks = NULL;
 	gsize hook_entries;
@@ -200,8 +200,6 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 		g_propagate_error(error, ierror);
 		goto free;
 	}
-
-	g_strfreev(groups);
 
 	res = TRUE;
 	*manifest = g_steal_pointer(&raucm);
