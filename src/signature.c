@@ -509,7 +509,7 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
-				R_SIGNATURE_ERROR_INVALID,
+				R_SIGNATURE_ERROR_CREATE_SIG,
 				"failed to create signature: %s", (errflags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
 		goto out;
 	}
@@ -722,6 +722,7 @@ gchar* sigdata_to_string(GBytes *sig, GError **error)
 	ret = dump_cms(signers);
 
 	sk_X509_free(signers);
+	BIO_free(insig);
 
 	return ret;
 }
@@ -958,20 +959,26 @@ static void debug_cms_ci(CMS_ContentInfo *cms)
 gboolean cms_is_detached(GBytes *sig, gboolean *detached, GError **error)
 {
 	CMS_ContentInfo *cms = NULL;
-	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
-			g_bytes_get_size(sig));
+	BIO *insig = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(sig != NULL, FALSE);
 	g_return_val_if_fail(detached != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	g_assert(g_bytes_get_size(sig) > 0);
+
+	insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
+			g_bytes_get_size(sig));
+	if (!insig)
+		g_error("BIO_new_mem_buf() failed");
+
 	if (!(cms = d2i_CMS_bio(insig, NULL))) {
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE,
-				"failed to parse signature");
+				"Signature data is no valid CMS");
 		goto out;
 	}
 
@@ -982,6 +989,7 @@ gboolean cms_is_detached(GBytes *sig, gboolean *detached, GError **error)
 out:
 	if (cms)
 		CMS_ContentInfo_free(cms);
+	BIO_free(insig);
 	return res;
 }
 
@@ -1049,6 +1057,7 @@ gboolean cms_get_unverified_manifest(GBytes *sig, GBytes **manifest, GError **er
 out:
 	if (cms)
 		CMS_ContentInfo_free(cms);
+	BIO_free(insig);
 	return res;
 }
 
