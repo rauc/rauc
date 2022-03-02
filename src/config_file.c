@@ -159,9 +159,9 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	g_autoptr(RaucConfig) c = g_new0(RaucConfig, 1);
 	gboolean res = FALSE;
 	g_autoptr(GKeyFile) key_file = NULL;
-	gchar **groups;
+	g_auto(GStrv) groups = NULL;
 	gsize group_count;
-	GList *slotlist = NULL;
+	g_autoptr(GList) slotlist = NULL;
 	GHashTable *slots = NULL;
 	g_autoptr(GHashTable) bootnames = NULL;
 	GList *l;
@@ -301,7 +301,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	/* parse 'variant-file' key */
 	variant_data = key_file_consume_string(key_file, "system", "variant-file", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		variant_data = NULL;
+		g_clear_pointer(&variant_data, g_free);
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
@@ -725,7 +725,6 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			goto free;
 		}
 	}
-	g_list_free(slotlist);
 
 	if (!fix_grandparent_links(slots, &ierror)) {
 		g_propagate_error(error, ierror);
@@ -740,8 +739,6 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		res = FALSE;
 		goto free;
 	}
-
-	g_strfreev(groups);
 
 	res = TRUE;
 free:

@@ -655,5 +655,7 @@ void r_context_clean(void)
 		if (context->config) {
 			context->config->keyring_path = NULL;
 		}
+
+		g_clear_pointer(&context, g_free);
 	}
 }

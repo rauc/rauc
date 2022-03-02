@@ -104,28 +104,29 @@ out:
 static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GError **error)
 {
 	GError *ierror = NULL;
-	RaucManifest *raucm = g_new0(RaucManifest, 1);
-	gboolean res = FALSE;
+	g_autoptr(RaucManifest) raucm = g_new0(RaucManifest, 1);
 	g_autofree gchar *tmp = NULL;
-	gchar **groups;
+	g_auto(GStrv) groups = NULL;
 	gsize group_count;
 	g_auto(GStrv) bundle_hooks = NULL;
 	gsize hook_entries;
 
-	g_assert_null(*manifest);
+	g_return_val_if_fail(key_file != NULL, FALSE);
+	g_return_val_if_fail(manifest != NULL && *manifest == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* parse [update] section */
 	raucm->update_compatible = key_file_consume_string(key_file, "update", "compatible", &ierror);
 	if (!raucm->update_compatible) {
 		g_propagate_error(error, ierror);
-		goto free;
+		return FALSE;
 	}
 	raucm->update_version = key_file_consume_string(key_file, "update", "version", NULL);
 	raucm->update_description = key_file_consume_string(key_file, "update", "description", NULL);
 	raucm->update_build = key_file_consume_string(key_file, "update", "build", NULL);
 	if (!check_remaining_keys(key_file, "update", &ierror)) {
 		g_propagate_error(error, ierror);
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_group(key_file, "update", NULL);
 
@@ -144,11 +145,11 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	} else {
 		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
 				"Invalid format value '%s' in group '[bundle]'", tmp);
-		goto free;
+		return FALSE;
 	}
 	if (!check_remaining_keys(key_file, "bundle", &ierror)) {
 		g_propagate_error(error, ierror);
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_group(key_file, "bundle", NULL);
 
@@ -157,7 +158,7 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	raucm->handler_args = key_file_consume_string(key_file, "handler", "args", NULL);
 	if (!check_remaining_keys(key_file, "handler", &ierror)) {
 		g_propagate_error(error, ierror);
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_group(key_file, "handler", NULL);
 
@@ -171,13 +172,13 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 		} else {
 			g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
 					"install hook type '%s' not supported", bundle_hooks[j]);
-			goto free;
+			return FALSE;
 		}
 	}
 
 	if (!check_remaining_keys(key_file, "hooks", &ierror)) {
 		g_propagate_error(error, ierror);
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_group(key_file, "hooks", NULL);
 
@@ -189,7 +190,7 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 
 			if (!parse_image(key_file, groups[i], &image, &ierror)) {
 				g_propagate_error(error, ierror);
-				goto free;
+				return FALSE;
 			}
 
 			raucm->images = g_list_append(raucm->images, image);
@@ -198,15 +199,12 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 
 	if (!check_remaining_groups(key_file, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto free;
+		return FALSE;
 	}
 
-	g_strfreev(groups);
-
-	res = TRUE;
 	*manifest = g_steal_pointer(&raucm);
-free:
-	return res;
+
+	return TRUE;
 }
 
 gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)

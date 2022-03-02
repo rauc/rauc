@@ -598,13 +598,13 @@ out:
 	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
 	BIO_free_all(outsig);
+	EVP_PKEY_free(pkey);
 	return res;
 }
 
 gchar* get_pubkey_hash(X509 *cert)
 {
-	gchar *data = NULL;
-	GString *string;
+	g_autoptr(GString) string = NULL;
 	g_autofree unsigned char *der_buf = NULL;
 	unsigned char *tmp_buf = NULL;
 	unsigned int len = 0;
@@ -619,7 +619,7 @@ gchar* get_pubkey_hash(X509 *cert)
 	len = i2d_X509_PUBKEY(X509_get_X509_PUBKEY(cert), NULL);
 	if (len <= 0) {
 		g_warning("DER Encoding failed");
-		goto out;
+		return NULL;
 	}
 	/* As i2d_X509_PUBKEY() moves pointer after end of data,
 	 * we must use a tmp pointer, here */
@@ -630,7 +630,7 @@ gchar* get_pubkey_hash(X509 *cert)
 
 	if (!EVP_Digest(der_buf, len, md, &n, EVP_sha256(), NULL)) {
 		g_warning("Error in EVP_Digest");
-		goto out;
+		return NULL;
 	}
 
 	g_assert_cmpint(n, ==, SHA256_DIGEST_LENGTH);
@@ -640,9 +640,7 @@ gchar* get_pubkey_hash(X509 *cert)
 	}
 	g_string_truncate(string, SHA256_DIGEST_LENGTH * 3 - 1);
 
-	data = g_string_free(string, FALSE);
-out:
-	return data;
+	return g_string_free(g_steal_pointer(&string), FALSE);
 }
 
 gchar** get_pubkey_hashes(STACK_OF(X509) *verified_chain)

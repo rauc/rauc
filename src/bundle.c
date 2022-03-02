@@ -1713,8 +1713,8 @@ gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 		g_error("plain bundles must be verified during signature check");
 	} else if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
 		int bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream));
-		guint8 *root_digest = r_hex_decode(bundle->manifest->bundle_verity_hash, 32);
-		guint8 *salt = r_hex_decode(bundle->manifest->bundle_verity_salt, 32);
+		g_autofree guint8 *root_digest = r_hex_decode(bundle->manifest->bundle_verity_hash, 32);
+		g_autofree guint8 *salt = r_hex_decode(bundle->manifest->bundle_verity_salt, 32);
 		off_t combined_size = bundle->size;
 		off_t data_size = bundle->size - bundle->manifest->bundle_verity_size;
 		g_assert(root_digest);
