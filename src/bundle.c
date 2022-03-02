@@ -1563,7 +1563,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 	}
 
 	if (verify) {
-		CMS_ContentInfo *cms = NULL;
+		g_autoptr(CMS_ContentInfo) cms = NULL;
 		X509_STORE *store = setup_x509_store(NULL, NULL, &ierror);
 		X509_VERIFY_PARAM *param = NULL;
 		gboolean trust_env = (params & CHECK_BUNDLE_TRUST_ENV);
@@ -1640,7 +1640,6 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 		}
 
 		X509_STORE_free(store);
-		CMS_ContentInfo_free(cms);
 	} else {
 		if (!detached) {
 			res = cms_get_unverified_manifest(ibundle->sigdata, &manifest_bytes, &ierror);
