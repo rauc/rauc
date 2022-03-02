@@ -506,7 +506,7 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 					"squashfs size (%"G_GUINT64_FORMAT ") must be larger than 4096 bytes", offset);
 			return FALSE;
 		}
-		if (verity_create_or_verify_hash(0, bundlefd, offset/4096, &combined_size, hash, salt) != 0) {
+		if (r_verity_hash_create(bundlefd, offset/4096, &combined_size, hash, salt) != 0) {
 			g_set_error(error,
 					R_BUNDLE_ERROR,
 					R_BUNDLE_ERROR_VERITY,
@@ -1721,7 +1721,7 @@ gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 		g_assert(combined_size % 4096 == 0);
 		g_assert(data_size % 4096 == 0);
 
-		if (verity_create_or_verify_hash(1, bundlefd, data_size/4096, NULL, root_digest, salt)) {
+		if (r_verity_hash_verify(bundlefd, data_size/4096, root_digest, salt)) {
 			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_PAYLOAD,
 					"bundle payload is corrupted");
 			res = FALSE;

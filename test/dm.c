@@ -194,7 +194,7 @@ static void verity_hash_test(void)
 	bundlefd = g_open("test/dummy.verity", O_RDONLY);
 	g_assert_cmpint(bundlefd, >, 0);
 
-	ret = verity_create_or_verify_hash(1, bundlefd, 129, NULL, root_hash, salt);
+	ret = r_verity_hash_verify(bundlefd, 129, root_hash, salt);
 	g_assert_cmpint(ret, ==, 0);
 
 	g_close(bundlefd, NULL);
@@ -225,13 +225,13 @@ static void verity_hash_create(DMFixture *fixture,
 	g_assert_cmpint(bundlefd, >, 0);
 
 	/* create verity file */
-	ret = verity_create_or_verify_hash(0, bundlefd, dm_data->data_size, &combined_size, root_hash, salt);
+	ret = r_verity_hash_create(bundlefd, dm_data->data_size, &combined_size, root_hash, salt);
 	g_assert_cmpint(ret, ==, 0);
 	g_assert_cmpint(combined_size, ==, dm_data->combined_size);
 	root_hash_hex = r_hex_encode(root_hash, 32);
 
 	/* check unmodified verity file */
-	ret = verity_create_or_verify_hash(1, bundlefd, dm_data->data_size, NULL, root_hash, salt);
+	ret = r_verity_hash_verify(bundlefd, dm_data->data_size, root_hash, salt);
 	g_assert_cmpint(ret, ==, 0);
 
 	/* open via kernel loopback device and dm-verity */
@@ -248,7 +248,7 @@ static void verity_hash_create(DMFixture *fixture,
 	flip_bits_filename(filename, 0, 0x01);
 
 	/* check that the bit flip in the first sector is detected by the userspace check */
-	ret = verity_create_or_verify_hash(1, bundlefd, dm_data->data_size, NULL, root_hash, salt);
+	ret = r_verity_hash_verify(bundlefd, dm_data->data_size, root_hash, salt);
 	g_assert_cmpint(ret, !=, 0);
 
 	/* check that only the affected sector is unreadable */
@@ -283,7 +283,7 @@ static void verity_hash_create(DMFixture *fixture,
 		g_assert_cmpint(readable_sectors(dmfd), ==, dm_data->data_size - 1);
 
 		/* check that the bit flip is detected by the userspace check */
-		ret = verity_create_or_verify_hash(1, bundlefd, dm_data->data_size, NULL, root_hash, salt);
+		ret = r_verity_hash_verify(bundlefd, dm_data->data_size, root_hash, salt);
 		g_assert_cmpint(ret, !=, 0);
 
 		g_close(dmfd, NULL);
