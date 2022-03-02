@@ -463,7 +463,7 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 	X509 *signcert = NULL;
 	EVP_PKEY *pkey = NULL;
 	STACK_OF(X509) *intercerts = NULL;
-	CMS_ContentInfo *cms = NULL;
+	g_autoptr(CMS_ContentInfo) cms = NULL;
 	GBytes *res = NULL;
 	int flags = CMS_BINARY | CMS_NOSMIMECAP;
 	const gchar *keyring_path = NULL, *keyring_dir = NULL;
@@ -689,7 +689,7 @@ static gchar* dump_cms(STACK_OF(X509) *x509_certs)
 
 gchar* sigdata_to_string(GBytes *sig, GError **error)
 {
-	CMS_ContentInfo *cms = NULL;
+	g_autoptr(CMS_ContentInfo) cms = NULL;
 	STACK_OF(X509) *signers = NULL;
 	gchar *ret;
 	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
@@ -956,7 +956,7 @@ static void debug_cms_ci(CMS_ContentInfo *cms)
 
 gboolean cms_is_detached(GBytes *sig, gboolean *detached, GError **error)
 {
-	CMS_ContentInfo *cms = NULL;
+	g_autoptr(CMS_ContentInfo) cms = NULL;
 	BIO *insig = NULL;
 	gboolean res = FALSE;
 
@@ -985,15 +985,13 @@ gboolean cms_is_detached(GBytes *sig, gboolean *detached, GError **error)
 	res = TRUE;
 
 out:
-	if (cms)
-		CMS_ContentInfo_free(cms);
 	BIO_free(insig);
 	return res;
 }
 
 gboolean cms_get_unverified_manifest(GBytes *sig, GBytes **manifest, GError **error)
 {
-	CMS_ContentInfo *cms = NULL;
+	g_autoptr(CMS_ContentInfo) cms = NULL;
 	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
 			g_bytes_get_size(sig));
 	ASN1_OCTET_STRING **content = NULL;
@@ -1053,8 +1051,6 @@ gboolean cms_get_unverified_manifest(GBytes *sig, GBytes **manifest, GError **er
 	res = TRUE;
 
 out:
-	if (cms)
-		CMS_ContentInfo_free(cms);
 	BIO_free(insig);
 	return res;
 }
@@ -1062,7 +1058,7 @@ out:
 gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GBytes **manifest, GError **error)
 {
 	GError *ierror = NULL;
-	CMS_ContentInfo *icms = NULL;
+	g_autoptr(CMS_ContentInfo) icms = NULL;
 	BIO *incontent = NULL;
 	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
 			g_bytes_get_size(sig));
@@ -1203,7 +1199,7 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 	}
 
 	if (cms)
-		*cms = icms;
+		*cms = g_steal_pointer(&icms);
 
 	res = TRUE;
 out:
@@ -1211,8 +1207,6 @@ out:
 	BIO_free_all(incontent);
 	BIO_free_all(insig);
 	BIO_free_all(outcontent);
-	if (!cms)
-		CMS_ContentInfo_free(icms);
 	r_context_end_step("cms_verify", res);
 	return res;
 }
