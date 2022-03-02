@@ -16,16 +16,16 @@ typedef struct _RaucDMVerity {
  *
  * @return a pointer to the new RaucDMVerity
  */
-RaucDMVerity *new_dm_verity(void);
+RaucDMVerity *r_dm_new_verity(void);
 
 /**
  * Frees the memory allocated by a RaucDMVerity.
  *
  * @param dm_verity struct to free
  */
-void free_dm_verity(RaucDMVerity *dm_verity);
+void r_dm_free_verity(RaucDMVerity *dm_verity);
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucDMVerity, free_dm_verity);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucDMVerity, r_dm_free_verity);
 
 /**
  * Configure a dm-verity target in the kernel using the provided parameters and
@@ -36,7 +36,7 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucDMVerity, free_dm_verity);
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean setup_dm_verity(RaucDMVerity *dm_verity, GError **error);
+gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error);
 
 /**
  * Remove a previously configured dm-verity target from the kernel.
@@ -47,4 +47,4 @@ gboolean setup_dm_verity(RaucDMVerity *dm_verity, GError **error);
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean remove_dm_verity(RaucDMVerity *dm_verity, gboolean deferred, GError **error);
+gboolean r_dm_remove_verity(RaucDMVerity *dm_verity, gboolean deferred, GError **error);

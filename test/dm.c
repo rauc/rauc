@@ -99,13 +99,13 @@ static int open_loop_verity(int bundlefd, off_t loop_size, off_t data_size, gcha
 	g_assert_true(res);
 	g_assert_nonnull(loopname);
 
-	dm_verity = new_dm_verity();
+	dm_verity = r_dm_new_verity();
 	dm_verity->lower_dev = g_strdup(loopname);
 	dm_verity->data_size = data_size;
 	dm_verity->root_digest = g_strdup(root_digest);
 	dm_verity->salt = g_strdup(salt);
 
-	res = setup_dm_verity(dm_verity, &ierror);
+	res = r_dm_setup_verity(dm_verity, &ierror);
 	g_close(loopfd, NULL);
 	if (!res) {
 		g_propagate_error(error, ierror);
@@ -117,7 +117,7 @@ static int open_loop_verity(int bundlefd, off_t loop_size, off_t data_size, gcha
 	fd = g_open(dm_verity->upper_dev, O_RDONLY|O_CLOEXEC, 0);
 	g_assert_cmpint(fd, >, 0);
 
-	res = remove_dm_verity(dm_verity, TRUE, &ierror);
+	res = r_dm_remove_verity(dm_verity, TRUE, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 
@@ -149,13 +149,13 @@ static void dm_verity_simple_test(void)
 	g_assert_nonnull(loopname);
 	g_close(datafd, NULL);
 
-	dm_verity = new_dm_verity();
+	dm_verity = r_dm_new_verity();
 	dm_verity->lower_dev = g_strdup(loopname);
 	dm_verity->data_size = 4096*129;
 	dm_verity->root_digest = g_strdup("3049cbffaa49c6dc12e9cd1dd4604ef5a290e3d13b379c5a50d356e68423de23");
 	dm_verity->salt = g_strdup("799ea94008bbdc6555d7895d1b647e2abfd213171f0e8b670e1da951406f4691");
 
-	res = setup_dm_verity(dm_verity, &error);
+	res = r_dm_setup_verity(dm_verity, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
 	g_close(loopfd, NULL);
@@ -165,7 +165,7 @@ static void dm_verity_simple_test(void)
 	fd = g_open(dm_verity->upper_dev, O_RDONLY|O_CLOEXEC, 0);
 	g_assert_cmpint(fd, >, 0);
 
-	res = remove_dm_verity(dm_verity, TRUE, &error);
+	res = r_dm_remove_verity(dm_verity, TRUE, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
 

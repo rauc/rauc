@@ -64,7 +64,7 @@ static void dm_set_header(struct dm_ioctl *header, size_t size, guint32 flags, c
 	g_strlcpy(header->uuid, uuid, sizeof(header->uuid));
 }
 
-RaucDMVerity *new_dm_verity(void)
+RaucDMVerity *r_dm_new_verity(void)
 {
 	RaucDMVerity *dm_verity = g_malloc0(sizeof(RaucDMVerity));
 
@@ -73,7 +73,7 @@ RaucDMVerity *new_dm_verity(void)
 	return dm_verity;
 }
 
-void free_dm_verity(RaucDMVerity *dm_verity)
+void r_dm_free_verity(RaucDMVerity *dm_verity)
 {
 	if (!dm_verity)
 		return;
@@ -86,7 +86,7 @@ void free_dm_verity(RaucDMVerity *dm_verity)
 	g_free(dm_verity);
 }
 
-gboolean setup_dm_verity(RaucDMVerity *dm_verity, GError **error)
+gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
 {
 	gboolean res = FALSE;
 	int dmfd = -1;
@@ -256,7 +256,7 @@ out:
 	return res;
 }
 
-gboolean remove_dm_verity(RaucDMVerity *dm_verity, gboolean deferred, GError **error)
+gboolean r_dm_remove_verity(RaucDMVerity *dm_verity, gboolean deferred, GError **error)
 {
 	gboolean res = FALSE;
 	int dmfd = -1;
