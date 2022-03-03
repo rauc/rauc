@@ -155,7 +155,7 @@ gchar *resolve_path(const gchar *basefile, gchar *path)
 gboolean check_remaining_groups(GKeyFile *key_file, GError **error)
 {
 	gsize rem_num_groups;
-	GStrv(rem_groups) = NULL;
+	g_auto(GStrv) rem_groups = NULL;
 
 	rem_groups = g_key_file_get_groups(key_file, &rem_num_groups);
 	if (rem_num_groups != 0) {
@@ -170,7 +170,7 @@ gboolean check_remaining_groups(GKeyFile *key_file, GError **error)
 gboolean check_remaining_keys(GKeyFile *key_file, const gchar *groupname, GError **error)
 {
 	gsize rem_num_keys;
-	GStrv(rem_keys) = NULL;
+	g_auto(GStrv) rem_keys = NULL;
 
 	rem_keys = g_key_file_get_keys(key_file, groupname, &rem_num_keys, NULL);
 	if (rem_keys && rem_num_keys != 0) {
