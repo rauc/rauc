@@ -58,6 +58,9 @@ typedef struct {
 	InstallHooks hooks;
 
 	GList *images;
+
+	/* internal marker that this was encrypted */
+	gboolean was_encrypted;
 } RaucManifest;
 
 /**
