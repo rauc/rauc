@@ -86,6 +86,9 @@ G_GNUC_WARN_UNUSED_RESULT;
  *
  * This will verify and check the bundle content.
  *
+ * For bundle formats with detached CMS (i.e. 'verity' or 'crypt'),
+ * this will also initialize the manifest.
+ *
  * @param bundlename filename of the bundle to check
  * @param bundle return location for a RaucBundle struct.
  *               This will contain all bundle information obtained by
