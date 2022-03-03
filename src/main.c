@@ -912,7 +912,14 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	g_string_append_printf(text, "Hooks:      \t'%s'\n", hookstring);
 	g_free(hookstring);
 
-	g_string_append_printf(text, "Bundle Format: \t%s\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
+	g_string_append_printf(text, "Bundle Format: \t%s", r_manifest_bundle_format_to_str(manifest->bundle_format));
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
+		if (manifest->was_encrypted)
+			g_string_append_printf(text, KBLD KGRN " [encrypted CMS]"KNRM);
+		else
+			g_string_append_printf(text, KBLD KYEL " [unencrypted CMS]"KNRM);
+	}
+	g_string_append_printf(text, "\n");
 
 	if (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
 		g_string_append_printf(text, "  Crypt Key: \t'%s'\n", show_crypt_key ? manifest->bundle_crypt_key : "<hidden>");
