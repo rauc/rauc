@@ -35,6 +35,8 @@ gboolean info_dumpcert = FALSE;
 gboolean info_dumprecipients = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
+gchar *keypath = NULL;
+gchar *certpath = NULL;
 gchar *signing_keyring = NULL;
 gchar *mksquashfs_args = NULL;
 gchar *casync_args = NULL;
@@ -2061,6 +2063,12 @@ static GOptionEntry entries_service[] = {
 	{0}
 };
 
+static GOptionEntry entries_signing[] = {
+	{"cert", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &certpath, "signing cert file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
+	{"key", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keypath, "signing key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
+	{0}
+};
+
 static GOptionEntry entries_bundle_access[] = {
 	{"tls-cert", '\0', 0, G_OPTION_ARG_STRING, &access_args.tls_cert, "TLS client certificate file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 	{"tls-key", '\0', 0, G_OPTION_ARG_STRING, &access_args.tls_key, "TLS client key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
@@ -2097,15 +2105,18 @@ static void create_option_groups(void)
 	if (ENABLE_CREATE) {
 		bundle_group  = g_option_group_new("bundle", "Bundle options:", "help dummy", NULL, NULL);
 		g_option_group_add_entries(bundle_group, entries_bundle);
+		g_option_group_add_entries(bundle_group, entries_signing);
 
 		resign_group  = g_option_group_new("resign", "Resign options:", "help dummy", NULL, NULL);
 		g_option_group_add_entries(resign_group, entries_resign);
+		g_option_group_add_entries(resign_group, entries_signing);
 
 		replace_group  = g_option_group_new("replace-signature", "Replace signature options:", "help dummy", NULL, NULL);
 		g_option_group_add_entries(replace_group, entries_replace);
 
 		convert_group = g_option_group_new("convert", "Convert options:", "help dummy", NULL, NULL);
 		g_option_group_add_entries(convert_group, entries_convert);
+		g_option_group_add_entries(convert_group, entries_signing);
 
 		encrypt_group = g_option_group_new("encrypt", "Encryption options:", "help dummy", NULL, NULL);
 		g_option_group_add_entries(encrypt_group, entries_encryption);
@@ -2132,13 +2143,14 @@ static void create_option_groups(void)
 static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, debug = FALSE, version = FALSE;
-	gchar *confpath = NULL, *certpath = NULL, *keypath = NULL, *keyring = NULL, **intermediate = NULL, *mount = NULL;
+	gchar *confpath = NULL, *keyring = NULL, **intermediate = NULL, *mount = NULL;
 	char *cmdarg = NULL;
 	g_autoptr(GOptionContext) context = NULL;
 	GOptionEntry entries[] = {
 		{"conf", 'c', 0, G_OPTION_ARG_FILENAME, &confpath, "config file", "FILENAME"},
-		{"cert", '\0', 0, G_OPTION_ARG_FILENAME, &certpath, "cert file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
-		{"key", '\0', 0, G_OPTION_ARG_FILENAME, &keypath, "key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
+		/* NOTE: cert and key kept for backwards-compatibility, but made invisible */
+		{"cert", '\0', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_FILENAME, &certpath, "cert file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
+		{"key", '\0', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_FILENAME, &keypath, "key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 		{"keyring", '\0', 0, G_OPTION_ARG_FILENAME, &keyring, "keyring file", "PEMFILE"},
 		{"intermediate", '\0', 0, G_OPTION_ARG_FILENAME_ARRAY, &intermediate, "intermediate CA file name", "PEMFILE"},
 		{"mount", '\0', 0, G_OPTION_ARG_FILENAME, &mount, "mount prefix", "PATH"},
