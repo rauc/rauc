@@ -72,6 +72,10 @@ typedef struct {
 	gchar *streaming_tls_key;
 	gchar *streaming_tls_ca;
 
+	/* encryption */
+	gchar *encryption_key;
+	gchar *encryption_cert;
+
 	GHashTable *slots;
 } RaucConfig;
 

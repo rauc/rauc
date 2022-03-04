@@ -468,6 +468,18 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 	g_key_file_remove_group(key_file, "streaming", NULL);
 
+	/* parse [encryption] section */
+	c->encryption_key = resolve_path(filename,
+			key_file_consume_string(key_file, "encryption", "key", NULL));
+	c->encryption_cert = resolve_path(filename,
+			key_file_consume_string(key_file, "encryption", "cert", NULL));
+	if (!check_remaining_keys(key_file, "encryption", &ierror)) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
+	g_key_file_remove_group(key_file, "encryption", NULL);
+
 	/* parse [autoinstall] section */
 	c->autoinstall_path = resolve_path(filename,
 			key_file_consume_string(key_file, "autoinstall", "path", NULL));
@@ -792,6 +804,8 @@ void free_config(RaucConfig *config)
 	g_free(config->streaming_tls_cert);
 	g_free(config->streaming_tls_key);
 	g_free(config->streaming_tls_ca);
+	g_free(config->encryption_key);
+	g_free(config->encryption_cert);
 	g_clear_pointer(&config->slots, g_hash_table_destroy);
 	g_free(config);
 }
