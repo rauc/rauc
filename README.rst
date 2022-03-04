@@ -43,6 +43,7 @@ Features
   * chunk-based binary delta updates
   * significantly reduce download size
   * no extra storage required
+* Bundle **encryption** for multiple recipients
 * **Bootloader support**:
 
   * `grub <https://www.gnu.org/software/grub/>`_

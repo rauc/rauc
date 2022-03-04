@@ -248,6 +248,22 @@ For more information about using the streaming support of RAUC, refer to
   This option can be used to set the path of the CA certificate which should be
   used instead of the system wide store of trusted TLS/HTTPS certificates.
 
+**[encryption]**
+
+The ``encryption`` section contains information required to decrypt a 'crypt'
+bundle.
+For more information about encrypted RAUC bundle bundles, refer to
+:ref:`sec-encryption`.
+
+``key``
+  Path or PKCS#11 URL for the private key used to decrypt bundles.
+  This is mandatory for decrypting encrypted bundles.
+
+``cert``
+  Path or PKCS#11 URL for the certificate matching the encryption key.
+  This is optional but allows to speed up key lookup and thus is especially
+  useful for larger number of recipients.
+
 **[casync] section**
 
 The ``casync`` section contains casync-related settings.
@@ -479,6 +495,10 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
   RAUC determines this value automatically, so it should be left unspecified
   when preparing a manifest for bundle creation.
 
+``crypt-key``
+  The encryption key of the dm-crypt.
+  RAUC generates the key automatically when creating a `crypt` bundle.
+
 **[hooks] section**
 
 ``filename``
@@ -532,16 +552,18 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
 Bundle Formats
 --------------
 
-RAUC currently supports two bundle formats (``plain`` and ``verity``) and
-additional formats could be added to support features such as encryption.
+RAUC currently supports three bundle formats (``plain``,  ``verity`` and
+``crypt``) and additional formats could be added if required.
 Version 1.4 (released on 2020-06-20) and earlier only supported a single format
 which is now named ``plain``, which should be used as long as compatibility to
 those versions is required.
 
-The ``verity`` format was added to prepare for future use cases (such as
-network streaming and encryption), for better parallelization of installation
-with hash verification and to detect modification of the bundle during
-installation.
+The ``verity`` format was added to support new use cases like network
+streaming, for better parallelization of installation with hash verification
+and to detect modification of the bundle during installation.
+
+The ``crypt`` format is an extension to the ``verity`` format that allows full
+encryption of the bundle.
 
 The bundle format is detected when reading a bundle and checked against the set
 of allowed formats configured in the ``system.conf`` (see :ref:`bundle-formats
@@ -593,6 +615,27 @@ without using the kernel's device mapper target, as they are often used by
 normal users on their development hosts.
 It this case, the same mechanism for ensuring exclusive access as with plain
 bundles is used.
+
+.. _sec_ref_format_crypt:
+
+crypt Format
+~~~~~~~~~~~~
+
+In this case, a bundle consists of:
+
+* SquashFS filesystem containing manifest (without verity metadata or crypt key) and images,
+  encrypted using dm-crypt mode aes-cbc-plain64
+* dm-verity hash tree over the encrypted SquashFS filesystem
+* CMS signature over an inline manifest (with verity metadata and crypt key),
+  encrypted to a set of recipients
+* size of the encrypted CMS structure
+
+In addition to the metadata used by the verity format,
+the manifest for this format contains the AES-256 key required for decryption of the SquashFS payload.
+To protect the payload key, the signed manifest is then encrypted.
+
+During installation, the kernel's crypt and verity device mapper targets are used on top of the
+loopback or network block device to authenticate and then decrypt each payload block as needed.
 
 .. _sec_ref_external_signing:
 
