@@ -99,13 +99,13 @@ static int open_loop_verity(int bundlefd, off_t loop_size, off_t data_size, gcha
 	g_assert_true(res);
 	g_assert_nonnull(loopname);
 
-	dm_verity = new_dm_verity();
+	dm_verity = r_dm_new_verity();
 	dm_verity->lower_dev = g_strdup(loopname);
 	dm_verity->data_size = data_size;
 	dm_verity->root_digest = g_strdup(root_digest);
 	dm_verity->salt = g_strdup(salt);
 
-	res = setup_dm_verity(dm_verity, &ierror);
+	res = r_dm_setup_verity(dm_verity, &ierror);
 	g_close(loopfd, NULL);
 	if (!res) {
 		g_propagate_error(error, ierror);
@@ -117,7 +117,7 @@ static int open_loop_verity(int bundlefd, off_t loop_size, off_t data_size, gcha
 	fd = g_open(dm_verity->upper_dev, O_RDONLY|O_CLOEXEC, 0);
 	g_assert_cmpint(fd, >, 0);
 
-	res = remove_dm_verity(dm_verity, TRUE, &ierror);
+	res = r_dm_remove_verity(dm_verity, TRUE, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 
@@ -149,13 +149,13 @@ static void dm_verity_simple_test(void)
 	g_assert_nonnull(loopname);
 	g_close(datafd, NULL);
 
-	dm_verity = new_dm_verity();
+	dm_verity = r_dm_new_verity();
 	dm_verity->lower_dev = g_strdup(loopname);
 	dm_verity->data_size = 4096*129;
 	dm_verity->root_digest = g_strdup("3049cbffaa49c6dc12e9cd1dd4604ef5a290e3d13b379c5a50d356e68423de23");
 	dm_verity->salt = g_strdup("799ea94008bbdc6555d7895d1b647e2abfd213171f0e8b670e1da951406f4691");
 
-	res = setup_dm_verity(dm_verity, &error);
+	res = r_dm_setup_verity(dm_verity, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
 	g_close(loopfd, NULL);
@@ -165,7 +165,7 @@ static void dm_verity_simple_test(void)
 	fd = g_open(dm_verity->upper_dev, O_RDONLY|O_CLOEXEC, 0);
 	g_assert_cmpint(fd, >, 0);
 
-	res = remove_dm_verity(dm_verity, TRUE, &error);
+	res = r_dm_remove_verity(dm_verity, TRUE, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
 
@@ -194,7 +194,7 @@ static void verity_hash_test(void)
 	bundlefd = g_open("test/dummy.verity", O_RDONLY);
 	g_assert_cmpint(bundlefd, >, 0);
 
-	ret = verity_create_or_verify_hash(1, bundlefd, 129, NULL, root_hash, salt);
+	ret = r_verity_hash_verify(bundlefd, 129, root_hash, salt);
 	g_assert_cmpint(ret, ==, 0);
 
 	g_close(bundlefd, NULL);
@@ -225,13 +225,13 @@ static void verity_hash_create(DMFixture *fixture,
 	g_assert_cmpint(bundlefd, >, 0);
 
 	/* create verity file */
-	ret = verity_create_or_verify_hash(0, bundlefd, dm_data->data_size, &combined_size, root_hash, salt);
+	ret = r_verity_hash_create(bundlefd, dm_data->data_size, &combined_size, root_hash, salt);
 	g_assert_cmpint(ret, ==, 0);
 	g_assert_cmpint(combined_size, ==, dm_data->combined_size);
 	root_hash_hex = r_hex_encode(root_hash, 32);
 
 	/* check unmodified verity file */
-	ret = verity_create_or_verify_hash(1, bundlefd, dm_data->data_size, NULL, root_hash, salt);
+	ret = r_verity_hash_verify(bundlefd, dm_data->data_size, root_hash, salt);
 	g_assert_cmpint(ret, ==, 0);
 
 	/* open via kernel loopback device and dm-verity */
@@ -248,7 +248,7 @@ static void verity_hash_create(DMFixture *fixture,
 	flip_bits_filename(filename, 0, 0x01);
 
 	/* check that the bit flip in the first sector is detected by the userspace check */
-	ret = verity_create_or_verify_hash(1, bundlefd, dm_data->data_size, NULL, root_hash, salt);
+	ret = r_verity_hash_verify(bundlefd, dm_data->data_size, root_hash, salt);
 	g_assert_cmpint(ret, !=, 0);
 
 	/* check that only the affected sector is unreadable */
@@ -283,7 +283,7 @@ static void verity_hash_create(DMFixture *fixture,
 		g_assert_cmpint(readable_sectors(dmfd), ==, dm_data->data_size - 1);
 
 		/* check that the bit flip is detected by the userspace check */
-		ret = verity_create_or_verify_hash(1, bundlefd, dm_data->data_size, NULL, root_hash, salt);
+		ret = r_verity_hash_verify(bundlefd, dm_data->data_size, root_hash, salt);
 		g_assert_cmpint(ret, !=, 0);
 
 		g_close(dmfd, NULL);

@@ -506,7 +506,7 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 					"squashfs size (%"G_GUINT64_FORMAT ") must be larger than 4096 bytes", offset);
 			return FALSE;
 		}
-		if (verity_create_or_verify_hash(0, bundlefd, offset/4096, &combined_size, hash, salt) != 0) {
+		if (r_verity_hash_create(bundlefd, offset/4096, &combined_size, hash, salt) != 0) {
 			g_set_error(error,
 					R_BUNDLE_ERROR,
 					R_BUNDLE_ERROR_VERITY,
@@ -1721,7 +1721,7 @@ gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 		g_assert(combined_size % 4096 == 0);
 		g_assert(data_size % 4096 == 0);
 
-		if (verity_create_or_verify_hash(1, bundlefd, data_size/4096, NULL, root_digest, salt)) {
+		if (r_verity_hash_verify(bundlefd, data_size/4096, root_digest, salt)) {
 			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_PAYLOAD,
 					"bundle payload is corrupted");
 			res = FALSE;
@@ -2105,7 +2105,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 		bundle->manifest = g_steal_pointer(&manifest);
 	} else if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
 		g_autoptr(GError) ierror_dm = NULL;
-		g_autoptr(RaucDMVerity) dm_verity = new_dm_verity();
+		g_autoptr(RaucDMVerity) dm_verity = r_dm_new_verity();
 
 		res = check_manifest_external(bundle->manifest, &ierror);
 		if (!res) {
@@ -2118,7 +2118,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 		dm_verity->root_digest = g_strdup(bundle->manifest->bundle_verity_hash);
 		dm_verity->salt = g_strdup(bundle->manifest->bundle_verity_salt);
 
-		res = setup_dm_verity(dm_verity, &ierror);
+		res = r_dm_setup_verity(dm_verity, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -2126,7 +2126,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 
 		res = r_mount_bundle(dm_verity->upper_dev, mount_point, &ierror);
 
-		if (!remove_dm_verity(dm_verity, TRUE, &ierror_dm)) {
+		if (!r_dm_remove_verity(dm_verity, TRUE, &ierror_dm)) {
 			g_warning("failed to mark dm verity device for removal: %s", ierror_dm->message);
 			g_clear_error(&ierror);
 		}
