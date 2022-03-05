@@ -187,10 +187,6 @@ static void verity_hash_test(void)
 	g_autofree guint8 *root_hash = r_hex_decode("3049cbffaa49c6dc12e9cd1dd4604ef5a290e3d13b379c5a50d356e68423de23", 32);
 	g_autofree guint8 *salt = r_hex_decode("799ea94008bbdc6555d7895d1b647e2abfd213171f0e8b670e1da951406f4691", 32);
 
-	/* needs to run as root */
-	if (!test_running_as_root())
-		return;
-
 	bundlefd = g_open("test/dummy.verity", O_RDONLY);
 	g_assert_cmpint(bundlefd, >, 0);
 
