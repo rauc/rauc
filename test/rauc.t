@@ -212,11 +212,44 @@ test_expect_success "rauc help" "
   rauc info --help
 "
 
-test_expect_success "rauc info" "
+test_expect_success "rauc info (plain)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
     info ${TEST_TMPDIR}/good-bundle.raucb
+"
+
+test_expect_success "rauc info (verity)" "
+  rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    info ${SHARNESS_TEST_DIRECTORY}/good-verity-bundle.raucb
+"
+
+test_expect_success "rauc info (crypt, unencrypted)" "
+  rauc info \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-unencrypted.raucb
+"
+
+test_expect_success "rauc info (crypt, encrypted) valid key" "
+  rauc info \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/private-key-000.pem \
+    ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-encrypted.raucb
+"
+
+test_expect_success "rauc info (crypt, encrypted) invalid key" "
+  test_must_fail rauc info \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/private-key-005.pem \
+    ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-encrypted.raucb
+"
+
+test_expect_success "rauc info --dump-recipients (crypt, encrypted)" "
+  rauc info \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/private-key-000.pem \
+    --dump-recipients \
+    ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-encrypted.raucb
 "
 
 test_expect_success "rauc info with config" "
@@ -592,12 +625,39 @@ test_expect_success OPENSSL "rauc extract signature" "
   rm -f $TEST_TMPDIR/bundle.sig
 "
 
+test_expect_success OPENSSL "rauc extract signature (crypt)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-encrypted.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-crypt-bundle-encrypted.raucb &&
+  rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/private-key-000.pem \
+    extract-signature ${TEST_TMPDIR}/good-crypt-bundle-encrypted.raucb $TEST_TMPDIR/bundle.sig &&
+  test -f $TEST_TMPDIR/bundle.sig &&
+  openssl asn1parse -inform DER -in $TEST_TMPDIR/bundle.sig -noout > /dev/null 2>&1 && \
+  rm -f $TEST_TMPDIR/bundle.sig
+"
+
 test_expect_success "rauc extract" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rauc \
     --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
     extract ${TEST_TMPDIR}/good-bundle.raucb $TEST_TMPDIR/bundle-extract &&
+  test -f $TEST_TMPDIR/bundle-extract/appfs.img &&
+  test -f $TEST_TMPDIR/bundle-extract/custom_handler.sh &&
+  test -f $TEST_TMPDIR/bundle-extract/hook.sh &&
+  test -f $TEST_TMPDIR/bundle-extract/manifest.raucm &&
+  test -f $TEST_TMPDIR/bundle-extract/rootfs.img &&
+  rm -rf $TEST_TMPDIR/bundle-extract
+"
+
+test_expect_success "rauc extract (crypt)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-encrypted.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-crypt-bundle-encrypted.raucb &&
+  rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/private-key-000.pem \
+    extract ${TEST_TMPDIR}/good-crypt-bundle-encrypted.raucb $TEST_TMPDIR/bundle-extract &&
   test -f $TEST_TMPDIR/bundle-extract/appfs.img &&
   test -f $TEST_TMPDIR/bundle-extract/custom_handler.sh &&
   test -f $TEST_TMPDIR/bundle-extract/hook.sh &&
@@ -886,6 +946,66 @@ test_expect_success OPENSSL "rauc replace signature (invalid bundle/signature/ou
   test -f ${TEST_TMPDIR}/good-bundle.raucb
 "
 
+test_expect_success "rauc bundle (crypt bundle)" "
+  cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
+  cp ${SHARNESS_TEST_DIRECTORY}/install-content/manifest.raucm.crypt ${TEST_TMPDIR}/install-content/manifest.raucm &&
+  dd if=/dev/urandom of=${TEST_TMPDIR}/install-content/dummy.data bs=1M count=1 &&
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    bundle ${TEST_TMPDIR}/install-content ${TEST_TMPDIR}/out.raucb &&
+  test -f ${TEST_TMPDIR}/out.raucb
+"
+
+test_expect_success "rauc encrypt (multiple single-cert PEM files)" "
+  test_when_finished rm -f ${TEST_TMPDIR}/encrypted.raucb &&
+  rauc encrypt \
+    --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/cert-000.pem \
+    --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/cert-001.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/encrypted.raucb &&
+  test -f ${TEST_TMPDIR}/encrypted.raucb
+"
+
+test_expect_success "rauc encrypt (single multiple-cert PEM file)" "
+  test_when_finished rm -f ${TEST_TMPDIR}/encrypted.raucb &&
+  rauc encrypt \
+    --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/certs.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/encrypted.raucb &&
+  test -f ${TEST_TMPDIR}/encrypted.raucb
+"
+
+test_expect_success "rauc encrypt (single multiple-cert PEM file, RSA+ECC mixed)" "
+  test_when_finished rm -f ${TEST_TMPDIR}/encrypted.raucb &&
+  rauc encrypt \
+    --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/certs.pem \
+    --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/ecc/certs.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/encrypted.raucb &&
+  test -f ${TEST_TMPDIR}/encrypted.raucb
+"
+
+test_expect_success "rauc encrypt (broken multiple-cert PEM file)" "
+  test_when_finished rm -f ${TEST_TMPDIR}/encrypted.raucb &&
+  test_when_finished rm -f ${TEST_TMPDIR}/certs.pem &&
+  head -n -5 $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/certs.pem > ${TEST_TMPDIR}/certs.pem &&
+  test_must_fail rauc encrypt \
+    --to ${TEST_TMPDIR}/certs.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/encrypted.raucb &&
+  test ! -f ${TEST_TMPDIR}/encrypted.raucb
+"
+
+test_expect_success "rauc encrypt (verity bundle)" "
+  test_must_fail rauc encrypt \
+    --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/cert-000.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    ${SHARNESS_TEST_DIRECTORY}/good-verity-bundle.raucb ${TEST_TMPDIR}/encrypted.raucb &&
+  test ! -f ${TEST_TMPDIR}/encrypted.raucb
+"
+
 test_expect_success ROOT,SERVICE "rauc install" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
@@ -911,6 +1031,20 @@ test_expect_success ROOT,SERVICE "rauc install (verity)" "
   test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
   rauc \
     install ${TEST_TMPDIR}/good-verity-bundle.raucb &&
+  test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
+"
+
+test_expect_success ROOT,SERVICE "rauc install (crypt)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-encrypted.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-crypt-bundle-encrypted.raucb &&
+  start_rauc_dbus_service_with_system \
+    --conf=${SHARNESS_TEST_DIRECTORY}/crypt-test.conf \
+    --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service_with_system &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  rauc \
+    install ${TEST_TMPDIR}/good-crypt-bundle-encrypted.raucb &&
   test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
 "
 
