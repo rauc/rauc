@@ -1441,6 +1441,31 @@ static gboolean open_remote_bundle(RaucBundle *bundle, GError **error)
 }
 #endif
 
+static gboolean check_allowed_bundle_format(RaucManifest *manifest, GError **error)
+{
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!manifest) {
+		if (!(r_context()->config->bundle_formats_mask & 1 << R_MANIFEST_FORMAT_PLAIN)) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
+					"Bundle format 'plain' not allowed");
+			return FALSE;
+		}
+
+		return TRUE;
+	}
+
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
+		if (!(r_context()->config->bundle_formats_mask & 1 << R_MANIFEST_FORMAT_VERITY)) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
+					"Bundle format 'verity' not allowed");
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
 gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleParams params, RaucBundleAccessArgs *access_args, GError **error)
 {
 	GError *ierror = NULL;
@@ -1582,13 +1607,6 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 		if (detached) {
 			int fd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(ibundle->stream));
 
-			if (!(r_context()->config->bundle_formats_mask & 1 << R_MANIFEST_FORMAT_PLAIN)) {
-				g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
-						"Bundle format 'plain' not allowed");
-				res = FALSE;
-				goto out;
-			}
-
 			if (!trust_env && !enforce_bundle_exclusive(fd, &ierror)) {
 				g_propagate_error(error, ierror);
 				res = FALSE;
@@ -1605,13 +1623,6 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 			ibundle->signature_verified = TRUE;
 			ibundle->payload_verified = TRUE;
 		} else {
-			if (!(r_context()->config->bundle_formats_mask & 1 << R_MANIFEST_FORMAT_VERITY)) {
-				g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
-						"Bundle format 'verity' not allowed");
-				res = FALSE;
-				goto out;
-			}
-
 			/* check if we have exclusive access to local or downloaded bundles */
 			if (ibundle->stream) {
 				int fd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(ibundle->stream));
@@ -1664,6 +1675,12 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 			res = FALSE;
 			goto out;
 		}
+	}
+
+	res = check_allowed_bundle_format(ibundle->manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
 	}
 
 	*bundle = g_steal_pointer(&ibundle);
