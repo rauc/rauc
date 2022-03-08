@@ -275,10 +275,11 @@ gboolean r_dm_remove_verity(RaucDMVerity *dm_verity, gboolean deferred, GError *
 
 	dmfd = open("/dev/mapper/control", O_RDWR|O_CLOEXEC);
 	if (dmfd < 0) {
+		int err = errno;
 		g_set_error(error,
 				G_FILE_ERROR,
 				G_FILE_ERROR_FAILED,
-				"Failed to open /dev/mapper/control");
+				"Failed to open /dev/mapper/control: %s", g_strerror(err));
 		res = FALSE;
 		goto out;
 	}
