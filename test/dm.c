@@ -259,7 +259,7 @@ static void verity_hash_create(DMFixture *fixture,
 
 	/* retry opening the modified verity file */
 	dmfd = open_loop_verity(bundlefd, 4096*dm_data->combined_size, 4096*dm_data->data_size, root_hash_hex, salt_hex, &error);
-	g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED);
+	g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_IO);
 	g_assert_cmpstr(error->message, ==, "Check read from dm-verity device failed: Input/output error");
 	g_assert_cmpint(dmfd, ==, -1);
 	g_clear_error(&error);
