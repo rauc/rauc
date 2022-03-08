@@ -184,3 +184,6 @@ Key Features of RAUC
 .. _meta-rauc: https://github.com/rauc/meta-rauc
 
 .. _buildroot: https://www.buildroot.org
+
+.. meta::
+   :google-site-verification: wLmZ0Ehh9wAjp6f23ckkSFyQtNEIW2wUfpv-r5kYv2M
