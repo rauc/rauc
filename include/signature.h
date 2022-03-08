@@ -7,6 +7,8 @@
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(CMS_ContentInfo, CMS_ContentInfo_free)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(X509_STORE, X509_STORE_free)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(X509, X509_free)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(EVP_PKEY, EVP_PKEY_free)
 
 #define R_SIGNATURE_ERROR r_signature_error_quark()
 GQuark r_signature_error_quark(void);

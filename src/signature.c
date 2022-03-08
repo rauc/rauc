@@ -460,8 +460,8 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
 			g_bytes_get_size(content));
 	BIO *outsig = BIO_new(BIO_s_mem());
-	X509 *signcert = NULL;
-	EVP_PKEY *pkey = NULL;
+	g_autoptr(X509) signcert = NULL;
+	g_autoptr(EVP_PKEY) pkey = NULL;
 	STACK_OF(X509) *intercerts = NULL;
 	g_autoptr(CMS_ContentInfo) cms = NULL;
 	GBytes *res = NULL;
@@ -598,7 +598,6 @@ out:
 	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
 	BIO_free_all(outsig);
-	EVP_PKEY_free(pkey);
 	return res;
 }
 
