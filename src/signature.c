@@ -731,7 +731,7 @@ gchar* sigdata_to_string(GBytes *sig, GError **error)
 
 	ret = dump_cms(signers);
 
-	sk_X509_free(signers);
+	sk_X509_pop_free(signers, X509_free);
 	BIO_free(insig);
 
 	return ret;
@@ -900,6 +900,8 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 out:
 	if (cert_ctx)
 		X509_STORE_CTX_free(cert_ctx);
+	if (intercerts)
+		sk_X509_pop_free(intercerts, X509_free);
 	if (signers)
 		sk_X509_free(signers);
 
