@@ -793,6 +793,135 @@ gchar* sigdata_to_string(GBytes *sig, GError **error)
 	return ret;
 }
 
+static void bio_print_recipient(BIO *text, guint id, gchar* algorithm, ASN1_OCTET_STRING *keyid, X509_NAME *issuer, ASN1_INTEGER *sno)
+{
+	g_autofree gchar *s = NULL;
+
+	/* OpenSSL documentation says
+	 * "Either the keyidentifier will be set in keyid or both
+	 * issuer name and serial number in issuer and sno."
+	 */
+	if (keyid) {
+		/* dummy printout first of all */
+		BIO_printf(text, "%3d   <keyid>", id);
+		return;
+	}
+
+	if (!issuer || !sno) {
+		BIO_printf(text, "%3d   <unknown>", id);
+		return;
+	}
+
+	BIO_printf(text, "%3d   Issuer:    ", id);
+	X509_NAME_print_ex(text, issuer, 0, XN_FLAG_ONELINE);
+	BIO_puts(text, "\n");
+	BIO_puts(text, "      Serial:    ");
+	s = i2s_ASN1_INTEGER(NULL, sno);
+	BIO_puts(text, s);
+	BIO_puts(text, "\n");
+	if (algorithm)
+		BIO_printf(text, "      Algorithm: %s\n", algorithm);
+}
+
+gchar* envelopeddata_to_string(GBytes *sig, GError **error)
+{
+	g_autoptr(CMS_ContentInfo) cms = NULL;
+	BIO *insig = NULL;
+	STACK_OF(CMS_RecipientInfo) *ris;
+	BIO *text;
+	gchar *ret;
+
+	g_return_val_if_fail(sig != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
+			g_bytes_get_size(sig));
+	if (!insig)
+		g_error("BIO_new_mem_buf() failed");
+
+	if (!(cms = d2i_CMS_bio(insig, NULL))) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE,
+				"Failed to parse signature");
+		return NULL;
+	}
+	ris = CMS_get0_RecipientInfos(cms);
+
+	text = BIO_new(BIO_s_mem());
+	BIO_printf(text, "%d Recipients:\n", sk_CMS_RecipientInfo_num(ris));
+
+	for (int i = 0; i < sk_CMS_RecipientInfo_num(ris); i++) {
+		CMS_RecipientInfo *ri;
+
+		ri = sk_CMS_RecipientInfo_value(ris, i);
+
+		switch (CMS_RecipientInfo_type(ri)) {
+			case CMS_RECIPINFO_TRANS: {
+				ASN1_OCTET_STRING *keyid = NULL;
+				X509_NAME *issuer = NULL;
+				ASN1_INTEGER *sno = NULL;
+				X509_ALGOR *alg = NULL;
+				gchar algo_buf[80];
+
+				if (CMS_RecipientInfo_ktri_get0_signer_id(ri, &keyid, &issuer, &sno) != 1) {
+					g_warning("Unable to obtain recipient information for recipient %d", i);
+				}
+
+				if (CMS_RecipientInfo_ktri_get0_algs(ri, NULL, NULL, &alg) != 1) {
+					g_warning("Unable to obtain algorithm information for recipient %d", i);
+				}
+
+				OBJ_obj2txt(algo_buf, sizeof(algo_buf), alg->algorithm, 0);
+
+				bio_print_recipient(text, i, algo_buf, keyid, issuer, sno);
+			} break;
+			case CMS_RECIPINFO_AGREE: {
+				STACK_OF(CMS_RecipientEncryptedKey) *reks = NULL;
+				X509_ALGOR *alg = NULL;
+				gchar algo_buf[80];
+
+				reks = CMS_RecipientInfo_kari_get0_reks(ri);
+				if (!reks) {
+					g_warning("Unable to obtain recipient information for recipient %d", i);
+				}
+
+				if (CMS_RecipientInfo_kari_get0_alg(ri, &alg, NULL) != 1) {
+					g_warning("Unable to obtain algorithm information for recipient %d", i);
+				}
+
+				OBJ_obj2txt(algo_buf, sizeof(algo_buf), alg->algorithm, 0);
+
+				for (int j = 0; j < sk_CMS_RecipientEncryptedKey_num(reks); j++) {
+					ASN1_OCTET_STRING *keyid = NULL;
+					X509_NAME *issuer = NULL;
+					ASN1_INTEGER *sno = NULL;
+
+					CMS_RecipientEncryptedKey *rek = sk_CMS_RecipientEncryptedKey_value(reks, j);
+					CMS_RecipientEncryptedKey_get0_id(rek, &keyid, NULL, NULL, &issuer, &sno);
+
+					bio_print_recipient(text, i, algo_buf, keyid, issuer, sno);
+				}
+			} break;
+			default:
+				g_warning("Unknown recipient information for recipient %d", i);
+				break;
+		}
+	}
+
+	ret = bio_mem_unwrap(text);
+	if (!ret) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_GET_SIGNER,
+				"Failed to obtain recipient infos: ");
+	}
+
+	return ret;
+}
+
 static gchar* get_cert_time(const ASN1_TIME *time)
 {
 	BIO *mem;
