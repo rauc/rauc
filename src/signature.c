@@ -691,21 +691,13 @@ static gchar* bio_mem_unwrap(BIO *mem)
 static gchar* dump_cms(STACK_OF(X509) *x509_certs)
 {
 	BIO *mem;
-	gchar *data, *ret;
-	gsize size;
 
 	g_return_val_if_fail(x509_certs != NULL, NULL);
 
 	mem = BIO_new(BIO_s_mem());
 	X509_print_ex(mem, sk_X509_value(x509_certs, 0), 0, 0);
 
-	size = BIO_get_mem_data(mem, &data);
-	ret = g_strndup(data, size);
-
-	BIO_set_close(mem, BIO_CLOSE);
-	BIO_free(mem);
-
-	return ret;
+	return bio_mem_unwrap(mem);
 }
 
 gchar* sigdata_to_string(GBytes *sig, GError **error)
