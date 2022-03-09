@@ -667,6 +667,27 @@ out:
 	return ret;
 }
 
+/*
+ * Reads text out of BIO.
+ *
+ * @param input BIO, will be freed
+ *
+ * @return newly allocated string or NULL
+ */
+static gchar* bio_mem_unwrap(BIO *mem)
+{
+	long size;
+	gchar *data, *ret;
+
+	g_return_val_if_fail(mem != NULL, NULL);
+
+	size = BIO_get_mem_data(mem, &data);
+	ret = g_strndup(data, size);
+	BIO_free(mem);
+
+	return ret;
+}
+
 static gchar* dump_cms(STACK_OF(X509) *x509_certs)
 {
 	BIO *mem;
@@ -738,20 +759,6 @@ static gchar* get_cert_time(const ASN1_TIME *time)
 	ret = g_strndup(data, size);
 
 	BIO_set_close(mem, BIO_CLOSE);
-	BIO_free(mem);
-
-	return ret;
-}
-
-static gchar* bio_mem_unwrap(BIO *mem)
-{
-	long size;
-	gchar *data, *ret;
-
-	g_return_val_if_fail(mem != NULL, NULL);
-
-	size = BIO_get_mem_data(mem, &data);
-	ret = g_strndup(data, size);
 	BIO_free(mem);
 
 	return ret;
