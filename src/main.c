@@ -32,6 +32,7 @@ gboolean trust_environment = FALSE;
 gboolean verification_disabled = FALSE;
 gboolean no_check_time = FALSE;
 gboolean info_dumpcert = FALSE;
+gboolean info_dumprecipients = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
 gchar *signing_keyring = NULL;
@@ -1133,6 +1134,12 @@ static gboolean info_start(int argc, char **argv)
 		g_free(text);
 	}
 
+	if (info_dumprecipients) {
+		text = envelopeddata_to_string(bundle->enveloped_data, NULL);
+		g_print("%s\n", text);
+		g_free(text);
+	}
+
 	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
 		if (!bundle->verified_chain) {
 			g_print("Signature unverified\n");
@@ -1990,6 +1997,7 @@ static GOptionEntry entries_info[] = {
 	{"no-check-time", '\0', 0, G_OPTION_ARG_NONE, &no_check_time, "don't check validity period of certificates against current time", NULL},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
 	{"dump-cert", '\0', 0, G_OPTION_ARG_NONE, &info_dumpcert, "dump certificate", NULL},
+	{"dump-recipients", '\0', 0, G_OPTION_ARG_NONE, &info_dumprecipients, "dump recipients", NULL},
 	{0}
 };
 
