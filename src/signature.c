@@ -460,8 +460,8 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
 			g_bytes_get_size(content));
 	BIO *outsig = BIO_new(BIO_s_mem());
-	X509 *signcert = NULL;
-	EVP_PKEY *pkey = NULL;
+	g_autoptr(X509) signcert = NULL;
+	g_autoptr(EVP_PKEY) pkey = NULL;
 	STACK_OF(X509) *intercerts = NULL;
 	g_autoptr(CMS_ContentInfo) cms = NULL;
 	GBytes *res = NULL;
@@ -598,7 +598,6 @@ out:
 	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
 	BIO_free_all(outsig);
-	EVP_PKEY_free(pkey);
 	return res;
 }
 
@@ -667,24 +666,37 @@ out:
 	return ret;
 }
 
+/*
+ * Reads text out of BIO.
+ *
+ * @param input BIO, will be freed
+ *
+ * @return newly allocated string or NULL
+ */
+static gchar* bio_mem_unwrap(BIO *mem)
+{
+	long size;
+	gchar *data, *ret;
+
+	g_return_val_if_fail(mem != NULL, NULL);
+
+	size = BIO_get_mem_data(mem, &data);
+	ret = g_strndup(data, size);
+	BIO_free(mem);
+
+	return ret;
+}
+
 static gchar* dump_cms(STACK_OF(X509) *x509_certs)
 {
 	BIO *mem;
-	gchar *data, *ret;
-	gsize size;
 
 	g_return_val_if_fail(x509_certs != NULL, NULL);
 
 	mem = BIO_new(BIO_s_mem());
 	X509_print_ex(mem, sk_X509_value(x509_certs, 0), 0, 0);
 
-	size = BIO_get_mem_data(mem, &data);
-	ret = g_strndup(data, size);
-
-	BIO_set_close(mem, BIO_CLOSE);
-	BIO_free(mem);
-
-	return ret;
+	return bio_mem_unwrap(mem);
 }
 
 gchar* sigdata_to_string(GBytes *sig, GError **error)
@@ -719,7 +731,7 @@ gchar* sigdata_to_string(GBytes *sig, GError **error)
 
 	ret = dump_cms(signers);
 
-	sk_X509_free(signers);
+	sk_X509_pop_free(signers, X509_free);
 	BIO_free(insig);
 
 	return ret;
@@ -738,20 +750,6 @@ static gchar* get_cert_time(const ASN1_TIME *time)
 	ret = g_strndup(data, size);
 
 	BIO_set_close(mem, BIO_CLOSE);
-	BIO_free(mem);
-
-	return ret;
-}
-
-static gchar* bio_mem_unwrap(BIO *mem)
-{
-	long size;
-	gchar *data, *ret;
-
-	g_return_val_if_fail(mem != NULL, NULL);
-
-	size = BIO_get_mem_data(mem, &data);
-	ret = g_strndup(data, size);
 	BIO_free(mem);
 
 	return ret;
@@ -902,6 +900,8 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 out:
 	if (cert_ctx)
 		X509_STORE_CTX_free(cert_ctx);
+	if (intercerts)
+		sk_X509_pop_free(intercerts, X509_free);
 	if (signers)
 		sk_X509_free(signers);
 

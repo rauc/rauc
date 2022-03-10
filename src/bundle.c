@@ -2128,7 +2128,6 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 
 		if (!r_dm_remove_verity(dm_verity, TRUE, &ierror_dm)) {
 			g_warning("failed to mark dm verity device for removal: %s", ierror_dm->message);
-			g_clear_error(&ierror);
 		}
 
 		if (!res) {
