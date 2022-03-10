@@ -114,7 +114,7 @@ gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
 		int err = errno;
 		g_set_error(error,
 				G_FILE_ERROR,
-				G_FILE_ERROR_FAILED,
+				g_file_error_from_errno(err),
 				"Failed to open /dev/mapper/control: %s", g_strerror(err));
 		res = FALSE;
 		goto out;
@@ -129,7 +129,7 @@ gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
 		int err = errno;
 		g_set_error(error,
 				G_FILE_ERROR,
-				G_FILE_ERROR_FAILED,
+				g_file_error_from_errno(err),
 				"Failed to create dm device: %s", g_strerror(err));
 		res = FALSE;
 		goto out;
@@ -164,7 +164,7 @@ gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
 		int err = errno;
 		g_set_error(error,
 				G_FILE_ERROR,
-				G_FILE_ERROR_FAILED,
+				g_file_error_from_errno(err),
 				"Failed to load dm table: %s", g_strerror(err));
 		res = FALSE;
 		goto out_remove_dm;
@@ -178,7 +178,7 @@ gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
 		int err = errno;
 		g_set_error(error,
 				G_FILE_ERROR,
-				G_FILE_ERROR_FAILED,
+				g_file_error_from_errno(err),
 				"Failed to resume dm device: %s", g_strerror(err));
 		res = FALSE;
 		goto out_remove_dm;
@@ -193,7 +193,7 @@ gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
 		int err = errno;
 		g_set_error(error,
 				G_FILE_ERROR,
-				G_FILE_ERROR_FAILED,
+				g_file_error_from_errno(err),
 				"Failed to open %s: %s", dm_verity->upper_dev, g_strerror(err));
 		res = FALSE;
 		goto out_remove_dm;
@@ -203,7 +203,7 @@ gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
 		int err = errno;
 		g_set_error(error,
 				G_FILE_ERROR,
-				G_FILE_ERROR_FAILED,
+				g_file_error_from_errno(err),
 				"Check read from dm-verity device failed: %s", g_strerror(err));
 		res = FALSE;
 		goto out_remove_dm;
@@ -215,7 +215,7 @@ gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
 		int err = errno;
 		g_set_error(error,
 				G_FILE_ERROR,
-				G_FILE_ERROR_FAILED,
+				g_file_error_from_errno(err),
 				"Failed to query dm device status: %s", g_strerror(err));
 		res = FALSE;
 		goto out_remove_dm;
@@ -275,10 +275,11 @@ gboolean r_dm_remove_verity(RaucDMVerity *dm_verity, gboolean deferred, GError *
 
 	dmfd = open("/dev/mapper/control", O_RDWR|O_CLOEXEC);
 	if (dmfd < 0) {
+		int err = errno;
 		g_set_error(error,
 				G_FILE_ERROR,
-				G_FILE_ERROR_FAILED,
-				"Failed to open /dev/mapper/control");
+				g_file_error_from_errno(err),
+				"Failed to open /dev/mapper/control: %s", g_strerror(err));
 		res = FALSE;
 		goto out;
 	}
@@ -291,7 +292,7 @@ gboolean r_dm_remove_verity(RaucDMVerity *dm_verity, gboolean deferred, GError *
 		int err = errno;
 		g_set_error(error,
 				G_FILE_ERROR,
-				G_FILE_ERROR_FAILED,
+				g_file_error_from_errno(err),
 				"Failed to remove dm device: %s", g_strerror(err));
 		res = FALSE;
 		goto out;
