@@ -146,12 +146,16 @@ Key Features of RAUC
 * Storage support:
 
   * ext4 filesystem
+  * eMMC boot partitions (atomic update)
   * vfat filesystem
   * UBI volumes
   * UBIFS
+  * JFFS2
   * raw NAND flash (using nandwrite)
   * raw NOR flash (using flashcp)
   * squashfs
+  * MBR partition table
+  * GPT partition table
 
 * Independent from update sources
 
