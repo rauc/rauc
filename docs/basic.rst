@@ -220,7 +220,7 @@ This handling is up to your bootloader.
 HTTP Streaming
 --------------
 
-Since RAUC 1.6, bundles can be installed directly from a HTTP(S) server,
+Since RAUC 1.7, bundles can be installed directly from a HTTP(S) server,
 without having to download and store the bundle locally.
 Simply use the bundle URL as the ``rauc install`` argument instead of a local
 file.

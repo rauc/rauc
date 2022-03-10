@@ -117,6 +117,10 @@ Key Features of RAUC
 
   * Keys and certificates on **PKCS#11 tokens** (HSMs) are supported
 
+* Built-In **HTTP(S) streaming** support for updates
+
+  * No intermediate storage on target required.
+
 * **Flexible and customizable** redundancy/storage setup
 
   .. image:: images/rauc_update_cases.svg
