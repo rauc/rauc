@@ -122,7 +122,9 @@ A list of slot storage types currently supported by RAUC:
 +----------+-------------------------------------------------------------------+-------------+
 | ubifs    | An UBI volume containing an UBIFS in NAND.                        |     x       |
 +----------+-------------------------------------------------------------------+-------------+
-| vfat     | A block device holding a vfat filesystem..                        |     x       |
+| vfat     | A block device holding a vfat filesystem.                         |     x       |
++----------+-------------------------------------------------------------------+-------------+
+| jffs2    | A flash memory holding a JFFS2 filesystem.                        |     x       |
 +----------+-------------------------------------------------------------------+-------------+
 
 Depending on this slot storage type and the slot's :ref:`image filename <image.slot-filename>`
