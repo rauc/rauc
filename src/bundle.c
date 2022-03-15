@@ -2045,7 +2045,7 @@ static gboolean prepare_verity(RaucBundle *bundle, gchar *loopname, gchar* mount
 	gboolean res = FALSE;
 	GError *ierror = NULL;
 	g_autoptr(GError) ierror_dm = NULL;
-	g_autoptr(RaucDMVerity) dm_verity = r_dm_new_verity();
+	g_autoptr(RaucDM) dm_verity = r_dm_new_verity();
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(loopname != NULL, FALSE);
@@ -2063,7 +2063,7 @@ static gboolean prepare_verity(RaucBundle *bundle, gchar *loopname, gchar* mount
 	dm_verity->root_digest = g_strdup(bundle->manifest->bundle_verity_hash);
 	dm_verity->salt = g_strdup(bundle->manifest->bundle_verity_salt);
 
-	res = r_dm_setup_verity(dm_verity, &ierror);
+	res = r_dm_setup(dm_verity, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -2071,7 +2071,7 @@ static gboolean prepare_verity(RaucBundle *bundle, gchar *loopname, gchar* mount
 
 	res = r_mount_bundle(dm_verity->upper_dev, mount_point, &ierror);
 
-	if (!r_dm_remove_verity(dm_verity, TRUE, &ierror_dm)) {
+	if (!r_dm_remove(dm_verity, TRUE, &ierror_dm)) {
 		g_warning("failed to mark dm verity device for removal: %s", ierror_dm->message);
 	}
 

@@ -87,7 +87,7 @@ static int open_loop_verity(int bundlefd, off_t loop_size, off_t data_size, gcha
 {
 	GError *ierror = NULL;
 	gboolean res;
-	g_autoptr(RaucDMVerity) dm_verity = NULL;
+	g_autoptr(RaucDM) dm_verity = NULL;
 	int loopfd = -1;
 	gchar *loopname = NULL;
 	int fd = -1;
@@ -105,7 +105,7 @@ static int open_loop_verity(int bundlefd, off_t loop_size, off_t data_size, gcha
 	dm_verity->root_digest = g_strdup(root_digest);
 	dm_verity->salt = g_strdup(salt);
 
-	res = r_dm_setup_verity(dm_verity, &ierror);
+	res = r_dm_setup(dm_verity, &ierror);
 	g_close(loopfd, NULL);
 	if (!res) {
 		g_propagate_error(error, ierror);
@@ -117,7 +117,7 @@ static int open_loop_verity(int bundlefd, off_t loop_size, off_t data_size, gcha
 	fd = g_open(dm_verity->upper_dev, O_RDONLY|O_CLOEXEC, 0);
 	g_assert_cmpint(fd, >, 0);
 
-	res = r_dm_remove_verity(dm_verity, TRUE, &ierror);
+	res = r_dm_remove(dm_verity, TRUE, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 
@@ -129,7 +129,7 @@ static void dm_verity_simple_test(void)
 {
 	GError *error = NULL;
 	gboolean res;
-	g_autoptr(RaucDMVerity) dm_verity = NULL;
+	g_autoptr(RaucDM) dm_verity = NULL;
 	int datafd = -1;
 	int loopfd = -1;
 	gchar *loopname = NULL;
@@ -155,7 +155,7 @@ static void dm_verity_simple_test(void)
 	dm_verity->root_digest = g_strdup("3049cbffaa49c6dc12e9cd1dd4604ef5a290e3d13b379c5a50d356e68423de23");
 	dm_verity->salt = g_strdup("799ea94008bbdc6555d7895d1b647e2abfd213171f0e8b670e1da951406f4691");
 
-	res = r_dm_setup_verity(dm_verity, &error);
+	res = r_dm_setup(dm_verity, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
 	g_close(loopfd, NULL);
@@ -165,7 +165,7 @@ static void dm_verity_simple_test(void)
 	fd = g_open(dm_verity->upper_dev, O_RDONLY|O_CLOEXEC, 0);
 	g_assert_cmpint(fd, >, 0);
 
-	res = r_dm_remove_verity(dm_verity, TRUE, &error);
+	res = r_dm_remove(dm_verity, TRUE, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
 
