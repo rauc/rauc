@@ -1831,8 +1831,8 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 			goto out;
 		}
 
+		ibundle->enveloped_data = ibundle->sigdata;
 		/* replace sigdata by decrypted payload */
-		g_bytes_unref(ibundle->sigdata);
 		ibundle->sigdata = decrypted_sigdata;
 		/* write marker to memorize for later that we originally had an enveloped CMS */
 		ibundle->was_encrypted = TRUE;
@@ -2611,6 +2611,7 @@ void free_bundle(RaucBundle *bundle)
 	if (bundle->stream)
 		g_object_unref(bundle->stream);
 	g_bytes_unref(bundle->sigdata);
+	g_bytes_unref(bundle->enveloped_data);
 	g_free(bundle->mount_point);
 	if (bundle->manifest)
 		free_manifest(bundle->manifest);

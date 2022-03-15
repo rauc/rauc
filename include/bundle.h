@@ -41,6 +41,7 @@ typedef struct {
 	GInputStream *stream;
 
 	goffset size;
+	GBytes *enveloped_data;
 	GBytes *sigdata;
 	gchar *mount_point;
 	RaucManifest *manifest;
