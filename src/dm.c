@@ -74,6 +74,16 @@ RaucDM *r_dm_new_verity(void)
 	return dm_verity;
 }
 
+RaucDM *r_dm_new_crypt(void)
+{
+	RaucDM *dm_crypt = g_malloc0(sizeof(RaucDM));
+
+	dm_crypt->type = RAUC_DM_CRYPT;
+	dm_crypt->uuid = g_uuid_string_random();
+
+	return dm_crypt;
+}
+
 void r_dm_free(RaucDM *dm)
 {
 	if (!dm)
@@ -84,6 +94,7 @@ void r_dm_free(RaucDM *dm)
 	g_free(dm->upper_dev);
 	g_free(dm->root_digest);
 	g_free(dm->salt);
+	g_free(dm->key);
 	g_free(dm);
 }
 
@@ -92,6 +103,8 @@ static const gchar* dmtype_to_str(RaucDMType dmtype)
 	switch (dmtype) {
 		case RAUC_DM_VERITY:
 			return "verity";
+		case RAUC_DM_CRYPT:
+			return "crypt";
 		default:
 			return "unknown";
 	}
@@ -102,6 +115,8 @@ static const gchar* dmstatus_by_dmtype(RaucDMType dmtype)
 	switch (dmtype) {
 		case RAUC_DM_VERITY:
 			return "V";
+		case RAUC_DM_CRYPT:
+			return "\0";
 		default:
 			return "unknown";
 	}
@@ -145,6 +160,8 @@ gboolean r_dm_setup(RaucDM *dm, GError **error)
 	dm_set_header(&setup.header, sizeof(setup), DM_READONLY_FLAG, dm->uuid);
 	if (dm->type == RAUC_DM_VERITY)
 		g_strlcpy(setup.header.name, "rauc-verity-bundle", sizeof(setup.header.name));
+	else if (dm->type == RAUC_DM_CRYPT)
+		g_strlcpy(setup.header.name, "rauc-crypt-bundle", sizeof(setup.header.name));
 	else
 		g_error("unknown dmtype");
 
@@ -179,6 +196,13 @@ gboolean r_dm_setup(RaucDM *dm, GError **error)
 					dm->salt) >= (gint)sizeof(setup.params);
 			break;
 		};
+		case RAUC_DM_CRYPT:
+			/* <cipher> [<key>|:<key_size>:<user|logon>:<key_description>] <iv_offset> <dev_path> <start> */
+			ret = g_snprintf(setup.params, sizeof(setup.params),
+					"aes-cbc-plain64 %s 0 %s 0 1 sector_size:4096",
+					dm->key,
+					dm->lower_dev) >= (gint)sizeof(setup.params);
+			break;
 		default:
 			g_error("unknown dm typ");
 			break;
@@ -305,6 +329,8 @@ gboolean r_dm_remove(RaucDM *dm, gboolean deferred, GError **error)
 	if (dm->type == RAUC_DM_VERITY) {
 		g_return_val_if_fail(dm->root_digest != NULL, FALSE);
 		g_return_val_if_fail(dm->salt != NULL, FALSE);
+	} else if (dm->type == RAUC_DM_CRYPT) {
+		g_return_val_if_fail(dm->key != NULL, FALSE);
 	}
 
 	dmfd = open("/dev/mapper/control", O_RDWR|O_CLOEXEC);

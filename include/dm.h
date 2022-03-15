@@ -4,6 +4,7 @@
 
 typedef enum _RaucDMType {
 	RAUC_DM_VERITY,
+	RAUC_DM_CRYPT,
 } RaucDMType;
 
 typedef struct _RaucDM {
@@ -18,6 +19,9 @@ typedef struct _RaucDM {
 	/* dm-verity variables */
 	gchar *root_digest;
 	gchar *salt;
+
+	/* dm-crypt variables */
+	gchar *key;
 } RaucDM;
 
 /**
@@ -26,6 +30,15 @@ typedef struct _RaucDM {
  * @return a pointer to the new RaucDMVerity
  */
 RaucDM *r_dm_new_verity(void);
+
+/**
+ * Allocates a new RaucDMCrypt with uuid set.
+ *
+ * Free with r_dm_free_crypt.
+ *
+ * @return a pointer to the new RaucDMCrypt
+ */
+RaucDM *r_dm_new_crypt(void);
 
 /**
  * Frees the memory allocated by a RaucDMVerity.
