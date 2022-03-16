@@ -1063,7 +1063,7 @@ bundle-formats=-plain\n";
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
-bundle-formats=-plain -verity\n";
+bundle-formats=-plain -verity -crypt\n";
 
 	pathname = write_tmp_file(fixture->tmpdir, "default.conf", default_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -1072,7 +1072,7 @@ bundle-formats=-plain -verity\n";
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(config);
-	g_assert_cmphex(config->bundle_formats_mask, ==, 0x3);
+	g_assert_cmphex(config->bundle_formats_mask, ==, 0x7);
 
 	free_config(config);
 
@@ -1094,7 +1094,7 @@ bundle-formats=-plain -verity\n";
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(config);
-	g_assert_cmphex(config->bundle_formats_mask, ==, 0x2);
+	g_assert_cmphex(config->bundle_formats_mask, ==, 0x6);
 
 	free_config(config);
 
@@ -1103,7 +1103,7 @@ bundle-formats=-plain -verity\n";
 
 	res = load_config(pathname, &config, &ierror);
 	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT);
-	g_assert_cmpstr(ierror->message, ==, "Invalid bundle format configuration '-plain -verity', no remaining formats");
+	g_assert_cmpstr(ierror->message, ==, "Invalid bundle format configuration '-plain -verity -crypt', no remaining formats");
 	g_assert_false(res);
 	g_assert_null(config);
 	g_clear_error(&ierror);

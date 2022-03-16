@@ -64,29 +64,65 @@ static void dm_set_header(struct dm_ioctl *header, size_t size, guint32 flags, c
 	g_strlcpy(header->uuid, uuid, sizeof(header->uuid));
 }
 
-RaucDMVerity *r_dm_new_verity(void)
+RaucDM *r_dm_new_verity(void)
 {
-	RaucDMVerity *dm_verity = g_malloc0(sizeof(RaucDMVerity));
+	RaucDM *dm_verity = g_malloc0(sizeof(RaucDM));
 
+	dm_verity->type = RAUC_DM_VERITY;
 	dm_verity->uuid = g_uuid_string_random();
 
 	return dm_verity;
 }
 
-void r_dm_free_verity(RaucDMVerity *dm_verity)
+RaucDM *r_dm_new_crypt(void)
 {
-	if (!dm_verity)
-		return;
+	RaucDM *dm_crypt = g_malloc0(sizeof(RaucDM));
 
-	g_free(dm_verity->uuid);
-	g_free(dm_verity->lower_dev);
-	g_free(dm_verity->upper_dev);
-	g_free(dm_verity->root_digest);
-	g_free(dm_verity->salt);
-	g_free(dm_verity);
+	dm_crypt->type = RAUC_DM_CRYPT;
+	dm_crypt->uuid = g_uuid_string_random();
+
+	return dm_crypt;
 }
 
-gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
+void r_dm_free(RaucDM *dm)
+{
+	if (!dm)
+		return;
+
+	g_free(dm->uuid);
+	g_free(dm->lower_dev);
+	g_free(dm->upper_dev);
+	g_free(dm->root_digest);
+	g_free(dm->salt);
+	g_free(dm->key);
+	g_free(dm);
+}
+
+static const gchar* dmtype_to_str(RaucDMType dmtype)
+{
+	switch (dmtype) {
+		case RAUC_DM_VERITY:
+			return "verity";
+		case RAUC_DM_CRYPT:
+			return "crypt";
+		default:
+			return "unknown";
+	}
+}
+
+static const gchar* dmstatus_by_dmtype(RaucDMType dmtype)
+{
+	switch (dmtype) {
+		case RAUC_DM_VERITY:
+			return "V";
+		case RAUC_DM_CRYPT:
+			return "\0";
+		default:
+			return "unknown";
+	}
+}
+
+gboolean r_dm_setup(RaucDM *dm, GError **error)
 {
 	gboolean res = FALSE;
 	int dmfd = -1;
@@ -97,16 +133,15 @@ gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
 		struct dm_target_spec target_spec;
 		char params[1024];
 	} setup = {0};
+	gint ret;
 
 	G_STATIC_ASSERT(sizeof(setup) == (sizeof(setup.header)+sizeof(setup.target_spec)+sizeof(setup.params)));
 
-	g_return_val_if_fail(dm_verity != NULL, FALSE);
-	g_return_val_if_fail(dm_verity->uuid != NULL, FALSE);
-	g_return_val_if_fail(dm_verity->lower_dev != NULL, FALSE);
-	g_return_val_if_fail(dm_verity->upper_dev == NULL, FALSE);
-	g_return_val_if_fail(dm_verity->data_size > 0 && dm_verity->data_size % 4096 == 0, FALSE);
-	g_return_val_if_fail(dm_verity->root_digest != NULL, FALSE);
-	g_return_val_if_fail(dm_verity->salt != NULL, FALSE);
+	g_return_val_if_fail(dm != NULL, FALSE);
+	g_return_val_if_fail(dm->uuid != NULL, FALSE);
+	g_return_val_if_fail(dm->lower_dev != NULL, FALSE);
+	g_return_val_if_fail(dm->upper_dev == NULL, FALSE);
+	g_return_val_if_fail(dm->data_size > 0 && dm->data_size % 4096 == 0, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	dmfd = open("/dev/mapper/control", O_RDWR|O_CLOEXEC);
@@ -120,10 +155,15 @@ gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
 		goto out;
 	}
 
-	/* create our dm-verity device */
+	/* create our dm device */
 
-	dm_set_header(&setup.header, sizeof(setup), DM_READONLY_FLAG, dm_verity->uuid);
-	g_strlcpy(setup.header.name, "rauc-verity-bundle", sizeof(setup.header.name));
+	dm_set_header(&setup.header, sizeof(setup), DM_READONLY_FLAG, dm->uuid);
+	if (dm->type == RAUC_DM_VERITY)
+		g_strlcpy(setup.header.name, "rauc-verity-bundle", sizeof(setup.header.name));
+	else if (dm->type == RAUC_DM_CRYPT)
+		g_strlcpy(setup.header.name, "rauc-crypt-bundle", sizeof(setup.header.name));
+	else
+		g_error("unknown dmtype");
 
 	if (ioctl(dmfd, DM_DEV_CREATE, &setup)) {
 		int err = errno;
@@ -135,23 +175,39 @@ gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
 		goto out;
 	}
 
-	/* configure dm-verity */
+	/* configure dm */
 
-	dm_set_header(&setup.header, sizeof(setup), DM_READONLY_FLAG, dm_verity->uuid);
+	dm_set_header(&setup.header, sizeof(setup), DM_READONLY_FLAG, dm->uuid);
 	setup.header.target_count = 1;
 
 	setup.target_spec.status = 0;
 	setup.target_spec.sector_start = 0;
-	setup.target_spec.length = dm_verity->data_size / 512;
-	g_strlcpy(setup.target_spec.target_type, "verity", sizeof(setup.target_spec.target_type));
+	setup.target_spec.length = dm->data_size / 512;
+	g_strlcpy(setup.target_spec.target_type, dmtype_to_str(dm->type), sizeof(setup.target_spec.target_type));
 
-	if (g_snprintf(setup.params, sizeof(setup.params),
-			"1 %s %s 4096 4096 %"G_GUINT64_FORMAT " %"G_GUINT64_FORMAT " sha256 %s %s", // version 1 with sha256 hashes
-			dm_verity->lower_dev, dm_verity->lower_dev, // data and hash in the same device
-			dm_verity->data_size / 4096,
-			dm_verity->data_size / 4096, // hash offset is data size
-			dm_verity->root_digest,
-			dm_verity->salt) >= (gint)sizeof(setup.params)) {
+	switch (dm->type) {
+		case RAUC_DM_VERITY: {
+			ret = g_snprintf(setup.params, sizeof(setup.params),
+					"1 %s %s 4096 4096 %"G_GUINT64_FORMAT " %"G_GUINT64_FORMAT " sha256 %s %s", // version 1 with sha256 hashes
+					dm->lower_dev, dm->lower_dev, // data and hash in the same device
+					dm->data_size / 4096,
+					dm->data_size / 4096, // hash offset is data size
+					dm->root_digest,
+					dm->salt) >= (gint)sizeof(setup.params);
+			break;
+		};
+		case RAUC_DM_CRYPT:
+			/* <cipher> [<key>|:<key_size>:<user|logon>:<key_description>] <iv_offset> <dev_path> <start> */
+			ret = g_snprintf(setup.params, sizeof(setup.params),
+					"aes-cbc-plain64 %s 0 %s 0 1 sector_size:4096",
+					dm->key,
+					dm->lower_dev) >= (gint)sizeof(setup.params);
+			break;
+		default:
+			g_error("unknown dm typ");
+			break;
+	}
+	if (ret) {
 		g_set_error(error,
 				G_FILE_ERROR,
 				G_FILE_ERROR_FAILED,
@@ -172,7 +228,7 @@ gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
 
 	/* activate the configuration */
 
-	dm_set_header(&setup.header, sizeof(setup), 0, dm_verity->uuid);
+	dm_set_header(&setup.header, sizeof(setup), 0, dm->uuid);
 
 	if (ioctl(dmfd, DM_DEV_SUSPEND, &setup)) {
 		int err = errno;
@@ -184,17 +240,17 @@ gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
 		goto out_remove_dm;
 	}
 
-	dm_verity->upper_dev = g_strdup_printf("/dev/dm-%u", minor(setup.header.dev));
+	dm->upper_dev = g_strdup_printf("/dev/dm-%u", minor(setup.header.dev));
 
 	/* quick check the at least the first block verifies ok */
 
-	checkfd = g_open(dm_verity->upper_dev, O_RDONLY|O_CLOEXEC, 0);
+	checkfd = g_open(dm->upper_dev, O_RDONLY|O_CLOEXEC, 0);
 	if (checkfd < 0) {
 		int err = errno;
 		g_set_error(error,
 				G_FILE_ERROR,
 				g_file_error_from_errno(err),
-				"Failed to open %s: %s", dm_verity->upper_dev, g_strerror(err));
+				"Failed to open %s: %s", dm->upper_dev, g_strerror(err));
 		res = FALSE;
 		goto out_remove_dm;
 	}
@@ -204,12 +260,12 @@ gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
 		g_set_error(error,
 				G_FILE_ERROR,
 				g_file_error_from_errno(err),
-				"Check read from dm-verity device failed: %s", g_strerror(err));
+				"Check read from dm-%s device failed: %s", dmtype_to_str(dm->type), g_strerror(err));
 		res = FALSE;
 		goto out_remove_dm;
 	}
 
-	dm_set_header(&setup.header, sizeof(setup), 0, dm_verity->uuid);
+	dm_set_header(&setup.header, sizeof(setup), 0, dm->uuid);
 
 	if (ioctl(dmfd, DM_TABLE_STATUS, &setup)) {
 		int err = errno;
@@ -220,16 +276,16 @@ gboolean r_dm_setup_verity(RaucDMVerity *dm_verity, GError **error)
 		res = FALSE;
 		goto out_remove_dm;
 	}
-	if (g_strcmp0(setup.params, "V") != 0) {
+	if (g_strcmp0(setup.params, dmstatus_by_dmtype(dm->type)) != 0) {
 		g_set_error(error,
 				G_FILE_ERROR,
 				G_FILE_ERROR_FAILED,
-				"Unexpected dm-verity status '%s' (instead of 'V')", setup.params);
+				"Unexpected dm-%s status '%s' (instead of '\\0')", dmtype_to_str(dm->type), setup.params);
 		res = FALSE;
 		goto out_remove_dm;
 	}
 
-	g_message("Configured dm-verity device '%s'", dm_verity->upper_dev);
+	g_message("Configured dm-%s device '%s'", dmtype_to_str(dm->type), dm->upper_dev);
 
 	res = TRUE;
 	goto out;
@@ -241,11 +297,11 @@ out_remove_dm:
 		checkfd = -1;
 	}
 
-	dm_set_header(&setup.header, sizeof(setup), 0, dm_verity->uuid);
+	dm_set_header(&setup.header, sizeof(setup), 0, dm->uuid);
 
 	if (ioctl(dmfd, DM_DEV_REMOVE, &setup)) {
 		int err = errno;
-		g_message("Failed to remove bad dm-verity device on error: %s", g_strerror(err));
+		g_message("Failed to remove bad dm-%s device on error: %s", dmtype_to_str(dm->type), g_strerror(err));
 	}
 out:
 	if (checkfd >= 0)
@@ -256,7 +312,7 @@ out:
 	return res;
 }
 
-gboolean r_dm_remove_verity(RaucDMVerity *dm_verity, gboolean deferred, GError **error)
+gboolean r_dm_remove(RaucDM *dm, gboolean deferred, GError **error)
 {
 	gboolean res = FALSE;
 	int dmfd = -1;
@@ -264,14 +320,18 @@ gboolean r_dm_remove_verity(RaucDMVerity *dm_verity, gboolean deferred, GError *
 		struct dm_ioctl header;
 	} setup = {0};
 
-	g_return_val_if_fail(dm_verity != NULL, FALSE);
-	g_return_val_if_fail(dm_verity->uuid != NULL, FALSE);
-	g_return_val_if_fail(dm_verity->lower_dev != NULL, FALSE);
-	g_return_val_if_fail(dm_verity->upper_dev != NULL, FALSE);
-	g_return_val_if_fail(dm_verity->data_size > 0 && dm_verity->data_size % 4096 == 0, FALSE);
-	g_return_val_if_fail(dm_verity->root_digest != NULL, FALSE);
-	g_return_val_if_fail(dm_verity->salt != NULL, FALSE);
+	g_return_val_if_fail(dm != NULL, FALSE);
+	g_return_val_if_fail(dm->uuid != NULL, FALSE);
+	g_return_val_if_fail(dm->lower_dev != NULL, FALSE);
+	g_return_val_if_fail(dm->upper_dev != NULL, FALSE);
+	g_return_val_if_fail(dm->data_size > 0 && dm->data_size % 4096 == 0, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+	if (dm->type == RAUC_DM_VERITY) {
+		g_return_val_if_fail(dm->root_digest != NULL, FALSE);
+		g_return_val_if_fail(dm->salt != NULL, FALSE);
+	} else if (dm->type == RAUC_DM_CRYPT) {
+		g_return_val_if_fail(dm->key != NULL, FALSE);
+	}
 
 	dmfd = open("/dev/mapper/control", O_RDWR|O_CLOEXEC);
 	if (dmfd < 0) {
@@ -286,7 +346,7 @@ gboolean r_dm_remove_verity(RaucDMVerity *dm_verity, gboolean deferred, GError *
 
 	dm_set_header(&setup.header, sizeof(setup),
 			deferred ? DM_DEFERRED_REMOVE : 0,
-			dm_verity->uuid);
+			dm->uuid);
 
 	if (ioctl(dmfd, DM_DEV_REMOVE, &setup)) {
 		int err = errno;
@@ -298,7 +358,7 @@ gboolean r_dm_remove_verity(RaucDMVerity *dm_verity, gboolean deferred, GError *
 		goto out;
 	}
 
-	g_clear_pointer(&dm_verity->upper_dev, g_free);
+	g_clear_pointer(&dm->upper_dev, g_free);
 
 	res = TRUE;
 out:

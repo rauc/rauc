@@ -20,6 +20,9 @@ rauc \- safe and secure updating
 [\fIOPTIONS\fR...] \fBconvert\fR \fIINBUNDLE\fR \fIOUTBUNDLE\fR
 
 .B rauc
+[\fIOPTIONS\fR...] \fBencrypt\fR \fIINBUNDLE\fR \fIOUTBUNDLE\fR
+
+.B rauc
 [\fIOPTIONS\fR...] \fBinstall\fR \fIBUNDLE\fR
 
 .B rauc
@@ -195,6 +198,22 @@ casync extra args
 .RE
 .RE
 .PP
+\fBencrypt\fR \fIINBUNDLE\fR \fIOUTBUNDLE\fR
+
+.RS 4
+Encrypt a crypt bundle.
+
+\fBOptions:\fR
+
+.RS 4
+
+.TP
+\fB\-\-to\fR \fIPEMFILE\fR
+recipient cert(s)
+
+.RE
+.RE
+.PP
 \fBinstall\fR \fIBUNDLE\fR
 
 .RS 4
@@ -239,6 +258,10 @@ select output format
 .TP
 \fB\-\-dump\-cert\fR
 dump certificate
+
+.TP
+\fB\-\-dump\-recipients\fR
+dump recipients
 
 
 .RE

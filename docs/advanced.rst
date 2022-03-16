@@ -457,6 +457,156 @@ higher round-trip-time (RTT) lead to longer installation times.
 This can be compensated somewhat by using a HTTP/2 server, as this supports
 multiplexing and better connection reuse.
 
+.. _sec-encryption:
+
+Bundle Encryption
+-----------------
+
+RAUC supports encrypting the bundle to one or more recipients (public keys).
+
+The implementation of the crypt bundle format is based on the verity bundle
+format (which uses Linux's dm-verity module).
+It works by symmetrically encrypting the bundle payload and using
+Linux's dm-crypt module to decrypt this on-demand.
+The symmetric encryption key is contained in the manifest, which
+itself is (asymmetrically) encrypted to a set of recipients.
+Similar to the verity format, the crypt format can also be used
+with HTTP streaming.
+
+To use encryption, some prerequisites need to be fulfilled:
+
+- create bundle using the crypt format
+- enable dm-crypt support in the target's kernel
+- have private key accessible on the target via path or PKCS#11-URI
+
+Creating an encrypted bundle has two main steps:
+
+- encrypting the payload with ``rauc bundle`` using a manifest configured for the crypt format
+- encrypting the manifest with the payload encryption key for specific recipients with ``rauc encrypt``
+
+We've separated these steps to support more flexibility regarding decryption keys.
+Some possible workflows are described in :ref:`sec-encryption-workflows`.
+
+The first step can be performed by a build system, very similar to how un-encrypted bundles are created.
+RAUC generates a random key for symmetric AES-256 encryption of the bundle payload (the SquashFS).
+The encrypted payload is then protected against modification with dm-verity (see the verity format for details).
+The AES key is stored (*as plain text*) in the signed manifest.
+
+The second step needs to be performed before publishing the bundle.
+You need to provide (one or more) recipient certificates,
+which are used to encrypt the signed manifest.
+The already encrypted payload is reused unmodified.
+Any of the corresponding private keys can then be used by RAUC to first decrypt the
+manifest, which then contains the key needed to decrypt the (SquashFS) payload.
+
+.. code-block::
+
+   $ rauc encrypt --to=recipient-certs.pem unencrypted-crypt-bundle.raucb encrypted-crypt-bundle.raucb
+
+.. note::
+   To encrypt for a larger number of recipients, the recipient certificates can be
+   concatenated and provided as a single file in the ``--to`` argument.
+
+   Also note that the certificates used for encryption don't need to be part of
+   the signing PKI.
+
+To inspect an encrypted bundle on your build host, you need to provide the
+encryption key via the ``--key`` argument::
+
+   $ rauc info --key=/path/to/private-key.pem --keyring=/path/to/keyring.pem encrypted-crypt-bundle.raucb
+   Compatible:     'Example Target'
+   Version:        '2022.03-2'
+   Description:    '(null)'
+   Build:          '(null)'
+   Hooks:          ''
+   Bundle Format:  crypt [encrypted CMS]
+     Crypt Key:    '<hidden>'
+     Verity Salt:  '18bfbba9f129f97b6bca4aa0645db61feac2511fa940f8169c659601849de38a'
+     Verity Hash:  '505d1d57bf9b280b88b023fb74d6a847c2fb419d70609b91460d5e42c465b6dd'
+     Verity Size:  4096
+     […]
+
+Before installing an encrypted RAUC Bundle on the target, you need to configure
+the location of the target's private key in the system.conf:
+
+.. code-block:: cfg
+   :emphasize-lines: 4,5
+
+   [system]
+   compatible=Example Target
+
+   [encryption]
+   key=pkcs11:token=rauc;object=private-key-1
+
+The installation command then does not differ from the installation of an
+unencrypted bundle::
+
+   # rauc install encrypted-bundle.raucb
+
+.. _sec-encryption-workflows:
+
+Encryption Key Workflows
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Shared Key
+^^^^^^^^^^
+
+All devices share a single key pair, perhaps store in the initial image
+installed in the factory.
+
+While a single key shared across all devices is simple to manage, it's
+usually not feasible to revoke or replace in case it is compromised.
+This means that an attacker requires access to only a single device to be able
+to decrypt any further updates.
+
+Note that this does *not* allow the attacker to bypass the bundle authentication.
+
+Group Key
+^^^^^^^^^
+
+In this case, a group of devices (perhaps a production batch or for a single customer)
+shares one key-pair.
+Depending on the circumstances and impact, it might be easier to revoke or replace
+it in case it is compromised, at least compared to the shared key approach.
+
+Unique Per-Device Key
+^^^^^^^^^^^^^^^^^^^^^
+
+Each device has its own key, possibly protected using a TPM, HSM or TEE.
+These keys could be generated on the device in the factory and the corresponding
+public key stored in some device database.
+
+In some scenarios, devices already have a unique key (and certificate)
+for access to a server or VPN.
+Depending on how these keys are configured, it may be possible to reuse
+them for bundle encryption as well.
+
+If any device key is compromised, it can be revoked and removed from the set
+of recipients for the next update.
+Accordingly, only the single compromised device will no longer be able to decrypt
+updates.
+
+Scalability
+~~~~~~~~~~~
+
+For each recipient specified to ``rauc encrypt``, the bundle size will increase
+by a small amount (actual sizes depend on certificate metadata):
+
+- RSA 4096: ~620 bytes
+- ECC: ~250 bytes
+
+With very large numbers of keys, this would result in bundles where the encryption overhead
+becomes problematic.
+
+To mitigate this issue, the set of keys can be split into multiple subsets, where the same
+bundle is encrypted once per subset.
+Then, depending on how each device's key is assigned to a subset, it would need to be provided
+with the corresponding encrypted bundle.
+
+As the encrypted payload is still the identical for each subset's bundle and only the encrypted
+CMS structure (containing the signed manifest) differs, the payload needs to be stored only once.
+If needed, this could be implemented in a web application or using a reflink-capable Linux filesystem.
+
 Data Storage and Migration
 --------------------------
 

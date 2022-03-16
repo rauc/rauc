@@ -13,6 +13,7 @@
 
 #include "bundle.h"
 #include "context.h"
+#include "crypt.h"
 #include "mount.h"
 #include "signature.h"
 #include "utils.h"
@@ -470,14 +471,14 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 					"failed to sign bundle: ");
 			return FALSE;
 		}
-	} else if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
+	} else if ((manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) || (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT)) {
 		int bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundleoutstream));
 		guint8 salt[32] = {0};
 		guint8 hash[32] = {0};
 		uint64_t combined_size = 0;
 		guint64 verity_size = 0;
 
-		g_print("Creating bundle in 'verity' format\n");
+		g_print("Creating bundle in '%s' format\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
 
 		/* check we have a clean manifest */
 		g_assert(manifest->bundle_verity_salt == NULL);
@@ -581,6 +582,110 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 	return TRUE;
 }
 
+static gboolean encrypt_bundle_payload(const gchar *bundlepath, RaucManifest *manifest, GError **error)
+{
+	gboolean res = FALSE;
+	guint8 key[32] = {0};
+	GError *ierror = NULL;
+	g_autofree gchar* tmpdir = NULL;
+	g_autofree gchar* encpath = NULL;
+
+	g_return_val_if_fail(bundlepath, FALSE);
+	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", &ierror);
+	if (tmpdir == NULL) {
+		g_propagate_prefixed_error(error, ierror, "Failed to create tmp dir: ");
+		res = FALSE;
+		goto out;
+	}
+	encpath = g_strconcat(tmpdir, "encrypted.raucb", NULL);
+
+	/* check we have a clean manifest */
+	g_assert(manifest->bundle_crypt_key == NULL);
+
+	if (RAND_bytes((unsigned char *)&key, sizeof(key)) != 1) {
+		g_set_error(error,
+				R_BUNDLE_ERROR,
+				R_BUNDLE_ERROR_CRYPT,
+				"Failed to generate crypt key");
+		res = FALSE;
+		goto out;
+	}
+
+	res = r_crypt_encrypt(bundlepath, encpath, key, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	manifest->bundle_crypt_key = r_hex_encode(key, sizeof(key));
+
+	/* Uncomment for debugging purpose */
+	//g_message("encrypted image saved as %s with key %s", encpath, manifest->bundle_crypt_key);
+
+	g_rename(encpath, bundlepath);
+
+out:
+	/* Remove temporary bundle creation directory */
+	if (tmpdir)
+		rm_tree(tmpdir, NULL);
+
+	return res;
+}
+
+static gboolean decrypt_bundle_payload(RaucBundle *bundle, RaucManifest *manifest, GError **error)
+{
+	gboolean res = FALSE;
+	GError *ierror = NULL;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree guint8 *key = NULL;
+	g_autofree gchar* decpath = NULL;
+	g_autoptr(GFile) decgfile = NULL;
+
+	g_return_val_if_fail(bundle, FALSE);
+	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", &ierror);
+	if (tmpdir == NULL) {
+		g_propagate_prefixed_error(error, ierror, "Failed to create tmp dir: ");
+		res = FALSE;
+		goto out;
+	}
+	decpath = g_strconcat(tmpdir, "decrypted.raucb", NULL);
+
+	/* check we have a crypt key set in manifest */
+	g_assert(manifest->bundle_crypt_key != NULL);
+
+	/* Uncomment for debugging purpose */
+	//g_message("Decrypting with key: %s", manifest->bundle_crypt_key);
+	key = r_hex_decode(manifest->bundle_crypt_key, 32);
+	g_assert(key);
+
+	res = r_crypt_decrypt(bundle->path, decpath, key, bundle->size - bundle->manifest->bundle_verity_size, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	g_message("decrypted image saved as %s", decpath);
+
+	/* let bundle->stream point to decrypted bundle */
+	g_object_unref(bundle->stream);
+	decgfile = g_file_new_for_path(decpath);
+	bundle->stream = G_INPUT_STREAM(g_file_read(decgfile, NULL, error));
+
+out:
+	/* Remove temporary bundle creation directory.
+	 * RAUC will still have access to the decrypted bundle via the opened GFile */
+	if (tmpdir)
+		rm_tree(tmpdir, NULL);
+
+	return res;
+}
+
 gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error)
 {
 	GError *ierror = NULL;
@@ -610,6 +715,14 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
+	}
+
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
+		res = encrypt_bundle_payload(bundlename, manifest, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 	res = sign_bundle(bundlename, manifest, &ierror);
@@ -931,6 +1044,103 @@ out:
 	    !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_EXIST))
 		if (g_remove(outbundle) != 0)
 			g_warning("failed to remove %s", outbundle);
+	return res;
+}
+
+gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error)
+{
+	GError *ierror = NULL;
+	GBytes *encdata = NULL;
+	gboolean res = FALSE;
+	g_autoptr(GFile) bundlefile = NULL;
+	g_autoptr(GFileIOStream) bundlestream = NULL;
+	GOutputStream *bundleoutstream = NULL; /* owned by the bundle stream */
+	guint64 offset;
+
+	/* Encrypting the CMS for a 'verity' bundle would technically possible,
+	 * but should be avoided as this will be misleading for the user who
+	 * receives an encrypted CMS but no encrypted payload (which is what we
+	 * actually want to protect).
+	 */
+	if (bundle->manifest->bundle_format != R_MANIFEST_FORMAT_CRYPT) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE, "Refused to encrypt input bundle that is not in 'crypt' format.");
+		return FALSE;
+	}
+
+	res = truncate_bundle(bundle->path, outbundle, bundle->size, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	bundlefile = g_file_new_for_path(outbundle);
+	bundlestream = g_file_open_readwrite(bundlefile, NULL, &ierror);
+	if (bundlestream == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to open bundle for encryption: ");
+		res = FALSE;
+		goto out;
+	}
+	bundleoutstream = g_io_stream_get_output_stream(G_IO_STREAM(bundlestream));
+
+	if (!g_seekable_seek(G_SEEKABLE(bundlestream),
+			0, G_SEEK_END, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to seek to end of bundle: ");
+		res = FALSE;
+		goto out;
+	}
+
+	/* encrypt sigdata CMS */
+	encdata = cms_encrypt(bundle->sigdata, r_context()->recipients, &ierror);
+	if (encdata == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to encrypt bundle: ");
+		res = FALSE;
+		goto out;
+	}
+
+	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
+	g_debug("Signature offset: %" G_GUINT64_FORMAT " bytes.", offset);
+	if (!output_stream_write_bytes_all(bundleoutstream, encdata, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to append encrypted signature to bundle: ");
+		res = FALSE;
+		goto out;
+	}
+
+	offset = g_seekable_tell(G_SEEKABLE(bundlestream)) - offset;
+	if (!output_stream_write_uint64_all(bundleoutstream, offset, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to append size of encrypted signature to bundle: ");
+		res = FALSE;
+		goto out;
+	}
+	g_debug("Signature size: %" G_GUINT64_FORMAT " bytes.", offset);
+
+	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
+	g_debug("Bundle size: %" G_GUINT64_FORMAT " bytes.", offset);
+
+out:
+	/* clean encrypted bundle on failure */
+	if (!res) {
+		g_clear_object(&bundlestream); /* enforce closing stream */
+		if (g_file_test(outbundle, G_FILE_TEST_IS_REGULAR)) {
+			if (g_remove(outbundle) != 0)
+				g_warning("Failed to remove %s", outbundle);
+		}
+	}
+
 	return res;
 }
 
@@ -1441,6 +1651,39 @@ static gboolean open_remote_bundle(RaucBundle *bundle, GError **error)
 }
 #endif
 
+static gboolean check_allowed_bundle_format(RaucManifest *manifest, GError **error)
+{
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!manifest) {
+		if (!(r_context()->config->bundle_formats_mask & 1 << R_MANIFEST_FORMAT_PLAIN)) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
+					"Bundle format 'plain' not allowed");
+			return FALSE;
+		}
+
+		return TRUE;
+	}
+
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
+		if (!(r_context()->config->bundle_formats_mask & 1 << R_MANIFEST_FORMAT_VERITY)) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
+					"Bundle format 'verity' not allowed");
+			return FALSE;
+		}
+	}
+
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
+		if (!(r_context()->config->bundle_formats_mask & 1 << R_MANIFEST_FORMAT_CRYPT)) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
+					"Bundle format 'crypt' not allowed");
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
 gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleParams params, RaucBundleAccessArgs *access_args, GError **error)
 {
 	GError *ierror = NULL;
@@ -1555,11 +1798,44 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 		goto out;
 	}
 
+	g_debug("Found valid CMS data");
+
 	if (detached && ibundle->nbd_srv) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
 				"Bundle format 'plain' not supported in streaming mode");
 		res = FALSE;
 		goto out;
+	}
+
+	/* For encrypted bundles, the 'signed' CMS is the payload of the
+	 * 'enveloped' CMS. Thus we must decrypt it first before forwarding.
+	 */
+	if (cms_is_envelopeddata(ibundle->sigdata)) {
+		GBytes *decrypted_sigdata = NULL;
+
+		g_debug("CMS type is 'enveloped'. Attempting to decrypt..");
+
+		if (r_context()->config->encryption_key == NULL) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE, "Encrypted bundle detected, but no decryption key given");
+			res = FALSE;
+			goto out;
+		}
+
+		decrypted_sigdata = cms_decrypt(ibundle->sigdata, r_context()->config->encryption_cert, r_context()->config->encryption_key, &ierror);
+		if (decrypted_sigdata == NULL) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed to decrypt bundle: ");
+			res = FALSE;
+			goto out;
+		}
+
+		ibundle->enveloped_data = ibundle->sigdata;
+		/* replace sigdata by decrypted payload */
+		ibundle->sigdata = decrypted_sigdata;
+		/* write marker to memorize for later that we originally had an enveloped CMS */
+		ibundle->was_encrypted = TRUE;
 	}
 
 	if (verify) {
@@ -1582,13 +1858,6 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 		if (detached) {
 			int fd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(ibundle->stream));
 
-			if (!(r_context()->config->bundle_formats_mask & 1 << R_MANIFEST_FORMAT_PLAIN)) {
-				g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
-						"Bundle format 'plain' not allowed");
-				res = FALSE;
-				goto out;
-			}
-
 			if (!trust_env && !enforce_bundle_exclusive(fd, &ierror)) {
 				g_propagate_error(error, ierror);
 				res = FALSE;
@@ -1605,13 +1874,6 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 			ibundle->signature_verified = TRUE;
 			ibundle->payload_verified = TRUE;
 		} else {
-			if (!(r_context()->config->bundle_formats_mask & 1 << R_MANIFEST_FORMAT_VERITY)) {
-				g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
-						"Bundle format 'verity' not allowed");
-				res = FALSE;
-				goto out;
-			}
-
 			/* check if we have exclusive access to local or downloaded bundles */
 			if (ibundle->stream) {
 				int fd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(ibundle->stream));
@@ -1658,12 +1920,20 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 			goto out;
 		}
 
+		ibundle->manifest->was_encrypted = ibundle->was_encrypted;
+
 		if (ibundle->manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
 			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_FORMAT,
 					"Bundle format 'plain' not allowed for external manifest");
 			res = FALSE;
 			goto out;
 		}
+	}
+
+	res = check_allowed_bundle_format(ibundle->manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
 	}
 
 	*bundle = g_steal_pointer(&ibundle);
@@ -1710,7 +1980,7 @@ gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 
 	if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
 		g_error("plain bundles must be verified during signature check");
-	} else if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
+	} else if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_VERITY || bundle->manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
 		int bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream));
 		g_autofree guint8 *root_digest = r_hex_decode(bundle->manifest->bundle_verity_hash, 32);
 		g_autofree guint8 *salt = r_hex_decode(bundle->manifest->bundle_verity_salt, 32);
@@ -1947,6 +2217,14 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
 		goto out;
 	}
 
+	if (bundle->manifest && bundle->manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
+		res = decrypt_bundle_payload(bundle, bundle->manifest, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
 	res = unsquashfs(g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream)), outputdir, NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
@@ -2012,6 +2290,134 @@ out:
 	if (tmpdir)
 		rm_tree(tmpdir, NULL);
 	return res;
+}
+
+/*
+ * Sets up dm-verity for reading verity bundles.
+ *
+ * [ /dev/dm-x ]
+ *      🠗
+ * [ dm-verity ]
+ *      🠗
+ * [  bundle   ]
+ */
+static gboolean prepare_verity(RaucBundle *bundle, gchar *loopname, gchar* mount_point, GError **error)
+{
+	gboolean res = FALSE;
+	GError *ierror = NULL;
+	g_autoptr(GError) ierror_dm = NULL;
+	g_autoptr(RaucDM) dm_verity = r_dm_new_verity();
+
+	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail(loopname != NULL, FALSE);
+	g_return_val_if_fail(mount_point != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	res = check_manifest_external(bundle->manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	dm_verity->lower_dev = g_strdup(loopname);
+	dm_verity->data_size = bundle->size - bundle->manifest->bundle_verity_size;
+	dm_verity->root_digest = g_strdup(bundle->manifest->bundle_verity_hash);
+	dm_verity->salt = g_strdup(bundle->manifest->bundle_verity_salt);
+
+	res = r_dm_setup(dm_verity, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	res = r_mount_bundle(dm_verity->upper_dev, mount_point, &ierror);
+
+	if (!r_dm_remove(dm_verity, TRUE, &ierror_dm)) {
+		g_warning("failed to mark dm verity device for removal: %s", ierror_dm->message);
+	}
+
+	if (!res) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/*
+ * Sets up dm-verity and dm-crypt for reading crypt bundles.
+ *
+ * [ /dev/dm-x ]
+ *      🠗
+ * [ dm-crypt  ]
+ *      🠗
+ * [ dm-verity ]
+ *      🠗
+ * [  bundle   ]
+ */
+static gboolean prepare_crypt(RaucBundle *bundle, gchar *loopname, gchar* mount_point, GError **error)
+{
+	gboolean res = FALSE;
+	GError *ierror = NULL;
+	g_autoptr(GError) ierror_dm = NULL;
+	g_autoptr(RaucDM) dm_verity = r_dm_new_verity();
+	g_autoptr(RaucDM) dm_crypt = r_dm_new_crypt();
+
+	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail(loopname != NULL, FALSE);
+	g_return_val_if_fail(mount_point != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	res = check_manifest_external(bundle->manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	/* setup dm-verity */
+	dm_verity->lower_dev = g_strdup(loopname);
+	dm_verity->data_size = bundle->size - bundle->manifest->bundle_verity_size;
+	dm_verity->root_digest = g_strdup(bundle->manifest->bundle_verity_hash);
+	dm_verity->salt = g_strdup(bundle->manifest->bundle_verity_salt);
+
+	res = r_dm_setup(dm_verity, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	/* setup dm-crypt */
+	dm_crypt->lower_dev = g_strdup(dm_verity->upper_dev);
+	dm_crypt->data_size = bundle->size - bundle->manifest->bundle_verity_size;
+	dm_crypt->key = g_strdup(bundle->manifest->bundle_crypt_key);
+
+	res = r_dm_setup(dm_crypt, &ierror);
+	if (!res) {
+		/* ensure the already-set-up dm-verity layer is cleaned */
+		if (!r_dm_remove(dm_verity, FALSE, &ierror_dm)) {
+			g_warning("Failed to remove dm-verity device: %s", ierror_dm->message);
+		}
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	res = r_mount_bundle(dm_crypt->upper_dev, mount_point, &ierror);
+
+	if (!r_dm_remove(dm_crypt, TRUE, &ierror_dm)) {
+		g_warning("Failed to mark dm-crypt device for removal: %s", ierror_dm->message);
+		g_clear_error(&ierror_dm);
+	}
+
+	if (!r_dm_remove(dm_verity, TRUE, &ierror_dm)) {
+		g_warning("Failed to mark dm-verity device for removal: %s", ierror_dm->message);
+	}
+
+	if (!res) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 gboolean mount_bundle(RaucBundle *bundle, GError **error)
@@ -2104,32 +2510,13 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 
 		bundle->manifest = g_steal_pointer(&manifest);
 	} else if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
-		g_autoptr(GError) ierror_dm = NULL;
-		g_autoptr(RaucDMVerity) dm_verity = r_dm_new_verity();
-
-		res = check_manifest_external(bundle->manifest, &ierror);
+		res = prepare_verity(bundle, loopname, mount_point, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
 		}
-
-		dm_verity->lower_dev = g_strdup(loopname);
-		dm_verity->data_size = bundle->size - bundle->manifest->bundle_verity_size;
-		dm_verity->root_digest = g_strdup(bundle->manifest->bundle_verity_hash);
-		dm_verity->salt = g_strdup(bundle->manifest->bundle_verity_salt);
-
-		res = r_dm_setup_verity(dm_verity, &ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-
-		res = r_mount_bundle(dm_verity->upper_dev, mount_point, &ierror);
-
-		if (!r_dm_remove_verity(dm_verity, TRUE, &ierror_dm)) {
-			g_warning("failed to mark dm verity device for removal: %s", ierror_dm->message);
-		}
-
+	} else if (bundle->manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
+		res = prepare_crypt(bundle, loopname, mount_point, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -2224,6 +2611,7 @@ void free_bundle(RaucBundle *bundle)
 	if (bundle->stream)
 		g_object_unref(bundle->stream);
 	g_bytes_unref(bundle->sigdata);
+	g_bytes_unref(bundle->enveloped_data);
 	g_free(bundle->mount_point);
 	if (bundle->manifest)
 		free_manifest(bundle->manifest);

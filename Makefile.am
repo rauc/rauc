@@ -42,6 +42,7 @@ librauc_la_SOURCES = \
 	src/checksum.c \
 	src/config_file.c \
 	src/context.c \
+	src/crypt.c \
 	src/dm.c \
 	src/install.c \
 	src/manifest.c \
@@ -59,6 +60,7 @@ librauc_la_SOURCES = \
 	include/checksum.h \
 	include/config_file.h \
 	include/context.h \
+	include/crypt.h \
 	include/dm.h \
 	include/emmc.h \
 	include/gpt.h \

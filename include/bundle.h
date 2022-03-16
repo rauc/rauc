@@ -19,6 +19,7 @@ typedef enum {
 	R_BUNDLE_ERROR_PAYLOAD,
 	R_BUNDLE_ERROR_FORMAT,
 	R_BUNDLE_ERROR_VERITY,
+	R_BUNDLE_ERROR_CRYPT,
 } RBundleError;
 
 typedef struct {
@@ -40,6 +41,7 @@ typedef struct {
 	GInputStream *stream;
 
 	goffset size;
+	GBytes *enveloped_data;
 	GBytes *sigdata;
 	gchar *mount_point;
 	RaucManifest *manifest;
@@ -47,6 +49,7 @@ typedef struct {
 	gboolean signature_verified;
 	gboolean payload_verified;
 	gboolean exclusive_verified;
+	gboolean was_encrypted;
 	gchar *exclusive_check_error;
 	STACK_OF(X509) *verified_chain;
 } RaucBundle;
@@ -85,6 +88,9 @@ G_GNUC_WARN_UNUSED_RESULT;
  * Check a bundle.
  *
  * This will verify and check the bundle content.
+ *
+ * For bundle formats with detached CMS (i.e. 'verity' or 'crypt'),
+ * this will also initialize the manifest.
  *
  * @param bundlename filename of the bundle to check
  * @param bundle return location for a RaucBundle struct.
@@ -217,6 +223,18 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @param error Return location for a GError
  */
 gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Encrypt a crypt bundle.
+ *
+ * @param bundle RaucBundle struct as returned by check_bundle()
+ * @param outbundle output location for encrypted crypt bundle
+ * @param error Return location for a GError
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**

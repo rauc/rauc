@@ -35,6 +35,7 @@ typedef struct {
 typedef enum {
 	R_MANIFEST_FORMAT_PLAIN = 0,
 	R_MANIFEST_FORMAT_VERITY,
+	R_MANIFEST_FORMAT_CRYPT,
 } RManifestBundleFormat;
 
 typedef struct {
@@ -48,6 +49,8 @@ typedef struct {
 	gchar *bundle_verity_hash;
 	guint64 bundle_verity_size;
 
+	gchar *bundle_crypt_key;
+
 	gchar *handler_name;
 	gchar *handler_args;
 
@@ -55,6 +58,9 @@ typedef struct {
 	InstallHooks hooks;
 
 	GList *images;
+
+	/* internal marker that this was encrypted */
+	gboolean was_encrypted;
 } RaucManifest;
 
 /**
@@ -174,6 +180,8 @@ static inline const gchar *r_manifest_bundle_format_to_str(RManifestBundleFormat
 			return "plain";
 		case R_MANIFEST_FORMAT_VERITY:
 			return "verity";
+		case R_MANIFEST_FORMAT_CRYPT:
+			return "crypt";
 		default:
 			return "invalid";
 	}

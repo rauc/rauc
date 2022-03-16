@@ -300,6 +300,62 @@ out:
 	return res;
 }
 
+static STACK_OF(X509) *load_certs_from_file(const gchar *certfile, GError **error)
+{
+	BIO *cert_bio = NULL;
+	X509 *cert_x509 = NULL;
+	STACK_OF(X509) *certs = NULL;
+	unsigned long err;
+	const gchar *data;
+	int flags;
+
+	g_return_val_if_fail(certfile != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	cert_bio = BIO_new_file(certfile, "r");
+	if (cert_bio == NULL) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_LOAD_FAILED,
+				"Failed to load cert file '%s'", certfile);
+		goto out;
+	}
+
+	certs = sk_X509_new_null();
+
+	for (;;) {
+		cert_x509 = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL);
+		if (cert_x509 == NULL) {
+			err = ERR_peek_last_error();
+
+			if (ERR_GET_REASON(err) == PEM_R_NO_START_LINE) {
+				/* simply reached end of file */
+				ERR_clear_error();
+				break;
+			}
+
+			err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_PARSE_ERROR,
+					"Failed to parse cert file '%s': %s", certfile,
+					(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+			/* other certs loaded so far are not required anymore and must be freed */
+			sk_X509_pop_free(certs, X509_free);
+			certs = NULL;
+			goto out;
+		}
+
+		sk_X509_push(certs, cert_x509);
+	}
+
+out:
+	BIO_free_all(cert_bio);
+	return certs;
+}
+
 static X509 *load_cert_pkcs11(const gchar *url, GError **error)
 {
 	X509 *res = NULL;
@@ -737,6 +793,135 @@ gchar* sigdata_to_string(GBytes *sig, GError **error)
 	return ret;
 }
 
+static void bio_print_recipient(BIO *text, guint id, gchar* algorithm, ASN1_OCTET_STRING *keyid, X509_NAME *issuer, ASN1_INTEGER *sno)
+{
+	g_autofree gchar *s = NULL;
+
+	/* OpenSSL documentation says
+	 * "Either the keyidentifier will be set in keyid or both
+	 * issuer name and serial number in issuer and sno."
+	 */
+	if (keyid) {
+		/* dummy printout first of all */
+		BIO_printf(text, "%3d   <keyid>", id);
+		return;
+	}
+
+	if (!issuer || !sno) {
+		BIO_printf(text, "%3d   <unknown>", id);
+		return;
+	}
+
+	BIO_printf(text, "%3d   Issuer:    ", id);
+	X509_NAME_print_ex(text, issuer, 0, XN_FLAG_ONELINE);
+	BIO_puts(text, "\n");
+	BIO_puts(text, "      Serial:    ");
+	s = i2s_ASN1_INTEGER(NULL, sno);
+	BIO_puts(text, s);
+	BIO_puts(text, "\n");
+	if (algorithm)
+		BIO_printf(text, "      Algorithm: %s\n", algorithm);
+}
+
+gchar* envelopeddata_to_string(GBytes *sig, GError **error)
+{
+	g_autoptr(CMS_ContentInfo) cms = NULL;
+	BIO *insig = NULL;
+	STACK_OF(CMS_RecipientInfo) *ris;
+	BIO *text;
+	gchar *ret;
+
+	g_return_val_if_fail(sig != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
+			g_bytes_get_size(sig));
+	if (!insig)
+		g_error("BIO_new_mem_buf() failed");
+
+	if (!(cms = d2i_CMS_bio(insig, NULL))) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE,
+				"Failed to parse signature");
+		return NULL;
+	}
+	ris = CMS_get0_RecipientInfos(cms);
+
+	text = BIO_new(BIO_s_mem());
+	BIO_printf(text, "%d Recipients:\n", sk_CMS_RecipientInfo_num(ris));
+
+	for (int i = 0; i < sk_CMS_RecipientInfo_num(ris); i++) {
+		CMS_RecipientInfo *ri;
+
+		ri = sk_CMS_RecipientInfo_value(ris, i);
+
+		switch (CMS_RecipientInfo_type(ri)) {
+			case CMS_RECIPINFO_TRANS: {
+				ASN1_OCTET_STRING *keyid = NULL;
+				X509_NAME *issuer = NULL;
+				ASN1_INTEGER *sno = NULL;
+				X509_ALGOR *alg = NULL;
+				gchar algo_buf[80];
+
+				if (CMS_RecipientInfo_ktri_get0_signer_id(ri, &keyid, &issuer, &sno) != 1) {
+					g_warning("Unable to obtain recipient information for recipient %d", i);
+				}
+
+				if (CMS_RecipientInfo_ktri_get0_algs(ri, NULL, NULL, &alg) != 1) {
+					g_warning("Unable to obtain algorithm information for recipient %d", i);
+				}
+
+				OBJ_obj2txt(algo_buf, sizeof(algo_buf), alg->algorithm, 0);
+
+				bio_print_recipient(text, i, algo_buf, keyid, issuer, sno);
+			} break;
+			case CMS_RECIPINFO_AGREE: {
+				STACK_OF(CMS_RecipientEncryptedKey) *reks = NULL;
+				X509_ALGOR *alg = NULL;
+				gchar algo_buf[80];
+
+				reks = CMS_RecipientInfo_kari_get0_reks(ri);
+				if (!reks) {
+					g_warning("Unable to obtain recipient information for recipient %d", i);
+				}
+
+				if (CMS_RecipientInfo_kari_get0_alg(ri, &alg, NULL) != 1) {
+					g_warning("Unable to obtain algorithm information for recipient %d", i);
+				}
+
+				OBJ_obj2txt(algo_buf, sizeof(algo_buf), alg->algorithm, 0);
+
+				for (int j = 0; j < sk_CMS_RecipientEncryptedKey_num(reks); j++) {
+					ASN1_OCTET_STRING *keyid = NULL;
+					X509_NAME *issuer = NULL;
+					ASN1_INTEGER *sno = NULL;
+
+					CMS_RecipientEncryptedKey *rek = sk_CMS_RecipientEncryptedKey_value(reks, j);
+					CMS_RecipientEncryptedKey_get0_id(rek, &keyid, NULL, NULL, &issuer, &sno);
+
+					bio_print_recipient(text, i, algo_buf, keyid, issuer, sno);
+				}
+			} break;
+			default:
+				g_warning("Unknown recipient information for recipient %d", i);
+				break;
+		}
+	}
+
+	ret = bio_mem_unwrap(text);
+	if (!ret) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_GET_SIGNER,
+				"Failed to obtain recipient infos: ");
+	}
+
+	return ret;
+}
+
 static gchar* get_cert_time(const ASN1_TIME *time)
 {
 	BIO *mem;
@@ -983,6 +1168,29 @@ gboolean cms_is_detached(GBytes *sig, gboolean *detached, GError **error)
 	*detached = CMS_is_detached(cms);
 
 	res = TRUE;
+
+out:
+	BIO_free(insig);
+	return res;
+}
+
+gboolean cms_is_envelopeddata(GBytes *cms_data)
+{
+	g_autoptr(CMS_ContentInfo) cms = NULL;
+	BIO *insig = NULL;
+	gboolean res = FALSE;
+
+	g_return_val_if_fail(cms_data != NULL, FALSE);
+
+	insig = BIO_new_mem_buf((void *)g_bytes_get_data(cms_data, NULL),
+			g_bytes_get_size(cms_data));
+	if (!insig)
+		g_error("BIO_new_mem_buf() failed");
+
+	if (!(cms = d2i_CMS_bio(insig, NULL)))
+		goto out;
+
+	res = (OBJ_obj2nid(CMS_get0_type(cms)) == NID_pkcs7_enveloped);
 
 out:
 	BIO_free(insig);
@@ -1338,5 +1546,168 @@ gboolean cms_verify_sig(GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, G
 	}
 
 out:
+	return res;
+}
+
+GBytes *cms_encrypt(GBytes *content, gchar **recipients, GError **error)
+{
+	GError *ierror = NULL;
+	BIO *incontent = NULL;
+	BIO *outsig = BIO_new(BIO_s_mem());
+	STACK_OF(X509) *recipcerts = NULL;
+	g_autoptr(CMS_ContentInfo) cms = NULL;
+	GBytes *res = NULL;
+
+	g_return_val_if_fail(content, NULL);
+	g_return_val_if_fail(recipients, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
+			g_bytes_get_size(content));
+	if (!incontent)
+		g_error("BIO_new_mem_buf() failed");
+
+	recipcerts = sk_X509_new_null();
+
+	/* load all recipient certificates from all provided PEM files */
+	for (gchar **recipcertpath = recipients; recipcertpath && *recipcertpath != NULL; recipcertpath++) {
+		STACK_OF(X509) *filecerts = load_certs_from_file(*recipcertpath, &ierror);
+		if (filecerts == NULL) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+		/* add all recipient certs from recent file */
+		for (gint i = 0; i < sk_X509_num(filecerts); i++) {
+			sk_X509_push(recipcerts, sk_X509_value(filecerts, i));
+		}
+
+		sk_X509_free(filecerts);
+	}
+
+	cms = CMS_encrypt(recipcerts, incontent, EVP_aes_256_cbc(), CMS_BINARY);
+	if (cms == NULL) {
+		unsigned long err;
+		const gchar *data;
+		int errflags;
+		err = ERR_get_error_line_data(NULL, NULL, &data, &errflags);
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_INVALID,
+				"Failed to encrypt: %s", (errflags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+		goto out;
+	}
+	if (!i2d_CMS_bio(outsig, cms)) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_SERIALIZE_SIG,
+				"Failed to serialize signature");
+		goto out;
+	}
+
+	res = bytes_from_bio(outsig);
+	if (!res) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_UNKNOWN,
+				"Read zero bytes");
+		goto out;
+	}
+
+	g_message("Encrypted for %d recipient%s", sk_X509_num(recipcerts), sk_X509_num(recipcerts) > 1 ? "s" : "");
+
+out:
+	ERR_print_errors_fp(stdout);
+	sk_X509_pop_free(recipcerts, X509_free);
+	BIO_free_all(incontent);
+	BIO_free_all(outsig);
+	return res;
+}
+
+GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(CMS_ContentInfo) icms = NULL;
+	g_autoptr(X509) decrypt_cert = NULL;
+	g_autoptr(EVP_PKEY) privkey = NULL;
+	gint decrypted;
+	BIO *outdecrypt = BIO_new(BIO_s_mem());
+	BIO *inenc = NULL;
+	GBytes *res = NULL;
+
+	g_return_val_if_fail(content != NULL, NULL);
+	g_return_val_if_fail(keyfile != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	inenc = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
+			g_bytes_get_size(content));
+	if (!inenc)
+		g_error("BIO_new_mem_buf() failed");
+
+	if (certfile) {
+		decrypt_cert = load_cert(certfile, &ierror);
+		if (decrypt_cert == NULL) {
+			g_propagate_error(error, ierror);
+			res = FALSE;
+			goto out;
+		}
+	}
+
+	privkey = load_key(keyfile, &ierror);
+	if (privkey == NULL) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto out;
+	}
+
+	g_message("Decrypting signature...");
+
+	if (!(icms = d2i_CMS_bio(inenc, NULL))) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE,
+				"Failed to parse CMS");
+		res = FALSE;
+		goto out;
+	}
+
+	/* assert we receied envelopedData */
+	if (OBJ_obj2nid(CMS_get0_type(icms)) != NID_pkcs7_enveloped) {
+		g_set_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID, "Expected CMS of type '%s' but got '%s'", OBJ_nid2sn(NID_pkcs7_enveloped), OBJ_nid2sn(OBJ_obj2nid(CMS_get0_type(icms))));
+		res = FALSE;
+		goto out;
+	}
+
+	decrypted = CMS_decrypt(icms, privkey, decrypt_cert, NULL, outdecrypt, 0);
+	if (!decrypted) {
+		unsigned long err;
+		const gchar *data;
+		int errflags;
+		err = ERR_get_error_line_data(NULL, NULL, &data, &errflags);
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_INVALID,
+				"Failed to decrypt CMS EnvelopedData: %s", (errflags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+		goto out;
+	}
+
+	res = bytes_from_bio(outdecrypt);
+	if (!res) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_UNKNOWN,
+				"Read zero bytes");
+		goto out;
+	}
+out:
+	ERR_print_errors_fp(stdout);
+	BIO_free_all(inenc);
+	BIO_free_all(outdecrypt);
 	return res;
 }

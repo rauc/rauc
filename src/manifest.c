@@ -134,9 +134,9 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	tmp = key_file_consume_string(key_file, "bundle", "format", NULL);
 	if (tmp == NULL || g_strcmp0(tmp, "plain") == 0) {
 		raucm->bundle_format = R_MANIFEST_FORMAT_PLAIN;
-	} else if (g_strcmp0(tmp, "verity") == 0) {
+	} else if ((g_strcmp0(tmp, "verity") == 0) || (g_strcmp0(tmp, "crypt") == 0)) {
 		/* only SHA256 is supported for now */
-		raucm->bundle_format = R_MANIFEST_FORMAT_VERITY;
+		raucm->bundle_format = g_strcmp0(tmp, "crypt") == 0 ? R_MANIFEST_FORMAT_CRYPT : R_MANIFEST_FORMAT_VERITY;
 		raucm->bundle_verity_hash = key_file_consume_string(key_file, "bundle", "verity-hash", NULL);
 		raucm->bundle_verity_salt = key_file_consume_string(key_file, "bundle", "verity-salt", NULL);
 		raucm->bundle_verity_size = g_key_file_get_uint64(key_file, "bundle", "verity-size", NULL);
@@ -146,6 +146,10 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
 				"Invalid format value '%s' in group '[bundle]'", tmp);
 		return FALSE;
+	}
+	/* crypt format requires additional dm-crypt key */
+	if (g_strcmp0(tmp, "crypt") == 0) {
+		raucm->bundle_crypt_key = key_file_consume_string(key_file, "bundle", "crypt-key", NULL);
 	}
 	if (!check_remaining_keys(key_file, "bundle", &ierror)) {
 		g_propagate_error(error, ierror);
@@ -272,6 +276,7 @@ static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 		case R_MANIFEST_FORMAT_PLAIN:
 			break; /* no additional data needed */
 		case R_MANIFEST_FORMAT_VERITY:
+		case R_MANIFEST_FORMAT_CRYPT:
 			break; /* data checked in _detached/_inline */
 		default: {
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported bundle format");
@@ -360,17 +365,24 @@ gboolean check_manifest_internal(const RaucManifest *mf, GError **error)
 	switch (mf->bundle_format) {
 		case R_MANIFEST_FORMAT_PLAIN:
 			break; /* no additional data needed */
+		case R_MANIFEST_FORMAT_CRYPT: {
+			if (mf->bundle_crypt_key) {
+				g_set_error_literal(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected key for crypt bundle in internal manifest");
+				goto out;
+			}
+		};
+		/* Fallthrough */
 		case R_MANIFEST_FORMAT_VERITY: {
 			if (mf->bundle_verity_hash) {
-				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected hash for verity bundle in internal manifest");
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected hash for %s bundle in internal manifest", r_manifest_bundle_format_to_str(mf->bundle_format));
 				goto out;
 			}
 			if (mf->bundle_verity_salt) {
-				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected hash for verity bundle in internal manifest");
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected hash for %s bundle in internal manifest", r_manifest_bundle_format_to_str(mf->bundle_format));
 				goto out;
 			}
 			if (mf->bundle_verity_size) {
-				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected hash for verity bundle in internal manifest");
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected hash for %s bundle in internal manifest", r_manifest_bundle_format_to_str(mf->bundle_format));
 				goto out;
 			}
 
@@ -392,8 +404,15 @@ gboolean check_manifest_external(const RaucManifest *mf, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+	const gchar *format = NULL;
 
 	r_context_begin_step("check_manifest", "Checking manifest contents", 0);
+
+	format = r_manifest_bundle_format_to_str(mf->bundle_format);
+	if (g_strcmp0(format, "invalid") == 0) {
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported bundle format");
+		goto out;
+	}
 
 	if (!check_manifest_common(mf, &ierror)) {
 		g_propagate_error(error, ierror);
@@ -405,45 +424,61 @@ gboolean check_manifest_external(const RaucManifest *mf, GError **error)
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported bundle format 'plain' for external manifest");
 			goto out;
 		}
+		case R_MANIFEST_FORMAT_CRYPT: {
+			guint8 *tmp;
+
+			if (!mf->bundle_crypt_key) {
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing key for crypt bundle");
+				goto out;
+			}
+			tmp = r_hex_decode(mf->bundle_crypt_key, 32);
+			if (!tmp) {
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Invalid key for crypt bundle");
+				goto out;
+			}
+			g_free(tmp);
+		};
+		/* Fallthrough */
 		case R_MANIFEST_FORMAT_VERITY: {
 			guint8 *tmp;
 
 			if (!mf->bundle_verity_hash) {
-				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing hash for verity bundle");
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing hash for %s bundle", format);
 				goto out;
 			}
 			tmp = r_hex_decode(mf->bundle_verity_hash, 32);
 			if (!tmp) {
-				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Invalid hash for verity bundle");
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Invalid hash for %s bundle", format);
 				goto out;
 			}
 			g_free(tmp);
 
 			if (!mf->bundle_verity_salt) {
-				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing salt for verity bundle");
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing salt for %s bundle", format);
 				goto out;
 			}
 			tmp = r_hex_decode(mf->bundle_verity_salt, 32);
 			if (!tmp) {
-				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Invalid salt for verity bundle");
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Invalid salt for %s bundle", format);
 				goto out;
 			}
 			g_free(tmp);
 
 			if (!mf->bundle_verity_size) {
-				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing size for verity bundle");
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing size for %s bundle", format);
 				goto out;
 			}
 
 			if (mf->bundle_verity_size % 4096) {
-				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unaligned size for verity bundle");
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unaligned size for %s bundle", format);
 				goto out;
 			}
 
 			break;
 		};
 		default: {
-			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported bundle format");
+			/* should not be reached as this is checked before */
+			g_error("Unsupported bundle format");
 			goto out;
 		}
 	}
@@ -476,8 +511,13 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 	switch (mf->bundle_format) {
 		case R_MANIFEST_FORMAT_PLAIN:
 			break;
+		case R_MANIFEST_FORMAT_CRYPT: {
+			if (mf->bundle_crypt_key)
+				g_key_file_set_string(key_file, "bundle", "crypt-key", mf->bundle_crypt_key);
+		};
+		/* Fallthrough */
 		case R_MANIFEST_FORMAT_VERITY: {
-			g_key_file_set_string(key_file, "bundle", "format", "verity");
+			g_key_file_set_string(key_file, "bundle", "format", r_manifest_bundle_format_to_str(mf->bundle_format));
 			if (mf->bundle_verity_hash)
 				g_key_file_set_string(key_file, "bundle", "verity-hash", mf->bundle_verity_hash);
 			if (mf->bundle_verity_salt)

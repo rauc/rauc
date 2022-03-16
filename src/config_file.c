@@ -24,7 +24,8 @@ void default_config(RaucConfig **config)
 	 */
 	c->bundle_formats_mask =
 		1 << R_MANIFEST_FORMAT_PLAIN |
-		        1 << R_MANIFEST_FORMAT_VERITY;
+		        1 << R_MANIFEST_FORMAT_VERITY |
+		        1 << R_MANIFEST_FORMAT_CRYPT;
 
 	*config = c;
 }
@@ -103,6 +104,8 @@ gboolean parse_bundle_formats(guint *mask, const gchar *config, GError **error)
 			format = R_MANIFEST_FORMAT_PLAIN;
 		} else if (g_strcmp0(token, "verity") == 0) {
 			format = R_MANIFEST_FORMAT_VERITY;
+		} else if (g_strcmp0(token, "crypt") == 0) {
+			format = R_MANIFEST_FORMAT_CRYPT;
 		} else {
 			g_set_error(
 					error,
@@ -371,7 +374,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	/* parse bundle formats */
 	c->bundle_formats_mask =
 		1 << R_MANIFEST_FORMAT_PLAIN |
-		        1 << R_MANIFEST_FORMAT_VERITY;
+		        1 << R_MANIFEST_FORMAT_VERITY |
+		        1 << R_MANIFEST_FORMAT_CRYPT;
 	bundle_formats = key_file_consume_string(key_file, "system", "bundle-formats", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 		g_clear_error(&ierror);
@@ -463,6 +467,18 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		goto free;
 	}
 	g_key_file_remove_group(key_file, "streaming", NULL);
+
+	/* parse [encryption] section */
+	c->encryption_key = resolve_path(filename,
+			key_file_consume_string(key_file, "encryption", "key", NULL));
+	c->encryption_cert = resolve_path(filename,
+			key_file_consume_string(key_file, "encryption", "cert", NULL));
+	if (!check_remaining_keys(key_file, "encryption", &ierror)) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
+	g_key_file_remove_group(key_file, "encryption", NULL);
 
 	/* parse [autoinstall] section */
 	c->autoinstall_path = resolve_path(filename,
@@ -788,6 +804,8 @@ void free_config(RaucConfig *config)
 	g_free(config->streaming_tls_cert);
 	g_free(config->streaming_tls_key);
 	g_free(config->streaming_tls_ca);
+	g_free(config->encryption_key);
+	g_free(config->encryption_cert);
 	g_clear_pointer(&config->slots, g_hash_table_destroy);
 	g_free(config);
 }

@@ -32,11 +32,13 @@ gboolean trust_environment = FALSE;
 gboolean verification_disabled = FALSE;
 gboolean no_check_time = FALSE;
 gboolean info_dumpcert = FALSE;
+gboolean info_dumprecipients = FALSE;
 gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
 gchar *signing_keyring = NULL;
 gchar *mksquashfs_args = NULL;
 gchar *casync_args = NULL;
+gchar **recipients = NULL;
 gchar *handler_args = NULL;
 gchar *bootslot = NULL;
 gboolean utf8_supported = FALSE;
@@ -751,6 +753,60 @@ out:
 	return TRUE;
 }
 
+G_GNUC_UNUSED
+static gboolean encrypt_start(int argc, char **argv)
+{
+	RaucBundle *bundle = NULL;
+	GError *ierror = NULL;
+	g_debug("encrypt start");
+
+	if (r_context()->recipients == NULL) {
+		g_printerr("One or multiple recipient certificates must be provided (via --to)\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc < 3) {
+		g_printerr("An input bundle must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc < 4) {
+		g_printerr("An output bundle name must be provided\n");
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (argc > 4) {
+		g_printerr("Excess argument: %s\n", argv[4]);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	g_debug("input bundle: %s", argv[2]);
+	g_debug("output bundle: %s", argv[3]);
+
+	if (!check_bundle(argv[2], &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror)) {
+		g_printerr("%s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	if (!encrypt_bundle(bundle, argv[3], &ierror)) {
+		g_printerr("Failed to create bundle: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+		goto out;
+	}
+
+	g_print("Encrypted bundle written to %s\n", argv[3]);
+
+out:
+	return TRUE;
+}
+
 /* Definition list for terminal colors */
 #define KNRM  "\x1B[0m"
 #define KRED  "\x1B[31m"
@@ -839,6 +895,7 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	GString *text = g_string_new(NULL);
 	GPtrArray *hooks = NULL;
 	gchar *hookstring = NULL;
+	gboolean show_crypt_key = FALSE; /* change to TRUE to display dm-crypt key */
 	gint cnt;
 
 	g_string_append_printf(text, "Compatible: \t'%s'\n", manifest->update_compatible);
@@ -856,8 +913,19 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	g_string_append_printf(text, "Hooks:      \t'%s'\n", hookstring);
 	g_free(hookstring);
 
-	g_string_append_printf(text, "Bundle Format: \t%s\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
-	if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
+	g_string_append_printf(text, "Bundle Format: \t%s", r_manifest_bundle_format_to_str(manifest->bundle_format));
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
+		if (manifest->was_encrypted)
+			g_string_append_printf(text, KBLD KGRN " [encrypted CMS]"KNRM);
+		else
+			g_string_append_printf(text, KBLD KYEL " [unencrypted CMS]"KNRM);
+	}
+	g_string_append_printf(text, "\n");
+
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
+		g_string_append_printf(text, "  Crypt Key: \t'%s'\n", show_crypt_key ? manifest->bundle_crypt_key : "<hidden>");
+	}
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY || manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
 		g_string_append_printf(text, "  Verity Salt: \t'%s'\n", manifest->bundle_verity_salt);
 		g_string_append_printf(text, "  Verity Hash: \t'%s'\n", manifest->bundle_verity_hash);
 		g_string_append_printf(text, "  Verity Size: \t%"G_GUINT64_FORMAT "\n", manifest->bundle_verity_size);
@@ -1062,6 +1130,12 @@ static gboolean info_start(int argc, char **argv)
 
 	if (info_dumpcert) {
 		text = sigdata_to_string(bundle->sigdata, NULL);
+		g_print("%s\n", text);
+		g_free(text);
+	}
+
+	if (info_dumprecipients) {
+		text = envelopeddata_to_string(bundle->enveloped_data, NULL);
 		g_print("%s\n", text);
 		g_free(text);
 	}
@@ -1859,6 +1933,7 @@ typedef enum  {
 	EXTRACT_SIG,
 	EXTRACT,
 	CONVERT,
+	ENCRYPT,
 	STATUS,
 	INFO,
 	WRITE_SLOT,
@@ -1922,6 +1997,7 @@ static GOptionEntry entries_info[] = {
 	{"no-check-time", '\0', 0, G_OPTION_ARG_NONE, &no_check_time, "don't check validity period of certificates against current time", NULL},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
 	{"dump-cert", '\0', 0, G_OPTION_ARG_NONE, &info_dumpcert, "dump certificate", NULL},
+	{"dump-recipients", '\0', 0, G_OPTION_ARG_NONE, &info_dumprecipients, "dump recipients", NULL},
 	{0}
 };
 
@@ -1949,11 +2025,17 @@ static GOptionEntry entries_bundle_access[] = {
 	{0}
 };
 
+static GOptionEntry entries_encryption[] = {
+	{"to", '\0', 0, G_OPTION_ARG_FILENAME_ARRAY, &recipients, "recipient cert(s)", "PEMFILE"},
+	{0}
+};
+
 static GOptionGroup *install_group;
 static GOptionGroup *bundle_group;
 static GOptionGroup *resign_group;
 static GOptionGroup *replace_group;
 static GOptionGroup *convert_group;
+static GOptionGroup *encrypt_group;
 static GOptionGroup *info_group;
 static GOptionGroup *status_group;
 static GOptionGroup *service_group;
@@ -1977,6 +2059,9 @@ static void create_option_groups(void)
 
 		convert_group = g_option_group_new("convert", "Convert options:", "help dummy", NULL, NULL);
 		g_option_group_add_entries(convert_group, entries_convert);
+
+		encrypt_group = g_option_group_new("encrypt", "Encryption options:", "help dummy", NULL, NULL);
+		g_option_group_add_entries(encrypt_group, entries_encryption);
 	}
 
 	info_group    = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
@@ -2030,6 +2115,8 @@ static void cmdline_handler(int argc, char **argv)
 		{CONVERT, "convert", "convert <INBUNDLE> <OUTBUNDLE>",
 		 "Convert to casync index bundle and store",
 		 convert_start, convert_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
+		{ENCRYPT, "encrypt", "encrypt <INBUNDLE> <OUTBUNDLE>", "Encrypt a crypt bundle",
+		 encrypt_start, encrypt_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
 		{REPLACE_SIG, "replace-signature", "replace-signature <INBUMDLE> <INPUTSIG> <OUTBUNDLE>",
 		 "Replaces the signature of an already signed bundle",
 		 replace_signature_start, replace_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
@@ -2079,6 +2166,7 @@ static void cmdline_handler(int argc, char **argv)
 			"  bundle\t\tCreate a bundle\n"
 			"  resign\t\tResign an already signed bundle\n"
 			"  convert\t\tConvert classic to casync bundle\n"
+			"  encrypt\t\tEncrypt a crypt bundle\n"
 			"  replace-signature\tReplaces the signature of an already signed bundle\n"
 			"  extract-signature\tExtract the bundle signature\n"
 #endif
@@ -2191,8 +2279,14 @@ static void cmdline_handler(int argc, char **argv)
 			r_context_conf()->configpath = confpath;
 		if (certpath)
 			r_context_conf()->certpath = certpath;
-		if (keypath)
-			r_context_conf()->keypath = keypath;
+		if (keypath) {
+			/* 'key' means encryption key for 'info', 'extract' or 'extract-signature',
+			 * signing key otherwise */
+			if (rcommand->type == INFO || rcommand->type == EXTRACT || rcommand->type == EXTRACT_SIG)
+				r_context_conf()->encryption_key = keypath;
+			else
+				r_context_conf()->keypath = keypath;
+		}
 		if (keyring)
 			r_context_conf()->keyringpath = keyring;
 		if (signing_keyring)
@@ -2201,6 +2295,8 @@ static void cmdline_handler(int argc, char **argv)
 			r_context_conf()->mksquashfs_args = mksquashfs_args;
 		if (casync_args)
 			r_context_conf()->casync_args = casync_args;
+		if (recipients)
+			r_context_conf()->recipients = recipients;
 		if (intermediate)
 			r_context_conf()->intermediatepaths = intermediate;
 		if (mount)

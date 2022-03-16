@@ -121,6 +121,10 @@ Key Features of RAUC
 
   * No intermediate storage on target required.
 
+* Optional **encryption** of update bundles
+
+  * Encryption for a single or multiple recipients (public keys) supported
+
 * **Flexible and customizable** redundancy/storage setup
 
   .. image:: images/rauc_update_cases.svg
