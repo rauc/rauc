@@ -837,7 +837,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 {
 	GString *text = g_string_new(NULL);
 	GPtrArray *hooks = NULL;
-	gchar *hookstring = NULL;
+	gchar *temp_string = NULL;
 	gint cnt;
 
 	formatter_shell_append(text, "RAUC_MF_COMPATIBLE", manifest->update_compatible);
@@ -852,9 +852,9 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 	}
 	g_ptr_array_add(hooks, NULL);
 
-	hookstring = g_strjoinv(" ", (gchar**) hooks->pdata);
-	formatter_shell_append(text, "RAUC_MF_HOOKS", hookstring);
-	g_free(hookstring);
+	temp_string = g_strjoinv(" ", (gchar**) hooks->pdata);
+	formatter_shell_append(text, "RAUC_MF_HOOKS", temp_string);
+	g_free(temp_string);
 
 	g_ptr_array_unref(hooks);
 
@@ -879,9 +879,9 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 		}
 		g_ptr_array_add(hooks, NULL);
 
-		hookstring = g_strjoinv(" ", (gchar**) hooks->pdata);
-		formatter_shell_append_n(text, "RAUC_IMAGE_HOOKS", cnt, hookstring);
-		g_free(hookstring);
+		temp_string = g_strjoinv(" ", (gchar**) hooks->pdata);
+		formatter_shell_append_n(text, "RAUC_IMAGE_HOOKS", cnt, temp_string);
+		g_free(temp_string);
 
 		g_ptr_array_unref(hooks);
 		cnt++;
@@ -894,7 +894,7 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 {
 	GString *text = g_string_new(NULL);
 	GPtrArray *hooks = NULL;
-	gchar *hookstring = NULL;
+	gchar *temp_string = NULL;
 	gboolean show_crypt_key = FALSE; /* change to TRUE to display dm-crypt key */
 	gint cnt;
 
@@ -909,9 +909,9 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	}
 	g_ptr_array_add(hooks, NULL);
 
-	hookstring = g_strjoinv(" ", (gchar**) hooks->pdata);
-	g_string_append_printf(text, "Hooks:      \t'%s'\n", hookstring);
-	g_free(hookstring);
+	temp_string = g_strjoinv(" ", (gchar**) hooks->pdata);
+	g_string_append_printf(text, "Hooks:      \t'%s'\n", temp_string);
+	g_free(temp_string);
 
 	g_string_append_printf(text, "Bundle Format: \t%s", r_manifest_bundle_format_to_str(manifest->bundle_format));
 	if (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
@@ -961,9 +961,9 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		}
 		g_ptr_array_add(hooks, NULL);
 
-		hookstring = g_strjoinv(" ", (gchar**) hooks->pdata);
-		g_string_append_printf(text, "\tHooks:     %s\n", hookstring);
-		g_free(hookstring);
+		temp_string = g_strjoinv(" ", (gchar**) hooks->pdata);
+		g_string_append_printf(text, "\tHooks:     %s\n", temp_string);
+		g_free(temp_string);
 
 		g_ptr_array_unref(hooks);
 
