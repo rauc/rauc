@@ -547,6 +547,17 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
 
   Valid items are: ``pre-install``, ``install``, ``post-install``
 
+``incremental``
+  List of ``;``-separated per-slot incremental update method names.
+  These methods will add extra information to the bundle, allowing RAUC to
+  access only the parts of an image which are not yet available locally.
+  Together with streaming, this reduces the amount of downloaded data.
+
+  As the full image is still available in the bundle, older RAUC versions can
+  ignore unsupported incremental methods.
+
+  Currently, no incremental methods are implemented.
+
 .. _sec_ref_formats:
 
 Bundle Formats
