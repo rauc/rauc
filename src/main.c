@@ -884,6 +884,13 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 		g_free(temp_string);
 
 		g_ptr_array_unref(hooks);
+
+		if (img->incremental) {
+			temp_string = g_strjoinv(" ", (gchar**) img->incremental);
+			formatter_shell_append_n(text, "RAUC_IMAGE_INCREMENTAL", cnt, temp_string);
+			g_free(temp_string);
+		}
+
 		cnt++;
 	}
 
@@ -967,6 +974,12 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 
 		g_ptr_array_unref(hooks);
 
+		if (img->incremental) {
+			temp_string = g_strjoinv(" ", (gchar**) img->incremental);
+			g_string_append_printf(text, "\tIncremental: %s\n", temp_string);
+			g_free(temp_string);
+		}
+
 		cnt++;
 	}
 
@@ -1029,6 +1042,14 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 		}
 		if (img->hooks.post_install == TRUE) {
 			json_builder_add_string_value(builder, "post-install");
+		}
+		json_builder_end_array(builder);
+		json_builder_set_member_name(builder, "incremental");
+		json_builder_begin_array(builder);
+		if (img->incremental) {
+			for (gchar **m = img->incremental; *m != NULL; m++) {
+				json_builder_add_string_value(builder, *m);
+			}
 		}
 		json_builder_end_array(builder);
 		json_builder_end_object(builder);
