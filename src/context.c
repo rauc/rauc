@@ -296,7 +296,7 @@ gboolean r_context_configure(GError **error)
 		gchar *key = NULL;
 		gchar *value = NULL;
 
-		vars = g_hash_table_new(g_str_hash, g_str_equal);
+		vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
 		g_message("Getting Systeminfo: %s", context->config->systeminfo_handler);
 		res = launch_and_wait_variables_handler(context->config->systeminfo_handler, vars, &ierror);
