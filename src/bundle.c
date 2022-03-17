@@ -2600,6 +2600,8 @@ void free_bundle(RaucBundle *bundle)
 	}
 
 	g_free(bundle->path);
+	g_free(bundle->origpath);
+	g_free(bundle->storepath);
 
 	if (ENABLE_STREAMING && bundle->nbd_dev)
 		r_nbd_free_device(bundle->nbd_dev);
