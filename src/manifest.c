@@ -610,7 +610,7 @@ gboolean save_manifest_mem(GBytes **mem, const RaucManifest *mf)
 	g_assert(data != NULL);
 	g_assert(length > 0);
 
-	*mem = g_bytes_new(data, length);
+	*mem = g_bytes_new_take(data, length);
 
 	return TRUE;
 }
