@@ -128,8 +128,7 @@ gboolean rm_tree(const gchar *path, GError **error)
 	return TRUE;
 }
 
-
-gchar *resolve_path(const gchar *basefile, gchar *path)
+gchar *resolve_path(const gchar *basefile, const gchar *path)
 {
 	g_autofree gchar *cwd = NULL;
 	g_autofree gchar *dir = NULL;
@@ -150,6 +149,13 @@ gchar *resolve_path(const gchar *basefile, gchar *path)
 		return g_build_filename(dir, path, NULL);
 
 	return g_build_filename(cwd, dir, path, NULL);
+}
+
+gchar *resolve_path_take(const char *basefile, gchar *path)
+{
+	gchar *result = resolve_path(basefile, path);
+	g_free(path);
+	return result;
 }
 
 gboolean check_remaining_groups(GKeyFile *key_file, GError **error)

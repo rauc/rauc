@@ -137,9 +137,24 @@ gboolean rm_tree(const gchar *path, GError **error);
  * @return An absolute path name, determined as described above, NULL if undeterminable
  *         [transfer full]
  */
-gchar *resolve_path(const gchar *basefile, gchar *path)
+gchar *resolve_path(const gchar *basefile, const gchar *path)
 G_GNUC_WARN_UNUSED_RESULT;
 
+/**
+ * Resolve path based on directory of `basefile` argument or current working dir
+ * and free path.
+ *
+ * This is a wrapper around resolve_path(), for use when the path argument is
+ * not needed after the call.
+ *
+ * @param basefile Reference path to resolve `path` to
+ * @param path The path to resolve an absolute path for (freed)
+ *
+ * @return An absolute path name, determined as described above, NULL if undeterminable
+ *         [transfer full]
+ */
+gchar *resolve_path_take(const gchar *basefile, gchar *path)
+G_GNUC_WARN_UNUSED_RESULT;
 
 gboolean check_remaining_groups(GKeyFile *key_file, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;

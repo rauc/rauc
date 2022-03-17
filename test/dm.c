@@ -120,7 +120,7 @@ static int open_loop_verity(int bundlefd, off_t loop_size, off_t data_size, gcha
 	gboolean res;
 	g_autoptr(RaucDM) dm_verity = NULL;
 	int loopfd = -1;
-	gchar *loopname = NULL;
+	g_autofree gchar *loopname = NULL;
 	int fd = -1;
 
 	g_assert_cmpint(bundlefd, >, 0);
@@ -162,7 +162,7 @@ static int open_loop_crypt(int bundlefd, off_t loop_size, off_t data_size, const
 	gboolean res;
 	g_autoptr(RaucDM) dm_crypt = NULL;
 	int loopfd = -1;
-	gchar *loopname = NULL;
+	g_autofree gchar *loopname = NULL;
 	int fd = -1;
 
 	g_assert_cmpint(bundlefd, >, 0);
@@ -204,7 +204,7 @@ static void dm_verity_simple_test(void)
 	g_autoptr(RaucDM) dm_verity = NULL;
 	int datafd = -1;
 	int loopfd = -1;
-	gchar *loopname = NULL;
+	g_autofree gchar *loopname = NULL;
 	int fd = -1;
 	guchar buf[4096];
 
@@ -552,14 +552,14 @@ int main(int argc, char *argv[])
 	g_test_add("/dm/create_257", DMFixture, dm_data, dm_fixture_set_up, verity_hash_create, dm_fixture_tear_down);
 
 	valid_key = TRUE;
-	g_test_add("/dm/crypt_decrypt/valid_key", DMFixture, &valid_key, dm_fixture_set_up, crypt_decrypt_test, NULL);
+	g_test_add("/dm/crypt_decrypt/valid_key", DMFixture, &valid_key, dm_fixture_set_up, crypt_decrypt_test, dm_fixture_tear_down);
 	valid_key = FALSE;
-	g_test_add("/dm/crypt_decrypt/invalid_key", DMFixture, &valid_key, dm_fixture_set_up, crypt_decrypt_test, NULL);
+	g_test_add("/dm/crypt_decrypt/invalid_key", DMFixture, &valid_key, dm_fixture_set_up, crypt_decrypt_test, dm_fixture_tear_down);
 
 	valid_key = TRUE;
-	g_test_add("/dm/crypt_encrypt/valid_key", DMFixture, &valid_key, dm_fixture_set_up, crypt_encrypt_test, NULL);
+	g_test_add("/dm/crypt_encrypt/valid_key", DMFixture, &valid_key, dm_fixture_set_up, crypt_encrypt_test, dm_fixture_tear_down);
 	valid_key = FALSE;
-	g_test_add("/dm/crypt_encrypt/invalid_key", DMFixture, &valid_key, dm_fixture_set_up, crypt_encrypt_test, NULL);
+	g_test_add("/dm/crypt_encrypt/invalid_key", DMFixture, &valid_key, dm_fixture_set_up, crypt_encrypt_test, dm_fixture_tear_down);
 
 	g_test_add("/dm/crypt_create", DMFixture, NULL, dm_fixture_set_up, crypt_create, dm_fixture_tear_down);
 

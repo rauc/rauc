@@ -296,7 +296,7 @@ gboolean r_context_configure(GError **error)
 		gchar *key = NULL;
 		gchar *value = NULL;
 
-		vars = g_hash_table_new(g_str_hash, g_str_equal);
+		vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
 		g_message("Getting Systeminfo: %s", context->config->systeminfo_handler);
 		res = launch_and_wait_variables_handler(context->config->systeminfo_handler, vars, &ierror);
@@ -641,6 +641,7 @@ void r_context_install_info_free(RContextInstallationInfo *info)
 void r_context_clean(void)
 {
 	if (context) {
+		g_clear_pointer(&context->configpath, g_free);
 		g_clear_pointer(&context->certpath, g_free);
 		g_clear_pointer(&context->keypath, g_free);
 		g_clear_pointer(&context->keyringpath, g_free);
@@ -658,9 +659,7 @@ void r_context_clean(void)
 
 		g_clear_pointer(&context->install_info, r_context_install_info_free);
 
-		if (context->config) {
-			context->config->keyring_path = NULL;
-		}
+		g_clear_pointer(&context->config, free_config);
 
 		g_clear_pointer(&context, g_free);
 	}

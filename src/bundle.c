@@ -1840,7 +1840,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 
 	if (verify) {
 		g_autoptr(CMS_ContentInfo) cms = NULL;
-		X509_STORE *store = setup_x509_store(NULL, NULL, &ierror);
+		g_autoptr(X509_STORE) store = setup_x509_store(NULL, NULL, &ierror);
 		X509_VERIFY_PARAM *param = NULL;
 		gboolean trust_env = (params & CHECK_BUNDLE_TRUST_ENV);
 		if (!store) {
@@ -1900,8 +1900,6 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 			g_propagate_error(error, ierror);
 			goto out;
 		}
-
-		X509_STORE_free(store);
 	} else {
 		if (!detached) {
 			res = cms_get_unverified_manifest(ibundle->sigdata, &manifest_bytes, &ierror);
@@ -2602,6 +2600,8 @@ void free_bundle(RaucBundle *bundle)
 	}
 
 	g_free(bundle->path);
+	g_free(bundle->origpath);
+	g_free(bundle->storepath);
 
 	if (ENABLE_STREAMING && bundle->nbd_dev)
 		r_nbd_free_device(bundle->nbd_dev);

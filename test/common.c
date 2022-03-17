@@ -18,7 +18,7 @@ typedef struct {
 guint8* random_bytes(gsize size, guint32 seed)
 {
 	guint8 *bytes = g_malloc0(size);
-	GRand *rand = g_rand_new_with_seed(seed);
+	g_autoptr(GRand) rand = g_rand_new_with_seed(seed);
 	for (gsize i = 0; i < size; i++) {
 		bytes[i] = g_rand_int(rand) & 0xFF;
 	}
@@ -29,7 +29,7 @@ gchar* write_random_file(const gchar *tmpdir, const gchar *filename,
 		gsize size, const guint32 seed)
 {
 	gchar *pathname;
-	guint8 *content;
+	g_autofree guint8 *content = NULL;
 
 	pathname = g_build_filename(tmpdir, filename, NULL);
 	g_assert_nonnull(pathname);
@@ -40,7 +40,6 @@ gchar* write_random_file(const gchar *tmpdir, const gchar *filename,
 		return NULL;
 	}
 
-	g_free(content);
 	return pathname;
 }
 
