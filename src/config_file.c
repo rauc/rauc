@@ -787,7 +787,10 @@ void free_config(RaucConfig *config)
 		return;
 
 	g_free(config->system_compatible);
+	g_free(config->system_variant);
 	g_free(config->system_bootloader);
+	g_free(config->system_bb_statename);
+	g_free(config->system_bb_dtbpath);
 	g_free(config->mount_prefix);
 	g_free(config->store_path);
 	g_free(config->tmp_path);
