@@ -641,6 +641,7 @@ void r_context_install_info_free(RContextInstallationInfo *info)
 void r_context_clean(void)
 {
 	if (context) {
+		g_clear_pointer(&context->configpath, g_free);
 		g_clear_pointer(&context->certpath, g_free);
 		g_clear_pointer(&context->keypath, g_free);
 		g_clear_pointer(&context->keyringpath, g_free);
@@ -658,9 +659,7 @@ void r_context_clean(void)
 
 		g_clear_pointer(&context->install_info, r_context_install_info_free);
 
-		if (context->config) {
-			context->config->keyring_path = NULL;
-		}
+		g_clear_pointer(&context->config, free_config);
 
 		g_clear_pointer(&context, g_free);
 	}
