@@ -1053,6 +1053,11 @@ static gboolean nbd_server_child_prepare(struct child_setup_args *args, GError *
 	g_return_val_if_fail(args != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	/* If we run as non-root (e.g. for 'rauc info'),
+	 * there is no need to drop privileges */
+	if (getuid() != 0 && getgid() != 0)
+		return TRUE;
+
 	user = r_context()->config->streaming_sandbox_user;
 	if (user == NULL)
 		user = STREAMING_USER;
