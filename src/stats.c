@@ -7,7 +7,7 @@ void r_stats_init(struct RaucStats *stats)
 	memset(stats, 0, sizeof(*stats));
 
 	stats->min = G_MAXDOUBLE;
-	stats->min = G_MINDOUBLE;
+	stats->max = G_MINDOUBLE;
 }
 
 void r_stats_add(struct RaucStats *stats, gdouble value)
