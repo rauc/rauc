@@ -36,7 +36,8 @@ RUN apt-get update && apt-get install -y \
   mtd-utils \
   python3-aiohttp \
   nginx-light \
-  fdisk
+  fdisk \
+  golang
 
 # Required for test environment setup
 RUN apt-get update && apt-get install -y \
@@ -47,6 +48,14 @@ RUN apt-get update && apt-get install -y \
   rm -rf /var/lib/apt/lists/* && \
   curl -sLo /usr/bin/codecov https://codecov.io/bash && \
   chmod +x /usr/bin/codecov
+
+# Install the optional desync
+ENV GOPATH=/go
+RUN git clone https://github.com/folbricht/desync.git /tmp/desync && \
+    cd /tmp/desync/cmd/desync && \
+    go install && \
+    cp /go/bin/desync /usr/bin/desync && \
+    rm -rf /tmp/desync
 
 # Create required directories for bind mounts
 RUN mkdir -p /lib/modules && \
