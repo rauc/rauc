@@ -120,7 +120,7 @@ static int open_loop_verity(int bundlefd, off_t loop_size, off_t data_size, gcha
 	gboolean res;
 	g_autoptr(RaucDM) dm_verity = NULL;
 	int loopfd = -1;
-	gchar *loopname = NULL;
+	g_autofree gchar *loopname = NULL;
 	int fd = -1;
 
 	g_assert_cmpint(bundlefd, >, 0);
@@ -162,7 +162,7 @@ static int open_loop_crypt(int bundlefd, off_t loop_size, off_t data_size, const
 	gboolean res;
 	g_autoptr(RaucDM) dm_crypt = NULL;
 	int loopfd = -1;
-	gchar *loopname = NULL;
+	g_autofree gchar *loopname = NULL;
 	int fd = -1;
 
 	g_assert_cmpint(bundlefd, >, 0);
@@ -204,7 +204,7 @@ static void dm_verity_simple_test(void)
 	g_autoptr(RaucDM) dm_verity = NULL;
 	int datafd = -1;
 	int loopfd = -1;
-	gchar *loopname = NULL;
+	g_autofree gchar *loopname = NULL;
 	int fd = -1;
 	guchar buf[4096];
 
