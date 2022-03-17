@@ -237,7 +237,11 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const 
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(5, g_free);
 
-	g_ptr_array_add(args, g_strdup("casync"));
+	if (r_context()->config->use_desync)
+		g_ptr_array_add(args, g_strdup("desync"));
+	else
+		g_ptr_array_add(args, g_strdup("casync"));
+
 	g_ptr_array_add(args, g_strdup("extract"));
 	if (seed) {
 		g_ptr_array_add(args, g_strdup("--seed"));
@@ -247,7 +251,10 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const 
 		g_ptr_array_add(args, g_strdup("--store"));
 		g_ptr_array_add(args, g_strdup(store));
 	}
-	g_ptr_array_add(args, g_strdup("--seed-output=no"));
+	/* Desync doesn't have the --seed-output option */
+	if (!r_context()->config->use_desync)
+		g_ptr_array_add(args, g_strdup("--seed-output=no"));
+
 	if (r_context()->config->casync_install_args != NULL) {
 		gboolean parse_res = FALSE;
 		parse_res = g_shell_parse_argv(r_context()->config->casync_install_args, NULL, &casync_argvp, &ierror);
@@ -272,6 +279,10 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const 
 		g_subprocess_launcher_take_stdout_fd(launcher, out_fd);
 	if (tmpdir)
 		g_subprocess_launcher_setenv(launcher, "TMPDIR", tmpdir, TRUE);
+
+	/* Enable Desync parsable progress updates */
+	if (r_context()->config->use_desync)
+		g_subprocess_launcher_setenv(launcher, "DESYNC_ENABLE_PARSABLE_PROGRESS", "1", TRUE);
 
 	sproc = r_subprocess_launcher_spawnv(launcher, args, &ierror);
 	if (sproc == NULL) {
@@ -324,6 +335,11 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 	gchar *store = NULL;
 	gchar *tmpdir = NULL;
 	gboolean seed_mounted = FALSE;
+
+	if (r_context()->config->use_desync) {
+		/* TODO: do something clever to locate and/or generate the seed index file */
+		goto extract;
+	}
 
 	/* Prepare Seed */
 	seedslot = get_active_slot_class_member(image->slotclass);

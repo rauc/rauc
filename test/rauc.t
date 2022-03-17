@@ -144,6 +144,10 @@ grep -q "ENABLE_STREAMING 1" $SHARNESS_TEST_DIRECTORY/../config.h &&
 casync --version &&
   test_set_prereq CASYNC
 
+# Prerequisite: desync available [DESYNC]
+desync --help &&
+  test_set_prereq DESYNC
+
 # Prerequisite: softhsm2 installed [PKCS11]
 test -f ${SOFTHSM2_MOD} &&
   prepare_softhsm2 &&
@@ -714,6 +718,60 @@ test_expect_success CASYNC "rauc convert casync extra args" "
     --casync-args=\"--chunk-size=64000\" \
     ${TEST_TMPDIR}/good-bundle.raucb casync-extra-args.raucb &&
   test -f casync-extra-args.raucb
+"
+
+test_expect_success DESYNC "rauc convert with desync" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
+  rm -f desync.raucb &&
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    --conf $SHARNESS_TEST_DIRECTORY/minimal-desync-test.conf \
+    convert ${TEST_TMPDIR}/good-bundle.raucb desync.raucb &&
+  test -f desync.raucb
+"
+
+test_expect_success DESYNC "rauc convert with desync (output exists)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
+  touch desync.raucb &&
+  test_must_fail rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    --conf $SHARNESS_TEST_DIRECTORY/minimal-desync-test.conf \
+    convert ${TEST_TMPDIR}/good-bundle.raucb desync.raucb &&
+  test -f desync.raucb
+"
+
+test_expect_success DESYNC "rauc convert with desync (error)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
+  rm -f desync.raucb &&
+  test_must_fail rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    --conf $SHARNESS_TEST_DIRECTORY/minimal-desync-test.conf \
+    convert ${TEST_TMPDIR}/good-bundle.raucb desync.raucb &&
+  test ! -f desync.raucb
+"
+
+test_expect_success DESYNC "rauc convert desync extra args" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
+  rm -f desync-extra-args.raucb &&
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    --conf $SHARNESS_TEST_DIRECTORY/minimal-desync-test.conf \
+    convert \
+    --casync-args=\"--chunk-size=32:128:512\" \
+    ${TEST_TMPDIR}/good-bundle.raucb desync-extra-args.raucb &&
+  test -f desync-extra-args.raucb
 "
 
 test_expect_success "rauc resign" "

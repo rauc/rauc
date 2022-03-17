@@ -303,6 +303,10 @@ For more information about using the casync support of RAUC, refer to
   By default, the temporary directory is left unset by RAUC and casync uses its
   internal default value ``/var/tmp``.
 
+``use-desync=<true/false>``
+  If this boolean value is set to ``true``, RAUC will use desync instead of
+  casync. Desync support is still experimental, use with caution.
+
 **[autoinstall] section**
 
 The auto-install feature allows to configure a path that will be checked upon

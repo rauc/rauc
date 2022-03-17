@@ -124,6 +124,7 @@ install-same=false\n";
 	g_assert_cmpstr(config->store_path, ==, "/var/lib/default.castr/");
 	g_assert_cmpstr(config->tmp_path, ==, "/tmp/");
 	g_assert_cmpstr(config->casync_install_args, ==, "--verbose");
+	g_assert_false(config->use_desync);
 
 	g_assert_nonnull(config->slots);
 	slotlist = g_hash_table_get_keys(config->slots);
@@ -1169,6 +1170,40 @@ static void config_file_test_parse_bundle_formats(void)
 	g_clear_error(&ierror);
 }
 
+static void config_file_use_desync_set_to_true(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[casync]\n\
+storepath=/var/lib/default.castr/\n\
+tmppath=/tmp/\n\
+install-args=--seed /my/path/additional_seed.caibx\n\
+use-desync=true";
+
+	pathname = write_tmp_file(fixture->tmpdir, "simple_desync.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(config);
+	g_assert_cmpstr(config->store_path, ==, "/var/lib/default.castr/");
+	g_assert_cmpstr(config->tmp_path, ==, "/tmp/");
+	g_assert_cmpstr(config->casync_install_args, ==, "--seed /my/path/additional_seed.caibx");
+	g_assert_true(config->use_desync);
+
+	free_config(config);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -1265,6 +1300,9 @@ int main(int argc, char *argv[])
 			config_file_fixture_set_up, config_file_bundle_formats,
 			config_file_fixture_tear_down);
 	g_test_add_func("/config-file/parse-bundle-formats", config_file_test_parse_bundle_formats);
+	g_test_add("/config-file/use-desync", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_use_desync_set_to_true,
+			config_file_fixture_tear_down);
 
 	return g_test_run();
 }
