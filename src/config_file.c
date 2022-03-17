@@ -212,7 +212,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		c->system_bb_statename = key_file_consume_string(key_file, "system", "barebox-statename", NULL);
 		c->system_bb_dtbpath = key_file_consume_string(key_file, "system", "barebox-dtbpath", NULL);
 	} else if (g_strcmp0(c->system_bootloader, "grub") == 0) {
-		c->grubenv_path = resolve_path(filename,
+		c->grubenv_path = resolve_path_take(filename,
 				key_file_consume_string(key_file, "system", "grubenv", NULL));
 		if (!c->grubenv_path) {
 			g_debug("No grubenv path provided, using /boot/grub/grubenv as default");
@@ -230,7 +230,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		}
 		g_key_file_remove_key(key_file, "system", "efi-use-bootnext", NULL);
 	} else if (g_strcmp0(c->system_bootloader, "custom") == 0) {
-		c->custom_bootloader_backend = resolve_path(filename,
+		c->custom_bootloader_backend = resolve_path_take(filename,
 				key_file_consume_string(key_file, "handlers", "bootloader-custom-backend", NULL));
 		if (!c->custom_bootloader_backend) {
 			g_set_error(
@@ -399,9 +399,9 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	g_key_file_remove_group(key_file, "system", NULL);
 
 	/* parse [keyring] section */
-	c->keyring_path = resolve_path(filename,
+	c->keyring_path = resolve_path_take(filename,
 			key_file_consume_string(key_file, "keyring", "path", NULL));
-	c->keyring_directory = resolve_path(filename,
+	c->keyring_directory = resolve_path_take(filename,
 			key_file_consume_string(key_file, "keyring", "directory", NULL));
 
 	c->keyring_check_crl = g_key_file_get_boolean(key_file, "keyring", "check-crl", &ierror);
@@ -469,9 +469,9 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	g_key_file_remove_group(key_file, "streaming", NULL);
 
 	/* parse [encryption] section */
-	c->encryption_key = resolve_path(filename,
+	c->encryption_key = resolve_path_take(filename,
 			key_file_consume_string(key_file, "encryption", "key", NULL));
-	c->encryption_cert = resolve_path(filename,
+	c->encryption_cert = resolve_path_take(filename,
 			key_file_consume_string(key_file, "encryption", "cert", NULL));
 	if (!check_remaining_keys(key_file, "encryption", &ierror)) {
 		g_propagate_error(error, ierror);
@@ -481,7 +481,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	g_key_file_remove_group(key_file, "encryption", NULL);
 
 	/* parse [autoinstall] section */
-	c->autoinstall_path = resolve_path(filename,
+	c->autoinstall_path = resolve_path_take(filename,
 			key_file_consume_string(key_file, "autoinstall", "path", NULL));
 	if (!check_remaining_keys(key_file, "autoinstall", &ierror)) {
 		g_propagate_error(error, ierror);
@@ -491,13 +491,13 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	g_key_file_remove_group(key_file, "autoinstall", NULL);
 
 	/* parse [handlers] section */
-	c->systeminfo_handler = resolve_path(filename,
+	c->systeminfo_handler = resolve_path_take(filename,
 			key_file_consume_string(key_file, "handlers", "system-info", NULL));
 
-	c->preinstall_handler = resolve_path(filename,
+	c->preinstall_handler = resolve_path_take(filename,
 			key_file_consume_string(key_file, "handlers", "pre-install", NULL));
 
-	c->postinstall_handler = resolve_path(filename,
+	c->postinstall_handler = resolve_path_take(filename,
 			key_file_consume_string(key_file, "handlers", "post-install", NULL));
 	if (!check_remaining_keys(key_file, "handlers", &ierror)) {
 		g_propagate_error(error, ierror);
@@ -549,7 +549,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 			slot->sclass = g_intern_string(groupsplit[1]);
 
-			value = resolve_path(filename,
+			value = resolve_path_take(filename,
 					key_file_consume_string(key_file, groups[i], "device", &ierror));
 			if (!value) {
 				g_propagate_error(error, ierror);
