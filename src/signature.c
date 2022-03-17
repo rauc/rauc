@@ -652,6 +652,8 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 	}
 out:
 	ERR_print_errors_fp(stdout);
+	if (intercerts)
+		sk_X509_pop_free(intercerts, X509_free);
 	BIO_free_all(incontent);
 	BIO_free_all(outsig);
 	return res;
