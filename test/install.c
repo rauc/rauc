@@ -1371,14 +1371,14 @@ int main(int argc, char *argv[])
 				install_fixture_tear_down);
 
 		install_data = memdup((&(InstallData) {
-			.message_needles = (const gchar *[]) {
-			        "Checking and mounting bundle...",
-			        "Debug: --dummy1 --dummy2",
-			        "Handler status: [STARTED]",
-			        "Bootloader status: [DONE]",
-			        "Handler status: [DONE]",
-			        NULL,
-			},
+			.message_needles = memdup((&(const gchar *[]) {
+				"Checking and mounting bundle...",
+				"Debug: --dummy1 --dummy2",
+				"Handler status: [STARTED]",
+				"Bootloader status: [DONE]",
+				"Handler status: [DONE]",
+				NULL,
+			})),
 			.manifest_test_options = {
 			        .custom_handler = TRUE,
 			        .hooks = FALSE,
