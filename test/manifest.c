@@ -145,6 +145,7 @@ static void test_save_load_manifest(void)
 	new_image->filename = g_strdup("myrootimg_vareiant1.ext4");
 	new_image->hooks.pre_install = TRUE;
 	new_image->hooks.post_install = TRUE;
+	new_image->incremental = g_strsplit("invalid-method;another-invalid-method", ";", 0);
 	rm->images = g_list_append(rm->images, new_image);
 
 	new_image = g_new0(RaucImage, 1);
@@ -286,6 +287,49 @@ filename=rootfs-var2.ext4\n\
 	test_img = (RaucImage*)g_list_nth_data(rm->images, 2);
 	g_assert_nonnull(test_img);
 	g_assert_cmpstr(test_img->variant, ==, "variant,2");
+
+	free_manifest(rm);
+}
+
+static void test_manifest_load_incremental(void)
+{
+	gchar *tmpdir;
+	RaucManifest *rm = NULL;
+	gchar* manifestpath = NULL;
+	gboolean res;
+	GError *error = NULL;
+	RaucImage *test_img = NULL;
+	const gchar *mffile = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs-default.ext4\n\
+incremental=invalid-method;another-invalid-method\n\
+";
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
+	g_assert_nonnull(manifestpath);
+
+	g_free(tmpdir);
+
+	res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	g_clear_error(&error);
+	g_free(manifestpath);
+
+	test_img = (RaucImage*)g_list_nth_data(rm->images, 0);
+	g_assert_nonnull(test_img);
+	g_assert_nonnull(test_img->incremental);
+	g_assert_cmpint(g_strv_length(test_img->incremental), ==, 2);
+	g_assert_cmpstr(test_img->incremental[0], ==, "invalid-method");
+	g_assert_cmpstr(test_img->incremental[1], ==, "another-invalid-method");
 
 	free_manifest(rm);
 }
@@ -523,6 +567,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/manifest/save/writefail", test_save_manifest_writefail);
 	g_test_add_func("/manifest/load_mem", test_load_manifest_mem);
 	g_test_add_func("/manifest/load_variants", test_manifest_load_variants);
+	g_test_add_func("/manifest/load_incremental", test_manifest_load_incremental);
 	g_test_add_func("/manifest/invalid_hook_name", test_manifest_invalid_hook_name);
 	g_test_add_func("/manifest/missing_hook_name", test_manifest_missing_hook_name);
 	g_test_add_func("/manifest/missing_image_size", test_manifest_missing_image_size);

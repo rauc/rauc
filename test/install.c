@@ -157,6 +157,24 @@ hooks=post-install";
 	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
+static void install_fixture_set_up_bundle_incremental(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	InstallData *data = (InstallData*) user_data;
+	const gchar *manifest_file = "\
+[update]\n\
+compatible=Test Config\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.ext4\n\
+incremental=invalid-method;another-invalid-method";
+
+	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	fixture_helper_set_up_system(fixture->tmpdir, NULL);
+	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
+}
+
 static void install_fixture_set_up_system_conf(InstallFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1107,13 +1125,13 @@ static void install_test_bundle_thread(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = mountdir;
+	r_context_conf()->mountprefix = g_steal_pointer(&mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
 
-	args->name = g_strdup(bundlepath);
+	args->name = g_steal_pointer(&bundlepath);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 
@@ -1138,14 +1156,14 @@ static void install_test_bundle_hook_install_check(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = mountdir;
+	r_context_conf()->mountprefix = g_steal_pointer(&mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
 
 	args = install_args_new();
-	args->name = g_strdup(bundlepath);
+	args->name = g_steal_pointer(&bundlepath);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 	g_assert_false(do_install_bundle(args, &ierror));
@@ -1173,14 +1191,14 @@ static void install_test_bundle_hook_install(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = mountdir;
+	r_context_conf()->mountprefix = g_strdup(mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
 
 	args = install_args_new();
-	args->name = g_strdup(bundlepath);
+	args->name = g_steal_pointer(&bundlepath);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 	res = do_install_bundle(args, &ierror);
@@ -1223,14 +1241,14 @@ static void install_test_bundle_hook_post_install(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = mountdir;
+	r_context_conf()->mountprefix = g_strdup(mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
 
 	args = install_args_new();
-	args->name = g_strdup(bundlepath);
+	args->name = g_steal_pointer(&bundlepath);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 	g_assert_true(do_install_bundle(args, NULL));
@@ -1272,7 +1290,7 @@ static void install_test_already_mounted(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountprefix = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountprefix);
-	r_context_conf()->mountprefix = mountprefix;
+	r_context_conf()->mountprefix = g_steal_pointer(&mountprefix);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -1283,7 +1301,7 @@ static void install_test_already_mounted(InstallFixture *fixture,
 	g_assert_false(g_file_test(hookfilepath, G_FILE_TEST_EXISTS));
 
 	args = install_args_new();
-	args->name = g_strdup(bundlepath);
+	args->name = g_steal_pointer(&bundlepath);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 	res = do_install_bundle(args, &ierror);
@@ -1371,14 +1389,14 @@ int main(int argc, char *argv[])
 				install_fixture_tear_down);
 
 		install_data = memdup((&(InstallData) {
-			.message_needles = (const gchar *[]) {
-			        "Checking and mounting bundle...",
-			        "Debug: --dummy1 --dummy2",
-			        "Handler status: [STARTED]",
-			        "Bootloader status: [DONE]",
-			        "Handler status: [DONE]",
-			        NULL,
-			},
+			.message_needles = memdup((&(const gchar *[]) {
+				"Checking and mounting bundle...",
+				"Debug: --dummy1 --dummy2",
+				"Handler status: [STARTED]",
+				"Bootloader status: [DONE]",
+				"Handler status: [DONE]",
+				NULL,
+			})),
 			.manifest_test_options = {
 			        .custom_handler = TRUE,
 			        .hooks = FALSE,
@@ -1437,6 +1455,16 @@ int main(int argc, char *argv[])
 				install_fixture_set_up_bundle_already_mounted, install_test_already_mounted,
 				install_fixture_tear_down);
 	}
+
+	install_data = memdup((&(InstallData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_VERITY,
+		},
+	}));
+	g_test_add("/install/incremental",
+			InstallFixture, install_data,
+			install_fixture_set_up_bundle_incremental, install_test_bundle,
+			install_fixture_tear_down);
 
 	return g_test_run();
 }
