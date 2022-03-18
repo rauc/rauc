@@ -1107,13 +1107,13 @@ static void install_test_bundle_thread(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = mountdir;
+	r_context_conf()->mountprefix = g_steal_pointer(&mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
 
-	args->name = g_strdup(bundlepath);
+	args->name = g_steal_pointer(&bundlepath);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 
@@ -1138,14 +1138,14 @@ static void install_test_bundle_hook_install_check(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = mountdir;
+	r_context_conf()->mountprefix = g_steal_pointer(&mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
 
 	args = install_args_new();
-	args->name = g_strdup(bundlepath);
+	args->name = g_steal_pointer(&bundlepath);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 	g_assert_false(do_install_bundle(args, &ierror));
@@ -1173,14 +1173,14 @@ static void install_test_bundle_hook_install(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = mountdir;
+	r_context_conf()->mountprefix = g_strdup(mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
 
 	args = install_args_new();
-	args->name = g_strdup(bundlepath);
+	args->name = g_steal_pointer(&bundlepath);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 	res = do_install_bundle(args, &ierror);
@@ -1223,14 +1223,14 @@ static void install_test_bundle_hook_post_install(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = mountdir;
+	r_context_conf()->mountprefix = g_strdup(mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
 
 	args = install_args_new();
-	args->name = g_strdup(bundlepath);
+	args->name = g_steal_pointer(&bundlepath);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 	g_assert_true(do_install_bundle(args, NULL));
@@ -1272,7 +1272,7 @@ static void install_test_already_mounted(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountprefix = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountprefix);
-	r_context_conf()->mountprefix = mountprefix;
+	r_context_conf()->mountprefix = g_steal_pointer(&mountprefix);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -1283,7 +1283,7 @@ static void install_test_already_mounted(InstallFixture *fixture,
 	g_assert_false(g_file_test(hookfilepath, G_FILE_TEST_EXISTS));
 
 	args = install_args_new();
-	args->name = g_strdup(bundlepath);
+	args->name = g_steal_pointer(&bundlepath);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 	res = do_install_bundle(args, &ierror);
