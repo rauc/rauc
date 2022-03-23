@@ -19,6 +19,10 @@ gboolean r_mount_bundle(const gchar *source, const gchar *mountpoint, GError **e
 {
 	const unsigned long flags = MS_NODEV | MS_NOSUID | MS_RDONLY;
 
+	g_return_val_if_fail(source != NULL, FALSE);
+	g_return_val_if_fail(mountpoint != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	if (mount(source, mountpoint, "squashfs", flags, NULL)) {
 		int err = errno;
 		g_set_error(error,
@@ -34,6 +38,9 @@ gboolean r_mount_bundle(const gchar *source, const gchar *mountpoint, GError **e
 gboolean r_umount_bundle(const gchar *mountpoint, GError **error)
 {
 	const int flags = UMOUNT_NOFOLLOW;
+
+	g_return_val_if_fail(mountpoint != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (umount2(mountpoint, flags)) {
 		int err = errno;
