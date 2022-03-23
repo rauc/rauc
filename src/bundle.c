@@ -103,6 +103,10 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(7, g_free);
 
+	g_return_val_if_fail(bundlename != NULL, FALSE);
+	g_return_val_if_fail(contentdir != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	r_context_begin_step("mksquashfs", "Creating squashfs", 0);
 
 	if (g_file_test(bundlename, G_FILE_TEST_EXISTS)) {
@@ -168,6 +172,9 @@ static gboolean unsquashfs(gint fd, const gchar *contentdir, const gchar *extrac
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(7, g_free);
 
+	g_return_val_if_fail(contentdir != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	r_context_begin_step("unsquashfs", "Uncompressing squashfs", 0);
 
 	g_ptr_array_add(args, g_strdup("unsquashfs"));
@@ -213,6 +220,10 @@ static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath,
 	GPtrArray *args = g_ptr_array_new_full(15, g_free);
 	GPtrArray *iargs = g_ptr_array_new_full(15, g_free);
 	const gchar *tmpdir = NULL;
+
+	g_return_val_if_fail(idxpath != NULL, FALSE);
+	g_return_val_if_fail(contentpath != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	tmpdir = g_dir_make_tmp("arch-XXXXXX", &ierror);
 	if (tmpdir == NULL) {
@@ -292,6 +303,10 @@ static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath,
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(5, g_free);
+
+	g_return_val_if_fail(idxpath != NULL, FALSE);
+	g_return_val_if_fail(contentpath != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_ptr_array_add(args, g_strdup("casync"));
 	g_ptr_array_add(args, g_strdup("make"));
@@ -693,6 +708,10 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 	g_autoptr(RaucManifest) manifest = NULL;
 	gboolean res = FALSE;
 
+	g_return_val_if_fail(bundlename != NULL, FALSE);
+	g_return_val_if_fail(contentdir != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	res = load_manifest_file(manifestpath, &manifest, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
@@ -752,6 +771,10 @@ static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffs
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	gssize ssize;
+
+	g_return_val_if_fail(inpath != NULL, FALSE);
+	g_return_val_if_fail(outpath != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (g_file_test(outpath, G_FILE_TEST_EXISTS)) {
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "bundle %s already exists", outpath);
@@ -813,6 +836,7 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(outpath != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	res = check_bundle_payload(bundle, &ierror);
 	if (!res) {
@@ -1057,6 +1081,10 @@ gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **err
 	GOutputStream *bundleoutstream = NULL; /* owned by the bundle stream */
 	guint64 offset;
 
+	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail(outbundle != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	/* Encrypting the CMS for a 'verity' bundle would technically possible,
 	 * but should be avoided as this will be misleading for the user who
 	 * receives an encrypted CMS but no encrypted payload (which is what we
@@ -1158,6 +1186,8 @@ static gboolean take_bundle_ownership(int bundle_fd, GError **error)
 	mode_t perm_orig = 0, perm_new = 0;
 	gboolean res = FALSE;
 
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	if (fstat(bundle_fd, &stat)) {
 		int err = errno;
 		g_set_error(error,
@@ -1211,6 +1241,8 @@ static gboolean check_bundle_access(int bundle_fd, GError **error)
 	GList *mountlist = NULL;
 	gboolean mount_checked = FALSE;
 	gboolean res = FALSE;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* This checks if another user could get or already has write access
 	 * the bundle contents.
@@ -1404,6 +1436,8 @@ static gboolean enforce_bundle_exclusive(int bundle_fd, GError **error)
 {
 	GError *ierror_take = NULL, *ierror_check = NULL;
 	gboolean res_take = FALSE, res = FALSE;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* first check if the current state is good */
 	if (check_bundle_access(bundle_fd, &ierror_check)) {
@@ -1948,6 +1982,7 @@ gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (bundle->verification_disabled || bundle->payload_verified) {
 		r_context_begin_step("skip_bundle_payload", "Bundle payload verification not needed", 0);
@@ -2206,6 +2241,7 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	r_context_begin_step("extract_bundle", "Extracting bundle", 2);
 
