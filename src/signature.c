@@ -1635,7 +1635,6 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 	g_autoptr(CMS_ContentInfo) icms = NULL;
 	g_autoptr(X509) decrypt_cert = NULL;
 	g_autoptr(EVP_PKEY) privkey = NULL;
-	gint decrypted;
 	BIO *outdecrypt = BIO_new(BIO_s_mem());
 	BIO *inenc = NULL;
 	GBytes *res = NULL;
@@ -1684,8 +1683,7 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 		goto out;
 	}
 
-	decrypted = CMS_decrypt(icms, privkey, decrypt_cert, NULL, outdecrypt, 0);
-	if (!decrypted) {
+	if (!CMS_decrypt(icms, privkey, decrypt_cert, NULL, outdecrypt, 0)) {
 		unsigned long err;
 		const gchar *data;
 		int errflags;
