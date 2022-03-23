@@ -1958,6 +1958,13 @@ gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 
 	g_message("Verifying bundle payload... ");
 
+	if (!bundle->stream) {
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE,
+				"Refused to verify remote bundle. Provide a local bundle instead.");
+		res = FALSE;
+		goto out;
+	}
+
 	if (!bundle->exclusive_verified) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE,
 				"cannot check bundle payload without exclusive access: %s", bundle->exclusive_check_error);
