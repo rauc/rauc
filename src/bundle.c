@@ -642,7 +642,15 @@ static gboolean encrypt_bundle_payload(const gchar *bundlepath, RaucManifest *ma
 	/* Uncomment for debugging purpose */
 	//g_message("encrypted image saved as %s with key %s", encpath, manifest->bundle_crypt_key);
 
-	g_rename(encpath, bundlepath);
+	if (g_rename(encpath, bundlepath) != 0) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Renaming %s to %s failed, aborting encryption: %s", encpath, bundlepath, g_strerror(err));
+		res = FALSE;
+		goto out;
+	}
 
 out:
 	/* Remove temporary bundle creation directory */
