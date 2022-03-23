@@ -1653,7 +1653,7 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 		decrypt_cert = load_cert(certfile, &ierror);
 		if (decrypt_cert == NULL) {
 			g_propagate_error(error, ierror);
-			res = FALSE;
+			res = NULL;
 			goto out;
 		}
 	}
@@ -1661,7 +1661,7 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 	privkey = load_key(keyfile, &ierror);
 	if (privkey == NULL) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
+		res = NULL;
 		goto out;
 	}
 
@@ -1673,14 +1673,14 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE,
 				"Failed to parse CMS");
-		res = FALSE;
+		res = NULL;
 		goto out;
 	}
 
 	/* assert we receied envelopedData */
 	if (OBJ_obj2nid(CMS_get0_type(icms)) != NID_pkcs7_enveloped) {
 		g_set_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID, "Expected CMS of type '%s' but got '%s'", OBJ_nid2sn(NID_pkcs7_enveloped), OBJ_nid2sn(OBJ_obj2nid(CMS_get0_type(icms))));
-		res = FALSE;
+		res = NULL;
 		goto out;
 	}
 
@@ -1690,6 +1690,7 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 		const gchar *data;
 		int errflags;
 		err = ERR_get_error_line_data(NULL, NULL, &data, &errflags);
+		res = NULL;
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
