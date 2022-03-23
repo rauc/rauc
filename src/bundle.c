@@ -609,6 +609,8 @@ static gboolean encrypt_bundle_payload(const gchar *bundlepath, RaucManifest *ma
 	g_return_val_if_fail(manifest, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	g_message("Encrypting bundle payload in aes-cbc-plain64 mode");
+
 	tmpdir = g_dir_make_tmp("rauc-XXXXXX", &ierror);
 	if (tmpdir == NULL) {
 		g_propagate_prefixed_error(error, ierror, "Failed to create tmp dir: ");
