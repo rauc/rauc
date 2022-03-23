@@ -597,12 +597,23 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 	return TRUE;
 }
 
+static gchar* get_random_file_name(void)
+{
+	guint8 rand_bytes[8] = {0};
+
+	if (RAND_bytes((unsigned char *)&rand_bytes, sizeof(rand_bytes)) != 1)
+		g_error("Failed to generate random file name");
+
+	return r_hex_encode(rand_bytes, sizeof(rand_bytes));
+}
+
 static gboolean encrypt_bundle_payload(const gchar *bundlepath, RaucManifest *manifest, GError **error)
 {
 	gboolean res = FALSE;
 	guint8 key[32] = {0};
 	GError *ierror = NULL;
-	g_autofree gchar* tmpdir = NULL;
+	g_autofree gchar* dirname = NULL;
+	g_autofree gchar* tmpfilename = NULL;
 	g_autofree gchar* encpath = NULL;
 
 	g_return_val_if_fail(bundlepath, FALSE);
@@ -611,13 +622,9 @@ static gboolean encrypt_bundle_payload(const gchar *bundlepath, RaucManifest *ma
 
 	g_message("Encrypting bundle payload in aes-cbc-plain64 mode");
 
-	tmpdir = g_dir_make_tmp("rauc-XXXXXX", &ierror);
-	if (tmpdir == NULL) {
-		g_propagate_prefixed_error(error, ierror, "Failed to create tmp dir: ");
-		res = FALSE;
-		goto out;
-	}
-	encpath = g_strconcat(tmpdir, "encrypted.raucb", NULL);
+	dirname = g_path_get_dirname(bundlepath);
+	tmpfilename = get_random_file_name();
+	encpath = g_build_filename(dirname, tmpfilename, NULL);
 
 	/* check we have a clean manifest */
 	g_assert(manifest->bundle_crypt_key == NULL);
@@ -651,11 +658,13 @@ static gboolean encrypt_bundle_payload(const gchar *bundlepath, RaucManifest *ma
 		res = FALSE;
 		goto out;
 	}
+	g_clear_pointer(&encpath, g_free); /* prevent removal */
 
 out:
 	/* Remove temporary bundle creation directory */
-	if (tmpdir)
-		rm_tree(tmpdir, NULL);
+	if (encpath)
+		if (g_remove(encpath) != 0)
+			g_warning("Failed to remove temporary encryption file %s", encpath);
 
 	return res;
 }
