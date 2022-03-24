@@ -145,8 +145,10 @@ gboolean r_setup_loop(gint fd, gint *loopfd_out, gchar **loopname_out, goffset s
 		gint loopidx;
 
 		g_clear_pointer(&loopname, g_free);
-		if (loopfd >= 0)
+		if (loopfd >= 0) {
 			g_close(loopfd, NULL);
+			loopfd = -1;
+		}
 
 		loopidx = ioctl(controlfd, LOOP_CTL_GET_FREE);
 		if (loopidx < 0) {
