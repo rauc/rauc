@@ -544,6 +544,7 @@ out:
 	return TRUE;
 }
 
+G_GNUC_UNUSED
 static gboolean replace_signature_start(int argc, char **argv)
 {
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
@@ -602,6 +603,7 @@ out:
 	return TRUE;
 }
 
+G_GNUC_UNUSED
 static gboolean extract_signature_start(int argc, char **argv)
 {
 	RaucBundle *bundle = NULL;
