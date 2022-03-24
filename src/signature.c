@@ -17,6 +17,17 @@ GQuark r_signature_error_quark(void)
 	return g_quark_from_static_string("r_signature_error_quark");
 }
 
+static const gchar *get_openssl_err_string(void)
+{
+	unsigned long err;
+	const gchar *data;
+	int errflags;
+
+	err = ERR_get_error_line_data(NULL, NULL, &data, &errflags);
+
+	return (errflags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL);
+}
+
 /* return 0 for error, 1 for success */
 static int check_purpose_code_sign(const X509_PURPOSE *xp, const X509 *const_x, int ca)
 {
@@ -62,17 +73,11 @@ gboolean signature_init(GError **error)
 
 	ret = OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG | OPENSSL_INIT_LOAD_CRYPTO_STRINGS, NULL);
 	if (!ret) {
-		unsigned long err;
-		const gchar *data;
-		int flags;
-
-		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_CRYPTOINIT_FAILED,
-				"Failed to initialize OpenSSL crypto: %s",
-				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+				"Failed to initialize OpenSSL crypto: %s", get_openssl_err_string());
 		return FALSE;
 	}
 
@@ -89,17 +94,11 @@ gboolean signature_init(GError **error)
 	/* X509_TRUST_OBJECT_SIGN maps to the Code Signing ID (via OpenSSL's NID_code_sign) */
 	ret = X509_PURPOSE_add(id, X509_TRUST_OBJECT_SIGN, 0, check_purpose_code_sign, "Code signing", "codesign", NULL);
 	if (!ret) {
-		unsigned long err;
-		const gchar *data;
-		int flags;
-
-		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_CRYPTOINIT_FAILED,
-				"Failed to configure OpenSSL X509 purpose: %s",
-				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+				"Failed to configure OpenSSL X509 purpose: %s", get_openssl_err_string());
 		return FALSE;
 	}
 
@@ -109,10 +108,7 @@ gboolean signature_init(GError **error)
 static ENGINE *get_pkcs11_engine(GError **error)
 {
 	static ENGINE *e = NULL;
-	unsigned long err;
-	const gchar *data;
 	const gchar *env;
-	int flags;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
@@ -120,13 +116,11 @@ static ENGINE *get_pkcs11_engine(GError **error)
 
 	e = ENGINE_by_id("pkcs11");
 	if (e == NULL) {
-		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_LOAD_FAILED,
-				"failed to load PKCS11 engine: %s",
-				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+				"failed to load PKCS11 engine: %s", get_openssl_err_string());
 
 		goto out;
 	}
@@ -134,25 +128,21 @@ static ENGINE *get_pkcs11_engine(GError **error)
 	env = g_getenv("RAUC_PKCS11_MODULE");
 	if (env != NULL) {
 		if (!ENGINE_ctrl_cmd_string(e, "MODULE_PATH", env, 0)) {
-			err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 			g_set_error(
 					error,
 					R_SIGNATURE_ERROR,
 					R_SIGNATURE_ERROR_PARSE_ERROR,
-					"failed to configure PKCS11 module path: %s",
-					(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+					"failed to configure PKCS11 module path: %s", get_openssl_err_string());
 			goto free;
 		}
 	}
 
 	if (ENGINE_init(e) == 0) {
-		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_LOAD_FAILED,
-				"failed to initialize PKCS11 engine: %s",
-				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+				"failed to initialize PKCS11 engine: %s", get_openssl_err_string());
 
 		goto free;
 	}
@@ -160,13 +150,11 @@ static ENGINE *get_pkcs11_engine(GError **error)
 	env = g_getenv("RAUC_PKCS11_PIN");
 	if (env != NULL && env[0] != '\0') {
 		if (!ENGINE_ctrl_cmd_string(e, "PIN", env, 0)) {
-			err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 			g_set_error(
 					error,
 					R_SIGNATURE_ERROR,
 					R_SIGNATURE_ERROR_PARSE_ERROR,
-					"failed to configure PKCS11 PIN: %s",
-					(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+					"failed to configure PKCS11 PIN: %s", get_openssl_err_string());
 			goto finish;
 		}
 	}
@@ -186,10 +174,7 @@ static EVP_PKEY *load_key_file(const gchar *keyfile, GError **error)
 {
 	EVP_PKEY *res = NULL;
 	BIO *key = NULL;
-	unsigned long err;
-	const gchar *data;
 	const gchar *passphrase;
-	int flags;
 
 	g_return_val_if_fail(keyfile != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
@@ -209,13 +194,11 @@ static EVP_PKEY *load_key_file(const gchar *keyfile, GError **error)
 		passphrase = NULL;
 	res = PEM_read_bio_PrivateKey(key, NULL, NULL, (void *)passphrase);
 	if (res == NULL) {
-		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE_ERROR,
-				"failed to parse key file '%s': %s", keyfile,
-				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+				"failed to parse key file '%s': %s", keyfile, get_openssl_err_string());
 		goto out;
 	}
 out:
@@ -226,10 +209,7 @@ out:
 static EVP_PKEY *load_key_pkcs11(const gchar *url, GError **error)
 {
 	EVP_PKEY *res = NULL;
-	unsigned long err;
-	const gchar *data;
 	GError *ierror = NULL;
-	int flags;
 	ENGINE *e;
 
 	g_return_val_if_fail(url != NULL, NULL);
@@ -243,13 +223,11 @@ static EVP_PKEY *load_key_pkcs11(const gchar *url, GError **error)
 
 	res = ENGINE_load_private_key(e, url, NULL, NULL);
 	if (res == NULL) {
-		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_LOAD_FAILED,
-				"failed to load PKCS11 private key for '%s': %s", url,
-				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+				"failed to load PKCS11 private key for '%s': %s", url, get_openssl_err_string());
 		goto out;
 	}
 out:
@@ -270,9 +248,6 @@ static X509 *load_cert_file(const gchar *certfile, GError **error)
 {
 	X509 *res = NULL;
 	BIO *cert = NULL;
-	unsigned long err;
-	const gchar *data;
-	int flags;
 
 	g_return_val_if_fail(certfile != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
@@ -289,13 +264,11 @@ static X509 *load_cert_file(const gchar *certfile, GError **error)
 
 	res = PEM_read_bio_X509(cert, NULL, NULL, NULL);
 	if (res == NULL) {
-		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE_ERROR,
-				"failed to parse cert file '%s': %s", certfile,
-				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+				"failed to parse cert file '%s': %s", certfile, get_openssl_err_string());
 		goto out;
 	}
 
@@ -310,8 +283,6 @@ static STACK_OF(X509) *load_certs_from_file(const gchar *certfile, GError **erro
 	X509 *cert_x509 = NULL;
 	STACK_OF(X509) *certs = NULL;
 	unsigned long err;
-	const gchar *data;
-	int flags;
 
 	g_return_val_if_fail(certfile != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
@@ -339,13 +310,11 @@ static STACK_OF(X509) *load_certs_from_file(const gchar *certfile, GError **erro
 				break;
 			}
 
-			err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 			g_set_error(
 					error,
 					R_SIGNATURE_ERROR,
 					R_SIGNATURE_ERROR_PARSE_ERROR,
-					"Failed to parse cert file '%s': %s", certfile,
-					(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+					"Failed to parse cert file '%s': %s", certfile, get_openssl_err_string());
 			/* other certs loaded so far are not required anymore and must be freed */
 			sk_X509_pop_free(certs, X509_free);
 			certs = NULL;
@@ -363,10 +332,7 @@ out:
 static X509 *load_cert_pkcs11(const gchar *url, GError **error)
 {
 	X509 *res = NULL;
-	unsigned long err;
-	const gchar *data;
 	GError *ierror = NULL;
-	int flags;
 	ENGINE *e;
 
 	/* this is defined in libp11 src/eng_back.c ctx_ctrl_load_cert() */
@@ -387,13 +353,11 @@ static X509 *load_cert_pkcs11(const gchar *url, GError **error)
 	parms.url = url;
 	parms.cert = NULL;
 	if (!ENGINE_ctrl_cmd(e, "LOAD_CERT_CTRL", 0, &parms, NULL, 0) || (parms.cert == NULL)) {
-		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE_ERROR,
-				"failed to load PKCS11 certificate for '%s': %s", url,
-				(flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+				"failed to load PKCS11 certificate for '%s': %s", url, get_openssl_err_string());
 		goto out;
 	}
 	res = parms.cert;
@@ -566,15 +530,11 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 
 	cms = CMS_sign(signcert, pkey, intercerts, incontent, flags);
 	if (cms == NULL) {
-		unsigned long err;
-		const gchar *data;
-		int errflags;
-		err = ERR_get_error_line_data(NULL, NULL, &data, &errflags);
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_CREATE_SIG,
-				"failed to create signature: %s", (errflags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+				"failed to create signature: %s", get_openssl_err_string());
 		goto out;
 	}
 	if (!i2d_CMS_bio(outsig, cms)) {
@@ -1384,15 +1344,11 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 	else
 		verified = CMS_verify(icms, NULL, store, NULL, outcontent, CMS_BINARY);
 	if (!verified) {
-		unsigned long err;
-		const gchar *data;
-		int flags;
-		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_INVALID,
-				"signature verification failed: %s", (flags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+				"signature verification failed: %s", get_openssl_err_string());
 		goto out;
 	}
 
@@ -1597,15 +1553,11 @@ GBytes *cms_encrypt(GBytes *content, gchar **recipients, GError **error)
 
 	cms = CMS_encrypt(recipcerts, incontent, EVP_aes_256_cbc(), CMS_BINARY);
 	if (cms == NULL) {
-		unsigned long err;
-		const gchar *data;
-		int errflags;
-		err = ERR_get_error_line_data(NULL, NULL, &data, &errflags);
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_INVALID,
-				"Failed to encrypt: %s", (errflags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+				"Failed to encrypt: %s", get_openssl_err_string());
 		goto out;
 	}
 	if (!i2d_CMS_bio(outsig, cms)) {
@@ -1692,16 +1644,12 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 	}
 
 	if (!CMS_decrypt(icms, privkey, decrypt_cert, NULL, outdecrypt, 0)) {
-		unsigned long err;
-		const gchar *data;
-		int errflags;
-		err = ERR_get_error_line_data(NULL, NULL, &data, &errflags);
 		res = NULL;
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_INVALID,
-				"Failed to decrypt CMS EnvelopedData: %s", (errflags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL));
+				"Failed to decrypt CMS EnvelopedData: %s", get_openssl_err_string());
 		goto out;
 	}
 
