@@ -1156,9 +1156,13 @@ static gboolean info_start(int argc, char **argv)
 	}
 
 	if (info_dumprecipients) {
-		text = envelopeddata_to_string(bundle->enveloped_data, NULL);
-		g_print("%s\n", text);
-		g_free(text);
+		if (!bundle->enveloped_data) {
+			g_print("No recipient data to dump (bundle is not encrypted)\n\n");
+		} else {
+			text = envelopeddata_to_string(bundle->enveloped_data, NULL);
+			g_print("%s\n", text);
+			g_free(text);
+		}
 	}
 
 	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
