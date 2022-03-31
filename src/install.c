@@ -480,7 +480,7 @@ static gchar* parse_handler_output(gchar* line)
 	return message;
 }
 
-static gboolean verify_compatible(RaucInstallArgs *args, RaucManifest *manifest)
+static gboolean verify_compatible(RaucInstallArgs *args, RaucManifest *manifest, GError **error)
 {
 	if (args->ignore_compatible) {
 		return TRUE;
@@ -488,7 +488,8 @@ static gboolean verify_compatible(RaucInstallArgs *args, RaucManifest *manifest)
 			manifest->update_compatible) == 0) {
 		return TRUE;
 	} else {
-		g_warning("incompatible manifest for this system (%s): %s",
+		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_COMPAT_MISMATCH,
+				"Compatible mismatch: Expected '%s' but bundle manifest has '%s'",
 				r_context()->config->system_compatible,
 				manifest->update_compatible);
 		return FALSE;
@@ -721,6 +722,7 @@ out:
 
 static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error)
 {
+	GError *ierror = NULL;
 	g_autofree gchar* handler_name = NULL;
 	gboolean res = FALSE;
 
@@ -728,16 +730,14 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bun
 
 	/* Allow overriding compatible check by hook */
 	if (manifest->hooks.install_check) {
-		GError *ierror = NULL;
 		run_bundle_hook(manifest, bundledir, "install-check", &ierror);
 		if (ierror) {
 			g_propagate_error(error, ierror);
 			res = FALSE;
 			goto out;
 		}
-	} else if (!verify_compatible(args, manifest)) {
-		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_COMPAT_MISMATCH,
-				"Compatible mismatch");
+	} else if (!verify_compatible(args, manifest, &ierror)) {
+		g_propagate_error(error, ierror);
 		res = FALSE;
 		goto out;
 	}
@@ -849,10 +849,9 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			res = FALSE;
 			goto early_out;
 		}
-	} else if (!verify_compatible(args, manifest)) {
+	} else if (!verify_compatible(args, manifest, &ierror)) {
+		g_propagate_error(error, ierror);
 		res = FALSE;
-		g_set_error_literal(error, R_INSTALL_ERROR, R_INSTALL_ERROR_COMPAT_MISMATCH,
-				"Compatible mismatch");
 		goto early_out;
 	}
 
