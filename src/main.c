@@ -481,7 +481,7 @@ static gboolean write_slot_start(int argc, char **argv)
 		goto out;
 	}
 
-	g_message("Slot written successfully");
+	g_print("Slot written successfully\n");
 
 out:
 	return TRUE;
@@ -544,6 +544,7 @@ out:
 	return TRUE;
 }
 
+G_GNUC_UNUSED
 static gboolean replace_signature_start(int argc, char **argv)
 {
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
@@ -602,6 +603,7 @@ out:
 	return TRUE;
 }
 
+G_GNUC_UNUSED
 static gboolean extract_signature_start(int argc, char **argv)
 {
 	RaucBundle *bundle = NULL;
@@ -2263,7 +2265,7 @@ static void cmdline_handler(int argc, char **argv)
 
 	if (rcommand == NULL) {
 		/* INVALID COMMAND given */
-		g_message("Invalid command '%s' given", cmdarg);
+		g_print("Invalid command '%s' given\n", cmdarg);
 		r_exit_status = 1;
 		goto print_help;
 	}

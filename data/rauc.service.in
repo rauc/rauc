@@ -1,5 +1,5 @@
 [Unit]
-Description=Rauc Update Service
+Description=RAUC Update Service
 Documentation=https://rauc.readthedocs.io
 After=dbus.service
 
