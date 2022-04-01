@@ -731,6 +731,11 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 	g_return_val_if_fail(contentdir != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	if (g_file_test(bundlename, G_FILE_TEST_EXISTS)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "bundle %s already exists", bundlename);
+		return FALSE;
+	}
+
 	res = load_manifest_file(manifestpath, &manifest, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
@@ -774,8 +779,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 out:
 	/* Remove output file on error */
 	if (!res &&
-	    g_file_test(bundlename, G_FILE_TEST_IS_REGULAR) &&
-	    !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_EXIST))
+	    g_file_test(bundlename, G_FILE_TEST_IS_REGULAR))
 		if (g_remove(bundlename) != 0)
 			g_warning("failed to remove %s", bundlename);
 	return res;
@@ -794,12 +798,6 @@ static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffs
 	g_return_val_if_fail(inpath != NULL, FALSE);
 	g_return_val_if_fail(outpath != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
-
-	if (g_file_test(outpath, G_FILE_TEST_EXISTS)) {
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "bundle %s already exists", outpath);
-		res = FALSE;
-		goto out;
-	}
 
 	infile = g_file_new_for_path(inpath);
 	outfile = g_file_new_for_path(outpath);
@@ -857,6 +855,11 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 	g_return_val_if_fail(outpath != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	if (g_file_test(outpath, G_FILE_TEST_EXISTS)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "bundle %s already exists", outpath);
+		return FALSE;
+	}
+
 	res = check_bundle_payload(bundle, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
@@ -902,8 +905,7 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 out:
 	/* Remove output file on error */
 	if (!res &&
-	    g_file_test(outpath, G_FILE_TEST_IS_REGULAR) &&
-	    !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_EXIST))
+	    g_file_test(outpath, G_FILE_TEST_IS_REGULAR))
 		if (g_remove(outpath) != 0)
 			g_warning("failed to remove %s", outpath);
 	return res;
@@ -941,13 +943,6 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 		storepath = g_strconcat(basepath, ".castr", NULL);
 	} else {
 		storepath = g_strconcat(outbundle, ".castr", NULL);
-	}
-
-	/* Assure bundle destination path doe not already exist */
-	if (g_file_test(outbundle, G_FILE_TEST_EXISTS)) {
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "Destination bundle '%s' already exists", outbundle);
-		res = FALSE;
-		goto out;
 	}
 
 	if (g_file_test(storepath, G_FILE_TEST_EXISTS)) {
@@ -1067,6 +1062,11 @@ gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError
 	g_return_val_if_fail(outbundle != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	if (g_file_test(outbundle, G_FILE_TEST_EXISTS)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "bundle %s already exists", outbundle);
+		return FALSE;
+	}
+
 	res = check_bundle_payload(bundle, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
@@ -1083,8 +1083,7 @@ gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError
 out:
 	/* Remove output file on error */
 	if (!res &&
-	    g_file_test(outbundle, G_FILE_TEST_IS_REGULAR) &&
-	    !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_EXIST))
+	    g_file_test(outbundle, G_FILE_TEST_IS_REGULAR))
 		if (g_remove(outbundle) != 0)
 			g_warning("failed to remove %s", outbundle);
 	return res;
@@ -1111,6 +1110,11 @@ gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **err
 	 */
 	if (bundle->manifest->bundle_format != R_MANIFEST_FORMAT_CRYPT) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE, "Refused to encrypt input bundle that is not in 'crypt' format.");
+		return FALSE;
+	}
+
+	if (g_file_test(outbundle, G_FILE_TEST_EXISTS)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "bundle %s already exists", outbundle);
 		return FALSE;
 	}
 
@@ -2088,6 +2092,11 @@ gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *
 	g_return_val_if_fail(insig != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	if (g_file_test(outpath, G_FILE_TEST_EXISTS)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "bundle %s already exists", outpath);
+		return FALSE;
+	}
+
 	r_context_begin_step("replace_signature", "Replacing bundle signature", 5);
 
 	res = check_bundle_payload(bundle, &ierror);
@@ -2206,8 +2215,7 @@ gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *
 out:
 	/* Remove output file on error */
 	if (!res &&
-	    g_file_test(outpath, G_FILE_TEST_IS_REGULAR) &&
-	    !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_EXIST))
+	    g_file_test(outpath, G_FILE_TEST_IS_REGULAR))
 		if (g_remove(outpath) != 0)
 			g_warning("failed to remove %s", outpath);
 
