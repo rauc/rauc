@@ -53,6 +53,7 @@ typedef struct {
 	gchar *casync_install_args;
 	gboolean use_desync;
 	gboolean activate_installed;
+	gchar *data_directory;
 	gchar *statusfile_path;
 	gchar *keyring_path;
 	gchar *keyring_directory;

@@ -351,10 +351,36 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		c->system_variant = variant_data;
 	}
 
+	/* parse data/status location
+	 *
+	 * We have multiple levels of backwards compatibility:
+	 * - per-slot status and no shared data directory
+	 *   (by default or explicitly with ``statusfile=per-slot``)
+	 * - central status file and no shared data directory
+	 *   (``statusfile=/data/central.raucs``)
+	 * - central status file and shared data directory
+	 *   (``statusfile=/data/central.raucs`` and ``data-directory=/data/rauc``)
+	 * - central status file in shared data directory
+	 *   (``data-directory=/data/rauc``, implies ``statusfile=/data/rauc/central.rauc``)
+	 */
+	c->data_directory = resolve_path_take(filename,
+			key_file_consume_string(key_file, "system", "data-directory", &ierror));
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
+
 	c->statusfile_path = key_file_consume_string(key_file, "system", "statusfile", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		g_message("Config option 'statusfile=<path>/per-slot' unset, falling back to per-slot status");
-		c->statusfile_path = g_strdup("per-slot");
+		if (c->data_directory) {
+			c->statusfile_path = g_build_filename(c->data_directory, "central.raucs", NULL);
+		} else {
+			g_message("Config option 'statusfile=<path>/per-slot' unset, falling back to per-slot status");
+			c->statusfile_path = g_strdup("per-slot");
+		}
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
