@@ -116,8 +116,9 @@ jobs:
     strategy:
       matrix:
         release:
-        - 18.04
-        - 20.04
+        - "18.04"
+        - "20.04"
+        - "21.10"
     steps:
     - uses: actions/checkout@v2
 
@@ -141,8 +142,7 @@ jobs:
 
     - name: Build
       run: |
-        docker exec -i stable make
-        #docker exec -i stable make check
+        docker exec -i stable make TESTS= check
 
     - name: Show logs
       if: ${{ failure() }}
