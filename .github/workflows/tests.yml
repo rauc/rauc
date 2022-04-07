@@ -118,6 +118,7 @@ jobs:
         release:
         - "18.04"
         - "20.04"
+        - "21.10"
     steps:
     - uses: actions/checkout@v2
 
