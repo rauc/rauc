@@ -604,6 +604,11 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			slot->name = g_intern_string(value);
 			g_free(value);
 
+			/* If we have a data_directory, use a slot.<class>.<index>
+			 * subdirectory for per-slot data. */
+			if (c->data_directory)
+				slot->data_directory = g_build_filename(c->data_directory, groups[i], NULL);
+
 			slot->description = key_file_consume_string(key_file, groups[i], "description", NULL);
 
 			slot->sclass = g_intern_string(groupsplit[1]);

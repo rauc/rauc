@@ -61,6 +61,8 @@ typedef struct _RaucSlot {
 	gchar *mount_point;
 	gchar *ext_mount_point;
 	RaucSlotStatus *status;
+	/** the name of the per-slot data subdirectory */
+	gchar *data_directory;
 } RaucSlot;
 
 /**
