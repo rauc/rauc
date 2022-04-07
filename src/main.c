@@ -2370,6 +2370,14 @@ int main(int argc, char **argv)
 {
 	GLogLevelFlags fatal_mask;
 
+#if GLIB_CHECK_VERSION(2, 68, 0)
+	/* To use this function, without bumping the maximum GLib allowed version,
+	 * we temporarily disable the deprecation warnings */
+	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+	g_log_writer_default_set_use_stderr(TRUE);
+	G_GNUC_END_IGNORE_DEPRECATIONS
+#endif
+
 	fatal_mask = g_log_set_always_fatal(G_LOG_FATAL_MASK);
 	fatal_mask |= G_LOG_LEVEL_CRITICAL;
 	g_log_set_always_fatal(fatal_mask);
