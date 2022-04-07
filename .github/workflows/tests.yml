@@ -116,8 +116,8 @@ jobs:
     strategy:
       matrix:
         release:
-        - 18.04
-        - 20.04
+        - "18.04"
+        - "20.04"
     steps:
     - uses: actions/checkout@v2
 
