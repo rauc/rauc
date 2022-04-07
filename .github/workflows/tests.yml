@@ -141,8 +141,7 @@ jobs:
 
     - name: Build
       run: |
-        docker exec -i stable make
-        #docker exec -i stable make check
+        docker exec -i stable make TESTS= check
 
     - name: Show logs
       if: ${{ failure() }}
