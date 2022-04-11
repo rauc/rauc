@@ -453,7 +453,7 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 	/* Prepare Seed */
 	seedslot = get_active_slot_class_member(image->slotclass);
 	if (!seedslot) {
-		g_warning("No seed slot available for %s", image->slotclass);
+		g_warning("No casync seed slot available for %s", image->slotclass);
 		goto extract;
 	}
 
@@ -463,7 +463,7 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 		 * rootfs slot seed is inaproppriate as it contains virtual
 		 * file systems, additional mounts, etc. */
 		if (!seedslot->mount_point) {
-			g_debug("Mounting %s to use as seed", seedslot->device);
+			g_debug("Mounting %s to use as casync seed", seedslot->device);
 			res = r_mount_slot(seedslot, &ierror);
 			if (!res) {
 				g_warning("Failed mounting for seeding: %s", ierror->message);
@@ -493,12 +493,12 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 extract:
 	/* Set store */
 	store = r_context()->install_info->mounted_bundle->storepath;
-	g_debug("Using store path: '%s'", store);
+	g_debug("Using casync store path: '%s'", store);
 
 	/* Set temporary directory */
 	tmpdir = r_context()->config->tmp_path;
 	if (tmpdir)
-		g_debug("Using tmp path: '%s'", tmpdir);
+		g_debug("Using casync tmp path: '%s'", tmpdir);
 
 	/* Call casync to extract */
 	res = casync_extract(image, dest, out_fd, seed, store, tmpdir, &ierror);

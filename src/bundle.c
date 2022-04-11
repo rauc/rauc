@@ -1118,7 +1118,7 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 			idxfile = g_strconcat(image->filename, ".caidx", NULL);
 			idxpath = g_build_filename(contentdir, idxfile, NULL);
 
-			g_message("Converting %s to directory tree idx %s", image->filename, idxfile);
+			g_message("Converting %s to casync directory tree idx %s", image->filename, idxfile);
 
 			res = casync_make_arch(idxpath, imgpath, storepath, &ierror);
 			if (!res) {
@@ -1129,7 +1129,7 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 			idxfile = g_strconcat(image->filename, ".caibx", NULL);
 			idxpath = g_build_filename(contentdir, idxfile, NULL);
 
-			g_message("Converting %s to blob idx %s", image->filename, idxfile);
+			g_message("Converting %s to casync blob idx %s", image->filename, idxfile);
 
 			/* Generate index for content */
 			res = casync_make_blob(idxpath, imgpath, storepath, &ierror);
