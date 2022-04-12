@@ -821,6 +821,9 @@ RAUC casync Support
   When evaluating, make sure to compile a recent casync version from the
   `git <https://github.com/systemd/casync>`_ for testing.
 
+  For compatiblitiy with RAUC's built-in streaming support, refer to
+  :ref:`sec-casync-vs-streaming`.
+
 Using the Content-Addressable Data Synchronization tool `casync` for updating
 embedded / IoT devices provides a couple of benefits.
 By splitting and chunking the update artifacts into reusable pieces, casync
@@ -849,6 +852,53 @@ This makes the approach quite flexible.
 .. image:: images/casync-basics.svg
   :width: 500
   :align: center
+
+.. _sec-casync-vs-streaming:
+
+casync vs. RAUC Built-in Streaming & Adaptive Updates
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Until RAUC 1.6, using 'casync' was the only method to update over the network
+without intermediate bundle storage and to reduce the download size.
+
+Since v1.6, RAUC comes with built-in streaming support for the ``verity`` and
+``crypt`` bundle formats.
+This supports streaming the bundle content (images) directly into the target
+slots without the need of intermediate storage.
+
+In RAUC 1.8, 'adaptive updates' were added that provide a built-in mechanism
+for reducing download size.
+
+Both casync support and built-in HTTP(S) streaming & adaptive updates will be
+supported in parallel for now.
+
+.. note:: Currently, the only adaptive update mode supported is
+   ``block-hash-index`` which works for block devices only (not file-based)
+
+The main differences between casync and the built-in streaming with adaptive
+updates are:
+
+* casync requires bundle conversion and a separate sever-side chunk store
+  while streaming adaptive updates is a fully transparent process (except that
+  it requires the server to support HTTP range requests)
+* caysnc supports chunk-based differential updates for both block-based and
+  file/directory-based updates while adaptive updates currently only support
+  block-based updates
+* adaptive updates potentially allow the the installation process to
+  choose the optimal installation method out of multiple available
+
+.. note::
+
+  If streaming support is enabled, RAUC will **not** be able to download
+  ``plain`` casync bundles anymore! An attempt will fail with::
+
+     Bundle format 'plain' not supported in streaming mode
+
+  The possible solutions to this are:
+
+    a) migrate to the ``verity`` bundle format if possible, or
+    b) disable streaming support by calling ``./configure`` with
+       ``--disable-streaming``.
 
 Creating casync Bundles
 ~~~~~~~~~~~~~~~~~~~~~~~
