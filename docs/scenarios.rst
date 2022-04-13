@@ -155,7 +155,6 @@ scenarios above, the robustness against some error cases can be improved:
   [slot.rescue.0]
   device=/dev/sda0
   type=raw
-  bootname=rescue
 
   [slot.rootfs.0]
   device=/dev/sda1
