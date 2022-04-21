@@ -1118,7 +1118,7 @@ The InstallBundle() Method
 .. code::
 
   de.pengutronix.rauc.Installer.InstallBundle()
-  Install (IN  s source, IN a{sv} args);
+  InstallBundle (IN  s source, IN a{sv} args);
 
 Triggers the installation of a bundle.
 This method call is non-blocking.
