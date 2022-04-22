@@ -191,8 +191,8 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  90, "Checking slot appfs.1", 3));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  95, "Checking slot appfs.1 done.", 3));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  95, "Copying image to appfs.1", 3));
-	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)", 100, "Copying image to appfs.1 done.", 3));
-	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)", 100, "Updating slots done.", 2));
+	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  99, "Copying image to appfs.1 done.", 3));
+	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  99, "Updating slots done.", 2));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)", 100, "Installing done.", 1));
 
 	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
