@@ -156,6 +156,8 @@ Required kernel options:
 -  ``CONFIG_DM_VERITY=y``
 -  ``CONFIG_SQUASHFS=y``
 -  ``CONFIG_CRYPTO_SHA256=y``
+-  ``CONFIG_BLK_DEV_NBD`` (for streaming support)
+-  ``CONFIG_DM_CRYPT`` (for encryption support)
 
 For using tar archive in RAUC bundles with Busybox tar, you have to enable the
 following Busybox feature:
