@@ -93,6 +93,11 @@ You may want to have a look at
 `rauc-hawkbit <https://github.com/rauc/rauc-hawkbit>`_ for interfacing with the
 hawkBit deployment server.
 
+RAUC bundles are NOT a general purpose transport container.
+This means that on your target side you should not use ``rauc extract``.
+Instead use ``rauc install`` or the D-Bus API to trigger an installation.
+Any necessary customization should be done using hooks and handlers.
+
 And finally, factory bring up of your device, i.e. initial partitioning etc. is
 also out of scope for an update tool like RAUC.
 While you may use it for initially filling your slot contents during factory
