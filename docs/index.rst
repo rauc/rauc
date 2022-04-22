@@ -102,7 +102,8 @@ And finally, factory bring up of your device, i.e. initial partitioning etc. is
 also out of scope for an update tool like RAUC.
 While you may use it for initially filling your slot contents during factory
 bring up, the partitioning or volume creation must be made manually or by a
-separate factory bring up script.
+separate factory bring up tool (such as `systemd-repart
+<https://www.freedesktop.org/software/systemd/man/systemd-repart.html>`_).
 
 Key Features of RAUC
 --------------------
