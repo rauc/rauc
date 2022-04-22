@@ -3,24 +3,58 @@ Release 1.7 (development)
 
 .. rubric:: Enhancements
 
-* Add support for streaming installation from a HTTP(S) server for verity
-  bundles.
+* Add support for streaming installation from a HTTP(S) server for bundles in
+  ``verity`` and ``crypt`` formats.
   This avoids the need for a temporary bundle storage location and prepares for
   more efficient incremental updates.
+  See the :ref:`documentation for details <http-streaming>`.
+* Add support for bundle encryption (``crypt`` format).
+  This is useful when bundles contain confidential data and are not otherwise
+  protected during transport (for example, via HTTP, unauthenticated HTTPS or
+  USB storage).
+  See the :ref:`documentation for details <sec-encryption>`.
+* Divert log messages to stderr, which is useful for machine readable output
+  (``rauc status --output-format=json``).
+  This is only enabled when built with glib 2.68 or newer.
+  (by Ludovico de Nittis)
+* Improve the error message printed on compatible mismatch.
 
 .. rubric:: Bug fixes
 
+* Don't enforce bundle exclusivity if the environment is trusted. (by Ludovico
+  de Nittis)
+* Clean up error handling for 'rauc status'.
+* Fix some memory leaks. (by Zygmunt Krynicki)
+* Fix unintentional removal of existing bundles on error.
 
 .. rubric:: Testing
 
+* Make some tests conditional on the existence of the openssl binary.
+* Access rauc.io instead of example.com.
+* Explicitly use Python 3 in coverity checks. (by Thorsten Scherer)
+* Add build tests on Ubuntu 21.10.
 
 .. rubric:: Code
 
+* Add some missing files to the dist tar.gz. (by Uwe Kleine-König)
+* Change minimum glib version from 2.49.3 to 2.50, allowing use of g_autoptr
+  with the auto-generated DBus code.
+* Use g_autofree/g_autoptr in more places.
+* Use more specific error codes for device mapper error reporting.
+* Prepare for incremental methods by adding an optional per-image manifest
+  option.
 
 .. rubric:: Documentation
 
+* Fix some broken internal links. (by Thorsten Scherer)
+* Mention Buildroot support for RAUC. (by Thomas Petazzoni)
+* Fix some typos. (by Bastian Krause and Michael Riesch)
+* Clean up some inconsistencies between README and main documentation.
+* Fix misleading rescue slot example. (by Sean Nyekjaer)
 
-Contributions from:
+Contributions from: Bastian Krause, Ludovico de Nittis, Michael Riesch, Sean
+Nyekjaer, Thomas Petazzoni, Thorsten Scherer,  Uwe Kleine-König, Zygmunt
+Krynicki
 
 Release 1.6 (released Feb 9, 2022)
 ----------------------------------
