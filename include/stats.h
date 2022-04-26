@@ -3,13 +3,14 @@
 #include <glib.h>
 
 typedef struct {
+	gchar *label;
 	gdouble values[64];
 	guint64 count, next;
 	gdouble sum;
 	gdouble min, max;
 } RaucStats;
 
-RaucStats *r_stats_new(void);
+RaucStats *r_stats_new(const gchar *label);
 
 void r_stats_add(RaucStats *stats, gdouble value);
 

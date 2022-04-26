@@ -1,9 +1,10 @@
 #include "stats.h"
 
-RaucStats *r_stats_new(void)
+RaucStats *r_stats_new(const gchar *label)
 {
 	RaucStats *stats = g_new0(RaucStats, 1);
 
+	stats->label = g_strdup(label);
 	stats->min = G_MAXDOUBLE;
 	stats->max = G_MINDOUBLE;
 
@@ -75,6 +76,8 @@ void r_stats_free(RaucStats *stats)
 {
 	if (!stats)
 		return;
+
+	g_free(stats->label);
 
 	g_free(stats);
 }

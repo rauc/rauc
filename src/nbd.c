@@ -789,12 +789,12 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 
 	g_message("running as UID %d, GID %d", getuid(), getgid());
 
-	ctx.dl_size = r_stats_new();
-	ctx.dl_speed = r_stats_new();
-	ctx.namelookup = r_stats_new();
-	ctx.connect = r_stats_new();
-	ctx.starttransfer = r_stats_new();
-	ctx.total = r_stats_new();
+	ctx.dl_size = r_stats_new("nbd dl_size");
+	ctx.dl_speed = r_stats_new("nbd dl_speed");
+	ctx.namelookup = r_stats_new("nbd namelookup");
+	ctx.connect = r_stats_new("nbd connect");
+	ctx.starttransfer = r_stats_new("nbd starttransfer");
+	ctx.total = r_stats_new("nbd total");
 
 	ctx.sock = sock;
 	ctx.multi = curl_multi_init();
