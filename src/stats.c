@@ -1,5 +1,8 @@
 #include "stats.h"
 
+gboolean test_stats_enabled = FALSE;
+GList *test_stats_queue = NULL;
+
 RaucStats *r_stats_new(const gchar *label)
 {
 	RaucStats *stats = g_new0(RaucStats, 1);
@@ -77,7 +80,41 @@ void r_stats_free(RaucStats *stats)
 	if (!stats)
 		return;
 
+	if (test_stats_enabled) {
+		/* collect in test_stats_queue instead of freeing */
+		test_stats_queue = g_list_append(test_stats_queue, stats);
+		return;
+	}
+
 	g_free(stats->label);
 
 	g_free(stats);
+}
+
+void r_test_stats_start(void)
+{
+	g_assert_false(test_stats_enabled);
+	g_assert_null(test_stats_queue);
+
+	test_stats_enabled = TRUE;
+}
+
+void r_test_stats_stop(void)
+{
+	g_assert_true(test_stats_enabled);
+
+	test_stats_enabled = FALSE;
+}
+
+RaucStats *r_test_stats_next(void)
+{
+	RaucStats *stats = NULL;
+
+	g_assert_false(test_stats_enabled);
+	g_assert_nonnull(test_stats_queue);
+
+	stats = test_stats_queue->data;
+	test_stats_queue = g_list_delete_link(test_stats_queue, test_stats_queue);
+
+	return stats;
 }
