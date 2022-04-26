@@ -293,8 +293,7 @@ struct RaucNBDContext {
 	struct curl_slist *headers_slist;
 
 	/* statistics */
-	struct RaucStats dl_size, dl_speed,
-	                 namelookup, connect, starttransfer, total;
+	RaucStats *dl_size, *dl_speed, *namelookup, *connect, *starttransfer, *total;
 };
 
 struct RaucNBDTransfer {
@@ -458,36 +457,36 @@ static void collect_curl_stats(struct RaucNBDContext *ctx, struct RaucNBDTransfe
 	code = curl_easy_getinfo(xfer->easy, CURLINFO_NAMELOOKUP_TIME, &time);
 	if (code == CURLE_OK) {
 		//g_message("NAMELOOKUP %.3f", time);
-		r_stats_add(&ctx->namelookup, time);
+		r_stats_add(ctx->namelookup, time);
 	}
 
 	code = curl_easy_getinfo(xfer->easy, CURLINFO_CONNECT_TIME, &time);
 	if (code == CURLE_OK) {
 		//g_message("CONNECT %.3f", time);
-		r_stats_add(&ctx->connect, time);
+		r_stats_add(ctx->connect, time);
 	}
 
 	code = curl_easy_getinfo(xfer->easy, CURLINFO_STARTTRANSFER_TIME, &time);
 	if (code == CURLE_OK) {
 		//g_message("STARTTRANSFER %.3f", time);
-		r_stats_add(&ctx->starttransfer, time);
+		r_stats_add(ctx->starttransfer, time);
 	}
 
 	code = curl_easy_getinfo(xfer->easy, CURLINFO_TOTAL_TIME, &time);
 	if (code == CURLE_OK) {
 		//g_message("TOTAL %.3f", time);
-		r_stats_add(&ctx->total, time);
+		r_stats_add(ctx->total, time);
 	}
 	code = curl_easy_getinfo(xfer->easy, CURLINFO_SIZE_DOWNLOAD_T, &size);
 	if (code == CURLE_OK) {
 		//g_message("SIZE_DOWNLOAD %ld", size);
-		r_stats_add(&ctx->dl_size, size);
+		r_stats_add(ctx->dl_size, size);
 	}
 
 	code = curl_easy_getinfo(xfer->easy, CURLINFO_SPEED_DOWNLOAD, &time);
 	if (code == CURLE_OK) {
 		//g_message("SPEED_DOWNLOAD %.3f", time);
-		r_stats_add(&ctx->dl_speed, time);
+		r_stats_add(ctx->dl_speed, time);
 	}
 }
 
@@ -790,12 +789,12 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 
 	g_message("running as UID %d, GID %d", getuid(), getgid());
 
-	r_stats_init(&ctx.dl_size);
-	r_stats_init(&ctx.dl_speed);
-	r_stats_init(&ctx.namelookup);
-	r_stats_init(&ctx.connect);
-	r_stats_init(&ctx.starttransfer);
-	r_stats_init(&ctx.total);
+	ctx.dl_size = r_stats_new();
+	ctx.dl_speed = r_stats_new();
+	ctx.namelookup = r_stats_new();
+	ctx.connect = r_stats_new();
+	ctx.starttransfer = r_stats_new();
+	ctx.total = r_stats_new();
 
 	ctx.sock = sock;
 	ctx.multi = curl_multi_init();
@@ -901,15 +900,21 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 		};
 	}
 
-	r_stats_show(&ctx.dl_size, "dl size");
-	r_stats_show(&ctx.dl_speed, "dlspeed");
-	r_stats_show(&ctx.namelookup, "name lookup");
-	r_stats_show(&ctx.connect, "connect");
-	r_stats_show(&ctx.starttransfer, "start transfer");
-	r_stats_show(&ctx.total, "total");
+	r_stats_show(ctx.dl_size, "dl size");
+	r_stats_show(ctx.dl_speed, "dlspeed");
+	r_stats_show(ctx.namelookup, "name lookup");
+	r_stats_show(ctx.connect, "connect");
+	r_stats_show(ctx.starttransfer, "start transfer");
+	r_stats_show(ctx.total, "total");
 
 	res = TRUE;
 out:
+	g_clear_pointer(&ctx.dl_size, r_stats_free);
+	g_clear_pointer(&ctx.dl_speed, r_stats_free);
+	g_clear_pointer(&ctx.namelookup, r_stats_free);
+	g_clear_pointer(&ctx.connect, r_stats_free);
+	g_clear_pointer(&ctx.starttransfer, r_stats_free);
+	g_clear_pointer(&ctx.total, r_stats_free);
 	curl_multi_cleanup(ctx.multi);
 	g_message("exiting nbd server");
 	return res;
