@@ -162,7 +162,8 @@ check_PROGRAMS = \
 	test/service.test \
 	test/bundle.test \
 	test/progress.test \
-	test/slot.test
+	test/slot.test \
+	test/stats.test
 
 if WANT_NETWORK
 check_PROGRAMS += test/network.test
@@ -270,6 +271,9 @@ test_progress_test_LDADD = librauctest.la
 
 test_slot_test_SOURCES = test/slot.c
 test_slot_test_LDADD = librauctest.la
+
+test_stats_test_SOURCES = test/stats.c
+test_stats_test_LDADD = librauctest.la
 
 SED_REPLACE = $(SED) \
        -e 's|[@]bindir[@]|$(bindir)|g' \
