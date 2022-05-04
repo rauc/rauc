@@ -148,22 +148,22 @@ If you intend to use json-support you also need
 Target Prerequisites
 ~~~~~~~~~~~~~~~~~~~~
 
-Required kernel options:
+Required kernel options (`y` or at least `m`)::
 
--  ``CONFIG_MD=y``
--  ``CONFIG_BLK_DEV_DM=y``
--  ``CONFIG_BLK_DEV_LOOP=y``
--  ``CONFIG_DM_VERITY=y``
--  ``CONFIG_SQUASHFS=y``
--  ``CONFIG_CRYPTO_SHA256=y``
+-  ``CONFIG_MD``
+-  ``CONFIG_BLK_DEV_DM``
+-  ``CONFIG_BLK_DEV_LOOP``
+-  ``CONFIG_DM_VERITY``
+-  ``CONFIG_SQUASHFS``
+-  ``CONFIG_CRYPTO_SHA256``
 -  ``CONFIG_BLK_DEV_NBD`` (for streaming support)
 -  ``CONFIG_DM_CRYPT`` (for encryption support)
 
 For using tar archive in RAUC bundles with Busybox tar, you have to enable the
 following Busybox feature:
 
--  ``CONFIG_FEATURE_TAR_AUTODETECT=y``
--  ``CONFIG_FEATURE_TAR_LONG_OPTIONS=y``
+-  ``CONFIG_FEATURE_TAR_AUTODETECT``
+-  ``CONFIG_FEATURE_TAR_LONG_OPTIONS``
 
 Depending on the actual storage type and/or filesystem used, further target
 tools might be required.
