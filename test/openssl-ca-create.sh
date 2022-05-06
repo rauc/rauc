@@ -216,6 +216,8 @@ cat root/ca.cert.pem root/crl.pem rel/ca.cert.pem rel/crl.pem dev/ca.cert.pem de
 cat root/ca.cert.pem root/crl.pem dev/ca.cert.pem dev/crl.pem > dev-only-ca.pem
 cat root/ca.cert.pem root/crl.pem rel/ca.cert.pem rel/crl.pem > rel-ca.pem
 cat root/ca.cert.pem root/crl.pem web/ca.cert.pem web/crl.pem > web-ca.pem
+cat dev/ca.cert.pem > dev-partial-ca.pem
+cat rel/ca.cert.pem > rel-partial-ca.pem
 
 echo "Build Directory Test Keys"
 cd $BASE/dir
