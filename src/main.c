@@ -606,6 +606,7 @@ out:
 G_GNUC_UNUSED
 static gboolean extract_signature_start(int argc, char **argv)
 {
+	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
 	RaucBundle *bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("extract signature start");
@@ -631,7 +632,10 @@ static gboolean extract_signature_start(int argc, char **argv)
 	g_debug("input bundle: %s", argv[2]);
 	g_debug("output file: %s", argv[3]);
 
-	if (!check_bundle(argv[2], &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror)) {
+	if (trust_environment)
+		check_bundle_params |= CHECK_BUNDLE_TRUST_ENV;
+
+	if (!check_bundle(argv[2], &bundle, check_bundle_params, NULL, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -2023,6 +2027,11 @@ static GOptionEntry entries_convert[] = {
 	{0}
 };
 
+static GOptionEntry entries_extract_signature[] = {
+	{"trust-environment", '\0', 0, G_OPTION_ARG_NONE, &trust_environment, "trust environment and skip bundle access checks", NULL},
+	{0}
+};
+
 static GOptionEntry entries_extract[] = {
 	{"trust-environment", '\0', 0, G_OPTION_ARG_NONE, &trust_environment, "trust environment and skip bundle access checks", NULL},
 	{0}
@@ -2072,6 +2081,7 @@ static GOptionGroup *resign_group;
 static GOptionGroup *replace_group;
 static GOptionGroup *convert_group;
 static GOptionGroup *encrypt_group;
+static GOptionGroup *extract_signature_group;
 static GOptionGroup *extract_group;
 static GOptionGroup *info_group;
 static GOptionGroup *status_group;
@@ -2099,6 +2109,9 @@ static void create_option_groups(void)
 
 		encrypt_group = g_option_group_new("encrypt", "Encryption options:", "help dummy", NULL, NULL);
 		g_option_group_add_entries(encrypt_group, entries_encryption);
+
+		extract_signature_group = g_option_group_new("extract", "Extract signature options:", "help dummy", NULL, NULL);
+		g_option_group_add_entries(extract_signature_group, entries_extract_signature);
 	}
 
 	extract_group = g_option_group_new("extract", "Extract options:", "help dummy", NULL, NULL);
@@ -2162,7 +2175,7 @@ static void cmdline_handler(int argc, char **argv)
 		 replace_signature_start, replace_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
 		{EXTRACT_SIG, "extract-signature", "extract-signature <BUNDLENAME> <OUTPUTSIG>",
 		 "Extract the bundle signature",
-		 extract_signature_start, NULL, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
+		 extract_signature_start, extract_signature_group, R_CONTEXT_CONFIG_MODE_NONE, FALSE},
 #endif
 		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>",
 		 "Extract the bundle content",
