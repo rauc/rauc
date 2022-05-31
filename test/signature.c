@@ -566,6 +566,74 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 	g_assert_cmpint(sk_X509_num(fixture->verified_chain), ==, 3);
 }
 
+static void signature_partial(SignatureFixture *fixture, gconstpointer user_data)
+{
+	gboolean res;
+	g_autoptr(X509_STORE) dev_partial_store = NULL;
+	g_autoptr(X509_STORE) rel_partial_store = NULL;
+	g_autoptr(X509_STORE) rel_partial_allowed_store = NULL;
+
+	dev_partial_store = setup_x509_store("test/openssl-ca/dev-partial-ca.pem", NULL, NULL);
+	rel_partial_store = setup_x509_store("test/openssl-ca/rel-partial-ca.pem", NULL, NULL);
+	/* Allow a partial chain. */
+	r_context()->config->keyring_allow_partial_chain = TRUE;
+	rel_partial_allowed_store = setup_x509_store("test/openssl-ca/rel-partial-ca.pem", NULL, NULL);
+
+	fixture->sig = cms_sign(fixture->content,
+			TRUE,
+			"test/openssl-ca/rel/release-1.cert.pem",
+			"test/openssl-ca/rel/private/release-1.pem",
+			NULL,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(fixture->sig);
+
+	/* With only the dev ca in the store, this must fail. */
+	g_assert_false(cms_verify_bytes(fixture->content,
+			fixture->sig,
+			dev_partial_store,
+			&fixture->cms,
+			NULL,
+			&fixture->error));
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
+	g_assert_null(fixture->cms);
+	g_clear_error(&fixture->error);
+
+	/* Without allowing a partial chain, this must fail. */
+	g_assert_false(cms_verify_bytes(fixture->content,
+			fixture->sig,
+			rel_partial_store,
+			&fixture->cms,
+			NULL,
+			&fixture->error));
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
+	g_assert_null(fixture->cms);
+	g_clear_error(&fixture->error);
+
+	/* With allowing a partial chain, this must succeed. */
+	res = cms_verify_bytes(fixture->content,
+			fixture->sig,
+			rel_partial_allowed_store,
+			&fixture->cms,
+			NULL,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+	g_assert_nonnull(fixture->cms);
+
+	/* Verify obtaining cert chain works */
+	res = cms_get_cert_chain(fixture->cms,
+			rel_partial_allowed_store,
+			&fixture->verified_chain,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+	g_assert_nonnull(fixture->verified_chain);
+
+	/* Chain length must be 2 (release-1 -> rel) */
+	g_assert_cmpint(sk_X509_num(fixture->verified_chain), ==, 2);
+}
+
 static void signature_cmsverify_path(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
@@ -761,6 +829,7 @@ int main(int argc, char *argv[])
 	g_test_add("/signature/selfsigned", SignatureFixture, NULL, signature_set_up, signature_selfsigned, signature_tear_down);
 	g_test_add("/signature/intermediate", SignatureFixture, NULL, signature_set_up, signature_intermediate, signature_tear_down);
 	g_test_add("/signature/intermediate_file", SignatureFixture, NULL, signature_set_up, signature_intermediate_file, signature_tear_down);
+	g_test_add("/signature/partial", SignatureFixture, NULL, signature_set_up, signature_partial, signature_tear_down);
 	g_test_add("/signature/cmsverify_path", SignatureFixture, NULL, signature_set_up, signature_cmsverify_path, signature_tear_down);
 	g_test_add("/signature/cmsverify_dir_combined", SignatureFixture, NULL, signature_set_up, signature_cmsverify_dir_combined, signature_tear_down);
 	g_test_add("/signature/cmsverify_dir_single_fail", SignatureFixture, NULL, signature_set_up, signature_cmsverify_dir_single_fail, signature_tear_down);

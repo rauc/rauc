@@ -1009,6 +1009,7 @@ compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 [keyring]\n\
 path=/dev/null\n\
+allow-partial-chain=true\n\
 check-crl=true\n\
 check-purpose=codesign\n";
 
@@ -1019,6 +1020,7 @@ check-purpose=codesign\n";
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(config);
+	g_assert_false(config->keyring_allow_partial_chain);
 	g_assert_false(config->keyring_check_crl);
 	g_assert_cmpstr(config->keyring_check_purpose, ==, NULL);
 
@@ -1031,6 +1033,7 @@ check-purpose=codesign\n";
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(config);
+	g_assert_true(config->keyring_allow_partial_chain);
 	g_assert_true(config->keyring_check_crl);
 	g_assert_cmpstr(config->keyring_check_purpose, ==, "codesign");
 

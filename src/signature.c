@@ -494,6 +494,10 @@ X509_STORE* setup_x509_store(const gchar *capath, const gchar *cadir, GError **e
 	else if (contains_crl(load_capath, load_cadir))
 		g_warning("Detected CRL but CRL checking is disabled!");
 
+	/* Allow partial chain if configured */
+	if (r_context()->config->keyring_allow_partial_chain)
+		X509_STORE_set_flags(store, X509_V_FLAG_PARTIAL_CHAIN);
+
 	/* Enable purpose checking if configured */
 	if (check_purpose) {
 		const X509_PURPOSE *xp = X509_PURPOSE_get0(X509_PURPOSE_get_by_sname(check_purpose));

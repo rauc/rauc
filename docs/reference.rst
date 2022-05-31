@@ -199,6 +199,19 @@ signature.
   If this boolean value is set to ``true`` then the bundle signing time
   is used instead of the current system time for certificate validation.
 
+.. _allow-partial-chain:
+
+``allow-partial-chain=<true/false>``
+  If this boolean value is set to ``true``, RAUC will also treat intermediate
+  certificates in the keyring as trust-anchors, in addition to self-signed root
+  CA certificates.
+  This makes it possible to trust only one (or more) sub-tree(s) in a larger
+  PKI.
+
+  Note that without the root CA certificate in the keyring, CRLs signed by it
+  can not be authenticated.
+  If CRL checking is needed, the PKI needs to be structured with this in mind.
+
 ``check-crl=<true/false>``
   If this boolean value is set to ``true``, RAUC will enable checking of CRLs
   (Certificate Revocation Lists) stored in the keyring together with the CA
