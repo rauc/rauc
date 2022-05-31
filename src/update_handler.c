@@ -180,19 +180,43 @@ static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 	return TRUE;
 }
 
-static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, GError **error)
+static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, gsize len_header_last, GError **error)
 {
 	GError *ierror = NULL;
 	gssize size;
 	goffset seeksize;
 	g_autoptr(GFile) srcimagefile = g_file_new_for_path(image->filename);
 	int out_fd = g_unix_output_stream_get_fd(outstream);
+	g_autofree void *header = NULL;
 
 	g_autoptr(GInputStream) instream = G_INPUT_STREAM(g_file_read(srcimagefile, NULL, &ierror));
 	if (instream == NULL) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to open file for reading: ");
 		return FALSE;
+	}
+
+	if (len_header_last) {
+		gsize sector_size = (gsize) get_sectorsize(out_fd);
+
+		if (len_header_last != sector_size) {
+			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+					"Specified header length (%"G_GSIZE_FORMAT ") does not match sector size (%"G_GSIZE_FORMAT ")", len_header_last, sector_size);
+			return FALSE;
+		}
+
+		header = g_malloc(len_header_last);
+
+		if (!g_input_stream_read_all(instream, header, len_header_last, &len_header_last, NULL, &ierror)) {
+			g_propagate_prefixed_error(error, ierror,
+					"Failed to read header: ");
+			return FALSE;
+		}
+
+		if (lseek(out_fd, len_header_last, SEEK_CUR) == -1) {
+			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Failed to skip header: %s", strerror(errno));
+			return FALSE;
+		}
 	}
 
 	size = g_output_stream_splice(G_OUTPUT_STREAM(outstream), instream,
@@ -211,6 +235,26 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, G
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Written size (%"G_GOFFSET_FORMAT ") != image size (%"G_GOFFSET_FORMAT ")", seeksize, image->checksum.size);
 		return FALSE;
+	}
+
+	if (len_header_last) {
+		gsize bytes;
+
+		if (fsync(out_fd) == -1) {
+			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Syncing content to disk failed: %s", strerror(errno));
+			return FALSE;
+		}
+
+		if (lseek(out_fd, -seeksize, SEEK_CUR) == -1) {
+			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Failed to rewind output stream: %s", strerror(errno));
+			return FALSE;
+		}
+
+		if (!g_output_stream_write_all(G_OUTPUT_STREAM(outstream), header, len_header_last, &bytes, NULL, &ierror)) {
+			g_propagate_prefixed_error(error, ierror,
+					"Failed to write header: ");
+			return FALSE;
+		}
 	}
 
 	if (!g_input_stream_close(instream, NULL, &ierror)) {
@@ -268,7 +312,7 @@ static gboolean write_boot_switch_partition(RaucImage *image, const gchar *devic
 		goto out;
 	}
 
-	res = copy_raw_image(image, outstream, &ierror);
+	res = copy_raw_image(image, outstream, 0, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -454,7 +498,7 @@ static gboolean copy_raw_image_to_dev(RaucImage *image, RaucSlot *slot, GError *
 
 	/* copy */
 	g_message("writing data to device %s", slot->device);
-	res = copy_raw_image(image, outstream, &ierror);
+	res = copy_raw_image(image, outstream, 0, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -1047,7 +1091,7 @@ static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, con
 		}
 	} else {
 		/* copy */
-		res = copy_raw_image(image, outstream, &ierror);
+		res = copy_raw_image(image, outstream, 0, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1116,7 +1160,7 @@ static gboolean img_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 		}
 	} else {
 		/* copy */
-		res = copy_raw_image(image, outstream, &ierror);
+		res = copy_raw_image(image, outstream, 0, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1822,7 +1866,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	/* copy */
 	g_message("Copying image to slot device partition %s",
 			part_slot->device);
-	res = copy_raw_image(image, outstream, &ierror);
+	res = copy_raw_image(image, outstream, 0, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
