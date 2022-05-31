@@ -34,7 +34,6 @@ GQuark r_update_error_quark(void)
 static GUnixOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **error)
 {
 	GUnixOutputStream *outstream = NULL;
-	GError *ierror = NULL;
 	int fd_out;
 
 	g_return_val_if_fail(slot, NULL);
@@ -50,8 +49,8 @@ static GUnixOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **err
 
 	outstream = G_UNIX_OUTPUT_STREAM(g_unix_output_stream_new(fd_out, TRUE));
 	if (outstream == NULL) {
-		g_propagate_prefixed_error(error, ierror,
-				"Failed to open file for writing: ");
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Failed to create stream for output device %s", slot->device);
 		return NULL;
 	}
 
