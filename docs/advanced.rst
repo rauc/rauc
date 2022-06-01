@@ -1107,7 +1107,8 @@ It requires RAUC to be compiled with GPT support (``./configure --enable-gpt``)
 and adds a dependency on libfdisk.
 
 The required slot type is ``boot-gpt-switch``.
-The device to be specified is expected to be the underlying block device.
+The device to be specified is expected to be the underlying block device (not a
+partition).
 The boot partitions are derived by the definition of the values ``region-start``
 and ``region-size``.
 Both values have to be set in integer decimal bytes and can be post-fixed with
@@ -1131,6 +1132,61 @@ A ``system.conf`` section could look like this:
   type=boot-gpt-switch
   region-start=1M
   region-size=64M
+
+.. _sec-raw-partition-fallback:
+
+Update Raw Boot Partition with Fallback
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some SoCs (like the Rockchip RK3568) contain a fixed ROM code that searches the
+possible boot media for valid images in a defined order.
+Usually this happens at two or more fixed addresses ("locations").
+Special headers, magic numbers, checksums, or a combination of these may be used
+to determine if a valid image exists at such an address.
+
+This behavior can be used to implement an atomic update of a bootloader.
+To do this, the bootloader, which starts with the required header, is
+installed in two locations that the ROM code searches for possible boot images.
+For example, usually only the code in the first location is used, and the second
+is redundant and ignored.
+During an update, the currently unused location is updated first, and followed
+by the other location (which was likely just booted from).
+It is important that the corresponding header is always deleted first, then the
+boot image is written and the header is only written last.
+This ensures that there is always a valid image in either location and that
+half-written images are not attempted to boot from.
+
+The required slot type is ``boot-raw-fallback``.
+The device to be specified is expected to be the underlying block device.
+The location of each copy in the boot region is derived from the values
+``region-start`` and ``region-size``.
+Both values have to be set in integer decimal bytes and can be post-fixed with
+K/M/G/T.
+
+A ``system.conf`` section could look like this:
+
+.. code-block:: cfg
+
+  [slot.bootloader.0]
+  device=/dev/mmcblk0
+  type=boot-raw-fallback
+  region-start=32k
+  region-size=4M
+
+It defines a region starting at ``0x8000`` with a size of ``4M``.
+This region will be split up into two halves of equal size by RAUC internally.
+This results in two halves, one starting at ``0x8000`` and one at ``0x208000``,
+both with a size of ``2M``.
+The first half is the location where the normally used bootloader should be
+stored and the second defines the location of the fallback location.
+The header size is currently fixed to 512 bytes.
+
+Since the implementation makes certain assumptions, it is important that the
+SoC ROM code tries to boot from the first location first.
+Note that under most circumstances the update will appear to work fine even if
+the two locations are swapped.
+However, for the update to actually be failsafe, the locations must be searched
+in order by SoC ROM code.
 
 Bootloader Update Ideas
 ~~~~~~~~~~~~~~~~~~~~~~~
