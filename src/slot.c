@@ -130,6 +130,7 @@ RaucSlotType supported_slot_types[] = {
 	{"boot-mbr-switch", FALSE},
 	{"boot-gpt-switch", FALSE},
 	{"vfat", TRUE},
+	{"boot-raw-fallback", FALSE},
 	{}
 };
 

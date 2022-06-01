@@ -18,7 +18,6 @@
 #include "gpt.h"
 #include "utils.h"
 
-
 #define R_SLOT_HOOK_PRE_INSTALL "slot-pre-install"
 #define R_SLOT_HOOK_POST_INSTALL "slot-post-install"
 #define R_SLOT_HOOK_INSTALL "slot-install"
@@ -1948,6 +1947,179 @@ out:
 }
 #endif
 
+static gboolean check_if_area_is_clear(const gchar *device, guint64 start, gsize size, gboolean *clear, GError **error)
+{
+	gboolean res = FALSE;
+	g_autofree guchar *read_buf = NULL;
+	gint read_size = 512;
+	gint fd;
+
+	g_return_val_if_fail(device, FALSE);
+	g_return_val_if_fail(clear, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	read_buf = g_malloc0(read_size);
+
+	fd = g_open(device, O_RDONLY);
+	if (fd == -1) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Opening device failed: %s",
+				g_strerror(errno));
+		goto out;
+	}
+
+	if (lseek(fd, start, SEEK_SET) != (off_t) start) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Failed to set file to position %"G_GUINT64_FORMAT ": %s",
+				start, g_strerror(errno));
+		goto out;
+	}
+
+	*clear = TRUE;
+
+	while (size && *clear) {
+		gint read_count = 0;
+
+		if (size < (gsize) read_size)
+			read_size = size;
+
+		read_count = read(fd, read_buf, read_size);
+		if (read_count < 0)
+			goto out;
+
+		for (gint i = 0; i < read_count; i++)
+		{
+			if ((read_buf[i] != 0x00) && (read_buf[i] != 0xFF)) {
+				*clear = FALSE;
+				break;
+			}
+		}
+
+		size -= read_count;
+	}
+
+	res = TRUE;
+
+out:
+	if (fd >= 0)
+		g_close(fd, NULL);
+
+	return res;
+}
+
+static gboolean img_to_boot_raw_fallback_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
+	gboolean res = FALSE;
+	GError *ierror = NULL;
+	guint64 half_size;
+	gboolean primary_clear;
+	struct part_desc {
+		const char *name;
+		struct boot_switch_partition partition;
+	} part_desc[2];
+	int first_part_desc_index = 0;
+	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+	const gsize header_size = 512;
+
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(dest_slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	half_size = dest_slot->region_size / 2;
+
+	/* Since down in copy_raw_image() the header size must match the sector size, checking the
+	 * alignment to the header size also implicitly ensures sector alignment.
+	 */
+	if ((dest_slot->region_start % header_size) != 0) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Region start %"G_GUINT64_FORMAT " is not aligned to the header size %"G_GSIZE_FORMAT,
+				dest_slot->region_start, header_size);
+		goto out;
+	}
+
+	if ((half_size % header_size) != 0) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Half region size %"G_GUINT64_FORMAT " is not aligned to the header size %"G_GSIZE_FORMAT,
+				half_size, header_size);
+		goto out;
+	}
+
+	if (half_size < (guint64)image->checksum.size) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Size of image (%"G_GOFFSET_FORMAT ") does not fit to slot size %"G_GUINT64_FORMAT,
+				image->checksum.size, half_size);
+		goto out;
+	}
+
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_REGION_START"),
+			g_strdup_printf("%"G_GUINT64_FORMAT, dest_slot->region_start));
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_REGION_SIZE"),
+			g_strdup_printf("%"G_GUINT64_FORMAT, dest_slot->region_size));
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook_extra_env(hook_name, R_SLOT_HOOK_PRE_INSTALL, image,
+				dest_slot, vars, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	part_desc[0].name = "fallback";
+	part_desc[0].partition.start = dest_slot->region_start + half_size;
+	part_desc[0].partition.size = half_size;
+
+	part_desc[1].name = "primary";
+	part_desc[1].partition.start = dest_slot->region_start;
+	part_desc[1].partition.size = half_size;
+
+	/* If the primary partition is not fully programmed, it most likely means that the fallback
+	 * partition was used to boot and is therefore valid. To avoid ending up with two broken partitions,
+	 * upgrade the primary partition first.
+	 */
+	res = check_if_area_is_clear(dest_slot->device, dest_slot->region_start, header_size, &primary_clear, &ierror);
+	if (!res) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Failed to check area at %"G_GUINT64_FORMAT " on %s",
+				dest_slot->region_start, dest_slot->device);
+		goto out;
+	}
+
+	if (primary_clear)
+		first_part_desc_index++;
+
+	for (gint i = 0; i < 2; i++)
+	{
+		struct part_desc *pd = &part_desc[(first_part_desc_index + i) % 2];
+
+		g_message("Updating %s partition at %"G_GUINT64_FORMAT " on %s", pd->name, pd->partition.start, dest_slot->device);
+
+		if (!clear_boot_switch_partition(dest_slot->device, &pd->partition, &ierror)) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+		if (!write_boot_switch_partition(image, dest_slot->device, &pd->partition, header_size, &ierror)) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook_extra_env(hook_name, R_SLOT_HOOK_POST_INSTALL, image,
+				dest_slot, vars, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+out:
+	return res;
+}
+
 static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GError *ierror = NULL;
@@ -2066,6 +2238,8 @@ RaucUpdatePair updatepairs[] = {
 	{"*.img", "boot-gpt-switch", img_to_boot_gpt_switch_handler},
 #endif
 	{"*", "boot-gpt-switch", NULL},
+	{"*.img", "boot-raw-fallback", img_to_boot_raw_fallback_handler},
+	{"*", "boot-raw-fallback", NULL},
 	{"*.img.caibx", "*", img_to_raw_handler}, /* fallback */
 	{"*.img", "*", img_to_raw_handler}, /* fallback */
 	{0}

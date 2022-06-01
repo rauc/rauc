@@ -684,7 +684,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			g_key_file_remove_key(key_file, groups[i], "resize", NULL);
 
 			if (g_strcmp0(slot->type, "boot-mbr-switch") == 0 ||
-			    g_strcmp0(slot->type, "boot-gpt-switch") == 0) {
+			    g_strcmp0(slot->type, "boot-gpt-switch") == 0 ||
+			    g_strcmp0(slot->type, "boot-raw-fallback") == 0) {
 				slot->region_start = key_file_consume_binary_suffixed_string(key_file, groups[i],
 						"region-start", &ierror);
 				if (ierror) {
