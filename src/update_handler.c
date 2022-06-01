@@ -273,6 +273,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, g
 
 static gboolean write_boot_switch_partition(RaucImage *image, const gchar *device,
 		const struct boot_switch_partition *dest_partition,
+		gsize len_header_last,
 		GError **error)
 
 {
@@ -312,7 +313,7 @@ static gboolean write_boot_switch_partition(RaucImage *image, const gchar *devic
 		goto out;
 	}
 
-	res = copy_raw_image(image, outstream, 0, &ierror);
+	res = copy_raw_image(image, outstream, len_header_last, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -1648,7 +1649,7 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 
 	g_message("Write image to inactive (%s) half of boot partition region on %s", inactive_half == 0 ? "first" : "second", dest_slot->device);
 
-	res = write_boot_switch_partition(image, dest_slot->device, &dest_partition, &ierror);
+	res = write_boot_switch_partition(image, dest_slot->device, &dest_partition, 0, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to write inactive region: ");
@@ -1740,7 +1741,7 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 
 	g_message("Write image to inactive (%s) half of boot partition region on %s", inactive_half == 0 ? "first" : "second", dest_slot->device);
 
-	res = write_boot_switch_partition(image, dest_slot->device, &dest_partition, &ierror);
+	res = write_boot_switch_partition(image, dest_slot->device, &dest_partition, 0, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to write inactive region: ");
