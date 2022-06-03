@@ -681,7 +681,7 @@ increase the log level for narrowing down the actual error cause or gaining
 more information about the circumstances when the error occurs.
 
 RAUC uses glib and the
-`glib logging framework <https://developer.gnome.org/programming-guidelines/stable/logging.html.en>`_ with the basic log domain 'rauc'.
+`glib logging framework <https://docs.gtk.org/glib/logging.html>`_ with the basic log domain 'rauc'.
 
 For simple cases, you can activate logging by passing the ``-d`` or ``--debug`` option to either the CLI:
 

@@ -754,7 +754,7 @@ If you place this on a partition next to U-Boot, it will use it as its boot
 script.
 
 For more details, refer the
-`U-Boot Scripting Capabilities <https://www.denx.de/wiki/DULG/UBootScripts>`_
+`U-Boot Scripting Capabilities <https://www.denx.de/wiki/Knowhow/DULG/UBootScripts>`_
 chapter in the U-Boot user documentation.
 
 The example script uses the names ``A`` and ``B`` as the ``bootname`` for the two
@@ -815,7 +815,7 @@ you need to have:
 * Environment configuration file ``/etc/fw_env.config`` in your target root filesystem.
 
 See the corresponding
-`HowTo <https://www.denx.de/wiki/DULG/HowCanIAccessUBootEnvironmentVariablesInLinux>`_
+`HowTo <https://www.denx.de/wiki/Knowhow/DULG/HowCanIAccessUBootEnvironmentVariablesInLinux>`_
 section from the U-Boot documentation for more details on how to set up the
 environment config file for your device.
 
