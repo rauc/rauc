@@ -1,5 +1,5 @@
-Release 1.7 (development)
--------------------------
+Release 1.7 (released Jun 3, 2022)
+----------------------------------
 
 .. rubric:: Enhancements
 
@@ -13,10 +13,18 @@ Release 1.7 (development)
   protected during transport (for example, via HTTP, unauthenticated HTTPS or
   USB storage).
   See the :ref:`documentation for details <sec-encryption>`.
+* Optionally allow verification with partial chains.
+  If enabled, RAUC will also treat intermediate certificates in the keyring as
+  trust-anchors, in addition to self-signed root CA certificates. This makes it
+  possible to trust only one (or more) sub-tree(s) in a larger PKI.
+  See the :ref:`documentation for details <allow-partial-chain>`.
 * Divert log messages to stderr, which is useful for machine readable output
   (``rauc status --output-format=json``).
   This is only enabled when built with glib 2.68 or newer.
   (by Ludovico de Nittis)
+* Only allow the root step to report 100% progress. (by Steven Rau)
+* Add the ``--trust-environment`` option to ``rauc extract`` and ``rauc
+  extract-signature``.
 * Improve the error message printed on compatible mismatch.
 
 .. rubric:: Bug fixes
@@ -26,6 +34,7 @@ Release 1.7 (development)
 * Clean up error handling for 'rauc status'.
 * Fix some memory leaks. (by Zygmunt Krynicki)
 * Fix unintentional removal of existing bundles on error.
+* Fix build error when PRIu64 is not defined. (by Fabrice Fontaine)
 
 .. rubric:: Testing
 
@@ -51,10 +60,11 @@ Release 1.7 (development)
 * Fix some typos. (by Bastian Krause and Michael Riesch)
 * Clean up some inconsistencies between README and main documentation.
 * Fix misleading rescue slot example. (by Sean Nyekjaer)
+* Fix broken links to external pages. (by Bastian Krause)
 
-Contributions from: Bastian Krause, Ludovico de Nittis, Michael Riesch, Sean
-Nyekjaer, Thomas Petazzoni, Thorsten Scherer,  Uwe Kleine-König, Zygmunt
-Krynicki
+Contributions from: Bastian Krause, Fabrice Fontaine, Ludovico de Nittis,
+Michael Riesch, Sean Nyekjaer, Steven Rau, Thomas Petazzoni, Thorsten Scherer,
+Uwe Kleine-König, Zygmunt Krynicki
 
 Release 1.6 (released Feb 9, 2022)
 ----------------------------------
