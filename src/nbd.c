@@ -846,6 +846,7 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 
 		while (1) {
 			CURLcode code = 0;
+			long response_code = 0;
 			int msgs_in_queue = 0;
 			struct RaucNBDTransfer *xfer = NULL;
 			struct CURLMsg *msg = curl_multi_info_read(ctx.multi, &msgs_in_queue);
@@ -860,9 +861,17 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 			code = curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &xfer);
 			g_assert(code == CURLE_OK);
 
+			code = curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &response_code);
+			if (code != CURLE_OK)
+				g_error("unexpected error from curl_easy_getinfo in %s", G_STRFUNC);
+
 			if (msg->data.result == CURLE_OK) {
 				g_debug("request done");
 				xfer->reply.error = 0;
+				xfer->done = TRUE;
+			} else if (response_code == 404) {
+				g_message("request failed (not found)");
+				xfer->reply.error = GUINT32_TO_BE(5); /* NBD_EIO */
 				xfer->done = TRUE;
 			} else if (xfer->errors >= 5) {
 				g_message("request failed (no more retries)");
