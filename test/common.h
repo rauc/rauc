@@ -32,3 +32,4 @@ gboolean test_make_slot_user_writable(const gchar* path, const gchar* file);
 void test_create_content(gchar *contentdir, const ManifestTestOptions *options);
 void test_create_bundle(gchar *contentdir, gchar *bundlename);
 gboolean test_running_as_root(void);
+gsize get_file_size(gchar* filename, GError **error);
