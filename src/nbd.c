@@ -878,7 +878,7 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 				xfer->reply.error = GUINT32_TO_BE(5); /* NBD_EIO */
 				xfer->done = TRUE;
 			} else {
-				g_message("request failed (retrying)");
+				g_message("request failed: %s (retrying)", curl_easy_strerror(msg->data.result));
 				xfer->errors++;
 			}
 
