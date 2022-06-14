@@ -4,8 +4,10 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <limits.h>
+#include <linux/fs.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 
 #include "utils.h"
@@ -401,4 +403,14 @@ gboolean r_write_exact(const int fd, const guint8 *data, size_t size, GError **e
 	}
 
 	return TRUE;
+}
+
+guint get_sectorsize(gint fd)
+{
+	guint sector_size;
+
+	if (ioctl(fd, BLKSSZGET, &sector_size) != 0)
+		return 512;
+
+	return sector_size;
 }

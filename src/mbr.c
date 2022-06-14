@@ -8,6 +8,7 @@
 
 #include "mbr.h"
 #include "update_handler.h"
+#include "utils.h"
 
 /* partition entry in MBR partition table, the system boots from */
 #define BOOT_PARTITION_ENTRY		0
@@ -42,16 +43,6 @@ struct mbr {
 };
 G_STATIC_ASSERT(sizeof(struct mbr) == 512);
 #pragma pack(pop)
-
-static guint get_sectorsize(gint fd)
-{
-	guint sector_size;
-
-	if (ioctl(fd, BLKSSZGET, &sector_size) != 0)
-		return 512;
-
-	return sector_size;
-}
 
 static gboolean get_number_of_sectors(gint fd, guint *sectors,
 		GError **error)

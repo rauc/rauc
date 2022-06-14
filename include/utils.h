@@ -211,3 +211,6 @@ gboolean r_read_exact(const int fd, guint8 *data, size_t size, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 gboolean r_write_exact(const int fd, const guint8 *data, size_t size, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
+
+guint get_sectorsize(gint fd)
+G_GNUC_WARN_UNUSED_RESULT;
