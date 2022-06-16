@@ -148,14 +148,14 @@ If you intend to use json-support you also need
 Target Prerequisites
 ~~~~~~~~~~~~~~~~~~~~
 
-Required kernel options:
+Required kernel options (either ``y`` or ``m``):
 
--  ``CONFIG_MD=y``
--  ``CONFIG_BLK_DEV_DM=y``
--  ``CONFIG_BLK_DEV_LOOP=y``
--  ``CONFIG_DM_VERITY=y``
--  ``CONFIG_SQUASHFS=y``
--  ``CONFIG_CRYPTO_SHA256=y``
+-  ``CONFIG_MD``
+-  ``CONFIG_BLK_DEV_DM``
+-  ``CONFIG_BLK_DEV_LOOP``
+-  ``CONFIG_DM_VERITY``
+-  ``CONFIG_SQUASHFS``
+-  ``CONFIG_CRYPTO_SHA256``
 -  ``CONFIG_BLK_DEV_NBD`` (for streaming support)
 -  ``CONFIG_DM_CRYPT`` (for encryption support)
 

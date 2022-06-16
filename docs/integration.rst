@@ -184,16 +184,17 @@ SquashFS file system to allow installing RAUC bundles. For the recommended
 ``verity`` :ref:`bundle format<sec_ref_formats>`, dm-verity must be supported as
 well.
 
-In kernel Kconfig you have to enable the following options:
+In kernel Kconfig you have to enable the following options as either built-in
+(``y``) or module (``m``):
 
 .. code-block:: cfg
 
-  CONFIG_MD=y
-  CONFIG_BLK_DEV_DM=y
-  CONFIG_BLK_DEV_LOOP=y
-  CONFIG_DM_VERITY=y
-  CONFIG_SQUASHFS=y
-  CONFIG_CRYPTO_SHA256=y
+  CONFIG_MD
+  CONFIG_BLK_DEV_DM
+  CONFIG_BLK_DEV_LOOP
+  CONFIG_DM_VERITY
+  CONFIG_SQUASHFS
+  CONFIG_CRYPTO_SHA256
 
 For streaming support, you have to add ``CONFIG_BLK_DEV_NBD``.
 For encryption support, you have to add ``CONFIG_DM_CRYPT``.
