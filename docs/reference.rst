@@ -283,6 +283,11 @@ The ``casync`` section contains casync-related settings.
 For more information about using the casync support of RAUC, refer to
 :ref:`casync-support`.
 
+``install-args``
+  Allows to specify additional arguments that will be passed to casync when
+  installing an update. For example it can be used to include additional
+  seeds or stores.
+
 ``storepath``
   Allows to set the path to use as chunk store path for casync to a fixed one.
   This is useful if your chunk store is on a dedicated server and will be the
@@ -297,6 +302,10 @@ For more information about using the casync support of RAUC, refer to
   If ``tmppath`` is set then RAUC runs casync with TMPDIR sets to that path.
   By default, the temporary directory is left unset by RAUC and casync uses its
   internal default value ``/var/tmp``.
+
+``use-desync=<true/false>``
+  If this boolean value is set to ``true``, RAUC will use desync instead of
+  casync. Desync support is still experimental, use with caution.
 
 **[autoinstall] section**
 

@@ -461,6 +461,18 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	/* parse [casync] section */
 	c->store_path = key_file_consume_string(key_file, "casync", "storepath", NULL);
 	c->tmp_path = key_file_consume_string(key_file, "casync", "tmppath", NULL);
+	c->casync_install_args = key_file_consume_string(key_file, "casync", "install-args", NULL);
+	c->use_desync = g_key_file_get_boolean(key_file, "casync", "use-desync", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		c->use_desync = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto free;
+	}
+	g_key_file_remove_key(key_file, "casync", "use-desync", NULL);
 	if (!check_remaining_keys(key_file, "casync", &ierror)) {
 		g_propagate_error(error, ierror);
 		res = FALSE;

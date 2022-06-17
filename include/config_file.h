@@ -50,6 +50,8 @@ typedef struct {
 	gchar *mount_prefix;
 	gchar *store_path;
 	gchar *tmp_path;
+	gchar *casync_install_args;
+	gboolean use_desync;
 	gboolean activate_installed;
 	gchar *statusfile_path;
 	gchar *keyring_path;
