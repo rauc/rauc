@@ -18,7 +18,6 @@
 #include "gpt.h"
 #include "utils.h"
 
-
 #define R_SLOT_HOOK_PRE_INSTALL "slot-pre-install"
 #define R_SLOT_HOOK_POST_INSTALL "slot-post-install"
 #define R_SLOT_HOOK_INSTALL "slot-install"
@@ -34,7 +33,6 @@ GQuark r_update_error_quark(void)
 static GUnixOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **error)
 {
 	GUnixOutputStream *outstream = NULL;
-	GError *ierror = NULL;
 	int fd_out;
 
 	g_return_val_if_fail(slot, NULL);
@@ -50,8 +48,8 @@ static GUnixOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **err
 
 	outstream = G_UNIX_OUTPUT_STREAM(g_unix_output_stream_new(fd_out, TRUE));
 	if (outstream == NULL) {
-		g_propagate_prefixed_error(error, ierror,
-				"Failed to open file for writing: ");
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Failed to create stream for output device %s", slot->device);
 		return NULL;
 	}
 
@@ -181,19 +179,43 @@ static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 	return TRUE;
 }
 
-static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, GError **error)
+static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, gsize len_header_last, GError **error)
 {
 	GError *ierror = NULL;
 	gssize size;
 	goffset seeksize;
 	g_autoptr(GFile) srcimagefile = g_file_new_for_path(image->filename);
 	int out_fd = g_unix_output_stream_get_fd(outstream);
+	g_autofree void *header = NULL;
 
 	g_autoptr(GInputStream) instream = G_INPUT_STREAM(g_file_read(srcimagefile, NULL, &ierror));
 	if (instream == NULL) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to open file for reading: ");
 		return FALSE;
+	}
+
+	if (len_header_last) {
+		gsize sector_size = (gsize) get_sectorsize(out_fd);
+
+		if (len_header_last != sector_size) {
+			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+					"Specified header length (%"G_GSIZE_FORMAT ") does not match sector size (%"G_GSIZE_FORMAT ")", len_header_last, sector_size);
+			return FALSE;
+		}
+
+		header = g_malloc(len_header_last);
+
+		if (!g_input_stream_read_all(instream, header, len_header_last, &len_header_last, NULL, &ierror)) {
+			g_propagate_prefixed_error(error, ierror,
+					"Failed to read header: ");
+			return FALSE;
+		}
+
+		if (lseek(out_fd, len_header_last, SEEK_CUR) == -1) {
+			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Failed to skip header: %s", strerror(errno));
+			return FALSE;
+		}
 	}
 
 	size = g_output_stream_splice(G_OUTPUT_STREAM(outstream), instream,
@@ -214,6 +236,26 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, G
 		return FALSE;
 	}
 
+	if (len_header_last) {
+		gsize bytes;
+
+		if (fsync(out_fd) == -1) {
+			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Syncing content to disk failed: %s", strerror(errno));
+			return FALSE;
+		}
+
+		if (lseek(out_fd, -seeksize, SEEK_CUR) == -1) {
+			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Failed to rewind output stream: %s", strerror(errno));
+			return FALSE;
+		}
+
+		if (!g_output_stream_write_all(G_OUTPUT_STREAM(outstream), header, len_header_last, &bytes, NULL, &ierror)) {
+			g_propagate_prefixed_error(error, ierror,
+					"Failed to write header: ");
+			return FALSE;
+		}
+	}
+
 	if (!g_input_stream_close(instream, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -226,6 +268,67 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, G
 	}
 
 	return TRUE;
+}
+
+static gboolean write_boot_switch_partition(RaucImage *image, const gchar *device,
+		const struct boot_switch_partition *dest_partition,
+		gsize len_header_last,
+		GError **error)
+
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	int out_fd = -1;
+	g_autoptr(GUnixOutputStream) outstream = NULL;
+
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(device, FALSE);
+	g_return_val_if_fail(dest_partition, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	out_fd = open(device, O_WRONLY);
+	if (out_fd == -1) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Opening output device failed: %s",
+				strerror(errno));
+		res = FALSE;
+		goto out;
+	}
+
+	if (lseek(out_fd, dest_partition->start, SEEK_SET) !=
+	    (off_t)dest_partition->start) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Failed to set file to position %"G_GUINT64_FORMAT,
+				dest_partition->start);
+		res = FALSE;
+		goto out;
+	}
+
+	outstream = G_UNIX_OUTPUT_STREAM(g_unix_output_stream_new(out_fd, FALSE));
+	if (outstream == NULL) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Failed to create output stream");
+		res = FALSE;
+		goto out;
+	}
+
+	res = copy_raw_image(image, outstream, len_header_last, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+out:
+	if (out_fd >= 0)
+		close(out_fd);
+
+	return res;
 }
 
 static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const gchar *seed, const gchar *store, const gchar *tmpdir, GError **error)
@@ -427,7 +530,7 @@ static gboolean copy_raw_image_to_dev(RaucImage *image, RaucSlot *slot, GError *
 
 	/* copy */
 	g_message("writing data to device %s", slot->device);
-	res = copy_raw_image(image, outstream, &ierror);
+	res = copy_raw_image(image, outstream, 0, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -1020,7 +1123,7 @@ static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, con
 		}
 	} else {
 		/* copy */
-		res = copy_raw_image(image, outstream, &ierror);
+		res = copy_raw_image(image, outstream, 0, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1089,7 +1192,7 @@ static gboolean img_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 		}
 	} else {
 		/* copy */
-		res = copy_raw_image(image, outstream, &ierror);
+		res = copy_raw_image(image, outstream, 0, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1519,8 +1622,7 @@ out:
 static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	gboolean res = FALSE;
-	int out_fd = -1, inactive_half;
-	g_autoptr(GUnixOutputStream) outstream = NULL;
+	int inactive_half;
 	GError *ierror = NULL;
 	struct boot_switch_partition dest_partition;
 	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
@@ -1576,47 +1678,12 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
-	g_message("Opening inactive (%s) half of boot partition region on %s", inactive_half == 0 ? "first" : "second",
-			dest_slot->device);
+	g_message("Write image to inactive (%s) half of boot partition region on %s", inactive_half == 0 ? "first" : "second", dest_slot->device);
 
-	out_fd = open(dest_slot->device, O_WRONLY);
-	if (out_fd == -1) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Opening output device failed: %s",
-				strerror(errno));
-		res = FALSE;
-		goto out;
-	}
-
-	if (lseek(out_fd, dest_partition.start, SEEK_SET) !=
-	    (off_t)dest_partition.start) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Failed to set file to position %"G_GUINT64_FORMAT,
-				dest_partition.start);
-		res = FALSE;
-		goto out;
-	}
-
-	outstream = G_UNIX_OUTPUT_STREAM(g_unix_output_stream_new(out_fd, FALSE));
-	if (outstream == NULL) {
+	res = write_boot_switch_partition(image, dest_slot->device, &dest_partition, 0, &ierror);
+	if (!res) {
 		g_propagate_prefixed_error(error, ierror,
-				"Failed to open file for writing: ");
-		res = FALSE;
-		goto out;
-	}
-
-	g_message("Copying image to inactive (%s) half of boot partition region on %s",
-			inactive_half == 0 ? "first" : "second", dest_slot->device);
-
-	res = copy_raw_image(image, outstream, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
+				"Failed to write inactive region: ");
 		goto out;
 	}
 
@@ -1639,8 +1706,6 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 	}
 
 out:
-	if (out_fd >= 0)
-		close(out_fd);
 
 	return res;
 }
@@ -1649,8 +1714,7 @@ G_GNUC_UNUSED
 static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	gboolean res = FALSE;
-	int out_fd = -1, inactive_half;
-	g_autoptr(GUnixOutputStream) outstream = NULL;
+	int inactive_half;
 	GError *ierror = NULL;
 	struct boot_switch_partition dest_partition;
 	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
@@ -1706,47 +1770,12 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 
-	g_message("Opening inactive (%s) half of boot partition region on %s", inactive_half == 0 ? "first" : "second",
-			dest_slot->device);
+	g_message("Write image to inactive (%s) half of boot partition region on %s", inactive_half == 0 ? "first" : "second", dest_slot->device);
 
-	out_fd = open(dest_slot->device, O_WRONLY);
-	if (out_fd == -1) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Opening output device failed: %s",
-				strerror(errno));
-		res = FALSE;
-		goto out;
-	}
-
-	if (lseek(out_fd, dest_partition.start, SEEK_SET) !=
-	    (off_t)dest_partition.start) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Failed to set file to position %"G_GUINT64_FORMAT,
-				dest_partition.start);
-		res = FALSE;
-		goto out;
-	}
-
-	outstream = G_UNIX_OUTPUT_STREAM(g_unix_output_stream_new(out_fd, FALSE));
-	if (outstream == NULL) {
+	res = write_boot_switch_partition(image, dest_slot->device, &dest_partition, 0, &ierror);
+	if (!res) {
 		g_propagate_prefixed_error(error, ierror,
-				"Failed to open file for writing: ");
-		res = FALSE;
-		goto out;
-	}
-
-	g_message("Copying image to inactive (%s) half of boot partition region on %s",
-			inactive_half == 0 ? "first" : "second", dest_slot->device);
-
-	res = copy_raw_image(image, outstream, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
+				"Failed to write inactive region: ");
 		goto out;
 	}
 
@@ -1768,9 +1797,6 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 		goto out;
 	}
 out:
-	if (out_fd >= 0)
-		close(out_fd);
-
 	return res;
 }
 
@@ -1872,7 +1898,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	/* copy */
 	g_message("Copying image to slot device partition %s",
 			part_slot->device);
-	res = copy_raw_image(image, outstream, &ierror);
+	res = copy_raw_image(image, outstream, 0, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -1952,6 +1978,179 @@ out:
 	return res;
 }
 #endif
+
+static gboolean check_if_area_is_clear(const gchar *device, guint64 start, gsize size, gboolean *clear, GError **error)
+{
+	gboolean res = FALSE;
+	g_autofree guchar *read_buf = NULL;
+	gint read_size = 512;
+	gint fd;
+
+	g_return_val_if_fail(device, FALSE);
+	g_return_val_if_fail(clear, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	read_buf = g_malloc0(read_size);
+
+	fd = g_open(device, O_RDONLY);
+	if (fd == -1) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Opening device failed: %s",
+				g_strerror(errno));
+		goto out;
+	}
+
+	if (lseek(fd, start, SEEK_SET) != (off_t) start) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Failed to set file to position %"G_GUINT64_FORMAT ": %s",
+				start, g_strerror(errno));
+		goto out;
+	}
+
+	*clear = TRUE;
+
+	while (size && *clear) {
+		gint read_count = 0;
+
+		if (size < (gsize) read_size)
+			read_size = size;
+
+		read_count = read(fd, read_buf, read_size);
+		if (read_count < 0)
+			goto out;
+
+		for (gint i = 0; i < read_count; i++)
+		{
+			if ((read_buf[i] != 0x00) && (read_buf[i] != 0xFF)) {
+				*clear = FALSE;
+				break;
+			}
+		}
+
+		size -= read_count;
+	}
+
+	res = TRUE;
+
+out:
+	if (fd >= 0)
+		g_close(fd, NULL);
+
+	return res;
+}
+
+static gboolean img_to_boot_raw_fallback_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
+	gboolean res = FALSE;
+	GError *ierror = NULL;
+	guint64 half_size;
+	gboolean primary_clear;
+	struct part_desc {
+		const char *name;
+		struct boot_switch_partition partition;
+	} part_desc[2];
+	int first_part_desc_index = 0;
+	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+	const gsize header_size = 512;
+
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(dest_slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	half_size = dest_slot->region_size / 2;
+
+	/* Since down in copy_raw_image() the header size must match the sector size, checking the
+	 * alignment to the header size also implicitly ensures sector alignment.
+	 */
+	if ((dest_slot->region_start % header_size) != 0) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Region start %"G_GUINT64_FORMAT " is not aligned to the header size %"G_GSIZE_FORMAT,
+				dest_slot->region_start, header_size);
+		goto out;
+	}
+
+	if ((half_size % header_size) != 0) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Half region size %"G_GUINT64_FORMAT " is not aligned to the header size %"G_GSIZE_FORMAT,
+				half_size, header_size);
+		goto out;
+	}
+
+	if (half_size < (guint64)image->checksum.size) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Size of image (%"G_GOFFSET_FORMAT ") does not fit to slot size %"G_GUINT64_FORMAT,
+				image->checksum.size, half_size);
+		goto out;
+	}
+
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_REGION_START"),
+			g_strdup_printf("%"G_GUINT64_FORMAT, dest_slot->region_start));
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_REGION_SIZE"),
+			g_strdup_printf("%"G_GUINT64_FORMAT, dest_slot->region_size));
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook_extra_env(hook_name, R_SLOT_HOOK_PRE_INSTALL, image,
+				dest_slot, vars, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	part_desc[0].name = "fallback";
+	part_desc[0].partition.start = dest_slot->region_start + half_size;
+	part_desc[0].partition.size = half_size;
+
+	part_desc[1].name = "primary";
+	part_desc[1].partition.start = dest_slot->region_start;
+	part_desc[1].partition.size = half_size;
+
+	/* If the primary partition is not fully programmed, it most likely means that the fallback
+	 * partition was used to boot and is therefore valid. To avoid ending up with two broken partitions,
+	 * upgrade the primary partition first.
+	 */
+	res = check_if_area_is_clear(dest_slot->device, dest_slot->region_start, header_size, &primary_clear, &ierror);
+	if (!res) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Failed to check area at %"G_GUINT64_FORMAT " on %s",
+				dest_slot->region_start, dest_slot->device);
+		goto out;
+	}
+
+	if (primary_clear)
+		first_part_desc_index++;
+
+	for (gint i = 0; i < 2; i++)
+	{
+		struct part_desc *pd = &part_desc[(first_part_desc_index + i) % 2];
+
+		g_message("Updating %s partition at %"G_GUINT64_FORMAT " on %s", pd->name, pd->partition.start, dest_slot->device);
+
+		if (!clear_boot_switch_partition(dest_slot->device, &pd->partition, &ierror)) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+		if (!write_boot_switch_partition(image, dest_slot->device, &pd->partition, header_size, &ierror)) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook_extra_env(hook_name, R_SLOT_HOOK_POST_INSTALL, image,
+				dest_slot, vars, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+out:
+	return res;
+}
 
 static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
@@ -2071,6 +2270,8 @@ RaucUpdatePair updatepairs[] = {
 	{"*.img", "boot-gpt-switch", img_to_boot_gpt_switch_handler},
 #endif
 	{"*", "boot-gpt-switch", NULL},
+	{"*.img", "boot-raw-fallback", img_to_boot_raw_fallback_handler},
+	{"*", "boot-raw-fallback", NULL},
 	{"*.img.caibx", "*", img_to_raw_handler}, /* fallback */
 	{"*.img", "*", img_to_raw_handler}, /* fallback */
 	{0}

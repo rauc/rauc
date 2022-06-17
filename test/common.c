@@ -358,3 +358,40 @@ gboolean test_running_as_root(void)
 	g_test_skip("not running as root");
 	return FALSE;
 }
+
+gsize get_file_size(gchar* filename, GError **error)
+{
+	GError *ierror = NULL;
+	GFile *file = NULL;
+	GFileInputStream *filestream = NULL;
+	gsize size = 0;
+	gboolean res = FALSE;
+
+	file = g_file_new_for_path(filename);
+	filestream = g_file_read(file, NULL, &ierror);
+	if (filestream == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to open bundle for reading: ");
+		goto out;
+	}
+
+	res = g_seekable_seek(G_SEEKABLE(filestream),
+			0, G_SEEK_END, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to seek to end of bundle: ");
+		goto out;
+	}
+
+	size = g_seekable_tell(G_SEEKABLE(filestream));
+
+out:
+	g_clear_object(&filestream);
+	g_clear_object(&file);
+
+	return size;
+}
