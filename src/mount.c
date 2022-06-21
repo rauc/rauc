@@ -220,10 +220,12 @@ gboolean r_setup_loop(gint fd, gint *loopfd_out, gchar **loopname_out, goffset s
 		goto out;
 	}
 
-	looprc = ioctl(loopfd, LOOP_SET_BLOCK_SIZE, 4096);
+	do {
+		looprc = ioctl(loopfd, LOOP_SET_BLOCK_SIZE, 4096);
+	} while (looprc < 0 && errno == EAGAIN);
 	if (looprc < 0) {
 		g_warning("Failed to set loop device block size to 4096: %s, continuing",
-			  g_strerror(errno));
+				g_strerror(errno));
 	}
 
 	g_message("Configured loop device '%s' for %" G_GOFFSET_FORMAT " bytes", loopname, size);
