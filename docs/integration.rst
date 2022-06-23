@@ -920,6 +920,15 @@ e.g. at ``/EFI/BOOT/grubenv``.
 The same partition can also be used for your ``grub.cfg`` (which could be
 placed at ``/EFI/BOOT/grub.cfg``).
 
+Note that you then also need to manually tell GRUB where to load the grubenv
+from.
+You can do this in your ``grub.cfg`` by a adding the ``--file`` argument to
+your script's ``load_env`` and ``save_env`` calls, like::
+
+  load_env --file=(hd0,2)/grubenv
+
+  save_env --file=(hd0,2)/grubenv A_TRY A_OK B_TRY B_OK ORDER
+
 .. _sec-efi:
 
 EFI
