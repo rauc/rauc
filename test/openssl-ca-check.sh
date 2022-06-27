@@ -18,7 +18,7 @@ compatible=FooCorp Super BarBazzer
 version=2015.04-1
 
 [keyring]
-archive=release.tar
+path=/etc/rauc/keyring
 
 [handler]
 filename=custom_handler.sh
