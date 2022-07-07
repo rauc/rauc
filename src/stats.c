@@ -111,7 +111,9 @@ RaucStats *r_test_stats_next(void)
 	RaucStats *stats = NULL;
 
 	g_assert_false(test_stats_enabled);
-	g_assert_nonnull(test_stats_queue);
+
+	if (!test_stats_queue)
+		return NULL;
 
 	stats = test_stats_queue->data;
 	test_stats_queue = g_list_delete_link(test_stats_queue, test_stats_queue);
