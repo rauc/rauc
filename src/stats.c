@@ -74,10 +74,12 @@ void r_stats_show(const RaucStats *stats, const gchar *prefix)
 
 	g_string_append_printf(msg, "%s: count=%"G_GUINT64_FORMAT, prefix_label, stats->count);
 	if (!stats->count)
-		return;
+		goto out;
 	g_string_append_printf(msg, " sum=%.3f min=%.3f max=%.3f avg=%.3f",
 			stats->sum, stats->min, stats->max, r_stats_get_avg(stats));
 	g_string_append_printf(msg, " recent-avg=%.3f", r_stats_get_recent_avg(stats));
+
+out:
 	g_message("%s", msg->str);
 }
 
