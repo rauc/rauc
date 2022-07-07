@@ -900,12 +900,12 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 		};
 	}
 
-	r_stats_show(ctx.dl_size, "dl size");
-	r_stats_show(ctx.dl_speed, "dlspeed");
-	r_stats_show(ctx.namelookup, "name lookup");
-	r_stats_show(ctx.connect, "connect");
-	r_stats_show(ctx.starttransfer, "start transfer");
-	r_stats_show(ctx.total, "total");
+	r_stats_show(ctx.dl_size, NULL);
+	r_stats_show(ctx.dl_speed, NULL);
+	r_stats_show(ctx.namelookup, NULL);
+	r_stats_show(ctx.connect, NULL);
+	r_stats_show(ctx.starttransfer, NULL);
+	r_stats_show(ctx.total, NULL);
 
 	res = TRUE;
 out:

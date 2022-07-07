@@ -61,17 +61,25 @@ gdouble r_stats_get_recent_avg(const RaucStats *stats)
 
 void r_stats_show(const RaucStats *stats, const gchar *prefix)
 {
+	g_autofree gchar *prefix_label = NULL;
 	g_autoptr(GString) msg = g_string_sized_new(128);
 
 	g_return_if_fail(stats);
-	g_return_if_fail(prefix);
 
-	g_string_append_printf(msg, "%s: count=%"G_GUINT64_FORMAT, prefix, stats->count);
+	if (prefix) {
+		prefix_label = g_strdup_printf("%s %s", prefix, stats->label);
+	} else {
+		prefix_label = g_strdup(stats->label);
+	}
+
+	g_string_append_printf(msg, "%s: count=%"G_GUINT64_FORMAT, prefix_label, stats->count);
 	if (!stats->count)
-		return;
+		goto out;
 	g_string_append_printf(msg, " sum=%.3f min=%.3f max=%.3f avg=%.3f",
 			stats->sum, stats->min, stats->max, r_stats_get_avg(stats));
 	g_string_append_printf(msg, " recent-avg=%.3f", r_stats_get_recent_avg(stats));
+
+out:
 	g_message("%s", msg->str);
 }
 
@@ -111,7 +119,9 @@ RaucStats *r_test_stats_next(void)
 	RaucStats *stats = NULL;
 
 	g_assert_false(test_stats_enabled);
-	g_assert_nonnull(test_stats_queue);
+
+	if (!test_stats_queue)
+		return NULL;
 
 	stats = test_stats_queue->data;
 	test_stats_queue = g_list_delete_link(test_stats_queue, test_stats_queue);
