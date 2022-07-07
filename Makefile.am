@@ -52,6 +52,7 @@ librauc_la_SOURCES = \
 	src/service.c \
 	src/signature.c \
 	src/slot.c \
+	src/stats.c \
 	src/utils.c \
 	src/update_handler.c \
 	src/verity_hash.c \
@@ -72,6 +73,7 @@ librauc_la_SOURCES = \
 	include/service.h \
 	include/signature.h \
 	include/slot.h \
+	include/stats.h \
 	include/update_handler.h \
 	include/utils.h \
 	include/verity_hash.h
@@ -89,7 +91,7 @@ librauc_la_SOURCES += src/gpt.c
 endif
 
 if ENABLE_STREAMING
-librauc_la_SOURCES += src/nbd.c include/nbd.h src/stats.c include/stats.h
+librauc_la_SOURCES += src/nbd.c include/nbd.h
 endif
 
 nodist_librauc_la_SOURCES = \
@@ -161,7 +163,8 @@ check_PROGRAMS = \
 	test/service.test \
 	test/bundle.test \
 	test/progress.test \
-	test/slot.test
+	test/slot.test \
+	test/stats.test
 
 if WANT_NETWORK
 check_PROGRAMS += test/network.test
@@ -272,6 +275,9 @@ test_progress_test_LDADD = librauctest.la
 
 test_slot_test_SOURCES = test/slot.c
 test_slot_test_LDADD = librauctest.la
+
+test_stats_test_SOURCES = test/stats.c
+test_stats_test_LDADD = librauctest.la
 
 SED_REPLACE = $(SED) \
        -e 's|[@]bindir[@]|$(bindir)|g' \
