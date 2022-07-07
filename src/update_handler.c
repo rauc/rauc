@@ -713,7 +713,6 @@ static gchar* vfat_label_generator(const gchar *name)
 			*c = g_ascii_toupper(*c);
 		/* replace invalid chars */
 		for (size_t i = 0; i < strlen(invalid_chars); i++) {
-			g_message("r: %c", invalid_chars[i]);
 			if (*c == invalid_chars[i]) {
 				*c = '_';
 				break;
