@@ -9,22 +9,24 @@
 #include "context.h"
 #include "mount.h"
 #include "utils.h"
+#include "stats.h"
 
 typedef struct {
 	gchar *tmpdir;
 } UpdateHandlerFixture;
 
 typedef enum {
-	TEST_UPDATE_HANDLER_DEFAULT       = 0,
-	TEST_UPDATE_HANDLER_EXPECT_FAIL   = BIT(0),
-	TEST_UPDATE_HANDLER_NO_IMAGE_FILE = BIT(1),
-	TEST_UPDATE_HANDLER_NO_TARGET_DEV = BIT(2),
-	TEST_UPDATE_HANDLER_HOOKS         = BIT(3),
-	TEST_UPDATE_HANDLER_PRE_HOOK      = BIT(4),
-	TEST_UPDATE_HANDLER_POST_HOOK     = BIT(5),
-	TEST_UPDATE_HANDLER_INSTALL_HOOK  = BIT(6),
-	TEST_UPDATE_HANDLER_NO_HOOK_FILE  = BIT(7),
-	TEST_UPDATE_HANDLER_HOOK_FAIL     = BIT(8),
+	TEST_UPDATE_HANDLER_DEFAULT                                       = 0,
+	TEST_UPDATE_HANDLER_EXPECT_FAIL                                   = BIT(0),
+	TEST_UPDATE_HANDLER_NO_IMAGE_FILE                                 = BIT(1),
+	TEST_UPDATE_HANDLER_NO_TARGET_DEV                                 = BIT(2),
+	TEST_UPDATE_HANDLER_HOOKS                                         = BIT(3),
+	TEST_UPDATE_HANDLER_PRE_HOOK                                      = BIT(4),
+	TEST_UPDATE_HANDLER_POST_HOOK                                     = BIT(5),
+	TEST_UPDATE_HANDLER_INSTALL_HOOK                                  = BIT(6),
+	TEST_UPDATE_HANDLER_NO_HOOK_FILE                                  = BIT(7),
+	TEST_UPDATE_HANDLER_HOOK_FAIL                                     = BIT(8),
+	TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX                           = BIT(9),
 } TestUpdateHandlerParams;
 
 typedef struct {
@@ -128,6 +130,9 @@ static void update_handler_fixture_tear_down(UpdateHandlerFixture *fixture,
 
 	if (!(test_pair->params & TEST_UPDATE_HANDLER_NO_TARGET_DEV)) {
 		g_assert(test_remove(fixture->tmpdir, "rootfs-0") == 0);
+	}
+	if (test_pair->params & TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX) {
+		test_rm_tree(fixture->tmpdir, "rootfs-0-datadir");
 	}
 	g_assert(test_rmdir(fixture->tmpdir, "") == 0);
 }
@@ -274,6 +279,9 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 			test_do_chmod(hookpath);
 		}
 	}
+	if (test_pair->params & TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX) {
+		image->incremental = g_strsplit("block-hash-index", " ", 0);
+	}
 
 	if (test_pair->params & TEST_UPDATE_HANDLER_NO_IMAGE_FILE) {
 		goto no_image;
@@ -300,6 +308,9 @@ no_image:
 	targetslot->device = g_strdup(slotpath);
 	targetslot->type = g_strdup(test_pair->slottype);
 	targetslot->state = ST_INACTIVE;
+	if (test_pair->params & TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX) {
+		targetslot->data_directory = g_build_filename(fixture->tmpdir, "rootfs-0-datadir", NULL);
+	}
 
 	/* Set mount path to current temp dir */
 	mountprefix = g_build_filename(fixture->tmpdir, "testmount", NULL);
@@ -314,7 +325,9 @@ no_image:
 	g_assert_nonnull(handler);
 
 	/* Run to perform an update */
+	r_test_stats_start();
 	res = handler(image, targetslot, hookpath, &ierror);
+	r_test_stats_stop();
 
 	if (test_pair->params & TEST_UPDATE_HANDLER_EXPECT_FAIL) {
 		g_assert_error(ierror, test_pair->err_domain, test_pair->err_code);
@@ -344,6 +357,74 @@ no_image:
 		g_assert(r_umount(slotpath, NULL));
 		g_free(testpath);
 	}
+
+	/* check statistics */
+	if (test_pair->params & TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX) {
+		RaucStats *stats;
+		guint64 count_zero = 0;
+		guint64 sum_zero = 0;
+		guint64 count_target_written = 0;
+		guint64 sum_target_written = 0;
+		guint64 count_target = 0;
+		guint64 sum_target = 0;
+		guint64 count_source = 0;
+		guint64 sum_source = 0;
+
+		stats = r_test_stats_next();
+		g_assert_nonnull(stats);
+		g_assert_cmpstr(stats->label, ==, "zero chunk");
+		count_zero = stats->count;
+		sum_zero = stats->sum;
+
+		stats = r_test_stats_next();
+		g_assert_nonnull(stats);
+		g_assert_cmpstr(stats->label, ==, "target_slot_written (reusing source_image)");;
+		count_target_written = stats->count;
+		sum_target_written = stats->sum;
+
+		stats = r_test_stats_next();
+		g_assert_nonnull(stats);
+		g_assert_cmpstr(stats->label, ==, "target_slot");
+		count_target = stats->count;
+		sum_target = stats->sum;
+
+		stats = r_test_stats_next();
+		g_assert_nonnull(stats);
+		g_assert_cmpstr(stats->label, ==, "source_image");
+		count_source = stats->count;
+		sum_source = stats->sum;
+
+		/* all non-zero chunks must result in a lookup in target_slot_written */
+		g_assert_cmpint(count_zero + count_target_written, ==, IMAGE_SIZE/4096);
+
+		/* sum of all found chunks must equal total number of chunks */
+		g_assert_cmpint(sum_zero + sum_target_written + sum_target + sum_source, ==, IMAGE_SIZE/4096);
+
+		if (g_strcmp0(test_pair->imagetype, "img") == 0) {
+			/* for random data it is *very* unlikely:
+			 * - to find zero chunks
+			 * - to find reusable chunks */
+			g_assert_cmpint(sum_zero, ==, 0);
+			g_assert_cmpint(sum_target_written, ==, 0);
+			g_assert_cmpint(sum_target, ==, 0);
+			g_assert_cmpint(sum_source, ==, IMAGE_SIZE/4096);
+		} else if (g_strcmp0(test_pair->imagetype, "ext4") == 0) {
+			/* for a generated ext4, actual values seem to depend on
+			 * used mkfs configuration. We use minimal values here
+			 * that have proven to be valid on all test systems.
+			 */
+			g_assert_cmpint(sum_zero, >=, IMAGE_SIZE/4096 - 29);
+			g_assert_cmpint(sum_target_written, >=, 1);
+			g_assert_cmpint(sum_target, ==, 0);
+			g_assert_cmpint(sum_source, <=, 28);
+		}
+
+		/* Number of total lookups must not increase in lookup order */
+		g_assert_cmpint(count_target_written, <=, IMAGE_SIZE/4096);
+		g_assert_cmpint(count_target, <=, count_target_written);
+		g_assert_cmpint(count_source, <=, count_target);
+	}
+	g_assert_null(r_test_stats_next());
 
 out:
 	/* clean up source image if it was generated */
@@ -451,6 +532,11 @@ int main(int argc, char *argv[])
 
 		/* nor tests */
 		{"nor", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+
+		/* incremental tests */
+		{"raw", "img", TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX, 0, 0},
+		{"ext4", "img", TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX, 0, 0},
+		{"raw", "ext4", TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX, 0, 0},
 
 		{0}
 	};
@@ -815,6 +901,26 @@ int main(int argc, char *argv[])
 	g_test_add("/update_handler/update_handler/img_to_nor",
 			UpdateHandlerFixture,
 			&testpair_matrix[55],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+
+	/* incremental tests */
+	g_test_add("/update_handler/block_hash_index/img_to_raw",
+			UpdateHandlerFixture,
+			&testpair_matrix[56],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/block_hash_index/img_to_ext4",
+			UpdateHandlerFixture,
+			&testpair_matrix[57],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/block_hash_index/ext4_to_raw",
+			UpdateHandlerFixture,
+			&testpair_matrix[58],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
