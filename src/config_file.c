@@ -1121,13 +1121,14 @@ void load_slot_status(RaucSlot *dest_slot)
 {
 	g_return_if_fail(dest_slot);
 
-	if (dest_slot->status)
-		return;
+	if (!dest_slot->status) {
+		if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") == 0)
+			load_slot_status_locally(dest_slot);
+		else
+			load_slot_status_globally();
+	}
 
-	if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") == 0)
-		load_slot_status_locally(dest_slot);
-	else
-		load_slot_status_globally();
+	r_slot_clean_data_directory(dest_slot);
 }
 
 static gboolean save_slot_status_locally(RaucSlot *dest_slot, GError **error)
@@ -1209,6 +1210,8 @@ gboolean save_slot_status(RaucSlot *dest_slot, GError **error)
 {
 	g_return_val_if_fail(dest_slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	r_slot_clean_data_directory(dest_slot);
 
 	if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") == 0)
 		return save_slot_status_locally(dest_slot, error);
