@@ -17,6 +17,7 @@
 #include "mbr.h"
 #include "gpt.h"
 #include "utils.h"
+#include "hash_index.h"
 
 #define R_SLOT_HOOK_PRE_INSTALL "slot-pre-install"
 #define R_SLOT_HOOK_POST_INSTALL "slot-post-install"
@@ -551,31 +552,264 @@ out:
 	return res;
 }
 
-static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error)
+static gboolean copy_block_hash_index_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+	g_autoptr(RaucHashIndex) tmp = NULL;
+	g_autoptr(GPtrArray) sources = NULL;
+	const RaucSlot *seedslot = NULL;
+	const guint8(*chunk_hashes)[32];
+	guint32 chunk_count;
+	g_autofree RaucHashIndexChunk *chunk = NULL;
+	off_t offset = 0;
+	int target_fd = -1;
+	g_autoptr(RaucStats) zero_stats = NULL;
+
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	zero_stats = r_stats_new("zero chunk");
+
+	sources = g_ptr_array_new_with_free_func((GDestroyNotify)r_hash_index_free);
+
+	/* If we have an index for the target slot, use it, otherwise generate and append for upper range. */
+	/* Compared to open_slot_device, we need O_RDWR and seeking. */
+	tmp = r_hash_index_open_slot("target_slot", slot, O_RDWR | O_EXCL, &ierror);
+	if (!tmp) {
+		g_propagate_prefixed_error(error, ierror, "failed to open target slot hash index for %s: ", slot->name);
+		res = FALSE;
+		goto out;
+	}
+	g_ptr_array_add(sources, g_steal_pointer(&tmp));
+
+	/* Open and append seed slot. */
+	seedslot = get_active_slot_class_member(image->slotclass);
+	if (seedslot) {
+		tmp = r_hash_index_open_slot("active_slot", seedslot, O_RDONLY, &ierror);
+		if (!tmp) {
+			g_propagate_prefixed_error(error, ierror, "failed to open active slot hash index for %s: ", seedslot->name);
+			res = FALSE;
+			goto out;
+		}
+		g_ptr_array_add(sources, g_steal_pointer(&tmp));
+	} else {
+		g_message("No active slot available to use as seed for %s", image->slotclass);
+	}
+
+	/* Open and append source image. */
+	tmp = r_hash_index_open_image("source_image", image, &ierror);
+	if (!tmp) {
+		g_propagate_prefixed_error(error, ierror, "failed to open source image hash index for %s: ", image->filename);
+		res = FALSE;
+		goto out;
+	}
+	/* The bundle data is read-only and authenticated. */
+	tmp->skip_hash_check = TRUE;
+	g_ptr_array_add(sources, g_steal_pointer(&tmp));
+
+	/* Open source index and target fd for lower range (reuse written chunks). */
+	tmp = r_hash_index_reuse("target_slot_written",
+			g_ptr_array_index(sources, sources->len - 1),
+			dup(((RaucHashIndex*)g_ptr_array_index(sources, 0))->data_fd),
+			&ierror);
+	if (!tmp) {
+		g_propagate_prefixed_error(error, ierror, "failed to reuse source hash index for target slot: ");
+		res = FALSE;
+		goto out;
+	}
+	/* Nothing is valid yet. */
+	tmp->invalid_from = 0;
+	/* This is the data we've just written. */
+	tmp->skip_hash_check = TRUE;
+	/* Insert the growing region in the target slot first. */
+	g_ptr_array_insert(sources, 0, g_steal_pointer(&tmp));
+
+	/* Now we have a GPtrArray of RaucHashIndices:
+	 *
+	 * 0: target slot with source index (for reuse of written chunks)
+	 * 1: target slot with corresponding old index
+	 * 2: active slot with corresponding index (optional)
+	 * len-1: source image with corresponding index
+	 */
+	g_assert(sources->len <= 4);
+
+	{
+		const RaucHashIndex *target = g_ptr_array_index(sources, 0);
+		const RaucHashIndex *source = g_ptr_array_index(sources, sources->len-1);
+		target_fd = target->data_fd;
+		chunk_hashes = g_bytes_get_data(source->hashes, NULL);
+		chunk_count = source->count;
+	}
+
+	/* Ensure we start writing from the beginning */
+	offset = 0;
+	if (lseek(target_fd, offset, SEEK_SET) != offset) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Failed to seek to start of target slot: %s", g_strerror(errno));
+		res = FALSE;
+		goto out;
+	}
+
+	/* Temporary data storage */
+	chunk = g_new0(RaucHashIndexChunk, 1);
+
+	/* Iterate over chunks in source image */
+	for (guint32 c = 0; c < chunk_count; c++) {
+		gboolean found = FALSE;
+
+		if (memcmp(chunk_hashes[c], R_HASH_INDEX_ZERO_CHUNK, 32) == 0) {
+			/* Generate zero chunk */
+			memset(chunk->data, 0, sizeof(chunk->data));
+			found = TRUE;
+			r_stats_add(zero_stats, 1);
+		} else {
+			/* Iterate over indices and call get chunk */
+			for (guint s = 0; s < sources->len; s++) {
+				const RaucHashIndex *source = g_ptr_array_index(sources, s);
+				if (r_hash_index_get_chunk(source, chunk_hashes[c], chunk, &ierror)) {
+					//g_autofree gchar *hash = r_hex_encode(chunk_hashes[c], sizeof(chunk_hashes[c]));
+					//g_debug("found chunk %"G_GUINT32_FORMAT" [%s] in index %u [%s]", c, hash, s, source->label);
+					found = TRUE;
+					break;
+				} else {
+					//g_autofree gchar *hash = r_hex_encode(chunk_hashes[c], sizeof(chunk_hashes[c]));
+					//g_debug("no chunk %"G_GUINT32_FORMAT" [%s] in index %u [%s]: %s", c, hash, s, source->label, ierror->message);
+					g_clear_error(&ierror);
+				}
+			}
+		}
+
+		if (!found) {
+			g_autofree gchar *hash = r_hex_encode(chunk_hashes[c], sizeof(chunk_hashes[c]));
+			g_set_error(error,
+					R_HASH_INDEX_ERROR,
+					R_HASH_INDEX_ERROR_NOT_FOUND,
+					"no chunk with required hash [%s] found", hash);
+			res = FALSE;
+			goto out;
+		}
+
+		/* Write chunk to target
+		 *
+		 * We could potentially avoid a chunk write if  r_hash_index_get_chunk
+		 * would report where the chunk was found. If it was found on the target
+		 * in the correct location, we could skip the write.
+		 */
+		offset = (off_t)c * sizeof(chunk->data);
+		if (!r_pwrite_lazy(target_fd, chunk->data, sizeof(chunk->data), offset, &ierror)) {
+			g_propagate_error(error, ierror);
+			res = FALSE;
+			goto out;
+		}
+
+		/* Update limits */
+		{
+			RaucHashIndex *target_written = g_ptr_array_index(sources, 0);
+			RaucHashIndex *target_old = g_ptr_array_index(sources, 1);
+			target_written->invalid_from = c+1;
+			target_old->invalid_below = c;
+		}
+	}
+
+	/* Seek after the written data so this behaves similar to the simpler write helpers */
+	offset = (off_t)chunk_count * sizeof(chunk->data);
+	if (lseek(target_fd, offset, SEEK_SET) != offset) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Failed to seek to end of image: %s", g_strerror(errno));
+		res = FALSE;
+		goto out;
+	}
+
+
+	/* Flush to block device before closing to assure content is written to disk */
+	if (fsync(target_fd) == -1) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Syncing content to slot failed: %s", strerror(errno));
+		res = FALSE;
+		goto out;
+	}
+
+	/* Write new index to slot data dir. */
+	{
+		const RaucHashIndex *source = g_ptr_array_index(sources, sources->len-1);
+		if (!r_hash_index_export_slot(source, slot, &image->checksum, &ierror)) {
+			g_warning("Continuing after failure to write new hash index: %s", ierror->message);
+		}
+	}
+
+	r_stats_show(zero_stats, "access stats for");
+	for (guint s = 0; s < sources->len; s++) {
+		const RaucHashIndex *source = g_ptr_array_index(sources, s);
+		r_stats_show(source->match_stats, "access stats for");
+	}
+
+	res = TRUE;
+
+out:
+	/* We let the hash index close the file and use dup for the target slot, to simplify cleanup */
+	return res;
+}
+
+static gboolean copy_incremental_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error)
+{
+	GError *ierror = NULL;
+	g_autofree gchar* temp_string = NULL;
+
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (g_strv_contains((const gchar * const*)image->incremental, "block-hash-index")) {
+		if (!copy_block_hash_index_image_to_dev(image, slot, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+		return TRUE;
+	}
+
+	temp_string = g_strjoinv(" ", (gchar**) image->incremental);
+	g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_UNSUPPORTED_INCREMENTAL_MODE,
+			"No compatible incremental mode found in '%s'", temp_string);
+	return FALSE;
+}
+
+static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error)
+{
+	GError *ierror = NULL;
 
 	/* Handle casync index file */
 	if (g_str_has_suffix(image->filename, ".caibx")) {
 		g_message("Extracting %s to %s", image->filename, slot->device);
 
 		/* Extract caibx to device */
-		res = casync_extract_image(image, slot->device, -1, &ierror);
-		if (!res) {
+		if (!casync_extract_image(image, slot->device, -1, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
-	} else {
-		res = copy_raw_image_to_dev(image, slot, &ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
+		return TRUE;
+	}
+
+	/* Try incremental mode */
+	if (image->incremental && slot->data_directory) {
+		if (!copy_incremental_image_to_dev(image, slot, &ierror)) {
+			if (g_error_matches(ierror, R_UPDATE_ERROR, R_UPDATE_ERROR_UNSUPPORTED_INCREMENTAL_MODE)) {
+				g_info("%s", ierror->message);
+			} else {
+				g_warning("Continuing after incremental mode error: %s", ierror->message);
+			}
+			g_clear_error(&ierror);
+			/* Continue with full copy */
+		} else {
+			return TRUE;
 		}
 	}
 
-out:
-	return res;
+	/* Finally, try a raw copy */
+	if (!copy_raw_image_to_dev(image, slot, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 static gboolean ubifs_format_slot(RaucSlot *dest_slot, GError **error)
