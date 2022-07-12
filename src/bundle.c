@@ -21,6 +21,7 @@
 #include "dm.h"
 #include "verity_hash.h"
 #include "nbd.h"
+#include "hash_index.h"
 
 /* from statfs(2) man page, as linux/magic.h may not have all of them */
 #ifndef AFS_SUPER_MAGIC
@@ -401,6 +402,74 @@ static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath,
 	res = TRUE;
 out:
 	return res;
+}
+
+static gboolean generate_incremental_data(RaucManifest *manifest, const gchar *dir, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(dir, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
+		RaucImage *image = elem->data;
+		g_autofree gchar *imagepath = g_build_filename(dir, image->filename, NULL);
+
+		if (!image->incremental)
+			continue;
+
+		for (gchar **inc_method = image->incremental; *inc_method != NULL; inc_method++) {
+			if (g_str_equal(*inc_method, "block-hash-index")) {
+				/* Use a filename of bundle/<image-name>.block-hash-index. */
+				g_autofree gchar *indexname = g_strconcat(image->filename, ".block-hash-index", NULL);
+				g_autofree gchar *indexpath = g_build_filename(dir, indexname, NULL);
+				g_autoptr(RaucHashIndex) index = NULL;
+				int fd = g_open(imagepath, O_RDONLY | O_CLOEXEC);
+				if (fd < 0) {
+					int err = errno;
+					g_set_error(
+							error,
+							G_IO_ERROR,
+							g_io_error_from_errno(err),
+							"Failed to open image: %s", image->filename);
+					return FALSE;
+				}
+
+				index = r_hash_index_open("image", fd, NULL, &ierror);
+				if (!index) {
+					g_propagate_prefixed_error(
+							error,
+							ierror,
+							"Failed to generate hash index for %s: ", image->filename);
+					g_close(fd, NULL);
+					return FALSE;
+				}
+
+				if (!r_hash_index_export(index, indexpath, &ierror)) {
+					g_propagate_prefixed_error(
+							error,
+							ierror,
+							"Failed to write hash index for %s: ", image->filename);
+					g_close(fd, NULL);
+					return FALSE;
+				}
+
+				g_debug("Created block-hash-index for image %s", image->filename);
+			} else if (g_str_equal(*inc_method, "incremental-test-method")) {
+				g_debug("Ignoring incremental-test-method for image %s", image->filename);
+			} else {
+				g_set_error(
+						error,
+						R_BUNDLE_ERROR,
+						R_BUNDLE_ERROR_PAYLOAD,
+						"Unsupported incremental method: %s", *inc_method);
+				return FALSE;
+			}
+		}
+	}
+
+	return TRUE;
 }
 
 static gboolean output_stream_write_uint64_all(GOutputStream *stream,
@@ -789,6 +858,12 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 	}
 
 	res = sync_manifest_with_contentdir(manifest, contentdir, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = generate_incremental_data(manifest, contentdir, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;

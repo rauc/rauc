@@ -167,7 +167,7 @@ compatible=Test Config\n\
 \n\
 [image.rootfs]\n\
 filename=rootfs.ext4\n\
-incremental=invalid-method;another-invalid-method";
+incremental=incremental-test-method;";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
