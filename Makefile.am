@@ -157,6 +157,7 @@ check_PROGRAMS = \
 	test/config_file.test \
 	test/context.test \
 	test/dm.test \
+	test/hash_index.test \
 	test/manifest.test \
 	test/signature.test \
 	test/update_handler.test \
@@ -246,6 +247,9 @@ test_context_test_LDADD = librauctest.la
 
 test_dm_test_SOURCES = test/dm.c
 test_dm_test_LDADD = librauctest.la
+
+test_hash_index_test_SOURCES = test/hash_index.c
+test_hash_index_test_LDADD = librauctest.la
 
 test_manifest_test_SOURCES = test/manifest.c
 test_manifest_test_LDADD = librauctest.la
