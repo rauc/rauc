@@ -409,6 +409,79 @@ gboolean r_write_exact(const int fd, const guint8 *data, size_t size, GError **e
 	return TRUE;
 }
 
+gboolean r_pread_exact(const int fd, guint8 *data, size_t size, off_t offset, GError **error)
+{
+	size_t pos = 0;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	while (pos < size) {
+		size_t remaining = size - pos;
+		ssize_t ret = TEMP_FAILURE_RETRY(pread(fd, data+pos, remaining, offset+pos));
+		if (ret < 0) {
+			int err = errno;
+			g_set_error(error,
+					G_FILE_ERROR,
+					g_file_error_from_errno(err),
+					"Failed to read: %s", g_strerror(err));
+			return FALSE;
+		} else if (ret == 0) { /* end of file */
+			return FALSE;
+		} else if ((size_t)ret <= remaining) {
+			pos += ret;
+		} else if ((size_t)ret > remaining) {
+			g_assert_not_reached();
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+gboolean r_pwrite_exact(const int fd, const guint8 *data, size_t size, off_t offset, GError **error)
+{
+	size_t pos = 0;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	while (pos < size) {
+		size_t remaining = size - pos;
+		ssize_t ret = TEMP_FAILURE_RETRY(pwrite(fd, data+pos, remaining, offset+pos));
+		if (ret < 0) {
+			int err = errno;
+			g_set_error(error,
+					G_FILE_ERROR,
+					g_file_error_from_errno(err),
+					"Failed to write: %s", g_strerror(err));
+			return FALSE;
+		} else if ((size_t)ret <= remaining) {
+			pos += ret;
+		} else if ((size_t)ret > remaining) {
+			g_assert_not_reached();
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+gboolean r_pwrite_lazy(const int fd, const guint8 *data, size_t size, off_t offset, GError **error)
+{
+	g_autofree guint8 *read_data = g_malloc(size);
+	GError *ierror = NULL;
+
+	if (!r_pread_exact(fd, read_data, size, offset, &ierror)) {
+		g_propagate_prefixed_error(error, ierror, "Failed to read existing data: ");
+		return FALSE;
+	}
+
+	if (memcmp(data, read_data, size) == 0) {
+		return TRUE;
+	}
+
+	return r_pwrite_exact(fd, data, size, offset, error);
+}
+
 guint get_sectorsize(gint fd)
 {
 	guint sector_size;
