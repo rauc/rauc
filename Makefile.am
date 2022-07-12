@@ -208,6 +208,7 @@ EXTRA_DIST += tap-t \
 	      test/system.conf \
 	      test/test.conf \
 	      test/test-global.conf \
+	      test/test-datadir.conf \
 	      test/get-coverity.sh \
 	      test/openssl-ca-create.sh \
 	      test/openssl-ca-check.sh \

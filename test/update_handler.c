@@ -280,8 +280,8 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	}
 
 	if (g_strcmp0(test_pair->imagetype, "img") == 0) {
-		g_assert(test_prepare_dummy_file(fixture->tmpdir, "image.img",
-				IMAGE_SIZE, "/dev/zero") == 0);
+		g_autofree gchar* pathname = write_random_file(fixture->tmpdir, "image.img", IMAGE_SIZE, 0x2abff992);
+		g_assert_nonnull(pathname);
 	} else if (g_strcmp0(test_pair->imagetype, "ext4") == 0) {
 		g_assert(test_prepare_dummy_file(fixture->tmpdir, "image.ext4",
 				IMAGE_SIZE, "/dev/zero") == 0);
