@@ -1,5 +1,7 @@
 #include "slot.h"
 
+#include "utils.h"
+
 void r_slot_free(gpointer value)
 {
 	RaucSlot *slot = (RaucSlot*)value;
@@ -167,6 +169,92 @@ RaucSlot* r_slot_get_parent_root(RaucSlot *slot)
 		base = base->parent;
 
 	return base;
+}
+
+gchar *r_slot_get_checksum_data_directory(const RaucSlot *slot, const RaucChecksum *checksum, GError **error)
+{
+	const gchar *hex_digest = NULL;
+	g_autofree gchar *sub_directory = NULL;
+	g_autofree gchar *path = NULL;
+
+	g_return_val_if_fail(slot, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	if (!slot->data_directory) {
+		return NULL;
+	}
+
+	if (checksum) {
+		hex_digest = checksum->digest;
+	}
+	if (!hex_digest && slot->status) {
+		hex_digest = slot->status->checksum.digest;
+	}
+	if (!hex_digest) {
+		hex_digest = "unknown";
+	}
+
+	sub_directory = g_strdup_printf("hash-%s", hex_digest);
+
+	path = g_build_filename(slot->data_directory, sub_directory, NULL);
+	if (g_mkdir_with_parents(path, 0700) != 0) {
+		g_set_error(
+				error,
+				G_FILE_ERROR,
+				G_FILE_ERROR_FAILED,
+				"Failed to create slot data directory '%s'",
+				path);
+		return NULL;
+	}
+
+	return g_steal_pointer(&path);
+}
+
+void r_slot_clean_data_directory(const RaucSlot *slot)
+{
+	GError *ierror = NULL;
+	const gchar *hex_digest = NULL;
+	g_autoptr(GDir) dir = NULL;
+	g_autofree gchar *expected_directory = NULL;
+	const gchar *name;
+
+	g_return_if_fail(slot);
+
+	if (!slot->data_directory) {
+		return;
+	}
+
+	g_assert(g_path_is_absolute(slot->data_directory));
+
+	if (slot->status) {
+		hex_digest = slot->status->checksum.digest;
+	} else {
+		hex_digest = "unknown";
+	}
+
+	expected_directory = g_strdup_printf("hash-%s", hex_digest);
+	dir = g_dir_open(slot->data_directory, 0, NULL);
+	if (!dir)
+		return;
+
+	while ((name = g_dir_read_name(dir))) {
+		g_autofree gchar *path = NULL;
+		if (!g_str_has_prefix(name, "hash-")) {
+			continue;
+		}
+		if (g_str_equal(name, expected_directory)) {
+			continue;
+		}
+
+		/* We have a subdir that begins with hash-, but doesn't match the current hash. */
+		path = g_build_filename(slot->data_directory, name, NULL);
+		g_debug("removing obsolete slot data dir '%s'", path);
+
+		if (!rm_tree(path, &ierror)) {
+			g_warning("Continuing after failure to remove old slot data dir: %s", ierror->message);
+			g_clear_error(&ierror);
+		}
+	}
 }
 
 gchar** r_slot_get_root_classes(GHashTable *slots)
