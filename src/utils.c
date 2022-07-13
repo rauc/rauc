@@ -76,6 +76,10 @@ gboolean write_file(const gchar *filename, GBytes *bytes, GError **error)
 	const gchar *contents;
 	gsize length;
 
+	g_return_val_if_fail(filename != NULL, FALSE);
+	g_return_val_if_fail(bytes != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	contents = g_bytes_get_data(bytes, &length);
 
 	return g_file_set_contents(filename, contents, length, error);

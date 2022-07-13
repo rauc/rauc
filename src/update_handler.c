@@ -416,6 +416,11 @@ static RaucSlot *get_active_slot_class_member(gchar *slotclass)
 
 	g_return_val_if_fail(slotclass, NULL);
 
+	if (!r_context()->config->slots) {
+		/* when no slots are configured, there can be not active slot */
+		return NULL;
+	}
+
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&iterslot)) {
 		if (iterslot->state == ST_INACTIVE)
