@@ -389,6 +389,15 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 
 	if (g_strcmp0(c->statusfile_path, "per-slot") == 0) {
+		if (c->data_directory) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_DATA_DIRECTORY,
+					"Using data-directory= with statusfile=per-slot is not supported.");
+			res = FALSE;
+			goto free;
+		}
 		g_message("Using per-slot statusfile");
 	} else {
 		gchar *resolved = resolve_path(filename, c->statusfile_path);
