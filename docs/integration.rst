@@ -1162,6 +1162,11 @@ Yocto.
 For more information on how to use the layer, also see the layer's `README
 <https://github.com/rauc/meta-rauc/blob/master/README.rst>`_ file.
 
+.. note::
+   When using the block hash incremental mode, you may need to set
+   ``IMAGE_ROOTFS_ALIGNMENT = "4"`` in your ``machine.conf`` to ensure that the
+   image is padded to full 4 kiB blocks.
+
 Target System Setup
 ~~~~~~~~~~~~~~~~~~~
 

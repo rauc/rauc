@@ -600,7 +600,9 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
   As the full image is still available in the bundle, older RAUC versions can
   ignore unsupported incremental methods.
 
-  Currently, no incremental methods are implemented.
+  Currently implemented incremental methods:
+
+  * ``block-hash-index``
 
 .. _sec_ref_formats:
 
