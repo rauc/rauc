@@ -29,7 +29,7 @@ Example configuration:
   [system]
   compatible=FooCorp Super BarBazzer
   bootloader=barebox
-  statusfile=/data/central-status.raucs
+  data-directory=/srv/rauc
   bundle-formats=-plain
 
   [keyring]
@@ -136,19 +136,41 @@ Example configuration:
 .. _statusfile:
 
 ``statusfile``
-  This key should be set to point to a central file where slot status
-  information should be stored (e.g. slot-specific metadata, see
+  For backwards compatibility, this can be set to point to a central file where
+  slot status information should be stored (e.g. slot-specific metadata, see
   :ref:`slot-status`).
-  This file must be located on a non-redundant filesystem which is not
-  overwritten during updates.
-  In most cases, a central status file is preferable to per-slot status files
-  as it allows to store data also for read-only or (temporary) filesystem-less
-  slots.
   However, if a per-slot status is required as one of the above-noted
   requirements cannot be met, one can use the value ``per-slot`` to document
   this decision.
   For background compatibility this option is not mandatory and will default to
   per-slot status files if not set.
+
+  .. important:: This file must be located on a non-redundant filesystem which
+     is not overwritten during updates.
+
+  See ``data-directory`` below as well.
+
+.. _data-directory:
+
+``data-directory``
+  This path configures the directory where RAUC should store its slot status
+  and any other internal information.
+  In most cases, a shared RAUC data directory is preferable, as it allows
+  storing data also for read-only or filesystem-less slots.
+
+  We have multiple levels of backwards compatibility:
+
+  * per-slot status and no shared data directory
+    (by default or explicitly with ``statusfile=per-slot``)
+  * central status file and no shared data directory
+    (``statusfile=/data/central.raucs``)
+  * central status file and shared data directory
+    (``statusfile=/data/central.raucs`` and ``data-directory=/data/rauc``)
+  * central status file in shared data directory
+    (``data-directory=/data/rauc``, implies ``statusfile=/data/rauc/central.rauc``)
+
+  .. important:: This directory must be located on a non-redundant filesystem
+     which is not overwritten during updates.
 
 ``max-bundle-download-size``
   Defines the maximum downloadable bundle size in bytes, and thus must be
