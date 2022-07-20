@@ -61,6 +61,8 @@ typedef struct _RaucSlot {
 	gchar *mount_point;
 	gchar *ext_mount_point;
 	RaucSlotStatus *status;
+	/** the name of the per-slot data subdirectory */
+	gchar *data_directory;
 } RaucSlot;
 
 /**
@@ -151,6 +153,33 @@ G_GNUC_WARN_UNUSED_RESULT;
  */
 RaucSlot* r_slot_get_parent_root(RaucSlot *slot)
 G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Returns the data subdirectory corresponding to the current or given
+ * hash/checksum.
+ *
+ * To allow cleanup of data that corresponds to a specific image hash, we use a
+ * hash-<hash value>/ subdirectory in /<rauc data dir>/<slot data dir>/.
+ *
+ * If the directory does not exist, it is created.
+ *
+ * @param slot slot to clean data directory for
+ * @param checksum optional checksum to use instead of the current one
+ *
+ * @return name of the directory, must be freed.
+ */
+gchar *r_slot_get_checksum_data_directory(const RaucSlot *slot, const RaucChecksum *checksum, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * This removes obsolete data in /<rauc data dir>/<slot data dir>/.
+ *
+ * Currently, it removes subdirectories which match hash-<hash value>/, but don't correspond to the current slot
+ * hash/checksum.
+ *
+ * @param slot slot to get the data directory for
+ */
+void r_slot_clean_data_directory(const RaucSlot *slot);
 
 /**
  * Gets all classes that do not have a parent

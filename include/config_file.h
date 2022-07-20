@@ -19,6 +19,7 @@ typedef enum {
 	R_CONFIG_ERROR_DUPLICATE_BOOTNAME,
 	R_CONFIG_ERROR_SLOT_TYPE,
 	R_CONFIG_ERROR_INVALID_DEVICE,
+	R_CONFIG_ERROR_DATA_DIRECTORY,
 } RConfigError;
 
 #define R_CONFIG_ERROR r_config_error_quark()
@@ -53,6 +54,7 @@ typedef struct {
 	gchar *casync_install_args;
 	gboolean use_desync;
 	gboolean activate_installed;
+	gchar *data_directory;
 	gchar *statusfile_path;
 	gchar *keyring_path;
 	gchar *keyring_directory;
