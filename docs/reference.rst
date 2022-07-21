@@ -71,7 +71,7 @@ Example configuration:
   when verifying a bundle.
   You can either specify them explicitly by using a space-separated list for
   format names (such as ``plain verity``).
-  In this case, any any future changes of the built-in defaults will have no
+  In this case, any future changes of the built-in defaults will have no
   effect.
 
   Alternatively, you can use format names prefixed by ``-`` or ``+`` (such as
@@ -112,7 +112,7 @@ Example configuration:
 
 ``boot-attempts-primary``
   This configures the number of boot attempts to set when a slot is marked as
-  primary (ie, when an update was installed successfully).
+  primary (i.e., when an update was installed successfully).
   This is currently only supported when ``bootloader`` is set to ``uboot`` and
   defaults to 3 if not set.
 
