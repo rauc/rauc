@@ -925,6 +925,7 @@ Command Line Tool
     write-slot            Write image to slot and bypass all update logic
 
   Environment variables:
+    RAUC_KEY_PASSPHRASE Passphrase to use for accessing key files (signing only)
     RAUC_PKCS11_MODULE  Library filename for PKCS#11 module (signing only)
     RAUC_PKCS11_PIN     PIN to use for accessing PKCS#11 keys (signing only)
 

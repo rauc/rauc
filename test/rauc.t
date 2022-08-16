@@ -618,6 +618,18 @@ test_expect_success FAKETIME "rauc sign bundle with valid certificate" "
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
+test_expect_success FAKETIME "rauc sign bundle with valid certificate (encrypted key)" "
+  rm -f ${TEST_TMPDIR}/out.raucb &&
+  RAUC_KEY_PASSPHRASE=1111 \
+  faketime "2019-01-01" \
+    rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-1-encrypted.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    bundle $SHARNESS_TEST_DIRECTORY/install-content ${TEST_TMPDIR}/out.raucb &&
+  test -f ${TEST_TMPDIR}/out.raucb
+"
+
 test_expect_success OPENSSL "rauc extract signature" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&

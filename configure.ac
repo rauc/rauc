@@ -243,6 +243,7 @@ AC_CONFIG_LINKS([test/openssl-ca/rel/ca.cert.pem:test/openssl-ca/rel/ca.cert.pem
 AC_CONFIG_LINKS([test/openssl-ca/rel-ca.pem:test/openssl-ca/rel-ca.pem])
 AC_CONFIG_LINKS([test/openssl-ca/rel-partial-ca.pem:test/openssl-ca/rel-partial-ca.pem])
 AC_CONFIG_LINKS([test/openssl-ca/rel/private/release-1.pem:test/openssl-ca/rel/private/release-1.pem])
+AC_CONFIG_LINKS([test/openssl-ca/rel/private/release-1-encrypted.pem:test/openssl-ca/rel/private/release-1-encrypted.pem])
 AC_CONFIG_LINKS([test/openssl-ca/rel/private/release-2018.pem:test/openssl-ca/rel/private/release-2018.pem])
 AC_CONFIG_LINKS([test/openssl-ca/rel/release-1.cert.pem:test/openssl-ca/rel/release-1.cert.pem])
 AC_CONFIG_LINKS([test/openssl-ca/rel/release-2018.cert.pem:test/openssl-ca/rel/release-2018.cert.pem])
