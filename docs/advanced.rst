@@ -150,6 +150,18 @@ To do this, specify the ``--intermediate`` argument during bundle creation::
 Note that you can specify the ``--intermediate`` argument multiple times to
 include multiple intermediate certificates to your bundle signature.
 
+Passphrase Handling
+~~~~~~~~~~~~~~~~~~~
+
+If the signing key is protected by a passphrase it has to be entered
+during signing operations.
+For automation purposes the passphrase can be set using the
+environment variable ``RAUC_KEY_PASSPHRASE``.
+
+.. note::
+  Since the environment of other processes is visible on Linux, this
+  option should be used with caution.
+
 .. _sec-resign:
 
 Resigning Bundles

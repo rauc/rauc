@@ -168,6 +168,7 @@ echo "Release Signing Key"
 cd $BASE/rel
 openssl req -newkey rsa -keyout private/release-1.pem -out release-1.csr.pem -subj "/O=$ORG/CN=$ORG Release-1"
 openssl ca -batch -extensions v3_leaf -in release-1.csr.pem -out release-1.cert.pem
+openssl rsa -aes256 -in private/release-1.pem -out private/release-1-encrypted.pem -passout pass:1111
 openssl req -newkey rsa -keyout private/release-2018.pem -out release-2018.csr.pem -subj "/O=$ORG/CN=$ORG Release-2018"
 openssl ca -batch -extensions v3_leaf -in release-2018.csr.pem -out release-2018.cert.pem -startdate 20180101000000Z -enddate 20190701000000Z
 

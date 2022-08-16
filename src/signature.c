@@ -188,6 +188,7 @@ static EVP_PKEY *load_key_file(const gchar *keyfile, GError **error)
 	BIO *key = NULL;
 	unsigned long err;
 	const gchar *data;
+	const gchar *passphrase;
 	int flags;
 
 	g_return_val_if_fail(keyfile != NULL, NULL);
@@ -203,7 +204,10 @@ static EVP_PKEY *load_key_file(const gchar *keyfile, GError **error)
 		goto out;
 	}
 
-	res = PEM_read_bio_PrivateKey(key, NULL, NULL, NULL);
+	passphrase = g_getenv("RAUC_KEY_PASSPHRASE");
+	if (passphrase && passphrase[0] == '\0')
+		passphrase = NULL;
+	res = PEM_read_bio_PrivateKey(key, NULL, NULL, (void *)passphrase);
 	if (res == NULL) {
 		err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
 		g_set_error(
