@@ -20,10 +20,14 @@ GQuark r_signature_error_quark(void)
 static const gchar *get_openssl_err_string(void)
 {
 	unsigned long err;
-	const gchar *data;
-	int errflags;
+	const gchar *data = NULL;
+	int errflags = 0;
 
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
 	err = ERR_get_error_line_data(NULL, NULL, &data, &errflags);
+#else
+	err = ERR_get_error_all(NULL, NULL, NULL, &data, &errflags);
+#endif
 
 	return (errflags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL);
 }
