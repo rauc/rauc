@@ -44,6 +44,7 @@ librauc_la_SOURCES = \
 	src/context.c \
 	src/crypt.c \
 	src/dm.c \
+	src/hash_index.c \
 	src/install.c \
 	src/manifest.c \
 	src/mark.c \
@@ -63,6 +64,7 @@ librauc_la_SOURCES = \
 	include/context.h \
 	include/crypt.h \
 	include/dm.h \
+	include/hash_index.h \
 	include/emmc.h \
 	include/gpt.h \
 	include/install.h \
@@ -155,6 +157,7 @@ check_PROGRAMS = \
 	test/config_file.test \
 	test/context.test \
 	test/dm.test \
+	test/hash_index.test \
 	test/manifest.test \
 	test/signature.test \
 	test/update_handler.test \
@@ -205,6 +208,7 @@ EXTRA_DIST += tap-t \
 	      test/system.conf \
 	      test/test.conf \
 	      test/test-global.conf \
+	      test/test-datadir.conf \
 	      test/get-coverity.sh \
 	      test/openssl-ca-create.sh \
 	      test/openssl-ca-check.sh \
@@ -244,6 +248,9 @@ test_context_test_LDADD = librauctest.la
 
 test_dm_test_SOURCES = test/dm.c
 test_dm_test_LDADD = librauctest.la
+
+test_hash_index_test_SOURCES = test/hash_index.c
+test_hash_index_test_LDADD = librauctest.la
 
 test_manifest_test_SOURCES = test/manifest.c
 test_manifest_test_LDADD = librauctest.la

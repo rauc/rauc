@@ -12,6 +12,7 @@ GQuark r_update_error_quark(void);
 typedef enum {
 	R_UPDATE_ERROR_FAILED,
 	R_UPDATE_ERROR_NO_HANDLER,
+	R_UPDATE_ERROR_UNSUPPORTED_INCREMENTAL_MODE,
 } RUpdateError;
 
 typedef gboolean (*img_to_slot_handler)(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)

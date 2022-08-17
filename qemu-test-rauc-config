@@ -3,7 +3,7 @@ compatible=Test Config
 bootloader=grub
 grubenv=/tmp/boot/grub/grubenv
 # HACK: must be on a separate partition for real systems
-statusfile=/tmp/rauc.status
+data-directory=/tmp/rauc
 
 [keyring]
 path=ca.cert.pem

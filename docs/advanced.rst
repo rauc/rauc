@@ -738,6 +738,76 @@ returned ``1`` as its output.
 
 With this you can always mount ``/dev/data`` and get the correct data slot.
 
+
+Incremental Updates
+-------------------
+
+We use the term *incremental* updates explicitly to distinguish this approach from
+*delta* updates.
+Delta updates contain the data necessary to move from one specific version the
+new version.
+Incremental updates do not need to be installed on a specific previous version.
+Instead they contain information that allows opportunistic use of data that is
+already available on the target system, either from any previous version of from
+an interrupted installation attempt.
+
+Incremental updates are intended to be used together with :ref:`http-streaming`,
+as this allows RAUC to download only the parts of the bundle that are actually
+needed.
+
+As the bundle itself still contains the full information, using incremental
+updates does not change the normal flow of creating, distributing and installing
+bundles.
+It can be considered only an optimization of download size for bundle streaming.
+
+To enable incremental updates during bundle creation, add
+``incremental=<method>`` to the relevant ``[[image.<slot class>]]`` sections of
+your manifest and configure the :ref:`shared data directory <data-directory>` in
+your ``system.conf``.
+
+Currently, the only supported incremental method is ``block-hash-index``.
+
+Block-based Incremental Update (``block-hash-index``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This method works by creating an index file consisting of a hash for each data
+block in the image and then using this to check whether the data for each block
+is available locally during installation.
+The index in generated when running ``rauc bundle`` and included in the bundle
+together with the full image.
+After installation, RAUC also stores the current index for each slot in the
+:ref:`shared data directory <data-directory>`.
+
+During installation, RAUC accesses both slots (currently active and target) of
+the class to be installed and reads the stored index for each.
+If no index is available for a slot (perhaps because incremental mode was not
+used for previous updates), it is generated on-demand, which will take
+additional time.
+Then RAUC will iterate over the hash index in the bundle and try to locate a
+matching block (with the same hash) in the slots.
+Each match is verified by hashing the data read from the slot, so this can be
+used even with read-write filesystems.
+If no match is found (because the block contains new data), it is read from
+the image file in the bundle.
+
+As this depends on random access to the image in the bundle and to the slots,
+this mode works only with block devices and does not support ``.tar`` archives.
+
+The index uses a SHA256 hash for each 4kiB block, which results in an index size
+of 0.8% of the original image.
+With small changes (such as updating a single package) in an ``ext4`` image, we
+have seen that around 10% of the bundle size needs to be downloaded.
+When indices for all slots are available on the target, the installation
+duration (compared to without incremental mode) is often similar and can be
+slightly faster if the changes are small.
+
+.. note::
+   Depending on the pattern of changed locations between the images, using a
+   different compression configuration for squashfs during bundle creation can
+   reduce the download overhead due to large squashfs block sizes.
+   For example, a 64 kiB block size can be set with
+   ``--mksquashfs-args="-b 64k"``.
+
 .. _casync-support:
 
 RAUC casync Support
