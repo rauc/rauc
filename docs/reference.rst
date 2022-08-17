@@ -604,6 +604,17 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
 
   * ``block-hash-index``
 
+.. _meta.label-section:
+
+**[meta.<label>] sections**
+
+``<key>``
+  The ``meta.<label>`` sections are intended to provide a forwards-compatible
+  way to add data to the manifest which is not interpreted by RAUC in any way.
+  Currently, they are just ignored when reading a manifest.
+  In future releases, they will be accessible via ``rauc info``, the D-Bus API
+  and in hooks/handlers.
+
 .. _sec_ref_formats:
 
 Bundle Formats
