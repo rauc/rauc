@@ -10,11 +10,6 @@ function exit_if_empty {
 	if [ -z "$1" ]; then exit 1; fi
 }
 
-rootrun=""
-if [ "$EUID" != 0 ]; then
-	rootrun="sudo"
-fi
-
 # Sanity check
 for i in $(env | grep "^RAUC_"); do
 	echo $i
@@ -65,11 +60,11 @@ for i in $RAUC_TARGET_SLOTS; do
 	echo "<< image $RAUC_IMAGE_NAME [DONE]"
 
 	# Write slot status file
-	$rootrun mount $RAUC_SLOT_DEVICE $RAUC_MOUNT_PREFIX/image
+	mount $RAUC_SLOT_DEVICE $RAUC_MOUNT_PREFIX/image
 	echo [slot] > $RAUC_MOUNT_PREFIX/image/slot.raucs
 	echo status=ok >> $RAUC_MOUNT_PREFIX/image/slot.raucs
 	echo sha256=$RAUC_IMAGE_DIGEST >> $RAUC_MOUNT_PREFIX/image/slot.raucs
-	$rootrun umount $RAUC_MOUNT_PREFIX/image
+	umount $RAUC_MOUNT_PREFIX/image
 done
 
 # Update boot priority

@@ -250,10 +250,6 @@ gboolean test_do_chmod(const gchar *path)
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(10, g_free);
 
-	if (getuid() != 0) {
-		g_ptr_array_add(args, g_strdup("sudo"));
-		g_ptr_array_add(args, g_strdup("--non-interactive"));
-	}
 	g_ptr_array_add(args, g_strdup("chmod"));
 	g_ptr_array_add(args, g_strdup("777"));
 	g_ptr_array_add(args, g_strdup(path));
