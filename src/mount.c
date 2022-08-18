@@ -65,10 +65,6 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 	g_return_val_if_fail(mountpoint != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (getuid() != 0) {
-		g_ptr_array_add(args, g_strdup("sudo"));
-		g_ptr_array_add(args, g_strdup("--non-interactive"));
-	}
 	g_ptr_array_add(args, g_strdup("mount"));
 	if (type != NULL) {
 		g_ptr_array_add(args, g_strdup("-t"));
@@ -253,10 +249,6 @@ gboolean r_umount(const gchar *filename, GError **error)
 	g_return_val_if_fail(filename != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (getuid() != 0) {
-		g_ptr_array_add(args, g_strdup("sudo"));
-		g_ptr_array_add(args, g_strdup("--non-interactive"));
-	}
 	g_ptr_array_add(args, g_strdup("umount"));
 	g_ptr_array_add(args, g_strdup(filename));
 	g_ptr_array_add(args, NULL);

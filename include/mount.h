@@ -38,8 +38,6 @@ G_GNUC_WARN_UNUSED_RESULT;
 /**
  * Wrapper for calling systems 'mount' command.
  *
- * If invoked as a user, mount command will be called using 'sudo'.
- *
  * @param source source path for mount
  * @param mountpoint destination path for mount
  * @param type type of image to mount (results in -t option)
