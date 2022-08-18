@@ -12,8 +12,8 @@ async def index(request):
 
 @routes.get("/sporadic.raucb")
 async def sporadic_get(request):
-    request.app["sporadic_counter"] += 1
-    if request.app["sporadic_counter"] % 2 == 0:
+    request.app["rauc"]["sporadic_counter"] += 1
+    if request.app["rauc"]["sporadic_counter"] % 2 == 0:
         raise web.HTTPInternalServerError()
     else:
         return web.FileResponse(path="test/good-verity-bundle.raucb")
@@ -30,6 +30,8 @@ async def token_get(request):
 
 
 app = web.Application()
-app["sporadic_counter"] = -1
+app["rauc"] = {
+    "sporadic_counter": -1,
+}
 app.add_routes(routes)
 web.run_app(app, path="/tmp/backend.sock")
