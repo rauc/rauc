@@ -738,6 +738,7 @@ returned ``1`` as its output.
 
 With this you can always mount ``/dev/data`` and get the correct data slot.
 
+.. _sec-incremental-updates:
 
 Incremental Updates
 -------------------
