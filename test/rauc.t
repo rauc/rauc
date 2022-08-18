@@ -321,6 +321,16 @@ test_expect_success "rauc info invalid" "
 
 test_expect_success "rauc bundle" "
   rm -f ${TEST_TMPDIR}/out.raucb &&
+  rauc bundle \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    $SHARNESS_TEST_DIRECTORY/install-content ${TEST_TMPDIR}/out.raucb &&
+  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info ${TEST_TMPDIR}/out.raucb &&
+  test -f ${TEST_TMPDIR}/out.raucb
+"
+
+test_expect_success "rauc bundle (test compatibiltiy for cert/key args before subcommand)" "
+  rm -f ${TEST_TMPDIR}/out.raucb &&
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
