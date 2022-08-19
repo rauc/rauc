@@ -404,7 +404,7 @@ out:
 	return res;
 }
 
-static gboolean generate_incremental_data(RaucManifest *manifest, const gchar *dir, GError **error)
+static gboolean generate_adaptive_data(RaucManifest *manifest, const gchar *dir, GError **error)
 {
 	GError *ierror = NULL;
 
@@ -416,11 +416,11 @@ static gboolean generate_incremental_data(RaucManifest *manifest, const gchar *d
 		RaucImage *image = elem->data;
 		g_autofree gchar *imagepath = g_build_filename(dir, image->filename, NULL);
 
-		if (!image->incremental)
+		if (!image->adaptive)
 			continue;
 
-		for (gchar **inc_method = image->incremental; *inc_method != NULL; inc_method++) {
-			if (g_str_equal(*inc_method, "block-hash-index")) {
+		for (gchar **method = image->adaptive; *method != NULL; method++) {
+			if (g_str_equal(*method, "block-hash-index")) {
 				/* Use a filename of bundle/<image-name>.block-hash-index. */
 				g_autofree gchar *indexname = g_strconcat(image->filename, ".block-hash-index", NULL);
 				g_autofree gchar *indexpath = g_build_filename(dir, indexname, NULL);
@@ -456,14 +456,14 @@ static gboolean generate_incremental_data(RaucManifest *manifest, const gchar *d
 				}
 
 				g_debug("Created block-hash-index for image %s", image->filename);
-			} else if (g_str_equal(*inc_method, "incremental-test-method")) {
-				g_debug("Ignoring incremental-test-method for image %s", image->filename);
+			} else if (g_str_equal(*method, "adaptive-test-method")) {
+				g_debug("Ignoring adaptive-test-method for image %s", image->filename);
 			} else {
 				g_set_error(
 						error,
 						R_BUNDLE_ERROR,
 						R_BUNDLE_ERROR_PAYLOAD,
-						"Unsupported incremental method: %s", *inc_method);
+						"Unsupported adaptive method: %s", *method);
 				return FALSE;
 			}
 		}
@@ -863,7 +863,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		goto out;
 	}
 
-	res = generate_incremental_data(manifest, contentdir, &ierror);
+	res = generate_adaptive_data(manifest, contentdir, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;

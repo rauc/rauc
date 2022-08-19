@@ -463,9 +463,9 @@ For example, when installing a 190MiB bundle on a STM32MP1 SoC (dual ARM
 Cortex-A7) with an eMMC, streaming took 1m43s, while downloading followed by
 local installation took 1m42s (13s+1m29s).
 
-As each chunk of compressed data is only requested incrementally when needed by
-the installation processes, you should expect that network connections with
-higher round-trip-time (RTT) lead to longer installation times.
+As each chunk of compressed data is only requested when needed by the
+installation processes, you should expect that network connections with higher
+round-trip-time (RTT) lead to longer installation times.
 This can be compensated somewhat by using a HTTP/2 server, as this supports
 multiplexing and better connection reuse.
 
@@ -738,38 +738,38 @@ returned ``1`` as its output.
 
 With this you can always mount ``/dev/data`` and get the correct data slot.
 
-.. _sec-incremental-updates:
+.. _sec-adaptive-updates:
 
-Incremental Updates
--------------------
+Adaptive Updates
+----------------
 
-We use the term *incremental* updates explicitly to distinguish this approach from
+We use the term *adaptive* updates explicitly to distinguish this approach from
 *delta* updates.
 Delta updates contain the data necessary to move from one specific version the
 new version.
-Incremental updates do not need to be installed on a specific previous version.
-Instead they contain information that allows opportunistic use of data that is
-already available on the target system, either from any previous version of from
-an interrupted installation attempt.
+Adaptive updates do not need to be installed on a specific previous version.
+Instead, they contain information that allows *adaptive* selection of one of
+multiple methods, using data that is already available on the target system,
+either from any previous version or from an interrupted installation attempt.
 
-Incremental updates are intended to be used together with :ref:`http-streaming`,
+Adaptive updates are intended to be used together with :ref:`http-streaming`,
 as this allows RAUC to download only the parts of the bundle that are actually
 needed.
 
-As the bundle itself still contains the full information, using incremental
+As the bundle itself still contains the full information, using adaptive
 updates does not change the normal flow of creating, distributing and installing
 bundles.
 It can be considered only an optimization of download size for bundle streaming.
 
-To enable incremental updates during bundle creation, add
-``incremental=<method>`` to the relevant ``[[image.<slot class>]]`` sections of
+To enable adaptive updates during bundle creation, add
+``adaptive=<method>`` to the relevant ``[[image.<slot class>]]`` sections of
 your manifest and configure the :ref:`shared data directory <data-directory>` in
 your ``system.conf``.
 
-Currently, the only supported incremental method is ``block-hash-index``.
+Currently, the only supported adaptive method is ``block-hash-index``.
 
-Block-based Incremental Update (``block-hash-index``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Block-based Adaptive Update (``block-hash-index``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This method works by creating an index file consisting of a hash for each data
 block in the image and then using this to check whether the data for each block
@@ -781,7 +781,7 @@ After installation, RAUC also stores the current index for each slot in the
 
 During installation, RAUC accesses both slots (currently active and target) of
 the class to be installed and reads the stored index for each.
-If no index is available for a slot (perhaps because incremental mode was not
+If no index is available for a slot (perhaps because adaptive mode was not
 used for previous updates), it is generated on-demand, which will take
 additional time.
 Then RAUC will iterate over the hash index in the bundle and try to locate a
@@ -799,7 +799,7 @@ of 0.8% of the original image.
 With small changes (such as updating a single package) in an ``ext4`` image, we
 have seen that around 10% of the bundle size needs to be downloaded.
 When indices for all slots are available on the target, the installation
-duration (compared to without incremental mode) is often similar and can be
+duration (compared to without adaptive mode) is often similar and can be
 slightly faster if the changes are small.
 
 .. note::

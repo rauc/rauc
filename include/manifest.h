@@ -30,7 +30,7 @@ typedef struct {
 	RaucChecksum checksum;
 	gchar* filename;
 	SlotHooks hooks;
-	GStrv incremental;
+	GStrv adaptive;
 } RaucImage;
 
 typedef enum {

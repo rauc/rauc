@@ -280,7 +280,7 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 		}
 	}
 	if (test_pair->params & TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX) {
-		image->incremental = g_strsplit("block-hash-index", " ", 0);
+		image->adaptive = g_strsplit("block-hash-index", " ", 0);
 	}
 
 	if (test_pair->params & TEST_UPDATE_HANDLER_NO_IMAGE_FILE) {
@@ -533,7 +533,7 @@ int main(int argc, char *argv[])
 		/* nor tests */
 		{"nor", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 
-		/* incremental tests */
+		/* adaptive tests */
 		{"raw", "img", TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX, 0, 0},
 		{"ext4", "img", TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX, 0, 0},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX, 0, 0},
@@ -905,7 +905,7 @@ int main(int argc, char *argv[])
 			test_update_handler,
 			update_handler_fixture_tear_down);
 
-	/* incremental tests */
+	/* adaptive tests */
 	g_test_add("/update_handler/block_hash_index/img_to_raw",
 			UpdateHandlerFixture,
 			&testpair_matrix[56],

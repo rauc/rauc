@@ -3,14 +3,14 @@ Release 1.8 (development)
 
 .. rubric:: Enhancements
 
-* Implement incremental image updates based on block hash indices.
+* Implement adaptive image updates based on block hash indices.
   This works by adding an index file containing the hashes of each 4kiB image
   block in the image to the bundle and then using this to check whether a block
   is available locally during installation.
   If that's the case, RAUC doesn't need to download this block.
   Together with streaming, this means that only a small part of the bundle needs
   to be downloaded as long as the changes are localized.
-  See the :ref:`documentation for details <sec-incremental-updates>`.
+  See the :ref:`documentation for details <sec-adaptive-updates>`.
 * Add a slot type which provides atomic bootloader updates for SoCs (like the
   Rockchip RK3568) which search for a valid image at multiple fixed offsets. (by
   Matthias Fend)
@@ -65,7 +65,7 @@ Release 1.7 (released Jun 3, 2022)
 * Add support for streaming installation from a HTTP(S) server for bundles in
   ``verity`` and ``crypt`` formats.
   This avoids the need for a temporary bundle storage location and prepares for
-  more efficient incremental updates.
+  more efficient *adaptive* (originally *incremental*) updates.
   See the :ref:`documentation for details <http-streaming>`.
 * Add support for bundle encryption (``crypt`` format).
   This is useful when bundles contain confidential data and are not otherwise
@@ -111,6 +111,12 @@ Release 1.7 (released Jun 3, 2022)
 * Use more specific error codes for device mapper error reporting.
 * Prepare for incremental methods by adding an optional per-image manifest
   option.
+
+.. note::
+  Since the release of 1.7, it turned out that the name 'incremental' for this
+  functionality is confusing.
+  Accordingly, we decided to rename it to 'adaptive' for 1.8 and accept the
+  downside of not being able to benefit from compatibility with 1.7.
 
 .. rubric:: Documentation
 
