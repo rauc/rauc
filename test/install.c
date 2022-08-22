@@ -157,7 +157,7 @@ hooks=post-install";
 	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
-static void install_fixture_set_up_bundle_incremental(InstallFixture *fixture,
+static void install_fixture_set_up_bundle_adaptive(InstallFixture *fixture,
 		gconstpointer user_data)
 {
 	InstallData *data = (InstallData*) user_data;
@@ -167,7 +167,7 @@ compatible=Test Config\n\
 \n\
 [image.rootfs]\n\
 filename=rootfs.ext4\n\
-incremental=incremental-test-method;block-hash-index";
+adaptive=adaptive-test-method;block-hash-index";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
@@ -1461,9 +1461,9 @@ int main(int argc, char *argv[])
 		        .format = R_MANIFEST_FORMAT_VERITY,
 		},
 	}));
-	g_test_add("/install/incremental",
+	g_test_add("/install/adaptive",
 			InstallFixture, install_data,
-			install_fixture_set_up_bundle_incremental, install_test_bundle,
+			install_fixture_set_up_bundle_adaptive, install_test_bundle,
 			install_fixture_tear_down);
 
 	return g_test_run();

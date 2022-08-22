@@ -749,7 +749,7 @@ out:
 	return res;
 }
 
-static gboolean copy_incremental_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error)
+static gboolean copy_adaptive_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error)
 {
 	GError *ierror = NULL;
 	g_autofree gchar* temp_string = NULL;
@@ -758,7 +758,7 @@ static gboolean copy_incremental_image_to_dev(RaucImage *image, RaucSlot *slot, 
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (g_strv_contains((const gchar * const*)image->incremental, "block-hash-index")) {
+	if (g_strv_contains((const gchar * const*)image->adaptive, "block-hash-index")) {
 		if (!copy_block_hash_index_image_to_dev(image, slot, &ierror)) {
 			g_propagate_error(error, ierror);
 			return FALSE;
@@ -766,9 +766,9 @@ static gboolean copy_incremental_image_to_dev(RaucImage *image, RaucSlot *slot, 
 		return TRUE;
 	}
 
-	temp_string = g_strjoinv(" ", (gchar**) image->incremental);
-	g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_UNSUPPORTED_INCREMENTAL_MODE,
-			"No compatible incremental mode found in '%s'", temp_string);
+	temp_string = g_strjoinv(" ", (gchar**) image->adaptive);
+	g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_UNSUPPORTED_ADAPTIVE_MODE,
+			"No compatible adaptive mode found in '%s'", temp_string);
 	return FALSE;
 }
 
@@ -788,13 +788,13 @@ static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **er
 		return TRUE;
 	}
 
-	/* Try incremental mode */
-	if (image->incremental && slot->data_directory) {
-		if (!copy_incremental_image_to_dev(image, slot, &ierror)) {
-			if (g_error_matches(ierror, R_UPDATE_ERROR, R_UPDATE_ERROR_UNSUPPORTED_INCREMENTAL_MODE)) {
+	/* Try adaptive mode */
+	if (image->adaptive && slot->data_directory) {
+		if (!copy_adaptive_image_to_dev(image, slot, &ierror)) {
+			if (g_error_matches(ierror, R_UPDATE_ERROR, R_UPDATE_ERROR_UNSUPPORTED_ADAPTIVE_MODE)) {
 				g_info("%s", ierror->message);
 			} else {
-				g_warning("Continuing after incremental mode error: %s", ierror->message);
+				g_warning("Continuing after adaptive mode error: %s", ierror->message);
 			}
 			g_clear_error(&ierror);
 			/* Continue with full copy */

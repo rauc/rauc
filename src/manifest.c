@@ -78,8 +78,8 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 		goto out;
 	}
 
-	iimage->incremental = g_key_file_get_string_list(key_file, group, "incremental", NULL, NULL);
-	g_key_file_remove_key(key_file, group, "incremental", NULL);
+	iimage->adaptive = g_key_file_get_string_list(key_file, group, "adaptive", NULL, NULL);
+	g_key_file_remove_key(key_file, group, "adaptive", NULL);
 
 	if (!check_remaining_keys(key_file, group, &ierror)) {
 		g_propagate_error(error, ierror);
@@ -597,9 +597,9 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 					(const gchar **)hooklist->pdata, hooklist->len);
 		}
 
-		if (image->incremental)
-			g_key_file_set_string_list(key_file, group, "incremental",
-					(const gchar * const *)image->incremental, g_strv_length(image->incremental));
+		if (image->adaptive)
+			g_key_file_set_string_list(key_file, group, "adaptive",
+					(const gchar * const *)image->adaptive, g_strv_length(image->adaptive));
 	}
 
 	return g_steal_pointer(&key_file);
@@ -652,7 +652,7 @@ void r_free_image(gpointer data)
 	g_free(image->variant);
 	g_free(image->checksum.digest);
 	g_free(image->filename);
-	g_strfreev(image->incremental);
+	g_strfreev(image->adaptive);
 	g_free(image);
 }
 
