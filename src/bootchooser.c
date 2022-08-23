@@ -1696,10 +1696,7 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 	}
 
 	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed marking '%s' as %s: ", slot->name, good ? "good" : "bad");
+		g_propagate_error(error, ierror);
 	}
 
 	return res;
