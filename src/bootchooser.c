@@ -1656,10 +1656,7 @@ gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 	}
 
 	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to get state of %s: ", slot->name);
+		g_propagate_error(error, ierror);
 	}
 
 	return res;
