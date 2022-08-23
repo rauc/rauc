@@ -1762,10 +1762,7 @@ gboolean r_boot_set_primary(RaucSlot *slot, GError **error)
 	}
 
 	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed marking '%s' as primary: ", slot->name);
+		g_propagate_error(error, ierror);
 	}
 
 	return res;
