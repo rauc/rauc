@@ -208,6 +208,7 @@ AC_CONFIG_LINKS([test/good-crypt-bundle-encrypted.raucb:test/good-crypt-bundle-e
 AC_CONFIG_LINKS([test/good-crypt-bundle-unencrypted.raucb:test/good-crypt-bundle-unencrypted.raucb])
 AC_CONFIG_LINKS([test/good-casync-bundle-1.4.raucb:test/good-casync-bundle-1.4.raucb])
 AC_CONFIG_LINKS([test/good-casync-bundle-1.5.1.raucb:test/good-casync-bundle-1.5.1.raucb])
+AC_CONFIG_LINKS([test/good-casync-bundle-verity.raucb:test/good-casync-bundle-verity.raucb])
 AC_CONFIG_LINKS([test/install-content/appfs.img:test/install-content/appfs.img])
 AC_CONFIG_LINKS([test/install-content/custom_handler.sh:test/install-content/custom_handler.sh])
 AC_CONFIG_LINKS([test/install-content/hook.sh:test/install-content/hook.sh])
