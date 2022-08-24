@@ -1036,7 +1036,6 @@ test_expect_success "rauc bundle (crypt bundle)" "
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
   cp ${SHARNESS_TEST_DIRECTORY}/install-content/manifest.raucm.crypt ${TEST_TMPDIR}/install-content/manifest.raucm &&
-  dd if=/dev/urandom of=${TEST_TMPDIR}/install-content/dummy.data bs=1M count=1 &&
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
