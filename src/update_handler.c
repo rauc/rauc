@@ -445,6 +445,10 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 	gchar *tmpdir = NULL;
 	gboolean seed_mounted = FALSE;
 
+	g_assert_nonnull(r_context()->install_info);
+	g_assert_nonnull(r_context()->install_info->mounted_bundle);
+	g_assert_nonnull(r_context()->install_info->mounted_bundle->storepath);
+
 	if (r_context()->config->use_desync) {
 		/* TODO: do something clever to locate and/or generate the seed index file */
 		goto extract;
