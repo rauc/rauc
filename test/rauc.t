@@ -1169,6 +1169,34 @@ test_expect_success ROOT,SERVICE "rauc install (crypt)" "
   test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
 "
 
+test_expect_success ROOT,SERVICE,CASYNC "rauc install (plain, casync, local)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-casync-bundle-1.5.1.raucb ${TEST_TMPDIR}/ &&
+  cp -rL ${SHARNESS_TEST_DIRECTORY}/good-casync-bundle-1.5.1.castr ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-casync-bundle-1.5.1.raucb &&
+  test_when_finished rm -rf ${TEST_TMPDIR}/good-casync-bundle-1.5.1.castr &&
+  start_rauc_dbus_service_with_system \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service_with_system &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  rauc \
+    install ${TEST_TMPDIR}/good-casync-bundle-1.5.1.raucb &&
+  test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
+"
+
+test_expect_success ROOT,SERVICE,CASYNC "rauc install (verity, casync, http)" "
+  start_rauc_dbus_service_with_system \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service_with_system &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  rauc \
+    install http://127.0.0.1/test/good-casync-bundle-verity.raucb &&
+  test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
+"
+
 test_expect_success ROOT,SERVICE,STREAMING "rauc install (streaming)" "
   start_rauc_dbus_service_with_system \
     --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
