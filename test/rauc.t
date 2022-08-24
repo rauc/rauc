@@ -731,6 +731,8 @@ test_expect_success CASYNC "rauc convert (error)" "
 test_expect_success CASYNC "rauc convert casync extra args" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
+  test_when_finished rm -rf ${TEST_TMPDIR}/casync-extra-args.raucb &&
+  test_when_finished rm -rf ${TEST_TMPDIR}/casync-extra-args.castr &&
   rm -f casync-extra-args.raucb &&
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
@@ -739,20 +741,23 @@ test_expect_success CASYNC "rauc convert casync extra args" "
     convert \
     --casync-args=\"--chunk-size=64000\" \
     ${TEST_TMPDIR}/good-bundle.raucb casync-extra-args.raucb &&
-  test -f casync-extra-args.raucb
+  test -f casync-extra-args.raucb &&
+  test -d casync-extra-args.castr
 "
 
 test_expect_success DESYNC "rauc convert with desync" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
-  rm -f desync.raucb &&
+  test_when_finished rm -f desync.raucb &&
+  test_when_finished rm -rf desync.castr &&
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
     --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
     --conf $SHARNESS_TEST_DIRECTORY/minimal-desync-test.conf \
     convert ${TEST_TMPDIR}/good-bundle.raucb desync.raucb &&
-  test -f desync.raucb
+  test -f desync.raucb &&
+  test -d desync.castr
 "
 
 test_expect_success DESYNC "rauc convert with desync (output exists)" "
