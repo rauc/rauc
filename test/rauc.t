@@ -228,6 +228,18 @@ test_expect_success "rauc info (verity)" "
     info ${SHARNESS_TEST_DIRECTORY}/good-verity-bundle.raucb
 "
 
+test_expect_success "rauc info (casync, plain)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-casync-bundle-1.5.1.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-casync-bundle-1.5.1.raucb &&
+  rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    info ${TEST_TMPDIR}/good-casync-bundle-1.5.1.raucb
+"
+
+test_expect_success "rauc info (casync, verity)" "
+  rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    info ${SHARNESS_TEST_DIRECTORY}/good-casync-bundle-verity.raucb
+"
+
 test_expect_success "rauc info (crypt, unencrypted)" "
   rauc info \
     --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
