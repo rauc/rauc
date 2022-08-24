@@ -457,7 +457,7 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 	/* Prepare Seed */
 	seedslot = get_active_slot_class_member(image->slotclass);
 	if (!seedslot) {
-		g_warning("No casync seed slot available for %s", image->slotclass);
+		g_message("No casync seed slot available for %s", image->slotclass);
 		goto extract;
 	}
 
