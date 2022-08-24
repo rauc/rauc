@@ -785,6 +785,26 @@ test_expect_success CASYNC "rauc convert casync extra args" "
   test -d casync-extra-args.castr
 "
 
+test_expect_success CASYNC "rauc convert (verity)" "
+  test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
+  test_when_finished rm -f ${TEST_TMPDIR}/tmp-verity.raucb &&
+  test_when_finished rm -f ${TEST_TMPDIR}/casync-verity.raucb &&
+  test_when_finished rm -rf ${TEST_TMPDIR}/casync-verity.castr &&
+  cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    bundle ${TEST_TMPDIR}/install-content/ ${TEST_TMPDIR}/tmp-verity.raucb &&
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    --trust-environment \
+    convert ${TEST_TMPDIR}/tmp-verity.raucb ${TEST_TMPDIR}/casync-verity.raucb &&
+  test -f ${TEST_TMPDIR}/casync-verity.raucb &&
+  test -d ${TEST_TMPDIR}/casync-verity.castr
+"
+
 test_expect_success DESYNC "rauc convert with desync" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
