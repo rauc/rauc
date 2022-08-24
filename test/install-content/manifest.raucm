@@ -2,6 +2,9 @@
 compatible=Test Config
 version=2011.03-2
 
+[bundle]
+format=verity
+
 [image.rootfs]
 sha256=de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31
 size=65536
