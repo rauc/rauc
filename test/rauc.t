@@ -1032,6 +1032,8 @@ test_expect_success OPENSSL "rauc replace signature (invalid bundle/signature/ou
 "
 
 test_expect_success "rauc bundle (crypt bundle)" "
+  test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
+  test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
   cp ${SHARNESS_TEST_DIRECTORY}/install-content/manifest.raucm.crypt ${TEST_TMPDIR}/install-content/manifest.raucm &&
   dd if=/dev/urandom of=${TEST_TMPDIR}/install-content/dummy.data bs=1M count=1 &&
