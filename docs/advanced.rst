@@ -619,6 +619,8 @@ As the encrypted payload is still the identical for each subset's bundle and onl
 CMS structure (containing the signed manifest) differs, the payload needs to be stored only once.
 If needed, this could be implemented in a web application or using a reflink-capable Linux filesystem.
 
+.. _sec-data-storage:
+
 Data Storage and Migration
 --------------------------
 
