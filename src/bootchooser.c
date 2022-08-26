@@ -568,6 +568,15 @@ static RaucSlot* grub_get_primary(GError **error)
 		return NULL;
 	}
 
+	if (!order->len) {
+		g_set_error_literal(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Variable ORDER is empty");
+		return NULL;
+	}
+
 	/* Iterate over current boot order */
 	bootnames = g_strsplit(order->str, " ", -1);
 	for (gchar **bootname = bootnames; *bootname; bootname++) {
@@ -609,11 +618,11 @@ static RaucSlot* grub_get_primary(GError **error)
 	}
 
 	if (!primary) {
-		g_set_error_literal(
+		g_set_error(
 				error,
 				R_BOOTCHOOSER_ERROR,
 				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
-				"Unable to detect primary slot");
+				"No bootable slot found in ORDER '%s'", order->str);
 	}
 
 	return primary;
@@ -1453,12 +1462,15 @@ static gboolean custom_backend_get(const gchar *cmd, const gchar *bootname, gcha
 				"Failed to run %s: ", backend_name);
 		return FALSE;
 	}
-	data = g_bytes_get_data(stdout_buf, &size);
-	*ret_str = g_strndup(data, size);
 
-	/* Cleanup string for newlines */
-	if (size > 0)
-		g_strstrip(*ret_str);
+	if (!g_subprocess_get_if_exited(sub)) {
+		g_set_error(
+				error,
+				G_SPAWN_ERROR,
+				G_SPAWN_ERROR_FAILED,
+				"%s did not exit normally", backend_name);
+		return FALSE;
+	}
 
 	ret = g_subprocess_get_exit_status(sub);
 	if (ret != 0) {
@@ -1466,9 +1478,16 @@ static gboolean custom_backend_get(const gchar *cmd, const gchar *bootname, gcha
 				error,
 				G_SPAWN_EXIT_ERROR,
 				ret,
-				"%s failed with wrong exit code", backend_name);
+				"%s failed with exit code %d", backend_name, ret);
 		return FALSE;
 	}
+
+	data = g_bytes_get_data(stdout_buf, &size);
+	*ret_str = g_strndup(data, size);
+
+	/* Cleanup string for newlines */
+	if (size > 0)
+		g_strstrip(*ret_str);
 
 	return TRUE;
 }
@@ -1555,11 +1574,11 @@ static RaucSlot* custom_get_primary(GError **error)
 	}
 
 	if (!primary) {
-		g_set_error_literal(
+		g_set_error(
 				error,
 				R_BOOTCHOOSER_ERROR,
 				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
-				"Unable to obtain primary slot");
+				"'%s' does not match any configured bootname", ret_str);
 	}
 
 	return primary;
@@ -1588,7 +1607,7 @@ static gboolean custom_get_state(RaucSlot *slot, gboolean *good, GError **error)
 				error,
 				R_BOOTCHOOSER_ERROR,
 				R_BOOTCHOOSER_ERROR_FAILED,
-				"Invalid string obtained from custom bootloader backend: '%s'", ret_str);
+				"Obtained string does not match \"good\" or \"bad\": '%s'", ret_str);
 		return FALSE;
 	}
 
@@ -1614,6 +1633,9 @@ gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 	g_return_val_if_fail(good, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	/* Function must not be called for slots without a bootname! */
+	g_assert_nonnull(slot->bootname);
+
 	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
 		res = barebox_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
@@ -1637,7 +1659,7 @@ gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed to get state of %s: ", slot->name);
+				"%s backend: ", r_context()->config->system_bootloader);
 	}
 
 	return res;
@@ -1677,7 +1699,7 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed marking '%s' as %s: ", slot->name, good ? "good" : "bad");
+				"%s backend: ", r_context()->config->system_bootloader);
 	}
 
 	return res;
@@ -1713,7 +1735,7 @@ RaucSlot* r_boot_get_primary(GError **error)
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed getting primary slot: ");
+				"%s backend: ", r_context()->config->system_bootloader);
 	}
 
 	return slot;
@@ -1753,7 +1775,7 @@ gboolean r_boot_set_primary(RaucSlot *slot, GError **error)
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed marking '%s' as primary: ", slot->name);
+				"%s backend: ", r_context()->config->system_bootloader);
 	}
 
 	return res;
