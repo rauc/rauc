@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <gio/gio.h>
 #include <string.h>
 
@@ -273,12 +274,14 @@ gboolean r_context_configure(GError **error)
 
 	if (context->config->data_directory) {
 		if (g_mkdir_with_parents(context->config->data_directory, 0700) != 0) {
+			int err = errno;
 			g_set_error(
 					error,
 					G_FILE_ERROR,
-					G_FILE_ERROR_FAILED,
-					"Failed to create data directory '%s'",
-					context->config->data_directory);
+					g_file_error_from_errno(err),
+					"Failed to create data directory '%s': %s",
+					context->config->data_directory,
+					g_strerror(err));
 			return FALSE;
 		}
 	}
