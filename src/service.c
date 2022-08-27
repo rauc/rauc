@@ -51,6 +51,28 @@ static gboolean service_install_cleanup(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
+/*
+ * Constructs RaucBundleAccessArgs from a GVariant dictionary.
+ */
+static void convert_dict_to_bundle_access_args(
+		GVariantDict *dict,
+		RaucBundleAccessArgs *access_args)
+{
+	g_return_if_fail(dict);
+	g_return_if_fail(access_args);
+
+	if (g_variant_dict_lookup(dict, "tls-cert", "s", &access_args->tls_cert))
+		g_variant_dict_remove(dict, "tls-cert");
+	if (g_variant_dict_lookup(dict, "tls-key", "s", &access_args->tls_key))
+		g_variant_dict_remove(dict, "tls-key");
+	if (g_variant_dict_lookup(dict, "tls-ca", "s", &access_args->tls_ca))
+		g_variant_dict_remove(dict, "tls-ca");
+	if (g_variant_dict_lookup(dict, "tls-no-verify", "b", &access_args->tls_no_verify))
+		g_variant_dict_remove(dict, "tls-no-verify");
+	if (g_variant_dict_lookup(dict, "http-headers", "^as", &access_args->http_headers))
+		g_variant_dict_remove(dict, "http-headers");
+}
+
 static gboolean r_on_handle_install_bundle(
 		RInstaller *interface,
 		GDBusMethodInvocation *invocation,
@@ -79,16 +101,8 @@ static gboolean r_on_handle_install_bundle(
 
 	if (g_variant_dict_lookup(&dict, "ignore-compatible", "b", &args->ignore_compatible))
 		g_variant_dict_remove(&dict, "ignore-compatible");
-	if (g_variant_dict_lookup(&dict, "tls-cert", "s", &args->access_args.tls_cert))
-		g_variant_dict_remove(&dict, "tls-cert");
-	if (g_variant_dict_lookup(&dict, "tls-key", "s", &args->access_args.tls_key))
-		g_variant_dict_remove(&dict, "tls-key");
-	if (g_variant_dict_lookup(&dict, "tls-ca", "s", &args->access_args.tls_ca))
-		g_variant_dict_remove(&dict, "tls-ca");
-	if (g_variant_dict_lookup(&dict, "tls-no-verify", "b", &args->access_args.tls_no_verify))
-		g_variant_dict_remove(&dict, "tls-no-verify");
-	if (g_variant_dict_lookup(&dict, "http-headers", "^as", &args->access_args.http_headers))
-		g_variant_dict_remove(&dict, "http-headers");
+
+	convert_dict_to_bundle_access_args(&dict, &args->access_args);
 
 	/* Check for unhandled keys */
 	g_variant_iter_init(&iter, g_variant_dict_end(&dict));
@@ -133,10 +147,41 @@ static gboolean r_on_handle_install(RInstaller *interface,
 	return r_on_handle_install_bundle(interface, invocation, arg_source, NULL);
 }
 
-static gboolean r_on_handle_info(RInstaller *interface,
-		GDBusMethodInvocation  *invocation,
-		const gchar *arg_bundle)
+static GVariant* convert_bundle_info_to_dict(RaucManifest *manifest)
 {
+	GVariantDict dict;
+	GVariantDict update_dict;
+
+	g_variant_dict_init(&dict, NULL);
+
+	/* construct 'update' dict */
+	g_variant_dict_init(&update_dict, NULL);
+
+	if (manifest->update_compatible)
+		g_variant_dict_insert(&update_dict, "compatible", "s", manifest->update_compatible);
+
+	if (manifest->update_version)
+		g_variant_dict_insert(&update_dict, "version", "s", manifest->update_version);
+
+	if (manifest->update_description)
+		g_variant_dict_insert(&update_dict, "description", "s", manifest->update_description);
+
+	if (manifest->update_build)
+		g_variant_dict_insert(&update_dict, "build", "s", manifest->update_build);
+
+	g_variant_dict_insert(&dict, "update", "v", g_variant_dict_end(&update_dict));
+
+	return g_variant_dict_end(&dict);
+}
+
+static gboolean r_on_handle_inspect_bundle(RInstaller *interface,
+		GDBusMethodInvocation  *invocation,
+		const gchar *arg_bundle, GVariant *arg_args)
+{
+	RaucBundleAccessArgs access_args = {0};
+	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(arg_args);
+	GVariantIter iter;
+	gchar *key;
 	g_autoptr(RaucManifest) manifest = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
 	GError *error = NULL;
@@ -148,7 +193,18 @@ static gboolean r_on_handle_info(RInstaller *interface,
 	if (!res)
 		goto out;
 
-	res = check_bundle(arg_bundle, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &error);
+	convert_dict_to_bundle_access_args(&dict, &access_args);
+
+	/* Check for unhandled keys */
+	g_variant_iter_init(&iter, g_variant_dict_end(&dict));
+	while (g_variant_iter_next(&iter, "{sv}", &key, NULL)) {
+		g_warning("Unsupported key: %s", key);
+		g_free(key);
+		res = FALSE;
+		goto out;
+	}
+
+	res = check_bundle(arg_bundle, &bundle, CHECK_BUNDLE_DEFAULT, &access_args, &error);
 	if (!res) {
 		g_warning("%s", error->message);
 		g_clear_error(&error);
@@ -168,11 +224,23 @@ static gboolean r_on_handle_info(RInstaller *interface,
 
 out:
 	if (res) {
-		r_installer_complete_info(
-				interface,
-				invocation,
-				manifest->update_compatible,
-				manifest->update_version ? manifest->update_version : "");
+		if (arg_args) {
+			GVariant *info_variant;
+
+			info_variant = convert_bundle_info_to_dict(manifest);
+
+			r_installer_complete_inspect_bundle(
+					interface,
+					invocation,
+					info_variant);
+		} else {
+			/* arg_args unset means legacy API */
+			r_installer_complete_info(
+					interface,
+					invocation,
+					manifest->update_compatible,
+					manifest->update_version ? manifest->update_version : "");
+		}
 	} else {
 		g_dbus_method_invocation_return_error(invocation,
 				G_IO_ERROR,
@@ -181,6 +249,14 @@ out:
 	}
 
 	return TRUE;
+}
+
+static gboolean r_on_handle_info(RInstaller *interface,
+		GDBusMethodInvocation  *invocation,
+		const gchar *arg_bundle)
+{
+	g_message("Using deprecated 'Info' D-Bus Method (replaced by 'InspectBundle')");
+	return r_on_handle_inspect_bundle(interface, invocation, arg_bundle, NULL);
 }
 
 static gboolean r_on_handle_mark(RInstaller *interface,
@@ -470,6 +546,10 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 
 	g_signal_connect(r_installer, "handle-info",
 			G_CALLBACK(r_on_handle_info),
+			NULL);
+
+	g_signal_connect(r_installer, "handle-inspect-bundle",
+			G_CALLBACK(r_on_handle_inspect_bundle),
 			NULL);
 
 	g_signal_connect(r_installer, "handle-mark",
