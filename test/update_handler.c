@@ -416,7 +416,7 @@ no_image:
 			g_assert_cmpint(sum_zero, >=, IMAGE_SIZE/4096 - 29);
 			g_assert_cmpint(sum_target_written, >=, 0);
 			g_assert_cmpint(sum_target, ==, 0);
-			g_assert_cmpint(sum_source, <=, 28);
+			g_assert_cmpint(sum_source, <=, 29);
 		}
 
 		/* Number of total lookups must not increase in lookup order */
