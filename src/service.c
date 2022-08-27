@@ -51,6 +51,25 @@ static gboolean service_install_cleanup(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
+/*
+ * Constructs a GVariant dictionary representing a slot status.
+ */
+static void convert_dict_to_bundle_access_args(
+		GVariantDict *dict,
+		RaucBundleAccessArgs *access_args)
+{
+	if (g_variant_dict_lookup(dict, "tls-cert", "s", &access_args->tls_cert))
+		g_variant_dict_remove(dict, "tls-cert");
+	if (g_variant_dict_lookup(dict, "tls-key", "s", &access_args->tls_key))
+		g_variant_dict_remove(dict, "tls-key");
+	if (g_variant_dict_lookup(dict, "tls-ca", "s", &access_args->tls_ca))
+		g_variant_dict_remove(dict, "tls-ca");
+	if (g_variant_dict_lookup(dict, "tls-no-verify", "b", &access_args->tls_no_verify))
+		g_variant_dict_remove(dict, "tls-no-verify");
+	if (g_variant_dict_lookup(dict, "http-headers", "^as", &access_args->http_headers))
+		g_variant_dict_remove(dict, "http-headers");
+}
+
 static gboolean r_on_handle_install_bundle(
 		RInstaller *interface,
 		GDBusMethodInvocation *invocation,
@@ -79,16 +98,8 @@ static gboolean r_on_handle_install_bundle(
 
 	if (g_variant_dict_lookup(&dict, "ignore-compatible", "b", &args->ignore_compatible))
 		g_variant_dict_remove(&dict, "ignore-compatible");
-	if (g_variant_dict_lookup(&dict, "tls-cert", "s", &args->access_args.tls_cert))
-		g_variant_dict_remove(&dict, "tls-cert");
-	if (g_variant_dict_lookup(&dict, "tls-key", "s", &args->access_args.tls_key))
-		g_variant_dict_remove(&dict, "tls-key");
-	if (g_variant_dict_lookup(&dict, "tls-ca", "s", &args->access_args.tls_ca))
-		g_variant_dict_remove(&dict, "tls-ca");
-	if (g_variant_dict_lookup(&dict, "tls-no-verify", "b", &args->access_args.tls_no_verify))
-		g_variant_dict_remove(&dict, "tls-no-verify");
-	if (g_variant_dict_lookup(&dict, "http-headers", "^as", &args->access_args.http_headers))
-		g_variant_dict_remove(&dict, "http-headers");
+
+	convert_dict_to_bundle_access_args(&dict, &args->access_args);
 
 	/* Check for unhandled keys */
 	g_variant_iter_init(&iter, g_variant_dict_end(&dict));
@@ -133,10 +144,14 @@ static gboolean r_on_handle_install(RInstaller *interface,
 	return r_on_handle_install_bundle(interface, invocation, arg_source, NULL);
 }
 
-static gboolean r_on_handle_info(RInstaller *interface,
+static gboolean r_on_handle_info_bundle(RInstaller *interface,
 		GDBusMethodInvocation  *invocation,
-		const gchar *arg_bundle)
+		const gchar *arg_bundle, GVariant *arg_args)
 {
+	RaucBundleAccessArgs access_args;
+	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(arg_args);
+	GVariantIter iter;
+	gchar *key;
 	g_autoptr(RaucManifest) manifest = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
 	GError *error = NULL;
@@ -144,11 +159,24 @@ static gboolean r_on_handle_info(RInstaller *interface,
 
 	g_print("bundle: %s\n", arg_bundle);
 
+	memset(&access_args, 0, sizeof(access_args));
+
 	res = !r_context_get_busy();
 	if (!res)
 		goto out;
 
-	res = check_bundle(arg_bundle, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &error);
+	convert_dict_to_bundle_access_args(&dict, &access_args);
+
+	/* Check for unhandled keys */
+	g_variant_iter_init(&iter, g_variant_dict_end(&dict));
+	while (g_variant_iter_next(&iter, "{sv}", &key, NULL)) {
+		g_warning("Unsupported key: %s", key);
+		g_free(key);
+		res = FALSE;
+		goto out;
+	}
+
+	res = check_bundle(arg_bundle, &bundle, CHECK_BUNDLE_DEFAULT, &access_args, &error);
 	if (!res) {
 		g_warning("%s", error->message);
 		g_clear_error(&error);
@@ -181,6 +209,14 @@ out:
 	}
 
 	return TRUE;
+}
+
+static gboolean r_on_handle_info(RInstaller *interface,
+		GDBusMethodInvocation  *invocation,
+		const gchar *arg_bundle)
+{
+	g_message("Using deprecated 'Info' D-Bus Method (replaced by 'InfoBundle')");
+	return r_on_handle_info_bundle(interface, invocation, arg_bundle, NULL);
 }
 
 static gboolean r_on_handle_mark(RInstaller *interface,
@@ -470,6 +506,10 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 
 	g_signal_connect(r_installer, "handle-info",
 			G_CALLBACK(r_on_handle_info),
+			NULL);
+
+	g_signal_connect(r_installer, "handle-info-bundle",
+			G_CALLBACK(r_on_handle_info_bundle),
 			NULL);
 
 	g_signal_connect(r_installer, "handle-mark",
