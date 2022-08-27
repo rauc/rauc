@@ -36,6 +36,21 @@
       <arg name="compatible" type="s" direction="out" />
       <arg name="version" type="s" direction="out" />
     </method>
+ 
+    <!--
+    InfoBundle: D-Bus variant of rauc info <bundle>
+    @bundle: full path to the queried bundle.
+    @args: Additional arguments to pass
+    @compatible: the compatible string from the bundle
+    @version: the version string from the bundle
+   -->
+   <method name="InfoBundle">
+      <arg name="bundle" type="s" direction="in" />
+      <arg name="args" type="a{sv}" direction="in"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.In1" value="QVariantMap"/>
+      <arg name="compatible" type="s" direction="out" />
+      <arg name="version" type="s" direction="out" />
+    </method>
 
     <!--
          Mark:
