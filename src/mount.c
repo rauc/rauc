@@ -294,12 +294,14 @@ gchar* r_create_mount_point(const gchar *name, GError **error)
 		ret = g_mkdir_with_parents(mountpoint, 0700);
 
 		if (ret != 0) {
+			int err = errno;
 			g_set_error(
 					error,
 					G_FILE_ERROR,
-					G_FILE_ERROR_FAILED,
-					"Failed creating mount path '%s'",
-					mountpoint);
+					g_file_error_from_errno(err),
+					"Failed creating mount path '%s': %s",
+					mountpoint,
+					g_strerror(err));
 			g_free(mountpoint);
 			mountpoint = NULL;
 			goto out;

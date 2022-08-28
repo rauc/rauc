@@ -1,3 +1,5 @@
+#include <errno.h>
+
 #include "slot.h"
 
 #include "utils.h"
@@ -198,12 +200,14 @@ gchar *r_slot_get_checksum_data_directory(const RaucSlot *slot, const RaucChecks
 
 	path = g_build_filename(slot->data_directory, sub_directory, NULL);
 	if (g_mkdir_with_parents(path, 0700) != 0) {
+		int err = errno;
 		g_set_error(
 				error,
 				G_FILE_ERROR,
-				G_FILE_ERROR_FAILED,
-				"Failed to create slot data directory '%s'",
-				path);
+				g_file_error_from_errno(err),
+				"Failed to create slot data directory '%s': %s",
+				path,
+				g_strerror(err));
 		return NULL;
 	}
 

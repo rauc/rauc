@@ -336,12 +336,14 @@ static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath,
 			ret_mkdir = g_mkdir_with_parents(desync_store, 0755);
 
 			if (ret_mkdir != 0) {
+				int err = errno;
 				g_set_error(
 						error,
 						G_FILE_ERROR,
-						G_FILE_ERROR_FAILED,
-						"Failed creating Desync store directory '%s'",
-						desync_store);
+						g_file_error_from_errno(err),
+						"Failed creating Desync store directory '%s': %s",
+						desync_store,
+						g_strerror(err));
 				res = FALSE;
 				goto out;
 			}
