@@ -53,15 +53,12 @@ Features
   * Custom implementation
 * Storage support:
 
-  * ext4 filesystem
+  * read-only filesystems: SquashFS, EROFS, dm-verity protected images, ...
+  * read-write filesystems: ext4, VFAT, UBIFS, JFFS2
   * eMMC boot partitions (atomic update)
-  * vfat filesystem
   * UBI volumes
-  * UBIFS
-  * JFFS2
   * raw NAND flash (using nandwrite)
   * raw NOR flash (using flashcp)
-  * squashfs
   * MBR partition table
   * GPT partition table
 * Independent from update source
