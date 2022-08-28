@@ -271,6 +271,18 @@ gboolean r_context_configure(GError **error)
 			break;
 	}
 
+	if (context->config->data_directory) {
+		if (g_mkdir_with_parents(context->config->data_directory, 0700) != 0) {
+			g_set_error(
+					error,
+					G_FILE_ERROR,
+					G_FILE_ERROR_FAILED,
+					"Failed to create data directory '%s'",
+					context->config->data_directory);
+			return FALSE;
+		}
+	}
+
 	if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_DTB) {
 		gchar *compatible = get_system_dtb_compatible(&ierror);
 		if (!compatible) {
