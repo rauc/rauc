@@ -16,7 +16,7 @@ Source Code: https://github.com/rauc/rauc
 Documentation: https://rauc.readthedocs.org/
 
 Chat: IRC channel ``#rauc`` on libera.chat (bridged to the
-`Matrix channel #rauc:matrix.org <https://app.element.io/#/room/#rauc:matrix.org>`_)
+`Matrix channel #rauc:matrix.org <https://matrix.to/#/#rauc:matrix.org>`_)
 
 Features
 --------
@@ -268,7 +268,7 @@ section for more details.
 .. |Documentation| image:: https://readthedocs.org/projects/rauc/badge/?version=latest
    :target: http://rauc.readthedocs.org/en/latest/?badge=latest
 .. |Matrix| image:: https://img.shields.io/matrix/rauc:matrix.org?label=matrix%20chat
-   :target: https://app.element.io/#/room/#rauc:matrix.org
+   :target: https://matrix.to/#/#rauc:matrix.org
 .. |lgtm| image:: https://img.shields.io/lgtm/grade/cpp/g/rauc/rauc.svg?logo=lgtm&logoWidth=18
    :target: https://lgtm.com/projects/g/rauc/rauc/context:cpp
 .. |CII Best Practices| image:: https://bestpractices.coreinfrastructure.org/projects/5075/badge
