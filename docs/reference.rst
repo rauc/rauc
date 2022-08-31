@@ -1148,6 +1148,8 @@ Methods
 
 :ref:`Info <gdbus-method-de-pengutronix-rauc-Installer.Info>` (IN  s bundle, s compatible, s version);
 
+:ref:`InspectBundle <gdbus-method-de-pengutronix-rauc-Installer.InspectBundle>` (IN  s source, IN a{sv} args, a{sv} info);
+
 :ref:`Mark <gdbus-method-de-pengutronix-rauc-Installer.Mark>` (IN  s state, IN  s slot_identifier, s slot_name, s message);
 
 :ref:`GetSlotStatus <gdbus-method-de-pengutronix-rauc-Installer.GetSlotStatus>` (a(sa{sv}) slot_status_array);
@@ -1244,6 +1246,8 @@ IN s *source*:
 The Info() Method
 ^^^^^^^^^^^^^^^^^
 
+.. note:: This method is deprecated. Use InspectBundle() instead.
+
 .. code::
 
   de.pengutronix.rauc.Installer.Info()
@@ -1259,6 +1263,59 @@ s *compatible*:
 
 s *version*:
     Version string of bundle
+
+.. _gdbus-method-de-pengutronix-rauc-Installer.InspectBundle:
+
+The InspectBundle() Method
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer.InspectBundle()
+  InspectBundle (IN  s bundle, IN a{sv} args, a{sv} info);
+
+Provides bundle info.
+
+IN s *bundle*:
+    Path or URL to the bundle that should be queried for information
+
+IN a{sv} *args*:
+    Arguments to pass to information
+
+    Currently supported:
+
+    :STRING 'tls-cert', VARIANT 's' <filename/pkcs11-url>: Use the provided
+        certificate for TLS client authentication
+
+    :STRING 'tls-key', VARIANT 's' <filename/pkcs11-url>: Use the provided
+        private key for TLS client authentication
+
+    :STRING 'tls-ca', VARIANT 's' <filename/pkcs11-url>: Use the provided
+        certificate to authenticate the server (instead of the system wide
+        store)
+
+    :STRING 'http-headers', VARIANT 'as' <array of strings>: Add the provided
+        headers to every request (i.e. for bearer tokens)
+
+    :STRING 'tls-no-verify', VARIANT 'b' <true/false>: Ignore verification
+        errors for the server certificate
+
+a{sv} *info*:
+    Bundle info
+
+    :STRING 'update', VARIANT 'v' <update>: The bundle's update section content
+
+        :STRING 'compatible', VARIANT 's' <compatible>: The bundle's compatible noted
+            in manifest
+
+        :STRING 'version', VARIANT 's' <version>: The bundle's version noted
+            in manifest
+
+        :STRING 'description', VARIANT 's' <description>: The bundle's description
+            text noted in manifest
+
+        :STRING 'build', VARIANT 's' <build>: The bundle's build ID noted in
+            manifest
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.Mark:
 
