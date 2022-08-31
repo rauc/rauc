@@ -337,7 +337,7 @@ static void service_test_install_deprecated(ServiceFixture *fixture, gconstpoint
 	service_test_install(fixture, user_data, TRUE);
 }
 
-static void service_test_info(ServiceFixture *fixture, gconstpointer user_data)
+static void service_test_info(ServiceFixture *fixture, gconstpointer user_data, gboolean deprecated)
 {
 	GError *error = NULL;
 	gchar *compatible;
@@ -365,12 +365,23 @@ static void service_test_info(ServiceFixture *fixture, gconstpointer user_data)
 		goto out;
 	}
 
-	r_installer_call_info_sync(installer,
-			bundlepath,
-			&compatible,
-			&version,
-			NULL,
-			&error);
+	if (deprecated) {
+		r_installer_call_info_sync(installer,
+				bundlepath,
+				&compatible,
+				&version,
+				NULL,
+				&error);
+	} else {
+		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
+		r_installer_call_info_bundle_sync(installer,
+				bundlepath,
+				g_variant_dict_end(&dict), /* floating, no unref needed */
+				&compatible,
+				&version,
+				NULL,
+				&error);
+	}
 	g_assert_no_error(error);
 	g_assert_cmpstr(compatible, ==, "Test Config");
 	g_assert_cmpstr(version, ==, "2011.03-2");
@@ -379,6 +390,16 @@ out:
 	g_clear_object(&installer);
 	g_free(compatible);
 	g_free(version);
+}
+
+static void service_test_info_bundle(ServiceFixture *fixture, gconstpointer user_data)
+{
+	service_test_info(fixture, user_data, FALSE);
+}
+
+static void service_test_info_deprecated(ServiceFixture *fixture, gconstpointer user_data)
+{
+	service_test_info(fixture, user_data, TRUE);
 }
 
 static void service_test_slot_status(ServiceFixture *fixture, gconstpointer user_data)
@@ -435,8 +456,12 @@ int main(int argc, char *argv[])
 			service_install_fixture_set_up, service_test_install_api,
 			service_fixture_tear_down);
 
-	g_test_add("/service/info", ServiceFixture, NULL,
-			service_info_fixture_set_up, service_test_info,
+	g_test_add("/service/info-bundle", ServiceFixture, NULL,
+			service_info_fixture_set_up, service_test_info_bundle,
+			service_fixture_tear_down);
+
+	g_test_add("/service/info-deprecated", ServiceFixture, NULL,
+			service_info_fixture_set_up, service_test_info_deprecated,
 			service_fixture_tear_down);
 
 	g_test_add("/service/slot-status", ServiceFixture, NULL,
