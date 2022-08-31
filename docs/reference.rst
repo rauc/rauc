@@ -1147,6 +1147,8 @@ Methods
 
 :ref:`Info <gdbus-method-de-pengutronix-rauc-Installer.Info>` (IN  s bundle, s compatible, s version);
 
+:ref:`InfoBundle <gdbus-method-de-pengutronix-rauc-Installer.InfoBundle>` (IN  s bundle, IN a{sv} args, s compatible, s version);
+
 :ref:`Mark <gdbus-method-de-pengutronix-rauc-Installer.Mark>` (IN  s state, IN  s slot_identifier, s slot_name, s message);
 
 :ref:`GetSlotStatus <gdbus-method-de-pengutronix-rauc-Installer.GetSlotStatus>` (a(sa{sv}) slot_status_array);
@@ -1243,6 +1245,8 @@ IN s *source*:
 The Info() Method
 ^^^^^^^^^^^^^^^^^
 
+.. note:: This method is deprecated.
+
 .. code::
 
   de.pengutronix.rauc.Installer.Info()
@@ -1252,6 +1256,48 @@ Provides bundle info.
 
 IN s *bundle*:
     Path to bundle information should be shown
+
+s *compatible*:
+    Compatible of bundle
+
+s *version*:
+    Version string of bundle
+
+.. _gdbus-method-de-pengutronix-rauc-Installer.InfoBundle:
+
+The InfoBundle() Method
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer.InfoBundle()
+  InfoBundle (IN  s bundle, IN a{sv} args, s compatible, s version);
+
+Provides bundle info.
+
+IN s *bundle*:
+    Path to bundle information should be shown
+
+IN a{sv} *args*:
+    Arguments to pass to information
+
+    Currently supported:
+
+    :STRING 'tls-cert', VARIANT 's' <filename/pkcs11-url>: Use the provided
+        certificate for TLS client authentication
+
+    :STRING 'tls-key', VARIANT 's' <filename/pkcs11-url>: Use the provided
+        private key for TLS client authentication
+
+    :STRING 'tls-ca', VARIANT 's' <filename/pkcs11-url>: Use the provided
+        certificate to authenticate the server (instead of the system wide
+        store)
+
+    :STRING 'http-headers', VARIANT 'as' <array of strings>: Add the provided
+        headers to every request (i.e. for bearer tokens)
+
+    :STRING 'tls-no-verify', VARIANT 'b' <true/false>: Ignore verification
+        errors for the server certificate
 
 s *compatible*:
     Compatible of bundle
