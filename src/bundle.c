@@ -1891,13 +1891,19 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 	g_autoptr(GBytes) manifest_bytes = NULL;
 	gchar *bundlescheme = NULL;
 	gboolean detached;
+	gboolean remote_scheme;
+	gboolean num_sub_steps = verify;
 
 	g_return_val_if_fail(bundlename, FALSE);
 	g_return_val_if_fail(bundle != NULL && *bundle == NULL, FALSE);
 	g_return_val_if_fail(!(params & TRUE), FALSE); /* protect against passing TRUE as the params enum */
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	r_context_begin_step("check_bundle", "Checking bundle", verify);
+	bundlescheme = g_uri_parse_scheme(bundlename);
+	remote_scheme = is_remote_scheme(bundlescheme);
+	num_sub_steps += remote_scheme; /* add an additional step if we need to download the bundle */
+
+	r_context_begin_step("check_bundle", "Checking bundle", num_sub_steps);
 
 	if (verify && !r_context()->config->keyring_path && !r_context()->config->keyring_directory) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_KEYRING, "No keyring file or directory provided");
@@ -1908,8 +1914,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 	ibundle->verification_disabled = !verify;
 
 	/* Download Bundle to temporary location if remote URI is given */
-	bundlescheme = g_uri_parse_scheme(bundlename);
-	if (is_remote_scheme(bundlescheme)) {
+	if (remote_scheme) {
 #if ENABLE_STREAMING
 		ibundle->path = g_strdup(bundlename);
 

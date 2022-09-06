@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "context.h"
 #include "network.h"
 
 /* We need to make sure that we can support large bundles. */
@@ -68,6 +69,10 @@ static int xfer_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 			xfer->err = g_strdup("Maximum bundle download size exceeded. Download aborted.");
 			return 1;
 		}
+	}
+
+	if (dltotal != 0) {
+		r_context_set_step_percentage("download_bundle", dlnow * 100 / dltotal);
 	}
 
 	return 0;
@@ -151,6 +156,8 @@ gboolean download_file(const gchar *target, const gchar *url, goffset limit, GEr
 	xfer.url = url;
 	xfer.limit = limit;
 
+	r_context_begin_step("download_bundle", "Downloading bundle", 0);
+
 	/* TODO: resume incomplete downloads */
 
 	xfer.dl = fopen(target, "wbx");
@@ -173,6 +180,8 @@ out:
 		}
 		xfer.dl = NULL;
 	}
+
+	r_context_end_step("download_bundle", res);
 
 	return res;
 }
