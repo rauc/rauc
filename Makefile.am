@@ -192,6 +192,8 @@ EXTRA_DIST += tap-t \
 	      qemu-test qemu-test-init qemu-test-rauc-config \
 	      test/Dockerfile \
 	      test/bin \
+	      $(wildcard test/good-casync-bundle-1.4.castr/*/*.cacnk) \
+	      $(wildcard test/good-casync-bundle-1.5.1.castr/*/*.cacnk) \
 	      test/install-content \
 	      test/openssl-ca \
 	      $(wildcard test/*.raucb) \
@@ -202,6 +204,7 @@ EXTRA_DIST += tap-t \
 	      test/nginx.conf \
 	      test/nginx.htpasswd \
 	      test/nginx_backend.py \
+	      $(wildcard test/openssl-enc/keys/*/*.pem) \
 	      test/rauc.t \
 	      test/rootfs.raucs \
 	      test/sharness.sh \
@@ -212,6 +215,7 @@ EXTRA_DIST += tap-t \
 	      test/get-coverity.sh \
 	      test/openssl-ca-create.sh \
 	      test/openssl-ca-check.sh \
+	      test/openssl-enc-create.sh \
 	      test/run-coverity.sh
 
 librauctest_la_SOURCES = \
