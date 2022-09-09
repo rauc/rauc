@@ -764,7 +764,7 @@ bundles.
 It can be considered only an optimization of download size for bundle streaming.
 
 To enable adaptive updates during bundle creation, add
-``adaptive=<method>`` to the relevant ``[[image.<slot class>]]`` sections of
+``adaptive=<method>`` to the relevant ``[image.<slot class>]`` sections of
 your manifest and configure the :ref:`shared data directory <data-directory>` in
 your ``system.conf``.
 
