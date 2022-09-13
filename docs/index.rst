@@ -90,8 +90,8 @@ incorporate with all common bootloaders.
 RAUC does NOT intend to be a deployment server.
 On your host side, it only creates the update artifacts.
 You may want to have a look at
-`rauc-hawkbit <https://github.com/rauc/rauc-hawkbit>`_ for interfacing with the
-hawkBit deployment server.
+`rauc-hawkbit-updater <https://github.com/rauc/rauc-hawkbit-updater>`_ for
+interfacing with the hawkBit deployment server.
 
 RAUC bundles are NOT a general purpose transport container.
 This means that on your target side you should not use ``rauc extract``.
