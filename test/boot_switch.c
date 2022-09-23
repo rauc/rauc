@@ -424,7 +424,6 @@ int main(int argc, char *argv[])
 			"start=        2048, size=        6144, type=ef, bootable\n"
 			"start=       14336, size=       65536, type=83\n"
 			"start=       79872, size=           1, type=5\n"
-			"start=       81920, size=       49152, type=82\n"
 		,
 		.sfdisk_expect = R_QUOTE({
 			/* *INDENT-OFF* */
@@ -448,11 +447,6 @@ int main(int argc, char *argv[])
 					"start" : 79872,
 					"size" : 1,
 					"type" : "5"
-				},
-				{
-					"start" : 81920,
-					"size" : 49152,
-					"type" : "82"
 				}
 				]
 			}
