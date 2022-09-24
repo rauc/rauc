@@ -988,7 +988,7 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 
 		if (img->adaptive) {
 			temp_string = g_strjoinv(" ", (gchar**) img->adaptive);
-			g_string_append_printf(text, "\tAdaptive:    %s\n", temp_string);
+			g_string_append_printf(text, "\tAdaptive:  %s\n", temp_string);
 			g_free(temp_string);
 		}
 
