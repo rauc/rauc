@@ -159,6 +159,10 @@ static gboolean is_region_free(guint64 region_start, guint64 region_size,
 		if (i == BOOT_PARTITION_ENTRY)
 			continue;
 
+		/* skip empty partitions */
+		if (partition_tbl[i].partition_size_le == 0)
+			continue;
+
 		p_start = (guint64)GUINT32_FROM_LE(partition_tbl[i].partition_start_le) * sector_size;
 		p_end = (guint64)GUINT32_FROM_LE(partition_tbl[i].partition_size_le) * sector_size +
 		        p_start - 1;
