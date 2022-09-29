@@ -1331,8 +1331,11 @@ static gboolean take_bundle_ownership(int bundle_fd, GError **error)
 	struct stat stat = {};
 	mode_t perm_orig = 0, perm_new = 0;
 	gboolean res = FALSE;
+	uid_t euid;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	euid = geteuid();
 
 	if (fstat(bundle_fd, &stat)) {
 		int err = errno;
@@ -1344,8 +1347,18 @@ static gboolean take_bundle_ownership(int bundle_fd, GError **error)
 		goto out;
 	}
 
-	/* if it belongs to someone else, try to fchown */
-	if ((stat.st_uid != 0) && (stat.st_uid != geteuid())) {
+	/* if it belongs to someone else, try to fchown if we are root */
+	if ((stat.st_uid != 0) && (stat.st_uid != euid)) {
+
+		if (euid != 0) {
+			g_set_error(error,
+					G_FILE_ERROR,
+					G_FILE_ERROR_PERM,
+					"cannot take file ownership of bundle when running as user (%d)", euid);
+			res = FALSE;
+			goto out;
+		}
+
 		if (fchown(bundle_fd, 0, -1)) {
 			int err = errno;
 			g_set_error(error,
