@@ -445,6 +445,10 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 	gchar *tmpdir = NULL;
 	gboolean seed_mounted = FALSE;
 
+	g_assert_nonnull(r_context()->install_info);
+	g_assert_nonnull(r_context()->install_info->mounted_bundle);
+	g_assert_nonnull(r_context()->install_info->mounted_bundle->storepath);
+
 	if (r_context()->config->use_desync) {
 		/* TODO: do something clever to locate and/or generate the seed index file */
 		goto extract;
@@ -453,7 +457,7 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 	/* Prepare Seed */
 	seedslot = get_active_slot_class_member(image->slotclass);
 	if (!seedslot) {
-		g_warning("No seed slot available for %s", image->slotclass);
+		g_message("No casync seed slot available for %s", image->slotclass);
 		goto extract;
 	}
 
@@ -463,7 +467,7 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 		 * rootfs slot seed is inaproppriate as it contains virtual
 		 * file systems, additional mounts, etc. */
 		if (!seedslot->mount_point) {
-			g_debug("Mounting %s to use as seed", seedslot->device);
+			g_debug("Mounting %s to use as casync seed", seedslot->device);
 			res = r_mount_slot(seedslot, &ierror);
 			if (!res) {
 				g_warning("Failed mounting for seeding: %s", ierror->message);
@@ -481,8 +485,10 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 		/* For the moment do not utilize UBI volumes as seed because they are
 		 * character devices - additional logic is needed to (temporarily) map
 		 * them to UBIBLOCK devices which are suitable for that purpose */
-		if (g_stat(seedslot->device, &seedstat) < 0 || S_ISCHR(seedstat.st_mode))
+		if (g_stat(seedslot->device, &seedstat) < 0 || S_ISCHR(seedstat.st_mode)) {
+			g_message("Cannot use %s as seed device (non-existing or char device)", seedslot->device);
 			goto extract;
+		}
 
 		g_debug("Adding as casync blob seed: %s", seedslot->device);
 		seed = g_strdup(seedslot->device);
@@ -491,12 +497,12 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 extract:
 	/* Set store */
 	store = r_context()->install_info->mounted_bundle->storepath;
-	g_debug("Using store path: '%s'", store);
+	g_debug("Using casync store path: '%s'", store);
 
 	/* Set temporary directory */
 	tmpdir = r_context()->config->tmp_path;
 	if (tmpdir)
-		g_debug("Using tmp path: '%s'", tmpdir);
+		g_debug("Using casync tmp path: '%s'", tmpdir);
 
 	/* Call casync to extract */
 	res = casync_extract(image, dest, out_fd, seed, store, tmpdir, &ierror);

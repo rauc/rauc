@@ -177,6 +177,46 @@ out:
 	return res;
 }
 
+static gboolean casync_blob_image(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error)
+{
+	GSubprocess *sproc = NULL;
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	GPtrArray *args = g_ptr_array_new_full(5, g_free);
+
+	g_ptr_array_add(args, g_strdup("casync"));
+	g_ptr_array_add(args, g_strdup("make"));
+	g_ptr_array_add(args, g_strdup("--with=unix"));
+	g_ptr_array_add(args, g_strdup(idxpath));
+	g_ptr_array_add(args, g_strdup(contentpath));
+	g_ptr_array_add(args, g_strdup("--store"));
+	g_ptr_array_add(args, g_strdup(store));
+	g_ptr_array_add(args, NULL);
+
+	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
+	if (sproc == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to start casync: ");
+		goto out;
+	}
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to run casync: ");
+		goto out;
+	}
+
+out:
+	g_ptr_array_unref(args);
+	g_clear_object(&sproc);
+	return res;
+}
+
 /**
  * Create dummy archive.
  *
@@ -212,6 +252,51 @@ out:
 	g_clear_pointer(&contentpath, g_free);
 	g_clear_pointer(&archpath, g_free);
 	return res;
+}
+
+static gchar* test_prepare_dummy_caibx(const gchar *path, const gchar *archname)
+{
+	g_autoptr(GError) ierror = NULL;
+	g_autofree gchar *idxpath = NULL, *storepath = NULL;
+	g_autofree gchar* pathname = NULL;
+
+	idxpath = g_build_filename(path, archname, NULL);
+	storepath = g_build_filename(path, "out.castr", NULL);
+	pathname = write_random_file(path, "tmp.img", IMAGE_SIZE, 0xe92001ca);
+	g_assert_nonnull(pathname);
+
+	if (!casync_blob_image(idxpath, pathname, storepath, &ierror)) {
+		g_warning("%s", ierror->message);
+		return NULL;
+	}
+
+	g_assert(test_remove(path, "tmp.img") == 0);
+	return g_steal_pointer(&storepath);
+}
+
+static gchar* test_prepare_dummy_caidx(const gchar *path, const gchar *archname)
+{
+	g_autoptr(GError) ierror = NULL;
+	g_autofree gchar *idxpath = NULL, *storepath = NULL;
+	g_autofree gchar* contentpath = NULL;
+
+	idxpath = g_build_filename(path, archname, NULL);
+	storepath = g_build_filename(path, "out.castr", NULL);
+
+	contentpath = g_build_filename(path, "content", NULL);
+
+	g_assert(g_mkdir(contentpath, 0777) == 0);
+	g_assert(test_prepare_dummy_file(contentpath, "testfile.txt",
+			FILE_SIZE, "/dev/zero") == 0);
+
+	if (!casync_blob_image(idxpath, contentpath, storepath, &ierror)) {
+		g_warning("%s", ierror->message);
+		return NULL;
+	}
+
+	g_assert(test_remove(contentpath, "testfile.txt") == 0);
+	g_assert(g_rmdir(contentpath) == 0);
+	return g_steal_pointer(&storepath);
 }
 
 static void test_update_handler(UpdateHandlerFixture *fixture,
@@ -260,6 +345,14 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	}
 	imagepath = g_build_filename(fixture->tmpdir, imagename, NULL);
 
+	/* skip casync checks if casync is not available */
+	if ((g_strcmp0(test_pair->imagetype, "img.caibx") == 0) || (g_strcmp0(test_pair->imagetype, "caidx") == 0)) {
+		if (!g_getenv("RAUC_TEST_CASYNC")) {
+			g_test_skip("RAUC_TEST_CASYNC undefined");
+			return;
+		}
+	}
+
 	/* create source image */
 	image = g_new0(RaucImage, 1);
 	image->slotclass = g_strdup("rootfs");
@@ -296,6 +389,18 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 		g_assert(test_make_filesystem(fixture->tmpdir, "image.ext4"));
 	} else if (g_strcmp0(test_pair->imagetype, "tar.bz2") == 0) {
 		g_assert_true(test_prepare_dummy_archive(fixture->tmpdir, "image.tar.bz2", "testfile.txt"));
+	} else if (g_strcmp0(test_pair->imagetype, "img.caibx") == 0) {
+		gchar* storepath = test_prepare_dummy_caibx(fixture->tmpdir, "image.img.caibx");
+		g_assert_nonnull(storepath);
+
+		r_context_conf()->install_info->mounted_bundle = g_new0(RaucBundle, 1);
+		r_context_conf()->install_info->mounted_bundle->storepath = storepath;
+	} else if (g_strcmp0(test_pair->imagetype, "caidx") == 0) {
+		gchar* storepath = test_prepare_dummy_caidx(fixture->tmpdir, "image.caidx");
+		g_assert_nonnull(storepath);
+
+		r_context_conf()->install_info->mounted_bundle = g_new0(RaucBundle, 1);
+		r_context_conf()->install_info->mounted_bundle->storepath = storepath;
 	} else {
 		g_assert_not_reached();
 	}
@@ -350,7 +455,7 @@ no_image:
 		g_assert_cmpint(get_file_size(imagepath, NULL), ==, IMAGE_SIZE);
 		g_assert(test_mount(slotpath, mountprefix));
 		g_assert(r_umount(slotpath, NULL));
-	} else if (g_strcmp0(test_pair->imagetype, "tar.bz2") == 0) {
+	} else if ((g_strcmp0(test_pair->imagetype, "tar.bz2") == 0) || ((g_strcmp0(test_pair->imagetype, "caidx") == 0))) {
 		gchar *testpath = g_build_filename(mountprefix, "testfile.txt", NULL);
 		g_assert(test_mount(slotpath, mountprefix));
 		g_assert_true(g_file_test(testpath, G_FILE_TEST_IS_REGULAR));
@@ -435,6 +540,14 @@ out:
 			g_assert(g_remove(imagepath) == 0);
 		} else if (g_strcmp0(test_pair->imagetype, "tar.bz2") == 0) {
 			g_assert(test_remove(fixture->tmpdir, "image.tar.bz2") == 0);
+		} else if (g_strcmp0(test_pair->imagetype, "img.caibx") == 0) {
+			g_assert(test_remove(fixture->tmpdir, "image.img.caibx") == 0);
+			g_assert_true(rm_tree(r_context()->install_info->mounted_bundle->storepath, NULL));
+			free_bundle(r_context_conf()->install_info->mounted_bundle);
+		} else if (g_strcmp0(test_pair->imagetype, "caidx") == 0) {
+			g_assert(test_remove(fixture->tmpdir, "image.caidx") == 0);
+			g_assert_true(rm_tree(r_context()->install_info->mounted_bundle->storepath, NULL));
+			free_bundle(r_context_conf()->install_info->mounted_bundle);
 		}
 	}
 
@@ -537,6 +650,13 @@ int main(int argc, char *argv[])
 		{"raw", "img", TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX, 0, 0},
 		{"ext4", "img", TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX, 0, 0},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX, 0, 0},
+
+		/* casync blob index tests */
+		{"ext4", "img.caibx", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"raw", "img.caibx", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		/* casync directory index tests */
+		{"ext4", "caidx", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"vfat", "caidx", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 
 		{0}
 	};
@@ -924,6 +1044,35 @@ int main(int argc, char *argv[])
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
+	/* casync blox index tests */
+	g_test_add("/update_handler/casync/img.caibx_to_ext4",
+			UpdateHandlerFixture,
+			&testpair_matrix[59],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/casync/img.caibx_to_raw",
+			UpdateHandlerFixture,
+			&testpair_matrix[60],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	/* casync directory index tests */
+	g_test_add("/update_handler/casync/caidx_to_ext4",
+			UpdateHandlerFixture,
+			&testpair_matrix[61],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	/* FIXME: only works with "--without=sec-time" set for "casync make"*/
+	/*
+	   g_test_add("/update_handler/casync/caidx_to_vfat",
+	                UpdateHandlerFixture,
+	                &testpair_matrix[62],
+	                update_handler_fixture_set_up,
+	                test_update_handler,
+	                update_handler_fixture_tear_down);
+	 */
 
 	return g_test_run();
 }

@@ -104,6 +104,10 @@ if [ -c /dev/mtd3 ] && type ubiattach; then
   export RAUC_TEST_MTD_UBIVOL=/dev/ubi0_0
 fi
 
+if type casync; then
+  export RAUC_TEST_CASYNC=1
+fi
+
 # rauc system config & service start
 if [ -n "$SERVICE" ]; then
   mkdir /tmp/rauc

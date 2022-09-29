@@ -228,6 +228,18 @@ test_expect_success "rauc info (verity)" "
     info ${SHARNESS_TEST_DIRECTORY}/good-verity-bundle.raucb
 "
 
+test_expect_success "rauc info (casync, plain)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-casync-bundle-1.5.1.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-casync-bundle-1.5.1.raucb &&
+  rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    info ${TEST_TMPDIR}/good-casync-bundle-1.5.1.raucb
+"
+
+test_expect_success "rauc info (casync, verity)" "
+  rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    info ${SHARNESS_TEST_DIRECTORY}/good-casync-bundle-verity.raucb
+"
+
 test_expect_success "rauc info (crypt, unencrypted)" "
   rauc info \
     --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
@@ -773,6 +785,26 @@ test_expect_success CASYNC "rauc convert casync extra args" "
   test -d casync-extra-args.castr
 "
 
+test_expect_success CASYNC "rauc convert (verity)" "
+  test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
+  test_when_finished rm -f ${TEST_TMPDIR}/tmp-verity.raucb &&
+  test_when_finished rm -f ${TEST_TMPDIR}/casync-verity.raucb &&
+  test_when_finished rm -rf ${TEST_TMPDIR}/casync-verity.castr &&
+  cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    bundle ${TEST_TMPDIR}/install-content/ ${TEST_TMPDIR}/tmp-verity.raucb &&
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    --trust-environment \
+    convert ${TEST_TMPDIR}/tmp-verity.raucb ${TEST_TMPDIR}/casync-verity.raucb &&
+  test -f ${TEST_TMPDIR}/casync-verity.raucb &&
+  test -d ${TEST_TMPDIR}/casync-verity.castr
+"
+
 test_expect_success DESYNC "rauc convert with desync" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
@@ -1166,6 +1198,34 @@ test_expect_success ROOT,SERVICE "rauc install (crypt)" "
   test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
   rauc \
     install ${TEST_TMPDIR}/good-crypt-bundle-encrypted.raucb &&
+  test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
+"
+
+test_expect_success ROOT,SERVICE,CASYNC "rauc install (plain, casync, local)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-casync-bundle-1.5.1.raucb ${TEST_TMPDIR}/ &&
+  cp -rL ${SHARNESS_TEST_DIRECTORY}/good-casync-bundle-1.5.1.castr ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-casync-bundle-1.5.1.raucb &&
+  test_when_finished rm -rf ${TEST_TMPDIR}/good-casync-bundle-1.5.1.castr &&
+  start_rauc_dbus_service_with_system \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service_with_system &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  rauc \
+    install ${TEST_TMPDIR}/good-casync-bundle-1.5.1.raucb &&
+  test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
+"
+
+test_expect_success ROOT,SERVICE,CASYNC "rauc install (verity, casync, http)" "
+  start_rauc_dbus_service_with_system \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
+    --override-boot-slot=system0 &&
+  test_when_finished stop_rauc_dbus_service_with_system &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  rauc \
+    install http://127.0.0.1/test/good-casync-bundle-verity.raucb &&
   test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
 "
 
