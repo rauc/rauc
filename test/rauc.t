@@ -1104,7 +1104,7 @@ test_expect_success "rauc bundle (crypt bundle)" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
-  cp ${SHARNESS_TEST_DIRECTORY}/install-content/manifest.raucm.crypt ${TEST_TMPDIR}/install-content/manifest.raucm &&
+  cp -fL ${SHARNESS_TEST_DIRECTORY}/install-content/manifest.raucm.crypt ${TEST_TMPDIR}/install-content/manifest.raucm &&
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
