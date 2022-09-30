@@ -886,14 +886,16 @@ test_expect_success "rauc resign (output exists)" "
 "
 
 test_expect_success FAKETIME "rauc resign extend (not expired)" "
+  test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out1.raucb &&
   test_when_finished rm -f ${TEST_TMPDIR}/out2.raucb &&
+  cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
   faketime "2018-01-01" \
     rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
     --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
-    bundle $SHARNESS_TEST_DIRECTORY/install-content ${TEST_TMPDIR}/out1.raucb &&
+    bundle ${TEST_TMPDIR}/install-content ${TEST_TMPDIR}/out1.raucb &&
   test -f ${TEST_TMPDIR}/out1.raucb &&
   faketime "2018-10-01" \
     rauc \
