@@ -131,6 +131,7 @@ EXTRA_DIST += data/rauc.service.in \
 	      data/de.pengutronix.rauc.service.in \
 	      data/rauc-service.sh.in \
 	      README.rst \
+	      SECURITY.rst \
 	      CHANGES \
 	      contrib \
 	      build-uncrustify.sh \
