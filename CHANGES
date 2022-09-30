@@ -1,5 +1,5 @@
-Release 1.8 (development)
--------------------------
+Release 1.8 (released Sep 30, 2022)
+-----------------------------------
 
 .. rubric:: Enhancements
 
@@ -37,25 +37,35 @@ Release 1.8 (development)
 * Avoid retrying on HTTP 404 errors during streaming.
 * Improve error handling during loop device block size configuration. (by Ahmad
   Fatoum)
+* Fix handling of empty partitions for ``boot-mbr-switch`` slots.
+* Do not attempt to take ownership of plain bundles if running as non-root.
+* Unmount seed slots if casync fails during installation. (by Jonas Licht)
+* Add missing test files to the dist .tar.xz. (by Uwe Kleine-König)
 
 .. rubric:: Testing
 
 * Refactor the statistics code to make it useful for testing as well.
 * Replace Ubuntu 21.10 test container with 22.04
+* Add more tests for casync conversion and installation.
 
 .. rubric:: Code
 
 * Log error messages from CURL for failed streaming requests.
 * Add doctype to D-Bus XML specification. (by Morgan Bengtsson)
+* Improve error messages related to bootloader communication.
+* Improve error reporting for directory creation failures.
 
 .. rubric:: Documentation
 
 * Document that the required kernel features can be configured as modules as
   well.
 * Document how to load and store the GRUB environment from a shared partition.
+* Document some best practices regarding storage partitioning.
+* Explain differences between casync and streaming & adaptive updates.
 
-Contributions from: Ahmad Fatoum, Enrico Jörns, Jan Lübbe, Ludovico de Nittis,
-Marc Kleine-Budde, Matthias Fend, Morgan Bengtsson, Ulrich Ölmann
+Contributions from: Ahmad Fatoum, Enrico Jörns, Jan Lübbe, Jonas Licht,
+Ludovico de Nittis, Marc Kleine-Budde, Marcus Hoffmann, Matthias Fend, Morgan
+Bengtsson, Ulrich Ölmann, Uwe Kleine-König
 
 Release 1.7 (released Jun 3, 2022)
 ----------------------------------
