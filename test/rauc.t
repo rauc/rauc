@@ -135,6 +135,10 @@ grep -q "ENABLE_SERVICE 1" $SHARNESS_TEST_DIRECTORY/../config.h &&
 openssl asn1parse -help &&
   test_set_prereq OPENSSL
 
+# Prerequisite: HTTP server available [HTTP]
+test -n "$RAUC_TEST_HTTP_SERVER" &&
+  test_set_prereq HTTP
+
 # Prerequisite: streaming support enabled [STREAMING]
 grep -q "ENABLE_STREAMING 1" $SHARNESS_TEST_DIRECTORY/../config.h &&
   test -n "$RAUC_TEST_HTTP_SERVER" &&
@@ -1219,7 +1223,7 @@ test_expect_success ROOT,SERVICE,CASYNC "rauc install (plain, casync, local)" "
   test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
 "
 
-test_expect_success ROOT,SERVICE,CASYNC "rauc install (verity, casync, http)" "
+test_expect_success ROOT,SERVICE,CASYNC,HTTP "rauc install (verity, casync, http)" "
   start_rauc_dbus_service_with_system \
     --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
     --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
