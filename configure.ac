@@ -10,7 +10,7 @@ AC_CONFIG_AUX_DIR([build-aux])
 # Use subdir-object for single-Makefile build
 # Use foreign to prevent warnings for missing files
 # such as README, NEWS
-AM_INIT_AUTOMAKE([1.11 subdir-objects foreign no-dist-gzip dist-xz])
+AM_INIT_AUTOMAKE([1.11 subdir-objects foreign no-dist-gzip dist-xz tar-pax])
 AM_MAINTAINER_MODE([enable])
 AM_SILENT_RULES([yes])
 AC_REQUIRE_AUX_FILE([tap-driver.sh])
