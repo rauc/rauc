@@ -1349,7 +1349,6 @@ static gboolean take_bundle_ownership(int bundle_fd, GError **error)
 
 	/* if it belongs to someone else, try to fchown if we are root */
 	if ((stat.st_uid != 0) && (stat.st_uid != euid)) {
-
 		if (euid != 0) {
 			g_set_error(error,
 					G_FILE_ERROR,
