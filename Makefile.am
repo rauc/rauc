@@ -195,6 +195,7 @@ EXTRA_DIST += tap-t \
 	      test/bin \
 	      $(wildcard test/good-casync-bundle-1.4.castr/*/*.cacnk) \
 	      $(wildcard test/good-casync-bundle-1.5.1.castr/*/*.cacnk) \
+	      $(wildcard test/good-casync-bundle-verity.castr/*/*.cacnk) \
 	      test/install-content \
 	      test/openssl-ca \
 	      $(wildcard test/*.raucb) \

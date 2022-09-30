@@ -135,6 +135,10 @@ grep -q "ENABLE_SERVICE 1" $SHARNESS_TEST_DIRECTORY/../config.h &&
 openssl asn1parse -help &&
   test_set_prereq OPENSSL
 
+# Prerequisite: HTTP server available [HTTP]
+test -n "$RAUC_TEST_HTTP_SERVER" &&
+  test_set_prereq HTTP
+
 # Prerequisite: streaming support enabled [STREAMING]
 grep -q "ENABLE_STREAMING 1" $SHARNESS_TEST_DIRECTORY/../config.h &&
   test -n "$RAUC_TEST_HTTP_SERVER" &&
@@ -397,7 +401,7 @@ test_expect_success PKCS11 "rauc bundle with PKCS11 (key mismatch)" "
   test_must_fail rauc \
     --cert 'pkcs11:token=rauc;object=autobuilder-1' \
     --key 'pkcs11:token=rauc;object=autobuilder-2' \
-    bundle ${TESTP_TMPDIR}/install-content ${TEST_TMPDIR}/out.raucb
+    bundle ${TEST_TMPDIR}/install-content ${TEST_TMPDIR}/out.raucb
 "
 
 test_expect_success ROOT "rauc mount" "
@@ -886,14 +890,16 @@ test_expect_success "rauc resign (output exists)" "
 "
 
 test_expect_success FAKETIME "rauc resign extend (not expired)" "
+  test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out1.raucb &&
   test_when_finished rm -f ${TEST_TMPDIR}/out2.raucb &&
+  cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
   faketime "2018-01-01" \
     rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
     --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
-    bundle $SHARNESS_TEST_DIRECTORY/install-content ${TEST_TMPDIR}/out1.raucb &&
+    bundle ${TEST_TMPDIR}/install-content ${TEST_TMPDIR}/out1.raucb &&
   test -f ${TEST_TMPDIR}/out1.raucb &&
   faketime "2018-10-01" \
     rauc \
@@ -1102,7 +1108,7 @@ test_expect_success "rauc bundle (crypt bundle)" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
-  cp ${SHARNESS_TEST_DIRECTORY}/install-content/manifest.raucm.crypt ${TEST_TMPDIR}/install-content/manifest.raucm &&
+  cp -fL ${SHARNESS_TEST_DIRECTORY}/install-content/manifest.raucm.crypt ${TEST_TMPDIR}/install-content/manifest.raucm &&
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
@@ -1217,7 +1223,7 @@ test_expect_success ROOT,SERVICE,CASYNC "rauc install (plain, casync, local)" "
   test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
 "
 
-test_expect_success ROOT,SERVICE,CASYNC "rauc install (verity, casync, http)" "
+test_expect_success ROOT,SERVICE,CASYNC,HTTP "rauc install (verity, casync, http)" "
   start_rauc_dbus_service_with_system \
     --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
     --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
