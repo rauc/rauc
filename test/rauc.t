@@ -397,7 +397,7 @@ test_expect_success PKCS11 "rauc bundle with PKCS11 (key mismatch)" "
   test_must_fail rauc \
     --cert 'pkcs11:token=rauc;object=autobuilder-1' \
     --key 'pkcs11:token=rauc;object=autobuilder-2' \
-    bundle ${TESTP_TMPDIR}/install-content ${TEST_TMPDIR}/out.raucb
+    bundle ${TEST_TMPDIR}/install-content ${TEST_TMPDIR}/out.raucb
 "
 
 test_expect_success ROOT "rauc mount" "
