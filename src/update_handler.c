@@ -180,19 +180,49 @@ static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 	return TRUE;
 }
 
-static gboolean file_to_outstream(const gchar *filename,
-		GOutputStream *out_stream, GError **error)
+static gboolean instream_to_outstream(GInputStream *image_stream,
+		GOutputStream *out_stream, goffset image_size, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE, ret = TRUE;
-	g_autoptr(GFile) image_file;
-	g_autoptr(GFileInfo) image_info;
-	goffset image_size;
-	GFileInputStream *image_stream;
+	gboolean ret = TRUE;
 	guint8 buffer[4096];
 	gssize in_size = 1;
 	gsize out_size, sum_size = 0;
 	gint last_percent = -1, percent;
+
+	while ((in_size > 0) && ret) {
+		in_size = g_input_stream_read(image_stream,
+				buffer, 4096, NULL, &ierror);
+		ret = g_output_stream_write_all(out_stream, buffer,
+				in_size, &out_size, NULL, &ierror);
+		sum_size += out_size;
+		percent = sum_size * 100 / image_size;
+		if (percent != last_percent) {
+			last_percent = percent;
+			r_context_set_step_percentage("copy_image", percent);
+		}
+	}
+
+	if ((in_size < 0) || ret == FALSE) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed delivering data through pipe: ");
+		ret = FALSE;
+	}
+
+	return ret;
+}
+
+static gboolean file_to_outstream(const gchar *filename,
+		GOutputStream *out_stream, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	g_autoptr(GFile) image_file;
+	g_autoptr(GFileInfo) image_info;
+	goffset image_size;
+	GFileInputStream *image_stream;
 
 	image_file = g_file_new_for_path(filename);
 	image_info = g_file_query_info(image_file,
@@ -215,27 +245,7 @@ static gboolean file_to_outstream(const gchar *filename,
 		goto out;
 	}
 
-	while ((in_size > 0) && ret) {
-		in_size = g_input_stream_read(G_INPUT_STREAM(image_stream),
-				buffer, 4096, NULL, &ierror);
-		ret = g_output_stream_write_all(out_stream, buffer,
-				in_size, &out_size, NULL, &ierror);
-		sum_size += out_size;
-		percent = sum_size * 100 / image_size;
-		if (percent != last_percent) {
-			last_percent = percent;
-			r_context_set_step_percentage("copy_image", percent);
-		}
-	}
-
-	if ((in_size < 0) || ret == FALSE) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed delivering data through pipe: ");
-		goto out_image_stream;
-	}
-
+	res = instream_to_outstream(G_INPUT_STREAM(image_stream), out_stream, image_size, error);
 	if (g_output_stream_close(out_stream, NULL, &ierror) != TRUE) {
 		g_propagate_prefixed_error(
 				error,
