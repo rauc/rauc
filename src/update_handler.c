@@ -291,19 +291,28 @@ static gboolean file_to_process_stdin(const gchar *filename, GSubprocess *sproc,
 static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, gsize len_header_last, GError **error)
 {
 	GError *ierror = NULL;
-	gssize size;
-	goffset seeksize;
 	g_autoptr(GFile) srcimagefile = g_file_new_for_path(image->filename);
 	int out_fd = g_unix_output_stream_get_fd(outstream);
 	g_autofree void *header = NULL;
+	goffset image_size;
 
-	g_autoptr(GInputStream) instream = G_INPUT_STREAM(g_file_read(srcimagefile, NULL, &ierror));
+	g_autoptr(GFileInputStream) instream = g_file_read(srcimagefile, NULL, &ierror);
 	if (instream == NULL) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to open file for reading: ");
 		return FALSE;
 	}
 
+	g_autoptr(GFileInfo) image_info = g_file_input_stream_query_info(instream,
+			G_FILE_ATTRIBUTE_STANDARD_SIZE,
+			NULL,
+			&ierror);
+	if (image_info == NULL) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	image_size = g_file_info_get_size(image_info);
 	if (len_header_last) {
 		gsize sector_size = (gsize) get_sectorsize(out_fd);
 
@@ -315,7 +324,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, g
 
 		header = g_malloc(len_header_last);
 
-		if (!g_input_stream_read_all(instream, header, len_header_last, &len_header_last, NULL, &ierror)) {
+		if (!g_input_stream_read_all(G_INPUT_STREAM(instream), header, len_header_last, &len_header_last, NULL, &ierror)) {
 			g_propagate_prefixed_error(error, ierror,
 					"Failed to read header: ");
 			return FALSE;
@@ -327,21 +336,9 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, g
 		}
 	}
 
-	size = g_output_stream_splice(G_OUTPUT_STREAM(outstream), instream,
-			G_OUTPUT_STREAM_SPLICE_NONE,
-			NULL,
-			&ierror);
-	if (size == -1) {
+	if (!instream_to_outstream(G_INPUT_STREAM(instream), G_OUTPUT_STREAM(outstream), image_size, &ierror)) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed splicing data: ");
-		return FALSE;
-	}
-
-	seeksize = g_seekable_tell(G_SEEKABLE(instream));
-
-	if (seeksize != (goffset)image->checksum.size) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Written size (%"G_GOFFSET_FORMAT ") != image size (%"G_GOFFSET_FORMAT ")", seeksize, image->checksum.size);
 		return FALSE;
 	}
 
@@ -353,7 +350,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, g
 			return FALSE;
 		}
 
-		if (lseek(out_fd, -seeksize, SEEK_CUR) == -1) {
+		if (lseek(out_fd, -image->checksum.size, SEEK_CUR) == -1) {
 			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Failed to rewind output stream: %s", strerror(errno));
 			return FALSE;
 		}
@@ -365,7 +362,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, g
 		}
 	}
 
-	if (!g_input_stream_close(instream, NULL, &ierror)) {
+	if (!g_input_stream_close(G_INPUT_STREAM(instream), NULL, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
