@@ -263,8 +263,12 @@ static void test_boot_raw_fallback(BootRawFallbackFixture *fixture,
 		}
 	}
 
+	r_context_begin_step("test_parent", "Test step dummy parent", 1);
+	r_context_begin_step_formatted("copy_image", 0, "Copying image to %s", targetslot->name);
 	/* Run to perform an update */
 	res = handler(image, targetslot, hookpath, &ierror);
+	r_context_end_step("copy_image", TRUE);
+	r_context_end_step("test_parent", TRUE);
 
 	if (data->options & OPT_EXPECT_FAIL) {
 		g_assert_error(ierror, data->err_domain, data->err_code);
