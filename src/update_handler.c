@@ -803,7 +803,12 @@ static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **er
 	}
 
 	/* Try adaptive mode */
-	if (image->adaptive && slot->data_directory) {
+	if (image->adaptive) {
+		if (!slot->data_directory) {
+			g_message("Ignoring adaptive method since 'data-directory' is not configured");
+			goto raw_copy;
+		}
+
 		if (!copy_adaptive_image_to_dev(image, slot, &ierror)) {
 			if (g_error_matches(ierror, R_UPDATE_ERROR, R_UPDATE_ERROR_UNSUPPORTED_ADAPTIVE_MODE)) {
 				g_info("%s", ierror->message);
@@ -817,6 +822,7 @@ static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **er
 		}
 	}
 
+raw_copy:
 	/* Finally, try a raw copy */
 	if (!copy_raw_image_to_dev(image, slot, &ierror)) {
 		g_propagate_error(error, ierror);
