@@ -138,7 +138,8 @@ EXTRA_DIST += data/rauc.service.in \
 	      .uncrustify.cfg \
 	      uncrustify.sh \
 	      rauc_logo.png \
-	      rauc_logo_small.png
+	      rauc_logo_small.png \
+	      scan-build
 
 dist_man_MANS = rauc.1
 
@@ -202,6 +203,7 @@ EXTRA_DIST += tap-t \
 	      $(wildcard test/*.raucm) \
 	      test/dummy.verity \
 	      test/dummy.verity.info \
+	      test/minimal-desync-test.conf \
 	      test/minimal-test.conf \
 	      test/nginx.conf \
 	      test/nginx.htpasswd \
