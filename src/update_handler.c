@@ -773,6 +773,8 @@ static gboolean copy_adaptive_image_to_dev(RaucImage *image, RaucSlot *slot, GEr
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (g_strv_contains((const gchar * const*)image->adaptive, "block-hash-index")) {
+		g_info("Selected adaptive update method 'block-hash-index");
+
 		if (!copy_block_hash_index_image_to_dev(image, slot, &ierror)) {
 			g_propagate_error(error, ierror);
 			return FALSE;
@@ -782,7 +784,7 @@ static gboolean copy_adaptive_image_to_dev(RaucImage *image, RaucSlot *slot, GEr
 
 	temp_string = g_strjoinv(" ", (gchar**) image->adaptive);
 	g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_UNSUPPORTED_ADAPTIVE_MODE,
-			"No compatible adaptive mode found in '%s'", temp_string);
+			"No compatible adaptive method found in '%s'", temp_string);
 	return FALSE;
 }
 
