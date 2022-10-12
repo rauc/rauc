@@ -773,6 +773,8 @@ static gboolean copy_adaptive_image_to_dev(RaucImage *image, RaucSlot *slot, GEr
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (g_strv_contains((const gchar * const*)image->adaptive, "block-hash-index")) {
+		g_info("Selected adaptive update method 'block-hash-index");
+
 		if (!copy_block_hash_index_image_to_dev(image, slot, &ierror)) {
 			g_propagate_error(error, ierror);
 			return FALSE;
@@ -782,7 +784,7 @@ static gboolean copy_adaptive_image_to_dev(RaucImage *image, RaucSlot *slot, GEr
 
 	temp_string = g_strjoinv(" ", (gchar**) image->adaptive);
 	g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_UNSUPPORTED_ADAPTIVE_MODE,
-			"No compatible adaptive mode found in '%s'", temp_string);
+			"No compatible adaptive method found in '%s'", temp_string);
 	return FALSE;
 }
 
@@ -803,7 +805,12 @@ static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **er
 	}
 
 	/* Try adaptive mode */
-	if (image->adaptive && slot->data_directory) {
+	if (image->adaptive) {
+		if (!slot->data_directory) {
+			g_message("Ignoring adaptive method since 'data-directory' is not configured");
+			goto raw_copy;
+		}
+
 		if (!copy_adaptive_image_to_dev(image, slot, &ierror)) {
 			if (g_error_matches(ierror, R_UPDATE_ERROR, R_UPDATE_ERROR_UNSUPPORTED_ADAPTIVE_MODE)) {
 				g_info("%s", ierror->message);
@@ -817,6 +824,7 @@ static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **er
 		}
 	}
 
+raw_copy:
 	/* Finally, try a raw copy */
 	if (!copy_raw_image_to_dev(image, slot, &ierror)) {
 		g_propagate_error(error, ierror);

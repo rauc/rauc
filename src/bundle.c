@@ -406,6 +406,19 @@ out:
 	return res;
 }
 
+static gboolean image_is_archive(RaucImage* image)
+{
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(image->filename, FALSE);
+
+	if (g_pattern_match_simple("*.tar*", image->filename) ||
+	    g_pattern_match_simple("*.catar", image->filename)) {
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 static gboolean generate_adaptive_data(RaucManifest *manifest, const gchar *dir, GError **error)
 {
 	GError *ierror = NULL;
@@ -427,7 +440,13 @@ static gboolean generate_adaptive_data(RaucManifest *manifest, const gchar *dir,
 				g_autofree gchar *indexname = g_strconcat(image->filename, ".block-hash-index", NULL);
 				g_autofree gchar *indexpath = g_build_filename(dir, indexname, NULL);
 				g_autoptr(RaucHashIndex) index = NULL;
-				int fd = g_open(imagepath, O_RDONLY | O_CLOEXEC);
+				int fd = -1;
+
+				if (image_is_archive(image)) {
+					g_warning("Generating block hash index requires a block device image but %s looks like an archive", image->filename);
+				}
+
+				fd = g_open(imagepath, O_RDONLY | O_CLOEXEC);
 				if (fd < 0) {
 					int err = errno;
 					g_set_error(
@@ -1032,19 +1051,6 @@ out:
 		if (g_remove(outpath) != 0)
 			g_warning("failed to remove %s", outpath);
 	return res;
-}
-
-static gboolean image_is_archive(RaucImage* image)
-{
-	g_return_val_if_fail(image, FALSE);
-	g_return_val_if_fail(image->filename, FALSE);
-
-	if (g_pattern_match_simple("*.tar*", image->filename) ||
-	    g_pattern_match_simple("*.catar", image->filename)) {
-		return TRUE;
-	}
-
-	return FALSE;
 }
 
 static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error)
