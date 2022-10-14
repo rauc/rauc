@@ -1,0 +1,60 @@
+# feature options
+option(
+  'service',
+  type : 'boolean',
+  value : 'true',
+  description : 'Enable/Disable background service')
+option(
+  'create',
+  type : 'boolean',
+  value : 'true',
+  description : 'Enable/Disable bundle creation and modification commands')
+option(
+  'network',
+  type : 'boolean',
+  value : 'true',
+  description : 'Enable/Disable network update mode')
+option(
+  'streaming',
+  type : 'boolean',
+  value : 'true',
+  description : 'Enable/Disable streaming update mode')
+option(
+  'json',
+  type : 'feature',
+  value : 'enabled',
+  description : 'Enable/Disable JSON support')
+option(
+  'gpt',
+  type : 'feature',
+  value : 'auto',
+  description : 'Enable/Disable GPT support')
+
+# other options
+option(
+  'streaming_user',
+  type : 'string',
+  value : 'nobody',
+  description : 'unpriviledged user for the streaming subprocess')
+
+# path options
+option(
+  'systemdunitdir',
+  type : 'string',
+  value : '',
+  description : 'Directory for systemd service files')
+option(
+  'dbuspolicydir',
+  type : 'string',
+  value : '',
+  description : 'D-Bus policy directory')
+option(
+  'dbussystemservicedir',
+  type : 'string',
+  value : '',
+  description : 'D-Bus system service directory')
+option(
+  'dbusinterfacesdir',
+  type : 'string',
+  value : '',
+  description : 'D-Bus interfaces directory')
