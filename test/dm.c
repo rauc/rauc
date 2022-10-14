@@ -66,7 +66,7 @@ static void drop_caches(void)
 	g_close(fd, NULL);
 }
 
-static guint readable_sectors(int fd)
+static guint readable_sectors(int fd, GBytes *original)
 {
 	guint8 buf[4096];
 	ssize_t r;
@@ -78,8 +78,17 @@ static guint readable_sectors(int fd)
 		r = pread(fd, buf, sizeof(buf), sector*sizeof(buf));
 		if (r == 0)
 			break;
-		else if (r == sizeof(buf))
+		else if (r == sizeof(buf)) {
+			gsize offset = sector*sizeof(buf);
 			sectors++;
+
+			g_assert_cmpint(offset, <=, g_bytes_get_size(original));
+			if (memcmp(buf, (guint8*)(g_bytes_get_data(original, NULL))+offset, sizeof(buf)) != 0) {
+				g_test_message("modified data read via dm-verity at sector %u", sector);
+			} else {
+				g_test_message("correct data read via dm-verity at sector %u", sector);
+			}
+		}
 	}
 	return sectors;
 }
@@ -354,6 +363,7 @@ static void verity_hash_create(DMFixture *fixture,
 {
 	g_autoptr(GError) error = NULL;
 	const DMData *dm_data = user_data;
+	g_autoptr(GBytes) data = NULL;
 	int ret, bundlefd;
 	guint8 root_hash[32] = {0};
 	g_autofree gchar *filename = NULL;
@@ -369,6 +379,10 @@ static void verity_hash_create(DMFixture *fixture,
 
 	filename = write_random_file(fixture->tmpdir, "data", 4096*dm_data->data_size, 0x0fdfc761);
 	g_assert_nonnull(filename);
+
+	data = read_file(filename, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(data);
 
 	bundlefd = g_open(filename, O_RDWR);
 	g_assert_cmpint(bundlefd, >, 0);
@@ -390,7 +404,7 @@ static void verity_hash_create(DMFixture *fixture,
 
 	/* check that everything is readable */
 	drop_caches();
-	g_assert_cmpint(readable_sectors(dmfd), ==, dm_data->data_size);
+	g_assert_cmpint(readable_sectors(dmfd, data), ==, dm_data->data_size);
 
 	g_test_message("checking error detection in the first sector");
 	/* flip one bit in the first sector */
@@ -402,7 +416,7 @@ static void verity_hash_create(DMFixture *fixture,
 
 	/* check that only the affected sector is unreadable */
 	drop_caches();
-	g_assert_cmpint(readable_sectors(dmfd), ==, dm_data->data_size - 1);
+	g_assert_cmpint(readable_sectors(dmfd, data), ==, dm_data->data_size - 1);
 
 	g_close(dmfd, NULL);
 
@@ -429,7 +443,7 @@ static void verity_hash_create(DMFixture *fixture,
 
 		/* check that only the affected sector is unreadable */
 		drop_caches();
-		g_assert_cmpint(readable_sectors(dmfd), ==, dm_data->data_size - 1);
+		g_assert_cmpint(readable_sectors(dmfd, data), ==, dm_data->data_size - 1);
 
 		/* check that the bit flip is detected by the userspace check */
 		ret = r_verity_hash_verify(bundlefd, dm_data->data_size, root_hash, salt);
