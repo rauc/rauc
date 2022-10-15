@@ -1970,6 +1970,7 @@ out:
 	return res;
 }
 
+#if ENABLE_GPT == 1
 G_GNUC_UNUSED
 static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
@@ -2059,6 +2060,7 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 out:
 	return res;
 }
+#endif
 
 #if ENABLE_EMMC_BOOT_SUPPORT == 1
 static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
