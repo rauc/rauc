@@ -59,14 +59,6 @@ static void flip_bits_filename(gchar *filename, off_t offset, guint8 mask)
 	g_close(fd, NULL);
 }
 
-static void drop_caches(void)
-{
-	int fd = g_open("/proc/sys/vm/drop_caches", O_WRONLY|O_CLOEXEC, 0);
-	g_assert_cmpint(fd, >, 0);
-	g_assert_true(write(fd, "1", 1) == 1);
-	g_close(fd, NULL);
-}
-
 static guint readable_sectors(int fd, GBytes *original)
 {
 	g_autofree guint8 *buf = NULL;
@@ -411,7 +403,6 @@ static void verity_hash_create(DMFixture *fixture,
 	g_assert_cmpint(dmfd, >=, 0);
 
 	/* check that everything is readable */
-	drop_caches();
 	g_assert_cmpint(readable_sectors(dmfd, data), ==, dm_data->data_size);
 
 	g_test_message("checking error detection in the first sector");
@@ -423,7 +414,6 @@ static void verity_hash_create(DMFixture *fixture,
 	g_assert_cmpint(ret, !=, 0);
 
 	/* check that only the affected sector is unreadable */
-	drop_caches();
 	g_assert_cmpint(readable_sectors(dmfd, data), ==, dm_data->data_size - 1);
 
 	g_close(dmfd, NULL);
@@ -450,7 +440,6 @@ static void verity_hash_create(DMFixture *fixture,
 		g_assert_cmpint(dmfd, >=, 0);
 
 		/* check that only the affected sector is unreadable */
-		drop_caches();
 		g_assert_cmpint(readable_sectors(dmfd, data), ==, dm_data->data_size - 1);
 
 		/* check that the bit flip is detected by the userspace check */
@@ -504,7 +493,6 @@ static void crypt_create(DMFixture *fixture,
 	g_assert_cmpint(dmfd, >=, 0);
 
 	/* check that everything decrypted is valid */
-	drop_caches();
 	g_assert_cmpint(num_diff_sectors(dmfd, bundlefd, 50), ==, 0);
 
 	g_test_message("checking wrong encryption data error in the first sector");
@@ -518,7 +506,6 @@ static void crypt_create(DMFixture *fixture,
 	g_assert_cmpint(dmfd, >=, 0);
 
 	/* check that different sector is invalid */
-	drop_caches();
 	g_assert_cmpint(num_diff_sectors(dmfd, bundlefd, 50), ==, 1);
 
 	g_close(dmfd, NULL);
@@ -531,7 +518,6 @@ static void crypt_create(DMFixture *fixture,
 	g_assert_cmpint(dmfd, >=, 0);
 
 	/* check that decrypted is invalid */
-	drop_caches();
 	g_assert_cmpint(num_diff_sectors(dmfd, bundlefd, 50), ==, 50);
 
 	g_close(dmfd, NULL);
