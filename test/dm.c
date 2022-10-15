@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <stdlib.h>
 
 #include "dm.h"
 #include "verity_hash.h"
@@ -68,22 +69,25 @@ static void drop_caches(void)
 
 static guint readable_sectors(int fd, GBytes *original)
 {
-	guint8 buf[4096];
+	g_autofree guint8 *buf = NULL;
 	ssize_t r;
 	guint sectors = 0;
+
+	/* O_DIRECT needs paged-aligned memory */
+	buf = aligned_alloc(4096, 4096);
 
 	lseek(fd, 0, SEEK_SET);
 
 	for (guint sector = 0;; sector++) {
-		r = pread(fd, buf, sizeof(buf), sector*sizeof(buf));
+		r = pread(fd, buf, 4096, sector*4096);
 		if (r == 0)
 			break;
-		else if (r == sizeof(buf)) {
-			gsize offset = sector*sizeof(buf);
+		else if (r == 4096) {
+			gsize offset = sector*4096;
 			sectors++;
 
 			g_assert_cmpint(offset, <=, g_bytes_get_size(original));
-			if (memcmp(buf, (guint8*)(g_bytes_get_data(original, NULL))+offset, sizeof(buf)) != 0) {
+			if (memcmp(buf, (guint8*)(g_bytes_get_data(original, NULL))+offset, 4096) != 0) {
 				g_test_message("modified data read via dm-verity at sector %u", sector);
 			} else {
 				g_test_message("correct data read via dm-verity at sector %u", sector);
@@ -95,9 +99,13 @@ static guint readable_sectors(int fd, GBytes *original)
 
 static guint num_diff_sectors(int fd_a, int fd_b, guint sectors)
 {
-	guint8 buf_a[4096];
-	guint8 buf_b[4096];
+	g_autofree guint8 *buf_a;
+	g_autofree guint8 *buf_b;
 	guint diff_sectors = 0;
+
+	/* O_DIRECT needs paged-aligned memory */
+	buf_a = aligned_alloc(4096, 4096);
+	buf_b = aligned_alloc(4096, 4096);
 
 	lseek(fd_a, 0, SEEK_SET);
 	lseek(fd_b, 0, SEEK_SET);
@@ -105,15 +113,15 @@ static guint num_diff_sectors(int fd_a, int fd_b, guint sectors)
 	for (guint sector = 0; sector < sectors; sector++) {
 		ssize_t r_a, r_b;
 
-		r_a = pread(fd_a, buf_a, sizeof(buf_a), sector*sizeof(buf_a));
-		r_b = pread(fd_b, buf_b, sizeof(buf_b), sector*sizeof(buf_b));
+		r_a = pread(fd_a, buf_a, 4096, sector*4096);
+		r_b = pread(fd_b, buf_b, 4096, sector*4096);
 		if (r_a != r_b)
 			return sectors - sector;
 
 		if (r_a == 0)
 			return sectors - sector + diff_sectors;
 
-		if (r_a != sizeof(buf_a))
+		if (r_a != 4096)
 			return sectors - sector + diff_sectors;
 
 		if (memcmp(buf_a, buf_b, r_a) != 0)
@@ -154,7 +162,7 @@ static int open_loop_verity(int bundlefd, off_t loop_size, off_t data_size, gcha
 
 	g_assert_nonnull(dm_verity->upper_dev);
 
-	fd = g_open(dm_verity->upper_dev, O_RDONLY|O_CLOEXEC, 0);
+	fd = g_open(dm_verity->upper_dev, O_RDONLY|O_CLOEXEC|O_DIRECT, 0);
 	g_assert_cmpint(fd, >, 0);
 
 	res = r_dm_remove(dm_verity, TRUE, &ierror);
@@ -195,7 +203,7 @@ static int open_loop_crypt(int bundlefd, off_t loop_size, off_t data_size, const
 
 	g_assert_nonnull(dm_crypt->upper_dev);
 
-	fd = g_open(dm_crypt->upper_dev, O_RDONLY|O_CLOEXEC, 0);
+	fd = g_open(dm_crypt->upper_dev, O_RDONLY|O_CLOEXEC|O_DIRECT, 0);
 	g_assert_cmpint(fd, >, 0);
 
 	res = r_dm_remove(dm_crypt, TRUE, &ierror);
