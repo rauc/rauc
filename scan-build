@@ -3,4 +3,4 @@
 set -ex
 
 meson setup build
-ninja -C build scan-build
+SCANBUILD=$(pwd)/scan-build-wrapper.sh ninja -C build scan-build
