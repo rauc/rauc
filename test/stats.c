@@ -3,6 +3,23 @@
 
 #include "stats.h"
 
+/* APPROX_VALUE exists in glib >= 2.58 */
+#ifndef G_APPROX_VALUE
+#define G_APPROX_VALUE(a, b, epsilon) \
+	(((a) > (b) ? (a) - (b) : (b) - (a)) < (epsilon))
+#endif
+
+/* g_assert_cmpfloat_with_epsilon exists in glib >= 2.58 */
+#ifndef g_assert_cmpfloat_with_epsilon
+#define g_assert_cmpfloat_with_epsilon(n1, n2, epsilon) \
+	G_STMT_START { \
+		double __n1 = (n1), __n2 = (n2), __epsilon = (epsilon); \
+		if (G_APPROX_VALUE(__n1,  __n2, __epsilon)); else \
+		g_assertion_message_cmpnum(G_LOG_DOMAIN, __FILE__, __LINE__, G_STRFUNC, \
+		#n1 " == " #n2 " (+/- " #epsilon ")", __n1, "==", __n2, 'f'); \
+	} G_STMT_END
+#endif
+
 static void test_basic(void)
 {
 	g_autoptr(RaucStats) stats = NULL;
@@ -23,9 +40,14 @@ static void test_basic(void)
 	}
 
 	g_assert_cmpuint(stats->count, ==, 130);
-	g_assert_cmpfloat(r_stats_get_avg(stats), ==, 62.54615384615385);
-	g_assert_cmpfloat(r_stats_get_recent_avg(stats), ==, 95.5);
-	g_assert_cmpfloat(stats->sum, ==, 8131.0);
+
+	/*
+	 * Don't use an exact compare on non-trivial floating-point
+	 * calculations.
+	 */
+	g_assert_cmpfloat_with_epsilon(r_stats_get_avg(stats), 62.54615384615385, 1e-10);
+	g_assert_cmpfloat_with_epsilon(r_stats_get_recent_avg(stats), 95.5, 1e-10);
+	g_assert_cmpfloat_with_epsilon(stats->sum, 8131.0, 1e-10);
 	g_assert_cmpfloat(stats->min, ==, 0.0);
 	g_assert_cmpfloat(stats->max, ==, 127.0);
 }
