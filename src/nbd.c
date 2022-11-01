@@ -661,6 +661,9 @@ static gboolean finish_configure(struct RaucNBDContext *ctx, struct RaucNBDTrans
 	g_autoptr(GVariant) v = NULL;
 	guint32 reply_size;
 
+	/* This can only be called after the client has sent a configure command. */
+	g_assert_nonnull(ctx->url);
+
 	if (!xfer->done) { /* retry */
 		res = TRUE;
 		goto out;
