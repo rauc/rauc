@@ -30,3 +30,10 @@ jobs:
       run: |
         scan-build --status-bugs ./configure --disable-dependency-tracking
         scan-build --status-bugs -disable-checker unix.Malloc make
+
+    - name: Upload scan-build report
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: scan-build-report
+        path: /tmp/scan-build-*
