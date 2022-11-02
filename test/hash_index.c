@@ -49,6 +49,7 @@ static void test_basic(Fixture *fixture, gconstpointer user_data)
 	g_assert_no_error(error);
 	g_assert_nonnull(index);
 	datafd = -1; /* belongs to index now */
+	(void)datafd; /* ignore dead store */
 
 	g_assert_cmpuint(index->count, ==, 132);
 	g_assert_nonnull(index->hashes);

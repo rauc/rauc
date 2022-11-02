@@ -969,11 +969,15 @@ STATE_B=bad\n\
 	g_assert_true(res);
 	g_assert_false(good);
 	res = r_boot_set_state(rootfs0, TRUE, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 	res = r_boot_get_state(rootfs0, &good, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
 	g_assert_true(good);
 	res = r_boot_set_state(rootfs1, TRUE, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
 	res = r_boot_get_state(rootfs1, &good, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
