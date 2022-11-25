@@ -218,3 +218,4 @@ install_data('src/de.pengutronix.rauc.Installer.xml', install_dir : dbusinterfac
 
 subdir('data')
 subdir('docs')
+subdir('test')

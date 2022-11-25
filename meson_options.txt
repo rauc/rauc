@@ -58,3 +58,10 @@ option(
   type : 'string',
   value : '',
   description : 'D-Bus interfaces directory')
+
+# build options
+option(
+  'tests',
+  type : 'boolean',
+  value : 'true',
+  description : 'Enable/Disable test suite')
