@@ -1115,6 +1115,25 @@ non-bootable system caused by an error or power-loss during the update.
 Whether atomic bootloader updates can be implemented depends on your
 SoC/firmware and storage medium.
 
+.. note::
+
+  Most bootloaders need some space to persistently store the state of the
+  fallback logic.
+  This storage is also normally accessed by RAUC to communicate with the
+  bootloader during update installation and after successful boots.
+  Some bootloaders use an *environment* file or partitions for this (for
+  example GRUB's ``grubenv`` file or U-Boot's ``saveenv`` command), others have
+  specialized mechanisms (Barebox's `state framework
+  <https://barebox.org/doc/latest/user/state.html>`_)
+
+  If the bootloader should be updateable, this storage space **must be outside
+  of the bootloader partition**, as it would otherwise be overwritten by an
+  update.
+  More generally, the bootloader partition should **only** be written to when
+  updating the bootloader, so it should not contain anything else that should
+  be written separately (such as bootloader env, kernel or
+  initramfs).
+
 .. _sec-emmc-boot:
 
 Update Bootloader in eMMC Boot Partitions
