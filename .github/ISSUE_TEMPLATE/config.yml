@@ -1,0 +1,13 @@
+blank_issues_enabled: true
+contact_links:
+  - name: "Community Chat"
+    url: "https://matrix.to/#/#rauc:matrix.org"
+    about: >
+       You can use the chat to ask support questions and for general system
+       design discussions.
+       The Matrix channel is bridged to the IRC channel #rauc on libera.chat.
+  - name: "Community Discussions on GitHub"
+    url: "https://github.com/rauc/rauc/discussions/categories/q-a"
+    about: >
+       You can use GitHub discussions for support questions which need more
+       background information.
