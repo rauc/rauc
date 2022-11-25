@@ -356,7 +356,9 @@ setup.
 Anyway, you can still define it as a slot if you need to be able to provide
 an update for this, too.
 
-Example BSPs
-------------
-* Yocto
-* PTXdist
+Example Integrations
+--------------------
+
+The `meta-rauc-comminity repository
+<https://github.com/rauc/meta-rauc-community>`_ contains layers for some
+platforms, demonstrating different ways to use RAUC.
