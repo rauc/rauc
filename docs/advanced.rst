@@ -1,6 +1,10 @@
 Advanced Topics
 ===============
 
+.. contents::
+   :local:
+   :depth: 2
+
 .. _sec-security:
 
 Security

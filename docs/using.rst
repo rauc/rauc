@@ -23,6 +23,10 @@ PTXdist, simply enable RAUC in your configuration.
   When using the RAUC service from your application, the D-Bus interface is
   preferable to using the provided command-line tool.
 
+.. contents::
+   :local:
+   :depth: 1
+
 Creating Bundles
 ----------------
 
