@@ -1117,12 +1117,14 @@ SoC/firmware and storage medium.
 
 .. _sec-emmc-boot:
 
-Update eMMC Boot Partitions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Update Bootloader in eMMC Boot Partitions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-RAUC supports updating eMMC boot partitions (see the JEDEC standard JESD84-B51_
-for details), one of which gets enabled atomically via configuration registers
-in the eMMC (*ext_csd registers*).
+RAUC supports updating a bootloader in eMMC boot partitions (see the section `6.3.2 boot
+partition` in JEDEC standard JESD84-B51_ for details), one of which can be
+enabled atomically via configuration registers in the eMMC (*ext_csd
+registers*).
+These partitions are accessible under Linux as ``/dev/mmcblk*boot[01]``.
 
 .. _JESD84-B51: http://www.jedec.org/standards-documents/results/jesd84-b51
 
@@ -1132,7 +1134,7 @@ in the eMMC (*ext_csd registers*).
 
 The required slot type is ``boot-emmc``.
 The device to be specified is expected to be the root device.
-The boot partitions are derived automatically.
+The corresponding boot partitions are derived automatically.
 A ``system.conf`` could look like this:
 
 .. code-block:: cfg
@@ -1150,8 +1152,8 @@ A ``system.conf`` could look like this:
 
 .. _sec-mbr-partition:
 
-Update Boot Partition in MBR
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Update Bootloader Partition in MBR
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some SoCs (like Xilinx ZynqMP) contain a fixed ROM code, which boots from the
 first partition in the MBR partition table of a storage medium.
@@ -1169,15 +1171,15 @@ entry to point to the formerly inactive half.
   :width: 400
   :align: center
 
-The disk region for the MBR boot partition switch has to be configured
+The disk region for the MBR bootloader partition switch has to be configured
 in the corresponding slot's system config section (see below).
-This configured disk region must span *both* potential locations of the boot
-partition, i.e. both the first and second halves mentioned above.
-The initial MBR must define a boot partition at either the first or the second
+This configured disk region must span *both* potential locations of the
+bootloader partition, i.e. both the first and second halves mentioned above.
+The initial MBR must define a bootloader partition at either the first or the second
 half of the configured region.
 
-Consider the following example layout of a storage medium with a boot partition size
-of 32 MiB:
+Consider the following example layout of a storage medium with a bootloader
+partition size of 32 MiB:
 
 +-----------------------+----------------+--------------------------------------------+
 | Start…End             | Size           |                                            |
@@ -1196,12 +1198,12 @@ of 32 MiB:
 
 RAUC uses the start address and size defined in the first entry of the MBR partition
 table to detect whether the first or second half is currently active as the
-boot partition and updates the hidden, other half:
+bootloader partition and updates the hidden, other half:
 After the update, the bootloader is switched by changing the first partition entry
 and writing the whole MBR (512 bytes) atomically.
 
 The required slot type is ``boot-mbr-switch``.
-The device to be specified is the **underlying block device** (not the boot
+The device to be specified is the **underlying block device** (not the bootloader
 partition!), as the MBR itself is outside of the region.
 The region containing both halves is configured using ``region-start`` and
 ``region-size``.
@@ -1225,15 +1227,15 @@ The resulting first half begins at the start of the region, i.e.
 ``0x100000``, and has a size of ``32M``.
 The second half begins in the middle of the region (``0x100000 + 32M =
 0x2100000``) and ends at the end of the defined region.
-The MBR's boot partition entry should initially point to ``0x100000``, with a
+The MBR's bootloader partition entry should initially point to ``0x100000``, with a
 size of ``32M``.
 This must be followed by a "hole" with a size of ``32MB`` before the start of
 the next partition entry (at ``0x4100000``).
 
 .. _sec-gpt-partition:
 
-Update Boot Partition in GPT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Update Bootloader Partition in GPT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Systems booting via UEFI have a special partition, called the *EFI system
 partition (ESP)*, which contains the bootloader to be started by the UEFI
@@ -1244,16 +1246,16 @@ partition.
 To allow atomic updates of these partitions, RAUC supports changing the GPT to
 switch the first GPT partition entry between the first and second halves of a
 region configured for that purpose.
-This works similarly to the handling of a MBR boot partition entry as described
-in the previous section.
+This works similarly to the handling of a MBR bootloader partition entry as
+described in the previous section.
 It requires RAUC to be compiled with GPT support (``./configure --enable-gpt``)
 and adds a dependency on libfdisk.
 
 The required slot type is ``boot-gpt-switch``.
 The device to be specified is expected to be the underlying block device (not a
 partition).
-The boot partitions are derived by the definition of the values ``region-start``
-and ``region-size``.
+The bootloader partitions are derived by the definition of the values
+``region-start`` and ``region-size``.
 Both values have to be set in integer decimal bytes and can be post-fixed with
 K/M/G/T.
 
@@ -1278,8 +1280,8 @@ A ``system.conf`` section could look like this:
 
 .. _sec-raw-partition-fallback:
 
-Update Raw Boot Partition with Fallback
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Update Raw Bootloader Partition with Fallback
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some SoCs (like the Rockchip RK3568) contain a fixed ROM code that searches the
 possible boot media for valid images in a defined order.
@@ -1289,13 +1291,14 @@ to determine if a valid image exists at such an address.
 
 This behavior can be used to implement an atomic update of a bootloader.
 To do this, the bootloader, which starts with the required header, is
-installed in two locations that the ROM code searches for possible boot images.
+installed in two locations that the ROM code searches for possible bootloader
+images.
 For example, usually only the code in the first location is used, and the second
 is redundant and ignored.
 During an update, the currently unused location is updated first, and followed
 by the other location (which was likely just booted from).
 It is important that the corresponding header is always deleted first, then the
-boot image is written and the header is only written last.
+bootloader image is written and the header is only written last.
 This ensures that there is always a valid image in either location and that
 half-written images are not attempted to boot from.
 
