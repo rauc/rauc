@@ -49,6 +49,23 @@ infrastructure.
 .. important:: A RAUC Bundle should always unambiguously describe the
   intended target state of the entire system.
 
+HTTP Streaming
+~~~~~~~~~~~~~~
+
+Since RAUC 1.7, bundles can be installed directly from a HTTP(S) server,
+without having to download and store the bundle locally.
+Simply use the bundle URL as the ``rauc install`` argument instead of a local
+file.
+
+Using streaming has a few requirements:
+
+* configure RAUC with ``--enable-streaming``
+* create bundles using the :ref:`verity format <sec_ref_format_verity>`
+* host the bundle on a server which supports HTTP Range Requests
+* enable NBD support in the kernel
+
+See the :ref:`HTTP Streaming <http-streaming>` section in the Advanced chapter
+for more details.
 
 RAUC's System View
 ------------------
@@ -61,7 +78,7 @@ In order to allow RAUC to handle your device right, we need to give it the
 right view on your system.
 
 Slots
------
+~~~~~
 
 In RAUC, everything that can be updated is a *slot*.
 Thus a slot can either be a full device, a partition, a volume or simply a file.
@@ -76,7 +93,7 @@ with, the type of storage or filesystem to use, its identification from the
 bootloader, etc.
 
 Target Slot Selection
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 A very important step when installing an update is to determine the correct
 mapping from the images that are contained in a RAUC bundle to the slots that
@@ -111,7 +128,7 @@ All slots of the group containing the active slot will be considered active,
 too.
 
 Slot Status and Skipping Slot Updates
--------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 RAUC hashes each image or archive when packing it into a bundle and stores this
 hash in the bundle's manifest file.
@@ -137,7 +154,7 @@ file system automatically and only installing the changed application.
 .. _sec-boot-slot:
 
 Boot Slot Selection
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 A system designed to run from redundant slots must always have a component that
 is responsible for selecting between the bootable slots.
@@ -167,7 +184,7 @@ It will, for example, deactivate the slot to update before writing to it
 and reactivate it after having completed the installation successfully.
 
 Installation and Storage Handling
----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As mentioned above, RAUC basically writes images to devices or partitions, but
 also allows installing file system content from (compressed) tar archives.
@@ -190,7 +207,7 @@ slot type while specifying the appropriate handling.
    :align: center
 
 Boot Confirmation & Fallback
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When designing a robust redundant system, update handling does not end with the
 successful installation of the update on the target slots!
@@ -216,21 +233,3 @@ unusable.
 For most cases it might be desired to either select one of the redundant slots
 as fallback or boot into a recovery system.
 This handling is up to your bootloader.
-
-HTTP Streaming
---------------
-
-Since RAUC 1.7, bundles can be installed directly from a HTTP(S) server,
-without having to download and store the bundle locally.
-Simply use the bundle URL as the ``rauc install`` argument instead of a local
-file.
-
-Using streaming has a few requirements:
-
-* configure RAUC with ``--enable-streaming``
-* create bundles using the :ref:`verity format <sec_ref_format_verity>`
-* host the bundle on a server which supports HTTP Range Requests
-* enable NBD support in the kernel
-
-See the :ref:`HTTP Streaming <http-streaming>` section in the Advanced chapter
-for more details.
