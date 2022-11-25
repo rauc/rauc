@@ -1421,6 +1421,8 @@ During a downgrade, sub-devices which are running Linux with RAUC in an A/B
 scenario will detect that the image to be installed already matches the one in
 the other slot and avoid unnecessary installations.
 
+.. _sec_migrate_updated_bundle_version:
+
 Migrating to an Updated Bundle Version
 --------------------------------------
 

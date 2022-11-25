@@ -44,27 +44,29 @@ file system mountable as ext4 should work (with the filename suffix adapted).
 Is the RAUC bundle format forwards/backwards compatible?
 --------------------------------------------------------
 
-The basic bundle format has not changed so far (squashfs containing images and
-the manifest, with a CMS signature), which means that newer versions can
-install old bundles.
-Going forward, any issue with installing old bundles would be considered a bug.
+While RAUC now :ref:`supports <sec_ref_formats>` two bundle formats (verity and
+crypt) in addition to the original format (plain), all are still installable by
+default.
+Support for the old format can be :ref:`disabled via the configuration
+<sec_int_migration>`.
+Going forward, any issue with installing bundles using old formats or features
+would be considered a bug, except after an explicit deprecation period of
+several years.
 
-Newer RAUC versions have added features and slot types, though (such as casync,
-eMMC boot partitions, MBR/GPT partition switching).
-If you use those features, older versions of RAUC that cannot handle them will
-refuse to install the bundle.
-As long as you don't use new features, our intention is that bundles created by
-newer versions will be installable by older versions.
+Newer RAUC versions have added features (such as casync), slot types
+(eMMC/MBR/GPT bootloader partitions) and bundle formats (verity and crypt).
+Only if you use those features by enabling them in the bundle manifest, older
+versions of RAUC that cannot handle them will refuse to install the bundle.
+As long as you don't enable new features, our intention is that bundles created
+by newer versions will be installable by older versions and any such issues
+would be considered a bug.
 
-There are ideas of introducing a new bundle format to allow streaming
-installation (over the network), but we won't remove support for the original
-format.
+Some background is described in the :ref:`Forward and Backward Compatibility
+section <sec-compatibility>`.
 
 If there are ever reasons that require an incompatible change, you can use a
-two step migration:
-You can use an intermediate update to ship a new RAUC binary in a bundle
-created by the old (compatible) version.
-Then use the newly installed RAUC binary for the real update.
+two step migration using an :ref:`intermediate version
+<sec_migrate_updated_bundle_version>`.
 
 Can I use RAUC with a dm-verity-protected partition?
 ----------------------------------------------------
