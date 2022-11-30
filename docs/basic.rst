@@ -49,6 +49,75 @@ infrastructure.
 .. important:: A RAUC Bundle should always unambiguously describe the
   intended target state of the entire system.
 
+HTTP Streaming
+~~~~~~~~~~~~~~
+
+Since RAUC 1.7, bundles can be installed directly from a HTTP(S) server,
+without having to download and store the bundle locally.
+Simply use the bundle URL as the ``rauc install`` argument instead of a local
+file.
+
+Using streaming has a few requirements:
+
+* configure RAUC with ``--enable-streaming``
+* create bundles using the :ref:`verity format <sec_ref_format_verity>`
+* host the bundle on a server which supports HTTP Range Requests
+* enable NBD support in the kernel
+
+See the :ref:`HTTP Streaming <http-streaming>` section in the Advanced chapter
+for more details.
+
+.. _sec-compatibility:
+
+Forward and Backward Compatibility
+----------------------------------
+
+Our overall goal with regards to compatibility is a good balance between the
+requirements of users and the constraints during development.
+For users, it is mainly relevant how a given version of RAUC on the target
+handles bundles produced by older (backward compatibility) and newer versions
+(forward compatibility) of RAUC.
+As developers, we want to keep the effort for supporting old versions in the
+field at a reasonable level and have the flexibility to improve RAUC with new
+versions.
+
+To ensure forward compatibility, new bundle features need to be enabled
+explicitly during bundle creation.
+So without changing the manifest, newer RAUC versions used for bundle creation
+will not require new versions on the target.
+This includes new bundle formats, new hooks, adaptive updates or additional
+metadata.
+When a new (incompatible) feature is enabled in a bundle, older RAUC versions
+will report an error during installation to ensure that the installation result
+is deterministic.
+As long as you don't enable new features during creation, our intention is that
+bundles created by newer versions will be installable by older versions and any
+such issues would be considered a bug.
+
+To ensure backward compatibility, support for older bundle features is enabled
+by default and can be disabled explicitly in the RAUC ``system.conf`` as
+needed.
+To keep RAUC maintainable, we may need to deprecate and later remove support
+for old features over time.
+This would be done with several years between deprecation and removal so that
+at least one Yocto LTS version contains a RAUC version that warns when using
+the deprecated feature, giving users enough time to migrate away from that
+feature.
+Any issues with installing bundles created by an old RAUC version using new
+RAUC version would be considered a bug, except when using a feature removed
+after the deprecation period.
+Also, please contact us if a deprecation period is too short for your case.
+
+Furthermore, we avoid depending on new kernel features or library versions, so
+that it is possible to switch to newer RAUC versions without having to switch
+to a new distribution release at the same time.
+The guideline is that we can depend on new features only when they are
+available in all versions still actively supported by the respective upstream
+projects.
+
+As a result, users that update at least every two years (for example by
+following Yocto LTS releases) should receive deprecation warnings early enough
+to handling them via normal updates.
 
 RAUC's System View
 ------------------
@@ -61,7 +130,7 @@ In order to allow RAUC to handle your device right, we need to give it the
 right view on your system.
 
 Slots
------
+~~~~~
 
 In RAUC, everything that can be updated is a *slot*.
 Thus a slot can either be a full device, a partition, a volume or simply a file.
@@ -76,7 +145,7 @@ with, the type of storage or filesystem to use, its identification from the
 bootloader, etc.
 
 Target Slot Selection
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 A very important step when installing an update is to determine the correct
 mapping from the images that are contained in a RAUC bundle to the slots that
@@ -111,7 +180,7 @@ All slots of the group containing the active slot will be considered active,
 too.
 
 Slot Status and Skipping Slot Updates
--------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 RAUC hashes each image or archive when packing it into a bundle and stores this
 hash in the bundle's manifest file.
@@ -137,7 +206,7 @@ file system automatically and only installing the changed application.
 .. _sec-boot-slot:
 
 Boot Slot Selection
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 A system designed to run from redundant slots must always have a component that
 is responsible for selecting between the bootable slots.
@@ -167,7 +236,7 @@ It will, for example, deactivate the slot to update before writing to it
 and reactivate it after having completed the installation successfully.
 
 Installation and Storage Handling
----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As mentioned above, RAUC basically writes images to devices or partitions, but
 also allows installing file system content from (compressed) tar archives.
@@ -190,7 +259,7 @@ slot type while specifying the appropriate handling.
    :align: center
 
 Boot Confirmation & Fallback
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When designing a robust redundant system, update handling does not end with the
 successful installation of the update on the target slots!
@@ -216,21 +285,3 @@ unusable.
 For most cases it might be desired to either select one of the redundant slots
 as fallback or boot into a recovery system.
 This handling is up to your bootloader.
-
-HTTP Streaming
---------------
-
-Since RAUC 1.7, bundles can be installed directly from a HTTP(S) server,
-without having to download and store the bundle locally.
-Simply use the bundle URL as the ``rauc install`` argument instead of a local
-file.
-
-Using streaming has a few requirements:
-
-* configure RAUC with ``--enable-streaming``
-* create bundles using the :ref:`verity format <sec_ref_format_verity>`
-* host the bundle on a server which supports HTTP Range Requests
-* enable NBD support in the kernel
-
-See the :ref:`HTTP Streaming <http-streaming>` section in the Advanced chapter
-for more details.
