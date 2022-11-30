@@ -1,6 +1,10 @@
 Frequently Asked Questions
 ==========================
 
+.. contents::
+   :local:
+   :depth: 1
+
 Why doesn't the installed system use the whole partition?
 ---------------------------------------------------------
 

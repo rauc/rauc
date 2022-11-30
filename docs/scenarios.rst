@@ -3,6 +3,10 @@
 Scenarios
 =========
 
+.. contents::
+   :local:
+   :depth: 1
+
 Symmetric Root-FS Slots
 -----------------------
 
