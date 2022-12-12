@@ -2,6 +2,5 @@
 
 set -ex
 
-scan-build ./configure --enable-debug   
-make clean
-scan-build --keep-cc make -j 8
+meson setup build
+ninja -C build scan-build

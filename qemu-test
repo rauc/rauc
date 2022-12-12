@@ -12,8 +12,6 @@
 #
 # Optional arguments:
 #
-#   coverage    Run with coverage report generation enabled
-#   distcheck   Run distcheck make target
 #   passthrough Enable passthrough of the host's CPU features
 #   shell       Setup qemu test system and provide an interactive shell
 #   system      Setup qemu dummy system that behaves like a target (without reboot!)
@@ -46,7 +44,12 @@ check_kernel() {
 check_kernel || exit 1
 
 # make sure the tests are built
-make TESTS= check > /dev/null
+BUILD_DIR="build/"
+
+if [ ! -d $BUILD_DIR ]; then
+	echo "Could not find 'build/' dir. Run 'meson setup build'."
+fi
+ninja -C $BUILD_DIR
 
 QEMU_ARGS=""
 BOOTNAME="system0"
