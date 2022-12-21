@@ -80,6 +80,8 @@ static void test_load_manifest(void)
 
 static void check_manifest_contents(const RaucManifest *rm)
 {
+	RManifestMetaEntry *entry = NULL;
+
 	g_assert_nonnull(rm);
 	g_assert_cmpstr(rm->update_compatible, ==, "BarCorp FooBazzer");
 	g_assert_cmpstr(rm->update_version, ==, "2011.03-1");
@@ -102,6 +104,23 @@ static void check_manifest_contents(const RaucManifest *rm)
 	g_assert_true(((RaucImage*)g_list_nth_data(rm->images, 0))->hooks.post_install);
 
 	g_assert_true(rm->hooks.install_check);
+
+	g_assert_cmpuint(g_list_length(rm->meta), ==, 3);
+
+	entry = g_list_nth_data(rm->meta, 0);
+	g_assert_cmpstr(entry->group, ==, "foocorp");
+	g_assert_cmpstr(entry->key, ==, "release-type");
+	g_assert_cmpstr(entry->value, ==, "beta");
+
+	entry = g_list_nth_data(rm->meta, 1);
+	g_assert_cmpstr(entry->group, ==, "foocorp");
+	g_assert_cmpstr(entry->key, ==, "release-notes");
+	g_assert_cmpstr(entry->value, ==, "https://foocorp.example/releases/release-notes-2015.04-1.rst");
+
+	entry = g_list_nth_data(rm->meta, 2);
+	g_assert_cmpstr(entry->group, ==, "example");
+	g_assert_cmpstr(entry->key, ==, "counter");
+	g_assert_cmpstr(entry->value, ==, "42");
 }
 
 /* Test manifest/save_load:
@@ -117,6 +136,7 @@ static void test_save_load_manifest(void)
 	gboolean res = FALSE;
 	RaucManifest *rm = g_new0(RaucManifest, 1);
 	RaucImage *new_image;
+	RManifestMetaEntry *new_entry;
 	GBytes *mem = NULL;
 
 	rm->update_compatible = g_strdup("BarCorp FooBazzer");
@@ -157,6 +177,26 @@ static void test_save_load_manifest(void)
 	rm->images = g_list_append(rm->images, new_image);
 
 	g_assert_cmpuint(g_list_length(rm->images), ==, 3);
+
+	new_entry = g_new0(RManifestMetaEntry, 1);
+	new_entry->group = g_strdup("foocorp");
+	new_entry->key = g_strdup("release-type");
+	new_entry->value = g_strdup("beta");
+	rm->meta = g_list_append(rm->meta, new_entry);
+
+	new_entry = g_new0(RManifestMetaEntry, 1);
+	new_entry->group = g_strdup("foocorp");
+	new_entry->key = g_strdup("release-notes");
+	new_entry->value = g_strdup("https://foocorp.example/releases/release-notes-2015.04-1.rst");
+	rm->meta = g_list_append(rm->meta, new_entry);
+
+	new_entry = g_new0(RManifestMetaEntry, 1);
+	new_entry->group = g_strdup("example");
+	new_entry->key = g_strdup("counter");
+	new_entry->value = g_strdup("42");
+	rm->meta = g_list_append(rm->meta, new_entry);
+
+	g_assert_cmpuint(g_list_length(rm->meta), ==, 3);
 
 	res = save_manifest_file("test/savedmanifest.raucm", rm, &error);
 	g_assert_no_error(error);

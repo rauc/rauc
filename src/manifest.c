@@ -648,6 +648,12 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 					(const gchar * const *)image->adaptive, g_strv_length(image->adaptive));
 	}
 
+	for (GList *l = mf->meta; l != NULL; l = l->next) {
+		RManifestMetaEntry *entry = l->data;
+		g_autofree gchar *group = g_strdup_printf("meta.%s", entry->group);
+		g_key_file_set_string(key_file, group, entry->key, entry->value);
+	}
+
 	return g_steal_pointer(&key_file);
 }
 
