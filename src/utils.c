@@ -370,6 +370,10 @@ gboolean r_read_exact(const int fd, guint8 *data, size_t size, GError **error)
 					"Failed to read: %s", g_strerror(err));
 			return FALSE;
 		} else if (ret == 0) { /* end of file */
+			g_set_error(error,
+					G_FILE_ERROR,
+					G_FILE_ERROR_FAILED,
+					"Unexpected end of file");
 			return FALSE;
 		} else if ((size_t)ret <= remaining) {
 			pos += ret;
@@ -426,6 +430,10 @@ gboolean r_pread_exact(const int fd, guint8 *data, size_t size, off_t offset, GE
 					"Failed to read: %s", g_strerror(err));
 			return FALSE;
 		} else if (ret == 0) { /* end of file */
+			g_set_error(error,
+					G_FILE_ERROR,
+					G_FILE_ERROR_FAILED,
+					"Unexpected end of file");
 			return FALSE;
 		} else if ((size_t)ret <= remaining) {
 			pos += ret;
