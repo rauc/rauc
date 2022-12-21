@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "checksum.h"
 #include "config_file.h"
 #include "context.h"
@@ -92,6 +94,47 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 
 out:
 	return res;
+}
+
+static gboolean parse_meta(GKeyFile *key_file, const gchar *group, RaucManifest *raucm, GError **error)
+{
+	g_auto(GStrv) groupsplit = NULL;
+	g_auto(GStrv) keys = NULL;
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(key_file != NULL, FALSE);
+	g_return_val_if_fail(group != NULL, FALSE);
+	g_return_val_if_fail(raucm != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	groupsplit = g_strsplit(group, ".", 2);
+	if ((g_strv_length(groupsplit) != 2) || strchr(groupsplit[1], '.')) {
+		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+				"invalid metadata section name '%s' (must contain a single '.')", group);
+		return FALSE;
+	}
+
+	keys = g_key_file_get_keys(key_file, group, NULL, NULL);
+
+	for (GStrv key = keys; *key; key++) {
+		g_autoptr(RManifestMetaEntry) entry = g_new0(RManifestMetaEntry, 1);
+		gchar *value = key_file_consume_string(key_file, group, *key, &ierror);
+
+		if (!value) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+
+		entry->group = g_strdup(groupsplit[1]);
+		entry->key = g_strdup(*key);
+		entry->value = value;
+
+		raucm->meta = g_list_append(raucm->meta, g_steal_pointer(&entry));
+	}
+
+	g_key_file_remove_group(key_file, group, NULL);
+
+	return TRUE;
 }
 
 /* Parses key_file into RaucManifest structure
@@ -202,9 +245,12 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 
 			raucm->images = g_list_append(raucm->images, image);
 		}
-		/* ignore [meta.<label>] sections */
+		/* parse [meta.<label>] sections */
 		if (g_str_has_prefix(groups[i], "meta.")) {
-			g_key_file_remove_group(key_file, groups[i], NULL);
+			if (!parse_meta(key_file, groups[i], raucm, &ierror)) {
+				g_propagate_error(error, ierror);
+				return FALSE;
+			}
 		}
 	}
 
@@ -671,6 +717,7 @@ void free_manifest(RaucManifest *manifest)
 	g_free(manifest->handler_args);
 	g_free(manifest->hook_name);
 	g_list_free_full(manifest->images, r_free_image);
+	g_list_free_full(manifest->meta, (GDestroyNotify)free_manifest_entry);
 	g_free(manifest);
 }
 
@@ -745,4 +792,15 @@ gboolean sync_manifest_with_contentdir(RaucManifest *manifest, const gchar *dir,
 	}
 
 	return update_manifest_checksums(manifest, dir, error);
+}
+
+void free_manifest_entry(RManifestMetaEntry *entry)
+{
+	if (!entry)
+		return;
+
+	g_free(entry->group);
+	g_free(entry->key);
+	g_free(entry->value);
+	g_free(entry);
 }

@@ -342,6 +342,7 @@ static void test_manifest_load_meta(void)
 	gboolean res;
 	GError *error = NULL;
 	RaucImage *test_img = NULL;
+	RManifestMetaEntry *entry = NULL;
 	const gchar *mffile = "\
 [update]\n\
 compatible=FooCorp Super BarBazzer\n\
@@ -375,6 +376,23 @@ counter=42\n\
 
 	test_img = (RaucImage*)g_list_nth_data(rm->images, 0);
 	g_assert_nonnull(test_img);
+
+	g_assert_cmpuint(g_list_length(rm->meta), ==, 3);
+
+	entry = g_list_nth_data(rm->meta, 0);
+	g_assert_cmpstr(entry->group, ==, "foocorp");
+	g_assert_cmpstr(entry->key, ==, "release-type");
+	g_assert_cmpstr(entry->value, ==, "beta");
+
+	entry = g_list_nth_data(rm->meta, 1);
+	g_assert_cmpstr(entry->group, ==, "foocorp");
+	g_assert_cmpstr(entry->key, ==, "release-notes");
+	g_assert_cmpstr(entry->value, ==, "https://foocorp.example/releases/release-notes-2015.04-1.rst");
+
+	entry = g_list_nth_data(rm->meta, 2);
+	g_assert_cmpstr(entry->group, ==, "example");
+	g_assert_cmpstr(entry->key, ==, "counter");
+	g_assert_cmpstr(entry->value, ==, "42");
 
 	free_manifest(rm);
 }
