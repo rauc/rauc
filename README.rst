@@ -179,6 +179,7 @@ Building from Sources
 
     git clone https://github.com/rauc/rauc
     cd rauc
+    autoupdate
     ./autogen.sh
     ./configure
     make
