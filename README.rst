@@ -5,7 +5,7 @@
 RAUC - Robust Auto-Update Controller
 ====================================
 
-|LGPLv2.1| |CI_branch| |Codecov_branch| |Coverity| |lgtm| |Documentation| |Matrix| |CII Best Practices|
+|LGPLv2.1| |CI_branch| |Codecov_branch| |Coverity| |codeql| |Documentation| |Matrix| |CII Best Practices|
 
 RAUC controls the update process on embedded Linux systems. It is both a target
 application that runs as an update client and a host/target tool
@@ -266,7 +266,7 @@ section for more details.
    :target: http://rauc.readthedocs.org/en/latest/?badge=latest
 .. |Matrix| image:: https://img.shields.io/matrix/rauc:matrix.org?label=matrix%20chat
    :target: https://matrix.to/#/#rauc:matrix.org
-.. |lgtm| image:: https://img.shields.io/lgtm/grade/cpp/g/rauc/rauc.svg?logo=lgtm&logoWidth=18
-   :target: https://lgtm.com/projects/g/rauc/rauc/context:cpp
+.. |codeql| image:: https://github.com/rauc/rauc/workflows/CodeQL/badge.svg
+   :target: https://github.com/rauc/rauc/actions/workflows/codeql.yml
 .. |CII Best Practices| image:: https://bestpractices.coreinfrastructure.org/projects/5075/badge
    :target: https://bestpractices.coreinfrastructure.org/projects/5075
