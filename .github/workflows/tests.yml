@@ -89,8 +89,10 @@ jobs:
 
     - name: Prepare ${{ matrix.architecture }} container
       run: |
-        docker run --rm --privileged multiarch/qemu-user-static:register --reset
-        docker run --name cross -di -v "$PWD":/home -w /home multiarch/debian-debootstrap:${{ matrix.architecture }}-buster bash
+        sudo apt-get update
+        sudo DEBIAN_FRONTEND='noninteractive' apt-get install -qy qemu-user-static
+        docker run --name cross -di -v "$PWD":/home -w /home multiarch/debian-debootstrap:${{ matrix.architecture }}-bullseye bash
+        docker logs cross
         docker exec -i cross uname -a
         docker exec -i cross apt-get update
         docker exec -e DEBIAN_FRONTEND='noninteractive' -i cross apt-get install -qy build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev libnl-genl-3-dev squashfs-tools
