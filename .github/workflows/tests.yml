@@ -89,7 +89,8 @@ jobs:
 
     - name: Prepare ${{ matrix.architecture }} container
       run: |
-        docker run --rm --privileged multiarch/qemu-user-static:register --reset
+        sudo apt-get update
+        sudo DEBIAN_FRONTEND='noninteractive' apt-get install -qy qemu-user-static
         docker run --name cross -di -v "$PWD":/home -w /home multiarch/debian-debootstrap:${{ matrix.architecture }}-buster bash
         docker exec -i cross uname -a
         docker exec -i cross apt-get update
