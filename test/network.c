@@ -36,32 +36,26 @@ static void test_download_file(NetworkFixture *fixture,
 	target = g_build_filename(fixture->tmpdir, "target", NULL);
 
 	/* basic download (no size limit) */
-	res = download_file(target, "http://rauc.io/", 0, &ierror);
+	res = download_file(target, "https://rauc.io/", 0, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_cmpint(g_unlink(target), ==, 0);
 
 	/* download with large limit */
-	res = download_file(target, "http://rauc.io/", 1048576, &ierror);
-	g_assert_no_error(ierror);
-	g_assert_true(res);
-	g_assert_cmpint(g_unlink(target), ==, 0);
-
-	/* abort download for too large files */
-	res = download_file(target, "http://rauc.io/", 1024, &ierror);
-	g_assert_error(ierror, G_IO_ERROR, G_IO_ERROR_FAILED);
-	g_assert_false(res);
-	g_clear_error(&ierror);
-	g_assert_cmpint(g_unlink(target), ==, 0);
-
-	/* download with https */
 	res = download_file(target, "https://rauc.io/", 1048576, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_cmpint(g_unlink(target), ==, 0);
 
+	/* abort download for too large files */
+	res = download_file(target, "https://rauc.io/", 1024, &ierror);
+	g_assert_error(ierror, G_IO_ERROR, G_IO_ERROR_FAILED);
+	g_assert_false(res);
+	g_clear_error(&ierror);
+	g_assert_cmpint(g_unlink(target), ==, 0);
+
 	/* invalid host name */
-	res = download_file(target, "http://error.rauc.io/", 1024, &ierror);
+	res = download_file(target, "https://error.rauc.io/", 1024, &ierror);
 	g_assert_error(ierror, G_IO_ERROR, G_IO_ERROR_FAILED);
 	g_assert_false(res);
 	g_clear_error(&ierror);
