@@ -440,6 +440,8 @@ gboolean r_hash_index_get_chunk(const RaucHashIndex *idx, const guint8 *hash, Ra
 	off_t offset;
 
 	g_return_val_if_fail(idx, FALSE);
+	g_return_val_if_fail(idx->hashes, FALSE);
+	g_return_val_if_fail(idx->count > 0, FALSE);
 	g_return_val_if_fail(hash, FALSE);
 	g_return_val_if_fail(chunk, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
