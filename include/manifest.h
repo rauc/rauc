@@ -40,6 +40,12 @@ typedef enum {
 } RManifestBundleFormat;
 
 typedef struct {
+	gchar *group;
+	gchar *key;
+	gchar *value;
+} RManifestMetaEntry;
+
+typedef struct {
 	gchar *update_compatible;
 	gchar *update_version;
 	gchar *update_description;
@@ -59,6 +65,9 @@ typedef struct {
 	InstallHooks hooks;
 
 	GList *images;
+
+	/* list of RManifestMetaEntry */
+	GList *meta;
 
 	/* internal marker that this was encrypted */
 	gboolean was_encrypted;
@@ -187,3 +196,10 @@ static inline const gchar *r_manifest_bundle_format_to_str(RManifestBundleFormat
 			return "invalid";
 	}
 }
+
+/**
+ * Frees the memory allocated by a RManifestMetaEntry.
+ */
+void free_manifest_entry(RManifestMetaEntry *entry);
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(RManifestMetaEntry, free_manifest_entry);
