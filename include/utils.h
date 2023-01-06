@@ -9,6 +9,7 @@ GQuark r_utils_error_quark(void);
 
 typedef enum {
 	R_UTILS_ERROR_FAILED,
+	R_UTILS_ERROR_INAPPROPRIATE_IOCTL,
 } RUtilsError;
 
 #define BIT(nr) (1UL << (nr))
@@ -230,4 +231,7 @@ gboolean r_pwrite_lazy(const int fd, const guint8 *data, size_t size, off_t offs
 G_GNUC_WARN_UNUSED_RESULT;
 
 guint get_sectorsize(gint fd)
+G_GNUC_WARN_UNUSED_RESULT;
+
+goffset get_device_size(gint fd, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
