@@ -37,6 +37,28 @@ static void whitespace_removed_test(void)
 	g_free(str);
 }
 
+static void get_sectorsize_test(void)
+{
+	const gchar *device = g_getenv("RAUC_TEST_BLOCK_LOOP");
+	int fd = -1;
+	guint size = 0;
+
+	if (!device) {
+		g_test_message("no block device for testing found (define RAUC_TEST_BLOCK_LOOP)");
+		g_test_skip("RAUC_TEST_BLOCK_LOOP undefined");
+		return;
+	}
+
+	fd = g_open(device, O_RDONLY|O_CLOEXEC, 0);
+	g_assert_cmphex(fd, >=, 0);
+
+	size = get_sectorsize(fd);
+	g_assert_cmpint(size, ==, 512);
+
+	if (fd >= 0)
+		g_close(fd, NULL);
+}
+
 static void get_device_size_test(void)
 {
 	GError *error = NULL;
@@ -68,6 +90,7 @@ int main(int argc, char *argv[])
 	g_test_init(&argc, &argv, NULL);
 
 	g_test_add_func("/utils/whitespace_removed", whitespace_removed_test);
+	g_test_add_func("/utils/get_sectorsize", get_sectorsize_test);
 	g_test_add_func("/utils/get_device_size", get_device_size_test);
 
 	return g_test_run();
