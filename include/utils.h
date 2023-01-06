@@ -3,6 +3,14 @@
 #include <gio/gio.h>
 #include <glib.h>
 
+#define R_UTILS_ERROR r_utils_error_quark()
+
+GQuark r_utils_error_quark(void);
+
+typedef enum {
+	R_UTILS_ERROR_FAILED,
+} RUtilsError;
+
 #define BIT(nr) (1UL << (nr))
 
 /* Evaluate EXPRESSION, and repeat as long as it returns -1 with `errno'

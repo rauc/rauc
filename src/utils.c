@@ -12,6 +12,11 @@
 
 #include "utils.h"
 
+GQuark r_utils_error_quark(void)
+{
+	return g_quark_from_static_string("r_utils_error_quark");
+}
+
 GSubprocess *r_subprocess_new(GSubprocessFlags flags, GError **error, const gchar *argv0, ...)
 {
 	GSubprocess *result;
