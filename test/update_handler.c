@@ -27,6 +27,7 @@ typedef enum {
 	TEST_UPDATE_HANDLER_NO_HOOK_FILE                                  = BIT(7),
 	TEST_UPDATE_HANDLER_HOOK_FAIL                                     = BIT(8),
 	TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX                           = BIT(9),
+	TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE                               = BIT(10),
 } TestUpdateHandlerParams;
 
 typedef struct {
@@ -119,6 +120,20 @@ static void update_handler_fixture_set_up(UpdateHandlerFixture *fixture,
 			g_assert(test_make_filesystem(fixture->tmpdir, "rootfs-0"));
 		}
 	}
+
+	if ((test_pair->params & TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE) &&
+	    (test_pair->params & TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX)) {
+		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
+				"Checking image type for slot type: *");
+		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
+				"Image detected as type: *");
+		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_INFO,
+				"Selected adaptive update method *");
+		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_INFO,
+				"building*");
+		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
+				"Continuing after adaptive mode error: Slot * is too small for image *");
+	}
 }
 
 static void update_handler_fixture_tear_down(UpdateHandlerFixture *fixture,
@@ -135,6 +150,10 @@ static void update_handler_fixture_tear_down(UpdateHandlerFixture *fixture,
 		test_rm_tree(fixture->tmpdir, "rootfs-0-datadir");
 	}
 	g_assert(test_rmdir(fixture->tmpdir, "") == 0);
+
+	if (!g_test_failed()) {
+		g_test_assert_expected_messages();
+	}
 }
 
 static gboolean tar_image(const gchar *dest, const gchar *dir, GError **error)
@@ -343,7 +362,18 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 			return;
 		}
 	} else {
-		slotpath = g_build_filename(fixture->tmpdir, "rootfs-0", NULL);
+		if (test_pair->params & TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE) {
+			/* Try to use loop block device for this test. */
+			slotpath = g_strdup(g_getenv("RAUC_TEST_BLOCK_LOOP"));
+			if (!slotpath) {
+				g_test_message("no block device for testing found (define RAUC_TEST_BLOCK_LOOP)");
+				g_test_skip("RAUC_TEST_BLOCK_LOOP undefined");
+				return;
+			}
+			image_size = 65*1024*1024; /* loop dev is only 64 MiB */
+		} else {
+			slotpath = g_build_filename(fixture->tmpdir, "rootfs-0", NULL);
+		}
 	}
 	imagepath = g_build_filename(fixture->tmpdir, imagename, NULL);
 
@@ -658,6 +688,10 @@ int main(int argc, char *argv[])
 		/* casync directory index tests */
 		{"ext4", "caidx", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 		{"vfat", "caidx", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+
+		/* image too large */
+		{"ext4", "ext4", TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
+		{"ext4", "ext4", TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX | TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
 
 		{0}
 	};
@@ -1074,6 +1108,20 @@ int main(int argc, char *argv[])
 	                test_update_handler,
 	                update_handler_fixture_tear_down);
 	 */
+
+	/* too large */
+	g_test_add("/update_handler/too_large/normal",
+			UpdateHandlerFixture,
+			&testpair_matrix[63],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/too_large/adaptive",
+			UpdateHandlerFixture,
+			&testpair_matrix[64],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
 
 	return g_test_run();
 }
