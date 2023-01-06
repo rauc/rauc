@@ -304,6 +304,7 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 {
 	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair*) user_data;
 	gchar *slotpath, *imagename, *imagepath, *mountprefix, *hookpath = NULL;
+	goffset image_size;
 	RaucImage *image;
 	RaucSlot *targetslot;
 	img_to_slot_handler handler;
@@ -317,6 +318,7 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	g_test_message("installing '%s' image to '%s' slot", test_pair->imagetype, test_pair->slottype);
 
 	/* prepare image and slot information */
+	image_size = IMAGE_SIZE;
 	imagename = g_strconcat("image.", test_pair->imagetype, NULL);
 	if (g_strcmp0(test_pair->slottype, "ubivol") == 0||
 	    g_strcmp0(test_pair->slottype, "ubifs") == 0) {
@@ -357,7 +359,7 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	image = g_new0(RaucImage, 1);
 	image->slotclass = g_strdup("rootfs");
 	image->filename = g_strdup(imagepath);
-	image->checksum.size = IMAGE_SIZE;
+	image->checksum.size = image_size;
 	image->checksum.digest = g_strdup("0xdeadbeef");
 	if (test_pair->params & TEST_UPDATE_HANDLER_HOOKS) {
 		const gchar *hook_content_success = "#!/bin/sh\nexit 0";
@@ -381,11 +383,10 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	}
 
 	if (g_strcmp0(test_pair->imagetype, "img") == 0) {
-		g_autofree gchar* pathname = write_random_file(fixture->tmpdir, "image.img", IMAGE_SIZE, 0x2abff992);
+		g_autofree gchar* pathname = write_random_file(fixture->tmpdir, "image.img", image_size, 0x2abff992);
 		g_assert_nonnull(pathname);
 	} else if (g_strcmp0(test_pair->imagetype, "ext4") == 0) {
-		g_assert(test_prepare_dummy_file(fixture->tmpdir, "image.ext4",
-				IMAGE_SIZE, "/dev/zero") == 0);
+		g_assert(test_prepare_dummy_file(fixture->tmpdir, "image.ext4", image_size, "/dev/zero") == 0);
 		g_assert(test_make_filesystem(fixture->tmpdir, "image.ext4"));
 	} else if (g_strcmp0(test_pair->imagetype, "tar.bz2") == 0) {
 		g_assert_true(test_prepare_dummy_archive(fixture->tmpdir, "image.tar.bz2", "testfile.txt"));
@@ -450,9 +451,9 @@ no_image:
 
 	/* Sanity check updated slot */
 	if (g_strcmp0(test_pair->imagetype, "img") == 0) {
-		g_assert_cmpint(get_file_size(imagepath, NULL), ==, IMAGE_SIZE);
+		g_assert_cmpint(get_file_size(imagepath, NULL), ==, image_size);
 	} else if (g_strcmp0(test_pair->imagetype, "ext4") == 0) {
-		g_assert_cmpint(get_file_size(imagepath, NULL), ==, IMAGE_SIZE);
+		g_assert_cmpint(get_file_size(imagepath, NULL), ==, image_size);
 		g_assert(test_mount(slotpath, mountprefix));
 		g_assert(r_umount(slotpath, NULL));
 	} else if ((g_strcmp0(test_pair->imagetype, "tar.bz2") == 0) || ((g_strcmp0(test_pair->imagetype, "caidx") == 0))) {
