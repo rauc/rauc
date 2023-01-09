@@ -172,7 +172,8 @@ out:
 				interface,
 				invocation,
 				manifest->update_compatible,
-				manifest->update_version ? manifest->update_version : "");
+				manifest->update_version ? manifest->update_version : "",
+				manifest->update_description ? manifest->update_description : "");
 	} else {
 		g_dbus_method_invocation_return_error(invocation,
 				G_IO_ERROR,
