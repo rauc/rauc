@@ -136,6 +136,12 @@ Host (Build) Prerequisites
 
    sudo apt-get install build-essential automake libtool libdbus-1-dev libglib2.0-dev libcurl3-dev libssl-dev
 
+For HTTP(S) streaming support, you also need netlink protocol headers:
+
+::
+
+    sudo apt-get install libnl-genl-3-dev
+
 If you intend to use json-support you also need
 
 ::
