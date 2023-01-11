@@ -142,7 +142,7 @@ Example configuration:
   However, if a per-slot status is required as one of the above-noted
   requirements cannot be met, one can use the value ``per-slot`` to document
   this decision.
-  For background compatibility this option is not mandatory and will default to
+  For backwards compatibility this option is not mandatory and will default to
   per-slot status files if not set.
 
   .. important:: This file must be located on a non-redundant filesystem which
