@@ -31,16 +31,28 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 	g_return_val_if_fail(image == NULL || *image == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	/* We support several formats:
+	 * - [image.rootfs]
+	 * - [image.rootfs.product-a]
+	 * - [image.appfs/app-1]
+	 * - [image.appfs/app-1.product-a]
+	 */
+
 	groupsplit = g_strsplit(group, ".", 3);
 	g_assert_cmpint(g_strv_length(groupsplit), >=, 2);
+	g_assert_cmpstr(groupsplit[0], ==, "image");
 
-	iimage->slotclass = g_strdup(groupsplit[1]);
+	g_auto(GStrv) targetsplit = NULL;
+	targetsplit = g_strsplit(groupsplit[1], "/", 2);
+	iimage->slotclass = g_strdup(targetsplit[0]);
 
-	/* if we have a variant part in group, store it here */
+	/* Do we have an artifact name for this image? */
+	if (g_strv_length(targetsplit) == 2)
+		iimage->artifact = g_strdup(targetsplit[1]);
+
+	/* Do we have a variant name for this image? */
 	if (g_strv_length(groupsplit) == 3)
 		iimage->variant = g_strdup(groupsplit[2]);
-	else
-		iimage->variant = NULL;
 
 	value = key_file_consume_string(key_file, group, "sha256", NULL);
 	if (value) {
@@ -703,6 +715,12 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 
 		group = g_strconcat(RAUC_IMAGE_PREFIX ".", image->slotclass, NULL);
 
+		if (image->artifact) {
+			gchar *tmp = group;
+			group = g_strconcat(group, "/", image->artifact, NULL);
+			g_free(tmp);
+		}
+
 		if (image->variant) {
 			gchar *tmp = group;
 			group = g_strconcat(group, ".", image->variant, NULL);
@@ -934,6 +952,7 @@ void r_free_image(gpointer data)
 		return;
 
 	g_free(image->slotclass);
+	g_free(image->artifact);
 	g_free(image->variant);
 	g_free(image->checksum.digest);
 	g_free(image->filename);
