@@ -22,6 +22,7 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 	gchar *value;
 	g_auto(GStrv) hooks = NULL;
 	gsize entries;
+	g_auto(GStrv) converted = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -91,6 +92,16 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 
 	iimage->adaptive = g_key_file_get_string_list(key_file, group, "adaptive", NULL, NULL);
 	g_key_file_remove_key(key_file, group, "adaptive", NULL);
+
+	iimage->convert = g_key_file_get_string_list(key_file, group, "convert", NULL, NULL);
+	g_key_file_remove_key(key_file, group, "convert", NULL);
+
+	converted = g_key_file_get_string_list(key_file, group, "converted", NULL, NULL);
+	g_key_file_remove_key(key_file, group, "converted", NULL);
+	if (converted) {
+		iimage->converted = g_ptr_array_new_with_free_func(g_free);
+		r_ptr_array_addv(iimage->converted, converted, TRUE);
+	}
 
 	if (!check_remaining_keys(key_file, group, &ierror)) {
 		g_propagate_error(error, ierror);
@@ -725,6 +736,13 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 		if (image->adaptive)
 			g_key_file_set_string_list(key_file, group, "adaptive",
 					(const gchar * const *)image->adaptive, g_strv_length(image->adaptive));
+
+		if (image->convert)
+			g_key_file_set_string_list(key_file, group, "convert",
+					(const gchar * const *)image->convert, g_strv_length(image->convert));
+		if (image->converted && image->converted->len)
+			g_key_file_set_string_list(key_file, group, "converted",
+					(const gchar * const *)image->converted->pdata, image->converted->len);
 	}
 
 	if (mf->meta) {
@@ -920,6 +938,8 @@ void r_free_image(gpointer data)
 	g_free(image->checksum.digest);
 	g_free(image->filename);
 	g_strfreev(image->adaptive);
+	g_strfreev(image->convert);
+	g_clear_pointer(&image->converted, (GDestroyNotify)g_ptr_array_unref);
 	g_free(image);
 }
 
