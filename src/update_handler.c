@@ -30,6 +30,34 @@ GQuark r_update_error_quark(void)
 	return g_quark_from_static_string("r_update_error_quark");
 }
 
+static gboolean check_image_size(int fd, const RaucImage *image, GError **error)
+{
+	GError *ierror = NULL;
+	goffset dev_size;
+
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	dev_size = get_device_size(fd, &ierror);
+	if (g_error_matches(ierror, R_UTILS_ERROR, R_UTILS_ERROR_INAPPROPRIATE_IOCTL)) {
+		g_info("Slot is not a block device, skipping size check");
+		return TRUE;
+	}
+
+	if (dev_size < image->checksum.size) {
+		if (ierror) {
+			g_propagate_error(error, ierror);
+		} else {
+			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+					"Slot (%"G_GOFFSET_FORMAT " bytes) is too small for image (%"G_GOFFSET_FORMAT " bytes).",
+					dev_size, image->checksum.size);
+		}
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 /* the fd will only live as long as the returned output stream */
 static GUnixOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **error)
 {
@@ -548,6 +576,13 @@ static gboolean copy_raw_image_to_dev(RaucImage *image, RaucSlot *slot, GError *
 		goto out;
 	}
 
+	/* check size */
+	if (!check_image_size(g_unix_output_stream_get_fd(outstream), image, &ierror)) {
+		res = FALSE;
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
 	/* copy */
 	g_message("writing data to device %s", slot->device);
 	res = copy_raw_image(image, outstream, 0, &ierror);
@@ -596,6 +631,12 @@ static gboolean copy_block_hash_index_image_to_dev(RaucImage *image, RaucSlot *s
 		res = FALSE;
 		goto out;
 	}
+	if (!check_image_size(tmp->data_fd, image, &ierror)) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto out;
+	}
+
 	g_ptr_array_add(sources, g_steal_pointer(&tmp));
 
 	/* Open and append seed slot. */
@@ -773,7 +814,7 @@ static gboolean copy_adaptive_image_to_dev(RaucImage *image, RaucSlot *slot, GEr
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (g_strv_contains((const gchar * const*)image->adaptive, "block-hash-index")) {
-		g_info("Selected adaptive update method 'block-hash-index");
+		g_info("Selected adaptive update method 'block-hash-index'");
 
 		if (!copy_block_hash_index_image_to_dev(image, slot, &ierror)) {
 			g_propagate_error(error, ierror);

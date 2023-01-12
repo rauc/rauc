@@ -12,6 +12,11 @@
 
 #include "utils.h"
 
+GQuark r_utils_error_quark(void)
+{
+	return g_quark_from_static_string("r_utils_error_quark");
+}
+
 GSubprocess *r_subprocess_new(GSubprocessFlags flags, GError **error, const gchar *argv0, ...)
 {
 	GSubprocess *result;
@@ -498,4 +503,31 @@ guint get_sectorsize(gint fd)
 		return 512;
 
 	return sector_size;
+}
+
+goffset get_device_size(gint fd, GError **error)
+{
+	guint64 size = 0;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, 0);
+
+	if (ioctl(fd, BLKGETSIZE64, &size) != 0) {
+		int err = errno;
+		if (err == ENOTTY) {
+			g_set_error(error,
+					R_UTILS_ERROR,
+					R_UTILS_ERROR_INAPPROPRIATE_IOCTL,
+					"Failed to get device size: Not a block device");
+		} else {
+			g_set_error(error,
+					G_FILE_ERROR,
+					g_file_error_from_errno(err),
+					"Failed to get device size: %s", g_strerror(err));
+		}
+		return 0;
+	}
+
+	g_assert(size <= G_MAXOFFSET);
+
+	return size;
 }
