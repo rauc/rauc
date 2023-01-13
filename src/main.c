@@ -999,6 +999,23 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 }
 
 
+#if ENABLE_JSON
+/* Takes a GStrv and adds a JSON array to the builder. If the GStrv is NULL, an
+ * empty array is added. */
+static void strv_to_json_array(JsonBuilder *builder, GStrv strv)
+{
+	g_return_if_fail(JSON_IS_BUILDER(builder));
+
+	json_builder_begin_array(builder);
+	if (strv) {
+		for (gchar **m = strv; *m != NULL; m++) {
+			json_builder_add_string_value(builder, *m);
+		}
+	}
+	json_builder_end_array(builder);
+}
+#endif
+
 static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 {
 #if ENABLE_JSON
@@ -1057,13 +1074,7 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 		}
 		json_builder_end_array(builder);
 		json_builder_set_member_name(builder, "adaptive");
-		json_builder_begin_array(builder);
-		if (img->adaptive) {
-			for (gchar **m = img->adaptive; *m != NULL; m++) {
-				json_builder_add_string_value(builder, *m);
-			}
-		}
-		json_builder_end_array(builder);
+		strv_to_json_array(builder, img->adaptive);
 		json_builder_end_object(builder);
 		json_builder_end_object(builder);
 	}
