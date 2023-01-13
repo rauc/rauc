@@ -403,6 +403,7 @@ static size_t header_cb(char *buffer, size_t size, size_t nitems, void *userdata
 static void prepare_curl(struct RaucNBDTransfer *xfer)
 {
 	CURLcode code = 0;
+	CURLcode tunnel_code = 0;
 	g_assert_null(xfer->easy);
 
 	xfer->easy = curl_easy_init();
@@ -439,7 +440,12 @@ static void prepare_curl(struct RaucNBDTransfer *xfer)
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
 
 	/* a proxy may be configured using .netrc */
-	code |= curl_easy_setopt(xfer->easy, CURLOPT_HTTPPROXYTUNNEL, 1L);
+	tunnel_code = curl_easy_setopt(xfer->easy, CURLOPT_HTTPPROXYTUNNEL, 1L);
+	if (tunnel_code == CURLE_UNKNOWN_OPTION) {
+		g_debug("no proxy support available in libcurl (failed to set CURLOPT_HTTPPROXYTUNNEL)");
+	} else {
+		code |= tunnel_code;
+	}
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_SUPPRESS_CONNECT_HEADERS, 1L);
 
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_PRIVATE, xfer);
