@@ -162,7 +162,7 @@ static void test_save_load_manifest(void)
 	new_image->variant = g_strdup("variant-1");
 	new_image->checksum.type = G_CHECKSUM_SHA256;
 	new_image->checksum.digest = g_strdup("768c36e72bedd35dac67c39b6145f97ef174179f5903a31c4c03abc0eb5d954c");
-	new_image->filename = g_strdup("myrootimg_vareiant1.ext4");
+	new_image->filename = g_strdup("myrootimg_variant1.ext4");
 	new_image->hooks.pre_install = TRUE;
 	new_image->hooks.post_install = TRUE;
 	new_image->adaptive = g_strsplit("invalid-method;another-invalid-method", ";", 0);
