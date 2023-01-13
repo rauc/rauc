@@ -94,9 +94,6 @@ typedef enum {
 #define R_SLOT_ERROR r_slot_error_quark()
 GQuark r_slot_error_quark(void);
 
-typedef struct {
-} RaucSlotGroup;
-
 /**
  * Parses a bundle format list into a mask.
  *
