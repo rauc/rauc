@@ -901,6 +901,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 		RaucImage *img = l->data;
 		r_ptr_array_add_printf(entries, "RAUC_IMAGE_NAME_%d=%s", cnt, img->filename ?: "");
 		r_ptr_array_add_printf(entries, "RAUC_IMAGE_CLASS_%d=%s", cnt, img->slotclass ?: "");
+		r_ptr_array_add_printf(entries, "RAUC_IMAGE_ARTIFACT_%d=%s", cnt, img->artifact ?: "");
 		r_ptr_array_add_printf(entries, "RAUC_IMAGE_VARIANT_%d=%s", cnt, img->variant ?: "");
 		r_ptr_array_add_printf(entries, "RAUC_IMAGE_DIGEST_%d=%s", cnt, img->checksum.digest ?: "");
 		r_ptr_array_add_printf(entries, "RAUC_IMAGE_SIZE_%d=%"G_GOFFSET_FORMAT, cnt, img->checksum.size);
@@ -927,6 +928,22 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 			temp_string = g_strjoinv(" ", (gchar**) img->adaptive);
 			r_ptr_array_add_printf(entries, "RAUC_IMAGE_ADAPTIVE_%d=%s", cnt, temp_string);
 			g_free(temp_string);
+		}
+
+		if (img->convert) {
+			temp_string = g_strjoinv(" ", (gchar**) img->convert);
+			r_ptr_array_add_printf(entries, "RAUC_IMAGE_CONVERT_%d=%s", cnt, temp_string);
+			g_free(temp_string);
+		}
+		if (img->converted) {
+			GString *temp_text = g_string_new(NULL);
+			g_string_append_printf(temp_text, "RAUC_IMAGE_CONVERTED_%d=", cnt);
+			for (guint i = 0; i < img->converted->len; i++) {
+				if (i)
+					g_string_append_c(temp_text, ' ');
+				g_string_append(temp_text, img->converted->pdata[i]);
+			}
+			g_ptr_array_add(entries, g_string_free(temp_text, FALSE));
 		}
 
 		cnt++;
@@ -1008,6 +1025,8 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		g_string_append_printf(text, "  "KBLD "[%s]"KNRM "\n", img->slotclass);
 		if (img->variant)
 			g_string_append_printf(text, "    Variant:   %s\n", img->variant);
+		if (img->artifact)
+			g_string_append_printf(text, "    Artifact:  %s\n", img->artifact);
 		if (img->filename) {
 			g_autofree gchar* formatted_size = g_format_size_full(img->checksum.size, G_FORMAT_SIZE_LONG_FORMAT);
 			g_string_append_printf(text, "    Filename:  %s\n", img->filename);
@@ -1041,6 +1060,19 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 			g_free(temp_string);
 		}
 
+		if (img->convert) {
+			temp_string = g_strjoinv(" ", (gchar**) img->convert);
+			g_string_append_printf(text, "    Convert:   %s\n", temp_string);
+			g_free(temp_string);
+		}
+		if (img->converted) {
+			g_string_append(text, "    Converted:");
+			for (guint i = 0; i < img->converted->len; i++) {
+				g_string_append_printf(text, " '%s'", (gchar*)img->converted->pdata[i]);
+			}
+			g_string_append_c(text, '\n');
+		}
+
 		cnt++;
 	}
 
@@ -1059,6 +1091,19 @@ static void strv_to_json_array(JsonBuilder *builder, GStrv strv)
 		for (gchar **m = strv; *m != NULL; m++) {
 			json_builder_add_string_value(builder, *m);
 		}
+	}
+	json_builder_end_array(builder);
+}
+
+/* Takes a GPtrArray and adds a JSON array to the builder. */
+static void ptrarray_to_json_array(JsonBuilder *builder, GPtrArray *ptrarray)
+{
+	g_return_if_fail(JSON_IS_BUILDER(builder));
+	g_return_if_fail(ptrarray);
+
+	json_builder_begin_array(builder);
+	for (guint i = 0; i < ptrarray->len; i++) {
+		json_builder_add_string_value(builder, ptrarray->pdata[i]);
 	}
 	json_builder_end_array(builder);
 }
@@ -1107,6 +1152,8 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 		json_builder_begin_object(builder);
 		json_builder_set_member_name(builder, img->slotclass);
 		json_builder_begin_object(builder);
+		json_builder_set_member_name(builder, "artifact");
+		json_builder_add_string_value(builder, img->artifact);
 		json_builder_set_member_name(builder, "variant");
 		json_builder_add_string_value(builder, img->variant);
 		json_builder_set_member_name(builder, "filename");
@@ -1129,6 +1176,14 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 		json_builder_end_array(builder);
 		json_builder_set_member_name(builder, "adaptive");
 		strv_to_json_array(builder, img->adaptive);
+		if (img->convert) {
+			json_builder_set_member_name(builder, "convert");
+			strv_to_json_array(builder, img->convert);
+		}
+		if (img->converted) {
+			json_builder_set_member_name(builder, "converted");
+			ptrarray_to_json_array(builder, img->converted);
+		}
 		json_builder_end_object(builder);
 		json_builder_end_object(builder);
 	}
