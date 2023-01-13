@@ -14,28 +14,24 @@ jobs:
       run: |
         whoami
         gcc --version
+        apt-get update
+        DEBIAN_FRONTEND='noninteractive' apt-get install -qy meson
 
     - uses: actions/checkout@v2
 
-    - name: Run autogen.sh
-      run: |
-        ./autogen.sh
-
     - name: Test with service and gpt
       run: |
-        ./configure --enable-code-coverage --enable-gpt CFLAGS=-Werror
-        make clean
-        make -j4
-        make -j4 check TESTS=
+        rm -rf build/
+        meson setup -Dservice=true -Dgpt=enabled -Dwerror=true build
+        ninja -C build
         ./qemu-test
         lcov --directory . --capture --output-file "service.info"
         
     - name: Test without service and gpt
       run: |
-        ./configure --enable-code-coverage --disable-service CFLAGS=-Werror
-        make clean
-        make -j4
-        make -j4 check TESTS=
+        rm -rf build/
+        meson setup -Dservice=false -Dgpt=enabled -Dwerror=true build
+        ninja -C build
         ./qemu-test
         lcov --directory . --capture --output-file "noservice.info"
 
@@ -46,7 +42,7 @@ jobs:
 
     - name: Build documentation
       run: |
-        make doc SPHINXOPTS=-W
+        meson compile doc -C build
 
     - name: Build CGI example
       run: |
@@ -69,10 +65,7 @@ jobs:
     - name: Show logs
       if: ${{ failure() }}
       run: |
-        cat config.log || true
-        cat test/*.log || true
-        cat test-suite.log || true
-        cat rauc-*/_build/sub/test-suite.log || true
+        cat build/meson-logs/testlog.txt || true
         dmesg | tail -n 100
 
   cross:
@@ -95,23 +88,19 @@ jobs:
         docker logs cross
         docker exec -i cross uname -a
         docker exec -i cross apt-get update
-        docker exec -e DEBIAN_FRONTEND='noninteractive' -i cross apt-get install -qy build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev libnl-genl-3-dev squashfs-tools
+        docker exec -e DEBIAN_FRONTEND='noninteractive' -i cross apt-get install -qy build-essential meson libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev libnl-genl-3-dev squashfs-tools
 
     - name: Build
       run: |
         docker exec -i cross whoami
-        docker exec -i cross ./autogen.sh
-        docker exec -i cross ./configure --enable-gpt CFLAGS=-Werror
-        docker exec -i cross make
+        docker exec -i cross meson setup -Dgpt=enabled -Dwerror=true build
+        docker exec -i cross ninja -C build
         # don't run make check here, as we don't have full access to the kernel (mount, loopback, dm)
 
     - name: Show logs
       if: ${{ failure() }}
       run: |
-        cat config.log || true
-        cat test/*.log || true
-        cat test-suite.log || true
-        cat rauc-*/_build/sub/test-suite.log || true
+        cat build/meson-logs/testlog.txt || true
 
   stable:
     runs-on: ubuntu-latest
@@ -121,34 +110,53 @@ jobs:
         - "18.04"
         - "20.04"
         - "22.04"
+        builder:
+        - "meson"
+        - "automake"
+        exclude:
+          - release: "18.04"
+            builder: "meson"
     steps:
     - uses: actions/checkout@v2
 
-    - name: Prepare ubuntu ${{ matrix.release }} container
+    - name: Prepare ubuntu ${{ matrix.release }} container for ${{ matrix.builder }} build
       run: |
         docker run --name stable -di -v "$PWD":/home -w /home ubuntu:${{ matrix.release }} bash
         docker exec -i stable uname -a
         docker exec -i stable apt-get update
-        docker exec -e DEBIAN_FRONTEND='noninteractive' -i stable apt-get install -qy build-essential automake libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev libnl-genl-3-dev squashfs-tools
+        docker exec -e DEBIAN_FRONTEND='noninteractive' -i stable apt-get install -qy build-essential ${{ matrix.builder }} libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev libnl-genl-3-dev squashfs-tools
 
     - name: Patch & prepare
       run: |
         docker exec -i stable whoami
         docker exec -i stable uname -a
-        docker exec -i stable find .github/workflows/patches/${{ matrix.release}}/ -type f -name "*.patch" -print0 | sort -z | xargs -t -n 1 -r -0 patch -p1 -f -i
-        docker exec -i stable ./autogen.sh
+        docker exec -i stable find .github/workflows/patches/${{ matrix.release }}/ -type f -name "*.patch" -print0 | sort -z | xargs -t -n 1 -r -0 patch -p1 -f -i
 
-    - name: Configure
+    - name: Configure (meson)
+      if: ${{ matrix.builder == 'meson' }}
       run: |
+        docker exec -i stable meson setup -Dgpt=disabled -Dwerror=true build
+
+    - name: Configure (automake)
+      if: ${{ matrix.builder == 'automake' }}
+      run: |
+        docker exec -i stable ./autogen.sh
         docker exec -i stable ./configure --disable-gpt CFLAGS='-Werror -Wno-error=deprecated-declarations'
 
-    - name: Build
+    - name: Build (meson)
+      if: ${{ matrix.builder == 'meson' }}
+      run: |
+        docker exec -i stable ninja -C build
+
+    - name: Build (automake)
+      if: ${{ matrix.builder == 'automake' }}
       run: |
         docker exec -i stable make TESTS= check
 
     - name: Show logs
       if: ${{ failure() }}
       run: |
+        cat build/meson-logs/testlog.txt || true
         cat config.log || true
         cat test/*.log || true
         cat test-suite.log || true

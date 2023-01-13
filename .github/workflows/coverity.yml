@@ -28,8 +28,7 @@ jobs:
 
         gcc --version
 
-        ./autogen.sh
-        ./configure --enable-gpt
+        meson setup build -Dgpt=enabled
 
         # Run Coverity Analysis
         test/run-coverity.sh build

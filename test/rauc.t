@@ -123,11 +123,11 @@ prepare_softhsm2 ()
 }
 
 # Prerequisite: JSON support enabled [JSON]
-grep -q "ENABLE_JSON 1" $SHARNESS_TEST_DIRECTORY/../config.h && \
+grep -q "ENABLE_JSON 1" $SHARNESS_BUILD_DIRECTORY/config.h && \
   test_set_prereq JSON
 
 # Prerequisite: background service support enabled [SERVICE]
-grep -q "ENABLE_SERVICE 1" $SHARNESS_TEST_DIRECTORY/../config.h &&
+grep -q "ENABLE_SERVICE 1" $SHARNESS_BUILD_DIRECTORY/config.h &&
   test_set_prereq SERVICE &&
   select_system_or_session_bus
 
@@ -140,7 +140,7 @@ test -n "$RAUC_TEST_HTTP_SERVER" &&
   test_set_prereq HTTP
 
 # Prerequisite: streaming support enabled [STREAMING]
-grep -q "ENABLE_STREAMING 1" $SHARNESS_TEST_DIRECTORY/../config.h &&
+grep -q "ENABLE_STREAMING 1" $SHARNESS_BUILD_DIRECTORY/config.h &&
   test -n "$RAUC_TEST_HTTP_SERVER" &&
   test_set_prereq STREAMING
 
