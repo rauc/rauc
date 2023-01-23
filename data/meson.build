@@ -1,3 +1,7 @@
+if not get_option('service')
+  subdir_done()
+endif
+
 rauc_service = configure_file(
   input : 'rauc.service.in',
   output : 'rauc.service',
