@@ -21,7 +21,7 @@ jobs:
         export TOOL_ARCHIVE="/tmp/cov-analysis-${PLATFORM}.tgz"
         export COVERITY_SCAN_PROJECT_NAME="${{ github.repository }}"
         export COVERITY_SCAN_NOTIFICATION_EMAIL="jlu@pengutronix.de"
-        export COVERITY_SCAN_BUILD_COMMAND="make"
+        export COVERITY_SCAN_BUILD_COMMAND="meson compile -C build"
         export COVERITY_SCAN_TOKEN="${{ secrets.COVERITY_SCAN_TOKEN }}"
 
         test/get-coverity.sh
