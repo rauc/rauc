@@ -37,12 +37,16 @@ Features
   * **Asymmetric** setup (recovery & normal)
   * Application partition, data partitions, ...
   * Allows **grouping** of multiple slots (rootfs, appfs) as update targets
-* Built-in network streaming mode
-* Network delta-streaming mode (using **casync**)
+* Built-in **HTTP(S) streaming** mode
+
+  * No intermediate storage on target required
+* Delta-like **adaptive update** support
+
+  * Transparent selection of download optimization
+* Alternative network delta-streaming mode (using casync tool)
 
   * chunk-based binary delta updates
-  * significantly reduce download size
-  * no extra storage required
+  * special bundle format and external chunk store
 * Bundle **encryption** for multiple recipients
 * **Bootloader support**:
 
