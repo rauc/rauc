@@ -82,8 +82,9 @@ Features
 Host Features
 ~~~~~~~~~~~~~
 
-*  Create update bundles
-*  Sign/resign bundles
+*  Create and sign update bundles
+*  Resign bundles
+*  Encrypt bundles
 *  Inspect bundle files
 
 Target Features
