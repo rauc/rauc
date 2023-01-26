@@ -67,8 +67,9 @@ Features
   * GPT partition table
 * Independent from update source
 
-  * **USB Stick**
-  * Software provisioning server (e.g. **hawkBit**)
+  * Simple webserver (e.g. lighttpd)
+  * Software provisioning server (e.g. **hawkBit** with `rauc-hawkbit-updater <https://github.com/rauc/rauc-hawkbit-updater>`_)
+  * USB Stick
 * Controllable via **D-Bus** interface
 * Supports data migration
 * Network protocol support using libcurl (https, http, ftp, ssh, ...)
