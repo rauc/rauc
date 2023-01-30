@@ -295,6 +295,8 @@ When working with PKCS#11, some tools are useful to configure and show your toke
 `p11-kit <https://github.com/p11-glue/p11-kit>`_
   p11-kit is an abstraction layer which provides access to multiple PKCS#11 modules.
 
+`GnuTLS <https://gitlab.com/gnutls/gnutls>`_
+  GnuTLS is a library implementing TLS and related functionality.
   It contains ``p11tool``, which is useful to see available tokens and objects
   (keys and certificates) and their URLs::
 
@@ -331,6 +333,8 @@ When working with PKCS#11, some tools are useful to configure and show your toke
 	    Label: autobuilder-1
 	    ID: 01
 
+  More details are available in the `GnuTLS manual
+  <https://www.gnutls.org/manual/html_node/p11tool-Invocation.html>`_.
 
 `OpenSC <https://github.com/OpenSC/OpenSC>`_
   OpenSC is the standard open source framework for smart card access.
