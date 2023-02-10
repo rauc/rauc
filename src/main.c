@@ -37,6 +37,7 @@ gboolean status_detailed = FALSE;
 gchar *output_format = NULL;
 gchar *keypath = NULL;
 gchar *certpath = NULL;
+gchar **intermediate = NULL;
 gchar *signing_keyring = NULL;
 gchar *mksquashfs_args = NULL;
 gchar *casync_args = NULL;
@@ -2077,6 +2078,7 @@ static GOptionEntry entries_service[] = {
 static GOptionEntry entries_signing[] = {
 	{"cert", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &certpath, "signing cert file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 	{"key", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keypath, "signing key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
+	{"intermediate", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME_ARRAY, &intermediate, "intermediate CA file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 	{0}
 };
 
@@ -2154,7 +2156,7 @@ static void create_option_groups(void)
 static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, debug = FALSE, version = FALSE;
-	gchar *confpath = NULL, *keyring = NULL, **intermediate = NULL, *mount = NULL;
+	gchar *confpath = NULL, *keyring = NULL, *mount = NULL;
 	char *cmdarg = NULL;
 	g_autoptr(GOptionContext) context = NULL;
 	GOptionEntry entries[] = {
@@ -2163,11 +2165,11 @@ static void cmdline_handler(int argc, char **argv)
 		{"cert", '\0', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_FILENAME, &certpath, "cert file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 		{"key", '\0', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_FILENAME, &keypath, "key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 		{"keyring", '\0', 0, G_OPTION_ARG_FILENAME, &keyring, "keyring file", "PEMFILE"},
-		{"intermediate", '\0', 0, G_OPTION_ARG_FILENAME_ARRAY, &intermediate, "intermediate CA file name", "PEMFILE"},
+		{"intermediate", '\0', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_FILENAME_ARRAY, &intermediate, "intermediate CA file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 		{"mount", '\0', 0, G_OPTION_ARG_FILENAME, &mount, "mount prefix", "PATH"},
 		{"debug", 'd', 0, G_OPTION_ARG_NONE, &debug, "enable debug output", NULL},
 		{"version", '\0', 0, G_OPTION_ARG_NONE, &version, "display version", NULL},
-		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, NULL, NULL},
+		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, "display help and exit", NULL},
 		{0}
 	};
 
@@ -2257,6 +2259,7 @@ static void cmdline_handler(int argc, char **argv)
 			"  write-slot\t\tWrite image to slot and bypass all update logic\n"
 			"\n"
 			"Environment variables:\n"
+			"  RAUC_KEY_PASSPHRASE Passphrase to use for accessing key files (signing only)\n"
 			"  RAUC_PKCS11_MODULE  Library filename for PKCS#11 module (signing only)\n"
 			"  RAUC_PKCS11_PIN     PIN to use for accessing PKCS#11 keys (signing only)");
 

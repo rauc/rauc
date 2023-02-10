@@ -64,20 +64,8 @@ not all combinations make sense.
 use the given config file instead of the one at the compiled-in default path
 
 .TP
-\fB\-\-cert=\fR\fIPEMFILE\fR|\fIPKCS11-URL\fR
-use given certificate file or the certificate referenced by the given PKCS#11 URL
-
-.TP
-\fB\-\-key=\fR\fIPEMFILE\fR|\fIPKCS11-URL\fR
-use given private key file or the key referenced by the given PKCS#11 URL
-
-.TP
 \fB\-\-keyring=\fR\fIPEMFILE\fR
 use specific keyring file
-
-.TP
-\fB\-\-intermediate=\fR\fIPEMFILE\fR
-intermediate CA file name
 
 .TP
 \fB\-\-mount=\fR\fIPATH\fR
@@ -116,6 +104,18 @@ Create a bundle from a content directory.
 .RS 4
 
 .TP
+\fB\-\-cert=\fR\fIPEMFILE\fR|\fIPKCS11-URL\fR
+use given certificate file or the certificate referenced by the given PKCS#11 URL
+
+.TP
+\fB\-\-key=\fR\fIPEMFILE\fR|\fIPKCS11-URL\fR
+use given private key file or the key referenced by the given PKCS#11 URL
+
+.TP
+\fB\-\-intermediate=\fR\fIPEMFILE\fR|\fIPKCS11-URL\fR
+intermediate CA file or the certificate referenced by the given PKCS#11 URL
+
+.TP
 \fB\-\-signing\-keyring=\fR\fIPEMFILE\fR
 verification keyring file
 
@@ -134,6 +134,18 @@ Resign an already signed bundle.
 \fBOptions:\fR
 
 .RS 4
+
+.TP
+\fB\-\-cert=\fR\fIPEMFILE\fR|\fIPKCS11-URL\fR
+use given certificate file or the certificate referenced by the given PKCS#11 URL
+
+.TP
+\fB\-\-key=\fR\fIPEMFILE\fR|\fIPKCS11-URL\fR
+use given private key file or the key referenced by the given PKCS#11 URL
+
+.TP
+\fB\-\-intermediate=\fR\fIPEMFILE\fR|\fIPKCS11-URL\fR
+intermediate CA file or the certificate referenced by the given PKCS#11 URL
 
 .TP
 \fB\-\-no\-verify\fR
@@ -190,6 +202,18 @@ Convert an existing bundle to casync index bundle and store.
 \fBOptions:\fR
 
 .RS 4
+
+.TP
+\fB\-\-cert=\fR\fIPEMFILE\fR|\fIPKCS11-URL\fR
+use given certificate file or the certificate referenced by the given PKCS#11 URL
+
+.TP
+\fB\-\-key=\fR\fIPEMFILE\fR|\fIPKCS11-URL\fR
+use given private key file or the key referenced by the given PKCS#11 URL
+
+.TP
+\fB\-\-intermediate=\fR\fIPEMFILE\fR|\fIPKCS11-URL\fR
+intermediate CA file or the certificate referenced by the given PKCS#11 URL
 
 .TP
 \fB\-\-trust\-environment\fR
