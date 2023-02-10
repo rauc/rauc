@@ -219,57 +219,15 @@ static gchar* get_variant_from_file(const gchar* filename, GError **error)
 	return contents;
 }
 
-
-gboolean r_context_configure(GError **error)
+/**
+ * Configures options that are only relevant when running as update service on
+ * the target device.
+ */
+static gboolean r_context_configure_target(GError **error)
 {
 	GError *ierror = NULL;
-	RContextConfigMode configmode;
-	const gchar *configpath = NULL;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
-
-	g_assert_nonnull(context);
-	g_assert_false(context->busy);
-
-	g_clear_pointer(&context->config, free_config);
-	configmode = context->configmode;
-	if (context->configpath) {
-		/* explicitly set on the command line */
-		configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
-		configpath = context->configpath;
-	} else {
-		/* the default path */
-		configpath = "/etc/rauc/system.conf";
-	}
-	switch (configmode) {
-		case R_CONTEXT_CONFIG_MODE_NONE:
-			default_config(&context->config);
-			break;
-		case R_CONTEXT_CONFIG_MODE_AUTO:
-			if (load_config(configpath, &context->config, &ierror)) {
-				g_message("valid %s found, using it", configpath);
-				if (!context->configpath)
-					context->configpath = g_strdup(configpath);
-			} else if (ierror->domain != G_FILE_ERROR) {
-				g_propagate_prefixed_error(error, ierror, "Failed to load system config (%s): ", configpath);
-				return FALSE;
-			} else {
-				/* This is a hack as we cannot get rid of config easily */
-				default_config(&context->config);
-			}
-			break;
-		case R_CONTEXT_CONFIG_MODE_REQUIRED:
-			if (!load_config(configpath, &context->config, &ierror)) {
-				g_propagate_prefixed_error(error, ierror, "Failed to load system config (%s): ", configpath);
-				return FALSE;
-			}
-			if (!context->configpath)
-				context->configpath = g_strdup(configpath);
-			break;
-		default:
-			g_error("invalid context config mode %d", configmode);
-			break;
-	}
 
 	if (context->config->data_directory) {
 		if (g_mkdir_with_parents(context->config->data_directory, 0700) != 0) {
@@ -337,6 +295,64 @@ gboolean r_context_configure(GError **error)
 
 	if (context->bootslot == NULL) {
 		context->bootslot = g_strdup(get_cmdline_bootname());
+	}
+
+	return TRUE;
+}
+
+gboolean r_context_configure(GError **error)
+{
+	GError *ierror = NULL;
+	RContextConfigMode configmode;
+	const gchar *configpath = NULL;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_assert_nonnull(context);
+	g_assert_false(context->busy);
+
+	g_clear_pointer(&context->config, free_config);
+	configmode = context->configmode;
+	if (context->configpath) {
+		/* explicitly set on the command line */
+		configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
+		configpath = context->configpath;
+	} else {
+		/* the default path */
+		configpath = "/etc/rauc/system.conf";
+	}
+	switch (configmode) {
+		case R_CONTEXT_CONFIG_MODE_NONE:
+			default_config(&context->config);
+			break;
+		case R_CONTEXT_CONFIG_MODE_AUTO:
+			if (load_config(configpath, &context->config, &ierror)) {
+				g_message("valid %s found, using it", configpath);
+				if (!context->configpath)
+					context->configpath = g_strdup(configpath);
+			} else if (ierror->domain != G_FILE_ERROR) {
+				g_propagate_prefixed_error(error, ierror, "Failed to load system config (%s): ", configpath);
+				return FALSE;
+			} else {
+				/* This is a hack as we cannot get rid of config easily */
+				default_config(&context->config);
+			}
+			break;
+		case R_CONTEXT_CONFIG_MODE_REQUIRED:
+			if (!load_config(configpath, &context->config, &ierror)) {
+				g_propagate_prefixed_error(error, ierror, "Failed to load system config (%s): ", configpath);
+				return FALSE;
+			}
+			if (!context->configpath)
+				context->configpath = g_strdup(configpath);
+			break;
+		default:
+			g_error("invalid context config mode %d", configmode);
+			break;
+	}
+
+	if (!r_context_configure_target(error)) {
+		return FALSE;
 	}
 
 	if (context->mountprefix) {
