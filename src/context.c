@@ -351,10 +351,6 @@ gboolean r_context_configure(GError **error)
 			break;
 	}
 
-	if (!r_context_configure_target(error)) {
-		return FALSE;
-	}
-
 	if (context->mountprefix) {
 		g_free(context->config->mount_prefix);
 		context->config->mount_prefix = g_strdup(context->mountprefix);
@@ -370,6 +366,20 @@ gboolean r_context_configure(GError **error)
 
 	if (context->encryption_key) {
 		context->config->encryption_key = g_strdup(context->encryption_key);
+	}
+
+	/* When no context is required, we can safely assume that we do not
+	 * operate on the target but are used as a (host) tool.
+	 * In this case, skip all the necessary target-related context setup steps
+	 */
+	if (configmode != R_CONTEXT_CONFIG_MODE_REQUIRED) {
+		context->pending = FALSE;
+
+		return TRUE;
+	}
+
+	if (!r_context_configure_target(error)) {
+		return FALSE;
 	}
 
 	context->pending = FALSE;
