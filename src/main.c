@@ -2167,7 +2167,7 @@ static void cmdline_handler(int argc, char **argv)
 		{"mount", '\0', 0, G_OPTION_ARG_FILENAME, &mount, "mount prefix", "PATH"},
 		{"debug", 'd', 0, G_OPTION_ARG_NONE, &debug, "enable debug output", NULL},
 		{"version", '\0', 0, G_OPTION_ARG_NONE, &version, "display version", NULL},
-		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, NULL, NULL},
+		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, "display help and exit", NULL},
 		{0}
 	};
 
