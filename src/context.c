@@ -222,7 +222,6 @@ static gchar* get_variant_from_file(const gchar* filename, GError **error)
 
 gboolean r_context_configure(GError **error)
 {
-	gboolean res = TRUE;
 	GError *ierror = NULL;
 	RContextConfigMode configmode;
 	const gchar *configpath = NULL;
@@ -314,8 +313,7 @@ gboolean r_context_configure(GError **error)
 		vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
 		g_message("Getting Systeminfo: %s", context->config->systeminfo_handler);
-		res = launch_and_wait_variables_handler(context->config->systeminfo_handler, vars, &ierror);
-		if (!res) {
+		if (!launch_and_wait_variables_handler(context->config->systeminfo_handler, vars, &ierror)) {
 			g_propagate_prefixed_error(error, ierror, "Failed to read system-info variables: ");
 			return FALSE;
 		}
