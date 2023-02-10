@@ -910,30 +910,30 @@ Command Line Tool
 .. code-block:: man
 
   Usage:
-    rauc [OPTION…] <COMMAND>
+    rauc [OPTION?] <COMMAND>
 
   Options:
-    -c, --conf=FILENAME               config file
-    --cert=PEMFILE|PKCS11-URL         cert file or PKCS#11 URL
-    --key=PEMFILE|PKCS11-URL          key file or PKCS#11 URL
-    --keyring=PEMFILE                 keyring file
-    --intermediate=PEMFILE            intermediate CA file name
-    --mount=PATH                      mount prefix
-    --override-boot-slot=BOOTNAME     override auto-detection of booted slot
-    --handler-args=ARGS               extra handler arguments
-    -d, --debug                       enable debug output
-    --version                         display version
-    -h, --help
+    -c, --conf=FILENAME     config file
+    --keyring=PEMFILE       keyring file
+    --mount=PATH            mount prefix
+    -d, --debug             enable debug output
+    --version               display version
+    -h, --help              display help and exit
+
+  Command-specific help:
+    rauc <COMMAND> --help
 
   List of rauc commands:
     bundle                Create a bundle
     resign                Resign an already signed bundle
     convert               Convert classic to casync bundle
+    encrypt               Encrypt a crypt bundle
+    replace-signature     Replaces the signature of an already signed bundle
     extract-signature     Extract the bundle signature
     extract               Extract the bundle content
     install               Install a bundle
-    info                  Show file information
-    mount                 Mount a bundle (for development purposes)
+    info                  Show bundle information
+    mount                 Mount a bundle
     service               Start RAUC service
     status                Show status
     write-slot            Write image to slot and bypass all update logic
