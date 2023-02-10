@@ -2257,6 +2257,7 @@ static void cmdline_handler(int argc, char **argv)
 			"  write-slot\t\tWrite image to slot and bypass all update logic\n"
 			"\n"
 			"Environment variables:\n"
+			"  RAUC_KEY_PASSPHRASE Passphrase to use for accessing key files (signing only)\n"
 			"  RAUC_PKCS11_MODULE  Library filename for PKCS#11 module (signing only)\n"
 			"  RAUC_PKCS11_PIN     PIN to use for accessing PKCS#11 keys (signing only)");
 
