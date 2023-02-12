@@ -22,7 +22,7 @@ jobs:
     - name: Test with service and gpt
       run: |
         rm -rf build/
-        meson setup -Dservice=true -Dgpt=enabled -Dwerror=true build
+        meson setup -Dservice=true -Dgpt=enabled -Db_coverage=true -Dwerror=true build
         ninja -C build
         ./qemu-test
         lcov --directory . --capture --output-file "service.info"
@@ -30,7 +30,7 @@ jobs:
     - name: Test without service and gpt
       run: |
         rm -rf build/
-        meson setup -Dservice=false -Dgpt=enabled -Dwerror=true build
+        meson setup -Dservice=false -Dgpt=enabled -Db_coverage=true -Dwerror=true build
         ninja -C build
         ./qemu-test
         lcov --directory . --capture --output-file "noservice.info"
