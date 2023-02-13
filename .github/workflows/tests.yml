@@ -37,7 +37,7 @@ jobs:
         ./qemu-test
         lcov --directory . --capture --output-file "noservice.info"
 
-    - uses: codecov/codecov-action@v1
+    - uses: codecov/codecov-action@v3
       with:
         files: service.info,noservice.info
         verbose: true
