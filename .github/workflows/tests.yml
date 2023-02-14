@@ -22,20 +22,22 @@ jobs:
     - name: Test with service and gpt
       run: |
         rm -rf build/
-        meson setup -Dservice=true -Dgpt=enabled -Dwerror=true build
-        ninja -C build
+        meson setup -Dservice=true -Dgpt=enabled -Db_coverage=true -Dwerror=true build
+        meson configure build
+        meson compile -C build
         ./qemu-test
         lcov --directory . --capture --output-file "service.info"
         
     - name: Test without service and gpt
       run: |
         rm -rf build/
-        meson setup -Dservice=false -Dgpt=enabled -Dwerror=true build
-        ninja -C build
+        meson setup -Dservice=false -Dgpt=enabled -Db_coverage=true -Dwerror=true build
+        meson configure build
+        meson compile -C build
         ./qemu-test
         lcov --directory . --capture --output-file "noservice.info"
 
-    - uses: codecov/codecov-action@v1
+    - uses: codecov/codecov-action@v3
       with:
         files: service.info,noservice.info
         verbose: true
@@ -94,7 +96,7 @@ jobs:
       run: |
         docker exec -i cross whoami
         docker exec -i cross meson setup -Dgpt=enabled -Dwerror=true build
-        docker exec -i cross ninja -C build
+        docker exec -i cross meson compile -C build
         # don't run make check here, as we don't have full access to the kernel (mount, loopback, dm)
 
     - name: Show logs

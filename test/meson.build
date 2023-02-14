@@ -22,6 +22,18 @@ tests = [
   'stats',
 ]
 
+if get_option('network')
+  tests += 'network'
+endif
+
+if get_option('streaming')
+  tests += 'nbd'
+endif
+
+if jsonglibdep.found()
+  tests += 'boot_switch'
+endif
+
 extra_test_sources = files([
   'common.c',
   'install-fixtures.c',
