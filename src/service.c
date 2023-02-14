@@ -133,6 +133,20 @@ static gboolean r_on_handle_install(RInstaller *interface,
 	return r_on_handle_install_bundle(interface, invocation, arg_source, NULL);
 }
 
+static const gchar *const *manifest_meta_to_string_array(GList *meta)
+{
+	g_autoptr(GPtrArray) array = g_ptr_array_new();
+
+	for (GList *l = meta; l != NULL; l = l->next) {
+		RManifestMetaEntry *entry = l->data;
+		g_ptr_array_add(array, g_strdup(entry->value));
+	}
+
+	g_ptr_array_add(array, NULL);
+
+	return (const gchar *const *) g_ptr_array_free(g_steal_pointer(&array), FALSE);
+}
+
 static gboolean r_on_handle_info(RInstaller *interface,
 		GDBusMethodInvocation  *invocation,
 		const gchar *arg_bundle)
@@ -172,7 +186,8 @@ out:
 				interface,
 				invocation,
 				manifest->update_compatible,
-				manifest->update_version ? manifest->update_version : "");
+				manifest->update_version ? manifest->update_version : "",
+				manifest_meta_to_string_array(manifest->meta));
 	} else {
 		g_dbus_method_invocation_return_error(invocation,
 				G_IO_ERROR,

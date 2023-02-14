@@ -35,6 +35,7 @@
       <arg name="bundle" type="s" direction="in" />
       <arg name="compatible" type="s" direction="out" />
       <arg name="version" type="s" direction="out" />
+      <arg name="meta" type="as" direction="out" />
     </method>
 
     <!--

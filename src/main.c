@@ -923,6 +923,15 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	g_string_append_printf(text, "Description:\t'%s'\n", manifest->update_description);
 	g_string_append_printf(text, "Build:      \t'%s'\n", manifest->update_build);
 
+	if (manifest->meta != NULL) {
+		g_string_append_printf(text, "\n");
+		for (GList *l = manifest->meta; l != NULL; l = l->next) {
+			RManifestMetaEntry *entry = l->data;
+			g_string_append_printf(text, "%s:\t'%s'\n", entry->key, entry->value);
+		}
+		g_string_append_printf(text, "\n");
+	}
+
 	hooks = g_ptr_array_new();
 	if (manifest->hooks.install_check == TRUE) {
 		g_ptr_array_add(hooks, g_strdup("install-check"));

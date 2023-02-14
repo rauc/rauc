@@ -342,6 +342,7 @@ static void service_test_info(ServiceFixture *fixture, gconstpointer user_data)
 	GError *error = NULL;
 	gchar *compatible;
 	gchar *version;
+	gchar **meta;
 	g_autofree gchar *bundlepath = NULL;
 
 	if (!ENABLE_SERVICE) {
@@ -369,6 +370,7 @@ static void service_test_info(ServiceFixture *fixture, gconstpointer user_data)
 			bundlepath,
 			&compatible,
 			&version,
+			&meta,
 			NULL,
 			&error);
 	g_assert_no_error(error);
