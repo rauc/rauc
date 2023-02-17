@@ -219,10 +219,89 @@ static gchar* get_variant_from_file(const gchar* filename, GError **error)
 	return contents;
 }
 
+/**
+ * Configures options that are only relevant when running as update service on
+ * the target device.
+ */
+static gboolean r_context_configure_target(GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (context->config->data_directory) {
+		if (g_mkdir_with_parents(context->config->data_directory, 0700) != 0) {
+			int err = errno;
+			g_set_error(
+					error,
+					G_FILE_ERROR,
+					g_file_error_from_errno(err),
+					"Failed to create data directory '%s': %s",
+					context->config->data_directory,
+					g_strerror(err));
+			return FALSE;
+		}
+	}
+
+	if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_DTB) {
+		gchar *compatible = get_system_dtb_compatible(&ierror);
+		if (!compatible) {
+			g_warning("Failed to read dtb compatible: %s", ierror->message);
+			g_clear_error(&ierror);
+		}
+		g_free(context->config->system_variant);
+		context->config->system_variant = compatible;
+	} else if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_FILE) {
+		gchar *variant = get_variant_from_file(context->config->system_variant, &ierror);
+		if (!variant) {
+			g_warning("Failed to read system variant from file: %s", ierror->message);
+			g_clear_error(&ierror);
+		}
+		g_free(context->config->system_variant);
+		context->config->system_variant = variant;
+	}
+
+	if (context->config->systeminfo_handler &&
+	    g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
+		g_autoptr(GHashTable) vars = NULL;
+		GHashTableIter iter;
+		gchar *key = NULL;
+		gchar *value = NULL;
+
+		vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+
+		g_message("Getting Systeminfo: %s", context->config->systeminfo_handler);
+		if (!launch_and_wait_variables_handler(context->config->systeminfo_handler, vars, &ierror)) {
+			g_propagate_prefixed_error(error, ierror, "Failed to read system-info variables: ");
+			return FALSE;
+		}
+
+		g_hash_table_iter_init(&iter, vars);
+		while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
+			if (g_strcmp0(key, "RAUC_SYSTEM_SERIAL") == 0) {
+				context->system_serial = g_strdup(value);
+			} else if (g_strcmp0(key, "RAUC_SYSTEM_VARIANT") == 0) {
+				/* set variant (overrides possible previous value) */
+				g_free(context->config->system_variant);
+				context->config->system_variant = g_strdup(value);
+			} else {
+				g_message("Ignoring unknown variable %s", key);
+			}
+		}
+	}
+
+	if (r_whitespace_removed(context->config->system_variant))
+		g_warning("Ignoring surrounding whitespace in system variant: %s", context->config->system_variant);
+
+	if (context->bootslot == NULL) {
+		context->bootslot = g_strdup(get_cmdline_bootname());
+	}
+
+	return TRUE;
+}
 
 gboolean r_context_configure(GError **error)
 {
-	gboolean res = TRUE;
 	GError *ierror = NULL;
 	RContextConfigMode configmode;
 	const gchar *configpath = NULL;
@@ -272,75 +351,6 @@ gboolean r_context_configure(GError **error)
 			break;
 	}
 
-	if (context->config->data_directory) {
-		if (g_mkdir_with_parents(context->config->data_directory, 0700) != 0) {
-			int err = errno;
-			g_set_error(
-					error,
-					G_FILE_ERROR,
-					g_file_error_from_errno(err),
-					"Failed to create data directory '%s': %s",
-					context->config->data_directory,
-					g_strerror(err));
-			return FALSE;
-		}
-	}
-
-	if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_DTB) {
-		gchar *compatible = get_system_dtb_compatible(&ierror);
-		if (!compatible) {
-			g_warning("Failed to read dtb compatible: %s", ierror->message);
-			g_clear_error(&ierror);
-		}
-		g_free(context->config->system_variant);
-		context->config->system_variant = compatible;
-	} else if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_FILE) {
-		gchar *variant = get_variant_from_file(context->config->system_variant, &ierror);
-		if (!variant) {
-			g_warning("Failed to read system variant from file: %s", ierror->message);
-			g_clear_error(&ierror);
-		}
-		g_free(context->config->system_variant);
-		context->config->system_variant = variant;
-	}
-
-	if (context->config->systeminfo_handler &&
-	    g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
-		g_autoptr(GHashTable) vars = NULL;
-		GHashTableIter iter;
-		gchar *key = NULL;
-		gchar *value = NULL;
-
-		vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
-
-		g_message("Getting Systeminfo: %s", context->config->systeminfo_handler);
-		res = launch_and_wait_variables_handler(context->config->systeminfo_handler, vars, &ierror);
-		if (!res) {
-			g_propagate_prefixed_error(error, ierror, "Failed to read system-info variables: ");
-			return FALSE;
-		}
-
-		g_hash_table_iter_init(&iter, vars);
-		while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
-			if (g_strcmp0(key, "RAUC_SYSTEM_SERIAL") == 0) {
-				context->system_serial = g_strdup(value);
-			} else if (g_strcmp0(key, "RAUC_SYSTEM_VARIANT") == 0) {
-				/* set variant (overrides possible previous value) */
-				g_free(context->config->system_variant);
-				context->config->system_variant = g_strdup(value);
-			} else {
-				g_message("Ignoring unknown variable %s", key);
-			}
-		}
-	}
-
-	if (r_whitespace_removed(context->config->system_variant))
-		g_warning("Ignoring surrounding whitespace in system variant: %s", context->config->system_variant);
-
-	if (context->bootslot == NULL) {
-		context->bootslot = g_strdup(get_cmdline_bootname());
-	}
-
 	if (context->mountprefix) {
 		g_free(context->config->mount_prefix);
 		context->config->mount_prefix = g_strdup(context->mountprefix);
@@ -356,6 +366,20 @@ gboolean r_context_configure(GError **error)
 
 	if (context->encryption_key) {
 		context->config->encryption_key = g_strdup(context->encryption_key);
+	}
+
+	/* When no context is required, we can safely assume that we do not
+	 * operate on the target but are used as a (host) tool.
+	 * In this case, skip all the necessary target-related context setup steps
+	 */
+	if (configmode != R_CONTEXT_CONFIG_MODE_REQUIRED) {
+		context->pending = FALSE;
+
+		return TRUE;
+	}
+
+	if (!r_context_configure_target(error)) {
+		return FALSE;
 	}
 
 	context->pending = FALSE;

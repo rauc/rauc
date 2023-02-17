@@ -8,6 +8,8 @@
 
 static void external_boot(void)
 {
+	r_context_conf()->configpath = g_strdup("test/test.conf");
+	r_context_conf()->configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
 	r_context_conf()->mock.proc_cmdline = "quiet root=/dev/dummy rauc.external rootwait";
 	g_clear_pointer(&r_context_conf()->bootslot, g_free);
 
@@ -19,6 +21,8 @@ static void external_boot(void)
 
 static void nfs_boot(void)
 {
+	r_context_conf()->configpath = g_strdup("test/test.conf");
+	r_context_conf()->configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
 	r_context_conf()->mock.proc_cmdline = "quiet root=/dev/nfs";
 	g_clear_pointer(&r_context_conf()->bootslot, g_free);
 
