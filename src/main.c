@@ -2239,7 +2239,7 @@ static void cmdline_handler(int argc, char **argv)
 			"Command-specific help:\n"
 			"  rauc <COMMAND> --help\n"
 			"\n"
-			"List of rauc commands:\n"
+			"List of rauc bundle handling commands:\n"
 #if ENABLE_CREATE == 1
 			"  bundle\t\tCreate a bundle\n"
 			"  resign\t\tResign an already signed bundle\n"
@@ -2249,13 +2249,15 @@ static void cmdline_handler(int argc, char **argv)
 			"  extract-signature\tExtract the bundle signature\n"
 #endif
 			"  extract\t\tExtract the bundle content\n"
-			"  install\t\tInstall a bundle\n"
 			"  info\t\t\tShow bundle information\n"
-			"  mount\t\t\tMount a bundle\n"
+			"\n"
+			"List of rauc target commands:\n"
 #if ENABLE_SERVICE == 1
 			"  service\t\tStart RAUC service\n"
 #endif
+			"  install\t\tInstall a bundle\n"
 			"  status\t\tShow status\n"
+			"  mount\t\t\tMount a bundle\n"
 			"  write-slot\t\tWrite image to slot and bypass all update logic\n"
 			"\n"
 			"Environment variables:\n"
