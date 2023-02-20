@@ -1237,7 +1237,7 @@ gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **err
 	 * receives an encrypted CMS but no encrypted payload (which is what we
 	 * actually want to protect).
 	 */
-	if (bundle->manifest->bundle_format != R_MANIFEST_FORMAT_CRYPT) {
+	if (!bundle->manifest || bundle->manifest->bundle_format != R_MANIFEST_FORMAT_CRYPT) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE, "Refused to encrypt input bundle that is not in 'crypt' format.");
 		return FALSE;
 	}
