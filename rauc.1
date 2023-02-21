@@ -72,14 +72,6 @@ use specific keyring file
 mount prefix (/mnt/rauc by default)
 
 .TP
-\fB\-\-override\-boot\-slot=\fR\fIBOOTNAME\fR
-overrides auto-detection of booted slot
-
-.TP
-\fB\-\-handler\-args=\fR\fIARGS\fR
-pass extra handler arguments
-
-.TP
 \fB\-d\fR, \fB\-\-debug\fR
 enable debug output
 
@@ -271,6 +263,14 @@ disable compatible check
 \fB\-\-progress\fR
 show progress bar
 
+.TP
+\fB\-\-handler\-args=\fR\fIARGS\fR
+pass extra handler arguments
+
+.TP
+\fB\-\-override\-boot\-slot=\fR\fIBOOTNAME\fR
+overrides auto-detection of booted slot
+
 .RE
 .RE
 .PP
@@ -339,6 +339,10 @@ show more status details
 .TP
 \fB\-\-output\-format=\fR[\fBreadable\fR|\fBshell\fR|\fBjson\fR|\fBjson-pretty\fR]
 select output format
+
+.TP
+\fB\-\-override\-boot\-slot=\fR\fIBOOTNAME\fR
+overrides auto-detection of booted slot
 
 .RE
 .RE
