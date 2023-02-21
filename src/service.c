@@ -184,21 +184,24 @@ static gboolean r_on_handle_inspect_bundle(RInstaller *interface,
 	gchar *key;
 	g_autoptr(RaucManifest) manifest = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
+	g_autofree gchar *message = NULL;
 	GError *error = NULL;
 	gboolean res = TRUE;
 
 	g_print("bundle: %s\n", arg_bundle);
 
 	res = !r_context_get_busy();
-	if (!res)
+	if (!res) {
+		message = g_strdup("already processing a different method");
 		goto out;
+	}
 
 	convert_dict_to_bundle_access_args(&dict, &access_args);
 
 	/* Check for unhandled keys */
 	g_variant_iter_init(&iter, g_variant_dict_end(&dict));
 	while (g_variant_iter_next(&iter, "{sv}", &key, NULL)) {
-		g_warning("Unsupported key: %s", key);
+		message = g_strdup_printf("Unsupported key: %s", key);
 		g_free(key);
 		res = FALSE;
 		goto out;
@@ -206,7 +209,7 @@ static gboolean r_on_handle_inspect_bundle(RInstaller *interface,
 
 	res = check_bundle(arg_bundle, &bundle, CHECK_BUNDLE_DEFAULT, &access_args, &error);
 	if (!res) {
-		g_warning("%s", error->message);
+		message = g_strdup(error->message);
 		g_clear_error(&error);
 		goto out;
 	}
@@ -216,36 +219,37 @@ static gboolean r_on_handle_inspect_bundle(RInstaller *interface,
 	} else {
 		res = load_manifest_from_bundle(bundle, &manifest, &error);
 		if (!res) {
-			g_warning("%s\n", error->message);
+			message = g_strdup(error->message);
 			g_clear_error(&error);
 			goto out;
 		}
 	}
 
 out:
-	if (res) {
-		if (arg_args) {
-			GVariant *info_variant;
-
-			info_variant = convert_bundle_info_to_dict(manifest);
-
-			r_installer_complete_inspect_bundle(
-					interface,
-					invocation,
-					info_variant);
-		} else {
-			/* arg_args unset means legacy API */
-			r_installer_complete_info(
-					interface,
-					invocation,
-					manifest->update_compatible,
-					manifest->update_version ? manifest->update_version : "");
-		}
-	} else {
+	if (!res) {
 		g_dbus_method_invocation_return_error(invocation,
 				G_IO_ERROR,
 				G_IO_ERROR_FAILED_HANDLED,
-				"rauc info error");
+				"%s", message);
+		return TRUE;
+	}
+
+	if (arg_args) {
+		GVariant *info_variant;
+
+		info_variant = convert_bundle_info_to_dict(manifest);
+
+		r_installer_complete_inspect_bundle(
+				interface,
+				invocation,
+				info_variant);
+	} else {
+		/* arg_args unset means legacy API */
+		r_installer_complete_info(
+				interface,
+				invocation,
+				manifest->update_compatible,
+				manifest->update_version ? manifest->update_version : "");
 	}
 
 	return TRUE;
