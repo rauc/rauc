@@ -263,9 +263,13 @@ service process in background::
 Installing a Bundle (Target)
 ----------------------------
 
-To install the bundle on your target device, run::
+To install the bundle (from local storage) on your target device, run::
 
-    rauc install update-2019.01-1.raucb
+    rauc install update-2023.02-1.raucb
+
+To install a bundle from a webserver (using RAUC's built-in HTTP(S) streaming), run::
+
+    rauc install https://example.com/update-2023.02-1.raucb
 
 Contributing
 ------------

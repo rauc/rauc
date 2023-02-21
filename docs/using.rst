@@ -550,7 +550,7 @@ Triggering an installation:
 
 .. code-block:: sh
 
-  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer InstallBundle sa{sv} "/path/to/bundle" 0
+  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer InstallBundle sa{sv} "<bundle-path>/<bundle-url>" 0
 
 Mark a slot as good:
 
