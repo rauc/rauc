@@ -203,6 +203,10 @@ update the application file system content much more frequently while keeping
 the exact same rootfs content, RAUC will save update time by skipping the root
 file system automatically and only installing the changed application.
 
+.. note:: When combining this with RAUC's built-in HTTP(s) bundle streaming,
+   this will also prevent downloading skipped images and thus save download
+   volume.
+
 .. _sec-boot-slot:
 
 Boot Slot Selection
