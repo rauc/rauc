@@ -14,7 +14,7 @@
 
     <!--
          InstallBundle:
-         @source: Path to bundle to be installed
+         @source: Path or URL to bundle to be installed
          @args: Additional arguments to pass
 
          Triggers an installation.
