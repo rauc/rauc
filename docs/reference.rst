@@ -1193,7 +1193,7 @@ This method call is non-blocking.
 After completion, the :ref:`"Completed" <gdbus-signal-de-pengutronix-rauc-Installer.Completed>` signal will be emitted.
 
 IN s *source*:
-    Path to bundle to be installed
+    Path or URL to the bundle that should be installed
 
 IN a{sv} *args*:
     Arguments to pass to installation
