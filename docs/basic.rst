@@ -182,19 +182,19 @@ too.
 Slot Status and Skipping Slot Updates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-RAUC hashes each image or archive when packing it into a bundle and stores this
-hash in the bundle's manifest file.
-This hash allows to reliably identify and distinguish the image's content.
+RAUC hashes each image or archive with SHA-256 when packing it into a bundle
+and stores this as the images 'checksum' in the bundle's manifest file.
+This checksum allows to reliably identify and distinguish the image's content.
 
-When installing an image, RAUC can write the images hash together with some
+When installing an image, RAUC can write the images checksum together with some
 status information to a central or per-slot status file
 (refer :ref:`statusfile <statusfile>` option).
 
 The next time RAUC attempts to install an image to this slot, it will first
-check the current hash of the slot by reading its status information, if
+check the current checksum of the slot by reading its status information, if
 available.
-If this hash equals the hash of the image to write, RAUC can skip updating this
-slot as a configurable performance optimization
+If this checksum equals the checksum of the image to write, RAUC can skip
+updating this slot as a configurable performance optimization
 (refer :ref:`install-same <install-same>` per-slot option).
 
 Note that this method assumes the target's file-systems are read-only as it
