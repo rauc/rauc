@@ -2205,7 +2205,7 @@ static void cmdline_handler(int argc, char **argv)
 		{EXTRACT, "extract", "extract <BUNDLENAME> <OUTPUTDIR>",
 		 "Extract the bundle content",
 		 extract_start, extract_group, R_CONTEXT_CONFIG_MODE_AUTO, FALSE},
-		{INFO, "info", "info <FILE>",
+		{INFO, "info", "info <BUNDLE>",
 		 "Print bundle info",
 		 info_start, info_group, R_CONTEXT_CONFIG_MODE_AUTO, FALSE},
 		{STATUS, "status", "status",
