@@ -197,11 +197,10 @@ If this hash equals the hash of the image to write, RAUC can skip updating this
 slot as a configurable performance optimization
 (refer :ref:`install-same <install-same>` per-slot option).
 
-This is especially useful when having a setup with, for example, two redundant
-application file systems and two redundant root file systems. In case you
-update the application file system content much more frequently while keeping
-the exact same rootfs content, RAUC will save update time by skipping the root
-file system automatically and only installing the changed application.
+Note that this method assumes the target's file-systems are read-only as it
+cannot detect modifications.
+Given this restriction, slot skipping can be a lightweight optimization for
+systems where some slot's update images change more frequently than others.
 
 .. note:: When combining this with RAUC's built-in HTTP(s) bundle streaming,
    this will also prevent downloading skipped images and thus save download
