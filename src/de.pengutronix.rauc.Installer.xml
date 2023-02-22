@@ -25,16 +25,29 @@
       <annotation name="org.qtproject.QtDBus.QtTypeName.In1" value="QVariantMap"/>
     </method>
 
-   <!--
-    Info: D-Bus variant of rauc info <bundle>
-    @bundle: full path to the queried bundle.
-    @compatible: the compatible string from the bundle
-    @version: the version string from the bundle
-   -->
-   <method name="Info">
+    <!--
+         Info: D-Bus variant of rauc info <bundle>
+         @bundle: full path to the queried bundle.
+         @compatible: the compatible string from the bundle
+         @version: the version string from the bundle
+    -->
+    <method name="Info">
       <arg name="bundle" type="s" direction="in" />
       <arg name="compatible" type="s" direction="out" />
       <arg name="version" type="s" direction="out" />
+    </method>
+ 
+    <!--
+         InspectBundle: D-Bus variant of rauc info <bundle>
+         @source: Path or URL to the queried bundle.
+         @args: Additional arguments to pass
+         @info: string variant dict of bundle information
+    -->
+    <method name="InspectBundle">
+      <arg name="source" type="s" direction="in" />
+      <arg name="args" type="a{sv}" direction="in"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.In1" value="QVariantMap"/>
+      <arg name="info" type="a{sv}" direction="out"/>
     </method>
 
     <!--
