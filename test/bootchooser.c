@@ -269,6 +269,76 @@ bootstate.system0.priority=20\n\
 	g_assert(primary == recovery);
 }
 
+static void bootchooser_barebox_conf_attempts(BootchooserFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucSlot *rootfs0 = NULL;
+	GError *error = NULL;
+	gboolean res;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+boot-attempts=5\n\
+boot-attempts-primary=10\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/rootfs-0\n\
+type=ext4\n\
+bootname=system0\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/rootfs-1\n\
+type=ext4\n\
+bootname=system1\n";
+
+	gchar* pathname = write_tmp_file(fixture->tmpdir, "barebox.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_clear_pointer(&r_context_conf()->configpath, g_free);
+	r_context_conf()->configpath = pathname;
+	r_context();
+
+	rootfs0 = find_config_slot_by_name(r_context()->config, "rootfs.0");
+	g_assert_nonnull(rootfs0);
+
+	/* check rootfs.0 is marked good with configured default attempts */
+	g_setenv("BAREBOX_STATE_VARS_PRE", " \
+bootstate.system0.remaining_attempts=3\n\
+bootstate.system0.priority=20\n\
+bootstate.system1.remaining_attempts=3\n\
+bootstate.system1.priority=10\n\
+", TRUE);
+	g_setenv("BAREBOX_STATE_VARS_POST", " \
+bootstate.system0.remaining_attempts=5\n\
+bootstate.system0.priority=20\n\
+bootstate.system1.remaining_attempts=3\n\
+bootstate.system1.priority=10\n\
+", TRUE);
+	res = r_boot_set_state(rootfs0, TRUE, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+
+	/* check rootfs.0 is marked primary with configured primary attempts */
+	g_setenv("BAREBOX_STATE_VARS_PRE", " \
+bootstate.system0.remaining_attempts=3\n\
+bootstate.system0.priority=20\n\
+bootstate.system1.remaining_attempts=3\n\
+bootstate.system1.priority=10\n\
+", TRUE);
+	g_setenv("BAREBOX_STATE_VARS_POST", " \
+bootstate.system0.remaining_attempts=10\n\
+bootstate.system0.priority=20\n\
+bootstate.system1.remaining_attempts=3\n\
+bootstate.system1.priority=10\n\
+", TRUE);
+	res = r_boot_set_primary(rootfs0, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+}
+
 /* Write content to state storage for grub-editenv RAUC mock tool.
  * Content should be similar to:
  * "\
@@ -1134,6 +1204,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bootchooser/barebox-asymmetric", BootchooserFixture, NULL,
 			bootchooser_fixture_set_up, bootchooser_barebox_asymmetric,
+			bootchooser_fixture_tear_down);
+
+	g_test_add("/bootchooser/barebox-conf-attempts", BootchooserFixture, NULL,
+			bootchooser_fixture_set_up, bootchooser_barebox_conf_attempts,
 			bootchooser_fixture_tear_down);
 
 	g_test_add("/bootchooser/grub", BootchooserFixture, NULL,

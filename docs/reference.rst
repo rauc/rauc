@@ -107,14 +107,15 @@ Example configuration:
 ``boot-attempts``
   This configures the number of boot attempts to set when a slot is marked good
   through the D-Bus API or via the command line tool.
-  This is currently only supported when ``bootloader`` is set to ``uboot`` and
-  defaults to 3 if not set.
+  The configured value should match the bootloader's reset value for attempts.
+  This is currently only supported when ``bootloader`` is set to ``uboot`` or
+  ``barebox`` and defaults to 3 if not set.
 
 ``boot-attempts-primary``
   This configures the number of boot attempts to set when a slot is marked as
   primary (i.e., when an update was installed successfully).
-  This is currently only supported when ``bootloader`` is set to ``uboot`` and
-  defaults to 3 if not set.
+  This is currently only supported when ``bootloader`` is set to ``uboot`` or
+  ``barebox`` and defaults to 3 if not set.
 
 ``efi-use-bootnext``
   Only valid when ``bootloader`` is set to ``efi``.
