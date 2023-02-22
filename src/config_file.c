@@ -275,12 +275,12 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		return FALSE;
 	}
 	if (c->boot_default_attempts > 0 || c->boot_attempts_primary > 0) {
-		if (g_strcmp0(c->system_bootloader, "uboot") != 0) {
+		if ((g_strcmp0(c->system_bootloader, "uboot") != 0) && (g_strcmp0(c->system_bootloader, "barebox") != 0)) {
 			g_set_error(
 					error,
 					R_CONFIG_ERROR,
 					R_CONFIG_ERROR_BOOTLOADER,
-					"Configuring boot attempts is valid for uboot only (not for %s)", c->system_bootloader);
+					"Configuring boot attempts is valid for uboot or barebox only (not for %s)", c->system_bootloader);
 			return FALSE;
 		}
 	}

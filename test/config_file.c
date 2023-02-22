@@ -327,7 +327,7 @@ mountprefix=/mnt/myrauc/\n";
 	g_assert_nonnull(pathname);
 
 	g_assert_false(load_config(pathname, &config, &ierror));
-	g_assert_cmpstr(ierror->message, ==, "Configuring boot attempts is valid for uboot only (not for grub)");
+	g_assert_cmpstr(ierror->message, ==, "Configuring boot attempts is valid for uboot or barebox only (not for grub)");
 	g_clear_error(&ierror);
 
 	g_free(pathname);
