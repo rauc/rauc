@@ -241,8 +241,49 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		}
 	}
 
-	c->boot_default_attempts = key_file_consume_integer(key_file, "system", "boot-attempts", NULL);
-	c->boot_attempts_primary = key_file_consume_integer(key_file, "system", "boot-attempts-primary", NULL);
+	c->boot_default_attempts = key_file_consume_integer(key_file, "system", "boot-attempts", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		c->boot_default_attempts = 0; /* to indicate 'unset' */
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	if (c->boot_default_attempts < 0) {
+		g_set_error(
+				error,
+				R_CONFIG_ERROR,
+				R_CONFIG_ERROR_BOOTLOADER,
+				"Value for \"boot-attempts\" must not be negative");
+		return FALSE;
+	}
+
+	c->boot_attempts_primary = key_file_consume_integer(key_file, "system", "boot-attempts-primary", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		c->boot_attempts_primary = 0; /* to indicate 'unset' */
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	if (c->boot_attempts_primary < 0) {
+		g_set_error(
+				error,
+				R_CONFIG_ERROR,
+				R_CONFIG_ERROR_BOOTLOADER,
+				"Value for \"boot-attempts-primary\" must not be negative");
+		return FALSE;
+	}
+	if (c->boot_default_attempts > 0 || c->boot_attempts_primary > 0) {
+		if (g_strcmp0(c->system_bootloader, "uboot") != 0) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_BOOTLOADER,
+					"Configuring boot attempts is valid for uboot only (not for %s)", c->system_bootloader);
+			return FALSE;
+		}
+	}
 
 	c->max_bundle_download_size = g_key_file_get_uint64(key_file, "system", "max-bundle-download-size", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
