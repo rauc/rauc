@@ -160,7 +160,6 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 {
 	GError *ierror = NULL;
 	g_autoptr(RaucConfig) c = g_new0(RaucConfig, 1);
-	gboolean res = FALSE;
 	g_autoptr(GKeyFile) key_file = NULL;
 	g_auto(GStrv) groups = NULL;
 	gsize group_count;
@@ -172,20 +171,23 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	gchar *variant_data;
 	g_autofree gchar *bundle_formats = NULL;
 
+	g_return_val_if_fail(config, FALSE);
+
+	/* in case of an early abort, return NULL */
+	*config = NULL;
+
 	key_file = g_key_file_new();
 
-	res = g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror);
-	if (!res) {
+	if (!g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto free;
+		return FALSE;
 	}
 
 	/* parse [system] section */
 	c->system_compatible = key_file_consume_string(key_file, "system", "compatible", &ierror);
 	if (!c->system_compatible) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	c->system_bootloader = key_file_consume_string(key_file, "system", "bootloader", NULL);
 	if (!c->system_bootloader) {
@@ -194,8 +196,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				R_CONFIG_ERROR,
 				R_CONFIG_ERROR_BOOTLOADER,
 				"No bootloader selected in system config");
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 
 	if (!r_boot_is_supported_bootloader(c->system_bootloader)) {
@@ -204,8 +205,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				R_CONFIG_ERROR,
 				R_CONFIG_ERROR_BOOTLOADER,
 				"Unsupported bootloader '%s' selected in system config", c->system_bootloader);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 
 	if (g_strcmp0(c->system_bootloader, "barebox") == 0) {
@@ -225,8 +225,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			g_clear_error(&ierror);
 		} else if (ierror) {
 			g_propagate_error(error, ierror);
-			res = FALSE;
-			goto free;
+			return FALSE;
 		}
 		g_key_file_remove_key(key_file, "system", "efi-use-bootnext", NULL);
 	} else if (g_strcmp0(c->system_bootloader, "custom") == 0) {
@@ -238,8 +237,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 					R_CONFIG_ERROR,
 					R_CONFIG_ERROR_BOOTLOADER,
 					"No custom bootloader backend defined");
-			res = FALSE;
-			goto free;
+			return FALSE;
 		}
 	}
 
@@ -254,8 +252,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	if (c->max_bundle_download_size == 0) {
 		g_set_error(
@@ -263,8 +260,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				R_CONFIG_ERROR,
 				R_CONFIG_ERROR_MAX_BUNDLE_DOWNLOAD_SIZE,
 				"Invalid value (%" G_GUINT64_FORMAT ") for key \"max-bundle-download-size\" in system config", c->max_bundle_download_size);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_key(key_file, "system", "max-bundle-download-size", NULL);
 
@@ -280,8 +276,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_key(key_file, "system", "activate-installed", NULL);
 
@@ -294,8 +289,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_key(key_file, "system", "variant-dtb", NULL);
 	if (dtbvariant)
@@ -308,8 +302,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	if (variant_data) {
 		if (c->system_variant_type != R_CONFIG_SYS_VARIANT_NONE) {
@@ -318,8 +311,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 					R_CONFIG_ERROR,
 					R_CONFIG_ERROR_INVALID_FORMAT,
 					"Only one of the keys 'variant-file', variant-dtb','variant-name' is allowed");
-			res = FALSE;
-			goto free;
+			return FALSE;
 		}
 
 		c->system_variant_type = R_CONFIG_SYS_VARIANT_FILE;
@@ -333,8 +325,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	if (variant_data) {
 		if (c->system_variant_type != R_CONFIG_SYS_VARIANT_NONE) {
@@ -343,8 +334,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 					R_CONFIG_ERROR,
 					R_CONFIG_ERROR_INVALID_FORMAT,
 					"Only one of the keys 'variant-file', variant-dtb','variant-name' is allowed");
-			res = FALSE;
-			goto free;
+			return FALSE;
 		}
 
 		c->system_variant_type = R_CONFIG_SYS_VARIANT_NAME;
@@ -369,8 +359,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 
 	c->statusfile_path = key_file_consume_string(key_file, "system", "statusfile", &ierror);
@@ -384,8 +373,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 
 	if (g_strcmp0(c->statusfile_path, "per-slot") == 0) {
@@ -395,8 +383,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 					R_CONFIG_ERROR,
 					R_CONFIG_ERROR_DATA_DIRECTORY,
 					"Using data-directory= with statusfile=per-slot is not supported.");
-			res = FALSE;
-			goto free;
+			return FALSE;
 		}
 		g_message("Using per-slot statusfile");
 	} else {
@@ -416,20 +403,17 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	} else {
 		if (!parse_bundle_formats(&c->bundle_formats_mask, bundle_formats, &ierror)) {
 			g_propagate_error(error, ierror);
-			res = FALSE;
-			goto free;
+			return FALSE;
 		}
 	}
 
 	if (!check_remaining_keys(key_file, "system", &ierror)) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_group(key_file, "system", NULL);
 
@@ -446,8 +430,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_key(key_file, "keyring", "check-crl", NULL);
 
@@ -458,8 +441,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_key(key_file, "keyring", "allow-partial-chain", NULL);
 
@@ -470,8 +452,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_key(key_file, "keyring", "use-bundle-signing-time", NULL);
 
@@ -482,14 +463,12 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 
 	if (!check_remaining_keys(key_file, "keyring", &ierror)) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_group(key_file, "keyring", NULL);
 
@@ -504,14 +483,12 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_key(key_file, "casync", "use-desync", NULL);
 	if (!check_remaining_keys(key_file, "casync", &ierror)) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_group(key_file, "casync", NULL);
 
@@ -522,8 +499,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	c->streaming_tls_ca = key_file_consume_string(key_file, "streaming", "tls-ca", NULL);
 	if (!check_remaining_keys(key_file, "streaming", &ierror)) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_group(key_file, "streaming", NULL);
 
@@ -534,8 +510,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			key_file_consume_string(key_file, "encryption", "cert", NULL));
 	if (!check_remaining_keys(key_file, "encryption", &ierror)) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_group(key_file, "encryption", NULL);
 
@@ -544,8 +519,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			key_file_consume_string(key_file, "autoinstall", "path", NULL));
 	if (!check_remaining_keys(key_file, "autoinstall", &ierror)) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_group(key_file, "autoinstall", NULL);
 
@@ -560,8 +534,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			key_file_consume_string(key_file, "handlers", "post-install", NULL));
 	if (!check_remaining_keys(key_file, "handlers", &ierror)) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 	g_key_file_remove_group(key_file, "handlers", NULL);
 
@@ -587,8 +560,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 						R_CONFIG_ERROR,
 						R_CONFIG_ERROR_INVALID_FORMAT,
 						"Invalid slot name format: %s", groups[i]);
-				res = FALSE;
-				goto free;
+				return FALSE;
 			}
 
 			value = g_strconcat(groupsplit[1], ".", groupsplit[2], NULL);
@@ -598,8 +570,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 						R_CONFIG_ERROR,
 						R_CONFIG_ERROR_INVALID_FORMAT,
 						"Invalid slot name");
-				res = FALSE;
-				goto free;
+				return FALSE;
 			}
 			slot->name = g_intern_string(value);
 			g_free(value);
@@ -617,8 +588,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 					key_file_consume_string(key_file, groups[i], "device", &ierror));
 			if (!value) {
 				g_propagate_error(error, ierror);
-				res = FALSE;
-				goto free;
+				return FALSE;
 			}
 			slot->device = value;
 
@@ -633,8 +603,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 						R_CONFIG_ERROR,
 						R_CONFIG_ERROR_SLOT_TYPE,
 						"Unsupported slot type '%s' for slot %s selected in system config", slot->type, slot->name);
-				res = FALSE;
-				goto free;
+				return FALSE;
 			}
 
 			/* check if the device has an appropriate path */
@@ -644,8 +613,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 						R_CONFIG_ERROR,
 						R_CONFIG_ERROR_INVALID_DEVICE,
 						"%s: device must be located in /dev/ for jffs2", groups[i]);
-				res = FALSE;
-				goto free;
+				return FALSE;
 			}
 
 			value = key_file_consume_string(key_file, groups[i], "bootname", NULL);
@@ -659,8 +627,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 							R_CONFIG_ERROR_DUPLICATE_BOOTNAME,
 							"Bootname '%s' is set on more than one slot",
 							slot->bootname);
-					res = FALSE;
-					goto free;
+					return FALSE;
 				}
 				g_hash_table_add(bootnames, slot->bootname);
 			}
@@ -675,8 +642,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				g_clear_error(&ierror);
 			} else if (ierror) {
 				g_propagate_error(error, ierror);
-				res = FALSE;
-				goto free;
+				return FALSE;
 			}
 			g_key_file_remove_key(key_file, groups[i], "allow-mounted", NULL);
 
@@ -686,8 +652,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				g_clear_error(&ierror);
 			} else if (ierror) {
 				g_propagate_error(error, ierror);
-				res = FALSE;
-				goto free;
+				return FALSE;
 			}
 			g_key_file_remove_key(key_file, groups[i], "readonly", NULL);
 
@@ -705,18 +670,15 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 						g_clear_error(&ierror);
 					} else if (ierror) {
 						g_propagate_error(error, ierror);
-						res = FALSE;
-						goto free;
+						return FALSE;
 					}
 				} else if (ierror) {
 					g_propagate_error(error, ierror);
-					res = FALSE;
-					goto free;
+					return FALSE;
 				}
 			} else if (ierror) {
 				g_propagate_error(error, ierror);
-				res = FALSE;
-				goto free;
+				return FALSE;
 			}
 			g_key_file_remove_key(key_file, groups[i], "install-same", NULL);
 			g_key_file_remove_key(key_file, groups[i], "force-install-same", NULL);
@@ -730,8 +692,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 				g_clear_error(&ierror);
 			} else if (ierror) {
 				g_propagate_error(error, ierror);
-				res = FALSE;
-				goto free;
+				return FALSE;
 			}
 			g_key_file_remove_key(key_file, groups[i], "resize", NULL);
 
@@ -742,23 +703,20 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 						"region-start", &ierror);
 				if (ierror) {
 					g_propagate_prefixed_error(error, ierror, "mandatory for %s: ", slot->type);
-					res = FALSE;
-					goto free;
+					return FALSE;
 				}
 
 				slot->region_size = key_file_consume_binary_suffixed_string(key_file, groups[i],
 						"region-size", &ierror);
 				if (ierror) {
 					g_propagate_prefixed_error(error, ierror, "mandatory for %s: ", slot->type);
-					res = FALSE;
-					goto free;
+					return FALSE;
 				}
 			}
 
 			if (!check_remaining_keys(key_file, groups[i], &ierror)) {
 				g_propagate_error(error, ierror);
-				res = FALSE;
-				goto free;
+				return FALSE;
 			}
 
 			g_key_file_remove_group(key_file, groups[i], NULL);
@@ -788,8 +746,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 					R_CONFIG_ERROR,
 					R_CONFIG_ERROR_PARENT,
 					"Parent slot '%s' not found!", slot->parent_name);
-			res = FALSE;
-			goto free;
+			return FALSE;
 		}
 
 		child = g_hash_table_lookup(slots, l->data);
@@ -802,32 +759,26 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 					R_CONFIG_ERROR_CHILD_HAS_BOOTNAME,
 					"Child slot '%s' has bootname set",
 					child->name);
-			res = FALSE;
-			goto free;
+			return FALSE;
 		}
 	}
 
 	if (!fix_grandparent_links(slots, &ierror)) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 
 	c->slots = slots;
 
 	if (!check_remaining_groups(key_file, &ierror)) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto free;
+		return FALSE;
 	}
 
-	res = TRUE;
-free:
-	if (res)
-		*config = g_steal_pointer(&c);
-	else
-		*config = NULL;
-	return res;
+	/* on success, return config struct */
+	*config = g_steal_pointer(&c);
+
+	return TRUE;
 }
 
 RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device)
