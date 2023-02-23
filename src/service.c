@@ -347,6 +347,9 @@ static GVariant* convert_slot_status_to_dict(RaucSlot *slot)
 	if (slot_state->bundle_build)
 		g_variant_dict_insert(&dict, "bundle.build", "s", slot_state->bundle_build);
 
+	if (slot_state->bundle_hash)
+		g_variant_dict_insert(&dict, "bundle.hash", "s", slot_state->bundle_hash);
+
 	if (slot_state->status)
 		g_variant_dict_insert(&dict, "status", "s", slot_state->status);
 
