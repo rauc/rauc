@@ -270,54 +270,46 @@ gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)
 	g_autoptr(GKeyFile) key_file = NULL;
 	const gchar *data;
 	gsize length;
-	gboolean res = FALSE;
 
 	data = g_bytes_get_data(mem, &length);
 	if (data == NULL) {
 		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_NO_DATA, "No data available");
-		goto out;
+		return FALSE;
 	}
 
 	key_file = g_key_file_new();
 
-	res = g_key_file_load_from_data(key_file, data, length, G_KEY_FILE_NONE, &ierror);
-	if (!res) {
+	if (!g_key_file_load_from_data(key_file, data, length, G_KEY_FILE_NONE, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	res = parse_manifest(key_file, manifest, &ierror);
-	if (!res) {
+	if (!parse_manifest(key_file, manifest, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-out:
-	return res;
+	return TRUE;
 }
 
 gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GError **error)
 {
 	GError *ierror = NULL;
 	g_autoptr(GKeyFile) key_file = NULL;
-	gboolean res = FALSE;
 
 	key_file = g_key_file_new();
 
-	res = g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror);
-	if (!res) {
+	if (!g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	res = parse_manifest(key_file, manifest, &ierror);
-	if (!res) {
+	if (!parse_manifest(key_file, manifest, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-out:
-	return res;
+	return TRUE;
 }
 
 static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
