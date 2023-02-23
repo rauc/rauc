@@ -49,7 +49,7 @@ static void config_file_full_config(ConfigFileFixture *fixture,
 	GError *ierror = NULL;
 	gboolean res;
 	GList *slotlist;
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	RaucSlot *slot;
 
 
@@ -189,16 +189,14 @@ install-same=false\n";
 	g_list_free(slotlist);
 
 	g_assert(find_config_slot_by_device(config, "/dev/xxx0") == NULL);
-
-	free_config(config);
 }
 
 static void config_file_invalid_items(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *unknown_group_cfg_file = "\
 [system]\n\
@@ -225,6 +223,8 @@ foo=bar\n\
 	g_assert_cmpstr(ierror->message, ==, "Invalid group '[unknown]'");
 	g_clear_error(&ierror);
 
+	g_free(pathname);
+	free_config(config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "unknown_key.conf", unknown_key_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -238,9 +238,9 @@ foo=bar\n\
 static void config_file_bootloaders(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *boot_inval_cfg_file = "\
 [system]\n\
@@ -260,6 +260,8 @@ mountprefix=/mnt/myrauc/\n";
 	g_assert_cmpstr(ierror->message, ==, "Unsupported bootloader 'superloader2000' selected in system config");
 	g_clear_error(&ierror);
 
+	g_free(pathname);
+	free_config(config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", boot_missing_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -272,9 +274,9 @@ mountprefix=/mnt/myrauc/\n";
 static void config_file_boot_attempts(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *valid_boot_attempts_cfg_file = "\
 [system]\n\
@@ -313,6 +315,7 @@ mountprefix=/mnt/myrauc/\n";
 	g_assert_no_error(ierror);
 
 	g_free(pathname);
+	free_config(config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", invalid_boot_attempts_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -322,6 +325,7 @@ mountprefix=/mnt/myrauc/\n";
 	g_clear_error(&ierror);
 
 	g_free(pathname);
+	free_config(config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", boot_attempts_invalid_bootloader_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -331,6 +335,7 @@ mountprefix=/mnt/myrauc/\n";
 	g_clear_error(&ierror);
 
 	g_free(pathname);
+	free_config(config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", negative_boot_attempts_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -338,16 +343,14 @@ mountprefix=/mnt/myrauc/\n";
 	g_assert_false(load_config(pathname, &config, &ierror));
 	g_assert_cmpstr(ierror->message, ==, "Value for \"boot-attempts-primary\" must not be negative");
 	g_clear_error(&ierror);
-
-	g_free(pathname);
 }
 
 static void config_file_slots_invalid_type(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *invalid_slot_type = "\
 [system]\n\
@@ -372,9 +375,9 @@ type=oups\n\
 static void config_file_invalid_parent(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *nonexisting_parent = "\
 [system]\n\
@@ -398,11 +401,11 @@ parent=invalid\n\
 
 static void config_file_parent_has_parent(ConfigFileFixture *fixture, gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	RaucSlot *parentslot;
 	RaucSlot *childslot;
 	RaucSlot *grandchildslot;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *contents = "\
 [system]\n\
@@ -435,9 +438,9 @@ parent=child.0\n";
 
 static void config_file_parent_loop(ConfigFileFixture *fixture, gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *contents = "\
 [system]\n\
@@ -462,9 +465,9 @@ parent=rootfs.0\n";
 
 static void config_file_bootname_set_on_child(ConfigFileFixture *fixture, gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *contents = "\
 [system]\n\
@@ -491,9 +494,9 @@ bootname=slotchild0\n";
 
 static void config_file_duplicate_bootname(ConfigFileFixture *fixture, gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *contents = "\
 [system]\n\
@@ -519,9 +522,9 @@ bootname=theslot\n";
 
 static void config_file_typo(ConfigFileFixture *fixture, const gchar *cfg_file)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	pathname = write_tmp_file(fixture->tmpdir, "typo.conf", cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -647,10 +650,10 @@ activate-installed=typo\n");
 static void config_file_no_max_bundle_download_size(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
 	gboolean res;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *cfg_file = "\
 [system]\n\
@@ -665,16 +668,14 @@ bootloader=barebox\n";
 	g_assert_true(res);
 	g_assert_nonnull(config);
 	g_assert_cmpuint(config->max_bundle_download_size, ==, DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE);
-
-	free_config(config);
 }
 
 static void config_file_zero_max_bundle_download_size(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *cfg_file = "\
 [system]\n\
@@ -705,10 +706,10 @@ max-bundle-download-size=no-uint64\n");
 static void config_file_activate_installed_set_to_true(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
 	gboolean res;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *cfg_file = "\
 [system]\n\
@@ -726,17 +727,15 @@ activate-installed=true\n";
 	g_assert_true(res);
 	g_assert_nonnull(config);
 	g_assert_true(config->activate_installed);
-
-	free_config(config);
 }
 
 static void config_file_activate_installed_set_to_false(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
 	gboolean res;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *cfg_file = "\
 [system]\n\
@@ -754,17 +753,15 @@ activate-installed=false\n";
 	g_assert_true(res);
 	g_assert_nonnull(config);
 	g_assert_false(config->activate_installed);
-
-	free_config(config);
 }
 
 static void config_file_system_variant(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
 	gboolean res;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *cfg_file_no_variant = "\
 [system]\n\
@@ -858,7 +855,6 @@ variant-name=xxx";
 	g_assert_nonnull(pathname);
 
 	g_assert_false(load_config(pathname, &config, &ierror));
-	g_free(pathname);
 	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT);
 	g_assert_null(config);
 }
@@ -866,7 +862,7 @@ variant-name=xxx";
 static void config_file_no_extra_mount_opts(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
 	gboolean res;
 	g_autofree gchar* pathname = NULL;
@@ -895,15 +891,13 @@ device=/dev/null\n";
 	slot = g_hash_table_lookup(config->slots, "rootfs.0");
 	g_assert_nonnull(slot);
 	g_assert_cmpstr(slot->extra_mount_opts, ==, NULL);
-
-	free_config(config);
 }
 
 
 static void config_file_extra_mount_opts(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
 	gboolean res;
 	g_autofree gchar* pathname = NULL;
@@ -932,17 +926,15 @@ extra-mount-opts=ro,noatime\n";
 	slot = g_hash_table_lookup(config->slots, "rootfs.0");
 	g_assert_nonnull(slot);
 	g_assert_cmpstr(slot->extra_mount_opts, ==, "ro,noatime");
-
-	free_config(config);
 }
 
 static void config_file_statusfile_missing(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
 	gboolean res;
-	gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *cfg_file = "\
 [system]\n\
@@ -960,8 +952,6 @@ mountprefix=/mnt/myrauc/\n";
 	g_assert_nonnull(config);
 	g_assert_nonnull(config->statusfile_path);
 	g_assert_cmpstr(config->statusfile_path, ==, "per-slot");
-
-	free_config(config);
 }
 
 
@@ -1070,10 +1060,10 @@ static void config_file_test_global_slot_status(ConfigFileFixture *fixture,
 static void config_file_keyring_checks(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	gchar* pathname;
+	g_autofree gchar* pathname;
 
 	const gchar *simple_cfg_file = "\
 [system]\n\
@@ -1102,6 +1092,7 @@ check-purpose=codesign\n";
 	g_assert_false(config->keyring_check_crl);
 	g_assert_cmpstr(config->keyring_check_purpose, ==, NULL);
 
+	g_free(pathname);
 	free_config(config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "checking.conf", checking_cfg_file, NULL);
@@ -1114,17 +1105,15 @@ check-purpose=codesign\n";
 	g_assert_true(config->keyring_allow_partial_chain);
 	g_assert_true(config->keyring_check_crl);
 	g_assert_cmpstr(config->keyring_check_purpose, ==, "codesign");
-
-	free_config(config);
 }
 
 static void config_file_bundle_formats(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
-	gchar* pathname;
+	g_autofree gchar* pathname;
 
 	const gchar *default_cfg_file = "\
 [system]\n\
@@ -1155,6 +1144,7 @@ bundle-formats=-plain -verity -crypt\n";
 	g_assert_nonnull(config);
 	g_assert_cmphex(config->bundle_formats_mask, ==, 0x7);
 
+	g_free(pathname);
 	free_config(config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "set.conf", set_cfg_file, NULL);
@@ -1166,6 +1156,7 @@ bundle-formats=-plain -verity -crypt\n";
 	g_assert_nonnull(config);
 	g_assert_cmphex(config->bundle_formats_mask, ==, 0x1);
 
+	g_free(pathname);
 	free_config(config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "modify.conf", modify_cfg_file, NULL);
@@ -1177,6 +1168,7 @@ bundle-formats=-plain -verity -crypt\n";
 	g_assert_nonnull(config);
 	g_assert_cmphex(config->bundle_formats_mask, ==, 0x6);
 
+	g_free(pathname);
 	free_config(config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "none.conf", none_cfg_file, NULL);
@@ -1246,7 +1238,7 @@ static void config_file_test_parse_bundle_formats(void)
 static void config_file_use_desync_set_to_true(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucConfig *config;
+	g_autoptr(RaucConfig) config = NULL;
 	g_autoptr(GError) ierror = NULL;
 	gboolean res;
 	g_autofree gchar* pathname = NULL;
@@ -1273,8 +1265,6 @@ use-desync=true";
 	g_assert_cmpstr(config->tmp_path, ==, "/tmp/");
 	g_assert_cmpstr(config->casync_install_args, ==, "--seed /my/path/additional_seed.caibx");
 	g_assert_true(config->use_desync);
-
-	free_config(config);
 }
 
 int main(int argc, char *argv[])
