@@ -269,6 +269,79 @@ mountprefix=/mnt/myrauc/\n";
 	g_clear_error(&ierror);
 }
 
+static void config_file_boot_attempts(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucConfig *config;
+	GError *ierror = NULL;
+	gchar* pathname;
+
+	const gchar *valid_boot_attempts_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=uboot\n\
+boot-attempts=5\n\
+boot-attempts-primary=10\n\
+mountprefix=/mnt/myrauc/\n";
+	const gchar *invalid_boot_attempts_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=uboot\n\
+boot-attempts=urks\n\
+boot-attempts-primary=10\n\
+mountprefix=/mnt/myrauc/\n";
+	const gchar *boot_attempts_invalid_bootloader_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=grub\n\
+boot-attempts=5\n\
+boot-attempts-primary=10\n\
+mountprefix=/mnt/myrauc/\n";
+	const gchar *negative_boot_attempts_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=uboot\n\
+boot-attempts=5\n\
+boot-attempts-primary=-10\n\
+mountprefix=/mnt/myrauc/\n";
+
+
+	pathname = write_tmp_file(fixture->tmpdir, "valid_bootloader.conf", valid_boot_attempts_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_true(load_config(pathname, &config, &ierror));
+	g_assert_no_error(ierror);
+
+	g_free(pathname);
+
+	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", invalid_boot_attempts_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
+	g_clear_error(&ierror);
+
+	g_free(pathname);
+
+	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", boot_attempts_invalid_bootloader_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_cmpstr(ierror->message, ==, "Configuring boot attempts is valid for uboot or barebox only (not for grub)");
+	g_clear_error(&ierror);
+
+	g_free(pathname);
+
+	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", negative_boot_attempts_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_cmpstr(ierror->message, ==, "Value for \"boot-attempts-primary\" must not be negative");
+	g_clear_error(&ierror);
+
+	g_free(pathname);
+}
+
 static void config_file_slots_invalid_type(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1218,6 +1291,9 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/bootloaders", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_bootloaders,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/boot_attempts", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_boot_attempts,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/slots/invalid_type", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_slots_invalid_type,
