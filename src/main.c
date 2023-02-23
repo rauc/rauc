@@ -857,6 +857,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 	formatter_shell_append(text, "RAUC_MF_VERSION", manifest->update_version);
 	formatter_shell_append(text, "RAUC_MF_DESCRIPTION", manifest->update_description);
 	formatter_shell_append(text, "RAUC_MF_BUILD", manifest->update_build);
+	formatter_shell_append(text, "RAUC_MF_HASH", manifest->hash);
 	g_string_append_printf(text, "RAUC_MF_IMAGES=%d\n", g_list_length(manifest->images));
 
 	hooks = g_ptr_array_new();
@@ -950,6 +951,7 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		g_string_append_printf(text, "  Verity Hash: \t'%s'\n", manifest->bundle_verity_hash);
 		g_string_append_printf(text, "  Verity Size: \t%"G_GUINT64_FORMAT "\n", manifest->bundle_verity_size);
 	}
+	g_string_append_printf(text, "Manifest Hash:\t'%s'\n\n", manifest->hash);
 
 	g_ptr_array_unref(hooks);
 
@@ -1044,6 +1046,9 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 		json_builder_add_string_value(builder, "install-check");
 	}
 	json_builder_end_array(builder);
+
+	json_builder_set_member_name(builder, "hash");
+	json_builder_add_string_value(builder, manifest->hash);
 
 	json_builder_set_member_name(builder, "images");
 	json_builder_begin_array(builder);
