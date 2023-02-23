@@ -71,6 +71,8 @@ typedef struct {
 
 	/* internal marker that this was encrypted */
 	gboolean was_encrypted;
+	/* computed manifest hash */
+	gchar *hash;
 } RaucManifest;
 
 /**

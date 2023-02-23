@@ -270,12 +270,15 @@ gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)
 	g_autoptr(GKeyFile) key_file = NULL;
 	const gchar *data;
 	gsize length;
+	g_autofree gchar *manifest_checksum = NULL;
 
 	data = g_bytes_get_data(mem, &length);
 	if (data == NULL) {
 		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_NO_DATA, "No data available");
 		return FALSE;
 	}
+
+	manifest_checksum = g_compute_checksum_for_data(G_CHECKSUM_SHA256, (guchar*) data, length);
 
 	key_file = g_key_file_new();
 
@@ -289,17 +292,28 @@ gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)
 		return FALSE;
 	}
 
+	(*manifest)->hash = g_steal_pointer(&manifest_checksum);
+
 	return TRUE;
 }
 
 gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GError **error)
 {
 	GError *ierror = NULL;
+	g_autofree gchar *data;
+	gsize length;
 	g_autoptr(GKeyFile) key_file = NULL;
+	g_autofree gchar *manifest_checksum = NULL;
+
+	if (!g_file_get_contents(filename, &data, &length, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	manifest_checksum = g_compute_checksum_for_data(G_CHECKSUM_SHA256, (guchar*) data, length);
 
 	key_file = g_key_file_new();
 
-	if (!g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror)) {
+	if (!g_key_file_load_from_data(key_file, data, length, G_KEY_FILE_NONE, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
@@ -308,6 +322,8 @@ gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GErr
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
+
+	(*manifest)->hash = g_steal_pointer(&manifest_checksum);
 
 	return TRUE;
 }
