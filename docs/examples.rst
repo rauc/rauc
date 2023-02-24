@@ -359,6 +359,37 @@ an update for this, too.
 Example Integrations
 --------------------
 
+There are a couple of community projects that can serve as a base or blueprint
+for integrating RAUC into projects or products.
+
+OpenEmbedded / Yocto Project
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. rubric:: meta-rauc-communit
+
 The `meta-rauc-comminity repository
 <https://github.com/rauc/meta-rauc-community>`_ contains layers for some
 platforms, demonstrating different ways to use RAUC.
+
+Currently supported platforms are:
+
+* `qemux86-64 <https://github.com/rauc/meta-rauc-community/tree/master/meta-rauc-qemux86>`_
+* `RaspberryPi <https://github.com/rauc/meta-rauc-community/tree/master/meta-rauc-raspberrypi>`_
+* `CuBox-i <https://github.com/rauc/meta-rauc-community/tree/master/meta-rauc-nxp>`_
+* `Allwinner SunXi <https://github.com/rauc/meta-rauc-community/tree/master/meta-rauc-sunxi>`_
+* `NVIDIA Tegra <https://github.com/rauc/meta-rauc-community/tree/master/meta-rauc-tegra>`_
+
+.. rubric:: Eclipse Leda
+
+Leda, the Eclipse project for software-defined vehicles, provides an example
+RAUC integration:
+
+https://eclipse-leda.github.io/leda/docs/device-provisioning/self-update/rauc-integration/
+
+Buildroot
+~~~~~~~~~
+
+.. rubric:: Buildroot + RAUC (br2rauc)
+
+The `br2rauc <https://github.com/cdsteinkuehler/br2rauc>`_ project provides
+an example Buildroot integration for the Raspberry PI CM4.
