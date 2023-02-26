@@ -1172,7 +1172,12 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	g_assert_null(r_context()->install_info->mounted_bundle);
 	g_assert_true(r_context()->config->slot_states_determined);
 
+	if (!args->transaction)
+		args->transaction = g_uuid_string_random();
+
 	r_context_begin_step("do_install_bundle", "Installing", 10);
+
+	g_message("Installation %s started", args->transaction);
 
 	r_context_begin_step("determine_slot_states", "Determining slot states", 0);
 	res = update_external_mount_points(&ierror);
@@ -1319,6 +1324,7 @@ RaucInstallArgs *install_args_new(void)
 void install_args_free(RaucInstallArgs *args)
 {
 	g_free(args->name);
+	g_free(args->transaction);
 	g_mutex_clear(&args->status_mutex);
 	g_assert_cmpint(args->status_result, >=, 0);
 	g_assert_true(g_queue_is_empty(&args->status_messages));

@@ -102,6 +102,9 @@ static gboolean r_on_handle_install_bundle(
 	if (g_variant_dict_lookup(&dict, "ignore-compatible", "b", &args->ignore_compatible))
 		g_variant_dict_remove(&dict, "ignore-compatible");
 
+	if (g_variant_dict_lookup(&dict, "transaction-id", "s", &args->transaction))
+		g_variant_dict_remove(&dict, "transaction-id");
+
 	convert_dict_to_bundle_access_args(&dict, &args->access_args);
 
 	/* Check for unhandled keys */

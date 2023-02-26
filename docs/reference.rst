@@ -1271,6 +1271,10 @@ IN a{sv} *args*:
         installation of bundles on platforms that a compatible not matching the one
         of the bundle to be installed
 
+    :STRING 'transaction-id', VARIANT 's' <UUID>: Set UUID to use for
+        identifying the (installation) transaction.
+        If not given, RAUC will generate a random one.
+
     :STRING 'tls-cert', VARIANT 's' <filename/pkcs11-url>: Use the provided
         certificate for TLS client authentication
 

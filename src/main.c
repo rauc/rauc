@@ -44,6 +44,7 @@ gchar *casync_args = NULL;
 gchar **recipients = NULL;
 gchar *handler_args = NULL;
 gchar *bootslot = NULL;
+gchar *installation_txn = NULL;
 gboolean utf8_supported = FALSE;
 RaucBundleAccessArgs access_args = {0};
 
@@ -242,6 +243,7 @@ static gboolean install_start(int argc, char **argv)
 	args->status_result = 2;
 
 	args->ignore_compatible = install_ignore_compatible;
+	args->transaction = installation_txn;
 	if (access_args.tls_cert)
 		args->access_args.tls_cert = g_strdup(access_args.tls_cert);
 	if (access_args.tls_key)
@@ -258,6 +260,8 @@ static gboolean install_start(int argc, char **argv)
 		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
 
 		g_variant_dict_insert(&dict, "ignore-compatible", "b", args->ignore_compatible);
+		if (args->transaction)
+			g_variant_dict_insert(&dict, "transaction-id", "s", args->transaction);
 		if (args->access_args.tls_cert)
 			g_variant_dict_insert(&dict, "tls-cert", "s", args->access_args.tls_cert);
 		if (args->access_args.tls_key)
@@ -2100,6 +2104,7 @@ typedef struct {
 
 static GOptionEntry entries_install[] = {
 	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
+	{"transaction-id", '\0', 0, G_OPTION_ARG_STRING, &installation_txn, "custom transaction id", "UUID"},
 #if ENABLE_SERVICE == 1
 	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
 #else
