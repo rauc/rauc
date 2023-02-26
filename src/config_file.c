@@ -883,6 +883,7 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 	g_free(slotstatus->bundle_version);
 	g_free(slotstatus->bundle_description);
 	g_free(slotstatus->bundle_build);
+	g_free(slotstatus->bundle_hash);
 	g_free(slotstatus->status);
 	g_clear_pointer(&slotstatus->checksum.digest, g_free);
 	g_free(slotstatus->installed_timestamp);
@@ -892,6 +893,7 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 	slotstatus->bundle_version = key_file_consume_string(key_file, group, "bundle.version", NULL);
 	slotstatus->bundle_description = key_file_consume_string(key_file, group, "bundle.description", NULL);
 	slotstatus->bundle_build = key_file_consume_string(key_file, group, "bundle.build", NULL);
+	slotstatus->bundle_hash = key_file_consume_string(key_file, group, "bundle.hash", NULL);
 	slotstatus->status = key_file_consume_string(key_file, group, "status", NULL);
 
 	digest = key_file_consume_string(key_file, group, "sha256", NULL);
@@ -948,6 +950,7 @@ static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group, 
 	status_file_set_string_or_remove_key(key_file, group, "bundle.version", slotstatus->bundle_version);
 	status_file_set_string_or_remove_key(key_file, group, "bundle.description", slotstatus->bundle_description);
 	status_file_set_string_or_remove_key(key_file, group, "bundle.build", slotstatus->bundle_build);
+	status_file_set_string_or_remove_key(key_file, group, "bundle.hash", slotstatus->bundle_hash);
 	status_file_set_string_or_remove_key(key_file, group, "status", slotstatus->status);
 
 	if (slotstatus->checksum.digest && slotstatus->checksum.type == G_CHECKSUM_SHA256) {

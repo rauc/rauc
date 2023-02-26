@@ -16,6 +16,7 @@ typedef struct {
 	gchar *bundle_version;
 	gchar *bundle_description;
 	gchar *bundle_build;
+	gchar *bundle_hash;
 	gchar *status;
 	RaucChecksum checksum;
 	gchar *installed_timestamp;

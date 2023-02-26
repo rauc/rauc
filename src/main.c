@@ -857,6 +857,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 	formatter_shell_append(text, "RAUC_MF_VERSION", manifest->update_version);
 	formatter_shell_append(text, "RAUC_MF_DESCRIPTION", manifest->update_description);
 	formatter_shell_append(text, "RAUC_MF_BUILD", manifest->update_build);
+	formatter_shell_append(text, "RAUC_MF_HASH", manifest->hash);
 	g_string_append_printf(text, "RAUC_MF_IMAGES=%d\n", g_list_length(manifest->images));
 
 	hooks = g_ptr_array_new();
@@ -950,6 +951,7 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		g_string_append_printf(text, "  Verity Hash: \t'%s'\n", manifest->bundle_verity_hash);
 		g_string_append_printf(text, "  Verity Size: \t%"G_GUINT64_FORMAT "\n", manifest->bundle_verity_size);
 	}
+	g_string_append_printf(text, "Manifest Hash:\t'%s'\n\n", manifest->hash);
 
 	g_ptr_array_unref(hooks);
 
@@ -1044,6 +1046,9 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 		json_builder_add_string_value(builder, "install-check");
 	}
 	json_builder_end_array(builder);
+
+	json_builder_set_member_name(builder, "hash");
+	json_builder_add_string_value(builder, manifest->hash);
 
 	json_builder_set_member_name(builder, "images");
 	json_builder_begin_array(builder);
@@ -1271,6 +1276,8 @@ static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint 
 			g_string_append_printf(text, "\n              description=%s", slot_state->bundle_description);
 		if (slot_state->bundle_build)
 			g_string_append_printf(text, "\n              build=%s", slot_state->bundle_build);
+		if (slot_state->bundle_hash)
+			g_string_append_printf(text, "\n              hash=%s", slot_state->bundle_hash);
 		if (slot_state->checksum.digest && slot_state->checksum.type == G_CHECKSUM_SHA256) {
 			g_string_append_printf(text, "\n          checksum:");
 			g_string_append_printf(text, "\n              sha256=%s", slot_state->checksum.digest);
@@ -1403,6 +1410,7 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_VERSION", slotcnt, slot_state->bundle_version);
 			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_DESCRIPTION", slotcnt, slot_state->bundle_description);
 			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_BUILD", slotcnt, slot_state->bundle_build);
+			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_HASH", slotcnt, slot_state->bundle_hash);
 			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_CHECKSUM_SHA256", slotcnt, slot_state->checksum.digest);
 			str = g_strdup_printf("%"G_GOFFSET_FORMAT, slot_state->checksum.size);
 			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_CHECKSUM_SIZE", slotcnt, str);
@@ -1495,6 +1503,10 @@ static gchar* r_status_formatter_json(RaucStatusPrint *status, gboolean pretty)
 				json_builder_set_member_name(builder, "build");
 				json_builder_add_string_value(builder, slot_state->bundle_build);
 			}
+			if (slot_state->bundle_hash) {
+				json_builder_set_member_name(builder, "hash");
+				json_builder_add_string_value(builder, slot_state->bundle_hash);
+			}
 			json_builder_end_object(builder);               /* bundle */
 			if (slot_state->checksum.digest && slot_state->checksum.type == G_CHECKSUM_SHA256) {
 				json_builder_set_member_name(builder, "checksum");
@@ -1559,6 +1571,7 @@ static RaucSlotStatus* r_variant_get_slot_state(GVariant *vardict)
 	g_variant_dict_lookup(&dict, "bundle.version", "s", &slot_state->bundle_version);
 	g_variant_dict_lookup(&dict, "bundle.description", "s", &slot_state->bundle_description);
 	g_variant_dict_lookup(&dict, "bundle.build", "s", &slot_state->bundle_build);
+	g_variant_dict_lookup(&dict, "bundle.hash", "s", &slot_state->bundle_hash);
 	g_variant_dict_lookup(&dict, "status", "s", &slot_state->status);
 	if (g_variant_dict_lookup(&dict, "sha256", "s", &slot_state->checksum.digest))
 		slot_state->checksum.type = G_CHECKSUM_SHA256;
