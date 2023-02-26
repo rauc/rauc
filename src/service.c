@@ -326,6 +326,9 @@ static GVariant* convert_slot_status_to_dict(RaucSlot *slot)
 		g_variant_dict_insert(&dict, "size", "t", (guint64) slot_state->checksum.size);
 	}
 
+	if (slot_state->installed_txn)
+		g_variant_dict_insert(&dict, "installed.transaction", "s", slot_state->installed_txn);
+
 	if (slot_state->installed_timestamp) {
 		g_variant_dict_insert(&dict, "installed.timestamp", "s", slot_state->installed_timestamp);
 		g_variant_dict_insert(&dict, "installed.count", "u", slot_state->installed_count);

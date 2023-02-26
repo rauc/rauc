@@ -1021,6 +1021,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 	slot_state->checksum.type = plan->image->checksum.type;
 	slot_state->checksum.digest = g_strdup(plan->image->checksum.digest);
 	slot_state->checksum.size = plan->image->checksum.size;
+	slot_state->installed_txn = g_strdup(args->transaction);
 	slot_state->installed_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
 	slot_state->installed_count++;
 

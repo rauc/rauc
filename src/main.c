@@ -1363,10 +1363,13 @@ static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint 
 			g_string_append_printf(text, "\n              sha256=%s", slot_state->checksum.digest);
 			g_string_append_printf(text, "\n              size=%s", formatted_size);
 		}
+		g_string_append_printf(text, "\n          installed:");
 		if (slot_state->installed_timestamp) {
-			g_string_append_printf(text, "\n          installed:");
 			g_string_append_printf(text, "\n              timestamp=%s", slot_state->installed_timestamp);
 			g_string_append_printf(text, "\n              count=%u", slot_state->installed_count);
+		}
+		if (slot_state->installed_txn) {
+			g_string_append_printf(text, "\n              transaction=%s", slot_state->installed_txn);
 		}
 		if (slot_state->activated_timestamp) {
 			g_string_append_printf(text, "\n          activated:");
@@ -1656,6 +1659,7 @@ static RaucSlotStatus* r_variant_get_slot_state(GVariant *vardict)
 	if (g_variant_dict_lookup(&dict, "sha256", "s", &slot_state->checksum.digest))
 		slot_state->checksum.type = G_CHECKSUM_SHA256;
 	g_variant_dict_lookup(&dict, "size", "t", &slot_state->checksum.size);
+	g_variant_dict_lookup(&dict, "installed.transaction", "s", &slot_state->installed_txn);
 	g_variant_dict_lookup(&dict, "installed.timestamp", "s", &slot_state->installed_timestamp);
 	g_variant_dict_lookup(&dict, "installed.count", "u", &slot_state->installed_count);
 	g_variant_dict_lookup(&dict, "activated.timestamp", "s", &slot_state->activated_timestamp);
