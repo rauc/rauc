@@ -53,8 +53,6 @@ static gchar *resolve_loop_device(const gchar *devicepath, GError **error)
 		return g_strdup(devicepath);
 
 	devicename = g_path_get_basename(devicepath);
-	g_string_replace(devicename, "p1", "\0", 0);
-
 	syspath = g_build_filename("/sys/block", devicename, "loop/backing_file", NULL);
 
 	content = read_file_str(syspath, &ierror);
