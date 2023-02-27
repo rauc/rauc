@@ -45,6 +45,7 @@ static void install_args_update(RaucInstallArgs *args, const gchar *msg)
 static gchar *resolve_loop_device(const gchar *devicepath, GError **error)
 {
 	g_autoptr(GString) devicename = NULL;
+	g_autofree gchar *basename = NULL;
 	g_autofree gchar *syspath = NULL;
 	gchar *content = NULL;
 	GError *ierror = NULL;
@@ -52,9 +53,12 @@ static gchar *resolve_loop_device(const gchar *devicepath, GError **error)
 	if (!g_str_has_prefix(devicepath, "/dev/loop"))
 		return g_strdup(devicepath);
 
-	devicename = g_string_new(g_path_get_basename(devicepath));
-	devicename = g_string_set_size(devicename, 5);
+	basename = g_path_get_basename(devicepath);
 
+	devicename = g_string_new(basename);
+	
+	/* Cut of any partition information like p1*/
+	devicename = g_string_set_size(devicename, sizeof("loop0"));
 
 	syspath = g_build_filename("/sys/block", devicename->str, "loop/backing_file", NULL);
 
