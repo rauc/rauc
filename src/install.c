@@ -57,7 +57,7 @@ static gchar *resolve_loop_device(const gchar *devicepath, GError **error)
 
 	devicename = g_string_new(basename);
 	
-	/* Cut of any partition information like p1*/
+	/* Cut of any partition information like p1 */
 	devicename = g_string_set_size(devicename, sizeof("loop0"));
 
 	syspath = g_build_filename("/sys/block", devicename->str, "loop/backing_file", NULL);
