@@ -962,7 +962,7 @@ static gboolean uboot_set_primary(RaucSlot *slot, GError **error)
 	if (attempts <= 0)
 		attempts = UBOOT_ATTEMPTS_PRIMARY;
 
-	val = g_strdup_printf("%d", attempts);
+	val = g_strdup_printf("%x", attempts);
 
 	if (!uboot_env_set(key, val, &ierror)) {
 		g_propagate_error(error, ierror);
