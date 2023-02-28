@@ -105,7 +105,6 @@ gboolean determine_slot_states(GError **error)
 				"No slot configuration found");
 		goto out;
 	}
-	g_assert_nonnull(r_context()->config->slots);
 
 	/* Clear all previously detected external mount points as we will
 	 * re-deterrmine them. */
