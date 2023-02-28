@@ -10,7 +10,7 @@
 
 RaucContext *context = NULL;
 
-static const gchar *regex_match(const gchar *pattern, const gchar *string)
+static gchar *regex_match(const gchar *pattern, const gchar *string)
 {
 	g_autoptr(GRegex) regex = NULL;
 	g_autoptr(GMatchInfo) match = NULL;
@@ -25,11 +25,11 @@ static const gchar *regex_match(const gchar *pattern, const gchar *string)
 	return NULL;
 }
 
-static const gchar* get_cmdline_bootname(void)
+static gchar* get_cmdline_bootname(void)
 {
 	g_autofree gchar *contents = NULL;
 	g_autofree gchar *realdev = NULL;
-	const char *bootname = NULL;
+	gchar *bootname = NULL;
 
 	if (context->mock.proc_cmdline)
 		contents = g_strdup(context->mock.proc_cmdline);
@@ -37,7 +37,7 @@ static const gchar* get_cmdline_bootname(void)
 		return NULL;
 
 	if (strstr(contents, "rauc.external") != NULL)
-		return "_external_";
+		return g_strdup("_external_");
 
 	bootname = regex_match("rauc\\.slot=(\\S+)", contents);
 	if (bootname)
@@ -294,7 +294,7 @@ static gboolean r_context_configure_target(GError **error)
 		g_warning("Ignoring surrounding whitespace in system variant: %s", context->config->system_variant);
 
 	if (context->bootslot == NULL) {
-		context->bootslot = g_strdup(get_cmdline_bootname());
+		context->bootslot = get_cmdline_bootname();
 	}
 
 	return TRUE;
