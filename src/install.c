@@ -143,7 +143,7 @@ gboolean determine_slot_states(GError **error)
 				error,
 				R_SLOT_ERROR,
 				R_SLOT_ERROR_NO_BOOTSLOT,
-				"Bootname or device of booted slot not found");
+				"Could not find any root device or rauc slot information in /proc/cmdline");
 		return FALSE;
 	}
 
