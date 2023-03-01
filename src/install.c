@@ -85,25 +85,12 @@ static gchar *resolve_loop_device(const gchar *devicepath, GError **error)
 	return g_strchomp(content);
 }
 
-gboolean determine_slot_states(GError **error)
+static gboolean update_external_mount_points(GError **error)
 {
-	g_autoptr(GList) slotlist = NULL;
 	GList *mountlist = NULL;
-	RaucSlot *booted = NULL;
 	GHashTableIter iter;
 	RaucSlot *slot;
 	GError *ierror = NULL;
-
-	g_assert_nonnull(r_context()->config);
-
-	if (r_context()->config->slots == NULL) {
-		g_set_error_literal(
-				error,
-				R_SLOT_ERROR,
-				R_SLOT_ERROR_NO_CONFIG,
-				"No slot configuration found");
-		return FALSE;
-	}
 
 	/* Clear all previously detected external mount points as we will
 	 * re-deterrmine them. */
@@ -137,6 +124,30 @@ gboolean determine_slot_states(GError **error)
 		}
 	}
 	g_list_free_full(mountlist, (GDestroyNotify)g_unix_mount_free);
+
+	return TRUE;
+}
+
+gboolean determine_slot_states(GError **error)
+{
+	g_autoptr(GList) slotlist = NULL;
+	RaucSlot *booted = NULL;
+
+	g_assert_nonnull(r_context()->config);
+
+	if (r_context()->config->slots == NULL) {
+		g_set_error_literal(
+				error,
+				R_SLOT_ERROR,
+				R_SLOT_ERROR_NO_CONFIG,
+				"No slot configuration found");
+		return FALSE;
+	}
+
+
+	if (!update_external_mount_points(error)) {
+		return FALSE;
+	}
 
 	if (r_context()->bootslot == NULL) {
 		g_set_error_literal(
