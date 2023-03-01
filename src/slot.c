@@ -20,6 +20,7 @@ void r_slot_free(gpointer value)
 	g_free(slot->mount_point);
 	g_free(slot->ext_mount_point);
 	g_clear_pointer(&slot->status, r_slot_free_status);
+	g_free(slot->data_directory);
 	g_free(slot);
 }
 
