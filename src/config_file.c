@@ -156,17 +156,252 @@ out:
 	return res;
 }
 
+static GHashTable *parse_slots(const char *filename, const char *data_directory, GKeyFile *key_file, GError **error)
+{
+	GError *ierror = NULL;
+	g_auto(GStrv) groups = NULL;
+	gsize group_count;
+	g_autoptr(GHashTable) slots = NULL;
+	g_autoptr(GList) slotlist = NULL;
+	g_autoptr(GHashTable) bootnames = NULL;
+
+	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
+	bootnames = g_hash_table_new(g_str_hash, g_str_equal);
+
+	groups = g_key_file_get_groups(key_file, &group_count);
+	for (gsize i = 0; i < group_count; i++) {
+		gchar **groupsplit;
+
+		groupsplit = g_strsplit(groups[i], ".", -1);
+
+		/* We treat sections starting with "slot." as slots */
+		if (g_str_equal(groupsplit[0], RAUC_SLOT_PREFIX)) {
+			g_autoptr(RaucSlot) slot = g_new0(RaucSlot, 1);
+			gchar* value;
+
+			/* Assure slot strings consist of 3 parts, delimited by dots */
+			if (g_strv_length(groupsplit) != 3) {
+				g_set_error(
+						error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_INVALID_FORMAT,
+						"Invalid slot name format: %s", groups[i]);
+				return NULL;
+			}
+
+			value = g_strconcat(groupsplit[1], ".", groupsplit[2], NULL);
+			if (!value) {
+				g_set_error(
+						error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_INVALID_FORMAT,
+						"Invalid slot name");
+				return NULL;
+			}
+			slot->name = g_intern_string(value);
+			g_free(value);
+
+			/* If we have a data_directory, use a slot.<class>.<index>
+			 * subdirectory for per-slot data. */
+			if (data_directory)
+				slot->data_directory = g_build_filename(data_directory, groups[i], NULL);
+
+			slot->description = key_file_consume_string(key_file, groups[i], "description", NULL);
+
+			slot->sclass = g_intern_string(groupsplit[1]);
+
+			value = resolve_path_take(filename,
+					key_file_consume_string(key_file, groups[i], "device", &ierror));
+			if (!value) {
+				g_propagate_error(error, ierror);
+				return NULL;
+			}
+			slot->device = value;
+
+			value = key_file_consume_string(key_file, groups[i], "type", NULL);
+			if (!value)
+				value = g_strdup("raw");
+			slot->type = value;
+
+			if (!r_slot_is_valid_type(slot->type)) {
+				g_set_error(
+						error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_SLOT_TYPE,
+						"Unsupported slot type '%s' for slot %s selected in system config", slot->type, slot->name);
+				return NULL;
+			}
+
+			/* check if the device has an appropriate path */
+			if (g_str_equal(slot->type, "jffs2") && !g_str_has_prefix(slot->device, "/dev/")) {
+				g_set_error(
+						error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_INVALID_DEVICE,
+						"%s: device must be located in /dev/ for jffs2", groups[i]);
+				return NULL;
+			}
+
+			value = key_file_consume_string(key_file, groups[i], "bootname", NULL);
+			slot->bootname = value;
+			if (slot->bootname) {
+				/* check if we have seen this bootname on another slot */
+				if (g_hash_table_contains(bootnames, slot->bootname)) {
+					g_set_error(
+							error,
+							R_CONFIG_ERROR,
+							R_CONFIG_ERROR_DUPLICATE_BOOTNAME,
+							"Bootname '%s' is set on more than one slot",
+							slot->bootname);
+					return NULL;
+				}
+				g_hash_table_add(bootnames, slot->bootname);
+			}
+
+			/* Collect name of parent here for easing remaining key checking.
+			 * Will be resolved to slot->parent pointer after config parsing loop. */
+			slot->parent_name = key_file_consume_string(key_file, groups[i], "parent", NULL);
+
+			slot->allow_mounted = g_key_file_get_boolean(key_file, groups[i], "allow-mounted", &ierror);
+			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+				slot->allow_mounted = FALSE;
+				g_clear_error(&ierror);
+			} else if (ierror) {
+				g_propagate_error(error, ierror);
+				return NULL;
+			}
+			g_key_file_remove_key(key_file, groups[i], "allow-mounted", NULL);
+
+			slot->readonly = g_key_file_get_boolean(key_file, groups[i], "readonly", &ierror);
+			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+				slot->readonly = FALSE;
+				g_clear_error(&ierror);
+			} else if (ierror) {
+				g_propagate_error(error, ierror);
+				return NULL;
+			}
+			g_key_file_remove_key(key_file, groups[i], "readonly", NULL);
+
+			slot->install_same = g_key_file_get_boolean(key_file, groups[i], "install-same", &ierror);
+			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+				g_clear_error(&ierror);
+				/* try also deprecated flag force-install-same */
+				slot->install_same = g_key_file_get_boolean(key_file, groups[i], "force-install-same", &ierror);
+				if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+					g_clear_error(&ierror);
+					/* try also deprecated flag ignore-checksum */
+					slot->install_same = g_key_file_get_boolean(key_file, groups[i], "ignore-checksum", &ierror);
+					if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+						slot->install_same = TRUE;
+						g_clear_error(&ierror);
+					} else if (ierror) {
+						g_propagate_error(error, ierror);
+						return NULL;
+					}
+				} else if (ierror) {
+					g_propagate_error(error, ierror);
+					return NULL;
+				}
+			} else if (ierror) {
+				g_propagate_error(error, ierror);
+				return NULL;
+			}
+			g_key_file_remove_key(key_file, groups[i], "install-same", NULL);
+			g_key_file_remove_key(key_file, groups[i], "force-install-same", NULL);
+			g_key_file_remove_key(key_file, groups[i], "ignore-checksum", NULL);
+
+			slot->extra_mount_opts = key_file_consume_string(key_file, groups[i], "extra-mount-opts", NULL);
+
+			slot->resize = g_key_file_get_boolean(key_file, groups[i], "resize", &ierror);
+			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+				slot->resize = FALSE;
+				g_clear_error(&ierror);
+			} else if (ierror) {
+				g_propagate_error(error, ierror);
+				return NULL;
+			}
+			g_key_file_remove_key(key_file, groups[i], "resize", NULL);
+
+			if (g_strcmp0(slot->type, "boot-mbr-switch") == 0 ||
+			    g_strcmp0(slot->type, "boot-gpt-switch") == 0 ||
+			    g_strcmp0(slot->type, "boot-raw-fallback") == 0) {
+				slot->region_start = key_file_consume_binary_suffixed_string(key_file, groups[i],
+						"region-start", &ierror);
+				if (ierror) {
+					g_propagate_prefixed_error(error, ierror, "mandatory for %s: ", slot->type);
+					return NULL;
+				}
+
+				slot->region_size = key_file_consume_binary_suffixed_string(key_file, groups[i],
+						"region-size", &ierror);
+				if (ierror) {
+					g_propagate_prefixed_error(error, ierror, "mandatory for %s: ", slot->type);
+					return NULL;
+				}
+			}
+
+			if (!check_remaining_keys(key_file, groups[i], &ierror)) {
+				g_propagate_error(error, ierror);
+				return NULL;
+			}
+
+			g_key_file_remove_group(key_file, groups[i], NULL);
+
+			g_hash_table_insert(slots, (gchar*)slot->name, slot);
+			slot = NULL;
+		}
+		g_strfreev(groupsplit);
+	}
+
+	/* Add parent pointers */
+	slotlist = g_hash_table_get_keys(slots);
+	for (GList *l = slotlist; l != NULL; l = l->next) {
+		RaucSlot *slot;
+		RaucSlot *parent;
+		RaucSlot *child;
+
+		slot = g_hash_table_lookup(slots, l->data);
+		if (!slot->parent_name) {
+			continue;
+		}
+
+		parent = g_hash_table_lookup(slots, slot->parent_name);
+		if (!parent) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_PARENT,
+					"Parent slot '%s' not found!", slot->parent_name);
+			return NULL;
+		}
+
+		child = g_hash_table_lookup(slots, l->data);
+		child->parent = parent;
+
+		if (child->bootname) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_CHILD_HAS_BOOTNAME,
+					"Child slot '%s' has bootname set",
+					child->name);
+			return NULL;
+		}
+	}
+
+	if (!fix_grandparent_links(slots, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	return g_steal_pointer(&slots);
+}
+
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 {
 	GError *ierror = NULL;
 	g_autoptr(RaucConfig) c = g_new0(RaucConfig, 1);
 	g_autoptr(GKeyFile) key_file = NULL;
-	g_auto(GStrv) groups = NULL;
-	gsize group_count;
-	g_autoptr(GList) slotlist = NULL;
-	GHashTable *slots = NULL;
-	g_autoptr(GHashTable) bootnames = NULL;
-	GList *l;
 	gboolean dtbvariant;
 	gchar *variant_data;
 	g_autofree gchar *bundle_formats = NULL;
@@ -580,236 +815,11 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	g_key_file_remove_group(key_file, "handlers", NULL);
 
 	/* parse [slot.*.#] sections */
-	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
-	bootnames = g_hash_table_new(g_str_hash, g_str_equal);
-
-	groups = g_key_file_get_groups(key_file, &group_count);
-	for (gsize i = 0; i < group_count; i++) {
-		gchar **groupsplit;
-
-		groupsplit = g_strsplit(groups[i], ".", -1);
-
-		/* We treat sections starting with "slot." as slots */
-		if (g_str_equal(groupsplit[0], RAUC_SLOT_PREFIX)) {
-			g_autoptr(RaucSlot) slot = g_new0(RaucSlot, 1);
-			gchar* value;
-
-			/* Assure slot strings consist of 3 parts, delimited by dots */
-			if (g_strv_length(groupsplit) != 3) {
-				g_set_error(
-						error,
-						R_CONFIG_ERROR,
-						R_CONFIG_ERROR_INVALID_FORMAT,
-						"Invalid slot name format: %s", groups[i]);
-				return FALSE;
-			}
-
-			value = g_strconcat(groupsplit[1], ".", groupsplit[2], NULL);
-			if (!value) {
-				g_set_error(
-						error,
-						R_CONFIG_ERROR,
-						R_CONFIG_ERROR_INVALID_FORMAT,
-						"Invalid slot name");
-				return FALSE;
-			}
-			slot->name = g_intern_string(value);
-			g_free(value);
-
-			/* If we have a data_directory, use a slot.<class>.<index>
-			 * subdirectory for per-slot data. */
-			if (c->data_directory)
-				slot->data_directory = g_build_filename(c->data_directory, groups[i], NULL);
-
-			slot->description = key_file_consume_string(key_file, groups[i], "description", NULL);
-
-			slot->sclass = g_intern_string(groupsplit[1]);
-
-			value = resolve_path_take(filename,
-					key_file_consume_string(key_file, groups[i], "device", &ierror));
-			if (!value) {
-				g_propagate_error(error, ierror);
-				return FALSE;
-			}
-			slot->device = value;
-
-			value = key_file_consume_string(key_file, groups[i], "type", NULL);
-			if (!value)
-				value = g_strdup("raw");
-			slot->type = value;
-
-			if (!r_slot_is_valid_type(slot->type)) {
-				g_set_error(
-						error,
-						R_CONFIG_ERROR,
-						R_CONFIG_ERROR_SLOT_TYPE,
-						"Unsupported slot type '%s' for slot %s selected in system config", slot->type, slot->name);
-				return FALSE;
-			}
-
-			/* check if the device has an appropriate path */
-			if (g_str_equal(slot->type, "jffs2") && !g_str_has_prefix(slot->device, "/dev/")) {
-				g_set_error(
-						error,
-						R_CONFIG_ERROR,
-						R_CONFIG_ERROR_INVALID_DEVICE,
-						"%s: device must be located in /dev/ for jffs2", groups[i]);
-				return FALSE;
-			}
-
-			value = key_file_consume_string(key_file, groups[i], "bootname", NULL);
-			slot->bootname = value;
-			if (slot->bootname) {
-				/* check if we have seen this bootname on another slot */
-				if (g_hash_table_contains(bootnames, slot->bootname)) {
-					g_set_error(
-							error,
-							R_CONFIG_ERROR,
-							R_CONFIG_ERROR_DUPLICATE_BOOTNAME,
-							"Bootname '%s' is set on more than one slot",
-							slot->bootname);
-					return FALSE;
-				}
-				g_hash_table_add(bootnames, slot->bootname);
-			}
-
-			/* Collect name of parent here for easing remaining key checking.
-			 * Will be resolved to slot->parent pointer after config parsing loop. */
-			slot->parent_name = key_file_consume_string(key_file, groups[i], "parent", NULL);
-
-			slot->allow_mounted = g_key_file_get_boolean(key_file, groups[i], "allow-mounted", &ierror);
-			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-				slot->allow_mounted = FALSE;
-				g_clear_error(&ierror);
-			} else if (ierror) {
-				g_propagate_error(error, ierror);
-				return FALSE;
-			}
-			g_key_file_remove_key(key_file, groups[i], "allow-mounted", NULL);
-
-			slot->readonly = g_key_file_get_boolean(key_file, groups[i], "readonly", &ierror);
-			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-				slot->readonly = FALSE;
-				g_clear_error(&ierror);
-			} else if (ierror) {
-				g_propagate_error(error, ierror);
-				return FALSE;
-			}
-			g_key_file_remove_key(key_file, groups[i], "readonly", NULL);
-
-			slot->install_same = g_key_file_get_boolean(key_file, groups[i], "install-same", &ierror);
-			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-				g_clear_error(&ierror);
-				/* try also deprecated flag force-install-same */
-				slot->install_same = g_key_file_get_boolean(key_file, groups[i], "force-install-same", &ierror);
-				if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-					g_clear_error(&ierror);
-					/* try also deprecated flag ignore-checksum */
-					slot->install_same = g_key_file_get_boolean(key_file, groups[i], "ignore-checksum", &ierror);
-					if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-						slot->install_same = TRUE;
-						g_clear_error(&ierror);
-					} else if (ierror) {
-						g_propagate_error(error, ierror);
-						return FALSE;
-					}
-				} else if (ierror) {
-					g_propagate_error(error, ierror);
-					return FALSE;
-				}
-			} else if (ierror) {
-				g_propagate_error(error, ierror);
-				return FALSE;
-			}
-			g_key_file_remove_key(key_file, groups[i], "install-same", NULL);
-			g_key_file_remove_key(key_file, groups[i], "force-install-same", NULL);
-			g_key_file_remove_key(key_file, groups[i], "ignore-checksum", NULL);
-
-			slot->extra_mount_opts = key_file_consume_string(key_file, groups[i], "extra-mount-opts", NULL);
-
-			slot->resize = g_key_file_get_boolean(key_file, groups[i], "resize", &ierror);
-			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-				slot->resize = FALSE;
-				g_clear_error(&ierror);
-			} else if (ierror) {
-				g_propagate_error(error, ierror);
-				return FALSE;
-			}
-			g_key_file_remove_key(key_file, groups[i], "resize", NULL);
-
-			if (g_strcmp0(slot->type, "boot-mbr-switch") == 0 ||
-			    g_strcmp0(slot->type, "boot-gpt-switch") == 0 ||
-			    g_strcmp0(slot->type, "boot-raw-fallback") == 0) {
-				slot->region_start = key_file_consume_binary_suffixed_string(key_file, groups[i],
-						"region-start", &ierror);
-				if (ierror) {
-					g_propagate_prefixed_error(error, ierror, "mandatory for %s: ", slot->type);
-					return FALSE;
-				}
-
-				slot->region_size = key_file_consume_binary_suffixed_string(key_file, groups[i],
-						"region-size", &ierror);
-				if (ierror) {
-					g_propagate_prefixed_error(error, ierror, "mandatory for %s: ", slot->type);
-					return FALSE;
-				}
-			}
-
-			if (!check_remaining_keys(key_file, groups[i], &ierror)) {
-				g_propagate_error(error, ierror);
-				return FALSE;
-			}
-
-			g_key_file_remove_group(key_file, groups[i], NULL);
-
-			g_hash_table_insert(slots, (gchar*)slot->name, slot);
-			slot = NULL;
-		}
-		g_strfreev(groupsplit);
-	}
-
-	/* Add parent pointers */
-	slotlist = g_hash_table_get_keys(slots);
-	for (l = slotlist; l != NULL; l = l->next) {
-		RaucSlot *slot;
-		RaucSlot *parent;
-		RaucSlot *child;
-
-		slot = g_hash_table_lookup(slots, l->data);
-		if (!slot->parent_name) {
-			continue;
-		}
-
-		parent = g_hash_table_lookup(slots, slot->parent_name);
-		if (!parent) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_PARENT,
-					"Parent slot '%s' not found!", slot->parent_name);
-			return FALSE;
-		}
-
-		child = g_hash_table_lookup(slots, l->data);
-		child->parent = parent;
-
-		if (child->bootname) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_CHILD_HAS_BOOTNAME,
-					"Child slot '%s' has bootname set",
-					child->name);
-			return FALSE;
-		}
-	}
-
-	if (!fix_grandparent_links(slots, &ierror)) {
+	c->slots = parse_slots(filename, c->data_directory, key_file, &ierror);
+	if (!c->slots) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
-
-	c->slots = slots;
 
 	if (!check_remaining_groups(key_file, &ierror)) {
 		g_propagate_error(error, ierror);
