@@ -5,6 +5,7 @@
 #include "config_file.h"
 #include "context.h"
 #include "network.h"
+#include "install.h"
 #include "signature.h"
 #include "utils.h"
 

@@ -243,19 +243,11 @@ static gboolean r_on_handle_mark(RInstaller *interface,
 {
 	g_autofree gchar *slot_name = NULL;
 	g_autofree gchar *message = NULL;
-	GError *ierror = NULL;
 	gboolean res;
 
 	res = !r_context_get_busy();
 	if (!res) {
 		message = g_strdup("already processing a different method");
-		goto out;
-	}
-
-	res = determine_slot_states(&ierror);
-	if (!res) {
-		message = g_strdup_printf("Failed to determine slot states: %s\n", ierror->message);
-		g_clear_error(&ierror);
 		goto out;
 	}
 
@@ -362,12 +354,12 @@ static GVariant* create_slotstatus_array(GError **error)
 
 	g_assert_nonnull(r_installer);
 
-	res = determine_slot_states(&ierror);
+	res = update_external_mount_points(&ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Failed to determine slot states: ");
+				"Failed to update mount points: ");
 		return NULL;
 	}
 

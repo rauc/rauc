@@ -144,11 +144,6 @@ gboolean determine_slot_states(GError **error)
 		return FALSE;
 	}
 
-
-	if (!update_external_mount_points(error)) {
-		return FALSE;
-	}
-
 	if (r_context()->bootslot == NULL) {
 		g_set_error_literal(
 				error,
@@ -1085,7 +1080,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	r_context_begin_step("do_install_bundle", "Installing", 10);
 
 	r_context_begin_step("determine_slot_states", "Determining slot states", 0);
-	res = determine_slot_states(&ierror);
+	res = update_external_mount_points(&ierror);
 	r_context_end_step("determine_slot_states", res);
 	if (!res) {
 		g_propagate_error(error, ierror);
