@@ -888,14 +888,12 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	r_context_begin_step("update_slots", "Updating slots", g_list_length(install_images) * 2);
 	install_args_update(args, "Updating slots...");
 	for (GList *l = install_images; l != NULL; l = l->next) {
-		RaucImage *mfimage;
-		RaucSlot *dest_slot;
+		RaucImage *mfimage = l->data;
+		RaucSlot *dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
 		img_to_slot_handler update_handler = NULL;
 		RaucSlotStatus *slot_state = NULL;
-		GDateTime *now;
+		g_autoptr(GDateTime) now = NULL;
 
-		mfimage = l->data;
-		dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
 
 		/* determine whether update image type is compatible with destination slot type */
 		update_handler = get_update_handler(mfimage, dest_slot, &ierror);
@@ -989,8 +987,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		slot_state->checksum.size = mfimage->checksum.size;
 		slot_state->installed_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
 		slot_state->installed_count++;
-
-		g_date_time_unref(now);
 
 		r_context_end_step("copy_image", TRUE);
 
