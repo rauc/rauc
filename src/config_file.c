@@ -190,14 +190,6 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 			}
 
 			value = g_strconcat(groupsplit[1], ".", groupsplit[2], NULL);
-			if (!value) {
-				g_set_error(
-						error,
-						R_CONFIG_ERROR,
-						R_CONFIG_ERROR_INVALID_FORMAT,
-						"Invalid slot name");
-				return NULL;
-			}
 			slot->name = g_intern_string(value);
 			g_free(value);
 
