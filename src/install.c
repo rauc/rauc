@@ -44,15 +44,21 @@ static void install_args_update(RaucInstallArgs *args, const gchar *msg)
 
 static gchar *resolve_loop_device(const gchar *devicepath, GError **error)
 {
+	g_autoptr(GRegex) regex = NULL;
+	g_autoptr(GMatchInfo) match_info = NULL;
 	g_autofree gchar *devicename = NULL;
 	g_autofree gchar *syspath = NULL;
 	gchar *content = NULL;
 	GError *ierror = NULL;
 
-	if (!g_str_has_prefix(devicepath, "/dev/loop"))
+	regex = g_regex_new("/dev/(loop\\d+)(p\\d+)?", 0, 0, NULL);
+	g_assert_nonnull(regex);
+
+	g_regex_match(regex, devicepath, 0, &match_info);
+	if (!g_match_info_matches(match_info))
 		return g_strdup(devicepath);
 
-	devicename = g_path_get_basename(devicepath);
+	devicename = g_match_info_fetch(match_info, 1);
 	syspath = g_build_filename("/sys/block", devicename, "loop/backing_file", NULL);
 
 	content = read_file_str(syspath, &ierror);
