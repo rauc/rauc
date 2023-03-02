@@ -905,9 +905,10 @@ BOOT_B_LEFT=3\n\
 	res = r_boot_set_primary(rootfs0, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
+	/* remember: U-Boot uses hex numbers without a prefix */
 	g_assert_true(test_uboot_post_state(fixture, "\
 BOOT_ORDER=A B\n\
-BOOT_A_LEFT=10\n\
+BOOT_A_LEFT=a\n\
 BOOT_B_LEFT=3\n\
 "));
 }
