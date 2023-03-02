@@ -14,8 +14,6 @@ cc = meson.get_compiler('c')
 
 conf = configuration_data()
 conf.set_quoted('PACKAGE_NAME', 'rauc')
-conf.set_quoted('PACKAGE_VERSION', meson.project_version())
-conf.set_quoted('PACKAGE_STRING', 'rauc ' + meson.project_version())
 conf.set_quoted('STREAMING_USER', get_option('streaming_user'))
 
 prefixdir = get_option('prefix')
@@ -165,20 +163,28 @@ config_h = configure_file(
 )
 add_project_arguments('-include', meson.current_build_dir() / 'config.h', language : 'c')
 
+version_h = vcs_tag(
+  input : 'version.h.in',
+  output : 'version.h',
+)
+versiondep = declare_dependency(sources: version_h)
+
 rauc_deps = [threaddep, libcurldep, libnlgenldep, jsonglibdep, dbusdep, glibdep, giodep, giounixdep, openssldep, fdiskdep]
 
 librauc = static_library('rauc',
   sources_rauc,
   dbus_sources,
   include_directories : incdir,
-  dependencies : rauc_deps,
+  c_args : ['-include', meson.current_build_dir() / 'version.h'],
+  dependencies : rauc_deps + [versiondep],
   )
 
 executable('rauc',
   'src/main.c',
   dbus_sources,
   include_directories : incdir,
-  dependencies : rauc_deps,
+  c_args : ['-include', meson.current_build_dir() / 'version.h'],
+  dependencies : rauc_deps + [versiondep],
   link_with : librauc,
   install : true)
 
