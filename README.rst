@@ -107,14 +107,14 @@ Target Requirements
   * Custom: depends on implementation
 * Boot target selection support in the bootloader
 * Enough mass storage for two symmetric/asymmetric/custom slots
-* For normal bundle mode:
+* Storage location and storage space for the bundle:
 
-  * Enough storage for the compressed bundle file (in memory, in a temporary
-    partition or on an external storage device)
-* For casync bundle mode:
+  * For USB stick update: Sufficent space on the stick for (compressed) bundle, no on-target storage required
+  * For HTTP(S) bundle streaming installation: Sufficient space on server, no on-target storage requied
 
-  * No additional storage needed
-  * Network interface
+    * For adaptive updates: some on-target storage for meta-data
+  * For casync-based updates: temporary on-target storage for downloaded chunks required
+  * For external (non-streaming) download: Sufficient temporary on-target storage space for (compressed) bundle
 * Hardware watchdog (optional, but recommended)
 * RTC (optional, but recommended)
 
