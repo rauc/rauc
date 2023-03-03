@@ -169,6 +169,8 @@ version_h = vcs_tag(
 )
 versiondep = declare_dependency(sources: version_h)
 
+meson.add_dist_script('version-gen', meson.project_version())
+
 rauc_deps = [threaddep, libcurldep, libnlgenldep, jsonglibdep, dbusdep, glibdep, giodep, giounixdep, openssldep, fdiskdep]
 
 librauc = static_library('rauc',
