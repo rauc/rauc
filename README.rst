@@ -191,7 +191,7 @@ Building from Sources
     git clone https://github.com/rauc/rauc
     cd rauc
     meson setup build
-    ninja -C build
+    meson compile -C build
 
 .. note:: At the moment, also `automake cross-compilation
    <https://www.gnu.org/software/automake/manual/html_node/Cross_002dCompilation.html>`_

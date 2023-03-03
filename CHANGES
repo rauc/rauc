@@ -3,20 +3,67 @@ Release 1.9 (development)
 
 .. rubric:: Enhancements
 
+* Add new InspectBundle D-Bus method, which takes the same bundle access options
+  as the existing InstallBundle method.
+  This makes it possible to inspect bundles stored on HTTP servers which need
+  authentication.
+  It returns information from the manifest as a nested dictionary (for now,
+  this is only ``compatible``, ``version``, ``description`` and ``build``), but
+  can be extended as needed.
+  (by Stefan Ursella)
+* Add support for loading and storing metadata entries in the manifest.
+  They are not yet exposed to the user.
+* Add a manifest hash value and expose it via ``rauc info`` and ``rauc status``.
+  This can be used to identify a specific bundle.
+* Support configurable boot attempt counters for barebox (using
+  ``boot-attempts`` in the ``system.conf``).
+* Add meson as an alternative build system.
+  We intend to drop autotools in 1.10, unless there are good reasons to keep it
+  for longer.
+* Abort earlier if the image is too large for the target slot.
+* Add warnings for some configuration issues when using adaptive updates.
 
 .. rubric:: Bug fixes
 
+* Fix a NULL dereference error caused by images larger than the target slot. (by
+  Kevin Hsieh)
+* Fix compatibility with libcurl when built without proxy support. (by Christian
+  Meusel)
+* Do not invoke any target-related context setup steps if no config is required.
+  This avoids unnecessary checks and removes the misleading messages about
+  unresolved paths.
+* Fix number format for bootchooser when using U-Boot. (by Christian Meusel)
+* Fix handling of partitioned loop devices, which caused incorrect aborts
+  during installation.
+* Fix error handling when attempting to encrypt plain bundles.
 
 .. rubric:: Testing
 
+* Improve robustness of dm-verity/-crypt test setup.
+* Enable scan-build for tests in GitHub Actions.
+* Handle floating point comparisons in tests better.
+* Add a GitHub Actions workflow for CodeQL scanning as a replacement for LGTM.
+* Run the cross architecture tests on Debian bullseye instead of buster.
 
 .. rubric:: Code
 
+* Move the ``-intermediate`` option to the subcommand level and update the
+  manual page.
+* Improve error handling for invalid ``boot-attempts`` configuration.
+* Fix some minor memory leaks.
 
 .. rubric:: Documentation
 
+* Document our :ref:`approach to bundle compatibility <sec-compatibility>`.
+* Add links to public example integrations of RAUC into different build systems
+  and boards.
+* Add an issue template and a SUPPORT.rst file.
+* Improve the documentation on slot skipping with regard to streaming.
+* Update README.rst with new features.
 
-Contributions from:
+
+Contributions from: Christian Meusel, Enrico Jörns, Jan Lübbe, Kevin Hsieh,
+Stefan Ursella, Ulrich Ölmann, Uwe Kleine-König
 
 Release 1.8 (released Sep 30, 2022)
 -----------------------------------
