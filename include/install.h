@@ -117,8 +117,14 @@ void install_args_free(RaucInstallArgs *args);
  */
 gboolean install_run(RaucInstallArgs *args);
 
+typedef struct {
+	RaucImage *image;
+} RImageInstallPlan;
+
+void r_image_install_plan_free(gpointer value);
+
 /**
- * Checks and returns list of images to install
+ * Builds and returns an array of RImageInstallPlans.
  *
  * Check is performed against target_group.
  *
@@ -129,8 +135,8 @@ gboolean install_run(RaucInstallArgs *args);
  * @param target_group target group to verify against
  * @param error Return location for a GError
  *
- * @return Returns a map slotclass (gchar*) -> image (RaucImage *),
+ * @return Returns GPtrArray of RImageInstallPlans
  *         or NULL if an error occurred
  */
-GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group, GError **error)
+GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target_group, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;

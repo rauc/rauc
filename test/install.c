@@ -269,7 +269,7 @@ static void install_test_target(InstallFixture *fixture,
 {
 	g_autoptr(RaucManifest) rm = NULL;
 	g_autoptr(GHashTable) tgrp = NULL;
-	GList *selected_images = NULL;
+	g_autoptr(GPtrArray) install_plans = NULL;
 	g_autoptr(GError) error = NULL;
 	gboolean result;
 
@@ -342,15 +342,15 @@ filename=bootloader.img";
 	g_assert_cmpstr(((RaucSlot*)g_hash_table_lookup(tgrp, "prebootloader"))->name, ==, "prebootloader.0");
 	g_assert_cmpint(g_hash_table_size(tgrp), ==, 6);
 
-	selected_images = get_install_images(rm, tgrp, &error);
+	install_plans = r_install_make_plans(rm, tgrp, &error);
 	g_assert_no_error(error);
-	g_assert_nonnull(selected_images);
+	g_assert_nonnull(install_plans);
 
-	g_assert_cmpint(g_list_length(selected_images), ==, 4);
-	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 0))->filename, ==, "rootfs.ext4");
-	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 1))->filename, ==, "appfs.ext4");
-	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 2))->filename, ==, "demofs.ext4");
-	g_assert_cmpstr(((RaucImage*)g_list_nth_data(selected_images, 3))->filename, ==, "bootloader.img");
+	g_assert_cmpint(install_plans->len, ==, 4);
+	g_assert_cmpstr(((RImageInstallPlan*)g_ptr_array_index(install_plans, 0))->image->filename, ==, "rootfs.ext4");
+	g_assert_cmpstr(((RImageInstallPlan*)g_ptr_array_index(install_plans, 1))->image->filename, ==, "appfs.ext4");
+	g_assert_cmpstr(((RImageInstallPlan*)g_ptr_array_index(install_plans, 2))->image->filename, ==, "demofs.ext4");
+	g_assert_cmpstr(((RImageInstallPlan*)g_ptr_array_index(install_plans, 3))->image->filename, ==, "bootloader.img");
 }
 
 /* Test with image for non-redundant active target slot. */
@@ -617,8 +617,8 @@ static void test_install_image_selection(void)
 	g_autoptr(RaucManifest) rm = NULL;
 	g_autoptr(GHashTable) tgrp = NULL;
 	g_autoptr(GError) error = NULL;
-	GList *selected_images = NULL;
-	RaucImage *image = NULL;
+	g_autoptr(GPtrArray) install_plans = NULL;
+	const RImageInstallPlan *plan = NULL;
 	gboolean res;
 
 #define MANIFEST2 "\
@@ -676,21 +676,21 @@ device=/dev/null\n\
 	tgrp = determine_target_install_group();
 	g_assert_nonnull(tgrp);
 
-	selected_images = get_install_images(rm, tgrp, &error);
+	install_plans = r_install_make_plans(rm, tgrp, &error);
 	g_assert_no_error(error);
-	g_assert_nonnull(selected_images);
+	g_assert_nonnull(install_plans);
 
 	/* We expect the image selection to return both appfs.img and
 	 * rootfs.img as we have matching slots for them. */
-	g_assert_cmpint(g_list_length(selected_images), ==, 2);
+	g_assert_cmpint(install_plans->len, ==, 2);
 
-	image = (RaucImage*) g_list_nth_data(selected_images, 0);
-	g_assert_nonnull(image);
-	g_assert_cmpstr(image->filename, ==, "rootfs.img");
+	plan = g_ptr_array_index(install_plans, 0);
+	g_assert_nonnull(plan->image);
+	g_assert_cmpstr(plan->image->filename, ==, "rootfs.img");
 
-	image = (RaucImage*) g_list_nth_data(selected_images, 1);
-	g_assert_nonnull(image);
-	g_assert_cmpstr(image->filename, ==, "appfs.img");
+	plan = g_ptr_array_index(install_plans, 1);
+	g_assert_nonnull(plan->image);
+	g_assert_cmpstr(plan->image->filename, ==, "appfs.img");
 }
 
 static void test_install_image_selection_no_matching_slot(void)
@@ -701,7 +701,7 @@ static void test_install_image_selection_no_matching_slot(void)
 	g_autoptr(RaucManifest) rm = NULL;
 	g_autoptr(GHashTable) tgrp = NULL;
 	g_autoptr(GError) error = NULL;
-	GList *selected_images = NULL;
+	g_autoptr(GPtrArray) install_plans = NULL;
 	gboolean res;
 
 #define MANIFEST2 "\
@@ -752,12 +752,12 @@ device=/dev/null\n\
 
 	/* we expect the image mapping to fail as there is no slot candidate
 	 * for image.appfs */
-	selected_images = get_install_images(rm, tgrp, &error);
-	g_assert_null(selected_images);
+	install_plans = r_install_make_plans(rm, tgrp, &error);
+	g_assert_null(install_plans);
 	g_assert_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED);
 }
 
-/* Test that get_install_images() returns non-NULL if there is no booted slot
+/* Test that r_install_make_plans() returns non-NULL if there is no booted slot
  * but the boot was marked as 'external' explicitly */
 static void test_install_image_selection_boot_external(void)
 {
@@ -767,8 +767,8 @@ static void test_install_image_selection_boot_external(void)
 	g_autoptr(RaucManifest) rm = NULL;
 	g_autoptr(GHashTable) tgrp = NULL;
 	g_autoptr(GError) error = NULL;
-	GList *selected_images = NULL;
-	RaucImage *image = NULL;
+	g_autoptr(GPtrArray) install_plans = NULL;
+	const RImageInstallPlan *plan = NULL;
 	gboolean res;
 
 #define MANIFEST3 "\
@@ -818,16 +818,16 @@ device=/dev/null\n\
 
 	/* we expect the image mapping to fail as there is no slot candidate
 	 * for image.appfs */
-	selected_images = get_install_images(rm, tgrp, &error);
+	install_plans = r_install_make_plans(rm, tgrp, &error);
 	g_assert_no_error(error);
-	g_assert_nonnull(selected_images);
+	g_assert_nonnull(install_plans);
 
 	/* We expect a single rootfs slot to match */
-	g_assert_cmpint(g_list_length(selected_images), ==, 1);
+	g_assert_cmpint(install_plans->len, ==, 1);
 
-	image = (RaucImage*) g_list_nth_data(selected_images, 0);
-	g_assert_nonnull(image);
-	g_assert_cmpstr(image->filename, ==, "rootfs.img");
+	plan = g_ptr_array_index(install_plans, 0);
+	g_assert_nonnull(plan->image);
+	g_assert_cmpstr(plan->image->filename, ==, "rootfs.img");
 }
 
 static void test_install_image_readonly(void)
@@ -838,7 +838,7 @@ static void test_install_image_readonly(void)
 	g_autoptr(RaucManifest) rm = NULL;
 	g_autoptr(GHashTable) tgrp = NULL;
 	g_autoptr(GError) error = NULL;
-	GList *selected_images = NULL;
+	g_autoptr(GPtrArray) install_plans = NULL;
 	gboolean res;
 
 #define MANIFEST "\
@@ -886,8 +886,8 @@ readonly=true\n\
 
 	/* we expect the image mapping to fail as there is an image for a
 	 * readonly slot */
-	selected_images = get_install_images(rm, tgrp, &error);
-	g_assert_null(selected_images);
+	install_plans = r_install_make_plans(rm, tgrp, &error);
+	g_assert_null(install_plans);
 	g_assert_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED);
 }
 
@@ -899,8 +899,8 @@ static void test_install_image_variants(void)
 	g_autoptr(GBytes) data = NULL;
 	g_autoptr(RaucManifest) rm = NULL;
 	g_autoptr(GHashTable) tgrp = NULL;
-	GList *install_images = NULL;
-	RaucImage *test_img = NULL;
+	g_autoptr(GPtrArray) install_plans = NULL;
+	const RImageInstallPlan *plan = NULL;
 	g_autoptr(GError) error = NULL;
 	gboolean res;
 
@@ -970,15 +970,15 @@ device=/dev/null\n\
 	g_assert_true(res);
 	g_assert_nonnull(rm);
 
-	install_images = get_install_images(rm, tgrp, &error);
+	install_plans = r_install_make_plans(rm, tgrp, &error);
 	g_assert_no_error(error);
-	g_assert_nonnull(install_images);
+	g_assert_nonnull(install_plans);
 
-	g_assert_cmpint(g_list_length(install_images), ==, 1);
+	g_assert_cmpint(install_plans->len, ==, 1);
 
-	test_img = (RaucImage*)g_list_nth_data(install_images, 0);
-	g_assert_nonnull(test_img);
-	g_assert_cmpstr(test_img->variant, ==, "variant-1");
+	plan = g_ptr_array_index(install_plans, 0);
+	g_assert_nonnull(plan->image);
+	g_assert_cmpstr(plan->image->variant, ==, "variant-1");
 
 	g_clear_pointer(&rm, free_manifest);
 	g_clear_pointer(&data, g_bytes_unref);
@@ -990,15 +990,15 @@ device=/dev/null\n\
 	g_assert_true(res);
 	g_assert_nonnull(rm);
 
-	install_images = get_install_images(rm, tgrp, &error);
+	install_plans = r_install_make_plans(rm, tgrp, &error);
 	g_assert_no_error(error);
-	g_assert_nonnull(install_images);
+	g_assert_nonnull(install_plans);
 
-	g_assert_cmpint(g_list_length(install_images), ==, 1);
+	g_assert_cmpint(install_plans->len, ==, 1);
 
-	test_img = (RaucImage*)g_list_nth_data(install_images, 0);
-	g_assert_nonnull(test_img);
-	g_assert_null(test_img->variant);
+	plan = g_ptr_array_index(install_plans, 0);
+	g_assert_nonnull(plan->image);
+	g_assert_null(plan->image->variant);
 
 	g_clear_pointer(&rm, free_manifest);
 	g_clear_pointer(&data, g_bytes_unref);
@@ -1010,8 +1010,8 @@ device=/dev/null\n\
 	g_assert_true(res);
 	g_assert_nonnull(rm);
 
-	install_images = get_install_images(rm, tgrp, &error);
-	g_assert_null(install_images);
+	install_plans = r_install_make_plans(rm, tgrp, &error);
+	g_assert_null(install_plans);
 	g_assert_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED);
 }
 

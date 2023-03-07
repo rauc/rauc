@@ -367,11 +367,22 @@ GHashTable* determine_target_install_group(void)
 	return targetgroup;
 }
 
-
-GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group, GError **error)
+void r_image_install_plan_free(gpointer value)
 {
-	GList *install_images = NULL;
+	RImageInstallPlan *plan = (RImageInstallPlan*)value;
+
+	if (!plan)
+		return;
+
+	g_free(plan);
+}
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(RImageInstallPlan, r_image_install_plan_free);
+
+GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target_group, GError **error)
+{
 	g_autofree gchar **slotclasses = NULL;
+	g_autoptr(GPtrArray) install_plans = g_ptr_array_new_with_free_func(r_image_install_plan_free);
 
 	g_return_val_if_fail(manifest != NULL, NULL);
 	g_return_val_if_fail(target_group != NULL, NULL);
@@ -382,6 +393,7 @@ GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group
 	/* Find exactly 1 image for each class listed in manifest */
 	for (gchar **cls = slotclasses; *cls != NULL; cls++) {
 		RaucImage *matching_img = NULL;
+		g_autoptr(RImageInstallPlan) plan = g_new0(RImageInstallPlan, 1);
 
 		for (GList *l = manifest->images; l != NULL; l = l->next) {
 			RaucImage *lookup_image = l->data;
@@ -398,8 +410,7 @@ GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group
 						R_INSTALL_ERROR,
 						R_INSTALL_ERROR_FAILED,
 						"No target slot for class %s of image %s found", lookup_image->slotclass, lookup_image->filename);
-				g_clear_pointer(&install_images, g_list_free);
-				goto out;
+				return NULL;
 			}
 
 			if (target_slot->readonly) {
@@ -407,8 +418,7 @@ GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group
 						R_INSTALL_ERROR,
 						R_INSTALL_ERROR_FAILED,
 						"Target slot for class %s of image %s is readonly", lookup_image->slotclass, lookup_image->filename);
-				g_clear_pointer(&install_images, g_list_free);
-				goto out;
+				return NULL;
 			}
 
 			/* If this is a default variant and we have no better
@@ -432,22 +442,23 @@ GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group
 					R_INSTALL_ERROR,
 					R_INSTALL_ERROR_FAILED,
 					"Failed to find matching variant of image for %s", *cls);
-			g_clear_pointer(&install_images, g_list_free);
-			goto out;
+			return NULL;
 		}
 
 		g_debug("Found image mapping: %s -> %s", matching_img->filename, matching_img->slotclass);
-		install_images = g_list_append(install_images, matching_img);
+		plan->image = matching_img;
+		g_ptr_array_add(install_plans, g_steal_pointer(&plan));
 	}
 
-	if (!install_images)
+	if (install_plans->len == 0) {
 		g_set_error_literal(error,
 				R_INSTALL_ERROR,
 				R_INSTALL_ERROR_FAILED,
-				"No install image found");
-out:
+				"No installable image found");
+		return NULL;
+	}
 
-	return install_images;
+	return g_steal_pointer(&install_plans);
 }
 
 static gchar* parse_handler_output(gchar* line)
@@ -778,10 +789,11 @@ static gboolean pre_install_check_slot_mount_status(RaucSlot *slot, RaucImage *m
 	return FALSE;
 }
 
-static gboolean pre_install_checks(gchar* bundledir, GList *install_images, GHashTable *target_group, GError **error)
+static gboolean pre_install_checks(gchar* bundledir, GPtrArray *install_plans, GHashTable *target_group, GError **error)
 {
-	for (GList *l = install_images; l != NULL; l = l->next) {
-		RaucImage *mfimage = l->data;
+	for (guint i = 0; i < install_plans->len; i++) {
+		const RImageInstallPlan *plan = g_ptr_array_index(install_plans, i);
+		RaucImage *mfimage = plan->image;
 		RaucSlot *dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
 
 		if (!mfimage->filename) {
@@ -829,10 +841,10 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	g_autofree gchar *hook_name = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	GList *install_images = NULL;
+	g_autoptr(GPtrArray) install_plans = NULL;
 
-	install_images = get_install_images(manifest, target_group, &ierror);
-	if (install_images == NULL) {
+	install_plans = r_install_make_plans(manifest, target_group, &ierror);
+	if (install_plans == NULL) {
 		g_propagate_error(error, ierror);
 		goto early_out;
 	}
@@ -861,15 +873,16 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		goto early_out;
 	}
 
-	res = pre_install_checks(bundledir, install_images, target_group, &ierror);
+	res = pre_install_checks(bundledir, install_plans, target_group, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto early_out;
 	}
 
 	/* Mark all parent destination slots non-bootable */
-	for (GList *l = install_images; l != NULL; l = l->next) {
-		RaucSlot *dest_slot = g_hash_table_lookup(target_group, ((RaucImage*)l->data)->slotclass);
+	for (guint i = 0; i < install_plans->len; i++) {
+		const RImageInstallPlan *plan = g_ptr_array_index(install_plans, i);
+		RaucSlot *dest_slot = g_hash_table_lookup(target_group, plan->image->slotclass);
 
 		g_assert_nonnull(dest_slot);
 
@@ -891,15 +904,15 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	if (manifest->hook_name)
 		hook_name = g_build_filename(bundledir, manifest->hook_name, NULL);
 
-	r_context_begin_step_weighted("update_slots", "Updating slots", g_list_length(install_images) * 10, 6);
+	r_context_begin_step_weighted("update_slots", "Updating slots", install_plans->len * 10, 6);
 	install_args_update(args, "Updating slots...");
-	for (GList *l = install_images; l != NULL; l = l->next) {
-		RaucImage *mfimage = l->data;
+	for (guint i = 0; i < install_plans->len; i++) {
+		const RImageInstallPlan *plan = g_ptr_array_index(install_plans, i);
+		RaucImage *mfimage = plan->image;
 		RaucSlot *dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
 		img_to_slot_handler update_handler = NULL;
 		RaucSlotStatus *slot_state = NULL;
 		g_autoptr(GDateTime) now = NULL;
-
 
 		/* determine whether update image type is compatible with destination slot type */
 		update_handler = get_update_handler(mfimage, dest_slot, &ierror);
@@ -1003,8 +1016,9 @@ image_out:
 
 	if (r_context()->config->activate_installed) {
 		/* Mark all parent destination slots bootable */
-		for (GList *l = install_images; l != NULL; l = l->next) {
-			RaucSlot *dest_slot = g_hash_table_lookup(target_group, ((RaucImage*)l->data)->slotclass);
+		for (guint i = 0; i < install_plans->len; i++) {
+			const RImageInstallPlan *plan = g_ptr_array_index(install_plans, i);
+			RaucSlot *dest_slot = g_hash_table_lookup(target_group, plan->image->slotclass);
 
 			if (dest_slot->parent || !dest_slot->bootname)
 				continue;
