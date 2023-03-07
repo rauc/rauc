@@ -146,12 +146,15 @@ fi
 
 if ninja test -C $BUILD_DIR -v; then
   touch qemu-test-ok
+  echo "RESULT: PASSED"
 else
   cat $BUILD_DIR/meson-logs/testlog.txt || true
   # show system status on error
   mount || true
   df -h || true
   free || true
+  echo "RESULT: FAILED"
 fi
+sleep 1
 echo o > /proc/sysrq-trigger
 sleep 1
