@@ -971,14 +971,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			goto out;
 		}
 
-		g_free(slot_state->bundle_compatible);
-		g_free(slot_state->bundle_version);
-		g_free(slot_state->bundle_description);
-		g_free(slot_state->bundle_build);
-		g_free(slot_state->bundle_hash);
-		g_free(slot_state->status);
-		g_free(slot_state->checksum.digest);
-		g_free(slot_state->installed_timestamp);
+		r_slot_clear_status(slot_state);
 
 		now = g_date_time_new_now_utc();
 

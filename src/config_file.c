@@ -881,15 +881,7 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 	if (!g_key_file_has_group(key_file, group))
 		g_debug("Group %s not found in key file.", group);
 
-	g_free(slotstatus->bundle_compatible);
-	g_free(slotstatus->bundle_version);
-	g_free(slotstatus->bundle_description);
-	g_free(slotstatus->bundle_build);
-	g_free(slotstatus->bundle_hash);
-	g_free(slotstatus->status);
-	g_clear_pointer(&slotstatus->checksum.digest, g_free);
-	g_free(slotstatus->installed_timestamp);
-	g_free(slotstatus->activated_timestamp);
+	r_slot_clear_status(slotstatus);
 
 	slotstatus->bundle_compatible = key_file_consume_string(key_file, group, "bundle.compatible", NULL);
 	slotstatus->bundle_version = key_file_consume_string(key_file, group, "bundle.version", NULL);
