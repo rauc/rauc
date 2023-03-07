@@ -1,5 +1,7 @@
+/.cache/
 /autom4te.cache/
 /build-aux/*
+/build/
 !/build-aux/git-version-gen
 /data/de.pengutronix.rauc.service
 /data/rauc-service.sh
