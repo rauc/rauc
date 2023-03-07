@@ -120,6 +120,7 @@ gboolean install_run(RaucInstallArgs *args);
 
 typedef struct {
 	RaucImage *image;
+	RaucSlot *target_slot;
 } RImageInstallPlan;
 
 void r_image_install_plan_free(gpointer value);
