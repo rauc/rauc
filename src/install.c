@@ -804,7 +804,7 @@ static gboolean pre_install_checks(gchar* bundledir, GList *install_images, GHas
 
 		if (!g_file_test(mfimage->filename, G_FILE_TEST_EXISTS)) {
 			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NOSRC,
-					"Source image '%s' not found", mfimage->filename);
+					"Source image '%s' not found in bundle", mfimage->filename);
 			return FALSE;
 		}
 
