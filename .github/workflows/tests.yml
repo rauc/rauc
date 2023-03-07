@@ -97,7 +97,7 @@ jobs:
         docker exec -i cross whoami
         docker exec -i cross meson setup -Dgpt=enabled -Dwerror=true build
         docker exec -i cross meson compile -C build
-        # don't run make check here, as we don't have full access to the kernel (mount, loopback, dm)
+        # don't run 'meson test' here, as we don't have full access to the kernel (mount, loopback, dm)
 
     - name: Show logs
       if: ${{ failure() }}
