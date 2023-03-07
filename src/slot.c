@@ -33,6 +33,7 @@ void r_slot_free_status(RaucSlotStatus *slotstatus)
 	g_free(slotstatus->bundle_version);
 	g_free(slotstatus->bundle_description);
 	g_free(slotstatus->bundle_build);
+	g_free(slotstatus->bundle_hash);
 	g_free(slotstatus->status);
 	g_free(slotstatus->checksum.digest);
 	g_free(slotstatus->installed_timestamp);
