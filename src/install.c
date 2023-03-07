@@ -806,7 +806,6 @@ static gboolean pre_install_checks(gchar* bundledir, GPtrArray *install_plans, G
 				g_assert_not_reached();
 		}
 
-
 		/* if image filename is relative, make it absolute */
 		if (!g_path_is_absolute(mfimage->filename)) {
 			gchar *filename = g_build_filename(bundledir, mfimage->filename, NULL);
