@@ -4,6 +4,7 @@
 
 #include "bundle.h"
 #include "manifest.h"
+#include "slot.h"
 
 #define R_INSTALL_ERROR r_install_error_quark()
 GQuark r_install_error_quark(void);

@@ -394,32 +394,14 @@ GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target
 	for (gchar **cls = slotclasses; *cls != NULL; cls++) {
 		RaucImage *matching_img = NULL;
 		g_autoptr(RImageInstallPlan) plan = g_new0(RImageInstallPlan, 1);
+		RaucSlot *target_slot = NULL;
 
 		for (GList *l = manifest->images; l != NULL; l = l->next) {
 			RaucImage *lookup_image = l->data;
-			RaucSlot *target_slot = NULL;
 
 			/* Not interested in slots of other classes */
 			if (g_strcmp0(lookup_image->slotclass, *cls) != 0)
 				continue;
-
-			/* Check if target_group contains an appropriate slot for this image */
-			target_slot = g_hash_table_lookup(target_group, lookup_image->slotclass);
-			if (!target_slot) {
-				g_set_error(error,
-						R_INSTALL_ERROR,
-						R_INSTALL_ERROR_FAILED,
-						"No target slot for class %s of image %s found", lookup_image->slotclass, lookup_image->filename);
-				return NULL;
-			}
-
-			if (target_slot->readonly) {
-				g_set_error(error,
-						R_INSTALL_ERROR,
-						R_INSTALL_ERROR_FAILED,
-						"Target slot for class %s of image %s is readonly", lookup_image->slotclass, lookup_image->filename);
-				return NULL;
-			}
 
 			/* If this is a default variant and we have no better
 			 * match yet, use it and continue scanning.
@@ -447,6 +429,24 @@ GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target
 
 		g_debug("Found image mapping: %s -> %s", matching_img->filename, matching_img->slotclass);
 		plan->image = matching_img;
+
+		/* Check if target_group contains an appropriate slot for this image */
+		target_slot = g_hash_table_lookup(target_group, matching_img->slotclass);
+		if (!target_slot) {
+			g_set_error(error,
+					R_INSTALL_ERROR,
+					R_INSTALL_ERROR_FAILED,
+					"No target slot for class %s of image %s found", matching_img->slotclass, matching_img->filename);
+			return NULL;
+		}
+		if (target_slot->readonly) {
+			g_set_error(error,
+					R_INSTALL_ERROR,
+					R_INSTALL_ERROR_FAILED,
+					"Target slot for class %s of image %s is readonly", matching_img->slotclass, matching_img->filename);
+			return NULL;
+		}
+
 		g_ptr_array_add(install_plans, g_steal_pointer(&plan));
 	}
 
