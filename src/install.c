@@ -832,6 +832,111 @@ skip_filename_checks:
 	return TRUE;
 }
 
+static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RImageInstallPlan *plan, RaucInstallArgs *args, const char *hook_name, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	img_to_slot_handler update_handler = NULL;
+	RaucSlotStatus *slot_state = NULL;
+	g_autoptr(GDateTime) now = NULL;
+
+	/* determine whether update image type is compatible with destination slot type */
+	update_handler = get_update_handler(plan->image, plan->target_slot, &ierror);
+	if (update_handler == NULL) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	install_args_update(args, g_strdup_printf("Checking slot %s", plan->target_slot->name));
+
+	r_context_begin_step_weighted_formatted("check_slot", 0, 1, "Checking slot %s", plan->target_slot->name);
+
+	load_slot_status(plan->target_slot);
+	slot_state = plan->target_slot->status;
+
+	/* In case we failed unmounting while reading status
+	 * file, abort here */
+	if (plan->target_slot->mount_point) {
+		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
+				"Slot '%s' still mounted", plan->target_slot->device);
+		r_context_end_step("check_slot", FALSE);
+		goto out;
+	}
+
+	/* if explicitly enabled, skip update of up-to-date slots */
+	if (!plan->target_slot->install_same && g_strcmp0(plan->image->checksum.digest, slot_state->checksum.digest) == 0) {
+		install_args_update(args, g_strdup_printf("Skipping update for correct image %s", plan->image->filename));
+		g_message("Skipping update for correct image %s", plan->image->filename);
+		r_context_end_step("check_slot", TRUE);
+
+		/* Dummy step to indicate slot was skipped */
+		r_context_begin_step("skip_image", "Copying image skipped", 0);
+		r_context_end_step("skip_image", TRUE);
+
+		res = TRUE;
+		goto out;
+	}
+
+	g_free(slot_state->status);
+	slot_state->status = g_strdup("update");
+
+	r_context_end_step("check_slot", TRUE);
+
+	install_args_update(args, g_strdup_printf("Updating slot %s", plan->target_slot->name));
+
+	/* update slot */
+	if (plan->image->hooks.install) {
+		g_message("Updating %s with 'install' slot hook", plan->target_slot->device);
+	} else {
+		if (plan->image->variant)
+			g_message("Updating %s with %s (variant: %s)", plan->target_slot->device, plan->image->filename, plan->image->variant);
+		else
+			g_message("Updating %s with %s", plan->target_slot->device, plan->image->filename);
+	}
+
+	r_context_begin_step_weighted_formatted("copy_image", 0, 9, "Copying image to %s", plan->target_slot->name);
+
+	res = update_handler(
+			plan->image,
+			plan->target_slot,
+			hook_name,
+			&ierror);
+	if (!res) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed updating slot %s: ", plan->target_slot->name);
+		r_context_end_step("copy_image", FALSE);
+		goto out;
+	}
+
+	r_slot_clear_status(slot_state);
+
+	now = g_date_time_new_now_utc();
+
+	slot_state->bundle_compatible = g_strdup(manifest->update_compatible);
+	slot_state->bundle_version = g_strdup(manifest->update_version);
+	slot_state->bundle_description = g_strdup(manifest->update_description);
+	slot_state->bundle_build = g_strdup(manifest->update_build);
+	slot_state->bundle_hash = g_strdup(manifest->hash);
+	slot_state->status = g_strdup("ok");
+	slot_state->checksum.type = plan->image->checksum.type;
+	slot_state->checksum.digest = g_strdup(plan->image->checksum.digest);
+	slot_state->checksum.size = plan->image->checksum.size;
+	slot_state->installed_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
+	slot_state->installed_count++;
+
+	r_context_end_step("copy_image", TRUE);
+
+	install_args_update(args, g_strdup_printf("Updating slot %s status", plan->target_slot->name));
+	res = save_slot_status(plan->target_slot, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
+		goto out;
+	}
+
+out:
+	return res;
+}
+
 static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error)
 {
 	g_autofree gchar *hook_name = NULL;
@@ -903,107 +1008,13 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	install_args_update(args, "Updating slots...");
 	for (guint i = 0; i < install_plans->len; i++) {
 		const RImageInstallPlan *plan = g_ptr_array_index(install_plans, i);
-		img_to_slot_handler update_handler = NULL;
-		RaucSlotStatus *slot_state = NULL;
-		g_autoptr(GDateTime) now = NULL;
 
-		/* determine whether update image type is compatible with destination slot type */
-		update_handler = get_update_handler(plan->image, plan->target_slot, &ierror);
-		if (update_handler == NULL) {
-			res = FALSE;
+		if (!handle_slot_install_plan(manifest, plan, args, hook_name, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
-		}
-
-		install_args_update(args, g_strdup_printf("Checking slot %s", plan->target_slot->name));
-
-		r_context_begin_step_weighted_formatted("check_slot", 0, 1, "Checking slot %s", plan->target_slot->name);
-
-		load_slot_status(plan->target_slot);
-		slot_state = plan->target_slot->status;
-
-		/* In case we failed unmounting while reading status
-		 * file, abort here */
-		if (plan->target_slot->mount_point) {
-			res = FALSE;
-			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
-					"Slot '%s' still mounted", plan->target_slot->device);
-			r_context_end_step("check_slot", FALSE);
-
-			goto out;
-		}
-
-		/* if explicitly enabled, skip update of up-to-date slots */
-		if (!plan->target_slot->install_same && g_strcmp0(plan->image->checksum.digest, slot_state->checksum.digest) == 0) {
-			install_args_update(args, g_strdup_printf("Skipping update for correct image %s", plan->image->filename));
-			g_message("Skipping update for correct image %s", plan->image->filename);
-			r_context_end_step("check_slot", TRUE);
-
-			/* Dummy step to indicate slot was skipped */
-			r_context_begin_step("skip_image", "Copying image skipped", 0);
-			r_context_end_step("skip_image", TRUE);
-
 			goto image_out;
 		}
 
-		g_free(slot_state->status);
-		slot_state->status = g_strdup("update");
-
-		r_context_end_step("check_slot", TRUE);
-
-		install_args_update(args, g_strdup_printf("Updating slot %s", plan->target_slot->name));
-
-		/* update slot */
-		if (plan->image->hooks.install) {
-			g_message("Updating %s with 'install' slot hook", plan->target_slot->device);
-		} else {
-			if (plan->image->variant)
-				g_message("Updating %s with %s (variant: %s)", plan->target_slot->device, plan->image->filename, plan->image->variant);
-			else
-				g_message("Updating %s with %s", plan->target_slot->device, plan->image->filename);
-		}
-
-		r_context_begin_step_weighted_formatted("copy_image", 0, 9, "Copying image to %s", plan->target_slot->name);
-
-		res = update_handler(
-				plan->image,
-				plan->target_slot,
-				hook_name,
-				&ierror);
-		if (!res) {
-			g_propagate_prefixed_error(error, ierror,
-					"Failed updating slot %s: ", plan->target_slot->name);
-			r_context_end_step("copy_image", FALSE);
-			goto out;
-		}
-
-		r_slot_clear_status(slot_state);
-
-		now = g_date_time_new_now_utc();
-
-		slot_state->bundle_compatible = g_strdup(manifest->update_compatible);
-		slot_state->bundle_version = g_strdup(manifest->update_version);
-		slot_state->bundle_description = g_strdup(manifest->update_description);
-		slot_state->bundle_build = g_strdup(manifest->update_build);
-		slot_state->bundle_hash = g_strdup(manifest->hash);
-		slot_state->status = g_strdup("ok");
-		slot_state->checksum.type = plan->image->checksum.type;
-		slot_state->checksum.digest = g_strdup(plan->image->checksum.digest);
-		slot_state->checksum.size = plan->image->checksum.size;
-		slot_state->installed_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
-		slot_state->installed_count++;
-
-		r_context_end_step("copy_image", TRUE);
-
-		install_args_update(args, g_strdup_printf("Updating slot %s status", plan->target_slot->name));
-		res = save_slot_status(plan->target_slot, &ierror);
-		if (!res) {
-			g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
-			goto out;
-		}
-
 image_out:
-
 		install_args_update(args, g_strdup_printf("Updating slot %s done", plan->target_slot->name));
 	}
 
