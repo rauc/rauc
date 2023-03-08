@@ -826,7 +826,7 @@ skip_filename_checks:
 
 static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error)
 {
-	gchar *hook_name = NULL;
+	g_autofree gchar *hook_name = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GList *install_images = NULL;
@@ -1039,7 +1039,6 @@ image_out:
 	res = TRUE;
 
 out:
-	//g_free(hook_name);
 	r_context_end_step("update_slots", res);
 early_out:
 	return res;
