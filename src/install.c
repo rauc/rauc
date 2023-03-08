@@ -835,7 +835,6 @@ skip_filename_checks:
 static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RImageInstallPlan *plan, RaucInstallArgs *args, const char *hook_name, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 	img_to_slot_handler update_handler = NULL;
 	RaucSlotStatus *slot_state = NULL;
 	g_autoptr(GDateTime) now = NULL;
@@ -844,7 +843,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 	update_handler = get_update_handler(plan->image, plan->target_slot, &ierror);
 	if (update_handler == NULL) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	install_args_update(args, g_strdup_printf("Checking slot %s", plan->target_slot->name));
@@ -860,7 +859,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
 				"Slot '%s' still mounted", plan->target_slot->device);
 		r_context_end_step("check_slot", FALSE);
-		goto out;
+		return FALSE;
 	}
 
 	/* if explicitly enabled, skip update of up-to-date slots */
@@ -873,8 +872,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 		r_context_begin_step("skip_image", "Copying image skipped", 0);
 		r_context_end_step("skip_image", TRUE);
 
-		res = TRUE;
-		goto out;
+		return TRUE;
 	}
 
 	g_free(slot_state->status);
@@ -896,16 +894,11 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 
 	r_context_begin_step_weighted_formatted("copy_image", 0, 9, "Copying image to %s", plan->target_slot->name);
 
-	res = update_handler(
-			plan->image,
-			plan->target_slot,
-			hook_name,
-			&ierror);
-	if (!res) {
+	if (!update_handler(plan->image, plan->target_slot, hook_name, &ierror)) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed updating slot %s: ", plan->target_slot->name);
 		r_context_end_step("copy_image", FALSE);
-		goto out;
+		return FALSE;
 	}
 
 	r_slot_clear_status(slot_state);
@@ -927,14 +920,12 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 	r_context_end_step("copy_image", TRUE);
 
 	install_args_update(args, g_strdup_printf("Updating slot %s status", plan->target_slot->name));
-	res = save_slot_status(plan->target_slot, &ierror);
-	if (!res) {
+	if (!save_slot_status(plan->target_slot, &ierror)) {
 		g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
-		goto out;
+		return FALSE;
 	}
 
-out:
-	return res;
+	return TRUE;
 }
 
 static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error)
