@@ -961,9 +961,10 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		if (img->variant)
 			g_string_append_printf(text, "\tVariant:   %s\n", img->variant);
 		if (img->filename) {
+			g_autofree gchar* formatted_size = g_format_size_full(img->checksum.size, G_FORMAT_SIZE_LONG_FORMAT);
 			g_string_append_printf(text, "\tFilename:  %s\n", img->filename);
 			g_string_append_printf(text, "\tChecksum:  %s\n", img->checksum.digest);
-			g_string_append_printf(text, "\tSize:      %"G_GOFFSET_FORMAT "\n", img->checksum.size);
+			g_string_append_printf(text, "\tSize:      %s\n", formatted_size);
 		} else {
 			g_string_append_printf(text, "\t(no image file)\n");
 		}
@@ -1271,9 +1272,10 @@ static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint 
 		if (slot_state->bundle_build)
 			g_string_append_printf(text, "\n              build=%s", slot_state->bundle_build);
 		if (slot_state->checksum.digest && slot_state->checksum.type == G_CHECKSUM_SHA256) {
+			g_autofree gchar* formatted_size = g_format_size_full(slot_state->checksum.size, G_FORMAT_SIZE_LONG_FORMAT);
 			g_string_append_printf(text, "\n          checksum:");
 			g_string_append_printf(text, "\n              sha256=%s", slot_state->checksum.digest);
-			g_string_append_printf(text, "\n              size=%"G_GOFFSET_FORMAT, slot_state->checksum.size);
+			g_string_append_printf(text, "\n              size=%s", formatted_size);
 		}
 		if (slot_state->installed_timestamp) {
 			g_string_append_printf(text, "\n          installed:");
