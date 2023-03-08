@@ -5,6 +5,7 @@
 #include "bundle.h"
 #include "manifest.h"
 #include "slot.h"
+#include "update_handler.h"
 
 #define R_INSTALL_ERROR r_install_error_quark()
 GQuark r_install_error_quark(void);
@@ -120,7 +121,9 @@ gboolean install_run(RaucInstallArgs *args);
 
 typedef struct {
 	RaucImage *image;
+
 	RaucSlot *target_slot;
+	img_to_slot_handler slot_handler;
 } RImageInstallPlan;
 
 void r_image_install_plan_free(gpointer value);

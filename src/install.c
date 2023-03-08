@@ -381,6 +381,7 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(RImageInstallPlan, r_image_install_plan_free);
 
 GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target_group, GError **error)
 {
+	GError *ierror = NULL;
 	g_autofree gchar **slotclasses = NULL;
 	g_autoptr(GPtrArray) install_plans = g_ptr_array_new_with_free_func(r_image_install_plan_free);
 
@@ -443,6 +444,13 @@ GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target
 					R_INSTALL_ERROR,
 					R_INSTALL_ERROR_FAILED,
 					"Target slot for class %s of image %s is readonly", matching_img->slotclass, matching_img->filename);
+			return NULL;
+		}
+
+		/* determine whether update image type is compatible with destination slot type */
+		plan->slot_handler = get_update_handler(plan->image, plan->target_slot, &ierror);
+		if (plan->slot_handler == NULL) {
+			g_propagate_error(error, ierror);
 			return NULL;
 		}
 
@@ -835,16 +843,8 @@ skip_filename_checks:
 static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RImageInstallPlan *plan, RaucInstallArgs *args, const char *hook_name, GError **error)
 {
 	GError *ierror = NULL;
-	img_to_slot_handler update_handler = NULL;
 	RaucSlotStatus *slot_state = NULL;
 	g_autoptr(GDateTime) now = NULL;
-
-	/* determine whether update image type is compatible with destination slot type */
-	update_handler = get_update_handler(plan->image, plan->target_slot, &ierror);
-	if (update_handler == NULL) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
 
 	install_args_update(args, g_strdup_printf("Checking slot %s", plan->target_slot->name));
 
@@ -894,7 +894,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 
 	r_context_begin_step_weighted_formatted("copy_image", 0, 9, "Copying image to %s", plan->target_slot->name);
 
-	if (!update_handler(plan->image, plan->target_slot, hook_name, &ierror)) {
+	if (!plan->slot_handler(plan->image, plan->target_slot, hook_name, &ierror)) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed updating slot %s: ", plan->target_slot->name);
 		r_context_end_step("copy_image", FALSE);

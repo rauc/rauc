@@ -909,10 +909,10 @@ static void test_install_image_variants(void)
 compatible=foo\n\
 \n\
 [image.rootfs.variant-1]\n\
-filename=dummy\n\
+filename=dummy.img\n\
 \n\
 [image.rootfs]\n\
-filename=dummy\n\
+filename=dummy.img\n\
 "
 
 #define MANIFEST_DEFAULT_VARIANT "\
@@ -920,7 +920,7 @@ filename=dummy\n\
 compatible=foo\n\
 \n\
 [image.rootfs]\n\
-filename=dummy\n\
+filename=dummy.img\n\
 "
 
 #define MANIFEST_OTHER_VARIANT "\
@@ -928,7 +928,7 @@ filename=dummy\n\
 compatible=foo\n\
 \n\
 [image.rootfs.variant-2]\n\
-filename=dummy\n\
+filename=dummy.img\n\
 "
 
 	const gchar *system_conf_variant = "\
