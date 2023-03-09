@@ -122,6 +122,46 @@ static void progress_test_explicit_percentage(void)
 	g_assert_cmpint(callback_counter, ==, 9);
 }
 
+static void progress_test_weighted_steps(void)
+{
+	/* reset global state */
+	callback_counter = 0;
+	last_percentage = 0;
+
+	/* test setting explicit percentage */
+	r_context_begin_step("test_1", "testing step 1", 10);
+	r_context_begin_step_weighted("test_1.1", "testing step 1.1", 1, 2);
+	r_context_begin_step("test_1.1.1", "testing step 1", 0);
+	r_context_end_step("test_1.1.1", TRUE);
+	g_assert_cmpint(last_percentage, ==, 20);
+	r_context_end_step("test_1.1", TRUE);
+	g_assert_cmpint(last_percentage, ==, 20);
+
+	r_context_begin_step_weighted("test_1.1", "testing step 1.1", 0, 7);
+	r_context_end_step("test_1.1", TRUE);
+	g_assert_cmpint(last_percentage, ==, 90);
+
+	r_context_begin_step("test_1.2", "testing step 1.2", 0);
+
+	r_context_set_step_percentage("test_1.2", 25);
+	g_assert_cmpint(last_percentage, ==, 92);
+
+	r_context_set_step_percentage("test_1.2", 50);
+	g_assert_cmpint(last_percentage, ==, 95);
+
+	r_context_set_step_percentage("test_1.2", 75);
+	g_assert_cmpint(last_percentage, ==, 97);
+
+	r_context_end_step("test_1.2", TRUE);
+	r_context_end_step("test_1", TRUE);
+	g_assert_cmpint(last_percentage, ==, 100);
+
+	/* callback gets called twice per step and once per explicit percentage
+	 * set
+	 */
+	g_assert_cmpint(callback_counter, ==, 13);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -137,6 +177,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/progress/test_nesting", progress_test_nesting);
 	g_test_add_func("/progress/test_unsuccessful_substep", progress_test_unsuccessful_substep);
 	g_test_add_func("/progress/test_explicit_percentage", progress_test_explicit_percentage);
+	g_test_add_func("/progress/test_weighted_steps", progress_test_weighted_steps);
 
 	return g_test_run();
 }
