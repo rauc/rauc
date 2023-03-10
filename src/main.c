@@ -1111,6 +1111,22 @@ static gchar* info_formatter_json_pretty(RaucManifest *manifest)
 	return info_formatter_json_base(manifest, TRUE);
 }
 
+static gchar* info_formatter_json_2(RaucManifest *manifest)
+{
+#if ENABLE_JSON
+	g_autoptr(JsonGenerator) gen = json_generator_new();
+	g_autoptr(GVariant) dict = r_manifest_to_dict(manifest);
+	g_autoptr(JsonNode) root = json_gvariant_serialize(dict);
+
+	json_generator_set_root(gen, root);
+	json_generator_set_pretty(gen, TRUE);
+	return json_generator_to_data(gen, NULL);
+#else
+	g_error("json support is disabled");
+	return NULL;
+#endif
+}
+
 static gboolean info_start(int argc, char **argv)
 {
 	g_autofree gchar *bundlelocation = NULL;
@@ -1142,6 +1158,8 @@ static gboolean info_start(int argc, char **argv)
 		formatter = info_formatter_json;
 	} else if (ENABLE_JSON && g_strcmp0(output_format, "json-pretty") == 0) {
 		formatter = info_formatter_json_pretty;
+	} else if (ENABLE_JSON && g_strcmp0(output_format, "json-2") == 0) {
+		formatter = info_formatter_json_2;
 	} else {
 		g_printerr("Unknown output format: '%s'\n", output_format);
 		goto out;
