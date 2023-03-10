@@ -238,6 +238,45 @@ static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 	return TRUE;
 }
 
+static gssize copy_with_progress(GOutputStream *out_stream, GInputStream *image_stream,
+		goffset image_size, GError **error)
+{
+	GError *ierror = NULL;
+	gsize out_size = 0;
+	goffset sum_size = 0;
+	gint last_percent = -1, percent;
+	gchar buffer[8192];
+	gssize in_size;
+
+	do {
+		gboolean ret;
+
+		in_size = g_input_stream_read(image_stream,
+				buffer, 8192, NULL, &ierror);
+		if (in_size == -1) {
+			g_propagate_error(error, ierror);
+			return -1;
+		}
+		ret = g_output_stream_write_all(out_stream, buffer,
+				in_size, &out_size, NULL, &ierror);
+		if (!ret) {
+			g_propagate_error(error, ierror);
+			return -1;
+		}
+
+		sum_size += out_size;
+
+		percent = sum_size * 100 / image_size;
+		/* emit progress info (but only when in progress context) */
+		if (r_context()->progress && percent != last_percent) {
+			last_percent = percent;
+			r_context_set_step_percentage("copy_image", percent);
+		}
+	} while (out_size);
+
+	return sum_size;
+}
+
 static gboolean splice_with_progress(GUnixInputStream *image_stream,
 		GUnixOutputStream *out_stream, GError **error)
 {
@@ -371,10 +410,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, g
 		}
 	}
 
-	size = g_output_stream_splice(G_OUTPUT_STREAM(outstream), instream,
-			G_OUTPUT_STREAM_SPLICE_NONE,
-			NULL,
-			&ierror);
+	size = copy_with_progress(G_OUTPUT_STREAM(outstream), instream, image->checksum.size, &ierror);
 	if (size == -1) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed splicing data: ");
