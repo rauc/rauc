@@ -461,6 +461,12 @@ static void r_context_send_progress(gboolean op_finished, gboolean success)
 void r_context_begin_step(const gchar *name, const gchar *description,
 		gint substeps)
 {
+	r_context_begin_step_weighted(name, description, substeps, 1);
+}
+
+void r_context_begin_step_weighted(const gchar *name, const gchar *description,
+		gint substeps, gint weight)
+{
 	RaucProgressStep *step = g_new0(RaucProgressStep, 1);
 	RaucProgressStep *parent;
 
@@ -470,6 +476,7 @@ void r_context_begin_step(const gchar *name, const gchar *description,
 	/* set properties */
 	step->name = g_strdup(name);
 	step->description = g_strdup(description);
+	step->weight = weight;
 	step->substeps_total = substeps;
 	step->substeps_done = 0;
 	step->percent_done = 0;
@@ -487,7 +494,7 @@ void r_context_begin_step(const gchar *name, const gchar *description,
 					parent->substeps_done + 1,
 					parent->substeps_total);
 
-		step->percent_total = parent->percent_total
+		step->percent_total = step->weight * parent->percent_total
 		                      / parent->substeps_total;
 
 		g_assert_cmpint(step->percent_total, <=,
@@ -558,7 +565,7 @@ void r_context_end_step(const gchar *name, gboolean success)
 	/* increment step count and percentage on parent step */
 	if (g_list_next(context->progress)) {
 		parent = g_list_next(context->progress)->data;
-		parent->substeps_done++;
+		parent->substeps_done += step->weight;
 
 		/* clean up explicit percentage */
 		if (step->last_explicit_percent != 0)

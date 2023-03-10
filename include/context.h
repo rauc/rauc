@@ -69,6 +69,7 @@ typedef struct {
 	/* name identifying progress step */
 	gchar *name;
 	gchar *description;
+	gint weight;
 
 	gint substeps_total;
 	gint substeps_done;
@@ -88,6 +89,21 @@ typedef struct {
  */
 void r_context_begin_step(const gchar *name, const gchar *description,
 		gint sub_steps);
+
+/**
+ * Call at the beginning of a relevant code block. Provides progress
+ * information via DBus when rauc service is running.
+ *
+ * This is the weighted variant of r_context_begin_step() which allows a step
+ * to span multiple parent steps
+ *
+ * @param name identifying the step
+ * @param description that is emitted via DBus on begin/end
+ * @param sub_steps number of direct sub steps contained in this step
+ * @param weight Parent steps to span
+ */
+void r_context_begin_step_weighted(const gchar *name, const gchar *description,
+		gint substeps, gint weight);
 
 /**
  * Call at the beginning of a relevant code block. Provides progress
