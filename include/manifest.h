@@ -173,6 +173,19 @@ gboolean sync_manifest_with_contentdir(RaucManifest *manifest, const gchar *dir,
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Converts a manifest to a GVariant dict.
+ *
+ * This can be used by the D-Bus service for InspectBundle and also for the
+ * 'rauc info' CLI command (by converting it to JSON).
+ *
+ * @param manifest pointer to the manifest
+ *
+ * @return new GVariant containing the dict
+ */
+GVariant *r_manifest_to_dict(const RaucManifest *manifest)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Frees a rauc image
  */
 void r_free_image(gpointer data);

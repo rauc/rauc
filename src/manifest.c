@@ -712,6 +712,33 @@ gboolean save_manifest_file(const gchar *filename, const RaucManifest *mf, GErro
 	return res;
 }
 
+GVariant* r_manifest_to_dict(const RaucManifest *manifest)
+{
+	GVariantDict dict;
+	GVariantDict update_dict;
+
+	g_variant_dict_init(&dict, NULL);
+
+	/* construct 'update' dict */
+	g_variant_dict_init(&update_dict, NULL);
+
+	if (manifest->update_compatible)
+		g_variant_dict_insert(&update_dict, "compatible", "s", manifest->update_compatible);
+
+	if (manifest->update_version)
+		g_variant_dict_insert(&update_dict, "version", "s", manifest->update_version);
+
+	if (manifest->update_description)
+		g_variant_dict_insert(&update_dict, "description", "s", manifest->update_description);
+
+	if (manifest->update_build)
+		g_variant_dict_insert(&update_dict, "build", "s", manifest->update_build);
+
+	g_variant_dict_insert(&dict, "update", "v", g_variant_dict_end(&update_dict));
+
+	return g_variant_dict_end(&dict);
+}
+
 void r_free_image(gpointer data)
 {
 	RaucImage *image = (RaucImage*) data;

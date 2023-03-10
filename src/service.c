@@ -147,33 +147,6 @@ static gboolean r_on_handle_install(RInstaller *interface,
 	return r_on_handle_install_bundle(interface, invocation, arg_source, NULL);
 }
 
-static GVariant* convert_bundle_info_to_dict(RaucManifest *manifest)
-{
-	GVariantDict dict;
-	GVariantDict update_dict;
-
-	g_variant_dict_init(&dict, NULL);
-
-	/* construct 'update' dict */
-	g_variant_dict_init(&update_dict, NULL);
-
-	if (manifest->update_compatible)
-		g_variant_dict_insert(&update_dict, "compatible", "s", manifest->update_compatible);
-
-	if (manifest->update_version)
-		g_variant_dict_insert(&update_dict, "version", "s", manifest->update_version);
-
-	if (manifest->update_description)
-		g_variant_dict_insert(&update_dict, "description", "s", manifest->update_description);
-
-	if (manifest->update_build)
-		g_variant_dict_insert(&update_dict, "build", "s", manifest->update_build);
-
-	g_variant_dict_insert(&dict, "update", "v", g_variant_dict_end(&update_dict));
-
-	return g_variant_dict_end(&dict);
-}
-
 static gboolean r_on_handle_inspect_bundle(RInstaller *interface,
 		GDBusMethodInvocation  *invocation,
 		const gchar *arg_bundle, GVariant *arg_args)
@@ -237,7 +210,7 @@ out:
 	if (arg_args) {
 		GVariant *info_variant;
 
-		info_variant = convert_bundle_info_to_dict(manifest);
+		info_variant = r_manifest_to_dict(manifest);
 
 		r_installer_complete_inspect_bundle(
 				interface,
