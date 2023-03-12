@@ -80,7 +80,7 @@ static void test_load_manifest(void)
 
 static void check_manifest_contents(const RaucManifest *rm)
 {
-	RManifestMetaEntry *entry = NULL;
+	GHashTable *kvs = NULL;
 
 	g_assert_nonnull(rm);
 	g_assert_cmpstr(rm->update_compatible, ==, "BarCorp FooBazzer");
@@ -105,22 +105,16 @@ static void check_manifest_contents(const RaucManifest *rm)
 
 	g_assert_true(rm->hooks.install_check);
 
-	g_assert_cmpuint(g_list_length(rm->meta), ==, 3);
+	g_assert_cmpuint(g_hash_table_size(rm->meta), ==, 2);
 
-	entry = g_list_nth_data(rm->meta, 0);
-	g_assert_cmpstr(entry->group, ==, "foocorp");
-	g_assert_cmpstr(entry->key, ==, "release-type");
-	g_assert_cmpstr(entry->value, ==, "beta");
+	kvs = g_hash_table_lookup(rm->meta, "foocorp");
+	g_assert_nonnull(kvs);
+	g_assert_cmpstr((g_hash_table_lookup(kvs, "release-type")), ==, "beta");
+	g_assert_cmpstr((g_hash_table_lookup(kvs, "release-notes")), ==, "https://foocorp.example/releases/release-notes-2015.04-1.rst");
 
-	entry = g_list_nth_data(rm->meta, 1);
-	g_assert_cmpstr(entry->group, ==, "foocorp");
-	g_assert_cmpstr(entry->key, ==, "release-notes");
-	g_assert_cmpstr(entry->value, ==, "https://foocorp.example/releases/release-notes-2015.04-1.rst");
-
-	entry = g_list_nth_data(rm->meta, 2);
-	g_assert_cmpstr(entry->group, ==, "example");
-	g_assert_cmpstr(entry->key, ==, "counter");
-	g_assert_cmpstr(entry->value, ==, "42");
+	kvs = g_hash_table_lookup(rm->meta, "example");
+	g_assert_nonnull(kvs);
+	g_assert_cmpstr((g_hash_table_lookup(kvs, "counter")), ==, "42");
 }
 
 /* Test manifest/save_load:
@@ -136,7 +130,7 @@ static void test_save_load_manifest(void)
 	gboolean res = FALSE;
 	RaucManifest *rm = g_new0(RaucManifest, 1);
 	RaucImage *new_image;
-	RManifestMetaEntry *new_entry;
+	GHashTable *kvs = NULL;
 	GBytes *mem = NULL;
 
 	rm->update_compatible = g_strdup("BarCorp FooBazzer");
@@ -178,25 +172,18 @@ static void test_save_load_manifest(void)
 
 	g_assert_cmpuint(g_list_length(rm->images), ==, 3);
 
-	new_entry = g_new0(RManifestMetaEntry, 1);
-	new_entry->group = g_strdup("foocorp");
-	new_entry->key = g_strdup("release-type");
-	new_entry->value = g_strdup("beta");
-	rm->meta = g_list_append(rm->meta, new_entry);
+	rm->meta = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify)g_hash_table_destroy);
 
-	new_entry = g_new0(RManifestMetaEntry, 1);
-	new_entry->group = g_strdup("foocorp");
-	new_entry->key = g_strdup("release-notes");
-	new_entry->value = g_strdup("https://foocorp.example/releases/release-notes-2015.04-1.rst");
-	rm->meta = g_list_append(rm->meta, new_entry);
+	kvs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+	g_hash_table_insert(kvs, g_strdup("release-type"), g_strdup("beta"));
+	g_hash_table_insert(kvs, g_strdup("release-notes"), g_strdup("https://foocorp.example/releases/release-notes-2015.04-1.rst"));
+	g_hash_table_insert(rm->meta, g_strdup("foocorp"), kvs);
 
-	new_entry = g_new0(RManifestMetaEntry, 1);
-	new_entry->group = g_strdup("example");
-	new_entry->key = g_strdup("counter");
-	new_entry->value = g_strdup("42");
-	rm->meta = g_list_append(rm->meta, new_entry);
+	kvs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+	g_hash_table_insert(kvs, g_strdup("counter"), g_strdup("42"));
+	g_hash_table_insert(rm->meta, g_strdup("example"), kvs);
 
-	g_assert_cmpuint(g_list_length(rm->meta), ==, 3);
+	g_assert_cmpuint(g_hash_table_size(rm->meta), ==, 2);
 
 	res = save_manifest_file("test/savedmanifest.raucm", rm, &error);
 	g_assert_no_error(error);
@@ -382,7 +369,7 @@ static void test_manifest_load_meta(void)
 	gboolean res;
 	GError *error = NULL;
 	RaucImage *test_img = NULL;
-	RManifestMetaEntry *entry = NULL;
+	GHashTable *kvs = NULL;
 	const gchar *mffile = "\
 [update]\n\
 compatible=FooCorp Super BarBazzer\n\
@@ -417,22 +404,16 @@ counter=42\n\
 	test_img = (RaucImage*)g_list_nth_data(rm->images, 0);
 	g_assert_nonnull(test_img);
 
-	g_assert_cmpuint(g_list_length(rm->meta), ==, 3);
+	g_assert_cmpuint(g_hash_table_size(rm->meta), ==, 2);
 
-	entry = g_list_nth_data(rm->meta, 0);
-	g_assert_cmpstr(entry->group, ==, "foocorp");
-	g_assert_cmpstr(entry->key, ==, "release-type");
-	g_assert_cmpstr(entry->value, ==, "beta");
+	kvs = g_hash_table_lookup(rm->meta, "foocorp");
+	g_assert_nonnull(kvs);
+	g_assert_cmpstr((g_hash_table_lookup(kvs, "release-type")), ==, "beta");
+	g_assert_cmpstr((g_hash_table_lookup(kvs, "release-notes")), ==, "https://foocorp.example/releases/release-notes-2015.04-1.rst");
 
-	entry = g_list_nth_data(rm->meta, 1);
-	g_assert_cmpstr(entry->group, ==, "foocorp");
-	g_assert_cmpstr(entry->key, ==, "release-notes");
-	g_assert_cmpstr(entry->value, ==, "https://foocorp.example/releases/release-notes-2015.04-1.rst");
-
-	entry = g_list_nth_data(rm->meta, 2);
-	g_assert_cmpstr(entry->group, ==, "example");
-	g_assert_cmpstr(entry->key, ==, "counter");
-	g_assert_cmpstr(entry->value, ==, "42");
+	kvs = g_hash_table_lookup(rm->meta, "example");
+	g_assert_nonnull(kvs);
+	g_assert_cmpstr((g_hash_table_lookup(kvs, "counter")), ==, "42");
 
 	free_manifest(rm);
 }

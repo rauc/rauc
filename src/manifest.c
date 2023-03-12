@@ -100,6 +100,7 @@ static gboolean parse_meta(GKeyFile *key_file, const gchar *group, RaucManifest 
 {
 	g_auto(GStrv) groupsplit = NULL;
 	g_auto(GStrv) keys = NULL;
+	g_autoptr(GHashTable) kvs = NULL;
 	GError *ierror = NULL;
 
 	g_return_val_if_fail(key_file != NULL, FALSE);
@@ -114,10 +115,10 @@ static gboolean parse_meta(GKeyFile *key_file, const gchar *group, RaucManifest 
 		return FALSE;
 	}
 
-	keys = g_key_file_get_keys(key_file, group, NULL, NULL);
+	kvs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
+	keys = g_key_file_get_keys(key_file, group, NULL, NULL);
 	for (GStrv key = keys; *key; key++) {
-		g_autoptr(RManifestMetaEntry) entry = g_new0(RManifestMetaEntry, 1);
 		gchar *value = key_file_consume_string(key_file, group, *key, &ierror);
 
 		if (!value) {
@@ -125,13 +126,10 @@ static gboolean parse_meta(GKeyFile *key_file, const gchar *group, RaucManifest 
 			return FALSE;
 		}
 
-		entry->group = g_strdup(groupsplit[1]);
-		entry->key = g_strdup(*key);
-		entry->value = value;
-
-		raucm->meta = g_list_append(raucm->meta, g_steal_pointer(&entry));
+		g_hash_table_insert(kvs, g_strdup(*key), value);
 	}
 
+	g_hash_table_insert(raucm->meta, g_strdup(groupsplit[1]), g_steal_pointer(&kvs));
 	g_key_file_remove_group(key_file, group, NULL);
 
 	return TRUE;
@@ -231,6 +229,8 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 		return FALSE;
 	}
 	g_key_file_remove_group(key_file, "hooks", NULL);
+
+	raucm->meta = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify)g_hash_table_destroy);
 
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
@@ -554,6 +554,9 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 {
 	g_autoptr(GKeyFile) key_file = NULL;
 	GPtrArray *hooks = g_ptr_array_new_full(3, g_free);
+	GHashTableIter iter;
+	GHashTable *meta_kvs;
+	const gchar *meta_group;
 
 	key_file = g_key_file_new();
 
@@ -656,10 +659,18 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 					(const gchar * const *)image->adaptive, g_strv_length(image->adaptive));
 	}
 
-	for (GList *l = mf->meta; l != NULL; l = l->next) {
-		RManifestMetaEntry *entry = l->data;
-		g_autofree gchar *group = g_strdup_printf("meta.%s", entry->group);
-		g_key_file_set_string(key_file, group, entry->key, entry->value);
+	if (mf->meta) {
+		g_hash_table_iter_init(&iter, mf->meta);
+		while (g_hash_table_iter_next(&iter, (gpointer*)&meta_group, (gpointer*)&meta_kvs)) {
+			GHashTableIter kvs_iter;
+			const gchar *key, *value;
+
+			g_hash_table_iter_init(&kvs_iter, meta_kvs);
+			while (g_hash_table_iter_next(&kvs_iter, (gpointer*)&key, (gpointer*)&value)) {
+				g_autofree gchar *group = g_strdup_printf("meta.%s", meta_group);
+				g_key_file_set_string(key_file, group, key, value);
+			}
+		}
 	}
 
 	return g_steal_pointer(&key_file);
@@ -731,7 +742,7 @@ void free_manifest(RaucManifest *manifest)
 	g_free(manifest->handler_args);
 	g_free(manifest->hook_name);
 	g_list_free_full(manifest->images, r_free_image);
-	g_list_free_full(manifest->meta, (GDestroyNotify)free_manifest_entry);
+	g_clear_pointer(&manifest->meta, (GDestroyNotify)g_hash_table_destroy);
 	g_free(manifest);
 }
 
@@ -806,15 +817,4 @@ gboolean sync_manifest_with_contentdir(RaucManifest *manifest, const gchar *dir,
 	}
 
 	return update_manifest_checksums(manifest, dir, error);
-}
-
-void free_manifest_entry(RManifestMetaEntry *entry)
-{
-	if (!entry)
-		return;
-
-	g_free(entry->group);
-	g_free(entry->key);
-	g_free(entry->value);
-	g_free(entry);
 }
