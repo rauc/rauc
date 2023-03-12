@@ -714,29 +714,121 @@ gboolean save_manifest_file(const gchar *filename, const RaucManifest *mf, GErro
 
 GVariant* r_manifest_to_dict(const RaucManifest *manifest)
 {
-	GVariantDict dict;
-	GVariantDict update_dict;
+	GVariantDict root_dict;
+	GVariantDict grp_dict;
+	g_auto(GVariantBuilder) builder = G_VARIANT_BUILDER_INIT(G_VARIANT_TYPE_ARRAY);
+	GHashTableIter iter;
+	GHashTable *kvs;
+	const gchar *group;
 
-	g_variant_dict_init(&dict, NULL);
+	g_variant_dict_init(&root_dict, NULL);
+
+	if (manifest->hash)
+		g_variant_dict_insert(&root_dict, "manifest-hash", "s", manifest->hash);
 
 	/* construct 'update' dict */
-	g_variant_dict_init(&update_dict, NULL);
-
+	g_variant_dict_init(&grp_dict, NULL);
 	if (manifest->update_compatible)
-		g_variant_dict_insert(&update_dict, "compatible", "s", manifest->update_compatible);
-
+		g_variant_dict_insert(&grp_dict, "compatible", "s", manifest->update_compatible);
 	if (manifest->update_version)
-		g_variant_dict_insert(&update_dict, "version", "s", manifest->update_version);
-
+		g_variant_dict_insert(&grp_dict, "version", "s", manifest->update_version);
 	if (manifest->update_description)
-		g_variant_dict_insert(&update_dict, "description", "s", manifest->update_description);
-
+		g_variant_dict_insert(&grp_dict, "description", "s", manifest->update_description);
 	if (manifest->update_build)
-		g_variant_dict_insert(&update_dict, "build", "s", manifest->update_build);
+		g_variant_dict_insert(&grp_dict, "build", "s", manifest->update_build);
+	g_variant_dict_insert(&root_dict, "update", "v", g_variant_dict_end(&grp_dict));
 
-	g_variant_dict_insert(&dict, "update", "v", g_variant_dict_end(&update_dict));
+	/* construct 'bundle' dict */
+	g_variant_dict_init(&grp_dict, NULL);
+	g_variant_dict_insert(&grp_dict, "format", "s", r_manifest_bundle_format_to_str(manifest->bundle_format));
 
-	return g_variant_dict_end(&dict);
+	if (manifest->bundle_verity_hash)
+		g_variant_dict_insert(&grp_dict, "verity-hash", "s", manifest->bundle_verity_hash);
+	if (manifest->bundle_verity_salt)
+		g_variant_dict_insert(&grp_dict, "verity-salt", "s", manifest->bundle_verity_salt);
+	if (manifest->bundle_verity_size)
+		g_variant_dict_insert(&grp_dict, "verity-size", "t", manifest->bundle_verity_size);
+	g_variant_dict_insert(&root_dict, "bundle", "v", g_variant_dict_end(&grp_dict));
+
+	/* construct 'hooks' dict */
+	if (manifest->hook_name) {
+		g_variant_dict_init(&grp_dict, NULL);
+		if (manifest->hook_name)
+			g_variant_dict_insert(&grp_dict, "filename", "s", manifest->hook_name);
+		g_variant_builder_init(&builder, G_VARIANT_TYPE("as"));
+		if (manifest->hooks.install_check)
+			g_variant_builder_add(&builder, "s", "install-check");
+		g_variant_dict_insert(&grp_dict, "hooks", "v", g_variant_builder_end(&builder));
+		g_variant_dict_insert(&root_dict, "hooks", "v", g_variant_dict_end(&grp_dict));
+	}
+
+	/* construct 'handler' dict */
+	if (manifest->handler_name) {
+		g_variant_dict_init(&grp_dict, NULL);
+		if (manifest->handler_name)
+			g_variant_dict_insert(&grp_dict, "filename", "s", manifest->handler_name);
+		if (manifest->handler_args)
+			g_variant_dict_insert(&grp_dict, "args", "s", manifest->handler_args);
+		g_variant_dict_insert(&root_dict, "handler", "v", g_variant_dict_end(&grp_dict));
+	}
+
+	/* construct 'images' array of dicts */
+	g_variant_builder_init(&builder, G_VARIANT_TYPE("aa{sv}"));
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		const RaucImage *img = l->data;
+		g_auto(GVariantBuilder) hooks = G_VARIANT_BUILDER_INIT(G_VARIANT_TYPE("as"));
+
+		g_variant_builder_open(&builder, G_VARIANT_TYPE("a{sv}"));
+		g_variant_builder_add(&builder, "{sv}", "slot-class", g_variant_new_string(img->slotclass));
+		if (img->variant)
+			g_variant_builder_add(&builder, "{sv}", "variant", g_variant_new_string(img->variant));
+		if (img->filename)
+			g_variant_builder_add(&builder, "{sv}", "filename", g_variant_new_string(img->filename));
+		if (img->checksum.digest)
+			g_variant_builder_add(&builder, "{sv}", "checksum", g_variant_new_string(img->checksum.digest));
+		if (img->checksum.size)
+			g_variant_builder_add(&builder, "{sv}", "size", g_variant_new_uint64(img->checksum.size));
+
+		if (img->hooks.pre_install)
+			g_variant_builder_add(&hooks, "s", "pre-install");
+		if (img->hooks.install)
+			g_variant_builder_add(&hooks, "s", "install");
+		if (img->hooks.post_install)
+			g_variant_builder_add(&hooks, "s", "post-install");
+		g_variant_builder_add(&builder, "{sv}", "hooks", g_variant_builder_end(&hooks));
+
+		if (img->adaptive)
+			g_variant_builder_add(&builder, "{sv}", "adaptive", g_variant_new_strv((const gchar * const*)(img->adaptive), -1));
+
+		g_variant_builder_close(&builder);
+	}
+	g_variant_dict_insert(&root_dict, "images", "v", g_variant_builder_end(&builder));
+
+	/* construct 'meta' nested dicts */
+	g_variant_builder_init(&builder, G_VARIANT_TYPE("a{sa{ss}}"));
+	g_hash_table_iter_init(&iter, manifest->meta);
+	while (g_hash_table_iter_next(&iter, (gpointer*)&group, (gpointer*)&kvs)) {
+		GHashTableIter kvs_iter;
+		const gchar *key, *value;
+
+		g_variant_builder_open(&builder, G_VARIANT_TYPE("{sa{ss}}"));
+		g_variant_builder_add(&builder, "s", group);
+
+		g_variant_builder_open(&builder, G_VARIANT_TYPE("a{ss}"));
+		g_hash_table_iter_init(&kvs_iter, kvs);
+		while (g_hash_table_iter_next(&kvs_iter, (gpointer*)&key, (gpointer*)&value)) {
+			g_variant_builder_open(&builder, G_VARIANT_TYPE("{ss}"));
+			g_variant_builder_add(&builder, "s", key);
+			g_variant_builder_add(&builder, "s", value);
+			g_variant_builder_close(&builder);
+		}
+		g_variant_builder_close(&builder);
+
+		g_variant_builder_close(&builder);
+	}
+	g_variant_dict_insert(&root_dict, "meta", "v", g_variant_builder_end(&builder));
+
+	return g_variant_dict_end(&root_dict);
 }
 
 void r_free_image(gpointer data)
