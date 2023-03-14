@@ -531,3 +531,34 @@ goffset get_device_size(gint fd, GError **error)
 
 	return size;
 }
+
+gchar *r_prepare_env_key(const gchar *key, GError **error)
+{
+	g_autofree gchar *result = NULL;
+	size_t len = 0;
+
+	g_return_val_if_fail(key != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, 0);
+
+	len = strlen(key);
+	result = g_ascii_strup(key, len);
+
+	for (size_t i = 0; i < len; i++) {
+		if (g_ascii_isalnum(result[i]))
+			continue;
+		if (result[i] == '_')
+			continue;
+		if (result[i] == '-') {
+			result[i] = '_';
+			continue;
+		}
+		g_set_error(error,
+				R_UTILS_ERROR,
+				R_UTILS_ERROR_INVALID_ENV_KEY,
+				"Character '%c' is unsuitable for environment variables",
+				key[i]);
+		return NULL;
+	}
+
+	return g_steal_pointer(&result);
+}

@@ -872,6 +872,34 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 
 	g_ptr_array_unref(hooks);
 
+	if (manifest->meta && g_hash_table_size(manifest->meta)) {
+		GHashTableIter iter;
+		GHashTable *kvs;
+		const gchar *group;
+
+		g_hash_table_iter_init(&iter, manifest->meta);
+		while (g_hash_table_iter_next(&iter, (gpointer*)&group, (gpointer*)&kvs)) {
+			GHashTableIter kvs_iter;
+			const gchar *key, *value;
+			g_autofree gchar *env_group = r_prepare_env_key(group, NULL);
+
+			if (!env_group)
+				continue;
+
+			g_hash_table_iter_init(&kvs_iter, kvs);
+			while (g_hash_table_iter_next(&kvs_iter, (gpointer*)&key, (gpointer*)&value)) {
+				g_autofree gchar *env_key = r_prepare_env_key(key, NULL);
+				g_autofree gchar *var = NULL;
+
+				if (!env_key)
+					continue;
+
+				var = g_strdup_printf("RAUC_META_%s_%s", env_group, env_key);
+				formatter_shell_append(text, var, value);
+			}
+		}
+	}
+
 	cnt = 0;
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		RaucImage *img = l->data;
