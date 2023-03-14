@@ -955,6 +955,27 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 
 	g_ptr_array_unref(hooks);
 
+	if (manifest->meta && g_hash_table_size(manifest->meta)) {
+		GHashTableIter iter;
+		GHashTable *kvs;
+		const gchar *group;
+
+		g_string_append_printf(text, "Metadata:\n");
+
+		g_hash_table_iter_init(&iter, manifest->meta);
+		while (g_hash_table_iter_next(&iter, (gpointer*)&group, (gpointer*)&kvs)) {
+			GHashTableIter kvs_iter;
+			const gchar *key, *value;
+
+			g_string_append_printf(text, "\t%s:\n", group);
+
+			g_hash_table_iter_init(&kvs_iter, kvs);
+			while (g_hash_table_iter_next(&kvs_iter, (gpointer*)&key, (gpointer*)&value)) {
+				g_string_append_printf(text, "\t\t%s: %s\n", key, value);
+			}
+		}
+	}
+
 	cnt = g_list_length(manifest->images);
 	g_string_append_printf(text, "\n%d Image%s%s\n", cnt, cnt == 1 ? "" : "s", cnt > 0 ? ":" : "");
 	cnt = 1;
