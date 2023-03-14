@@ -101,6 +101,7 @@ static gboolean parse_meta(GKeyFile *key_file, const gchar *group, RaucManifest 
 	g_auto(GStrv) groupsplit = NULL;
 	g_auto(GStrv) keys = NULL;
 	g_autoptr(GHashTable) kvs = NULL;
+	g_autofree gchar *env_section = NULL;
 	GError *ierror = NULL;
 
 	g_return_val_if_fail(key_file != NULL, FALSE);
@@ -115,14 +116,33 @@ static gboolean parse_meta(GKeyFile *key_file, const gchar *group, RaucManifest 
 		return FALSE;
 	}
 
+	env_section = r_prepare_env_key(groupsplit[1], &ierror);
+	if (!env_section) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Invalid metadata section name '%s': ", groupsplit[1]);
+		return FALSE;
+	}
+
 	kvs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
 	keys = g_key_file_get_keys(key_file, group, NULL, NULL);
 	for (GStrv key = keys; *key; key++) {
 		gchar *value = key_file_consume_string(key_file, group, *key, &ierror);
+		g_autofree gchar *env_key = NULL;
 
 		if (!value) {
 			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+
+		env_key = r_prepare_env_key(*key, &ierror);
+		if (!env_key) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Invalid metadata key name '%s': ", *key);
 			return FALSE;
 		}
 

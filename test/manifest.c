@@ -597,6 +597,23 @@ compatible=SuperBazzer\n\
 [evilgroup]\n\
 "
 
+	// invalid meta group
+#define MANIFEST6 "\
+[update]\n\
+compatible=SuperBazzer\n\
+\n\
+[meta.foo/]\n\
+"
+
+	// invalid meta key
+#define MANIFEST7 "\
+[update]\n\
+compatible=SuperBazzer\n\
+\n\
+[meta.foo]\n\
+bar!=baz\n\
+"
+
 	data = g_bytes_new_static(MANIFEST1, sizeof(MANIFEST1));
 	g_assert_false(load_manifest_mem(data, &rm, &error));
 	g_assert_nonnull(error);
@@ -629,6 +646,22 @@ compatible=SuperBazzer\n\
 	data = g_bytes_new_static(MANIFEST5, sizeof(MANIFEST5));
 	g_assert_false(load_manifest_mem(data, &rm, &error));
 	g_assert_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE);
+	g_clear_error(&error);
+	g_assert_null(rm);
+	g_clear_pointer(&data, g_bytes_unref);
+
+	data = g_bytes_new_static(MANIFEST6, sizeof(MANIFEST6));
+	g_assert_false(load_manifest_mem(data, &rm, &error));
+	g_assert_error(error, R_UTILS_ERROR, R_UTILS_ERROR_INVALID_ENV_KEY);
+	g_assert_cmpstr("Invalid metadata section name 'foo/': Character '/' is unsuitable for environment variables", ==, error->message);
+	g_clear_error(&error);
+	g_assert_null(rm);
+	g_clear_pointer(&data, g_bytes_unref);
+
+	data = g_bytes_new_static(MANIFEST7, sizeof(MANIFEST7));
+	g_assert_false(load_manifest_mem(data, &rm, &error));
+	g_assert_error(error, R_UTILS_ERROR, R_UTILS_ERROR_INVALID_ENV_KEY);
+	g_assert_cmpstr("Invalid metadata key name 'bar!': Character '!' is unsuitable for environment variables", ==, error->message);
 	g_clear_error(&error);
 	g_assert_null(rm);
 	g_clear_pointer(&data, g_bytes_unref);
