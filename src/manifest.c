@@ -100,6 +100,8 @@ static gboolean parse_meta(GKeyFile *key_file, const gchar *group, RaucManifest 
 {
 	g_auto(GStrv) groupsplit = NULL;
 	g_auto(GStrv) keys = NULL;
+	g_autoptr(GHashTable) kvs = NULL;
+	g_autofree gchar *env_section = NULL;
 	GError *ierror = NULL;
 
 	g_return_val_if_fail(key_file != NULL, FALSE);
@@ -114,24 +116,40 @@ static gboolean parse_meta(GKeyFile *key_file, const gchar *group, RaucManifest 
 		return FALSE;
 	}
 
-	keys = g_key_file_get_keys(key_file, group, NULL, NULL);
+	env_section = r_prepare_env_key(groupsplit[1], &ierror);
+	if (!env_section) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Invalid metadata section name '%s': ", groupsplit[1]);
+		return FALSE;
+	}
 
+	kvs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+
+	keys = g_key_file_get_keys(key_file, group, NULL, NULL);
 	for (GStrv key = keys; *key; key++) {
-		g_autoptr(RManifestMetaEntry) entry = g_new0(RManifestMetaEntry, 1);
 		gchar *value = key_file_consume_string(key_file, group, *key, &ierror);
+		g_autofree gchar *env_key = NULL;
 
 		if (!value) {
 			g_propagate_error(error, ierror);
 			return FALSE;
 		}
 
-		entry->group = g_strdup(groupsplit[1]);
-		entry->key = g_strdup(*key);
-		entry->value = value;
+		env_key = r_prepare_env_key(*key, &ierror);
+		if (!env_key) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Invalid metadata key name '%s': ", *key);
+			return FALSE;
+		}
 
-		raucm->meta = g_list_append(raucm->meta, g_steal_pointer(&entry));
+		g_hash_table_insert(kvs, g_strdup(*key), value);
 	}
 
+	g_hash_table_insert(raucm->meta, g_strdup(groupsplit[1]), g_steal_pointer(&kvs));
 	g_key_file_remove_group(key_file, group, NULL);
 
 	return TRUE;
@@ -231,6 +249,8 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 		return FALSE;
 	}
 	g_key_file_remove_group(key_file, "hooks", NULL);
+
+	raucm->meta = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify)g_hash_table_destroy);
 
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
@@ -554,6 +574,9 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 {
 	g_autoptr(GKeyFile) key_file = NULL;
 	GPtrArray *hooks = g_ptr_array_new_full(3, g_free);
+	GHashTableIter iter;
+	GHashTable *meta_kvs;
+	const gchar *meta_group;
 
 	key_file = g_key_file_new();
 
@@ -656,10 +679,18 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 					(const gchar * const *)image->adaptive, g_strv_length(image->adaptive));
 	}
 
-	for (GList *l = mf->meta; l != NULL; l = l->next) {
-		RManifestMetaEntry *entry = l->data;
-		g_autofree gchar *group = g_strdup_printf("meta.%s", entry->group);
-		g_key_file_set_string(key_file, group, entry->key, entry->value);
+	if (mf->meta) {
+		g_hash_table_iter_init(&iter, mf->meta);
+		while (g_hash_table_iter_next(&iter, (gpointer*)&meta_group, (gpointer*)&meta_kvs)) {
+			GHashTableIter kvs_iter;
+			const gchar *key, *value;
+
+			g_hash_table_iter_init(&kvs_iter, meta_kvs);
+			while (g_hash_table_iter_next(&kvs_iter, (gpointer*)&key, (gpointer*)&value)) {
+				g_autofree gchar *group = g_strdup_printf("meta.%s", meta_group);
+				g_key_file_set_string(key_file, group, key, value);
+			}
+		}
 	}
 
 	return g_steal_pointer(&key_file);
@@ -701,6 +732,125 @@ gboolean save_manifest_file(const gchar *filename, const RaucManifest *mf, GErro
 	return res;
 }
 
+GVariant* r_manifest_to_dict(const RaucManifest *manifest)
+{
+	GVariantDict root_dict;
+	GVariantDict grp_dict;
+	g_auto(GVariantBuilder) builder = G_VARIANT_BUILDER_INIT(G_VARIANT_TYPE_ARRAY);
+	GHashTableIter iter;
+	GHashTable *kvs;
+	const gchar *group;
+
+	g_variant_dict_init(&root_dict, NULL);
+
+	if (manifest->hash)
+		g_variant_dict_insert(&root_dict, "manifest-hash", "s", manifest->hash);
+
+	/* construct 'update' dict */
+	g_variant_dict_init(&grp_dict, NULL);
+	if (manifest->update_compatible)
+		g_variant_dict_insert(&grp_dict, "compatible", "s", manifest->update_compatible);
+	if (manifest->update_version)
+		g_variant_dict_insert(&grp_dict, "version", "s", manifest->update_version);
+	if (manifest->update_description)
+		g_variant_dict_insert(&grp_dict, "description", "s", manifest->update_description);
+	if (manifest->update_build)
+		g_variant_dict_insert(&grp_dict, "build", "s", manifest->update_build);
+	g_variant_dict_insert(&root_dict, "update", "v", g_variant_dict_end(&grp_dict));
+
+	/* construct 'bundle' dict */
+	g_variant_dict_init(&grp_dict, NULL);
+	g_variant_dict_insert(&grp_dict, "format", "s", r_manifest_bundle_format_to_str(manifest->bundle_format));
+
+	if (manifest->bundle_verity_hash)
+		g_variant_dict_insert(&grp_dict, "verity-hash", "s", manifest->bundle_verity_hash);
+	if (manifest->bundle_verity_salt)
+		g_variant_dict_insert(&grp_dict, "verity-salt", "s", manifest->bundle_verity_salt);
+	if (manifest->bundle_verity_size)
+		g_variant_dict_insert(&grp_dict, "verity-size", "t", manifest->bundle_verity_size);
+	g_variant_dict_insert(&root_dict, "bundle", "v", g_variant_dict_end(&grp_dict));
+
+	/* construct 'hooks' dict */
+	if (manifest->hook_name) {
+		g_variant_dict_init(&grp_dict, NULL);
+		if (manifest->hook_name)
+			g_variant_dict_insert(&grp_dict, "filename", "s", manifest->hook_name);
+		g_variant_builder_init(&builder, G_VARIANT_TYPE("as"));
+		if (manifest->hooks.install_check)
+			g_variant_builder_add(&builder, "s", "install-check");
+		g_variant_dict_insert(&grp_dict, "hooks", "v", g_variant_builder_end(&builder));
+		g_variant_dict_insert(&root_dict, "hooks", "v", g_variant_dict_end(&grp_dict));
+	}
+
+	/* construct 'handler' dict */
+	if (manifest->handler_name) {
+		g_variant_dict_init(&grp_dict, NULL);
+		if (manifest->handler_name)
+			g_variant_dict_insert(&grp_dict, "filename", "s", manifest->handler_name);
+		if (manifest->handler_args)
+			g_variant_dict_insert(&grp_dict, "args", "s", manifest->handler_args);
+		g_variant_dict_insert(&root_dict, "handler", "v", g_variant_dict_end(&grp_dict));
+	}
+
+	/* construct 'images' array of dicts */
+	g_variant_builder_init(&builder, G_VARIANT_TYPE("aa{sv}"));
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		const RaucImage *img = l->data;
+		g_auto(GVariantBuilder) hooks = G_VARIANT_BUILDER_INIT(G_VARIANT_TYPE("as"));
+
+		g_variant_builder_open(&builder, G_VARIANT_TYPE("a{sv}"));
+		g_variant_builder_add(&builder, "{sv}", "slot-class", g_variant_new_string(img->slotclass));
+		if (img->variant)
+			g_variant_builder_add(&builder, "{sv}", "variant", g_variant_new_string(img->variant));
+		if (img->filename)
+			g_variant_builder_add(&builder, "{sv}", "filename", g_variant_new_string(img->filename));
+		if (img->checksum.digest)
+			g_variant_builder_add(&builder, "{sv}", "checksum", g_variant_new_string(img->checksum.digest));
+		if (img->checksum.size)
+			g_variant_builder_add(&builder, "{sv}", "size", g_variant_new_uint64(img->checksum.size));
+
+		if (img->hooks.pre_install)
+			g_variant_builder_add(&hooks, "s", "pre-install");
+		if (img->hooks.install)
+			g_variant_builder_add(&hooks, "s", "install");
+		if (img->hooks.post_install)
+			g_variant_builder_add(&hooks, "s", "post-install");
+		g_variant_builder_add(&builder, "{sv}", "hooks", g_variant_builder_end(&hooks));
+
+		if (img->adaptive)
+			g_variant_builder_add(&builder, "{sv}", "adaptive", g_variant_new_strv((const gchar * const*)(img->adaptive), -1));
+
+		g_variant_builder_close(&builder);
+	}
+	g_variant_dict_insert(&root_dict, "images", "v", g_variant_builder_end(&builder));
+
+	/* construct 'meta' nested dicts */
+	g_variant_builder_init(&builder, G_VARIANT_TYPE("a{sa{ss}}"));
+	g_hash_table_iter_init(&iter, manifest->meta);
+	while (g_hash_table_iter_next(&iter, (gpointer*)&group, (gpointer*)&kvs)) {
+		GHashTableIter kvs_iter;
+		const gchar *key, *value;
+
+		g_variant_builder_open(&builder, G_VARIANT_TYPE("{sa{ss}}"));
+		g_variant_builder_add(&builder, "s", group);
+
+		g_variant_builder_open(&builder, G_VARIANT_TYPE("a{ss}"));
+		g_hash_table_iter_init(&kvs_iter, kvs);
+		while (g_hash_table_iter_next(&kvs_iter, (gpointer*)&key, (gpointer*)&value)) {
+			g_variant_builder_open(&builder, G_VARIANT_TYPE("{ss}"));
+			g_variant_builder_add(&builder, "s", key);
+			g_variant_builder_add(&builder, "s", value);
+			g_variant_builder_close(&builder);
+		}
+		g_variant_builder_close(&builder);
+
+		g_variant_builder_close(&builder);
+	}
+	g_variant_dict_insert(&root_dict, "meta", "v", g_variant_builder_end(&builder));
+
+	return g_variant_dict_end(&root_dict);
+}
+
 void r_free_image(gpointer data)
 {
 	RaucImage *image = (RaucImage*) data;
@@ -731,7 +881,7 @@ void free_manifest(RaucManifest *manifest)
 	g_free(manifest->handler_args);
 	g_free(manifest->hook_name);
 	g_list_free_full(manifest->images, r_free_image);
-	g_list_free_full(manifest->meta, (GDestroyNotify)free_manifest_entry);
+	g_clear_pointer(&manifest->meta, (GDestroyNotify)g_hash_table_destroy);
 	g_free(manifest);
 }
 
@@ -806,15 +956,4 @@ gboolean sync_manifest_with_contentdir(RaucManifest *manifest, const gchar *dir,
 	}
 
 	return update_manifest_checksums(manifest, dir, error);
-}
-
-void free_manifest_entry(RManifestMetaEntry *entry)
-{
-	if (!entry)
-		return;
-
-	g_free(entry->group);
-	g_free(entry->key);
-	g_free(entry->value);
-	g_free(entry);
 }

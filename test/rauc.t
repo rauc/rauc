@@ -232,6 +232,11 @@ test_expect_success "rauc info (verity)" "
     info ${SHARNESS_TEST_DIRECTORY}/good-verity-bundle.raucb
 "
 
+test_expect_success "rauc info (verity, adaptive, meta)" "
+  rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    info ${SHARNESS_TEST_DIRECTORY}/good-adaptive-meta-bundle.raucb
+"
+
 test_expect_success "rauc info (casync, plain)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-casync-bundle-1.5.1.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-casync-bundle-1.5.1.raucb &&
@@ -308,10 +313,10 @@ test_expect_success "rauc info invalid file URI" "
 "
 
 test_expect_success "rauc info shell" "
-  cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
-  test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-adaptive-meta-bundle.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-adaptive-meta-bundle.raucb &&
   rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem --output-format=shell \
-    info ${TEST_TMPDIR}/good-bundle.raucb | sh
+    info ${TEST_TMPDIR}/good-adaptive-meta-bundle.raucb | sh
 "
 
 test_expect_success JSON "rauc info json" "
@@ -326,6 +331,13 @@ test_expect_success JSON "rauc info json-pretty" "
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem --output-format=json-pretty \
     info ${TEST_TMPDIR}/good-bundle.raucb
+"
+
+test_expect_success JSON "rauc info json-2" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-adaptive-meta-bundle.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-adaptive-meta-bundle.raucb &&
+  rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem --output-format=json-2 \
+    info ${TEST_TMPDIR}/good-adaptive-meta-bundle.raucb
 "
 
 test_expect_success "rauc info invalid" "

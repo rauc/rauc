@@ -40,12 +40,6 @@ typedef enum {
 } RManifestBundleFormat;
 
 typedef struct {
-	gchar *group;
-	gchar *key;
-	gchar *value;
-} RManifestMetaEntry;
-
-typedef struct {
 	gchar *update_compatible;
 	gchar *update_version;
 	gchar *update_description;
@@ -66,8 +60,8 @@ typedef struct {
 
 	GList *images;
 
-	/* list of RManifestMetaEntry */
-	GList *meta;
+	/* nested hash table for metadata */
+	GHashTable *meta;
 
 	/* internal marker that this was encrypted */
 	gboolean was_encrypted;
@@ -179,6 +173,19 @@ gboolean sync_manifest_with_contentdir(RaucManifest *manifest, const gchar *dir,
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Converts a manifest to a GVariant dict.
+ *
+ * This can be used by the D-Bus service for InspectBundle and also for the
+ * 'rauc info' CLI command (by converting it to JSON).
+ *
+ * @param manifest pointer to the manifest
+ *
+ * @return new GVariant containing the dict
+ */
+GVariant *r_manifest_to_dict(const RaucManifest *manifest)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Frees a rauc image
  */
 void r_free_image(gpointer data);
@@ -198,10 +205,3 @@ static inline const gchar *r_manifest_bundle_format_to_str(RManifestBundleFormat
 			return "invalid";
 	}
 }
-
-/**
- * Frees the memory allocated by a RManifestMetaEntry.
- */
-void free_manifest_entry(RManifestMetaEntry *entry);
-
-G_DEFINE_AUTOPTR_CLEANUP_FUNC(RManifestMetaEntry, free_manifest_entry);

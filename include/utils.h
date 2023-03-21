@@ -10,6 +10,7 @@ GQuark r_utils_error_quark(void);
 typedef enum {
 	R_UTILS_ERROR_FAILED,
 	R_UTILS_ERROR_INAPPROPRIATE_IOCTL,
+	R_UTILS_ERROR_INVALID_ENV_KEY,
 } RUtilsError;
 
 #define BIT(nr) (1UL << (nr))
@@ -234,4 +235,17 @@ guint get_sectorsize(gint fd)
 G_GNUC_WARN_UNUSED_RESULT;
 
 goffset get_device_size(gint fd, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Converts a key for use in an environment variable name.
+ *
+ * Only alphanumeric characters and '_' are allowed. '-' is converted to '_'.
+ *
+ * @param key string to convert
+ * @param error return location for a GError, or NULL
+ *
+ * @return the newly alloacted and converted string
+ */
+gchar *r_prepare_env_key(const gchar *key, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;

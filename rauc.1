@@ -292,8 +292,11 @@ disable bundle verification
 don't check validity period of certificates against current time
 
 .TP
-\fB\-\-output\-format=\fR[\fBreadable\fR|\fBshell\fR|\fBjson\fR|\fBjson-pretty\fR]
+\fB\-\-output\-format=\fR[\fBreadable\fR|\fBshell\fR|\fBjson\fR|\fBjson-pretty\fR|\fBjson-2\fR]
 select output format
+
+The json-2 output format matches the structure of the InspectBundle D-Bus API
+and should be used instead of \fBjson\fR or \fBjson-pretty\fR.
 
 .TP
 \fB\-\-dump\-cert\fR
