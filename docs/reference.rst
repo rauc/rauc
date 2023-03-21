@@ -613,9 +613,14 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
   The ``meta.<label>`` sections are intended to provide a forwards-compatible
   way to add metadata to the manifest which is not interpreted by RAUC in any
   way.
-  Currently, they are only stored in the bundle.
-  In future releases, they will be accessible via ``rauc info``, the D-Bus API
-  and in hooks/handlers.
+  They are accessible via ``rauc info`` and the :ref:`"InspectBundle" D-Bus API
+  <gdbus-method-de-pengutronix-rauc-Installer.InspectBundle>`.
+  In future releases, they will be accessible in hooks/handlers, as well.
+
+  As they may need to be converted to environment variable names, only
+  alphanumeric characters, ``-`` and ``_`` are allowed in ``<label>`` and
+  ``<key>``.
+  ``-`` is converted to ``_`` for use as an environment variable name.
 
 .. _sec_ref_formats:
 
@@ -1276,6 +1281,8 @@ The InspectBundle() Method
   InspectBundle (IN  s bundle, IN a{sv} args, a{sv} info);
 
 Provides bundle info.
+It uses the same nested dictionary structure as ``rauc info
+--output-format=json-2``.
 
 IN s *bundle*:
     Path or URL to the bundle that should be queried for information
@@ -1304,19 +1311,78 @@ IN a{sv} *args*:
 a{sv} *info*:
     Bundle info
 
-    :STRING 'update', VARIANT 'v' <update>: The bundle's update section content
+    :STRING 'manifest-hash', VARIANT 's' <hash>: A SHA256 hash sum over the manifest content
 
-        :STRING 'compatible', VARIANT 's' <compatible>: The bundle's compatible noted
-            in manifest
+    :STRING 'update', VARIANT 'v' <update-dict>: The bundle's ``[update]`` section content
 
-        :STRING 'version', VARIANT 's' <version>: The bundle's version noted
-            in manifest
+        :STRING 'compatible', VARIANT 's' <compatible>: The compatible noted in
+            the manifest
 
-        :STRING 'description', VARIANT 's' <description>: The bundle's description
-            text noted in manifest
-
-        :STRING 'build', VARIANT 's' <build>: The bundle's build ID noted in
+        :STRING 'version', VARIANT 's' <version>: The version noted in the
             manifest
+
+        :STRING 'description', VARIANT 's' <description>: The description text
+            noted in the manifest
+
+        :STRING 'build', VARIANT 's' <build>: The build ID noted in the
+            manifest
+
+    :STRING 'bundle', VARIANT 'v' <bundle-dict>: The bundle's ``[bundle]`` section content
+
+        :STRING 'format', VARIANT 's' <format>: The bundle format (i.e. plain,
+            verity or crypt)
+
+        :STRING 'verity-size', VARIANT 't' <size>: The size of the
+            verity-protected payload
+
+        :STRING 'verity-salt', VARIANT 's' <salt>: The salt used by the
+            verity-protected payload
+
+        :STRING 'verity-hash', VARIANT 's' <hash>: The root hash of the
+            verity-protected payload
+
+    :STRING 'hooks', VARIANT 'v' <hooks-dict>: The bundle's ``[hooks]`` section content
+
+        :STRING 'filename', VARIANT 's' <filename>: The hook filename
+
+        :STRING 'hooks', VARIANT 'as' <hooks>: An array of enabled hooks (i.e.
+            ``install-check``)
+
+    :STRING 'handler', VARIANT 'v' <handler-dict>: The bundle's ``[handler]`` section content
+
+        :STRING 'filename', VARIANT 's' <filename>: The handler filename
+
+        :STRING 'args', VARIANT 's' <args>: Optional arguments to the handler
+
+    :STRING 'images', VARIANT 'v' <images-list>: The bundle's ``[images.*]``
+        section content, as a list of dictionaries
+
+        :STRING 'slot-class', VARIANT 's' <slot-class>: The slot class this
+            image is intended for
+
+        :STRING 'variant', VARIANT 's' <variant>: The variant name, if used
+
+        :STRING 'filename', VARIANT 's' <filename>: The image's filename
+
+        :STRING 'checksum', VARIANT 's' <checksum>: The original image's SHA256
+            hash
+
+        :STRING 'size', VARIANT 't' <slot-class>: The original image's size
+
+        :STRING 'hooks', VARIANT 'as' <hooks>: An array of enabled hooks (i.e.
+            ``pre-install``, ``install`` or ``post-install``)
+
+        :STRING 'adaptive', VARIANT 'as' <adaptive-methods>: An array of
+            enabled adaptive methods (i.e. ``block-hash-index``)
+
+    :STRING 'meta', VARIANT 'v' <meta-dict>: The bundle's ``[meta.*]`` section
+        content
+
+        :STRING '<group>', VARIANT 'v' <meta-group-dict>: The
+            ``[meta.<group>]`` section content
+
+            :STRING '<key>', VARIANT 's' <value>: A key-value pair from the
+                ``[meta.<group>]`` section
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.Mark:
 
