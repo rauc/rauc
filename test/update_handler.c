@@ -418,8 +418,8 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	} else if (g_strcmp0(test_pair->imagetype, "ext4") == 0) {
 		g_assert(test_prepare_dummy_file(fixture->tmpdir, "image.ext4", image_size, "/dev/zero") == 0);
 		g_assert(test_make_filesystem(fixture->tmpdir, "image.ext4"));
-	} else if (g_strcmp0(test_pair->imagetype, "tar.bz2") == 0) {
-		g_assert_true(test_prepare_dummy_archive(fixture->tmpdir, "image.tar.bz2", "testfile.txt"));
+	} else if (g_strcmp0(test_pair->imagetype, "tar") == 0) {
+		g_assert_true(test_prepare_dummy_archive(fixture->tmpdir, "image.tar", "testfile.txt"));
 	} else if (g_strcmp0(test_pair->imagetype, "img.caibx") == 0) {
 		gchar* storepath = test_prepare_dummy_caibx(fixture->tmpdir, "image.img.caibx");
 		g_assert_nonnull(storepath);
@@ -486,7 +486,7 @@ no_image:
 		g_assert_cmpint(get_file_size(imagepath, NULL), ==, image_size);
 		g_assert(test_mount(slotpath, mountprefix));
 		g_assert(r_umount(slotpath, NULL));
-	} else if ((g_strcmp0(test_pair->imagetype, "tar.bz2") == 0) || ((g_strcmp0(test_pair->imagetype, "caidx") == 0))) {
+	} else if ((g_strcmp0(test_pair->imagetype, "tar") == 0) || ((g_strcmp0(test_pair->imagetype, "caidx") == 0))) {
 		gchar *testpath = g_build_filename(mountprefix, "testfile.txt", NULL);
 		g_assert(test_mount(slotpath, mountprefix));
 		g_assert_true(g_file_test(testpath, G_FILE_TEST_IS_REGULAR));
@@ -569,8 +569,8 @@ out:
 			g_assert(g_remove(imagepath) == 0);
 		} else if (g_strcmp0(test_pair->imagetype, "ext4") == 0) {
 			g_assert(g_remove(imagepath) == 0);
-		} else if (g_strcmp0(test_pair->imagetype, "tar.bz2") == 0) {
-			g_assert(test_remove(fixture->tmpdir, "image.tar.bz2") == 0);
+		} else if (g_strcmp0(test_pair->imagetype, "tar") == 0) {
+			g_assert(test_remove(fixture->tmpdir, "image.tar") == 0);
 		} else if (g_strcmp0(test_pair->imagetype, "img.caibx") == 0) {
 			g_assert(test_remove(fixture->tmpdir, "image.img.caibx") == 0);
 			g_assert_true(rm_tree(r_context()->install_info->mounted_bundle->storepath, NULL));
@@ -602,72 +602,72 @@ out:
 int main(int argc, char *argv[])
 {
 	UpdateHandlerTestPair testpair_matrix[] = {
-		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"ext4", "tar", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
-		{"ubifs", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"ubifs", "tar", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 		{"ubifs", "ext4", TEST_UPDATE_HANDLER_EXPECT_FAIL, 0, 0},
 
 		{"raw", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 		{"ext4", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
-		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"ext4", "tar", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 
-		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 2},
+		{"ext4", "tar", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_IO_ERROR, G_IO_ERROR_NOT_FOUND},
 		{"raw", "img", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_IO_ERROR, G_IO_ERROR_NOT_FOUND},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_IO_ERROR, G_IO_ERROR_NOT_FOUND},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_IO_ERROR, G_IO_ERROR_NOT_FOUND},
 
-		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_NO_TARGET_DEV | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+		{"ext4", "tar", TEST_UPDATE_HANDLER_NO_TARGET_DEV | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"raw", "img", TEST_UPDATE_HANDLER_NO_TARGET_DEV | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_NO_TARGET_DEV | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_NO_TARGET_DEV | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
 
-		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK, 0, 0},
+		{"ext4", "tar", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK, 0, 0},
 		{"raw", "img", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK, 0, 0},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK, 0, 0},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK, 0, 0},
 
-		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK, 0, 0},
+		{"ext4", "tar", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK, 0, 0},
 		{"raw", "img", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK, 0, 0},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK, 0, 0},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK, 0, 0},
 
-		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK, 0, 0},
+		{"ext4", "tar", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK, 0, 0},
 		{"raw", "img", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK, 0, 0},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK, 0, 0},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK, 0, 0},
 
-		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+		{"ext4", "tar", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"raw", "img", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 
-		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+		{"ext4", "tar", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"raw", "img", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 
-		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+		{"ext4", "tar", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"raw", "img", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"raw", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 
-		{"ext4", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK | TEST_UPDATE_HANDLER_NO_HOOK_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_ERROR, G_SPAWN_ERROR_NOENT},
+		{"ext4", "tar", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK | TEST_UPDATE_HANDLER_NO_HOOK_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_ERROR, G_SPAWN_ERROR_NOENT},
 
 		/* vfat tests */
-		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
-		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
-		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 2},
-		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_NO_TARGET_DEV | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
-		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK, 0, 0},
-		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK, 0, 0},
-		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK, 0, 0},
-		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
-		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
-		{"vfat", "tar.bz2", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+		{"vfat", "tar", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"vfat", "tar", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"vfat", "tar", TEST_UPDATE_HANDLER_NO_IMAGE_FILE | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_IO_ERROR, G_IO_ERROR_NOT_FOUND},
+		{"vfat", "tar", TEST_UPDATE_HANDLER_NO_TARGET_DEV | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+		{"vfat", "tar", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK, 0, 0},
+		{"vfat", "tar", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK, 0, 0},
+		{"vfat", "tar", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK, 0, 0},
+		{"vfat", "tar", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+		{"vfat", "tar", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+		{"vfat", "tar", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 
 		/* ubifs tests */
-		{"ubifs", "tar.bz2", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"ubifs", "tar", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 		{"ubifs", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 		{"ubivol", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 
@@ -711,7 +711,7 @@ int main(int argc, char *argv[])
 			NULL,
 			test_get_update_handler,
 			NULL);
-	g_test_add("/update_handler/get_handler/tar.bz2_to_ubifs",
+	g_test_add("/update_handler/get_handler/tar_to_ubifs",
 			UpdateHandlerFixture,
 			&testpair_matrix[2],
 			NULL,
