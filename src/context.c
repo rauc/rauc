@@ -526,6 +526,21 @@ void r_context_begin_step_formatted(const gchar *name, gint substeps, const gcha
 	r_context_begin_step(name, desc_formatted, substeps);
 }
 
+void r_context_begin_step_weighted_formatted(const gchar *name, gint substeps, gint weight, const gchar *description, ...)
+{
+	va_list args;
+	g_autofree gchar *desc_formatted = NULL;
+
+	g_return_if_fail(name);
+	g_return_if_fail(description);
+
+	va_start(args, description);
+	desc_formatted = g_strdup_vprintf(description, args);
+	va_end(args);
+
+	r_context_begin_step_weighted(name, desc_formatted, substeps, weight);
+}
+
 void r_context_end_step(const gchar *name, gboolean success)
 {
 	RaucProgressStep *step;
