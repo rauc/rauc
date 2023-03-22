@@ -43,7 +43,7 @@ foreach test_name : tests
   exe = executable(
     test_name + '-test',
     test_name + '.c',
-    extra_test_sources,
+    extra_test_sources, dbus_sources,
     link_with : librauc,
     c_args : '-DTEST_SERVICES="' + meson.build_root() + '"',
     include_directories : incdir,
