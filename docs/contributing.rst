@@ -127,15 +127,46 @@ To run the entire test suite, type::
 
   ./qemu-test
 
-For optimal performance, run::
+To run individual tests, you can either specify them by using the ``test=``
+parameter::
 
-  ./qemu-test passthrough
+  ./qemu-test test=install
 
-which will pass through your host's CPU features to the guest.
+The test name will be forwarded to ``meson test`` and thus must match the meson
+test names (e.g. ``install`` for a glib-based unit test or ``pytest-install``
+for a pytest-based test).
 
-For interactive access to the test environment, use::
+Or you start an interactive shell with access to the test environment::
 
   ./qemu-test shell
+
+From which you run the tests manually (as shown in the previous sections).
+
+Additional parameters that you can add to a ``./qemu-test`` call are:
+
+:passthrough: for optimal performance (by passing through your host's CPU
+  features to the guest).
+
+:asan: sets up environment variables to support the address sanitizer.
+  This requires meson was set up with ``-Db_sanitize=address,undefined``.
+
+Interactive Test System
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Beside providing a safe test environment, the ``./qemu-test`` script also
+supports running RAUC interactively in the QEMU environment by calling::
+
+  ./qemu-test system
+
+This setup initializes QEMU to run with the RAUC service started, alongside a
+configured D-Bus and dummy target slots to simulate a real firmware update
+scenario.
+The configuration uses GRUB as a mock boot selection backend, allowing RAUC to
+interact with it as it would in a real system.
+Notably, rebooting the environment is not supported in this setup, meaning the
+testing is limited to a single boot cycle.
+This is sufficient for testing RAUC’s update mechanism but does not cover
+reboot-based validation.
 
 .. _sec-dco:
 
