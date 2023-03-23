@@ -129,7 +129,7 @@ static gboolean parse_meta(GKeyFile *key_file, const gchar *group, RaucManifest 
 
 	keys = g_key_file_get_keys(key_file, group, NULL, NULL);
 	for (GStrv key = keys; *key; key++) {
-		gchar *value = key_file_consume_string(key_file, group, *key, &ierror);
+		g_autofree gchar *value = key_file_consume_string(key_file, group, *key, &ierror);
 		g_autofree gchar *env_key = NULL;
 
 		if (!value) {
@@ -146,7 +146,7 @@ static gboolean parse_meta(GKeyFile *key_file, const gchar *group, RaucManifest 
 			return FALSE;
 		}
 
-		g_hash_table_insert(kvs, g_strdup(*key), value);
+		g_hash_table_insert(kvs, g_strdup(*key), g_steal_pointer(&value));
 	}
 
 	g_hash_table_insert(raucm->meta, g_strdup(groupsplit[1]), g_steal_pointer(&kvs));
