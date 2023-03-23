@@ -109,21 +109,22 @@ jobs:
     strategy:
       matrix:
         release:
-        - "18.04"
-        - "20.04"
-        - "22.04"
+        - "ubuntu:18.04"
+        - "ubuntu:20.04"
+        - "ubuntu:22.04"
+        - "debian:testing"
         builder:
         - "meson"
         - "automake"
         exclude:
-          - release: "18.04"
+          - release: "ubuntu:18.04"
             builder: "meson"
     steps:
     - uses: actions/checkout@v2
 
-    - name: Prepare ubuntu ${{ matrix.release }} container for ${{ matrix.builder }} build
+    - name: Prepare ${{ matrix.release }} container for ${{ matrix.builder }} build
       run: |
-        docker run --name stable -di -v "$PWD":/home -w /home ubuntu:${{ matrix.release }} bash
+        docker run --name stable -di -v "$PWD":/home -w /home ${{ matrix.release }} bash
         docker exec -i stable uname -a
         docker exec -i stable apt-get update
         docker exec -e DEBIAN_FRONTEND='noninteractive' -i stable apt-get install -qy build-essential ${{ matrix.builder }} libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev libnl-genl-3-dev squashfs-tools
