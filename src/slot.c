@@ -24,19 +24,29 @@ void r_slot_free(gpointer value)
 	g_free(slot);
 }
 
+void r_slot_clear_status(RaucSlotStatus *slotstatus)
+{
+	if (!slotstatus)
+		return;
+
+	g_clear_pointer(&slotstatus->bundle_compatible, g_free);
+	g_clear_pointer(&slotstatus->bundle_version, g_free);
+	g_clear_pointer(&slotstatus->bundle_description, g_free);
+	g_clear_pointer(&slotstatus->bundle_build, g_free);
+	g_clear_pointer(&slotstatus->bundle_hash, g_free);
+	g_clear_pointer(&slotstatus->status, g_free);
+	g_clear_pointer(&slotstatus->checksum.digest, g_free);
+	slotstatus->checksum.size = 0;
+	g_clear_pointer(&slotstatus->installed_timestamp, g_free);
+	g_clear_pointer(&slotstatus->activated_timestamp, g_free);
+}
+
 void r_slot_free_status(RaucSlotStatus *slotstatus)
 {
 	if (!slotstatus)
 		return;
 
-	g_free(slotstatus->bundle_compatible);
-	g_free(slotstatus->bundle_version);
-	g_free(slotstatus->bundle_description);
-	g_free(slotstatus->bundle_build);
-	g_free(slotstatus->status);
-	g_free(slotstatus->checksum.digest);
-	g_free(slotstatus->installed_timestamp);
-	g_free(slotstatus->activated_timestamp);
+	r_slot_clear_status(slotstatus);
 	g_free(slotstatus);
 }
 

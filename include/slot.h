@@ -74,6 +74,13 @@ void r_slot_free(gpointer value);
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucSlot, r_slot_free);
 
 /**
+ * Clears the data in a RaucSlotStatus.
+ *
+ * @param slotstatus a RaucSlotStatus
+ */
+void r_slot_clear_status(RaucSlotStatus *slotstatus);
+
+/**
  * Frees the memory allocated by the RaucSlotStatus.
  *
  * @param slotstatus a RaucSlotStatus

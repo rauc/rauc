@@ -367,11 +367,23 @@ GHashTable* determine_target_install_group(void)
 	return targetgroup;
 }
 
-
-GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group, GError **error)
+void r_image_install_plan_free(gpointer value)
 {
-	GList *install_images = NULL;
+	RImageInstallPlan *plan = (RImageInstallPlan*)value;
+
+	if (!plan)
+		return;
+
+	g_free(plan);
+}
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(RImageInstallPlan, r_image_install_plan_free);
+
+GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target_group, GError **error)
+{
+	GError *ierror = NULL;
 	g_autofree gchar **slotclasses = NULL;
+	g_autoptr(GPtrArray) install_plans = g_ptr_array_new_with_free_func(r_image_install_plan_free);
 
 	g_return_val_if_fail(manifest != NULL, NULL);
 	g_return_val_if_fail(target_group != NULL, NULL);
@@ -382,34 +394,14 @@ GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group
 	/* Find exactly 1 image for each class listed in manifest */
 	for (gchar **cls = slotclasses; *cls != NULL; cls++) {
 		RaucImage *matching_img = NULL;
+		g_autoptr(RImageInstallPlan) plan = g_new0(RImageInstallPlan, 1);
 
 		for (GList *l = manifest->images; l != NULL; l = l->next) {
 			RaucImage *lookup_image = l->data;
-			RaucSlot *target_slot = NULL;
 
 			/* Not interested in slots of other classes */
 			if (g_strcmp0(lookup_image->slotclass, *cls) != 0)
 				continue;
-
-			/* Check if target_group contains an appropriate slot for this image */
-			target_slot = g_hash_table_lookup(target_group, lookup_image->slotclass);
-			if (!target_slot) {
-				g_set_error(error,
-						R_INSTALL_ERROR,
-						R_INSTALL_ERROR_FAILED,
-						"No target slot for class %s of image %s found", lookup_image->slotclass, lookup_image->filename);
-				g_clear_pointer(&install_images, g_list_free);
-				goto out;
-			}
-
-			if (target_slot->readonly) {
-				g_set_error(error,
-						R_INSTALL_ERROR,
-						R_INSTALL_ERROR_FAILED,
-						"Target slot for class %s of image %s is readonly", lookup_image->slotclass, lookup_image->filename);
-				g_clear_pointer(&install_images, g_list_free);
-				goto out;
-			}
 
 			/* If this is a default variant and we have no better
 			 * match yet, use it and continue scanning.
@@ -432,22 +424,48 @@ GList* get_install_images(const RaucManifest *manifest, GHashTable *target_group
 					R_INSTALL_ERROR,
 					R_INSTALL_ERROR_FAILED,
 					"Failed to find matching variant of image for %s", *cls);
-			g_clear_pointer(&install_images, g_list_free);
-			goto out;
+			return NULL;
 		}
 
 		g_debug("Found image mapping: %s -> %s", matching_img->filename, matching_img->slotclass);
-		install_images = g_list_append(install_images, matching_img);
+		plan->image = matching_img;
+
+		/* Check if target_group contains an appropriate slot for this image */
+		plan->target_slot = g_hash_table_lookup(target_group, matching_img->slotclass);
+		if (!plan->target_slot) {
+			g_set_error(error,
+					R_INSTALL_ERROR,
+					R_INSTALL_ERROR_FAILED,
+					"No target slot for class %s of image %s found", matching_img->slotclass, matching_img->filename);
+			return NULL;
+		}
+		if (plan->target_slot->readonly) {
+			g_set_error(error,
+					R_INSTALL_ERROR,
+					R_INSTALL_ERROR_FAILED,
+					"Target slot for class %s of image %s is readonly", matching_img->slotclass, matching_img->filename);
+			return NULL;
+		}
+
+		/* determine whether update image type is compatible with destination slot type */
+		plan->slot_handler = get_update_handler(plan->image, plan->target_slot, &ierror);
+		if (plan->slot_handler == NULL) {
+			g_propagate_error(error, ierror);
+			return NULL;
+		}
+
+		g_ptr_array_add(install_plans, g_steal_pointer(&plan));
 	}
 
-	if (!install_images)
+	if (install_plans->len == 0) {
 		g_set_error_literal(error,
 				R_INSTALL_ERROR,
 				R_INSTALL_ERROR_FAILED,
-				"No install image found");
-out:
+				"No installable image found");
+		return NULL;
+	}
 
-	return install_images;
+	return g_steal_pointer(&install_plans);
 }
 
 static gchar* parse_handler_output(gchar* line)
@@ -778,15 +796,14 @@ static gboolean pre_install_check_slot_mount_status(RaucSlot *slot, RaucImage *m
 	return FALSE;
 }
 
-static gboolean pre_install_checks(gchar* bundledir, GList *install_images, GHashTable *target_group, GError **error)
+static gboolean pre_install_checks(gchar* bundledir, GPtrArray *install_plans, GHashTable *target_group, GError **error)
 {
-	for (GList *l = install_images; l != NULL; l = l->next) {
-		RaucImage *mfimage = l->data;
-		RaucSlot *dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
+	for (guint i = 0; i < install_plans->len; i++) {
+		const RImageInstallPlan *plan = g_ptr_array_index(install_plans, i);
 
-		if (!mfimage->filename) {
+		if (!plan->image->filename) {
 			/* having no filename is valid for install hook only */
-			if (mfimage->hooks.install)
+			if (plan->image->hooks.install)
 				goto skip_filename_checks;
 			else
 				/* Should not be reached as the pre-conditions for optional 'filename' are already
@@ -794,28 +811,27 @@ static gboolean pre_install_checks(gchar* bundledir, GList *install_images, GHas
 				g_assert_not_reached();
 		}
 
-
 		/* if image filename is relative, make it absolute */
-		if (!g_path_is_absolute(mfimage->filename)) {
-			gchar *filename = g_build_filename(bundledir, mfimage->filename, NULL);
-			g_free(mfimage->filename);
-			mfimage->filename = filename;
+		if (!g_path_is_absolute(plan->image->filename)) {
+			gchar *filename = g_build_filename(bundledir, plan->image->filename, NULL);
+			g_free(plan->image->filename);
+			plan->image->filename = filename;
 		}
 
-		if (!g_file_test(mfimage->filename, G_FILE_TEST_EXISTS)) {
+		if (!g_file_test(plan->image->filename, G_FILE_TEST_EXISTS)) {
 			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NOSRC,
-					"Source image '%s' not found", mfimage->filename);
+					"Source image '%s' not found in bundle", plan->image->filename);
 			return FALSE;
 		}
 
 skip_filename_checks:
-		if (!g_file_test(dest_slot->device, G_FILE_TEST_EXISTS)) {
+		if (!g_file_test(plan->target_slot->device, G_FILE_TEST_EXISTS)) {
 			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NODST,
-					"Destination device '%s' not found", dest_slot->device);
+					"Destination device '%s' not found", plan->target_slot->device);
 			return FALSE;
 		}
 
-		if (!pre_install_check_slot_mount_status(dest_slot, mfimage, error)) {
+		if (!pre_install_check_slot_mount_status(plan->target_slot, plan->image, error)) {
 			/* error is already set */
 			return FALSE;
 		}
@@ -824,15 +840,103 @@ skip_filename_checks:
 	return TRUE;
 }
 
+static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RImageInstallPlan *plan, RaucInstallArgs *args, const char *hook_name, GError **error)
+{
+	GError *ierror = NULL;
+	RaucSlotStatus *slot_state = NULL;
+	g_autoptr(GDateTime) now = NULL;
+
+	install_args_update(args, g_strdup_printf("Checking slot %s", plan->target_slot->name));
+
+	r_context_begin_step_weighted_formatted("check_slot", 0, 1, "Checking slot %s", plan->target_slot->name);
+
+	load_slot_status(plan->target_slot);
+	slot_state = plan->target_slot->status;
+
+	/* In case we failed unmounting while reading status
+	 * file, abort here */
+	if (plan->target_slot->mount_point) {
+		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
+				"Slot '%s' still mounted", plan->target_slot->device);
+		r_context_end_step("check_slot", FALSE);
+		return FALSE;
+	}
+
+	/* if explicitly enabled, skip update of up-to-date slots */
+	if (!plan->target_slot->install_same && g_strcmp0(plan->image->checksum.digest, slot_state->checksum.digest) == 0) {
+		install_args_update(args, g_strdup_printf("Skipping update for correct image %s", plan->image->filename));
+		g_message("Skipping update for correct image %s", plan->image->filename);
+		r_context_end_step("check_slot", TRUE);
+
+		/* Dummy step to indicate slot was skipped */
+		r_context_begin_step("skip_image", "Copying image skipped", 0);
+		r_context_end_step("skip_image", TRUE);
+
+		return TRUE;
+	}
+
+	g_free(slot_state->status);
+	slot_state->status = g_strdup("update");
+
+	r_context_end_step("check_slot", TRUE);
+
+	install_args_update(args, g_strdup_printf("Updating slot %s", plan->target_slot->name));
+
+	/* update slot */
+	if (plan->image->hooks.install) {
+		g_message("Updating %s with 'install' slot hook", plan->target_slot->device);
+	} else {
+		if (plan->image->variant)
+			g_message("Updating %s with %s (variant: %s)", plan->target_slot->device, plan->image->filename, plan->image->variant);
+		else
+			g_message("Updating %s with %s", plan->target_slot->device, plan->image->filename);
+	}
+
+	r_context_begin_step_weighted_formatted("copy_image", 0, 9, "Copying image to %s", plan->target_slot->name);
+
+	if (!plan->slot_handler(plan->image, plan->target_slot, hook_name, &ierror)) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed updating slot %s: ", plan->target_slot->name);
+		r_context_end_step("copy_image", FALSE);
+		return FALSE;
+	}
+
+	r_slot_clear_status(slot_state);
+
+	now = g_date_time_new_now_utc();
+
+	slot_state->bundle_compatible = g_strdup(manifest->update_compatible);
+	slot_state->bundle_version = g_strdup(manifest->update_version);
+	slot_state->bundle_description = g_strdup(manifest->update_description);
+	slot_state->bundle_build = g_strdup(manifest->update_build);
+	slot_state->bundle_hash = g_strdup(manifest->hash);
+	slot_state->status = g_strdup("ok");
+	slot_state->checksum.type = plan->image->checksum.type;
+	slot_state->checksum.digest = g_strdup(plan->image->checksum.digest);
+	slot_state->checksum.size = plan->image->checksum.size;
+	slot_state->installed_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
+	slot_state->installed_count++;
+
+	r_context_end_step("copy_image", TRUE);
+
+	install_args_update(args, g_strdup_printf("Updating slot %s status", plan->target_slot->name));
+	if (!save_slot_status(plan->target_slot, &ierror)) {
+		g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error)
 {
-	gchar *hook_name = NULL;
+	g_autofree gchar *hook_name = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	GList *install_images = NULL;
+	g_autoptr(GPtrArray) install_plans = NULL;
 
-	install_images = get_install_images(manifest, target_group, &ierror);
-	if (install_images == NULL) {
+	install_plans = r_install_make_plans(manifest, target_group, &ierror);
+	if (install_plans == NULL) {
 		g_propagate_error(error, ierror);
 		goto early_out;
 	}
@@ -861,28 +965,28 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		goto early_out;
 	}
 
-	res = pre_install_checks(bundledir, install_images, target_group, &ierror);
+	res = pre_install_checks(bundledir, install_plans, target_group, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto early_out;
 	}
 
 	/* Mark all parent destination slots non-bootable */
-	for (GList *l = install_images; l != NULL; l = l->next) {
-		RaucSlot *dest_slot = g_hash_table_lookup(target_group, ((RaucImage*)l->data)->slotclass);
+	for (guint i = 0; i < install_plans->len; i++) {
+		const RImageInstallPlan *plan = g_ptr_array_index(install_plans, i);
 
-		g_assert_nonnull(dest_slot);
+		g_assert_nonnull(plan->target_slot);
 
-		if (dest_slot->parent || !dest_slot->bootname) {
+		if (plan->target_slot->parent || !plan->target_slot->bootname) {
 			continue;
 		}
 
-		g_message("Marking target slot %s as non-bootable...", dest_slot->name);
-		res = r_boot_set_state(dest_slot, FALSE, &ierror);
+		g_message("Marking target slot %s as non-bootable...", plan->target_slot->name);
+		res = r_boot_set_state(plan->target_slot, FALSE, &ierror);
 
 		if (!res) {
 			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_NONBOOTABLE,
-					"Failed marking slot %s non-bootable: %s", dest_slot->name, ierror->message);
+					"Failed marking slot %s non-bootable: %s", plan->target_slot->name, ierror->message);
 			g_clear_error(&ierror);
 			goto early_out;
 		}
@@ -891,148 +995,45 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	if (manifest->hook_name)
 		hook_name = g_build_filename(bundledir, manifest->hook_name, NULL);
 
-	r_context_begin_step_weighted("update_slots", "Updating slots", g_list_length(install_images) * 10, 6);
+	r_context_begin_step_weighted("update_slots", "Updating slots", install_plans->len * 10, 6);
 	install_args_update(args, "Updating slots...");
-	for (GList *l = install_images; l != NULL; l = l->next) {
-		RaucImage *mfimage = l->data;
-		RaucSlot *dest_slot = g_hash_table_lookup(target_group, mfimage->slotclass);
-		img_to_slot_handler update_handler = NULL;
-		RaucSlotStatus *slot_state = NULL;
-		g_autoptr(GDateTime) now = NULL;
+	for (guint i = 0; i < install_plans->len; i++) {
+		const RImageInstallPlan *plan = g_ptr_array_index(install_plans, i);
 
-
-		/* determine whether update image type is compatible with destination slot type */
-		update_handler = get_update_handler(mfimage, dest_slot, &ierror);
-		if (update_handler == NULL) {
-			res = FALSE;
+		if (!handle_slot_install_plan(manifest, plan, args, hook_name, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
-		}
-
-		install_args_update(args, g_strdup_printf("Checking slot %s", dest_slot->name));
-
-		r_context_begin_step_weighted_formatted("check_slot", 0, 1, "Checking slot %s", dest_slot->name);
-
-		load_slot_status(dest_slot);
-		slot_state = dest_slot->status;
-
-		/* In case we failed unmounting while reading status
-		 * file, abort here */
-		if (dest_slot->mount_point) {
-			res = FALSE;
-			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
-					"Slot '%s' still mounted", dest_slot->device);
-			r_context_end_step("check_slot", FALSE);
-
-			goto out;
-		}
-
-		/* if explicitly enabled, skip update of up-to-date slots */
-		if (!dest_slot->install_same && g_strcmp0(mfimage->checksum.digest, slot_state->checksum.digest) == 0) {
-			install_args_update(args, g_strdup_printf("Skipping update for correct image %s", mfimage->filename));
-			g_message("Skipping update for correct image %s", mfimage->filename);
-			r_context_end_step("check_slot", TRUE);
-
-			/* Dummy step to indicate slot was skipped */
-			r_context_begin_step("skip_image", "Copying image skipped", 0);
-			r_context_end_step("skip_image", TRUE);
-
 			goto image_out;
 		}
 
-		g_free(slot_state->status);
-		slot_state->status = g_strdup("update");
-
-		r_context_end_step("check_slot", TRUE);
-
-		install_args_update(args, g_strdup_printf("Updating slot %s", dest_slot->name));
-
-		/* update slot */
-		if (mfimage->hooks.install) {
-			g_message("Updating %s with 'install' slot hook", dest_slot->device);
-		} else {
-			if (mfimage->variant)
-				g_message("Updating %s with %s (variant: %s)", dest_slot->device, mfimage->filename, mfimage->variant);
-			else
-				g_message("Updating %s with %s", dest_slot->device, mfimage->filename);
-		}
-
-		r_context_begin_step_weighted_formatted("copy_image", 0, 9, "Copying image to %s", dest_slot->name);
-
-		res = update_handler(
-				mfimage,
-				dest_slot,
-				hook_name,
-				&ierror);
-		if (!res) {
-			g_propagate_prefixed_error(error, ierror,
-					"Failed updating slot %s: ", dest_slot->name);
-			r_context_end_step("copy_image", FALSE);
-			goto out;
-		}
-
-		g_free(slot_state->bundle_compatible);
-		g_free(slot_state->bundle_version);
-		g_free(slot_state->bundle_description);
-		g_free(slot_state->bundle_build);
-		g_free(slot_state->bundle_hash);
-		g_free(slot_state->status);
-		g_free(slot_state->checksum.digest);
-		g_free(slot_state->installed_timestamp);
-
-		now = g_date_time_new_now_utc();
-
-		slot_state->bundle_compatible = g_strdup(manifest->update_compatible);
-		slot_state->bundle_version = g_strdup(manifest->update_version);
-		slot_state->bundle_description = g_strdup(manifest->update_description);
-		slot_state->bundle_build = g_strdup(manifest->update_build);
-		slot_state->bundle_hash = g_strdup(manifest->hash);
-		slot_state->status = g_strdup("ok");
-		slot_state->checksum.type = mfimage->checksum.type;
-		slot_state->checksum.digest = g_strdup(mfimage->checksum.digest);
-		slot_state->checksum.size = mfimage->checksum.size;
-		slot_state->installed_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
-		slot_state->installed_count++;
-
-		r_context_end_step("copy_image", TRUE);
-
-		install_args_update(args, g_strdup_printf("Updating slot %s status", dest_slot->name));
-		res = save_slot_status(dest_slot, &ierror);
-		if (!res) {
-			g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
-			goto out;
-		}
-
 image_out:
-
-		install_args_update(args, g_strdup_printf("Updating slot %s done", dest_slot->name));
+		install_args_update(args, g_strdup_printf("Updating slot %s done", plan->target_slot->name));
 	}
 
 	if (r_context()->config->activate_installed) {
 		/* Mark all parent destination slots bootable */
-		for (GList *l = install_images; l != NULL; l = l->next) {
-			RaucSlot *dest_slot = g_hash_table_lookup(target_group, ((RaucImage*)l->data)->slotclass);
+		for (guint i = 0; i < install_plans->len; i++) {
+			const RImageInstallPlan *plan = g_ptr_array_index(install_plans, i);
 
-			if (dest_slot->parent || !dest_slot->bootname)
+			if (plan->target_slot->parent || !plan->target_slot->bootname)
 				continue;
 
-			g_message("Marking target slot %s as bootable...", dest_slot->name);
-			mark_active(dest_slot, &ierror);
+			g_message("Marking target slot %s as bootable...", plan->target_slot->name);
+			mark_active(plan->target_slot, &ierror);
 			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE)) {
 				g_propagate_prefixed_error(error, ierror,
-						"Failed marking slot %s bootable: ", dest_slot->name);
+						"Failed marking slot %s bootable: ", plan->target_slot->name);
 				res = FALSE;
 				goto out;
 			} else if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED)) {
 				g_propagate_prefixed_error(error, ierror,
 						"Marked slot %s bootable, but failed to write status file: ",
-						dest_slot->name);
+						plan->target_slot->name);
 				res = FALSE;
 				goto out;
 			} else if (ierror) {
 				g_propagate_prefixed_error(error, ierror,
 						"Unexpected error while trying to mark slot %s bootable: ",
-						dest_slot->name);
+						plan->target_slot->name);
 				res = FALSE;
 				goto out;
 			}
@@ -1046,7 +1047,6 @@ image_out:
 	res = TRUE;
 
 out:
-	//g_free(hook_name);
 	r_context_end_step("update_slots", res);
 early_out:
 	return res;
