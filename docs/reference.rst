@@ -168,7 +168,7 @@ Example configuration:
   * central status file and shared data directory
     (``statusfile=/data/central.raucs`` and ``data-directory=/data/rauc``)
   * central status file in shared data directory
-    (``data-directory=/data/rauc``, implies ``statusfile=/data/rauc/central.rauc``)
+    (``data-directory=/data/rauc``, implies ``statusfile=/data/rauc/central.raucs``)
 
   .. important:: This directory must be located on a non-redundant filesystem
      which is not overwritten during updates.
