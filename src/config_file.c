@@ -619,7 +619,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	 * - central status file and shared data directory
 	 *   (``statusfile=/data/central.raucs`` and ``data-directory=/data/rauc``)
 	 * - central status file in shared data directory
-	 *   (``data-directory=/data/rauc``, implies ``statusfile=/data/rauc/central.rauc``)
+	 *   (``data-directory=/data/rauc``, implies ``statusfile=/data/rauc/central.raucs``)
 	 */
 	c->data_directory = resolve_path_take(filename,
 			key_file_consume_string(key_file, "system", "data-directory", &ierror));
