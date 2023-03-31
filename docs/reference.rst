@@ -137,19 +137,17 @@ Example configuration:
 .. _statusfile:
 
 ``statusfile``
-  For backwards compatibility, this can be set to point to a central file where
-  slot status information should be stored (e.g. slot-specific metadata, see
-  :ref:`slot-status`).
-  However, if a per-slot status is required as one of the above-noted
-  requirements cannot be met, one can use the value ``per-slot`` to document
-  this decision.
-  For backwards compatibility this option is not mandatory and will default to
-  per-slot status files if not set.
+
+  .. note:: This option is deprecated. Consider using ``data-directory``
+     instead.
+     For more details about backwards compatibility, see :ref:`data-directory
+     <data-directory>`.
+
+  Can be set to point to a central file where slot status information should be
+  stored (e.g. slot-specific metadata, see :ref:`slot-status`).
 
   .. important:: This file must be located on a non-redundant filesystem which
      is not overwritten during updates.
-
-  See ``data-directory`` below as well.
 
 .. _data-directory:
 
