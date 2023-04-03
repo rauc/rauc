@@ -38,6 +38,16 @@ typedef struct {
 } RaucInstallArgs;
 
 /**
+ * Update the external mount points of a slot.
+ *
+ * @param error return location for a GError
+ *
+ * @return TRUE if succeeded, FALSE if failed
+ */
+gboolean update_external_mount_points(GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Determines the states (ACTIVE | INACTIVE | BOOTED) of the slots specified in
  * system configuration.
  *

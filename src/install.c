@@ -85,7 +85,7 @@ static gchar *resolve_loop_device(const gchar *devicepath, GError **error)
 	return g_strchomp(content);
 }
 
-static gboolean update_external_mount_points(GError **error)
+gboolean update_external_mount_points(GError **error)
 {
 	GList *mountlist = NULL;
 	GHashTableIter iter;
