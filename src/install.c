@@ -34,10 +34,21 @@ GQuark r_install_error_quark(void)
 	return g_quark_from_static_string("r_install_error_quark");
 }
 
-static void install_args_update(RaucInstallArgs *args, const gchar *msg)
+__attribute__((__format__(__printf__, 2, 3)))
+static void install_args_update(RaucInstallArgs *args, const gchar *msg, ...)
 {
+	va_list list;
+	gchar *formatted = NULL;
+
+	g_return_if_fail(args);
+	g_return_if_fail(msg);
+
+	va_start(list, msg);
+	formatted = g_strdup_vprintf(msg, list);
+	va_end(list);
+
 	g_mutex_lock(&args->status_mutex);
-	g_queue_push_tail(&args->status_messages, g_strdup(msg));
+	g_queue_push_tail(&args->status_messages, formatted);
 	g_mutex_unlock(&args->status_mutex);
 	g_main_context_invoke(NULL, args->notify, args);
 }
@@ -650,7 +661,7 @@ static gboolean launch_and_wait_handler(RaucInstallArgs *args, gchar *update_sou
 
 		handler_message = parse_handler_output(outline);
 		if (handler_message != NULL)
-			install_args_update(args, handler_message);
+			install_args_update(args, "%s", handler_message);
 
 		g_free(outline);
 	} while (outline);
@@ -846,7 +857,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 	RaucSlotStatus *slot_state = NULL;
 	g_autoptr(GDateTime) now = NULL;
 
-	install_args_update(args, g_strdup_printf("Checking slot %s", plan->target_slot->name));
+	install_args_update(args, "Checking slot %s", plan->target_slot->name);
 
 	r_context_begin_step_weighted_formatted("check_slot", 0, 1, "Checking slot %s", plan->target_slot->name);
 
@@ -864,7 +875,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 
 	/* if explicitly enabled, skip update of up-to-date slots */
 	if (!plan->target_slot->install_same && g_strcmp0(plan->image->checksum.digest, slot_state->checksum.digest) == 0) {
-		install_args_update(args, g_strdup_printf("Skipping update for correct image %s", plan->image->filename));
+		install_args_update(args, "Skipping update for correct image %s", plan->image->filename);
 		g_message("Skipping update for correct image %s", plan->image->filename);
 		r_context_end_step("check_slot", TRUE);
 
@@ -880,7 +891,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 
 	r_context_end_step("check_slot", TRUE);
 
-	install_args_update(args, g_strdup_printf("Updating slot %s", plan->target_slot->name));
+	install_args_update(args, "Updating slot %s", plan->target_slot->name);
 
 	/* update slot */
 	if (plan->image->hooks.install) {
@@ -919,7 +930,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 
 	r_context_end_step("copy_image", TRUE);
 
-	install_args_update(args, g_strdup_printf("Updating slot %s status", plan->target_slot->name));
+	install_args_update(args, "Updating slot %s status", plan->target_slot->name);
 	if (!save_slot_status(plan->target_slot, &ierror)) {
 		g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
 		return FALSE;
@@ -1006,7 +1017,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		}
 
 image_out:
-		install_args_update(args, g_strdup_printf("Updating slot %s done", plan->target_slot->name));
+		install_args_update(args, "Updating slot %s done", plan->target_slot->name);
 	}
 
 	if (r_context()->config->activate_installed) {
@@ -1179,7 +1190,7 @@ static gpointer install_thread(gpointer data)
 
 	if (result != 0) {
 		g_warning("%s", ierror->message);
-		install_args_update(args, ierror->message);
+		install_args_update(args, "%s", ierror->message);
 		set_last_error(ierror->message);
 		g_clear_error(&ierror);
 	}
