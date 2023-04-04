@@ -2502,6 +2502,48 @@ out:
 	return res;
 }
 
+static gboolean read_complete_dm_device(gchar *dev, GError **error)
+{
+	int fd = -1;
+	g_autofree void* buf = NULL;
+	ssize_t r;
+	gboolean ret = TRUE;
+
+	g_return_val_if_fail(dev != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	fd = g_open(dev, O_RDONLY | O_CLOEXEC, 0);
+	if (fd < 0) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to open %s: %s", dev, g_strerror(err));
+		return FALSE;
+	}
+
+	buf = g_malloc0(65536);
+
+	for (goffset chunk = 0;; chunk++) {
+		r = pread(fd, buf, sizeof(buf), chunk*sizeof(buf));
+		if (r == 0)
+			break;
+		else if (r < 0)	{
+			int err = errno;
+			g_set_error(error,
+					G_FILE_ERROR,
+					g_file_error_from_errno(err),
+					"Check %s device failed between %"G_GOFFSET_FORMAT " and %"G_GOFFSET_FORMAT " bytes with error: %s", dev, chunk*sizeof(buf), (chunk+1)*sizeof(buf), g_strerror(err));
+			ret = FALSE;
+			break;
+		}
+	}
+
+	g_close(fd, NULL);
+
+	return ret;
+}
+
 /*
  * Sets up dm-verity for reading verity bundles.
  *
