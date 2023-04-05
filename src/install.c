@@ -210,6 +210,8 @@ gboolean determine_slot_states(GError **error)
 				s->state = ST_INACTIVE;
 			}
 
+			r_context()->config->slot_states_determined = TRUE;
+
 			return TRUE;
 		}
 
@@ -235,6 +237,8 @@ gboolean determine_slot_states(GError **error)
 			s->state = ST_INACTIVE;
 		}
 	}
+
+	r_context()->config->slot_states_determined = TRUE;
 
 	return TRUE;
 }
@@ -1076,6 +1080,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 
 	g_assert_nonnull(bundlefile);
 	g_assert_null(r_context()->install_info->mounted_bundle);
+	g_assert_true(r_context()->config->slot_states_determined);
 
 	r_context_begin_step("do_install_bundle", "Installing", 10);
 
