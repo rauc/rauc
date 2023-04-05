@@ -1297,6 +1297,7 @@ test_expect_success ROOT,!SERVICE "rauc install (no service)" "
   test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
   rauc \
     --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    --override-boot-slot=system0 \
     install ${TEST_TMPDIR}/good-bundle.raucb &&
   test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
 "
@@ -1311,6 +1312,7 @@ test_expect_success ROOT,!SERVICE,STREAMING "rauc install (no service, streaming
   test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
   rauc \
     --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    --override-boot-slot=system0 \
     install http://127.0.0.1/test/good-verity-bundle.raucb &&
   test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
 "
@@ -1325,6 +1327,7 @@ test_expect_success ROOT,!SERVICE,STREAMING "rauc install (no service, streaming
   test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
   test_must_fail rauc \
     --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    --override-boot-slot=system0 \
     install http://127.0.0.1/test/missing-bundle.raucb &&
   test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
 "
