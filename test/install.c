@@ -1313,6 +1313,85 @@ static void install_test_already_mounted(InstallFixture *fixture,
 	args->status_result = 0;
 }
 
+/* This is a tests for issue #1105 where the external mount point detection
+ * aborted too early when seeing a mount twice. */
+static void install_test_external_mount_points(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	gchar *tmpdir = fixture->tmpdir;
+	g_autofree gchar *sysconfpath = NULL;
+	g_autoptr(GError) error = NULL;
+	gchar *slotfile = NULL;
+	g_autofree gchar *mountpoint_a = NULL;
+	g_autofree gchar *mountpoint_b = NULL;
+	g_autofree gchar *mountpoint_c = NULL;
+	gboolean res;
+
+	const gchar *system_conf = "\
+[system]\n\
+compatible=foo\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+bootname=system0\n\
+device=images/rootfs-0\n\
+\n\
+[slot.rootfs.1]\n\
+bootname=system1\n\
+device=images/rootfs-1\n\
+";
+
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
+	sysconfpath = write_tmp_file(tmpdir, "test.conf", system_conf, NULL);
+	g_assert_nonnull(sysconfpath);
+
+	/* Set up context */
+	r_context_conf()->configpath = sysconfpath;
+	r_context_conf()->bootslot = g_strdup("system0");
+	r_context();
+	g_assert_nonnull(r_context()->config);
+	g_assert_nonnull(r_context()->config->slots);
+
+	/* mount rootfs-0 */
+	slotfile = g_build_filename(tmpdir, "images/rootfs-0", NULL);
+	g_assert(test_mkdir_relative(tmpdir, "slot-0", 0777) == 0);
+	mountpoint_a = g_build_filename(tmpdir, "slot-0", NULL);
+	g_assert(test_mount(slotfile, mountpoint_a));
+
+	g_free(slotfile);
+
+	/* mount rootfs-0 again */
+	slotfile = g_build_filename(tmpdir, "images/rootfs-0", NULL);
+	g_assert(test_mkdir_relative(tmpdir, "slot-1", 0777) == 0);
+	mountpoint_b = g_build_filename(tmpdir, "slot-1", NULL);
+	g_assert(test_mount(slotfile, mountpoint_b));
+
+	g_free(slotfile);
+
+	/* mount rootfs-1 */
+	slotfile = g_build_filename(tmpdir, "images/rootfs-1", NULL);
+	g_assert(test_mkdir_relative(tmpdir, "slot-2", 0777) == 0);
+	mountpoint_c = g_build_filename(tmpdir, "slot-2", NULL);
+	g_assert(test_mount(slotfile, mountpoint_c));
+
+	g_free(slotfile);
+
+	res = determine_slot_states(&error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	/* The first mount point for each slot should be detected */
+	g_assert_cmpstr(((RaucSlot*) g_hash_table_lookup(r_context()->config->slots, "rootfs.0"))->ext_mount_point, ==, mountpoint_a);
+	g_assert_cmpstr(((RaucSlot*) g_hash_table_lookup(r_context()->config->slots, "rootfs.1"))->ext_mount_point, ==, mountpoint_c);
+
+	test_umount(fixture->tmpdir, "slot-0");
+	test_umount(fixture->tmpdir, "slot-1");
+	test_umount(fixture->tmpdir, "slot-2");
+}
+
 static void install_fixture_set_up_system_user(InstallFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1354,6 +1433,10 @@ int main(int argc, char *argv[])
 	g_test_add_func("/install/image-selection/readonly", test_install_image_readonly);
 
 	g_test_add_func("/install/image-mapping/variants", test_install_image_variants);
+
+	g_test_add("/install/external_mounts", InstallFixture, NULL,
+			install_fixture_set_up_system_user, install_test_external_mount_points,
+			install_fixture_tear_down);
 
 	for (RManifestBundleFormat format = R_MANIFEST_FORMAT_PLAIN; format <= R_MANIFEST_FORMAT_VERITY; format++) {
 		const gchar *format_name = r_manifest_bundle_format_to_str(format);
