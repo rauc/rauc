@@ -64,6 +64,8 @@ typedef struct {
 	gboolean use_bundle_signing_time;
 	/* bit mask for allowed formats */
 	guint bundle_formats_mask;
+	/* enable complete read before mount */
+	gboolean perform_pre_check;
 
 	gchar *autoinstall_path;
 	gchar *preinstall_handler;

@@ -192,6 +192,22 @@ Example configuration:
   If set, neither ``variant-name`` nor ``variant-file`` must be set.
   Refer chapter :ref:`sec-variants` for more information.
 
+.. _perform-pre-check:
+
+``perform-pre-check``
+  For ``verity`` and ``crypt`` bundles, this boolean value controls whether the complete
+  bundle is checked for data corruption before it is mounted.
+  Normally, this option is not needed as every access to the bundle payload during
+  installation is already protected by ``dm-verity``.
+  The default value is ``false`` which means that this pre-check is not performed.
+  
+  This option is useful when the installation should be aborted early even if the corrupt
+  part of the bundle is not used during installation (perhaps due to adaptive updates or
+  image variants).
+
+  It has no effect for ``plain`` bundles, as the signature verification already checks the
+  whole bundle.  
+
 .. _keyring-section:
 
 **[keyring] section**
