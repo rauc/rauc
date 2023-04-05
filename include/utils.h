@@ -249,3 +249,15 @@ G_GNUC_WARN_UNUSED_RESULT;
  */
 gchar *r_prepare_env_key(const gchar *key, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Atomically updates a symlink (if needed).
+ *
+ * @param target new target for the symlink
+ * @param name filename of the symlink to update
+ * @param error return location for a GError, or NULL
+ *
+ * @return the newly alloacted and converted string
+ */
+gboolean r_update_symlink(const gchar *target, const gchar *name, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;

@@ -562,3 +562,46 @@ gchar *r_prepare_env_key(const gchar *key, GError **error)
 
 	return g_steal_pointer(&result);
 }
+
+gboolean r_update_symlink(const gchar *target, const gchar *name, GError **error)
+{
+	GError *ierror = NULL;
+	g_autofree gchar *old_target = NULL;
+	g_autofree gchar *tmp_name = NULL;
+
+	old_target = g_file_read_link(name, &ierror);
+	if (old_target == NULL) {
+		if (!g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_NOENT)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+		g_clear_error(&ierror);
+	} else if (g_strcmp0(old_target, target) == 0) {
+		return TRUE;
+	}
+
+	tmp_name = g_strdup_printf("%s.tmp-link", name);
+
+	if (symlink(target, tmp_name) == -1) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to create symlink: %s", g_strerror(err));
+		return FALSE;
+	}
+
+	if (rename(tmp_name, name) == -1) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to replace symlink: %s", g_strerror(err));
+		/* try to remove the temporary symlink */
+		unlink(tmp_name);
+
+		return FALSE;
+	}
+
+	return TRUE;
+}
