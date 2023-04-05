@@ -2582,6 +2582,18 @@ static gboolean prepare_verity(RaucBundle *bundle, gchar *loopname, gchar* mount
 		return FALSE;
 	}
 
+	if (r_context()->config->perform_pre_check) {
+		res = read_complete_dm_device(dm_verity->upper_dev, &ierror);
+		if (!res) {
+			/* ensure the already-set-up dm-verity layer is cleaned */
+			if (!r_dm_remove(dm_verity, FALSE, &ierror_dm))	{
+				g_warning("Failed to remove dm-verity device: %s", ierror_dm->message);
+			}
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+	}
+
 	res = r_mount_bundle(dm_verity->upper_dev, mount_point, &ierror);
 
 	if (!r_dm_remove(dm_verity, TRUE, &ierror_dm)) {
@@ -2651,6 +2663,22 @@ static gboolean prepare_crypt(RaucBundle *bundle, gchar *loopname, gchar* mount_
 		}
 		g_propagate_error(error, ierror);
 		return FALSE;
+	}
+
+	if (r_context()->config->perform_pre_check) {
+		res = read_complete_dm_device(dm_crypt->upper_dev, &ierror);
+		if (!res) {
+			/* ensure the already-set-up dm-verity and dm-crypt layers are cleaned */
+			if (!r_dm_remove(dm_crypt, TRUE, &ierror_dm)) {
+				g_warning("Failed to remove dm-crypt device: %s", ierror_dm->message);
+				g_clear_error(&ierror_dm);
+			}
+			if (!r_dm_remove(dm_verity, TRUE, &ierror_dm)) {
+				g_warning("Failed to remove dm-verity device: %s", ierror_dm->message);
+			}
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
 	}
 
 	res = r_mount_bundle(dm_crypt->upper_dev, mount_point, &ierror);
