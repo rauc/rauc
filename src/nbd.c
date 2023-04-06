@@ -906,7 +906,7 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 				sleep(1);
 				start_request(&ctx, xfer);
 			}
-		};
+		}
 	}
 
 	r_stats_show(ctx.dl_size, NULL);
