@@ -2540,8 +2540,7 @@ static gboolean check_if_area_is_clear(const gchar *device, guint64 start, gsize
 		if (read_count < 0)
 			goto out;
 
-		for (gint i = 0; i < read_count; i++)
-		{
+		for (gint i = 0; i < read_count; i++) {
 			if ((read_buf[i] != 0x00) && (read_buf[i] != 0xFF)) {
 				*clear = FALSE;
 				break;
@@ -2642,8 +2641,7 @@ static gboolean img_to_boot_raw_fallback_handler(RaucImage *image, RaucSlot *des
 	if (primary_clear)
 		first_part_desc_index++;
 
-	for (gint i = 0; i < 2; i++)
-	{
+	for (gint i = 0; i < 2; i++) {
 		struct part_desc *pd = &part_desc[(first_part_desc_index + i) % 2];
 
 		g_message("Updating %s partition at %"G_GUINT64_FORMAT " on %s", pd->name, pd->partition.start, dest_slot->device);
