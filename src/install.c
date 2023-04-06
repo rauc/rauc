@@ -128,6 +128,22 @@ gboolean update_external_mount_points(GError **error)
 	return TRUE;
 }
 
+/*
+ * Based on the 'bootslot' information (derived from /proc/cmdline during
+ * context setup), this determines 'booted', 'active' and 'inactive' states for
+ * each slot and stores this in the 'state' member of each slot.
+ *
+ * First, the booted slot is determined by comparing the 'bootslot' against the
+ * slot's 'bootname', 'name', or device path. Then, the other states are
+ * determined based on the slot hierarchies.
+ *
+ * If 'bootslot' is '/dev/nfs' or '_external_', all slots are considered
+ * 'inactive'.
+ *
+ * @param error Return location for a GError, or NULL
+ *
+ * @return TRUE if succeeded, FALSE if failed
+ */
 gboolean determine_slot_states(GError **error)
 {
 	g_autoptr(GList) slotlist = NULL;
