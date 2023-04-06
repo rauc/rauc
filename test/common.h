@@ -33,3 +33,5 @@ void test_create_content(gchar *contentdir, const ManifestTestOptions *options);
 void test_create_bundle(gchar *contentdir, gchar *bundlename);
 gboolean test_running_as_root(void);
 gsize get_file_size(gchar* filename, GError **error);
+void flip_bits_fd(int fd, off_t offset, guint8 mask);
+void flip_bits_filename(gchar *filename, off_t offset, guint8 mask);
