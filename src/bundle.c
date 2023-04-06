@@ -2703,11 +2703,13 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 					error,
 					ierror,
 					"failed to load manifest from bundle: ");
+			ierror = NULL;
 			goto umount;
 		}
 		res = check_manifest_internal(manifest, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
+			ierror = NULL;
 			goto umount;
 		}
 
