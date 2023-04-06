@@ -1084,6 +1084,10 @@ static void install_test_bundle(InstallFixture *fixture,
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
 
+	res = determine_slot_states(&ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
 	args = install_args_new();
 	args->name = g_steal_pointer(&bundlepath);
 	args->notify = install_notify;
@@ -1131,6 +1135,8 @@ static void install_test_bundle_thread(InstallFixture *fixture,
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
 
+	g_assert_true(determine_slot_states(NULL));
+
 	args->name = g_steal_pointer(&bundlepath);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
@@ -1161,6 +1167,8 @@ static void install_test_bundle_hook_install_check(InstallFixture *fixture,
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
+
+	g_assert_true(determine_slot_states(NULL));
 
 	args = install_args_new();
 	args->name = g_steal_pointer(&bundlepath);
@@ -1196,6 +1204,10 @@ static void install_test_bundle_hook_install(InstallFixture *fixture,
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
+
+	res = determine_slot_states(&ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
 
 	args = install_args_new();
 	args->name = g_steal_pointer(&bundlepath);
@@ -1246,6 +1258,8 @@ static void install_test_bundle_hook_post_install(InstallFixture *fixture,
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
 	g_assert_nonnull(bundlepath);
+
+	g_assert_true(determine_slot_states(NULL));
 
 	args = install_args_new();
 	args->name = g_steal_pointer(&bundlepath);
@@ -1299,6 +1313,10 @@ static void install_test_already_mounted(InstallFixture *fixture,
 	hookfilepath = g_build_filename(fixture->tmpdir, "bootloader", "hook-install-mounted", NULL);
 	g_assert_nonnull(hookfilepath);
 	g_assert_false(g_file_test(hookfilepath, G_FILE_TEST_EXISTS));
+
+	res = determine_slot_states(&ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
 
 	args = install_args_new();
 	args->name = g_steal_pointer(&bundlepath);
@@ -1380,6 +1398,10 @@ device=images/rootfs-1\n\
 	g_free(slotfile);
 
 	res = determine_slot_states(&error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	res = update_external_mount_points(&error);
 	g_assert_no_error(error);
 	g_assert_true(res);
 

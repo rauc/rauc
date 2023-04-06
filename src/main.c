@@ -299,6 +299,13 @@ static gboolean install_start(int argc, char **argv)
 			goto out_loop;
 		}
 	} else {
+		if (!determine_slot_states(&error)) {
+			g_printerr("Failed to determine slot states: %s\n", error->message);
+			g_clear_error(&error);
+			r_exit_status = 1;
+			return TRUE;
+		}
+
 		r_context_register_progress_callback(print_progress_callback);
 		install_run(args);
 	}
@@ -1988,7 +1995,15 @@ static gboolean status_start(int argc, char **argv)
 G_GNUC_UNUSED
 static gboolean service_start(int argc, char **argv)
 {
+	g_autoptr(GError) ierror = NULL;
+
 	g_debug("service start");
+
+	if (!determine_slot_states(&ierror)) {
+		g_printerr("Failed to determine slot states: %s\n", ierror->message);
+		r_exit_status = 1;
+		return TRUE;
+	}
 
 	r_exit_status = r_service_run() ? 0 : 1;
 

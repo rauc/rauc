@@ -82,6 +82,8 @@ typedef struct {
 	gchar *encryption_cert;
 
 	GHashTable *slots;
+	/* flag to ensure slot states were determined */
+	gboolean slot_states_determined;
 } RaucConfig;
 
 typedef enum {

@@ -85,27 +85,12 @@ static gchar *resolve_loop_device(const gchar *devicepath, GError **error)
 	return g_strchomp(content);
 }
 
-gboolean determine_slot_states(GError **error)
+gboolean update_external_mount_points(GError **error)
 {
-	GList *slotlist = NULL;
 	GList *mountlist = NULL;
-	RaucSlot *booted = NULL;
 	GHashTableIter iter;
 	RaucSlot *slot;
-	gboolean res = FALSE;
 	GError *ierror = NULL;
-
-	g_assert_nonnull(r_context()->config);
-
-	if (r_context()->config->slots == NULL) {
-		g_set_error_literal(
-				error,
-				R_SLOT_ERROR,
-				R_SLOT_ERROR_NO_CONFIG,
-				"No slot configuration found");
-		goto out;
-	}
-	g_assert_nonnull(r_context()->config->slots);
 
 	/* Clear all previously detected external mount points as we will
 	 * re-deterrmine them. */
@@ -123,7 +108,7 @@ gboolean determine_slot_states(GError **error)
 		devicepath = resolve_loop_device(g_unix_mount_get_device_path(m), &ierror);
 		if (!devicepath) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 		s = find_config_slot_by_device(r_context()->config,
 				devicepath);
@@ -140,13 +125,48 @@ gboolean determine_slot_states(GError **error)
 	}
 	g_list_free_full(mountlist, (GDestroyNotify)g_unix_mount_free);
 
+	return TRUE;
+}
+
+/*
+ * Based on the 'bootslot' information (derived from /proc/cmdline during
+ * context setup), this determines 'booted', 'active' and 'inactive' states for
+ * each slot and stores this in the 'state' member of each slot.
+ *
+ * First, the booted slot is determined by comparing the 'bootslot' against the
+ * slot's 'bootname', 'name', or device path. Then, the other states are
+ * determined based on the slot hierarchies.
+ *
+ * If 'bootslot' is '/dev/nfs' or '_external_', all slots are considered
+ * 'inactive'.
+ *
+ * @param error Return location for a GError, or NULL
+ *
+ * @return TRUE if succeeded, FALSE if failed
+ */
+gboolean determine_slot_states(GError **error)
+{
+	g_autoptr(GList) slotlist = NULL;
+	RaucSlot *booted = NULL;
+
+	g_assert_nonnull(r_context()->config);
+
+	if (r_context()->config->slots == NULL) {
+		g_set_error_literal(
+				error,
+				R_SLOT_ERROR,
+				R_SLOT_ERROR_NO_CONFIG,
+				"No slot configuration found");
+		return FALSE;
+	}
+
 	if (r_context()->bootslot == NULL) {
 		g_set_error_literal(
 				error,
 				R_SLOT_ERROR,
 				R_SLOT_ERROR_NO_BOOTSLOT,
-				"Bootname or device of booted slot not found");
-		goto out;
+				"Could not find any root device or rauc slot information in /proc/cmdline");
+		return FALSE;
 	}
 
 	slotlist = g_hash_table_get_keys(r_context()->config->slots);
@@ -201,8 +221,9 @@ gboolean determine_slot_states(GError **error)
 				s->state = ST_INACTIVE;
 			}
 
-			res = TRUE;
-			goto out;
+			r_context()->config->slot_states_determined = TRUE;
+
+			return TRUE;
 		}
 
 		g_set_error(
@@ -210,7 +231,7 @@ gboolean determine_slot_states(GError **error)
 				R_SLOT_ERROR,
 				R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
 				"Did not find booted slot (matching '%s')", r_context()->bootslot);
-		goto out;
+		return FALSE;
 	}
 
 	/* Determine active group members */
@@ -228,12 +249,9 @@ gboolean determine_slot_states(GError **error)
 		}
 	}
 
-	res = TRUE;
+	r_context()->config->slot_states_determined = TRUE;
 
-out:
-	g_clear_pointer(&slotlist, g_list_free);
-
-	return res;
+	return TRUE;
 }
 
 gboolean determine_boot_states(GError **error)
@@ -1073,11 +1091,12 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 
 	g_assert_nonnull(bundlefile);
 	g_assert_null(r_context()->install_info->mounted_bundle);
+	g_assert_true(r_context()->config->slot_states_determined);
 
 	r_context_begin_step("do_install_bundle", "Installing", 10);
 
 	r_context_begin_step("determine_slot_states", "Determining slot states", 0);
-	res = determine_slot_states(&ierror);
+	res = update_external_mount_points(&ierror);
 	r_context_end_step("determine_slot_states", res);
 	if (!res) {
 		g_propagate_error(error, ierror);
