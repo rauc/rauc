@@ -2014,6 +2014,29 @@ static gboolean service_start(int argc, char **argv)
 		return TRUE;
 	}
 
+	if (r_context()->system_status) {
+		/* Boot ID-based system reboot vs service restart detection */
+		if (g_strcmp0(r_context()->system_status->boot_id, r_context()->boot_id) == 0) {
+			g_message("Restarted RAUC service");
+		} else {
+			RaucSlot *booted_slot = r_slot_find_by_device(r_context()->config->slots, r_context()->bootslot);
+			if (!booted_slot)
+				booted_slot = r_slot_find_by_bootname(r_context()->config->slots, r_context()->bootslot);
+			g_message("Booted into %s (%s)", booted_slot->name, booted_slot->bootname);
+
+			/* update boot ID */
+			g_free(r_context()->system_status->boot_id);
+			r_context()->system_status->boot_id = g_strdup(r_context()->boot_id);
+
+			if (!r_system_status_save(&ierror)) {
+				g_warning("Failed to save system status: %s", ierror->message);
+				g_clear_error(&ierror);
+			}
+		}
+	} else {
+		g_message("Started RAUC service");
+	}
+
 	r_exit_status = r_service_run() ? 0 : 1;
 
 	return TRUE;
