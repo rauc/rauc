@@ -799,6 +799,8 @@ void r_context_clean(void)
 
 		g_clear_pointer(&context->config, free_config);
 
+		g_clear_pointer(&context->system_status, r_system_status_free);
+
 		g_clear_pointer(&context, g_free);
 	}
 }

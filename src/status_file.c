@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 
@@ -308,9 +309,64 @@ free:
 	return res;
 }
 
+/**
+ * Returns a new GKeyFile optionally pre-populated form a (shared) key file.
+ *
+ * With keep_prefix, one can define groups to keep in the returned GKeyFile.
+ * All other groups will be removed and can be newly populated.
+ *
+ * @param path Path to key file
+ * @param keep_prefix prefix for groups to keep when loading the file
+ * @param error Return location for a GError, or NULL
+ *
+ * @return newly-allocated GKeyFile or NULL on error
+ */
+static GKeyFile* key_file_init_from_shared_status_file(const gchar *keep_prefix, GError **error)
+{
+	g_autoptr(GKeyFile) key_file = NULL;
+	g_auto(GStrv) groups = NULL;
+	GError *ierror = NULL;
+
+	key_file = g_key_file_new();
+
+	if (!g_key_file_load_from_file(key_file, r_context()->config->statusfile_path, G_KEY_FILE_NONE, &ierror)) {
+		if (g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_NOENT)) {
+			g_info("Status file does not exist yet, ignore loading");
+			g_clear_error(&ierror);
+		} else {
+			g_autofree gchar *broken_file = g_strconcat(r_context()->config->statusfile_path, ".broken", NULL);
+			/* Allow recovering from broken status file */
+			g_warning("Failed to load status file: %s\n", ierror->message);
+			g_warning("Will move status file to %s and re-create it.", broken_file);
+			g_clear_error(&ierror);
+			if (g_rename(r_context()->config->statusfile_path, broken_file) != 0) {
+				int err = errno;
+				g_warning("Renaming %s to %s failed: %s", r_context()->config->statusfile_path, broken_file, g_strerror(err));
+			}
+			g_clear_pointer(&key_file, g_key_file_free);
+			key_file = g_key_file_new();
+		}
+	}
+
+	groups = g_key_file_get_groups(key_file, NULL);
+	for (gchar **group = groups; *group != NULL; group++) {
+		if (!g_str_has_prefix(*group, keep_prefix))
+			continue;
+
+		if (!g_key_file_remove_group(key_file, *group, &ierror)) {
+			g_propagate_error(error, ierror);
+			return NULL;
+		}
+	}
+
+	return g_steal_pointer(&key_file);
+}
+
+/* Updates slot status information in status file while leaving system status
+ * information untouched */
 static gboolean save_slot_status_globally(GError **error)
 {
-	g_autoptr(GKeyFile) key_file = g_key_file_new();
+	g_autoptr(GKeyFile) key_file = NULL;
 	GError *ierror = NULL;
 	GHashTableIter iter;
 	RaucSlot *slot;
@@ -320,6 +376,12 @@ static gboolean save_slot_status_globally(GError **error)
 	g_return_val_if_fail(r_context()->config->statusfile_path, FALSE);
 
 	g_debug("Saving global slot status");
+
+	key_file = key_file_init_from_shared_status_file(RAUC_SLOT_PREFIX ".", &ierror);
+	if (!key_file) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
 
 	/* Save all slot status information */
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
@@ -351,4 +413,60 @@ gboolean r_slot_status_save(RaucSlot *dest_slot, GError **error)
 		return save_slot_status_locally(dest_slot, error);
 	else
 		return save_slot_status_globally(error);
+}
+
+gboolean r_system_status_load(const gchar *filename, RSystemStatus *status, GError **error)
+{
+	g_autoptr(GKeyFile) key_file = NULL;
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(filename, FALSE);
+	g_return_val_if_fail(status, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	key_file = g_key_file_new();
+
+	if (!g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	status->boot_id = g_key_file_get_string(key_file, "system", "boot-id", NULL);
+
+	return TRUE;
+}
+
+gboolean r_system_status_save(GError **error)
+{
+	g_autoptr(GKeyFile) key_file = NULL;
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* noop if per-slot status file is used */
+	if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") == 0) {
+		g_message("Not saving system status since per-slot status file is used");
+		return TRUE;
+	}
+
+	key_file = key_file_init_from_shared_status_file("system", &ierror);
+	if (!key_file) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	g_key_file_set_string(key_file, "system", "boot-id", r_context()->system_status->boot_id);
+
+	if (!g_key_file_save_to_file(key_file, r_context()->config->statusfile_path, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+void r_system_status_free(RSystemStatus *state)
+{
+	g_free(state->boot_id);
+	g_free(state);
 }

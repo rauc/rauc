@@ -59,3 +59,40 @@ void r_slot_status_load(RaucSlot *dest_slot);
  */
 gboolean r_slot_status_save(RaucSlot *dest_slot, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
+
+typedef struct {
+	gchar *boot_id;
+} RSystemStatus;
+
+/**
+ * Load system status from central status file.
+ *
+ * Note that filename and status are passed explicitly here since the method is
+ * designed to be called during context setup where we cannot access context,
+ * yet.
+ *
+ * @param filename File name to load status from
+ * @param status RSystemStatus to update from file
+ * @param[out] error Return location for a GError, or NULL
+ *
+ * @return
+ */
+gboolean r_system_status_load(const gchar *filename, RSystemStatus *status, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Save system status to central status file.
+ *
+ * @param[out] error Return location for a GError, or NULL
+ */
+gboolean r_system_status_save(GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Free system status.
+ *
+ * @param status RSystemStatus to free
+ */
+void r_system_status_free(RSystemStatus *status);
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(RSystemStatus, r_system_status_free);
