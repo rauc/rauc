@@ -199,6 +199,16 @@ if systemdunitdir == ''
   endif
 endif
 
+libdir = get_option('libdir')
+
+systemdcatalogdir = get_option('systemdcatalogdir')
+if systemdcatalogdir == ''
+  systemdcatalogdir = libdir / 'systemd' / 'catalog'
+  if systemddep.found()
+    systemdcatalogdir = systemddep.get_variable(pkgconfig : 'catalogdir')
+  endif
+endif
+
 datadir = get_option('datadir')
 
 dbussystemservicedir = get_option('dbussystemservicedir')
