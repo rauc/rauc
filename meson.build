@@ -109,6 +109,7 @@ sources_rauc = files([
   'src/crypt.c',
   'src/dm.c',
   'src/emmc.c',
+  'src/event_log.c',
   'src/hash_index.c',
   'src/install.c',
   'src/manifest.c',
