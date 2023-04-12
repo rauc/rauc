@@ -214,7 +214,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @param slots GHashTable of system slots
  * @param class name of class to find all slots for
  *
- * @return list of pointers to all memers of slots hash table that are of
+ * @return list of pointers to all members of slots hash table that are of
  *         selected class.
  */
 GList* r_slot_get_all_of_class(GHashTable *slots, const gchar* class)
@@ -226,7 +226,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @param slots GHashTable of system slots
  * @param parent Slot to find children for
  *
- * @return list of pointers to all memers of slots hash table that are children
+ * @return list of pointers to all members of slots hash table that are children
  *         of given slot.
  */
 GList* r_slot_get_all_children(GHashTable *slots, RaucSlot *parent)
