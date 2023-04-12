@@ -1399,14 +1399,14 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 	slotclasses = r_slot_get_root_classes(status->slots);
 
 	for (gchar **cls = slotclasses; *cls != NULL; cls++) {
-		GList *slots = NULL;
+		g_autoptr(GList) slots = NULL;
 
 		slots = r_slot_get_all_of_class(status->slots, *cls);
 
 		for (GList *l = slots; l != NULL; l = l->next) {
 			RaucSlot *xslot = l->data;
 
-			GList *children = NULL;
+			g_autoptr(GList) children = NULL;
 
 			r_string_append_slot(text, xslot, status);
 
