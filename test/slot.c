@@ -12,7 +12,7 @@ static void test_slot_get_all_children(void)
 	RaucSlot *datafs_2 = NULL;
 	RaucSlot *somefs_0 = NULL;
 	RaucSlot *somefs_1 = NULL;
-	GList *child_slots = NULL;
+	g_autoptr(GList) child_slots = NULL;
 
 	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
 
@@ -63,7 +63,7 @@ static void test_slot_get_all_of_class(void)
 	RaucSlot *rootfs_0 = NULL;
 	RaucSlot *datafs_0 = NULL;
 	RaucSlot *datafs_1 = NULL;
-	GList *class_slots = NULL;
+	g_autoptr(GList) class_slots = NULL;
 
 	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
 
