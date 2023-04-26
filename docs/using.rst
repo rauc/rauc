@@ -276,8 +276,8 @@ The system-info handler is called after loading the configuration file. This
 way it can collect additional variables from the system, like the system's
 serial number.
 
-The handler script must return a system serial number by echoing
-`RAUC_SYSTEM_SERIAL=<value>` to standard out.
+The handler script can return variables by echoing ``<VARIABLE-NAME>=<value>``
+to stdout, like ``RAUC_SYSTEM_SERIAL`` or ``RAUC_SYSTEM_VARIANT``.
 
 .. _sec-hooks:
 

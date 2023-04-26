@@ -364,8 +364,10 @@ See details about using handlers in `Custom Handlers (Interface)`_.
   key value pairs ``KEY=value``.
   The following variables are supported:
 
-  ``RAUC_SYSTEM_SERIAL``
+  :``RAUC_SYSTEM_SERIAL``:
     Serial number of the individual board
+  :``RAUC_SYSTEM_VARIANT``:
+    Sets the RAUC system variant
 
 ``pre-install``
   This handler will be called right before RAUC starts with the installation.
