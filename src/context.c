@@ -220,6 +220,43 @@ static gchar* get_variant_from_file(const gchar* filename, GError **error)
 	return contents;
 }
 
+static gboolean get_system_info_from_handler(GError **error)
+{
+	g_autoptr(GHashTable) vars = NULL;
+	GError *ierror = NULL;
+	GHashTableIter iter;
+	gchar *key = NULL;
+	gchar *value = NULL;
+
+	if (!g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT,  "System info handler script/binary '%s' not found.", context->config->systeminfo_handler);
+		return FALSE;
+	}
+
+	vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+
+	g_message("Getting Systeminfo: %s", context->config->systeminfo_handler);
+	if (!launch_and_wait_variables_handler(context->config->systeminfo_handler, vars, &ierror)) {
+		g_propagate_prefixed_error(error, ierror, "Failed to read system-info variables: ");
+		return FALSE;
+	}
+
+	g_hash_table_iter_init(&iter, vars);
+	while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
+		if (g_strcmp0(key, "RAUC_SYSTEM_SERIAL") == 0) {
+			context->system_serial = g_strdup(value);
+		} else if (g_strcmp0(key, "RAUC_SYSTEM_VARIANT") == 0) {
+			/* set variant (overrides possible previous value) */
+			g_free(context->config->system_variant);
+			context->config->system_variant = g_strdup(value);
+		} else {
+			g_message("Ignoring unknown variable %s", key);
+		}
+	}
+
+	return TRUE;
+}
+
 /**
  * Configures options that are only relevant when running as update service on
  * the target device.
@@ -262,32 +299,10 @@ static gboolean r_context_configure_target(GError **error)
 		context->config->system_variant = variant;
 	}
 
-	if (context->config->systeminfo_handler &&
-	    g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
-		g_autoptr(GHashTable) vars = NULL;
-		GHashTableIter iter;
-		gchar *key = NULL;
-		gchar *value = NULL;
-
-		vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
-
-		g_message("Getting Systeminfo: %s", context->config->systeminfo_handler);
-		if (!launch_and_wait_variables_handler(context->config->systeminfo_handler, vars, &ierror)) {
-			g_propagate_prefixed_error(error, ierror, "Failed to read system-info variables: ");
+	if (context->config->systeminfo_handler) {
+		if (!get_system_info_from_handler(&ierror)) {
+			g_propagate_error(error, ierror);
 			return FALSE;
-		}
-
-		g_hash_table_iter_init(&iter, vars);
-		while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
-			if (g_strcmp0(key, "RAUC_SYSTEM_SERIAL") == 0) {
-				context->system_serial = g_strdup(value);
-			} else if (g_strcmp0(key, "RAUC_SYSTEM_VARIANT") == 0) {
-				/* set variant (overrides possible previous value) */
-				g_free(context->config->system_variant);
-				context->config->system_variant = g_strdup(value);
-			} else {
-				g_message("Ignoring unknown variable %s", key);
-			}
 		}
 	}
 
