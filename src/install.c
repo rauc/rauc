@@ -1158,6 +1158,25 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	return TRUE;
 }
 
+static gchar **assemble_info_headers(RaucInstallArgs *args)
+{
+	GPtrArray *headers = g_ptr_array_new_full(1, g_free);
+
+	g_return_val_if_fail(args, NULL);
+
+	/* Add static system information */
+	g_ptr_array_add(headers, g_strdup_printf("X-RAUC-BOOT-ID: %s", r_context()->boot_id));
+	g_ptr_array_add(headers, g_strdup_printf("X-RAUC-MACHINE-ID: %s", r_context()->machine_id));
+	g_ptr_array_add(headers, g_strdup_printf("X-RAUC-SERIAL: %s", r_context()->system_serial));
+	g_ptr_array_add(headers, g_strdup_printf("X-RAUC-VARIANT: %s", r_context()->config->system_variant));
+	/* Add per-installation information */
+	g_ptr_array_add(headers, g_strdup_printf("X-RAUC-TRANSACTION-ID: %s", args->transaction));
+
+	g_ptr_array_add(headers, NULL);
+
+	return (gchar**) g_ptr_array_free(headers, FALSE);
+}
+
 gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 {
 	const gchar* bundlefile = args->name;
@@ -1188,6 +1207,8 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 
 	// TODO: mount info in context ?
 	install_args_update(args, "Checking and mounting bundle...");
+
+	args->access_args.http_info_headers = assemble_info_headers(args);
 
 	res = check_bundle(bundlefile, &bundle, CHECK_BUNDLE_DEFAULT, &args->access_args, &ierror);
 	if (!res) {
