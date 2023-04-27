@@ -1175,9 +1175,32 @@ static gchar* get_uptime(void)
 	return g_strdup(uptime[0]);
 }
 
+/* If the input key starts with RAUC_HTTP_, it returns a valid HTTP header
+ * string with 'RAUC_HTTP_' replaced by 'RAUC-'.
+ * If the input string does not start with RAUC_HTTP_, NULL is returned.
+ */
+static gchar *system_info_to_header(const gchar *key, const gchar *value)
+{
+	g_autofree gchar *header_key = NULL;
+
+	g_return_val_if_fail(key, NULL);
+	g_return_val_if_fail(value, NULL);
+
+	if (!g_str_has_prefix(key, "RAUC_HTTP_"))
+		return NULL;
+
+	header_key = g_strdup(key + strlen("RAUC_HTTP_"));
+	for (size_t i = 0; i < strlen(header_key); i++) {
+		if (header_key[i] == '_')
+			header_key[i] = '-';
+	}
+
+	return g_strdup_printf("RAUC-%s: %s", header_key, value);
+}
+
 static gchar **assemble_info_headers(RaucInstallArgs *args)
 {
-	GPtrArray *headers = g_ptr_array_new_full(1, g_free);
+	GPtrArray *headers = g_ptr_array_new_with_free_func(g_free);
 
 	g_return_val_if_fail(args, NULL);
 
@@ -1194,6 +1217,20 @@ static gchar **assemble_info_headers(RaucInstallArgs *args)
 		g_ptr_array_add(headers, g_strdup_printf("X-RAUC-UPTIME: %s", uptime));
 	}
 
+no_std_headers:
+
+	if (r_context()->system_info) {
+		GHashTableIter iter;
+		gchar *key = NULL;
+		gchar *value = NULL;
+
+		g_hash_table_iter_init(&iter, r_context()->system_info);
+		while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
+			gchar *header = system_info_to_header(key, value);
+			if (header)
+				g_ptr_array_add(headers, header);
+		}
+	}
 	g_ptr_array_add(headers, NULL);
 
 	return (gchar**) g_ptr_array_free(headers, FALSE);
