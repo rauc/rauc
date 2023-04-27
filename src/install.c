@@ -549,7 +549,7 @@ static gboolean verify_compatible(RaucInstallArgs *args, RaucManifest *manifest,
 	}
 }
 
-static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_source, RaucManifest *manifest, GHashTable *target_group)
+static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest, GHashTable *target_group)
 {
 	GHashTableIter iter;
 	RaucSlot *slot;
@@ -557,12 +557,15 @@ static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_sou
 	g_autoptr(GString) slots = g_string_sized_new(128);
 	g_autoptr(GString) target_slots = g_string_sized_new(128);
 
-	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_CONFIG", r_context()->configpath, TRUE);
-	g_subprocess_launcher_setenv(launcher, "RAUC_CURRENT_BOOTNAME", r_context()->bootslot, TRUE);
-	g_subprocess_launcher_setenv(launcher, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
-	g_subprocess_launcher_setenv(launcher, "RAUC_BUNDLE_MOUNT_POINT", update_source, TRUE);
+	/* get current process environment to use as base for appending */
+	gchar **envp = g_get_environ();
+	
+	envp = g_environ_setenv(envp, "RAUC_SYSTEM_CONFIG", r_context()->configpath, TRUE);
+	envp = g_environ_setenv(envp, "RAUC_CURRENT_BOOTNAME", r_context()->bootslot, TRUE);
+	envp = g_environ_setenv(envp, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
+	envp = g_environ_setenv(envp, "RAUC_BUNDLE_MOUNT_POINT", update_source, TRUE);
 	/* Deprecated, included for backwards compatibility: */
-	g_subprocess_launcher_setenv(launcher, "RAUC_UPDATE_SOURCE", update_source, TRUE);
+	envp = g_environ_setenv(envp, "RAUC_UPDATE_SOURCE", update_source, TRUE);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
@@ -587,15 +590,15 @@ static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_sou
 				RaucImage *img = l->data;
 				if (g_str_equal(slot->sclass, img->slotclass)) {
 					varname = g_strdup_printf("RAUC_IMAGE_NAME_%i", slotcnt);
-					g_subprocess_launcher_setenv(launcher, varname, img->filename ?: "", TRUE);
+					envp = g_environ_setenv(envp, varname, img->filename ?: "", TRUE);
 					g_clear_pointer(&varname, g_free);
 
 					varname = g_strdup_printf("RAUC_IMAGE_DIGEST_%i", slotcnt);
-					g_subprocess_launcher_setenv(launcher, varname, img->checksum.digest ?: "", TRUE);
+					envp = g_environ_setenv(envp, varname, img->checksum.digest ?: "", TRUE);
 					g_clear_pointer(&varname, g_free);
 
 					varname = g_strdup_printf("RAUC_IMAGE_CLASS_%i", slotcnt);
-					g_subprocess_launcher_setenv(launcher, varname, img->slotclass, TRUE);
+					envp = g_environ_setenv(envp, varname, img->slotclass, TRUE);
 					g_clear_pointer(&varname, g_free);
 
 					break;
@@ -608,35 +611,37 @@ static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_sou
 		}
 
 		varname = g_strdup_printf("RAUC_SLOT_NAME_%i", slotcnt);
-		g_subprocess_launcher_setenv(launcher, varname, slot->name, TRUE);
+		envp = g_environ_setenv(envp, varname, slot->name, TRUE);
 		g_clear_pointer(&varname, g_free);
 
 		varname = g_strdup_printf("RAUC_SLOT_CLASS_%i", slotcnt);
-		g_subprocess_launcher_setenv(launcher, varname, slot->sclass, TRUE);
+		envp = g_environ_setenv(envp, varname, slot->sclass, TRUE);
 		g_clear_pointer(&varname, g_free);
 
 		varname = g_strdup_printf("RAUC_SLOT_TYPE_%i", slotcnt);
-		g_subprocess_launcher_setenv(launcher, varname, slot->type, TRUE);
+		envp = g_environ_setenv(envp, varname, slot->type, TRUE);
 		g_clear_pointer(&varname, g_free);
 
 		varname = g_strdup_printf("RAUC_SLOT_DEVICE_%i", slotcnt);
-		g_subprocess_launcher_setenv(launcher, varname, slot->device, TRUE);
+		envp = g_environ_setenv(envp, varname, slot->device, TRUE);
 		g_clear_pointer(&varname, g_free);
 
 		varname = g_strdup_printf("RAUC_SLOT_BOOTNAME_%i", slotcnt);
-		g_subprocess_launcher_setenv(launcher, varname, slot->bootname ? slot->bootname : "", TRUE);
+		envp = g_environ_setenv(envp, varname, slot->bootname ? slot->bootname : "", TRUE);
 		g_clear_pointer(&varname, g_free);
 
 		varname = g_strdup_printf("RAUC_SLOT_PARENT_%i", slotcnt);
-		g_subprocess_launcher_setenv(launcher, varname, slot->parent ? slot->parent->name : "", TRUE);
+		envp = g_environ_setenv(envp, varname, slot->parent ? slot->parent->name : "", TRUE);
 		g_clear_pointer(&varname, g_free);
 	}
 
-	g_subprocess_launcher_setenv(launcher, "RAUC_SLOTS", slots->str, TRUE);
-	g_subprocess_launcher_setenv(launcher, "RAUC_TARGET_SLOTS", target_slots->str, TRUE);
+	envp = g_environ_setenv(envp, "RAUC_SLOTS", slots->str, TRUE);
+	envp = g_environ_setenv(envp, "RAUC_TARGET_SLOTS", target_slots->str, TRUE);
+
+	return envp;
 }
 
-static gboolean launch_and_wait_handler(RaucInstallArgs *args, gchar *update_source, gchar *handler_name, RaucManifest *manifest, gchar **handler_argv, GHashTable *target_group, GError **error)
+static gboolean launch_and_wait_handler(RaucInstallArgs *args, gchar *handler_name, gchar **handler_argv, gchar **override_env, GError **error)
 {
 	g_autoptr(GSubprocessLauncher) handlelaunch = NULL;
 	g_autoptr(GSubprocess) handleproc = NULL;
@@ -653,7 +658,8 @@ static gboolean launch_and_wait_handler(RaucInstallArgs *args, gchar *update_sou
 
 	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE);
 
-	prepare_environment(handlelaunch, update_source, manifest, target_group);
+	if (override_env)
+		g_subprocess_launcher_set_environ(handlelaunch, override_env);
 
 	args_array = g_ptr_array_new();
 	g_ptr_array_add(args_array, handler_name);
@@ -779,6 +785,7 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bun
 	GError *ierror = NULL;
 	g_autofree gchar* handler_name = NULL;
 	g_autoptr(GPtrArray) handler_args = NULL;
+	g_auto(GStrv) env = NULL;
 	gboolean res = FALSE;
 
 	r_context_begin_step_weighted("launch_and_wait_custom_handler", "Launching update handler", 0, 6);
@@ -819,7 +826,8 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bun
 	}
 	g_ptr_array_add(handler_args, NULL);
 
-	res = launch_and_wait_handler(args, bundledir, handler_name, manifest, (gchar**) handler_args->pdata, target_group, error);
+	env = prepare_environment(bundledir, manifest, target_group);
+	res = launch_and_wait_handler(args, handler_name, (gchar**) handler_args->pdata, env, error);
 
 out:
 	r_context_end_step("launch_and_wait_custom_handler", res);
@@ -1110,6 +1118,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	gboolean res = FALSE;
 	g_autoptr(RaucBundle) bundle = NULL;
 	GHashTable *target_group;
+	g_auto(GStrv) handler_env = NULL;
 
 	g_assert_nonnull(bundlefile);
 	g_assert_null(r_context()->install_info->mounted_bundle);
@@ -1158,9 +1167,11 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		goto umount;
 	}
 
+	handler_env = prepare_environment(bundle->mount_point, bundle->manifest, target_group);
+
 	if (r_context()->config->preinstall_handler) {
 		g_message("Starting pre install handler: %s", r_context()->config->preinstall_handler);
-		res = launch_and_wait_handler(args, bundle->mount_point, r_context()->config->preinstall_handler, bundle->manifest, NULL, target_group, &ierror);
+		res = launch_and_wait_handler(args, r_context()->config->preinstall_handler, NULL, handler_env, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror, "Pre-install handler error: ");
 			goto umount;
@@ -1182,7 +1193,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 
 	if (r_context()->config->postinstall_handler) {
 		g_message("Starting post install handler: %s", r_context()->config->postinstall_handler);
-		res = launch_and_wait_handler(args, bundle->mount_point, r_context()->config->postinstall_handler, bundle->manifest, NULL, target_group, &ierror);
+		res = launch_and_wait_handler(args, r_context()->config->postinstall_handler, NULL, handler_env, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror, "Post-install handler error: ");
 			goto umount;
