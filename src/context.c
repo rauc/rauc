@@ -110,30 +110,21 @@ static gchar* get_cmdline_bootname(void)
 	return bootname;
 }
 
-static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTable *variables, GError **error)
+static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTable **variables, GError **error)
 {
 	g_autoptr(GSubprocessLauncher) handlelaunch = NULL;
 	g_autoptr(GSubprocess) handleproc = NULL;
 	GError *ierror = NULL;
-	GHashTableIter iter;
-	gchar *key = NULL;
-	gchar *value = NULL;
 	g_autoptr(GDataInputStream) datainstream = NULL;
 	GInputStream *instream;
+	g_autoptr(GHashTable) vars = NULL;
 	gchar* outline;
 
 	g_return_val_if_fail(handler_name, FALSE);
-	g_return_val_if_fail(variables, FALSE);
+	g_return_val_if_fail(variables && *variables == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE);
-
-	/* we copy the variables from the hashtable and add them to the
-	   subprocess environment */
-	g_hash_table_iter_init(&iter, variables);
-	while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
-		g_subprocess_launcher_setenv(handlelaunch, g_strdup(key), g_strdup(value), 1);
-	}
 
 	handleproc = g_subprocess_launcher_spawn(
 			handlelaunch,
@@ -149,6 +140,8 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 	instream = g_subprocess_get_stdout_pipe(handleproc);
 	datainstream = g_data_input_stream_new(instream);
 
+	vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+
 	do {
 		outline = g_data_input_stream_read_line(datainstream, NULL, NULL, NULL);
 		if (!outline)
@@ -162,7 +155,7 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 				continue;
 			}
 
-			g_hash_table_insert(variables, g_strdup(split[0]), g_strdup(split[1]));
+			g_hash_table_insert(vars, g_strdup(split[0]), g_strdup(split[1]));
 		}
 
 		g_free(outline);
@@ -172,6 +165,8 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
+
+	*variables = g_steal_pointer(&vars);
 
 	return TRUE;
 }
@@ -233,10 +228,8 @@ static gboolean get_system_info_from_handler(GError **error)
 		return FALSE;
 	}
 
-	vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
-
 	g_message("Getting Systeminfo: %s", context->config->systeminfo_handler);
-	if (!launch_and_wait_variables_handler(context->config->systeminfo_handler, vars, &ierror)) {
+	if (!launch_and_wait_variables_handler(context->config->systeminfo_handler, &vars, &ierror)) {
 		g_propagate_prefixed_error(error, ierror, "Failed to read system-info variables: ");
 		return FALSE;
 	}
