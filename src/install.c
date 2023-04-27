@@ -636,7 +636,7 @@ static void prepare_environment(GSubprocessLauncher *launcher, gchar *update_sou
 	g_subprocess_launcher_setenv(launcher, "RAUC_TARGET_SLOTS", target_slots->str, TRUE);
 }
 
-static gboolean launch_and_wait_handler(RaucInstallArgs *args, gchar *update_source, gchar *handler_name, RaucManifest *manifest, GHashTable *target_group, GError **error)
+static gboolean launch_and_wait_handler(RaucInstallArgs *args, gchar *update_source, gchar *handler_name, RaucManifest *manifest, const gchar *handler_args, GHashTable *target_group, GError **error)
 {
 	g_autoptr(GSubprocessLauncher) handlelaunch = NULL;
 	g_autoptr(GSubprocess) handleproc = NULL;
@@ -645,23 +645,15 @@ static gboolean launch_and_wait_handler(RaucInstallArgs *args, gchar *update_sou
 	GInputStream *instream = NULL;
 	g_autoptr(GDataInputStream) datainstream = NULL;
 	gchar *outline;
-	g_autoptr(GString) handler_args = NULL;
 
 	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE);
 
 	prepare_environment(handlelaunch, update_source, manifest, target_group);
 
-	handler_args = g_string_new(manifest->handler_args);
-	if (r_context()->handlerextra) {
-		if (handler_args->len)
-			g_string_append_c(handler_args, ' ');
-		g_string_append(handler_args, r_context()->handlerextra);
-	}
-
 	handleproc = g_subprocess_launcher_spawn(
 			handlelaunch, &ierror,
 			handler_name,
-			handler_args->str,
+			handler_args,
 			NULL);
 	if (handleproc == NULL) {
 		g_propagate_error(error, ierror);
@@ -777,6 +769,7 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bun
 {
 	GError *ierror = NULL;
 	g_autofree gchar* handler_name = NULL;
+	g_autoptr(GString) handler_args = NULL;
 	gboolean res = FALSE;
 
 	r_context_begin_step_weighted("launch_and_wait_custom_handler", "Launching update handler", 0, 6);
@@ -796,8 +789,14 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bun
 	}
 
 	handler_name = g_build_filename(bundledir, manifest->handler_name, NULL);
+	handler_args = g_string_new(manifest->handler_args);
+	if (r_context()->handlerextra) {
+		if (handler_args->len)
+			g_string_append_c(handler_args, ' ');
+		g_string_append(handler_args, r_context()->handlerextra);
+	}
 
-	res = launch_and_wait_handler(args, bundledir, handler_name, manifest, target_group, error);
+	res = launch_and_wait_handler(args, bundledir, handler_name, manifest, handler_args->str, target_group, error);
 
 out:
 	r_context_end_step("launch_and_wait_custom_handler", res);
@@ -1138,7 +1137,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 
 	if (r_context()->config->preinstall_handler) {
 		g_message("Starting pre install handler: %s", r_context()->config->preinstall_handler);
-		res = launch_and_wait_handler(args, bundle->mount_point, r_context()->config->preinstall_handler, bundle->manifest, target_group, &ierror);
+		res = launch_and_wait_handler(args, bundle->mount_point, r_context()->config->preinstall_handler, bundle->manifest, NULL, target_group, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror, "Pre-install handler error: ");
 			goto umount;
@@ -1160,7 +1159,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 
 	if (r_context()->config->postinstall_handler) {
 		g_message("Starting post install handler: %s", r_context()->config->postinstall_handler);
-		res = launch_and_wait_handler(args, bundle->mount_point, r_context()->config->postinstall_handler, bundle->manifest, target_group, &ierror);
+		res = launch_and_wait_handler(args, bundle->mount_point, r_context()->config->postinstall_handler, bundle->manifest, NULL, target_group, &ierror);
 		if (!res) {
 			g_propagate_prefixed_error(error, ierror, "Post-install handler error: ");
 			goto umount;
