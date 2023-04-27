@@ -51,6 +51,7 @@ typedef struct {
 	gchar *bootslot;
 
 	gchar *system_serial;
+	GHashTable *system_info; /* key/values of system information */
 
 	/* optional custom handler extra arguments */
 	gchar *handlerextra;
