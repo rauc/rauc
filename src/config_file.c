@@ -4,6 +4,7 @@
 #include "bootchooser.h"
 #include "config_file.h"
 #include "context.h"
+#include "install.h"
 #include "manifest.h"
 #include "mount.h"
 #include "utils.h"
@@ -394,6 +395,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	gboolean dtbvariant;
 	g_autofree gchar *variant_data = NULL;
 	g_autofree gchar *bundle_formats = NULL;
+	gsize entries;
 
 	g_return_val_if_fail(filename, FALSE);
 	g_return_val_if_fail(config && *config == NULL, FALSE);
@@ -771,6 +773,23 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	c->streaming_tls_cert = key_file_consume_string(key_file, "streaming", "tls-cert", NULL);
 	c->streaming_tls_key = key_file_consume_string(key_file, "streaming", "tls-key", NULL);
 	c->streaming_tls_ca = key_file_consume_string(key_file, "streaming", "tls-ca", NULL);
+	c->enabled_headers = g_key_file_get_string_list(key_file, "streaming", "send-headers", &entries, &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	} else {
+		for (gsize j = 0; j < entries; j++) {
+			if (!r_install_is_supported_http_header(c->enabled_headers[j])) {
+				g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+						"Automatic HTTP header '%s' not supported", c->enabled_headers[j]);
+				return FALSE;
+			}
+		}
+	}
+	g_key_file_remove_key(key_file, "streaming", "send-headers", NULL);
 	if (!check_remaining_keys(key_file, "streaming", &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -873,6 +892,7 @@ void free_config(RaucConfig *config)
 	g_free(config->streaming_tls_cert);
 	g_free(config->streaming_tls_key);
 	g_free(config->streaming_tls_ca);
+	g_strfreev(config->enabled_headers);
 	g_free(config->encryption_key);
 	g_free(config->encryption_cert);
 	g_clear_pointer(&config->slots, g_hash_table_destroy);

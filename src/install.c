@@ -1204,17 +1204,27 @@ static gchar **assemble_info_headers(RaucInstallArgs *args)
 
 	g_return_val_if_fail(args, NULL);
 
-	/* Add static system information */
-	g_ptr_array_add(headers, g_strdup_printf("X-RAUC-BOOT-ID: %s", r_context()->boot_id));
-	g_ptr_array_add(headers, g_strdup_printf("X-RAUC-MACHINE-ID: %s", r_context()->machine_id));
-	g_ptr_array_add(headers, g_strdup_printf("X-RAUC-SERIAL: %s", r_context()->system_serial));
-	g_ptr_array_add(headers, g_strdup_printf("X-RAUC-VARIANT: %s", r_context()->config->system_variant));
-	/* Add per-installation information */
-	g_ptr_array_add(headers, g_strdup_printf("X-RAUC-TRANSACTION-ID: %s", args->transaction));
-	/* Add live information */
-	{
-		g_autofree gchar *uptime = get_uptime();
-		g_ptr_array_add(headers, g_strdup_printf("X-RAUC-UPTIME: %s", uptime));
+	if (!r_context()->config->enabled_headers)
+		goto no_std_headers;
+
+	for (gchar **header = r_context()->config->enabled_headers; *header; header++) {
+		/* Add static system information */
+		if (g_strcmp0(*header, "boot-id") == 0)
+			g_ptr_array_add(headers, g_strdup_printf("RAUC-Boot-ID: %s", r_context()->boot_id));
+		if (g_strcmp0(*header, "machine-id") == 0)
+			g_ptr_array_add(headers, g_strdup_printf("RAUC-Machine-ID: %s", r_context()->machine_id));
+		if (g_strcmp0(*header, "serial") == 0)
+			g_ptr_array_add(headers, g_strdup_printf("RAUC-Serial: %s", r_context()->system_serial));
+		if (g_strcmp0(*header, "variant") == 0)
+			g_ptr_array_add(headers, g_strdup_printf("RAUC-Variant: %s", r_context()->config->system_variant));
+		/* Add per-installation information */
+		if (g_strcmp0(*header, "transaction-id") == 0)
+			g_ptr_array_add(headers, g_strdup_printf("RAUC-Transaction-ID: %s", args->transaction));
+		/* Add live information */
+		if (g_strcmp0(*header, "uptime") == 0) {
+			g_autofree gchar *uptime = get_uptime();
+			g_ptr_array_add(headers, g_strdup_printf("RAUC-Uptime: %s", uptime));
+		}
 	}
 
 no_std_headers:
@@ -1423,4 +1433,11 @@ gboolean install_run(RaucInstallArgs *args)
 		return FALSE;
 
 	return TRUE;
+}
+
+static const gchar *supported_http_headers[] = {"boot-id", "transaction-id", "machine-id", "serial", "variant", "uptime", NULL};
+
+gboolean r_install_is_supported_http_header(const gchar *header)
+{
+	return g_strv_contains(supported_http_headers, header);
 }

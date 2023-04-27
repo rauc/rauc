@@ -73,6 +73,8 @@ typedef struct {
 
 	gchar *systeminfo_handler;
 
+	gchar **enabled_headers; /* standard HTTP headers to send */
+
 	/* streaming */
 	gchar *streaming_sandbox_user;
 	gchar *streaming_tls_cert;

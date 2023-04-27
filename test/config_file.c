@@ -1261,6 +1261,57 @@ use-desync=true";
 	g_assert_true(config->use_desync);
 }
 
+static void config_file_send_headers(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[streaming]\n\
+send-headers=boot-id;uptime";
+
+	pathname = write_tmp_file(fixture->tmpdir, "send_headers.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(config);
+	g_assert_cmpint(g_strv_length(config->enabled_headers), ==, 2);
+}
+
+static void config_file_send_headers_invalid_item(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[streaming]\n\
+send-headers=transaction-id;invalid-key";
+
+	pathname = write_tmp_file(fixture->tmpdir, "send_headers.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE);
+	g_assert_false(res);
+	g_assert_null(config);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -1359,6 +1410,12 @@ int main(int argc, char *argv[])
 	g_test_add_func("/config-file/parse-bundle-formats", config_file_test_parse_bundle_formats);
 	g_test_add("/config-file/use-desync", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_use_desync_set_to_true,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/send-headers", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_send_headers,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/send-headers-invalid-value", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_send_headers_invalid_item,
 			config_file_fixture_tear_down);
 
 	return g_test_run();

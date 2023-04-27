@@ -156,3 +156,13 @@ void r_image_install_plan_free(gpointer value);
  */
 GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target_group, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Checks if header is supported.
+ *
+ * @param header Header config name to check
+ *
+ * @return TRUE if is supported, FALSE otherwise
+ */
+gboolean r_install_is_supported_http_header(const gchar *header)
+G_GNUC_WARN_UNUSED_RESULT;
