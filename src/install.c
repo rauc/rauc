@@ -549,6 +549,17 @@ static gboolean verify_compatible(RaucInstallArgs *args, RaucManifest *manifest,
 	}
 }
 
+static gchar **add_system_environment(gchar **envp)
+{
+	g_return_val_if_fail(envp && *envp == NULL, NULL);
+
+	envp = g_environ_setenv(envp, "RAUC_SYSTEM_CONFIG", r_context()->configpath, TRUE);
+	envp = g_environ_setenv(envp, "RAUC_CURRENT_BOOTNAME", r_context()->bootslot, TRUE);
+	envp = g_environ_setenv(envp, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
+
+	return envp;
+}
+
 static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest, GHashTable *target_group)
 {
 	GHashTableIter iter;
@@ -559,10 +570,8 @@ static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest,
 
 	/* get current process environment to use as base for appending */
 	gchar **envp = g_get_environ();
-	
-	envp = g_environ_setenv(envp, "RAUC_SYSTEM_CONFIG", r_context()->configpath, TRUE);
-	envp = g_environ_setenv(envp, "RAUC_CURRENT_BOOTNAME", r_context()->bootslot, TRUE);
-	envp = g_environ_setenv(envp, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
+
+	envp = add_system_environment(envp);
 	envp = g_environ_setenv(envp, "RAUC_BUNDLE_MOUNT_POINT", update_source, TRUE);
 	/* Deprecated, included for backwards compatibility: */
 	envp = g_environ_setenv(envp, "RAUC_UPDATE_SOURCE", update_source, TRUE);
