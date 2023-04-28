@@ -110,6 +110,16 @@ static gchar* get_cmdline_bootname(void)
 	return bootname;
 }
 
+/**
+ * Launches a handler and obtains variables from output by looking for
+ * 'RAUC_<SOMETHING>=value' lines to put them into a key/value store (GHashTable).
+ *
+ * @param handler_name name / path of handler script to start
+ * @param[out] variables Return location for a GHashTable table with obtained key/value-pairs
+ * @param[out] error Return location for a GError, or NULL
+ *
+ * @return TRUE on success, otherwise FALSE
+ */
 static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTable **variables, GError **error)
 {
 	g_autoptr(GSubprocessLauncher) handlelaunch = NULL;
@@ -151,6 +161,7 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 			g_auto(GStrv) split = g_strsplit(outline, "=", 2);
 
 			if (g_strv_length(split) != 2) {
+				g_message("Failed to convert '%s' line to variable", outline);
 				g_free(outline);
 				continue;
 			}
