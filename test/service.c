@@ -222,7 +222,7 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	compatible = r_installer_get_compatible(installer);
 	g_assert_cmpstr(compatible, ==, "Test Config");
 	variant = r_installer_get_variant(installer);
-	g_assert_cmpstr(variant, ==, "Default Variant");
+	g_assert_cmpstr(variant, ==, "test-variant-x");
 	bootslot = r_installer_get_boot_slot(installer);
 	g_assert_cmpstr(bootslot, ==, "system0");
 
