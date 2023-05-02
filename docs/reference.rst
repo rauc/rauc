@@ -517,7 +517,7 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
 **[bundle] section**
 
 ``format``
-  Either ``plain`` (default) or ``verity``.
+  Either ``plain`` (default), ``verity`` or ``crypt``.
   This selects the :ref:`format<sec_ref_formats>` use when wrapping the payload
   during bundle creation.
 
