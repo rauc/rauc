@@ -123,7 +123,7 @@ Example configuration:
   marking a slot primary.
   This is useful for setups where the BIOS already handles the slot switching
   on watchdog resets.
-  Behavior defaults to ``true`` if option is not set.
+  Behavior defaults to ``true`` if the option is not set.
 
 .. _activate-installed:
 
@@ -533,7 +533,7 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
 **[bundle] section**
 
 ``format``
-  Either ``plain`` (default) or ``verity``.
+  Either ``plain`` (default), ``verity`` or ``crypt``.
   This selects the :ref:`format<sec_ref_formats>` use when wrapping the payload
   during bundle creation.
 
