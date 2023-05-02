@@ -253,8 +253,7 @@ static void test_boot_raw_fallback(BootRawFallbackFixture *fixture,
 		if (data->options & (OPT_PRE_INSTALL_PRIMARY_HEAD | OPT_DUMMY_FILL_PRIMARY))
 			index++;
 
-		for (gint i = 0; i < 2; i++)
-		{
+		for (gint i = 0; i < 2; i++) {
 			gchar *msg;
 			msg = g_strdup_printf("Updating %s partition at*", names[index % 2]);
 			g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, msg);

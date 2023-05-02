@@ -73,6 +73,16 @@ static void bundle_fixture_set_up_bundle(BundleFixture *fixture,
 	prepare_bundle(fixture, user_data);
 }
 
+static void bundle_fixture_set_up_bundle_corrupt(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/autobuilder-1.cert.pem");
+	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/autobuilder-1.pem");
+
+	prepare_bundle(fixture, user_data);
+	flip_bits_filename(fixture->bundlename, 1024*1024+512, 0xff);
+}
+
 static void bundle_fixture_set_up_bundle_autobuilder2(BundleFixture *fixture,
 		gconstpointer user_data)
 {
@@ -227,6 +237,57 @@ static void bundle_test_create_mount_extract(BundleFixture *fixture,
 	g_assert_true(res);
 }
 
+static void bundle_test_create_mount_extract_with_pre_check(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res = FALSE;
+
+	/* mount needs to run as root */
+	if (!test_running_as_root())
+		return;
+
+	r_context()->config->perform_pre_check = TRUE;
+
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_NO_VERIFY, NULL, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(bundle);
+
+	res = mount_bundle(bundle, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	res = umount_bundle(bundle, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	r_context()->config->perform_pre_check = FALSE;
+}
+
+static void bundle_test_create_check_mount_with_pre_check_corrupt(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res = FALSE;
+
+	/* mount needs to run as root */
+	if (!test_running_as_root())
+		return;
+
+	r_context()->config->perform_pre_check = TRUE;
+
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_NO_VERIFY, NULL, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(bundle);
+
+	res = mount_bundle(bundle, &ierror);
+	g_assert_error(ierror, G_FILE_ERROR, G_FILE_ERROR_IO);
+	g_assert_false(res);
+}
+
 static void bundle_test_extract_signature(BundleFixture *fixture,
 		gconstpointer user_data)
 {
@@ -249,6 +310,7 @@ static void bundle_test_extract_signature(BundleFixture *fixture,
 
 	g_assert_true(g_file_test(outputsig, G_FILE_TEST_IS_REGULAR));
 	g_clear_pointer(&outputsig, g_free);
+	r_context()->config->perform_pre_check = FALSE;
 }
 
 static void assert_casync_manifest(RaucManifest *rm)
@@ -789,6 +851,16 @@ int main(int argc, char *argv[])
 		g_test_add(g_strdup_printf("/bundle/purpose/codesign/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle_codesign, bundle_test_purpose_codesign,
+				bundle_fixture_tear_down);
+
+		g_test_add(g_strdup_printf("/bundle/create_mount_extract_with_pre_check/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up_bundle, bundle_test_create_mount_extract_with_pre_check,
+				bundle_fixture_tear_down);
+
+		g_test_add(g_strdup_printf("/bundle/create_mount_with_pre_check_corrupt/%s", format_name),
+				BundleFixture, bundle_data,
+				bundle_fixture_set_up_bundle_corrupt, bundle_test_create_check_mount_with_pre_check_corrupt,
 				bundle_fixture_tear_down);
 	}
 

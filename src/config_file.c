@@ -679,6 +679,16 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		}
 	}
 
+	c->perform_pre_check = g_key_file_get_boolean(key_file, "system", "perform-pre-check", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		c->perform_pre_check = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "system", "perform-pre-check", NULL);
+
 	if (!check_remaining_keys(key_file, "system", &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;

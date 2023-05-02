@@ -40,25 +40,6 @@ static void dm_fixture_tear_down(DMFixture *fixture,
 	g_free(fixture->tmpdir);
 }
 
-static void flip_bits_fd(int fd, off_t offset, guint8 mask)
-{
-	guint8 buf;
-	g_assert_cmpint(fd, >, 0);
-	g_assert_cmphex(mask, !=, 0);
-	g_assert(pread(fd, &buf, 1, offset) == 1);
-	buf = buf ^ mask;
-	g_assert(pwrite(fd, &buf, 1, offset) == 1);
-}
-
-static void flip_bits_filename(gchar *filename, off_t offset, guint8 mask)
-{
-	int fd = g_open(filename, O_RDWR|O_CLOEXEC, 0);
-	g_assert_cmpint(fd, >, 0);
-	flip_bits_fd(fd, offset, mask);
-	g_assert(fsync(fd) == 0);
-	g_close(fd, NULL);
-}
-
 static guint readable_sectors(int fd, GBytes *original)
 {
 	g_autofree guint8 *buf = NULL;
