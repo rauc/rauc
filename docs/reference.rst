@@ -123,7 +123,7 @@ Example configuration:
   marking a slot primary.
   This is useful for setups where the BIOS already handles the slot switching
   on watchdog resets.
-  Behavior defaults to ``true`` if option is not set.
+  Behavior defaults to ``true`` if the option is not set.
 
 .. _activate-installed:
 
