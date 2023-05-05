@@ -33,6 +33,9 @@
 #ifndef CRAMFS_MAGIC
 #define CRAMFS_MAGIC 0x28cd3d45
 #endif
+#ifndef EXFAT_SUPER_MAGIC
+#define EXFAT_SUPER_MAGIC 0x2011bab0
+#endif
 #ifndef EXT4_SUPER_MAGIC /* also covers ext2/3 */
 #define EXT4_SUPER_MAGIC 0xef53
 #endif
@@ -1490,6 +1493,7 @@ static gboolean check_bundle_access(int bundle_fd, GError **error)
 			case AFS_SUPER_MAGIC:
 			case BTRFS_SUPER_MAGIC:
 			case CRAMFS_MAGIC:
+			case EXFAT_SUPER_MAGIC:
 			case EXT4_SUPER_MAGIC: /* also covers ext2/3 */
 			case F2FS_SUPER_MAGIC:
 			case ISOFS_SUPER_MAGIC:
