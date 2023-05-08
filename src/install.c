@@ -1088,6 +1088,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	gboolean res = FALSE;
 	g_autoptr(RaucBundle) bundle = NULL;
 	GHashTable *target_group;
+	CheckBundleParams params = CHECK_BUNDLE_DEFAULT;
 
 	g_assert_nonnull(bundlefile);
 	g_assert_null(r_context()->install_info->mounted_bundle);
@@ -1103,10 +1104,13 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		goto out;
 	}
 
+	if (args->no_verify)
+		params |= CHECK_BUNDLE_NO_VERIFY;
+
 	// TODO: mount info in context ?
 	install_args_update(args, "Checking and mounting bundle...");
 
-	res = check_bundle(bundlefile, &bundle, CHECK_BUNDLE_DEFAULT, &args->access_args, &ierror);
+	res = check_bundle(bundlefile, &bundle, params, &args->access_args, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;

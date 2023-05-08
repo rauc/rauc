@@ -253,11 +253,15 @@ static gboolean install_start(int argc, char **argv)
 	if (access_args.http_headers)
 		args->access_args.http_headers = g_strdupv(access_args.http_headers);
 
+	if (verification_disabled)
+		args->no_verify = TRUE;
+
 	r_loop = g_main_loop_new(NULL, FALSE);
 	if (ENABLE_SERVICE) {
 		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
 
 		g_variant_dict_insert(&dict, "ignore-compatible", "b", args->ignore_compatible);
+		g_variant_dict_insert(&dict, "no_verify", "b", args->no_verify);
 		if (args->access_args.tls_cert)
 			g_variant_dict_insert(&dict, "tls-cert", "s", args->access_args.tls_cert);
 		if (args->access_args.tls_key)
@@ -2099,6 +2103,7 @@ typedef struct {
 } RaucCommand;
 
 static GOptionEntry entries_install[] = {
+	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
 	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
 #if ENABLE_SERVICE == 1
 	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},

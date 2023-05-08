@@ -34,6 +34,7 @@ typedef struct {
 	gint status_result;
 	/* install options */
 	gboolean ignore_compatible;
+	gboolean no_verify;
 	RaucBundleAccessArgs access_args;
 } RaucInstallArgs;
 
