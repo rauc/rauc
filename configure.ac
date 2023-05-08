@@ -58,6 +58,16 @@ AS_IF([test "x$enable_create" != "xno"], [
         AC_DEFINE([ENABLE_CREATE], [0])
 ])
 
+AC_ARG_ENABLE([no-verify],
+        AS_HELP_STRING([--enable-no-verify], [Allow to skip bundle verification during installation]),
+	[], [enable_no_verify=no]
+)
+AS_IF([test "x$enable_no_verify" != "xno"], [
+        AC_DEFINE([ALLOW_NO_VERIFY], [1], [Define to 1 to allow skipping bundle verification during installation])
+], [
+        AC_DEFINE([ALLOW_NO_VERIFY], [0])
+])
+
 # Checks for libraries.
 PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.50 gio-2.0 gio-unix-2.0])
 # Sanity checks to not use new glib methods unintentionally.
@@ -285,4 +295,5 @@ AC_MSG_RESULT([
 
         network:                ${enable_network}
         streaming:              ${enable_streaming}
+        no-verify:              ${enable_no_verify}
 ])

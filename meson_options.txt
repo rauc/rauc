@@ -29,6 +29,11 @@ option(
   type : 'feature',
   value : 'auto',
   description : 'Enable/Disable GPT support')
+option(
+  'allow-no-verify',
+  type : 'boolean',
+  value : 'false',
+  description : 'Allow to skip bundle verification during installation')
 
 # other options
 option(

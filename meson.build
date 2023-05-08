@@ -49,6 +49,7 @@ systemddep = dependency('systemd', required : false)
 conf.set10('ENABLE_SERVICE', get_option('service'))
 conf.set10('ENABLE_CREATE', get_option('create'))
 conf.set10('ENABLE_JSON', jsonglibdep.found())
+conf.set10('ALLOW_NO_VERIFY', get_option('allow-no-verify'))
 
 c_warn_flags = '''
   -Wundef
