@@ -71,6 +71,7 @@ compatible=Test Config\n\
 \n\
 [handler]\n\
 filename=custom_handler.sh\n\
+args=arg1 arg2\n\
 \n\
 [image.rootfs]\n\
 filename=rootfs.ext4\n\
@@ -1496,7 +1497,7 @@ int main(int argc, char *argv[])
 		install_data = memdup((&(InstallData) {
 			.message_needles = memdup((&(const gchar *[]) {
 				"Checking and mounting bundle...",
-				"Debug: --dummy1 --dummy2",
+				"Debug: arg1 arg2 --dummy1 --dummy2",
 				"Handler status: [STARTED]",
 				"Bootloader status: [DONE]",
 				"Handler status: [DONE]",
