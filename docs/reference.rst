@@ -561,13 +561,43 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
 
 **[handler] section**
 
+The ``handler`` section refers to the
+`full custom handler <https://rauc.readthedocs.io/en/latest/using.html#full-custom-update>`_
+that allows to fully replace the default RAUC update process.
+
+.. note:: This is not to be confused with the ``[handlers]`` section from the
+   system.conf which defines e.g. pre- and post-install handlers!
+
+When the full custom handler is enabled in a bundle, it will be invoked during
+the bundle installation
+
+* **after** bundle signature verification
+* **after** slot state and target slots determination logic
+* **after** the ``pre-install`` system handler
+* **before** the ``post-install`` system handler
+
+Also, the bundle will be mounted at this point and thus all its content is
+available to the full custom handler.
+Further system information is passed by RAUC via environment variables.
+No built-in slot update will run and no hook will be executed.
+
 ``filename``
-  Handler script path name, relative to the bundle content. Used to fully
-  replace default update process.
+  Full custom handler path, relative to the bundle content.
+  Having this set will activate the full custom handler and use the given
+  script/binary instead of the default handling.
 
 ``args``
-  Arguments to pass to the handler script, such as ``args=--verbose``
+  Arguments to pass to the full custom handler, such as
+  ``args=--setup --verbose``
 
+  .. note:: Until RAUC v1.9, these arguments were also implicitly passed
+     to handlers defined in the system.conf.
+     This behavior was fixed/removed in v1.10.
+     If someone uses this undocumented behavior and still requires this,
+     please file an `issue <https://github.com/rauc/rauc/issues/new/choose>`_.
+
+  If additional arguments are provided via ``--handler-args`` command line
+  argument, these will be appended to the ones defined in the manifest.
 
 .. _image.slot-class-section:
 
