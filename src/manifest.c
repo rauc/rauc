@@ -882,6 +882,7 @@ void free_manifest(RaucManifest *manifest)
 	g_free(manifest->hook_name);
 	g_list_free_full(manifest->images, r_free_image);
 	g_clear_pointer(&manifest->meta, (GDestroyNotify)g_hash_table_destroy);
+	g_free(manifest->hash);
 	g_free(manifest);
 }
 
