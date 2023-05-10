@@ -390,11 +390,6 @@ See details about using handlers in `Custom Handlers (Interface)`_.
   if a custom bootloader backend is used.
   See :ref:`sec-custom-bootloader-backend` for more details.
 
-.. note::
-  When using a full custom installation
-  (see :ref:`[handler] section <sec-manifest-handler>`)
-  RAUC will not execute any system handler script.
-
 .. _slot.slot-class.idx-section:
 
 **[slot.<slot-class>.<idx>] section**
