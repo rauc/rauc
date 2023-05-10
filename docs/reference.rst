@@ -361,13 +361,19 @@ See details about using handlers in `Custom Handlers (Interface)`_.
   It is used for obtaining further information about the individual system RAUC
   runs on.
   The handler script must print the information to standard output in form of
-  key value pairs ``KEY=value``.
-  The following variables are supported:
+  key value pairs.
+  A valid generic key must start with ``RAUC_`` as prefix to be added to the
+  system information; e.g. ``RAUC_KEY=value``.
+
+  Some additional special keys that are supported, are:
 
   :``RAUC_SYSTEM_SERIAL``:
     Serial number of the individual board
   :``RAUC_SYSTEM_VARIANT``:
     Sets the RAUC system variant
+
+  System information is made available to other handlers via environment
+  variables that have the exact same name and value.
 
 ``pre-install``
   This handler will be called right before RAUC starts with the installation.
