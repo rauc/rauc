@@ -35,8 +35,8 @@ c_flags = [
   '-DGLIB_VERSION_MIN_REQUIRED=G_ENCODE_VERSION(2,54)'
 ]
 
-giodep = dependency('gio-2.0', version : '>=2.26.0')
-giounixdep = dependency('gio-unix-2.0', version : '>=2.26.0')
+giodep = dependency('gio-2.0', version : '>=2.54')
+giounixdep = dependency('gio-unix-2.0', version : '>=2.54')
 openssldep = dependency('openssl', version : '>=1.1.1')
 jsonglibdep = dependency('json-glib-1.0', required : get_option('json'))
 dbusdep = dependency('dbus-1', required : get_option('service'))
