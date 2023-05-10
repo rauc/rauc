@@ -134,9 +134,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 					"Failed to parse mksquashfs extra args: ");
 			goto out;
 		}
-		for (gchar **mksquashfs_args = mksquashfs_argvp; *mksquashfs_args != NULL; mksquashfs_args++) {
-			g_ptr_array_add(args, g_strdup(*mksquashfs_args));
-		}
+		r_ptr_array_addv(args, mksquashfs_argvp, TRUE);
 	}
 	g_ptr_array_add(args, NULL);
 
@@ -269,9 +267,7 @@ static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath,
 					"Failed to parse casync extra args: ");
 			goto out;
 		}
-		for (gchar **casync_args = casync_argvp; *casync_args != NULL; casync_args++) {
-			g_ptr_array_add(iargs, g_strdup(*casync_args));
-		}
+		r_ptr_array_addv(iargs, casync_argvp, TRUE);
 	}
 	g_ptr_array_add(iargs, NULL);
 
@@ -376,9 +372,7 @@ static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath,
 					"Failed to parse casync extra args: ");
 			goto out;
 		}
-		for (gchar **casync_args = casync_argvp; *casync_args != NULL; casync_args++) {
-			g_ptr_array_add(args, g_strdup(*casync_args));
-		}
+		r_ptr_array_addv(args, casync_argvp, TRUE);
 	}
 	g_ptr_array_add(args, NULL);
 
