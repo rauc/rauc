@@ -29,7 +29,7 @@ guint8* random_bytes(gsize size, guint32 seed)
 gchar* write_random_file(const gchar *tmpdir, const gchar *filename,
 		gsize size, const guint32 seed)
 {
-	gchar *pathname;
+	g_autofree gchar *pathname = NULL;
 	g_autofree guint8 *content = NULL;
 
 	pathname = g_build_filename(tmpdir, filename, NULL);
@@ -41,7 +41,7 @@ gchar* write_random_file(const gchar *tmpdir, const gchar *filename,
 		return NULL;
 	}
 
-	return pathname;
+	return g_steal_pointer(&pathname);
 }
 
 /* Helper that writes string to new file in tmpdir/filename, returns entire
@@ -52,7 +52,7 @@ gchar* write_tmp_file(
 		const gchar* content,
 		GError **error)
 {
-	gchar *pathname;
+	g_autofree gchar *pathname = NULL;
 	GError *ierror = NULL;
 
 	pathname = g_build_filename(tmpdir, filename, NULL);
@@ -63,7 +63,7 @@ gchar* write_tmp_file(
 		return NULL;
 	}
 
-	return pathname;
+	return g_steal_pointer(&pathname);
 }
 
 int test_prepare_dummy_file(const gchar *dirname, const gchar *filename,
@@ -114,7 +114,7 @@ int test_prepare_dummy_file(const gchar *dirname, const gchar *filename,
 
 int test_mkdir_relative(const gchar *dirname, const gchar *filename, int mode)
 {
-	gchar *path;
+	g_autofree gchar *path = NULL;
 	int res;
 
 	path = g_strdup_printf("%s/%s", dirname, filename);
@@ -122,13 +122,12 @@ int test_mkdir_relative(const gchar *dirname, const gchar *filename, int mode)
 
 	res = g_mkdir(path, mode);
 
-	g_free(path);
 	return res;
 }
 
 int test_rmdir(const gchar *dirname, const gchar *filename)
 {
-	gchar *path;
+	g_autofree gchar *path = NULL;
 	int res;
 
 	path = g_build_filename(dirname, filename, NULL);
@@ -136,13 +135,12 @@ int test_rmdir(const gchar *dirname, const gchar *filename)
 
 	res = g_rmdir(path);
 
-	g_free(path);
 	return res;
 }
 
 int test_remove(const gchar *dirname, const gchar *filename)
 {
-	gchar *path;
+	g_autofree gchar *path = NULL;
 	int res;
 
 	path = g_build_filename(dirname, filename, NULL);
@@ -150,13 +148,12 @@ int test_remove(const gchar *dirname, const gchar *filename)
 
 	res = g_remove(path);
 
-	g_free(path);
 	return res;
 }
 
 gboolean test_rm_tree(const gchar *dirname, const gchar *filename)
 {
-	gchar *path;
+	g_autofree gchar *path = NULL;
 	gboolean res;
 
 	path = g_build_filename(dirname, filename, NULL);
@@ -164,13 +161,12 @@ gboolean test_rm_tree(const gchar *dirname, const gchar *filename)
 
 	res = rm_tree(path, NULL);
 
-	g_free(path);
 	return res;
 }
 
 int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, const ManifestTestOptions *options)
 {
-	gchar *path = g_build_filename(dirname, filename, NULL);
+	g_autofree gchar *path = g_build_filename(dirname, filename, NULL);
 	RaucManifest *rm = g_new0(RaucManifest, 1);
 	RaucImage *img;
 
@@ -278,7 +274,7 @@ out:
 
 gboolean test_umount(const gchar *dirname, const gchar *mountpoint)
 {
-	gchar *path;
+	g_autofree gchar *path = NULL;
 	gboolean res;
 
 	path = g_build_filename(dirname, mountpoint, NULL);
@@ -297,8 +293,8 @@ gboolean test_copy_file(const gchar *srcprefix, const gchar *srcfile, const gcha
 gboolean test_make_slot_user_writable(const gchar* path, const gchar* file)
 {
 	gboolean res = FALSE;
-	gchar *slotpath;
-	gchar *mountpath;
+	g_autofree gchar *slotpath = NULL;
+	g_autofree gchar *mountpath = NULL;
 
 	slotpath = g_build_filename(path, file, NULL);
 	g_assert_nonnull(slotpath);
