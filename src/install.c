@@ -689,8 +689,8 @@ static gboolean launch_and_wait_handler(RaucInstallArgs *args, gchar *handler_na
 	}
 	g_ptr_array_add(args_array, NULL);
 
-	handleproc = g_subprocess_launcher_spawnv(
-			handlelaunch, (const gchar *const *) args_array->pdata, &ierror);
+	handleproc = r_subprocess_launcher_spawnv(
+			handlelaunch, args_array, &ierror);
 	if (handleproc == NULL) {
 		g_propagate_error(error, ierror);
 		goto out;
