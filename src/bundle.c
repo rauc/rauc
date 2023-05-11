@@ -2425,6 +2425,12 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
 
 	r_context_begin_step("extract_bundle", "Extracting bundle", 2);
 
+	if (g_file_test(outputdir, G_FILE_TEST_EXISTS)) {
+		res = FALSE;
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "output directory %s exists already", outputdir);
+		goto out;
+	}
+
 	res = check_bundle_payload(bundle, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
