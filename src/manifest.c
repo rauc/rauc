@@ -199,6 +199,16 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 
 	/* parse [bundle] section */
 	tmp = key_file_consume_string(key_file, "bundle", "format", NULL);
+	if (tmp == NULL) {
+		g_ptr_array_add(raucm->warnings, g_strdup(
+				"WARNING: The manifest does not specify a bundle format, defaulting to 'plain'."));
+		g_ptr_array_add(raucm->warnings, g_strdup(
+				"  We recommend using the 'verity' format instead, if possible."));
+		g_ptr_array_add(raucm->warnings, g_strdup(
+				"  To silence this warning, select the 'plain' format explicitly."));
+		g_ptr_array_add(raucm->warnings, g_strdup(
+				"  See https://rauc.readthedocs.io/en/latest/reference.html#sec-ref-formats for details.'"));
+	}
 	if (tmp == NULL || g_strcmp0(tmp, "plain") == 0) {
 		raucm->bundle_format = R_MANIFEST_FORMAT_PLAIN;
 	} else if ((g_strcmp0(tmp, "verity") == 0) || (g_strcmp0(tmp, "crypt") == 0)) {
