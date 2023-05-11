@@ -179,6 +179,9 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	g_return_val_if_fail(manifest != NULL && *manifest == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	/* initialize empty warnings array */
+	raucm->warnings = g_ptr_array_new_with_free_func(g_free);
+
 	/* parse [update] section */
 	raucm->update_compatible = key_file_consume_string(key_file, "update", "compatible", &ierror);
 	if (!raucm->update_compatible) {
@@ -887,6 +890,7 @@ void free_manifest(RaucManifest *manifest)
 	g_list_free_full(manifest->images, r_free_image);
 	g_clear_pointer(&manifest->meta, (GDestroyNotify)g_hash_table_destroy);
 	g_free(manifest->hash);
+	g_clear_pointer(&manifest->warnings, (GDestroyNotify)g_ptr_array_unref);
 	g_free(manifest);
 }
 

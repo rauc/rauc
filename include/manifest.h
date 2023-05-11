@@ -67,6 +67,9 @@ typedef struct {
 	gboolean was_encrypted;
 	/* computed manifest hash */
 	gchar *hash;
+
+	/* warnings generated during parsing */
+	GPtrArray *warnings;
 } RaucManifest;
 
 /**
