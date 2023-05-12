@@ -29,7 +29,7 @@ static void network_fixture_tear_down(NetworkFixture *fixture,
 static void test_download_file(NetworkFixture *fixture,
 		gconstpointer user_data)
 {
-	const gchar *target;
+	g_autofree const gchar *target = NULL;
 	GError *ierror = NULL;
 	gboolean res;
 
