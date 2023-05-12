@@ -572,6 +572,18 @@ static gchar **add_system_environment(gchar **envp)
 	return envp;
 }
 
+/**
+ * Sets up an environment containing RAUC information, ready to be passed to e.g. handlers
+ *
+ * Extends the system environment so that the result is save to be used with
+ * g_subprocess_launcher_set_environ().
+ *
+ * @param update_source Path to the current bundle mount point
+ * @param manifest Currently used manifest
+ * @param target_group Determined target group
+ *
+ * @return A newly allocated List of environment variables
+ */
 static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest, GHashTable *target_group)
 {
 	GHashTableIter iter;
@@ -662,6 +674,21 @@ static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest,
 	return envp;
 }
 
+/**
+ * Launches a handler using g_subprocess and waits for it to finish.
+ *
+ * Messages printed by the handler to stdout or stderr are parsed and can be
+ * used for generating high-level user output in RAUC.
+ * See parse_handler_output().
+ *
+ * @param args Install args, required for user output
+ * @param handler_name Path to the handler script/binary
+ * @param handler_argv Argument list passed to the handler call, or NULL
+ * @param override_env Environment to set for the handler call, or NULL
+ * @param[out] error Return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE otherwise
+ */
 static gboolean launch_and_wait_handler(RaucInstallArgs *args, gchar *handler_name, gchar **handler_argv, gchar **override_env, GError **error)
 {
 	g_autoptr(GSubprocessLauncher) handlelaunch = NULL;
