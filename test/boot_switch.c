@@ -268,6 +268,7 @@ static void boot_switch_fixture_tear_down(BootSwitchFixture *fixture,
 		return;
 
 	g_assert(test_rmdir(fixture->tmpdir, "") == 0);
+	g_free(fixture->tmpdir);
 }
 
 static void test_boot_switch(BootSwitchFixture *fixture,
