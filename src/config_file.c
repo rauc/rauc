@@ -859,6 +859,7 @@ void free_config(RaucConfig *config)
 	g_free(config->mount_prefix);
 	g_free(config->store_path);
 	g_free(config->tmp_path);
+	g_free(config->casync_install_args);
 	g_free(config->grubenv_path);
 	g_free(config->statusfile_path);
 	g_free(config->keyring_path);
