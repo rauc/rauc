@@ -52,7 +52,6 @@ static void config_file_full_config(ConfigFileFixture *fixture,
 	g_autoptr(RaucConfig) config = NULL;
 	RaucSlot *slot;
 
-
 	const gchar *cfg_file = "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
@@ -107,7 +106,7 @@ type=ext4\n\
 parent=rootfs.1\n\
 install-same=false\n";
 
-	gchar* pathname = write_tmp_file(fixture->tmpdir, "full_config.conf", cfg_file, NULL);
+	g_autofree gchar* pathname = write_tmp_file(fixture->tmpdir, "full_config.conf", cfg_file, NULL);
 	g_assert_nonnull(pathname);
 
 	res = load_config(pathname, &config, &ierror);
