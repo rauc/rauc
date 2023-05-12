@@ -758,7 +758,7 @@ static void config_file_system_variant(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
 	g_autoptr(RaucConfig) config = NULL;
-	GError *ierror = NULL;
+	g_autoptr(GError) ierror = NULL;
 	gboolean res;
 	g_autofree gchar* pathname = NULL;
 
