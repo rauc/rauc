@@ -2103,7 +2103,7 @@ static GOptionEntry entries_install[] = {
 #if ENABLE_SERVICE == 1
 	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
 #else
-	{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handler_args, "extra handler arguments", "ARGS"},
+	{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handler_args, "extra arguments for full custom handler", "ARGS"},
 	{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "BOOTNAME"},
 #endif
 	{0}
@@ -2167,7 +2167,7 @@ static GOptionEntry entries_status[] = {
 };
 
 static GOptionEntry entries_service[] = {
-	{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handler_args, "extra handler arguments", "ARGS"},
+	{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handler_args, "extra arguments for full custom handler", "ARGS"},
 	{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "BOOTNAME"},
 	{0}
 };
