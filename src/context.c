@@ -743,6 +743,8 @@ void r_context_clean(void)
 		g_clear_pointer(&context->mountprefix, g_free);
 		g_clear_pointer(&context->bootslot, g_free);
 		g_clear_pointer(&context->system_serial, g_free);
+		g_clear_pointer(&context->system_info, g_hash_table_destroy);
+
 		g_clear_pointer(&context->handlerextra, g_free);
 
 		g_clear_pointer(&context->install_info, r_context_install_info_free);
