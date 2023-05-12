@@ -110,30 +110,31 @@ static gchar* get_cmdline_bootname(void)
 	return bootname;
 }
 
-static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTable *variables, GError **error)
+/**
+ * Launches a handler and obtains variables from output by looking for
+ * 'RAUC_<SOMETHING>=value' lines to put them into a key/value store (GHashTable).
+ *
+ * @param handler_name name / path of handler script to start
+ * @param[out] variables Return location for a GHashTable table with obtained key/value-pairs
+ * @param[out] error Return location for a GError, or NULL
+ *
+ * @return TRUE on success, otherwise FALSE
+ */
+static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTable **variables, GError **error)
 {
 	g_autoptr(GSubprocessLauncher) handlelaunch = NULL;
 	g_autoptr(GSubprocess) handleproc = NULL;
 	GError *ierror = NULL;
-	GHashTableIter iter;
-	gchar *key = NULL;
-	gchar *value = NULL;
 	g_autoptr(GDataInputStream) datainstream = NULL;
 	GInputStream *instream;
+	g_autoptr(GHashTable) vars = NULL;
 	gchar* outline;
 
 	g_return_val_if_fail(handler_name, FALSE);
-	g_return_val_if_fail(variables, FALSE);
+	g_return_val_if_fail(variables && *variables == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	handlelaunch = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE);
-
-	/* we copy the variables from the hashtable and add them to the
-	   subprocess environment */
-	g_hash_table_iter_init(&iter, variables);
-	while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
-		g_subprocess_launcher_setenv(handlelaunch, g_strdup(key), g_strdup(value), 1);
-	}
 
 	handleproc = g_subprocess_launcher_spawn(
 			handlelaunch,
@@ -149,6 +150,8 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 	instream = g_subprocess_get_stdout_pipe(handleproc);
 	datainstream = g_data_input_stream_new(instream);
 
+	vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+
 	do {
 		outline = g_data_input_stream_read_line(datainstream, NULL, NULL, NULL);
 		if (!outline)
@@ -158,11 +161,12 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 			g_auto(GStrv) split = g_strsplit(outline, "=", 2);
 
 			if (g_strv_length(split) != 2) {
+				g_message("Failed to convert '%s' line to variable", outline);
 				g_free(outline);
 				continue;
 			}
 
-			g_hash_table_insert(variables, g_strdup(split[0]), g_strdup(split[1]));
+			g_hash_table_insert(vars, g_strdup(split[0]), g_strdup(split[1]));
 		}
 
 		g_free(outline);
@@ -172,6 +176,8 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
+
+	*variables = g_steal_pointer(&vars);
 
 	return TRUE;
 }
@@ -220,6 +226,40 @@ static gchar* get_variant_from_file(const gchar* filename, GError **error)
 	return contents;
 }
 
+static GHashTable *get_system_info_from_handler(GError **error)
+{
+	g_autoptr(GHashTable) vars = NULL;
+	GError *ierror = NULL;
+	GHashTableIter iter;
+	gchar *key = NULL;
+	gchar *value = NULL;
+
+	if (!g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT,  "System info handler script/binary '%s' not found.", context->config->systeminfo_handler);
+		return NULL;
+	}
+
+	g_message("Getting Systeminfo: %s", context->config->systeminfo_handler);
+	if (!launch_and_wait_variables_handler(context->config->systeminfo_handler, &vars, &ierror)) {
+		g_propagate_prefixed_error(error, ierror, "Failed to read system-info variables: ");
+		return NULL;
+	}
+
+	g_hash_table_iter_init(&iter, vars);
+	while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
+		/* legacy handling */
+		if (g_strcmp0(key, "RAUC_SYSTEM_SERIAL") == 0) {
+			context->system_serial = g_strdup(value);
+		} else if (g_strcmp0(key, "RAUC_SYSTEM_VARIANT") == 0) {
+			/* set variant (overrides possible previous value) */
+			g_free(context->config->system_variant);
+			context->config->system_variant = g_strdup(value);
+		}
+	}
+
+	return g_steal_pointer(&vars);
+}
+
 /**
  * Configures options that are only relevant when running as update service on
  * the target device.
@@ -262,33 +302,15 @@ static gboolean r_context_configure_target(GError **error)
 		context->config->system_variant = variant;
 	}
 
-	if (context->config->systeminfo_handler &&
-	    g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
-		g_autoptr(GHashTable) vars = NULL;
-		GHashTableIter iter;
-		gchar *key = NULL;
-		gchar *value = NULL;
-
-		vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
-
-		g_message("Getting Systeminfo: %s", context->config->systeminfo_handler);
-		if (!launch_and_wait_variables_handler(context->config->systeminfo_handler, vars, &ierror)) {
-			g_propagate_prefixed_error(error, ierror, "Failed to read system-info variables: ");
+	if (context->config->systeminfo_handler) {
+		context->system_info = get_system_info_from_handler(&ierror);
+		if (!context->system_info) {
+			g_propagate_error(error, ierror);
 			return FALSE;
 		}
-
-		g_hash_table_iter_init(&iter, vars);
-		while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
-			if (g_strcmp0(key, "RAUC_SYSTEM_SERIAL") == 0) {
-				context->system_serial = g_strdup(value);
-			} else if (g_strcmp0(key, "RAUC_SYSTEM_VARIANT") == 0) {
-				/* set variant (overrides possible previous value) */
-				g_free(context->config->system_variant);
-				context->config->system_variant = g_strdup(value);
-			} else {
-				g_message("Ignoring unknown variable %s", key);
-			}
-		}
+	} else {
+		/* Ensure the hash table is always created so that we do not need to check this later */
+		context->system_info = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 	}
 
 	if (r_whitespace_removed(context->config->system_variant))

@@ -558,9 +558,7 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const 
 					"Failed to parse casync extra args: ");
 			goto out;
 		}
-		for (gchar **casync_args = casync_argvp; *casync_args != NULL; casync_args++) {
-			g_ptr_array_add(args, g_strdup(*casync_args));
-		}
+		r_ptr_array_addv(args, casync_argvp, TRUE);
 	}
 	g_ptr_array_add(args, g_strdup(image->filename));
 	g_ptr_array_add(args, g_strdup(out_fd >= 0 ? "-" : dest));

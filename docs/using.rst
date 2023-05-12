@@ -276,8 +276,8 @@ The system-info handler is called after loading the configuration file. This
 way it can collect additional variables from the system, like the system's
 serial number.
 
-The handler script must return a system serial number by echoing
-`RAUC_SYSTEM_SERIAL=<value>` to standard out.
+The handler script can return variables by echoing ``<VARIABLE-NAME>=<value>``
+to stdout, like ``RAUC_SYSTEM_SERIAL`` or ``RAUC_SYSTEM_VARIANT``.
 
 .. _sec-hooks:
 
@@ -466,15 +466,27 @@ or, without ``filename``:
 Full Custom Update
 ~~~~~~~~~~~~~~~~~~
 
-For some special tasks (recovery, testing, migration) it might be required to
+For some special tasks (recovery, testing, migration), it might be required to
 completely replace the default RAUC update mechanism and to only use its
-infrastructure for executing an application or a script on the target side.
+infrastructure and the signature verification for executing an application or a
+script on the target side.
 
-For this case, you may replace the entire default installation handler of rauc
-by a custom handler script or application.
+For this case, RAUC allows to define a **full custom handler** in a bundle's
+manifest that will be executed instead of the built-in slot update handling:
+
+.. code-block:: cfg
+
+   [update]
+   compatible=Test Platform
+
+   [handler]
+   filename=custom-handler.sh
+
+The handler script/binary must be part of the bundle.
 
 Refer manifest :ref:`[handler] <sec-manifest-handler>` section description
-on how to achieve this.
+for details about how the full custom handler can be configured and gets
+called.
 
 
 Using the D-Bus API

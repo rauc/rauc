@@ -67,6 +67,29 @@ static void test_bootslot_no_bootslot(void)
 }
 
 
+/* Tests that the infos provided by the configured system-info handler make it
+ * into RAUC's system information.
+ */
+static void test_context_system_info(void)
+{
+	r_context_conf()->configpath = g_strdup("test/test.conf");
+	r_context_conf()->configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
+	g_clear_pointer(&r_context_conf()->bootslot, g_free);
+
+	/* Test if special keys are retrieved */
+	g_assert_cmpstr(r_context()->system_serial, ==, "1234");
+	g_assert_cmpstr(r_context()->config->system_variant, ==, "test-variant-x");
+
+	/* Test if configured keys appear in system_info hash table */
+	g_assert_nonnull(r_context()->system_info);
+	g_assert_true(g_hash_table_contains(r_context()->system_info, "RAUC_SYSTEM_SERIAL"));
+	g_assert_true(g_hash_table_contains(r_context()->system_info, "RAUC_SYSTEM_VARIANT"));
+	g_assert_true(g_hash_table_contains(r_context()->system_info, "RAUC_CUSTOM_VARIABLE"));
+	g_assert_false(g_hash_table_contains(r_context()->system_info, "RAUC_TEST_VAR"));
+
+	r_context_clean();
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -82,6 +105,8 @@ int main(int argc, char *argv[])
 	g_test_add_func("/context/bootslot/nfs_boot", test_bootslot_nfs_boot);
 
 	g_test_add_func("/context/bootslot/no-bootslot", test_bootslot_no_bootslot);
+
+	g_test_add_func("/context/system-info", test_context_system_info);
 
 	return g_test_run();
 }

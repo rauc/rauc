@@ -224,6 +224,10 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	/* parse [handler] section */
 	raucm->handler_name = key_file_consume_string(key_file, "handler", "filename", NULL);
 	raucm->handler_args = key_file_consume_string(key_file, "handler", "args", NULL);
+	if (raucm->handler_args && !raucm->handler_name) {
+		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+				"Setting 'args' requires a full custom handler to be defined under 'filename' in group '[handler]'.");
+	}
 	if (!check_remaining_keys(key_file, "handler", &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
