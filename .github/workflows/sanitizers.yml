@@ -34,7 +34,7 @@ jobs:
         build/test/boot_switch-test
         build/test/bundle-test || true
         build/test/checksum-test
-        build/test/config_file-test || true
+        build/test/config_file-test
         build/test/context-test
         build/test/dm-test
         build/test/hash_index-test

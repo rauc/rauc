@@ -392,7 +392,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	g_autoptr(RaucConfig) c = g_new0(RaucConfig, 1);
 	g_autoptr(GKeyFile) key_file = NULL;
 	gboolean dtbvariant;
-	gchar *variant_data;
+	g_autofree gchar *variant_data = NULL;
 	g_autofree gchar *bundle_formats = NULL;
 
 	g_return_val_if_fail(filename, FALSE);
@@ -579,7 +579,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		}
 
 		c->system_variant_type = R_CONFIG_SYS_VARIANT_FILE;
-		c->system_variant = variant_data;
+		c->system_variant = g_steal_pointer(&variant_data);
 	}
 
 	/* parse 'variant-name' key */
@@ -602,7 +602,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		}
 
 		c->system_variant_type = R_CONFIG_SYS_VARIANT_NAME;
-		c->system_variant = variant_data;
+		c->system_variant = g_steal_pointer(&variant_data);
 	}
 
 	/* parse data/status location
