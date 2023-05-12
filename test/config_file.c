@@ -224,7 +224,7 @@ foo=bar\n\
 	g_clear_error(&ierror);
 
 	g_free(pathname);
-	free_config(config);
+	g_clear_pointer(&config, free_config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "unknown_key.conf", unknown_key_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -261,7 +261,7 @@ mountprefix=/mnt/myrauc/\n";
 	g_clear_error(&ierror);
 
 	g_free(pathname);
-	free_config(config);
+	g_clear_pointer(&config, free_config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", boot_missing_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -315,7 +315,7 @@ mountprefix=/mnt/myrauc/\n";
 	g_assert_no_error(ierror);
 
 	g_free(pathname);
-	free_config(config);
+	g_clear_pointer(&config, free_config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", invalid_boot_attempts_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -325,7 +325,7 @@ mountprefix=/mnt/myrauc/\n";
 	g_clear_error(&ierror);
 
 	g_free(pathname);
-	free_config(config);
+	g_clear_pointer(&config, free_config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", boot_attempts_invalid_bootloader_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -335,7 +335,7 @@ mountprefix=/mnt/myrauc/\n";
 	g_clear_error(&ierror);
 
 	g_free(pathname);
-	free_config(config);
+	g_clear_pointer(&config, free_config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", negative_boot_attempts_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -809,7 +809,7 @@ variant-name=xxx";
 	g_assert_nonnull(config);
 	g_assert_null(config->system_variant);
 
-	free_config(config);
+	g_clear_pointer(&config, free_config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "name_variant.conf", cfg_file_name_variant, NULL);
 	g_assert_nonnull(pathname);
@@ -823,7 +823,7 @@ variant-name=xxx";
 	g_assert(config->system_variant_type == R_CONFIG_SYS_VARIANT_NAME);
 	g_assert_cmpstr(config->system_variant, ==, "variant-name");
 
-	free_config(config);
+	g_clear_pointer(&config, free_config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "dtb_variant.conf", cfg_file_dtb_variant, NULL);
 	g_assert_nonnull(pathname);
@@ -837,7 +837,7 @@ variant-name=xxx";
 	g_assert(config->system_variant_type == R_CONFIG_SYS_VARIANT_DTB);
 	g_assert_null(config->system_variant);
 
-	free_config(config);
+	g_clear_pointer(&config, free_config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "file_variant.conf", cfg_file_file_variant, NULL);
 	g_assert_nonnull(pathname);
@@ -850,6 +850,8 @@ variant-name=xxx";
 	g_assert_nonnull(config);
 	g_assert(config->system_variant_type == R_CONFIG_SYS_VARIANT_FILE);
 	g_assert_cmpstr(config->system_variant, ==, "/path/to/file");
+
+	g_clear_pointer(&config, free_config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "conflict_variant.conf", cfg_file_conflicting_variants, NULL);
 	g_assert_nonnull(pathname);
@@ -1086,7 +1088,7 @@ check-purpose=codesign\n";
 	g_assert_cmpstr(config->keyring_check_purpose, ==, NULL);
 
 	g_free(pathname);
-	free_config(config);
+	g_clear_pointer(&config, free_config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "checking.conf", checking_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -1138,7 +1140,7 @@ bundle-formats=-plain -verity -crypt\n";
 	g_assert_cmphex(config->bundle_formats_mask, ==, 0x7);
 
 	g_free(pathname);
-	free_config(config);
+	g_clear_pointer(&config, free_config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "set.conf", set_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -1150,7 +1152,7 @@ bundle-formats=-plain -verity -crypt\n";
 	g_assert_cmphex(config->bundle_formats_mask, ==, 0x1);
 
 	g_free(pathname);
-	free_config(config);
+	g_clear_pointer(&config, free_config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "modify.conf", modify_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -1162,7 +1164,7 @@ bundle-formats=-plain -verity -crypt\n";
 	g_assert_cmphex(config->bundle_formats_mask, ==, 0x6);
 
 	g_free(pathname);
-	free_config(config);
+	g_clear_pointer(&config, free_config);
 
 	pathname = write_tmp_file(fixture->tmpdir, "none.conf", none_cfg_file, NULL);
 	g_assert_nonnull(pathname);

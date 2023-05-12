@@ -398,10 +398,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	gchar *variant_data;
 	g_autofree gchar *bundle_formats = NULL;
 
-	g_return_val_if_fail(config, FALSE);
-
-	/* in case of an early abort, return NULL */
-	*config = NULL;
+	g_return_val_if_fail(config && *config == NULL, FALSE);
 
 	key_file = g_key_file_new();
 
