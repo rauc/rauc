@@ -111,7 +111,7 @@ static void test_slot_get_root_classes(void)
 	RaucSlot *somefs_0 = NULL;
 	RaucSlot *somefs_1 = NULL;
 	RaucSlot *boot_0 = NULL;
-	gchar** root_classes = NULL;
+	g_autofree gchar** root_classes = NULL;
 
 	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
 

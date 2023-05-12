@@ -224,7 +224,7 @@ static void test_save_load_manifest(void)
  */
 static void test_save_manifest_writefail(void)
 {
-	GError *error = NULL;
+	g_autoptr(GError) error = NULL;
 	gboolean res;
 	g_autoptr(RaucManifest) rm = g_new0(RaucManifest, 1);
 
@@ -242,7 +242,7 @@ static void test_save_manifest_writefail(void)
  */
 static void test_load_manifest_mem(void)
 {
-	GBytes *data = NULL;
+	g_autoptr(GBytes) data = NULL;
 	RaucManifest *rm = NULL;
 
 	data = read_file("test/manifest.raucm", NULL);

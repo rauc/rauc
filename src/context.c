@@ -467,12 +467,11 @@ static void r_context_send_progress(gboolean op_finished, gboolean success)
 
 	/* call installer callback with percentage and message */
 	if (op_finished) {
+		g_autofree gchar *old = step->description;
 		if (success)
-			step->description = g_strdup_printf("%s done.",
-					step->description);
+			step->description = g_strdup_printf("%s done.", old);
 		else
-			step->description = g_strdup_printf("%s failed.",
-					step->description);
+			step->description = g_strdup_printf("%s failed.", old);
 	}
 
 	/* handle missing callback gracefully */
