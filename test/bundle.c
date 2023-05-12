@@ -121,6 +121,8 @@ static void bundle_fixture_tear_down(BundleFixture *fixture,
 {
 	g_assert_true(rm_tree(fixture->tmpdir, NULL));
 	g_free(fixture->tmpdir);
+	g_free(fixture->bundlename);
+	g_free(fixture->contentdir);
 
 	g_test_assert_expected_messages();
 }
