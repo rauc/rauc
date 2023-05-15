@@ -59,7 +59,8 @@ file.
 
 Using streaming has a few requirements:
 
-* configure RAUC with ``--enable-streaming``
+* make sure RAUC is built with ``-Dstreaming=true``/``--enable-streaming``
+  (which is the default)
 * create bundles using the :ref:`verity format <sec_ref_format_verity>`
 * host the bundle on a server which supports HTTP Range Requests
 * enable NBD support in the kernel

@@ -415,7 +415,8 @@ well as with the DBus API.
 
 To use streaming, some prerequisites need to be fulfilled:
 
-* configure RAUC with ``--enable-streaming``
+* make sure RAUC is built with ``-Dstreaming=true``/``--enable-streaming``
+  (which is the default)
 * create bundles using the :ref:`verity format <sec_ref_format_verity>`
 * host the bundle on a server which supports HTTP Range Requests
 * enable NBD (network block device) support in the kernel
