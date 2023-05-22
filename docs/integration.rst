@@ -1463,6 +1463,39 @@ configuration.
 
 .. _sec_int_migration:
 
+Package-Based Distributions
+---------------------------
+
+Some non-embedded-focused distributions provide RAUC packages.
+An overview can be found on `Repology <repology-rauc_>`_.
+
+Note that some distributions split the service configuration in a separate
+``rauc-service`` package, as the common use of RAUC on these distributions is
+to create and inspect bundles, for which the D-Bus service is not required.
+
+* Alpine
+
+  * https://pkgs.alpinelinux.org/packages?name=rauc
+
+* Arch
+
+  * https://archlinux.org/packages/extra/x86_64/rauc/
+
+* Debian
+
+  * https://packages.debian.org/search?searchon=sourcenames&keywords=rauc
+  * https://tracker.debian.org/pkg/rauc
+
+* Nix
+
+  * https://github.com/NixOS/nixpkgs/blob/master/pkgs/tools/misc/rauc/default.nix
+
+* Ubuntu
+
+  * https://packages.ubuntu.com/search?keywords=rauc&searchon=sourcenames
+
+.. _repology-rauc: https://repology.org/project/rauc/versions
+
 Bundle Format Migration
 -----------------------
 
