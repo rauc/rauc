@@ -380,8 +380,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system0");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system0");
 	r_context();
 
 	res = determine_slot_states(&error);
@@ -433,8 +433,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("rescue");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "rescue");
 	r_context();
 
 	res = determine_slot_states(&error);
@@ -489,8 +489,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system1");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system1");
 	r_context();
 
 	res = determine_slot_states(&error);
@@ -540,8 +540,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system0");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system0");
 	r_context();
 
 	res = determine_slot_states(&error);
@@ -592,8 +592,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system1");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system1");
 	r_context();
 
 	res = determine_slot_states(&error);
@@ -662,8 +662,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system1");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system1");
 	r_context();
 
 	data = g_bytes_new_static(MANIFEST2, sizeof(MANIFEST2));
@@ -736,8 +736,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system1");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system1");
 	r_context();
 
 	data = g_bytes_new_static(MANIFEST2, sizeof(MANIFEST2));
@@ -800,8 +800,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("_external_"); /* mark as external */
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "_external_"); /* mark as external */
 	r_context();
 
 	g_message("Bootname is: %s", r_context()->bootslot);
@@ -870,8 +870,8 @@ readonly=true\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system0");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system0");
 	r_context();
 
 	data = g_bytes_new_static(MANIFEST, sizeof(MANIFEST));
@@ -954,8 +954,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system1");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system1");
 	r_context();
 
 	res = determine_slot_states(&error);
@@ -1369,8 +1369,8 @@ device=images/rootfs-1\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system0");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system0");
 	r_context();
 	g_assert_nonnull(r_context()->config);
 	g_assert_nonnull(r_context()->config->slots);
