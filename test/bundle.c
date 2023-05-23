@@ -635,8 +635,7 @@ static void bundle_test_purpose_default(BundleFixture *fixture,
 	/* When the cert specifies no purpose, everything except 'codesign' is allowed */
 
 	g_message("testing default purpose with default cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = NULL;
+	replace_strdup(&r_context()->config->keyring_check_purpose, NULL);
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -644,8 +643,7 @@ static void bundle_test_purpose_default(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	g_message("testing purpose 'smimesign' with default cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("smimesign");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "smimesign");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -653,24 +651,21 @@ static void bundle_test_purpose_default(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	g_message("testing purpose 'codesign' with default cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("codesign");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "codesign");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
 	g_assert_false(res);
 
 	g_message("testing purpose 'any' with default cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("any");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "any");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
 	g_clear_pointer(&bundle, free_bundle);
 
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = NULL;
+	replace_strdup(&r_context()->config->keyring_check_purpose, NULL);
 }
 
 static void bundle_test_purpose_email(BundleFixture *fixture,
@@ -683,8 +678,7 @@ static void bundle_test_purpose_email(BundleFixture *fixture,
 	/* When the cert specifies the 'smimesign' usage, only default and that is allowed */
 
 	g_message("testing default purpose with 'smimesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = NULL;
+	replace_strdup(&r_context()->config->keyring_check_purpose, NULL);
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -692,8 +686,7 @@ static void bundle_test_purpose_email(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	g_message("testing purpose 'smimesign' with 'smimesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("smimesign");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "smimesign");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -701,8 +694,7 @@ static void bundle_test_purpose_email(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	g_message("testing purpose 'codesign' with 'smimesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("codesign");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "codesign");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
@@ -710,16 +702,14 @@ static void bundle_test_purpose_email(BundleFixture *fixture,
 	g_assert_null(bundle);
 
 	g_message("testing purpose 'any' with 'smimesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("any");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "any");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
 	g_clear_pointer(&bundle, free_bundle);
 
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = NULL;
+	replace_strdup(&r_context()->config->keyring_check_purpose, NULL);
 }
 
 static void bundle_test_purpose_codesign(BundleFixture *fixture,
@@ -732,8 +722,7 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 	/* When the cert specifies the 'codesign' usage, only that is allowed */
 
 	g_message("testing default purpose with 'codesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = NULL;
+	replace_strdup(&r_context()->config->keyring_check_purpose, NULL);
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
@@ -741,8 +730,7 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 	g_assert_null(bundle);
 
 	g_message("testing purpose 'smimesign' with 'codesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("smimesign");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "smimesign");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
@@ -750,8 +738,7 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 	g_assert_null(bundle);
 
 	g_message("testing purpose 'codesign' with 'codesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("codesign");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "codesign");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -759,16 +746,14 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	g_message("testing purpose 'any' with 'codesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("any");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "any");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
 	g_clear_pointer(&bundle, free_bundle);
 
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = NULL;
+	replace_strdup(&r_context()->config->keyring_check_purpose, NULL);
 }
 
 int main(int argc, char *argv[])
