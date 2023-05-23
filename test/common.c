@@ -402,3 +402,9 @@ void flip_bits_filename(gchar *filename, off_t offset, guint8 mask)
 	g_assert(fsync(fd) == 0);
 	g_close(fd, NULL);
 }
+
+void replace_strdup(gchar **dst, const gchar *src)
+{
+	g_free(*dst);
+	*dst = g_strdup(src);
+}
