@@ -350,8 +350,8 @@ static void service_test_install_deprecated(ServiceFixture *fixture, gconstpoint
 static void service_test_info(ServiceFixture *fixture, gconstpointer user_data, gboolean deprecated)
 {
 	GError *error = NULL;
-	gchar *compatible;
-	gchar *version;
+	g_autofree gchar *compatible = NULL;
+	g_autofree gchar *version = NULL;
 	g_autofree gchar *bundlepath = NULL;
 
 	if (!ENABLE_SERVICE) {
@@ -383,8 +383,8 @@ static void service_test_info(ServiceFixture *fixture, gconstpointer user_data, 
 				NULL,
 				&error);
 	} else {
-		GVariant *info = NULL;
-		GVariant *bundle_update = NULL;
+		g_autoptr(GVariant) info = NULL;
+		g_autoptr(GVariant) bundle_update = NULL;
 		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
 		r_installer_call_inspect_bundle_sync(installer,
 				bundlepath,
@@ -404,8 +404,6 @@ static void service_test_info(ServiceFixture *fixture, gconstpointer user_data, 
 
 out:
 	g_clear_object(&installer);
-	g_free(compatible);
-	g_free(version);
 }
 
 static void service_test_info_bundle(ServiceFixture *fixture, gconstpointer user_data)
