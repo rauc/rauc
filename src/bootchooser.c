@@ -1097,6 +1097,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	gint ret;
 	GRegex *regex = NULL;
 	GMatchInfo *match = NULL;
+	g_autofree gchar *matched = NULL;
 	g_autolist(efi_bootentry) entries = NULL;
 	g_autoptr(GList) returnorder = NULL;
 	gchar **bootnumorder = NULL;
@@ -1172,8 +1173,11 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	/* obtain bootnext */
 	regex = g_regex_new("^BootNext: ([0-9a-fA-F]{4})$", G_REGEX_MULTILINE, 0, NULL);
 	if (g_regex_match(regex, g_bytes_get_data(stdout_buf, NULL), 0, &match)) {
-		if (bootnext)
-			*bootnext = get_efi_entry_by_bootnum(entries, g_match_info_fetch(match, 1));
+		if (bootnext) {
+			g_clear_pointer(&matched, g_free);
+			matched = g_match_info_fetch(match, 1);
+			*bootnext = get_efi_entry_by_bootnum(entries, matched);
+		}
 	}
 
 	g_clear_pointer(&regex, g_regex_unref);
@@ -1191,7 +1195,9 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 		goto out;
 	}
 
-	bootnumorder = g_strsplit(g_match_info_fetch(match, 1), ",", 0);
+	g_clear_pointer(&matched, g_free);
+	matched = g_match_info_fetch(match, 1);
+	bootnumorder = g_strsplit(matched, ",", 0);
 
 	/* Iterate over boot entries list in boot order */
 	for (gchar **element = bootnumorder; *element; element++) {
