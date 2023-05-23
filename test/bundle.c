@@ -852,12 +852,12 @@ int main(int argc, char *argv[])
 	}
 
 	/* test casync manifest contents */
-	g_test_add(g_strdup_printf("/bundle/check_casync/old"),
+	g_test_add("/bundle/check_casync/old",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up, bundle_test_check_casync_old,
 			bundle_fixture_tear_down);
 
-	g_test_add(g_strdup_printf("/bundle/check_casync/new"),
+	g_test_add("/bundle/check_casync/new",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up, bundle_test_check_casync_new,
 			bundle_fixture_tear_down);
@@ -869,7 +869,7 @@ int main(int argc, char *argv[])
 		},
 		.bundle_formats = "plain",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/plain/set-plain"),
+	g_test_add("/bundle/format/plain/set-plain",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
@@ -880,7 +880,7 @@ int main(int argc, char *argv[])
 		},
 		.bundle_formats = "verity",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/plain/set-verity"),
+	g_test_add("/bundle/format/plain/set-verity",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
 			bundle_fixture_tear_down);
@@ -891,7 +891,7 @@ int main(int argc, char *argv[])
 		},
 		.bundle_formats = "plain verity",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/plain/set-both"),
+	g_test_add("/bundle/format/plain/set-both",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
@@ -902,7 +902,7 @@ int main(int argc, char *argv[])
 		},
 		.bundle_formats = "-plain",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/plain/deny-plain"),
+	g_test_add("/bundle/format/plain/deny-plain",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
 			bundle_fixture_tear_down);
@@ -913,7 +913,7 @@ int main(int argc, char *argv[])
 		},
 		.bundle_formats = "-verity",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/plain/deny-verity"),
+	g_test_add("/bundle/format/plain/deny-verity",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
@@ -925,7 +925,7 @@ int main(int argc, char *argv[])
 		},
 		.bundle_formats = "plain",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/verity/set-plain"),
+	g_test_add("/bundle/format/verity/set-plain",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
 			bundle_fixture_tear_down);
@@ -936,7 +936,7 @@ int main(int argc, char *argv[])
 		},
 		.bundle_formats = "verity",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/verity/set-verity"),
+	g_test_add("/bundle/format/verity/set-verity",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
@@ -947,7 +947,7 @@ int main(int argc, char *argv[])
 		},
 		.bundle_formats = "plain verity",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/verity/set-both"),
+	g_test_add("/bundle/format/verity/set-both",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
@@ -958,7 +958,7 @@ int main(int argc, char *argv[])
 		},
 		.bundle_formats = "-plain",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/verity/deny-plain"),
+	g_test_add("/bundle/format/verity/deny-plain",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
@@ -969,7 +969,7 @@ int main(int argc, char *argv[])
 		},
 		.bundle_formats = "-verity",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/verity/deny-verity"),
+	g_test_add("/bundle/format/verity/deny-verity",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
 			bundle_fixture_tear_down);
