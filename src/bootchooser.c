@@ -70,7 +70,6 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 	GError *ierror = NULL;
 	GInputStream *instream;
 	g_autoptr(GDataInputStream) datainstream = NULL;
-	gchar* outline;
 	guint64 result[2] = {};
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(6, g_free);
 
@@ -107,7 +106,7 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 
 	for (int i = 0; i < 2; i++) {
 		gchar *endptr = NULL;
-		outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
+		g_autofree gchar* outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
 		if (!outline) {
 			/* Having no error set there was means no content to read */
 			if (ierror == NULL) {

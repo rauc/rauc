@@ -29,7 +29,7 @@ jobs:
         # https://developer-old.gnome.org/glib/unstable/glib-running.html).
         export G_SLICE=always-malloc G_DEBUG=gc-friendly
         export ASAN_OPTIONS=malloc_context_size=64:fast_unwind_on_malloc=0
-        build/test/bootchooser-test || true
+        build/test/bootchooser-test
         build/test/boot_raw_fallback-test
         build/test/boot_switch-test
         build/test/bundle-test || true
