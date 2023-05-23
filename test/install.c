@@ -296,7 +296,7 @@ filename=demofs.ext4\n\
 [image.bootloader]\n\
 sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca\n\
 filename=bootloader.img";
-	gchar* pathname = write_tmp_file(fixture->tmpdir, "manifest.raucm", manifest_file, NULL);
+	g_autofree gchar* pathname = write_tmp_file(fixture->tmpdir, "manifest.raucm", manifest_file, NULL);
 	g_assert_nonnull(pathname);
 
 	g_assert_true(load_manifest_file(pathname, &rm, NULL));
