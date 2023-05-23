@@ -1160,8 +1160,8 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 
 	while (g_match_info_matches(match)) {
 		efi_bootentry *entry = g_new0(efi_bootentry, 1);
-		entry->num = g_strdup(g_match_info_fetch(match, 1));
-		entry->name = g_strdup(g_match_info_fetch(match, 2));
+		entry->num = g_match_info_fetch(match, 1);
+		entry->name = g_match_info_fetch(match, 2);
 		entries = g_list_append(entries, entry);
 		g_match_info_next(match, NULL);
 	}
