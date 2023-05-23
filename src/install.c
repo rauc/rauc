@@ -87,7 +87,7 @@ static gchar *resolve_loop_device(const gchar *devicepath, GError **error)
 
 gboolean update_external_mount_points(GError **error)
 {
-	GList *mountlist = NULL;
+	g_autolist(GUnixMountEntry) mountlist = NULL;
 	GHashTableIter iter;
 	RaucSlot *slot;
 	GError *ierror = NULL;
@@ -123,7 +123,6 @@ gboolean update_external_mount_points(GError **error)
 			g_debug("Found external mountpoint for slot %s at %s", s->name, s->ext_mount_point);
 		}
 	}
-	g_list_free_full(mountlist, (GDestroyNotify)g_unix_mount_free);
 
 	return TRUE;
 }
