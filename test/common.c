@@ -206,7 +206,7 @@ gboolean test_make_filesystem(const gchar *dirname, const gchar *filename)
 {
 	g_autoptr(GSubprocess) sub = NULL;
 	GError *error = NULL;
-	gchar *path;
+	g_autofree gchar *path = NULL;
 	gboolean res = FALSE;
 
 	path = g_build_filename(dirname, filename, NULL);
