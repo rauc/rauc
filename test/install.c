@@ -984,6 +984,7 @@ device=/dev/null\n\
 
 	g_clear_pointer(&rm, free_manifest);
 	g_clear_pointer(&data, g_bytes_unref);
+	g_clear_pointer(&install_plans, g_ptr_array_unref);
 
 	/* Test with manifest containing only default variant */
 	data = g_bytes_new_static(MANIFEST_DEFAULT_VARIANT, sizeof(MANIFEST_DEFAULT_VARIANT));
@@ -1004,6 +1005,7 @@ device=/dev/null\n\
 
 	g_clear_pointer(&rm, free_manifest);
 	g_clear_pointer(&data, g_bytes_unref);
+	g_clear_pointer(&install_plans, g_ptr_array_unref);
 
 	/* Test with manifest containing only non-matching specific variant (must fail) */
 	data = g_bytes_new_static(MANIFEST_OTHER_VARIANT, sizeof(MANIFEST_OTHER_VARIANT));
