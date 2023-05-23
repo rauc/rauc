@@ -355,7 +355,7 @@ GHashTable* determine_target_install_group(void)
 	GHashTable *targetgroup = NULL;
 	GHashTableIter iter;
 	RaucSlot *iterslot = NULL;
-	GList *selected_root_slots = NULL;
+	g_autoptr(GList) selected_root_slots = NULL;
 
 	r_context_begin_step("determine_target_install_group", "Determining target install group", 0);
 
