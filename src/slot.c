@@ -94,19 +94,15 @@ out:
 }
 
 /* returns string representation of slot state */
-gchar* r_slot_slotstate_to_str(SlotState slotstate)
+const gchar* r_slot_slotstate_to_str(SlotState slotstate)
 {
-	gchar *state = NULL;
-
 	switch (slotstate) {
 		case ST_ACTIVE:
-			state = g_strdup("active");
-			break;
+			return "active";
 		case ST_INACTIVE:
-			state = g_strdup("inactive");
-			break;
+			return "inactive";
 		case ST_BOOTED:
-			state = g_strdup("booted");
+			return "booted";
 			break;
 		case ST_UNKNOWN:
 		default:
@@ -114,7 +110,7 @@ gchar* r_slot_slotstate_to_str(SlotState slotstate)
 			break;
 	}
 
-	return state;
+	return NULL;
 }
 
 SlotState r_slot_str_to_slotstate(gchar *str)
