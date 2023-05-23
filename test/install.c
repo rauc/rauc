@@ -245,7 +245,7 @@ device=/path/to/prebootloader";
 
 	pathname = write_tmp_file(fixture->tmpdir, "system.conf", cfg_file, NULL);
 	g_assert_nonnull(pathname);
-	r_context_conf()->configpath = g_strdup(pathname);
+	replace_strdup(&r_context_conf()->configpath, pathname);
 }
 
 static void install_fixture_tear_down(InstallFixture *fixture,
@@ -301,7 +301,7 @@ filename=bootloader.img";
 
 	g_assert_true(load_manifest_file(pathname, &rm, NULL));
 
-	r_context_conf()->bootslot = g_strdup("system0");
+	replace_strdup(&r_context_conf()->bootslot, "system0");
 
 	result = determine_slot_states(&error);
 	g_assert_no_error(error);
@@ -1201,7 +1201,7 @@ static void install_test_bundle_hook_install(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = g_strdup(mountdir);
+	replace_strdup(&r_context_conf()->mountprefix, mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -1255,7 +1255,7 @@ static void install_test_bundle_hook_post_install(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = g_strdup(mountdir);
+	replace_strdup(&r_context_conf()->mountprefix, mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
