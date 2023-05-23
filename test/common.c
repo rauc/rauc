@@ -204,7 +204,7 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, cons
 
 gboolean test_make_filesystem(const gchar *dirname, const gchar *filename)
 {
-	GSubprocess *sub;
+	g_autoptr(GSubprocess) sub = NULL;
 	GError *error = NULL;
 	gchar *path;
 	gboolean res = FALSE;
@@ -241,7 +241,7 @@ gboolean test_mount(const gchar *src, const gchar *dest)
 
 gboolean test_do_chmod(const gchar *path)
 {
-	GSubprocess *sub;
+	g_autoptr(GSubprocess) sub = NULL;
 	GError *error = NULL;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(10, g_free);
 
