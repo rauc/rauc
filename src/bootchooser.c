@@ -982,6 +982,18 @@ typedef struct {
 	gboolean active;
 } efi_bootentry;
 
+static void efi_bootentry_free(efi_bootentry *entry)
+{
+	if (!entry)
+		return;
+
+	g_free(entry->num);
+	g_free(entry->name);
+	g_free(entry);
+}
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(efi_bootentry, efi_bootentry_free);
+
 static gboolean efi_bootorder_set(gchar *order, GError **error)
 {
 	g_autoptr(GSubprocess) sub = NULL;
@@ -1064,6 +1076,10 @@ static efi_bootentry* get_efi_entry_by_bootnum(GList *entries, const gchar *boot
 
 /* Parses output of efibootmgr and returns information obtained.
  *
+ * Note that this function can return two lists, pointing to the same elements.
+ * The allocated efi_bootentry structs are owned by the all_entries list, so
+ * that parameter is mandatory.
+ *
  * @param bootorder_entries Return location for List (of efi_bootentry
  *        elements) of slots that are currently in EFI 'BootOrder'
  * @param all_entries Return location for List (of efi_bootentry element) of
@@ -1081,12 +1097,12 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	gint ret;
 	GRegex *regex = NULL;
 	GMatchInfo *match = NULL;
-	GList *entries = NULL;
-	GList *returnorder = NULL;
+	g_autolist(efi_bootentry) entries = NULL;
+	g_autoptr(GList) returnorder = NULL;
 	gchar **bootnumorder = NULL;
 
 	g_return_val_if_fail(bootorder_entries == NULL || *bootorder_entries == NULL, FALSE);
-	g_return_val_if_fail(all_entries == NULL || *all_entries == NULL, FALSE);
+	g_return_val_if_fail(all_entries != NULL && *all_entries == NULL, FALSE);
 	g_return_val_if_fail(bootnext == NULL || *bootnext == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
@@ -1187,9 +1203,8 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	g_strfreev(bootnumorder);
 
 	if (bootorder_entries)
-		*bootorder_entries = returnorder;
-	if (all_entries)
-		*all_entries = entries;
+		*bootorder_entries = g_steal_pointer(&returnorder);
+	*all_entries = g_steal_pointer(&entries);
 
 out:
 	g_clear_pointer(&regex, g_regex_unref);
@@ -1200,7 +1215,7 @@ out:
 
 static gboolean efi_set_temp_primary(RaucSlot *slot, GError **error)
 {
-	GList *entries = NULL;
+	g_autolist(efi_bootentry) entries = NULL;
 	GError *ierror = NULL;
 	efi_bootentry *efi_slot_entry = NULL;
 
@@ -1239,8 +1254,8 @@ static gboolean efi_set_temp_primary(RaucSlot *slot, GError **error)
  * Prepends it to bootorder list if prepend argument is set to TRUE */
 static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend, GError **error)
 {
-	GList *entries = NULL;
-	GList *all_entries = NULL;
+	g_autoptr(GList) entries = NULL;
+	g_autolist(efi_bootentry) all_entries = NULL;
 	g_autoptr(GPtrArray) bootorder = NULL;
 	g_autofree gchar *order = NULL;
 	GError *ierror = NULL;
@@ -1320,7 +1335,8 @@ static gboolean efi_set_state(RaucSlot *slot, gboolean good, GError **error)
 
 static RaucSlot *efi_get_primary(GError **error)
 {
-	GList *bootorder_entries = NULL;
+	g_autoptr(GList) bootorder_entries = NULL;
+	g_autolist(efi_bootentry) all_entries = NULL;
 	GError *ierror = NULL;
 	efi_bootentry *bootnext = NULL;
 	RaucSlot *primary = NULL;
@@ -1329,7 +1345,7 @@ static RaucSlot *efi_get_primary(GError **error)
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (!efi_bootorder_get(&bootorder_entries, NULL, &bootnext, &ierror)) {
+	if (!efi_bootorder_get(&bootorder_entries, &all_entries, &bootnext, &ierror)) {
 		g_propagate_error(error, ierror);
 		return NULL;
 	}
@@ -1398,13 +1414,14 @@ static gboolean efi_get_state(RaucSlot* slot, gboolean *good, GError **error)
 {
 	efi_bootentry *found_entry = NULL;
 	GError *ierror = NULL;
-	GList *bootorder_entries = NULL;
+	g_autoptr(GList) bootorder_entries = NULL;
+	g_autolist(efi_bootentry) all_entries = NULL;
 
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(good, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (!efi_bootorder_get(&bootorder_entries, NULL, NULL, &ierror)) {
+	if (!efi_bootorder_get(&bootorder_entries, &all_entries, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
