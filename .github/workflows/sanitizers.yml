@@ -44,7 +44,7 @@ jobs:
         build/test/network-test
         build/test/progress-test
         build/test/service-test || true
-        build/test/signature-test || true
+        build/test/signature-test
         build/test/slot-test
         build/test/stats-test
         build/test/update_handler-test || true
