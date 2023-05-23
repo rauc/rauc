@@ -239,13 +239,11 @@ gboolean test_mount(const gchar *src, const gchar *dest)
 	return r_mount_full(src, dest, NULL, NULL, NULL);
 }
 
-
 gboolean test_do_chmod(const gchar *path)
 {
 	GSubprocess *sub;
 	GError *error = NULL;
-	gboolean res = FALSE;
-	GPtrArray *args = g_ptr_array_new_full(10, g_free);
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(10, g_free);
 
 	g_ptr_array_add(args, g_strdup("chmod"));
 	g_ptr_array_add(args, g_strdup("777"));
@@ -257,19 +255,16 @@ gboolean test_do_chmod(const gchar *path)
 	if (!sub) {
 		g_warning("chmod failed: %s", error->message);
 		g_clear_error(&error);
-		goto out;
+		return FALSE;
 	}
 
-	res = g_subprocess_wait_check(sub, NULL, &error);
-	if (!res) {
+	if (!g_subprocess_wait_check(sub, NULL, &error)) {
 		g_warning("chmod failed: %s", error->message);
 		g_clear_error(&error);
-		goto out;
+		return FALSE;
 	}
 
-out:
-	g_ptr_array_unref(args);
-	return res;
+	return TRUE;
 }
 
 gboolean test_umount(const gchar *dirname, const gchar *mountpoint)
