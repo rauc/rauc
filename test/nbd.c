@@ -229,7 +229,7 @@ int main(int argc, char *argv[])
 	nbd_data = memdup((&(NBDData) {
 		.bundle_url = "http://127.0.0.1/test/good-verity-bundle.raucb",
 	}));
-	g_test_add(g_strdup_printf("/nbd/direct_read/good"),
+	g_test_add("/nbd/direct_read/good",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_direct_read,
 			nbd_fixture_tear_down);
@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
 		.err_domain = R_NBD_ERROR,
 		.err_code = R_NBD_ERROR_NOT_FOUND,
 	}));
-	g_test_add(g_strdup_printf("/nbd/direct_read/404"),
+	g_test_add("/nbd/direct_read/404",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_direct_read,
 			nbd_fixture_tear_down);
@@ -251,14 +251,14 @@ int main(int argc, char *argv[])
 		.err_domain = R_NBD_ERROR,
 		.err_code = R_NBD_ERROR_UNAUTHORIZED,
 	}));
-	g_test_add(g_strdup_printf("/nbd/basic-auth/fail"),
+	g_test_add("/nbd/basic-auth/fail",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_direct_read,
 			nbd_fixture_tear_down);
 	nbd_data = memdup((&(NBDData) {
 		.bundle_url = "http://rauc:rauctest@127.0.0.1/basic/test/good-verity-bundle.raucb",
 	}));
-	g_test_add(g_strdup_printf("/nbd/basic-auth/good-1"),
+	g_test_add("/nbd/basic-auth/good-1",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_direct_read,
 			nbd_fixture_tear_down);
@@ -269,33 +269,33 @@ int main(int argc, char *argv[])
 		        .http_headers = memdup(http_headers),
 		},
 	}));
-	g_test_add(g_strdup_printf("/nbd/basic-auth/good-2"),
+	g_test_add("/nbd/basic-auth/good-2",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_direct_read,
 			nbd_fixture_tear_down);
 
 	/* basic bundle handling */
-	g_test_add(g_strdup_printf("/nbd/check_invalid_bundle"),
+	g_test_add("/nbd/check_invalid_bundle",
 			NBDFixture, NULL,
 			nbd_fixture_set_up, test_check_invalid_bundle,
 			nbd_fixture_tear_down);
 
-	g_test_add(g_strdup_printf("/nbd/check_not_found"),
+	g_test_add("/nbd/check_not_found",
 			NBDFixture, NULL,
 			nbd_fixture_set_up, test_check_not_found,
 			nbd_fixture_tear_down);
 
-	g_test_add(g_strdup_printf("/nbd/plain_bundle"),
+	g_test_add("/nbd/plain_bundle",
 			NBDFixture, NULL,
 			nbd_fixture_set_up, test_plain_bundle,
 			nbd_fixture_tear_down);
 
-	g_test_add(g_strdup_printf("/nbd/verity_bundle"),
+	g_test_add("/nbd/verity_bundle",
 			NBDFixture, NULL,
 			nbd_fixture_set_up, test_verity_bundle,
 			nbd_fixture_tear_down);
 
-	g_test_add(g_strdup_printf("/nbd/check_extract"),
+	g_test_add("/nbd/check_extract",
 			NBDFixture, NULL,
 			nbd_fixture_set_up, test_extract,
 			nbd_fixture_tear_down);
@@ -304,7 +304,7 @@ int main(int argc, char *argv[])
 	nbd_data = memdup((&(NBDData) {
 		.bundle_url = "http://127.0.0.1/test/good-verity-bundle.raucb",
 	}));
-	g_test_add(g_strdup_printf("/nbd/mount/http"),
+	g_test_add("/nbd/mount/http",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);
@@ -315,7 +315,7 @@ int main(int argc, char *argv[])
 		.err_domain = R_NBD_ERROR,
 		.err_code = R_NBD_ERROR_CONFIGURATION, /* missing CA cert */
 	}));
-	g_test_add(g_strdup_printf("/nbd/mount/https-bad-ca"),
+	g_test_add("/nbd/mount/https-bad-ca",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);
@@ -325,7 +325,7 @@ int main(int argc, char *argv[])
 		        .tls_no_verify = TRUE,
 		},
 	}));
-	g_test_add(g_strdup_printf("/nbd/mount/https-no-verify"),
+	g_test_add("/nbd/mount/https-no-verify",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);
@@ -336,7 +336,7 @@ int main(int argc, char *argv[])
 		        .tls_ca = g_strdup("test/openssl-ca/web-ca.pem"),
 		},
 	}));
-	g_test_add(g_strdup_printf("/nbd/mount/https"),
+	g_test_add("/nbd/mount/https",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);
@@ -348,7 +348,7 @@ int main(int argc, char *argv[])
 		        .tls_ca = g_strdup("test/openssl-ca/web-ca.pem"),
 		},
 	}));
-	g_test_add(g_strdup_printf("/nbd/mount/http2"),
+	g_test_add("/nbd/mount/http2",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);
@@ -362,7 +362,7 @@ int main(int argc, char *argv[])
 		        .tls_ca = g_strdup("test/openssl-ca/web-ca.pem"),
 		},
 	}));
-	g_test_add(g_strdup_printf("/nbd/mount/client-cert/good"),
+	g_test_add("/nbd/mount/client-cert/good",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);
@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
 		.err_domain = R_NBD_ERROR,
 		.err_code = R_NBD_ERROR_NOT_FOUND,
 	}));
-	g_test_add(g_strdup_printf("/nbd/mount/client-cert/404"),
+	g_test_add("/nbd/mount/client-cert/404",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);
@@ -392,7 +392,7 @@ int main(int argc, char *argv[])
 		.err_domain = R_NBD_ERROR,
 		.err_code = R_NBD_ERROR_CONFIGURATION, /* missing client cert */
 	}));
-	g_test_add(g_strdup_printf("/nbd/mount/client-cert/unauth"),
+	g_test_add("/nbd/mount/client-cert/unauth",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);
@@ -402,7 +402,7 @@ int main(int argc, char *argv[])
 		.bundle_url = "http://127.0.0.1/backend/sporadic.raucb",
 		.needs_backend = TRUE,
 	}));
-	g_test_add(g_strdup_printf("/nbd/mount/http-sporadic-errors"),
+	g_test_add("/nbd/mount/http-sporadic-errors",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);
@@ -414,7 +414,7 @@ int main(int argc, char *argv[])
 		.err_domain = R_NBD_ERROR,
 		.err_code = R_NBD_ERROR_UNAUTHORIZED,
 	}));
-	g_test_add(g_strdup_printf("/nbd/token/missing"),
+	g_test_add("/nbd/token/missing",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);
@@ -428,7 +428,7 @@ int main(int argc, char *argv[])
 		.err_domain = R_NBD_ERROR,
 		.err_code = R_NBD_ERROR_UNAUTHORIZED,
 	}));
-	g_test_add(g_strdup_printf("/nbd/token/wrong"),
+	g_test_add("/nbd/token/wrong",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);
@@ -440,7 +440,7 @@ int main(int argc, char *argv[])
 		        .http_headers = memdup(http_headers),
 		},
 	}));
-	g_test_add(g_strdup_printf("/nbd/token/good"),
+	g_test_add("/nbd/token/good",
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);

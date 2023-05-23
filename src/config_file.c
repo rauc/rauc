@@ -170,9 +170,7 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
-		gchar **groupsplit;
-
-		groupsplit = g_strsplit(groups[i], ".", -1);
+		g_auto(GStrv) groupsplit = g_strsplit(groups[i], ".", -1);
 
 		/* We treat sections starting with "slot." as slots */
 		if (g_str_equal(groupsplit[0], RAUC_SLOT_PREFIX)) {
@@ -342,7 +340,6 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 			g_hash_table_insert(slots, (gchar*)slot->name, slot);
 			slot = NULL;
 		}
-		g_strfreev(groupsplit);
 	}
 
 	/* Add parent pointers */
@@ -395,13 +392,12 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	g_autoptr(RaucConfig) c = g_new0(RaucConfig, 1);
 	g_autoptr(GKeyFile) key_file = NULL;
 	gboolean dtbvariant;
-	gchar *variant_data;
+	g_autofree gchar *variant_data = NULL;
 	g_autofree gchar *bundle_formats = NULL;
 
-	g_return_val_if_fail(config, FALSE);
-
-	/* in case of an early abort, return NULL */
-	*config = NULL;
+	g_return_val_if_fail(filename, FALSE);
+	g_return_val_if_fail(config && *config == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	key_file = g_key_file_new();
 
@@ -583,7 +579,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		}
 
 		c->system_variant_type = R_CONFIG_SYS_VARIANT_FILE;
-		c->system_variant = variant_data;
+		c->system_variant = g_steal_pointer(&variant_data);
 	}
 
 	/* parse 'variant-name' key */
@@ -606,7 +602,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		}
 
 		c->system_variant_type = R_CONFIG_SYS_VARIANT_NAME;
-		c->system_variant = variant_data;
+		c->system_variant = g_steal_pointer(&variant_data);
 	}
 
 	/* parse data/status location
@@ -863,6 +859,7 @@ void free_config(RaucConfig *config)
 	g_free(config->mount_prefix);
 	g_free(config->store_path);
 	g_free(config->tmp_path);
+	g_free(config->casync_install_args);
 	g_free(config->grubenv_path);
 	g_free(config->statusfile_path);
 	g_free(config->keyring_path);

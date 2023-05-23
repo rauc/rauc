@@ -1241,7 +1241,7 @@ static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend
 {
 	GList *entries = NULL;
 	GList *all_entries = NULL;
-	GPtrArray *bootorder = NULL;
+	g_autoptr(GPtrArray) bootorder = NULL;
 	g_autofree gchar *order = NULL;
 	GError *ierror = NULL;
 	efi_bootentry *efi_slot_entry = NULL;
@@ -1293,9 +1293,7 @@ static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend
 	}
 	g_ptr_array_add(bootorder, NULL);
 
-	/* No need to free the individual strings here as we only declared
-	 * pointers to already-existing string members of efi_bootentry items. */
-	order = g_strjoinv(",", (gchar**) g_ptr_array_free(bootorder, FALSE));
+	order = g_strjoinv(",", (gchar**)bootorder->pdata);
 
 	if (!efi_bootorder_set(order, NULL)) {
 		g_propagate_prefixed_error(error, ierror, "Modifying bootorder failed: ");
