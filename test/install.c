@@ -1122,7 +1122,7 @@ static void install_test_bundle(InstallFixture *fixture,
 static void install_test_bundle_thread(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucInstallArgs *args = install_args_new();
+	RaucInstallArgs *args = NULL;
 	g_autofree gchar *bundlepath = NULL;
 	g_autofree gchar *mountdir = NULL;
 
@@ -1141,6 +1141,7 @@ static void install_test_bundle_thread(InstallFixture *fixture,
 
 	g_assert_true(determine_slot_states(NULL));
 
+	args = install_args_new();
 	args->name = g_steal_pointer(&bundlepath);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
