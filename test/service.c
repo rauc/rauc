@@ -26,6 +26,9 @@ RInstaller *installer = NULL;
 
 static void service_install_fixture_set_up(ServiceFixture *fixture, gconstpointer user_data)
 {
+	g_autofree gchar *contents = NULL;
+	g_autofree gchar *filename = NULL;
+
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
 	fixture_helper_set_up_system(fixture->tmpdir, NULL);
@@ -36,10 +39,12 @@ static void service_install_fixture_set_up(ServiceFixture *fixture, gconstpointe
 	});
 
 	/* Write a D-Bus service file with current tmpdir */
-	write_tmp_file(fixture->tmpdir, "de.pengutronix.rauc.service", g_strdup_printf("\
+	contents = g_strdup_printf("\
 [D-BUS Service]\n\
 Name=de.pengutronix.rauc\n\
-Exec="TEST_SERVICES "/rauc -c %s/system.conf --mount=%s/mount --override-boot-slot=system0 service\n", fixture->tmpdir, fixture->tmpdir), NULL);
+Exec="TEST_SERVICES "/rauc -c %s/system.conf --mount=%s/mount --override-boot-slot=system0 service\n", fixture->tmpdir, fixture->tmpdir),
+	filename = write_tmp_file(fixture->tmpdir, "de.pengutronix.rauc.service", contents, NULL);
+	(void)filename;
 
 	fixture->dbus = g_test_dbus_new(G_TEST_DBUS_NONE);
 	g_test_dbus_add_service_dir(fixture->dbus, fixture->tmpdir);
@@ -47,13 +52,16 @@ Exec="TEST_SERVICES "/rauc -c %s/system.conf --mount=%s/mount --override-boot-sl
 }
 static void service_info_fixture_set_up(ServiceFixture *fixture, gconstpointer user_data)
 {
+	g_autofree gchar *filename = NULL;
+
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
 	/* Write a D-Bus service file with current tmpdir */
-	write_tmp_file(fixture->tmpdir, "de.pengutronix.rauc.service", "\
+	filename = write_tmp_file(fixture->tmpdir, "de.pengutronix.rauc.service", "\
 [D-BUS Service]\n\
 Name=de.pengutronix.rauc\n\
 Exec="TEST_SERVICES "/rauc -c test/test.conf --override-boot-slot=system0 service\n", NULL);
+	(void)filename;
 
 	fixture->dbus = g_test_dbus_new(G_TEST_DBUS_NONE);
 	g_test_dbus_add_service_dir(fixture->dbus, fixture->tmpdir);
