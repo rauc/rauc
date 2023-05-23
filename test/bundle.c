@@ -67,8 +67,8 @@ static void prepare_bundle(BundleFixture *fixture, gconstpointer user_data)
 static void bundle_fixture_set_up_bundle(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/autobuilder-1.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/autobuilder-1.pem");
+	replace_strdup(&r_context_conf()->certpath, "test/openssl-ca/dev/autobuilder-1.cert.pem");
+	replace_strdup(&r_context_conf()->keypath, "test/openssl-ca/dev/private/autobuilder-1.pem");
 
 	prepare_bundle(fixture, user_data);
 }
@@ -76,8 +76,8 @@ static void bundle_fixture_set_up_bundle(BundleFixture *fixture,
 static void bundle_fixture_set_up_bundle_corrupt(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/autobuilder-1.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/autobuilder-1.pem");
+	replace_strdup(&r_context_conf()->certpath, "test/openssl-ca/dev/autobuilder-1.cert.pem");
+	replace_strdup(&r_context_conf()->keypath, "test/openssl-ca/dev/private/autobuilder-1.pem");
 
 	prepare_bundle(fixture, user_data);
 	flip_bits_filename(fixture->bundlename, 1024*1024+512, 0xff);
@@ -86,8 +86,8 @@ static void bundle_fixture_set_up_bundle_corrupt(BundleFixture *fixture,
 static void bundle_fixture_set_up_bundle_autobuilder2(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/autobuilder-2.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/autobuilder-2.pem");
+	replace_strdup(&r_context_conf()->certpath, "test/openssl-ca/dev/autobuilder-2.cert.pem");
+	replace_strdup(&r_context_conf()->keypath, "test/openssl-ca/dev/private/autobuilder-2.pem");
 
 	prepare_bundle(fixture, user_data);
 }
@@ -95,8 +95,8 @@ static void bundle_fixture_set_up_bundle_autobuilder2(BundleFixture *fixture,
 static void bundle_fixture_set_up_bundle_email(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/xku-emailProtection.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/xku-emailProtection.pem");
+	replace_strdup(&r_context_conf()->certpath, "test/openssl-ca/dev/xku-emailProtection.cert.pem");
+	replace_strdup(&r_context_conf()->keypath, "test/openssl-ca/dev/private/xku-emailProtection.pem");
 	/* cert is already checked once during signing */
 	g_free(r_context()->config->keyring_check_purpose);
 	r_context()->config->keyring_check_purpose = g_strdup("smimesign");
@@ -107,8 +107,8 @@ static void bundle_fixture_set_up_bundle_email(BundleFixture *fixture,
 static void bundle_fixture_set_up_bundle_codesign(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/xku-codeSigning.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/xku-codeSigning.pem");
+	replace_strdup(&r_context_conf()->certpath, "test/openssl-ca/dev/xku-codeSigning.cert.pem");
+	replace_strdup(&r_context_conf()->keypath, "test/openssl-ca/dev/private/xku-codeSigning.pem");
 	/* cert is already checked once during signing */
 	g_free(r_context()->config->keyring_check_purpose);
 	r_context()->config->keyring_check_purpose = g_strdup("codesign");
