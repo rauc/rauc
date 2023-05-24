@@ -50,6 +50,9 @@ typedef struct {
 	gchar *bundle_verity_hash;
 	guint64 bundle_verity_size;
 
+	/* remember if the bundle format was specified explicitly */
+	gboolean bundle_format_explicit;
+
 	gchar *bundle_crypt_key;
 
 	gchar *handler_name;

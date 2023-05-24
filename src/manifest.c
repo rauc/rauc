@@ -208,6 +208,8 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 				"  To silence this warning, select the 'plain' format explicitly."));
 		g_ptr_array_add(raucm->warnings, g_strdup(
 				"  See https://rauc.readthedocs.io/en/latest/reference.html#sec-ref-formats for details.'"));
+	} else {
+		raucm->bundle_format_explicit = TRUE;
 	}
 	if (tmp == NULL || g_strcmp0(tmp, "plain") == 0) {
 		raucm->bundle_format = R_MANIFEST_FORMAT_PLAIN;
@@ -611,6 +613,8 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 
 	switch (mf->bundle_format) {
 		case R_MANIFEST_FORMAT_PLAIN:
+			if (mf->bundle_format_explicit)
+				g_key_file_set_string(key_file, "bundle", "format", "plain");
 			break;
 		case R_MANIFEST_FORMAT_CRYPT: {
 			if (mf->bundle_crypt_key)
