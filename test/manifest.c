@@ -55,6 +55,8 @@ static void test_load_manifest(void)
 	g_assert_no_error(error);
 	g_assert_true(res);
 	manifest_check_common(rm);
+	g_assert_false(rm->bundle_format_explicit);
+	g_assert_cmpuint(rm->warnings->len, ==, 4);
 
 	g_clear_pointer(&rm, free_manifest);
 	g_assert_null(rm);
@@ -135,6 +137,7 @@ static void test_save_load_manifest(void)
 
 	rm->update_compatible = g_strdup("BarCorp FooBazzer");
 	rm->update_version = g_strdup("2011.03-1");
+	rm->bundle_format_explicit = TRUE;
 	rm->handler_name = g_strdup("myhandler.sh");
 	rm->handler_args = g_strdup("--foo");
 	rm->hook_name = g_strdup("hook.sh");
@@ -195,6 +198,8 @@ static void test_save_load_manifest(void)
 	g_assert_no_error(error);
 	g_assert_true(res);
 
+	g_assert_cmpuint(rm->bundle_format, ==, R_MANIFEST_FORMAT_PLAIN);
+	g_assert_true(rm->bundle_format_explicit);
 	check_manifest_contents(rm);
 
 	res = save_manifest_mem(&mem, rm);
@@ -203,6 +208,9 @@ static void test_save_load_manifest(void)
 
 	g_clear_pointer(&rm, free_manifest);
 
+	/* with bundle_format_explicit set, we need to find the format=plain */
+	g_assert_nonnull(g_strstr_len(g_bytes_get_data(mem, NULL), -1, "[bundle]\nformat=plain\n"));
+
 	g_message("manifest in memory:\n%s", (gchar*)g_bytes_get_data(mem, NULL));
 	res = load_manifest_mem(mem, &rm, &error);
 	g_assert_no_error(error);
@@ -210,6 +218,8 @@ static void test_save_load_manifest(void)
 	g_bytes_unref(mem);
 	mem = NULL;
 
+	g_assert_cmpuint(rm->bundle_format, ==, R_MANIFEST_FORMAT_PLAIN);
+	g_assert_true(rm->bundle_format_explicit);
 	check_manifest_contents(rm);
 
 	free_manifest(rm);
