@@ -403,8 +403,10 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 		image->hooks.install = (test_pair->params & TEST_UPDATE_HANDLER_INSTALL_HOOK);
 		image->hooks.post_install = (test_pair->params & TEST_UPDATE_HANDLER_POST_HOOK);
 		if (!(test_pair->params & TEST_UPDATE_HANDLER_NO_HOOK_FILE)) {
-			g_assert_true(write_tmp_file(fixture->tmpdir, "hook.sh", hook_content, NULL));
-			test_do_chmod(hookpath);
+			g_autofree gchar *tmp_filename = NULL;
+			tmp_filename = write_tmp_file(fixture->tmpdir, "hook.sh", hook_content, NULL);
+			g_assert_nonnull(tmp_filename);
+			test_do_chmod(tmp_filename);
 		}
 	}
 	if (test_pair->params & TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX) {
