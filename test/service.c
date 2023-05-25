@@ -164,7 +164,7 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	const gchar *compatible = NULL;
 	const gchar *variant = NULL;
 	const gchar *bootslot = NULL;
-	gchar *bundlepath;
+	g_autofree gchar *bundlepath = NULL;
 	GError *error = NULL;
 	gboolean ret = FALSE;
 
