@@ -1286,7 +1286,7 @@ static gpointer install_thread(gpointer data)
 	gint result;
 
 	/* clear LastError property */
-	set_last_error(g_strdup(""));
+	set_last_error("");
 
 	g_debug("thread started for %s", args->name);
 	install_args_update(args, "started");

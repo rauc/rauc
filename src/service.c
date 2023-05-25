@@ -483,7 +483,7 @@ out:
 	return res;
 }
 
-void set_last_error(gchar *message)
+void set_last_error(const gchar *message)
 {
 	if (r_installer)
 		r_installer_set_last_error(r_installer, message);
