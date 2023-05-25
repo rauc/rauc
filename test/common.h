@@ -4,8 +4,6 @@
 
 #include "manifest.h"
 
-#define memdup(x) (g_memdup(x, sizeof(*x)))
-
 typedef struct {
 	gboolean custom_handler;
 	gboolean hooks;
