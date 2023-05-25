@@ -1893,7 +1893,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 	gboolean verify = !(params & CHECK_BUNDLE_NO_VERIFY);
 	g_autoptr(RaucBundle) ibundle = g_new0(RaucBundle, 1);
 	g_autoptr(GBytes) manifest_bytes = NULL;
-	gchar *bundlescheme = NULL;
+	g_autofree gchar *bundlescheme = NULL;
 	gboolean detached;
 
 	g_return_val_if_fail(bundlename, FALSE);
