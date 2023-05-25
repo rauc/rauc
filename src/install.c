@@ -1165,7 +1165,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(RaucBundle) bundle = NULL;
-	GHashTable *target_group;
+	g_autoptr(GHashTable) target_group = NULL;
 	g_auto(GStrv) handler_env = NULL;
 
 	g_assert_nonnull(bundlefile);
