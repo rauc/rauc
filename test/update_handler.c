@@ -514,24 +514,28 @@ no_image:
 		g_assert_cmpstr(stats->label, ==, "zero chunk");
 		count_zero = stats->count;
 		sum_zero = stats->sum;
+		r_stats_free(stats);
 
 		stats = r_test_stats_next();
 		g_assert_nonnull(stats);
 		g_assert_cmpstr(stats->label, ==, "target_slot_written (reusing source_image)");;
 		count_target_written = stats->count;
 		sum_target_written = stats->sum;
+		r_stats_free(stats);
 
 		stats = r_test_stats_next();
 		g_assert_nonnull(stats);
 		g_assert_cmpstr(stats->label, ==, "target_slot");
 		count_target = stats->count;
 		sum_target = stats->sum;
+		r_stats_free(stats);
 
 		stats = r_test_stats_next();
 		g_assert_nonnull(stats);
 		g_assert_cmpstr(stats->label, ==, "source_image");
 		count_source = stats->count;
 		sum_source = stats->sum;
+		r_stats_free(stats);
 
 		/* all non-zero chunks must result in a lookup in target_slot_written */
 		g_assert_cmpint(count_zero + count_target_written, ==, IMAGE_SIZE/4096);
