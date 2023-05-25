@@ -68,6 +68,7 @@ static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer
 	if (test_pair->params & TEST_UPDATE_HANDLER_EXPECT_FAIL) {
 		g_assert_error(ierror, R_UPDATE_ERROR, R_UPDATE_ERROR_NO_HANDLER);
 		g_assert_null(handler);
+		g_clear_error(&ierror);
 	} else {
 		g_assert_no_error(ierror);
 		g_assert_nonnull(handler);
