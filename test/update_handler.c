@@ -151,6 +151,8 @@ static void update_handler_fixture_tear_down(UpdateHandlerFixture *fixture,
 	}
 	g_assert(test_rmdir(fixture->tmpdir, "") == 0);
 
+	g_clear_pointer(&fixture->tmpdir, g_free);
+
 	if (!g_test_failed()) {
 		g_test_assert_expected_messages();
 	}
