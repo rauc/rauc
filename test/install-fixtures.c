@@ -120,6 +120,7 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 {
 	g_autofree gchar *contentdir = NULL;
 	g_autofree gchar *bundlepath = NULL;
+	g_autofree gchar *rootfspath = NULL;
 	g_autofree gchar *mountdir = NULL;
 	g_autofree gchar *testfilepath = NULL;
 	g_autoptr(GError) error = NULL;
@@ -133,6 +134,7 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 
 	contentdir = g_build_filename(tmpdir, "content", NULL);
 	bundlepath = g_build_filename(tmpdir, "bundle.raucb", NULL);
+	rootfspath = g_build_filename(tmpdir, "content/rootfs.ext4", NULL);
 	mountdir = g_build_filename(tmpdir, "mnt", NULL);
 	testfilepath = g_build_filename(mountdir, "verify.txt", NULL);
 
@@ -159,7 +161,7 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 
 	/* Write test file to slot */
 	g_assert(test_mkdir_relative(tmpdir, "mnt", 0777) == 0);
-	g_assert_true(test_mount(g_build_filename(tmpdir, "content/rootfs.ext4", NULL), mountdir));
+	g_assert_true(test_mount(rootfspath, mountdir));
 	g_assert_true(g_file_set_contents(testfilepath, "0xdeadbeaf", -1, NULL));
 	g_assert_true(r_umount(mountdir, NULL));
 	g_assert(test_rmdir(tmpdir, "mnt") == 0);
