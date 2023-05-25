@@ -1044,7 +1044,10 @@ static gboolean install_cleanup(gpointer data)
 	g_assert_cmpint(args->status_result, ==, 0);
 	g_assert_false(g_queue_is_empty(&args->status_messages));
 
-	g_queue_clear(&args->status_messages);
+	while (!g_queue_is_empty(&args->status_messages)) {
+		gchar *msg = g_queue_pop_head(&args->status_messages);
+		g_free(msg);
+	}
 	install_args_free(args);
 
 	g_idle_add(r_quit, NULL);
