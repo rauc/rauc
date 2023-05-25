@@ -758,6 +758,7 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 
 int main(int argc, char *argv[])
 {
+	g_autoptr(GPtrArray) ptrs = g_ptr_array_new_with_free_func(g_free);
 	BundleData *bundle_data;
 	setlocale(LC_ALL, "C");
 
@@ -769,83 +770,83 @@ int main(int argc, char *argv[])
 	for (RManifestBundleFormat format = R_MANIFEST_FORMAT_PLAIN; format <= R_MANIFEST_FORMAT_VERITY; format++) {
 		const gchar *format_name = r_manifest_bundle_format_to_str(format);
 
-		bundle_data = memdup((&(BundleData) {
+		bundle_data = dup_test_data(ptrs, (&(BundleData) {
 			.manifest_test_options = {
 			        .format = format,
 			},
 		}));
 
-		g_test_add(g_strdup_printf("/bundle/check/empty/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/check/empty/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up, test_check_empty_bundle,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/check/invalid/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/check/invalid/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up, test_check_invalid_bundle,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/create_extract/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/create_extract/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_create_extract,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/create_mount_extract/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/create_mount_extract/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_create_mount_extract,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/extract_signature/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/extract_signature/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_extract_signature,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/resign/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/resign/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_resign,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/replace_signature/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/replace_signature/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_replace_signature,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/wrong_capath/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/wrong_capath/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_wrong_capath,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/verify_no_crl_warn/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/verify_no_crl_warn/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_verify_no_crl_warn,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/verify_revoked/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/verify_revoked/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle_autobuilder2, bundle_test_verify_revoked,
 				bundle_fixture_tear_down_autobuilder2);
 
-		g_test_add(g_strdup_printf("/bundle/purpose/default/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/purpose/default/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_purpose_default,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/purpose/email/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/purpose/email/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle_email, bundle_test_purpose_email,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/purpose/codesign/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/purpose/codesign/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle_codesign, bundle_test_purpose_codesign,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/create_mount_extract_with_pre_check/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/create_mount_extract_with_pre_check/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_create_mount_extract_with_pre_check,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/create_mount_with_pre_check_corrupt/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/create_mount_with_pre_check_corrupt/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle_corrupt, bundle_test_create_check_mount_with_pre_check_corrupt,
 				bundle_fixture_tear_down);
@@ -863,7 +864,7 @@ int main(int argc, char *argv[])
 			bundle_fixture_tear_down);
 
 	/* test plain bundles against possible masks */
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_PLAIN,
 		},
@@ -874,7 +875,7 @@ int main(int argc, char *argv[])
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_PLAIN,
 		},
@@ -885,7 +886,7 @@ int main(int argc, char *argv[])
 			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_PLAIN,
 		},
@@ -896,7 +897,7 @@ int main(int argc, char *argv[])
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_PLAIN,
 		},
@@ -907,7 +908,7 @@ int main(int argc, char *argv[])
 			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_PLAIN,
 		},
@@ -919,7 +920,7 @@ int main(int argc, char *argv[])
 			bundle_fixture_tear_down);
 
 	/* test verity bundles against possible masks */
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_VERITY,
 		},
@@ -930,7 +931,7 @@ int main(int argc, char *argv[])
 			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_VERITY,
 		},
@@ -941,7 +942,7 @@ int main(int argc, char *argv[])
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_VERITY,
 		},
@@ -952,7 +953,7 @@ int main(int argc, char *argv[])
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_VERITY,
 		},
@@ -963,7 +964,7 @@ int main(int argc, char *argv[])
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_VERITY,
 		},

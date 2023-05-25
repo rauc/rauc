@@ -1429,6 +1429,7 @@ static void install_fixture_set_up_system_user(InstallFixture *fixture,
 
 int main(int argc, char *argv[])
 {
+	g_autoptr(GPtrArray) ptrs = g_ptr_array_new_with_free_func(g_free);
 	InstallData *install_data;
 	g_autofree gchar *path = NULL;
 	setlocale(LC_ALL, "C");
@@ -1468,38 +1469,38 @@ int main(int argc, char *argv[])
 	for (RManifestBundleFormat format = R_MANIFEST_FORMAT_PLAIN; format <= R_MANIFEST_FORMAT_VERITY; format++) {
 		const gchar *format_name = r_manifest_bundle_format_to_str(format);
 
-		install_data = memdup((&(InstallData) {
+		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.manifest_test_options = {
 			        .format = format,
 			},
 		}));
-		g_test_add(g_strdup_printf("/install/bootname/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bootname/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_system_user, install_test_bootname,
 				install_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/install/target/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/target/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_system_conf, install_test_target,
 				install_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/install/bundle/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bundle/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle, install_test_bundle,
 				install_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/install/bundle/central-status/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bundle/central-status/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle_central_status, install_test_bundle,
 				install_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/install/bundle-thread/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bundle-thread/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle, install_test_bundle_thread,
 				install_fixture_tear_down);
 
-		install_data = memdup((&(InstallData) {
-			.message_needles = memdup((&(const gchar *[]) {
+		install_data = dup_test_data(ptrs, (&(InstallData) {
+			.message_needles = dup_test_data(ptrs, (&(const gchar *[]) {
 				"Checking and mounting bundle...",
 				"Debug: arg1 arg2 --dummy1 --dummy2",
 				"Handler status: [STARTED]",
@@ -1512,61 +1513,61 @@ int main(int argc, char *argv[])
 			        .hooks = FALSE,
 			},
 		}));
-		g_test_add(g_strdup_printf("/install/bundle-custom-handler/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bundle-custom-handler/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle_custom_handler, install_test_bundle,
 				install_fixture_tear_down);
 
-		install_data = memdup((&(InstallData) {
+		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.message_needles = NULL,
 			.manifest_test_options = {
 			        .custom_handler = FALSE,
 			        .hooks = TRUE,
 			},
 		}));
-		g_test_add(g_strdup_printf("/install/bundle-hook/install-check/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bundle-hook/install-check/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle_install_check_hook, install_test_bundle_hook_install_check,
 				install_fixture_tear_down);
 
-		install_data = memdup((&(InstallData) {
+		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.message_needles = NULL,
 			.manifest_test_options = {
 			        .custom_handler = FALSE,
 			        .hooks = TRUE,
 			},
 		}));
-		g_test_add(g_strdup_printf("/install/bundle-hook/slot-install/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bundle-hook/slot-install/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle_install_hook, install_test_bundle_hook_install,
 				install_fixture_tear_down);
 
-		install_data = memdup((&(InstallData) {
+		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.message_needles = NULL,
 			.manifest_test_options = {
 			        .custom_handler = FALSE,
 			        .hooks = TRUE,
 			},
 		}));
-		g_test_add(g_strdup_printf("/install/bundle-hook/slot-post-install/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bundle-hook/slot-post-install/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle_post_hook, install_test_bundle_hook_post_install,
 				install_fixture_tear_down);
 
-		install_data = memdup((&(InstallData) {
+		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.message_needles = NULL,
 			.manifest_test_options = {
 			        .custom_handler = TRUE,
 			        .hooks = TRUE,
 			},
 		}));
-		g_test_add(g_strdup_printf("/install/already-mounted/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/already-mounted/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle_already_mounted, install_test_already_mounted,
 				install_fixture_tear_down);
 	}
 
-	install_data = memdup((&(InstallData) {
+	install_data = dup_test_data(ptrs, (&(InstallData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_VERITY,
 		},
