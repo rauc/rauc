@@ -179,6 +179,9 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	g_return_val_if_fail(manifest != NULL && *manifest == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	/* initialize empty warnings array */
+	raucm->warnings = g_ptr_array_new_with_free_func(g_free);
+
 	/* parse [update] section */
 	raucm->update_compatible = key_file_consume_string(key_file, "update", "compatible", &ierror);
 	if (!raucm->update_compatible) {
@@ -196,6 +199,18 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 
 	/* parse [bundle] section */
 	tmp = key_file_consume_string(key_file, "bundle", "format", NULL);
+	if (tmp == NULL) {
+		g_ptr_array_add(raucm->warnings, g_strdup(
+				"WARNING: The manifest does not specify a bundle format, defaulting to 'plain'."));
+		g_ptr_array_add(raucm->warnings, g_strdup(
+				"  We recommend using the 'verity' format instead, if possible."));
+		g_ptr_array_add(raucm->warnings, g_strdup(
+				"  To silence this warning, select the 'plain' format explicitly."));
+		g_ptr_array_add(raucm->warnings, g_strdup(
+				"  See https://rauc.readthedocs.io/en/latest/reference.html#sec-ref-formats for details.'"));
+	} else {
+		raucm->bundle_format_explicit = TRUE;
+	}
 	if (tmp == NULL || g_strcmp0(tmp, "plain") == 0) {
 		raucm->bundle_format = R_MANIFEST_FORMAT_PLAIN;
 	} else if ((g_strcmp0(tmp, "verity") == 0) || (g_strcmp0(tmp, "crypt") == 0)) {
@@ -598,6 +613,8 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 
 	switch (mf->bundle_format) {
 		case R_MANIFEST_FORMAT_PLAIN:
+			if (mf->bundle_format_explicit)
+				g_key_file_set_string(key_file, "bundle", "format", "plain");
 			break;
 		case R_MANIFEST_FORMAT_CRYPT: {
 			if (mf->bundle_crypt_key)
@@ -887,6 +904,7 @@ void free_manifest(RaucManifest *manifest)
 	g_list_free_full(manifest->images, r_free_image);
 	g_clear_pointer(&manifest->meta, (GDestroyNotify)g_hash_table_destroy);
 	g_free(manifest->hash);
+	g_clear_pointer(&manifest->warnings, (GDestroyNotify)g_ptr_array_unref);
 	g_free(manifest);
 }
 

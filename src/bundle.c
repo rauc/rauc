@@ -875,6 +875,11 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		goto out;
 	}
 
+	/* print warnings collected while parsing */
+	for (guint i =  0; i < manifest->warnings->len; i++) {
+		g_print("%s\n", (gchar *)g_ptr_array_index(manifest->warnings, i));
+	}
+
 	res = sync_manifest_with_contentdir(manifest, contentdir, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);

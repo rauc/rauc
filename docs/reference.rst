@@ -676,9 +676,13 @@ Bundle Formats
 
 RAUC currently supports three bundle formats (``plain``,  ``verity`` and
 ``crypt``) and additional formats could be added if required.
+When starting a new project, the ``verity`` or ``crypt`` formats should be used.
+
 Version 1.4 (released on 2020-06-20) and earlier only supported a single format
-which is now named ``plain``, which should be used as long as compatibility to
-those versions is required.
+now named ``plain``, which should only be used as long as compatibility with
+older versions is required.
+For information on how to migrate to the recommended ``verity`` format, see
+:ref:`sec_int_migration`).
 
 The ``verity`` format was added to support new use cases like network
 streaming, for better parallelization of installation with hash verification
@@ -688,8 +692,16 @@ The ``crypt`` format is an extension to the ``verity`` format that allows full
 encryption of the bundle.
 
 The bundle format is detected when reading a bundle and checked against the set
-of allowed formats configured in the ``system.conf`` (see :ref:`bundle-formats
-<bundle-formats>`).
+of allowed formats configured in the ``system.conf`` (using the :ref:`bundle-formats
+<bundle-formats>` option).
+
+.. note::
+  When creating a bundle without an explicitly configured format, RAUC will warn
+  about defaulting to ``plain`` and recommend to use ``verity`` instead.
+  The warning can be silenced by explicitly configuring ``plain``, but note that
+  this will produce bundles incompatible to 1.4 and earlier due to the added
+  ``[bundle]`` section.
+  In that case, we **strongly recommend** updating these systems.
 
 .. _sec_ref_format_plain:
 
