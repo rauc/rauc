@@ -32,7 +32,7 @@ jobs:
         build/test/bootchooser-test
         build/test/boot_raw_fallback-test
         build/test/boot_switch-test
-        build/test/bundle-test -l
+        build/test/bundle-test
         build/test/checksum-test
         build/test/config_file-test
         build/test/context-test
