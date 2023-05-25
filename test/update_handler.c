@@ -48,8 +48,8 @@ typedef struct {
  * a valid handler or not */
 static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer user_data)
 {
-	RaucImage *image;
-	RaucSlot *targetslot;
+	g_autoptr(RaucImage) image = NULL;
+	g_autoptr(RaucSlot) targetslot = NULL;
 	img_to_slot_handler handler;
 	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair*) user_data;
 	GError *ierror = NULL;
@@ -81,8 +81,8 @@ static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer
  */
 static void test_get_custom_update_handler(UpdateHandlerFixture *fixture, gconstpointer user_data)
 {
-	RaucImage *image;
-	RaucSlot *targetslot;
+	g_autoptr(RaucImage) image = NULL;
+	g_autoptr(RaucSlot) targetslot = NULL;
 	img_to_slot_handler handler;
 	GError *ierror = NULL;
 
