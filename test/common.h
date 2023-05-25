@@ -36,3 +36,8 @@ gsize get_file_size(gchar* filename, GError **error);
 void flip_bits_fd(int fd, off_t offset, guint8 mask);
 void flip_bits_filename(gchar *filename, off_t offset, guint8 mask);
 void replace_strdup(gchar **dst, const gchar *src);
+
+void* dup_test_mem(GPtrArray *ptrs, const void *mem, gsize len);
+void* dup_test_printf(GPtrArray *ptrs, const gchar *str, ...)
+__attribute__((__format__(__printf__, 2, 3)));
+#define dup_test_data(ptrs, x) (dup_test_mem(ptrs, x, sizeof(*x)))

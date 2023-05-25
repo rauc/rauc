@@ -408,3 +408,26 @@ void replace_strdup(gchar **dst, const gchar *src)
 	g_free(*dst);
 	*dst = g_strdup(src);
 }
+
+void* dup_test_mem(GPtrArray *ptrs, const void *mem, gsize len)
+{
+	void *result = g_memdup(mem, len);
+
+	g_ptr_array_add(ptrs, result);
+
+	return result;
+}
+
+void* dup_test_printf(GPtrArray *ptrs, const gchar *format, ...)
+{
+	gchar *result;
+	va_list args;
+
+	va_start(args, format);
+	result = g_strdup_vprintf(format, args);
+	va_end(args);
+
+	g_ptr_array_add(ptrs, result);
+
+	return result;
+}
