@@ -635,5 +635,7 @@ gboolean r_service_run(void)
 	g_main_loop_unref(service_loop);
 	service_loop = NULL;
 
+	g_clear_pointer(&r_installer, g_object_unref);
+
 	return service_return;
 }
