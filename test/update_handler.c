@@ -470,6 +470,7 @@ no_image:
 	if (test_pair->params & TEST_UPDATE_HANDLER_EXPECT_FAIL) {
 		g_assert_error(ierror, test_pair->err_domain, test_pair->err_code);
 		g_assert_false(res);
+		g_clear_error(&ierror);
 		goto out;
 	} else {
 		g_assert_no_error(ierror);
