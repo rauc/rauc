@@ -220,7 +220,7 @@ static gboolean install_start(int argc, char **argv)
 	r_exit_status = 1;
 
 	if (argc < 3) {
-		g_printerr("A bundle filename name must be provided\n");
+		g_printerr("A bundle path or URL must be provided\n");
 		goto out;
 	}
 
@@ -1195,7 +1195,7 @@ static gboolean info_start(int argc, char **argv)
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
 
 	if (argc < 3) {
-		g_printerr("A file name must be provided\n");
+		g_printerr("A bundle path or URL must be provided\n");
 		r_exit_status = 1;
 		return FALSE;
 	}
@@ -2018,7 +2018,7 @@ static gboolean mount_start(int argc, char **argv)
 	gboolean res = FALSE;
 
 	if (argc < 3) {
-		g_printerr("A file name must be provided\n");
+		g_printerr("A bundle path or URL must be provided\n");
 		goto out;
 	}
 
