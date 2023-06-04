@@ -10,6 +10,7 @@
 #include "utils.h"
 
 RaucContext *context = NULL;
+gboolean context_configuring = FALSE;
 
 static gchar *regex_match(const gchar *pattern, const gchar *string)
 {
@@ -712,9 +713,15 @@ const RaucContext *r_context(void)
 
 	g_assert_nonnull(context);
 
-	if (context->pending)
+	if (context_configuring)
+		g_error("Detected call of r_context() while still setting up context! Aborted to avoid infinite recursion!");
+
+	if (context->pending) {
+		context_configuring = TRUE;
 		if (!r_context_configure(&ierror))
 			g_error("Failed to initialize context: %s", ierror->message);
+		context_configuring = FALSE;
+	}
 
 	return context;
 }
