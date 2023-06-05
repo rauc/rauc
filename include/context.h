@@ -50,6 +50,7 @@ typedef struct {
 	gchar *mountprefix;
 	gchar *bootslot;
 	gchar *boot_id;
+	gchar *machine_id;
 
 	gchar *system_serial;
 	GHashTable *system_info; /* key/values of system information */
