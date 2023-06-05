@@ -944,6 +944,7 @@ termed with the slot name (e.g. [slot.rootfs.1]) for the central status file:
   status=ok
   sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
   size=419430400
+  installed.transaction=dad3289a-7de1-4ad2-931e-fb827edc6496
   installed.timestamp=2017-03-27T09:51:13Z
   installed.count=3
 
@@ -959,9 +960,12 @@ and ``bundle.build`` are copies of the respective manifest properties.
 More information can be found in this :ref:`subsection <sec-manifest-update>` of
 section :ref:`Manifest <sec_ref_manifest>`.
 
-RAUC also stores the point in time of installing the image to the slot in
-``installed.timestamp`` as well as the number of updates so far in
-``installed.count``.
+RAUC also stores information about the installation run during which the slot
+was updated:
+In ``installed.transaction`` the installation transaction ID is noted,
+while ``installed.timestamp`` notes the time when the slot's installation was
+finished and ``installed.count`` reflects the number of updates the slot
+received so far.
 Additionally RAUC tracks the point in time when a bootable slot is activated in
 ``activated.timestamp`` and the number of activations in ``activated.count``,
 see section :ref:`mark-active`.
