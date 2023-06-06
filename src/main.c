@@ -221,7 +221,7 @@ static gboolean install_start(int argc, char **argv)
 	r_exit_status = 1;
 
 	if (argc < 3) {
-		g_printerr("A bundle filename name must be provided\n");
+		g_printerr("A bundle path or URL must be provided\n");
 		goto out;
 	}
 
@@ -1199,7 +1199,7 @@ static gboolean info_start(int argc, char **argv)
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
 
 	if (argc < 3) {
-		g_printerr("A file name must be provided\n");
+		g_printerr("A bundle path or URL must be provided\n");
 		r_exit_status = 1;
 		return FALSE;
 	}
@@ -2026,7 +2026,7 @@ static gboolean mount_start(int argc, char **argv)
 	gboolean res = FALSE;
 
 	if (argc < 3) {
-		g_printerr("A file name must be provided\n");
+		g_printerr("A bundle path or URL must be provided\n");
 		goto out;
 	}
 
@@ -2148,11 +2148,13 @@ static GOptionEntry entries_convert[] = {
 };
 
 static GOptionEntry entries_extract_signature[] = {
+	{"key", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keypath, "decryption key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 	{"trust-environment", '\0', 0, G_OPTION_ARG_NONE, &trust_environment, "trust environment and skip bundle access checks", NULL},
 	{0}
 };
 
 static GOptionEntry entries_extract[] = {
+	{"key", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keypath, "decryption key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 	{"trust-environment", '\0', 0, G_OPTION_ARG_NONE, &trust_environment, "trust environment and skip bundle access checks", NULL},
 	{0}
 };
@@ -2160,6 +2162,7 @@ static GOptionEntry entries_extract[] = {
 static GOptionEntry entries_info[] = {
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
 	{"no-check-time", '\0', 0, G_OPTION_ARG_NONE, &no_check_time, "don't check validity period of certificates against current time", NULL},
+	{"key", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keypath, "decryption key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format", "FORMAT"},
 	{"dump-cert", '\0', 0, G_OPTION_ARG_NONE, &info_dumpcert, "dump certificate", NULL},
 	{"dump-recipients", '\0', 0, G_OPTION_ARG_NONE, &info_dumprecipients, "dump recipients", NULL},

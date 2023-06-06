@@ -2018,7 +2018,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 		g_debug("CMS type is 'enveloped'. Attempting to decrypt..");
 
 		if (r_context()->config->encryption_key == NULL) {
-			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE, "Encrypted bundle detected, but no decryption key given");
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE, "Encrypted bundle detected, but no decryption key given. Use --key=<PEMFILE|PKCS11-URL> to provide one.");
 			res = FALSE;
 			goto out;
 		}
