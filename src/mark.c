@@ -78,7 +78,7 @@ void mark_active(RaucSlot *slot, GError **error)
 {
 	RaucSlotStatus *slot_state;
 	GError *ierror = NULL;
-	GDateTime *now;
+	g_autoptr(GDateTime) now = NULL;
 	gboolean res;
 
 	g_return_if_fail(slot);
@@ -99,7 +99,6 @@ void mark_active(RaucSlot *slot, GError **error)
 	now = g_date_time_new_now_utc();
 	slot_state->activated_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
 	slot_state->activated_count++;
-	g_date_time_unref(now);
 
 	res = save_slot_status(slot, &ierror);
 	if (!res) {
