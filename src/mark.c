@@ -99,9 +99,8 @@ gboolean mark_active(RaucSlot *slot, GError **error)
 	slot_state->activated_count++;
 
 	if (!save_slot_status(slot, &ierror)) {
-		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED, "%s", ierror->message);
+		g_message("Error while writing status file: %s", ierror->message);
 		g_error_free(ierror);
-		return FALSE;
 	}
 
 	return TRUE;
@@ -133,21 +132,12 @@ gboolean mark_run(const gchar *state,
 		res = r_boot_set_state(slot, FALSE, &ierror);
 		*message = res ? g_strdup_printf("marked slot %s as bad", slot->name) : g_strdup_printf("Failed marking slot %s as bad: %s", slot->name, ierror->message);
 	} else if (!g_strcmp0(state, "active")) {
-		mark_active(slot, &ierror);
-		if (!ierror) {
-			res = TRUE;
-			*message = g_strdup_printf("activated slot %s", slot->name);
-		} else if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE)) {
+		if (!mark_active(slot, &ierror)) {
 			res = FALSE;
 			*message = g_strdup(ierror->message);
-		} else if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED)) {
-			res = TRUE;
-			*message = g_strdup_printf("activated slot %s, but failed to write status file: %s",
-					slot->name, ierror->message);
 		} else {
-			res = FALSE;
-			*message = g_strdup_printf("unexpected error while trying to activate slot %s: %s",
-					slot->name, ierror->message);
+			res = TRUE;
+			*message = g_strdup_printf("activated slot %s", slot->name);
 		}
 		g_clear_error(&ierror);
 	} else {

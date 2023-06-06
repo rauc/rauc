@@ -1124,20 +1124,9 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 				continue;
 
 			g_message("Marking target slot %s as bootable...", plan->target_slot->name);
-			mark_active(plan->target_slot, &ierror);
-			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE)) {
+			if (!mark_active(plan->target_slot, &ierror)) {
 				g_propagate_prefixed_error(error, ierror,
 						"Failed marking slot %s bootable: ", plan->target_slot->name);
-				return FALSE;
-			} else if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED)) {
-				g_propagate_prefixed_error(error, ierror,
-						"Marked slot %s bootable, but failed to write status file: ",
-						plan->target_slot->name);
-				return FALSE;
-			} else if (ierror) {
-				g_propagate_prefixed_error(error, ierror,
-						"Unexpected error while trying to mark slot %s bootable: ",
-						plan->target_slot->name);
 				return FALSE;
 			}
 		}
