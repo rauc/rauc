@@ -1103,7 +1103,7 @@ static void load_slot_status_globally(void)
 
 	g_key_file_load_from_file(key_file, r_context()->config->statusfile_path, G_KEY_FILE_NONE, &ierror);
 	if (ierror && !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_NOENT))
-		g_message("load_slot_status_globally: %s.", ierror->message);
+		g_message("Failed to load global slot status file: %s", ierror->message);
 	g_clear_error(&ierror);
 
 	/* Load all slot states included in the statusfile */
