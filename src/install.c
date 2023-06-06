@@ -1042,13 +1042,12 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 {
 	g_autofree gchar *hook_name = NULL;
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 	g_autoptr(GPtrArray) install_plans = NULL;
 
 	install_plans = r_install_make_plans(manifest, target_group, &ierror);
 	if (install_plans == NULL) {
 		g_propagate_error(error, ierror);
-		goto early_out;
+		return FALSE;
 	}
 
 	/* Allow overriding compatible check by hook */
@@ -1066,19 +1065,16 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 						ierror,
 						"Install-check hook failed: ");
 			}
-			res = FALSE;
-			goto early_out;
+			return FALSE;
 		}
 	} else if (!verify_compatible(args, manifest, &ierror)) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto early_out;
+		return FALSE;
 	}
 
-	res = pre_install_checks(bundledir, install_plans, target_group, &ierror);
-	if (!res) {
+	if (!pre_install_checks(bundledir, install_plans, target_group, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto early_out;
+		return FALSE;
 	}
 
 	/* Mark all parent destination slots non-bootable */
@@ -1092,13 +1088,11 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		}
 
 		g_message("Marking target slot %s as non-bootable...", plan->target_slot->name);
-		res = r_boot_set_state(plan->target_slot, FALSE, &ierror);
-
-		if (!res) {
+		if (!r_boot_set_state(plan->target_slot, FALSE, &ierror)) {
 			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_NONBOOTABLE,
 					"Failed marking slot %s non-bootable: %s", plan->target_slot->name, ierror->message);
 			g_clear_error(&ierror);
-			goto early_out;
+			return FALSE;
 		}
 	}
 
@@ -1107,14 +1101,14 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 	r_context_begin_step_weighted("update_slots", "Updating slots", install_plans->len * 10, 6);
 	install_args_update(args, "Updating slots...");
+
 	for (guint i = 0; i < install_plans->len; i++) {
 		const RImageInstallPlan *plan = g_ptr_array_index(install_plans, i);
 
 		if (!handle_slot_install_plan(manifest, plan, args, hook_name, &ierror)) {
 			g_propagate_error(error, ierror);
 			r_context_end_step("update_slots", FALSE);
-			res = FALSE;
-			goto out;
+			return FALSE;
 		}
 	}
 
@@ -1134,20 +1128,17 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE)) {
 				g_propagate_prefixed_error(error, ierror,
 						"Failed marking slot %s bootable: ", plan->target_slot->name);
-				res = FALSE;
-				goto out;
+				return FALSE;
 			} else if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED)) {
 				g_propagate_prefixed_error(error, ierror,
 						"Marked slot %s bootable, but failed to write status file: ",
 						plan->target_slot->name);
-				res = FALSE;
-				goto out;
+				return FALSE;
 			} else if (ierror) {
 				g_propagate_prefixed_error(error, ierror,
 						"Unexpected error while trying to mark slot %s bootable: ",
 						plan->target_slot->name);
-				res = FALSE;
-				goto out;
+				return FALSE;
 			}
 		}
 	} else {
@@ -1155,11 +1146,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	}
 
 
-	res = TRUE;
-
-out:
-early_out:
-	return res;
+	return TRUE;
 }
 
 gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
