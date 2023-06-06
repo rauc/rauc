@@ -1021,6 +1021,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 	slot_state->checksum.type = plan->image->checksum.type;
 	slot_state->checksum.digest = g_strdup(plan->image->checksum.digest);
 	slot_state->checksum.size = plan->image->checksum.size;
+	slot_state->installed_txn = g_strdup(args->transaction);
 	slot_state->installed_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
 	slot_state->installed_count++;
 
@@ -1172,7 +1173,12 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	g_assert_null(r_context()->install_info->mounted_bundle);
 	g_assert_true(r_context()->config->slot_states_determined);
 
+	if (!args->transaction)
+		args->transaction = g_uuid_string_random();
+
 	r_context_begin_step("do_install_bundle", "Installing", 10);
+
+	g_message("Installation %s started", args->transaction);
 
 	r_context_begin_step("determine_slot_states", "Determining slot states", 0);
 	res = update_external_mount_points(&ierror);
@@ -1319,6 +1325,7 @@ RaucInstallArgs *install_args_new(void)
 void install_args_free(RaucInstallArgs *args)
 {
 	g_free(args->name);
+	g_free(args->transaction);
 	g_mutex_clear(&args->status_mutex);
 	g_assert_cmpint(args->status_result, >=, 0);
 	g_assert_true(g_queue_is_empty(&args->status_messages));

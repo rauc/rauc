@@ -44,6 +44,7 @@ gchar *casync_args = NULL;
 gchar **recipients = NULL;
 gchar *handler_args = NULL;
 gchar *bootslot = NULL;
+gchar *installation_txn = NULL;
 gboolean utf8_supported = FALSE;
 RaucBundleAccessArgs access_args = {0};
 
@@ -242,6 +243,7 @@ static gboolean install_start(int argc, char **argv)
 	args->status_result = 2;
 
 	args->ignore_compatible = install_ignore_compatible;
+	args->transaction = installation_txn;
 	if (access_args.tls_cert)
 		args->access_args.tls_cert = g_strdup(access_args.tls_cert);
 	if (access_args.tls_key)
@@ -258,6 +260,8 @@ static gboolean install_start(int argc, char **argv)
 		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
 
 		g_variant_dict_insert(&dict, "ignore-compatible", "b", args->ignore_compatible);
+		if (args->transaction)
+			g_variant_dict_insert(&dict, "transaction-id", "s", args->transaction);
 		if (args->access_args.tls_cert)
 			g_variant_dict_insert(&dict, "tls-cert", "s", args->access_args.tls_cert);
 		if (args->access_args.tls_key)
@@ -1359,10 +1363,13 @@ static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint 
 			g_string_append_printf(text, "\n              sha256=%s", slot_state->checksum.digest);
 			g_string_append_printf(text, "\n              size=%s", formatted_size);
 		}
+		g_string_append_printf(text, "\n          installed:");
 		if (slot_state->installed_timestamp) {
-			g_string_append_printf(text, "\n          installed:");
 			g_string_append_printf(text, "\n              timestamp=%s", slot_state->installed_timestamp);
 			g_string_append_printf(text, "\n              count=%u", slot_state->installed_count);
+		}
+		if (slot_state->installed_txn) {
+			g_string_append_printf(text, "\n              transaction=%s", slot_state->installed_txn);
 		}
 		if (slot_state->activated_timestamp) {
 			g_string_append_printf(text, "\n          activated:");
@@ -1652,6 +1659,7 @@ static RaucSlotStatus* r_variant_get_slot_state(GVariant *vardict)
 	if (g_variant_dict_lookup(&dict, "sha256", "s", &slot_state->checksum.digest))
 		slot_state->checksum.type = G_CHECKSUM_SHA256;
 	g_variant_dict_lookup(&dict, "size", "t", &slot_state->checksum.size);
+	g_variant_dict_lookup(&dict, "installed.transaction", "s", &slot_state->installed_txn);
 	g_variant_dict_lookup(&dict, "installed.timestamp", "s", &slot_state->installed_timestamp);
 	g_variant_dict_lookup(&dict, "installed.count", "u", &slot_state->installed_count);
 	g_variant_dict_lookup(&dict, "activated.timestamp", "s", &slot_state->activated_timestamp);
@@ -2100,6 +2108,7 @@ typedef struct {
 
 static GOptionEntry entries_install[] = {
 	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
+	{"transaction-id", '\0', 0, G_OPTION_ARG_STRING, &installation_txn, "custom transaction id", "UUID"},
 #if ENABLE_SERVICE == 1
 	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
 #else

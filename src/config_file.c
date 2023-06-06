@@ -904,6 +904,7 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 		slotstatus->checksum.size = g_key_file_get_uint64(key_file, group, "size", NULL);
 	}
 
+	slotstatus->installed_txn = key_file_consume_string(key_file, group, "installed.transaction", NULL);
 	slotstatus->installed_timestamp = key_file_consume_string(key_file, group, "installed.timestamp", NULL);
 	count = g_key_file_get_uint64(key_file, group, "installed.count", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE))
@@ -961,6 +962,8 @@ static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group, 
 		g_key_file_remove_key(key_file, group, "sha256", NULL);
 		g_key_file_remove_key(key_file, group, "size", NULL);
 	}
+
+	status_file_set_string_or_remove_key(key_file, group, "installed.transaction", slotstatus->installed_txn);
 
 	if (slotstatus->installed_timestamp) {
 		g_key_file_set_string(key_file, group, "installed.timestamp", slotstatus->installed_timestamp);

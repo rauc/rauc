@@ -19,6 +19,7 @@ typedef struct {
 	gchar *bundle_hash;
 	gchar *status;
 	RaucChecksum checksum;
+	gchar *installed_txn;
 	gchar *installed_timestamp;
 	guint32 installed_count;
 	gchar *activated_timestamp;

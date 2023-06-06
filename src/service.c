@@ -102,6 +102,9 @@ static gboolean r_on_handle_install_bundle(
 	if (g_variant_dict_lookup(&dict, "ignore-compatible", "b", &args->ignore_compatible))
 		g_variant_dict_remove(&dict, "ignore-compatible");
 
+	if (g_variant_dict_lookup(&dict, "transaction-id", "s", &args->transaction))
+		g_variant_dict_remove(&dict, "transaction-id");
+
 	convert_dict_to_bundle_access_args(&dict, &args->access_args);
 
 	/* Check for unhandled keys */
@@ -322,6 +325,9 @@ static GVariant* convert_slot_status_to_dict(RaucSlot *slot)
 		g_variant_dict_insert(&dict, "sha256", "s", slot_state->checksum.digest);
 		g_variant_dict_insert(&dict, "size", "t", (guint64) slot_state->checksum.size);
 	}
+
+	if (slot_state->installed_txn)
+		g_variant_dict_insert(&dict, "installed.transaction", "s", slot_state->installed_txn);
 
 	if (slot_state->installed_timestamp) {
 		g_variant_dict_insert(&dict, "installed.timestamp", "s", slot_state->installed_timestamp);
