@@ -979,6 +979,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 		r_context_begin_step("skip_image", "Copying image skipped", 0);
 		r_context_end_step("skip_image", TRUE);
 
+		install_args_update(args, "Updating slot %s done", plan->target_slot->name);
 		return TRUE;
 	}
 
@@ -1033,6 +1034,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 		return FALSE;
 	}
 
+	install_args_update(args, "Updating slot %s done", plan->target_slot->name);
 	return TRUE;
 }
 
@@ -1110,11 +1112,9 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 		if (!handle_slot_install_plan(manifest, plan, args, hook_name, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto image_out;
+			res = FALSE;
+			goto out;
 		}
-
-image_out:
-		install_args_update(args, "Updating slot %s done", plan->target_slot->name);
 	}
 
 	if (r_context()->config->activate_installed) {
