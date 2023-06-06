@@ -79,7 +79,6 @@ void mark_active(RaucSlot *slot, GError **error)
 	RaucSlotStatus *slot_state;
 	GError *ierror = NULL;
 	g_autoptr(GDateTime) now = NULL;
-	gboolean res;
 
 	g_return_if_fail(slot);
 	g_return_if_fail(error == NULL || *error == NULL);
@@ -87,8 +86,7 @@ void mark_active(RaucSlot *slot, GError **error)
 	load_slot_status(slot);
 	slot_state = slot->status;
 
-	res = r_boot_set_primary(slot, &ierror);
-	if (!res) {
+	if (!r_boot_set_primary(slot, &ierror)) {
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
 				"failed to activate slot %s: %s", slot->name, ierror->message);
 		g_error_free(ierror);
@@ -100,8 +98,7 @@ void mark_active(RaucSlot *slot, GError **error)
 	slot_state->activated_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
 	slot_state->activated_count++;
 
-	res = save_slot_status(slot, &ierror);
-	if (!res) {
+	if (!save_slot_status(slot, &ierror)) {
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED, "%s", ierror->message);
 		g_error_free(ierror);
 		return;
