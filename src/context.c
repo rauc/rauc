@@ -27,6 +27,34 @@ static gchar *regex_match(const gchar *pattern, const gchar *string)
 	return NULL;
 }
 
+static gchar* get_machine_id(void)
+{
+	gchar *contents = NULL;
+	g_autoptr(GError) ierror = NULL;
+
+	if (!g_file_get_contents("/etc/machine-id", &contents, NULL, &ierror)) {
+		g_info("Failed to get machine-id: %s", ierror->message);
+		return NULL;
+	}
+
+	/* file contains newline, modify in-place */
+	return g_strchomp(contents);
+}
+
+static gchar* get_boot_id(void)
+{
+	gchar *contents = NULL;
+	g_autoptr(GError) ierror = NULL;
+
+	if (!g_file_get_contents("/proc/sys/kernel/random/boot_id", &contents, NULL, &ierror)) {
+		g_warning("Failed to get boot_id: %s", ierror->message);
+		return NULL;
+	}
+
+	/* file contains newline, modify in-place */
+	return g_strchomp(contents);
+}
+
 static gchar* get_cmdline_bootname(void)
 {
 	g_autofree gchar *contents = NULL;
@@ -320,6 +348,14 @@ static gboolean r_context_configure_target(GError **error)
 	if (context->bootslot == NULL) {
 		context->bootslot = get_cmdline_bootname();
 	}
+
+	g_clear_pointer(&context->boot_id, g_free);
+	g_clear_pointer(&context->machine_id, g_free);
+
+	context->boot_id = get_boot_id();
+	g_debug("Obtained system boot ID: '%s'", context->boot_id);
+	context->machine_id = get_machine_id();
+	g_debug("Obtained system machine ID: '%s'", context->machine_id);
 
 	return TRUE;
 }
@@ -749,6 +785,8 @@ void r_context_clean(void)
 		g_clear_pointer(&context->intermediatepaths, g_strfreev);
 		g_clear_pointer(&context->mountprefix, g_free);
 		g_clear_pointer(&context->bootslot, g_free);
+		g_clear_pointer(&context->boot_id, g_free);
+		g_clear_pointer(&context->machine_id, g_free);
 		g_clear_pointer(&context->system_serial, g_free);
 		g_clear_pointer(&context->system_info, g_hash_table_destroy);
 
