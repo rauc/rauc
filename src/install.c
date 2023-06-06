@@ -1158,6 +1158,23 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	return TRUE;
 }
 
+static gchar* get_uptime(void)
+{
+	g_autofree gchar *contents = NULL;
+	g_autoptr(GError) ierror = NULL;
+	g_auto(GStrv) uptime = NULL;
+
+	if (!g_file_get_contents("/proc/uptime", &contents, NULL, &ierror)) {
+		g_warning("Failed to get uptime: %s", ierror->message);
+		return NULL;
+	}
+
+	/* file contains two values and a newline, 'chomp' in-place and split then */
+	uptime = g_strsplit(g_strchomp(contents), " ", 2);
+
+	return g_strdup(uptime[0]);
+}
+
 static gchar **assemble_info_headers(RaucInstallArgs *args)
 {
 	GPtrArray *headers = g_ptr_array_new_full(1, g_free);
@@ -1171,6 +1188,11 @@ static gchar **assemble_info_headers(RaucInstallArgs *args)
 	g_ptr_array_add(headers, g_strdup_printf("X-RAUC-VARIANT: %s", r_context()->config->system_variant));
 	/* Add per-installation information */
 	g_ptr_array_add(headers, g_strdup_printf("X-RAUC-TRANSACTION-ID: %s", args->transaction));
+	/* Add live information */
+	{
+		g_autofree gchar *uptime = get_uptime();
+		g_ptr_array_add(headers, g_strdup_printf("X-RAUC-UPTIME: %s", uptime));
+	}
 
 	g_ptr_array_add(headers, NULL);
 
