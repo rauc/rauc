@@ -1112,10 +1112,14 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 		if (!handle_slot_install_plan(manifest, plan, args, hook_name, &ierror)) {
 			g_propagate_error(error, ierror);
+			r_context_end_step("update_slots", FALSE);
 			res = FALSE;
 			goto out;
 		}
 	}
+
+	r_context_end_step("update_slots", TRUE);
+	install_args_update(args, "All slots updated");
 
 	if (r_context()->config->activate_installed) {
 		/* Mark all parent destination slots bootable */
@@ -1150,12 +1154,10 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		g_message("Leaving target slot non-bootable as requested by activate_installed == false.");
 	}
 
-	install_args_update(args, "All slots updated");
 
 	res = TRUE;
 
 out:
-	r_context_end_step("update_slots", res);
 early_out:
 	return res;
 }
