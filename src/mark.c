@@ -74,14 +74,14 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 	return slot;
 }
 
-void mark_active(RaucSlot *slot, GError **error)
+gboolean mark_active(RaucSlot *slot, GError **error)
 {
 	RaucSlotStatus *slot_state;
 	GError *ierror = NULL;
 	g_autoptr(GDateTime) now = NULL;
 
-	g_return_if_fail(slot);
-	g_return_if_fail(error == NULL || *error == NULL);
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	load_slot_status(slot);
 	slot_state = slot->status;
@@ -90,7 +90,7 @@ void mark_active(RaucSlot *slot, GError **error)
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
 				"failed to activate slot %s: %s", slot->name, ierror->message);
 		g_error_free(ierror);
-		return;
+		return FALSE;
 	}
 
 	g_free(slot_state->activated_timestamp);
@@ -101,8 +101,10 @@ void mark_active(RaucSlot *slot, GError **error)
 	if (!save_slot_status(slot, &ierror)) {
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED, "%s", ierror->message);
 		g_error_free(ierror);
-		return;
+		return FALSE;
 	}
+
+	return TRUE;
 }
 
 gboolean mark_run(const gchar *state,
