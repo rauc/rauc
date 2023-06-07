@@ -1029,7 +1029,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 
 	r_context_end_step("copy_image", TRUE);
 
-	install_args_update(args, "Updating slot %s status", plan->target_slot->name);
+	g_message("Updating slot %s status", plan->target_slot->name);
 	if (!save_slot_status(plan->target_slot, &ierror)) {
 		g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
 		return FALSE;
