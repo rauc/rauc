@@ -948,7 +948,7 @@ skip_filename_checks:
 	return TRUE;
 }
 
-static void update_slot_status(RaucSlotStatus *slot_state, const RaucManifest *manifest, const RImageInstallPlan *plan, const RaucInstallArgs *args)
+static void update_slot_status(RaucSlotStatus *slot_state, const gchar* status, const RaucManifest *manifest, const RImageInstallPlan *plan, const RaucInstallArgs *args)
 {
 	g_autoptr(GDateTime) now = NULL;
 
@@ -961,7 +961,7 @@ static void update_slot_status(RaucSlotStatus *slot_state, const RaucManifest *m
 	slot_state->bundle_description = g_strdup(manifest->update_description);
 	slot_state->bundle_build = g_strdup(manifest->update_build);
 	slot_state->bundle_hash = g_strdup(manifest->hash);
-	slot_state->status = g_strdup("ok");
+	slot_state->status = g_strdup(status);
 	slot_state->checksum.type = plan->image->checksum.type;
 	slot_state->checksum.digest = g_strdup(plan->image->checksum.digest);
 	slot_state->checksum.size = plan->image->checksum.size;
@@ -1031,7 +1031,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 		return FALSE;
 	}
 
-	update_slot_status(slot_state, manifest, plan, args);
+	update_slot_status(slot_state, "ok", manifest, plan, args);
 
 	r_context_end_step("copy_image", TRUE);
 
