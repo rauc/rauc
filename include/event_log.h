@@ -73,6 +73,15 @@ typedef struct _REventLogger {
 } REventLogger;
 
 /**
+ * Tests type string for being a supported event log type.
+ *
+ * @param type Type string to test
+ *
+ * @return TRUE if supported, FALSE otherwise
+ */
+gboolean r_event_log_is_supported_type(const gchar *type);
+
+/**
  * Custom structured logging function.
  *
  * To be used for g_log_set_writer_func() to set globally as the glib logger.

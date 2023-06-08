@@ -275,7 +275,14 @@ static gboolean r_event_log_parse_config_sections(GKeyFile *key_file, RaucConfig
 			return FALSE;
 		}
 		for (gsize j = 0; j < entries; j++) {
-			/* FIXME: handle invalid values */
+			if (!r_event_log_is_supported_type(logger->events[j])) {
+				g_set_error(
+						error,
+						G_KEY_FILE_ERROR,
+						G_KEY_FILE_ERROR_INVALID_VALUE,
+						"Unsupported event log type '%s'", logger->events[j]);
+				return FALSE;
+			}
 		}
 		g_key_file_remove_key(key_file, *group, "events", NULL);
 
