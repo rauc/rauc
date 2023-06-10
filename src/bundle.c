@@ -1898,7 +1898,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 
 	g_return_val_if_fail(bundlename, FALSE);
 	g_return_val_if_fail(bundle != NULL && *bundle == NULL, FALSE);
-	g_return_val_if_fail(!(params & TRUE), FALSE); /* protect against passing TRUE as the params enum */
+	g_return_val_if_fail(~(params & TRUE), FALSE); /* protect against passing TRUE as the params enum */
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	r_context_begin_step("check_bundle", "Checking bundle", verify);
