@@ -2,6 +2,8 @@
 
 #include <glib.h>
 
+#include "slot.h"
+
 gboolean mark_active(RaucSlot *slot, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
