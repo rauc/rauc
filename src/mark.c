@@ -107,6 +107,40 @@ gboolean r_mark_active(RaucSlot *slot, GError **error)
 	return TRUE;
 }
 
+gboolean r_mark_good(RaucSlot *slot, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!r_boot_set_state(slot, TRUE, &ierror)) {
+		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
+				"Failed marking slot %s as good:  %s", slot->name, ierror->message);
+		g_error_free(ierror);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+gboolean r_mark_bad(RaucSlot *slot, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!r_boot_set_state(slot, FALSE, &ierror)) {
+		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
+				"Failed marking slot %s as bad:  %s", slot->name, ierror->message);
+		g_error_free(ierror);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 gboolean mark_run(const gchar *state,
 		const gchar *slot_identifier,
 		gchar **slot_name,
