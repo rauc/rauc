@@ -4,7 +4,17 @@
 
 #include "slot.h"
 
-gboolean mark_active(RaucSlot *slot, GError **error)
+/**
+ * Mark a bootname slot as active.
+ *
+ * This means it is expected to be the next being booted.
+ *
+ * @param slot Slot to mark as active
+ * @param error Return location for a GError
+ *
+ * @return Return TRUE on success and FALSE on error
+ */
+gboolean r_mark_active(RaucSlot *slot, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 gboolean mark_run(const gchar *state,

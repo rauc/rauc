@@ -1187,7 +1187,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		if (r_context()->config->activate_installed) {
 			/* Mark boot slot bootable */
 			g_message("Marking target slot %s as bootable...", boot_mark_slot->name);
-			if (!mark_active(boot_mark_slot, &ierror)) {
+			if (!r_mark_active(boot_mark_slot, &ierror)) {
 				g_propagate_prefixed_error(error, ierror,
 						"Failed marking slot %s bootable: ", boot_mark_slot->name);
 				return FALSE;
