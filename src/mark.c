@@ -1,4 +1,5 @@
 #include "bootchooser.h"
+#include "event_log.h"
 #include "context.h"
 #include "install.h"
 #include "mark.h"
@@ -75,6 +76,50 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 	return slot;
 }
 
+#define MESSAGE_ID_MARKED_ACTIVE "8b5e7435-e105-4d86-8582-78e7544fe6da"
+#define MESSAGE_ID_MARKED_GOOD   "3304e15a-7a9a-4478-85eb-208ba7ae3a05"
+#define MESSAGE_ID_MARKED_BAD    "ccb0e584-a470-43d7-a531-6994bce77ae5"
+
+static void r_event_log_mark_active(RaucSlot *slot)
+{
+	g_return_if_fail(slot);
+
+	g_log_structured(R_EVENT_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
+			"RAUC_EVENT_TYPE", "mark",
+			"MESSAGE_ID", MESSAGE_ID_MARKED_ACTIVE,
+			"SLOT_NAME", slot->name,
+			"SLOT_BOOTNAME", slot->bootname ?: "",
+			"BUNDLE_HASH", slot->status->bundle_hash ?: "",
+			"MESSAGE", "Marked slot %s as active", slot->name
+			);
+}
+
+static void r_event_log_mark_good(RaucSlot *slot)
+{
+	g_return_if_fail(slot);
+
+	g_log_structured(R_EVENT_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
+			"RAUC_EVENT_TYPE", "mark",
+			"MESSAGE_ID", MESSAGE_ID_MARKED_GOOD,
+			"SLOT_NAME", slot->name,
+			"SLOT_BOOTNAME", slot->bootname ?: "",
+			"MESSAGE", "Marked slot %s as good", slot->name
+			);
+}
+
+static void r_event_log_mark_bad(RaucSlot *slot)
+{
+	g_return_if_fail(slot);
+
+	g_log_structured(R_EVENT_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
+			"RAUC_EVENT_TYPE", "mark",
+			"MESSAGE_ID", MESSAGE_ID_MARKED_BAD,
+			"SLOT_NAME", slot->name,
+			"SLOT_BOOTNAME", slot->bootname ?: "",
+			"MESSAGE", "Marked slot %s as bad", slot->name
+			);
+}
+
 gboolean r_mark_active(RaucSlot *slot, GError **error)
 {
 	RaucSlotStatus *slot_state;
@@ -93,6 +138,8 @@ gboolean r_mark_active(RaucSlot *slot, GError **error)
 		g_error_free(ierror);
 		return FALSE;
 	}
+
+	r_event_log_mark_active(slot);
 
 	g_free(slot_state->activated_timestamp);
 	now = g_date_time_new_now_utc();
@@ -121,6 +168,8 @@ gboolean r_mark_good(RaucSlot *slot, GError **error)
 		return FALSE;
 	}
 
+	r_event_log_mark_good(slot);
+
 	return TRUE;
 }
 
@@ -137,6 +186,8 @@ gboolean r_mark_bad(RaucSlot *slot, GError **error)
 		g_error_free(ierror);
 		return FALSE;
 	}
+
+	r_event_log_mark_bad(slot);
 
 	return TRUE;
 }
