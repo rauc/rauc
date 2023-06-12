@@ -161,11 +161,21 @@ gboolean mark_run(const gchar *state,
 	}
 
 	if (!g_strcmp0(state, "good")) {
-		res = r_boot_set_state(slot, TRUE, &ierror);
-		*message = res ? g_strdup_printf("marked slot %s as good", slot->name) : g_strdup_printf("Failed marking slot %s as good: %s", slot->name, ierror->message);
+		if (!r_mark_good(slot, &ierror)) {
+			res = FALSE;
+			*message = g_strdup(ierror->message);
+		} else {
+			res = TRUE;
+			*message = g_strdup_printf("marked slot %s as good", slot->name);
+		}
 	} else if (!g_strcmp0(state, "bad")) {
-		res = r_boot_set_state(slot, FALSE, &ierror);
-		*message = res ? g_strdup_printf("marked slot %s as bad", slot->name) : g_strdup_printf("Failed marking slot %s as bad: %s", slot->name, ierror->message);
+		if (!r_mark_bad(slot, &ierror)) {
+			res = FALSE;
+			*message = g_strdup(ierror->message);
+		} else {
+			res = TRUE;
+			*message = g_strdup_printf("marked slot %s as bad", slot->name);
+		}
 	} else if (!g_strcmp0(state, "active")) {
 		if (!r_mark_active(slot, &ierror)) {
 			res = FALSE;
