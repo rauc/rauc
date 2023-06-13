@@ -453,6 +453,7 @@ static void signature_intermediate(SignatureFixture *fixture,
 	g_assert_null(fixture->cms);
 
 	g_clear_pointer(&fixture->cms, CMS_ContentInfo_free);
+	g_clear_pointer(&fixture->sig, g_bytes_unref);
 	g_clear_error(&fixture->error);
 
 	/* Include the missing link in the signature */
@@ -526,6 +527,7 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 	g_assert_null(fixture->cms);
 
 	g_clear_pointer(&fixture->cms, CMS_ContentInfo_free);
+	g_clear_pointer(&fixture->sig, g_bytes_unref);
 	g_clear_error(&fixture->error);
 
 	/* Include the missing link in the signature */
