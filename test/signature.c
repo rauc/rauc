@@ -427,7 +427,7 @@ static void signature_intermediate(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
 	gboolean res;
-	GPtrArray *interfiles = NULL;
+	g_autoptr(GPtrArray) interfiles = NULL;
 	X509_STORE *prov_store = X509_STORE_new();
 	g_assert_nonnull(prov_store);
 	/* We verify against the provisioning CA */
@@ -457,6 +457,7 @@ static void signature_intermediate(SignatureFixture *fixture,
 
 	/* Include the missing link in the signature */
 	interfiles = g_ptr_array_new();
+	g_ptr_array_set_free_func(interfiles, g_free);
 	g_ptr_array_add(interfiles, g_strdup("test/openssl-ca/rel/ca.cert.pem"));
 	g_ptr_array_add(interfiles, NULL);
 
@@ -464,7 +465,7 @@ static void signature_intermediate(SignatureFixture *fixture,
 			TRUE,
 			"test/openssl-ca/rel/release-1.cert.pem",
 			"test/openssl-ca/rel/private/release-1.pem",
-			(gchar**) g_ptr_array_free(interfiles, FALSE),
+			(gchar**) interfiles->pdata,
 			NULL);
 	g_assert_nonnull(fixture->sig);
 
@@ -497,7 +498,7 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 {
 	gint fd;
 	gboolean res;
-	GPtrArray *interfiles = NULL;
+	g_autoptr(GPtrArray) interfiles = NULL;
 	X509_STORE *prov_store = X509_STORE_new();
 	g_assert_nonnull(prov_store);
 	g_assert_true(X509_STORE_load_locations(prov_store, "test/openssl-ca/provisioning-ca.pem", NULL));
@@ -529,13 +530,14 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 
 	/* Include the missing link in the signature */
 	interfiles = g_ptr_array_new();
+	g_ptr_array_set_free_func(interfiles, g_free);
 	g_ptr_array_add(interfiles, g_strdup("test/openssl-ca/rel/ca.cert.pem"));
 	g_ptr_array_add(interfiles, NULL);
 
 	fixture->sig = cms_sign_file("test/openssl-ca/manifest",
 			"test/openssl-ca/rel/release-1.cert.pem",
 			"test/openssl-ca/rel/private/release-1.pem",
-			(gchar**) g_ptr_array_free(interfiles, FALSE),
+			(gchar**) interfiles->pdata,
 			NULL);
 	g_assert_nonnull(fixture->sig);
 
