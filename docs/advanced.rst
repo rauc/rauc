@@ -1594,3 +1594,62 @@ https://github.com/caruhome/upparat
 It is also available via PyPI:
 
 https://pypi.org/project/upparat/
+
+.. _sec-advanced-event-log:
+
+RAUC Installation History and Event logging
+-------------------------------------------
+
+Even if RAUC mainly focuses on logging information to stdout or into the
+journal (when using systemd), this might be insufficient for some purposes and
+especially for keeping long-term history of what RAUC changed on the system.
+
+A common problem for example can be journal rotation. Since storage is limited
+and the journal contains a lot of other information, it needs to be rotated at
+some point.
+However, one might want to preserve the history of what RAUC installed on the
+system or when the system rebooted, went into fallback, etc. for very long or
+even the full life time of the device.
+
+Another motivation can be to have a clearly separated distinct log location
+where other system components or a service technician (that should not have
+access to the whole system) should have a look into.
+
+The RAUC 'event logging' handling targets these and other cases.
+It defines a distinct set of events that might be of interest for later
+introspection, debugging or informative output.
+
+Via RAUC's ``system.conf`` one or several loggers can be configured with
+selectable output format, event filters, and also basic log rotation is
+supported.
+
+A new logger can be registered with adding a ``log.<loggername>`` section to
+the ``system.conf``.
+
+To have e.g. an unlimited human-readable short log of the installations
+happened on the system, use::
+
+  [log.install-log]
+  filename=install.log
+  events=install
+  output-format=short
+
+Or, if you want a json-based log of all events, limited to 1M per log file and
+5 rotation files to keep, use::
+
+  [log.all-json-log]
+  filename=all-json.log
+  output-format=json
+  max-size=1M
+  max-files=5
+
+If an error occurs during logging (such as disk full or write errors), that
+logger is marked as broken and no longer used.
+An ongoing installation is **not** aborted.
+
+For a full reference of supported configuration options, see
+:ref:`logger sections reference <ref-logger-sections>`.
+
+.. note:: All events logged using the internal event logging framework will
+   also be forwarded to the default logger and thus be visible e.g. in the
+   journal (when using systemd).
