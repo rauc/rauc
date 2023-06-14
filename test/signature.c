@@ -54,8 +54,8 @@ static void signature_tear_down(SignatureFixture *fixture,
 static void signature_sign_detached(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
-	gchar *keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	const gchar *certpath = "test/openssl-ca/rel/release-1.cert.pem";
+	const gchar *keypath = "test/openssl-ca/rel/private/release-1.pem";
 	gboolean detached = FALSE;
 
 	// Test valid signing
@@ -101,8 +101,8 @@ static void signature_sign_detached(SignatureFixture *fixture,
 static void signature_sign_inline(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
-	gchar *keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	const gchar *certpath = "test/openssl-ca/rel/release-1.cert.pem";
+	const gchar *keypath = "test/openssl-ca/rel/private/release-1.pem";
 	gboolean detached = TRUE;
 
 	// Test valid signing
@@ -148,8 +148,8 @@ static void signature_sign_inline(SignatureFixture *fixture,
 static void signature_sign_file(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
-	gchar *certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
-	gchar *keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
+	const gchar *certpath = "test/openssl-ca/rel/release-1.cert.pem";
+	const gchar *keypath = "test/openssl-ca/rel/private/release-1.pem";
 
 	// Test valid file
 	fixture->sig = cms_sign_file("test/openssl-ca/manifest",
@@ -383,7 +383,7 @@ static void signature_selfsigned(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
 	gboolean res;
-	X509_STORE *root_store = X509_STORE_new();
+	g_autoptr(X509_STORE) root_store = X509_STORE_new();
 	g_assert_nonnull(root_store);
 	g_assert_true(X509_STORE_load_locations(root_store, "test/openssl-ca/root/ca.cert.pem", NULL));
 
@@ -427,8 +427,8 @@ static void signature_intermediate(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
 	gboolean res;
-	GPtrArray *interfiles = NULL;
-	X509_STORE *prov_store = X509_STORE_new();
+	g_autoptr(GPtrArray) interfiles = NULL;
+	g_autoptr(X509_STORE) prov_store = X509_STORE_new();
 	g_assert_nonnull(prov_store);
 	/* We verify against the provisioning CA */
 	g_assert_true(X509_STORE_load_locations(prov_store, "test/openssl-ca/provisioning-ca.pem", NULL));
@@ -453,10 +453,12 @@ static void signature_intermediate(SignatureFixture *fixture,
 	g_assert_null(fixture->cms);
 
 	g_clear_pointer(&fixture->cms, CMS_ContentInfo_free);
+	g_clear_pointer(&fixture->sig, g_bytes_unref);
 	g_clear_error(&fixture->error);
 
 	/* Include the missing link in the signature */
 	interfiles = g_ptr_array_new();
+	g_ptr_array_set_free_func(interfiles, g_free);
 	g_ptr_array_add(interfiles, g_strdup("test/openssl-ca/rel/ca.cert.pem"));
 	g_ptr_array_add(interfiles, NULL);
 
@@ -464,7 +466,7 @@ static void signature_intermediate(SignatureFixture *fixture,
 			TRUE,
 			"test/openssl-ca/rel/release-1.cert.pem",
 			"test/openssl-ca/rel/private/release-1.pem",
-			(gchar**) g_ptr_array_free(interfiles, FALSE),
+			(gchar**) interfiles->pdata,
 			NULL);
 	g_assert_nonnull(fixture->sig);
 
@@ -497,8 +499,8 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 {
 	gint fd;
 	gboolean res;
-	GPtrArray *interfiles = NULL;
-	X509_STORE *prov_store = X509_STORE_new();
+	g_autoptr(GPtrArray) interfiles = NULL;
+	g_autoptr(X509_STORE) prov_store = X509_STORE_new();
 	g_assert_nonnull(prov_store);
 	g_assert_true(X509_STORE_load_locations(prov_store, "test/openssl-ca/provisioning-ca.pem", NULL));
 
@@ -525,17 +527,19 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 	g_assert_null(fixture->cms);
 
 	g_clear_pointer(&fixture->cms, CMS_ContentInfo_free);
+	g_clear_pointer(&fixture->sig, g_bytes_unref);
 	g_clear_error(&fixture->error);
 
 	/* Include the missing link in the signature */
 	interfiles = g_ptr_array_new();
+	g_ptr_array_set_free_func(interfiles, g_free);
 	g_ptr_array_add(interfiles, g_strdup("test/openssl-ca/rel/ca.cert.pem"));
 	g_ptr_array_add(interfiles, NULL);
 
 	fixture->sig = cms_sign_file("test/openssl-ca/manifest",
 			"test/openssl-ca/rel/release-1.cert.pem",
 			"test/openssl-ca/rel/private/release-1.pem",
-			(gchar**) g_ptr_array_free(interfiles, FALSE),
+			(gchar**) interfiles->pdata,
 			NULL);
 	g_assert_nonnull(fixture->sig);
 
@@ -638,7 +642,7 @@ static void signature_cmsverify_path(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
 	gboolean res;
-	X509_STORE *a_store = X509_STORE_new();
+	g_autoptr(X509_STORE) a_store = X509_STORE_new();
 	g_assert_nonnull(a_store);
 	g_assert_true(X509_STORE_load_locations(a_store, "test/openssl-ca/dir/a.cert.pem", NULL));
 
@@ -670,7 +674,7 @@ static void signature_cmsverify_dir_combined(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
 	gboolean res;
-	X509_STORE *ab_dir_store = X509_STORE_new();
+	g_autoptr(X509_STORE) ab_dir_store = X509_STORE_new();
 	g_assert_nonnull(ab_dir_store);
 	g_assert_true(X509_STORE_load_locations(ab_dir_store, NULL, "test/openssl-ca/dir/hash/ab"));
 
@@ -701,8 +705,8 @@ static void signature_cmsverify_dir_single_fail(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
 	gboolean res;
-	X509_STORE *a_store = X509_STORE_new();
-	X509_STORE *ab_dir_store = X509_STORE_new();
+	g_autoptr(X509_STORE) a_store = X509_STORE_new();
+	g_autoptr(X509_STORE) ab_dir_store = X509_STORE_new();
 	g_assert_nonnull(a_store);
 	g_assert_nonnull(ab_dir_store);
 	g_assert_true(X509_STORE_load_locations(a_store, "test/openssl-ca/dir/a.cert.pem", NULL));
@@ -746,7 +750,7 @@ static void signature_cmsverify_pathdir_dir(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
 	gboolean res;
-	X509_STORE *a_dir_b_store = X509_STORE_new();
+	g_autoptr(X509_STORE) a_dir_b_store = X509_STORE_new();
 	g_assert_nonnull(a_dir_b_store);
 	g_assert_true(X509_STORE_load_locations(a_dir_b_store, "test/openssl-ca/dir/b.cert.pem", "test/openssl-ca/dir/hash/a"));
 
@@ -777,7 +781,7 @@ static void signature_cmsverify_pathdir_path(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
 	gboolean res;
-	X509_STORE *a_dir_b_store = X509_STORE_new();
+	g_autoptr(X509_STORE) a_dir_b_store = X509_STORE_new();
 	g_assert_nonnull(a_dir_b_store);
 	g_assert_true(X509_STORE_load_locations(a_dir_b_store, "test/openssl-ca/dir/b.cert.pem", "test/openssl-ca/dir/hash/a"));
 

@@ -204,9 +204,9 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, cons
 
 gboolean test_make_filesystem(const gchar *dirname, const gchar *filename)
 {
-	GSubprocess *sub;
+	g_autoptr(GSubprocess) sub = NULL;
 	GError *error = NULL;
-	gchar *path;
+	g_autofree gchar *path = NULL;
 	gboolean res = FALSE;
 
 	path = g_build_filename(dirname, filename, NULL);
@@ -239,13 +239,11 @@ gboolean test_mount(const gchar *src, const gchar *dest)
 	return r_mount_full(src, dest, NULL, NULL, NULL);
 }
 
-
 gboolean test_do_chmod(const gchar *path)
 {
-	GSubprocess *sub;
+	g_autoptr(GSubprocess) sub = NULL;
 	GError *error = NULL;
-	gboolean res = FALSE;
-	GPtrArray *args = g_ptr_array_new_full(10, g_free);
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(10, g_free);
 
 	g_ptr_array_add(args, g_strdup("chmod"));
 	g_ptr_array_add(args, g_strdup("777"));
@@ -257,19 +255,16 @@ gboolean test_do_chmod(const gchar *path)
 	if (!sub) {
 		g_warning("chmod failed: %s", error->message);
 		g_clear_error(&error);
-		goto out;
+		return FALSE;
 	}
 
-	res = g_subprocess_wait_check(sub, NULL, &error);
-	if (!res) {
+	if (!g_subprocess_wait_check(sub, NULL, &error)) {
 		g_warning("chmod failed: %s", error->message);
 		g_clear_error(&error);
-		goto out;
+		return FALSE;
 	}
 
-out:
-	g_ptr_array_unref(args);
-	return res;
+	return TRUE;
 }
 
 gboolean test_umount(const gchar *dirname, const gchar *mountpoint)
@@ -406,4 +401,33 @@ void flip_bits_filename(gchar *filename, off_t offset, guint8 mask)
 	flip_bits_fd(fd, offset, mask);
 	g_assert(fsync(fd) == 0);
 	g_close(fd, NULL);
+}
+
+void replace_strdup(gchar **dst, const gchar *src)
+{
+	g_free(*dst);
+	*dst = g_strdup(src);
+}
+
+void* dup_test_mem(GPtrArray *ptrs, const void *mem, gsize len)
+{
+	void *result = g_memdup(mem, len);
+
+	g_ptr_array_add(ptrs, result);
+
+	return result;
+}
+
+void* dup_test_printf(GPtrArray *ptrs, const gchar *format, ...)
+{
+	gchar *result;
+	va_list args;
+
+	va_start(args, format);
+	result = g_strdup_vprintf(format, args);
+	va_end(args);
+
+	g_ptr_array_add(ptrs, result);
+
+	return result;
 }

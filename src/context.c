@@ -274,6 +274,8 @@ static GHashTable *get_system_info_from_handler(GError **error)
 		return NULL;
 	}
 
+	g_clear_pointer(&context->system_serial, g_free);
+	g_clear_pointer(&context->config->system_variant, g_free);
 	g_hash_table_iter_init(&iter, vars);
 	while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
 		/* legacy handling */
@@ -331,6 +333,7 @@ static gboolean r_context_configure_target(GError **error)
 		context->config->system_variant = variant;
 	}
 
+	g_clear_pointer(&context->system_info, g_hash_table_destroy);
 	if (context->config->systeminfo_handler) {
 		context->system_info = get_system_info_from_handler(&ierror);
 		if (!context->system_info) {

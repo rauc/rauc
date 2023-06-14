@@ -216,6 +216,7 @@ static void test_nbd_mount(NBDFixture *fixture, gconstpointer user_data)
 
 int main(int argc, char *argv[])
 {
+	g_autoptr(GPtrArray) ptrs = g_ptr_array_new_with_free_func(g_free);
 	const char * http_headers[2] = {NULL, NULL};
 	NBDData *nbd_data;
 	setlocale(LC_ALL, "C");
@@ -226,7 +227,7 @@ int main(int argc, char *argv[])
 	g_test_init(&argc, &argv, NULL);
 
 	/* low level connect and read */
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "http://127.0.0.1/test/good-verity-bundle.raucb",
 	}));
 	g_test_add("/nbd/direct_read/good",
@@ -235,7 +236,7 @@ int main(int argc, char *argv[])
 			nbd_fixture_tear_down);
 
 	/* 404 handling */
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "http://127.0.0.1/error/404",
 		.err_domain = R_NBD_ERROR,
 		.err_code = R_NBD_ERROR_NOT_FOUND,
@@ -246,7 +247,7 @@ int main(int argc, char *argv[])
 			nbd_fixture_tear_down);
 
 	/* basic auth */
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "http://127.0.0.1/basic/test/good-verity-bundle.raucb",
 		.err_domain = R_NBD_ERROR,
 		.err_code = R_NBD_ERROR_UNAUTHORIZED,
@@ -255,7 +256,7 @@ int main(int argc, char *argv[])
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_direct_read,
 			nbd_fixture_tear_down);
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "http://rauc:rauctest@127.0.0.1/basic/test/good-verity-bundle.raucb",
 	}));
 	g_test_add("/nbd/basic-auth/good-1",
@@ -263,10 +264,10 @@ int main(int argc, char *argv[])
 			nbd_fixture_set_up, test_direct_read,
 			nbd_fixture_tear_down);
 	http_headers[0] = "Authorization: Basic cmF1YzpyYXVjdGVzdA==";
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "http://127.0.0.1/basic/test/good-verity-bundle.raucb",
 		.access_args = {
-		        .http_headers = memdup(http_headers),
+		        .http_headers = dup_test_data(ptrs, http_headers),
 		},
 	}));
 	g_test_add("/nbd/basic-auth/good-2",
@@ -301,7 +302,7 @@ int main(int argc, char *argv[])
 			nbd_fixture_tear_down);
 
 	/* mount via HTTP */
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "http://127.0.0.1/test/good-verity-bundle.raucb",
 	}));
 	g_test_add("/nbd/mount/http",
@@ -310,7 +311,7 @@ int main(int argc, char *argv[])
 			nbd_fixture_tear_down);
 
 	/* mount via HTTPS */
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "https://127.0.0.1/test/good-verity-bundle.raucb",
 		.err_domain = R_NBD_ERROR,
 		.err_code = R_NBD_ERROR_CONFIGURATION, /* missing CA cert */
@@ -319,7 +320,7 @@ int main(int argc, char *argv[])
 			NBDFixture, nbd_data,
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "https://127.0.0.1/test/good-verity-bundle.raucb",
 		.access_args = {
 		        .tls_no_verify = TRUE,
@@ -330,10 +331,10 @@ int main(int argc, char *argv[])
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);
 
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "https://127.0.0.1/test/good-verity-bundle.raucb",
 		.access_args = {
-		        .tls_ca = g_strdup("test/openssl-ca/web-ca.pem"),
+		        .tls_ca = dup_test_printf(ptrs, "test/openssl-ca/web-ca.pem"),
 		},
 	}));
 	g_test_add("/nbd/mount/https",
@@ -342,10 +343,10 @@ int main(int argc, char *argv[])
 			nbd_fixture_tear_down);
 
 	/* mount via HTTPS with HTTP/2 */
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "https://127.0.0.2/test/good-verity-bundle.raucb",
 		.access_args = {
-		        .tls_ca = g_strdup("test/openssl-ca/web-ca.pem"),
+		        .tls_ca = dup_test_printf(ptrs, "test/openssl-ca/web-ca.pem"),
 		},
 	}));
 	g_test_add("/nbd/mount/http2",
@@ -354,12 +355,12 @@ int main(int argc, char *argv[])
 			nbd_fixture_tear_down);
 
 	/* mount via HTTPS with client certificates checking */
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "https://127.0.0.3/test/good-verity-bundle.raucb",
 		.access_args = {
-		        .tls_cert = g_strdup("test/openssl-ca/web/client-1.cert.pem"),
-		        .tls_key = g_strdup("test/openssl-ca/web/private/client-1.pem"),
-		        .tls_ca = g_strdup("test/openssl-ca/web-ca.pem"),
+		        .tls_cert = dup_test_printf(ptrs, "test/openssl-ca/web/client-1.cert.pem"),
+		        .tls_key = dup_test_printf(ptrs, "test/openssl-ca/web/private/client-1.pem"),
+		        .tls_ca = dup_test_printf(ptrs, "test/openssl-ca/web-ca.pem"),
 		},
 	}));
 	g_test_add("/nbd/mount/client-cert/good",
@@ -368,12 +369,12 @@ int main(int argc, char *argv[])
 			nbd_fixture_tear_down);
 
 	/* 404 via HTTPS & client cert */
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "https://127.0.0.3/error/404",
 		.access_args = {
-		        .tls_cert = g_strdup("test/openssl-ca/web/client-1.cert.pem"),
-		        .tls_key = g_strdup("test/openssl-ca/web/private/client-1.pem"),
-		        .tls_ca = g_strdup("test/openssl-ca/web-ca.pem"),
+		        .tls_cert = dup_test_printf(ptrs, "test/openssl-ca/web/client-1.cert.pem"),
+		        .tls_key = dup_test_printf(ptrs, "test/openssl-ca/web/private/client-1.pem"),
+		        .tls_ca = dup_test_printf(ptrs, "test/openssl-ca/web-ca.pem"),
 		},
 		.err_domain = R_NBD_ERROR,
 		.err_code = R_NBD_ERROR_NOT_FOUND,
@@ -384,10 +385,10 @@ int main(int argc, char *argv[])
 			nbd_fixture_tear_down);
 
 	/* HTTPS with missing client cert */
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "https://127.0.0.3/test/good-verity-bundle.raucb",
 		.access_args = {
-		        .tls_ca = g_strdup("test/openssl-ca/web-ca.pem"),
+		        .tls_ca = dup_test_printf(ptrs, "test/openssl-ca/web-ca.pem"),
 		},
 		.err_domain = R_NBD_ERROR,
 		.err_code = R_NBD_ERROR_CONFIGURATION, /* missing client cert */
@@ -398,7 +399,7 @@ int main(int argc, char *argv[])
 			nbd_fixture_tear_down);
 
 	/* HTTP with sporadic errors */
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "http://127.0.0.1/backend/sporadic.raucb",
 		.needs_backend = TRUE,
 	}));
@@ -408,7 +409,7 @@ int main(int argc, char *argv[])
 			nbd_fixture_tear_down);
 
 	/* HTTP with cookie/token auth*/
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "http://127.0.0.1/backend/token.raucb",
 		.needs_backend = TRUE,
 		.err_domain = R_NBD_ERROR,
@@ -419,10 +420,10 @@ int main(int argc, char *argv[])
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);
 	http_headers[0] = "Cookie: token=wrong";
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "http://127.0.0.1/backend/token.raucb",
 		.access_args = {
-		        .http_headers = memdup(http_headers),
+		        .http_headers = dup_test_data(ptrs, http_headers),
 		},
 		.needs_backend = TRUE,
 		.err_domain = R_NBD_ERROR,
@@ -433,11 +434,11 @@ int main(int argc, char *argv[])
 			nbd_fixture_set_up, test_nbd_mount,
 			nbd_fixture_tear_down);
 	http_headers[0] = "Cookie: token=secret";
-	nbd_data = memdup((&(NBDData) {
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "http://127.0.0.1/backend/token.raucb",
 		.needs_backend = TRUE,
 		.access_args = {
-		        .http_headers = memdup(http_headers),
+		        .http_headers = dup_test_data(ptrs, http_headers),
 		},
 	}));
 	g_test_add("/nbd/token/good",

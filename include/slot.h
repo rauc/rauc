@@ -117,7 +117,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  *
  * @return string representation of slot state
  */
-gchar* r_slot_slotstate_to_str(SlotState slotstate)
+const gchar* r_slot_slotstate_to_str(SlotState slotstate)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**

@@ -20,6 +20,9 @@ for x in $(cat /proc/cmdline); do
   elif [ "$x" = "system" ]; then
     SHELL=1
     SERVICE=1
+  elif [ "$x" = "asan" ]; then
+    export G_SLICE=always-malloc G_DEBUG=gc-friendly
+    export ASAN_OPTIONS=malloc_context_size=64:fast_unwind_on_malloc=0
   fi
 done
 

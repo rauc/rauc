@@ -70,7 +70,6 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 	GError *ierror = NULL;
 	GInputStream *instream;
 	g_autoptr(GDataInputStream) datainstream = NULL;
-	gchar* outline;
 	guint64 result[2] = {};
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(6, g_free);
 
@@ -107,7 +106,7 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 
 	for (int i = 0; i < 2; i++) {
 		gchar *endptr = NULL;
-		outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
+		g_autofree gchar* outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
 		if (!outline) {
 			/* Having no error set there was means no content to read */
 			if (ierror == NULL) {
@@ -982,6 +981,18 @@ typedef struct {
 	gboolean active;
 } efi_bootentry;
 
+static void efi_bootentry_free(efi_bootentry *entry)
+{
+	if (!entry)
+		return;
+
+	g_free(entry->num);
+	g_free(entry->name);
+	g_free(entry);
+}
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(efi_bootentry, efi_bootentry_free);
+
 static gboolean efi_bootorder_set(gchar *order, GError **error)
 {
 	g_autoptr(GSubprocess) sub = NULL;
@@ -1064,6 +1075,10 @@ static efi_bootentry* get_efi_entry_by_bootnum(GList *entries, const gchar *boot
 
 /* Parses output of efibootmgr and returns information obtained.
  *
+ * Note that this function can return two lists, pointing to the same elements.
+ * The allocated efi_bootentry structs are owned by the all_entries list, so
+ * that parameter is mandatory.
+ *
  * @param bootorder_entries Return location for List (of efi_bootentry
  *        elements) of slots that are currently in EFI 'BootOrder'
  * @param all_entries Return location for List (of efi_bootentry element) of
@@ -1081,12 +1096,13 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	gint ret;
 	GRegex *regex = NULL;
 	GMatchInfo *match = NULL;
-	GList *entries = NULL;
-	GList *returnorder = NULL;
+	g_autofree gchar *matched = NULL;
+	g_autolist(efi_bootentry) entries = NULL;
+	g_autoptr(GList) returnorder = NULL;
 	gchar **bootnumorder = NULL;
 
 	g_return_val_if_fail(bootorder_entries == NULL || *bootorder_entries == NULL, FALSE);
-	g_return_val_if_fail(all_entries == NULL || *all_entries == NULL, FALSE);
+	g_return_val_if_fail(all_entries != NULL && *all_entries == NULL, FALSE);
 	g_return_val_if_fail(bootnext == NULL || *bootnext == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
@@ -1144,8 +1160,8 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 
 	while (g_match_info_matches(match)) {
 		efi_bootentry *entry = g_new0(efi_bootentry, 1);
-		entry->num = g_strdup(g_match_info_fetch(match, 1));
-		entry->name = g_strdup(g_match_info_fetch(match, 2));
+		entry->num = g_match_info_fetch(match, 1);
+		entry->name = g_match_info_fetch(match, 2);
 		entries = g_list_append(entries, entry);
 		g_match_info_next(match, NULL);
 	}
@@ -1156,8 +1172,11 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	/* obtain bootnext */
 	regex = g_regex_new("^BootNext: ([0-9a-fA-F]{4})$", G_REGEX_MULTILINE, 0, NULL);
 	if (g_regex_match(regex, g_bytes_get_data(stdout_buf, NULL), 0, &match)) {
-		if (bootnext)
-			*bootnext = get_efi_entry_by_bootnum(entries, g_match_info_fetch(match, 1));
+		if (bootnext) {
+			g_clear_pointer(&matched, g_free);
+			matched = g_match_info_fetch(match, 1);
+			*bootnext = get_efi_entry_by_bootnum(entries, matched);
+		}
 	}
 
 	g_clear_pointer(&regex, g_regex_unref);
@@ -1175,7 +1194,9 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 		goto out;
 	}
 
-	bootnumorder = g_strsplit(g_match_info_fetch(match, 1), ",", 0);
+	g_clear_pointer(&matched, g_free);
+	matched = g_match_info_fetch(match, 1);
+	bootnumorder = g_strsplit(matched, ",", 0);
 
 	/* Iterate over boot entries list in boot order */
 	for (gchar **element = bootnumorder; *element; element++) {
@@ -1187,9 +1208,8 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	g_strfreev(bootnumorder);
 
 	if (bootorder_entries)
-		*bootorder_entries = returnorder;
-	if (all_entries)
-		*all_entries = entries;
+		*bootorder_entries = g_steal_pointer(&returnorder);
+	*all_entries = g_steal_pointer(&entries);
 
 out:
 	g_clear_pointer(&regex, g_regex_unref);
@@ -1200,7 +1220,7 @@ out:
 
 static gboolean efi_set_temp_primary(RaucSlot *slot, GError **error)
 {
-	GList *entries = NULL;
+	g_autolist(efi_bootentry) entries = NULL;
 	GError *ierror = NULL;
 	efi_bootentry *efi_slot_entry = NULL;
 
@@ -1239,8 +1259,8 @@ static gboolean efi_set_temp_primary(RaucSlot *slot, GError **error)
  * Prepends it to bootorder list if prepend argument is set to TRUE */
 static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend, GError **error)
 {
-	GList *entries = NULL;
-	GList *all_entries = NULL;
+	g_autoptr(GList) entries = NULL;
+	g_autolist(efi_bootentry) all_entries = NULL;
 	g_autoptr(GPtrArray) bootorder = NULL;
 	g_autofree gchar *order = NULL;
 	GError *ierror = NULL;
@@ -1320,7 +1340,8 @@ static gboolean efi_set_state(RaucSlot *slot, gboolean good, GError **error)
 
 static RaucSlot *efi_get_primary(GError **error)
 {
-	GList *bootorder_entries = NULL;
+	g_autoptr(GList) bootorder_entries = NULL;
+	g_autolist(efi_bootentry) all_entries = NULL;
 	GError *ierror = NULL;
 	efi_bootentry *bootnext = NULL;
 	RaucSlot *primary = NULL;
@@ -1329,7 +1350,7 @@ static RaucSlot *efi_get_primary(GError **error)
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (!efi_bootorder_get(&bootorder_entries, NULL, &bootnext, &ierror)) {
+	if (!efi_bootorder_get(&bootorder_entries, &all_entries, &bootnext, &ierror)) {
 		g_propagate_error(error, ierror);
 		return NULL;
 	}
@@ -1398,13 +1419,14 @@ static gboolean efi_get_state(RaucSlot* slot, gboolean *good, GError **error)
 {
 	efi_bootentry *found_entry = NULL;
 	GError *ierror = NULL;
-	GList *bootorder_entries = NULL;
+	g_autoptr(GList) bootorder_entries = NULL;
+	g_autolist(efi_bootentry) all_entries = NULL;
 
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(good, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (!efi_bootorder_get(&bootorder_entries, NULL, NULL, &ierror)) {
+	if (!efi_bootorder_get(&bootorder_entries, &all_entries, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}

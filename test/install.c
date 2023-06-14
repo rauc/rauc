@@ -245,7 +245,7 @@ device=/path/to/prebootloader";
 
 	pathname = write_tmp_file(fixture->tmpdir, "system.conf", cfg_file, NULL);
 	g_assert_nonnull(pathname);
-	r_context_conf()->configpath = g_strdup(pathname);
+	replace_strdup(&r_context_conf()->configpath, pathname);
 }
 
 static void install_fixture_tear_down(InstallFixture *fixture,
@@ -257,6 +257,7 @@ static void install_fixture_tear_down(InstallFixture *fixture,
 	test_umount(fixture->tmpdir, "slot");
 	test_umount(fixture->tmpdir, "bootloader");
 	test_rm_tree(fixture->tmpdir, "");
+	g_free(fixture->tmpdir);
 }
 
 static void install_test_bootname(InstallFixture *fixture,
@@ -295,12 +296,12 @@ filename=demofs.ext4\n\
 [image.bootloader]\n\
 sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca\n\
 filename=bootloader.img";
-	gchar* pathname = write_tmp_file(fixture->tmpdir, "manifest.raucm", manifest_file, NULL);
+	g_autofree gchar* pathname = write_tmp_file(fixture->tmpdir, "manifest.raucm", manifest_file, NULL);
 	g_assert_nonnull(pathname);
 
 	g_assert_true(load_manifest_file(pathname, &rm, NULL));
 
-	r_context_conf()->bootslot = g_strdup("system0");
+	replace_strdup(&r_context_conf()->bootslot, "system0");
 
 	result = determine_slot_states(&error);
 	g_assert_no_error(error);
@@ -379,8 +380,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system0");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system0");
 	r_context();
 
 	res = determine_slot_states(&error);
@@ -432,8 +433,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("rescue");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "rescue");
 	r_context();
 
 	res = determine_slot_states(&error);
@@ -488,8 +489,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system1");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system1");
 	r_context();
 
 	res = determine_slot_states(&error);
@@ -539,8 +540,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system0");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system0");
 	r_context();
 
 	res = determine_slot_states(&error);
@@ -591,8 +592,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system1");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system1");
 	r_context();
 
 	res = determine_slot_states(&error);
@@ -661,8 +662,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system1");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system1");
 	r_context();
 
 	data = g_bytes_new_static(MANIFEST2, sizeof(MANIFEST2));
@@ -735,8 +736,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system1");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system1");
 	r_context();
 
 	data = g_bytes_new_static(MANIFEST2, sizeof(MANIFEST2));
@@ -799,8 +800,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("_external_"); /* mark as external */
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "_external_"); /* mark as external */
 	r_context();
 
 	g_message("Bootname is: %s", r_context()->bootslot);
@@ -869,8 +870,8 @@ readonly=true\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system0");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system0");
 	r_context();
 
 	data = g_bytes_new_static(MANIFEST, sizeof(MANIFEST));
@@ -953,8 +954,8 @@ device=/dev/null\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system1");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system1");
 	r_context();
 
 	res = determine_slot_states(&error);
@@ -983,6 +984,7 @@ device=/dev/null\n\
 
 	g_clear_pointer(&rm, free_manifest);
 	g_clear_pointer(&data, g_bytes_unref);
+	g_clear_pointer(&install_plans, g_ptr_array_unref);
 
 	/* Test with manifest containing only default variant */
 	data = g_bytes_new_static(MANIFEST_DEFAULT_VARIANT, sizeof(MANIFEST_DEFAULT_VARIANT));
@@ -1003,6 +1005,7 @@ device=/dev/null\n\
 
 	g_clear_pointer(&rm, free_manifest);
 	g_clear_pointer(&data, g_bytes_unref);
+	g_clear_pointer(&install_plans, g_ptr_array_unref);
 
 	/* Test with manifest containing only non-matching specific variant (must fail) */
 	data = g_bytes_new_static(MANIFEST_OTHER_VARIANT, sizeof(MANIFEST_OTHER_VARIANT));
@@ -1119,7 +1122,7 @@ static void install_test_bundle(InstallFixture *fixture,
 static void install_test_bundle_thread(InstallFixture *fixture,
 		gconstpointer user_data)
 {
-	RaucInstallArgs *args = install_args_new();
+	RaucInstallArgs *args = NULL;
 	g_autofree gchar *bundlepath = NULL;
 	g_autofree gchar *mountdir = NULL;
 
@@ -1138,6 +1141,7 @@ static void install_test_bundle_thread(InstallFixture *fixture,
 
 	g_assert_true(determine_slot_states(NULL));
 
+	args = install_args_new();
 	args->name = g_steal_pointer(&bundlepath);
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
@@ -1200,7 +1204,7 @@ static void install_test_bundle_hook_install(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = g_strdup(mountdir);
+	replace_strdup(&r_context_conf()->mountprefix, mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -1254,7 +1258,7 @@ static void install_test_bundle_hook_post_install(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = g_strdup(mountdir);
+	replace_strdup(&r_context_conf()->mountprefix, mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -1368,8 +1372,8 @@ device=images/rootfs-1\n\
 	g_assert_nonnull(sysconfpath);
 
 	/* Set up context */
-	r_context_conf()->configpath = sysconfpath;
-	r_context_conf()->bootslot = g_strdup("system0");
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "system0");
 	r_context();
 	g_assert_nonnull(r_context()->config);
 	g_assert_nonnull(r_context()->config->slots);
@@ -1425,6 +1429,7 @@ static void install_fixture_set_up_system_user(InstallFixture *fixture,
 
 int main(int argc, char *argv[])
 {
+	g_autoptr(GPtrArray) ptrs = g_ptr_array_new_with_free_func(g_free);
 	InstallData *install_data;
 	g_autofree gchar *path = NULL;
 	setlocale(LC_ALL, "C");
@@ -1464,38 +1469,38 @@ int main(int argc, char *argv[])
 	for (RManifestBundleFormat format = R_MANIFEST_FORMAT_PLAIN; format <= R_MANIFEST_FORMAT_VERITY; format++) {
 		const gchar *format_name = r_manifest_bundle_format_to_str(format);
 
-		install_data = memdup((&(InstallData) {
+		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.manifest_test_options = {
 			        .format = format,
 			},
 		}));
-		g_test_add(g_strdup_printf("/install/bootname/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bootname/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_system_user, install_test_bootname,
 				install_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/install/target/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/target/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_system_conf, install_test_target,
 				install_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/install/bundle/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bundle/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle, install_test_bundle,
 				install_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/install/bundle/central-status/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bundle/central-status/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle_central_status, install_test_bundle,
 				install_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/install/bundle-thread/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bundle-thread/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle, install_test_bundle_thread,
 				install_fixture_tear_down);
 
-		install_data = memdup((&(InstallData) {
-			.message_needles = memdup((&(const gchar *[]) {
+		install_data = dup_test_data(ptrs, (&(InstallData) {
+			.message_needles = dup_test_data(ptrs, (&(const gchar *[]) {
 				"Checking and mounting bundle...",
 				"Debug: arg1 arg2 --dummy1 --dummy2",
 				"Handler status: [STARTED]",
@@ -1508,61 +1513,61 @@ int main(int argc, char *argv[])
 			        .hooks = FALSE,
 			},
 		}));
-		g_test_add(g_strdup_printf("/install/bundle-custom-handler/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bundle-custom-handler/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle_custom_handler, install_test_bundle,
 				install_fixture_tear_down);
 
-		install_data = memdup((&(InstallData) {
+		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.message_needles = NULL,
 			.manifest_test_options = {
 			        .custom_handler = FALSE,
 			        .hooks = TRUE,
 			},
 		}));
-		g_test_add(g_strdup_printf("/install/bundle-hook/install-check/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bundle-hook/install-check/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle_install_check_hook, install_test_bundle_hook_install_check,
 				install_fixture_tear_down);
 
-		install_data = memdup((&(InstallData) {
+		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.message_needles = NULL,
 			.manifest_test_options = {
 			        .custom_handler = FALSE,
 			        .hooks = TRUE,
 			},
 		}));
-		g_test_add(g_strdup_printf("/install/bundle-hook/slot-install/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bundle-hook/slot-install/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle_install_hook, install_test_bundle_hook_install,
 				install_fixture_tear_down);
 
-		install_data = memdup((&(InstallData) {
+		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.message_needles = NULL,
 			.manifest_test_options = {
 			        .custom_handler = FALSE,
 			        .hooks = TRUE,
 			},
 		}));
-		g_test_add(g_strdup_printf("/install/bundle-hook/slot-post-install/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/bundle-hook/slot-post-install/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle_post_hook, install_test_bundle_hook_post_install,
 				install_fixture_tear_down);
 
-		install_data = memdup((&(InstallData) {
+		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.message_needles = NULL,
 			.manifest_test_options = {
 			        .custom_handler = TRUE,
 			        .hooks = TRUE,
 			},
 		}));
-		g_test_add(g_strdup_printf("/install/already-mounted/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/install/already-mounted/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle_already_mounted, install_test_already_mounted,
 				install_fixture_tear_down);
 	}
 
-	install_data = memdup((&(InstallData) {
+	install_data = dup_test_data(ptrs, (&(InstallData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_VERITY,
 		},

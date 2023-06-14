@@ -31,7 +31,7 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 	configpath = g_build_filename(tmpdir, "system.conf", NULL);
 	g_assert_nonnull(configpath);
 	g_assert_true(test_copy_file(configname, NULL, configpath, NULL));
-	r_context_conf()->configpath = g_strdup(configpath);
+	replace_strdup(&r_context_conf()->configpath, configpath);
 
 	/* copy systeminfo, preinstall and postinstall handler to temp dir*/
 	g_assert_true(test_copy_file("test/bin/systeminfo.sh", NULL,
@@ -45,13 +45,13 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 	certpath = g_build_filename(tmpdir, "openssl-ca/release-1.cert.pem", NULL);
 	g_assert_nonnull(certpath);
 	g_assert_true(test_copy_file("test/openssl-ca/rel/release-1.cert.pem", NULL, certpath, NULL));
-	r_context_conf()->certpath = g_strdup(certpath);
+	replace_strdup(&r_context_conf()->certpath, certpath);
 
 	/* copy key */
 	keypath = g_build_filename(tmpdir, "openssl-ca/release-1.pem", NULL);
 	g_assert_nonnull(keypath);
 	g_assert_true(test_copy_file("test/openssl-ca/rel/private/release-1.pem", NULL, keypath, NULL));
-	r_context_conf()->keypath = g_strdup(keypath);
+	replace_strdup(&r_context_conf()->keypath, keypath);
 
 	/* copy ca */
 	capath = g_build_filename(tmpdir, "openssl-ca/dev-ca.pem", NULL);
@@ -77,7 +77,7 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 	g_assert_true(test_make_filesystem(tmpdir, "images/bootloader-0"));
 
 	/* Set dummy bootname provider */
-	r_context_conf()->bootslot = g_strdup("system0");
+	replace_strdup(&r_context_conf()->bootslot, "system0");
 }
 
 void fixture_helper_set_up_system(gchar *tmpdir,

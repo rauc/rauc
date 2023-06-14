@@ -67,8 +67,8 @@ static void prepare_bundle(BundleFixture *fixture, gconstpointer user_data)
 static void bundle_fixture_set_up_bundle(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/autobuilder-1.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/autobuilder-1.pem");
+	replace_strdup(&r_context_conf()->certpath, "test/openssl-ca/dev/autobuilder-1.cert.pem");
+	replace_strdup(&r_context_conf()->keypath, "test/openssl-ca/dev/private/autobuilder-1.pem");
 
 	prepare_bundle(fixture, user_data);
 }
@@ -76,8 +76,8 @@ static void bundle_fixture_set_up_bundle(BundleFixture *fixture,
 static void bundle_fixture_set_up_bundle_corrupt(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/autobuilder-1.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/autobuilder-1.pem");
+	replace_strdup(&r_context_conf()->certpath, "test/openssl-ca/dev/autobuilder-1.cert.pem");
+	replace_strdup(&r_context_conf()->keypath, "test/openssl-ca/dev/private/autobuilder-1.pem");
 
 	prepare_bundle(fixture, user_data);
 	flip_bits_filename(fixture->bundlename, 1024*1024+512, 0xff);
@@ -86,8 +86,8 @@ static void bundle_fixture_set_up_bundle_corrupt(BundleFixture *fixture,
 static void bundle_fixture_set_up_bundle_autobuilder2(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/autobuilder-2.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/autobuilder-2.pem");
+	replace_strdup(&r_context_conf()->certpath, "test/openssl-ca/dev/autobuilder-2.cert.pem");
+	replace_strdup(&r_context_conf()->keypath, "test/openssl-ca/dev/private/autobuilder-2.pem");
 
 	prepare_bundle(fixture, user_data);
 }
@@ -95,8 +95,8 @@ static void bundle_fixture_set_up_bundle_autobuilder2(BundleFixture *fixture,
 static void bundle_fixture_set_up_bundle_email(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/xku-emailProtection.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/xku-emailProtection.pem");
+	replace_strdup(&r_context_conf()->certpath, "test/openssl-ca/dev/xku-emailProtection.cert.pem");
+	replace_strdup(&r_context_conf()->keypath, "test/openssl-ca/dev/private/xku-emailProtection.pem");
 	/* cert is already checked once during signing */
 	g_free(r_context()->config->keyring_check_purpose);
 	r_context()->config->keyring_check_purpose = g_strdup("smimesign");
@@ -107,8 +107,8 @@ static void bundle_fixture_set_up_bundle_email(BundleFixture *fixture,
 static void bundle_fixture_set_up_bundle_codesign(BundleFixture *fixture,
 		gconstpointer user_data)
 {
-	r_context_conf()->certpath = g_strdup("test/openssl-ca/dev/xku-codeSigning.cert.pem");
-	r_context_conf()->keypath = g_strdup("test/openssl-ca/dev/private/xku-codeSigning.pem");
+	replace_strdup(&r_context_conf()->certpath, "test/openssl-ca/dev/xku-codeSigning.cert.pem");
+	replace_strdup(&r_context_conf()->keypath, "test/openssl-ca/dev/private/xku-codeSigning.pem");
 	/* cert is already checked once during signing */
 	g_free(r_context()->config->keyring_check_purpose);
 	r_context()->config->keyring_check_purpose = g_strdup("codesign");
@@ -411,7 +411,7 @@ static void bundle_test_replace_signature(BundleFixture *fixture,
 	resignbundle = g_build_filename(fixture->tmpdir, "resigned-bundle.raucb", NULL);
 	g_assert_nonnull(resignbundle);
 
-	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
+	replace_strdup(&r_context()->config->keyring_path, "test/openssl-ca/rel-ca.pem");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_TRUST_ENV, NULL, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
@@ -419,15 +419,15 @@ static void bundle_test_replace_signature(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	/* Verify input bundle with 'dev' keyring */
-	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-only-ca.pem");
+	replace_strdup(&r_context()->config->keyring_path, "test/openssl-ca/dev-only-ca.pem");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_TRUST_ENV, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 
 	/* Use 'rel' key pair for resigning */
-	context->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
-	context->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
-	context->signing_keyringpath = g_strdup("test/openssl-ca/rel-ca.pem");
+	replace_strdup(&context->certpath, "test/openssl-ca/rel/release-1.cert.pem");
+	replace_strdup(&context->keypath, "test/openssl-ca/rel/private/release-1.pem");
+	replace_strdup(&context->signing_keyringpath, "test/openssl-ca/rel-ca.pem");
 
 	/* Resign bundle with 'rel' key to extract the signature below */
 	res = resign_bundle(bundle, resignbundle, &ierror);
@@ -441,7 +441,7 @@ static void bundle_test_replace_signature(BundleFixture *fixture,
 	g_clear_error(&ierror);
 	g_assert_false(res);
 
-	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
+	replace_strdup(&r_context()->config->keyring_path, "test/openssl-ca/rel-ca.pem");
 	res = check_bundle(resignbundle, &bundle, CHECK_BUNDLE_TRUST_ENV, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -456,7 +456,7 @@ static void bundle_test_replace_signature(BundleFixture *fixture,
 	g_assert_true(g_file_test(sigpath, G_FILE_TEST_IS_REGULAR));
 	g_clear_pointer(&bundle, free_bundle);
 
-	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-only-ca.pem");
+	replace_strdup(&r_context()->config->keyring_path, "test/openssl-ca/dev-only-ca.pem");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_TRUST_ENV, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -472,14 +472,14 @@ static void bundle_test_replace_signature(BundleFixture *fixture,
 	g_assert_false(res);
 	g_clear_pointer(&bundle, free_bundle);
 
-	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
+	replace_strdup(&r_context()->config->keyring_path, "test/openssl-ca/rel-ca.pem");
 	res = check_bundle(replacebundle, &bundle, CHECK_BUNDLE_TRUST_ENV, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_clear_pointer(&bundle, free_bundle);
 
 	/* Test without verify */
-	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-only-ca.pem");
+	replace_strdup(&r_context()->config->keyring_path, "test/openssl-ca/dev-only-ca.pem");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_TRUST_ENV, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -504,13 +504,13 @@ static void bundle_test_replace_signature(BundleFixture *fixture,
 	g_clear_error(&ierror);
 	g_assert_false(res);
 
-	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
+	replace_strdup(&r_context()->config->keyring_path, "test/openssl-ca/rel-ca.pem");
 	res = check_bundle(replacebundle, &bundle, CHECK_BUNDLE_TRUST_ENV, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 
 	// hacky restore of original signing_keyringpath
-	context->signing_keyringpath = NULL;
+	replace_strdup(&context->signing_keyringpath, NULL);
 }
 
 static void bundle_test_resign(BundleFixture *fixture,
@@ -528,7 +528,7 @@ static void bundle_test_resign(BundleFixture *fixture,
 	 * Note we have to use r_context() here as a hack to avoid re-setting
 	 * the context's 'pending' flag which would cause a re-initialization
 	 * of context and thus overwrite content of 'config' member. */
-	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
+	replace_strdup(&r_context()->config->keyring_path, "test/openssl-ca/rel-ca.pem");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
@@ -537,15 +537,15 @@ static void bundle_test_resign(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	/* Verify input bundle with 'dev' keyring */
-	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-only-ca.pem");
+	replace_strdup(&r_context()->config->keyring_path, "test/openssl-ca/dev-only-ca.pem");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 
 	/* Use 'rel' key pair for resigning */
-	context->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");
-	context->keypath = g_strdup("test/openssl-ca/rel/private/release-1.pem");
-	context->signing_keyringpath = g_strdup("test/openssl-ca/rel-ca.pem");
+	replace_strdup(&context->certpath, "test/openssl-ca/rel/release-1.cert.pem");
+	replace_strdup(&context->keypath, "test/openssl-ca/rel/private/release-1.pem");
+	replace_strdup(&context->signing_keyringpath, "test/openssl-ca/rel-ca.pem");
 
 	res = resign_bundle(bundle, resignbundle, &ierror);
 	g_assert_no_error(ierror);
@@ -558,7 +558,7 @@ static void bundle_test_resign(BundleFixture *fixture,
 	 * both the production and the development certificate to allow
 	 * installing development bundles as well as moving to production
 	 * bundles. */
-	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-only-ca.pem");
+	replace_strdup(&r_context()->config->keyring_path, "test/openssl-ca/dev-only-ca.pem");
 	res = check_bundle(resignbundle, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
@@ -567,13 +567,13 @@ static void bundle_test_resign(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	/* Verify resigned bundle with rel keyring */
-	r_context()->config->keyring_path = g_strdup("test/openssl-ca/rel-ca.pem");
+	replace_strdup(&r_context()->config->keyring_path, "test/openssl-ca/rel-ca.pem");
 	res = check_bundle(resignbundle, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 
 	// hacky restore of original signing_keyringpath
-	context->signing_keyringpath = NULL;
+	replace_strdup(&context->signing_keyringpath, NULL);
 }
 
 static void bundle_test_wrong_capath(BundleFixture *fixture,
@@ -581,14 +581,14 @@ static void bundle_test_wrong_capath(BundleFixture *fixture,
 {
 	g_autoptr(RaucBundle) bundle = NULL;
 	g_autoptr(GError) ierror = NULL;
-	r_context()->config->keyring_path = g_strdup("does/not/exist.pem");
+	replace_strdup(&r_context()->config->keyring_path, "does/not/exist.pem");
 
 	g_assert_false(check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror));
 	g_assert_null(bundle);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_CA_LOAD);
 
 	// hacky restore of original keyring_path
-	r_context()->config->keyring_path = g_strdup("test/openssl-ca/dev-ca.pem");
+	replace_strdup(&r_context()->config->keyring_path, "test/openssl-ca/dev-ca.pem");
 }
 
 /* Test that checking against a keyring that contains a CRL results in a
@@ -635,8 +635,7 @@ static void bundle_test_purpose_default(BundleFixture *fixture,
 	/* When the cert specifies no purpose, everything except 'codesign' is allowed */
 
 	g_message("testing default purpose with default cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = NULL;
+	replace_strdup(&r_context()->config->keyring_check_purpose, NULL);
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -644,8 +643,7 @@ static void bundle_test_purpose_default(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	g_message("testing purpose 'smimesign' with default cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("smimesign");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "smimesign");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -653,24 +651,21 @@ static void bundle_test_purpose_default(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	g_message("testing purpose 'codesign' with default cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("codesign");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "codesign");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
 	g_assert_false(res);
 
 	g_message("testing purpose 'any' with default cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("any");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "any");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
 	g_clear_pointer(&bundle, free_bundle);
 
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = NULL;
+	replace_strdup(&r_context()->config->keyring_check_purpose, NULL);
 }
 
 static void bundle_test_purpose_email(BundleFixture *fixture,
@@ -683,8 +678,7 @@ static void bundle_test_purpose_email(BundleFixture *fixture,
 	/* When the cert specifies the 'smimesign' usage, only default and that is allowed */
 
 	g_message("testing default purpose with 'smimesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = NULL;
+	replace_strdup(&r_context()->config->keyring_check_purpose, NULL);
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -692,8 +686,7 @@ static void bundle_test_purpose_email(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	g_message("testing purpose 'smimesign' with 'smimesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("smimesign");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "smimesign");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -701,8 +694,7 @@ static void bundle_test_purpose_email(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	g_message("testing purpose 'codesign' with 'smimesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("codesign");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "codesign");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
@@ -710,16 +702,14 @@ static void bundle_test_purpose_email(BundleFixture *fixture,
 	g_assert_null(bundle);
 
 	g_message("testing purpose 'any' with 'smimesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("any");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "any");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
 	g_clear_pointer(&bundle, free_bundle);
 
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = NULL;
+	replace_strdup(&r_context()->config->keyring_check_purpose, NULL);
 }
 
 static void bundle_test_purpose_codesign(BundleFixture *fixture,
@@ -732,8 +722,7 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 	/* When the cert specifies the 'codesign' usage, only that is allowed */
 
 	g_message("testing default purpose with 'codesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = NULL;
+	replace_strdup(&r_context()->config->keyring_check_purpose, NULL);
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
@@ -741,8 +730,7 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 	g_assert_null(bundle);
 
 	g_message("testing purpose 'smimesign' with 'codesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("smimesign");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "smimesign");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
@@ -750,8 +738,7 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 	g_assert_null(bundle);
 
 	g_message("testing purpose 'codesign' with 'codesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("codesign");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "codesign");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -759,24 +746,23 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	g_message("testing purpose 'any' with 'codesign' cert");
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("any");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "any");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(bundle);
 	g_clear_pointer(&bundle, free_bundle);
 
-	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = NULL;
+	replace_strdup(&r_context()->config->keyring_check_purpose, NULL);
 }
 
 int main(int argc, char *argv[])
 {
+	g_autoptr(GPtrArray) ptrs = g_ptr_array_new_with_free_func(g_free);
 	BundleData *bundle_data;
 	setlocale(LC_ALL, "C");
 
-	r_context_conf()->configpath = g_strdup("test/test.conf");
+	replace_strdup(&r_context_conf()->configpath, "test/test.conf");
 	r_context();
 
 	g_test_init(&argc, &argv, NULL);
@@ -784,207 +770,207 @@ int main(int argc, char *argv[])
 	for (RManifestBundleFormat format = R_MANIFEST_FORMAT_PLAIN; format <= R_MANIFEST_FORMAT_VERITY; format++) {
 		const gchar *format_name = r_manifest_bundle_format_to_str(format);
 
-		bundle_data = memdup((&(BundleData) {
+		bundle_data = dup_test_data(ptrs, (&(BundleData) {
 			.manifest_test_options = {
 			        .format = format,
 			},
 		}));
 
-		g_test_add(g_strdup_printf("/bundle/check/empty/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/check/empty/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up, test_check_empty_bundle,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/check/invalid/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/check/invalid/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up, test_check_invalid_bundle,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/create_extract/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/create_extract/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_create_extract,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/create_mount_extract/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/create_mount_extract/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_create_mount_extract,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/extract_signature/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/extract_signature/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_extract_signature,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/resign/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/resign/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_resign,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/replace_signature/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/replace_signature/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_replace_signature,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/wrong_capath/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/wrong_capath/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_wrong_capath,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/verify_no_crl_warn/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/verify_no_crl_warn/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_verify_no_crl_warn,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/verify_revoked/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/verify_revoked/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle_autobuilder2, bundle_test_verify_revoked,
 				bundle_fixture_tear_down_autobuilder2);
 
-		g_test_add(g_strdup_printf("/bundle/purpose/default/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/purpose/default/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_purpose_default,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/purpose/email/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/purpose/email/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle_email, bundle_test_purpose_email,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/purpose/codesign/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/purpose/codesign/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle_codesign, bundle_test_purpose_codesign,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/create_mount_extract_with_pre_check/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/create_mount_extract_with_pre_check/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle, bundle_test_create_mount_extract_with_pre_check,
 				bundle_fixture_tear_down);
 
-		g_test_add(g_strdup_printf("/bundle/create_mount_with_pre_check_corrupt/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/create_mount_with_pre_check_corrupt/%s", format_name),
 				BundleFixture, bundle_data,
 				bundle_fixture_set_up_bundle_corrupt, bundle_test_create_check_mount_with_pre_check_corrupt,
 				bundle_fixture_tear_down);
 	}
 
 	/* test casync manifest contents */
-	g_test_add(g_strdup_printf("/bundle/check_casync/old"),
+	g_test_add("/bundle/check_casync/old",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up, bundle_test_check_casync_old,
 			bundle_fixture_tear_down);
 
-	g_test_add(g_strdup_printf("/bundle/check_casync/new"),
+	g_test_add("/bundle/check_casync/new",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up, bundle_test_check_casync_new,
 			bundle_fixture_tear_down);
 
 	/* test plain bundles against possible masks */
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_PLAIN,
 		},
 		.bundle_formats = "plain",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/plain/set-plain"),
+	g_test_add("/bundle/format/plain/set-plain",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_PLAIN,
 		},
 		.bundle_formats = "verity",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/plain/set-verity"),
+	g_test_add("/bundle/format/plain/set-verity",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_PLAIN,
 		},
 		.bundle_formats = "plain verity",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/plain/set-both"),
+	g_test_add("/bundle/format/plain/set-both",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_PLAIN,
 		},
 		.bundle_formats = "-plain",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/plain/deny-plain"),
+	g_test_add("/bundle/format/plain/deny-plain",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_PLAIN,
 		},
 		.bundle_formats = "-verity",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/plain/deny-verity"),
+	g_test_add("/bundle/format/plain/deny-verity",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
 
 	/* test verity bundles against possible masks */
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_VERITY,
 		},
 		.bundle_formats = "plain",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/verity/set-plain"),
+	g_test_add("/bundle/format/verity/set-plain",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_VERITY,
 		},
 		.bundle_formats = "verity",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/verity/set-verity"),
+	g_test_add("/bundle/format/verity/set-verity",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_VERITY,
 		},
 		.bundle_formats = "plain verity",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/verity/set-both"),
+	g_test_add("/bundle/format/verity/set-both",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_VERITY,
 		},
 		.bundle_formats = "-plain",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/verity/deny-plain"),
+	g_test_add("/bundle/format/verity/deny-plain",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_extract,
 			bundle_fixture_tear_down);
 
-	bundle_data = memdup((&(BundleData) {
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_VERITY,
 		},
 		.bundle_formats = "-verity",
 	}));
-	g_test_add(g_strdup_printf("/bundle/format/verity/deny-verity"),
+	g_test_add("/bundle/format/verity/deny-verity",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
 			bundle_fixture_tear_down);

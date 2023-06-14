@@ -25,18 +25,18 @@ conf.set('bindir', bindir)
 libexecdir = join_paths(prefixdir, get_option('libexecdir'))
 conf.set('libexecdir', libexecdir)
 
-glibdep = dependency('glib-2.0', version : '>=2.54')
+glibdep = dependency('glib-2.0', version : '>=2.56')
 
 # Sanity checks to not use new glib methods unintentionally.
 # package check, minimum and maximum required version must be updated
 # explicitly when using newer glib APIs
 c_flags = [
-  '-DGLIB_VERSION_MAX_ALLOWED=G_ENCODE_VERSION(2,54)',
-  '-DGLIB_VERSION_MIN_REQUIRED=G_ENCODE_VERSION(2,54)'
+  '-DGLIB_VERSION_MAX_ALLOWED=G_ENCODE_VERSION(2,56)',
+  '-DGLIB_VERSION_MIN_REQUIRED=G_ENCODE_VERSION(2,56)'
 ]
 
-giodep = dependency('gio-2.0', version : '>=2.54')
-giounixdep = dependency('gio-unix-2.0', version : '>=2.54')
+giodep = dependency('gio-2.0', version : '>=2.56')
+giounixdep = dependency('gio-unix-2.0', version : '>=2.56')
 openssldep = dependency('openssl', version : '>=1.1.1')
 jsonglibdep = dependency('json-glib-1.0', required : get_option('json'))
 dbusdep = dependency('dbus-1', required : get_option('service'))
