@@ -41,6 +41,7 @@ static gboolean check_image_size(int fd, const RaucImage *image, GError **error)
 
 	dev_size = get_device_size(fd, &ierror);
 	if (g_error_matches(ierror, R_UTILS_ERROR, R_UTILS_ERROR_INAPPROPRIATE_IOCTL)) {
+		g_clear_error(&ierror);
 		g_info("Slot is not a block device, skipping size check");
 		return TRUE;
 	}

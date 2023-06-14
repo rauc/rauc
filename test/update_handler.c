@@ -48,8 +48,8 @@ typedef struct {
  * a valid handler or not */
 static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer user_data)
 {
-	RaucImage *image;
-	RaucSlot *targetslot;
+	g_autoptr(RaucImage) image = NULL;
+	g_autoptr(RaucSlot) targetslot = NULL;
 	img_to_slot_handler handler;
 	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair*) user_data;
 	GError *ierror = NULL;
@@ -68,6 +68,7 @@ static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer
 	if (test_pair->params & TEST_UPDATE_HANDLER_EXPECT_FAIL) {
 		g_assert_error(ierror, R_UPDATE_ERROR, R_UPDATE_ERROR_NO_HANDLER);
 		g_assert_null(handler);
+		g_clear_error(&ierror);
 	} else {
 		g_assert_no_error(ierror);
 		g_assert_nonnull(handler);
@@ -81,8 +82,8 @@ static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer
  */
 static void test_get_custom_update_handler(UpdateHandlerFixture *fixture, gconstpointer user_data)
 {
-	RaucImage *image;
-	RaucSlot *targetslot;
+	g_autoptr(RaucImage) image = NULL;
+	g_autoptr(RaucSlot) targetslot = NULL;
 	img_to_slot_handler handler;
 	GError *ierror = NULL;
 
@@ -150,6 +151,8 @@ static void update_handler_fixture_tear_down(UpdateHandlerFixture *fixture,
 		test_rm_tree(fixture->tmpdir, "rootfs-0-datadir");
 	}
 	g_assert(test_rmdir(fixture->tmpdir, "") == 0);
+
+	g_clear_pointer(&fixture->tmpdir, g_free);
 
 	if (!g_test_failed()) {
 		g_test_assert_expected_messages();
@@ -400,8 +403,10 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 		image->hooks.install = (test_pair->params & TEST_UPDATE_HANDLER_INSTALL_HOOK);
 		image->hooks.post_install = (test_pair->params & TEST_UPDATE_HANDLER_POST_HOOK);
 		if (!(test_pair->params & TEST_UPDATE_HANDLER_NO_HOOK_FILE)) {
-			g_assert_true(write_tmp_file(fixture->tmpdir, "hook.sh", hook_content, NULL));
-			test_do_chmod(hookpath);
+			g_autofree gchar *tmp_filename = NULL;
+			tmp_filename = write_tmp_file(fixture->tmpdir, "hook.sh", hook_content, NULL);
+			g_assert_nonnull(tmp_filename);
+			test_do_chmod(tmp_filename);
 		}
 	}
 	if (test_pair->params & TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX) {
@@ -468,6 +473,7 @@ no_image:
 	if (test_pair->params & TEST_UPDATE_HANDLER_EXPECT_FAIL) {
 		g_assert_error(ierror, test_pair->err_domain, test_pair->err_code);
 		g_assert_false(res);
+		g_clear_error(&ierror);
 		goto out;
 	} else {
 		g_assert_no_error(ierror);
@@ -511,24 +517,28 @@ no_image:
 		g_assert_cmpstr(stats->label, ==, "zero chunk");
 		count_zero = stats->count;
 		sum_zero = stats->sum;
+		r_stats_free(stats);
 
 		stats = r_test_stats_next();
 		g_assert_nonnull(stats);
 		g_assert_cmpstr(stats->label, ==, "target_slot_written (reusing source_image)");;
 		count_target_written = stats->count;
 		sum_target_written = stats->sum;
+		r_stats_free(stats);
 
 		stats = r_test_stats_next();
 		g_assert_nonnull(stats);
 		g_assert_cmpstr(stats->label, ==, "target_slot");
 		count_target = stats->count;
 		sum_target = stats->sum;
+		r_stats_free(stats);
 
 		stats = r_test_stats_next();
 		g_assert_nonnull(stats);
 		g_assert_cmpstr(stats->label, ==, "source_image");
 		count_source = stats->count;
 		sum_source = stats->sum;
+		r_stats_free(stats);
 
 		/* all non-zero chunks must result in a lookup in target_slot_written */
 		g_assert_cmpint(count_zero + count_target_written, ==, IMAGE_SIZE/4096);
