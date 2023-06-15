@@ -1165,7 +1165,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(RaucBundle) bundle = NULL;
-	GHashTable *target_group;
+	g_autoptr(GHashTable) target_group = NULL;
 	g_auto(GStrv) handler_env = NULL;
 
 	g_assert_nonnull(bundlefile);
@@ -1286,7 +1286,7 @@ static gpointer install_thread(gpointer data)
 	gint result;
 
 	/* clear LastError property */
-	set_last_error(g_strdup(""));
+	set_last_error("");
 
 	g_debug("thread started for %s", args->name);
 	install_args_update(args, "started");
