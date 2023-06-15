@@ -2514,6 +2514,7 @@ out:
 static gboolean read_complete_dm_device(gchar *dev, GError **error)
 {
 	int fd = -1;
+	const goffset chunk_size = 65536;
 	g_autofree void* buf = NULL;
 	ssize_t r;
 	gboolean ret = TRUE;
@@ -2531,10 +2532,10 @@ static gboolean read_complete_dm_device(gchar *dev, GError **error)
 		return FALSE;
 	}
 
-	buf = g_malloc0(65536);
+	buf = g_malloc0(chunk_size);
 
 	for (goffset chunk = 0;; chunk++) {
-		r = pread(fd, buf, sizeof(buf), chunk*sizeof(buf));
+		r = pread(fd, buf, chunk_size, chunk*chunk_size);
 		if (r == 0)
 			break;
 		else if (r < 0)	{
