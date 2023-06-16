@@ -641,7 +641,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		if (c->data_directory) {
 			c->statusfile_path = g_build_filename(c->data_directory, "central.raucs", NULL);
 		} else {
-			g_message("Config option 'statusfile=<path>/per-slot' unset, falling back to per-slot status");
+			g_message("No data directory or status file set, falling back to per-slot status.\n"
+					"Consider setting 'data-directory=<path>' or 'statusfile=<path>/per-slot' explicitly.");
 			c->statusfile_path = g_strdup("per-slot");
 		}
 		g_clear_error(&ierror);
@@ -659,7 +660,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 					"Using data-directory= with statusfile=per-slot is not supported.");
 			return FALSE;
 		}
-		g_message("Using per-slot statusfile");
+		g_message("Using per-slot statusfile. System status information not supported!");
 	} else {
 		gchar *resolved = resolve_path(filename, c->statusfile_path);
 		g_free(c->statusfile_path);
