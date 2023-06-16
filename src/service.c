@@ -11,6 +11,7 @@
 #include "mark.h"
 #include "rauc-installer-generated.h"
 #include "service.h"
+#include "status_file.h"
 #include "utils.h"
 
 GMainLoop *service_loop = NULL;

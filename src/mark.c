@@ -2,6 +2,7 @@
 #include "context.h"
 #include "install.h"
 #include "mark.h"
+#include "status_file.h"
 
 static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 {

@@ -21,6 +21,7 @@
 #include "mount.h"
 #include "service.h"
 #include "signature.h"
+#include "status_file.h"
 #include "update_handler.h"
 #include "utils.h"
 

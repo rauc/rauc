@@ -47,5 +47,6 @@ jobs:
         build/test/signature-test
         build/test/slot-test
         build/test/stats-test
+        build/test/status_file-test
         build/test/update_handler-test
         build/test/utils-test
