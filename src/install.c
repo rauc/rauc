@@ -982,13 +982,29 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 	load_slot_status(plan->target_slot);
 	slot_state = plan->target_slot->status;
 
-	/* In case we failed unmounting while reading status
+	/* In case we failed unmounting while reading per-slot status
 	 * file, abort here */
 	if (plan->target_slot->mount_point) {
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
 				"Slot '%s' still mounted", plan->target_slot->device);
 		r_context_end_step("check_slot", FALSE);
 		return FALSE;
+	}
+
+	/* For global slot status: Clear checksum info and make status
+	 * 'pending' to prevent the slot status from looking valid later in
+	 * case we crash while installing. */
+	if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") != 0) {
+		g_clear_pointer(&slot_state->status, g_free);
+		slot_state->status = g_strdup("pending");
+		g_clear_pointer(&slot_state->checksum.digest, g_free);
+		slot_state->checksum.size = 0;
+
+		if (!save_slot_status(plan->target_slot, &ierror)) {
+			g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
+			r_context_end_step("check_slot", FALSE);
+			return FALSE;
+		}
 	}
 
 	/* if explicitly enabled, skip update of up-to-date slots */
