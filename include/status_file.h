@@ -16,7 +16,7 @@
  *
  * @return TRUE if the slot status was successfully loaded. FALSE if there were errors.
  */
-gboolean read_slot_status(const gchar *filename, RaucSlotStatus *slotstatus, GError **error)
+gboolean r_slot_status_read(const gchar *filename, RaucSlotStatus *slotstatus, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
@@ -26,7 +26,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @param ss the slot status to save
  * @param error a GError, or NULL
  */
-gboolean write_slot_status(const gchar *filename, RaucSlotStatus *ss, GError **error)
+gboolean r_slot_status_write(const gchar *filename, RaucSlotStatus *ss, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
@@ -41,7 +41,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  *
  * @param dest_slot Slot to load status information for
  */
-void load_slot_status(RaucSlot *dest_slot);
+void r_slot_status_load(RaucSlot *dest_slot);
 
 /**
  * Save slot status.
@@ -57,5 +57,5 @@ void load_slot_status(RaucSlot *dest_slot);
  *
  * @return TRUE if slot is not mountable or saving status succeeded, FALSE otherwise
  */
-gboolean save_slot_status(RaucSlot *dest_slot, GError **error)
+gboolean r_slot_status_save(RaucSlot *dest_slot, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;

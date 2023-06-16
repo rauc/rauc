@@ -980,7 +980,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 
 	r_context_begin_step_weighted_formatted("check_slot", 0, 1, "Checking slot %s", plan->target_slot->name);
 
-	load_slot_status(plan->target_slot);
+	r_slot_status_load(plan->target_slot);
 	slot_state = plan->target_slot->status;
 
 	/* In case we failed unmounting while reading per-slot status
@@ -1001,7 +1001,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 		g_clear_pointer(&slot_state->checksum.digest, g_free);
 		slot_state->checksum.size = 0;
 
-		if (!save_slot_status(plan->target_slot, &ierror)) {
+		if (!r_slot_status_save(plan->target_slot, &ierror)) {
 			g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
 			r_context_end_step("check_slot", FALSE);
 			return FALSE;
@@ -1020,7 +1020,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 		/* Update the status also for skipped slots */
 		g_message("Updating slot %s status", plan->target_slot->name);
 		update_slot_status(slot_state, "ok", manifest, plan, args);
-		if (!save_slot_status(plan->target_slot, &ierror)) {
+		if (!r_slot_status_save(plan->target_slot, &ierror)) {
 			g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
 			r_context_end_step("skip_image", FALSE);
 			return FALSE;
@@ -1058,7 +1058,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 
 		g_message("Updating slot %s status", plan->target_slot->name);
 		update_slot_status(slot_state, "failed", manifest, plan, args);
-		if (!save_slot_status(plan->target_slot, NULL)) {
+		if (!r_slot_status_save(plan->target_slot, NULL)) {
 			g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
 			return FALSE;
 		}
@@ -1070,7 +1070,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 
 	g_message("Updating slot %s status", plan->target_slot->name);
 	update_slot_status(slot_state, "ok", manifest, plan, args);
-	if (!save_slot_status(plan->target_slot, &ierror)) {
+	if (!r_slot_status_save(plan->target_slot, &ierror)) {
 		g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
 		return FALSE;
 	}

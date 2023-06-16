@@ -284,7 +284,7 @@ static GVariant* convert_slot_status_to_dict(RaucSlot *slot)
 	RaucSlotStatus *slot_state = NULL;
 	GVariantDict dict;
 
-	load_slot_status(slot);
+	r_slot_status_load(slot);
 	slot_state = slot->status;
 
 	g_variant_dict_init(&dict, NULL);

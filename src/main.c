@@ -1912,7 +1912,7 @@ static gboolean status_start(int argc, char **argv)
 
 			g_hash_table_iter_init(&iter, r_context()->config->slots);
 			while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot))
-				load_slot_status(slot);
+				r_slot_status_load(slot);
 		}
 
 		status_print = g_new0(RaucStatusPrint, 1);

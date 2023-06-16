@@ -34,7 +34,7 @@ static void status_file_test_read_slot_status(void)
 	GError *ierror = NULL;
 	gboolean res;
 	RaucSlotStatus *ss = g_new0(RaucSlotStatus, 1);
-	res = read_slot_status("test/rootfs.raucs", ss, &ierror);
+	res = r_slot_status_read("test/rootfs.raucs", ss, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_nonnull(ss);
@@ -55,12 +55,12 @@ static void status_file_test_write_slot_status(void)
 	ss->checksum.type = G_CHECKSUM_SHA256;
 	ss->checksum.digest = g_strdup("dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551");
 
-	g_assert_true(write_slot_status("test/savedslot.raucs", ss, NULL));
+	g_assert_true(r_slot_status_write("test/savedslot.raucs", ss, NULL));
 
 	r_slot_free_status(ss);
 	ss = g_new0(RaucSlotStatus, 1);
 
-	g_assert_true(read_slot_status("test/savedslot.raucs", ss, NULL));
+	g_assert_true(r_slot_status_read("test/savedslot.raucs", ss, NULL));
 
 	g_assert_nonnull(ss);
 	g_assert_cmpstr(ss->status, ==, "ok");
@@ -98,7 +98,7 @@ static void status_file_test_global_slot_status(StatusFileFixture *fixture,
 	/* Save status for all slots */
 	g_hash_table_iter_init(&iter, slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
-		res = save_slot_status(slot, &ierror);
+		res = r_slot_status_save(slot, &ierror);
 		g_assert_no_error(ierror);
 		g_assert_true(res);
 	}
@@ -115,7 +115,7 @@ static void status_file_test_global_slot_status(StatusFileFixture *fixture,
 	/* Check status for all slots */
 	g_hash_table_iter_init(&iter, slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
-		load_slot_status(slot);
+		r_slot_status_load(slot);
 		g_assert_nonnull(slot->status);
 		g_assert_cmpstr(slot->status->status, ==, "ok");
 		g_assert_cmpint(slot->status->checksum.type, ==, G_CHECKSUM_SHA256);
