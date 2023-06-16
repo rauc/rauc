@@ -21,7 +21,7 @@ rauc_dbus_wrapper = configure_file(
   output : 'rauc-service.sh',
   configuration : conf
 )
-install_data(rauc_dbus_wrapper, install_dir : dbuswrapperdir)
+install_data(rauc_dbus_wrapper, install_dir : dbuswrapperdir, install_mode : 'rwxr-xr-x')
 
 rauc_dbus_policy = configure_file(
   input : 'de.pengutronix.rauc.conf',
