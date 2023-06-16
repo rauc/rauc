@@ -2,7 +2,7 @@
 
 #include <glib.h>
 
-#include <checksum.h>
+#include "checksum.h"
 #include "manifest.h"
 #include "slot.h"
 
