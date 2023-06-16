@@ -1231,7 +1231,7 @@ out:
 	return res;
 }
 
-gboolean r_nbd_read(gint sock, guint8 *data, size_t size, off64_t offset, GError **error)
+gboolean r_nbd_read(gint sock, guint8 *data, size_t size, off_t offset, GError **error)
 {
 	struct nbd_request request = {0};
 	struct nbd_reply reply = {0};

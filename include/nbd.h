@@ -79,4 +79,4 @@ gboolean r_nbd_run_server(gint sock, GError **error);
 gboolean r_nbd_start_server(RaucNBDServer *nbd_srv, GError **error);
 gboolean r_nbd_stop_server(RaucNBDServer *nbd_srv, GError **error);
 
-gboolean r_nbd_read(gint sock, guint8 *data, size_t size, off64_t offset, GError **error);
+gboolean r_nbd_read(gint sock, guint8 *data, size_t size, off_t offset, GError **error);
