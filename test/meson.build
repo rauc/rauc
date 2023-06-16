@@ -39,6 +39,8 @@ extra_test_sources = files([
   'install-fixtures.c',
 ])
 
+test_dep = declare_dependency(sources : dbus_sources)
+
 foreach test_name : tests
   exe = executable(
     test_name + '-test',
@@ -47,7 +49,7 @@ foreach test_name : tests
     link_with : librauc,
     c_args : '-DTEST_SERVICES="' + meson.build_root() + '"',
     include_directories : incdir,
-    dependencies : rauc_deps)
+    dependencies : [ rauc_deps, test_dep ])
 
   test(
     test_name,
