@@ -439,6 +439,9 @@ static void prepare_curl(struct RaucNBDTransfer *xfer)
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_FAILONERROR, 1L);
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
 
+	/* use a shorter timeout instead of the 5 minute default */
+	code |= curl_easy_setopt(xfer->easy, CURLOPT_CONNECTTIMEOUT, 20L);
+
 	/* a proxy may be configured using .netrc */
 	tunnel_code = curl_easy_setopt(xfer->easy, CURLOPT_HTTPPROXYTUNNEL, 1L);
 	if (tunnel_code == CURLE_UNKNOWN_OPTION) {
