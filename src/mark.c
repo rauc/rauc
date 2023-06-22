@@ -74,39 +74,36 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 	return slot;
 }
 
-void mark_active(RaucSlot *slot, GError **error)
+gboolean mark_active(RaucSlot *slot, GError **error)
 {
 	RaucSlotStatus *slot_state;
 	GError *ierror = NULL;
-	GDateTime *now;
-	gboolean res;
+	g_autoptr(GDateTime) now = NULL;
 
-	g_return_if_fail(slot);
-	g_return_if_fail(error == NULL || *error == NULL);
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	load_slot_status(slot);
 	slot_state = slot->status;
 
-	res = r_boot_set_primary(slot, &ierror);
-	if (!res) {
+	if (!r_boot_set_primary(slot, &ierror)) {
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
 				"failed to activate slot %s: %s", slot->name, ierror->message);
 		g_error_free(ierror);
-		return;
+		return FALSE;
 	}
 
 	g_free(slot_state->activated_timestamp);
 	now = g_date_time_new_now_utc();
 	slot_state->activated_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
 	slot_state->activated_count++;
-	g_date_time_unref(now);
 
-	res = save_slot_status(slot, &ierror);
-	if (!res) {
-		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED, "%s", ierror->message);
+	if (!save_slot_status(slot, &ierror)) {
+		g_message("Error while writing status file: %s", ierror->message);
 		g_error_free(ierror);
-		return;
 	}
+
+	return TRUE;
 }
 
 gboolean mark_run(const gchar *state,
@@ -135,21 +132,12 @@ gboolean mark_run(const gchar *state,
 		res = r_boot_set_state(slot, FALSE, &ierror);
 		*message = res ? g_strdup_printf("marked slot %s as bad", slot->name) : g_strdup_printf("Failed marking slot %s as bad: %s", slot->name, ierror->message);
 	} else if (!g_strcmp0(state, "active")) {
-		mark_active(slot, &ierror);
-		if (!ierror) {
-			res = TRUE;
-			*message = g_strdup_printf("activated slot %s", slot->name);
-		} else if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE)) {
+		if (!mark_active(slot, &ierror)) {
 			res = FALSE;
 			*message = g_strdup(ierror->message);
-		} else if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED)) {
-			res = TRUE;
-			*message = g_strdup_printf("activated slot %s, but failed to write status file: %s",
-					slot->name, ierror->message);
 		} else {
-			res = FALSE;
-			*message = g_strdup_printf("unexpected error while trying to activate slot %s: %s",
-					slot->name, ierror->message);
+			res = TRUE;
+			*message = g_strdup_printf("activated slot %s", slot->name);
 		}
 		g_clear_error(&ierror);
 	} else {
