@@ -451,7 +451,6 @@ gboolean r_hash_index_get_chunk(const RaucHashIndex *idx, const guint8 *hash, Ra
 	/* use a binary search over the sorted chunk hash indices */
 	left = 0;
 	right = idx->count - 1;
-	middle = 0;
 	while (left <= right) {
 		int cmp;
 		middle = left + (right - left) / 2;
