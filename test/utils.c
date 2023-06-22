@@ -122,7 +122,7 @@ static void update_symlink_test(void)
 	g_assert_no_error(error);
 	g_clear_pointer(&target, g_free);
 
-	lstat(name_s1, &stat_orig);
+	g_assert_cmpint(lstat(name_s1, &stat_orig), ==, 0);
 
 	/* test update with same target */
 	res = r_update_symlink("target_0", name_s1, &error);
@@ -134,7 +134,7 @@ static void update_symlink_test(void)
 	g_assert_no_error(error);
 	g_clear_pointer(&target, g_free);
 
-	lstat(name_s1, &stat_new);
+	g_assert_cmpint(lstat(name_s1, &stat_new), ==, 0);
 	g_assert_cmpuint(stat_orig.st_ino, ==, stat_new.st_ino);
 
 	/* test update with different target */
@@ -147,7 +147,7 @@ static void update_symlink_test(void)
 	g_assert_no_error(error);
 	g_clear_pointer(&target, g_free);
 
-	lstat(name_s1, &stat_new);
+	g_assert_cmpint(lstat(name_s1, &stat_new), ==, 0);
 	g_assert_cmpuint(stat_orig.st_ino, !=, stat_new.st_ino);
 
 	/* test with a directory blocking the tmp name */

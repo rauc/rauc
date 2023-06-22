@@ -78,12 +78,12 @@ bootname=system1\n";
 	g_assert_nonnull(rootfs1);
 
 	/* check rootfs.0 and rootfs.1 are considered good */
-	g_setenv("BAREBOX_STATE_VARS_PRE", " \
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
-", TRUE);
+", TRUE));
 	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
 	g_assert_true(good);
 	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
@@ -95,12 +95,12 @@ bootstate.system1.priority=10\n\
 	g_assert(primary != rootfs1);
 
 	/* check rootfs.0 is considered bad (remaining_attempts = 0) */
-	g_setenv("BAREBOX_STATE_VARS_PRE", " \
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=0\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
-", TRUE);
+", TRUE));
 	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
 	g_assert_false(good);
 	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
@@ -112,12 +112,12 @@ bootstate.system1.priority=10\n\
 	g_assert(primary == rootfs1);
 
 	/* check rootfs.0 is considered bad (priority = 0) */
-	g_setenv("BAREBOX_STATE_VARS_PRE", " \
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=0\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
-", TRUE);
+", TRUE));
 	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
 	g_assert_false(good);
 	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
@@ -129,63 +129,63 @@ bootstate.system1.priority=10\n\
 	g_assert(primary == rootfs1);
 
 	/* check rootfs.0 is marked good (has remaining attempts reset 1->3) */
-	g_setenv("BAREBOX_STATE_VARS_PRE", " \
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=1\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
-", TRUE);
-	g_setenv("BAREBOX_STATE_VARS_POST", " \
+", TRUE));
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_POST", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
-", TRUE);
+", TRUE));
 	g_assert_true(r_boot_set_state(rootfs0, TRUE, NULL));
 
 	/* check rootfs.0 is marked bad (prio and attempts 0) */
-	g_setenv("BAREBOX_STATE_VARS_PRE", " \
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
-", TRUE);
-	g_setenv("BAREBOX_STATE_VARS_POST", " \
+", TRUE));
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_POST", " \
 bootstate.system0.remaining_attempts=0\n\
 bootstate.system0.priority=0\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
-", TRUE);
+", TRUE));
 	g_assert_true(r_boot_set_state(rootfs0, FALSE, NULL));
 
 	/* check rootfs.1 is marked primary (prio set to 20, others to 10) */
-	g_setenv("BAREBOX_STATE_VARS_PRE", " \
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
-", TRUE);
-	g_setenv("BAREBOX_STATE_VARS_POST", " \
+", TRUE));
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_POST", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=10\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=20\n\
-", TRUE);
+", TRUE));
 	g_assert_true(r_boot_set_primary(rootfs1, NULL));
 
 	/* check rootfs.1 is marked primary while current remains disabled (prio set to 20, others to 10) */
-	g_setenv("BAREBOX_STATE_VARS_PRE", " \
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=0\n\
 bootstate.system1.remaining_attempts=0\n\
 bootstate.system1.priority=10\n\
-", TRUE);
-	g_setenv("BAREBOX_STATE_VARS_POST", " \
+", TRUE));
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_POST", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=0\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=20\n\
-", TRUE);
+", TRUE));
 	g_assert_true(r_boot_set_primary(rootfs1, NULL));
 }
 
@@ -230,35 +230,35 @@ bootname=system0\n";
 
 
 	/* check rootfs.0 is marked bad (prio and attempts 0) for asymmetric update scenarios */
-	g_setenv("BAREBOX_STATE_VARS_PRE", " \
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.recovery.remaining_attempts=3\n\
 bootstate.recovery.priority=20\n\
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=10\n\
-", TRUE);
-	g_setenv("BAREBOX_STATE_VARS_POST", " \
+", TRUE));
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_POST", " \
 bootstate.recovery.remaining_attempts=3\n\
 bootstate.recovery.priority=20\n\
 bootstate.system0.remaining_attempts=0\n\
 bootstate.system0.priority=0\n\
-", TRUE);
+", TRUE));
 	res = r_boot_set_state(rootfs0, FALSE, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 
 	/* check rootfs.0 is marked primary for asymmetric update scenarios */
-	g_setenv("BAREBOX_STATE_VARS_PRE", " \
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.recovery.remaining_attempts=3\n\
 bootstate.recovery.priority=20\n\
 bootstate.system0.remaining_attempts=0\n\
 bootstate.system0.priority=0\n\
-", TRUE);
-	g_setenv("BAREBOX_STATE_VARS_POST", " \
+", TRUE));
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_POST", " \
 bootstate.recovery.remaining_attempts=3\n\
 bootstate.recovery.priority=10\n\
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
-", TRUE);
+", TRUE));
 	res = r_boot_set_primary(rootfs0, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -304,36 +304,36 @@ bootname=system1\n";
 	g_assert_nonnull(rootfs0);
 
 	/* check rootfs.0 is marked good with configured default attempts */
-	g_setenv("BAREBOX_STATE_VARS_PRE", " \
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
-", TRUE);
-	g_setenv("BAREBOX_STATE_VARS_POST", " \
+", TRUE));
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_POST", " \
 bootstate.system0.remaining_attempts=5\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
-", TRUE);
+", TRUE));
 	res = r_boot_set_state(rootfs0, TRUE, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
 
 
 	/* check rootfs.0 is marked primary with configured primary attempts */
-	g_setenv("BAREBOX_STATE_VARS_PRE", " \
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
-", TRUE);
-	g_setenv("BAREBOX_STATE_VARS_POST", " \
+", TRUE));
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_POST", " \
 bootstate.system0.remaining_attempts=10\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
-", TRUE);
+", TRUE));
 	res = r_boot_set_primary(rootfs0, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
@@ -601,7 +601,7 @@ ORDER=B A\n\
 static void test_uboot_initialize_state(const BootchooserFixture *fixture, const gchar *vars)
 {
 	g_autofree gchar *state_path = g_build_filename(fixture->tmpdir, "uboot-test-state", NULL);
-	g_setenv("UBOOT_STATE_PATH", state_path, TRUE);
+	g_assert_true(g_setenv("UBOOT_STATE_PATH", state_path, TRUE));
 	g_assert_true(g_file_set_contents(state_path, vars, -1, NULL));
 }
 
@@ -980,7 +980,7 @@ bootname=system1\n";
 static void test_custom_initialize_state(const BootchooserFixture *fixture, const gchar *vars)
 {
 	g_autofree gchar *state_path = g_build_filename(fixture->tmpdir, "custom-test-state", NULL);
-	g_setenv("CUSTOM_STATE_PATH", state_path, TRUE);
+	g_assert_true(g_setenv("CUSTOM_STATE_PATH", state_path, TRUE));
 	g_assert_true(g_file_set_contents(state_path, vars, -1, NULL));
 }
 
@@ -1194,7 +1194,7 @@ int main(int argc, char *argv[])
 	setlocale(LC_ALL, "C");
 
 	path = g_strdup_printf("%s:%s", "test/bin", g_getenv("PATH"));
-	g_setenv("PATH", path, TRUE);
+	g_assert_true(g_setenv("PATH", path, TRUE));
 	g_free(path);
 
 	g_test_init(&argc, &argv, NULL);
