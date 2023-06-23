@@ -10,48 +10,6 @@
 
 #include "dm.h"
 
-#ifndef GLIB_VERSION_2_52
-/**
- * g_uuid_string_random:
- *
- * Generates a random UUID (RFC 4122 version 4) as a string.
- *
- * Returns: (transfer full): A string that should be freed with g_free().
- */
-static gchar *
-g_uuid_string_random(void)
-{
-	int i;
-	guint8 bytes[16];
-	guint32 *ints;
-
-	ints = (guint32 *) bytes;
-	for (i = 0; i < 4; i++)
-		ints[i] = g_random_int();
-
-	/*
-	 * Set the four most significant bits (bits 12 through 15) of the
-	 * time_hi_and_version field to the 4-bit version number from
-	 * Section 4.1.3.
-	 */
-	bytes[6] &= 0x0f;
-	bytes[6] |= 4 << 4;
-	/*
-	 * Set the two most significant bits (bits 6 and 7) of the
-	 * clock_seq_hi_and_reserved to zero and one, respectively.
-	 */
-	bytes[8] &= 0x3f;
-	bytes[8] |= 0x80;
-
-	return g_strdup_printf("%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x"
-			"-%02x%02x%02x%02x%02x%02x",
-			bytes[0], bytes[1], bytes[2], bytes[3],
-			bytes[4], bytes[5], bytes[6], bytes[7],
-			bytes[8], bytes[9], bytes[10], bytes[11],
-			bytes[12], bytes[13], bytes[14], bytes[15]);
-}
-#endif
-
 static void dm_set_header(struct dm_ioctl *header, size_t size, guint32 flags, const gchar *uuid)
 {
 	memset(header, 0, sizeof(*header));
