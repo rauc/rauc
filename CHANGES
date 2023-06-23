@@ -1,3 +1,84 @@
+Release 1.10 (development)
+--------------------------
+
+.. rubric:: Enhancements
+
+* Print sizes in ``rauc info`` also in human-readable form.
+* Add FTPS support for bundle download (only for use with casync, not for
+  streaming). (by Christian Meusel)
+* Improve progress granularity to provide more realistic weighting of substeps.
+* Add fine-grained progress updates during image copying and archive
+  extraction. (based on work by Lars Poeschel)
+* Return manifest meta data in ``rauc info`` and via the InspectBundle D-Bus
+  method.
+* Add new 'json-2' output format for ``rauc info`` that matches the
+  InspectBundle D-Bus method structure.
+* Improve error message for failed boot slot detection.
+* Allow exFAT as a local filesystem for plain bundles. (by Stefan Wahren)
+* Add optional pre-check for verity bundles. (by Christian Hitz)
+  This is useful if the same bundle needs to be transferred and installed to
+  multiple systems in sync.
+* Add support for custom variables in the system-info handler and pass them to
+  other handlers.
+* Show a warning during bundle creation if no format is specified in the
+  manifest.
+  This should hopefully encourage migration to the verity format.
+* Introduce an installation transaction UUID, which is stored in the slot
+  status.
+  This can be used to infer which slots have been updated by the same
+  transaction.
+  In a future release, this will be useful to correlate log messages.
+* Use a shorter connect timeout for streaming to avoid waiting for 25 minutes.
+
+.. rubric:: Bug fixes
+
+* Fix some issues in the meson build support:
+
+  * missing man page installation
+  * missing dependency for tests on D-Bus header generation
+  * missing executable bit for D-Bus wrapper ``rauc-service.sh``
+* Fix external mount point detection which could have caused a number of mounts
+  to be not detected properly.
+* Fix double-initialization of context.
+* Fix memory leaks (mainly in the test suite).
+* Fix a confusing error message when using ``rauc extract`` with an existing
+  output directory.
+* Fix building with musl by not using ``off64_t`` with
+  ``_FILE_OFFSET_BITS=64``. (by Christian Hohnstaedt)
+* Fix unintentional forwarding of full custom handler args (defined in
+  the manifest) to the ``system.conf``-defined handlers.
+* Re-add missing ``--key`` argument (used to set the decryption key) to help
+  and man page.
+
+.. rubric:: Testing
+
+* Add Debian 'buster', 'bullseye' and 'testing' to test stable test matrix.
+* Add test run with address sanitizer.
+  This currently uses a large part of the existing test suite.
+
+.. rubric:: Code
+
+* Refactor installation handling with the introduction of installation plans.
+  This also allows testing for invalid image/slot combinations earlier.
+* Add a helper for atomic symlink updates.
+* Refactor slot state determination and split from mount point updates.
+  Let slot state determination happen earlier and only once.
+* Require at least glib 2.56.0 for ``g_ptr_array_find`` and ``g_autolist``.
+  Debian buster, Ubuntu bionic and Yocto dunfell have newer versions already.
+* Refactor boot slot marking.
+* Consistently initialize variables to avoid static checker warning. (by
+  b4yuan)
+
+.. rubric:: Documentation
+
+* Document some Linux distributions which provide RAUC packages.
+* Document deprecation of the ``statusfile`` option. (by Ulrich Ölmann)
+* Extend and fix documentation for the full custom handler.
+
+Contributions from: Christian Hitz, Christian Hohnstaedt, Christian Meusel,
+Enrico Jörns, Jan Lübbe, Lars Poeschel, René Fischer, Stefan Wahren, Ulrich
+Ölmann, b4yuan
+
 Release 1.9 (released Mar 3, 2023)
 ----------------------------------
 
