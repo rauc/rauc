@@ -15,9 +15,9 @@ Release 1.10 (released Jun 23, 2023)
   InspectBundle D-Bus method structure.
 * Improve error message for failed boot slot detection.
 * Allow exFAT as a local filesystem for plain bundles. (by Stefan Wahren)
-* Add optional pre-check for verity bundles. (by Christian Hitz)
+* Add optional pre-check for verity bundles.
   This is useful if the same bundle needs to be transferred and installed to
-  multiple systems in sync.
+  multiple systems in sync. (by Christian Hitz)
 * Add support for custom variables in the system-info handler and pass them to
   other handlers.
 * Show a warning during bundle creation if no format is specified in the
