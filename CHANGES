@@ -15,27 +15,27 @@ Release 1.10 (released Jun 23, 2023)
   InspectBundle D-Bus method structure.
 * Improve error message for failed boot slot detection.
 * Allow exFAT as a local filesystem for plain bundles. (by Stefan Wahren)
-* Add optional pre-check for verity bundles. (by Christian Hitz)
+* Add optional pre-check for verity bundles.
   This is useful if the same bundle needs to be transferred and installed to
-  multiple systems in sync.
+  multiple systems in sync. (by Christian Hitz)
 * Add support for custom variables in the system-info handler and pass them to
   other handlers.
 * Show a warning during bundle creation if no format is specified in the
   manifest.
-  This should hopefully encourage migration to the verity format.
+  This should hopefully encourage migration to the verity format.
 * Introduce an installation transaction UUID, which is stored in the slot
   status.
   This can be used to infer which slots have been updated by the same
   transaction.
-  In a future release, this will be useful to correlate log messages.
+  In a future release, this will be useful to correlate log messages.
 * Use a shorter connect timeout for streaming to avoid waiting for 25 minutes.
 
 .. rubric:: Bug fixes
 
 * Fix some issues in the meson build support:
 
-  * missing man page installation
-  * missing dependency for tests on D-Bus header generation
+  * missing man page installation
+  * missing dependency for tests on D-Bus header generation
   * missing executable bit for D-Bus wrapper ``rauc-service.sh``
 * Fix external mount point detection which could have caused a number of mounts
   to be not detected properly.
@@ -54,17 +54,17 @@ Release 1.10 (released Jun 23, 2023)
 
 * Add Debian 'buster', 'bullseye' and 'testing' to test stable test matrix.
 * Add test run with address sanitizer.
-  This currently uses a large part of the existing test suite.
+  This currently uses a large part of the existing test suite.
 
 .. rubric:: Code
 
 * Refactor installation handling with the introduction of installation plans.
-  This also allows testing for invalid image/slot combinations earlier.
+  This also allows testing for invalid image/slot combinations earlier.
 * Add a helper for atomic symlink updates.
 * Refactor slot state determination and split from mount point updates.
-  Let slot state determination happen earlier and only once.
+  Let slot state determination happen earlier and only once.
 * Require at least glib 2.56.0 for ``g_ptr_array_find`` and ``g_autolist``.
-  Debian buster, Ubuntu bionic and Yocto dunfell have newer versions already.
+  Debian buster, Ubuntu bionic and Yocto dunfell have newer versions already.
 * Refactor boot slot marking.
 * Consistently initialize variables to avoid static checker warning. (by
   b4yuan)
