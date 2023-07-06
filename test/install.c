@@ -1050,7 +1050,8 @@ static gboolean install_cleanup(gpointer data)
 	}
 	install_args_free(args);
 
-	g_idle_add(r_quit, NULL);
+	if (r_loop)
+		r_quit(data);
 
 	return G_SOURCE_REMOVE;
 }
