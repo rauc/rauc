@@ -759,7 +759,8 @@ static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const 
 	GInputStream *instream = NULL;
 	g_autoptr(GDataInputStream) datainstream = NULL;
 	gboolean res = FALSE;
-	gchar *outline, *hookreturnmsg = NULL;
+	gchar *outline = NULL;
+	g_autofree gchar *hookreturnmsg = NULL;
 
 	g_assert_nonnull(manifest->hook_name);
 
