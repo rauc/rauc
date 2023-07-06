@@ -397,6 +397,7 @@ gboolean r_context_configure(GError **error)
 				g_propagate_prefixed_error(error, ierror, "Failed to load system config (%s): ", configpath);
 				return FALSE;
 			} else {
+				g_clear_error(&ierror);
 				/* This is a hack as we cannot get rid of config easily */
 				default_config(&context->config);
 			}
