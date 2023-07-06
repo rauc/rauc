@@ -149,7 +149,8 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 	g_assert_true(test_make_filesystem(tmpdir, "content/appfs.ext4"));
 	g_assert_true(test_make_filesystem(tmpdir, "content/bootloader.ext4"));
 	if (manifest_content) {
-		g_assert_true(write_tmp_file(tmpdir, "content/manifest.raucm", manifest_content, NULL));
+		g_autofree gchar *tmpfile = write_tmp_file(tmpdir, "content/manifest.raucm", manifest_content, NULL);
+		g_assert_nonnull(tmpfile);
 	} else {
 		g_assert(test_prepare_manifest_file(tmpdir, "content/manifest.raucm", options) == 0);
 	}
