@@ -1120,6 +1120,7 @@ static void install_test_bundle(InstallFixture *fixture,
 	}
 
 	args->status_result = 0;
+	args->cleanup(args);
 }
 
 static void install_test_bundle_thread(InstallFixture *fixture,
@@ -1186,6 +1187,7 @@ static void install_test_bundle_hook_install_check(InstallFixture *fixture,
 	g_assert_cmpstr(ierror->message, ==, "Installation error: Bundle rejected: Hook returned: No, I won't install this!");
 
 	args->status_result = 0;
+	args->cleanup(args);
 }
 
 static void install_test_bundle_hook_install(InstallFixture *fixture,
@@ -1242,6 +1244,7 @@ static void install_test_bundle_hook_install(InstallFixture *fixture,
 	g_assert(test_umount(fixture->tmpdir, "mount"));
 
 	args->status_result = 0;
+	args->cleanup(args);
 }
 
 static void install_test_bundle_hook_post_install(InstallFixture *fixture,
@@ -1292,6 +1295,7 @@ static void install_test_bundle_hook_post_install(InstallFixture *fixture,
 	g_assert(test_umount(fixture->tmpdir, "mount"));
 
 	args->status_result = 0;
+	args->cleanup(args);
 }
 
 /* Test with already mounted slot */
@@ -1337,6 +1341,7 @@ static void install_test_already_mounted(InstallFixture *fixture,
 	g_assert_true(g_file_test(hookfilepath, G_FILE_TEST_IS_REGULAR));
 
 	args->status_result = 0;
+	args->cleanup(args);
 }
 
 /* This is a tests for issue #1105 where the external mount point detection
