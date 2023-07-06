@@ -898,6 +898,7 @@ void free_manifest(RaucManifest *manifest)
 	g_free(manifest->update_build);
 	g_free(manifest->bundle_verity_hash);
 	g_free(manifest->bundle_verity_salt);
+	g_free(manifest->bundle_crypt_key);
 	g_free(manifest->handler_name);
 	g_free(manifest->handler_args);
 	g_free(manifest->hook_name);
