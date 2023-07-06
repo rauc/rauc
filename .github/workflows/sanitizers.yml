@@ -38,7 +38,7 @@ jobs:
         build/test/context-test
         build/test/dm-test
         build/test/hash_index-test
-        build/test/install-test -l
+        build/test/install-test
         build/test/manifest-test
         build/test/nbd-test -l
         build/test/network-test
