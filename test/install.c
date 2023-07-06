@@ -1085,7 +1085,7 @@ static void install_test_bundle(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountprefix = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountprefix);
-	r_context_conf()->mountprefix = g_steal_pointer(&mountprefix);
+	replace_strdup(&r_context_conf()->mountprefix, mountprefix);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -1136,7 +1136,7 @@ static void install_test_bundle_thread(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = g_steal_pointer(&mountdir);
+	replace_strdup(&r_context_conf()->mountprefix, mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -1170,7 +1170,7 @@ static void install_test_bundle_hook_install_check(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = g_steal_pointer(&mountdir);
+	replace_strdup(&r_context_conf()->mountprefix, mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -1312,7 +1312,7 @@ static void install_test_already_mounted(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountprefix = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountprefix);
-	r_context_conf()->mountprefix = g_steal_pointer(&mountprefix);
+	replace_strdup(&r_context_conf()->mountprefix, mountprefix);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
