@@ -814,6 +814,7 @@ gchar* envelopeddata_to_string(GBytes *sig, GError **error)
 		g_error("BIO_new_mem_buf() failed");
 
 	if (!(cms = d2i_CMS_bio(insig, NULL))) {
+		BIO_free(insig);
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
@@ -893,6 +894,7 @@ gchar* envelopeddata_to_string(GBytes *sig, GError **error)
 				"Failed to obtain recipient infos: ");
 	}
 
+	BIO_free(insig);
 	return ret;
 }
 
