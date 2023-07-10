@@ -1050,7 +1050,8 @@ static gboolean install_cleanup(gpointer data)
 	}
 	install_args_free(args);
 
-	g_idle_add(r_quit, NULL);
+	if (r_loop)
+		r_quit(data);
 
 	return G_SOURCE_REMOVE;
 }
@@ -1085,7 +1086,7 @@ static void install_test_bundle(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountprefix = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountprefix);
-	r_context_conf()->mountprefix = g_steal_pointer(&mountprefix);
+	replace_strdup(&r_context_conf()->mountprefix, mountprefix);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -1120,6 +1121,7 @@ static void install_test_bundle(InstallFixture *fixture,
 	}
 
 	args->status_result = 0;
+	args->cleanup(args);
 }
 
 static void install_test_bundle_thread(InstallFixture *fixture,
@@ -1136,7 +1138,7 @@ static void install_test_bundle_thread(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = g_steal_pointer(&mountdir);
+	replace_strdup(&r_context_conf()->mountprefix, mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -1170,7 +1172,7 @@ static void install_test_bundle_hook_install_check(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountdir);
-	r_context_conf()->mountprefix = g_steal_pointer(&mountdir);
+	replace_strdup(&r_context_conf()->mountprefix, mountdir);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -1186,6 +1188,7 @@ static void install_test_bundle_hook_install_check(InstallFixture *fixture,
 	g_assert_cmpstr(ierror->message, ==, "Installation error: Bundle rejected: Hook returned: No, I won't install this!");
 
 	args->status_result = 0;
+	args->cleanup(args);
 }
 
 static void install_test_bundle_hook_install(InstallFixture *fixture,
@@ -1242,6 +1245,7 @@ static void install_test_bundle_hook_install(InstallFixture *fixture,
 	g_assert(test_umount(fixture->tmpdir, "mount"));
 
 	args->status_result = 0;
+	args->cleanup(args);
 }
 
 static void install_test_bundle_hook_post_install(InstallFixture *fixture,
@@ -1292,6 +1296,7 @@ static void install_test_bundle_hook_post_install(InstallFixture *fixture,
 	g_assert(test_umount(fixture->tmpdir, "mount"));
 
 	args->status_result = 0;
+	args->cleanup(args);
 }
 
 /* Test with already mounted slot */
@@ -1312,7 +1317,7 @@ static void install_test_already_mounted(InstallFixture *fixture,
 	/* Set mount path to current temp dir */
 	mountprefix = g_build_filename(fixture->tmpdir, "mount", NULL);
 	g_assert_nonnull(mountprefix);
-	r_context_conf()->mountprefix = g_steal_pointer(&mountprefix);
+	replace_strdup(&r_context_conf()->mountprefix, mountprefix);
 	r_context();
 
 	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
@@ -1337,6 +1342,7 @@ static void install_test_already_mounted(InstallFixture *fixture,
 	g_assert_true(g_file_test(hookfilepath, G_FILE_TEST_IS_REGULAR));
 
 	args->status_result = 0;
+	args->cleanup(args);
 }
 
 /* This is a tests for issue #1105 where the external mount point detection

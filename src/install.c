@@ -759,7 +759,8 @@ static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const 
 	GInputStream *instream = NULL;
 	g_autoptr(GDataInputStream) datainstream = NULL;
 	gboolean res = FALSE;
-	gchar *outline, *hookreturnmsg = NULL;
+	gchar *outline = NULL;
+	g_autofree gchar *hookreturnmsg = NULL;
 
 	g_assert_nonnull(manifest->hook_name);
 
@@ -806,6 +807,7 @@ static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const 
 		/* Subprocess exited with code 1 */
 		if ((ierror->domain == G_SPAWN_EXIT_ERROR) && (ierror->code >= INSTALL_HOOK_REJECT_CODE)) {
 			if (hookreturnmsg) {
+				g_clear_error(&ierror);
 				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED,
 						"Hook returned: %s", hookreturnmsg);
 			} else {
