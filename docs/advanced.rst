@@ -16,7 +16,7 @@ The SquashFS is followed by a public key signature over the full image.
 The signature is stored (together with the signer's certificate) in the CMS
 (Cryptographic Message Syntax, see RFC5652_) format.
 Before installation, the signer certificate is verified against the keyring(s)
-already stored on the system and the signers public key is then used to verify
+already stored on the system and the signer's public key is then used to verify
 the bundle signature.
 
 .. image:: images/rauc-bundle.svg
@@ -1472,9 +1472,9 @@ All you have to do is to perform an *intermediate update*:
 
 * Create a bundle containing a rootfs with the recent RAUC version,
   but *not* containing the new RAUC features in its manifest.
-* Update your system and reboot
-* Now you have a system with a recent RAUC version which is able to
-  interpret and appropriately handle a bundle with the latest options
+* Update the target system and reboot.
+* Now you have a target system with a recent RAUC version which is able to
+  interpret and appropriately handle a bundle with the latest options.
 
 Software Deployment
 -------------------
@@ -1527,16 +1527,16 @@ deployment server out of the box.
 But if you do not already have a deployment infrastructure, there a few Open
 Source deployment server implementations available in the wilderness.
 
-One of it worth being mentioned is
+One such service worth being mentioned is
 `hawkBit <https://eclipse.org/hawkbit/>`_ from the Eclipse IoT project, which
 also provides some strategies for rollout management for larger-scale device
 farms.
 
-RAUC hawkBit updater (C)
+RAUC hawkBit Updater (C)
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 The rauc-hawkbit-updater is a separate application project developed under the
-rauc organization umbrella.
+RAUC organization umbrella.
 It aims to provide a ready-to-use bridge between the hawkBit REST DDR API on
 one side and the RAUC D-Bus API on the other.
 
@@ -1544,7 +1544,7 @@ For more information visit it on GitHub:
 
 https://github.com/rauc/rauc-hawkbit-updater
 
-The RAUC hawkBit client (python)
+The RAUC hawkBit Client (python)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 As a separate project, the RAUC development team provides a Python-based
@@ -1555,7 +1555,7 @@ For more information visit it on GitHub:
 
 https://github.com/rauc/rauc-hawkbit
 
-It is also available via pypi:
+It is also available via PyPI:
 
 https://pypi.python.org/pypi/rauc-hawkbit/
 
@@ -1568,6 +1568,6 @@ For more information visit it on GitHub:
 
 https://github.com/caruhome/upparat
 
-It is also available via pypi:
+It is also available via PyPI:
 
 https://pypi.org/project/upparat/
