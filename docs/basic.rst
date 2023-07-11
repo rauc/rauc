@@ -13,7 +13,7 @@ RAUC is basically an image-based updater, i.e. it installs file images on
 devices or partitions.
 But, for target devices that can have a file system, it also supports
 installing contents from tar archives.
-This often provides much more flexibility as a tar does not have to fit a
+This often provides much more flexibility as a tar archive does not have to fit a
 specific partition size or type.
 RAUC ensures that the target file system will be set up correctly before
 unpacking the archive.
@@ -25,7 +25,6 @@ In order to know how to pack multiple file system images, properly handle
 installation, being able to check system compatibility and for other
 meta-information RAUC uses a well-defined update artifact format, simply
 referred to as *bundles* in the following.
-
 
 A RAUC bundle consists of the file system image(s) or archive(s) to be installed
 on the system, a *manifest* that lists the images to install and contains
@@ -63,7 +62,7 @@ Using streaming has a few requirements:
   (which is the default)
 * create bundles using the :ref:`verity format <sec_ref_format_verity>`
 * host the bundle on a server which supports HTTP Range Requests
-* enable NBD support in the kernel
+* enable NBD support in the target kernel
 
 See the :ref:`HTTP Streaming <http-streaming>` section in the Advanced chapter
 for more details.
@@ -104,10 +103,10 @@ This would be done with several years between deprecation and removal so that
 at least one Yocto LTS version contains a RAUC version that warns when using
 the deprecated feature, giving users enough time to migrate away from that
 feature.
-Any issues with installing bundles created by an old RAUC version using new
+Any issues with installing bundles created by an old RAUC version using a new
 RAUC version would be considered a bug, except when using a feature removed
 after the deprecation period.
-Also, please contact us if a deprecation period is too short for your case.
+Also, please contact us if a deprecation period is too short for your use case.
 
 Furthermore, we avoid depending on new kernel features or library versions, so
 that it is possible to switch to newer RAUC versions without having to switch
@@ -127,7 +126,7 @@ Apart from bundle signing and verification, the main task of RAUC is to ensure
 that all images in your update bundle are copied in the proper way to the proper
 target device / partition on your board.
 
-In order to allow RAUC to handle your device right, we need to give it the
+In order to allow RAUC to handle your device correctly, we need to give it the
 right view on your system.
 
 Slots
@@ -141,7 +140,7 @@ the slots must be configured in a *system configuration file*.
 This file is the central instance that tells RAUC how to handle the board, which
 bootloader to use, which custom scripts to execute, etc.
 
-The slot description names, for example, the file path the slot can be accessed
+This includes the slot description names, for example, the file path that the slot can be accessed
 with, the type of storage or filesystem to use, its identification from the
 bootloader, etc.
 
@@ -151,11 +150,11 @@ Target Slot Selection
 A very important step when installing an update is to determine the correct
 mapping from the images that are contained in a RAUC bundle to the slots that
 are defined on the target system.
-The updated must also assure to select an inactive slot, and not accidentally a
-slot the system currently runs from.
+This mapping must contain only inactive slots, and not accidentally a
+slot that the system currently runs from.
 
 For this mapping, RAUC allows to define different *slot classes*.
-A class describes always multiple redundant slots of the same type.
+A class describes multiple redundant slots of the same type.
 This can be, for example, a class for root file system slots or a
 class for application slots.
 
@@ -174,8 +173,8 @@ of a rootfs and application slot each that will be used together.
    :align: center
 
 To detect the active slots, RAUC attempts to detect the currently booted slot.
-For this, it relies on explicit mapping information provided via kernel command
-line or attempts to find it out using mount information.
+For this, it relies on explicit mapping information provided via the kernel command
+line, or attempts to find it out using mount information.
 
 All slots of the group containing the active slot will be considered active,
 too.
@@ -184,10 +183,10 @@ Slot Status and Skipping Slot Updates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 RAUC hashes each image or archive with SHA-256 when packing it into a bundle
-and stores this as the images 'checksum' in the bundle's manifest file.
+and stores this as the image's "checksum" in the bundle's manifest file.
 This checksum allows to reliably identify and distinguish the image's content.
 
-When installing an image, RAUC can write the images checksum together with some
+When installing an image, RAUC can write the image's checksum together with some
 status information to a central or per-slot status file
 (refer :ref:`statusfile <statusfile>` option).
 
@@ -213,9 +212,9 @@ Boot Slot Selection
 ~~~~~~~~~~~~~~~~~~~
 
 A system designed to run from redundant slots must always have a component that
-is responsible for selecting between the bootable slots.
+is responsible for selecting one of the bootable slots.
 Usually, this will be some kind of bootloader, but it could also be an initramfs
-booting a special purpose Linux system.
+booting a special-purpose Linux system.
 
 Of course, as a normal user-space tool, RAUC cannot do the selection itself, but
 provides a well-defined interface and abstraction for interacting with different
@@ -225,7 +224,7 @@ bootloaders (e.g. GRUB, Barebox, U-Boot) or boot selection methods.
    :width: 500
    :align: center
 
-In order to enable RAUC to switch the correct slot, its system configuration
+In order to allow RAUC to switch to the correct slot, its system configuration
 must specify the name of the respective slot from the bootloader's perspective.
 You also have to set up an appropriate boot selection logic in the bootloader
 itself, either by scripting (as for GRUB, U-Boot) or by using dedicated boot
@@ -236,8 +235,8 @@ modify in order to change boot order or priority.
 
 Having this interface ready, RAUC will care for setting the boot logic
 appropriately.
-It will, for example, deactivate the slot to update before writing to it
-and reactivate it after having completed the installation successfully.
+It will, for example, deactivate the slot to be updated before writing to it,
+and reactivate it after completing the installation successfully.
 
 Installation and Storage Handling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -251,7 +250,7 @@ tar-based installation requires additional handling and preparation of storage.
 
 Thus, the possible and required handling depends on both the type of input
 image (e.g. .tar.xz, .ext4, .img) as well as the type of storage.
-A tar can be installed on different file systems while an ext4 file system slot
+A tar archive can be installed on different file systems while an ext4 file system slot
 might be filled by both an .ext4 image or a tar archive.
 
 To deal with all these possible combinations, RAUC provides an update handler
@@ -262,8 +261,8 @@ slot type while specifying the appropriate handling.
    :width: 400
    :align: center
 
-Boot Confirmation & Fallback
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Boot Confirmation and Fallback
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When designing a robust redundant system, update handling does not end with the
 successful installation of the update on the target slots!
@@ -281,7 +280,7 @@ bootloader implementation to indicate a successful or failed boot.
 
 As detecting an invalid boot is often not possible, i.e. because simply nothing
 boots or the booted system suddenly crashes, your system should use a hardware
-watchdog to during boot and have support in the bootloader to detect watchdog
+watchdog during boot, and have support in the bootloader to detect watchdog
 resets as failed boots.
 
 Also you need to define what happens when a boot slot is detected to be

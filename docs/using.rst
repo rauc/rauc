@@ -9,8 +9,8 @@ versions of it:
 
 * One for your **target** system.
   This can act both as the service for handling the installation on your system,
-  as a command line tool that allows triggering the installation and inspecting your
-  system or obtaining bundle information.
+  or as a command line tool that allows triggering the installation, inspecting your
+  system and obtaining bundle information.
 
 All common embedded Linux build system recipes for RAUC will solve the task of
 creating appropriate binaries for you as well as caring for bundle creation and
