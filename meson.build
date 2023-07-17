@@ -201,7 +201,7 @@ datadir = get_option('datadir')
 
 dbussystemservicedir = get_option('dbussystemservicedir')
 if dbussystemservicedir == ''
-  dbussystemservicedir = datadir / 'dbus-1' / 'interfaces'
+  dbussystemservicedir = datadir / 'dbus-1' / 'system-services'
   if dbusdep.found()
     dbussystemservicedir = dbusdep.get_variable(pkgconfig : 'system_bus_services_dir', default_value : dbussystemservicedir)
   endif
@@ -214,7 +214,7 @@ endif
 
 dbusinterfacesdir = get_option('dbusinterfacesdir')
 if dbusinterfacesdir == ''
-  dbusinterfacesdir = datadir / 'dbus-1' / 'system.d'
+  dbusinterfacesdir = datadir / 'dbus-1' / 'interfaces'
   if dbusdep.found()
     dbusinterfacesdir = dbusdep.get_variable(pkgconfig: 'interfaces_dir', default_value : dbusinterfacesdir)
   endif
