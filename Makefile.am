@@ -15,9 +15,9 @@ CODE_COVERAGE_IGNORE_PATTERN = "*-generated.c"
 
 GC_CFLAGS = -fdata-sections -ffunction-sections
 GC_LDFLAGS = -Wl,--gc-sections -Wl,-Map,$@.map
-AM_CFLAGS = -DG_LOG_DOMAIN=\"rauc\" $(GC_CFLAGS) $(WARN_CFLAGS) $(GLIB_CFLAGS) $(CURL_CFLAGS) $(NL3_CFLAGS)
+AM_CFLAGS = -DG_LOG_DOMAIN=\"rauc\" $(GC_CFLAGS) $(WARN_CFLAGS) $(GLIB_CFLAGS) $(CURL_CFLAGS) $(NL3_CFLAGS) $(OPENSSL_CFLAGS)
 AM_LDFLAGS = $(GC_LDFLAGS) $(WARN_LDFLAGS) $(GLIB_LDFLAGS) $(CURL_LDFLAGS) $(OPENSSL_LDFLAGS)
-AM_CPPFLAGS = -I${top_srcdir}/include -include ${top_builddir}/config.h $(OPENSSL_INCLUDES)
+AM_CPPFLAGS = -I${top_srcdir}/include -include ${top_builddir}/config.h $(OPENSSL_CFLAGS)
 
 gdbus_installer_generated = \
 	rauc-installer-generated.c \
