@@ -275,6 +275,7 @@ AC_CONFIG_LINKS([test/sharness.sh:test/sharness.sh])
 AC_CONFIG_LINKS([test/test.conf:test/test.conf])
 AC_CONFIG_LINKS([test/test-global.conf:test/test-global.conf])
 AC_CONFIG_LINKS([test/test-datadir.conf:test/test-datadir.conf])
+AC_CONFIG_LINKS([test/test-dummy-handler.conf:test/test-dummy-handler.conf])
 
 AC_CONFIG_FILES([
         Makefile
