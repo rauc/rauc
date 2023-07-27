@@ -1159,11 +1159,20 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	}
 
 	while (g_match_info_matches(match)) {
+		gchar *tab_point = NULL;
 		efi_bootentry *entry = g_new0(efi_bootentry, 1);
 		entry->num = g_match_info_fetch(match, 1);
 		entry->name = g_match_info_fetch(match, 2);
+
+		/* Remove anything after a tab, as it is most likely path
+		 * information which we don't need. */
+		tab_point = strchr(entry->name, '\t');
+		if (tab_point)
+			*tab_point = '\0';
+
 		entries = g_list_append(entries, entry);
 		g_match_info_next(match, NULL);
+		g_debug("Detected EFI boot entry %s: %s", entry->num, entry->name);
 	}
 
 	g_clear_pointer(&regex, g_regex_unref);
