@@ -227,6 +227,22 @@ gchar * key_file_consume_string(
 	return result;
 }
 
+gboolean value_check_tab_whitespace(const gchar *str, GError **error)
+{
+	g_return_val_if_fail(str != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (strchr(str, '\t') || strchr(str, ' ')) {
+		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+				"The value '%s' can not contain tab or whitespace characters",
+				str
+				);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 gint key_file_consume_integer(
 		GKeyFile *key_file,
 		const gchar *group_name,

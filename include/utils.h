@@ -198,6 +198,16 @@ gchar * key_file_consume_string(
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Ensure that the input string contains neither whitespace nor tab.
+ *
+ * @param str string to check.
+ *
+ * @return TRUE if str contains neither whitespace nor tab, FALSE otherwise
+ */
+gboolean value_check_tab_whitespace(const gchar *str, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Get integer argument from key and remove key from key_file.
  */
 gint key_file_consume_integer(
