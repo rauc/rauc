@@ -274,16 +274,15 @@ static GHashTable *get_system_info_from_handler(GError **error)
 		return NULL;
 	}
 
-	g_clear_pointer(&context->system_serial, g_free);
-	g_clear_pointer(&context->config->system_variant, g_free);
 	g_hash_table_iter_init(&iter, vars);
 	while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
 		/* legacy handling */
 		if (g_strcmp0(key, "RAUC_SYSTEM_SERIAL") == 0) {
+			g_clear_pointer(&context->system_serial, g_free);
 			context->system_serial = g_strdup(value);
 		} else if (g_strcmp0(key, "RAUC_SYSTEM_VARIANT") == 0) {
 			/* set variant (overrides possible previous value) */
-			g_free(context->config->system_variant);
+			g_clear_pointer(&context->config->system_variant, g_free);
 			context->config->system_variant = g_strdup(value);
 		}
 	}

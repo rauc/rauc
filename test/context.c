@@ -90,6 +90,25 @@ static void test_context_system_info(void)
 	r_context_clean();
 }
 
+/* Tests that the static variant from the system.conf is not cleared by an
+ * empty system-info handler.
+ */
+static void test_context_system_info_dummy(void)
+{
+	r_context_conf()->configpath = g_strdup("test/test-dummy-handler.conf");
+	r_context_conf()->configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
+	g_clear_pointer(&r_context_conf()->bootslot, g_free);
+
+	g_assert_cmpstr(r_context()->system_serial, ==, NULL);
+	g_assert_true(r_context()->config->system_variant_type == R_CONFIG_SYS_VARIANT_NAME);
+	g_assert_cmpstr(r_context()->config->system_variant, ==, "Default Variant");
+
+	g_assert_nonnull(r_context()->system_info);
+	g_assert_cmpuint(g_hash_table_size(r_context()->system_info), ==, 0);
+
+	r_context_clean();
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -107,6 +126,8 @@ int main(int argc, char *argv[])
 	g_test_add_func("/context/bootslot/no-bootslot", test_bootslot_no_bootslot);
 
 	g_test_add_func("/context/system-info", test_context_system_info);
+
+	g_test_add_func("/context/system-info-dummy", test_context_system_info_dummy);
 
 	return g_test_run();
 }
