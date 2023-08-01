@@ -646,6 +646,30 @@ mountprefix=/mnt/myrauc/\n\
 activate-installed=typo\n");
 }
 
+static void config_file_bootname_tab(ConfigFileFixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	GError *ierror = NULL;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *contents = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/null\n\
+bootname=the\tslot\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "bootname_tab.conf", contents, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE);
+	g_assert_cmpstr(ierror->message, ==, "Invalid bootname for slot rootfs.0: The value 'the\tslot' can not contain tab or whitespace characters");
+	g_clear_error(&ierror);
+}
+
 static void config_file_no_max_bundle_download_size(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1317,6 +1341,9 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-boolean-activate-installed-key", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_typo_in_boolean_activate_installed_key,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/bootname-tab", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_bootname_tab,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/no-max-bundle-download-size", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_no_max_bundle_download_size,
