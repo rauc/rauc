@@ -1,3 +1,31 @@
+Release 1.10.1 (development)
+----------------------------
+
+.. rubric:: Bug fixes
+
+* Fix variant configuration via the system config.
+  In 1.10, only variants set via the system info handler worked correctly.
+  (by Hans Christian Lonstad)
+* Fix compatibility with efibootmgr version 18. (by David Runge)
+* Fix the help text of the ``--with-streaming_user`` configure option.
+* Fix some minor memory leaks discovered with address sanitizer.
+* Fix D-Bus default directories when using meson.
+* Fix build against OpenSSL installed in non-standard locations when using
+  autotools.
+
+.. rubric:: Testing
+
+* Enable address sanitizer for install tests.
+
+.. rubric:: Documentation
+
+* Improve understandability, fix typos and missing words. (by Roland Hieber)
+* Document an alternative to ``meson compile -C build`` for old meson versions.
+* Document possible filesystem incompatibility with ext4 in the FAQ.
+
+Contributions from: David Runge, Enrico Jörns, Hans Christian Lonstad, Jan
+Lübbe, Roland Hieber, Stephan Wurm, Ulrich Ölmann
+
 Release 1.10 (released Jun 23, 2023)
 ------------------------------------
 
