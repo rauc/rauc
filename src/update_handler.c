@@ -2777,6 +2777,7 @@ RaucUpdatePair updatepairs[] = {
 	{"*.squashfs-zst", "ubivol", img_to_ubivol_handler},
 #if ENABLE_EMMC_BOOT_SUPPORT == 1
 	{"*.img", "boot-emmc", img_to_boot_emmc_handler},
+	{"*.bin", "boot-emmc", img_to_boot_emmc_handler},
 #endif
 	{"*", "boot-emmc", NULL},
 	{"*.vfat", "boot-mbr-switch", img_to_boot_mbr_switch_handler},
