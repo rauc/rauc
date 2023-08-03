@@ -1160,6 +1160,94 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	return TRUE;
 }
 
+static gchar* get_uptime(void)
+{
+	g_autofree gchar *contents = NULL;
+	g_autoptr(GError) ierror = NULL;
+	g_auto(GStrv) uptime = NULL;
+
+	if (!g_file_get_contents("/proc/uptime", &contents, NULL, &ierror)) {
+		g_warning("Failed to get uptime: %s", ierror->message);
+		return NULL;
+	}
+
+	/* file contains two values and a newline, 'chomp' in-place and split then */
+	uptime = g_strsplit(g_strchomp(contents), " ", 2);
+
+	return g_strdup(uptime[0]);
+}
+
+/* If the input key starts with RAUC_HTTP_, it returns a valid HTTP header
+ * string with 'RAUC_HTTP_' replaced by 'RAUC-'.
+ * If the input string does not start with RAUC_HTTP_, NULL is returned.
+ */
+static gchar *system_info_to_header(const gchar *key, const gchar *value)
+{
+	g_autofree gchar *header_key = NULL;
+
+	g_return_val_if_fail(key, NULL);
+	g_return_val_if_fail(value, NULL);
+
+	if (!g_str_has_prefix(key, "RAUC_HTTP_"))
+		return NULL;
+
+	header_key = g_strdup(key + strlen("RAUC_HTTP_"));
+	for (size_t i = 0; i < strlen(header_key); i++) {
+		if (header_key[i] == '_')
+			header_key[i] = '-';
+	}
+
+	return g_strdup_printf("RAUC-%s: %s", header_key, value);
+}
+
+static gchar **assemble_info_headers(RaucInstallArgs *args)
+{
+	GPtrArray *headers = g_ptr_array_new_with_free_func(g_free);
+
+	g_return_val_if_fail(args, NULL);
+
+	if (!r_context()->config->enabled_headers)
+		goto no_std_headers;
+
+	for (gchar **header = r_context()->config->enabled_headers; *header; header++) {
+		/* Add static system information */
+		if (g_strcmp0(*header, "boot-id") == 0)
+			g_ptr_array_add(headers, g_strdup_printf("RAUC-Boot-ID: %s", r_context()->boot_id));
+		if (g_strcmp0(*header, "machine-id") == 0)
+			g_ptr_array_add(headers, g_strdup_printf("RAUC-Machine-ID: %s", r_context()->machine_id));
+		if (g_strcmp0(*header, "serial") == 0)
+			g_ptr_array_add(headers, g_strdup_printf("RAUC-Serial: %s", r_context()->system_serial));
+		if (g_strcmp0(*header, "variant") == 0)
+			g_ptr_array_add(headers, g_strdup_printf("RAUC-Variant: %s", r_context()->config->system_variant));
+		/* Add per-installation information */
+		if (g_strcmp0(*header, "transaction-id") == 0)
+			g_ptr_array_add(headers, g_strdup_printf("RAUC-Transaction-ID: %s", args->transaction));
+		/* Add live information */
+		if (g_strcmp0(*header, "uptime") == 0) {
+			g_autofree gchar *uptime = get_uptime();
+			g_ptr_array_add(headers, g_strdup_printf("RAUC-Uptime: %s", uptime));
+		}
+	}
+
+no_std_headers:
+
+	if (r_context()->system_info) {
+		GHashTableIter iter;
+		gchar *key = NULL;
+		gchar *value = NULL;
+
+		g_hash_table_iter_init(&iter, r_context()->system_info);
+		while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
+			gchar *header = system_info_to_header(key, value);
+			if (header)
+				g_ptr_array_add(headers, header);
+		}
+	}
+	g_ptr_array_add(headers, NULL);
+
+	return (gchar**) g_ptr_array_free(headers, FALSE);
+}
+
 gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 {
 	const gchar* bundlefile = args->name;
@@ -1190,6 +1278,8 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 
 	// TODO: mount info in context ?
 	install_args_update(args, "Checking and mounting bundle...");
+
+	args->access_args.http_info_headers = assemble_info_headers(args);
 
 	res = check_bundle(bundlefile, &bundle, CHECK_BUNDLE_DEFAULT, &args->access_args, &ierror);
 	if (!res) {
@@ -1345,4 +1435,11 @@ gboolean install_run(RaucInstallArgs *args)
 		return FALSE;
 
 	return TRUE;
+}
+
+static const gchar *supported_http_headers[] = {"boot-id", "transaction-id", "machine-id", "serial", "variant", "uptime", NULL};
+
+gboolean r_install_is_supported_http_header(const gchar *header)
+{
+	return g_strv_contains(supported_http_headers, header);
 }

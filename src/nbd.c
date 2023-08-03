@@ -86,6 +86,7 @@ void r_nbd_free_server(RaucNBDServer *nbd_srv)
 	g_free(nbd_srv->tls_key);
 	g_free(nbd_srv->tls_ca);
 	g_strfreev(nbd_srv->headers);
+	g_strfreev(nbd_srv->info_headers);
 	g_free(nbd_srv);
 }
 
@@ -291,6 +292,7 @@ struct RaucNBDContext {
 	CURLM *multi;
 	gboolean done;
 	struct curl_slist *headers_slist;
+	struct curl_slist *initial_headers_slist;
 
 	/* statistics */
 	RaucStats *dl_size, *dl_speed, *namelookup, *connect, *starttransfer, *total;
@@ -524,10 +526,17 @@ static void start_read(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xfer)
 		g_error("unexpected error from curl_multi_add_handle in %s", G_STRFUNC);
 }
 
-static struct curl_slist *gstrv_to_slist(const GStrv strv)
+/* Appends Gstrv elements to curl_slist (only pointers, no data).
+ * If curl_slist does not exist yet (NULL passed), it will be created.
+ * The created list needs to be freed (after usage) by the caller with
+ * curl_slist_free_all(). */
+static struct curl_slist *gstrv_add_to_slist(struct curl_slist *initial_list, const GStrv strv)
 {
 	struct curl_slist *slist = NULL;
 	struct curl_slist *temp = NULL;
+
+	if (initial_list)
+		slist = initial_list;
 
 	for (GStrv str = strv; *str != NULL; str++) {
 		temp = curl_slist_append(slist, *str);
@@ -553,6 +562,8 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 
 	/* only read from the client on the first try */
 	if (!ctx->url) {
+		GStrv info_headers; /* array of strings such as 'Foo: bar' */
+
 		res = r_read_exact(ctx->sock, (guint8*)data, xfer->request.len, NULL);
 		g_assert_true(res);
 
@@ -571,16 +582,25 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 		g_variant_dict_lookup(&dict, "ca", "s", &ctx->tls_ca);
 		g_variant_dict_lookup(&dict, "no-verify", "b", &ctx->tls_no_verify);
 		g_variant_dict_lookup(&dict, "headers", "^as", &ctx->headers);
+		g_variant_dict_lookup(&dict, "info-headers", "^as", &info_headers);
 		g_assert_nonnull(ctx->url);
 
 		if (ctx->headers) {
-			ctx->headers_slist = gstrv_to_slist(ctx->headers);
+			ctx->headers_slist = gstrv_add_to_slist(NULL, ctx->headers);
+			ctx->initial_headers_slist = gstrv_add_to_slist(NULL, ctx->headers);
+		}
+		if (info_headers) {
+			ctx->initial_headers_slist = gstrv_add_to_slist(ctx->initial_headers_slist, info_headers);
 		}
 	}
 
 	g_message("configuring for URL: %s", ctx->url);
 
 	prepare_curl(xfer);
+	if (ctx->initial_headers_slist) {
+		/* The first request sends the system information */
+		code |= curl_easy_setopt(xfer->easy, CURLOPT_HTTPHEADER, ctx->initial_headers_slist);
+	}
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_USERAGENT, PACKAGE_NAME "/" PACKAGE_VERSION);
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_HEADERFUNCTION, header_cb);
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_HEADERDATA, xfer);
@@ -928,6 +948,8 @@ out:
 	g_clear_pointer(&ctx.starttransfer, r_stats_free);
 	g_clear_pointer(&ctx.total, r_stats_free);
 	curl_multi_cleanup(ctx.multi);
+	g_clear_pointer(&ctx.headers_slist, curl_slist_free_all);
+	g_clear_pointer(&ctx.initial_headers_slist, curl_slist_free_all);
 	g_message("exiting nbd server");
 	return res;
 }
@@ -967,6 +989,8 @@ static gboolean nbd_configure(RaucNBDServer *nbd_srv, GError **error)
 		g_variant_dict_insert(&dict, "no-verify", "b", nbd_srv->tls_no_verify);
 	if (nbd_srv->headers)
 		g_variant_dict_insert(&dict, "headers", "^as", nbd_srv->headers);
+	if (nbd_srv->info_headers)
+		g_variant_dict_insert(&dict, "info-headers", "^as", nbd_srv->info_headers);
 	v = g_variant_dict_end(&dict);
 	g_message("sending: %s", g_variant_print(v, TRUE));
 

@@ -298,6 +298,22 @@ For more information about using the streaming support of RAUC, refer to
   This option can be used to set the path of the CA certificate which should be
   used instead of the system wide store of trusted TLS/HTTPS certificates.
 
+``send-headers``
+  This option takes a ``;``-separated list of information to send as HTTP
+  header fields to the server with the first request.
+
+  Supported values are:
+
+  * ``boot-id``: Enables sending the *boot_id* as ``RAUC-Boot-ID`` header field.
+  * ``machine-id``: Enables sending the *machine-id* as ``RAUC-Machine-ID`` header field.
+
+    .. note:: The machine ID should be considered "confidential" and thus not
+       be used over unauthenticated connections or with untrusted servers!
+  * ``serial``: Enables sending the *system serial* as ``RAUC-Serial`` header field.
+  * ``variant``: Enables sending the *variant* as ``RAUC-Variant`` header field.
+  * ``transaction-id``: Enables sending the *transaction UUID* as ``RAUC-Transaction-ID`` header field.
+  * ``uptime``: Enables sending the system's current uptime as ``RAUC-Uptime`` header field.
+
 **[encryption]**
 
 The ``encryption`` section contains information required to decrypt a 'crypt'
@@ -359,6 +375,8 @@ performed from a dedicated (recovery) slot.
   The full path of the bundle file to check for.
   If file at ``path`` exists, auto-install will be triggered.
 
+.. _sec_ref_handlers:
+
 **[handlers] section**
 
 Handlers allow to customize RAUC by placing scripts in the system that RAUC can
@@ -388,6 +406,16 @@ See details about using handlers in `Custom Handlers (Interface)`_.
 
   System information is made available to other handlers via environment
   variables that have the exact same name and value.
+
+  The ``system-info`` handler also allows to define custom information that is
+  forwarded to the server upon RAUC's first streaming request.
+  In order to define forwarded info, this must be returned as a key prefixed.
+  with ``RAUC_HTTP_``.
+  The generated header field will be name of the key (with out the prefix)
+  where an ``RAUC-`` is prepended and all underscores are converted to
+  hyphens.
+  E.g. ``RAUC_HTTP_MY_CUSTOM_INFO=dummyvalue`` will emit a header
+  ``RAUC-MY-CUSTOM-INFO: dummyvalue``.
 
 ``pre-install``
   This handler will be called right before RAUC starts with the installation.

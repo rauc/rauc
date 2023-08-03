@@ -478,6 +478,22 @@ round-trip-time (RTT) lead to longer installation times.
 This can be compensated somewhat by using a HTTP/2 server, as this supports
 multiplexing and better connection reuse.
 
+Additional HTTP Header Information
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Upon first HTTP request, RAUC can expose some additional information about the
+system in HTTP headers.
+This allows the receiving server to log this information or to build some
+simple logic and rollout handling on it.
+
+The actual information exposed to the server is configurable by
+``send-headers`` option in the :ref:`[streaming] section
+<streaming-config-section>` of ``system.conf``.
+
+Beside some standard information, like the *boot ID*, the system's *uptime* or
+the *installation transaction ID*, one can also expose custom information
+provided by the ``system-info`` :ref:`handler <sec_ref_handlers>`.
+
 .. _sec-encryption:
 
 Bundle Encryption

@@ -28,6 +28,7 @@ typedef struct {
 	gchar *tls_ca;
 	gboolean tls_no_verify;
 	GStrv http_headers;
+	GStrv http_info_headers;
 } RaucBundleAccessArgs;
 
 typedef struct {
