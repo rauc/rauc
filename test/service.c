@@ -303,7 +303,7 @@ static void service_test_install_api(ServiceFixture *fixture, gconstpointer user
 
 	ret = r_installer_call_install_bundle_sync(
 			installer,
-			g_strdup("dummy path"),
+			"dummy path",
 			g_variant_dict_end(&dict), /* floating, no unref needed */
 			NULL,
 			&error);
@@ -318,7 +318,7 @@ static void service_test_install_api(ServiceFixture *fixture, gconstpointer user
 
 	ret = r_installer_call_install_bundle_sync(
 			installer,
-			g_strdup("dummy path"),
+			"dummy path",
 			g_variant_dict_end(&dict), /* floating, no unref needed */
 			NULL,
 			&error);
@@ -333,7 +333,7 @@ static void service_test_install_api(ServiceFixture *fixture, gconstpointer user
 
 	ret = r_installer_call_install_bundle_sync(
 			installer,
-			g_strdup("dummy path"),
+			"dummy path",
 			g_variant_dict_end(&dict), /* floating, no unref needed */
 			NULL,
 			&error);
