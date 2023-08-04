@@ -15,6 +15,7 @@
 #   passthrough Enable passthrough of the host's CPU features
 #   shell       Setup qemu test system and provide an interactive shell
 #   system      Setup qemu dummy system that behaves like a target (without reboot!)
+#   asan        Set environment variables to support address sanitizer
 #
 # When no argument is given, the default test suite will be executed
 
