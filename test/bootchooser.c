@@ -1193,6 +1193,8 @@ int main(int argc, char *argv[])
 	gchar *path;
 	setlocale(LC_ALL, "C");
 
+	g_assert(g_setenv("GIO_USE_VFS", "local", TRUE));
+
 	path = g_strdup_printf("%s:%s", "test/bin", g_getenv("PATH"));
 	g_assert_true(g_setenv("PATH", path, TRUE));
 	g_free(path);

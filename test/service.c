@@ -456,6 +456,8 @@ int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
 
+	g_assert(g_setenv("GIO_USE_VFS", "local", TRUE));
+
 	g_test_init(&argc, &argv, NULL);
 
 	g_test_add("/service/install-bundle", ServiceFixture, NULL,

@@ -762,6 +762,8 @@ int main(int argc, char *argv[])
 	BundleData *bundle_data;
 	setlocale(LC_ALL, "C");
 
+	g_assert(g_setenv("GIO_USE_VFS", "local", TRUE));
+
 	replace_strdup(&r_context_conf()->configpath, "test/test.conf");
 	r_context();
 

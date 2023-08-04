@@ -681,6 +681,8 @@ int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
 
+	g_assert(g_setenv("GIO_USE_VFS", "local", TRUE));
+
 	g_test_init(&argc, &argv, NULL);
 
 	r_context_conf()->certpath = g_strdup("test/openssl-ca/rel/release-1.cert.pem");

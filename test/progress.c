@@ -166,6 +166,8 @@ int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
 
+	g_assert(g_setenv("GIO_USE_VFS", "local", TRUE));
+
 	/* set up config/context */
 	r_context_conf()->configpath = g_strdup("test/test.conf");
 	r_context();
