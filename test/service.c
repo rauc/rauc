@@ -90,7 +90,7 @@ static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
 		gpointer data)
 {
 	GQueue *args = data;
-	gchar *msg;
+	g_autofree gchar *msg = NULL;
 	gint32 percentage, depth;
 	g_autofree gchar *message = NULL;
 
