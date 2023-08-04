@@ -81,6 +81,7 @@ static gboolean r_on_handle_install_bundle(
 {
 	RaucInstallArgs *args = install_args_new();
 	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(arg_args);
+	g_autoptr(GVariant) dict_rest = NULL;
 	GVariantIter iter;
 	gchar *key;
 	g_autofree gchar *message = NULL;
@@ -108,7 +109,8 @@ static gboolean r_on_handle_install_bundle(
 	convert_dict_to_bundle_access_args(&dict, &args->access_args);
 
 	/* Check for unhandled keys */
-	g_variant_iter_init(&iter, g_variant_dict_end(&dict));
+	dict_rest = g_variant_dict_end(&dict);
+	g_variant_iter_init(&iter, dict_rest);
 	while (g_variant_iter_next(&iter, "{sv}", &key, NULL)) {
 		message = g_strdup_printf("Unsupported key: %s", key);
 		g_free(key);
