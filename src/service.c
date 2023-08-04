@@ -495,15 +495,10 @@ static void send_progress_callback(gint percentage,
 		const gchar *message,
 		gint nesting_depth)
 {
-	GVariant **progress_update;
 	GVariant *progress_update_tuple;
 
-	progress_update = g_new(GVariant*, 3);
-	progress_update[0] = g_variant_new_int32(percentage);
-	progress_update[1] = g_variant_new_string(message);
-	progress_update[2] = g_variant_new_int32(nesting_depth);
+	progress_update_tuple = g_variant_new("(isi)", percentage, message, nesting_depth);
 
-	progress_update_tuple = g_variant_new_tuple(progress_update, 3);
 	r_installer_set_progress(r_installer, progress_update_tuple);
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
 }
