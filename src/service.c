@@ -81,6 +81,7 @@ static gboolean r_on_handle_install_bundle(
 {
 	RaucInstallArgs *args = install_args_new();
 	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(arg_args);
+	g_autoptr(GVariant) dict_rest = NULL;
 	GVariantIter iter;
 	gchar *key;
 	g_autofree gchar *message = NULL;
@@ -108,7 +109,8 @@ static gboolean r_on_handle_install_bundle(
 	convert_dict_to_bundle_access_args(&dict, &args->access_args);
 
 	/* Check for unhandled keys */
-	g_variant_iter_init(&iter, g_variant_dict_end(&dict));
+	dict_rest = g_variant_dict_end(&dict);
+	g_variant_iter_init(&iter, dict_rest);
 	while (g_variant_iter_next(&iter, "{sv}", &key, NULL)) {
 		message = g_strdup_printf("Unsupported key: %s", key);
 		g_free(key);
@@ -495,15 +497,10 @@ static void send_progress_callback(gint percentage,
 		const gchar *message,
 		gint nesting_depth)
 {
-	GVariant **progress_update;
 	GVariant *progress_update_tuple;
 
-	progress_update = g_new(GVariant*, 3);
-	progress_update[0] = g_variant_new_int32(percentage);
-	progress_update[1] = g_variant_new_string(message);
-	progress_update[2] = g_variant_new_int32(nesting_depth);
+	progress_update_tuple = g_variant_new("(isi)", percentage, message, nesting_depth);
 
-	progress_update_tuple = g_variant_new_tuple(progress_update, 3);
 	r_installer_set_progress(r_installer, progress_update_tuple);
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
 }

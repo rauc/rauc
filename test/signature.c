@@ -813,6 +813,8 @@ int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
 
+	g_assert(g_setenv("GIO_USE_VFS", "local", TRUE));
+
 	g_assert(test_prepare_dummy_file("test/", "random.dat",
 			256 * 1024, "/dev/urandom") == 0);
 

@@ -90,22 +90,24 @@ static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
 		gpointer data)
 {
 	GQueue *args = data;
-	gchar *msg;
-	GVariant *var;
+	g_autofree gchar *msg = NULL;
 	gint32 percentage, depth;
-	const gchar *message = NULL;
+	g_autofree gchar *message = NULL;
 
 	if (g_variant_lookup(changed, "Operation", "s", &msg)) {
 		g_message("Operation: %s", msg);
 	}
 	if (g_variant_lookup(changed, "Progress", "(isi)", &percentage, &message, &depth)) {
+		g_autoptr(GVariant) var = g_queue_pop_head(args);
 		gint32 cmp_percentage, cmp_depth;
-		const gchar *cmp_message;
+		g_autofree gchar *cmp_message = NULL;
 
-		var = g_queue_pop_head(args);
-		cmp_percentage = g_variant_get_int32(g_variant_get_child_value(var, 0));
-		cmp_message = g_variant_get_string(g_variant_get_child_value(var, 1), NULL);
-		cmp_depth = g_variant_get_int32(g_variant_get_child_value(var, 2));
+		g_assert_nonnull(var);
+
+		g_assert_true(g_variant_is_floating(var));
+		g_variant_get_child(var, 0, "i", &cmp_percentage);
+		g_variant_get_child(var, 1, "s", &cmp_message);
+		g_variant_get_child(var, 2, "i", &cmp_depth);
 		g_message("Progress changed: %03d, %s, %d", percentage, message, depth);
 		g_assert_cmpint(percentage, ==, cmp_percentage);
 		g_assert_cmpstr(message, ==, cmp_message);
@@ -158,7 +160,7 @@ static void assert_progress(GVariant *progress, gint32 percentage, const gchar *
 
 static void service_test_install(ServiceFixture *fixture, gconstpointer user_data, gboolean deprecated)
 {
-	GQueue *args = g_queue_new();
+	g_autoptr(GQueue) args = g_queue_new();
 	const gchar *operation = NULL, *last_error = NULL;
 	GVariant *progress = NULL;
 	const gchar *compatible = NULL;
@@ -261,6 +263,8 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	g_main_loop_run(testloop);
 
 	g_clear_object(&installer);
+
+	g_assert_cmpuint(args->length, ==, 0);
 }
 
 static void service_test_install_bundle(ServiceFixture *fixture, gconstpointer user_data)
@@ -299,7 +303,7 @@ static void service_test_install_api(ServiceFixture *fixture, gconstpointer user
 
 	ret = r_installer_call_install_bundle_sync(
 			installer,
-			g_strdup("dummy path"),
+			"dummy path",
 			g_variant_dict_end(&dict), /* floating, no unref needed */
 			NULL,
 			&error);
@@ -314,7 +318,7 @@ static void service_test_install_api(ServiceFixture *fixture, gconstpointer user
 
 	ret = r_installer_call_install_bundle_sync(
 			installer,
-			g_strdup("dummy path"),
+			"dummy path",
 			g_variant_dict_end(&dict), /* floating, no unref needed */
 			NULL,
 			&error);
@@ -329,7 +333,7 @@ static void service_test_install_api(ServiceFixture *fixture, gconstpointer user
 
 	ret = r_installer_call_install_bundle_sync(
 			installer,
-			g_strdup("dummy path"),
+			"dummy path",
 			g_variant_dict_end(&dict), /* floating, no unref needed */
 			NULL,
 			&error);
@@ -455,6 +459,8 @@ out:
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
+
+	g_assert(g_setenv("GIO_USE_VFS", "local", TRUE));
 
 	g_test_init(&argc, &argv, NULL);
 
