@@ -2,6 +2,7 @@
 #include "context.h"
 #include "install.h"
 #include "mark.h"
+#include "status_file.h"
 
 static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 {
@@ -83,7 +84,7 @@ gboolean mark_active(RaucSlot *slot, GError **error)
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	load_slot_status(slot);
+	r_slot_status_load(slot);
 	slot_state = slot->status;
 
 	if (!r_boot_set_primary(slot, &ierror)) {
@@ -98,7 +99,7 @@ gboolean mark_active(RaucSlot *slot, GError **error)
 	slot_state->activated_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
 	slot_state->activated_count++;
 
-	if (!save_slot_status(slot, &ierror)) {
+	if (!r_slot_status_save(slot, &ierror)) {
 		g_message("Error while writing status file: %s", ierror->message);
 		g_error_free(ierror);
 	}

@@ -118,6 +118,7 @@ sources_rauc = files([
   'src/service.c',
   'src/signature.c',
   'src/stats.c',
+  'src/status_file.c',
   'src/slot.c',
   'src/update_handler.c',
   'src/utils.c',

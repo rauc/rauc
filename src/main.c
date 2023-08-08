@@ -20,6 +20,7 @@
 #include "rauc-installer-generated.h"
 #include "service.h"
 #include "signature.h"
+#include "status_file.h"
 #include "update_handler.h"
 #include "utils.h"
 #include "mark.h"
@@ -1911,7 +1912,7 @@ static gboolean status_start(int argc, char **argv)
 
 			g_hash_table_iter_init(&iter, r_context()->config->slots);
 			while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot))
-				load_slot_status(slot);
+				r_slot_status_load(slot);
 		}
 
 		status_print = g_new0(RaucStatusPrint, 1);
@@ -2011,6 +2012,29 @@ static gboolean service_start(int argc, char **argv)
 		g_printerr("Failed to determine slot states: %s\n", ierror->message);
 		r_exit_status = 1;
 		return TRUE;
+	}
+
+	if (r_context()->system_status) {
+		/* Boot ID-based system reboot vs service restart detection */
+		if (g_strcmp0(r_context()->system_status->boot_id, r_context()->boot_id) == 0) {
+			g_message("Restarted RAUC service");
+		} else {
+			RaucSlot *booted_slot = r_slot_find_by_device(r_context()->config->slots, r_context()->bootslot);
+			if (!booted_slot)
+				booted_slot = r_slot_find_by_bootname(r_context()->config->slots, r_context()->bootslot);
+			g_message("Booted into %s (%s)", booted_slot->name, booted_slot->bootname);
+
+			/* update boot ID */
+			g_free(r_context()->system_status->boot_id);
+			r_context()->system_status->boot_id = g_strdup(r_context()->boot_id);
+
+			if (!r_system_status_save(&ierror)) {
+				g_warning("Failed to save system status: %s", ierror->message);
+				g_clear_error(&ierror);
+			}
+		}
+	} else {
+		g_message("Started RAUC service");
 	}
 
 	r_exit_status = r_service_run() ? 0 : 1;

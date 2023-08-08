@@ -4,6 +4,7 @@
 
 #include "config_file.h"
 #include "context.h"
+#include "status_file.h"
 #include "network.h"
 #include "install.h"
 #include "signature.h"
@@ -311,6 +312,16 @@ static gboolean r_context_configure_target(GError **error)
 					context->config->data_directory,
 					g_strerror(err));
 			return FALSE;
+		}
+	}
+
+	/* load system status if central status file is available */
+	if (g_strcmp0(context->config->statusfile_path, "per-slot") != 0) {
+		g_clear_pointer(&context->system_status, r_system_status_free);
+		context->system_status = g_new0(RSystemStatus, 1);
+		if (!r_system_status_load(context->config->statusfile_path, context->system_status, &ierror)) {
+			g_message("Failed to load system status: %s", ierror->message);
+			g_clear_error(&ierror);
 		}
 	}
 
@@ -798,6 +809,8 @@ void r_context_clean(void)
 		g_clear_pointer(&context->install_info, r_context_install_info_free);
 
 		g_clear_pointer(&context->config, free_config);
+
+		g_clear_pointer(&context->system_status, r_system_status_free);
 
 		g_clear_pointer(&context, g_free);
 	}

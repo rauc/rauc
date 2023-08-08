@@ -16,6 +16,7 @@ tests = [
   'utils',
   'install',
   'service',
+  'status_file',
   'bundle',
   'progress',
   'slot',
