@@ -84,6 +84,10 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 		}
 	}
 
+	g_key_file_remove_key(key_file, group, "version", NULL);
+	g_key_file_remove_key(key_file, group, "description", NULL);
+	g_key_file_remove_key(key_file, group, "build", NULL);
+
 	iimage->adaptive = g_key_file_get_string_list(key_file, group, "adaptive", NULL, NULL);
 	g_key_file_remove_key(key_file, group, "adaptive", NULL);
 
