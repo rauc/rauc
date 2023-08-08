@@ -1055,7 +1055,7 @@ out:
 	return res;
 }
 
-static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error)
+static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbundle, const gchar **ignore_images, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -1122,6 +1122,11 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 		if (!image->filename)
 			continue;
 
+		if (ignore_images && g_strv_contains(ignore_images, image->slotclass)) {
+			g_message("Skipping conversion of %s as requested", image->filename);
+			continue;
+		}
+
 		if (image_is_archive(image)) {
 			idxfile = g_strconcat(image->filename, ".caidx", NULL);
 			idxpath = g_build_filename(contentdir, idxfile, NULL);
@@ -1184,7 +1189,7 @@ out:
 	return res;
 }
 
-gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error)
+gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, const gchar **ignore_images, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -1204,7 +1209,7 @@ gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError
 		goto out;
 	}
 
-	res = convert_to_casync_bundle(bundle, outbundle, &ierror);
+	res = convert_to_casync_bundle(bundle, outbundle, ignore_images, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;

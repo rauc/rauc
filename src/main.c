@@ -41,6 +41,7 @@ gchar **intermediate = NULL;
 gchar *signing_keyring = NULL;
 gchar *mksquashfs_args = NULL;
 gchar *casync_args = NULL;
+gchar **convert_ignore_images = NULL;
 gchar **recipients = NULL;
 gchar *handler_args = NULL;
 gchar *bootslot = NULL;
@@ -764,7 +765,7 @@ static gboolean convert_start(int argc, char **argv)
 		goto out;
 	}
 
-	if (!create_casync_bundle(bundle, argv[3], &ierror)) {
+	if (!create_casync_bundle(bundle, argv[3], (const gchar**) convert_ignore_images, &ierror)) {
 		g_printerr("Failed to create bundle: %s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -2144,6 +2145,7 @@ static GOptionEntry entries_convert[] = {
 	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
 	{"mksquashfs-args", '\0', 0, G_OPTION_ARG_STRING, &mksquashfs_args, "mksquashfs extra args", "ARGS"},
 	{"casync-args", '\0', 0, G_OPTION_ARG_STRING, &casync_args, "casync extra args", "ARGS"},
+	{"ignore-image", '\0', 0, G_OPTION_ARG_STRING_ARRAY, &convert_ignore_images, "ignore image during conversion", "SLOTCLASS"},
 	{0}
 };
 

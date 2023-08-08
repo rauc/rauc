@@ -962,6 +962,13 @@ The conversion process will create two new artifacts:
     This is a directory with chunks grouped by subfolders of the first 4 digits
     of their chunk ID.
 
+.. note:: In case one or several of the images in the original bundle should
+   not be converted to casync images (``.caidx`` or ``.caibx``), you can
+   explicitly skip them during conversion using the ``--ignore-image`` argument
+   of ``rauc convert``. E.g.:
+
+     rauc convert --ignore-image=kernel --ignore-image=dtb ...
+
 Installing casync Bundles
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
