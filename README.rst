@@ -280,8 +280,27 @@ Please read the Documentation's
 `Contributing <http://rauc.readthedocs.io/en/latest/contributing.html>`_
 section for more details.
 
+License
+-------
+
+Copyright (C) 2015–2023 RAUC project
+
+RAUC is free software; you can redistribute it and/or modify it under the terms
+of the GNU Lesser General Public License as published by the Free Software
+Foundation; either version 2.1 of the License, or (at your option) any later
+version.
+
+This library is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this source code, see the file named `COPYING`_. If not, see
+https://www.gnu.org/licenses/.
+
 .. |LGPLv2.1| image:: https://img.shields.io/badge/license-LGPLv2.1-blue.svg
-   :target: https://raw.githubusercontent.com/rauc/rauc/master/COPYING
+   :target: #license
+.. _COPYING: https://raw.githubusercontent.com/rauc/rauc/master/COPYING
 .. |CI_branch| image:: https://github.com/rauc/rauc/workflows/tests/badge.svg
    :target: https://github.com/rauc/rauc/actions?query=workflow%3Atests
 .. |Codecov_branch| image:: https://codecov.io/gh/rauc/rauc/branch/master/graph/badge.svg
