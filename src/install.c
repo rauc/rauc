@@ -948,11 +948,32 @@ skip_filename_checks:
 	return TRUE;
 }
 
+static void update_slot_status(RaucSlotStatus *slot_state, const gchar* status, const RaucManifest *manifest, const RImageInstallPlan *plan, const RaucInstallArgs *args)
+{
+	g_autoptr(GDateTime) now = NULL;
+
+	r_slot_clear_status(slot_state);
+
+	now = g_date_time_new_now_utc();
+
+	slot_state->bundle_compatible = g_strdup(manifest->update_compatible);
+	slot_state->bundle_version = g_strdup(manifest->update_version);
+	slot_state->bundle_description = g_strdup(manifest->update_description);
+	slot_state->bundle_build = g_strdup(manifest->update_build);
+	slot_state->bundle_hash = g_strdup(manifest->hash);
+	slot_state->status = g_strdup(status);
+	slot_state->checksum.type = plan->image->checksum.type;
+	slot_state->checksum.digest = g_strdup(plan->image->checksum.digest);
+	slot_state->checksum.size = plan->image->checksum.size;
+	slot_state->installed_txn = g_strdup(args->transaction);
+	slot_state->installed_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
+	slot_state->installed_count++;
+}
+
 static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RImageInstallPlan *plan, RaucInstallArgs *args, const char *hook_name, GError **error)
 {
 	GError *ierror = NULL;
 	RaucSlotStatus *slot_state = NULL;
-	g_autoptr(GDateTime) now = NULL;
 
 	install_args_update(args, "Checking slot %s", plan->target_slot->name);
 
@@ -961,13 +982,29 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 	load_slot_status(plan->target_slot);
 	slot_state = plan->target_slot->status;
 
-	/* In case we failed unmounting while reading status
+	/* In case we failed unmounting while reading per-slot status
 	 * file, abort here */
 	if (plan->target_slot->mount_point) {
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MOUNTED,
 				"Slot '%s' still mounted", plan->target_slot->device);
 		r_context_end_step("check_slot", FALSE);
 		return FALSE;
+	}
+
+	/* For global slot status: Clear checksum info and make status
+	 * 'pending' to prevent the slot status from looking valid later in
+	 * case we crash while installing. */
+	if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") != 0) {
+		g_clear_pointer(&slot_state->status, g_free);
+		slot_state->status = g_strdup("pending");
+		g_clear_pointer(&slot_state->checksum.digest, g_free);
+		slot_state->checksum.size = 0;
+
+		if (!save_slot_status(plan->target_slot, &ierror)) {
+			g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
+			r_context_end_step("check_slot", FALSE);
+			return FALSE;
+		}
 	}
 
 	/* if explicitly enabled, skip update of up-to-date slots */
@@ -978,6 +1015,16 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 
 		/* Dummy step to indicate slot was skipped */
 		r_context_begin_step("skip_image", "Copying image skipped", 0);
+
+		/* Update the status also for skipped slots */
+		g_message("Updating slot %s status", plan->target_slot->name);
+		update_slot_status(slot_state, "ok", manifest, plan, args);
+		if (!save_slot_status(plan->target_slot, &ierror)) {
+			g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
+			r_context_end_step("skip_image", FALSE);
+			return FALSE;
+		}
+
 		r_context_end_step("skip_image", TRUE);
 
 		install_args_update(args, "Updating slot %s done", plan->target_slot->name);
@@ -1007,29 +1054,21 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 		g_propagate_prefixed_error(error, ierror,
 				"Failed updating slot %s: ", plan->target_slot->name);
 		r_context_end_step("copy_image", FALSE);
+
+		g_message("Updating slot %s status", plan->target_slot->name);
+		update_slot_status(slot_state, "failed", manifest, plan, args);
+		if (!save_slot_status(plan->target_slot, NULL)) {
+			g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
+			return FALSE;
+		}
+
 		return FALSE;
 	}
 
-	r_slot_clear_status(slot_state);
-
-	now = g_date_time_new_now_utc();
-
-	slot_state->bundle_compatible = g_strdup(manifest->update_compatible);
-	slot_state->bundle_version = g_strdup(manifest->update_version);
-	slot_state->bundle_description = g_strdup(manifest->update_description);
-	slot_state->bundle_build = g_strdup(manifest->update_build);
-	slot_state->bundle_hash = g_strdup(manifest->hash);
-	slot_state->status = g_strdup("ok");
-	slot_state->checksum.type = plan->image->checksum.type;
-	slot_state->checksum.digest = g_strdup(plan->image->checksum.digest);
-	slot_state->checksum.size = plan->image->checksum.size;
-	slot_state->installed_txn = g_strdup(args->transaction);
-	slot_state->installed_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
-	slot_state->installed_count++;
-
 	r_context_end_step("copy_image", TRUE);
 
-	install_args_update(args, "Updating slot %s status", plan->target_slot->name);
+	g_message("Updating slot %s status", plan->target_slot->name);
+	update_slot_status(slot_state, "ok", manifest, plan, args);
 	if (!save_slot_status(plan->target_slot, &ierror)) {
 		g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
 		return FALSE;
