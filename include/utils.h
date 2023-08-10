@@ -285,3 +285,14 @@ G_GNUC_WARN_UNUSED_RESULT;
  */
 gboolean r_update_symlink(const gchar *target, const gchar *name, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Calls syncfs on a given filesystem.
+ *
+ * @param path path on the filesystem to sync
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if the filesystem was synced, FALSE otherwise
+ */
+gboolean r_syncfs(const gchar *path, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;

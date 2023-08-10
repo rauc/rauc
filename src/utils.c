@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <fcntl.h>
 #include <ftw.h>
 #include <gio/gio.h>
 #include <glib.h>
@@ -616,6 +617,35 @@ gboolean r_update_symlink(const gchar *target, const gchar *name, GError **error
 		/* try to remove the temporary symlink */
 		unlink(tmp_name);
 
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+gboolean r_syncfs(const gchar *path, GError **error)
+{
+	g_auto(filedesc) fd = -1;
+
+	g_return_val_if_fail(path != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	fd = g_open(path, O_RDONLY);
+	if (fd == -1) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to open %s for syncfs: %s", path, g_strerror(err));
+		return FALSE;
+	}
+
+	if (syncfs(fd) == -1) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to sync filesystem for %s: %s", path, g_strerror(err));
 		return FALSE;
 	}
 
