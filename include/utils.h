@@ -281,7 +281,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @param name filename of the symlink to update
  * @param error return location for a GError, or NULL
  *
- * @return the newly alloacted and converted string
+ * @return TRUE if the symlink now points to the given target, FALSE otherwise
  */
 gboolean r_update_symlink(const gchar *target, const gchar *name, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
