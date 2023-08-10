@@ -36,6 +36,7 @@ static void service_install_fixture_set_up(ServiceFixture *fixture, gconstpointe
 			&(ManifestTestOptions) {
 		.custom_handler = FALSE,
 		.hooks = FALSE,
+		.slots = TRUE,
 	});
 
 	/* Write a D-Bus service file with current tmpdir */

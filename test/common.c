@@ -182,19 +182,19 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, cons
 		rm->hook_name = g_strdup("hook.sh");
 	}
 
-	img = g_new0(RaucImage, 1);
+	if (options->slots) {
+		img = g_new0(RaucImage, 1);
+		img->slotclass = g_strdup("rootfs");
+		img->filename = g_strdup("rootfs.ext4");
+		if (options->hooks)
+			img->hooks.post_install = TRUE;
+		rm->images = g_list_append(rm->images, img);
 
-	img->slotclass = g_strdup("rootfs");
-	img->filename = g_strdup("rootfs.ext4");
-	if (options->hooks)
-		img->hooks.post_install = TRUE;
-	rm->images = g_list_append(rm->images, img);
-
-	img = g_new0(RaucImage, 1);
-
-	img->slotclass = g_strdup("appfs");
-	img->filename = g_strdup("appfs.ext4");
-	rm->images = g_list_append(rm->images, img);
+		img = g_new0(RaucImage, 1);
+		img->slotclass = g_strdup("appfs");
+		img->filename = g_strdup("appfs.ext4");
+		rm->images = g_list_append(rm->images, img);
+	}
 
 	g_assert_true(save_manifest_file(path, rm, NULL));
 
