@@ -14,6 +14,7 @@
 #include "mount.h"
 #include "signature.h"
 #include "update_handler.h"
+#include "update_utils.h"
 #include "emmc.h"
 #include "mbr.h"
 #include "gpt.h"
@@ -239,45 +240,6 @@ static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 	return TRUE;
 }
 
-gboolean copy_with_progress(GInputStream *in_stream, GOutputStream *out_stream,
-		goffset size, GError **error)
-{
-	GError *ierror = NULL;
-	gsize out_size = 0;
-	goffset sum_size = 0;
-	gint last_percent = -1, percent;
-	gchar buffer[8192];
-	gssize in_size;
-
-	do {
-		gboolean ret;
-
-		in_size = g_input_stream_read(in_stream,
-				buffer, 8192, NULL, &ierror);
-		if (in_size == -1) {
-			g_propagate_error(error, ierror);
-			return FALSE;
-		}
-		ret = g_output_stream_write_all(out_stream, buffer,
-				in_size, &out_size, NULL, &ierror);
-		if (!ret) {
-			g_propagate_error(error, ierror);
-			return FALSE;
-		}
-
-		sum_size += out_size;
-
-		percent = sum_size * 100 / size;
-		/* emit progress info (but only when in progress context) */
-		if (r_context()->progress && percent != last_percent) {
-			last_percent = percent;
-			r_context_set_step_percentage("copy_image", percent);
-		}
-	} while (out_size);
-
-	return TRUE;
-}
-
 static gboolean splice_with_progress(GUnixInputStream *image_stream,
 		GUnixOutputStream *out_stream, GError **error)
 {
@@ -375,7 +337,6 @@ static gboolean splice_file_to_process_stdin(const gchar *filename, GSubprocess 
 static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, gsize len_header_last, GError **error)
 {
 	GError *ierror = NULL;
-	gssize size;
 	goffset seeksize;
 	g_autoptr(GFile) srcimagefile = g_file_new_for_path(image->filename);
 	int out_fd = g_unix_output_stream_get_fd(outstream);
@@ -411,7 +372,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, g
 		}
 	}
 
-	if (!copy_with_progress(instream, G_OUTPUT_STREAM(outstream), image->checksum.size, &ierror)) {
+	if (!r_copy_stream_with_progress(instream, G_OUTPUT_STREAM(outstream), image->checksum.size, &ierror)) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to copy data: ");
 		return FALSE;

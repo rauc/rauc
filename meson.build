@@ -121,6 +121,7 @@ sources_rauc = files([
   'src/status_file.c',
   'src/slot.c',
   'src/update_handler.c',
+  'src/update_utils.c',
   'src/utils.c',
   'src/verity_hash.c',
 ])
