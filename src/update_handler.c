@@ -239,7 +239,7 @@ static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 	return TRUE;
 }
 
-static gssize copy_with_progress(GOutputStream *out_stream, GInputStream *image_stream,
+static gssize copy_with_progress(GInputStream *image_stream, GOutputStream *out_stream,
 		goffset image_size, GError **error)
 {
 	GError *ierror = NULL;
@@ -411,7 +411,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, g
 		}
 	}
 
-	size = copy_with_progress(G_OUTPUT_STREAM(outstream), instream, image->checksum.size, &ierror);
+	size = copy_with_progress(instream, G_OUTPUT_STREAM(outstream), image->checksum.size, &ierror);
 	if (size == -1) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed splicing data: ");
