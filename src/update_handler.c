@@ -239,8 +239,8 @@ static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 	return TRUE;
 }
 
-static gssize copy_with_progress(GInputStream *image_stream, GOutputStream *out_stream,
-		goffset image_size, GError **error)
+static gssize copy_with_progress(GInputStream *in_stream, GOutputStream *out_stream,
+		goffset size, GError **error)
 {
 	GError *ierror = NULL;
 	gsize out_size = 0;
@@ -252,7 +252,7 @@ static gssize copy_with_progress(GInputStream *image_stream, GOutputStream *out_
 	do {
 		gboolean ret;
 
-		in_size = g_input_stream_read(image_stream,
+		in_size = g_input_stream_read(in_stream,
 				buffer, 8192, NULL, &ierror);
 		if (in_size == -1) {
 			g_propagate_error(error, ierror);
@@ -267,7 +267,7 @@ static gssize copy_with_progress(GInputStream *image_stream, GOutputStream *out_
 
 		sum_size += out_size;
 
-		percent = sum_size * 100 / image_size;
+		percent = sum_size * 100 / size;
 		/* emit progress info (but only when in progress context) */
 		if (r_context()->progress && percent != last_percent) {
 			last_percent = percent;
