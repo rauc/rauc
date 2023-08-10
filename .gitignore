@@ -26,6 +26,7 @@ config.h.in
 config.status
 configure
 libtool
+/bzImage
 /rauc
 /rauc.map
 /rauc-1.*
