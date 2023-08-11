@@ -760,6 +760,20 @@ test_expect_success CASYNC "rauc convert" "
   test -f casync.raucb
 "
 
+test_expect_success CASYNC "rauc convert (ignore-image)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
+  rm -f casync.raucb &&
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    convert \
+    --ignore-image appfs \
+    ${TEST_TMPDIR}/good-bundle.raucb casync.raucb &&
+  test -f casync.raucb
+"
+
 test_expect_success CASYNC "rauc convert (output exists)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&

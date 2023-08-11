@@ -221,9 +221,10 @@ G_GNUC_WARN_UNUSED_RESULT;
  *
  * @param bundle RaucBundle struct as returned by check_bundle()
  * @param outbundle output location for converted casync bundle
+ * @param ignore_images string list of slot classes of images to ignore during conversion
  * @param error Return location for a GError
  */
-gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error)
+gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, const gchar **ignore_images, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
