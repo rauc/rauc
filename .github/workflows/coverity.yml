@@ -24,6 +24,11 @@ jobs:
         export COVERITY_SCAN_BUILD_COMMAND="meson compile -C build"
         export COVERITY_SCAN_TOKEN="${{ secrets.COVERITY_SCAN_TOKEN }}"
 
+        if [ -z "$COVERITY_SCAN_TOKEN" ]; then
+          echo "Note: empty COVERITY_SCAN_TOKEN; not running coverity"
+          exit
+        fi
+
         test/get-coverity.sh
 
         gcc --version
