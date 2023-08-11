@@ -140,6 +140,57 @@ static gchar* get_cmdline_bootname(void)
 	return bootname;
 }
 
+static gchar* get_custom_bootname(void)
+{
+	g_autoptr(GSubprocessLauncher) launcher = NULL;
+	g_autoptr(GSubprocess) handle = NULL;
+	g_autoptr(GDataInputStream) datainstream = NULL;
+	g_autoptr(GPtrArray) args_array = NULL;
+	g_autofree gchar *outline = NULL;
+	GError *ierror = NULL;
+	GInputStream *instream;
+	int res;
+
+	args_array = g_ptr_array_new();
+	g_ptr_array_add(args_array, context->config->custom_bootloader_backend);
+	g_ptr_array_add(args_array, (gchar *)("get-current"));
+	g_ptr_array_add(args_array, NULL);
+
+	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE);
+	handle = r_subprocess_launcher_spawnv(launcher, args_array, NULL);
+
+	if (handle == NULL) {
+		g_message("Failed to run custom backend '%s'",
+				context->config->custom_bootloader_backend);
+		return NULL;
+	}
+
+	instream = g_subprocess_get_stdout_pipe(handle);
+	datainstream = g_data_input_stream_new(instream);
+
+	outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
+
+	if (ierror) {
+		g_message("Failed to read custom backend output");
+		return NULL;
+	}
+
+	res = g_subprocess_wait_check(handle, NULL, NULL);
+	if (!res) {
+		g_message("Failed to get custom backend output");
+		return NULL;
+	}
+
+	if (!outline) {
+		g_message("Failed to get custom backend bootname: no output");
+		return NULL;
+	}
+
+	g_debug("Resolved custom backend bootname to %s", outline);
+
+	return g_steal_pointer(&outline);
+}
+
 /**
  * Launches a handler and obtains variables from output by looking for
  * 'RAUC_<SOMETHING>=value' lines to put them into a key/value store (GHashTable).
@@ -360,6 +411,10 @@ static gboolean r_context_configure_target(GError **error)
 
 	if (context->bootslot == NULL) {
 		context->bootslot = get_cmdline_bootname();
+	}
+
+	if (context->bootslot == NULL && (g_strcmp0(context->config->system_bootloader, "custom") == 0)) {
+		context->bootslot = get_custom_bootname();
 	}
 
 	g_clear_pointer(&context->boot_id, g_free);
