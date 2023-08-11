@@ -1771,6 +1771,7 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 			slot->status = r_variant_get_slot_state(vardict);
 		}
 		g_hash_table_insert(*slots, (gchar*)slot->name, slot);
+		g_variant_dict_clear(&dict);
 	}
 
 	/* Now we replace the dummy parent slots with the pointer to the real
