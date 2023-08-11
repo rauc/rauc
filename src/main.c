@@ -1813,7 +1813,7 @@ static gboolean retrieve_status_via_dbus(RaucStatusPrint **status_print, GError 
 	GError *ierror = NULL;
 	RInstaller *proxy;
 	g_autoptr(RaucStatusPrint) istatus = NULL;
-	gchar *primary = NULL;
+	g_autofree gchar *primary = NULL;
 
 	g_return_val_if_fail(status_print != NULL && *status_print == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
