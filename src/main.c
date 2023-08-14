@@ -1733,6 +1733,7 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 		g_autofree gchar *parent = NULL;
 		g_autofree gchar *state = NULL;
 		g_autofree gchar *boot_good = NULL;
+		g_autofree gchar *sclass = NULL;
 
 		/* if already existing, skip */
 		if (g_hash_table_lookup(*slots, slot_name)) {
@@ -1742,9 +1743,10 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 
 		/* Create slot struct and fill up with information */
 		slot = g_new0(RaucSlot, 1);
-		slot->name = g_strdup(slot_name);
+		slot->name = g_intern_string(slot_name);
 		g_variant_dict_init(&dict, vardict);
-		g_variant_dict_lookup(&dict, "class", "s", &slot->sclass);
+		g_variant_dict_lookup(&dict, "class", "s", &sclass);
+		slot->sclass = g_intern_string(sclass);
 		g_variant_dict_lookup(&dict, "device", "s", &slot->device);
 		g_variant_dict_lookup(&dict, "type", "s", &slot->type);
 		g_variant_dict_lookup(&dict, "bootname", "s", &slot->bootname);
@@ -1757,7 +1759,7 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 			 * can replace with a pointer to the real one
 			 * afterwards */
 			slot->parent = g_new0(RaucSlot, 1);
-			slot->parent->name = g_steal_pointer(&parent);
+			slot->parent->name = g_intern_string(parent);
 		}
 		g_variant_dict_lookup(&dict, "mountpoint", "s", &slot->mount_point);
 		g_variant_dict_lookup(&dict, "boot-status", "s", &boot_good);
@@ -1771,6 +1773,7 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 			slot->status = r_variant_get_slot_state(vardict);
 		}
 		g_hash_table_insert(*slots, (gchar*)slot->name, slot);
+		g_variant_dict_clear(&dict);
 	}
 
 	/* Now we replace the dummy parent slots with the pointer to the real
@@ -1810,7 +1813,7 @@ static gboolean retrieve_status_via_dbus(RaucStatusPrint **status_print, GError 
 	GError *ierror = NULL;
 	RInstaller *proxy;
 	g_autoptr(RaucStatusPrint) istatus = NULL;
-	gchar *primary = NULL;
+	g_autofree gchar *primary = NULL;
 
 	g_return_val_if_fail(status_print != NULL && *status_print == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);

@@ -11,6 +11,9 @@ void r_slot_free(gpointer value)
 	if (!slot)
 		return;
 
+	/* Not freeing slot->name and slot->sclass here since they
+	 * are expected to be intern strings! */
+
 	g_free(slot->description);
 	g_free(slot->device);
 	g_free(slot->type);
