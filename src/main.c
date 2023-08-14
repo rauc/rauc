@@ -1648,9 +1648,7 @@ static gchar* r_status_formatter_json(RaucStatusPrint *status, gboolean pretty)
 static RaucSlotStatus* r_variant_get_slot_state(GVariant *vardict)
 {
 	RaucSlotStatus *slot_state = g_new0(RaucSlotStatus, 1);
-	GVariantDict dict;
-
-	g_variant_dict_init(&dict, vardict);
+	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(vardict);
 
 	g_variant_dict_lookup(&dict, "bundle.compatible", "s", &slot_state->bundle_compatible);
 	g_variant_dict_lookup(&dict, "bundle.version", "s", &slot_state->bundle_version);
@@ -1666,9 +1664,6 @@ static RaucSlotStatus* r_variant_get_slot_state(GVariant *vardict)
 	g_variant_dict_lookup(&dict, "installed.count", "u", &slot_state->installed_count);
 	g_variant_dict_lookup(&dict, "activated.timestamp", "s", &slot_state->activated_timestamp);
 	g_variant_dict_lookup(&dict, "activated.count", "u", &slot_state->activated_count);
-
-	vardict = g_variant_dict_end(&dict);
-	g_variant_unref(vardict);
 
 	return slot_state;
 }
