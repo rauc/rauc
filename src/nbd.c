@@ -572,7 +572,10 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 				FALSE,
 				NULL, NULL);
 		g_assert_nonnull(v);
-		g_message("received: %s", g_variant_print(v, TRUE));
+		{
+			g_autofree gchar *tmp = g_variant_print(v, TRUE);
+			g_message("received: %s", tmp);
+		}
 
 		g_variant_dict_init(&dict, v);
 
@@ -992,7 +995,10 @@ static gboolean nbd_configure(RaucNBDServer *nbd_srv, GError **error)
 	if (nbd_srv->info_headers)
 		g_variant_dict_insert(&dict, "info-headers", "^as", nbd_srv->info_headers);
 	v = g_variant_dict_end(&dict);
-	g_message("sending: %s", g_variant_print(v, TRUE));
+	{
+		g_autofree gchar *tmp = g_variant_print(v, TRUE);
+		g_message("sending: %s", tmp);
+	}
 
 	request.magic = GUINT32_TO_BE(NBD_REQUEST_MAGIC);
 	request.type = GUINT32_TO_BE(RAUC_NBD_CMD_CONFIGURE);
