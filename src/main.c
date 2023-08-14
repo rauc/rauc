@@ -2294,7 +2294,7 @@ static void create_option_groups(void)
 static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, debug = FALSE, version = FALSE;
-	gchar *confpath = NULL, *keyring = NULL, *mount = NULL;
+	g_autofree gchar *confpath = NULL, *keyring = NULL, *mount = NULL;
 	char *cmdarg = NULL;
 	g_autoptr(GOptionContext) context = NULL;
 	GOptionEntry entries[] = {
