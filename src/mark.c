@@ -75,7 +75,7 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 	return slot;
 }
 
-gboolean mark_active(RaucSlot *slot, GError **error)
+gboolean r_mark_active(RaucSlot *slot, GError **error)
 {
 	RaucSlotStatus *slot_state;
 	GError *ierror = NULL;
@@ -107,6 +107,40 @@ gboolean mark_active(RaucSlot *slot, GError **error)
 	return TRUE;
 }
 
+gboolean r_mark_good(RaucSlot *slot, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!r_boot_set_state(slot, TRUE, &ierror)) {
+		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
+				"Failed marking slot %s as good:  %s", slot->name, ierror->message);
+		g_error_free(ierror);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+gboolean r_mark_bad(RaucSlot *slot, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!r_boot_set_state(slot, FALSE, &ierror)) {
+		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
+				"Failed marking slot %s as bad:  %s", slot->name, ierror->message);
+		g_error_free(ierror);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 gboolean mark_run(const gchar *state,
 		const gchar *slot_identifier,
 		gchar **slot_name,
@@ -127,13 +161,23 @@ gboolean mark_run(const gchar *state,
 	}
 
 	if (!g_strcmp0(state, "good")) {
-		res = r_boot_set_state(slot, TRUE, &ierror);
-		*message = res ? g_strdup_printf("marked slot %s as good", slot->name) : g_strdup_printf("Failed marking slot %s as good: %s", slot->name, ierror->message);
+		if (!r_mark_good(slot, &ierror)) {
+			res = FALSE;
+			*message = g_strdup(ierror->message);
+		} else {
+			res = TRUE;
+			*message = g_strdup_printf("marked slot %s as good", slot->name);
+		}
 	} else if (!g_strcmp0(state, "bad")) {
-		res = r_boot_set_state(slot, FALSE, &ierror);
-		*message = res ? g_strdup_printf("marked slot %s as bad", slot->name) : g_strdup_printf("Failed marking slot %s as bad: %s", slot->name, ierror->message);
+		if (!r_mark_bad(slot, &ierror)) {
+			res = FALSE;
+			*message = g_strdup(ierror->message);
+		} else {
+			res = TRUE;
+			*message = g_strdup_printf("marked slot %s as bad", slot->name);
+		}
 	} else if (!g_strcmp0(state, "active")) {
-		if (!mark_active(slot, &ierror)) {
+		if (!r_mark_active(slot, &ierror)) {
 			res = FALSE;
 			*message = g_strdup(ierror->message);
 		} else {
