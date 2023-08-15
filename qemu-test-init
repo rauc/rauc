@@ -125,11 +125,7 @@ if type nginx; then
 fi
 
 if python3 -m aiohttp.web --help > /dev/null; then
-  python3 test/nginx_backend.py &
-  while sleep 1; do
-    test -e /tmp/backend.sock && break
-  done
-  chmod a=rw /tmp/backend.sock
+  python3 test/nginx_backend.py
   export RAUC_TEST_HTTP_BACKEND=1
 fi
 
