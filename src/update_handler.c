@@ -239,7 +239,7 @@ static gboolean ubifs_ioctl(RaucImage *image, int fd, GError **error)
 	return TRUE;
 }
 
-static gssize copy_with_progress(GInputStream *in_stream, GOutputStream *out_stream,
+gboolean copy_with_progress(GInputStream *in_stream, GOutputStream *out_stream,
 		goffset size, GError **error)
 {
 	GError *ierror = NULL;
@@ -256,13 +256,13 @@ static gssize copy_with_progress(GInputStream *in_stream, GOutputStream *out_str
 				buffer, 8192, NULL, &ierror);
 		if (in_size == -1) {
 			g_propagate_error(error, ierror);
-			return -1;
+			return FALSE;
 		}
 		ret = g_output_stream_write_all(out_stream, buffer,
 				in_size, &out_size, NULL, &ierror);
 		if (!ret) {
 			g_propagate_error(error, ierror);
-			return -1;
+			return FALSE;
 		}
 
 		sum_size += out_size;
@@ -275,7 +275,7 @@ static gssize copy_with_progress(GInputStream *in_stream, GOutputStream *out_str
 		}
 	} while (out_size);
 
-	return sum_size;
+	return TRUE;
 }
 
 static gboolean splice_with_progress(GUnixInputStream *image_stream,
@@ -411,8 +411,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, g
 		}
 	}
 
-	size = copy_with_progress(instream, G_OUTPUT_STREAM(outstream), image->checksum.size, &ierror);
-	if (size == -1) {
+	if (!copy_with_progress(instream, G_OUTPUT_STREAM(outstream), image->checksum.size, &ierror)) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed splicing data: ");
 		return FALSE;
