@@ -413,7 +413,7 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, g
 
 	if (!copy_with_progress(instream, G_OUTPUT_STREAM(outstream), image->checksum.size, &ierror)) {
 		g_propagate_prefixed_error(error, ierror,
-				"Failed splicing data: ");
+				"Failed to copy data: ");
 		return FALSE;
 	}
 
