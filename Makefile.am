@@ -57,6 +57,7 @@ librauc_la_SOURCES = \
 	src/status_file.c \
 	src/utils.c \
 	src/update_handler.c \
+	src/update_utils.c \
 	src/verity_hash.c \
 	include/bootchooser.h \
 	include/bundle.h \
@@ -79,6 +80,7 @@ librauc_la_SOURCES = \
 	include/stats.h \
 	include/status_file.h \
 	include/update_handler.h \
+	include/update_utils.h \
 	include/utils.h \
 	include/verity_hash.h
 
