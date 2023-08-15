@@ -1102,10 +1102,16 @@ static gboolean asn1_time_to_tm(const ASN1_TIME *intime, struct tm *tm)
 
 static void debug_cms_ci(CMS_ContentInfo *cms)
 {
-	BIO *out = BIO_new(BIO_s_mem());
+	BIO *out;
+	const gchar *domains = g_getenv("G_MESSAGES_DEBUG");
 	gchar *out_str = NULL;
 	long size;
 
+	if ((domains == NULL) || (strstr(domains, G_LOG_DOMAIN "-signature") == NULL)) {
+		return;
+	}
+
+	out = BIO_new(BIO_s_mem());
 	CMS_ContentInfo_print_ctx(out, cms, 2, NULL);
 	if ((size = BIO_get_mem_data(out, &out_str)) > 0) {
 		/* replace final newline with nul */

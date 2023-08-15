@@ -12,7 +12,7 @@ Features
 --------
 
 * **GET /?status**: slot status information in JSON format implemented using
-  `RAUC's D-Bus method GetSlotStatus <http://rauc.reayydthedocs.io/en/latest/reference.html#the-getslotstatus-method>`_
+  `RAUC's D-Bus method GetSlotStatus <http://rauc.readthedocs.io/en/latest/reference.html#the-getslotstatus-method>`_
 * **GET /?progress**: upload and installation progress using RAUC's D-Bus
   `signals <http://rauc.readthedocs.io/en/latest/reference.html#signal-details>`_
   and `properties <http://rauc.readthedocs.io/en/latest/reference.html#property-details>`_

@@ -1648,9 +1648,7 @@ static gchar* r_status_formatter_json(RaucStatusPrint *status, gboolean pretty)
 static RaucSlotStatus* r_variant_get_slot_state(GVariant *vardict)
 {
 	RaucSlotStatus *slot_state = g_new0(RaucSlotStatus, 1);
-	GVariantDict dict;
-
-	g_variant_dict_init(&dict, vardict);
+	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(vardict);
 
 	g_variant_dict_lookup(&dict, "bundle.compatible", "s", &slot_state->bundle_compatible);
 	g_variant_dict_lookup(&dict, "bundle.version", "s", &slot_state->bundle_version);
@@ -1666,9 +1664,6 @@ static RaucSlotStatus* r_variant_get_slot_state(GVariant *vardict)
 	g_variant_dict_lookup(&dict, "installed.count", "u", &slot_state->installed_count);
 	g_variant_dict_lookup(&dict, "activated.timestamp", "s", &slot_state->activated_timestamp);
 	g_variant_dict_lookup(&dict, "activated.count", "u", &slot_state->activated_count);
-
-	vardict = g_variant_dict_end(&dict);
-	g_variant_unref(vardict);
 
 	return slot_state;
 }
@@ -2294,7 +2289,7 @@ static void create_option_groups(void)
 static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, debug = FALSE, version = FALSE;
-	gchar *confpath = NULL, *keyring = NULL, *mount = NULL;
+	g_autofree gchar *confpath = NULL, *keyring = NULL, *mount = NULL;
 	char *cmdarg = NULL;
 	g_autoptr(GOptionContext) context = NULL;
 	GOptionEntry entries[] = {
