@@ -1451,7 +1451,7 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 	formatter_shell_append(text, "RAUC_BOOT_PRIMARY", status->primary ? status->primary->name : NULL);
 
 	slotnames = g_ptr_array_new();
-	slotnumbers = g_ptr_array_new();
+	slotnumbers = g_ptr_array_new_with_free_func(g_free);
 	g_hash_table_iter_init(&iter, status->slots);
 	while (g_hash_table_iter_next(&iter, (gpointer*) &name, NULL)) {
 		g_ptr_array_add(slotnames, name);
