@@ -2302,16 +2302,45 @@ static void create_run_links(void)
 	}
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	RaucSlot *booted_slot = NULL;
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		g_autofree gchar* path = NULL;
 
 		if (!(slot->state & ST_ACTIVE))
 			continue;
 
+		if (slot->state == ST_BOOTED)
+			booted_slot = slot;
+
 		path = g_build_filename("/run/rauc/slots/active", slot->sclass, NULL);
 
 		if (!r_update_symlink(slot->device, path, &ierror)) {
 			g_warning("Failed to create symlink for active slot: %s", ierror->message);
+		}
+	}
+
+	if (!booted_slot)
+		return;
+
+	if (g_mkdir_with_parents("/run/rauc/artifacts", 0755) != 0) {
+		g_warning("Failed to create /run/rauc/artifacts");
+		return;
+	}
+
+	g_hash_table_iter_init(&iter, r_context()->config->artifact_repos);
+	RArtifactRepo *repo;
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*)&repo)) {
+		g_autofree gchar* path = g_build_filename("/run/rauc/artifacts", repo->name, NULL);
+		g_autofree gchar* target = NULL;
+
+		if (!repo->parent_class) {
+			target = g_build_filename(repo->path, NULL);
+		} else {
+			target = g_build_filename(repo->path, booted_slot->name, NULL);
+		}
+
+		if (!r_update_symlink(target, path, &ierror)) {
+			g_warning("Failed to create symlink for artifact repository: %s", ierror->message);
 		}
 	}
 }
