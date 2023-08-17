@@ -1200,6 +1200,10 @@ test_expect_success ROOT,SERVICE "rauc install" "
     --override-boot-slot=system0 &&
   test_when_finished stop_rauc_dbus_service_with_system &&
   test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  test -d /run/rauc/slots/active &&
+  test -L /run/rauc/slots/active/rootfs &&
+  readlink /run/rauc/slots/active/rootfs &&
+  test \"\$(readlink /run/rauc/slots/active/rootfs)\" = \"${SHARNESS_TEST_DIRECTORY}/images/rootfs-0\" &&
   rauc \
     install ${TEST_TMPDIR}/good-bundle.raucb &&
   test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
