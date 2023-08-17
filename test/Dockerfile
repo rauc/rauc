@@ -20,6 +20,8 @@ RUN apt-get update && apt-get install -y \
   lcov \
   slirp \
   python3-sphinx \
+  python3-sphinx-rtd-theme \
+  python3-sphinxext-opengraph \
   dbus-x11 \
   user-mode-linux \
   grub-common \
