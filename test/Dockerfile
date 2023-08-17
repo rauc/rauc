@@ -51,10 +51,11 @@ RUN apt-get update && apt-get install -y \
   curl -sLo /usr/bin/codecov https://codecov.io/bash && \
   chmod +x /usr/bin/codecov
 
-# Install the optional desync
+# Install the optional desync (pinned to version 0.9.3)
 ENV GOPATH=/go
 RUN git clone https://github.com/folbricht/desync.git /tmp/desync && \
     cd /tmp/desync/cmd/desync && \
+    git checkout c508eeb0865a5a7c2c9b1158a5f0414265d869df && \
     go install && \
     cp /go/bin/desync /usr/bin/desync && \
     rm -rf /tmp/desync
