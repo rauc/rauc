@@ -86,8 +86,8 @@ To actually install an update bundle on your target hardware, RAUC provides the
 
 Alternatively you can trigger a bundle installation `using the D-Bus API`_.
 
-Viewing the System Status
--------------------------
+Accessing the System Status
+---------------------------
 
 For debugging purposes and for scripting it is helpful to gain an overview of
 the current system as RAUC sees it.
@@ -103,6 +103,18 @@ important properties. Alternatively you can obtain a shell-parsable description,
 or a JSON representation of the system status.
 If more information is needed such as the slots' :ref:`status <slot-status>` add
 the command line option ``--detailed``.
+
+Symbolic Links in ``/run/rauc``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Especially for use by other programs and services, RAUC creates symbolic links
+in ``/run/rauc`` during service startup.
+
+For example, on a system with A/B rootfs slots and corresponding appfs slots,
+``/run/rauc/slots/active/appfs`` would point to the appfs slot that corresponds
+to the booted rootfs.
+This could be used to mount the correct appfs without replicating the status
+determination already implemented in RAUC.
 
 React to a Successfully Booted System/Failed Boot
 -------------------------------------------------
