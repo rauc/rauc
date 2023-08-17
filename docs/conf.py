@@ -25,11 +25,16 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.coverage',
     'sphinx.ext.ifconfig',
-    'sphinxext.opengraph',
+    'sphinx_rtd_theme',
 ]
 
-ogp_site_url = 'https://rauc.readthedocs.io/en/latest/'
-ogp_image = 'https://rauc.readthedocs.io/en/latest/_static/RAUC_Logo_outline.svg'
+try:
+    import sphinxext.opengraph
+    extensions.append('sphinxext.opengraph')
+    ogp_site_url = 'https://rauc.readthedocs.io/en/latest/'
+    ogp_image = 'https://rauc.readthedocs.io/en/latest/_static/RAUC_Logo_outline.svg'
+except ModuleNotFoundError:
+    print("not using sphinxext.opengraph")
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -72,7 +77,7 @@ lexers['DTS'] = DtsLexer()
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'default'
+html_theme = 'sphinx_rtd_theme'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
