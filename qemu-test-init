@@ -9,6 +9,7 @@ mount -t sysfs none /sys
 mount -t debugfs debugfs /sys/kernel/debug/ || true
 mount -t tracefs tracefs /sys/kernel/tracing/ || true
 mount -t tmpfs none /mnt
+mount -t tmpfs none /run
 mount -t tmpfs none /tmp
 
 BUILD_DIR="build/"

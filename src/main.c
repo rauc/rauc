@@ -1451,7 +1451,7 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 	formatter_shell_append(text, "RAUC_BOOT_PRIMARY", status->primary ? status->primary->name : NULL);
 
 	slotnames = g_ptr_array_new();
-	slotnumbers = g_ptr_array_new();
+	slotnumbers = g_ptr_array_new_with_free_func(g_free);
 	g_hash_table_iter_init(&iter, status->slots);
 	while (g_hash_table_iter_next(&iter, (gpointer*) &name, NULL)) {
 		g_ptr_array_add(slotnames, name);
@@ -2001,6 +2001,33 @@ static gboolean status_start(int argc, char **argv)
 }
 
 G_GNUC_UNUSED
+static void create_run_links(void)
+{
+	g_autoptr(GError) ierror = NULL;
+	GHashTableIter iter;
+	RaucSlot *slot;
+
+	if (g_mkdir_with_parents("/run/rauc/slots/active", 0755) != 0) {
+		g_warning("Failed to create /run/rauc/slots/active");
+		return;
+	}
+
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+		g_autofree gchar* path = NULL;
+
+		if (!(slot->state & ST_ACTIVE))
+			continue;
+
+		path = g_build_filename("/run/rauc/slots/active", slot->sclass, NULL);
+
+		if (!r_update_symlink(slot->device, path, &ierror)) {
+			g_warning("Failed to create symlink for active slot: %s", ierror->message);
+		}
+	}
+}
+
+G_GNUC_UNUSED
 static gboolean service_start(int argc, char **argv)
 {
 	g_autoptr(GError) ierror = NULL;
@@ -2012,6 +2039,8 @@ static gboolean service_start(int argc, char **argv)
 		r_exit_status = 1;
 		return TRUE;
 	}
+
+	create_run_links();
 
 	if (r_context()->system_status) {
 		/* Boot ID-based system reboot vs service restart detection */
