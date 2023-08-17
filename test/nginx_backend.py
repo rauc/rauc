@@ -1,8 +1,37 @@
 #!/usr/bin/python3
 
-from aiohttp import web
+import os
+import socket
+import sys
+
+try:
+    from aiohttp import web
+except ModuleNotFoundError:
+    print("aiohttp python module not installed, disabling RAUC_TEST_HTTP_BACKEND")
+    exit(1)
 
 routes = web.RouteTableDef()
+
+
+def daemonize():
+    if os.fork():
+        sys.exit()
+
+    os.setsid()
+
+    if os.fork():
+        sys.exit()
+
+
+def open_socket(name):
+    try:
+        os.unlink(name)
+    except FileNotFoundError:
+        pass
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.bind(name)
+    os.chmod(name, 0o666)
+    return s
 
 
 @routes.get("/")
@@ -29,9 +58,13 @@ async def token_get(request):
         return web.FileResponse(path="test/good-verity-bundle.raucb")
 
 
+s = open_socket("/tmp/backend.sock")
+
+daemonize()
+
 app = web.Application()
 app["rauc"] = {
     "sporadic_counter": -1,
 }
 app.add_routes(routes)
-web.run_app(app, path="/tmp/backend.sock")
+web.run_app(app, sock=s)
