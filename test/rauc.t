@@ -172,57 +172,6 @@ grub-editenv -V &&
 whoami | grep -q root &&
   test_set_prereq ROOT
 
-test_expect_success "rauc noargs" "
-  test_must_fail rauc
-"
-
-test_expect_success "rauc invalid arg" "
-  test_must_fail rauc --foobar baz
-"
-
-test_expect_success "rauc invalid cmd" "
-  test_must_fail rauc dothis
-"
-
-test_expect_success "rauc missing arg" "
-  test_expect_code 1 rauc install &&
-  test_expect_code 1 rauc write-slot &&
-  test_expect_code 1 rauc write-slot slot &&
-  test_expect_code 1 rauc info &&
-  test_expect_code 1 rauc bundle &&
-  test_expect_code 1 rauc bundle input &&
-  test_expect_code 1 rauc resign input &&
-  test_expect_code 1 rauc replace-signature &&
-  test_expect_code 1 rauc replace-signature input &&
-  test_expect_code 1 rauc replace-signature input output &&
-  test_expect_code 1 rauc info
-"
-
-test_expect_success "rauc excess args" "
-  test_expect_code 1 rauc install bundle excess &&
-  test_expect_code 1 rauc write-slot source target excess &&
-  test_expect_code 1 rauc info bundle excess &&
-  test_expect_code 1 rauc bundle indir outbundle excess &&
-  test_expect_code 1 rauc resign inbundle outbundle excess &&
-  test_expect_code 1 rauc replace-signature inbundle insig outbundle excess &&
-  test_expect_code 1 rauc info bundle excess
-"
-
-test_expect_success "rauc version" "
-  rauc --version
-"
-
-test_expect_success "rauc help" "
-  rauc --help &&
-  rauc install --help &&
-  rauc write-slot --help &&
-  rauc info --help &&
-  rauc bundle --help &&
-  rauc resign --help &&
-  rauc replace-signature --help &&
-  rauc info --help
-"
-
 test_expect_success "rauc info (plain)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
