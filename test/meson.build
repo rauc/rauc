@@ -83,6 +83,7 @@ pytest = find_program('pytest', required: false)
 if pytest.found()
   pytests = [
     'test_cmdline',
+    'test_info',
   ]
   foreach test_name : pytests
     test(
