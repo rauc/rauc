@@ -1353,6 +1353,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	}
 
 	handler_env = prepare_environment(bundle->mount_point, bundle->manifest, target_group);
+	handler_env = g_environ_setenv(handler_env, "RAUC_TRANSACTION_ID", args->transaction, TRUE);
 
 	if (r_context()->config->preinstall_handler) {
 		g_message("Starting pre install handler: %s", r_context()->config->preinstall_handler);
