@@ -65,3 +65,8 @@ option(
   type : 'boolean',
   value : 'true',
   description : 'Enable/Disable test suite')
+option(
+  'fuzzing',
+  type : 'boolean',
+  value : 'false',
+  description : 'Enable/Disable fuzz tests')
