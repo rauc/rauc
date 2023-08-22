@@ -840,20 +840,6 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bun
 
 	r_context_begin_step_weighted("launch_and_wait_custom_handler", "Launching update handler", 0, 6);
 
-	/* Allow overriding compatible check by hook */
-	if (manifest->hooks.install_check) {
-		run_bundle_hook(manifest, bundledir, "install-check", &ierror);
-		if (ierror) {
-			g_propagate_error(error, ierror);
-			res = FALSE;
-			goto out;
-		}
-	} else if (!verify_compatible(args, manifest, &ierror)) {
-		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto out;
-	}
-
 	handler_name = g_build_filename(bundledir, manifest->handler_name, NULL);
 	handler_args = g_ptr_array_new_full(0, g_free);
 	if (manifest->handler_args) {
@@ -1126,28 +1112,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 	boot_mark_slot = get_boot_mark_slot(install_plans);
 
-	/* Allow overriding compatible check by hook */
-	if (manifest->hooks.install_check) {
-		run_bundle_hook(manifest, bundledir, "install-check", &ierror);
-		if (ierror) {
-			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED)) {
-				g_propagate_prefixed_error(
-						error,
-						ierror,
-						"Bundle rejected: ");
-			} else {
-				g_propagate_prefixed_error(
-						error,
-						ierror,
-						"Install-check hook failed: ");
-			}
-			return FALSE;
-		}
-	} else if (!verify_compatible(args, manifest, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
 	if (!pre_install_checks(bundledir, install_plans, target_group, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -1362,6 +1326,30 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 			g_propagate_prefixed_error(error, ierror, "Pre-install handler error: ");
 			goto umount;
 		}
+	}
+
+	/* Allow overriding compatible check by hook */
+	if (bundle->manifest->hooks.install_check) {
+		run_bundle_hook(bundle->manifest, bundle->mount_point, "install-check", &ierror);
+		if (ierror) {
+			res = FALSE;
+			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED)) {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Bundle rejected: ");
+			} else {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Install-check hook failed: ");
+			}
+			goto umount;
+		}
+	} else if (!verify_compatible(args, bundle->manifest, &ierror)) {
+		res = FALSE;
+		g_propagate_error(error, ierror);
+		goto umount;
 	}
 
 	if (bundle->manifest->handler_name) {
