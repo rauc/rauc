@@ -395,9 +395,35 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 	return g_steal_pointer(&slots);
 }
 
+void r_config_file_modified_check(void)
+{
+	g_autoptr(GError) ierror = NULL;
+	g_autofree gchar *data = NULL;
+	gsize length;
+	g_autofree gchar *new_checksum = NULL;
+
+	if (!r_context()->config->file_checksum)
+		return;
+
+	if (!g_file_get_contents(r_context()->configpath, &data, &length, &ierror)) {
+		g_warning("Failed to compare config: %s", ierror->message);
+		return;
+	}
+
+	new_checksum = g_compute_checksum_for_data(G_CHECKSUM_SHA256, (guchar*) data, length);
+
+	if (g_strcmp0(r_context()->config->file_checksum, new_checksum) != 0) {
+		g_warning("System configuration file changed on disk! "
+				"Still using old configuration! "
+				"Please restart the rauc service.");
+	}
+}
+
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 {
 	GError *ierror = NULL;
+	g_autofree gchar *data = NULL;
+	gsize length;
 	g_autoptr(RaucConfig) c = g_new0(RaucConfig, 1);
 	g_autoptr(GKeyFile) key_file = NULL;
 	gboolean dtbvariant;
@@ -409,9 +435,16 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	g_return_val_if_fail(config && *config == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	/* We store checksum for later comparison */
+	if (!g_file_get_contents(filename, &data, &length, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	c->file_checksum = g_compute_checksum_for_data(G_CHECKSUM_SHA256, (guchar*) data, length);
+
 	key_file = g_key_file_new();
 
-	if (!g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror)) {
+	if (!g_key_file_load_from_data(key_file, data, length, G_KEY_FILE_NONE, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
@@ -907,5 +940,6 @@ void free_config(RaucConfig *config)
 	g_free(config->encryption_cert);
 	g_clear_pointer(&config->slots, g_hash_table_destroy);
 	g_free(config->custom_bootloader_backend);
+	g_free(config->file_checksum);
 	g_free(config);
 }
