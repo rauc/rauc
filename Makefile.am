@@ -219,6 +219,7 @@ EXTRA_DIST += tap-t \
 	      test/sharness.sh \
 	      test/system.conf \
 	      test/test.conf \
+	      test/test-custom.conf \
 	      test/test-global.conf \
 	      test/test-datadir.conf \
 	      test/test-dummy-handler.conf \
@@ -226,7 +227,8 @@ EXTRA_DIST += tap-t \
 	      test/openssl-ca-create.sh \
 	      test/openssl-ca-check.sh \
 	      test/openssl-enc-create.sh \
-	      test/run-coverity.sh
+	      test/run-coverity.sh \
+	      test/custom-state-current
 
 librauctest_la_SOURCES = \
 	test/common.c \
