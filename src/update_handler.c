@@ -2527,6 +2527,102 @@ out:
 	return res;
 }
 
+static gboolean img_to_boot_nor_fallback_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	gchar** devices = NULL;
+	gboolean primary_clear;
+	char *part_names[2] = {
+		"primary",
+		"fallback"
+	};
+	int first_part_desc_index = 1;
+
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(dest_slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	devices = g_strsplit(dest_slot->device, ":", -1);
+	if (g_strv_length(devices) != 2) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Slot device string does not contain two comma separated devices. Aborting!");
+		goto out;
+	}
+
+	g_message("Executing nor fallback handler on slot %s with primary device %s and fallback device %s",
+			dest_slot->name, devices[0], devices[1]);
+
+	/* If the primary partition is not fully programmed, it most likely means that the fallback
+	 * partition was used to boot and is therefore valid. To avoid ending up with two broken partitions,
+	 * upgrade the primary partition first.
+	 *
+	 * We are assuming the size of the header to be 512 here.
+	 * In any case this is enough to know that things are missing.
+	 */
+	res = check_if_area_is_clear(devices[0], 0, 512, &primary_clear, &ierror);
+	if (!res) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Failed to check area at %"G_GUINT64_FORMAT " on %s",
+				dest_slot->region_start, dest_slot->device);
+		goto out;
+	}
+
+	if (primary_clear) {
+		g_message("Updating the primary partition first as it is empty, so we assume we booted from fallback.");
+		first_part_desc_index++;
+	}
+
+	for (gint i = 0; i < 2; i++) {
+		gint part_index = (first_part_desc_index + i) % 2;
+
+		g_message("Updating %s partition on %s", part_names[part_index], devices[part_index]);
+
+		/* erase */
+		g_message("Erasing slot device %s", devices[part_index]);
+		res = flash_format_slot(devices[part_index], &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+		/* TODO: This write should write the first sector last,
+		 * unfortunately flashcp does not support offsets.
+		 */
+		/* write */
+		g_message("Writing slot device %s", devices[part_index]);
+		res = nor_write_slot(image->filename, devices[part_index], &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+out:
+	if (devices != NULL) {
+		g_strfreev(devices);
+	}
+	return res;
+}
+
 static gboolean img_to_boot_raw_fallback_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GError *ierror = NULL;
@@ -2754,6 +2850,8 @@ RaucUpdatePair updatepairs[] = {
 	{"*", "boot-gpt-switch", NULL},
 	{"*.img", "boot-raw-fallback", img_to_boot_raw_fallback_handler},
 	{"*", "boot-raw-fallback", NULL},
+	{"*.img", "boot-nor-fallback", img_to_boot_nor_fallback_handler},
+	{"*", "boot-nor-fallback", NULL},
 	{"*.img.caibx", "*", img_to_raw_handler}, /* fallback */
 	{"*.img", "*", img_to_raw_handler}, /* fallback */
 	{0}

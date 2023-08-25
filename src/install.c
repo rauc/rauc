@@ -905,8 +905,20 @@ static gboolean pre_install_check_slot_mount_status(RaucSlot *slot, RaucImage *m
 	return FALSE;
 }
 
+static gboolean check_device(gchar* device, GError **error)
+{
+	if (!g_file_test(device, G_FILE_TEST_EXISTS)) {
+		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NODST,
+				"Destination device '%s' not found", device);
+		return FALSE;
+	}
+	return TRUE;
+}
+
 static gboolean pre_install_checks(gchar* bundledir, GPtrArray *install_plans, GHashTable *target_group, GError **error)
 {
+	gchar** devices = NULL;
+
 	for (guint i = 0; i < install_plans->len; i++) {
 		const RImageInstallPlan *plan = g_ptr_array_index(install_plans, i);
 
@@ -934,10 +946,19 @@ static gboolean pre_install_checks(gchar* bundledir, GPtrArray *install_plans, G
 		}
 
 skip_filename_checks:
-		if (!g_file_test(plan->target_slot->device, G_FILE_TEST_EXISTS)) {
-			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NODST,
-					"Destination device '%s' not found", plan->target_slot->device);
-			return FALSE;
+		if (g_strcmp0(plan->target_slot->type, "boot-nor-fallback") == 0) {
+			devices = g_strsplit(plan->target_slot->device, ":", -1);
+			for (int i = 0; i < g_strv_length(devices); i++) {
+				if (!check_device(devices[i], error)) {
+					g_strfreev(devices);
+					return FALSE;
+				}
+			}
+			g_strfreev(devices);
+		} else {
+			if (!check_device(plan->target_slot->device, error)) {
+				return FALSE;
+			}
 		}
 
 		if (!pre_install_check_slot_mount_status(plan->target_slot, plan->image, error)) {
