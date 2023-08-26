@@ -906,5 +906,6 @@ void free_config(RaucConfig *config)
 	g_free(config->encryption_key);
 	g_free(config->encryption_cert);
 	g_clear_pointer(&config->slots, g_hash_table_destroy);
+	g_free(config->custom_bootloader_backend);
 	g_free(config);
 }
