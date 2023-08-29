@@ -22,7 +22,7 @@ jobs:
     - name: Test with service and gpt
       run: |
         rm -rf build/
-        meson setup -Dservice=true -Dgpt=enabled -Db_coverage=true -Dwerror=true build
+        meson setup -Dservice=true -Dgpt=enabled -Dfuzz=true -Db_coverage=true -Dwerror=true build
         meson configure build
         meson compile -C build
         ./qemu-test
