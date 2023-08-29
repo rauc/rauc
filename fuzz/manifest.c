@@ -9,16 +9,11 @@
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-	GBytes *dt = NULL;
-	RaucManifest *rm = NULL;
-	GError *error = NULL;
-	gboolean res = FALSE;
-	dt = g_bytes_new(data, size);
-	res = load_manifest_mem(dt, &rm, &error);
+	g_autoptr(GBytes) dt = g_bytes_new(data, size);
+	g_autoptr(RaucManifest) rm = NULL;
+	g_autoptr(GError) error = NULL;
 
-	g_clear_error(&error);
-	g_clear_pointer(&rm, free_manifest);
-	g_assert_null(rm);
-	g_clear_pointer(&dt, g_bytes_unref);
+	(void) load_manifest_mem(dt, &rm, &error);
+
 	return 0;
 }
