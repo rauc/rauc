@@ -338,11 +338,20 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, g
 {
 	GError *ierror = NULL;
 	goffset seeksize;
-	g_autoptr(GFile) srcimagefile = g_file_new_for_path(image->filename);
-	int out_fd = g_unix_output_stream_get_fd(outstream);
+	g_autoptr(GFile) srcimagefile = NULL;
+	int out_fd = -1;
 	g_autofree void *header = NULL;
+	g_autoptr(GInputStream) instream = NULL;
 
-	g_autoptr(GInputStream) instream = G_INPUT_STREAM(g_file_read(srcimagefile, NULL, &ierror));
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(image->checksum.size >= 0, FALSE);
+	g_return_val_if_fail(outstream, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	srcimagefile = g_file_new_for_path(image->filename);
+	out_fd = g_unix_output_stream_get_fd(outstream);
+
+	instream = G_INPUT_STREAM(g_file_read(srcimagefile, NULL, &ierror));
 	if (instream == NULL) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to open file for reading: ");
