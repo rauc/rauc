@@ -24,6 +24,10 @@ gboolean r_copy_stream_with_progress(GInputStream *in_stream, GOutputStream *out
 	g_return_val_if_fail(size >= 0, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	/* no-op for zero-sized images */
+	if (size == 0)
+		return TRUE;
+
 	do {
 		gboolean ret;
 
