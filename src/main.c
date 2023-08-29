@@ -1402,7 +1402,10 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 	g_string_append_printf(text, "Booted from: %s (%s)\n\n", bootedfrom ? bootedfrom->name : NULL, status->bootslot);
 
 	g_string_append(text, "=== Bootloader ===\n");
-	g_string_append_printf(text, "Activated: %s (%s)\n\n", status->primary ? status->primary->name : NULL, status->primary ? status->primary->bootname : NULL);
+	if (!status->primary)
+		g_string_append_printf(text, "Activated: none\n\n");
+	else
+		g_string_append_printf(text, "Activated: %s (%s)\n\n", status->primary->name, status->primary->bootname);
 
 	g_string_append(text, "=== Slot States ===\n");
 	slotclasses = r_slot_get_root_classes(status->slots);
