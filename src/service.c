@@ -120,6 +120,8 @@ static gboolean r_on_handle_install_bundle(
 		goto out;
 	}
 
+	r_config_file_modified_check();
+
 	r_installer_set_operation(r_installer, "installing");
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
 	res = install_run(args);
@@ -416,6 +418,8 @@ static gboolean r_on_handle_get_slot_status(RInstaller *interface,
 				"already processing a different method");
 		return TRUE;
 	}
+
+	r_config_file_modified_check();
 
 	slotstatus = create_slotstatus_array(&ierror);
 	if (!slotstatus) {

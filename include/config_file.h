@@ -88,6 +88,7 @@ typedef struct {
 	GHashTable *slots;
 	/* flag to ensure slot states were determined */
 	gboolean slot_states_determined;
+	gchar *file_checksum;
 } RaucConfig;
 
 typedef enum {
@@ -164,3 +165,11 @@ G_GNUC_WARN_UNUSED_RESULT;
 void free_config(RaucConfig *config);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucConfig, free_config);
+
+/**
+ * Checks if the current file checksum of the system config matches the one currently loaded.
+ *
+ * Prints a warning if the checksums of the config file does not match the one
+ * recorded during config parsing.
+ */
+void r_config_file_modified_check(void);
