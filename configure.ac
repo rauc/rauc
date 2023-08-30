@@ -273,9 +273,11 @@ AC_CONFIG_LINKS([test/rauc.t:test/rauc.t])
 AC_CONFIG_LINKS([test/rootfs.raucs:test/rootfs.raucs])
 AC_CONFIG_LINKS([test/sharness.sh:test/sharness.sh])
 AC_CONFIG_LINKS([test/test.conf:test/test.conf])
+AC_CONFIG_LINKS([test/test-custom.conf:test/test-custom.conf])
 AC_CONFIG_LINKS([test/test-global.conf:test/test-global.conf])
 AC_CONFIG_LINKS([test/test-datadir.conf:test/test-datadir.conf])
 AC_CONFIG_LINKS([test/test-dummy-handler.conf:test/test-dummy-handler.conf])
+AC_CONFIG_LINKS([test/custom-state-current:test/custom-state-current])
 
 AC_CONFIG_FILES([
         Makefile

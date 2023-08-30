@@ -33,6 +33,12 @@ function custom_set_primary ()
 	sed -i "s/\(PRIMARY=\).*/\1${bootname}/" "${CUSTOM_STATE_PATH}"
 }
 
+function custom_get_current ()
+{
+	echo $(grep CURRENT "$CUSTOM_STATE_PATH" | sed 's/.*=\(.*\)/\1/')
+}
+
+
 if [ "$1" = "get-state" ]; then
     shift
     custom_get_state "$@"
@@ -45,4 +51,7 @@ elif [ "$1" = "get-primary" ]; then
 elif [ "$1" = "set-primary" ]; then
     shift
     custom_set_primary "$@"
+elif [ "$1" = "get-current" ]; then
+    shift
+    custom_get_current "$@"
 fi

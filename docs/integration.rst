@@ -485,6 +485,16 @@ See the `systemd-veritysetup-generator documentation
 <https://www.freedesktop.org/software/systemd/man/systemd-veritysetup-generator.html#systemd.verity_root_data=>`_
 for details.
 
+Identification via custom backend
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When using the custom bootloader backend and the information about the
+currently booted slot cannot be derived from the kernel command line,
+RAUC will try to query the custom bootloader backend to get this information.
+
+See the :ref:`sec-custom-bootloader-backend` bootloader section on how
+to implement a custom bootloader handler.
+
 Barebox
 ~~~~~~~
 
@@ -1114,6 +1124,7 @@ RAUC to trigger the following actions:
 * set the primary slot
 * get the boot state
 * set the boot state
+* get the current booted slot (optional)
 
 To get the primary slot, the handler is called with the argument ``get-primary``.
 The handler must output the current primary slot's bootname on the `stdout`,
@@ -1146,6 +1157,12 @@ The ``<state>`` argument corresponds to one of the following values:
 
 The return value must be ``0`` if the boot state was set successfully,
 or non-zero if an error occurred.
+
+To get the current running slot, the handler must be called with the argument
+``get-current``. The handler must output the current running slot's bootname on
+the `stdout`, and return ``0`` on exit, if no error occurred. Implementing this
+is only needed when the /proc/cmdline is not providing information about current
+booted slot.
 
 Init System and Service Startup
 -------------------------------
