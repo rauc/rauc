@@ -1188,7 +1188,7 @@ out:
 	return res;
 }
 
-static gboolean nor_write_slot(const gchar *image, const gchar *device, GError **error)
+static gboolean nor_write_slot(const gchar *image, const gchar *device, const unsigned long long wr_last, GError **error)
 {
 	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
@@ -1196,6 +1196,11 @@ static gboolean nor_write_slot(const gchar *image, const gchar *device, GError *
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(5, g_free);
 
 	g_ptr_array_add(args, g_strdup("flashcp"));
+	if (wr_last > 0) {
+		g_ptr_array_add(args, g_strdup("-l"));
+		g_ptr_array_add(args, g_strdup_printf("%llu", wr_last));
+		g_ptr_array_add(args, g_strdup("-v")); // We should not need verbose except for debugging
+	}
 	g_ptr_array_add(args, g_strdup(image));
 	g_ptr_array_add(args, g_strdup(device));
 	g_ptr_array_add(args, NULL);
@@ -2001,7 +2006,7 @@ static gboolean img_to_nor_handler(RaucImage *image, RaucSlot *dest_slot, const 
 
 	/* write */
 	g_message("writing slot device %s", dest_slot->device);
-	res = nor_write_slot(image->filename, dest_slot->device, &ierror);
+	res = nor_write_slot(image->filename, dest_slot->device, 0, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -2538,6 +2543,7 @@ static gboolean img_to_boot_nor_fallback_handler(RaucImage *image, RaucSlot *des
 		"fallback"
 	};
 	int first_part_desc_index = 1;
+	const gsize header_size = 512; /* TODO: this value should be settable through the system config file. */
 
 	g_return_val_if_fail(image, FALSE);
 	g_return_val_if_fail(dest_slot, FALSE);
@@ -2566,10 +2572,9 @@ static gboolean img_to_boot_nor_fallback_handler(RaucImage *image, RaucSlot *des
 	 * partition was used to boot and is therefore valid. To avoid ending up with two broken partitions,
 	 * upgrade the primary partition first.
 	 *
-	 * We are assuming the size of the header to be 512 here.
-	 * In any case this is enough to know that things are missing.
+	 * We are only checking the header area, as it is the last thing written.
 	 */
-	res = check_if_area_is_clear(devices[0], 0, 512, &primary_clear, &ierror);
+	res = check_if_area_is_clear(devices[0], 0, header_size, &primary_clear, &ierror);
 	if (!res) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Failed to check area at %"G_GUINT64_FORMAT " on %s",
@@ -2600,7 +2605,7 @@ static gboolean img_to_boot_nor_fallback_handler(RaucImage *image, RaucSlot *des
 		 */
 		/* write */
 		g_message("Writing slot device %s", devices[part_index]);
-		res = nor_write_slot(image->filename, devices[part_index], &ierror);
+		res = nor_write_slot(image->filename, devices[part_index], header_size, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
