@@ -338,11 +338,20 @@ static gboolean copy_raw_image(RaucImage *image, GUnixOutputStream *outstream, g
 {
 	GError *ierror = NULL;
 	goffset seeksize;
-	g_autoptr(GFile) srcimagefile = g_file_new_for_path(image->filename);
-	int out_fd = g_unix_output_stream_get_fd(outstream);
+	g_autoptr(GFile) srcimagefile = NULL;
+	int out_fd = -1;
 	g_autofree void *header = NULL;
+	g_autoptr(GInputStream) instream = NULL;
 
-	g_autoptr(GInputStream) instream = G_INPUT_STREAM(g_file_read(srcimagefile, NULL, &ierror));
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(image->checksum.size >= 0, FALSE);
+	g_return_val_if_fail(outstream, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	srcimagefile = g_file_new_for_path(image->filename);
+	out_fd = g_unix_output_stream_get_fd(outstream);
+
+	instream = G_INPUT_STREAM(g_file_read(srcimagefile, NULL, &ierror));
 	if (instream == NULL) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to open file for reading: ");
@@ -2520,7 +2529,6 @@ out:
 
 static gboolean img_to_boot_raw_fallback_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
-	gboolean res = FALSE;
 	GError *ierror = NULL;
 	guint64 half_size;
 	gboolean primary_clear;
@@ -2545,21 +2553,21 @@ static gboolean img_to_boot_raw_fallback_handler(RaucImage *image, RaucSlot *des
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Region start %"G_GUINT64_FORMAT " is not aligned to the header size %"G_GSIZE_FORMAT,
 				dest_slot->region_start, header_size);
-		goto out;
+		return FALSE;
 	}
 
 	if ((half_size % header_size) != 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Half region size %"G_GUINT64_FORMAT " is not aligned to the header size %"G_GSIZE_FORMAT,
 				half_size, header_size);
-		goto out;
+		return FALSE;
 	}
 
 	if (half_size < (guint64)image->checksum.size) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Size of image (%"G_GOFFSET_FORMAT ") does not fit to slot size %"G_GUINT64_FORMAT,
 				image->checksum.size, half_size);
-		goto out;
+		return FALSE;
 	}
 
 	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_REGION_START"),
@@ -2569,11 +2577,10 @@ static gboolean img_to_boot_raw_fallback_handler(RaucImage *image, RaucSlot *des
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook_extra_env(hook_name, R_SLOT_HOOK_PRE_INSTALL, image,
-				dest_slot, vars, &ierror);
-		if (!res) {
+		if (!run_slot_hook_extra_env(hook_name, R_SLOT_HOOK_PRE_INSTALL, image,
+				dest_slot, vars, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
@@ -2589,12 +2596,11 @@ static gboolean img_to_boot_raw_fallback_handler(RaucImage *image, RaucSlot *des
 	 * partition was used to boot and is therefore valid. To avoid ending up with two broken partitions,
 	 * upgrade the primary partition first.
 	 */
-	res = check_if_area_is_clear(dest_slot->device, dest_slot->region_start, header_size, &primary_clear, &ierror);
-	if (!res) {
+	if (!check_if_area_is_clear(dest_slot->device, dest_slot->region_start, header_size, &primary_clear, &ierror)) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Failed to check area at %"G_GUINT64_FORMAT " on %s",
 				dest_slot->region_start, dest_slot->device);
-		goto out;
+		return FALSE;
 	}
 
 	if (primary_clear)
@@ -2607,27 +2613,25 @@ static gboolean img_to_boot_raw_fallback_handler(RaucImage *image, RaucSlot *des
 
 		if (!clear_boot_switch_partition(dest_slot->device, &pd->partition, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 
 		if (!write_boot_switch_partition(image, dest_slot->device, &pd->partition, header_size, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook_extra_env(hook_name, R_SLOT_HOOK_POST_INSTALL, image,
-				dest_slot, vars, &ierror);
-		if (!res) {
+		if (!run_slot_hook_extra_env(hook_name, R_SLOT_HOOK_POST_INSTALL, image,
+				dest_slot, vars, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
-out:
-	return res;
+	return TRUE;
 }
 
 static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
