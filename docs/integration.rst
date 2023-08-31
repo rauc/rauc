@@ -780,6 +780,17 @@ successfully set up bootchooser to boot your slot::
 
   $ cat /proc/cmdline
 
+Enable Watchdog on Boot
+^^^^^^^^^^^^^^^^^^^^^^^
+
+When enabled, Barebox will automatically set up the configured watchdog when
+running the ``boot`` command.
+
+To enable this, set the ``boot.watchdog_timeout`` variable, preferably in the
+environment::
+
+  nv boot.watchdog_timeout=10
+
 
 U-Boot
 ~~~~~~
