@@ -570,8 +570,13 @@ In this example we call the virtual bootchooser boot targets ``system0`` and
 Now connect each of these virtual boot targets to a real Barebox boot target
 (one of its automagical ones or custom boot scripts)::
 
-  nv bootchooser.system0.boot="nand0.ubi.system0"
-  nv bootchooser.system1.boot="nand0.ubi.system1"
+  nv bootchooser.system0.boot="mmc1.1"
+  nv bootchooser.system1.boot="mmc1.2"
+
+.. note:: For most cases, no extra boot entry needs to be configured since
+   barebox will match the the given boot target to the corresponding device,
+   automatically mount it and attempt to read a matching bootloader
+   specification (bootspec) entry from ``/loader/entries/``.
 
 To configure bootchooser to store the variables in Barebox state, you need to configure the ``state_prefix``::
 
