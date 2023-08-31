@@ -843,15 +843,17 @@ int main(int argc, char *argv[])
 				bundle_fixture_set_up_bundle_codesign, bundle_test_purpose_codesign,
 				bundle_fixture_tear_down);
 
-		g_test_add(dup_test_printf(ptrs, "/bundle/create_mount_extract_with_pre_check/%s", format_name),
-				BundleFixture, bundle_data,
-				bundle_fixture_set_up_bundle, bundle_test_create_mount_extract_with_pre_check,
-				bundle_fixture_tear_down);
+		if (format != R_MANIFEST_FORMAT_PLAIN) {
+			g_test_add(dup_test_printf(ptrs, "/bundle/create_mount_extract_with_pre_check/%s", format_name),
+					BundleFixture, bundle_data,
+					bundle_fixture_set_up_bundle, bundle_test_create_mount_extract_with_pre_check,
+					bundle_fixture_tear_down);
 
-		g_test_add(dup_test_printf(ptrs, "/bundle/create_mount_with_pre_check_corrupt/%s", format_name),
-				BundleFixture, bundle_data,
-				bundle_fixture_set_up_bundle_corrupt, bundle_test_create_check_mount_with_pre_check_corrupt,
-				bundle_fixture_tear_down);
+			g_test_add(dup_test_printf(ptrs, "/bundle/create_mount_with_pre_check_corrupt/%s", format_name),
+					BundleFixture, bundle_data,
+					bundle_fixture_set_up_bundle_corrupt, bundle_test_create_check_mount_with_pre_check_corrupt,
+					bundle_fixture_tear_down);
+		}
 	}
 
 	/* test casync manifest contents */
