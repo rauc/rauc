@@ -24,8 +24,9 @@ GQuark r_bootchooser_error_quark(void)
 #define UBOOT_ATTEMPTS_PRIMARY  3
 #define EFIBOOTMGR_NAME "efibootmgr"
 #define GRUB_EDITENV "grub-editenv"
+#define BOOTCTL_NAME "bootctl"
 
-static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "custom", "noop", NULL};
+static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "systemd-boot", "custom", "noop", NULL};
 
 gboolean r_boot_is_supported_bootloader(const gchar *bootloader)
 {
@@ -1456,6 +1457,51 @@ static gboolean efi_get_state(RaucSlot* slot, gboolean *good, GError **error)
 	return TRUE;
 }
 
+static gboolean systemd_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
+{
+	g_autoptr(GSubprocess) sub = NULL;
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_message("systemd-boot bootloader: setting slot %s status to %s", slot->name, good ? "good" : "bad");
+
+	/* We can only mark the slot as good */
+	if (!good) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+				"Setting state for systemd-boot to bad is not yet supported");
+		return FALSE;
+	}
+
+	/* Set the default boot choice to this slot name */
+	/* TODO: allow the slot name to be configurable */
+	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, BOOTCTL_NAME,
+			"set-default", slot->name, NULL);
+
+	if (!sub) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start " BOOTCTL_NAME ": ");
+		return FALSE;
+	}
+
+
+	if (!g_subprocess_wait_check(sub, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run " BOOTCTL_NAME ": ");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 /* Wrapper for get commands accessing custom script
  *
  * @param cmd What to input as command to the custom backend. Mandatory.
@@ -1682,6 +1728,9 @@ gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 		res = uboot_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = efi_get_state(slot, good, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "systemd-boot") == 0) {
+		/* TODO: implement r_boot_get_state for systemd-boot */
+		g_message("systemd-boot bootloader: ignore getting slot %s status", slot->name);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
 		res = custom_get_state(slot, good, &ierror);
 	} else {
@@ -1719,6 +1768,8 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 		res = uboot_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = efi_set_state(slot, good, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "systemd-boot") == 0) {
+		res = systemd_boot_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
 		res = custom_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "noop") == 0) {
@@ -1758,6 +1809,9 @@ RaucSlot* r_boot_get_primary(GError **error)
 		slot = uboot_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		slot = efi_get_primary(&ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "systemd-boot") == 0) {
+		/* TODO: implement r_boot_get_primary for systemd-boot */
+		g_message("systemd-boot bootloader: ignore getting primary slot");
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
 		slot = custom_get_primary(&ierror);
 	} else {
@@ -1795,6 +1849,9 @@ gboolean r_boot_set_primary(RaucSlot *slot, GError **error)
 		res = uboot_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = efi_set_primary(slot, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "systemd-boot") == 0) {
+		/* TODO: implement r_boot_set_primary for systemd-boot */
+		g_message("systemd-boot bootloader: ignore set primary slot %s status", slot->name);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
 		res = custom_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "noop") == 0) {
