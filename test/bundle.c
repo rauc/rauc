@@ -856,12 +856,12 @@ int main(int argc, char *argv[])
 
 	/* test casync manifest contents */
 	g_test_add("/bundle/check_casync/old",
-			BundleFixture, bundle_data,
+			BundleFixture, NULL,
 			bundle_fixture_set_up, bundle_test_check_casync_old,
 			bundle_fixture_tear_down);
 
 	g_test_add("/bundle/check_casync/new",
-			BundleFixture, bundle_data,
+			BundleFixture, NULL,
 			bundle_fixture_set_up, bundle_test_check_casync_new,
 			bundle_fixture_tear_down);
 
