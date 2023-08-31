@@ -1117,7 +1117,7 @@ To register the custom bootloader backend handler, assign your handler to the
 Custom bootloader backend interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-According to :ref:`sec-boot-slot` the custom bootloader handler is called by 
+According to :ref:`sec-boot-slot` the custom bootloader handler is called by
 RAUC to trigger the following actions:
 
 * get the primary slot

@@ -44,7 +44,7 @@ Some of them only run in CI, but most of them can be executed locally.
 When working on a new feature or fixing a bug, please make sure these tests
 succeed.
 
-Code Style - uncrustify 
+Code Style - uncrustify
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 To maintain a consistent code style, we use the `uncrustify
@@ -73,7 +73,7 @@ from the RAUC source code's root directory but they will also be triggered by
 the general test suite run (see below).
 If you add or change subcommands or arguments of the CLI tool, make sure these
 tests succeed and extend them if possible.
-As many of these tests need root permissions, we recommend running them using the 
+As many of these tests need root permissions, we recommend running them using the
 ``qemu-test`` helper below.
 
 glib Unit Tests - gtest
