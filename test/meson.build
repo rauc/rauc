@@ -64,20 +64,6 @@ fakerand = executable(
   'fakerand.c',
 )
 
-rauc_t = find_program(
-  'rauc.t'
-)
-
-test(
-  'rauc.t',
-  rauc_t,
-  args : '-v',
-  is_parallel : false,
-  timeout : 360,
-  env : ['SHARNESS_BUILD_DIRECTORY=' + meson.build_root()],
-  workdir : meson.current_source_dir(),
-)
-
 pytest = find_program('pytest', required: false)
 
 if pytest.found()
