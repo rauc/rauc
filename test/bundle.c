@@ -288,6 +288,7 @@ static void bundle_test_create_check_mount_with_pre_check_corrupt(BundleFixture 
 	res = mount_bundle(bundle, &ierror);
 	g_assert_error(ierror, G_FILE_ERROR, G_FILE_ERROR_IO);
 	g_assert_false(res);
+	g_assert_nonnull(strstr(ierror->message, "failed between 1048576 and 1114112 bytes with error: Input/output error"));
 }
 
 static void bundle_test_extract_signature(BundleFixture *fixture,

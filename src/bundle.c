@@ -2549,7 +2549,7 @@ static gboolean read_complete_dm_device(gchar *dev, GError **error)
 			g_set_error(error,
 					G_FILE_ERROR,
 					g_file_error_from_errno(err),
-					"Check %s device failed between %"G_GOFFSET_FORMAT " and %"G_GOFFSET_FORMAT " bytes with error: %s", dev, chunk*sizeof(buf), (chunk+1)*sizeof(buf), g_strerror(err));
+					"Check %s device failed between %"G_GOFFSET_FORMAT " and %"G_GOFFSET_FORMAT " bytes with error: %s", dev, chunk*chunk_size, (chunk+1)*chunk_size, g_strerror(err));
 			ret = FALSE;
 			break;
 		}
