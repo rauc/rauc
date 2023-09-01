@@ -7,12 +7,16 @@
 #include <context.h>
 #include <bundle.h>
 
+#include "fuzz.h"
+
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
 	g_autofree gchar *tmpdir = NULL;
 	g_autofree gchar *bundlename = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
 	g_autoptr(GError) error = NULL;
+
+	fuzz_set_logging_func();
 
 	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(tmpdir);
