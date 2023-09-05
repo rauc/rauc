@@ -7,6 +7,7 @@
 typedef struct {
 	gboolean custom_handler;
 	gboolean hooks;
+	gboolean slots;
 	RManifestBundleFormat format;
 } ManifestTestOptions;
 

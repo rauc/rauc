@@ -1481,6 +1481,7 @@ int main(int argc, char *argv[])
 		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.manifest_test_options = {
 			        .format = format,
+			        .slots = TRUE,
 			},
 		}));
 		g_test_add(dup_test_printf(ptrs, "/install/bootname/%s", format_name),
@@ -1520,6 +1521,7 @@ int main(int argc, char *argv[])
 			.manifest_test_options = {
 			        .custom_handler = TRUE,
 			        .hooks = FALSE,
+			        .slots = TRUE,
 			},
 		}));
 		g_test_add(dup_test_printf(ptrs, "/install/bundle-custom-handler/%s", format_name),
@@ -1532,6 +1534,7 @@ int main(int argc, char *argv[])
 			.manifest_test_options = {
 			        .custom_handler = FALSE,
 			        .hooks = TRUE,
+			        .slots = TRUE,
 			},
 		}));
 		g_test_add(dup_test_printf(ptrs, "/install/bundle-hook/install-check/%s", format_name),
@@ -1544,6 +1547,7 @@ int main(int argc, char *argv[])
 			.manifest_test_options = {
 			        .custom_handler = FALSE,
 			        .hooks = TRUE,
+			        .slots = TRUE,
 			},
 		}));
 		g_test_add(dup_test_printf(ptrs, "/install/bundle-hook/slot-install/%s", format_name),
@@ -1556,6 +1560,7 @@ int main(int argc, char *argv[])
 			.manifest_test_options = {
 			        .custom_handler = FALSE,
 			        .hooks = TRUE,
+			        .slots = TRUE,
 			},
 		}));
 		g_test_add(dup_test_printf(ptrs, "/install/bundle-hook/slot-post-install/%s", format_name),
@@ -1568,6 +1573,7 @@ int main(int argc, char *argv[])
 			.manifest_test_options = {
 			        .custom_handler = TRUE,
 			        .hooks = TRUE,
+			        .slots = TRUE,
 			},
 		}));
 		g_test_add(dup_test_printf(ptrs, "/install/already-mounted/%s", format_name),
@@ -1579,6 +1585,7 @@ int main(int argc, char *argv[])
 	install_data = dup_test_data(ptrs, (&(InstallData) {
 		.manifest_test_options = {
 		        .format = R_MANIFEST_FORMAT_VERITY,
+		        .slots = TRUE,
 		},
 	}));
 	g_test_add("/install/adaptive",

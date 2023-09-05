@@ -126,6 +126,9 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 	g_autoptr(GError) error = NULL;
 	gboolean res = FALSE;
 
+	g_assert_nonnull(tmpdir);
+	g_assert_nonnull(options);
+
 	/* needs to run as root */
 	if (!test_running_as_root())
 		return;
@@ -139,33 +142,29 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 	testfilepath = g_build_filename(mountdir, "verify.txt", NULL);
 
 	/* Setup bundle content */
-	g_assert(test_prepare_dummy_file(tmpdir, "content/rootfs.ext4",
-			SLOT_SIZE, "/dev/zero") == 0);
-	g_assert(test_prepare_dummy_file(tmpdir, "content/appfs.ext4",
-			SLOT_SIZE, "/dev/zero") == 0);
-	g_assert(test_prepare_dummy_file(tmpdir, "content/bootloader.ext4",
-			SLOT_SIZE, "/dev/zero") == 0);
-	g_assert_true(test_make_filesystem(tmpdir, "content/rootfs.ext4"));
-	g_assert_true(test_make_filesystem(tmpdir, "content/appfs.ext4"));
-	g_assert_true(test_make_filesystem(tmpdir, "content/bootloader.ext4"));
-	if (manifest_content) {
-		g_autofree gchar *tmpfile = write_tmp_file(tmpdir, "content/manifest.raucm", manifest_content, NULL);
-		g_assert_nonnull(tmpfile);
-	} else {
-		g_assert(test_prepare_manifest_file(tmpdir, "content/manifest.raucm", options) == 0);
+	if (options->slots) {
+		g_assert(test_prepare_dummy_file(tmpdir, "content/rootfs.ext4",
+				SLOT_SIZE, "/dev/zero") == 0);
+		g_assert(test_prepare_dummy_file(tmpdir, "content/appfs.ext4",
+				SLOT_SIZE, "/dev/zero") == 0);
+		g_assert(test_prepare_dummy_file(tmpdir, "content/bootloader.ext4",
+				SLOT_SIZE, "/dev/zero") == 0);
+		g_assert_true(test_make_filesystem(tmpdir, "content/rootfs.ext4"));
+		g_assert_true(test_make_filesystem(tmpdir, "content/appfs.ext4"));
+		g_assert_true(test_make_filesystem(tmpdir, "content/bootloader.ext4"));
+
+		/* Make images user-writable */
+		test_make_slot_user_writable(tmpdir, "content/rootfs.ext4");
+		test_make_slot_user_writable(tmpdir, "content/appfs.ext4");
+		test_make_slot_user_writable(tmpdir, "content/bootloader.ext4");
+
+		/* Write test file to slot */
+		g_assert(test_mkdir_relative(tmpdir, "mnt", 0777) == 0);
+		g_assert_true(test_mount(rootfspath, mountdir));
+		g_assert_true(g_file_set_contents(testfilepath, "0xdeadbeaf", -1, NULL));
+		g_assert_true(r_umount(mountdir, NULL));
+		g_assert(test_rmdir(tmpdir, "mnt") == 0);
 	}
-
-	/* Make images user-writable */
-	test_make_slot_user_writable(tmpdir, "content/rootfs.ext4");
-	test_make_slot_user_writable(tmpdir, "content/appfs.ext4");
-	test_make_slot_user_writable(tmpdir, "content/bootloader.ext4");
-
-	/* Write test file to slot */
-	g_assert(test_mkdir_relative(tmpdir, "mnt", 0777) == 0);
-	g_assert_true(test_mount(rootfspath, mountdir));
-	g_assert_true(g_file_set_contents(testfilepath, "0xdeadbeaf", -1, NULL));
-	g_assert_true(r_umount(mountdir, NULL));
-	g_assert(test_rmdir(tmpdir, "mnt") == 0);
 
 	/* Copy custom handler */
 	if (options->custom_handler) {
@@ -177,6 +176,13 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 	if (options->hooks) {
 		g_assert_true(test_copy_file("test/install-content/hook.sh", NULL,
 				tmpdir, "content/hook.sh"));
+	}
+
+	if (manifest_content) {
+		g_autofree gchar *tmpfile = write_tmp_file(tmpdir, "content/manifest.raucm", manifest_content, NULL);
+		g_assert_nonnull(tmpfile);
+	} else {
+		g_assert(test_prepare_manifest_file(tmpdir, "content/manifest.raucm", options) == 0);
 	}
 
 	/* Create bundle */

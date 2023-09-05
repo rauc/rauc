@@ -200,13 +200,13 @@ Example configuration:
   Normally, this option is not needed as every access to the bundle payload during
   installation is already protected by ``dm-verity``.
   The default value is ``false`` which means that this pre-check is not performed.
-  
+
   This option is useful when the installation should be aborted early even if the corrupt
   part of the bundle is not used during installation (perhaps due to adaptive updates or
   image variants).
 
   It has no effect for ``plain`` bundles, as the signature verification already checks the
-  whole bundle.  
+  whole bundle.
 
 .. _keyring-section:
 
