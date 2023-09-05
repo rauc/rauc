@@ -61,65 +61,6 @@ static gboolean check_image_size(int fd, const RaucImage *image, GError **error)
 	return TRUE;
 }
 
-/* the fd will only live as long as the returned output stream */
-static GUnixOutputStream* open_slot_device(RaucSlot *slot, int *fd, GError **error)
-{
-	GUnixOutputStream *outstream = NULL;
-	int fd_out;
-
-	g_return_val_if_fail(slot, NULL);
-	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
-
-	fd_out = g_open(slot->device, O_WRONLY | O_EXCL);
-
-	if (fd_out == -1) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Opening output device %s failed: %s", slot->device, strerror(errno));
-		return NULL;
-	}
-
-	outstream = G_UNIX_OUTPUT_STREAM(g_unix_output_stream_new(fd_out, TRUE));
-	if (outstream == NULL) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Failed to create stream for output device %s", slot->device);
-		return NULL;
-	}
-
-	if (fd != NULL)
-		*fd = fd_out;
-
-	return outstream;
-}
-
-static GUnixInputStream* open_file_as_unix_input_stream(const gchar *filename, int *fd, GError **error)
-{
-	GUnixInputStream *instream = NULL;
-	int fd_out;
-
-	g_return_val_if_fail(filename, NULL);
-	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
-
-	fd_out = g_open(filename, O_RDONLY);
-	if (fd_out < 0) {
-		int err = errno;
-		g_set_error(error, G_IO_ERROR, g_io_error_from_errno(err),
-				"Failed to open file %s: %s", filename, g_strerror(err));
-		return NULL;
-	}
-
-	instream = G_UNIX_INPUT_STREAM(g_unix_input_stream_new(fd_out, TRUE));
-	if (instream == NULL) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Failed to create stream for file %s", filename);
-		return NULL;
-	}
-
-	if (fd != NULL)
-		*fd = fd_out;
-
-	return instream;
-}
-
 #if ENABLE_EMMC_BOOT_SUPPORT == 1
 static gboolean clear_slot(RaucSlot *slot, GError **error)
 {
@@ -128,7 +69,7 @@ static gboolean clear_slot(RaucSlot *slot, GError **error)
 	g_autoptr(GOutputStream) outstream = NULL;
 	gint write_count = 0;
 
-	outstream = G_OUTPUT_STREAM(open_slot_device(slot, NULL, &ierror));
+	outstream = G_OUTPUT_STREAM(r_open_unix_output_stream(slot->device, NULL, &ierror));
 	if (outstream == NULL) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -292,7 +233,7 @@ static gboolean splice_file_to_outstream(const gchar *filename,
 	g_return_val_if_fail(out_stream, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	image_stream = open_file_as_unix_input_stream(filename, NULL, &ierror);
+	image_stream = r_open_unix_input_stream(filename, NULL, &ierror);
 	if (image_stream == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -697,7 +638,7 @@ static gboolean copy_raw_image_to_dev(RaucImage *image, RaucSlot *slot, GError *
 
 	/* open */
 	g_message("opening slot device %s", slot->device);
-	outstream = open_slot_device(slot, NULL, &ierror);
+	outstream = r_open_unix_output_stream(slot->device, NULL, &ierror);
 	if (outstream == NULL) {
 		res = FALSE;
 		g_propagate_error(error, ierror);
@@ -1585,7 +1526,7 @@ static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, con
 
 	/* open */
 	g_message("opening slot device %s", dest_slot->device);
-	outstream = open_slot_device(dest_slot, &out_fd, &ierror);
+	outstream = r_open_unix_output_stream(dest_slot->device, &out_fd, &ierror);
 	if (outstream == NULL) {
 		res = FALSE;
 		g_propagate_error(error, ierror);
@@ -1654,7 +1595,7 @@ static gboolean img_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 
 	/* open */
 	g_message("opening slot device %s", dest_slot->device);
-	outstream = open_slot_device(dest_slot, &out_fd, &ierror);
+	outstream = r_open_unix_output_stream(dest_slot->device, &out_fd, &ierror);
 	if (outstream == NULL) {
 		res = FALSE;
 		g_propagate_error(error, ierror);
@@ -2377,7 +2318,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 
 	/* open */
 	g_message("Opening slot device partition %s", part_slot->device);
-	outstream = open_slot_device(part_slot, &out_fd, &ierror);
+	outstream = r_open_unix_output_stream(part_slot->device, &out_fd, &ierror);
 	if (outstream == NULL) {
 		g_propagate_error(error, ierror);
 		res = FALSE;
