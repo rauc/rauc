@@ -214,6 +214,8 @@ EXTRA_DIST += tap-t \
 	      test/nginx.htpasswd \
 	      test/nginx_backend.py \
 	      $(wildcard test/openssl-enc/keys/*/*.pem) \
+	      test/payload-common.tar \
+	      test/payload-special.tar \
 	      test/rauc.t \
 	      test/rootfs.raucs \
 	      test/sharness.sh \

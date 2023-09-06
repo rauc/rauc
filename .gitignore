@@ -54,3 +54,4 @@ stamp-h1
 *.trs
 *.xz
 *.zip
+!/test/payload-*.tar
