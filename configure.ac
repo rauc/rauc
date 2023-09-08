@@ -269,6 +269,8 @@ AC_CONFIG_LINKS([test/openssl-enc/keys/rsa-4096/cert-001.pem:test/openssl-enc/ke
 AC_CONFIG_LINKS([test/openssl-enc/keys/rsa-4096/certs.pem:test/openssl-enc/keys/rsa-4096/certs.pem])
 AC_CONFIG_LINKS([test/openssl-enc/keys/rsa-4096/private-key-000.pem:test/openssl-enc/keys/rsa-4096/private-key-000.pem])
 AC_CONFIG_LINKS([test/openssl-enc/keys/rsa-4096/private-key-005.pem:test/openssl-enc/keys/rsa-4096/private-key-005.pem])
+AC_CONFIG_LINKS([test/payload-common.tar:test/payload-common.tar])
+AC_CONFIG_LINKS([test/payload-special.tar:test/payload-special.tar])
 AC_CONFIG_LINKS([test/rauc.t:test/rauc.t])
 AC_CONFIG_LINKS([test/rootfs.raucs:test/rootfs.raucs])
 AC_CONFIG_LINKS([test/sharness.sh:test/sharness.sh])
