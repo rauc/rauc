@@ -7,7 +7,7 @@ fuzzers = [
   'bundle',
 ]
 
-fuzzer_c_args = [cc.get_supported_arguments('-Wno-missing-prototypes')]
+fuzzer_c_args = [cc.get_supported_arguments('-Wno-missing-prototypes', '-Wno-unused-result')]
 fuzzer_link_args = []
 fuzzer_extra_sources = []
 
