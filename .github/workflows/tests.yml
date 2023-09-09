@@ -22,7 +22,7 @@ jobs:
     - name: Test with service and gpt
       run: |
         rm -rf build/
-        meson setup -Dservice=true -Dgpt=enabled -Dfuzz=true -Db_coverage=true -Dwerror=true build
+        meson setup -Dservice=true -Dgpt=enabled -Db_coverage=true -Dwerror=true build
         meson configure build
         meson compile -C build
         ./qemu-test
@@ -37,6 +37,14 @@ jobs:
         ./qemu-test
         lcov --directory . --capture --output-file "noservice.info"
 
+    - name: Test fuzzers
+      run: |
+        rm -rf build/
+        meson setup -Dservice=false -Dwerror=true -Dfuzzing=true -Db_lundef=false -Db_sanitize=address build
+        meson configure build
+        meson compile -C build
+        meson test -C build --suite rauc:fuzzing
+        
     - uses: codecov/codecov-action@v3
       with:
         files: service.info,noservice.info
