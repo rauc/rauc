@@ -313,7 +313,7 @@ https://www.gnu.org/licenses/.
    :target: https://matrix.to/#/#rauc:matrix.org
 .. |codeql| image:: https://github.com/rauc/rauc/workflows/CodeQL/badge.svg
    :target: https://github.com/rauc/rauc/actions/workflows/codeql.yml
-.. |CII Best Practices| image:: https://bestpractices.coreinfrastructure.org/projects/5075/badge
-   :target: https://bestpractices.coreinfrastructure.org/projects/5075
+.. |CII Best Practices| image:: https://www.bestpractices.dev/projects/5075/badge
+   :target: https://www.bestpractices.dev/projects/5075
 .. |Repology| image:: https://repology.org/badge/tiny-repos/rauc.svg?header=distribution%20packages
    :target: https://repology.org/project/rauc/versions
