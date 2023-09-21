@@ -294,3 +294,37 @@ G_GNUC_WARN_UNUSED_RESULT;
  */
 gboolean r_syncfs(const gchar *path, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Create a temporary directory for the fakeroot environment file.
+ *
+ * @param error return location for a GError, or NULL
+ *
+ * @return path to the env file, NULL on error
+ */
+gchar* r_fakeroot_init(GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Add fakeroot startup arguments to the array.
+ *
+ * The env file needs to be created with r_fakeroot_init first.
+ * Does nothing if the path is NULL.
+ *
+ * @param args the GPtrArray to modify
+ * @param envpath path to the env file
+ */
+void r_fakeroot_add_args(GPtrArray *args, const gchar *envpath);
+
+/**
+ * Removes the temporary directory containing the fakeroot environment file.
+ *
+ * Does nothing if the path is NULL.
+ *
+ * @param envpath path to the env file
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if the cleanup was successful, FALSE otherwise
+ */
+gboolean r_fakeroot_cleanup(const gchar *envpath, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;

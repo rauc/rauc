@@ -165,6 +165,97 @@ static void update_symlink_test(void)
 	g_clear_pointer(&target, g_free);
 }
 
+static void fakeroot_test(void)
+{
+	g_autofree GError *ierror = NULL;
+	g_autofree gchar *envpath = NULL;
+	g_autoptr(GPtrArray) chown_args = g_ptr_array_new_with_free_func(g_free);
+	g_autoptr(GPtrArray) test_args = g_ptr_array_new_with_free_func(g_free);
+	g_autoptr(GSubprocess) sproc = NULL;
+	g_autofree gchar *stdout = NULL;
+	gboolean res = FALSE;
+
+	if (g_strcmp0(g_get_host_name(), "qemu-test") !=0) {
+		g_test_message("fakeroot test is only supported under qemu-test");
+		g_test_skip("not running under qemu-test");
+		return;
+	}
+
+	envpath = r_fakeroot_init(&ierror);
+	g_assert_no_error(ierror);
+	g_assert_nonnull(envpath);
+
+	/* fakeroot has not been used yet, but the env should be created by _init */
+	g_assert_true(g_file_test(envpath, G_FILE_TEST_EXISTS));
+
+	/* check that /etc/hostname is owned by root */
+	r_fakeroot_add_args(test_args, envpath);
+	g_assert_cmpuint(test_args->len, ==, 6);
+
+	g_ptr_array_add(test_args, g_strdup("stat"));
+	g_ptr_array_add(test_args, g_strdup("-c"));
+	g_ptr_array_add(test_args, g_strdup("%u"));
+	g_ptr_array_add(test_args, g_strdup("/etc/hostname"));
+	g_ptr_array_add(test_args, NULL);
+
+	sproc = r_subprocess_newv(test_args, G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_nonnull(sproc);
+
+	res = g_subprocess_communicate_utf8(sproc, NULL, NULL, &stdout, NULL, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_cmpstr(g_strchomp(stdout), ==, "0");
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	g_clear_pointer(&stdout, g_free);
+	g_clear_pointer(&sproc, g_object_unref);
+
+	/* chown /etc/hostname to user 1*/
+	r_fakeroot_add_args(chown_args, envpath);
+
+	g_ptr_array_add(chown_args, g_strdup("chown"));
+	g_ptr_array_add(chown_args, g_strdup("1"));
+	g_ptr_array_add(chown_args, g_strdup("/etc/hostname"));
+	g_ptr_array_add(chown_args, NULL);
+
+	sproc = r_subprocess_newv(chown_args, G_SUBPROCESS_FLAGS_NONE, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_nonnull(sproc);
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	g_clear_pointer(&sproc, g_object_unref);
+
+	/* fakeroot has been used yet, the env should exist */
+	g_assert_true(g_file_test(envpath, G_FILE_TEST_EXISTS));
+
+	/* check that /etc/hostname is not owned by root */
+	sproc = r_subprocess_newv(test_args, G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_nonnull(sproc);
+
+	res = g_subprocess_communicate_utf8(sproc, NULL, NULL, &stdout, NULL, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_cmpstr(g_strchomp(stdout), ==, "1");
+
+	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	g_clear_pointer(&sproc, g_object_unref);
+
+	res = r_fakeroot_cleanup(envpath, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -177,6 +268,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/utils/get_sectorsize", get_sectorsize_test);
 	g_test_add_func("/utils/get_device_size", get_device_size_test);
 	g_test_add_func("/utils/update_symlink", update_symlink_test);
+	g_test_add_func("/utils/fakeroot", fakeroot_test);
 
 	return g_test_run();
 }
