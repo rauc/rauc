@@ -42,7 +42,7 @@ packaging==23.1
     # via
     #   matplotlib
     #   sphinx
-pillow==10.0.0
+pillow==10.0.1
     # via matplotlib
 pygments==2.16.1
     # via sphinx
