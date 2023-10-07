@@ -6,21 +6,21 @@
 #
 alabaster==0.7.13
     # via sphinx
-babel==2.12.1
+babel==2.13.0
     # via sphinx
 certifi==2023.7.22
     # via requests
-charset-normalizer==3.2.0
+charset-normalizer==3.3.0
     # via requests
-contourpy==1.1.0
+contourpy==1.1.1
     # via matplotlib
-cycler==0.11.0
+cycler==0.12.0
     # via matplotlib
 docutils==0.18.1
     # via
     #   sphinx
     #   sphinx-rtd-theme
-fonttools==4.42.0
+fonttools==4.43.0
     # via matplotlib
 idna==3.4
     # via requests
@@ -28,25 +28,25 @@ imagesize==1.4.1
     # via sphinx
 jinja2==3.1.2
     # via sphinx
-kiwisolver==1.4.4
+kiwisolver==1.4.5
     # via matplotlib
 markupsafe==2.1.3
     # via jinja2
-matplotlib==3.7.2
+matplotlib==3.8.0
     # via sphinxext-opengraph
-numpy==1.25.2
+numpy==1.26.0
     # via
     #   contourpy
     #   matplotlib
-packaging==23.1
+packaging==23.2
     # via
     #   matplotlib
     #   sphinx
-pillow==10.0.0
+pillow==10.0.1
     # via matplotlib
 pygments==2.16.1
     # via sphinx
-pyparsing==3.0.9
+pyparsing==3.1.1
     # via matplotlib
 python-dateutil==2.8.2
     # via matplotlib
@@ -56,7 +56,7 @@ six==1.16.0
     # via python-dateutil
 snowballstemmer==2.2.0
     # via sphinx
-sphinx==6.2.1
+sphinx==7.2.6
     # via
     #   -r requirements.in
     #   sphinx-rtd-theme
@@ -67,7 +67,7 @@ sphinx==6.2.1
     #   sphinxcontrib-qthelp
     #   sphinxcontrib-serializinghtml
     #   sphinxext-opengraph
-sphinx-rtd-theme==1.2.2
+sphinx-rtd-theme==1.3.0
     # via -r requirements.in
 sphinxcontrib-applehelp==1.0.7
     # via sphinx
@@ -81,9 +81,9 @@ sphinxcontrib-jsmath==1.0.1
     # via sphinx
 sphinxcontrib-qthelp==1.0.6
     # via sphinx
-sphinxcontrib-serializinghtml==1.1.8
+sphinxcontrib-serializinghtml==1.1.9
     # via sphinx
 sphinxext-opengraph==0.8.2
     # via -r requirements.in
-urllib3==2.0.4
+urllib3==2.0.6
     # via requests
