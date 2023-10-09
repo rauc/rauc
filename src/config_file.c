@@ -4,6 +4,7 @@
 #include "bootchooser.h"
 #include "config_file.h"
 #include "context.h"
+#include "event_log.h"
 #include "install.h"
 #include "manifest.h"
 #include "mount.h"
@@ -155,6 +156,181 @@ out:
 	if (res)
 		*mask = imask;
 	return res;
+}
+
+#define RAUC_LOG_EVENT_CONF_PREFIX "log"
+
+static gboolean r_event_log_parse_config_sections(GKeyFile *key_file, RaucConfig *config, GError **error)
+{
+	gsize group_count;
+	g_auto(GStrv) groups = NULL;
+	gint tmp_maxfiles;
+
+	g_return_val_if_fail(key_file, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_assert_null(config->loggers);
+
+	/* parse [log.*] sections */
+	groups = g_key_file_get_groups(key_file, &group_count);
+	for (gchar **group = groups; *group != NULL; group++) {
+		GError *ierror = NULL;
+		g_autoptr(REventLogger) logger = NULL;
+		const gchar *logger_name;
+		g_autofree gchar *log_format = NULL;
+		gsize entries;
+
+		if (!g_str_has_prefix(*group, RAUC_LOG_EVENT_CONF_PREFIX "."))
+			continue;
+
+		logger_name = *group + strlen(RAUC_LOG_EVENT_CONF_PREFIX ".");
+
+		logger = g_new0(REventLogger, 1);
+		logger->name = g_strdup(logger_name);
+
+		/* 'filename' option is currently mandatory for a logger group */
+		logger->filename = key_file_consume_string(key_file, *group, "filename", &ierror);
+		if (!logger->filename) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+		/* relative paths are resolved relative to the data-directory */
+		if (!g_path_is_absolute(logger->filename)) {
+			gchar *abspath;
+			if (!config->data_directory) {
+				g_set_error_literal(
+						error,
+						G_KEY_FILE_ERROR,
+						G_KEY_FILE_ERROR_INVALID_VALUE,
+						"Relative filename requires data-directory to be set");
+				return FALSE;
+			}
+
+			abspath = g_build_filename(config->data_directory, logger->filename, NULL);
+			g_free(logger->filename);
+			logger->filename = abspath;
+		}
+
+		log_format = key_file_consume_string(key_file, *group, "format", &ierror);
+		if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+			log_format = g_strdup("readable");
+			g_clear_error(&ierror);
+		} else if (ierror) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+
+		if (g_strcmp0(log_format, "readable") == 0) {
+			logger->format = R_EVENT_LOGFMT_READABLE;
+		} else if (g_strcmp0(log_format, "short") == 0) {
+			logger->format = R_EVENT_LOGFMT_READABLE_SHORT;
+		} else if (g_strcmp0(log_format, "json") == 0) {
+#if ENABLE_JSON
+			logger->format = R_EVENT_LOGFMT_JSON;
+#else
+			g_set_error(
+					error,
+					G_KEY_FILE_ERROR,
+					G_KEY_FILE_ERROR_INVALID_VALUE,
+					"Invalid log format %s. RAUC is compiled without JSON support", log_format);
+			return FALSE;
+#endif
+		} else if (g_strcmp0(log_format, "json-pretty") == 0) {
+#if ENABLE_JSON
+			logger->format = R_EVENT_LOGFMT_JSON_PRETTY;
+#else
+			g_set_error(
+					error,
+					G_KEY_FILE_ERROR,
+					G_KEY_FILE_ERROR_INVALID_VALUE,
+					"Invalid log format %s. RAUC is compiled without JSON support", log_format);
+			return FALSE;
+#endif
+		} else {
+			g_set_error(
+					error,
+					G_KEY_FILE_ERROR,
+					G_KEY_FILE_ERROR_INVALID_VALUE,
+					"Unknown log format '%s'", log_format);
+			return FALSE;
+		}
+
+		logger->events = g_key_file_get_string_list(key_file, *group, "events", &entries, &ierror);
+		if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+			logger->events = g_malloc(2 * sizeof(gchar *));
+			logger->events[0] = g_strdup("all");
+			logger->events[1] = NULL;
+			g_clear_error(&ierror);
+		} else if (ierror) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+
+		if (g_strv_length(logger->events) > 1 && g_strv_contains((const gchar * const *) logger->events, "all")) {
+			g_set_error(
+					error,
+					G_KEY_FILE_ERROR,
+					G_KEY_FILE_ERROR_INVALID_VALUE,
+					"Event type 'all' cannot be combined");
+			return FALSE;
+		}
+		for (gsize j = 0; j < entries; j++) {
+			if (!r_event_log_is_supported_type(logger->events[j])) {
+				g_set_error(
+						error,
+						G_KEY_FILE_ERROR,
+						G_KEY_FILE_ERROR_INVALID_VALUE,
+						"Unsupported event log type '%s'", logger->events[j]);
+				return FALSE;
+			}
+		}
+		g_key_file_remove_key(key_file, *group, "events", NULL);
+
+		logger->maxsize = key_file_consume_binary_suffixed_string(key_file, *group, "max-size", &ierror);
+		if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+			g_clear_error(&ierror);
+		} else if (ierror) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+
+		tmp_maxfiles = key_file_consume_integer(key_file, *group, "max-files", &ierror);
+		if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+			tmp_maxfiles = 10;
+			g_clear_error(&ierror);
+		} else if (ierror) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+		if (tmp_maxfiles < 1) {
+			g_set_error_literal(
+					error,
+					G_KEY_FILE_ERROR,
+					G_KEY_FILE_ERROR_INVALID_VALUE,
+					"Value for 'max-files' must be >= 1");
+			return FALSE;
+		} else if (tmp_maxfiles > 1000) {
+			g_set_error_literal(
+					error,
+					G_KEY_FILE_ERROR,
+					G_KEY_FILE_ERROR_INVALID_VALUE,
+					"Value of %d for 'max-files' looks implausible");
+			return FALSE;
+		}
+		logger->maxfiles = (guint) tmp_maxfiles;
+
+		if (!check_remaining_keys(key_file, *group, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+
+		g_key_file_remove_group(key_file, *group, NULL);
+
+		/* insert new logger in list */
+		config->loggers = g_list_append(config->loggers, g_steal_pointer(&logger));
+	}
+
+	return TRUE;
 }
 
 static GHashTable *parse_slots(const char *filename, const char *data_directory, GKeyFile *key_file, GError **error)
@@ -873,6 +1049,11 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 	g_key_file_remove_group(key_file, "handlers", NULL);
 
+	if (!r_event_log_parse_config_sections(key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
 	/* parse [slot.*.#] sections */
 	c->slots = parse_slots(filename, c->data_directory, key_file, &ierror);
 	if (!c->slots) {
@@ -938,6 +1119,7 @@ void free_config(RaucConfig *config)
 	g_strfreev(config->enabled_headers);
 	g_free(config->encryption_key);
 	g_free(config->encryption_cert);
+	g_list_free_full(config->loggers, (GDestroyNotify)r_event_log_free_logger);
 	g_clear_pointer(&config->slots, g_hash_table_destroy);
 	g_free(config->custom_bootloader_backend);
 	g_free(config->file_checksum);

@@ -9,6 +9,7 @@ tests = [
   'config_file',
   'context',
   'dm',
+  'event-log',
   'hash_index',
   'manifest',
   'signature',

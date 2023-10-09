@@ -697,6 +697,55 @@ No built-in slot update will run and no hook will be executed.
   ``<key>``.
   ``-`` is converted to ``_`` for use as an environment variable name.
 
+.. _ref-logger-sections:
+
+**[log.<logger>] sections**
+
+With a logger section, a *RAUC event logger* can be configured.
+The ``<logger>`` suffix determines the internal name of the logger and must be
+unique per ``system.conf``.
+
+For an overview over the event logging framework in RAUC and its purpose, have
+a look at :ref:`sec-advanced-event-log`.
+
+``filename``
+  The log file name used for logging.
+  If no absolute path is given, the location is assumed to be relative to the
+  ``data-directory``.
+  Using a relative file name without ``data-directory`` set will cause a
+  configuration error.
+
+``events``
+  Semicolon-separated list of events to log. Currently supported event types are:
+
+  * ``install`` - Logs start and end of installation
+  * ``boot`` - Logs boot information
+  * ``mark`` - Logs slot marking information
+  * ``all`` - Log all events (cannot be combined with other events)
+
+``format``
+  The output format used for the logger. Supported values are
+
+  * ``readable``: readable mutli-line output
+  * ``short``: Single-line readable output
+  * ``json``: single-line JSON output
+  * ``json-pretty``: formatted JSON output
+
+``max-size``
+  Allows to configure a basic log rotation.
+  When given, the logger's log file will be rotated before reaching
+  the size configured with ``max-size`` and renamed to ``<filename>.1``.
+  Existing rotation file names will be incremented by one.
+  The oldest file is removed.
+  To configure a maximum number of files to keep, see ``max-files``.
+  Values support common suffixes like ``K``, ``M``, ``G``, to ``T``.
+
+``max-files``
+  Configures the maximum number of files to keep per logger.
+  E.g. if set to ``3``, only ``<filename>``, ``<filename>.1`` and
+  ``<filename>.2`` will be kept during rotation.
+  Defaults to 10 if unset.
+
 .. _sec_ref_formats:
 
 Bundle Formats

@@ -5,6 +5,11 @@ grubenv=/tmp/boot/grub/grubenv
 # HACK: must be on a separate partition for real systems
 data-directory=/tmp/rauc
 
+[log.testlogger]
+# create an event log file under /tmp/rauc/event.log
+filename=event.log
+events=all
+
 [keyring]
 path=ca.cert.pem
 

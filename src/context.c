@@ -4,6 +4,7 @@
 
 #include "config_file.h"
 #include "context.h"
+#include "event_log.h"
 #include "status_file.h"
 #include "network.h"
 #include "install.h"
@@ -374,6 +375,13 @@ static gboolean r_context_configure_target(GError **error)
 			g_message("Failed to load system status: %s", ierror->message);
 			g_clear_error(&ierror);
 		}
+	}
+
+	/* set up logging */
+	for (GList *l = context->config->loggers; l != NULL; l = l->next) {
+		REventLogger* logger = l->data;
+
+		r_event_log_setup_logger(logger);
 	}
 
 	if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_DTB) {

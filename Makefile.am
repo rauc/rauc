@@ -44,6 +44,7 @@ librauc_la_SOURCES = \
 	src/context.c \
 	src/crypt.c \
 	src/dm.c \
+	src/event_log.c \
 	src/hash_index.c \
 	src/install.c \
 	src/manifest.c \
@@ -66,6 +67,7 @@ librauc_la_SOURCES = \
 	include/context.h \
 	include/crypt.h \
 	include/dm.h \
+	include/event_log.h \
 	include/hash_index.h \
 	include/emmc.h \
 	include/gpt.h \
@@ -102,9 +104,9 @@ endif
 
 nodist_librauc_la_SOURCES = \
 	$(gdbus_installer_generated)
-librauc_la_CFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CFLAGS)
-librauc_la_LDFLAGS = $(AM_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
-librauc_la_LIBADD = $(GLIB_LIBS) $(CURL_LIBS) $(OPENSSL_LIBS) $(FDISK_LIBS) $(NL3_LIBS)
+librauc_la_CFLAGS = $(AM_CFLAGS) $(JSON_GLIB_CFLAGS) $(CODE_COVERAGE_CFLAGS)
+librauc_la_LDFLAGS = $(AM_LDFLAGS) $(JSON_GLIB_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
+librauc_la_LIBADD = $(GLIB_LIBS) $(CURL_LIBS) $(OPENSSL_LIBS) $(FDISK_LIBS) $(NL3_LIBS) $(JSON_GLIB_LIBS)
 
 bin_PROGRAMS = rauc
 

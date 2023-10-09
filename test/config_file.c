@@ -1230,6 +1230,204 @@ send-headers=transaction-id;invalid-key";
 	g_assert_null(config);
 }
 
+/* A logger must at least have a 'filename' set.
+ * Test that an empty logger causes a failure */
+static void config_file_logger_empty(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[log.testlogger]\n\
+";
+
+	pathname = write_tmp_file(fixture->tmpdir, "emtpy_logger.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND);
+	g_assert_false(res);
+	g_assert_null(config);
+}
+
+/* Test specifying a relative log filename but no data-dir. */
+static void config_file_logger_relative_no_datadir(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[log.testlogger]\n\
+filename=test.log\n\
+";
+
+	pathname = write_tmp_file(fixture->tmpdir, "logger.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
+	g_assert_false(res);
+	g_assert_null(config);
+}
+
+/* Test specifying a minimal valid logger */
+static void config_file_logger_minimal(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+data-directory=anydir\n\
+\n\
+[log.testlogger]\n\
+filename=test.log\n\
+";
+
+	pathname = write_tmp_file(fixture->tmpdir, "logger.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(config);
+}
+
+/* Test specifying a full option logger */
+static void config_file_logger_full(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[log.testlogger]\n\
+filename=/tmp/test.log\n\
+events=boot;install\n\
+format=readable\n\
+max-size=1M\n\
+max-files=8\n\
+";
+
+	pathname = write_tmp_file(fixture->tmpdir, "logger.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(config);
+}
+
+/* Test providing an invalid event type */
+static void config_file_logger_invalid_event(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[log.testlogger]\n\
+filename=/tmp/test.log\n\
+events=invalid\n\
+";
+
+	pathname = write_tmp_file(fixture->tmpdir, "logger.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
+	g_assert_false(res);
+	g_assert_null(config);
+}
+
+/* Test combining 'all' event with another valid event.
+ * This must fail since 'all' already includes all events. */
+static void config_file_logger_invalid_event_combo(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[log.testlogger]\n\
+filename=/tmp/test.log\n\
+events=all;boot\n\
+";
+
+	pathname = write_tmp_file(fixture->tmpdir, "logger.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
+	g_assert_false(res);
+	g_assert_null(config);
+}
+
+/* Test with invalid (negative) max-files set. */
+static void config_file_logger_invalid_max_size(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[log.testlogger]\n\
+filename=test.log\n\
+max-files=-1\n\
+";
+
+	pathname = write_tmp_file(fixture->tmpdir, "emtpy_logger.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
+	g_assert_false(res);
+	g_assert_null(config);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -1333,6 +1531,26 @@ int main(int argc, char *argv[])
 	g_test_add("/config-file/send-headers-invalid-value", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_send_headers_invalid_item,
 			config_file_fixture_tear_down);
-
+	g_test_add("/config-file/logger/empty", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_logger_empty,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/logger/relativ-no-datadir", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_logger_relative_no_datadir,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/logger/minimal", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_logger_minimal,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/logger/full", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_logger_full,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/logger/invalid-event", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_logger_invalid_event,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/logger/invalid-event-combo", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_logger_invalid_event_combo,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/logger/invalid-max-size", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_logger_invalid_max_size,
+			config_file_fixture_tear_down);
 	return g_test_run();
 }
