@@ -2,7 +2,6 @@ FROM debian:bullseye
 
 # Required for building
 RUN apt-get update && apt-get install -y \
-  automake \
   meson \
   libtool \
   libglib2.0-dev \
