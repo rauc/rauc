@@ -30,13 +30,12 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install automake libtool libglib2.0-dev libcurl3-dev libssl-dev libdbus-1-dev libjson-glib-dev libfdisk-dev libnl-genl-3-dev dbus-x11 
+          sudo apt-get install meson libtool libglib2.0-dev libcurl3-dev libssl-dev libdbus-1-dev libjson-glib-dev libfdisk-dev libnl-genl-3-dev dbus-x11
 
       - name: Build C Code
         run: |
-          ./autogen.sh
-          ./configure
-          make check TESTS=
+          meson setup build
+          meson compile -C build
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
