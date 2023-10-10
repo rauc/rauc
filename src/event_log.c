@@ -283,7 +283,7 @@ static gboolean rotate_logfiles(REventLogger* logger, goffset next_len, GError *
 
 static void event_log_writer_file(REventLogger* logger, const GLogField *fields, gsize n_fields)
 {
-	GError *ierror = NULL;
+	g_autoptr(GError) ierror = NULL;
 	g_autofree gchar *formatted = NULL;
 	g_autofree gchar *output = NULL;
 	gsize written = 0;
