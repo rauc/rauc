@@ -29,6 +29,9 @@ jobs:
           exit
         fi
 
+        # Prevent git's unsafe directory check from failing
+        git config --global --add safe.directory "*"
+
         test/get-coverity.sh
 
         gcc --version
