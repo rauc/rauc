@@ -213,6 +213,7 @@ static gboolean r_event_log_parse_config_sections(GKeyFile *key_file, RaucConfig
 
 		log_format = key_file_consume_string(key_file, *group, "format", &ierror);
 		if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+			g_clear_pointer(&log_format, g_free);
 			log_format = g_strdup("readable");
 			g_clear_error(&ierror);
 		} else if (ierror) {
