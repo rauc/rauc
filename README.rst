@@ -131,7 +131,7 @@ Host (Build) Prerequisites
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 -  build-essential
--  meson (or automake)
+-  meson
 -  libtool
 -  libdbus-1-dev
 -  libglib2.0-dev
@@ -140,7 +140,7 @@ Host (Build) Prerequisites
 
 ::
 
-   sudo apt-get install build-essential meson automake libtool libdbus-1-dev libglib2.0-dev libcurl3-dev libssl-dev
+   sudo apt-get install build-essential meson libtool libdbus-1-dev libglib2.0-dev libcurl3-dev libssl-dev
 
 For HTTP(S) streaming support, you also need netlink protocol headers:
 
@@ -193,18 +193,6 @@ Building from Sources
     meson setup build
     meson compile -C build # or 'ninja -C build' on meson < 0.54.0
 
-.. note:: At the moment, also `automake cross-compilation
-   <https://www.gnu.org/software/automake/manual/html_node/Cross_002dCompilation.html>`_
-   is still supported, but the plan is to deprecate this soon.
-
-   ::
-
-       git clone https://github.com/rauc/rauc
-       cd rauc
-       ./autogen.sh
-       ./configure
-       make
-
 Manual Installation
 -------------------
 
@@ -217,7 +205,7 @@ be installed. On the target instead, installing is highly recommended as it
 also unpacks service and D-Bus configuration files required to run RAUC
 properly::
 
-    make install
+    meson install
 
 Running the Test Suite
 ----------------------
