@@ -242,10 +242,10 @@ target side is GLib (minimum version 2.45.8) as utility library and OpenSSL
    In order to let RAUC detect mounts correctly, GLib must be compiled
    with libmount support (``--enable-libmount``) and at least be 2.49.5.
 
-For network support (enabled with ``--enable-network``), additionally `libcurl`
+For network support (enabled with ``--Dnetwork=true``), additionally `libcurl`
 is required. This is only useful for the target service.
 
-For JSON-style support (enabled with ``--enable-json``), additionally
+For JSON-style support (enabled with ``-Djson=enabled``), additionally
 `libjson-glib` is required.
 
 Kernel Configuration

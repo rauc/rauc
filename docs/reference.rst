@@ -284,7 +284,7 @@ For more information about using the streaming support of RAUC, refer to
   streaming helper process.
   By default, the `nobody` user is used.
   At compile time, the default can be defined using the
-  ``--with-streaming-user=USERNAME`` configure option.
+  ``-Dstreaming_user=USERNAME`` meson setup option.
 
 ``tls-cert``
   This option can be used to set the path or PKCS#11 URL for the TLS/HTTPS

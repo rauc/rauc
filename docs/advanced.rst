@@ -415,8 +415,7 @@ well as with the DBus API.
 
 To use streaming, some prerequisites need to be fulfilled:
 
-* make sure RAUC is built with ``-Dstreaming=true``/``--enable-streaming``
-  (which is the default)
+* make sure RAUC is built with ``-Dstreaming=true`` (which is the default)
 * create bundles using the :ref:`verity format <sec_ref_format_verity>`
 * host the bundle on a server which supports HTTP Range Requests
 * enable NBD (network block device) support in the kernel
@@ -930,8 +929,8 @@ updates are:
   The possible solutions to this are:
 
     a) migrate to the ``verity`` bundle format if possible, or
-    b) disable streaming support by calling ``./configure`` with
-       ``--disable-streaming``.
+    b) disable streaming support by calling ``meson setup`` with
+       ``-Dstreaming=false``.
 
 Creating casync Bundles
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1299,7 +1298,7 @@ switch the first GPT partition entry between the first and second halves of a
 region configured for that purpose.
 This works similarly to the handling of a MBR bootloader partition entry as
 described in the previous section.
-It requires RAUC to be compiled with GPT support (``./configure --enable-gpt``)
+It requires RAUC to be compiled with GPT support (``meson setup -Dgpt=enabled build``)
 and adds a dependency on libfdisk.
 
 The required slot type is ``boot-gpt-switch``.

@@ -19,10 +19,10 @@ the target partition, allowing use of the full size.
 Is it possible to use RAUC without D-Bus (Client/Server mode)?
 --------------------------------------------------------------
 
-Yes. If you compile RAUC using the ``--disable-service`` configure option, you
+Yes. If you compile RAUC using the ``-Dservice=false`` configure option, you
 will be able to compile RAUC without service mode and without D-Bus support::
 
-  ./configure --disable-service
+  meson setup -Dservice=false build
 
 Then every call of the command line tool will be executed directly rather than
 being forwarded to the RAUC service process running on your machine.

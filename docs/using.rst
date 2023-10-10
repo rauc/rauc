@@ -643,7 +643,7 @@ This section will lead you through the most common options you have for
 debugging what actually went wrong.
 
 In each case it is quite essential to know that RAUC, if not compiled with
-``--disable-service`` runs as a service on your target that is either
+``-Dservice=false`` runs as a service on your target that is either
 controlled by your custom application or by the RAUC command line interface.
 
 The frontend will always only show the 'high level' error output, e.g. when an
