@@ -1,1 +1,3 @@
-../../autogen.sh
+#!/bin/sh
+
+autoreconf -ivf
