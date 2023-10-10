@@ -117,29 +117,19 @@ jobs:
     strategy:
       matrix:
         release:
-        - "ubuntu:18.04"
         - "ubuntu:20.04"
         - "ubuntu:22.04"
-        - "debian:buster"
         - "debian:bullseye"
         - "debian:testing"
-        builder:
-        - "meson"
-        - "automake"
-        exclude:
-          - release: "ubuntu:18.04"
-            builder: "meson"
-          - release: "debian:buster"
-            builder: "meson"
     steps:
     - uses: actions/checkout@v3
 
-    - name: Prepare ${{ matrix.release }} container for ${{ matrix.builder }} build
+    - name: Prepare ${{ matrix.release }} container for meson build
       run: |
         docker run --name stable -di -v "$PWD":/home -w /home ${{ matrix.release }} bash
         docker exec -i stable uname -a
         docker exec -i stable apt-get update
-        docker exec -e DEBIAN_FRONTEND='noninteractive' -i stable apt-get install -qy build-essential ${{ matrix.builder }} libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev libnl-genl-3-dev squashfs-tools
+        docker exec -e DEBIAN_FRONTEND='noninteractive' -i stable apt-get install -qy build-essential meson libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev libnl-genl-3-dev squashfs-tools
 
     - name: Patch & prepare
       run: |
@@ -147,26 +137,13 @@ jobs:
         docker exec -i stable uname -a
         docker exec -i stable find .github/workflows/patches/${{ matrix.release }}/ -type f -name "*.patch" -print0 | sort -z | xargs -t -n 1 -r -0 patch -p1 -f -i
 
-    - name: Configure (meson)
-      if: ${{ matrix.builder == 'meson' }}
+    - name: Configure
       run: |
         docker exec -i stable meson setup -Dgpt=disabled -Dwerror=true build
 
-    - name: Configure (automake)
-      if: ${{ matrix.builder == 'automake' }}
-      run: |
-        docker exec -i stable ./autogen.sh
-        docker exec -i stable ./configure --disable-gpt CFLAGS='-Werror -Wno-error=deprecated-declarations'
-
-    - name: Build (meson)
-      if: ${{ matrix.builder == 'meson' }}
+    - name: Build
       run: |
         docker exec -i stable ninja -C build
-
-    - name: Build (automake)
-      if: ${{ matrix.builder == 'automake' }}
-      run: |
-        docker exec -i stable make TESTS= check
 
     - name: Show logs
       if: ${{ failure() }}
