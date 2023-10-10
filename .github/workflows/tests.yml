@@ -83,10 +83,10 @@ jobs:
     strategy:
       matrix:
         architecture:
-        - armhf
-        - arm64
-        - armel
-        - i386
+        - "arm/v5"
+        - "arm/v7"
+        - "arm64/v8"
+        - "386"
     steps:
     - uses: actions/checkout@v3
 
@@ -94,7 +94,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo DEBIAN_FRONTEND='noninteractive' apt-get install -qy qemu-user-static
-        docker run --name cross -di -v "$PWD":/home -w /home multiarch/debian-debootstrap:${{ matrix.architecture }}-bullseye bash
+        docker run --name cross -di --platform linux/${{ matrix.architecture }} -v "$PWD":/home -w /home debian:bookworm bash
         docker logs cross
         docker exec -i cross uname -a
         docker exec -i cross apt-get update
