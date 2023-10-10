@@ -227,7 +227,7 @@ dbuswrapperdir = get_option('libexecdir')
 
 install_data('src/de.pengutronix.rauc.Installer.xml', install_dir : dbusinterfacesdir)
 
-install_data('rauc.1', install_dir : get_option('mandir'))
+install_man('rauc.1')
 
 subdir('data')
 subdir('docs')
