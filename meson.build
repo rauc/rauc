@@ -157,7 +157,6 @@ dbus_sources = gnome.gdbus_codegen(
   sources : dbus_ifaces,
   interface_prefix : 'de.pengutronix.rauc.',
   namespace : 'R',
-  install_header : true,
 )
 
 config_h = configure_file(
