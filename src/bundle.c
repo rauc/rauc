@@ -1853,7 +1853,7 @@ out:
 #else
 static gboolean open_remote_bundle(RaucBundle *bundle, GError **error)
 {
-	g_error("configured without --enable-streaming");
+	g_error("configured without -Dstreaming=true");
 	return FALSE;
 }
 #endif
@@ -1963,7 +1963,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 		}
 		g_debug("Downloaded temp bundle to %s", ibundle->path);
 #else
-		g_warning("Mounting remote bundle not supported, recompile with --enable-network");
+		g_warning("Mounting remote bundle not supported, recompile with -Dnetwork=true");
 #endif
 	} else {
 		ibundle->path = g_strdup(bundlename);

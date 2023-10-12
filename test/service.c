@@ -172,7 +172,7 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	gboolean ret = FALSE;
 
 	if (!ENABLE_SERVICE) {
-		g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
+		g_test_skip("Test requires RAUC being configured with \"-Dservice=true\".");
 		return;
 	}
 
@@ -280,7 +280,7 @@ static void service_test_install_api(ServiceFixture *fixture, gconstpointer user
 	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
 
 	if (!ENABLE_SERVICE) {
-		g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
+		g_test_skip("Test requires RAUC being configured with \"-Dservice=true\".");
 		return;
 	}
 
@@ -360,7 +360,7 @@ static void service_test_info(ServiceFixture *fixture, gconstpointer user_data, 
 	g_autofree gchar *bundlepath = NULL;
 
 	if (!ENABLE_SERVICE) {
-		g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
+		g_test_skip("Test requires RAUC being configured with \"-Dservice=true\".");
 		return;
 	}
 
@@ -427,7 +427,7 @@ static void service_test_slot_status(ServiceFixture *fixture, gconstpointer user
 	GVariant *slot_status_array = NULL;
 
 	if (!ENABLE_SERVICE) {
-		g_test_skip("Test requires RAUC being configured with \"--enable-service\".");
+		g_test_skip("Test requires RAUC being configured with \"-Dservice=true\".");
 		return;
 	}
 
