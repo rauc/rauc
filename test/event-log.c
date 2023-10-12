@@ -71,7 +71,7 @@ static void event_log_test_log_write_simple(EventLogFixture *fixture,
 
 	logger->writer(logger, fields, G_N_ELEMENTS(fields));
 
-	g_file_get_contents(logger->filename, &contents, NULL, NULL);
+	g_assert_true(g_file_get_contents(logger->filename, &contents, NULL, NULL));
 
 	g_assert_nonnull(strstr(contents, "This is a test (mark) log message"));
 	g_assert_nonnull(strstr(contents, "bundle hash: b970468f-89e4-4793-9904-06c922902b25"));
@@ -159,7 +159,7 @@ static void event_log_test_log_write_json(EventLogFixture *fixture,
 
 	logger->writer(logger, fields, G_N_ELEMENTS(fields));
 
-	g_file_get_contents(logger->filename, &contents, NULL, NULL);
+	g_assert_true(g_file_get_contents(logger->filename, &contents, NULL, NULL));
 
 	g_assert_nonnull(strstr(contents, "\"MESSAGE\":\"This is a test (mark) log message\""));
 	g_assert_nonnull(strstr(contents, "\"MESSAGE_ID\":\"1d1b7a5a-a908-4c3a-9004-650c9d2ce850\""));
@@ -235,7 +235,7 @@ static void event_log_test_max_files_rotation(EventLogFixture *fixture,
 	/* search string must be in .1 file */
 	g_assert_true(g_file_get_contents(rotatefile, &compare_content, NULL, NULL));
 	g_assert_cmpstr(rotate_content, ==, compare_content);
-	g_free(compare_content);
+	g_clear_pointer(&compare_content, g_free);
 
 	/* file size was 0, message size is 128 bytes, will rotate on 3rd message */
 	logger->writer(logger, fields, G_N_ELEMENTS(fields));
@@ -244,12 +244,12 @@ static void event_log_test_max_files_rotation(EventLogFixture *fixture,
 	/* search string must be in .2 file (but not in .1) */
 	g_assert_true(g_file_get_contents(rotatefile, &compare_content, NULL, NULL));
 	g_assert_cmpstr(rotate_content, !=, compare_content);
-	g_free(compare_content);
+	g_clear_pointer(&compare_content, g_free);
 	g_free(rotatefile);
 	rotatefile = g_build_filename(fixture->tmpdir, "testfile.log.2", NULL);
 	g_assert_true(g_file_get_contents(rotatefile, &compare_content, NULL, NULL));
 	g_assert_cmpstr(rotate_content, ==, compare_content);
-	g_free(compare_content);
+	g_clear_pointer(&compare_content, g_free);
 
 	/* file size was 128, message size is 128 bytes, will rotate on 2nd message */
 	logger->writer(logger, fields, G_N_ELEMENTS(fields));
@@ -262,7 +262,7 @@ static void event_log_test_max_files_rotation(EventLogFixture *fixture,
 	/* .3 file must not be created and search string must not be in .2 */
 	g_assert_true(g_file_get_contents(rotatefile, &compare_content, NULL, NULL));
 	g_assert_cmpstr(rotate_content, !=, compare_content);
-	g_free(compare_content);
+	g_clear_pointer(&compare_content, g_free);
 	g_free(rotatefile);
 	rotatefile = g_build_filename(fixture->tmpdir, "testfile.log.3", NULL);
 	g_assert_false(g_file_get_contents(rotatefile, &compare_content, NULL, NULL));
@@ -351,7 +351,7 @@ static void event_log_test_log_filtering(EventLogFixture *fixture,
 	r_event_log_message("install", "Example install message");
 	r_event_log_message("mark", "Example second mark message");
 
-	g_file_get_contents(logger->filename, &contents, NULL, NULL);
+	g_assert_true(g_file_get_contents(logger->filename, &contents, NULL, NULL));
 	g_assert_nonnull(strstr(contents, "Example mark message"));
 	g_assert_null(strstr(contents, "Example boot message"));
 	g_assert_nonnull(strstr(contents, "Example install message"));
