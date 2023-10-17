@@ -85,5 +85,5 @@ sphinxcontrib-serializinghtml==1.1.9
     # via sphinx
 sphinxext-opengraph==0.8.2
     # via -r requirements.in
-urllib3==2.0.6
+urllib3==2.0.7
     # via requests
