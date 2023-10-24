@@ -61,6 +61,11 @@ option(
 
 # build options
 option(
+  'htmldocs',
+  type : 'boolean',
+  value : 'false',
+  description : 'Enable/Disable HTML documentation')
+option(
   'tests',
   type : 'boolean',
   value : 'true',
