@@ -531,9 +531,8 @@ static gboolean resign_start(int argc, char **argv)
 	}
 
 	if (r_context()->certpath == NULL ||
-	    r_context()->keypath == NULL ||
-	    r_context()->keyringpath == NULL) {
-		g_printerr("Cert, key and keyring files must be provided\n");
+	    r_context()->keypath == NULL) {
+		g_printerr("Cert and key files must be provided\n");
 		r_exit_status = 1;
 		goto out;
 	}

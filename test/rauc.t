@@ -973,7 +973,6 @@ test_expect_success FAKETIME "rauc resign extend (expired, no-verify)" "
     rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-1.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-1.pem \
-    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
     --no-verify \
     resign ${TEST_TMPDIR}/out1.raucb ${TEST_TMPDIR}/out2.raucb &&
   test -f ${TEST_TMPDIR}/out2.raucb
