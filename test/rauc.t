@@ -910,6 +910,44 @@ test_expect_success "rauc resign" "
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
+test_expect_success "rauc resign (verity bundle)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-verity-bundle.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-verity-bundle.raucb &&
+  rm -f ${TEST_TMPDIR}/out.raucb &&
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    resign ${TEST_TMPDIR}/good-verity-bundle.raucb ${TEST_TMPDIR}/out.raucb \
+    --signing-keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-only-ca.pem && \
+  test_must_fail rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    info ${TEST_TMPDIR}/out.raucb && \
+  rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-only-ca.pem \
+    info ${TEST_TMPDIR}/out.raucb && \
+  test -f ${TEST_TMPDIR}/out.raucb
+"
+
+test_expect_success "rauc resign (crypt bundle)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-crypt-bundle-unencrypted.raucb &&
+  rm -f ${TEST_TMPDIR}/out.raucb &&
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-only-ca.pem \
+    resign ${TEST_TMPDIR}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/out.raucb \
+    --signing-keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem && \
+  test_must_fail rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-only-ca.pem \
+    info ${TEST_TMPDIR}/out.raucb && \
+  rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    info ${TEST_TMPDIR}/out.raucb && \
+  test -f ${TEST_TMPDIR}/out.raucb
+"
+
 test_expect_success "rauc resign (output exists)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
