@@ -802,7 +802,7 @@ out:
 	return res;
 }
 
-static gboolean decrypt_bundle_payload(RaucBundle *bundle, RaucManifest *manifest, GError **error)
+static gboolean decrypt_bundle_payload(RaucBundle *bundle, GError **error)
 {
 	gboolean res = FALSE;
 	GError *ierror = NULL;
@@ -812,7 +812,7 @@ static gboolean decrypt_bundle_payload(RaucBundle *bundle, RaucManifest *manifes
 	g_autoptr(GFile) decgfile = NULL;
 
 	g_return_val_if_fail(bundle, FALSE);
-	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(bundle->manifest, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	tmpdir = g_dir_make_tmp("rauc-XXXXXX", &ierror);
@@ -824,11 +824,11 @@ static gboolean decrypt_bundle_payload(RaucBundle *bundle, RaucManifest *manifes
 	decpath = g_strconcat(tmpdir, "decrypted.raucb", NULL);
 
 	/* check we have a crypt key set in manifest */
-	g_assert(manifest->bundle_crypt_key != NULL);
+	g_assert(bundle->manifest->bundle_crypt_key != NULL);
 
 	/* Uncomment for debugging purpose */
 	//g_message("Decrypting with key: %s", manifest->bundle_crypt_key);
-	key = r_hex_decode(manifest->bundle_crypt_key, 32);
+	key = r_hex_decode(bundle->manifest->bundle_crypt_key, 32);
 	g_assert(key);
 
 	res = r_crypt_decrypt(bundle->path, decpath, key, bundle->size - bundle->manifest->bundle_verity_size, &ierror);
@@ -2443,7 +2443,7 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
 	}
 
 	if (bundle->manifest && bundle->manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
-		res = decrypt_bundle_payload(bundle, bundle->manifest, &ierror);
+		res = decrypt_bundle_payload(bundle, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
