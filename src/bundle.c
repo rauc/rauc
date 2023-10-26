@@ -2232,7 +2232,8 @@ out:
 
 gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *outpath, CheckBundleParams params, GError **error)
 {
-	g_autoptr(RaucManifest) manifest = NULL;
+	g_autoptr(RaucManifest) loaded_manifest = NULL;
+	RaucManifest *manifest = NULL; /* alias pointer, not to be freed */
 	g_autoptr(RaucBundle) outbundle = NULL;
 	g_autoptr(GFile) bundleoutfile = NULL;
 	GFileIOStream* bundlestream = NULL;
@@ -2254,18 +2255,21 @@ gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *
 		return FALSE;
 	}
 
-	r_context_begin_step("replace_signature", "Replacing bundle signature", 5);
-
 	res = check_bundle_payload(bundle, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
 
-	res = load_manifest_from_bundle(bundle, &manifest, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
+	if (bundle->manifest) {
+		manifest = bundle->manifest;
+	} else {
+		res = load_manifest_from_bundle(bundle, &loaded_manifest, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+		manifest = loaded_manifest;
 	}
 
 	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
@@ -2385,7 +2389,6 @@ out:
 		r_context()->config->keyring_directory = keyringdirectory;
 	}
 
-	r_context_end_step("replace_signature", res);
 	return res;
 }
 
