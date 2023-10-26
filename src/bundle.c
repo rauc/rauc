@@ -990,7 +990,8 @@ out:
 
 gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 {
-	g_autoptr(RaucManifest) manifest = NULL;
+	g_autoptr(RaucManifest) loaded_manifest = NULL;
+	RaucManifest *manifest = NULL; /* alias pointer, not to be freed */
 	goffset squashfs_size;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -1010,10 +1011,15 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 		goto out;
 	}
 
-	res = load_manifest_from_bundle(bundle, &manifest, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
+	if (bundle->manifest) {
+		manifest = bundle->manifest;
+	} else {
+		res = load_manifest_from_bundle(bundle, &loaded_manifest, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+		manifest = loaded_manifest;
 	}
 
 	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
