@@ -1025,8 +1025,8 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
 		g_print("Reading bundle in 'plain' format\n");
 		squashfs_size = bundle->size;
-	} else if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
-		g_print("Reading bundle in 'verity' format\n");
+	} else if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY || manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
+		g_print("Reading bundle in '%s' format\n", manifest->bundle_format == R_MANIFEST_FORMAT_VERITY ? "verity" : "crypt");
 		g_assert(bundle->size > (goffset)manifest->bundle_verity_size);
 		squashfs_size = bundle->size - manifest->bundle_verity_size;
 	} else {
