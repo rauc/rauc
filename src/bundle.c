@@ -2270,6 +2270,8 @@ gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *
 		g_print("Reading bundle in 'plain' format\n");
 	} else if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
 		g_print("Reading bundle in 'verity' format\n");
+	} else if (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
+		g_print("Reading bundle in 'crypt' format\n");
 	} else {
 		g_error("unsupported bundle format");
 		res = FALSE;
