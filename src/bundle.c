@@ -558,6 +558,93 @@ static gboolean input_stream_read_bytes_all(GInputStream *stream,
 	return TRUE;
 }
 
+static gboolean create_verity(const gchar *bundlename, RaucManifest *manifest, GError **error)
+{
+	g_autoptr(GFile) bundlefile = NULL;
+	g_autoptr(GFileIOStream) bundlestream = NULL;
+	GOutputStream *bundleoutstream = NULL; /* owned by the bundle stream */
+	GError *ierror = NULL;
+	guint64 offset;
+	int bundlefd = -1;
+	guint8 salt[32] = {0};
+	guint8 hash[32] = {0};
+	uint64_t combined_size = 0;
+	guint64 verity_size = 0;
+
+	g_return_val_if_fail(bundlename != NULL, FALSE);
+	g_return_val_if_fail(manifest != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	bundlefile = g_file_new_for_path(bundlename);
+	bundlestream = g_file_open_readwrite(bundlefile, NULL, &ierror);
+	if (bundlestream == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to open bundle for signing: ");
+		return FALSE;
+	}
+
+	bundleoutstream = g_io_stream_get_output_stream(G_IO_STREAM(bundlestream));
+	bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundleoutstream));
+
+	/* check we have a clean manifest */
+	g_assert(manifest->bundle_verity_salt == NULL);
+	g_assert(manifest->bundle_verity_hash == NULL);
+	g_assert(manifest->bundle_verity_size == 0);
+
+	if (!g_seekable_seek(G_SEEKABLE(bundlestream),
+			0, G_SEEK_END, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to seek to end of bundle: ");
+		return FALSE;
+	}
+
+	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
+	g_debug("Payload size: %" G_GUINT64_FORMAT " bytes.", offset);
+	/* dm-verity hash table generation */
+	if (RAND_bytes((unsigned char *)&salt, sizeof(salt)) != 1) {
+		g_set_error(error,
+				R_BUNDLE_ERROR,
+				R_BUNDLE_ERROR_VERITY,
+				"failed to generate verity salt");
+		return FALSE;
+	}
+	if (offset % 4096 != 0) {
+		g_set_error(error,
+				R_BUNDLE_ERROR,
+				R_BUNDLE_ERROR_VERITY,
+				"squashfs size (%"G_GUINT64_FORMAT ") is not a multiple of 4096 bytes", offset);
+		return FALSE;
+	}
+	if (offset <= 4096) {
+		g_set_error(error,
+				R_BUNDLE_ERROR,
+				R_BUNDLE_ERROR_VERITY,
+				"squashfs size (%"G_GUINT64_FORMAT ") must be larger than 4096 bytes", offset);
+		return FALSE;
+	}
+	if (r_verity_hash_create(bundlefd, offset/4096, &combined_size, hash, salt) != 0) {
+		g_set_error(error,
+				R_BUNDLE_ERROR,
+				R_BUNDLE_ERROR_VERITY,
+				"failed to generate verity hash tree");
+		return FALSE;
+	}
+	/* for a squashfs <= 4096 bytes, we don't have a hash table */
+	g_assert(combined_size*4096 > (uint64_t)offset);
+	verity_size = combined_size*4096 - offset;
+	g_assert(verity_size % 4096 == 0);
+
+	manifest->bundle_verity_salt = r_hex_encode(salt, sizeof(salt));
+	manifest->bundle_verity_hash = r_hex_encode(hash, sizeof(hash));
+	manifest->bundle_verity_size = verity_size;
+
+	return TRUE;
+}
+
 static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GError **error)
 {
 	GError *ierror = NULL;
@@ -585,17 +672,6 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 	}
 	bundleoutstream = g_io_stream_get_output_stream(G_IO_STREAM(bundlestream));
 
-	if (!g_seekable_seek(G_SEEKABLE(bundlestream),
-			0, G_SEEK_END, NULL, &ierror)) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to seek to end of bundle: ");
-		return FALSE;
-	}
-
-	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
-	g_debug("Payload size: %" G_GUINT64_FORMAT " bytes.", offset);
 	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
 		g_print("Creating bundle in 'plain' format\n");
 
@@ -620,56 +696,13 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 			return FALSE;
 		}
 	} else if ((manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) || (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT)) {
-		int bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundleoutstream));
-		guint8 salt[32] = {0};
-		guint8 hash[32] = {0};
-		uint64_t combined_size = 0;
-		guint64 verity_size = 0;
+
+		if (!create_verity(bundlename, manifest, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
 
 		g_print("Creating bundle in '%s' format\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
-
-		/* check we have a clean manifest */
-		g_assert(manifest->bundle_verity_salt == NULL);
-		g_assert(manifest->bundle_verity_hash == NULL);
-		g_assert(manifest->bundle_verity_size == 0);
-
-		/* dm-verity hash table generation */
-		if (RAND_bytes((unsigned char *)&salt, sizeof(salt)) != 1) {
-			g_set_error(error,
-					R_BUNDLE_ERROR,
-					R_BUNDLE_ERROR_VERITY,
-					"failed to generate verity salt");
-			return FALSE;
-		}
-		if (offset % 4096 != 0) {
-			g_set_error(error,
-					R_BUNDLE_ERROR,
-					R_BUNDLE_ERROR_VERITY,
-					"squashfs size (%"G_GUINT64_FORMAT ") is not a multiple of 4096 bytes", offset);
-			return FALSE;
-		}
-		if (offset <= 4096) {
-			g_set_error(error,
-					R_BUNDLE_ERROR,
-					R_BUNDLE_ERROR_VERITY,
-					"squashfs size (%"G_GUINT64_FORMAT ") must be larger than 4096 bytes", offset);
-			return FALSE;
-		}
-		if (r_verity_hash_create(bundlefd, offset/4096, &combined_size, hash, salt) != 0) {
-			g_set_error(error,
-					R_BUNDLE_ERROR,
-					R_BUNDLE_ERROR_VERITY,
-					"failed to generate verity hash tree");
-			return FALSE;
-		}
-		/* for a squashfs <= 4096 bytes, we don't have a hash table */
-		g_assert(combined_size*4096 > (uint64_t)offset);
-		verity_size = combined_size*4096 - offset;
-		g_assert(verity_size % 4096 == 0);
-
-		manifest->bundle_verity_salt = r_hex_encode(salt, sizeof(salt));
-		manifest->bundle_verity_hash = r_hex_encode(hash, sizeof(hash));
-		manifest->bundle_verity_size = verity_size;
 
 		if (!check_manifest_external(manifest, &ierror)) {
 			g_propagate_prefixed_error(
