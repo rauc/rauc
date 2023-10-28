@@ -1065,9 +1065,9 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 {
 	g_autoptr(RaucManifest) loaded_manifest = NULL;
 	RaucManifest *manifest = NULL; /* alias pointer, not to be freed */
-	goffset squashfs_size;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+	g_autoptr(GBytes) sig = NULL;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(outpath != NULL, FALSE);
@@ -1097,34 +1097,34 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 
 	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
 		g_print("Reading bundle in 'plain' format\n");
-		squashfs_size = bundle->size;
 	} else if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY || manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
 		g_print("Reading bundle in '%s' format\n", manifest->bundle_format == R_MANIFEST_FORMAT_VERITY ? "verity" : "crypt");
 		g_assert(bundle->size > (goffset)manifest->bundle_verity_size);
-		squashfs_size = bundle->size - manifest->bundle_verity_size;
 	} else {
 		g_error("unsupported bundle format");
 		res = FALSE;
 		goto out;
 	}
 
-	g_clear_pointer(&manifest->bundle_verity_salt, g_free);
-	g_clear_pointer(&manifest->bundle_verity_hash, g_free);
-	manifest->bundle_verity_size = 0;
-
-	res = truncate_bundle(bundle->path, outpath, squashfs_size, &ierror);
+	res = truncate_bundle(bundle->path, outpath, bundle->size, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
 
-	res = sign_bundle(outpath, manifest, &ierror);
+	sig = generate_bundle_signature(outpath, manifest, &ierror);
+	if (!sig) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto out;
+	}
+
+	res = append_signature_to_bundle(outpath, sig, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
 
-	res = TRUE;
 out:
 	/* Remove output file on error */
 	if (!res &&
