@@ -645,21 +645,17 @@ static gboolean create_verity(const gchar *bundlename, RaucManifest *manifest, G
 	return TRUE;
 }
 
-static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GError **error)
+static gboolean append_signature_to_bundle(const gchar *bundlename, GBytes *sig, GError **error)
 {
-	GError *ierror = NULL;
-	g_autoptr(GBytes) sig = NULL;
 	g_autoptr(GFile) bundlefile = NULL;
 	g_autoptr(GFileIOStream) bundlestream = NULL;
 	GOutputStream *bundleoutstream = NULL; /* owned by the bundle stream */
+	GError *ierror = NULL;
 	guint64 offset;
 
 	g_return_val_if_fail(bundlename, FALSE);
-	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(sig, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
-
-	g_assert_nonnull(r_context()->certpath);
-	g_assert_nonnull(r_context()->keypath);
 
 	bundlefile = g_file_new_for_path(bundlename);
 	bundlestream = g_file_open_readwrite(bundlefile, NULL, &ierror);
@@ -670,7 +666,54 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 				"failed to open bundle for signing: ");
 		return FALSE;
 	}
+
 	bundleoutstream = g_io_stream_get_output_stream(G_IO_STREAM(bundlestream));
+
+	if (!g_seekable_seek(G_SEEKABLE(bundlestream),
+			0, G_SEEK_END, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to seek to end of bundle: ");
+		return FALSE;
+	}
+
+	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
+	g_debug("Signature offset: %" G_GUINT64_FORMAT " bytes.", offset);
+	if (!output_stream_write_bytes_all(bundleoutstream, sig, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to append signature to bundle: ");
+		return FALSE;
+	}
+
+	offset = g_seekable_tell(G_SEEKABLE(bundlestream)) - offset;
+	if (!output_stream_write_uint64_all(bundleoutstream, offset, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to append signature size to bundle: ");
+		return FALSE;
+	}
+
+	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
+	g_debug("Bundle size: %" G_GUINT64_FORMAT " bytes.", offset);
+
+	return TRUE;
+}
+
+static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(GBytes) sig = NULL;
+
+	g_return_val_if_fail(bundlename, FALSE);
+	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_assert_nonnull(r_context()->certpath);
+	g_assert_nonnull(r_context()->keypath);
 
 	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
 		g_print("Creating bundle in 'plain' format\n");
@@ -729,36 +772,10 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 		return FALSE;
 	}
 
-	if (!g_seekable_seek(G_SEEKABLE(bundlestream),
-			0, G_SEEK_END, NULL, &ierror)) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to seek to end of bundle: ");
+	if (!append_signature_to_bundle(bundlename, sig, &ierror)) {
+		g_propagate_error(error, ierror);
 		return FALSE;
 	}
-
-	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
-	g_debug("Signature offset: %" G_GUINT64_FORMAT " bytes.", offset);
-	if (!output_stream_write_bytes_all(bundleoutstream, sig, NULL, &ierror)) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to append signature to bundle: ");
-		return FALSE;
-	}
-
-	offset = g_seekable_tell(G_SEEKABLE(bundlestream)) - offset;
-	if (!output_stream_write_uint64_all(bundleoutstream, offset, NULL, &ierror)) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to append signature size to bundle: ");
-		return FALSE;
-	}
-
-	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
-	g_debug("Bundle size: %" G_GUINT64_FORMAT " bytes.", offset);
 
 	return TRUE;
 }
