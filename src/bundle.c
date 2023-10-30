@@ -2255,12 +2255,6 @@ gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *
 		return FALSE;
 	}
 
-	res = check_bundle_payload(bundle, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
 	if (bundle->manifest) {
 		manifest = bundle->manifest;
 	} else {
