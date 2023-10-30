@@ -703,6 +703,73 @@ static gboolean append_signature_to_bundle(const gchar *bundlename, GBytes *sig,
 	return TRUE;
 }
 
+static GBytes *generate_bundle_signature(const gchar *bundlename, RaucManifest *manifest, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(GBytes) sig = NULL;
+
+	g_return_val_if_fail(bundlename, FALSE);
+	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_assert_nonnull(r_context()->certpath);
+	g_assert_nonnull(r_context()->keypath);
+
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
+		g_print("Creating bundle in 'plain' format\n");
+
+		if (!check_manifest_internal(manifest, &ierror)) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"cannot sign bundle containing inconsistent manifest: ");
+			return NULL;
+		}
+
+		sig = cms_sign_file(bundlename,
+				r_context()->certpath,
+				r_context()->keypath,
+				r_context()->intermediatepaths,
+				&ierror);
+		if (sig == NULL) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"failed to sign bundle: ");
+			return NULL;
+		}
+	} else if ((manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) || (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT)) {
+		g_print("Creating bundle in '%s' format\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
+
+		if (!check_manifest_external(manifest, &ierror)) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"cannot sign inconsistent manifest: ");
+			return NULL;
+		}
+
+		sig = cms_sign_manifest(manifest,
+				r_context()->certpath,
+				r_context()->keypath,
+				r_context()->intermediatepaths,
+				&ierror);
+		if (sig == NULL) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"failed to sign manifest: ");
+			return NULL;
+		}
+	} else {
+		g_error("unsupported bundle format");
+		return NULL;
+	}
+
+	return g_steal_pointer(&sig);
+}
+
+
 static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GError **error)
 {
 	GError *ierror = NULL;
@@ -716,61 +783,15 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 	g_assert_nonnull(r_context()->keypath);
 
 	if ((manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) || (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT)) {
-
 		if (!create_verity(bundlename, manifest, &ierror)) {
 			g_propagate_error(error, ierror);
 			return FALSE;
 		}
 	}
 
-	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
-		g_print("Creating bundle in 'plain' format\n");
-
-		if (!check_manifest_internal(manifest, &ierror)) {
-			g_propagate_prefixed_error(
-					error,
-					ierror,
-					"cannot sign bundle containing inconsistent manifest: ");
-			return FALSE;
-		}
-
-		sig = cms_sign_file(bundlename,
-				r_context()->certpath,
-				r_context()->keypath,
-				r_context()->intermediatepaths,
-				&ierror);
-		if (sig == NULL) {
-			g_propagate_prefixed_error(
-					error,
-					ierror,
-					"failed to sign bundle: ");
-			return FALSE;
-		}
-	} else if ((manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) || (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT)) {
-		g_print("Creating bundle in '%s' format\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
-
-		if (!check_manifest_external(manifest, &ierror)) {
-			g_propagate_prefixed_error(
-					error,
-					ierror,
-					"cannot sign inconsistent manifest: ");
-			return FALSE;
-		}
-
-		sig = cms_sign_manifest(manifest,
-				r_context()->certpath,
-				r_context()->keypath,
-				r_context()->intermediatepaths,
-				&ierror);
-		if (sig == NULL) {
-			g_propagate_prefixed_error(
-					error,
-					ierror,
-					"failed to sign manifest: ");
-			return FALSE;
-		}
-	} else {
-		g_error("unsupported bundle format");
+	sig = generate_bundle_signature(bundlename, manifest, &ierror);
+	if (!sig) {
+		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
