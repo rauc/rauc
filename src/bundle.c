@@ -1286,10 +1286,6 @@ gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **err
 	GError *ierror = NULL;
 	GBytes *encdata = NULL;
 	gboolean res = FALSE;
-	g_autoptr(GFile) bundlefile = NULL;
-	g_autoptr(GFileIOStream) bundlestream = NULL;
-	GOutputStream *bundleoutstream = NULL; /* owned by the bundle stream */
-	guint64 offset;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(outbundle != NULL, FALSE);
@@ -1316,28 +1312,6 @@ gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **err
 		goto out;
 	}
 
-	bundlefile = g_file_new_for_path(outbundle);
-	bundlestream = g_file_open_readwrite(bundlefile, NULL, &ierror);
-	if (bundlestream == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to open bundle for encryption: ");
-		res = FALSE;
-		goto out;
-	}
-	bundleoutstream = g_io_stream_get_output_stream(G_IO_STREAM(bundlestream));
-
-	if (!g_seekable_seek(G_SEEKABLE(bundlestream),
-			0, G_SEEK_END, NULL, &ierror)) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to seek to end of bundle: ");
-		res = FALSE;
-		goto out;
-	}
-
 	/* encrypt sigdata CMS */
 	encdata = cms_encrypt(bundle->sigdata, r_context()->recipients, &ierror);
 	if (encdata == NULL) {
@@ -1349,35 +1323,15 @@ gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **err
 		goto out;
 	}
 
-	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
-	g_debug("Signature offset: %" G_GUINT64_FORMAT " bytes.", offset);
-	if (!output_stream_write_bytes_all(bundleoutstream, encdata, NULL, &ierror)) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to append encrypted signature to bundle: ");
-		res = FALSE;
+	res = append_signature_to_bundle(outbundle, encdata, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
 	}
-
-	offset = g_seekable_tell(G_SEEKABLE(bundlestream)) - offset;
-	if (!output_stream_write_uint64_all(bundleoutstream, offset, NULL, &ierror)) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to append size of encrypted signature to bundle: ");
-		res = FALSE;
-		goto out;
-	}
-	g_debug("Signature size: %" G_GUINT64_FORMAT " bytes.", offset);
-
-	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
-	g_debug("Bundle size: %" G_GUINT64_FORMAT " bytes.", offset);
 
 out:
 	/* clean encrypted bundle on failure */
 	if (!res) {
-		g_clear_object(&bundlestream); /* enforce closing stream */
 		if (g_file_test(outbundle, G_FILE_TEST_IS_REGULAR)) {
 			if (g_remove(outbundle) != 0)
 				g_warning("Failed to remove %s", outbundle);
