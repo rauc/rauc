@@ -2175,7 +2175,6 @@ out:
 gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -2183,8 +2182,7 @@ gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 	if (bundle->verification_disabled || bundle->payload_verified) {
 		r_context_begin_step("skip_bundle_payload", "Bundle payload verification not needed", 0);
 		r_context_end_step("skip_bundle_payload", TRUE);
-		res = TRUE;
-		goto out;
+		return TRUE;
 	}
 
 	g_message("Verifying bundle payload... ");
@@ -2192,25 +2190,22 @@ gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 	if (!bundle->stream) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE,
 				"Refused to verify remote bundle. Provide a local bundle instead.");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	if (!bundle->exclusive_verified) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE,
 				"cannot check bundle payload without exclusive access: %s", bundle->exclusive_check_error);
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	if (!bundle->manifest) { /* plain format */
 		g_error("plain bundles must be verified during signature check");
 		/* g_error always aborts the program */
 	} else {
-		res = check_manifest_external(bundle->manifest, &ierror);
-		if (!res) {
+		if (!check_manifest_external(bundle->manifest, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
@@ -2230,20 +2225,16 @@ gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 		if (r_verity_hash_verify(bundlefd, data_size/4096, root_digest, salt)) {
 			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_PAYLOAD,
 					"bundle payload is corrupted");
-			res = FALSE;
-			goto out;
+			return FALSE;
 		}
 	} else {
 		g_error("unsupported bundle format");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	bundle->payload_verified = TRUE;
 
-	res = TRUE;
-out:
-	return res;
+	return TRUE;
 }
 
 gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *outpath, CheckBundleParams params, GError **error)
