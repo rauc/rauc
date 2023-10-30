@@ -2239,15 +2239,11 @@ gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *
 	g_autoptr(RaucManifest) loaded_manifest = NULL;
 	RaucManifest *manifest = NULL; /* alias pointer, not to be freed */
 	g_autoptr(RaucBundle) outbundle = NULL;
-	g_autoptr(GFile) bundleoutfile = NULL;
-	GFileIOStream* bundlestream = NULL;
-	GOutputStream* bundleoutstream = NULL;
 	g_autoptr(GBytes) sig = NULL;
 	gchar* keyringpath = NULL;
 	gchar* keyringdirectory = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	gsize sigsize;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(outpath != NULL, FALSE);
@@ -2298,50 +2294,11 @@ gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *
 		goto out;
 	}
 
-	bundleoutfile = g_file_new_for_path(outpath);
-	bundlestream = g_file_open_readwrite(bundleoutfile, NULL, &ierror);
-	if (!bundlestream) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to open new bundle for adding signature: ");
-		res = FALSE;
-		goto out;
-	}
-
-	bundleoutstream = g_io_stream_get_output_stream(G_IO_STREAM(bundlestream));
-
-	res = g_seekable_seek(G_SEEKABLE(bundleoutstream),
-			0, G_SEEK_END, NULL, &ierror);
+	res = append_signature_to_bundle(outpath, sig, &ierror);
 	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to seek to end of new bundle: ");
+		g_propagate_error(error, ierror);
 		goto out;
 	}
-
-	res = output_stream_write_bytes_all(bundleoutstream, sig, NULL, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to append signature to temporary bundle: ");
-		goto out;
-	}
-
-	sigsize = g_bytes_get_size(sig);
-	res = output_stream_write_uint64_all(bundleoutstream, (guint64)sigsize, NULL, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to append signature size to new bundle: ");
-		goto out;
-	}
-
-	/* Necessary to release associated fd before perform check_bundle */
-	g_clear_object(&bundlestream);
 
 	/*
 	 * If signing_keyringpath is given, replace config->keyring_path, so we can
@@ -2379,9 +2336,6 @@ out:
 	    g_file_test(outpath, G_FILE_TEST_IS_REGULAR))
 		if (g_remove(outpath) != 0)
 			g_warning("failed to remove %s", outpath);
-
-	if (bundlestream)
-		g_clear_object(&bundlestream);
 
 	/* Restore saved paths if necessary */
 	if (keyringpath || keyringdirectory) {
