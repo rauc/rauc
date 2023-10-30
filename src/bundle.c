@@ -2391,6 +2391,7 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail(outputdir != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	r_context_begin_step("extract_bundle", "Extracting bundle", 2);
