@@ -172,20 +172,6 @@ grub-editenv -V &&
 whoami | grep -q root &&
   test_set_prereq ROOT
 
-test_expect_success ROOT "rauc mount" "
-  test ! -f /mnt/rauc/bundle/manifest.raucm &&
-  cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
-  test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
-  test_when_finished umount /mnt/rauc/bundle &&
-  ls ${TEST_TMPDIR} &&
-  rauc \
-    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
-    mount ${TEST_TMPDIR}/good-bundle.raucb &&
-  mount &&
-  test -f /mnt/rauc/bundle/manifest.raucm &&
-  test -f /mnt/rauc/bundle/rootfs.img
-"
-
 test_expect_success SERVICE "rauc service double-init failure" "
   start_rauc_dbus_service \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
