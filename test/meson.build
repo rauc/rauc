@@ -87,6 +87,7 @@ if pytest.found()
     'test_bundle',
     'test_status',
     'test_mount',
+    'test_service',
   ]
   foreach test_name : pytests
     test(

@@ -172,14 +172,6 @@ grub-editenv -V &&
 whoami | grep -q root &&
   test_set_prereq ROOT
 
-test_expect_success SERVICE "rauc service double-init failure" "
-  start_rauc_dbus_service \
-    --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
-    --override-boot-slot=system0 &&
-  test_when_finished stop_rauc_dbus_service &&
-  test_must_fail rauc service
-"
-
 test_expect_success !SERVICE,GRUB "rauc status mark-good: internally" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status mark-good
 "
