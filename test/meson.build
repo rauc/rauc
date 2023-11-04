@@ -89,6 +89,7 @@ if pytest.found()
     'test_mount',
     'test_service',
     'test_mark',
+    'test_extract',
   ]
   foreach test_name : pytests
     test(

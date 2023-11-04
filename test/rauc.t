@@ -314,58 +314,6 @@ test_expect_success FAKETIME "rauc sign bundle with valid certificate (encrypted
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success OPENSSL "rauc extract signature" "
-  cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
-  test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
-  rauc \
-    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
-    extract-signature ${TEST_TMPDIR}/good-bundle.raucb $TEST_TMPDIR/bundle.sig &&
-  test -f $TEST_TMPDIR/bundle.sig &&
-  openssl asn1parse -inform DER -in $TEST_TMPDIR/bundle.sig -noout > /dev/null 2>&1 && \
-  rm -f $TEST_TMPDIR/bundle.sig
-"
-
-test_expect_success OPENSSL "rauc extract signature (crypt)" "
-  cp -L ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-encrypted.raucb ${TEST_TMPDIR}/ &&
-  test_when_finished rm -f ${TEST_TMPDIR}/good-crypt-bundle-encrypted.raucb &&
-  rauc \
-    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
-    --key $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/private-key-000.pem \
-    extract-signature ${TEST_TMPDIR}/good-crypt-bundle-encrypted.raucb $TEST_TMPDIR/bundle.sig &&
-  test -f $TEST_TMPDIR/bundle.sig &&
-  openssl asn1parse -inform DER -in $TEST_TMPDIR/bundle.sig -noout > /dev/null 2>&1 && \
-  rm -f $TEST_TMPDIR/bundle.sig
-"
-
-test_expect_success "rauc extract" "
-  cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
-  test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
-  rauc \
-    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
-    extract ${TEST_TMPDIR}/good-bundle.raucb $TEST_TMPDIR/bundle-extract &&
-  test -f $TEST_TMPDIR/bundle-extract/appfs.img &&
-  test -f $TEST_TMPDIR/bundle-extract/custom_handler.sh &&
-  test -f $TEST_TMPDIR/bundle-extract/hook.sh &&
-  test -f $TEST_TMPDIR/bundle-extract/manifest.raucm &&
-  test -f $TEST_TMPDIR/bundle-extract/rootfs.img &&
-  rm -rf $TEST_TMPDIR/bundle-extract
-"
-
-test_expect_success "rauc extract (crypt)" "
-  cp -L ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-encrypted.raucb ${TEST_TMPDIR}/ &&
-  test_when_finished rm -f ${TEST_TMPDIR}/good-crypt-bundle-encrypted.raucb &&
-  rauc \
-    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
-    --key $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/private-key-000.pem \
-    extract ${TEST_TMPDIR}/good-crypt-bundle-encrypted.raucb $TEST_TMPDIR/bundle-extract &&
-  test -f $TEST_TMPDIR/bundle-extract/appfs.img &&
-  test -f $TEST_TMPDIR/bundle-extract/custom_handler.sh &&
-  test -f $TEST_TMPDIR/bundle-extract/hook.sh &&
-  test -f $TEST_TMPDIR/bundle-extract/manifest.raucm &&
-  test -f $TEST_TMPDIR/bundle-extract/rootfs.img &&
-  rm -rf $TEST_TMPDIR/bundle-extract
-"
-
 test_expect_success CASYNC "rauc convert" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
