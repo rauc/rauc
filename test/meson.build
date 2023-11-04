@@ -90,6 +90,7 @@ if pytest.found()
     'test_service',
     'test_mark',
     'test_extract',
+    'test_convert',
   ]
   foreach test_name : pytests
     test(
