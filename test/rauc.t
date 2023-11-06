@@ -898,8 +898,15 @@ test_expect_success "rauc resign" "
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
-    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
-    resign ${TEST_TMPDIR}/good-bundle.raucb ${TEST_TMPDIR}/out.raucb &&
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    resign ${TEST_TMPDIR}/good-bundle.raucb ${TEST_TMPDIR}/out.raucb \
+    --signing-keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-only-ca.pem && \
+  test_must_fail rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    info ${TEST_TMPDIR}/out.raucb && \
+  rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-only-ca.pem \
+    info ${TEST_TMPDIR}/out.raucb && \
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
