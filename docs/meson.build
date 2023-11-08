@@ -1,4 +1,4 @@
-sphinx = find_program('sphinx-build', required: false)
+sphinx = find_program('sphinx-build', required: get_option('htmldocs'))
 
 if not sphinx.found()
   subdir_done()
@@ -27,5 +27,7 @@ custom_target(
   output: 'html',
   depend_files: sources_doc,
   command: [sphinx, '-b', 'html', meson.current_source_dir(), meson.current_build_dir() / 'html'],
-  build_by_default: false
+  build_by_default: get_option('htmldocs'),
+  install_dir: join_paths(datadir, 'doc', 'rauc'),
+  install: get_option('htmldocs'),
 )
