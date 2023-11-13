@@ -101,7 +101,7 @@ r_bundle_error_quark(void)
 	return g_quark_from_static_string("r-bundle-error-quark");
 }
 
-static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GError **error)
+static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, const gchar *fakeroot, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -118,6 +118,8 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 		goto out;
 	}
 
+	r_fakeroot_add_args(args, fakeroot);
+
 	g_ptr_array_add(args, g_strdup("mksquashfs"));
 	g_ptr_array_add(args, g_strdup(contentdir));
 	g_ptr_array_add(args, g_strdup(bundlename));
@@ -125,7 +127,6 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 	g_ptr_array_add(args, g_strdup("-noappend"));
 	g_ptr_array_add(args, g_strdup("-no-progress"));
 	g_ptr_array_add(args, g_strdup("-no-xattrs"));
-
 
 	if (r_context()->mksquashfs_args != NULL) {
 		g_auto(GStrv) mksquashfs_argvp = NULL;
@@ -940,7 +941,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		goto out;
 	}
 
-	res = mksquashfs(bundlename, contentdir, &ierror);
+	res = mksquashfs(bundlename, contentdir, fakeroot, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -1215,7 +1216,7 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 		goto out;
 	}
 
-	res = mksquashfs(outbundle, contentdir, &ierror);
+	res = mksquashfs(outbundle, contentdir, NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
