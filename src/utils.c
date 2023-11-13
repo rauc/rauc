@@ -651,3 +651,65 @@ gboolean r_syncfs(const gchar *path, GError **error)
 
 	return TRUE;
 }
+
+gchar* r_fakeroot_init(GError **error)
+{
+	GError *ierror = NULL;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *tmpfile = NULL;
+	int fd = -1;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	tmpdir = g_dir_make_tmp("rauc-fakeroot-XXXXXX", &ierror);
+	if (tmpdir == NULL) {
+		g_propagate_prefixed_error(error, ierror, "Failed to create tmp dir: ");
+		return NULL;
+	}
+
+	tmpfile = g_build_filename(tmpdir, "environment", NULL);
+	fd = g_open(tmpfile, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+	if (fd == -1) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to create %s: %s", tmpfile, g_strerror(err));
+		return FALSE;
+	}
+
+	return g_steal_pointer(&tmpfile);
+}
+
+void r_fakeroot_add_args(GPtrArray *args, const gchar *envpath)
+{
+	g_return_if_fail(args != NULL);
+
+	if (!envpath)
+		return;
+
+	g_assert(g_path_is_absolute(envpath));
+	g_assert(g_str_has_suffix(envpath, "/environment"));
+
+	g_ptr_array_add(args, g_strdup("fakeroot"));
+	g_ptr_array_add(args, g_strdup("-s"));
+	g_ptr_array_add(args, g_strdup(envpath));
+	g_ptr_array_add(args, g_strdup("-i"));
+	g_ptr_array_add(args, g_strdup(envpath));
+	g_ptr_array_add(args, g_strdup("--"));
+}
+
+gboolean r_fakeroot_cleanup(const gchar *envpath, GError **error)
+{
+	g_autofree gchar *tmpdir = g_path_get_dirname(envpath);
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!envpath)
+		return TRUE;
+
+	g_assert(g_path_is_absolute(envpath));
+	g_assert(g_str_has_suffix(envpath, "/environment"));
+
+	return rm_tree(tmpdir, error);
+}
