@@ -558,21 +558,22 @@ static gboolean input_stream_read_bytes_all(GInputStream *stream,
 	return TRUE;
 }
 
-static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GError **error)
+static gboolean create_verity(const gchar *bundlename, RaucManifest *manifest, GError **error)
 {
-	GError *ierror = NULL;
-	g_autoptr(GBytes) sig = NULL;
 	g_autoptr(GFile) bundlefile = NULL;
 	g_autoptr(GFileIOStream) bundlestream = NULL;
 	GOutputStream *bundleoutstream = NULL; /* owned by the bundle stream */
+	GError *ierror = NULL;
 	guint64 offset;
+	int bundlefd = -1;
+	guint8 salt[32] = {0};
+	guint8 hash[32] = {0};
+	uint64_t combined_size = 0;
+	guint64 verity_size = 0;
 
-	g_return_val_if_fail(bundlename, FALSE);
-	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(bundlename != NULL, FALSE);
+	g_return_val_if_fail(manifest != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
-
-	g_assert_nonnull(r_context()->certpath);
-	g_assert_nonnull(r_context()->keypath);
 
 	bundlefile = g_file_new_for_path(bundlename);
 	bundlestream = g_file_open_readwrite(bundlefile, NULL, &ierror);
@@ -583,7 +584,14 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 				"failed to open bundle for signing: ");
 		return FALSE;
 	}
+
 	bundleoutstream = g_io_stream_get_output_stream(G_IO_STREAM(bundlestream));
+	bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundleoutstream));
+
+	/* check we have a clean manifest */
+	g_assert(manifest->bundle_verity_salt == NULL);
+	g_assert(manifest->bundle_verity_hash == NULL);
+	g_assert(manifest->bundle_verity_size == 0);
 
 	if (!g_seekable_seek(G_SEEKABLE(bundlestream),
 			0, G_SEEK_END, NULL, &ierror)) {
@@ -596,105 +604,70 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 
 	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
 	g_debug("Payload size: %" G_GUINT64_FORMAT " bytes.", offset);
-	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
-		g_print("Creating bundle in 'plain' format\n");
-
-		if (!check_manifest_internal(manifest, &ierror)) {
-			g_propagate_prefixed_error(
-					error,
-					ierror,
-					"cannot sign bundle containing inconsistent manifest: ");
-			return FALSE;
-		}
-
-		sig = cms_sign_file(bundlename,
-				r_context()->certpath,
-				r_context()->keypath,
-				r_context()->intermediatepaths,
-				&ierror);
-		if (sig == NULL) {
-			g_propagate_prefixed_error(
-					error,
-					ierror,
-					"failed to sign bundle: ");
-			return FALSE;
-		}
-	} else if ((manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) || (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT)) {
-		int bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundleoutstream));
-		guint8 salt[32] = {0};
-		guint8 hash[32] = {0};
-		uint64_t combined_size = 0;
-		guint64 verity_size = 0;
-
-		g_print("Creating bundle in '%s' format\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
-
-		/* check we have a clean manifest */
-		g_assert(manifest->bundle_verity_salt == NULL);
-		g_assert(manifest->bundle_verity_hash == NULL);
-		g_assert(manifest->bundle_verity_size == 0);
-
-		/* dm-verity hash table generation */
-		if (RAND_bytes((unsigned char *)&salt, sizeof(salt)) != 1) {
-			g_set_error(error,
-					R_BUNDLE_ERROR,
-					R_BUNDLE_ERROR_VERITY,
-					"failed to generate verity salt");
-			return FALSE;
-		}
-		if (offset % 4096 != 0) {
-			g_set_error(error,
-					R_BUNDLE_ERROR,
-					R_BUNDLE_ERROR_VERITY,
-					"squashfs size (%"G_GUINT64_FORMAT ") is not a multiple of 4096 bytes", offset);
-			return FALSE;
-		}
-		if (offset <= 4096) {
-			g_set_error(error,
-					R_BUNDLE_ERROR,
-					R_BUNDLE_ERROR_VERITY,
-					"squashfs size (%"G_GUINT64_FORMAT ") must be larger than 4096 bytes", offset);
-			return FALSE;
-		}
-		if (r_verity_hash_create(bundlefd, offset/4096, &combined_size, hash, salt) != 0) {
-			g_set_error(error,
-					R_BUNDLE_ERROR,
-					R_BUNDLE_ERROR_VERITY,
-					"failed to generate verity hash tree");
-			return FALSE;
-		}
-		/* for a squashfs <= 4096 bytes, we don't have a hash table */
-		g_assert(combined_size*4096 > (uint64_t)offset);
-		verity_size = combined_size*4096 - offset;
-		g_assert(verity_size % 4096 == 0);
-
-		manifest->bundle_verity_salt = r_hex_encode(salt, sizeof(salt));
-		manifest->bundle_verity_hash = r_hex_encode(hash, sizeof(hash));
-		manifest->bundle_verity_size = verity_size;
-
-		if (!check_manifest_external(manifest, &ierror)) {
-			g_propagate_prefixed_error(
-					error,
-					ierror,
-					"cannot sign inconsistent manifest: ");
-			return FALSE;
-		}
-
-		sig = cms_sign_manifest(manifest,
-				r_context()->certpath,
-				r_context()->keypath,
-				r_context()->intermediatepaths,
-				&ierror);
-		if (sig == NULL) {
-			g_propagate_prefixed_error(
-					error,
-					ierror,
-					"failed to sign manifest: ");
-			return FALSE;
-		}
-	} else {
-		g_error("unsupported bundle format");
+	/* dm-verity hash table generation */
+	if (RAND_bytes((unsigned char *)&salt, sizeof(salt)) != 1) {
+		g_set_error(error,
+				R_BUNDLE_ERROR,
+				R_BUNDLE_ERROR_VERITY,
+				"failed to generate verity salt");
 		return FALSE;
 	}
+	if (offset % 4096 != 0) {
+		g_set_error(error,
+				R_BUNDLE_ERROR,
+				R_BUNDLE_ERROR_VERITY,
+				"squashfs size (%"G_GUINT64_FORMAT ") is not a multiple of 4096 bytes", offset);
+		return FALSE;
+	}
+	if (offset <= 4096) {
+		g_set_error(error,
+				R_BUNDLE_ERROR,
+				R_BUNDLE_ERROR_VERITY,
+				"squashfs size (%"G_GUINT64_FORMAT ") must be larger than 4096 bytes", offset);
+		return FALSE;
+	}
+	if (r_verity_hash_create(bundlefd, offset/4096, &combined_size, hash, salt) != 0) {
+		g_set_error(error,
+				R_BUNDLE_ERROR,
+				R_BUNDLE_ERROR_VERITY,
+				"failed to generate verity hash tree");
+		return FALSE;
+	}
+	/* for a squashfs <= 4096 bytes, we don't have a hash table */
+	g_assert(combined_size*4096 > (uint64_t)offset);
+	verity_size = combined_size*4096 - offset;
+	g_assert(verity_size % 4096 == 0);
+
+	manifest->bundle_verity_salt = r_hex_encode(salt, sizeof(salt));
+	manifest->bundle_verity_hash = r_hex_encode(hash, sizeof(hash));
+	manifest->bundle_verity_size = verity_size;
+
+	return TRUE;
+}
+
+static gboolean append_signature_to_bundle(const gchar *bundlename, GBytes *sig, GError **error)
+{
+	g_autoptr(GFile) bundlefile = NULL;
+	g_autoptr(GFileIOStream) bundlestream = NULL;
+	GOutputStream *bundleoutstream = NULL; /* owned by the bundle stream */
+	GError *ierror = NULL;
+	guint64 offset;
+
+	g_return_val_if_fail(bundlename, FALSE);
+	g_return_val_if_fail(sig, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	bundlefile = g_file_new_for_path(bundlename);
+	bundlestream = g_file_open_readwrite(bundlefile, NULL, &ierror);
+	if (bundlestream == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"failed to open bundle for signing: ");
+		return FALSE;
+	}
+
+	bundleoutstream = g_io_stream_get_output_stream(G_IO_STREAM(bundlestream));
 
 	if (!g_seekable_seek(G_SEEKABLE(bundlestream),
 			0, G_SEEK_END, NULL, &ierror)) {
@@ -726,6 +699,102 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 
 	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
 	g_debug("Bundle size: %" G_GUINT64_FORMAT " bytes.", offset);
+
+	return TRUE;
+}
+
+static GBytes *generate_bundle_signature(const gchar *bundlename, RaucManifest *manifest, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(GBytes) sig = NULL;
+
+	g_return_val_if_fail(bundlename, FALSE);
+	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_assert_nonnull(r_context()->certpath);
+	g_assert_nonnull(r_context()->keypath);
+
+	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
+		if (!check_manifest_internal(manifest, &ierror)) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"cannot sign bundle containing inconsistent manifest: ");
+			return NULL;
+		}
+
+		sig = cms_sign_file(bundlename,
+				r_context()->certpath,
+				r_context()->keypath,
+				r_context()->intermediatepaths,
+				&ierror);
+		if (sig == NULL) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"failed to sign bundle: ");
+			return NULL;
+		}
+	} else if ((manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) || (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT)) {
+		if (!check_manifest_external(manifest, &ierror)) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"cannot sign inconsistent manifest: ");
+			return NULL;
+		}
+
+		sig = cms_sign_manifest(manifest,
+				r_context()->certpath,
+				r_context()->keypath,
+				r_context()->intermediatepaths,
+				&ierror);
+		if (sig == NULL) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"failed to sign manifest: ");
+			return NULL;
+		}
+	} else {
+		g_error("unsupported bundle format");
+		return NULL;
+	}
+
+	return g_steal_pointer(&sig);
+}
+
+
+static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(GBytes) sig = NULL;
+
+	g_return_val_if_fail(bundlename, FALSE);
+	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_assert_nonnull(r_context()->certpath);
+	g_assert_nonnull(r_context()->keypath);
+
+	if ((manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) || (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT)) {
+		if (!create_verity(bundlename, manifest, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+	}
+
+	sig = generate_bundle_signature(bundlename, manifest, &ierror);
+	if (!sig) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (!append_signature_to_bundle(bundlename, sig, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -802,7 +871,7 @@ out:
 	return res;
 }
 
-static gboolean decrypt_bundle_payload(RaucBundle *bundle, RaucManifest *manifest, GError **error)
+static gboolean decrypt_bundle_payload(RaucBundle *bundle, GError **error)
 {
 	gboolean res = FALSE;
 	GError *ierror = NULL;
@@ -812,7 +881,7 @@ static gboolean decrypt_bundle_payload(RaucBundle *bundle, RaucManifest *manifes
 	g_autoptr(GFile) decgfile = NULL;
 
 	g_return_val_if_fail(bundle, FALSE);
-	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(bundle->manifest, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	tmpdir = g_dir_make_tmp("rauc-XXXXXX", &ierror);
@@ -824,11 +893,11 @@ static gboolean decrypt_bundle_payload(RaucBundle *bundle, RaucManifest *manifes
 	decpath = g_strconcat(tmpdir, "decrypted.raucb", NULL);
 
 	/* check we have a crypt key set in manifest */
-	g_assert(manifest->bundle_crypt_key != NULL);
+	g_assert(bundle->manifest->bundle_crypt_key != NULL);
 
 	/* Uncomment for debugging purpose */
 	//g_message("Decrypting with key: %s", manifest->bundle_crypt_key);
-	key = r_hex_decode(manifest->bundle_crypt_key, 32);
+	key = r_hex_decode(bundle->manifest->bundle_crypt_key, 32);
 	g_assert(key);
 
 	res = r_crypt_decrypt(bundle->path, decpath, key, bundle->size - bundle->manifest->bundle_verity_size, &ierror);
@@ -874,6 +943,8 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		g_propagate_error(error, ierror);
 		goto out;
 	}
+
+	g_print("Creating '%s' format bundle\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
 
 	/* print warnings collected while parsing */
 	for (guint i =  0; i < manifest->warnings->len; i++) {
@@ -990,10 +1061,11 @@ out:
 
 gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 {
-	g_autoptr(RaucManifest) manifest = NULL;
-	goffset squashfs_size;
+	g_autoptr(RaucManifest) loaded_manifest = NULL;
+	RaucManifest *manifest = NULL; /* alias pointer, not to be freed */
 	GError *ierror = NULL;
 	gboolean res = FALSE;
+	g_autoptr(GBytes) sig = NULL;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(outpath != NULL, FALSE);
@@ -1010,42 +1082,38 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 		goto out;
 	}
 
-	res = load_manifest_from_bundle(bundle, &manifest, &ierror);
+	if (bundle->manifest) {
+		manifest = bundle->manifest;
+	} else {
+		res = load_manifest_from_bundle(bundle, &loaded_manifest, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+		manifest = loaded_manifest;
+	}
+
+	g_print("Resigning '%s' format bundle\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
+
+	res = truncate_bundle(bundle->path, outpath, bundle->size, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
 
-	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
-		g_print("Reading bundle in 'plain' format\n");
-		squashfs_size = bundle->size;
-	} else if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
-		g_print("Reading bundle in 'verity' format\n");
-		g_assert(bundle->size > (goffset)manifest->bundle_verity_size);
-		squashfs_size = bundle->size - manifest->bundle_verity_size;
-	} else {
-		g_error("unsupported bundle format");
+	sig = generate_bundle_signature(outpath, manifest, &ierror);
+	if (!sig) {
+		g_propagate_error(error, ierror);
 		res = FALSE;
 		goto out;
 	}
 
-	g_clear_pointer(&manifest->bundle_verity_salt, g_free);
-	g_clear_pointer(&manifest->bundle_verity_hash, g_free);
-	manifest->bundle_verity_size = 0;
-
-	res = truncate_bundle(bundle->path, outpath, squashfs_size, &ierror);
+	res = append_signature_to_bundle(outpath, sig, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
 
-	res = sign_bundle(outpath, manifest, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	res = TRUE;
 out:
 	/* Remove output file on error */
 	if (!res &&
@@ -1230,10 +1298,6 @@ gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **err
 	GError *ierror = NULL;
 	GBytes *encdata = NULL;
 	gboolean res = FALSE;
-	g_autoptr(GFile) bundlefile = NULL;
-	g_autoptr(GFileIOStream) bundlestream = NULL;
-	GOutputStream *bundleoutstream = NULL; /* owned by the bundle stream */
-	guint64 offset;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(outbundle != NULL, FALSE);
@@ -1260,28 +1324,6 @@ gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **err
 		goto out;
 	}
 
-	bundlefile = g_file_new_for_path(outbundle);
-	bundlestream = g_file_open_readwrite(bundlefile, NULL, &ierror);
-	if (bundlestream == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to open bundle for encryption: ");
-		res = FALSE;
-		goto out;
-	}
-	bundleoutstream = g_io_stream_get_output_stream(G_IO_STREAM(bundlestream));
-
-	if (!g_seekable_seek(G_SEEKABLE(bundlestream),
-			0, G_SEEK_END, NULL, &ierror)) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to seek to end of bundle: ");
-		res = FALSE;
-		goto out;
-	}
-
 	/* encrypt sigdata CMS */
 	encdata = cms_encrypt(bundle->sigdata, r_context()->recipients, &ierror);
 	if (encdata == NULL) {
@@ -1293,35 +1335,15 @@ gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **err
 		goto out;
 	}
 
-	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
-	g_debug("Signature offset: %" G_GUINT64_FORMAT " bytes.", offset);
-	if (!output_stream_write_bytes_all(bundleoutstream, encdata, NULL, &ierror)) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to append encrypted signature to bundle: ");
-		res = FALSE;
+	res = append_signature_to_bundle(outbundle, encdata, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
 		goto out;
 	}
-
-	offset = g_seekable_tell(G_SEEKABLE(bundlestream)) - offset;
-	if (!output_stream_write_uint64_all(bundleoutstream, offset, NULL, &ierror)) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to append size of encrypted signature to bundle: ");
-		res = FALSE;
-		goto out;
-	}
-	g_debug("Signature size: %" G_GUINT64_FORMAT " bytes.", offset);
-
-	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
-	g_debug("Bundle size: %" G_GUINT64_FORMAT " bytes.", offset);
 
 out:
 	/* clean encrypted bundle on failure */
 	if (!res) {
-		g_clear_object(&bundlestream); /* enforce closing stream */
 		if (g_file_test(outbundle, G_FILE_TEST_IS_REGULAR)) {
 			if (g_remove(outbundle) != 0)
 				g_warning("Failed to remove %s", outbundle);
@@ -2153,7 +2175,6 @@ out:
 gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -2161,8 +2182,7 @@ gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 	if (bundle->verification_disabled || bundle->payload_verified) {
 		r_context_begin_step("skip_bundle_payload", "Bundle payload verification not needed", 0);
 		r_context_end_step("skip_bundle_payload", TRUE);
-		res = TRUE;
-		goto out;
+		return TRUE;
 	}
 
 	g_message("Verifying bundle payload... ");
@@ -2170,25 +2190,22 @@ gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 	if (!bundle->stream) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE,
 				"Refused to verify remote bundle. Provide a local bundle instead.");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	if (!bundle->exclusive_verified) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSAFE,
 				"cannot check bundle payload without exclusive access: %s", bundle->exclusive_check_error);
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	if (!bundle->manifest) { /* plain format */
 		g_error("plain bundles must be verified during signature check");
 		/* g_error always aborts the program */
 	} else {
-		res = check_manifest_external(bundle->manifest, &ierror);
-		if (!res) {
+		if (!check_manifest_external(bundle->manifest, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
@@ -2208,35 +2225,28 @@ gboolean check_bundle_payload(RaucBundle *bundle, GError **error)
 		if (r_verity_hash_verify(bundlefd, data_size/4096, root_digest, salt)) {
 			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_PAYLOAD,
 					"bundle payload is corrupted");
-			res = FALSE;
-			goto out;
+			return FALSE;
 		}
 	} else {
 		g_error("unsupported bundle format");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	bundle->payload_verified = TRUE;
 
-	res = TRUE;
-out:
-	return res;
+	return TRUE;
 }
 
 gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *outpath, CheckBundleParams params, GError **error)
 {
-	g_autoptr(RaucManifest) manifest = NULL;
+	g_autoptr(RaucManifest) loaded_manifest = NULL;
+	RaucManifest *manifest = NULL; /* alias pointer, not to be freed */
 	g_autoptr(RaucBundle) outbundle = NULL;
-	g_autoptr(GFile) bundleoutfile = NULL;
-	GFileIOStream* bundlestream = NULL;
-	GOutputStream* bundleoutstream = NULL;
 	g_autoptr(GBytes) sig = NULL;
 	gchar* keyringpath = NULL;
 	gchar* keyringdirectory = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	gsize sigsize;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(outpath != NULL, FALSE);
@@ -2248,29 +2258,18 @@ gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *
 		return FALSE;
 	}
 
-	r_context_begin_step("replace_signature", "Replacing bundle signature", 5);
-
-	res = check_bundle_payload(bundle, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	res = load_manifest_from_bundle(bundle, &manifest, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
-		g_print("Reading bundle in 'plain' format\n");
-	} else if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY) {
-		g_print("Reading bundle in 'verity' format\n");
+	if (bundle->manifest) {
+		manifest = bundle->manifest;
 	} else {
-		g_error("unsupported bundle format");
-		res = FALSE;
-		goto out;
+		res = load_manifest_from_bundle(bundle, &loaded_manifest, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+		manifest = loaded_manifest;
 	}
+
+	g_print("Replacing signature for '%s format bundle\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
 
 	sig = read_file(insig, &ierror);
 	if (!sig) {
@@ -2288,50 +2287,11 @@ gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *
 		goto out;
 	}
 
-	bundleoutfile = g_file_new_for_path(outpath);
-	bundlestream = g_file_open_readwrite(bundleoutfile, NULL, &ierror);
-	if (!bundlestream) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to open new bundle for adding signature: ");
-		res = FALSE;
-		goto out;
-	}
-
-	bundleoutstream = g_io_stream_get_output_stream(G_IO_STREAM(bundlestream));
-
-	res = g_seekable_seek(G_SEEKABLE(bundleoutstream),
-			0, G_SEEK_END, NULL, &ierror);
+	res = append_signature_to_bundle(outpath, sig, &ierror);
 	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to seek to end of new bundle: ");
+		g_propagate_error(error, ierror);
 		goto out;
 	}
-
-	res = output_stream_write_bytes_all(bundleoutstream, sig, NULL, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to append signature to temporary bundle: ");
-		goto out;
-	}
-
-	sigsize = g_bytes_get_size(sig);
-	res = output_stream_write_uint64_all(bundleoutstream, (guint64)sigsize, NULL, &ierror);
-	if (!res) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to append signature size to new bundle: ");
-		goto out;
-	}
-
-	/* Necessary to release associated fd before perform check_bundle */
-	g_clear_object(&bundlestream);
 
 	/*
 	 * If signing_keyringpath is given, replace config->keyring_path, so we can
@@ -2370,16 +2330,12 @@ out:
 		if (g_remove(outpath) != 0)
 			g_warning("failed to remove %s", outpath);
 
-	if (bundlestream)
-		g_clear_object(&bundlestream);
-
 	/* Restore saved paths if necessary */
 	if (keyringpath || keyringdirectory) {
 		r_context()->config->keyring_path = keyringpath;
 		r_context()->config->keyring_directory = keyringdirectory;
 	}
 
-	r_context_end_step("replace_signature", res);
 	return res;
 }
 
@@ -2426,6 +2382,7 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
+	g_return_val_if_fail(outputdir != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	r_context_begin_step("extract_bundle", "Extracting bundle", 2);
@@ -2443,7 +2400,7 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
 	}
 
 	if (bundle->manifest && bundle->manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
-		res = decrypt_bundle_payload(bundle, bundle->manifest, &ierror);
+		res = decrypt_bundle_payload(bundle, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;

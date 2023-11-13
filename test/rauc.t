@@ -898,8 +898,53 @@ test_expect_success "rauc resign" "
   rauc \
     --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
     --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
-    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
-    resign ${TEST_TMPDIR}/good-bundle.raucb ${TEST_TMPDIR}/out.raucb &&
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    resign ${TEST_TMPDIR}/good-bundle.raucb ${TEST_TMPDIR}/out.raucb \
+    --signing-keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-only-ca.pem && \
+  test_must_fail rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    info ${TEST_TMPDIR}/out.raucb && \
+  rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-only-ca.pem \
+    info ${TEST_TMPDIR}/out.raucb && \
+  test -f ${TEST_TMPDIR}/out.raucb
+"
+
+test_expect_success "rauc resign (verity bundle)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-verity-bundle.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-verity-bundle.raucb &&
+  rm -f ${TEST_TMPDIR}/out.raucb &&
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    resign ${TEST_TMPDIR}/good-verity-bundle.raucb ${TEST_TMPDIR}/out.raucb \
+    --signing-keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-only-ca.pem && \
+  test_must_fail rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    info ${TEST_TMPDIR}/out.raucb && \
+  rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-only-ca.pem \
+    info ${TEST_TMPDIR}/out.raucb && \
+  test -f ${TEST_TMPDIR}/out.raucb
+"
+
+test_expect_success "rauc resign (crypt bundle)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-crypt-bundle-unencrypted.raucb &&
+  rm -f ${TEST_TMPDIR}/out.raucb &&
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-only-ca.pem \
+    resign ${TEST_TMPDIR}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/out.raucb \
+    --signing-keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem && \
+  test_must_fail rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-only-ca.pem \
+    info ${TEST_TMPDIR}/out.raucb && \
+  rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
+    info ${TEST_TMPDIR}/out.raucb && \
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
@@ -1022,6 +1067,30 @@ test_expect_success OPENSSL "rauc replace signature (verity)" "
   rauc \
     --keyring ${SHARNESS_TEST_DIRECTORY}/openssl-ca/dev-ca.pem \
     replace-signature ${TEST_TMPDIR}/good-verity-bundle.raucb ${TEST_TMPDIR}/bundle.sig ${TEST_TMPDIR}/out2.raucb \
+    --signing-keyring ${SHARNESS_TEST_DIRECTORY}/openssl-ca/dev-only-ca.pem &&
+  test -f ${TEST_TMPDIR}/out2.raucb
+"
+
+test_expect_success OPENSSL "rauc replace signature (crypt)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-crypt-bundle-unencrypted.raucb &&
+  rm -f ${TEST_TMPDIR}/out1.raucb && rm -f ${TEST_TMPDIR}/out2.raucb &&
+  rm -f $TEST_TMPDIR/bundle.sig &&
+  rauc \
+    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/autobuilder-1.cert.pem \
+    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/dev/private/autobuilder-1.pem \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    resign ${TEST_TMPDIR}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/out1.raucb \
+    --signing-keyring ${SHARNESS_TEST_DIRECTORY}/openssl-ca/dev-only-ca.pem &&
+  test -f ${TEST_TMPDIR}/out1.raucb &&
+  rauc \
+    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-only-ca.pem \
+    extract-signature ${TEST_TMPDIR}/out1.raucb ${TEST_TMPDIR}/bundle.sig &&
+  test -f ${TEST_TMPDIR}/bundle.sig &&
+  openssl asn1parse -inform DER -in ${TEST_TMPDIR}/bundle.sig -noout > /dev/null 2>&1 &&
+  rauc \
+    --keyring ${SHARNESS_TEST_DIRECTORY}/openssl-ca/dev-ca.pem \
+    replace-signature ${TEST_TMPDIR}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/bundle.sig ${TEST_TMPDIR}/out2.raucb \
     --signing-keyring ${SHARNESS_TEST_DIRECTORY}/openssl-ca/dev-only-ca.pem &&
   test -f ${TEST_TMPDIR}/out2.raucb
 "
