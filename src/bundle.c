@@ -105,7 +105,7 @@ r_bundle_error_quark(void)
 	return g_quark_from_static_string("r-bundle-error-quark");
 }
 
-static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GError **error)
+static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, const gchar *fakeroot, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -121,6 +121,8 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "bundle %s already exists", bundlename);
 		goto out;
 	}
+
+	r_fakeroot_add_args(args, fakeroot);
 
 	g_ptr_array_add(args, g_strdup("mksquashfs"));
 	g_ptr_array_add(args, g_strdup(contentdir));
@@ -963,8 +965,26 @@ static gchar *prepare_workdir(const gchar *contentdir, GError **error)
 	return g_steal_pointer(&workdir);
 }
 
+static gboolean check_pseudo_active(void)
+{
+	if (!g_getenv("PSEUDO_LOCALSTATEDIR"))
+		return FALSE;
+
+	const gchar *tmp = g_getenv("PSEUDO_DISABLED");
+	if (g_strcmp0(tmp, "1") == 0)
+		return FALSE;
+
+	return TRUE;
+}
+
 static gboolean needs_fakeroot(const RaucManifest *manifest)
 {
+	/* If pseudo is active, we don't need to use fakeroot. */
+	if (check_pseudo_active())
+		return FALSE;
+
+	/* TODO detect cases where we need fakeroot here */
+
 	return FALSE;
 }
 
@@ -1033,7 +1053,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		goto out;
 	}
 
-	res = mksquashfs(bundlename, workdir, &ierror);
+	res = mksquashfs(bundlename, workdir, fakeroot, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -1314,7 +1334,7 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 		goto out;
 	}
 
-	res = mksquashfs(outbundle, contentdir, &ierror);
+	res = mksquashfs(outbundle, contentdir, NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
