@@ -15,6 +15,7 @@
 #include "bundle.h"
 #include "context.h"
 #include "crypt.h"
+#include "manifest.h"
 #include "mount.h"
 #include "signature.h"
 #include "utils.h"
@@ -962,12 +963,18 @@ static gchar *prepare_workdir(const gchar *contentdir, GError **error)
 	return g_steal_pointer(&workdir);
 }
 
+static gboolean needs_fakeroot(const RaucManifest *manifest)
+{
+	return FALSE;
+}
+
 gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error)
 {
 	GError *ierror = NULL;
 	g_autofree gchar* manifestpath = NULL;
 	g_autoptr(RaucManifest) manifest = NULL;
 	g_autofree gchar *workdir = NULL;
+	g_autofree gchar *fakeroot = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundlename != NULL, FALSE);
@@ -1004,6 +1011,14 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
+	}
+
+	if (needs_fakeroot(manifest)) {
+		fakeroot = r_fakeroot_init(&ierror);
+		if (!fakeroot) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
 	}
 
 	res = generate_adaptive_data(manifest, workdir, &ierror);
@@ -1046,6 +1061,13 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 	res = TRUE;
 
 out:
+	/* Remove fakeroot env */
+	if (fakeroot) {
+		g_autofree GError *cleanup_error = NULL;
+		if (!r_fakeroot_cleanup(fakeroot, &cleanup_error)) {
+			g_warning("failed to clean up fakeroot environment: %s", cleanup_error->message);
+		}
+	}
 	/* Remove output file on error */
 	if (!res &&
 	    g_file_test(bundlename, G_FILE_TEST_IS_REGULAR))
