@@ -11,13 +11,13 @@
  * Opens a device for writing and returns a GUnixOutputStream for it.
  * Optionally, the FD is returned as well.
  *
- * @param filename the file to be opened
+ * @param filename the device to be opened
  * @param fd the associated file descriptor, for use with ioctls
  * @param error return location for a GError, or NULL
  *
  * @return the new GUnixOutputStream if successful, NULL otherwise
  */
-GUnixOutputStream* r_open_unix_output_stream(const gchar *filename, int *fd, GError **error)
+GUnixOutputStream* r_unix_output_stream_open_device(const gchar *filename, int *fd, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**

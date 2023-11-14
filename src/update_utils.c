@@ -38,7 +38,7 @@ static GUnixOutputStream* open_unix_output_stream(const gchar *filename, int fla
 }
 
 /* the fd will only live as long as the returned output stream */
-GUnixOutputStream* r_open_unix_output_stream(const gchar *filename, int *fd, GError **error)
+GUnixOutputStream* r_unix_output_stream_open_device(const gchar *filename, int *fd, GError **error)
 {
 	g_return_val_if_fail(filename, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
