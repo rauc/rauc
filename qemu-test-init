@@ -26,6 +26,9 @@ for x in $(cat /proc/cmdline); do
     export ASAN_OPTIONS=malloc_context_size=64:fast_unwind_on_malloc=0
   fi
 done
+if [ -n "$test" ]; then
+  MESON_TEST="$test"
+fi
 
 hostname qemu-test
 
@@ -148,7 +151,7 @@ if [ -n "$SERVICE" ]; then
   rauc status mark-good
 fi
 
-if ninja test -C $BUILD_DIR -v; then
+if meson test -C $BUILD_DIR "$MESON_TEST"; then
   touch qemu-test-ok
   echo "RESULT: PASSED"
 else
