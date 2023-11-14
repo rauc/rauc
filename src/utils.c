@@ -42,6 +42,28 @@ GSubprocess *r_subprocess_new(GSubprocessFlags flags, GError **error, const gcha
 	return result;
 }
 
+gboolean r_subprocess_runv(GPtrArray *args, GSubprocessFlags flags, GError **error)
+{
+	g_autoptr(GSubprocess) sproc = NULL;
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(args != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	sproc = r_subprocess_newv(args, flags, &ierror);
+	if (sproc == NULL) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (!g_subprocess_wait_check(sproc, NULL, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 void close_preserve_errno(int fd)
 {
 	int err;

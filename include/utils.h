@@ -61,6 +61,18 @@ static inline GSubprocess * r_subprocess_launcher_spawnv(GSubprocessLauncher *la
 GSubprocess *r_subprocess_new(GSubprocessFlags flags, GError **error, const gchar *argv0, ...)
 G_GNUC_WARN_UNUSED_RESULT;
 
+/**
+ * Starts a subprocess and waits for it to finish.
+ *
+ * @param args subprocess arguments
+ * @param flags subprocess flags
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean r_subprocess_runv(GPtrArray *args, GSubprocessFlags flags, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
 #define R_LOG_LEVEL_TRACE 1 << G_LOG_LEVEL_USER_SHIFT
 #define r_trace(...)   g_log(G_LOG_DOMAIN,         \
 		R_LOG_LEVEL_TRACE,    \
