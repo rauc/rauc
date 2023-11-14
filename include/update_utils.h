@@ -21,6 +21,22 @@ GUnixOutputStream* r_unix_output_stream_open_device(const gchar *filename, int *
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Creates a file for writing and returns a GUnixOutputStream for it.
+ * Optionally, the FD is returned as well.
+ *
+ * This method ensures that the file is newly created by us.
+ *
+ * @param filename the file to be opened
+ * @param mode the access mode for the new file
+ * @param fd the associated file descriptor, for use with ioctls
+ * @param error return location for a GError, or NULL
+ *
+ * @return the new GUnixOutputStream if successful, NULL otherwise
+ */
+GUnixOutputStream* r_unix_output_stream_create_file(const gchar *filename, int *fd, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Opens a file for reading and returns a GUnixInputStream for it.
  * Optionally, the FD is returned as well.
  *

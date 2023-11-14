@@ -46,6 +46,15 @@ GUnixOutputStream* r_unix_output_stream_open_device(const gchar *filename, int *
 	return open_unix_output_stream(filename, O_EXCL, 0, fd, error);
 }
 
+/* the fd will only live as long as the returned output stream */
+GUnixOutputStream* r_unix_output_stream_create_file(const gchar *filename, int *fd, GError **error)
+{
+	g_return_val_if_fail(filename, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	return open_unix_output_stream(filename, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, fd, error);
+}
+
 /* the fd will only live as long as the returned input stream */
 GUnixInputStream* r_open_unix_input_stream(const gchar *filename, int *fd, GError **error)
 {
