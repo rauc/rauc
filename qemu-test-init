@@ -134,9 +134,10 @@ echo "use ctrl-a x to exit and ctrl-a c to access the qemu monitor"
 echo "system ready"
 
 if [ -n "$SHELL" ]; then
-  BASH_CMD="exec bash"
+  echo "alias ll='ls -l'" >> /tmp/bashrc
+  BASH_CMD="exec bash --rcfile /tmp/bashrc"
   if type resize; then
-    BASH_CMD="eval \$(resize); exec bash"
+    BASH_CMD="eval \$(resize); $BASH_CMD"
   fi
   HISTFILE="$(pwd)/.qemu_bash_history" \
   setsid bash -c "$BASH_CMD" </dev/ttyS0 >/dev/ttyS0 2>&1 || echo exit-code=$?
