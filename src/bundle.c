@@ -102,7 +102,6 @@ r_bundle_error_quark(void)
 
 static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GError **error)
 {
-	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(7, g_free);
@@ -141,18 +140,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 	}
 	g_ptr_array_add(args, NULL);
 
-	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
-			&ierror);
-	if (sproc == NULL) {
-		res = FALSE;
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to start mksquashfs: ");
-		goto out;
-	}
-
-	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -169,7 +157,6 @@ out:
 
 static gboolean unsquashfs(gint fd, const gchar *contentdir, const gchar *extractfile, GError **error)
 {
-	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(7, g_free);
@@ -190,16 +177,7 @@ static gboolean unsquashfs(gint fd, const gchar *contentdir, const gchar *extrac
 
 	g_ptr_array_add(args, NULL);
 
-	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
-	if (sproc == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to start unsquashfs: ");
-		goto out;
-	}
-
-	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -218,7 +196,6 @@ static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath,
 
 static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error)
 {
-	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(15, g_free);
@@ -281,17 +258,7 @@ static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath,
 	g_ptr_array_add(args, g_strjoinv(" ", (gchar**) g_ptr_array_free(iargs, FALSE)));
 	g_ptr_array_add(args, NULL);
 
-	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
-	if (sproc == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to start casync: ");
-		res = FALSE;
-		goto out;
-	}
-
-	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -307,7 +274,6 @@ out:
 
 static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error)
 {
-	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	GPtrArray *args = g_ptr_array_new_full(5, g_free);
@@ -379,17 +345,7 @@ static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath,
 	}
 	g_ptr_array_add(args, NULL);
 
-	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
-	if (sproc == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to start casync: ");
-		res = FALSE;
-		goto out;
-	}
-
-	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
