@@ -946,7 +946,6 @@ raw_copy:
 
 static gboolean ubifs_format_slot(RaucSlot *dest_slot, GError **error)
 {
-	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(3, g_free);
@@ -956,16 +955,7 @@ static gboolean ubifs_format_slot(RaucSlot *dest_slot, GError **error)
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 
-	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
-	if (sproc == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to start mkfs.ubifs: ");
-		goto out;
-	}
-
-	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -980,7 +970,6 @@ out:
 
 static gboolean ext4_resize_slot(RaucSlot *dest_slot, GError **error)
 {
-	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(3, g_free);
@@ -989,16 +978,7 @@ static gboolean ext4_resize_slot(RaucSlot *dest_slot, GError **error)
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 
-	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
-	if (sproc == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to start resize2fs: ");
-		goto out;
-	}
-
-	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -1013,7 +993,6 @@ out:
 
 static gboolean ext4_format_slot(RaucSlot *dest_slot, GError **error)
 {
-	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(4, g_free);
@@ -1028,16 +1007,7 @@ static gboolean ext4_format_slot(RaucSlot *dest_slot, GError **error)
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 
-	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
-	if (sproc == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to start mkfs.ext4: ");
-		goto out;
-	}
-
-	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -1096,7 +1066,6 @@ static gchar* vfat_label_generator(const gchar *name)
 
 static gboolean vfat_format_slot(RaucSlot *dest_slot, GError **error)
 {
-	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(4, g_free);
@@ -1107,16 +1076,7 @@ static gboolean vfat_format_slot(RaucSlot *dest_slot, GError **error)
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 
-	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
-	if (sproc == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to start mkfs.vfat: ");
-		goto out;
-	}
-
-	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -1131,7 +1091,6 @@ out:
 
 static gboolean nor_write_slot(const gchar *image, const gchar *device, GError **error)
 {
-	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(5, g_free);
@@ -1141,16 +1100,7 @@ static gboolean nor_write_slot(const gchar *image, const gchar *device, GError *
 	g_ptr_array_add(args, g_strdup(device));
 	g_ptr_array_add(args, NULL);
 
-	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
-	if (sproc == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to start flashcp: ");
-		goto out;
-	}
-
-	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -1165,7 +1115,6 @@ out:
 
 static gboolean flash_format_slot(const gchar *device, GError **error)
 {
-	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(5, g_free);
@@ -1177,16 +1126,7 @@ static gboolean flash_format_slot(const gchar *device, GError **error)
 	g_ptr_array_add(args, g_strdup("0"));
 	g_ptr_array_add(args, NULL);
 
-	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
-	if (sproc == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to start flash_erase: ");
-		goto out;
-	}
-
-	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
