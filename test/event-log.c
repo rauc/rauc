@@ -296,7 +296,7 @@ static void event_log_test_structured_logging(EventLogFixture *fixture,
 	/* Write test message */
 	g_log_structured_array(G_LOG_LEVEL_INFO, fields, G_N_ELEMENTS(fields));
 
-	g_file_get_contents(logger->filename, &contents, NULL, NULL);
+	g_assert_true(g_file_get_contents(logger->filename, &contents, NULL, NULL));
 	g_assert_nonnull(strstr(contents, "This is a test (mark) log message"));
 }
 
@@ -322,7 +322,7 @@ static void event_log_test_log_utility(EventLogFixture *fixture,
 	/* Write test message */
 	r_event_log_message("mark", "Example message: %s", "with arguments");
 
-	g_file_get_contents(logger->filename, &contents, NULL, NULL);
+	g_assert_true(g_file_get_contents(logger->filename, &contents, NULL, NULL));
 	g_assert_nonnull(strstr(contents, "Example message: with arguments"));
 }
 

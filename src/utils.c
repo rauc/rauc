@@ -679,7 +679,7 @@ gchar* r_fakeroot_init(GError **error)
 	GError *ierror = NULL;
 	g_autofree gchar *tmpdir = NULL;
 	g_autofree gchar *tmpfile = NULL;
-	int fd = -1;
+	g_auto(filedesc) fd = -1;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
@@ -723,7 +723,7 @@ void r_fakeroot_add_args(GPtrArray *args, const gchar *envpath)
 
 gboolean r_fakeroot_cleanup(const gchar *envpath, GError **error)
 {
-	g_autofree gchar *tmpdir = g_path_get_dirname(envpath);
+	g_autofree gchar *tmpdir = NULL;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
@@ -732,6 +732,8 @@ gboolean r_fakeroot_cleanup(const gchar *envpath, GError **error)
 
 	g_assert(g_path_is_absolute(envpath));
 	g_assert(g_str_has_suffix(envpath, "/environment"));
+
+	tmpdir = g_path_get_dirname(envpath);
 
 	return rm_tree(tmpdir, error);
 }
