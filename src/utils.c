@@ -701,7 +701,7 @@ void r_fakeroot_add_args(GPtrArray *args, const gchar *envpath)
 
 gboolean r_fakeroot_cleanup(const gchar *envpath, GError **error)
 {
-	g_autofree gchar *tmpdir = g_path_get_dirname(envpath);
+	g_autofree gchar *tmpdir = NULL;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
@@ -710,6 +710,8 @@ gboolean r_fakeroot_cleanup(const gchar *envpath, GError **error)
 
 	g_assert(g_path_is_absolute(envpath));
 	g_assert(g_str_has_suffix(envpath, "/environment"));
+
+	tmpdir = g_path_get_dirname(envpath);
 
 	return rm_tree(tmpdir, error);
 }
