@@ -56,7 +56,6 @@ gboolean r_umount_bundle(const gchar *mountpoint, GError **error)
 
 gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, const gchar* extra_options, GError **error)
 {
-	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(10, g_free);
@@ -88,16 +87,7 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 	g_ptr_array_add(args, g_strdup(mountpoint));
 	g_ptr_array_add(args, NULL);
 
-	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
-	if (sproc == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to start mount: ");
-		goto out;
-	}
-
-	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -241,7 +231,6 @@ out:
 
 gboolean r_umount(const gchar *filename, GError **error)
 {
-	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(10, g_free);
@@ -253,16 +242,7 @@ gboolean r_umount(const gchar *filename, GError **error)
 	g_ptr_array_add(args, g_strdup(filename));
 	g_ptr_array_add(args, NULL);
 
-	sproc = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
-	if (sproc == NULL) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to start umount: ");
-		goto out;
-	}
-
-	res = g_subprocess_wait_check(sproc, NULL, &ierror);
+	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
