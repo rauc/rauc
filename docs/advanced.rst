@@ -923,10 +923,10 @@ updates are:
 * casync requires bundle conversion and a separate sever-side chunk store
   while streaming adaptive updates is a fully transparent process (except that
   it requires the server to support HTTP range requests)
-* caysnc supports chunk-based differential updates for both block-based and
+* casync supports chunk-based differential updates for both block-based and
   file/directory-based updates while adaptive updates currently only support
   block-based updates
-* adaptive updates potentially allow the the installation process to
+* adaptive updates potentially allow the installation process to
   choose the optimal installation method out of multiple available
 
 .. note::
@@ -965,7 +965,7 @@ Simply call::
 
 The conversion process will create two new files:
 
- 1. The converted bundle `casync-bundle.raucb` with casnyc index files instead
+ 1. The converted bundle `casync-bundle.raucb` with casync index files instead
     of image files
  2. A casync chunk store `casync-bundle.castr/` for all bundle images.
     This is a directory with chunks grouped by subfolders of the first 4 digits
