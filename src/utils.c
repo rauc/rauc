@@ -657,7 +657,7 @@ gchar* r_fakeroot_init(GError **error)
 	GError *ierror = NULL;
 	g_autofree gchar *tmpdir = NULL;
 	g_autofree gchar *tmpfile = NULL;
-	int fd = -1;
+	g_auto(filedesc) fd = -1;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
