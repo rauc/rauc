@@ -445,6 +445,31 @@ out:
 	return res;
 }
 
+static gboolean check_manifest_plain(const RaucManifest *mf, GError **error)
+{
+	gboolean res = FALSE;
+
+	g_assert(mf->bundle_format == R_MANIFEST_FORMAT_PLAIN);
+
+	for (GList *elem = mf->images; elem != NULL; elem = elem->next) {
+		RaucImage *image = elem->data;
+
+		/* Check for features not supported in plain bundles */
+		if (image->artifact) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Artifacts are not supported in plain bundles");
+			goto out;
+		}
+		if (image->convert || image->converted->len) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Image converters are not supported in plain bundles");
+			goto out;
+		}
+	}
+
+	res = TRUE;
+out:
+	return res;
+}
+
 static gboolean check_manifest_bundled(const RaucManifest *mf, GError **error)
 {
 	for (GList *l = mf->images; l != NULL; l = l->next) {
@@ -509,6 +534,11 @@ gboolean check_manifest_internal(const RaucManifest *mf, GError **error)
 	}
 
 	if (!check_manifest_bundled(mf, &ierror)) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	if (!check_manifest_plain(mf, &ierror)) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
