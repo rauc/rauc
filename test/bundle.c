@@ -214,8 +214,7 @@ static void bundle_test_create_extract(BundleFixture *fixture,
 	g_clear_pointer(&filepath, g_free);
 }
 
-static void bundle_test_create_mount_extract(BundleFixture *fixture,
-		gconstpointer user_data)
+static void bundle_test_create_mount(BundleFixture *fixture, gconstpointer user_data)
 {
 	g_autoptr(RaucBundle) bundle = NULL;
 	g_autoptr(GError) ierror = NULL;
@@ -794,9 +793,9 @@ int main(int argc, char *argv[])
 				bundle_fixture_set_up_bundle, bundle_test_create_extract,
 				bundle_fixture_tear_down);
 
-		g_test_add(dup_test_printf(ptrs, "/bundle/create_mount_extract/%s", format_name),
+		g_test_add(dup_test_printf(ptrs, "/bundle/create_mount/%s", format_name),
 				BundleFixture, bundle_data,
-				bundle_fixture_set_up_bundle, bundle_test_create_mount_extract,
+				bundle_fixture_set_up_bundle, bundle_test_create_mount,
 				bundle_fixture_tear_down);
 
 		g_test_add(dup_test_printf(ptrs, "/bundle/extract_signature/%s", format_name),
