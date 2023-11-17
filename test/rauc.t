@@ -194,60 +194,6 @@ test_expect_success "rauc write-slot readonly" "
   test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test.conf write-slot rescue.0 $SHARNESS_TEST_DIRECTORY/install-content/appfs.img
 "
 
-echo "\
-[system]
-compatible=Test Config
-bootloader=grub
-grubenv=grubenv.test
-
-[keyring]
-path=openssl-ca/dev-ca.pem
-use-bundle-signing-time=true
-" > $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf
-cleanup rm $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf
-
-test_expect_success FAKETIME "rauc verify with 'use-bundle-signing-time': valid signing time, invalid current time" "
-  test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
-  test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
-  cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
-  faketime "2018-01-01" \
-    rauc \
-    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
-    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
-    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem \
-    bundle ${TEST_TMPDIR}/install-content ${TEST_TMPDIR}/out.raucb &&
-  test -f ${TEST_TMPDIR}/out.raucb &&
-  faketime "2022-01-01" rauc --conf $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf info ${TEST_TMPDIR}/out.raucb
-"
-
-test_expect_success FAKETIME "rauc verfiy with 'use-bundle-signing-time': invalid signing time, valid current time" "
-  test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
-  test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
-  cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
-  faketime "2022-01-01" \
-    rauc \
-    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
-    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
-    bundle ${TEST_TMPDIR}/install-content ${TEST_TMPDIR}/out.raucb &&
-  test -f ${TEST_TMPDIR}/out.raucb &&
-  test_must_fail faketime "2018-01-01" rauc --conf $SHARNESS_TEST_DIRECTORY/use-bundle-signing-time.conf info ${TEST_TMPDIR}/out.raucb
-"
-
-test_expect_success FAKETIME "rauc info --no-check-time" "
-  test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
-  test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
-  cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
-  faketime "2018-01-01" \
-    rauc \
-    --cert $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/release-2018.cert.pem \
-    --key $SHARNESS_TEST_DIRECTORY/openssl-ca/rel/private/release-2018.pem \
-    bundle ${TEST_TMPDIR}/install-content ${TEST_TMPDIR}/out.raucb &&
-  test -f ${TEST_TMPDIR}/out.raucb &&
-  faketime "2018-01-01" rauc info --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem ${TEST_TMPDIR}/out.raucb &&
-  test_must_fail faketime "2022-01-01" rauc info --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem ${TEST_TMPDIR}/out.raucb &&
-  faketime "2022-01-01" rauc info --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem --no-check-time ${TEST_TMPDIR}/out.raucb
-"
-
 test_expect_success FAKETIME "rauc sign bundle with expired certificate" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&

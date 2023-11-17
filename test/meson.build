@@ -93,6 +93,7 @@ if pytest.found()
     'test_convert',
     'test_resign',
     'test_install',
+    'test_verify',
   ]
   foreach test_name : pytests
     test(
