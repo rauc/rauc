@@ -206,54 +206,6 @@ test_expect_success "rauc bundle (crypt bundle)" "
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success "rauc encrypt (multiple single-cert PEM files)" "
-  test_when_finished rm -f ${TEST_TMPDIR}/encrypted.raucb &&
-  rauc encrypt \
-    --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/cert-000.pem \
-    --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/cert-001.pem \
-    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
-    ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/encrypted.raucb &&
-  test -f ${TEST_TMPDIR}/encrypted.raucb
-"
-
-test_expect_success "rauc encrypt (single multiple-cert PEM file)" "
-  test_when_finished rm -f ${TEST_TMPDIR}/encrypted.raucb &&
-  rauc encrypt \
-    --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/certs.pem \
-    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
-    ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/encrypted.raucb &&
-  test -f ${TEST_TMPDIR}/encrypted.raucb
-"
-
-test_expect_success "rauc encrypt (single multiple-cert PEM file, RSA+ECC mixed)" "
-  test_when_finished rm -f ${TEST_TMPDIR}/encrypted.raucb &&
-  rauc encrypt \
-    --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/certs.pem \
-    --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/ecc/certs.pem \
-    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
-    ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/encrypted.raucb &&
-  test -f ${TEST_TMPDIR}/encrypted.raucb
-"
-
-test_expect_success "rauc encrypt (broken multiple-cert PEM file)" "
-  test_when_finished rm -f ${TEST_TMPDIR}/encrypted.raucb &&
-  test_when_finished rm -f ${TEST_TMPDIR}/certs.pem &&
-  head -n -5 $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/certs.pem > ${TEST_TMPDIR}/certs.pem &&
-  test_must_fail rauc encrypt \
-    --to ${TEST_TMPDIR}/certs.pem \
-    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
-    ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/encrypted.raucb &&
-  test ! -f ${TEST_TMPDIR}/encrypted.raucb
-"
-
-test_expect_success "rauc encrypt (verity bundle)" "
-  test_must_fail rauc encrypt \
-    --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/cert-000.pem \
-    --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
-    ${SHARNESS_TEST_DIRECTORY}/good-verity-bundle.raucb ${TEST_TMPDIR}/encrypted.raucb &&
-  test ! -f ${TEST_TMPDIR}/encrypted.raucb
-"
-
 rm -rf $TEST_TMPDIR
 
 test_done
