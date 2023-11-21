@@ -97,6 +97,7 @@ if pytest.found()
     'test_sign',
     'test_replace_signature',
     'test_encrypt',
+    'test_write_slot',
   ]
   foreach test_name : pytests
     test(
