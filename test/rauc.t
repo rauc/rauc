@@ -172,12 +172,6 @@ grub-editenv -V &&
 whoami | grep -q root &&
   test_set_prereq ROOT
 
-test_expect_success "rauc install invalid local paths" "
-  test_must_fail rauc install foo &&
-  test_must_fail rauc install foo.raucb &&
-  test_must_fail rauc install /path/to/foo.raucb
-"
-
 rm -rf $TEST_TMPDIR
 
 test_done

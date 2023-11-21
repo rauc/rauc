@@ -93,3 +93,20 @@ def test_help(test_cmd):
     assert exitcode == 0
     assert out.startswith("Usage:")
     assert err == ""
+
+
+def test_install_invalid_local_paths():
+    out, err, exitcode = run("rauc install foo")
+
+    assert exitcode == 1
+    assert "No such file" in err
+
+    out, err, exitcode = run("rauc install foo.raucb")
+
+    assert exitcode == 1
+    assert "No such file" in err
+
+    out, err, exitcode = run("rauc install /path/to/foo.raucb")
+
+    assert exitcode == 1
+    assert "No such file" in err
