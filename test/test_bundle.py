@@ -116,3 +116,24 @@ def test_bundle_pkcs11_key_mismatch(tmp_path, pkcs11):
     assert "key values mismatch" in err
 
     assert not os.path.exists(f"{tmp_path}/out.raucb")
+
+
+def test_bundle_crypt(tmp_path):
+    shutil.copytree("install-content", tmp_path / "install-content")
+    shutil.copy("install-content/manifest.raucm.crypt", tmp_path / "install-content/manifest.raucm")
+
+    out, err, exitcode = run(
+        "rauc bundle "
+        "--cert openssl-ca/dev/autobuilder-1.cert.pem "
+        "--key openssl-ca/dev/private/autobuilder-1.pem "
+        "--keyring openssl-ca/dev-ca.pem "
+        f"{tmp_path}/install-content {tmp_path}/out.raucb"
+    )
+
+    assert exitcode == 0
+    assert "Creating 'crypt' format bundle" in out
+
+    assert os.path.exists(f"{tmp_path}/out.raucb")
+
+    out, err, exitcode = run(f"rauc -c test.conf info {tmp_path}/out.raucb")
+    assert exitcode == 0
