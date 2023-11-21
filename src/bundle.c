@@ -131,6 +131,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, con
 	g_ptr_array_add(args, g_strdup("-noappend"));
 	g_ptr_array_add(args, g_strdup("-no-progress"));
 	g_ptr_array_add(args, g_strdup("-no-xattrs"));
+	g_ptr_array_add(args, g_strdup("-quiet"));
 
 	if (r_context()->mksquashfs_args != NULL) {
 		g_auto(GStrv) mksquashfs_argvp = NULL;
@@ -146,7 +147,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, con
 	}
 	g_ptr_array_add(args, NULL);
 
-	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
+	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
