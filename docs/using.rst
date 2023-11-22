@@ -296,9 +296,10 @@ to stdout, like ``RAUC_SYSTEM_SERIAL`` or ``RAUC_SYSTEM_VARIANT``.
 Bundle-Based Customization: Hooks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Unlike handlers, hooks are part of the update bundle and must be
-specified in the bundle's :ref:`sec_ref_manifest` file and handled by a common
-executable.
+Unlike handlers, hooks are defined in the update bundle and must be
+specified in the bundle's :ref:`sec_ref_manifest` file.
+All hooks are handled by a common executable that must be included in the
+bundle.
 Hooks allow the author of a bundle to add or replace functionality for the
 installation of a specific bundle.
 This can be useful for performing additional migration steps, checking for
@@ -313,9 +314,16 @@ handled by a single executable that is registered in the bundle's manifest:
   [hooks]
   filename=hook
 
-Each hook must be activated explicitly and leads to a call of the hook executable
-with a specific argument that allows to distinguish between the different hook
-types. Multiple hook types must be separated with a ``;``.
+The ``filename`` must match the name of the script or binary executable placed
+inside the content folder the bundle is generated from.
+
+The actual hook invocations must be registered in the respective ``[image.*]``
+or ``[hooks]`` manifest sections via ``hooks=<hook-names>`` settings where
+``<hook-names>`` is a ``;``-separated list of hooks to invoke.
+
+For each invoked hook, the common hook executable will be called with a
+specific argument indicating the name of the invoked hook.
+The executable is responsible for multiplexing the different hook calls.
 
 In the following the available hooks are listed. Depending on their purpose,
 some are image-specific, i.e. they will be executed for the installation of a
@@ -330,6 +338,9 @@ Install hooks operate globally on the bundle installation.
 
 For a detailed list of all environment variables exported for the hooks
 executable, see the :ref:`sec-install-hook-interface` section.
+
+For install hooks, the hook call argument is just the hook name itself (e.g.
+``install-check``).
 
 .. rubric:: Install-Check Hook
 
