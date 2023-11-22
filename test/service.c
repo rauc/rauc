@@ -159,6 +159,55 @@ static void assert_progress(GVariant *progress, gint32 percentage, const gchar *
 	g_variant_unref(gv);
 }
 
+static void service_test_dump_certificate_with_encoding(gchar *bundlepath, gchar *encoding)
+{
+	g_autofree gchar *cert_sig = NULL;
+	GError *error = NULL;
+	gboolean ret = FALSE;
+
+	if (!ENABLE_SERVICE) {
+		g_test_skip("Test requires RAUC being configured with \"-Dservice=true\".");
+		return;
+	}
+
+	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
+			G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES,
+			"de.pengutronix.rauc", "/", NULL, &error);
+
+	g_assert_no_error(error);
+	g_assert_nonnull(installer);
+
+	ret = r_installer_call_dump_certificate_sync(
+			installer,
+			bundlepath,
+			encoding,
+			&cert_sig,
+			NULL,
+			&error);
+
+	g_assert_nonnull(cert_sig);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+
+	g_clear_object(&installer);
+}
+
+static void service_test_dump_certificate(ServiceFixture *fixture, gconstpointer user_data)
+{
+	g_autofree gchar *bundlepath_validsig = g_build_filename(fixture->tmpdir, "good-bundle.raucb", NULL);
+	g_autofree gchar *bundlepath_invalidsig = g_build_filename(fixture->tmpdir, "invalid-sig-bundle.raucb", NULL);
+	g_autofree gchar *encoding_pem = g_strdup("pEm");
+	g_autofree gchar *encoding_der = g_strdup("DeR");
+
+	g_assert_true(test_copy_file("test", "good-bundle.raucb", fixture->tmpdir, "good-bundle.raucb"));
+	g_assert_true(test_copy_file("test", "invalid-sig-bundle.raucb", fixture->tmpdir, "invalid-sig-bundle.raucb"));
+
+	service_test_dump_certificate_with_encoding(bundlepath_validsig, encoding_pem);
+	service_test_dump_certificate_with_encoding(bundlepath_invalidsig, encoding_pem);
+	service_test_dump_certificate_with_encoding(bundlepath_validsig, encoding_der);
+	service_test_dump_certificate_with_encoding(bundlepath_invalidsig, encoding_der);
+}
+
 static void service_test_install(ServiceFixture *fixture, gconstpointer user_data, gboolean deprecated)
 {
 	g_autoptr(GQueue) args = g_queue_new();
@@ -464,6 +513,10 @@ int main(int argc, char *argv[])
 	g_assert(g_setenv("GIO_USE_VFS", "local", TRUE));
 
 	g_test_init(&argc, &argv, NULL);
+
+	g_test_add("/service/dump-certificate", ServiceFixture, NULL,
+			service_info_fixture_set_up, service_test_dump_certificate,
+			service_fixture_tear_down);
 
 	g_test_add("/service/install-bundle", ServiceFixture, NULL,
 			service_install_fixture_set_up, service_test_install_bundle,

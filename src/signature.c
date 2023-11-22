@@ -950,6 +950,102 @@ gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
 	return bio_mem_unwrap(text);
 }
 
+static gchar* convertBytesToHex(const gchar* der, long size)
+{
+	gchar *hex_encoded = NULL;
+
+	g_return_val_if_fail(der != NULL, NULL);
+
+	hex_encoded = g_new(gchar, (size*2));
+	for (long i = 0; i < size-1; ++i) {
+		g_sprintf(hex_encoded + (i*2), "%02X", der[i]);
+	}
+
+	return hex_encoded;
+}
+
+gchar* extract_pkcs7_chain(STACK_OF(X509) *verified_chain, const gchar *encoding)
+{
+	PKCS7 *p7 = NULL;
+	PKCS7_SIGNED *p7s = NULL;
+	BIO *bio = NULL;
+	gchar *res = NULL;
+
+	g_return_val_if_fail(verified_chain != NULL, NULL);
+
+	if ((p7 = PKCS7_new()) == NULL)
+		return NULL;
+	if ((p7s = PKCS7_SIGNED_new()) == NULL)
+		return NULL;
+
+	p7->type = OBJ_nid2obj(NID_pkcs7_signed);
+	p7->d.sign = p7s;
+	p7s->contents->type = OBJ_nid2obj(NID_pkcs7_data);
+	p7s->cert = verified_chain;
+
+	bio = BIO_new(BIO_s_mem());
+	if (g_strcmp0("DER", encoding) == 0) {
+		long size;
+		gchar *der = NULL;
+
+		if (!i2d_PKCS7_bio(bio, p7)) {
+			goto out;
+		}
+
+		size = BIO_get_mem_data(bio, &der);
+		res = convertBytesToHex(der, size);
+		BIO_free(bio);
+	} else if (PEM_write_bio_PKCS7(bio, p7)) {
+		res = bio_mem_unwrap(bio);
+	} else {
+		goto out;
+	}
+
+	return res;
+out:
+	BIO_free(bio);
+
+	return NULL;
+}
+
+gchar* extract_unverified_pkcs7_chain(GBytes *sig, const gchar *encoding, GError **error)
+{
+	g_autoptr(CMS_ContentInfo) cms = NULL;
+	STACK_OF(X509) *signers = NULL;
+	gchar *ret;
+	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
+			g_bytes_get_size(sig));
+
+	g_return_val_if_fail(sig != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	if (!(cms = d2i_CMS_bio(insig, NULL))) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE,
+				"failed to parse signature");
+		return NULL;
+	}
+
+	signers = CMS_get1_certs(cms);
+	if (signers == NULL) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_GET_SIGNER,
+				"Failed to obtain signer info");
+		return NULL;
+	}
+
+	ret = extract_pkcs7_chain(signers, encoding);
+
+	sk_X509_pop_free(signers, X509_free);
+	BIO_free(insig);
+
+	return ret;
+}
+
 static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
 {
 	STACK_OF(X509) *signers = NULL;
