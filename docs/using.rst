@@ -68,11 +68,11 @@ Obtaining Bundle Information
 The ``info`` command lists the basic meta data of a bundle (compatible, version,
 build-id, description) and the images and hooks contained in the bundle.
 
-You can control the output format depending on your needs.
-By default it will print a human readable representation of the bundle not
-intended for being processed programmatically.
-Alternatively you can obtain a shell-parsable description or a JSON
-representation of the bundle content.
+You can control the output ``<format>`` depending on your needs.
+By default (or with ``readable``), it will print a human readable representation of the
+bundle not intended for being processed programmatically.
+Alternatively, with ``shell`` you can obtain a shell-parsable description or a JSON
+representation of the bundle content with ``json-2``.
 
 Installing Bundles
 ------------------
@@ -97,10 +97,11 @@ The ``status`` command allows this:
 
   rauc status [--detailed] [--output-format=<format>]
 
-You can choose the output style of RAUC status depending on your needs.
-By default it will print a human readable representation of your system's most
-important properties. Alternatively you can obtain a shell-parsable description,
-or a JSON representation of the system status.
+You can choose the output ``<format>`` depending on your needs.
+By default (or with ``readable``), it will print a human readable representation
+of your system's most important properties.
+Alternatively, with ``shell`` you can obtain a shell-parsable description,
+or with ``json`` or ``json-pretty`` a JSON representation of the system status.
 If more information is needed such as the slots' :ref:`status <slot-status>` add
 the command line option ``--detailed``.
 
