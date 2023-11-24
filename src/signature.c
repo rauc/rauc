@@ -733,7 +733,7 @@ gchar* sigdata_to_string(GBytes *sig, GError **error)
 {
 	g_autoptr(CMS_ContentInfo) cms = NULL;
 	STACK_OF(X509) *signers = NULL;
-	gchar *ret;
+	gchar *ret = NULL;
 	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
 			g_bytes_get_size(sig));
 
@@ -746,7 +746,7 @@ gchar* sigdata_to_string(GBytes *sig, GError **error)
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE,
 				"failed to parse signature");
-		return NULL;
+		goto out;
 	}
 
 	signers = CMS_get1_certs(cms);
@@ -756,12 +756,14 @@ gchar* sigdata_to_string(GBytes *sig, GError **error)
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_GET_SIGNER,
 				"Failed to obtain signer info");
-		return NULL;
+		goto out;
 	}
 
 	ret = dump_cms(signers);
 
 	sk_X509_pop_free(signers, X509_free);
+
+out:
 	BIO_free(insig);
 
 	return ret;
@@ -1012,7 +1014,7 @@ gchar* extract_unverified_pkcs7_chain(GBytes *sig, const gchar *encoding, GError
 {
 	g_autoptr(CMS_ContentInfo) cms = NULL;
 	STACK_OF(X509) *signers = NULL;
-	gchar *ret;
+	gchar *ret = NULL;
 	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
 			g_bytes_get_size(sig));
 
@@ -1025,7 +1027,7 @@ gchar* extract_unverified_pkcs7_chain(GBytes *sig, const gchar *encoding, GError
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE,
 				"failed to parse signature");
-		return NULL;
+		goto out;
 	}
 
 	signers = CMS_get1_certs(cms);
@@ -1035,12 +1037,13 @@ gchar* extract_unverified_pkcs7_chain(GBytes *sig, const gchar *encoding, GError
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_GET_SIGNER,
 				"Failed to obtain signer info");
-		return NULL;
+		goto out;
 	}
 
 	ret = extract_pkcs7_chain(signers, encoding);
 
 	sk_X509_pop_free(signers, X509_free);
+out:
 	BIO_free(insig);
 
 	return ret;
