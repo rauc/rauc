@@ -237,24 +237,28 @@ appropriately.
 It will, for example, deactivate the slot to be updated before writing to it,
 and reactivate it after completing the installation successfully.
 
-Installation and Storage Handling
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Image and Slot Type Matching (Update Handler)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As mentioned above, RAUC basically writes images to devices or partitions, but
-also allows installing file system content from (compressed) tar archives.
+For properly updating a slot with a given image or archive, RAUC needs to
+figure out how to actually write the image to the underlying storage device.
 
-In addition to the need for different methods to write to storage (simple copy
-for block devices, nandwrite for NAND, ubiupdatevol for UBI volumes, …) the
-tar-based installation requires additional handling and preparation of storage.
+For example, a slot on NOR flash requires a different method to copy data
+compared to a GPT partition slot on eMMC or an UBI volume slot on NAND flash.
+Also, copying an ext4 image to an ext4 partition requires a different method
+compared to extracting a tar archive to an ext4 partition.
 
-Thus, the possible and required handling depends on both the type of input
-image (e.g. .tar.xz, .ext4, .img) as well as the type of storage.
-A tar archive can be installed on different file systems while an ext4 file system slot
-might be filled by both an .ext4 image or a tar archive.
+In RAUC, *update handlers* solve the problem of updating a given storage device
+with the given image or tar archive format.
 
-To deal with all these possible combinations, RAUC provides an update handler
-algorithm that uses a matching table to define valid combinations of image and
-slot type while specifying the appropriate handling.
+Finding the appropriate *update handler* (or rejecting invalid combinations) is
+done in RAUC via a matching table that uses two inputs:
+
+  * the *image type* (e.g. a tar-Archive, an ext4-Image, a raw binary)
+  * the *slot type* (i.e. the type and usage of storage)
+
+While the *slot type* is configured in the RAUC system configuration, the
+*image type* is derived from the image's file name extension.
 
 .. image:: images/rauc_update_handler.svg
    :width: 400
