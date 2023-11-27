@@ -35,28 +35,25 @@ sub-command:
 
 .. code-block:: sh
 
-  rauc bundle --cert=<certfile> --key=<keyfile> --keyring=<keyringfile> <input-dir> <output-file>
+  rauc bundle --cert=<certfile|certurl> --key=<keyfile|keyurl> <input-dir> <bundle-name>
 
-Where ``<input-dir>`` must be a directory containing all images and scripts the
-bundle should include, as well as a manifest file ``manifest.raucm`` that
-describes the content of the bundle for the RAUC updater on the target:
-which image to install to which slot, which scripts to execute etc.
-Note that all files in ``<input-dir>`` will be included in the bundle,
-not just those specified in the manifest (see also the :ref:`example
-<sec-example-bundle-generation>` and the :ref:`reference <sec_ref_manifest>`).
-``<output-file>`` must be the path of the bundle file to create.
+The ``<input-dir>`` must point to a directory containing all images, scripts
+and other artifacts that should be part of the created update bundle.
+Additionally, a RAUC manifest file ``manifest.raucm`` is expected in
+``<input-dir>``.
+The manifest describes the bundle content and the purpose of the contained
+artifacts.
 
-Instead of the ``certfile`` and ``keyfile`` arguments, PKCS#11 URLs such as
-``'pkcs11:token=rauc;object=autobuilder-1'`` can be used to avoid storing
-sensitive key material as files (see :ref:`PKCS#11 Support <pkcs11-support>`
-for details).
+The created bundle will be stored under the given ``<bundle-name>``.
 
-While the ``--cert`` and ``--key`` argument are mandatory for signing and must
-provide the certificate and private key that should be used for creating the
-signature, the ``--keyring`` argument is optional and (if given) will be used
-for verifying the trust chain validity of the signature after creation.
-Note that this is very useful to prevent signing with obsolete
-certificates, etc.
+The ``--cert`` and ``--key`` argument specify the certificate and private key
+for signing the bundle.
+They can be provided either as PEM files or as :ref:`PKCS#11-URIs
+<pkcs11-support>` (to avoid storing sensitive key material as plain files).
+
+With the optional ``--signing-keyring=<certfile>`` argument, the signed bundle
+can be verified against the keyring file as part of the bundle creation
+process, for example to prevent signing with invalid or expired certificates.
 
 Obtaining Bundle Information
 ----------------------------
