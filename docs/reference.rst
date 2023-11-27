@@ -543,9 +543,11 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
 
 **[update] section**
 
-``compatible``
-  A user-defined compatible string that must match the compatible string of the
-  system the bundle should be installed on.
+This section contains some high-level information about the bundle.
+
+``compatible`` (mandatory)
+  A user-defined compatible string that must match the RAUC compatible string
+  of the system the bundle should be installed on.
 
 ``version``
   A free version field that can be used to provide and track version
@@ -563,9 +565,11 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
 
 **[bundle] section**
 
+The bundle section contains information required to process the bundle.
+
 ``format``
   Either ``plain`` (default), ``verity`` or ``crypt``.
-  This selects the :ref:`format<sec_ref_formats>` use when wrapping the payload
+  This selects the :ref:`format<sec_ref_formats>` used when wrapping the payload
   during bundle creation.
 
 .. _verity-metadata:
@@ -590,6 +594,9 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
   RAUC generates the key automatically when creating a `crypt` bundle.
 
 **[hooks] section**
+
+The hooks section allows to provide a user-defined executable for
+:ref:`executing hooks <sec-hooks>` during the installation.
 
 ``filename``
   Hook script path name, relative to the bundle content.
@@ -644,7 +651,10 @@ No built-in slot update will run and no hook will be executed.
 
 .. _image.slot-class-section:
 
-**[image.<slot-class>] section**
+**[image.<slot-class>] sections**
+
+For each image to install to a slot (class), a corresponding
+``[image.<slot-class]`` section must exist.
 
 .. _image.slot-filename:
 
@@ -688,13 +698,15 @@ No built-in slot update will run and no hook will be executed.
 
 **[meta.<label>] sections**
 
+The ``meta.<label>`` sections are intended to provide a forwards-compatible
+way to add metadata to the manifest which is not interpreted by RAUC in any
+way.
+They are accessible via ``rauc info`` and the :ref:`"InspectBundle" D-Bus API
+<gdbus-method-de-pengutronix-rauc-Installer.InspectBundle>`.
+In future releases, they will be accessible in hooks/handlers, as well.
+
 ``<key>``
-  The ``meta.<label>`` sections are intended to provide a forwards-compatible
-  way to add metadata to the manifest which is not interpreted by RAUC in any
-  way.
-  They are accessible via ``rauc info`` and the :ref:`"InspectBundle" D-Bus API
-  <gdbus-method-de-pengutronix-rauc-Installer.InspectBundle>`.
-  In future releases, they will be accessible in hooks/handlers, as well.
+  Keys (and values) can be defined freely in this section.
 
   As they may need to be converted to environment variable names, only
   alphanumeric characters, ``-`` and ``_`` are allowed in ``<label>`` and
