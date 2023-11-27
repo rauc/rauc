@@ -1122,6 +1122,8 @@ slot status etc. use:
 This uses the correct handler to write the image to the slot. It is useful for
 development scenarios as well as initial provisioning of embedded boards.
 
+.. _sec-advanced-updating-bootloader:
+
 Updating the Bootloader
 -----------------------
 

@@ -218,6 +218,10 @@ A list of slot storage types currently supported by RAUC:
 | jffs2    | A flash memory holding a JFFS2 filesystem.                        |     x       |
 +----------+-------------------------------------------------------------------+-------------+
 
+Additionally, there are specific slot types for :ref:`atomic bootloader updates
+<sec-advanced-updating-bootloader>`: ``boot-emmc``, ``boot-mbr-switch``,
+``boot-gpt-switch``, ``boot-raw-fallback``.
+
 Depending on this slot storage type and the slot's :ref:`image filename <image.slot-filename>`
 extension, RAUC determines how to extract the image content to the target slot.
 
