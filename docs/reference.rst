@@ -650,8 +650,12 @@ No built-in slot update will run and no hook will be executed.
 
 ``filename``
   Name of the image file (relative to bundle content).
-  RAUC uses the file extension and the slot type to decide how to extract the
-  image file content to the slot.
+
+  .. important::
+    RAUC uses the file name extension and the slot type to decide how to
+    extract the image file content to the slot.
+    Make sure to only use :ref:`supported file name extensions
+    <sec-ref-supported-image-types>`!
 
 ``sha256``
   sha256 of image file. RAUC determines this value automatically when creating
@@ -745,6 +749,8 @@ a look at :ref:`sec-advanced-event-log`.
   E.g. if set to ``3``, only ``<filename>``, ``<filename>.1`` and
   ``<filename>.2`` will be kept during rotation.
   Defaults to 10 if unset.
+
+.. _sec-ref-supported-image-types:
 
 Supported Image Types (Extensions)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
