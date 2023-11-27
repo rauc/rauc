@@ -90,9 +90,15 @@ To actually install an update bundle on your target hardware, RAUC provides the
 
 .. code-block:: sh
 
-  rauc install <input-file>
+  rauc install <bundle>
+
+The ``<bundle>`` argument can be a local path, a local file URI, or a remote
+(HTTP/HTTPS) URL.
 
 Alternatively you can trigger a bundle installation `using the D-Bus API`_.
+
+.. note:: Installing a bundle requires RAUC to be integrated in your system.
+   Refer to the :ref:`sec-integration` chapter for more.
 
 Accessing the System Status
 ---------------------------
