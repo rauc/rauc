@@ -1273,6 +1273,83 @@ configuration::
   RuntimeWatchdogSec=20
   ShutdownWatchdogSec=10min
 
+.. _sec-integration-bundle:
+
+Bundle Generation
+-----------------
+
+Once RAUC is set up on the target, one might want to actually create update
+bundles for it.
+
+.. note:: Some build systems provide a high-level integration that should be
+   used, for example in :ref:`Yocto <sec-integration-yocto-bundle>` or
+   :ref:`PTXdist <sec-integration-ptxdist-bundle>`.
+
+For generating a bundle, at least the following items are required:
+
+  * signing key and certificate
+  * content directory with manifest file
+
+The signing key and cert could be created for this specific project or be
+supplied from somewhere else in your project or company.
+They can be provided as PEM files or as PKCS#11 URIs (e.g. if you use a HSM).
+For evaluation purposes, you can also generate a self-signed key pair.
+Read the :ref:`sec-security` chapter for more details.
+
+For the bundle content, simply create a new directory:
+
+.. code-block:: shell
+
+  $ mkdir install-content
+
+Copy each image that should be installed via the bundle into the content
+directory, for example:
+
+.. code-block:: shell
+
+  $ cp /path/to/system-image.ext3 install-content/system-image.ext4
+  $ cp /path/to/barebox install-content/barebox.img
+
+.. note:: Since RAUC uses the image's file name extension for determining the
+   correct update handler, make sure that the file name extension used in the
+   content directory is :ref:`supported <sec-ref-supported-image-types>`.
+
+Create a manifest file called ``manifest.raucm`` in the content directory:
+
+.. code-block:: shell
+
+  $ vi install-content/manifest.raucm
+
+A minimal example for a manifest could look as follows:
+
+.. code-block:: cfg
+
+   [update]
+   compatible=Test Platform
+   version=2023.11.0
+
+   [bundle]
+   format=verity
+
+   [image.rootfs]
+   filename=system-image.ext4
+
+   [image.bootloader]
+   filename=barebox.img
+
+Ensure that ``compatible`` matches the RAUC compatible in your target's
+``system.conf``.
+The ``system-image.ext4`` image will now serve as the update image for the
+``rootfs`` slot class while the ``barebox.img`` will be the update image for
+the ``bootloader`` slot class.
+
+Finally, invoke RAUC to create the bundle from the created content directory::
+
+  $ rauc bundle --cert=cert.pem --key=key-pem install-content/ my-update.raucb
+
+The resulting bundle ``my-update.raucb`` is the ready for being deployed to the
+target.
+
 .. _sec_int_yocto:
 
 Yocto
@@ -1349,6 +1426,8 @@ This will place a copy of the RAUC binary in ``tmp/deploy/tools`` in your
 current build folder. To test it, try::
 
   tmp/deploy/tools/rauc --version
+
+.. _sec-integration-yocto-bundle:
 
 Bundle Generation
 ~~~~~~~~~~~~~~~~~
@@ -1476,6 +1555,8 @@ bootloader that is decremented before starting the system and reset by
 
 .. _ptxdist-code-signing: https://www.ptxdist.org/doc/dev_code_signing.html
 .. _ptxdist-manage-ca-keyrings: https://www.ptxdist.org/doc/dev_code_signing.html#managing-certificate-authority-keyrings
+
+.. _sec-integration-ptxdist-bundle:
 
 Create Update Bundles from your RootFS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
