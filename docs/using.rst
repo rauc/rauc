@@ -64,10 +64,17 @@ Obtaining Bundle Information
 
 .. code-block:: sh
 
-  rauc info [--output-format=<format>] <input-file>
+  rauc info --keyring=<certfile> [--output-format=<format>] <input-file>
 
 The ``info`` command lists the basic meta data of a bundle (compatible, version,
 build-id, description) and the images and hooks contained in the bundle.
+
+To authenticate the bundle information, it needs to be verified against a
+keyring.
+You can provide it via the system configuration or the ``--keyring``
+argument.
+If the verification should explicitly be skipped, you may also use
+``--no-verify`` instead.
 
 You can control the output ``<format>`` depending on your needs.
 By default (or with ``readable``), it will print a human readable representation of the
