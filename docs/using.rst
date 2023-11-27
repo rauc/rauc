@@ -39,10 +39,10 @@ sub-command:
 
 The ``<input-dir>`` must point to a directory containing all images, scripts
 and other artifacts that should be part of the created update bundle.
-Additionally, a RAUC manifest file ``manifest.raucm`` is expected in
-``<input-dir>``.
-The manifest describes the bundle content and the purpose of the contained
-artifacts.
+Additionally, a :ref:`RAUC manifest <sec_ref_manifest>` file ``manifest.raucm``
+is expected in ``<input-dir>``.
+The manifest describes the bundle content and the purpose of each included
+image.
 
 The created bundle will be stored under the given ``<bundle-name>``.
 
@@ -54,6 +54,10 @@ They can be provided either as PEM files or as :ref:`PKCS#11-URIs
 With the optional ``--signing-keyring=<certfile>`` argument, the signed bundle
 can be verified against the keyring file as part of the bundle creation
 process, for example to prevent signing with invalid or expired certificates.
+
+.. note:: A more detailed description of how to create bundles can be found in
+   the :ref:`sec-integration-bundle` section in the :ref:`sec-integration`
+   chapter.
 
 Obtaining Bundle Information
 ----------------------------
