@@ -746,6 +746,37 @@ a look at :ref:`sec-advanced-event-log`.
   ``<filename>.2`` will be kept during rotation.
   Defaults to 10 if unset.
 
+Supported Image Types (Extensions)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+RAUC uses the file name extension of images in combination with the target
+slot's type to select the *update handler*.
+To keep the number of combinations manageable, only a limited amount of file
+name extensions is supported by RAUC.
+
+The ``*.img`` extension is valid for all slot types.
+It should be used when no specific file name extension (and handler) is
+supported.
+
+Supported file system image types/extensions are:
+
+  * ``*.ext4``: ext[234] file system image
+  * ``*.vfat``: vfat/EFI file system image
+  * ``*.ubifs``: UBIFS file system image
+  * ``*.squashfs``: SquashFS image (compressed or uncompressed)
+  * ``*.squashfs-<comp>``:  SquashFS image (compressed, with ``<comp>`` being one of ``lz4``, ``lzo``, ``xz``, ``xst``)
+
+Supported TAR archive types/extensions are:
+
+  * ``*.tar*``: Compressed or uncompressed TAR archive
+
+For casync support, some specific file name extensions are supported (and used
+for casync-mode detection):
+
+  * ``.caidx``: casync directory tree index
+  * ``<extension>.caibx``: casync blob index (where ``<extension>`` is a valid 'standard' extension)
+  * ``.catar``: casync directory tree archive
+
 .. _sec_ref_formats:
 
 Bundle Formats
