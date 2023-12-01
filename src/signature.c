@@ -958,7 +958,7 @@ static gchar* convertBytesToHex(const gchar* der, long size)
 
 	g_return_val_if_fail(der != NULL, NULL);
 
-	hex_encoded = g_new(gchar, (size*2));
+	hex_encoded = g_new(gchar, (size*2)+1);
 	for (long i = 0; i < size-1; ++i) {
 		g_sprintf(hex_encoded + (i*2), "%02X", der[i]);
 	}
