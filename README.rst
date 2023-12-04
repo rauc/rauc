@@ -7,6 +7,12 @@ RAUC - Robust Auto-Update Controller
 
 |LGPLv2.1| |CI_branch| |Codecov_branch| |Coverity| |codeql| |OSS-Fuzz| |Documentation| |Matrix| |CII Best Practices| |Repology|
 
+.. raw:: html
+
+   <a href="https://repology.org/project/rauc/versions">
+      <img src="https://repology.org/badge/vertical-allrepos/rauc.svg?exclude_unsupported=1" alt="Packaging status" align="right">
+   </a>
+
 RAUC controls the update process on embedded Linux systems. It is both a target
 application that runs as an update client and a host/target tool
 that allows you to create, inspect and modify installation artifacts.
