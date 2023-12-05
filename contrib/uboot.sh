@@ -1,3 +1,7 @@
+# This is only an example to show a possible bootcmd script to implement A/B
+# slot selection for kernel on NAND and rootfs on eMMC. It's expected that
+# you'll have to adjust it for your use-case.
+
 test -n "${BOOT_ORDER}" || setenv BOOT_ORDER "A B"
 test -n "${BOOT_A_LEFT}" || setenv BOOT_A_LEFT 3
 test -n "${BOOT_B_LEFT}" || setenv BOOT_B_LEFT 3
