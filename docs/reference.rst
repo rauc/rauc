@@ -543,9 +543,11 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
 
 **[update] section**
 
-``compatible``
-  A user-defined compatible string that must match the compatible string of the
-  system the bundle should be installed on.
+This section contains some high-level information about the bundle.
+
+``compatible`` (mandatory)
+  A user-defined compatible string that must match the RAUC compatible string
+  of the system the bundle should be installed on.
 
 ``version``
   A free version field that can be used to provide and track version
@@ -563,9 +565,11 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
 
 **[bundle] section**
 
+The bundle section contains information required to process the bundle.
+
 ``format``
   Either ``plain`` (default), ``verity`` or ``crypt``.
-  This selects the :ref:`format<sec_ref_formats>` use when wrapping the payload
+  This selects the :ref:`format<sec_ref_formats>` used when wrapping the payload
   during bundle creation.
 
 .. _verity-metadata:
@@ -590,6 +594,9 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
   RAUC generates the key automatically when creating a `crypt` bundle.
 
 **[hooks] section**
+
+The hooks section allows to provide a user-defined executable for
+:ref:`executing hooks <sec-hooks>` during the installation.
 
 ``filename``
   Hook script path name, relative to the bundle content.
@@ -644,14 +651,21 @@ No built-in slot update will run and no hook will be executed.
 
 .. _image.slot-class-section:
 
-**[image.<slot-class>] section**
+**[image.<slot-class>] sections**
+
+For each image to install to a slot (class), a corresponding
+``[image.<slot-class]`` section must exist.
 
 .. _image.slot-filename:
 
 ``filename``
   Name of the image file (relative to bundle content).
-  RAUC uses the file extension and the slot type to decide how to extract the
-  image file content to the slot.
+
+  .. important::
+    RAUC uses the file name extension and the slot type to decide how to
+    extract the image file content to the slot.
+    Make sure to only use :ref:`supported file name extensions
+    <sec-ref-supported-image-types>`!
 
 ``sha256``
   sha256 of image file. RAUC determines this value automatically when creating
@@ -684,13 +698,15 @@ No built-in slot update will run and no hook will be executed.
 
 **[meta.<label>] sections**
 
+The ``meta.<label>`` sections are intended to provide a forwards-compatible
+way to add metadata to the manifest which is not interpreted by RAUC in any
+way.
+They are accessible via ``rauc info`` and the :ref:`"InspectBundle" D-Bus API
+<gdbus-method-de-pengutronix-rauc-Installer.InspectBundle>`.
+In future releases, they will be accessible in hooks/handlers, as well.
+
 ``<key>``
-  The ``meta.<label>`` sections are intended to provide a forwards-compatible
-  way to add metadata to the manifest which is not interpreted by RAUC in any
-  way.
-  They are accessible via ``rauc info`` and the :ref:`"InspectBundle" D-Bus API
-  <gdbus-method-de-pengutronix-rauc-Installer.InspectBundle>`.
-  In future releases, they will be accessible in hooks/handlers, as well.
+  Keys (and values) can be defined freely in this section.
 
   As they may need to be converted to environment variable names, only
   alphanumeric characters, ``-`` and ``_`` are allowed in ``<label>`` and
@@ -745,6 +761,39 @@ a look at :ref:`sec-advanced-event-log`.
   E.g. if set to ``3``, only ``<filename>``, ``<filename>.1`` and
   ``<filename>.2`` will be kept during rotation.
   Defaults to 10 if unset.
+
+.. _sec-ref-supported-image-types:
+
+Supported Image Types (Extensions)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+RAUC uses the file name extension of images in combination with the target
+slot's type to select the *update handler*.
+To keep the number of combinations manageable, only a limited amount of file
+name extensions is supported by RAUC.
+
+The ``*.img`` extension is valid for all slot types.
+It should be used when no specific file name extension (and handler) is
+supported.
+
+Supported file system image types/extensions are:
+
+  * ``*.ext4``: ext[234] file system image
+  * ``*.vfat``: vfat/EFI file system image
+  * ``*.ubifs``: UBIFS file system image
+  * ``*.squashfs``: SquashFS image (compressed or uncompressed)
+  * ``*.squashfs-<comp>``:  SquashFS image (compressed, with ``<comp>`` being one of ``lz4``, ``lzo``, ``xz``, ``xst``)
+
+Supported TAR archive types/extensions are:
+
+  * ``*.tar*``: Compressed or uncompressed TAR archive
+
+For casync support, some specific file name extensions are supported (and used
+for casync-mode detection):
+
+  * ``.caidx``: casync directory tree index
+  * ``<extension>.caibx``: casync blob index (where ``<extension>`` is a valid 'standard' extension)
+  * ``.catar``: casync directory tree archive
 
 .. _sec_ref_formats:
 
