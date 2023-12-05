@@ -2,6 +2,7 @@
 
 #include <glib.h>
 
+#include "glib/gstdio.h"
 #include "manifest.h"
 
 typedef struct {
@@ -20,6 +21,7 @@ int test_prepare_dummy_file(const gchar *dirname, const gchar *filename,
 int test_mkdir_relative(const gchar *dirname, const gchar *filename, int mode);
 int test_rmdir(const gchar *dirname, const gchar *filename);
 int test_remove(const gchar *dirname, const gchar *filename);
+int test_lstat(const gchar *dirname, const gchar *filename, GStatBuf *buf);
 gboolean test_rm_tree(const gchar *dirname, const gchar *filename);
 int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, const ManifestTestOptions *options);
 gboolean test_make_filesystem(const gchar *dirname, const gchar *filename);
