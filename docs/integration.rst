@@ -294,7 +294,7 @@ In kernel Kconfig you have to enable the following options as either built-in
   CONFIG_CRYPTO_SHA256
 
 For streaming support, you have to add ``CONFIG_BLK_DEV_NBD``.
-For encryption support, you have to add ``CONFIG_DM_CRYPT``.
+For encryption support, you have to add ``CONFIG_DM_CRYPT``, ``CONFIG_CRYPTO_AES``.
 
 .. note::
    These drivers may also be loaded as modules. Kernel versions v5.0 to v5.7
