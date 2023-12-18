@@ -365,7 +365,7 @@ for integrating RAUC into projects or products.
 OpenEmbedded / Yocto Project
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. rubric:: meta-rauc-communit
+.. rubric:: meta-rauc-community
 
 The `meta-rauc-community repository
 <https://github.com/rauc/meta-rauc-community>`_ contains layers for some
