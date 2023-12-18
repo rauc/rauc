@@ -477,6 +477,8 @@ round-trip-time (RTT) lead to longer installation times.
 This can be compensated somewhat by using a HTTP/2 server, as this supports
 multiplexing and better connection reuse.
 
+.. _sec-additional-http-headers:
+
 Additional HTTP Header Information
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
