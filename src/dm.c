@@ -179,7 +179,8 @@ gboolean r_dm_setup(RaucDM *dm, GError **error)
 		g_set_error(error,
 				G_FILE_ERROR,
 				g_file_error_from_errno(err),
-				"Failed to load dm table: %s", g_strerror(err));
+				"Failed to load dm table: %s, "
+				"check DM_VERITY, DM_CRYPT or CRYPTO_AES kernel options.", g_strerror(err));
 		res = FALSE;
 		goto out_remove_dm;
 	}
