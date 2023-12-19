@@ -294,6 +294,12 @@ In kernel Kconfig you have to enable the following options as either built-in
   CONFIG_CRYPTO_SHA256
 
 For streaming support, you have to add ``CONFIG_BLK_DEV_NBD``.
+
+.. note::
+   Streaming uses the NBD netlink API, which was introduced with kernel version
+   v4.12 (released 2017-07-12).
+   As of 2023, all LTS releases on kernel.org support this API.
+
 For encryption support, you have to add ``CONFIG_DM_CRYPT``, ``CONFIG_CRYPTO_AES``.
 
 .. note::
