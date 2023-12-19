@@ -119,6 +119,8 @@ or with ``json`` or ``json-pretty`` a JSON representation of the system status.
 If more information is needed such as the slots' :ref:`status <slot-status>` add
 the command line option ``--detailed``.
 
+.. _sec-run-links:
+
 Symbolic Links in ``/run/rauc``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

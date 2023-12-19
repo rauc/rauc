@@ -1,3 +1,70 @@
+Release 1.11 (development)
+--------------------------
+
+.. rubric:: Enhancements
+
+* Send :ref:`additional information as HTTP headers
+  <sec-additional-http-headers>` to the server on the first streaming request
+  (if enabled in the config).
+* Add persistent system status information to detect reboots using the kernel's
+  ``boot_id``.
+* Add an ``--ignore-image=<slotclass>`` option to keep images as they are when
+  using ``rauc convert``.
+  This can be used to exclude some images (such as bootloaders) from the casync
+  conversion.
+* Create :ref:`links for active slot devices <sec-run-links>` in
+  ``/run/rauc/slots/active``.
+  This should avoid the need for parsing 'rauc status' output in some cases.
+* Expose transaction ID to hooks during installation. (by Zygmunt Krynicki)
+* Add support for ``get-current`` to the custom bootloader backend. (by Angelo
+  Compagnucci)
+* Implement ``resign`` and ``replace-signature`` for encrypted bundles.
+* Explicit ``rauc status`` output when no slot is activated (instead of
+  printing ``null``).
+* Detect runtime config file change and warn in the service log.
+* Improve various warning and error messages to better guide users. (by
+  Angelo Compagnucci and others)
+* Remove autotools build system.
+  Support for meson was added in 1.9 and supported in parallel to autotools
+  until 1.10.1.
+
+.. rubric:: Bug fixes
+
+* Fix invalidation of slot status information during installation.
+* Fix ``--no-verify`` for ``rauc resign``, to allow omitting the keyring.
+* Fix installation of manual page when using meson.
+
+.. rubric:: Testing
+
+* Improve coverage for sanitizer builds.
+* Add support for fuzzing. (initial setup by René Fischer)
+* Integrate RAUC into OSS-Fuzz.
+* Add `asan` option to the ``qemu-test`` script to allow running with address
+  sanitizer.
+* Optimize ``qemu-test`` startup.
+
+.. rubric:: Code
+
+* Introduce structured event logging.
+* Introduce an internal API for using the existing status file for global
+  information (system status).
+* Fix minor memory leaks.
+
+.. rubric:: Documentation
+
+* Improve introductory and image type sections.
+* Document ``CONFIG_DM_CRYPT`` as a required kernel config option for encrypted
+  bundles. (by Angelo Compagnucci)
+* Allow installing HTML user documentation (``-Dhtmldocs=true``) (by Emil
+  Velikov)
+* Explicitly mention LGPL as the license for the project in the README.rst. (by
+  Roland Hieber)
+* Update sphinx and dependencies.
+
+Contributions from: Angelo Compagnucci, Emil Velikov, Enrico Jörns, Jan Lübbe,
+René Fischer, Roland Hieber, Thomas Kilian, Uwe Kleine-König, Zygmunt Krynicki
+
+
 Release 1.10.1 (released Aug 3, 2023)
 -------------------------------------
 
