@@ -1,5 +1,5 @@
-Release 1.11 (development)
---------------------------
+Release 1.11 (released Dec 20, 2023)
+------------------------------------
 
 .. rubric:: Enhancements
 
@@ -73,7 +73,6 @@ Release 1.11 (development)
 
 Contributions from: Angelo Compagnucci, Emil Velikov, Enrico Jörns, Jan Lübbe,
 René Fischer, Roland Hieber, Thomas Kilian, Uwe Kleine-König, Zygmunt Krynicki
-
 
 Release 1.10.1 (released Aug 3, 2023)
 -------------------------------------
