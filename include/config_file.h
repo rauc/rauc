@@ -93,6 +93,8 @@ typedef struct {
 	/* flag to ensure slot states were determined */
 	gboolean slot_states_determined;
 	gchar *file_checksum;
+
+	GHashTable *artifact_repos;
 } RaucConfig;
 
 typedef enum {

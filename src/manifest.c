@@ -513,6 +513,20 @@ static gboolean check_manifest_bundled(const RaucManifest *mf, GError **error)
 				return FALSE;
 			}
 		}
+
+		if (image->convert) {
+			guint expected_len = g_strv_length(image->convert);
+
+			if (!image->converted) {
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing converted outputs for image %s", image->filename);
+				return FALSE;
+			}
+
+			if (expected_len != image->converted->len) {
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Inconsistent number of converted inputs/outputs for image %s", image->filename);
+				return FALSE;
+			}
+		}
 	}
 
 	return TRUE;

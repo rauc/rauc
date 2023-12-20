@@ -1,6 +1,7 @@
 #include <glib.h>
 #include <string.h>
 
+#include "artifacts.h"
 #include "bootchooser.h"
 #include "config_file.h"
 #include "context.h"
@@ -582,6 +583,16 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 	return g_steal_pointer(&slots);
 }
 
+static GHashTable *parse_artifact_repos(const char *filename, const char *data_directory, GKeyFile *key_file, GError **error)
+{
+	GError *ierror = NULL;
+	gsize group_count;
+
+	g_autoptr(GHashTable) repos = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_artifact_repo_free);
+
+	return g_steal_pointer(&repos);
+}
+
 void r_config_file_modified_check(void)
 {
 	g_autoptr(GError) ierror = NULL;
@@ -1104,6 +1115,13 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		return FALSE;
 	}
 
+	/* crate dummy artifact_repos for now */
+	c->artifact_repos = parse_artifact_repos(filename, c->data_directory, key_file, &ierror);
+	if (!c->artifact_repos) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
 	if (!check_remaining_groups(key_file, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -1167,5 +1185,6 @@ void free_config(RaucConfig *config)
 	g_clear_pointer(&config->slots, g_hash_table_destroy);
 	g_free(config->custom_bootloader_backend);
 	g_free(config->file_checksum);
+	g_clear_pointer(&config->artifact_repos, g_hash_table_destroy);
 	g_free(config);
 }
