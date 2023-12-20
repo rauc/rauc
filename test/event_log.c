@@ -192,9 +192,9 @@ static void event_log_test_max_size(EventLogFixture *fixture,
 
 	/* Message size is 128 bytes, thus the 4th write should exceed the
 	 * configured 500 bytes maxsize and create the rotation file. */
-	for (guint8 i = 0; i < rot_test->rotates_at; i++) {
+	for (gint i = 0; i < rot_test->rotates_at; i++) {
 		logger->writer(logger, fields, G_N_ELEMENTS(fields));
-		if (i == rot_test->rotates_at -1 )
+		if (i == rot_test->rotates_at - 1)
 			g_assert_true(g_file_test(rotatefile, G_FILE_TEST_EXISTS));
 		else
 			g_assert_false(g_file_test(rotatefile, G_FILE_TEST_EXISTS));
