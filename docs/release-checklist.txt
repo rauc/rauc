@@ -1,14 +1,14 @@
 - update changelog
-- update version in docs/conf.py
+- update version in meson.build
 - merge preparation pull-request
 - create signed git tag
-  git tag -m 'release v0.X' -s -u A58CC53DBF05E090 v0.X
+  git tag -m 'release v1.X' -s -u A58CC53DBF05E090 v1.X
 - let meson create source tar archive
   meson dist
 - sign source archive
-  gpg --detach-sign -u A58CC53DBF05E090 --armor rauc-0.X.tar.xz
-  gpg --verify rauc-0.X.tar.xz.asc
+  gpg --detach-sign -u A58CC53DBF05E090 --armor rauc-1.X.tar.xz
+  gpg --verify rauc-1.X.tar.xz.asc
 - push signed tag
 - upload source archive and signature
 - create release on github using changelog
-  pandoc -f rst -t markdown_github CHANGES
+  pandoc -f rst -t gfm CHANGES
