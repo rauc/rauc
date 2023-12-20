@@ -1099,10 +1099,10 @@ static RaucSlot* get_boot_mark_slot(const GPtrArray *install_plans)
 	return bootslot;
 }
 
-#define MESSAGE_ID_INSTALLATION_STARTED   "b05410e8-a933-4538-9cd0-61aab1e9516d"
-#define MESSAGE_ID_INSTALLATION_SUCCEEDED "0163db54-68ac-4237-b090-d28490c301ed"
-#define MESSAGE_ID_INSTALLATION_FAILED    "c48141f7-fd49-443a-afff-862b4809168f"
-#define MESSAGE_ID_INSTALLATION_REJECTED  "60bea7e4-fea5-49cc-ad68-af457308b13a"
+#define MESSAGE_ID_INSTALLATION_STARTED   "b05410e8a93345389cd061aab1e9516d"
+#define MESSAGE_ID_INSTALLATION_SUCCEEDED "0163db5468ac4237b090d28490c301ed"
+#define MESSAGE_ID_INSTALLATION_FAILED    "c48141f7fd49443aafff862b4809168f"
+#define MESSAGE_ID_INSTALLATION_REJECTED  "60bea7e4fea549ccad68af457308b13a"
 
 static void log_event_installation_started(RaucInstallArgs *args)
 {

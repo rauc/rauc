@@ -2003,7 +2003,7 @@ static gboolean status_start(int argc, char **argv)
 	return TRUE;
 }
 
-#define MESSAGE_ID_BOOTED "e60e0add-d345-4cb8-b796-eae0d497af96"
+#define MESSAGE_ID_BOOTED "e60e0addd3454cb8b796eae0d497af96"
 
 static void r_event_log_booted(const RaucSlot *booted_slot)
 {

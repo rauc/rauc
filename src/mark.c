@@ -76,9 +76,9 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 	return slot;
 }
 
-#define MESSAGE_ID_MARKED_ACTIVE "8b5e7435-e105-4d86-8582-78e7544fe6da"
-#define MESSAGE_ID_MARKED_GOOD   "3304e15a-7a9a-4478-85eb-208ba7ae3a05"
-#define MESSAGE_ID_MARKED_BAD    "ccb0e584-a470-43d7-a531-6994bce77ae5"
+#define MESSAGE_ID_MARKED_ACTIVE "8b5e7435e1054d86858278e7544fe6da"
+#define MESSAGE_ID_MARKED_GOOD   "3304e15a7a9a447885eb208ba7ae3a05"
+#define MESSAGE_ID_MARKED_BAD    "ccb0e584a47043d7a5316994bce77ae5"
 
 static void r_event_log_mark_active(RaucSlot *slot)
 {
