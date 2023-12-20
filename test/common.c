@@ -211,6 +211,39 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, cons
 		rm->images = g_list_append(rm->images, img);
 	}
 
+	if (options->artifact_file) {
+		g_assert_nonnull(options->artifact_slotclass);
+
+		img = g_new0(RaucImage, 1);
+		img->slotclass = g_strdup(options->artifact_slotclass);
+		if (g_strcmp0(options->artifact_file, "artifact-1.file") == 0) {
+			img->artifact = g_strdup("artifact-1");
+			img->filename = g_strdup("artifact-1.file");
+			if (options->hooks)
+				img->hooks.post_install = TRUE;
+		} else if (g_strcmp0(options->artifact_file, "payload-common.tar") == 0) {
+			img->artifact = g_strdup("common");
+			img->filename = g_strdup("payload-common.tar");
+			if (options->hooks)
+				img->hooks.post_install = TRUE;
+		} else if (g_strcmp0(options->artifact_file, "payload-special.tar") == 0) {
+			img->artifact = g_strdup("special");
+			img->filename = g_strdup("payload-special.tar");
+			if (options->hooks)
+				img->hooks.post_install = TRUE;
+		} else {
+			g_error("artifact_file %s not implemented", options->artifact_file);
+		}
+		if (options->artifact_convert) {
+			GPtrArray *convert = g_ptr_array_new_with_free_func(g_free);
+			g_ptr_array_add(convert, g_strdup(options->artifact_convert));
+			g_ptr_array_add(convert, NULL);
+			img->convert = (GStrv) g_ptr_array_free(convert, FALSE);
+		}
+
+		rm->images = g_list_append(rm->images, img);
+	}
+
 	g_assert_true(save_manifest_file(path, rm, NULL));
 
 	free_manifest(rm);
@@ -329,6 +362,8 @@ gboolean test_make_slot_user_writable(const gchar* path, const gchar* file)
 
 void test_create_content(gchar *contentdir, const ManifestTestOptions *options)
 {
+	g_autofree gchar *filename = NULL;
+
 	g_assert(g_mkdir(contentdir, 0777) == 0);
 	g_assert(test_prepare_dummy_file(contentdir, "rootfs.ext4",
 			1024*1024, "/dev/urandom") == 0);
@@ -336,6 +371,14 @@ void test_create_content(gchar *contentdir, const ManifestTestOptions *options)
 			64*1024, "/dev/urandom") == 0);
 	g_assert(test_prepare_manifest_file(contentdir, "manifest.raucm",
 			options) == 0);
+
+	filename = write_random_file(contentdir, "artifact-1.file", 16*1024, 0x34f474b1);
+	g_assert_nonnull(filename);
+
+	if (options->artifact_file) {
+		g_assert_true(test_copy_file("test/install-content", "payload-common.tar", contentdir, "payload-common.tar"));
+		g_assert_true(test_copy_file("test/install-content", "payload-special.tar", contentdir, "payload-special.tar"));
+	}
 }
 
 void test_create_bundle(gchar *contentdir, gchar *bundlename)

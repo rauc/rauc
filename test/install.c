@@ -251,8 +251,15 @@ device=/path/to/prebootloader";
 static void install_fixture_tear_down(InstallFixture *fixture,
 		gconstpointer user_data)
 {
+	InstallData *data = (InstallData*) user_data;
+
 	if (!fixture->tmpdir)
 		return;
+
+	if (data->manifest_test_options.artifact_file) {
+		g_autofree gchar *tree_cmd = g_strdup_printf("tree -a %s/repos", fixture->tmpdir);
+		system(tree_cmd);
+	}
 
 	test_umount(fixture->tmpdir, "slot");
 	test_umount(fixture->tmpdir, "bootloader");
@@ -1104,13 +1111,15 @@ static void install_test_bundle(InstallFixture *fixture,
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 
-	slotfile = g_build_filename(fixture->tmpdir, "images/rootfs-1", NULL);
-	mountdir = g_build_filename(fixture->tmpdir, "mnt", NULL);
-	g_assert(test_mkdir_relative(fixture->tmpdir, "mnt", 0777) == 0);
-	testfilepath = g_build_filename(mountdir, "verify.txt", NULL);
-	g_assert(test_mount(slotfile, mountdir));
-	g_assert(g_file_test(testfilepath, G_FILE_TEST_IS_REGULAR));
-	g_assert(test_umount(fixture->tmpdir, "mnt"));
+	if (data->manifest_test_options.slots) {
+		slotfile = g_build_filename(fixture->tmpdir, "images/rootfs-1", NULL);
+		mountdir = g_build_filename(fixture->tmpdir, "mnt", NULL);
+		g_assert(test_mkdir_relative(fixture->tmpdir, "mnt", 0777) == 0);
+		testfilepath = g_build_filename(mountdir, "verify.txt", NULL);
+		g_assert(test_mount(slotfile, mountdir));
+		g_assert(g_file_test(testfilepath, G_FILE_TEST_IS_REGULAR));
+		g_assert(test_umount(fixture->tmpdir, "mnt"));
+	}
 
 	if (data != NULL && data->message_needles != NULL) {
 		const gchar **message_needles = data->message_needles;
@@ -1591,6 +1600,68 @@ int main(int argc, char *argv[])
 	g_test_add("/install/adaptive",
 			InstallFixture, install_data,
 			install_fixture_set_up_bundle_adaptive, install_test_bundle,
+			install_fixture_tear_down);
+
+	install_data = dup_test_data(ptrs, (&(InstallData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_VERITY,
+		        .artifact_file = "artifact-1.file",
+		        .artifact_slotclass = "files",
+		},
+	}));
+	g_test_add("/install/artifacts/file",
+			InstallFixture, install_data,
+			install_fixture_set_up_bundle, install_test_bundle,
+			install_fixture_tear_down);
+
+	install_data = dup_test_data(ptrs, (&(InstallData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_VERITY,
+		        .artifact_file = "payload-common.tar",
+		        .artifact_slotclass = "trees",
+		},
+	}));
+	g_test_add("/install/artifacts/common-tar/direct",
+			InstallFixture, install_data,
+			install_fixture_set_up_bundle, install_test_bundle,
+			install_fixture_tear_down);
+
+	install_data = dup_test_data(ptrs, (&(InstallData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_VERITY,
+		        .artifact_file = "payload-common.tar",
+		        .artifact_slotclass = "trees",
+		        .artifact_convert = "tar-extract",
+		},
+	}));
+	g_test_add("/install/artifacts/common-tar/extracted",
+			InstallFixture, install_data,
+			install_fixture_set_up_bundle, install_test_bundle,
+			install_fixture_tear_down);
+
+	install_data = dup_test_data(ptrs, (&(InstallData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_VERITY,
+		        .artifact_file = "payload-special.tar",
+		        .artifact_slotclass = "trees",
+		},
+	}));
+	g_test_add("/install/artifacts/special-tar/direct",
+			InstallFixture, install_data,
+			install_fixture_set_up_bundle, install_test_bundle,
+			install_fixture_tear_down);
+
+	install_data = dup_test_data(ptrs, (&(InstallData) {
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_VERITY,
+		        .artifact_file = "payload-special.tar",
+		        .artifact_slotclass = "trees",
+		        .artifact_convert = "tar-extract",
+		},
+	}));
+	g_test_add("/install/artifacts/special-tar/extracted",
+			InstallFixture, install_data,
+			install_fixture_set_up_bundle, install_test_bundle,
 			install_fixture_tear_down);
 
 	return g_test_run();
