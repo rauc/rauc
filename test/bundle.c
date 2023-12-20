@@ -8,6 +8,8 @@
 #include <context.h>
 #include <manifest.h>
 #include <signature.h>
+#include <sys/stat.h>
+#include <sys/sysmacros.h>
 #include <utils.h>
 
 #include "common.h"
@@ -222,8 +224,148 @@ static void bundle_test_create_extract(BundleFixture *fixture,
 	g_clear_pointer(&filepath, g_free);
 }
 
+static void check_artifacts(RaucBundle *bundle, BundleData *data)
+{
+	g_autofree gchar *imagefilepath = NULL;
+	const RaucImage *image = NULL;
+	GStatBuf buf = {};
+
+	g_assert_nonnull(bundle->manifest);
+
+	for (GList *elem = bundle->manifest->images; elem != NULL; elem = elem->next) {
+		image = elem->data;
+		if (image->artifact)
+			break;
+	}
+	g_assert_nonnull(image);
+
+	imagefilepath = g_build_filename(bundle->mount_point, image->filename, NULL);
+
+	if (g_strcmp0(data->manifest_test_options.artifact_file, "artifact-1.file") == 0) {
+		g_assert_cmpint(g_stat(imagefilepath, &buf), ==, 0);
+
+		g_assert_true(S_ISREG(buf.st_mode));
+		g_assert_cmpint(buf.st_uid, ==, 0);
+		g_assert_cmpint(buf.st_gid, ==, 0);
+		g_assert_cmpint(buf.st_size, ==, 16*1024);
+	}
+
+	if (g_strcmp0(data->manifest_test_options.artifact_file, "payload-common.tar") == 0) {
+		g_autofree gchar *extracted = g_strdup_printf("%s.extracted", imagefilepath);
+
+		g_assert_cmpint(g_stat(extracted, &buf), ==, 0);
+
+		g_assert_true(S_ISDIR(buf.st_mode));
+		g_assert_true((buf.st_mode & 0777) == 0700);
+		g_assert_cmpint(buf.st_uid, ==, 0);
+		g_assert_cmpint(buf.st_gid, ==, 0);
+
+		g_assert_cmpint(test_lstat(extracted, "file", &buf), ==, 0);
+		g_assert_true(S_ISREG(buf.st_mode));
+		g_assert_cmpint(buf.st_uid, ==, 0);
+		g_assert_cmpint(buf.st_gid, ==, 0);
+		g_assert_cmpint(buf.st_size, ==, 0);
+
+		g_assert_cmpint(test_lstat(extracted, "file-contents", &buf), ==, 0);
+		g_assert_true(S_ISREG(buf.st_mode));
+		g_assert_cmpint(buf.st_uid, ==, 0);
+		g_assert_cmpint(buf.st_size, ==, 8);
+		g_assert_cmpuint(buf.st_nlink, ==, 1);
+
+		g_assert_cmpint(test_lstat(extracted, "file-user", &buf), ==, 0);
+		g_assert_true(S_ISREG(buf.st_mode));
+		g_assert_cmpint(buf.st_uid, ==, 1000);
+		g_assert_cmpint(buf.st_gid, ==, 1000);
+		g_assert_cmpint(buf.st_size, ==, 0);
+
+		g_assert_cmpint(test_lstat(extracted, "file-mtime", &buf), ==, 0);
+		g_assert_true(S_ISREG(buf.st_mode));
+		g_assert_cmpuint(buf.st_mtim.tv_sec, ==, 1694006436);
+		/* squashfs timestamps have second granularity */
+		g_assert_cmpuint(buf.st_mtim.tv_nsec, ==, 0);
+
+		g_assert_cmpint(test_lstat(extracted, "file-user", &buf), ==, 0);
+		g_assert_true(S_ISREG(buf.st_mode));
+		g_assert_cmpint(buf.st_uid, ==, 1000);
+		g_assert_cmpint(buf.st_gid, ==, 1000);
+		g_assert_cmpint(buf.st_size, ==, 0);
+
+		g_assert_cmpint(test_lstat(extracted, "executable", &buf), ==, 0);
+		g_assert_true(S_ISREG(buf.st_mode));
+		g_assert_true((buf.st_mode & 0777) == 0755);
+		g_assert_cmpint(buf.st_uid, ==, 0);
+		g_assert_cmpint(buf.st_gid, ==, 0);
+		g_assert_cmpint(buf.st_size, ==, 0);
+
+		g_assert_cmpint(test_lstat(extracted, "dir", &buf), ==, 0);
+		g_assert_true(S_ISDIR(buf.st_mode));
+
+		g_assert_cmpint(test_lstat(extracted, "dir/file", &buf), ==, 0);
+		g_assert_true(S_ISREG(buf.st_mode));
+
+		g_assert_cmpint(test_lstat(extracted, "symlink", &buf), ==, 0);
+		g_assert_true(S_ISLNK(buf.st_mode));
+
+		g_assert_cmpint(test_lstat(extracted, "hardlink", &buf), ==, 0);
+		g_assert_true(S_ISREG(buf.st_mode));
+		g_assert_cmpuint(buf.st_nlink, ==, 2);
+
+		g_assert_cmpint(test_lstat(extracted, "devchr", &buf), ==, 0);
+		g_assert_true(S_ISCHR(buf.st_mode));
+		g_assert_cmpuint(major(buf.st_rdev), ==, 1);
+		g_assert_cmpuint(minor(buf.st_rdev), ==, 3);
+
+		g_assert_cmpint(test_lstat(extracted, "devblk", &buf), ==, 0);
+		g_assert_true(S_ISBLK(buf.st_mode));
+		g_assert_cmpuint(major(buf.st_rdev), ==, 253);
+		g_assert_cmpuint(minor(buf.st_rdev), ==, 0);
+
+		g_assert_cmpint(test_lstat(extracted, "fifo", &buf), ==, 0);
+		g_assert_true(S_ISFIFO(buf.st_mode));
+
+		g_assert_false(g_file_test(imagefilepath, G_FILE_TEST_EXISTS));
+	}
+
+	if (g_strcmp0(data->manifest_test_options.artifact_file, "payload-special.tar") == 0) {
+		g_autofree gchar *extracted = g_strdup_printf("%s.extracted", imagefilepath);
+
+		g_assert_cmpint(g_stat(extracted, &buf), ==, 0);
+		g_assert_true(S_ISDIR(buf.st_mode));
+		g_assert_true((buf.st_mode & 0777) == 0700);
+		g_assert_cmpint(buf.st_uid, ==, 0);
+		g_assert_cmpint(buf.st_gid, ==, 0);
+
+		g_assert_cmpint(test_lstat(extracted, "file", &buf), ==, 0);
+		g_assert_true(S_ISREG(buf.st_mode));
+		g_assert_cmpint(buf.st_uid, ==, 0);
+		g_assert_cmpint(buf.st_gid, ==, 0);
+		g_assert_cmpint(buf.st_size, ==, 0);
+
+		g_assert_cmpint(test_lstat(extracted, "acl", &buf), ==, 0);
+		g_assert_true(S_ISREG(buf.st_mode));
+		g_assert_cmpint(buf.st_uid, ==, 0);
+		g_assert_cmpint(buf.st_gid, ==, 0);
+		g_assert_cmpint(buf.st_size, ==, 0);
+
+		g_assert_cmpint(test_lstat(extracted, "xattr", &buf), ==, 0);
+		g_assert_true(S_ISREG(buf.st_mode));
+		g_assert_cmpint(buf.st_uid, ==, 0);
+		g_assert_cmpint(buf.st_gid, ==, 0);
+		g_assert_cmpint(buf.st_size, ==, 0);
+
+		g_assert_cmpint(test_lstat(extracted, "selinux", &buf), ==, 0);
+		g_assert_true(S_ISREG(buf.st_mode));
+		g_assert_cmpint(buf.st_uid, ==, 0);
+		g_assert_cmpint(buf.st_gid, ==, 0);
+		g_assert_cmpint(buf.st_size, ==, 0);
+
+		g_assert_false(g_file_test(imagefilepath, G_FILE_TEST_EXISTS));
+	}
+}
+
 static void bundle_test_create_mount(BundleFixture *fixture, gconstpointer user_data)
 {
+	BundleData *data = (BundleData*)user_data;
 	g_autoptr(RaucBundle) bundle = NULL;
 	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
@@ -240,6 +382,9 @@ static void bundle_test_create_mount(BundleFixture *fixture, gconstpointer user_
 	res = mount_bundle(bundle, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
+
+	if (data->manifest_test_options.artifact_file)
+		check_artifacts(bundle, data);
 
 	res = umount_bundle(bundle, &ierror);
 	g_assert_no_error(ierror);
@@ -989,6 +1134,44 @@ int main(int argc, char *argv[])
 	g_test_add("/bundle/format/verity/deny-verity",
 			BundleFixture, bundle_data,
 			bundle_fixture_set_up_bundle, bundle_test_create_check_error,
+			bundle_fixture_tear_down);
+
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
+		.manifest_test_options = {
+			.format = R_MANIFEST_FORMAT_VERITY,
+			.artifact_file = "artifact-1.file",
+			.artifact_slotclass = "files",
+		},
+	}));
+	g_test_add("/bundle/artifact/file",
+			BundleFixture, bundle_data,
+			bundle_fixture_set_up_bundle, bundle_test_create_mount,
+			bundle_fixture_tear_down);
+
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
+		.manifest_test_options = {
+			.format = R_MANIFEST_FORMAT_VERITY,
+			.artifact_file = "payload-common.tar",
+			.artifact_slotclass = "trees",
+			.artifact_convert = "tar-extract",
+		},
+	}));
+	g_test_add("/bundle/artifact/tree/common-tar",
+			BundleFixture, bundle_data,
+			bundle_fixture_set_up_bundle, bundle_test_create_mount,
+			bundle_fixture_tear_down);
+
+	bundle_data = dup_test_data(ptrs, (&(BundleData) {
+		.manifest_test_options = {
+			.format = R_MANIFEST_FORMAT_VERITY,
+			.artifact_file = "payload-special.tar",
+			.artifact_slotclass = "trees",
+			.artifact_convert = "tar-extract",
+		},
+	}));
+	g_test_add("/bundle/artifact/tree/special-tar",
+			BundleFixture, bundle_data,
+			bundle_fixture_set_up_bundle, bundle_test_create_mount,
 			bundle_fixture_tear_down);
 
 	return g_test_run();
