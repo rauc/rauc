@@ -855,7 +855,7 @@ RAUC casync Support
   Since 1.8, RAUC also supports the alternative `desync
   <https://github.com/folbricht/desync>`_ written in Go.
 
-  For compatiblitiy and comparison with RAUC's built-in streaming support,
+  For compatibility and comparison with RAUC's built-in streaming support,
   refer to :ref:`sec-casync-vs-streaming`.
 
 Using the Content-Addressable Data Synchronization tool `casync` for updating
