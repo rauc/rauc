@@ -3,6 +3,7 @@ if not get_option('tests')
 endif
 
 tests = [
+  'artifacts',
   'boot_raw_fallback',
   'bootchooser',
   'bundle',
