@@ -14,7 +14,7 @@
 #include "../rauc-installer-generated.h"
 
 #include "common.h"
-#include "install-fixtures.h"
+#include "install_fixtures.h"
 
 typedef struct {
 	GTestDBus *dbus;

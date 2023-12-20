@@ -37,7 +37,7 @@ jobs:
         build/test/config_file-test
         build/test/context-test
         build/test/dm-test
-        build/test/event-log-test
+        build/test/event_log-test
         build/test/hash_index-test
         build/test/install-test
         build/test/manifest-test

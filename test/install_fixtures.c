@@ -3,7 +3,7 @@
 #include <install.h>
 #include <mount.h>
 
-#include "install-fixtures.h"
+#include "install_fixtures.h"
 #include "common.h"
 
 void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
