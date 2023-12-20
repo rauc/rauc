@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "artifacts.h"
 #include "bootchooser.h"
 #include "bundle.h"
 #include "context.h"
@@ -300,6 +301,10 @@ static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest)
 		const gchar *key = NULL;
 		RaucImage *iterimage = l->data;
 		g_assert_nonnull(iterimage->slotclass);
+
+		if (iterimage->artifact)
+			continue;
+
 		key = g_intern_string(iterimage->slotclass);
 		g_ptr_array_remove_fast(slotclasses, (gpointer)key); /* avoid duplicates */
 		g_ptr_array_add(slotclasses, (gpointer)key);
@@ -308,6 +313,7 @@ static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest)
 
 	return (gchar**) g_ptr_array_free(slotclasses, FALSE);
 }
+
 /* Selects a single appropriate inactive slot of root slot class
  *
  * Note: This function may be extended to be more sophisticated or follow a
@@ -421,7 +427,7 @@ GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target
 
 	slotclasses = get_all_manifest_slot_classes(manifest);
 
-	/* Find exactly 1 image for each class listed in manifest */
+	/* Find exactly 1 image for each slot class listed in manifest */
 	for (gchar **cls = slotclasses; *cls != NULL; cls++) {
 		RaucImage *matching_img = NULL;
 		g_autoptr(RImageInstallPlan) plan = g_new0(RImageInstallPlan, 1);
@@ -481,6 +487,33 @@ GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target
 		plan->slot_handler = get_update_handler(plan->image, plan->target_slot, &ierror);
 		if (plan->slot_handler == NULL) {
 			g_propagate_error(error, ierror);
+			return NULL;
+		}
+
+		g_ptr_array_add(install_plans, g_steal_pointer(&plan));
+	}
+
+	/* Make plans for artifact installation */
+	if (!r_artifacts_init(TRUE, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		RaucImage *iter_image = l->data;
+		g_autoptr(RImageInstallPlan) plan = NULL;
+
+		if (!iter_image->artifact)
+			continue;
+
+		plan = g_new0(RImageInstallPlan, 1);
+		plan->image = l->data;
+		plan->target_repo = g_hash_table_lookup(r_context()->config->artifact_repos, iter_image->slotclass);
+		if (!plan->target_repo) {
+			g_set_error(error,
+					R_INSTALL_ERROR,
+					R_INSTALL_ERROR_FAILED,
+					"No target repo %s for artifact image %s found", iter_image->slotclass, iter_image->artifact);
 			return NULL;
 		}
 
@@ -920,15 +953,52 @@ static gboolean pre_install_checks(gchar* bundledir, GPtrArray *install_plans, G
 			return FALSE;
 		}
 
-skip_filename_checks:
-		if (!g_file_test(plan->target_slot->device, G_FILE_TEST_EXISTS)) {
-			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NODST,
-					"Destination device '%s' not found", plan->target_slot->device);
-			return FALSE;
+		/* handle converted images as well */
+		for (guint j = 0; j < plan->image->converted->len; i++) {
+			gchar **converted = (gchar**)&plan->image->converted->pdata[i];
+			if (!g_path_is_absolute(*converted)) {
+				gchar *filename = g_build_filename(bundledir, *converted, NULL);
+				g_free(*converted);
+				*converted = filename;
+			}
+
+			if (!g_file_test(*converted, G_FILE_TEST_EXISTS)) {
+				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NOSRC,
+						"Converted source image '%s' not found in bundle", *converted);
+				return FALSE;
+			}
 		}
 
-		if (!pre_install_check_slot_mount_status(plan->target_slot, plan->image, error)) {
-			/* error is already set */
+skip_filename_checks:
+		if (plan->target_slot) {
+			g_assert(plan->target_repo == NULL);
+
+			if (!g_file_test(plan->target_slot->device, G_FILE_TEST_EXISTS)) {
+				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NODST,
+						"Destination device '%s' for slot '%s' not found", plan->target_slot->device, plan->target_slot->name);
+				return FALSE;
+			}
+			if (!g_file_test(plan->target_slot->device, G_FILE_TEST_EXISTS)) {
+				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NODST,
+						"Destination device '%s' for slot '%s' not found", plan->target_slot->device, plan->target_slot->name);
+				return FALSE;
+			}
+
+			if (!pre_install_check_slot_mount_status(plan->target_slot, plan->image, error)) {
+				/* error is already set */
+				return FALSE;
+			}
+		} else if (plan->target_repo) {
+			g_assert(plan->target_slot == NULL);
+
+			if (!g_file_test(plan->target_repo->path, G_FILE_TEST_EXISTS)) {
+				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NODST,
+						"Destination path '%s' not found for artifact repo '%s'", plan->target_repo->path, plan->target_repo->name);
+				return FALSE;
+			}
+		} else {
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_NODST,
+					"Destination slot or artifact repo '%s' not configured", plan->target_slot->device);
 			return FALSE;
 		}
 	}
@@ -1080,7 +1150,9 @@ static RaucSlot* get_boot_mark_slot(const GPtrArray *install_plans)
 	for (guint i = 0; i < install_plans->len; i++) {
 		const RImageInstallPlan *plan = g_ptr_array_index(install_plans, i);
 
-		g_assert_nonnull(plan->target_slot);
+		if (!plan->target_slot) {
+			continue;
+		}
 
 		if (plan->target_slot->parent || !plan->target_slot->bootname) {
 			continue;
@@ -1159,6 +1231,67 @@ static void log_event_installation_done(RaucInstallArgs *args, RaucManifest *man
 	g_log_structured_array(G_LOG_LEVEL_MESSAGE, fields, G_N_ELEMENTS(fields));
 }
 
+static gboolean handle_artifact_install_plan(const RaucManifest *manifest, const RImageInstallPlan *plan, RaucInstallArgs *args, const char *hook_name, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(RArtifact) artifact_owned = g_new0(RArtifact, 1);
+	RArtifact *artifact = artifact_owned;
+
+	r_context_begin_step_weighted_formatted("check_repo", 0, 1, "Checking repo %s", plan->target_repo->name);
+	/* TODO check for existing image */
+	/* TODO verify checksum if found? r_artifact_check? */
+
+	/* create RArtifact */
+	artifact->name = g_intern_string(plan->image->artifact);
+	artifact->bundle_compatible = g_strdup(manifest->update_compatible);
+	artifact->bundle_version = g_strdup(manifest->update_version);
+	artifact->bundle_description = g_strdup(manifest->update_description);
+	artifact->bundle_build = g_strdup(manifest->update_build);
+	artifact->bundle_hash = g_strdup(manifest->hash);
+	artifact->checksum.digest = g_strdup(plan->image->checksum.digest);
+	artifact->checksum.size = plan->image->checksum.size;
+	artifact->checksum.type = plan->image->checksum.type;
+	artifact->references = g_ptr_array_new();
+
+	/* find target name */
+	if (!r_artifact_repo_insert(plan->target_repo, artifact, &ierror)) {
+		g_propagate_error(error, ierror);
+		r_context_end_step("check_repo", FALSE);
+		return FALSE;
+	}
+	artifact_owned = NULL; /* it now belongs to the repo */
+	r_context_end_step("check_repo", TRUE);
+
+	r_context_begin_step_weighted_formatted("copy_image", 0, 9, "Copying image to repo %s", plan->target_repo->name);
+
+	if (!r_artifact_install(artifact, plan->image, &ierror)) {
+		g_propagate_error(error, ierror);
+		r_context_end_step("copy_image", FALSE);
+		return FALSE;
+	}
+
+	/* update links (commit) */
+	g_assert(artifact->repo->parent_class == NULL); /* FIXME handle repos with parents, here or somewhere else */
+	g_ptr_array_add(artifact->references, (gpointer)g_intern_static_string(""));
+	if (!r_artifact_repo_commit(plan->target_repo, &ierror)) {
+		g_propagate_error(error, ierror);
+		r_context_end_step("copy_image", FALSE);
+		return FALSE;
+	}
+
+	r_context_end_step("copy_image", TRUE);
+
+	g_message("Updating status for repo '%s'", plan->target_repo->name);
+	//update_slot_status(slot_state, "ok", manifest, plan, args);
+	//if (!r_slot_status_save(plan->target_slot, &ierror)) {
+	//	g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
+	//	return FALSE;
+	//}
+
+	install_args_update(args, "Updating repo %s for artifact %s done", plan->target_repo->name, plan->image->artifact);
+	return TRUE;
+}
+
 static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error)
 {
 	g_autofree gchar *hook_name = NULL;
@@ -1199,10 +1332,20 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	for (guint i = 0; i < install_plans->len; i++) {
 		const RImageInstallPlan *plan = g_ptr_array_index(install_plans, i);
 
-		if (!handle_slot_install_plan(manifest, plan, args, hook_name, &ierror)) {
-			g_propagate_error(error, ierror);
-			r_context_end_step("update_slots", FALSE);
-			return FALSE;
+		if (plan->target_slot) {
+			if (!handle_slot_install_plan(manifest, plan, args, hook_name, &ierror)) {
+				g_propagate_error(error, ierror);
+				r_context_end_step("update_slots", FALSE);
+				return FALSE;
+			}
+			install_args_update(args, "Updating slot %s done", plan->target_slot->name);
+		} else if (plan->target_repo) {
+			if (!handle_artifact_install_plan(manifest, plan, args, hook_name, &ierror)) {
+				g_propagate_error(error, ierror);
+				r_context_end_step("update_slots", FALSE);
+				return FALSE;
+			}
+			install_args_update(args, "Updating artifact %s in repo %s done", plan->image->artifact, plan->target_repo->name);
 		}
 	}
 
