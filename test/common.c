@@ -183,6 +183,8 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, cons
 	RaucManifest *rm = g_new0(RaucManifest, 1);
 	RaucImage *img;
 
+	g_assert_nonnull(options);
+
 	rm->update_compatible = g_strdup("Test Config");
 	rm->update_version = g_strdup("2011.03-2");
 
