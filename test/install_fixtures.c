@@ -177,6 +177,18 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 		g_assert(test_rmdir(tmpdir, "mnt") == 0);
 	}
 
+	if (options->artifact_file) {
+		g_print("artifact file %s\n", options->artifact_file);
+		if (g_strcmp0(options->artifact_file, "artifact-1.file") == 0) {
+			g_autofree gchar *filename = write_random_file(contentdir, "artifact-1.file", 16*1024, 0x34f474b1);
+			g_assert_nonnull(filename);
+		} else if (g_str_has_prefix(options->artifact_file, "payload-")) {
+			g_assert_true(test_copy_file("test/install-content", options->artifact_file, contentdir, options->artifact_file));
+			/* add some padding to get the size above 4kiB */
+			g_assert_true(test_copy_file("test/install-content", "space-dummy", contentdir, "space-dummy"));
+		}
+	}
+
 	/* Copy custom handler */
 	if (options->custom_handler) {
 		g_assert_true(test_copy_file("test/install-content/custom_handler.sh", NULL,

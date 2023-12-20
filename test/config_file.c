@@ -98,7 +98,12 @@ device=/dev/appfs-1\n\
 type=ext4\n\
 extra-mkfs-opts=-L mylabel -i 8192\n\
 parent=rootfs.1\n\
-install-same=false\n";
+install-same=false\n\
+[artifacts.containers]\n\
+path=/var/artifacts/containers\n\
+type=trees\n\
+";
+
 	g_autofree gchar* pathname = write_tmp_file(fixture->tmpdir, "full_config.conf", cfg_file, NULL);
 	g_assert_nonnull(pathname);
 
@@ -517,6 +522,35 @@ bootname=theslot\n";
 	g_assert_false(load_config(pathname, &config, &ierror));
 	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_DUPLICATE_BOOTNAME);
 	g_assert_cmpstr(ierror->message, ==, "Bootname 'theslot' is set on more than one slot");
+	g_clear_error(&ierror);
+}
+
+static void config_file_duplicate_slotclass(ConfigFileFixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	GError *ierror = NULL;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *contents = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/null\n\
+bootname=theslot\n\
+\n\
+[artifacts.rootfs]\n\
+path=/var/artifacts/containers\n\
+type=trees\n\
+";
+
+	pathname = write_tmp_file(fixture->tmpdir, "duplicate_bootname.conf", contents, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_DUPLICATE_CLASS);
+	g_assert_cmpstr(ierror->message, ==, "Existing slot class 'rootfs' cannot be used as artifact repo name!");
 	g_clear_error(&ierror);
 }
 
@@ -1556,6 +1590,9 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/duplicate-bootname", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_duplicate_bootname,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/duplicate-slotclass", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_duplicate_slotclass,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-boolean-allow-mounted-key", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_typo_in_boolean_allow_mounted_key,
