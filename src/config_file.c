@@ -9,6 +9,7 @@
 #include "install.h"
 #include "manifest.h"
 #include "mount.h"
+#include "slot.h"
 #include "utils.h"
 
 G_DEFINE_QUARK(r-config-error-quark, r_config_error)
@@ -665,6 +666,28 @@ static GHashTable *parse_artifact_repos(const char *filename, const char *data_d
 	return g_steal_pointer(&repos);
 }
 
+static gboolean check_unique_slotclasses(RaucConfig *config, GError **error)
+{
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	GHashTableIter iter;
+	g_hash_table_iter_init(&iter, config->slots);
+	gpointer value;
+	while (g_hash_table_iter_next(&iter, NULL, &value)) {
+		RaucSlot *slot = value;
+
+		if (g_hash_table_contains(config->artifact_repos, slot->sclass)) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_DUPLICATE_CLASS,
+					"Existing slot class '%s' cannot be used as artifact repo name!", slot->sclass);
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
 void r_config_file_modified_check(void)
 {
 	g_autoptr(GError) ierror = NULL;
@@ -1190,6 +1213,11 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	/* parse [artifacts.*] sections */
 	c->artifact_repos = parse_artifact_repos(filename, c->data_directory, key_file, &ierror);
 	if (!c->artifact_repos) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (!check_unique_slotclasses(c, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
