@@ -15,7 +15,7 @@ RAUC - Robust Auto-Update Controller
 
 RAUC controls the update process on embedded Linux systems. It is both a target
 application that runs as an update client and a host/target tool
-that allows you to create, inspect and modify installation artifacts.
+that allows you to create, inspect and modify update files ("*bundles*").
 
 Source Code: https://github.com/rauc/rauc
 

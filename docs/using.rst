@@ -38,7 +38,7 @@ sub-command:
   rauc bundle --cert=<certfile|certurl> --key=<keyfile|keyurl> <input-dir> <bundle-name>
 
 The ``<input-dir>`` must point to a directory containing all images, scripts
-and other artifacts that should be part of the created update bundle.
+and other files that should be part of the created update bundle.
 Additionally, a :ref:`RAUC manifest <sec_ref_manifest>` file ``manifest.raucm``
 is expected in ``<input-dir>``.
 The manifest describes the bundle content and the purpose of each included

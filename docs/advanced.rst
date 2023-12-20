@@ -855,12 +855,12 @@ RAUC casync Support
   Since 1.8, RAUC also supports the alternative `desync
   <https://github.com/folbricht/desync>`_ written in Go.
 
-  For compatiblitiy and comparison with RAUC's built-in streaming support,
+  For compatibility and comparison with RAUC's built-in streaming support,
   refer to :ref:`sec-casync-vs-streaming`.
 
 Using the Content-Addressable Data Synchronization tool `casync` for updating
 embedded / IoT devices provides a couple of benefits.
-By splitting and chunking the update artifacts into reusable pieces, casync
+By splitting and chunking the payload images into reusable pieces, casync
 allows to
 
  * stream remote bundles to the target without occupying storage / NAND
@@ -955,7 +955,7 @@ Simply call::
 
   rauc convert --cert=<certfile> --key=<keyfile> --keyring=<keyring> conventional-bundle.raucb casync-bundle.raucb
 
-The conversion process will create two new artifacts:
+The conversion process will create two new files:
 
  1. The converted bundle `casync-bundle.raucb` with casnyc index files instead
     of image files

@@ -61,7 +61,7 @@ RAUC is a lightweight update client that runs on your embedded device and
 reliably controls the procedure of updating your device with a new firmware
 revision.
 RAUC is also the tool on your host system that lets you create, inspect and
-modify update artifacts for your device.
+modify update files ("*bundles*") for your device.
 
 The decision to design was made after having worked on custom update solutions
 for different projects again and again while always facing different issues and
@@ -88,7 +88,7 @@ appropriate target to boot, but it provides a well-defined interface to
 incorporate with all common bootloaders.
 
 RAUC does NOT intend to be a deployment server.
-On your host side, it only creates the update artifacts.
+On your host side, it only creates the update bundles.
 You may want to have a look at
 `rauc-hawkbit-updater <https://github.com/rauc/rauc-hawkbit-updater>`_ for
 interfacing with the hawkBit deployment server.
