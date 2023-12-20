@@ -902,8 +902,9 @@ loopback or network block device to authenticate and then decrypt each payload b
 External Signing and PKI
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Some industrialization procedures require signing artifacts in a dedicated
-secure room with restricted access (as Public Key Infrastructure aka PKI).
+Some industrialization procedures require signing updates in a dedicated
+secure room with restricted access.
+Only there, access to the Public Key Infrastructure (aka PKI), is allowed.
 
 For this case ``rauc extract-signature`` can extract the bundle signature and
 ``rauc replace-signature`` can replace the bundle signature with a new one.

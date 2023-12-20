@@ -4,9 +4,9 @@ RAUC Basics
 From a top view, the RAUC update framework provides a solution for four basic
 tasks:
 
-* generating update artifacts
-* signing and verification of update artifacts
-* robust installation handling
+* generating the update bundles
+* signing and verification of update bundles
+* robust installation of the payload(s)
 * interfacing with the boot process
 
 RAUC is basically an image-based updater, i.e. it installs file images on
@@ -18,13 +18,13 @@ specific partition size or type.
 RAUC ensures that the target file system will be set up correctly before
 unpacking the archive.
 
-Update Artifacts -- Bundles
----------------------------
+Update Bundles
+---------------
 
 In order to know how to pack multiple file system images, properly handle
-installation, being able to check system compatibility and for other
-meta-information RAUC uses a well-defined update artifact format, simply
-referred to as *bundles* in the following.
+installation, check target system compatibility and for other meta-information
+RAUC uses its own update file format, simply referred to as a *bundle* in the
+following.
 
 A RAUC bundle consists of the file system image(s) or archive(s) to be installed
 on the system, a *manifest* that lists the images to install and contains

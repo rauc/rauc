@@ -1471,8 +1471,8 @@ For using the built-in bundle generation, you need to specify some variables:
   It currently defaults to ``plain``, but you should use ``verity`` if possible.
 
 ``RAUC_SLOT_<slotclass>``
-  For each slot class, set this to the image (recipe) name which builds the
-  artifact you intend to place in the slot class.
+  For each slot class, set this to the recipe name which builds the
+  image you intend to place in the slot class.
 
 ``RAUC_SLOT_<slotclass>[type]``
   For each slot class, set this to the *type* of image you intend to place in
