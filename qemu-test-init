@@ -24,6 +24,8 @@ for x in $(cat /proc/cmdline); do
   elif [ "$x" = "asan" ]; then
     export G_SLICE=always-malloc G_DEBUG=gc-friendly
     export ASAN_OPTIONS=malloc_context_size=64:fast_unwind_on_malloc=0
+  elif [ "$x" = "service-backtrace" ]; then
+    SERVICE_BACKTRACE=1
   fi
 done
 if [ -n "$test" ]; then
@@ -118,7 +120,11 @@ if [ -n "$SERVICE" ]; then
   mkdir /tmp/rauc
   cp qemu-test-rauc-config /tmp/rauc/system.conf
   cp test/openssl-ca/dev-ca.pem /tmp/rauc/ca.cert.pem
-  rauc service --conf=/tmp/rauc/system.conf &
+  if [ -n "$SERVICE_BACKTRACE" ] && type gdb; then
+    gdb --batch --ex "run" --ex "thread apply all bt" --args rauc service --conf=/tmp/rauc/system.conf &
+  else
+    rauc service --conf=/tmp/rauc/system.conf &
+  fi
 fi
 
 if type nginx; then
