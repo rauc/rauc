@@ -2003,6 +2003,33 @@ static gboolean status_start(int argc, char **argv)
 	return TRUE;
 }
 
+#define MESSAGE_ID_BOOTED "e60e0add-d345-4cb8-b796-eae0d497af96"
+
+static void r_event_log_booted(const RaucSlot *booted_slot)
+{
+	g_autofree gchar *message = NULL;
+	GLogField fields[] = {
+		{"MESSAGE", NULL, -1 },
+		{"MESSAGE_ID", MESSAGE_ID_BOOTED, -1 },
+		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
+		{"RAUC_EVENT_TYPE", "boot", -1},
+		{"BOOT_ID", NULL, -1},
+		{"BUNDLE_HASH", NULL, -1},
+	};
+
+	g_return_if_fail(booted_slot);
+
+	message = g_strdup_printf("Booted into %s (%s)", booted_slot->name, booted_slot->bootname);
+	fields[0].value = message;
+	fields[4].value = r_context()->boot_id;
+	if (booted_slot->status && booted_slot->status->bundle_hash) {
+		fields[5].value =  booted_slot->status->bundle_hash;
+	} else {
+		fields[5].value =  "unknown";
+	}
+	g_log_structured_array(G_LOG_LEVEL_INFO, fields, G_N_ELEMENTS(fields));
+}
+
 G_GNUC_UNUSED
 static void create_run_links(void)
 {
@@ -2049,11 +2076,14 @@ static gboolean service_start(int argc, char **argv)
 		/* Boot ID-based system reboot vs service restart detection */
 		if (g_strcmp0(r_context()->system_status->boot_id, r_context()->boot_id) == 0) {
 			g_message("Restarted RAUC service");
+			r_event_log_message(R_EVENT_LOG_TYPE_SERVICE, "Service restarted");
 		} else {
 			RaucSlot *booted_slot = r_slot_find_by_device(r_context()->config->slots, r_context()->bootslot);
 			if (!booted_slot)
 				booted_slot = r_slot_find_by_bootname(r_context()->config->slots, r_context()->bootslot);
-			g_message("Booted into %s (%s)", booted_slot->name, booted_slot->bootname);
+			r_slot_status_load(booted_slot);
+
+			r_event_log_booted(booted_slot);
 
 			/* update boot ID */
 			g_free(r_context()->system_status->boot_id);
@@ -2066,6 +2096,7 @@ static gboolean service_start(int argc, char **argv)
 		}
 	} else {
 		g_message("Started RAUC service");
+		r_event_log_message(R_EVENT_LOG_TYPE_SERVICE, "Service started");
 	}
 
 	r_exit_status = r_service_run() ? 0 : 1;

@@ -15,6 +15,7 @@
 #include "bootchooser.h"
 #include "bundle.h"
 #include "context.h"
+#include "event_log.h"
 #include "install.h"
 #include "manifest.h"
 #include "mark.h"
@@ -840,20 +841,6 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bun
 
 	r_context_begin_step_weighted("launch_and_wait_custom_handler", "Launching update handler", 0, 6);
 
-	/* Allow overriding compatible check by hook */
-	if (manifest->hooks.install_check) {
-		run_bundle_hook(manifest, bundledir, "install-check", &ierror);
-		if (ierror) {
-			g_propagate_error(error, ierror);
-			res = FALSE;
-			goto out;
-		}
-	} else if (!verify_compatible(args, manifest, &ierror)) {
-		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto out;
-	}
-
 	handler_name = g_build_filename(bundledir, manifest->handler_name, NULL);
 	handler_args = g_ptr_array_new_full(0, g_free);
 	if (manifest->handler_args) {
@@ -1038,6 +1025,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 	r_context_end_step("check_slot", TRUE);
 
 	install_args_update(args, "Updating slot %s", plan->target_slot->name);
+	r_event_log_message(R_EVENT_LOG_TYPE_WRITE_SLOT, "Updating slot %s", plan->target_slot->name);
 
 	/* update slot */
 	if (plan->image->hooks.install) {
@@ -1111,6 +1099,66 @@ static RaucSlot* get_boot_mark_slot(const GPtrArray *install_plans)
 	return bootslot;
 }
 
+#define MESSAGE_ID_INSTALLATION_STARTED   "b05410e8-a933-4538-9cd0-61aab1e9516d"
+#define MESSAGE_ID_INSTALLATION_SUCCEEDED "0163db54-68ac-4237-b090-d28490c301ed"
+#define MESSAGE_ID_INSTALLATION_FAILED    "c48141f7-fd49-443a-afff-862b4809168f"
+#define MESSAGE_ID_INSTALLATION_REJECTED  "60bea7e4-fea5-49cc-ad68-af457308b13a"
+
+static void log_event_installation_started(RaucInstallArgs *args)
+{
+	g_log_structured(R_EVENT_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
+			"RAUC_EVENT_TYPE", "install",
+			"MESSAGE_ID", MESSAGE_ID_INSTALLATION_STARTED,
+			"TRANSACTION_ID", args->transaction,
+			"MESSAGE", "Installation %.8s started", args->transaction // truncate ID for readability
+			);
+}
+
+/**
+ * @param args RaucInstallArgs
+ * @param manifest Manifest
+ * @param GError Error or NULL
+ */
+static void log_event_installation_done(RaucInstallArgs *args, RaucManifest *manifest, const GError *error)
+{
+	g_autofree gchar *formatted = NULL;
+	GLogField fields[] = {
+		{"MESSAGE", NULL, -1 },
+		{"MESSAGE_ID", NULL, -1 },
+		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
+		{"RAUC_EVENT_TYPE", "install", -1},
+		{"BUNDLE_HASH", "", -1},
+		{"BUNDLE_DESCRIPTION", "", -1},
+		{"BUNDLE_VERSION", "", -1},
+		{"TRANSACTION_ID", args->transaction, -1},
+	};
+
+	g_return_if_fail(args);
+
+	if (error) {
+		if (g_error_matches(error, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED) ||
+		    g_error_matches(error, R_INSTALL_ERROR, R_INSTALL_ERROR_COMPAT_MISMATCH)) {
+			formatted = g_strdup_printf("Installation %.8s rejected: %s", args->transaction, error->message);
+			fields[1].value = MESSAGE_ID_INSTALLATION_REJECTED;
+		} else {
+			formatted = g_strdup_printf("Installation %.8s failed: %s", args->transaction, error->message);
+			fields[1].value = MESSAGE_ID_INSTALLATION_FAILED;
+		}
+	} else {
+		formatted = g_strdup_printf("Installation %.8s succeeded", args->transaction);
+		fields[1].value = MESSAGE_ID_INSTALLATION_SUCCEEDED;
+	}
+
+	fields[0].value = formatted;
+	if (manifest) {
+		fields[4].value = manifest->hash ?: "";
+		fields[5].value = manifest->update_description ?: "";
+		fields[6].value = manifest->update_version ?: "";
+	}
+
+	g_log_structured_array(G_LOG_LEVEL_MESSAGE, fields, G_N_ELEMENTS(fields));
+}
+
 static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error)
 {
 	g_autofree gchar *hook_name = NULL;
@@ -1125,28 +1173,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	}
 
 	boot_mark_slot = get_boot_mark_slot(install_plans);
-
-	/* Allow overriding compatible check by hook */
-	if (manifest->hooks.install_check) {
-		run_bundle_hook(manifest, bundledir, "install-check", &ierror);
-		if (ierror) {
-			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED)) {
-				g_propagate_prefixed_error(
-						error,
-						ierror,
-						"Bundle rejected: ");
-			} else {
-				g_propagate_prefixed_error(
-						error,
-						ierror,
-						"Install-check hook failed: ");
-			}
-			return FALSE;
-		}
-	} else if (!verify_compatible(args, manifest, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
 
 	if (!pre_install_checks(bundledir, install_plans, target_group, &ierror)) {
 		g_propagate_error(error, ierror);
@@ -1307,7 +1333,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 
 	r_context_begin_step("do_install_bundle", "Installing", 10);
 
-	g_message("Installation %s started", args->transaction);
+	log_event_installation_started(args);
 
 	r_context_begin_step("determine_slot_states", "Determining slot states", 0);
 	res = update_external_mount_points(&ierror);
@@ -1329,6 +1355,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	}
 
 	if (bundle->manifest && bundle->manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT && !bundle->was_encrypted) {
+		r_event_log_message(R_EVENT_LOG_TYPE_INSTALL, "Installation %.8s rejected: Refusing to install unencrypted crypt bundles", args->transaction);
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED, "Refusing to install unencrypted crypt bundles");
 		res = FALSE;
 		goto out;
@@ -1364,6 +1391,30 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		}
 	}
 
+	/* Allow overriding compatible check by hook */
+	if (bundle->manifest->hooks.install_check) {
+		run_bundle_hook(bundle->manifest, bundle->mount_point, "install-check", &ierror);
+		if (ierror) {
+			res = FALSE;
+			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED)) {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Bundle rejected: ");
+			} else {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Install-check hook failed: ");
+			}
+			goto umount;
+		}
+	} else if (!verify_compatible(args, bundle->manifest, &ierror)) {
+		res = FALSE;
+		g_propagate_error(error, ierror);
+		goto umount;
+	}
+
 	if (bundle->manifest->handler_name) {
 		g_message("Using custom handler: %s", bundle->manifest->handler_name);
 		res = launch_and_wait_custom_handler(args, bundle->mount_point, bundle->manifest, target_group, &ierror);
@@ -1396,6 +1447,8 @@ umount:
 	r_context()->install_info->mounted_bundle = NULL;
 
 out:
+	log_event_installation_done(args, bundle ? bundle->manifest : NULL, error ? *error : NULL);
+
 	r_context_end_step("do_install_bundle", res);
 
 	return res;
