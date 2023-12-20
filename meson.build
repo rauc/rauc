@@ -109,6 +109,7 @@ add_project_arguments('-D_GNU_SOURCE', language : 'c')
 incdir = include_directories('include')
 
 sources_rauc = files([
+  'src/artifacts.c',
   'src/bootchooser.c',
   'src/bundle.c',
   'src/checksum.c',
