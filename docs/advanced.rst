@@ -1603,6 +1603,12 @@ https://pypi.org/project/upparat/
 RAUC Installation History and Event logging
 -------------------------------------------
 
+.. note::
+   We don't consider the details of the new log events fixed yet, so please use
+   them as a preview and for testing.
+   In a future release, they will be documented in a `journald message catalog
+   <https://www.freedesktop.org/wiki/Software/systemd/catalog/>`_.
+
 Even if RAUC mainly focuses on logging information to stdout or into the
 journal (when using systemd), this might be insufficient for some purposes and
 especially for keeping long-term history of what RAUC changed on the system.

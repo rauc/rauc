@@ -27,6 +27,16 @@ Release 1.11 (development)
 * Remove autotools build system.
   Support for meson was added in 1.9 and supported in parallel to autotools
   until 1.10.1.
+* Add log events for slot update, start/end of an installation, good/bad/active
+  marking and boot/service restart.
+  For an overview over the event logging framework in RAUC and its purpose, have
+  a look at :ref:`sec-advanced-event-log`.
+
+.. note::
+   We don't consider the details of the new log events fixed yet, so please use
+   them as a preview and for testing.
+   In a future release, they will be documented in a `journald message catalog
+   <https://www.freedesktop.org/wiki/Software/systemd/catalog/>`_.
 
 .. rubric:: Bug fixes
 
