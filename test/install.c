@@ -9,7 +9,7 @@
 #include <manifest.h>
 #include <mount.h>
 
-#include "install-fixtures.h"
+#include "install_fixtures.h"
 #include "common.h"
 
 GMainLoop *r_loop = NULL;

@@ -9,7 +9,7 @@ tests = [
   'config_file',
   'context',
   'dm',
-  'event-log',
+  'event_log',
   'hash_index',
   'manifest',
   'signature',
@@ -38,7 +38,7 @@ endif
 
 extra_test_sources = files([
   'common.c',
-  'install-fixtures.c',
+  'install_fixtures.c',
 ])
 
 foreach test_name : tests
