@@ -1600,8 +1600,8 @@ https://pypi.org/project/upparat/
 
 .. _sec-advanced-event-log:
 
-RAUC Installation History and Event logging
--------------------------------------------
+Installation History and Event Logging
+--------------------------------------
 
 .. note::
    We don't consider the details of the new log events fixed yet, so please use
