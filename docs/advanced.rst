@@ -1600,8 +1600,14 @@ https://pypi.org/project/upparat/
 
 .. _sec-advanced-event-log:
 
-RAUC Installation History and Event logging
--------------------------------------------
+Installation History and Event Logging
+--------------------------------------
+
+.. note::
+   We don't consider the details of the new log events fixed yet, so please use
+   them as a preview and for testing.
+   In a future release, they will be documented in a `journald message catalog
+   <https://www.freedesktop.org/wiki/Software/systemd/catalog/>`_.
 
 Even if RAUC mainly focuses on logging information to stdout or into the
 journal (when using systemd), this might be insufficient for some purposes and

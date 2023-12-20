@@ -54,7 +54,7 @@ static void event_log_test_log_write_simple(EventLogFixture *fixture,
 	g_autoptr(REventLogger) logger = NULL;
 	GLogField fields[] = {
 		{"MESSAGE", "This is a test (mark) log message", -1 },
-		{"MESSAGE_ID", "1d1b7a5a-a908-4c3a-9004-650c9d2ce850", -1 },
+		{"MESSAGE_ID", "1d1b7a5aa9084c3a9004650c9d2ce850", -1 },
 		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
 		{"RAUC_EVENT_TYPE", "mark", -1},
 		{"SLOT_NAME", "rootfs.0", -1},
@@ -84,7 +84,7 @@ static void event_log_test_log_write_broken(EventLogFixture *fixture,
 	g_autoptr(REventLogger) logger = NULL;
 	GLogField fields[] = {
 		{"MESSAGE", "This is a test (mark) log message", -1 },
-		{"MESSAGE_ID", "1d1b7a5a-a908-4c3a-9004-650c9d2ce850", -1 },
+		{"MESSAGE_ID", "1d1b7a5aa9084c3a9004650c9d2ce850", -1 },
 		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
 		{"RAUC_EVENT_TYPE", "mark", -1},
 		{"SLOT_NAME", "rootfs.0", -1},
@@ -115,7 +115,7 @@ static void event_log_test_log_no_space_left(EventLogFixture *fixture,
 	g_autoptr(REventLogger) logger = NULL;
 	GLogField fields[] = {
 		{"MESSAGE", "This is a test (mark) log message", -1 },
-		{"MESSAGE_ID", "1d1b7a5a-a908-4c3a-9004-650c9d2ce850", -1 },
+		{"MESSAGE_ID", "1d1b7a5aa9084c3a9004650c9d2ce850", -1 },
 		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
 		{"RAUC_EVENT_TYPE", "mark", -1},
 		{"BUNDLE_HASH", "b970468f-89e4-4793-9904-06c922902b25", -1},
@@ -143,7 +143,7 @@ static void event_log_test_log_write_json(EventLogFixture *fixture,
 	g_autoptr(REventLogger) logger = NULL;
 	GLogField fields[] = {
 		{"MESSAGE", "This is a test (mark) log message", -1 },
-		{"MESSAGE_ID", "1d1b7a5a-a908-4c3a-9004-650c9d2ce850", -1 },
+		{"MESSAGE_ID", "1d1b7a5aa9084c3a9004650c9d2ce850", -1 },
 		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
 		{"RAUC_EVENT_TYPE", "mark", -1},
 		{"BUNDLE_HASH", "b970468f-89e4-4793-9904-06c922902b25", -1},
@@ -162,7 +162,7 @@ static void event_log_test_log_write_json(EventLogFixture *fixture,
 	g_assert_true(g_file_get_contents(logger->filename, &contents, NULL, NULL));
 
 	g_assert_nonnull(strstr(contents, "\"MESSAGE\":\"This is a test (mark) log message\""));
-	g_assert_nonnull(strstr(contents, "\"MESSAGE_ID\":\"1d1b7a5a-a908-4c3a-9004-650c9d2ce850\""));
+	g_assert_nonnull(strstr(contents, "\"MESSAGE_ID\":\"1d1b7a5aa9084c3a9004650c9d2ce850\""));
 }
 
 /* Test setting a maxsize and logging until exceeding it */
@@ -173,7 +173,7 @@ static void event_log_test_max_size(EventLogFixture *fixture,
 	g_autoptr(REventLogger) logger = NULL;
 	GLogField fields[] = {
 		{"MESSAGE", "This is a test (mark) log message", -1 },
-		{"MESSAGE_ID", "1d1b7a5a-a908-4c3a-9004-650c9d2ce850", -1 },
+		{"MESSAGE_ID", "1d1b7a5aa9084c3a9004650c9d2ce850", -1 },
 		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
 		{"RAUC_EVENT_TYPE", "mark", -1},
 		{"BUNDLE_HASH", "b970468f-89e4-4793-9904-06c922902b25", -1},
@@ -208,7 +208,7 @@ static void event_log_test_max_files_rotation(EventLogFixture *fixture,
 	g_autoptr(REventLogger) logger = NULL;
 	GLogField fields[] = {
 		{"MESSAGE", "This is a test (mark) log message", -1 },
-		{"MESSAGE_ID", "1d1b7a5a-a908-4c3a-9004-650c9d2ce850", -1 },
+		{"MESSAGE_ID", "1d1b7a5aa9084c3a9004650c9d2ce850", -1 },
 		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
 		{"RAUC_EVENT_TYPE", "mark", -1},
 		{"BUNDLE_HASH", "b970468f-89e4-4793-9904-06c922902b25", -1},
@@ -275,7 +275,7 @@ static void event_log_test_structured_logging(EventLogFixture *fixture,
 	REventLogger *logger = NULL;
 	GLogField fields[] = {
 		{"MESSAGE", "This is a test (mark) log message", -1 },
-		{"MESSAGE_ID", "1d1b7a5a-a908-4c3a-9004-650c9d2ce850", -1 },
+		{"MESSAGE_ID", "1d1b7a5aa9084c3a9004650c9d2ce850", -1 },
 		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
 		{"RAUC_EVENT_TYPE", "mark", -1},
 		{"BUNDLE_HASH", "b970468f-89e4-4793-9904-06c922902b25", -1},

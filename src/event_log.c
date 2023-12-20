@@ -63,7 +63,7 @@ void r_event_log_free_logger(REventLogger *logger)
  * | {
  * |   "TS": "2023-06-14T21:15:41Z"
  * |   "MESSAGE" : "Booted into rootfs.0 (A)",
- * |   "MESSAGE_ID" : "e60e0add-d345-4cb8-b796-eae0d497af96",
+ * |   "MESSAGE_ID" : "e60e0addd3454cb8b796eae0d497af96",
  * |   "GLIB_DOMAIN" : "rauc-event",
  * |   "RAUC_EVENT_TYPE" : "boot",
  * |   "BOOT_ID" : "16655d2c-c5ca-48d3-bea8-7b95c803b4b2",
@@ -72,7 +72,7 @@ void r_event_log_free_logger(REventLogger *logger)
  * | {
  * |   "TS": "2023-06-14T21:42:41Z"
  * |   "MESSAGE" : "Marked slot rootfs.0 as active.",
- * |   "MESSAGE_ID" : "8b5e7435-e105-4d86-8582-78e7544fe6da",
+ * |   "MESSAGE_ID" : "8b5e7435e1054d86858278e7544fe6da",
  * |   "GLIB_DOMAIN" : "rauc-event",
  * |   "RAUC_EVENT_TYPE" : "mark",
  * |   "SLOT_NAME" : "rootfs.0",
