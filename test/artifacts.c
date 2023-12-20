@@ -68,8 +68,7 @@ static RArtifact* create_random_artifact(const gchar *tmpdir, const gchar *name,
 	return g_steal_pointer(&artifact);
 }
 
-static void test_init(ArtifactsFixture *fixture,
-		gconstpointer user_data)
+static void test_init(ArtifactsFixture *fixture, gconstpointer user_data)
 {
 	g_autoptr(GError) error = NULL;
 	gboolean res = FALSE;
