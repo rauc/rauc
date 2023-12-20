@@ -68,6 +68,16 @@ mkfs.ext4 /tmp/rootdev
 truncate --size=64M /tmp/appdev
 mkfs.ext4 /tmp/appdev
 
+# fake artifact repos
+mkdir /tmp/file-artifacts-single
+touch /tmp/file-artifacts-single/.artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+ln -s .artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 /tmp/file-artifacts-single/empty
+mkdir /tmp/file-artifacts-dual /tmp/file-artifacts-dual/rootfs.0 /tmp/file-artifacts-dual/rootfs.1
+tree /tmp/file-artifacts-dual
+touch /tmp/file-artifacts-dual/.artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+ln -s ../.artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 /tmp/file-artifacts-dual/rootfs.0/empty
+
+
 # dbus daemon if service is enabled
 if grep -q "ENABLE_SERVICE 1" $BUILD_DIR/config.h; then
   cp -a /etc/dbus-1/system.d /tmp
