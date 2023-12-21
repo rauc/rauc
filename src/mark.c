@@ -20,7 +20,7 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 		booted = NULL;
 	}
 
-	if (!g_strcmp0(identifier, "booted")) {
+	if (g_strcmp0(identifier, "booted") == 0) {
 		if (booted)
 			slot = booted;
 		else
@@ -29,7 +29,7 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 					R_SLOT_ERROR,
 					R_SLOT_ERROR_NO_SLOT_WITH_STATE_BOOTED,
 					"Did not find booted slot");
-	} else if (!g_strcmp0(identifier, "other")) {
+	} else if (g_strcmp0(identifier, "other") == 0) {
 		if (booted) {
 			g_hash_table_iter_init(&iter, r_context()->config->slots);
 			while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
@@ -217,7 +217,7 @@ gboolean mark_run(const gchar *state,
 		goto out;
 	}
 
-	if (!g_strcmp0(state, "good")) {
+	if (g_strcmp0(state, "good") == 0) {
 		if (!r_mark_good(slot, &ierror)) {
 			res = FALSE;
 			*message = g_strdup(ierror->message);
@@ -225,7 +225,7 @@ gboolean mark_run(const gchar *state,
 			res = TRUE;
 			*message = g_strdup_printf("marked slot %s as good", slot->name);
 		}
-	} else if (!g_strcmp0(state, "bad")) {
+	} else if (g_strcmp0(state, "bad") == 0) {
 		if (!r_mark_bad(slot, &ierror)) {
 			res = FALSE;
 			*message = g_strdup(ierror->message);
@@ -233,7 +233,7 @@ gboolean mark_run(const gchar *state,
 			res = TRUE;
 			*message = g_strdup_printf("marked slot %s as bad", slot->name);
 		}
-	} else if (!g_strcmp0(state, "active")) {
+	} else if (g_strcmp0(state, "active") == 0) {
 		if (!r_mark_active(slot, &ierror)) {
 			res = FALSE;
 			*message = g_strdup(ierror->message);
