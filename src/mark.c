@@ -3,6 +3,7 @@
 #include "context.h"
 #include "install.h"
 #include "mark.h"
+#include "slot.h"
 #include "status_file.h"
 
 static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
@@ -52,19 +53,24 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 		g_auto(GStrv) groupsplit = g_strsplit(identifier, ".", -1);
 
 		if (g_strv_length(groupsplit) == 2) {
-			g_hash_table_iter_init(&iter, r_context()->config->slots);
-			while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
-				if (!g_strcmp0(slot->sclass, groupsplit[0]) && !slot->parent && !g_strcmp0(slot->name, identifier))
-					break;
-				slot = NULL;
-			}
-			if (!slot)
+			slot = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, identifier);
+			if (!slot) {
 				g_set_error(error,
 						R_SLOT_ERROR,
 						R_SLOT_ERROR_FAILED,
 						"No slot with class %s and name %s found",
 						groupsplit[0],
 						identifier);
+				return NULL;
+			}
+			if (!slot->bootname) {
+				g_set_error(error,
+						R_SLOT_ERROR,
+						R_SLOT_ERROR_FAILED,
+						"Slot %s has no bootname set",
+						slot->name);
+				return NULL;
+			}
 		} else {
 			g_set_error(error,
 					R_SLOT_ERROR,
