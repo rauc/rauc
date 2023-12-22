@@ -353,6 +353,10 @@ static void service_test_info(ServiceFixture *fixture, gconstpointer user_data, 
 		return;
 	}
 
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
 	bundlepath = g_build_filename(fixture->tmpdir, "good-bundle.raucb", NULL);
 	g_assert_true(test_copy_file("test", "good-bundle.raucb", fixture->tmpdir, "good-bundle.raucb"));
 
@@ -419,6 +423,10 @@ static void service_test_slot_status(ServiceFixture *fixture, gconstpointer user
 		g_test_skip("Test requires RAUC being configured with \"-Dservice=true\".");
 		return;
 	}
+
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
 
 	installer = r_installer_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
 			G_DBUS_PROXY_FLAGS_NONE,
