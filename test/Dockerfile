@@ -62,10 +62,6 @@ RUN git clone https://github.com/folbricht/desync.git /tmp/desync && \
 RUN mkdir -p /lib/modules && \
     mkdir -p /var/run/dbus
 
-# We want to run as non-root user equaling uid of Travis' user 'travis' (2000)
-ENV user travis
+RUN adduser --disabled-password --gecos "" rauc-ci
 
-RUN useradd -u 2000 -m -d /home/${user} ${user} \
- && chown -R ${user} /home/${user}
-
-USER ${user}
+USER rauc-ci
