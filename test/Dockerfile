@@ -1,7 +1,9 @@
 FROM debian:bullseye
 
 # Required for building
-RUN apt-get update && apt-get install -y \
+RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
+  gcc \
+  g++ \
   meson \
   libtool \
   libglib2.0-dev \
@@ -12,21 +14,31 @@ RUN apt-get update && apt-get install -y \
   libfdisk-dev \
   libnl-genl-3-dev
 
+# Required for building the cgi example
+RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
+  autoconf \
+  automake \
+  make \
+  xz-utils
+
 # Required for testing
-RUN apt-get update && apt-get install -y \
+RUN apt-get install -q -y --no-install-recommends \
   squashfs-tools \
   dosfstools \
   lcov \
   slirp \
   python3-sphinx \
   python3-sphinx-rtd-theme \
+  dbus \
   dbus-x11 \
   grub-common \
   softhsm2 \
   opensc \
   opensc-pkcs11 \
   libengine-pkcs11-openssl \
+  fakeroot \
   faketime \
+  pseudo \
   time \
   kmod \
   uncrustify \
@@ -40,10 +52,9 @@ RUN apt-get update && apt-get install -y \
   golang
 
 # Required for test environment setup
-RUN apt-get update && apt-get install -y \
+RUN apt-get install -q -y --no-install-recommends \
   python3-pip \
   git \
-  gcc-10 \
   curl && \
   rm -rf /var/lib/apt/lists/* && \
   curl -sLo /usr/bin/codecov https://codecov.io/bash && \
