@@ -6,6 +6,7 @@ on:
       - 'master'
       - 'container'
     paths:
+      - '.github/workflows/container.yml'
       - 'test/Dockerfile'
   workflow_dispatch: {}
 
