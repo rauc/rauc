@@ -63,8 +63,6 @@ RUN git clone https://github.com/folbricht/desync.git /tmp/desync && \
 RUN mkdir -p /lib/modules && \
     mkdir -p /var/run/dbus
 
-RUN pip3 install --upgrade cpp-coveralls
-
 # We want to run as non-root user equaling uid of Travis' user 'travis' (2000)
 ENV user travis
 
