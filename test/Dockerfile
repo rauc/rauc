@@ -70,8 +70,7 @@ RUN git clone https://github.com/folbricht/desync.git /tmp/desync && \
     rm -rf /tmp/desync
 
 # Create required directories for bind mounts
-RUN mkdir -p /lib/modules && \
-    mkdir -p /var/run/dbus
+RUN mkdir -p /lib/modules /var/run/dbus
 
 RUN adduser --disabled-password --gecos "" rauc-ci
 
