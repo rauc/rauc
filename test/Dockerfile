@@ -67,7 +67,7 @@ RUN test "$(uname -m)" != "x86_64" && exit 0; \
     git checkout c508eeb0865a5a7c2c9b1158a5f0414265d869df && \
     go install && \
     cp /go/bin/desync /usr/bin/desync && \
-    rm -rf /tmp/desync
+    rm -rf /tmp/desync /go
 
 # Create required directories for bind mounts
 RUN mkdir -p /lib/modules /var/run/dbus
