@@ -48,8 +48,7 @@ RUN apt-get install -q -y --no-install-recommends \
   mtd-utils \
   python3-aiohttp \
   nginx-light \
-  fdisk \
-  golang
+  fdisk
 
 # Required for test environment setup
 RUN apt-get install -q -y --no-install-recommends \
@@ -59,9 +58,11 @@ RUN apt-get install -q -y --no-install-recommends \
   curl -sLo /usr/bin/codecov https://codecov.io/bash && \
   chmod +x /usr/bin/codecov
 
-# Install the optional desync (pinned to version 0.9.3)
+# Build and install the optional desync (pinned to version 0.9.3) only on x86_64
 ENV GOPATH=/go
-RUN git clone https://github.com/folbricht/desync.git /tmp/desync && \
+RUN test "$(uname -m)" != "x86_64" && exit 0; \
+    apt-get install -q -y --no-install-recommends golang && \
+    git clone https://github.com/folbricht/desync.git /tmp/desync && \
     cd /tmp/desync/cmd/desync && \
     git checkout c508eeb0865a5a7c2c9b1158a5f0414265d869df && \
     go install && \
