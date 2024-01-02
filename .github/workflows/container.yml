@@ -41,6 +41,12 @@ jobs:
         echo "Image: ${{ steps.build-image.outputs.image }}"
         echo "Tags: ${{ steps.build-image.outputs.tags }}"
         echo "Tagged Image: ${{ steps.build-image.outputs.image-with-tag }}"
+    - name: List Images
+      run: |
+        buildah images
+    - name: Inspect Manifest
+      run: |
+        buildah manifest inspect "${{ steps.build-image.outputs.image-with-tag }}"
     - name: Push Images
       id: push-to-github
       uses: redhat-actions/push-to-registry@v2
