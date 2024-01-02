@@ -1,4 +1,4 @@
-FROM debian:bullseye
+FROM debian:bookworm
 
 # Required for building
 RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
