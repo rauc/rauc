@@ -21,7 +21,6 @@ RUN apt-get update && apt-get install -y \
   python3-sphinx \
   python3-sphinx-rtd-theme \
   dbus-x11 \
-  user-mode-linux \
   grub-common \
   softhsm2 \
   opensc \
