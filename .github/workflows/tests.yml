@@ -14,8 +14,6 @@ jobs:
       run: |
         whoami
         gcc --version
-        apt-get update
-        DEBIAN_FRONTEND='noninteractive' apt-get install -qy meson
 
     - uses: actions/checkout@v3
 
