@@ -494,6 +494,7 @@ static gboolean grub_get_state(RaucSlot* slot, gboolean *good, GError **error)
 	gboolean found = FALSE;
 
 	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(slot->bootname, FALSE);
 	g_return_val_if_fail(good, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
@@ -539,6 +540,7 @@ static gboolean grub_set_state(RaucSlot *slot, gboolean good, GError **error)
 	GError *ierror = NULL;
 
 	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(slot->bootname, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (good) {

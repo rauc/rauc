@@ -524,6 +524,22 @@ test_expect_success !SERVICE,GRUB "rauc status mark-active: internally" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status mark-active
 "
 
+test_expect_success !SERVICE,GRUB "rauc status mark-good: booted" "
+  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status mark-good booted
+"
+
+test_expect_success !SERVICE,GRUB "rauc status mark-good: other" "
+  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status mark-good other
+"
+
+test_expect_success !SERVICE,GRUB "rauc status mark-good: any bootslot" "
+  rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status mark-good rescue.0
+"
+
+test_expect_success !SERVICE,GRUB "rauc status mark-good: non-bootslot" "
+  test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test.conf --override-boot-slot=system0 status mark-good bootloader.0
+"
+
 test_expect_success SERVICE,GRUB "rauc status mark-good: via D-Bus" "
   start_rauc_dbus_service \
     --conf=${SHARNESS_TEST_DIRECTORY}/test.conf \
