@@ -52,6 +52,7 @@ RUN apt-get install -q -y --no-install-recommends \
 
 # Required for test environment setup
 RUN apt-get install -q -y --no-install-recommends \
+  sudo \
   python3-pip \
   git \
   curl && \
@@ -75,6 +76,7 @@ RUN mkdir -p /lib/modules /var/run/dbus
 # Remove apt lists
 RUN rm -rf /var/lib/apt/lists/*
 
-RUN adduser --disabled-password --gecos "" rauc-ci
+RUN adduser --disabled-password --gecos "" rauc-ci && \
+    echo "rauc-ci ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/rauc-ci
 
 USER rauc-ci
