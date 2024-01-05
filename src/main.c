@@ -2004,6 +2004,7 @@ static gboolean status_start(int argc, char **argv)
 }
 
 #define MESSAGE_ID_BOOTED "e60e0addd3454cb8b796eae0d497af96"
+#define MESSAGE_ID_BOOTED_EXTERNAL "dd237efdad1945d9b1e471bc2b994532"
 
 static void r_event_log_booted(const RaucSlot *booted_slot)
 {
@@ -2027,6 +2028,23 @@ static void r_event_log_booted(const RaucSlot *booted_slot)
 	} else {
 		fields[5].value =  "unknown";
 	}
+	g_log_structured_array(G_LOG_LEVEL_INFO, fields, G_N_ELEMENTS(fields));
+}
+
+static void r_event_log_booted_external(void)
+{
+	g_autofree gchar *message = NULL;
+	GLogField fields[] = {
+		{"MESSAGE", NULL, -1 },
+		{"MESSAGE_ID", MESSAGE_ID_BOOTED_EXTERNAL, -1 },
+		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
+		{"RAUC_EVENT_TYPE", "boot", -1},
+		{"BOOT_ID", NULL, -1},
+	};
+
+	message = g_strdup_printf("Booted from external source");
+	fields[0].value = message;
+	fields[4].value = r_context()->boot_id;
 	g_log_structured_array(G_LOG_LEVEL_INFO, fields, G_N_ELEMENTS(fields));
 }
 
@@ -2078,12 +2096,17 @@ static gboolean service_start(int argc, char **argv)
 			g_message("Restarted RAUC service");
 			r_event_log_message(R_EVENT_LOG_TYPE_SERVICE, "Service restarted");
 		} else {
-			RaucSlot *booted_slot = r_slot_find_by_device(r_context()->config->slots, r_context()->bootslot);
-			if (!booted_slot)
-				booted_slot = r_slot_find_by_bootname(r_context()->config->slots, r_context()->bootslot);
-			r_slot_status_load(booted_slot);
+			if (g_strcmp0(r_context()->bootslot, "_external_") == 0) {
+				r_event_log_booted_external();
+			} else {
+				RaucSlot *booted_slot = r_slot_find_by_device(r_context()->config->slots, r_context()->bootslot);
+				if (!booted_slot)
+					booted_slot = r_slot_find_by_bootname(r_context()->config->slots, r_context()->bootslot);
 
-			r_event_log_booted(booted_slot);
+				r_slot_status_load(booted_slot);
+
+				r_event_log_booted(booted_slot);
+			}
 
 			/* update boot ID */
 			g_free(r_context()->system_status->boot_id);
