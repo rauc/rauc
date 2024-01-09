@@ -118,7 +118,10 @@ jobs:
       run: |
         podman exec -i cross meson setup -Dgpt=enabled -Dwerror=true build
         podman exec -i cross meson compile -C build
-        # don't run 'meson test' here, as we don't have full access to the kernel (mount, loopback, dm)
+
+    - name: Test
+      run: |
+        podman exec -i cross meson test -C build --timeout-multiplier 3
 
     - name: Show logs
       if: ${{ failure() }}
