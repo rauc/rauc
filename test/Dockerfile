@@ -32,7 +32,6 @@ RUN apt-get install -q -y --no-install-recommends \
   dbus \
   dbus-x11 \
   grub-common \
-  softhsm2 \
   opensc \
   opensc-pkcs11 \
   libengine-pkcs11-openssl \
@@ -58,6 +57,10 @@ RUN apt-get install -q -y --no-install-recommends \
   curl && \
   curl -sLo /usr/bin/codecov https://codecov.io/bash && \
   chmod +x /usr/bin/codecov
+
+# Install softhsm2 only on working architectures (32 bit arm seems broken)
+RUN test "$(uname -m)" = "armv7l" && exit 0; \
+    apt-get install -q -y --no-install-recommends softhsm2
 
 # Build and install the optional desync (pinned to version 0.9.3) only on x86_64
 ENV GOPATH=/go
