@@ -83,6 +83,7 @@ jobs:
   cross:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         architecture:
         - "arm/v5"
@@ -117,6 +118,7 @@ jobs:
   stable:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         release:
         - "ubuntu:20.04"
