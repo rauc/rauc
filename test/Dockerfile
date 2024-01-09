@@ -56,7 +56,6 @@ RUN apt-get install -q -y --no-install-recommends \
   python3-pip \
   git \
   curl && \
-  rm -rf /var/lib/apt/lists/* && \
   curl -sLo /usr/bin/codecov https://codecov.io/bash && \
   chmod +x /usr/bin/codecov
 
@@ -71,6 +70,9 @@ RUN git clone https://github.com/folbricht/desync.git /tmp/desync && \
 
 # Create required directories for bind mounts
 RUN mkdir -p /lib/modules /var/run/dbus
+
+# Remove apt lists
+RUN rm -rf /var/lib/apt/lists/*
 
 RUN adduser --disabled-password --gecos "" rauc-ci
 
