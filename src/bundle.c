@@ -1697,13 +1697,6 @@ static gboolean open_local_bundle(RaucBundle *bundle, GError **error)
 		res = FALSE;
 		goto out;
 	}
-	/* sanity check: signature should be smaller than bundle size */
-	if (sigsize > (guint64)offset) {
-		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
-				"Signature size (%"G_GUINT64_FORMAT ") exceeds bundle size", sigsize);
-		res = FALSE;
-		goto out;
-	}
 	/* sanity check: signature should be smaller than 64KiB */
 	if (sigsize > MAX_BUNDLE_SIGNATURE_SIZE) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
@@ -1784,13 +1777,6 @@ static gboolean open_remote_bundle(RaucBundle *bundle, GError **error)
 	if (sigsize == 0) {
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
 				"Signature size is 0");
-		res = FALSE;
-		goto out;
-	}
-	/* sanity check: signature should be smaller than bundle size */
-	if (sigsize > offset) {
-		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_SIGNATURE,
-				"Signature size (%"G_GUINT64_FORMAT ") exceeds bundle size", sigsize);
 		res = FALSE;
 		goto out;
 	}
