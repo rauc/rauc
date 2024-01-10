@@ -960,6 +960,12 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
+	/* Rewrite 'codesign' check-purpose to RAUC's internal 'codesign-rauc' check-purpose
+	 * to avoid conflicts with purpose definition from OpenSSL 3.2.0. */
+	if (g_strcmp0(c->keyring_check_purpose, "codesign") == 0) {
+		g_free(c->keyring_check_purpose);
+		c->keyring_check_purpose = g_strdup("codesign-rauc");
+	}
 
 	if (!check_remaining_keys(key_file, "keyring", &ierror)) {
 		g_propagate_error(error, ierror);
