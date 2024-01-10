@@ -66,6 +66,14 @@ static int check_purpose_code_sign(const X509_PURPOSE *xp, const X509 *const_x, 
 		return 0;
 	}
 
+	/* Despite we do not enforce it, CA browser forum notes a MUST on key usage.
+	 * (https://cabforum.org/wp-content/uploads/Baseline-Requirements-for-the-Issuance-and-Management-of-Code-Signing.v3.2.pdf
+	 * Section 7.1.2.3f)
+	 * For now, do not fail here, but at least emit a warning. */
+	if (!(ex_flags & EXFLAG_KUSAGE)) {
+		g_warning("Signer certificate should specify 'Key Usage' and mark it 'critical' to be fully CAB Forum compliant.");
+	}
+
 	return 1;
 }
 
