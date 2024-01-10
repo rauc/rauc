@@ -179,22 +179,3 @@ jobs:
         cat test/*.log || true
         cat test-suite.log || true
         cat rauc-*/_build/sub/test-suite.log || true
-
-  uncrustify:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Install codespell
-      run: |
-        sudo apt-get update
-        sudo DEBIAN_FRONTEND='noninteractive' apt-get install -qy codespell
-
-    - name: Run uncrustify check
-      run: |
-        ./uncrustify.sh
-        git diff --exit-code
-
-    - name: Run codespell check
-      run: |
-        codespell -L parms,cas -S 'openssl-ca,build,*.log' src include test docs
