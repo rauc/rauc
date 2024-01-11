@@ -474,33 +474,29 @@ gboolean check_manifest_internal(const RaucManifest *mf, GError **error)
 	switch (mf->bundle_format) {
 		case R_MANIFEST_FORMAT_PLAIN:
 			break; /* no additional data needed */
-		case R_MANIFEST_FORMAT_CRYPT: {
-			if (mf->bundle_crypt_key) {
-				g_set_error_literal(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected key for crypt bundle in internal manifest");
-				goto out;
-			}
-		};
-		/* Fallthrough */
-		case R_MANIFEST_FORMAT_VERITY: {
-			if (mf->bundle_verity_hash) {
-				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected hash for %s bundle in internal manifest", r_manifest_bundle_format_to_str(mf->bundle_format));
-				goto out;
-			}
-			if (mf->bundle_verity_salt) {
-				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected hash for %s bundle in internal manifest", r_manifest_bundle_format_to_str(mf->bundle_format));
-				goto out;
-			}
-			if (mf->bundle_verity_size) {
-				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected hash for %s bundle in internal manifest", r_manifest_bundle_format_to_str(mf->bundle_format));
-				goto out;
-			}
-
-			break;
-		};
+		case R_MANIFEST_FORMAT_CRYPT:
+		case R_MANIFEST_FORMAT_VERITY:
 		default: {
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported bundle format");
 			goto out;
 		}
+	}
+
+	if (mf->bundle_crypt_key) {
+		g_set_error_literal(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected key for crypt bundle in internal manifest");
+		goto out;
+	}
+	if (mf->bundle_verity_hash) {
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected verity hash for %s bundle in internal manifest", r_manifest_bundle_format_to_str(mf->bundle_format));
+		goto out;
+	}
+	if (mf->bundle_verity_salt) {
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected verity salt for %s bundle in internal manifest", r_manifest_bundle_format_to_str(mf->bundle_format));
+		goto out;
+	}
+	if (mf->bundle_verity_size) {
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected verity size for %s bundle in internal manifest", r_manifest_bundle_format_to_str(mf->bundle_format));
+		goto out;
 	}
 
 	res = TRUE;
