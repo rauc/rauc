@@ -532,6 +532,63 @@ static gboolean check_manifest_bundled(const RaucManifest *mf, GError **error)
 	return TRUE;
 }
 
+gboolean check_manifest_input(const RaucManifest *mf, GError **error)
+{
+	GError *ierror = NULL;
+
+	if (!check_manifest_common(mf, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	switch (mf->bundle_format) {
+		case R_MANIFEST_FORMAT_PLAIN:
+		case R_MANIFEST_FORMAT_CRYPT:
+		case R_MANIFEST_FORMAT_VERITY:
+			break;
+		default: {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported bundle format in input manifest");
+			return FALSE;
+		}
+	}
+
+	if (mf->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
+		if (!check_manifest_plain(mf, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+	}
+
+	for (GList *l = mf->images; l != NULL; l = l->next) {
+		RaucImage *image = l->data;
+
+		g_assert(image);
+
+		if (image->filename && strchr(image->filename, '/')) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR,
+					"Image filename %s must not contain '/'", image->filename);
+			return FALSE;
+		}
+		if (image->checksum.digest) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR,
+					"Unexpected digest for image %s in input manifest", image->filename);
+			return FALSE;
+		}
+		if (image->checksum.size != -1) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR,
+					"Unexpected size %"G_GOFFSET_FORMAT " for image %s in input manifest", image->checksum.size, image->filename);
+			return FALSE;
+		}
+		if (image->converted && image->converted->len) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR,
+					"Unexpected 'converted' option in input manifest");
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
 gboolean check_manifest_internal(const RaucManifest *mf, GError **error)
 {
 	GError *ierror = NULL;
