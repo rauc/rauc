@@ -38,6 +38,12 @@ void flip_bits_fd(int fd, off_t offset, guint8 mask);
 void flip_bits_filename(gchar *filename, off_t offset, guint8 mask);
 void replace_strdup(gchar **dst, const gchar *src);
 
+/**
+ * Build a GPtrArray from a ;-separated string. The elements in the array are
+ * freed with the array itself.
+ */
+GPtrArray *test_ptr_array_from_strsplit(const gchar *input);
+
 void* dup_test_mem(GPtrArray *ptrs, const void *mem, gsize len);
 void* dup_test_printf(GPtrArray *ptrs, const gchar *str, ...)
 __attribute__((__format__(__printf__, 2, 3)));

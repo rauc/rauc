@@ -422,6 +422,18 @@ void replace_strdup(gchar **dst, const gchar *src)
 	*dst = g_strdup(src);
 }
 
+GPtrArray *test_ptr_array_from_strsplit(const gchar *input)
+{
+	GPtrArray *result = g_ptr_array_new_with_free_func(g_free);
+	/* The strings will be owned by the returned GPtrArray, so we don't
+	 * want to free them via g_auto(GStrv). */
+	g_autofree GStrv strv = g_strsplit(input, ";", 0);
+
+	r_ptr_array_addv(result, strv, FALSE);
+
+	return result;
+}
+
 void* dup_test_mem(GPtrArray *ptrs, const void *mem, gsize len)
 {
 	void *result = g_memdup(mem, len);
