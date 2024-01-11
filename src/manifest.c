@@ -393,41 +393,6 @@ static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 		}
 	}
 
-	for (GList *l = mf->images; l != NULL; l = l->next) {
-		RaucImage *image = l->data;
-
-		g_assert(image);
-
-		/* Having no 'filename' set is valid for 'install' hook only.
-		 * This is already ensured during manifest parsing, thus simply
-		 * skip further checks here */
-		if (!image->filename)
-			continue;
-
-		if (image->checksum.type != G_CHECKSUM_SHA256) {
-			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported checksum algorithm for image %s", image->filename);
-			goto out;
-		}
-		if (!image->checksum.digest) {
-			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing digest for image %s", image->filename);
-			goto out;
-		}
-		if (image->checksum.size < 0) {
-			/* RAUC versions before v1.5 allowed zero-size images but did not handle this explicitly.
-			 * Thus, bundles created did have a valid 'filename=' manifest entry
-			 * but the 'size=' entry was considered as empty and not set at all.
-			 * Retain support for this case, at least for the 'install' per-slot hook use-case
-			 * where an image file can be optional. */
-			if (image->hooks.install) {
-				g_message("Missing size parameter for image '%s'", image->filename);
-				image->checksum.size = 0;
-			} else {
-				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing size for image %s", image->filename);
-				goto out;
-			}
-		}
-	}
-
 	/* Check for hook file set if hooks are enabled */
 
 	if (mf->hooks.install_check == TRUE)
@@ -459,6 +424,46 @@ out:
 	return res;
 }
 
+static gboolean check_manifest_bundled(const RaucManifest *mf, GError **error)
+{
+	for (GList *l = mf->images; l != NULL; l = l->next) {
+		RaucImage *image = l->data;
+
+		g_assert(image);
+
+		/* Having no 'filename' set is valid for 'install' hook only.
+		 * This is already ensured during manifest parsing, thus simply
+		 * skip further checks here */
+		if (!image->filename)
+			continue;
+
+		if (image->checksum.type != G_CHECKSUM_SHA256) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported checksum algorithm for image %s", image->filename);
+			return FALSE;
+		}
+		if (!image->checksum.digest) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing digest for image %s", image->filename);
+			return FALSE;
+		}
+		if (image->checksum.size < 0) {
+			/* RAUC versions before v1.5 allowed zero-size images but did not handle this explicitly.
+			 * Thus, bundles created did have a valid 'filename=' manifest entry
+			 * but the 'size=' entry was considered as empty and not set at all.
+			 * Retain support for this case, at least for the 'install' per-slot hook use-case
+			 * where an image file can be optional. */
+			if (image->hooks.install) {
+				g_message("Missing size parameter for image '%s'", image->filename);
+				image->checksum.size = 0;
+			} else {
+				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Missing size for image %s", image->filename);
+				return FALSE;
+			}
+		}
+	}
+
+	return TRUE;
+}
+
 gboolean check_manifest_internal(const RaucManifest *mf, GError **error)
 {
 	GError *ierror = NULL;
@@ -480,6 +485,11 @@ gboolean check_manifest_internal(const RaucManifest *mf, GError **error)
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported bundle format");
 			goto out;
 		}
+	}
+
+	if (!check_manifest_bundled(mf, &ierror)) {
+		g_propagate_error(error, ierror);
+		goto out;
 	}
 
 	if (mf->bundle_crypt_key) {
@@ -586,6 +596,11 @@ gboolean check_manifest_external(const RaucManifest *mf, GError **error)
 			g_error("Unsupported bundle format");
 			goto out;
 		}
+	}
+
+	if (!check_manifest_bundled(mf, &ierror)) {
+		g_propagate_error(error, ierror);
+		goto out;
 	}
 
 	res = TRUE;
