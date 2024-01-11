@@ -1016,7 +1016,7 @@ check-purpose=codesign\n";
 	g_assert_nonnull(config);
 	g_assert_true(config->keyring_allow_partial_chain);
 	g_assert_true(config->keyring_check_crl);
-	g_assert_cmpstr(config->keyring_check_purpose, ==, "codesign");
+	g_assert_cmpstr(config->keyring_check_purpose, ==, "codesign-rauc");
 }
 
 static void config_file_bundle_formats(ConfigFileFixture *fixture,

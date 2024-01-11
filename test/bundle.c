@@ -16,6 +16,7 @@ typedef struct {
 	gchar *tmpdir;
 	gchar *bundlename;
 	gchar *contentdir;
+	gboolean codesign_compat;
 } BundleFixture;
 
 typedef struct {
@@ -54,6 +55,12 @@ static void prepare_bundle(BundleFixture *fixture, gconstpointer user_data)
 	r_context()->config->keyring_check_crl = FALSE;
 	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
 			"Detected CRL but CRL checking is disabled!");
+	if (fixture->codesign_compat) {
+		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, "Keyring given, doing signature verification");
+		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Signer certificate should specify 'Key Usage' and mark it 'critical' to be fully CAB Forum compliant.");
+		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, "Verified * signature*");
+		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Signer certificate should specify 'Key Usage' and mark it 'critical' to be fully CAB Forum compliant.");
+	}
 	test_create_bundle(fixture->contentdir, fixture->bundlename);
 	r_context()->config->keyring_check_crl = TRUE;
 
@@ -111,7 +118,8 @@ static void bundle_fixture_set_up_bundle_codesign(BundleFixture *fixture,
 	replace_strdup(&r_context_conf()->keypath, "test/openssl-ca/dev/private/xku-codeSigning.pem");
 	/* cert is already checked once during signing */
 	g_free(r_context()->config->keyring_check_purpose);
-	r_context()->config->keyring_check_purpose = g_strdup("codesign");
+	r_context()->config->keyring_check_purpose = g_strdup("codesign-rauc");
+	fixture->codesign_compat = TRUE;
 
 	prepare_bundle(fixture, user_data);
 }
@@ -651,7 +659,7 @@ static void bundle_test_purpose_default(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	g_message("testing purpose 'codesign' with default cert");
-	replace_strdup(&r_context()->config->keyring_check_purpose, "codesign");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "codesign-rauc");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
@@ -694,7 +702,7 @@ static void bundle_test_purpose_email(BundleFixture *fixture,
 	g_clear_pointer(&bundle, free_bundle);
 
 	g_message("testing purpose 'codesign' with 'smimesign' cert");
-	replace_strdup(&r_context()->config->keyring_check_purpose, "codesign");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "codesign-rauc");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_error(ierror, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
 	g_clear_error(&ierror);
@@ -738,7 +746,12 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 	g_assert_null(bundle);
 
 	g_message("testing purpose 'codesign' with 'codesign' cert");
-	replace_strdup(&r_context()->config->keyring_check_purpose, "codesign");
+	replace_strdup(&r_context()->config->keyring_check_purpose, "codesign-rauc");
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, "Reading bundle*" );
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, "Verifying bundle*" );
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Signer certificate should specify 'Key Usage' and mark it 'critical' to be fully CAB Forum compliant.");
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, "Verified * signature*");
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Signer certificate should specify 'Key Usage' and mark it 'critical' to be fully CAB Forum compliant.");
 	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
