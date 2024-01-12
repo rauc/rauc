@@ -414,8 +414,11 @@ executable, see the :ref:`sec-slot-hook-interface` section.
 .. rubric:: Pre-Install Hook
 
 The pre-install hook will be called right before the update procedure for the
-respective slot will be started. For slot types that represent a mountable file
-system, the hook will be executed with having the file system mounted.
+respective slot will be started.
+For target slot types that represent a mountable file system, the hook will be
+executed with the target slots' file system mounted.
+Note that a broken or unformatted target slot will currently cause the
+installation to be aborted with an error.
 
 .. code-block:: cfg
 
