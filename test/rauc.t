@@ -1387,6 +1387,20 @@ test_expect_success ROOT,SERVICE "rauc install --progress" "
   test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
 "
 
+test_expect_success ROOT,SERVICE "rauc install (rauc.external)" "
+  cp -L ${SHARNESS_TEST_DIRECTORY}/good-verity-bundle.raucb ${TEST_TMPDIR}/ &&
+  test_when_finished rm -f ${TEST_TMPDIR}/good-verity-bundle.raucb &&
+  start_rauc_dbus_service_with_system \
+    --conf=${SHARNESS_TEST_DIRECTORY}/minimal-test.conf \
+    --mount=${SHARNESS_TEST_DIRECTORY}/mnt \
+    --override-boot-slot=_external_ &&
+  test_when_finished stop_rauc_dbus_service_with_system &&
+  test ! -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
+  rauc \
+    install ${TEST_TMPDIR}/good-verity-bundle.raucb &&
+  test -s ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1
+"
+
 test_expect_success ROOT,!SERVICE "rauc install (no service)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
