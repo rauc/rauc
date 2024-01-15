@@ -14,8 +14,7 @@ jobs:
       run: |
         whoami
         gcc --version
-        apt-get update
-        DEBIAN_FRONTEND='noninteractive' apt-get install -qy meson
+        ls -l /dev/kvm || true
 
     - uses: actions/checkout@v3
 
@@ -84,6 +83,7 @@ jobs:
   cross:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         architecture:
         - "arm/v5"
@@ -93,22 +93,35 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Prepare ${{ matrix.architecture }} container
+    - name: Install QEMU
       run: |
         sudo apt-get update
-        sudo DEBIAN_FRONTEND='noninteractive' apt-get install -qy qemu-user-static
-        docker run --name cross -di --platform linux/${{ matrix.architecture }} -v "$PWD":/home -w /home debian:bookworm bash
-        docker logs cross
-        docker exec -i cross uname -a
-        docker exec -i cross apt-get update
-        docker exec -e DEBIAN_FRONTEND='noninteractive' -i cross apt-get install -qy build-essential meson libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev libnl-genl-3-dev squashfs-tools
+        DEBIAN_FRONTEND='noninteractive' sudo apt-get install -qy qemu-user-static
+
+    # remove this when Ubuntu 24.04 is available on GitHub Actions
+    - name: Enable Ubuntu noble and update podman
+      run: |
+        echo 'deb http://archive.ubuntu.com/ubuntu/ noble main restricted universe' | sudo tee -a /etc/apt/sources.list.d/lunar.list
+        echo 'deb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted universe' | sudo tee -a /etc/apt/sources.list.d/lunar.list
+        sudo apt-get update
+        DEBIAN_FRONTEND='noninteractive' sudo apt-get install -qy podman
+        podman version
+
+    - name: Prepare ${{ matrix.architecture }} container
+      run: |
+        podman run --name cross -di --platform linux/${{ matrix.architecture }} --userns=keep-id:uid=1000,gid=1000 -v "$PWD":/home -w /home ghcr.io/rauc/rauc/rauc-ci:latest bash
+        podman logs cross
+        podman exec -i cross uname -a
+        podman exec -i cross id
 
     - name: Build
       run: |
-        docker exec -i cross whoami
-        docker exec -i cross meson setup -Dgpt=enabled -Dwerror=true build
-        docker exec -i cross meson compile -C build
-        # don't run 'meson test' here, as we don't have full access to the kernel (mount, loopback, dm)
+        podman exec -i cross meson setup -Dgpt=enabled -Dwerror=true build
+        podman exec -i cross meson compile -C build
+
+    - name: Test
+      run: |
+        podman exec -i cross meson test -C build --timeout-multiplier 3
 
     - name: Show logs
       if: ${{ failure() }}
@@ -118,6 +131,7 @@ jobs:
   stable:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         release:
         - "ubuntu:20.04"
@@ -127,26 +141,35 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    # remove this when Ubuntu 24.04 is available on GitHub Actions
+    - name: Enable Ubuntu noble and update podman
+      run: |
+        echo 'deb http://archive.ubuntu.com/ubuntu/ noble main restricted universe' | sudo tee -a /etc/apt/sources.list.d/lunar.list
+        echo 'deb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted universe' | sudo tee -a /etc/apt/sources.list.d/lunar.list
+        sudo apt-get update
+        DEBIAN_FRONTEND='noninteractive' sudo apt-get install -qy podman
+        podman version
+
     - name: Prepare ${{ matrix.release }} container for meson build
       run: |
-        docker run --name stable -di -v "$PWD":/home -w /home ${{ matrix.release }} bash
-        docker exec -i stable uname -a
-        docker exec -i stable apt-get update
-        docker exec -e DEBIAN_FRONTEND='noninteractive' -i stable apt-get install -qy build-essential meson libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev libnl-genl-3-dev squashfs-tools
+        podman version
+        podman run --name stable -di --userns=keep-id:uid=1000,gid=1000 -v "$PWD":/home -w /home ${{ matrix.release }} bash
+        podman exec -i stable uname -a
+        podman exec -i stable id
+        podman exec -i -u root stable apt-get update
+        podman exec -e DEBIAN_FRONTEND='noninteractive' -i -u root stable apt-get install -qy build-essential meson libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev libnl-genl-3-dev squashfs-tools
 
     - name: Patch & prepare
       run: |
-        docker exec -i stable whoami
-        docker exec -i stable uname -a
-        docker exec -i stable find .github/workflows/patches/${{ matrix.release }}/ -type f -name "*.patch" -print0 | sort -z | xargs -t -n 1 -r -0 patch -p1 -f -i
+        podman exec -i stable find .github/workflows/patches/${{ matrix.release }}/ -type f -name "*.patch" -print0 | sort -z | xargs -t -n 1 -r -0 patch -p1 -f -i
 
     - name: Configure
       run: |
-        docker exec -i stable meson setup -Dgpt=disabled -Dwerror=true build
+        podman exec -i stable meson setup -Dgpt=disabled -Dwerror=true build
 
     - name: Build
       run: |
-        docker exec -i stable ninja -C build
+        podman exec -i stable ninja -C build
 
     - name: Show logs
       if: ${{ failure() }}
@@ -156,22 +179,3 @@ jobs:
         cat test/*.log || true
         cat test-suite.log || true
         cat rauc-*/_build/sub/test-suite.log || true
-
-  uncrustify:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Install codespell
-      run: |
-        sudo apt-get update
-        sudo DEBIAN_FRONTEND='noninteractive' apt-get install -qy codespell
-
-    - name: Run uncrustify check
-      run: |
-        ./uncrustify.sh
-        git diff --exit-code
-
-    - name: Run codespell check
-      run: |
-        codespell -L parms,cas -S 'openssl-ca,build,*.log' src include test docs

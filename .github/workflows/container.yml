@@ -6,6 +6,7 @@ on:
       - 'master'
       - 'container'
     paths:
+      - '.github/workflows/container.yml'
       - 'test/Dockerfile'
   workflow_dispatch: {}
 
@@ -13,15 +14,41 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+    - name: Install QEMU
+      run: |
+        sudo apt-get update
+        DEBIAN_FRONTEND='noninteractive' sudo apt-get install -qy qemu-user-static
+    # remove this when Ubuntu 24.04 is available on GitHub Actions
+    - name: Enable Ubuntu noble and update buildah
+      run: |
+        echo 'deb http://archive.ubuntu.com/ubuntu/ noble main restricted universe' | sudo tee -a /etc/apt/sources.list.d/lunar.list
+        echo 'deb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted universe' | sudo tee -a /etc/apt/sources.list.d/lunar.list
+        sudo apt-get update
+        DEBIAN_FRONTEND='noninteractive' sudo apt-get install -qy buildah
+        buildah version
     - uses: actions/checkout@v3
-    - id: build-image
+    - name: Build Images
+      id: build-image
       uses: redhat-actions/buildah-build@v2
       with:
         image: rauc-ci
         tags: latest
-        dockerfiles: |
+        platforms: linux/amd64, linux/386, linux/arm/v5, linux/arm/v7, linux/arm64/v8
+        containerfiles: |
           ./test/Dockerfile
-    - id: push-to-github
+    - name: Echo Outputs for Build
+      run: |
+        echo "Image: ${{ steps.build-image.outputs.image }}"
+        echo "Tags: ${{ steps.build-image.outputs.tags }}"
+        echo "Tagged Image: ${{ steps.build-image.outputs.image-with-tag }}"
+    - name: List Images
+      run: |
+        buildah images
+    - name: Inspect Manifest
+      run: |
+        buildah manifest inspect "${{ steps.build-image.outputs.image-with-tag }}"
+    - name: Push Images
+      id: push-to-github
       uses: redhat-actions/push-to-registry@v2
       with:
         image: ${{ steps.build-image.outputs.image }}
@@ -29,4 +56,5 @@ jobs:
         registry: ghcr.io/${{ github.repository }}
         username: ${{ github.actor }}
         password: ${{ github.token }}
-    - run: echo "Image pushed to ${{ steps.push-to-github.outputs.registry-paths }}"
+    - name: Echo Output for Push
+      run: echo "Image pushed to ${{ steps.push-to-github.outputs.registry-paths }}"
