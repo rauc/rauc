@@ -109,8 +109,6 @@ G_GNUC_WARN_UNUSED_RESULT;
  * version. As an internal manifest, this must only include some generated
  * values (such as hashes/sizes for images, but not for the verity format).
  *
- * Use free_manifest() to free the returned manifest.
- *
  * @param manifest Pointer to the manifest to check
  * @param error return location for a GError, or NULL
  *
@@ -124,8 +122,6 @@ G_GNUC_WARN_UNUSED_RESULT;
  * 'rauc bundle' should pass this check if they are compatible with the running
  * version. As an external manifest this must contain all generated values (such
  * as hashes/sizes for images and for the verity format).
- *
- * Use free_manifest() to free the returned manifest.
  *
  * @param manifest Pointer to the manifest to check
  * @param error return location for a GError, or NULL
