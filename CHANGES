@@ -6,7 +6,7 @@ Release 1.11.1 (released Jan 15, 2024)
 * Ensure that only bootable slots can be marked with ``rauc staus mark-*``.
 * Fix boot detection when using the ``rauc.external`` kernel command-line flag.
 * Fix compatibility with OpenSSL 3.2 when using the ``codesign`` certificate
-  purpuse.
+  purpose.
 * Fix a double free when trying to install two bundles using casync without a
   service restart. (by Arseniy Lartsev)
 
