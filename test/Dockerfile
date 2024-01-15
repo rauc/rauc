@@ -79,7 +79,7 @@ RUN mkdir -p /lib/modules /var/run/dbus
 # Remove apt lists
 RUN rm -rf /var/lib/apt/lists/*
 
-RUN adduser --disabled-password --gecos "" rauc-ci && \
+RUN adduser --disabled-password --comment "" rauc-ci && \
     echo "rauc-ci ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/rauc-ci
 
 USER rauc-ci
