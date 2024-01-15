@@ -1,3 +1,25 @@
+Release 1.11.1 (released Jan 15, 2024)
+--------------------------------------
+
+.. rubric:: Bug fixes
+
+* Ensure that only bootable slots can be marked with ``rauc staus mark-*``.
+* Fix boot detection when using the ``rauc.external`` kernel command-line flag.
+* Fix compatibility with OpenSSL 3.2 when using the ``codesign`` certificate
+  purpuse.
+* Fix a double free when trying to install two bundles using casync without a
+  service restart. (by Arseniy Lartsev)
+
+.. rubric:: Testing
+
+* Run service tests only when running as root.
+
+.. rubric:: Documentation
+
+* Improve description of current pre-install hook implementation.
+
+Contributions from: Arseniy Lartsev, Enrico Jörns, Jan Lübbe
+
 Release 1.11 (released Dec 20, 2023)
 ------------------------------------
 
