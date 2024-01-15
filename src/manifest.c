@@ -482,7 +482,7 @@ gboolean check_manifest_internal(const RaucManifest *mf, GError **error)
 		case R_MANIFEST_FORMAT_CRYPT:
 		case R_MANIFEST_FORMAT_VERITY:
 		default: {
-			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported bundle format");
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Bundle format '%s' not allowed for internal manifest", r_manifest_bundle_format_to_str(mf->bundle_format));
 			goto out;
 		}
 	}
