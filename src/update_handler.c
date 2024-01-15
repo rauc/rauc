@@ -69,7 +69,7 @@ static gboolean clear_slot(RaucSlot *slot, GError **error)
 	g_autoptr(GOutputStream) outstream = NULL;
 	gint write_count = 0;
 
-	outstream = G_OUTPUT_STREAM(r_open_unix_output_stream(slot->device, NULL, &ierror));
+	outstream = G_OUTPUT_STREAM(r_unix_output_stream_open_device(slot->device, NULL, &ierror));
 	if (outstream == NULL) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -638,7 +638,7 @@ static gboolean copy_raw_image_to_dev(RaucImage *image, RaucSlot *slot, GError *
 
 	/* open */
 	g_message("opening slot device %s", slot->device);
-	outstream = r_open_unix_output_stream(slot->device, NULL, &ierror);
+	outstream = r_unix_output_stream_open_device(slot->device, NULL, &ierror);
 	if (outstream == NULL) {
 		res = FALSE;
 		g_propagate_error(error, ierror);
@@ -1466,7 +1466,7 @@ static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, con
 
 	/* open */
 	g_message("opening slot device %s", dest_slot->device);
-	outstream = r_open_unix_output_stream(dest_slot->device, &out_fd, &ierror);
+	outstream = r_unix_output_stream_open_device(dest_slot->device, &out_fd, &ierror);
 	if (outstream == NULL) {
 		res = FALSE;
 		g_propagate_error(error, ierror);
@@ -1535,7 +1535,7 @@ static gboolean img_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 
 	/* open */
 	g_message("opening slot device %s", dest_slot->device);
-	outstream = r_open_unix_output_stream(dest_slot->device, &out_fd, &ierror);
+	outstream = r_unix_output_stream_open_device(dest_slot->device, &out_fd, &ierror);
 	if (outstream == NULL) {
 		res = FALSE;
 		g_propagate_error(error, ierror);
@@ -2258,7 +2258,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 
 	/* open */
 	g_message("Opening slot device partition %s", part_slot->device);
-	outstream = r_open_unix_output_stream(part_slot->device, &out_fd, &ierror);
+	outstream = r_unix_output_stream_open_device(part_slot->device, &out_fd, &ierror);
 	if (outstream == NULL) {
 		g_propagate_error(error, ierror);
 		res = FALSE;
