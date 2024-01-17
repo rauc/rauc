@@ -127,14 +127,16 @@ target device / partition on your board.
 
 In order to allow RAUC to handle your device correctly, we need to give it the
 right view on your system.
+The basic layout of your system is described using :ref:`slots
+<sec-basic-slots>` and optionally using :ref:`artifact repositories
+<sec-basic-artifact-repositories>`.
 
 .. _sec-basic-slots:
 
 Slots
 -----
 
-In RAUC, everything that can be updated is a *slot*.
-Thus a slot can either be a full device, a partition, a volume or simply a file.
+In RAUC, any partition, full device or volume that can be updated is a *slot*.
 
 To let RAUC know which slots exists on the board that should be handled,
 the slots must be configured in a *system configuration file*.
@@ -293,3 +295,38 @@ unusable.
 For most cases it might be desired to either select one of the redundant slots
 as fallback or boot into a recovery system.
 This handling is up to your bootloader.
+
+.. _sec-basic-artifact-repositories:
+
+Artifact Repositories
+---------------------
+
+In some cases, it can be useful to let RAUC update parts of the system that
+should not be represented as slots.
+
+For example, in addition to the root filesystem, which is created in one step
+using a build system and has many internal dependencies, there may be other
+software components that are more loosely coupled.
+They could be included in the root filesystem, but when using a :ref:`symmetric A/B
+root filesystem setup <sec-scenarios-symmetric>`, they would need to be stored twice,
+wasting storage space.
+
+These other components might be:
+
+* container or VM images
+* large data files, such as videos, maps or machine learning models
+* firmware images for other systems and micro-controllers
+* optional add-on applications/services
+
+In many cases, these are developed, tested and released on a timeline
+independent from the root filesystem, making integration into it cumbersome.
+
+In RAUC, we use *artifacts* as a general term for these components.
+They are not installed to slots, but to *artifact repositories*.
+Similar to slots, each repository has a name and a type, which determines how
+artifacts are installed and managed.
+As artifacts are replaced when new ones are installed under the same name, the
+rest of the system should treat them as read-only.
+
+See :ref:`Artifact Repository Configuration <sec-repository-config>` for more
+information on how to use artifact repositories.

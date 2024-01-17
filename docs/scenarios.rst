@@ -7,6 +7,8 @@ Scenarios
    :local:
    :depth: 1
 
+.. _sec-scenarios-symmetric:
+
 Symmetric Root-FS Slots
 -----------------------
 

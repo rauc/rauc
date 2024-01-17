@@ -3,6 +3,13 @@ Terminology
 
 .. glossary::
 
+  Artifact
+    A software component that is loosely coupled to the base system, such as a
+    container/VM image or large data file.
+
+  :ref:`Artifact Repository <sec-basic-artifact-repositories>`
+    A directory where **Artifacts** are stored.
+
   Update Controller
     This controls the update process and can be started on demand or run as a daemon.
 
@@ -23,7 +30,7 @@ Terminology
     It is either contained in a **bundle** or downloaded individually over the
     network.
 
-  Slot
+  :ref:`Slot <sec-basic-slots>`
     Slots are possible targets for (parts of) updates. Usually they are
     partitions on a SD/eMMC, UBI volumes on NAND/NOR flash or raw block devices.
     For filesystem slots, the **controller** stores status information in a file
