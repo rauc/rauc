@@ -598,7 +598,7 @@ out:
 		g_assert(g_remove(hookpath) == 0);
 	}
 
-	g_rmdir(mountprefix);
+	g_assert(g_rmdir(mountprefix) == 0);
 
 	g_free(slotpath);
 	g_free(imagename);
