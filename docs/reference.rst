@@ -51,7 +51,8 @@ Example configuration:
 
 .. _system-section:
 
-**[system] section**
+``[system]`` Section
+~~~~~~~~~~~~~~~~~~~~
 
 ``compatible``
   A user-defined compatible string that describes the target hardware as
@@ -210,7 +211,8 @@ Example configuration:
 
 .. _keyring-section:
 
-**[keyring] section**
+``[keyring]`` Section
+~~~~~~~~~~~~~~~~~~~~~
 
 The ``keyring`` section refers to the trusted keyring used for signature
 verification.
@@ -273,7 +275,8 @@ signature.
 
 .. _streaming-config-section:
 
-**[streaming] section**
+``[streaming]`` Section
+~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``streaming`` section contains streaming-related settings.
 For more information about using the streaming support of RAUC, refer to
@@ -314,7 +317,8 @@ For more information about using the streaming support of RAUC, refer to
   * ``transaction-id``: Enables sending the *transaction UUID* as ``RAUC-Transaction-ID`` header field.
   * ``uptime``: Enables sending the system's current uptime as ``RAUC-Uptime`` header field.
 
-**[encryption]**
+``[encryption]`` Section
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``encryption`` section contains information required to decrypt a 'crypt'
 bundle.
@@ -330,7 +334,8 @@ For more information about encrypted RAUC bundle bundles, refer to
   This is optional but allows to speed up key lookup and thus is especially
   useful for larger number of recipients.
 
-**[casync] section**
+``[casync]`` Section
+~~~~~~~~~~~~~~~~~~~~
 
 The ``casync`` section contains casync-related settings.
 For more information about using the casync support of RAUC, refer to
@@ -360,7 +365,8 @@ For more information about using the casync support of RAUC, refer to
   If this boolean value is set to ``true``, RAUC will use desync instead of
   casync. Desync support is still experimental, use with caution.
 
-**[autoinstall] section**
+``[autoinstall]`` Section
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The auto-install feature allows to configure a path that will be checked upon
 RAUC service startup.
@@ -377,7 +383,8 @@ performed from a dedicated (recovery) slot.
 
 .. _sec_ref_handlers:
 
-**[handlers] section**
+``[handlers]`` Section
+~~~~~~~~~~~~~~~~~~~~~~
 
 Handlers allow to customize RAUC by placing scripts in the system that RAUC can
 call for different purposes. All parameters expect pathnames to the script to
@@ -440,7 +447,8 @@ See details about using handlers in `Custom Handlers (Interface)`_.
 
 .. _slot.slot-class.idx-section:
 
-**[slot.<slot-class>.<idx>] section**
+``[slot.<slot-class>.<idx>]`` Sections
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Each slot is identified by a section starting with ``slot.`` followed by
 the slot class name, and a slot number.
@@ -541,7 +549,8 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
 
 .. _sec-manifest-update:
 
-**[update] section**
+``[update]`` Section
+~~~~~~~~~~~~~~~~~~~~
 
 This section contains some high-level information about the bundle.
 
@@ -563,7 +572,8 @@ This section contains some high-level information about the bundle.
   information provided by the bundle creation environment. This can help to
   determine the date and origin of the built bundle.
 
-**[bundle] section**
+``[bundle]`` Section
+~~~~~~~~~~~~~~~~~~~~
 
 The bundle section contains information required to process the bundle.
 
@@ -593,7 +603,8 @@ The bundle section contains information required to process the bundle.
   The encryption key of the dm-crypt.
   RAUC generates the key automatically when creating a `crypt` bundle.
 
-**[hooks] section**
+``[hooks]`` Section
+~~~~~~~~~~~~~~~~~~~
 
 The hooks section allows to provide a user-defined executable for
 :ref:`executing hooks <sec-hooks>` during the installation.
@@ -609,7 +620,8 @@ The hooks section allows to provide a user-defined executable for
 
 .. _sec-manifest-handler:
 
-**[handler] section**
+``[handler]`` Section
+~~~~~~~~~~~~~~~~~~~~~
 
 The ``handler`` section refers to the
 `full custom handler <https://rauc.readthedocs.io/en/latest/using.html#full-custom-update>`_
@@ -651,7 +663,8 @@ No built-in slot update will run and no hook will be executed.
 
 .. _image.slot-class-section:
 
-**[image.<slot-class>] sections**
+``[image.<slot-class>]`` Sections
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For each image to install to a slot (class), a corresponding
 ``[image.<slot-class]`` section must exist.
@@ -696,7 +709,8 @@ For each image to install to a slot (class), a corresponding
 
 .. _meta.label-section:
 
-**[meta.<label>] sections**
+``[meta.<label>]`` Sections
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``meta.<label>`` sections are intended to provide a forwards-compatible
 way to add metadata to the manifest which is not interpreted by RAUC in any
@@ -715,7 +729,8 @@ In future releases, they will be accessible in hooks/handlers, as well.
 
 .. _ref-logger-sections:
 
-**[log.<logger>] sections**
+``[log.<logger>]`` Sections
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 With a logger section, a *RAUC event logger* can be configured.
 The ``<logger>`` suffix determines the internal name of the logger and must be
