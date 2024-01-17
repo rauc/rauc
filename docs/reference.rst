@@ -49,6 +49,10 @@ Example configuration:
   type=ext4
   bootname=system1
 
+  [artifacts.add-ons]
+  path=/srv/add-ons
+  type=trees
+
 .. _system-section:
 
 ``[system]`` Section
@@ -563,6 +567,37 @@ a look at :ref:`sec-advanced-event-log`.
   ``<filename>.2`` will be kept during rotation.
   Defaults to 10 if unset.
 
+.. _sec_ref_artifacts:
+
+``[artifacts.<repo-name>]`` Sections
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Each artifact repository is identified by a section starting with ``artifacts.``
+followed by the repository name.
+The `<repo-name>` name is used in the *update manifest* to target the correct
+repository.
+It must not contain any `.` (dots) as these are used as
+hierarchical separator.
+The name must be different from any slot class names.
+
+``path`` (required)
+  Full path to a directory to be used to store the artifacts.
+  It must be mounted before starting RAUC.
+
+``type`` (required)
+  The type of this repository.
+  Currently supported values are ``files`` and ``trees``.
+  For ``files``, each artifact is a single file.
+  For ``trees``, each artifact is a directory tree containing files.
+
+``description`` (optional)
+  A description of this repository.
+
+``parent-class=<slot-class>`` (optional)
+  Reference to a slot class, if the set of installed artifacts should be managed
+  separately for each instance of that class, instead of globally.
+  If so, it should refer to the class of the rootfs slots.
+
 .. _sec_ref_manifest:
 
 Manifest
@@ -595,6 +630,10 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
   size=219430400
   sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca
 
+  [image.add-ons/webserver]
+  filename=webserver.tar
+  size=6573863
+  sha256=f23204174c70ff03a9efcd6c2dfd6d2b8ebdd8bb66936043341e728438a1f0ea
 
 .. _sec-manifest-update:
 
@@ -710,25 +749,34 @@ No built-in slot update will run and no hook will be executed.
   If additional arguments are provided via ``--handler-args`` command line
   argument, these will be appended to the ones defined in the manifest.
 
-.. _image.slot-class-section:
+.. _image-section:
 
 ``[image.*]`` Sections
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The image section names can take different forms to support variants.
+The image section names can take different forms to support slots, artifacts and
+variants.
 
 ``[image.<slot-class>]``
-  For each image to install to a slot (class), a corresponding
-  section must exist.
+  This form is used to specify images that should be installed to (inactive)
+  slots of the given class.
 
 ``[image.<slot-class>.<variant>]``
-  This image will be used instead of the default one above if the target
-  system's variant matches ``<variant>``.
+  This form is used to specify an image that will be used instead of the default
+  one above if the target system's variant matches ``<variant>``.
   Refer to chapter :ref:`sec-variants` for more information.
+
+``[image.<artifact-repo-name>/<artifact-name>]``
+  This form is used to specify an image that should be installed into an artifact
+  repository.
+
+``[image.<artifact-repo-name>/<artifact-name>.<variant>]``
+  This form is not yet supported, but will be used to handle artifacts with
+  variants.
 
 The following fields are supported for image sections:
 
-.. _image.slot-filename:
+.. _image-filename:
 
 ``filename`` (required)
   Name of the image file (relative to bundle content).
@@ -753,6 +801,8 @@ The following fields are supported for image sections:
 
   Valid items are: ``pre-install``, ``install``, ``post-install``
 
+  Hooks are not yet supported for artifacts.
+
 ``adaptive`` (optional)
   List of ``;``-separated per-slot adaptive update method names.
   These methods will add extra information to the bundle, allowing RAUC to
@@ -765,6 +815,17 @@ The following fields are supported for image sections:
   Currently implemented adaptive methods:
 
   * ``block-hash-index``
+
+  Adaptive update methods are not yet supported for artifacts.
+
+``convert`` (optional)
+  List of ``;``-separated conversion methods to use during bundle creation.
+
+  FIXME: add supported methods
+
+``converted`` (generated)
+  List of ``;``-separated output file/directory names from conversion methods.
+  Each element in the ``convert`` list has a corresponding entry in this list.
 
 .. _meta.label-section:
 
@@ -1100,7 +1161,7 @@ termed with the slot name (e.g. [slot.rootfs.1]) for the central status file:
   installed.count=3
 
 For a description of ``sha256`` and ``size`` keys see :ref:`this
-<image.slot-class-section>` part of the section :ref:`Manifest
+<image-section>` part of the section :ref:`Manifest
 <sec_ref_manifest>`.
 Having the slot's content's size allows to re-calculate the hash via ``head -c
 <size> <slot-device> | sha256sum`` or ``dd bs=<size> count=1 if=<slot-device> |
