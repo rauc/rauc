@@ -54,20 +54,20 @@ Example configuration:
 ``[system]`` Section
 ~~~~~~~~~~~~~~~~~~~~
 
-``compatible``
+``compatible`` (required)
   A user-defined compatible string that describes the target hardware as
   specific enough as required to prevent faulty updating systems with the wrong
   firmware. It will be matched against the ``compatible`` string defined in the
   update manifest.
 
-``bootloader``
+``bootloader`` (required)
   The bootloader implementation RAUC should use for its slot switching
   mechanism. Currently supported values (and bootloaders) are ``barebox``,
   ``grub``, ``uboot``, ``efi``, ``custom``, ``noop``.
 
 .. _bundle-formats:
 
-``bundle-formats``
+``bundle-formats`` (optional, recommended)
   This option controls which :ref:`bundle formats<sec_ref_formats>` are allowed
   when verifying a bundle.
   You can either specify them explicitly by using a space-separated list for
@@ -80,21 +80,21 @@ Example configuration:
   configuration. This way, formats added in newer releases will be active
   automatically.
 
-``mountprefix``
+``mountprefix`` (optional)
   Prefix of the path where bundles and slots will be mounted. Can be overwritten
   by the command line option ``--mount``. Defaults to ``/mnt/rauc/``.
 
-``grubenv``
+``grubenv`` (optional)
   Only valid when ``bootloader`` is set to ``grub``.
   Specifies the path under which the GRUB environment can be accessed.
 
-``barebox-statename``
+``barebox-statename`` (optional)
   Only valid when ``bootloader`` is set to ``barebox``.
   Overwrites the default state ``state`` to a user-defined state name. If this
   key not exists, the bootchooser framework searches per default for ``/state``
   or ``/aliases/state``.
 
-``barebox-dtbpath``
+``barebox-dtbpath`` (optional)
   Only valid when ``bootloader`` is set to ``barebox``.
   Allows to set a path to a separate devicetree (dtb) file to be used for
   reading `barebox state <https://www.barebox.org/doc/latest/user/state.html>`_
@@ -105,20 +105,20 @@ Example configuration:
   .. note:: Requires to have at least `dt-utils
      <https://git.pengutronix.de/cgit/tools/dt-utils>`_ version 2021.03.0
 
-``boot-attempts``
+``boot-attempts`` (optional)
   This configures the number of boot attempts to set when a slot is marked good
   through the D-Bus API or via the command line tool.
   The configured value should match the bootloader's reset value for attempts.
   This is currently only supported when ``bootloader`` is set to ``uboot`` or
   ``barebox`` and defaults to 3 if not set.
 
-``boot-attempts-primary``
+``boot-attempts-primary`` (optional)
   This configures the number of boot attempts to set when a slot is marked as
   primary (i.e., when an update was installed successfully).
   This is currently only supported when ``bootloader`` is set to ``uboot`` or
   ``barebox`` and defaults to 3 if not set.
 
-``efi-use-bootnext``
+``efi-use-bootnext`` (optional)
   Only valid when ``bootloader`` is set to ``efi``.
   If set to ``false``, this disables using efi variable ``BootNext`` for
   marking a slot primary.
@@ -128,7 +128,7 @@ Example configuration:
 
 .. _activate-installed:
 
-``activate-installed``
+``activate-installed`` (optional)
   This boolean value controls if a freshly installed slot is automatically
   marked active with respect to the used bootloader. Its default value is
   ``true`` which means that this slot is going to be started the next time the
@@ -137,7 +137,7 @@ Example configuration:
 
 .. _statusfile:
 
-``statusfile``
+``statusfile`` (deprecated, optional)
 
   .. note:: This option is deprecated. Consider using ``data-directory``
      instead.
@@ -152,7 +152,7 @@ Example configuration:
 
 .. _data-directory:
 
-``data-directory``
+``data-directory`` (optional, recommended)
   This path configures the directory where RAUC should store its slot status
   and any other internal information.
   In most cases, a shared RAUC data directory is preferable, as it allows
@@ -172,22 +172,22 @@ Example configuration:
   .. important:: This directory must be located on a non-redundant filesystem
      which is not overwritten during updates.
 
-``max-bundle-download-size``
+``max-bundle-download-size`` (optional)
   Defines the maximum downloadable bundle size in bytes, and thus must be
   a simple integer value (without unit) greater than zero.
   It overwrites the compiled-in default value of 8388608 (8 MiB).
 
-``variant-name``
+``variant-name`` (optional)
   String to be used as variant name for this board.
   If set, neither ``variant-file`` nor ``variant-dtb`` must be set.
   Refer chapter :ref:`sec-variants` for more information.
 
-``variant-file``
+``variant-file`` (optional)
   File containing variant name for this board.
   If set, neither ``variant-name`` nor ``variant-dtb`` must be set.
   Refer chapter :ref:`sec-variants` for more information.
 
-``variant-dtb``
+``variant-dtb`` (optional)
   If set to ``true``, use current device tree compatible as this boards variant
   name.
   If set, neither ``variant-name`` nor ``variant-file`` must be set.
@@ -195,7 +195,7 @@ Example configuration:
 
 .. _perform-pre-check:
 
-``perform-pre-check``
+``perform-pre-check`` (optional)
   For ``verity`` and ``crypt`` bundles, this boolean value controls whether the complete
   bundle is checked for data corruption before it is mounted.
   Normally, this option is not needed as every access to the bundle payload during
@@ -220,11 +220,11 @@ Both ``path`` and ``directory`` options can be used together if
 desired, though only one or the other is necessary to verify the bundle
 signature.
 
-``path``
+``path`` (optional)
   Path to the keyring file in PEM format. Either absolute or relative to the
   system.conf file.
 
-``directory``
+``directory`` (optional)
   Path to the keyring directory containing one or more certificates.
   Each file in this directory must contain exactly one certificate in CRL or
   PEM format.
@@ -234,13 +234,13 @@ signature.
   ``openssl(1)`` ``x509`` or ``crl`` commands.
   See documentation in ``X509_LOOKUP_hash_dir(3)`` for details.
 
-``use-bundle-signing-time=<true/false>``
+``use-bundle-signing-time=<true/false>`` (optional)
   If this boolean value is set to ``true`` then the bundle signing time
   is used instead of the current system time for certificate validation.
 
 .. _allow-partial-chain:
 
-``allow-partial-chain=<true/false>``
+``allow-partial-chain=<true/false>`` (optional)
   If this boolean value is set to ``true``, RAUC will also treat intermediate
   certificates in the keyring as trust-anchors, in addition to self-signed root
   CA certificates.
@@ -251,7 +251,7 @@ signature.
   can not be authenticated.
   If CRL checking is needed, the PKI needs to be structured with this in mind.
 
-``check-crl=<true/false>``
+``check-crl=<true/false>`` (optional)
   If this boolean value is set to ``true``, RAUC will enable checking of CRLs
   (Certificate Revocation Lists) stored in the keyring together with the CA
   certificates.
@@ -261,7 +261,7 @@ signature.
 
 .. _check-purpose:
 
-``check-purpose``
+``check-purpose`` (optional)
   This option can be used to set the OpenSSL certificate purpose used during
   chain verification.
   Certificates in the chain with incompatible purposes are rejected.
@@ -282,26 +282,26 @@ The ``streaming`` section contains streaming-related settings.
 For more information about using the streaming support of RAUC, refer to
 :ref:`http-streaming`.
 
-``sandbox-user``
+``sandbox-user`` (optional)
   This option can be used to set the user name which is used to run the
   streaming helper process.
   By default, the `nobody` user is used.
   At compile time, the default can be defined using the
   ``-Dstreaming_user=USERNAME`` meson setup option.
 
-``tls-cert``
+``tls-cert`` (optional)
   This option can be used to set the path or PKCS#11 URL for the TLS/HTTPS
   client certificate.
 
-``tls-key``
+``tls-key`` (optional)
   This option can be used to set the path or PKCS#11 URL for the TLS/HTTPS
   client private key.
 
-``tls-ca``
+``tls-ca`` (optional)
   This option can be used to set the path of the CA certificate which should be
   used instead of the system wide store of trusted TLS/HTTPS certificates.
 
-``send-headers``
+``send-headers`` (optional)
   This option takes a ``;``-separated list of information to send as HTTP
   header fields to the server with the first request.
 
@@ -325,11 +325,10 @@ bundle.
 For more information about encrypted RAUC bundle bundles, refer to
 :ref:`sec-encryption`.
 
-``key``
+``key`` (required to use encryption)
   Path or PKCS#11 URL for the private key used to decrypt bundles.
-  This is mandatory for decrypting encrypted bundles.
 
-``cert``
+``cert`` (optional)
   Path or PKCS#11 URL for the certificate matching the encryption key.
   This is optional but allows to speed up key lookup and thus is especially
   useful for larger number of recipients.
@@ -341,19 +340,19 @@ The ``casync`` section contains casync-related settings.
 For more information about using the casync support of RAUC, refer to
 :ref:`casync-support`.
 
-``install-args``
+``install-args`` (optional)
   Allows to specify additional arguments that will be passed to casync when
   installing an update. For example it can be used to include additional
   seeds or stores.
 
-``storepath``
+``storepath`` (optional)
   Allows to set the path to use as chunk store path for casync to a fixed one.
   This is useful if your chunk store is on a dedicated server and will be the
   same pool for each update you perform.
   By default, the chunk store path is derived from the location of the RAUC
   bundle you install.
 
-``tmppath``
+``tmppath`` (optional)
   Allows to set the path to use as temporary directory for casync.
   The temporary directory used by casync can be specified using the TMPDIR
   environment variable. It falls back to /var/tmp if unset.
@@ -361,7 +360,7 @@ For more information about using the casync support of RAUC, refer to
   By default, the temporary directory is left unset by RAUC and casync uses its
   internal default value ``/var/tmp``.
 
-``use-desync=<true/false>``
+``use-desync=<true/false>`` (optional)
   If this boolean value is set to ``true``, RAUC will use desync instead of
   casync. Desync support is still experimental, use with caution.
 
@@ -377,7 +376,7 @@ This feature is useful for automatically updating the slot RAUC currently runs
 from, like for asymmetric redundancy setups where the update is always
 performed from a dedicated (recovery) slot.
 
-``path``
+``path`` (optional)
   The full path of the bundle file to check for.
   If file at ``path`` exists, auto-install will be triggered.
 
@@ -394,7 +393,7 @@ location.
 RAUC passes a set of environment variables to handler scripts.
 See details about using handlers in `Custom Handlers (Interface)`_.
 
-``system-info``
+``system-info`` (optional)
   This handler will be called when RAUC starts up, right after loading the
   system configuration file.
   It is used for obtaining further information about the individual system RAUC
@@ -424,17 +423,17 @@ See details about using handlers in `Custom Handlers (Interface)`_.
   E.g. ``RAUC_HTTP_MY_CUSTOM_INFO=dummyvalue`` will emit a header
   ``RAUC-MY-CUSTOM-INFO: dummyvalue``.
 
-``pre-install``
+``pre-install`` (optional)
   This handler will be called right before RAUC starts with the installation.
   This is after RAUC has verified and mounted the bundle, thus you can access
   bundle content.
 
-``post-install``
+``post-install`` (optional)
   This handler will be called after a successful installation.
   The bundle is still mounted at this moment, thus you could access data in it
   if required.
 
-``bootloader-custom-backend``
+``bootloader-custom-backend`` (required for ``bootloader=custom``)
   This handler will be called to trigger the following actions:
 
   * get the primary slot
@@ -456,16 +455,16 @@ The `<slot-class>` name is used in the *update manifest* to target the correct
 set of slots. It must not contain any `.` (dots) as these are used as
 hierarchical separator.
 
-``device=</path/to/dev>``
-  The slot's device path. This one is mandatory.
+``device=</path/to/dev>`` (required)
+  The slot's device path.
 
-``type=<type>``
+``type=<type>`` (optional, recommended)
   The type describing the slot. Currently supported ``<type>`` values are ``raw``,
   ``nand``, ``nor``, ``ubivol``, ``ubifs``, ``ext4``, ``vfat``.
   See table :ref:`sec-slot-type` for a more detailed list of these different types.
   Defaults to ``raw`` if none given.
 
-``bootname=<name>``
+``bootname=<name>`` (optional)
   Registers the slot for being handled by the
   :ref:`bootselection interface <bootloader-interaction>` with the ``<name>``
   specified.
@@ -474,7 +473,7 @@ hierarchical separator.
   The actual meaning of the name provided depends on the bootloader
   implementation used.
 
-``parent=<slot>``
+``parent=<slot>`` (optional)
   The ``parent`` entry is used to bind additional slots to a bootable root
   file system ``<slot>``.
   Indirect parent references are discouraged, but supported for now.
@@ -482,18 +481,18 @@ hierarchical separator.
   active slots, so that the inactive one can be selected as the update target.
   The parent slot is referenced using the form ``<slot-class>.<idx>``.
 
-``allow-mounted=<true/false>``
+``allow-mounted=<true/false>`` (optional)
   Setting this entry ``true`` tells RAUC that the slot may be updated even if
   it is already mounted.
   Such a slot can be updated only by a custom install hook.
 
-``readonly=<true/false>``
+``readonly=<true/false>`` (optional)
   Marks the slot as existing but not updatable. May be used for sanity checking
   or informative purpose. A ``readonly`` slot cannot be a target slot.
 
 .. _install-same:
 
-``install-same=<true/false>``
+``install-same=<true/false>`` (optional)
   If set to ``false``, this will tell RAUC to skip writing slots that already
   have the same content as the one that should be installed.
   Having the 'same' content means that the hash value stored for the target
@@ -505,12 +504,12 @@ hierarchical separator.
   This replaces the deprecated entries ``ignore-checksum`` and
   ``force-install-same``.
 
-``resize=<true/false>``
+``resize=<true/false>`` (optional)
   If set to ``true`` this will tell RAUC to resize the filesystem after having
   written the image to this slot. This only has an effect when writing an ext4
   file system to an ext4 slot, i.e. if the slot has``type=ext4`` set.
 
-``extra-mount-opts=<options>``
+``extra-mount-opts=<options>`` (optional)
   Allows to specify custom mount options that will be passed to the slots
   ``mount`` call as ``-o`` argument value.
 
@@ -554,20 +553,20 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
 
 This section contains some high-level information about the bundle.
 
-``compatible`` (mandatory)
+``compatible`` (required)
   A user-defined compatible string that must match the RAUC compatible string
   of the system the bundle should be installed on.
 
-``version``
+``version`` (optional)
   A free version field that can be used to provide and track version
   information. No checks will be performed on this version by RAUC itself,
   although a handler can use this information to reject updates.
 
-``description``
+``description`` (optional)
   A free-form description field that can be used to provide human-readable
   bundle information.
 
-``build``
+``build`` (optional)
   A build id that would typically hold the build date or some build
   information provided by the bundle creation environment. This can help to
   determine the date and origin of the built bundle.
@@ -577,29 +576,29 @@ This section contains some high-level information about the bundle.
 
 The bundle section contains information required to process the bundle.
 
-``format``
+``format`` (optional, recommended)
   Either ``plain`` (default), ``verity`` or ``crypt``.
   This selects the :ref:`format<sec_ref_formats>` used when wrapping the payload
   during bundle creation.
 
 .. _verity-metadata:
 
-``verity-hash``
+``verity-hash`` (generated)
   The dm-verity root hash over the bundle payload in hexadecimal.
   RAUC determines this value automatically, so it should be left unspecified
   when preparing a manifest for bundle creation.
 
-``verity-salt``
+``verity-salt`` (generated)
   The dm-verity salt over the bundle payload in hexadecimal.
   RAUC determines this value automatically, so it should be left unspecified
   when preparing a manifest for bundle creation.
 
-``verity-size``
+``verity-size`` (generated)
   The size of the dm-verity hash tree.
   RAUC determines this value automatically, so it should be left unspecified
   when preparing a manifest for bundle creation.
 
-``crypt-key``
+``crypt-key`` (generated)
   The encryption key of the dm-crypt.
   RAUC generates the key automatically when creating a `crypt` bundle.
 
@@ -609,10 +608,10 @@ The bundle section contains information required to process the bundle.
 The hooks section allows to provide a user-defined executable for
 :ref:`executing hooks <sec-hooks>` during the installation.
 
-``filename``
+``filename`` (optional)
   Hook script path name, relative to the bundle content.
 
-``hooks``
+``hooks`` (optional)
   List of hooks enabled for this bundle.
   See :ref:`sec-install-hooks` for more details.
 
@@ -643,12 +642,12 @@ available to the full custom handler.
 Further system information is passed by RAUC via environment variables.
 No built-in slot update will run and no hook will be executed.
 
-``filename``
+``filename`` (optional)
   Full custom handler path, relative to the bundle content.
   Having this set will activate the full custom handler and use the given
   script/binary instead of the default handling.
 
-``args``
+``args`` (optional)
   Arguments to pass to the full custom handler, such as
   ``args=--setup --verbose``
 
@@ -671,7 +670,7 @@ For each image to install to a slot (class), a corresponding
 
 .. _image.slot-filename:
 
-``filename``
+``filename`` (required)
   Name of the image file (relative to bundle content).
 
   .. important::
@@ -680,21 +679,21 @@ For each image to install to a slot (class), a corresponding
     Make sure to only use :ref:`supported file name extensions
     <sec-ref-supported-image-types>`!
 
-``sha256``
+``sha256`` (generated)
   sha256 of image file. RAUC determines this value automatically when creating
   a bundle, thus it is not required to set this by hand.
 
-``size``
+``size`` (generated)
   size of image file. RAUC determines this value automatically when creating a
   bundle, thus it is not required to set this by hand.
 
-``hooks``
+``hooks`` (optional)
   List of per-slot hooks enabled for this image.
   See :ref:`sec-slot-hooks` for more details.
 
   Valid items are: ``pre-install``, ``install``, ``post-install``
 
-``adaptive``
+``adaptive`` (optional)
   List of ``;``-separated per-slot adaptive update method names.
   These methods will add extra information to the bundle, allowing RAUC to
   access only the parts of an image which are not yet available locally.
@@ -719,7 +718,7 @@ They are accessible via ``rauc info`` and the :ref:`"InspectBundle" D-Bus API
 <gdbus-method-de-pengutronix-rauc-Installer.InspectBundle>`.
 In future releases, they will be accessible in hooks/handlers, as well.
 
-``<key>``
+``<key>`` (optional)
   Keys (and values) can be defined freely in this section.
 
   As they may need to be converted to environment variable names, only
@@ -739,14 +738,14 @@ unique per ``system.conf``.
 For an overview over the event logging framework in RAUC and its purpose, have
 a look at :ref:`sec-advanced-event-log`.
 
-``filename``
+``filename`` (required)
   The log file name used for logging.
   If no absolute path is given, the location is assumed to be relative to the
   ``data-directory``.
   Using a relative file name without ``data-directory`` set will cause a
   configuration error.
 
-``events``
+``events`` (optional)
   Semicolon-separated list of events to log. Currently supported event types are:
 
   * ``install`` - Logs start and end of installation
@@ -754,7 +753,7 @@ a look at :ref:`sec-advanced-event-log`.
   * ``mark`` - Logs slot marking information
   * ``all`` - Log all events (cannot be combined with other events)
 
-``format``
+``format`` (optional)
   The output format used for the logger. Supported values are
 
   * ``readable``: readable mutli-line output
@@ -762,7 +761,7 @@ a look at :ref:`sec-advanced-event-log`.
   * ``json``: single-line JSON output
   * ``json-pretty``: formatted JSON output
 
-``max-size``
+``max-size`` (optional)
   Allows to configure a basic log rotation.
   When given, the logger's log file will be rotated before reaching
   the size configured with ``max-size`` and renamed to ``<filename>.1``.
@@ -771,7 +770,7 @@ a look at :ref:`sec-advanced-event-log`.
   To configure a maximum number of files to keep, see ``max-files``.
   Values support common suffixes like ``K``, ``M``, ``G``, to ``T``.
 
-``max-files``
+``max-files`` (optional)
   Configures the maximum number of files to keep per logger.
   E.g. if set to ``3``, only ``<filename>``, ``<filename>.1`` and
   ``<filename>.2`` will be kept during rotation.
