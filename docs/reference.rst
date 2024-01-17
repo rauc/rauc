@@ -49,6 +49,10 @@ Example configuration:
   type=ext4
   bootname=system1
 
+  [artifacts.add-ons]
+  path=/srv/add-ons
+  type=trees
+
 .. _system-section:
 
 ``[system]`` Section
@@ -543,6 +547,42 @@ hierarchical separator.
   Allows to specify custom mount options that will be passed to the slot's
   ``mount`` call as ``-o`` argument value.
 
+.. _sec_ref_artifacts:
+
+``[artifacts.<repo-name>]`` Sections
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Each :ref:`artifact repository <sec-basic-artifact-repositories>` is identified
+by a section starting with ``artifacts.`` followed by the repository name.
+The ``<repo-name>`` name is used in the *update manifest* to target the correct
+repository.
+It must not contain any ``.`` (dots) as these are used as hierarchical
+separator.
+The name must be different from any slot class names.
+
+``path=</repo/path>`` (required)
+  Full path to a directory (on a shared partition) to be used to store the
+  artifacts.
+  The underlying shared partition must be mounted before starting RAUC.
+
+``type=<type>`` (required)
+  The type of this repository.
+  Currently supported values are ``files`` and ``trees``.
+  For ``files``, each artifact is a single file.
+  For ``trees``, each artifact is a directory tree containing files.
+
+  See :ref:`sec-repository-types` for more details.
+
+``description=<string>`` (optional)
+  A description of this repository.
+
+``parent-class=<slot-class>`` (optional)
+  Reference to a slot class, if the set of installed artifacts should be managed
+  separately for each instance of that class, instead of globally.
+  If so, it should refer to the class of the rootfs slots.
+
+  .. warning:: Support for parent classes is not fully implemented yet. Do not use.
+
 .. _ref-logger-sections:
 
 ``[log.<logger>]`` Sections
@@ -625,6 +665,10 @@ A valid RAUC manifest file must be named ``manifest.raucm``.
   size=219430400
   sha256=ecf4c031d01cb9bfa9aa5ecfce93efcf9149544bdbf91178d2c2d9d1d24076ca
 
+  [image.add-ons/webserver]
+  filename=webserver.tar
+  size=6573863
+  sha256=f23204174c70ff03a9efcd6c2dfd6d2b8ebdd8bb66936043341e728438a1f0ea
 
 .. _sec-manifest-update:
 
@@ -740,25 +784,34 @@ No built-in slot update will run and no hook will be executed.
   If additional arguments are provided via ``--handler-args`` command line
   argument, these will be appended to the ones defined in the manifest.
 
-.. _image.slot-class-section:
+.. _image-section:
 
 ``[image.*]`` Sections
 ~~~~~~~~~~~~~~~~~~~~~~
 
-The image section names can take different forms to support variants.
+The image section names can take different forms to support slots, artifacts and
+variants.
 
 ``[image.<slot-class>]``
-  For each image to install to a slot (class), a corresponding
-  section must exist.
+  This form is used to specify images that should be installed to (inactive)
+  slots of the given class.
 
 ``[image.<slot-class>.<variant>]``
-  This image will be used instead of the default one above if the target
-  system's variant matches ``<variant>``.
+  This form is used to specify an image that will be used instead of the default
+  one above if the target system's variant matches ``<variant>``.
   Refer to chapter :ref:`sec-variants` for more information.
+
+``[image.<artifact-repo-name>/<artifact-name>]``
+  This form is used to specify an image that should be installed into an artifact
+  repository.
+
+``[image.<artifact-repo-name>/<artifact-name>.<variant>]``
+  This form is not yet supported, but will be used to handle artifacts with
+  variants.
 
 The following fields are supported for image sections:
 
-.. _image.slot-filename:
+.. _image-filename:
 
 ``filename`` (required)
   Name of the image file (relative to bundle content).
@@ -783,6 +836,8 @@ The following fields are supported for image sections:
 
   Valid items are: ``pre-install``, ``install``, ``post-install``
 
+  Hooks are not yet supported for artifacts.
+
 ``adaptive`` (optional)
   List of ``;``-separated per-slot adaptive update method names.
   These methods will add extra information to the bundle, allowing RAUC to
@@ -799,6 +854,31 @@ The following fields are supported for image sections:
     image, allowing reuse of unchanged blocks.
 
     For information on this method, see :ref:`sec-adaptive-block-hash-index`.
+
+  Adaptive update methods are currently not supported for artifacts.
+
+``convert`` (optional)
+  List of ``;``-separated conversion methods to use during bundle creation.
+  The original image is not included in the bundle, except when ``keep`` is
+  specified.
+
+  Currently implemented conversion methods:
+
+  ``tar-extract``
+    Extract a tar into a directory tree.
+    This method is not very useful on its own, but can be used to test creation
+    and installation of bundles containing many files.
+    The underlying implementation will also be used for future methods.
+
+  ``keep``
+    Keep the original image after running the conversion methods.
+
+  Conversion methods are currently not supported for slot images.
+
+``converted`` (generated)
+  List of ``;``-separated output file/directory names from conversion methods,
+  as generated by RAUC during bundle creation.
+  Each element in the ``convert`` list has a corresponding entry in this list.
 
 .. _meta.label-section:
 
@@ -1135,7 +1215,7 @@ termed with the slot name (e.g. [slot.rootfs.1]) for the central status file:
   installed.count=3
 
 For a description of ``sha256`` and ``size`` keys see :ref:`this
-<image.slot-class-section>` part of the section :ref:`Manifest
+<image-section>` part of the section :ref:`Manifest
 <sec_ref_manifest>`.
 Having the slot's content's size allows to re-calculate the hash via ``head -c
 <size> <slot-device> | sha256sum`` or ``dd bs=<size> count=1 if=<slot-device> |
@@ -1830,7 +1910,7 @@ Performing an update using the default RAUC mechanism will work as follows:
 
 #. Verify bundle compatible against system compatible (reject if not matching)
 #. Mark target slots as non-bootable for bootloader
-#. Iterate over each image specified in the manifest
+#. Iterate over each slot image specified in the manifest
 
    A. Determine update handler (based on image and slot type)
    #. Try to mount slot and read slot status information
@@ -1839,6 +1919,13 @@ Performing an update using the default RAUC mechanism will work as follows:
 
    #. Perform slot update (image copy / mkfs+tar extract / ...)
    #. Try to write slot status information
+
+#. Iterate over each artifact image specified in the manifest
+
+   A. Determine target repository and type
+   #. Deactivate old artifacts for which no image exists in the bundle
+   #. Install new artifact into the repository
+   #. Create link to newly installed artifact
 
 #. Mark target slots as new primary boot source for the bootloader
 

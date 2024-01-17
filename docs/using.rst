@@ -133,6 +133,11 @@ to the booted rootfs.
 This could be used to mount the correct appfs without replicating the status
 determination already implemented in RAUC.
 
+For each artifact repository, a link at ``/run/rauc/artifacts/<repository-name>``
+points to the correct directory.
+That way, installed artifacts can be found by following
+``/run/rauc/artifacts/<repository-name>/<artifact-name>``.
+
 React to a Successfully Booted System/Failed Boot
 -------------------------------------------------
 
@@ -275,6 +280,8 @@ target group has been determined successfully.
 
 If calling the handler fails or the handler returns a non-zero exit code, RAUC
 will abort installation with an error.
+
+.. _sec-post-install-handler:
 
 .. rubric:: Post-Install Handler
 

@@ -3,6 +3,41 @@ Release 1.13 (development)
 
 .. rubric:: Enhancements
 
+* Add support for :ref:`artifact repositories <sec-basic-artifact-repositories>`
+  as a preview.
+
+  Bundles can now contain *artifacts* (containers, VM images, large data files,
+  firmware images for other systems and micro-controllers, and other add-on
+  binaries).
+  Artifacts are installed into *repositories*, which are directories on a
+  partition shared between all slots.
+  Artifact updates provide flexibility by allowing repositories
+  :ref:`configured <sec-repository-config>` in the ``system.conf`` to contain
+  multiple artifacts.
+
+  Multiple :ref:`types of repositories <sec-repository-types>` are available for
+  different use-cases, such as files or directory trees, and the type determines
+  how artifact are installed and managed.
+
+  We expect that additional types will be added as needed to support adaptive
+  updates for artifacts and deduplicated storage (e.g. using `composefs
+  <https://github.com/containers/composefs>`_) in the future.
+
+.. note::
+
+  Artifact updates are currently available at a preview level.
+
+  This means that we want to allow users to try out this new feature and report
+  their experiences, but also that your use-case (such as parent classes) may
+  not be fully supported yet.
+  Depending on the feedback, we may need to change behaviour in ways that is not
+  backwards compatible.
+  So, try it out and report back `using GitHub discussions
+  <https://github.com/rauc/rauc/discussions/categories/artifact-updates>`_ or in
+  the Matrix/IRC chat channel, but don't rely on it for products yet.
+  We intend to stabilize this feature as soon as we have confidence that the
+  common use-cases work well.
+
 .. rubric:: Bug fixes
 
 .. rubric:: Testing
