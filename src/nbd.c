@@ -231,7 +231,7 @@ gboolean r_nbd_remove_device(RaucNBDDevice *nbd_dev, GError **error)
 	if (!nbd_dev->index_valid)
 		return TRUE;
 
-	g_message("r_nbd_remove_device");
+	g_message("Removing nbd device %s", nbd_dev->dev);
 
 	nl = netlink_connect(&driver_id, &ierror);
 	if (!nl) {
