@@ -562,7 +562,7 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 
 	/* only read from the client on the first try */
 	if (!ctx->url) {
-		GStrv info_headers; /* array of strings such as 'Foo: bar' */
+		GStrv info_headers = NULL; /* array of strings such as 'Foo: bar' */
 
 		res = r_read_exact(ctx->sock, (guint8*)data, xfer->request.len, NULL);
 		g_assert_true(res);
