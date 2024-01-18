@@ -237,6 +237,11 @@ test_expect_success "rauc info (verity, adaptive, meta)" "
     info ${SHARNESS_TEST_DIRECTORY}/good-adaptive-meta-bundle.raucb
 "
 
+test_expect_success STREAMING "rauc info (streaming)" "
+  rauc --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \
+    info http://127.0.0.1/test/good-verity-bundle.raucb
+"
+
 test_expect_success "rauc info (casync, plain)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-casync-bundle-1.5.1.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-casync-bundle-1.5.1.raucb &&
