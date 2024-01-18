@@ -316,7 +316,9 @@ static gboolean install_start(int argc, char **argv)
 				g_variant_dict_end(&dict), /* floating, no unref needed */
 				NULL,
 				&error)) {
-			g_printerr("Failed %s\n", error->message);
+			if (g_dbus_error_is_remote_error(error))
+				g_dbus_error_strip_remote_error(error);
+			g_printerr("Failed to contact rauc service: %s\n", error->message);
 			g_error_free(error);
 			goto out_loop;
 		}
