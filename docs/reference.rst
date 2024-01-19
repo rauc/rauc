@@ -751,12 +751,12 @@ a look at :ref:`sec-advanced-event-log`.
   * ``install`` - Logs start and end of installation
   * ``boot`` - Logs boot information
   * ``mark`` - Logs slot marking information
-  * ``all`` - Log all events (cannot be combined with other events)
+  * ``all`` - Log all events (default, cannot be combined with other events)
 
 ``format`` (optional)
   The output format used for the logger. Supported values are
 
-  * ``readable``: readable mutli-line output
+  * ``readable``: readable mutli-line output (default)
   * ``short``: Single-line readable output
   * ``json``: single-line JSON output
   * ``json-pretty``: formatted JSON output
