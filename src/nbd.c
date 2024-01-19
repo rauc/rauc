@@ -1244,6 +1244,16 @@ gboolean r_nbd_stop_server(RaucNBDServer *nbd_srv, GError **error)
 	g_message("nbd server stopping");
 
 	if (nbd_srv->sock >= 0) {
+		struct nbd_request request = {0};
+
+		/* If socket is still active, manually invoke NBD_CMD_DISC
+		 * first, to trigger a graceful shutdown of the NBD server. */
+		request.magic = GUINT32_TO_BE(NBD_REQUEST_MAGIC);
+		request.type = GUINT32_TO_BE(NBD_CMD_DISC);
+		request.len = 0;
+		if (!r_write_exact(nbd_srv->sock, (guint8*)&request, sizeof(request), NULL))
+			g_error("failed to send nbd disconnect request");
+
 		g_close(nbd_srv->sock, NULL);
 		nbd_srv->sock = -1;
 	}
