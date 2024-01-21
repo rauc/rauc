@@ -997,7 +997,7 @@ static gboolean nbd_configure(RaucNBDServer *nbd_srv, GError **error)
 	v = g_variant_dict_end(&dict);
 	{
 		g_autofree gchar *tmp = g_variant_print(v, TRUE);
-		g_message("sending: %s", tmp);
+		g_message("sending config request to nbd server: %s", tmp);
 	}
 
 	request.magic = GUINT32_TO_BE(NBD_REQUEST_MAGIC);
