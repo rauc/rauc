@@ -1155,6 +1155,8 @@ gboolean r_nbd_start_server(RaucNBDServer *nbd_srv, GError **error)
 	g_return_val_if_fail(nbd_srv != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	g_message("starting the nbd server");
+
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) < 0) {
 		g_set_error(
 				error,
@@ -1218,7 +1220,7 @@ gboolean r_nbd_start_server(RaucNBDServer *nbd_srv, GError **error)
 		goto out;
 	}
 
-	g_message("nbd server started");
+	g_message("the nbd server was started");
 
 	res = TRUE;
 
@@ -1241,7 +1243,7 @@ gboolean r_nbd_stop_server(RaucNBDServer *nbd_srv, GError **error)
 	if (!nbd_srv->sproc)
 		return TRUE;
 
-	g_message("nbd server stopping");
+	g_message("stopping the nbd server");
 
 	if (nbd_srv->sock >= 0) {
 		g_close(nbd_srv->sock, NULL);
@@ -1257,7 +1259,7 @@ gboolean r_nbd_stop_server(RaucNBDServer *nbd_srv, GError **error)
 		goto out;
 	}
 
-	g_message("nbd server stopped");
+	g_message("the nbd server was stopped");
 
 out:
 	g_clear_object(&nbd_srv->sproc);
