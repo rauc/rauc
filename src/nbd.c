@@ -384,18 +384,18 @@ static size_t header_cb(char *buffer, size_t size, size_t nitems, void *userdata
 
 		xfer->content_size = range_size;
 
-		g_message("total size %"G_GUINT64_FORMAT, range_size);
+		g_message("nbd server received total size %"G_GUINT64_FORMAT, range_size);
 	} else if (g_str_equal(h_pair[0], "date")) {
 		time_t date = curl_getdate(h_pair[1], NULL);
 		if (date >= 0) {
 			xfer->current_time = date;
-			g_message("server date %"G_GUINT64_FORMAT, xfer->current_time);
+			g_message("nbd server received HTTP server date %"G_GUINT64_FORMAT, xfer->current_time);
 		}
 	} else if (g_str_equal(h_pair[0], "last-modified")) {
 		time_t date = curl_getdate(h_pair[1], NULL);
 		if (date >= 0) {
 			xfer->modified_time = date;
-			g_message("file date %"G_GUINT64_FORMAT, xfer->modified_time);
+			g_message("nbd server received HTTP file date %"G_GUINT64_FORMAT, xfer->modified_time);
 		}
 	}
 
@@ -574,7 +574,7 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 		g_assert_nonnull(v);
 		{
 			g_autofree gchar *tmp = g_variant_print(v, TRUE);
-			g_message("received: %s", tmp);
+			g_message("nbd server received configuration: %s", tmp);
 		}
 
 		g_variant_dict_init(&dict, v);
@@ -597,7 +597,7 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 		}
 	}
 
-	g_message("configuring for URL: %s", ctx->url);
+	g_message("nbd server configuring for URL: %s", ctx->url);
 
 	prepare_curl(xfer);
 	if (ctx->initial_headers_slist) {
@@ -632,7 +632,7 @@ static void start_request(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xf
 			break;
 		}
 		case NBD_CMD_DISC: {
-			g_message("disconnect");
+			g_message("nbd server received disconnect request");
 			ctx->done = TRUE;
 			break;
 		}
@@ -641,7 +641,7 @@ static void start_request(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xf
 			break;
 		}
 		default: {
-			g_error("bad request type");
+			g_error("nbd server received bad request type");
 			break;
 		}
 	}
@@ -822,7 +822,7 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 		return FALSE;
 	}
 
-	g_message("running as UID %d, GID %d", getuid(), getgid());
+	g_message("nbd server running as UID %d, GID %d", getuid(), getgid());
 
 	ctx.dl_size = r_stats_new("nbd dl_size");
 	ctx.dl_speed = r_stats_new("nbd dl_speed");
@@ -953,7 +953,7 @@ out:
 	curl_multi_cleanup(ctx.multi);
 	g_clear_pointer(&ctx.headers_slist, curl_slist_free_all);
 	g_clear_pointer(&ctx.initial_headers_slist, curl_slist_free_all);
-	g_message("exiting nbd server");
+	g_message("nbd server exiting");
 	return res;
 }
 
