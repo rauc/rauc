@@ -619,6 +619,8 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 	xfer->buffer_size = 4;
 	xfer->buffer_pos = 0;
 
+	g_debug("nbd server sending initial range request to HTTP server");
+
 	mcode = curl_multi_add_handle(ctx->multi, xfer->easy);
 	if (mcode != CURLM_OK)
 		g_error("unexpected error from curl_multi_add_handle in %s", G_STRFUNC);
