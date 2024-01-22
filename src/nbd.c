@@ -231,7 +231,7 @@ gboolean r_nbd_remove_device(RaucNBDDevice *nbd_dev, GError **error)
 	if (!nbd_dev->index_valid)
 		return TRUE;
 
-	g_message("r_nbd_remove_device");
+	g_message("Removing nbd device %s", nbd_dev->dev);
 
 	nl = netlink_connect(&driver_id, &ierror);
 	if (!nl) {
@@ -384,18 +384,18 @@ static size_t header_cb(char *buffer, size_t size, size_t nitems, void *userdata
 
 		xfer->content_size = range_size;
 
-		g_message("total size %"G_GUINT64_FORMAT, range_size);
+		g_message("nbd server received total size %"G_GUINT64_FORMAT, range_size);
 	} else if (g_str_equal(h_pair[0], "date")) {
 		time_t date = curl_getdate(h_pair[1], NULL);
 		if (date >= 0) {
 			xfer->current_time = date;
-			g_message("server date %"G_GUINT64_FORMAT, xfer->current_time);
+			g_message("nbd server received HTTP server date %"G_GUINT64_FORMAT, xfer->current_time);
 		}
 	} else if (g_str_equal(h_pair[0], "last-modified")) {
 		time_t date = curl_getdate(h_pair[1], NULL);
 		if (date >= 0) {
 			xfer->modified_time = date;
-			g_message("file date %"G_GUINT64_FORMAT, xfer->modified_time);
+			g_message("nbd server received HTTP file date %"G_GUINT64_FORMAT, xfer->modified_time);
 		}
 	}
 
@@ -574,7 +574,7 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 		g_assert_nonnull(v);
 		{
 			g_autofree gchar *tmp = g_variant_print(v, TRUE);
-			g_message("received: %s", tmp);
+			g_message("nbd server received configuration: %s", tmp);
 		}
 
 		g_variant_dict_init(&dict, v);
@@ -597,7 +597,7 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 		}
 	}
 
-	g_message("configuring for URL: %s", ctx->url);
+	g_message("nbd server configuring for URL: %s", ctx->url);
 
 	prepare_curl(xfer);
 	if (ctx->initial_headers_slist) {
@@ -619,6 +619,8 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 	xfer->buffer_size = 4;
 	xfer->buffer_pos = 0;
 
+	g_debug("nbd server sending initial range request to HTTP server");
+
 	mcode = curl_multi_add_handle(ctx->multi, xfer->easy);
 	if (mcode != CURLM_OK)
 		g_error("unexpected error from curl_multi_add_handle in %s", G_STRFUNC);
@@ -632,7 +634,7 @@ static void start_request(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xf
 			break;
 		}
 		case NBD_CMD_DISC: {
-			g_message("disconnect");
+			g_message("nbd server received disconnect request");
 			ctx->done = TRUE;
 			break;
 		}
@@ -641,7 +643,7 @@ static void start_request(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xf
 			break;
 		}
 		default: {
-			g_error("bad request type");
+			g_error("nbd server received bad request type");
 			break;
 		}
 	}
@@ -822,7 +824,7 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 		return FALSE;
 	}
 
-	g_message("running as UID %d, GID %d", getuid(), getgid());
+	g_message("nbd server running as UID %d, GID %d", getuid(), getgid());
 
 	ctx.dl_size = r_stats_new("nbd dl_size");
 	ctx.dl_speed = r_stats_new("nbd dl_speed");
@@ -912,8 +914,8 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 				xfer->reply.error = GUINT32_TO_BE(5); /* NBD_EIO */
 				xfer->done = TRUE;
 			} else {
-				g_message("request failed: %s (retrying)", curl_easy_strerror(msg->data.result));
 				xfer->errors++;
+				g_message("request failed: %s (retrying %d/5)", xfer->errbuf, xfer->errors);
 			}
 
 			res = finish_request(&ctx, xfer);
@@ -953,7 +955,7 @@ out:
 	curl_multi_cleanup(ctx.multi);
 	g_clear_pointer(&ctx.headers_slist, curl_slist_free_all);
 	g_clear_pointer(&ctx.initial_headers_slist, curl_slist_free_all);
-	g_message("exiting nbd server");
+	g_message("nbd server exiting");
 	return res;
 }
 
@@ -997,7 +999,7 @@ static gboolean nbd_configure(RaucNBDServer *nbd_srv, GError **error)
 	v = g_variant_dict_end(&dict);
 	{
 		g_autofree gchar *tmp = g_variant_print(v, TRUE);
-		g_message("sending: %s", tmp);
+		g_message("sending config request to nbd server: %s", tmp);
 	}
 
 	request.magic = GUINT32_TO_BE(NBD_REQUEST_MAGIC);
@@ -1062,11 +1064,22 @@ static gboolean nbd_configure(RaucNBDServer *nbd_srv, GError **error)
 
 	g_variant_dict_lookup(&dict, "url", "s", &nbd_srv->effective_url);
 	g_variant_dict_lookup(&dict, "size", "t", &nbd_srv->data_size);
-	g_message("received total size %"G_GUINT64_FORMAT, nbd_srv->data_size);
+	if (nbd_srv->data_size) {
+		g_autofree gchar* formatted_size = g_format_size_full(nbd_srv->data_size, G_FORMAT_SIZE_LONG_FORMAT);
+		g_message("received HTTP server info: total size %s", formatted_size);
+	}
 	g_variant_dict_lookup(&dict, "current-time", "t", &nbd_srv->current_time);
-	g_message("received current time %"G_GUINT64_FORMAT, nbd_srv->current_time);
+	if (nbd_srv->current_time) {
+		g_autoptr(GDateTime) datetime = g_date_time_new_from_unix_utc(nbd_srv->current_time);
+		g_autofree gchar *formatted_date = g_date_time_format(datetime, "%Y-%m-%d %H:%M:%S");
+		g_message("received HTTP server info: current time %s (%"G_GUINT64_FORMAT ")", formatted_date, nbd_srv->current_time);
+	}
 	g_variant_dict_lookup(&dict, "modified-time", "t", &nbd_srv->modified_time);
-	g_message("received modified time %"G_GUINT64_FORMAT, nbd_srv->modified_time);
+	if (nbd_srv->modified_time) {
+		g_autoptr(GDateTime) datetime = g_date_time_new_from_unix_utc(nbd_srv->modified_time);
+		g_autofree gchar *formatted_date = g_date_time_format(datetime, "%Y-%m-%d %H:%M:%S");
+		g_message("received HTTP server info: modified time %s (%"G_GUINT64_FORMAT ")", formatted_date, nbd_srv->modified_time);
+	}
 
 	return TRUE;
 }
@@ -1155,6 +1168,8 @@ gboolean r_nbd_start_server(RaucNBDServer *nbd_srv, GError **error)
 	g_return_val_if_fail(nbd_srv != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	g_message("starting the nbd server");
+
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) < 0) {
 		g_set_error(
 				error,
@@ -1218,7 +1233,7 @@ gboolean r_nbd_start_server(RaucNBDServer *nbd_srv, GError **error)
 		goto out;
 	}
 
-	g_message("nbd server started");
+	g_message("the nbd server was started");
 
 	res = TRUE;
 
@@ -1241,7 +1256,7 @@ gboolean r_nbd_stop_server(RaucNBDServer *nbd_srv, GError **error)
 	if (!nbd_srv->sproc)
 		return TRUE;
 
-	g_message("nbd server stopping");
+	g_message("stopping the nbd server");
 
 	if (nbd_srv->sock >= 0) {
 		struct nbd_request request = {0};
@@ -1267,7 +1282,7 @@ gboolean r_nbd_stop_server(RaucNBDServer *nbd_srv, GError **error)
 		goto out;
 	}
 
-	g_message("nbd server stopped");
+	g_message("the nbd server was stopped");
 
 out:
 	g_clear_object(&nbd_srv->sproc);
