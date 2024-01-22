@@ -2,6 +2,7 @@
 #include <gio/gio.h>
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <glib-unix.h>
 #if ENABLE_JSON
 #include <json-glib/json-glib.h>
 #include <json-glib/json-gobject.h>
@@ -210,6 +211,18 @@ static void print_progress_callback(gint percentage,
 	g_print("%3"G_GINT32_FORMAT "%% %s\n", percentage, message);
 }
 
+static gboolean on_sigint(gpointer user_data)
+{
+	RaucInstallArgs *args = user_data;
+
+	g_mutex_lock(&args->status_mutex);
+	args->status_result = 3;
+	g_mutex_unlock(&args->status_mutex);
+
+	args->cleanup(args);
+	return G_SOURCE_REMOVE;
+}
+
 static gboolean install_start(int argc, char **argv)
 {
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
@@ -262,6 +275,8 @@ static gboolean install_start(int argc, char **argv)
 	if (ENABLE_SERVICE) {
 		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
 
+		g_unix_signal_add(SIGINT, on_sigint, args);
+
 		g_variant_dict_insert(&dict, "ignore-compatible", "b", args->ignore_compatible);
 		if (args->transaction)
 			g_variant_dict_insert(&dict, "transaction-id", "s", args->transaction);
@@ -301,7 +316,9 @@ static gboolean install_start(int argc, char **argv)
 				g_variant_dict_end(&dict), /* floating, no unref needed */
 				NULL,
 				&error)) {
-			g_printerr("Failed %s\n", error->message);
+			if (g_dbus_error_is_remote_error(error))
+				g_dbus_error_strip_remote_error(error);
+			g_printerr("Failed to contact rauc service: %s\n", error->message);
 			g_error_free(error);
 			goto out_loop;
 		}
@@ -330,6 +347,10 @@ out_loop:
 			break;
 		case 2:
 			g_printerr("D-Bus error while installing `%s`\n", args->name);
+			break;
+		case 3:
+			g_print("\nCtrl+C pressed. Exiting rauc installation client...\n"
+					"Note that this will not abort the installation running in the rauc service!\n");
 			break;
 		default:
 			g_printerr("Installing `%s` failed with unknown exit code: %d\n", args->name, args->status_result);
