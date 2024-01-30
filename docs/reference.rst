@@ -562,6 +562,7 @@ a look at :ref:`sec-advanced-event-log`.
   E.g. if set to ``3``, only ``<filename>``, ``<filename>.1`` and
   ``<filename>.2`` will be kept during rotation.
   Defaults to 10 if unset.
+
 .. _sec_ref_manifest:
 
 Manifest
