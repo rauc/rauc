@@ -1426,7 +1426,8 @@ The RAUC recipe allows to compile and use RAUC on your host system.
 Having RAUC available as a host tool is useful for debugging, testing or for
 creating bundles manually.
 For the preferred way of creating bundles automatically, see the chapter
-`Bundle Generation`_. In order to compile RAUC for your host system, simply run::
+:ref:`sec-integration-yocto-bundle`.
+In order to compile RAUC for your host system, simply run::
 
   bitbake rauc-native
 
