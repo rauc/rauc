@@ -19,9 +19,11 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 {
 	g_autoptr(RaucImage) iimage = g_new0(RaucImage, 1);
 	g_auto(GStrv) groupsplit = NULL;
+	g_auto(GStrv) targetsplit = NULL;
 	gchar *value;
 	g_auto(GStrv) hooks = NULL;
 	gsize entries;
+	g_auto(GStrv) converted = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
@@ -30,16 +32,27 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 	g_return_val_if_fail(image == NULL || *image == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	/* We support several formats:
+	 * - [image.rootfs]
+	 * - [image.rootfs.product-a]
+	 * - [image.appfs/app-1]
+	 * - [image.appfs/app-1.product-a]
+	 */
+
 	groupsplit = g_strsplit(group, ".", 3);
 	g_assert_cmpint(g_strv_length(groupsplit), >=, 2);
+	g_assert_cmpstr(groupsplit[0], ==, "image");
 
-	iimage->slotclass = g_strdup(groupsplit[1]);
+	targetsplit = g_strsplit(groupsplit[1], "/", 2);
+	iimage->slotclass = g_strdup(targetsplit[0]);
 
-	/* if we have a variant part in group, store it here */
+	/* Do we have an artifact name for this image? */
+	if (g_strv_length(targetsplit) == 2)
+		iimage->artifact = g_strdup(targetsplit[1]);
+
+	/* Do we have a variant name for this image? */
 	if (g_strv_length(groupsplit) == 3)
 		iimage->variant = g_strdup(groupsplit[2]);
-	else
-		iimage->variant = NULL;
 
 	value = key_file_consume_string(key_file, group, "sha256", NULL);
 	if (value) {
@@ -90,6 +103,14 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 
 	iimage->adaptive = g_key_file_get_string_list(key_file, group, "adaptive", NULL, NULL);
 	g_key_file_remove_key(key_file, group, "adaptive", NULL);
+
+	iimage->convert = g_key_file_get_string_list(key_file, group, "convert", NULL, NULL);
+	g_key_file_remove_key(key_file, group, "convert", NULL);
+
+	iimage->converted = g_ptr_array_new_with_free_func(g_free);
+	converted = g_key_file_get_string_list(key_file, group, "converted", NULL, NULL);
+	g_key_file_remove_key(key_file, group, "converted", NULL);
+	r_ptr_array_addv(iimage->converted, converted, FALSE);
 
 	if (!check_remaining_keys(key_file, group, &ierror)) {
 		g_propagate_error(error, ierror);
@@ -424,6 +445,31 @@ out:
 	return res;
 }
 
+static gboolean check_manifest_plain(const RaucManifest *mf, GError **error)
+{
+	gboolean res = FALSE;
+
+	g_assert(mf->bundle_format == R_MANIFEST_FORMAT_PLAIN);
+
+	for (GList *elem = mf->images; elem != NULL; elem = elem->next) {
+		RaucImage *image = elem->data;
+
+		/* Check for features not supported in plain bundles */
+		if (image->artifact) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Artifacts are not supported in plain bundles");
+			goto out;
+		}
+		if (image->convert || image->converted->len) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Image converters are not supported in plain bundles");
+			goto out;
+		}
+	}
+
+	res = TRUE;
+out:
+	return res;
+}
+
 static gboolean check_manifest_bundled(const RaucManifest *mf, GError **error)
 {
 	for (GList *l = mf->images; l != NULL; l = l->next) {
@@ -464,6 +510,50 @@ static gboolean check_manifest_bundled(const RaucManifest *mf, GError **error)
 	return TRUE;
 }
 
+gboolean check_manifest_input(const RaucManifest *mf, GError **error)
+{
+	GError *ierror = NULL;
+
+	if (!check_manifest_common(mf, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	switch (mf->bundle_format) {
+		case R_MANIFEST_FORMAT_PLAIN:
+		case R_MANIFEST_FORMAT_CRYPT:
+		case R_MANIFEST_FORMAT_VERITY:
+		default: {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported bundle format");
+			goto out;
+		}
+	}
+
+	if (mf->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
+		if (!check_manifest_plain(mf, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+	}
+
+	for (GList *l = mf->images; l != NULL; l = l->next) {
+		RaucImage *image = l->data;
+
+		g_assert(image);
+
+		if (image->checksum.digest) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected digest for image %s in input manifest", image->filename);
+			return FALSE;
+		}
+		if (image->checksum.size) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unexpected size for image %s in input manifest", image->filename);
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
 gboolean check_manifest_internal(const RaucManifest *mf, GError **error)
 {
 	GError *ierror = NULL;
@@ -488,6 +578,11 @@ gboolean check_manifest_internal(const RaucManifest *mf, GError **error)
 	}
 
 	if (!check_manifest_bundled(mf, &ierror)) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	if (!check_manifest_plain(mf, &ierror)) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
@@ -685,6 +780,12 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 
 		group = g_strconcat(RAUC_IMAGE_PREFIX ".", image->slotclass, NULL);
 
+		if (image->artifact) {
+			gchar *tmp = group;
+			group = g_strconcat(group, "/", image->artifact, NULL);
+			g_free(tmp);
+		}
+
 		if (image->variant) {
 			gchar *tmp = group;
 			group = g_strconcat(group, ".", image->variant, NULL);
@@ -718,6 +819,13 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 		if (image->adaptive)
 			g_key_file_set_string_list(key_file, group, "adaptive",
 					(const gchar * const *)image->adaptive, g_strv_length(image->adaptive));
+
+		if (image->convert)
+			g_key_file_set_string_list(key_file, group, "convert",
+					(const gchar * const *)image->convert, g_strv_length(image->convert));
+		if (image->converted->len)
+			g_key_file_set_string_list(key_file, group, "converted",
+					(const gchar * const *)image->converted->pdata, image->converted->len);
 	}
 
 	if (mf->meta) {
@@ -900,10 +1008,13 @@ void r_free_image(gpointer data)
 		return;
 
 	g_free(image->slotclass);
+	g_free(image->artifact);
 	g_free(image->variant);
 	g_free(image->checksum.digest);
 	g_free(image->filename);
 	g_strfreev(image->adaptive);
+	g_strfreev(image->convert);
+	g_clear_pointer(&image->converted, (GDestroyNotify)g_ptr_array_unref);
 	g_free(image);
 }
 

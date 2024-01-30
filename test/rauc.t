@@ -72,6 +72,8 @@ start_rauc_dbus_service_with_system ()
   touch ${SHARNESS_TEST_DIRECTORY}/images/rootfs-1 &&
   touch ${SHARNESS_TEST_DIRECTORY}/images/appfs-0 &&
   touch ${SHARNESS_TEST_DIRECTORY}/images/appfs-1 &&
+  touch ${SHARNESS_TEST_DIRECTORY}/repos/files &&
+  touch ${SHARNESS_TEST_DIRECTORY}/repos/trees &&
   start_rauc_dbus_service "$@"
 }
 stop_rauc_dbus_service_with_system ()

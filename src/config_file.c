@@ -1,6 +1,7 @@
 #include <glib.h>
 #include <string.h>
 
+#include "artifacts.h"
 #include "bootchooser.h"
 #include "config_file.h"
 #include "context.h"
@@ -8,6 +9,7 @@
 #include "install.h"
 #include "manifest.h"
 #include "mount.h"
+#include "slot.h"
 #include "utils.h"
 
 G_DEFINE_QUARK(r-config-error-quark, r_config_error)
@@ -572,6 +574,118 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 	return g_steal_pointer(&slots);
 }
 
+static GHashTable *parse_artifact_repos(const char *filename, const char *data_directory, GKeyFile *key_file, GError **error)
+{
+	GError *ierror = NULL;
+	g_auto(GStrv) groups = NULL;
+	gsize group_count;
+	g_autoptr(GHashTable) repos = NULL;
+
+	repos = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_artifact_repo_free);
+
+	groups = g_key_file_get_groups(key_file, &group_count);
+	for (gsize i = 0; i < group_count; i++) {
+		gchar **groupsplit;
+
+		groupsplit = g_strsplit(groups[i], ".", -1);
+
+		/* We treat sections starting with "artifacts." as artifact repositories. */
+		if (g_str_equal(groupsplit[0], "artifacts")) {
+			g_autoptr(RArtifactRepo) repo = g_new0(RArtifactRepo, 1);
+			gchar* value;
+
+			/* Assure artifact repo strings consist of 2 parts, delimited by dots */
+			if (g_strv_length(groupsplit) != 2) {
+				g_set_error(
+						error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_INVALID_FORMAT,
+						"Invalid artifacts repo format: %s", groups[i]);
+				return NULL;
+			}
+			repo->name = g_intern_string(groupsplit[1]);
+
+			/* If we have a data_directory, use a artifacts.name subdirectory
+			 * for per-repo data. */
+			if (data_directory)
+				repo->data_directory = g_build_filename(data_directory, groups[i], NULL);
+
+			repo->description = key_file_consume_string(key_file, groups[i], "description", NULL);
+
+			value = resolve_path_take(filename, key_file_consume_string(key_file, groups[i], "path", &ierror));
+			if (!value) {
+				g_propagate_error(error, ierror);
+				return NULL;
+			}
+			repo->path = value;
+
+			value = key_file_consume_string(key_file, groups[i], "type", &ierror);
+			if (!value) {
+				g_propagate_error(error, ierror);
+				return NULL;
+			}
+			repo->type = value;
+
+			if (!r_artifact_repo_is_valid_type(repo->type)) {
+				g_set_error(
+						error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_ARTIFACT_REPO_TYPE,
+						"Unsupported artifacts repo type '%s' for repo %s selected in system config", repo->type, repo->name);
+				return NULL;
+			}
+
+			/* FIXME is this the right model? */
+			value = key_file_consume_string(key_file, groups[i], "parent-class", NULL);
+			repo->parent_class = g_intern_string(value);
+			g_free(value);
+			/*if (repo->parent_class) {
+			        g_set_error(
+			                        error,
+			                        R_CONFIG_ERROR,
+			                        R_CONFIG_ERROR_PARENT,
+			                        "Parent slot classes are not yet supported for artifact repos!");
+			        return NULL;
+			   }*/
+			if (!check_remaining_keys(key_file, groups[i], &ierror)) {
+				g_propagate_error(error, ierror);
+				return NULL;
+			}
+
+			g_key_file_remove_group(key_file, groups[i], NULL);
+
+			g_hash_table_insert(repos, (gchar*)repo->name, repo);
+			repo = NULL;
+		}
+		g_strfreev(groupsplit);
+	}
+
+	return g_steal_pointer(&repos);
+}
+
+static gboolean check_unique_slotclasses(RaucConfig *config, GError **error)
+{
+	GHashTableIter iter;
+	gpointer value;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_hash_table_iter_init(&iter, config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, &value)) {
+		RaucSlot *slot = value;
+
+		if (g_hash_table_contains(config->artifact_repos, slot->sclass)) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_DUPLICATE_CLASS,
+					"Existing slot class '%s' cannot be used as artifact repo name!", slot->sclass);
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
 void r_config_file_modified_check(void)
 {
 	g_autoptr(GError) ierror = NULL;
@@ -1068,6 +1182,18 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		return FALSE;
 	}
 
+	/* parse [artifacts.*] sections */
+	c->artifact_repos = parse_artifact_repos(filename, c->data_directory, key_file, &ierror);
+	if (!c->artifact_repos) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (!check_unique_slotclasses(c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
 	if (!check_remaining_groups(key_file, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -1130,5 +1256,6 @@ void free_config(RaucConfig *config)
 	g_clear_pointer(&config->slots, g_hash_table_destroy);
 	g_free(config->custom_bootloader_backend);
 	g_free(config->file_checksum);
+	g_clear_pointer(&config->artifact_repos, g_hash_table_destroy);
 	g_free(config);
 }

@@ -5,6 +5,7 @@
 #include <glib/gstdio.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/vfs.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -14,6 +15,7 @@
 #include "bundle.h"
 #include "context.h"
 #include "crypt.h"
+#include "manifest.h"
 #include "mount.h"
 #include "signature.h"
 #include "utils.h"
@@ -100,7 +102,7 @@ r_bundle_error_quark(void)
 	return g_quark_from_static_string("r-bundle-error-quark");
 }
 
-static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GError **error)
+static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, const gchar *fakeroot, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -117,14 +119,18 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 		goto out;
 	}
 
+	r_fakeroot_add_args(args, fakeroot);
+
 	g_ptr_array_add(args, g_strdup("mksquashfs"));
 	g_ptr_array_add(args, g_strdup(contentdir));
 	g_ptr_array_add(args, g_strdup(bundlename));
-	g_ptr_array_add(args, g_strdup("-all-root"));
 	g_ptr_array_add(args, g_strdup("-noappend"));
 	g_ptr_array_add(args, g_strdup("-no-progress"));
-	g_ptr_array_add(args, g_strdup("-no-xattrs"));
-
+	if (!fakeroot) {
+		g_ptr_array_add(args, g_strdup("-all-root"));
+		g_ptr_array_add(args, g_strdup("-no-xattrs"));
+	}
+	//g_ptr_array_add(args, g_strdup("-quiet"));
 
 	if (r_context()->mksquashfs_args != NULL) {
 		g_auto(GStrv) mksquashfs_argvp = NULL;
@@ -140,7 +146,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 	}
 	g_ptr_array_add(args, NULL);
 
-	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
+	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -438,6 +444,117 @@ static gboolean generate_adaptive_data(RaucManifest *manifest, const gchar *dir,
 						R_BUNDLE_ERROR,
 						R_BUNDLE_ERROR_PAYLOAD,
 						"Unsupported adaptive method: %s", *method);
+				return FALSE;
+			}
+		}
+	}
+
+	return TRUE;
+}
+
+static gchar *convert_tar_extract(RaucImage *image, const gchar *dir, const gchar *fakeroot, GError **error)
+{
+	GError *ierror = NULL;
+	g_autofree gchar *file_path = NULL;
+	g_autofree gchar *converted = NULL;
+	g_autofree gchar *converted_path = NULL;
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(10, g_free);
+
+	g_return_val_if_fail(image, NULL);
+	g_return_val_if_fail(dir, NULL);
+	g_return_val_if_fail(fakeroot, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	file_path = g_build_filename(dir, image->filename, NULL);
+	converted = g_strdup_printf("%s.extracted", image->filename);
+	converted_path = g_build_filename(dir, converted, NULL);
+
+	if (g_mkdir(converted_path, S_IRWXU)) {
+		int err = errno;
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
+				"failed to create directory '%s': %s", converted_path, g_strerror(err));
+		return NULL;
+	}
+
+	r_fakeroot_add_args(args, fakeroot);
+
+	g_ptr_array_add(args, g_strdup("tar"));
+	g_ptr_array_add(args, g_strdup("--numeric-owner"));
+	// FIXME acl/xattr seems broken in fakeroot, perhaps use pseudo
+	//g_ptr_array_add(args, g_strdup("--acl"));
+	//g_ptr_array_add(args, g_strdup("--selinux"));
+	//g_ptr_array_add(args, g_strdup("--xattrs"));
+	g_ptr_array_add(args, g_strdup("-xf"));
+	g_ptr_array_add(args, g_strdup(file_path));
+	g_ptr_array_add(args, g_strdup("-C"));
+	g_ptr_array_add(args, g_strdup(converted_path));
+	g_ptr_array_add(args, NULL);
+
+	if (!r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror)) {
+		g_propagate_prefixed_error(error, ierror, "failed to run tar extract: ");
+		return NULL;
+	}
+
+	return g_steal_pointer(&converted);
+}
+
+static gboolean convert_images(RaucManifest *manifest, const gchar *dir, const gchar *fakeroot, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(dir, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
+		RaucImage *image = elem->data;
+		gboolean keep = FALSE;
+
+		if (image->converted && image->converted->len == 0) {
+			g_set_error(
+					error,
+					R_BUNDLE_ERROR,
+					R_BUNDLE_ERROR_PAYLOAD,
+					"Manifest already contains converted images for '%s'", image->slotclass);
+			return FALSE;
+		}
+
+		if (!image->convert)
+			continue;
+
+		for (gchar **method = image->convert; *method != NULL; method++) {
+			gchar *converted_filename = NULL;
+			if (g_str_equal(*method, "tar-extract")) {
+				g_debug("FIXME tar-extract for %s", image->filename);
+				converted_filename = convert_tar_extract(image, dir, fakeroot, &ierror);
+				if (!converted_filename) {
+					g_propagate_error(error, ierror);
+					return FALSE;
+				}
+			} else if (g_str_equal(*method, "keep")) {
+				keep = TRUE;
+				converted_filename = g_strdup(image->filename);
+			} else {
+				g_set_error(
+						error,
+						R_BUNDLE_ERROR,
+						R_BUNDLE_ERROR_PAYLOAD,
+						"Unsupported convert method: %s", *method);
+				return FALSE;
+			}
+
+			g_assert(converted_filename != NULL);
+			g_ptr_array_add(image->converted, converted_filename);
+		}
+
+		if (!keep) {
+			g_autofree gchar *file_path = g_build_filename(dir, image->filename, NULL);
+			g_debug("removing input image %s", image->filename);
+			if (g_unlink(file_path) != 0) {
+				int err = errno;
+				g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
+						"Failed to remove input image after converting %s: %s\n",
+						file_path, g_strerror(errno));
 				return FALSE;
 			}
 		}
@@ -878,11 +995,26 @@ out:
 	return res;
 }
 
+static gboolean needs_fakeroot(const RaucManifest *manifest)
+{
+	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
+		RaucImage *image = elem->data;
+
+		if (image->convert) {
+			if (g_strv_contains((const gchar * const *)image->convert, "tar-extract"))
+				return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
 gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error)
 {
 	GError *ierror = NULL;
 	g_autofree gchar* manifestpath = g_build_filename(contentdir, "manifest.raucm", NULL);
 	g_autoptr(RaucManifest) manifest = NULL;
+	g_autofree gchar *fakeroot = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundlename != NULL, FALSE);
@@ -902,6 +1034,12 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 
 	g_print("Creating '%s' format bundle\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
 
+	res = check_manifest_input(manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
 	/* print warnings collected while parsing */
 	for (guint i =  0; i < manifest->warnings->len; i++) {
 		g_print("%s\n", (gchar *)g_ptr_array_index(manifest->warnings, i));
@@ -913,7 +1051,21 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		goto out;
 	}
 
+	if (needs_fakeroot(manifest)) {
+		fakeroot = r_fakeroot_init(&ierror);
+		if (!fakeroot) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
 	res = generate_adaptive_data(manifest, contentdir, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	res = convert_images(manifest, contentdir, fakeroot, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -925,7 +1077,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		goto out;
 	}
 
-	res = mksquashfs(bundlename, contentdir, &ierror);
+	res = mksquashfs(bundlename, contentdir, fakeroot, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -948,6 +1100,13 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 	res = TRUE;
 
 out:
+	/* Remove fakeroot env */
+	if (fakeroot) {
+		g_autofree GError *cleanup_error = NULL;
+		if (!r_fakeroot_cleanup(fakeroot, &cleanup_error)) {
+			g_warning("failed to clean up fakeroot environment: %s", cleanup_error->message);
+		}
+	}
 	/* Remove output file on error */
 	if (!res &&
 	    g_file_test(bundlename, G_FILE_TEST_IS_REGULAR))
@@ -1193,7 +1352,7 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 		goto out;
 	}
 
-	res = mksquashfs(outbundle, contentdir, &ierror);
+	res = mksquashfs(outbundle, contentdir, NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;

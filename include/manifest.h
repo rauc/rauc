@@ -26,11 +26,14 @@ typedef struct {
 
 typedef struct {
 	gchar* slotclass;
+	gchar* artifact;
 	gchar* variant;
 	RaucChecksum checksum;
 	gchar* filename;
 	SlotHooks hooks;
 	GStrv adaptive;
+	GStrv convert;
+	GPtrArray* converted;
 } RaucImage;
 
 typedef enum {
@@ -101,6 +104,19 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return TRUE on success, FALSE if an error occurred
  */
 gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Check a loaded input manifest for consistency. Manifests to be used with 'rauc
+ * bundle' must pass this check. They should not contain information will be
+ * generated (such as hashes or converted filenames);
+ *
+ * @param manifest Pointer to the manifest to check
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean check_manifest_input(const RaucManifest *manifest, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
