@@ -903,7 +903,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 	g_print("Creating '%s' format bundle\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
 
 	/* print warnings collected while parsing */
-	for (guint i =  0; i < manifest->warnings->len; i++) {
+	for (guint i = 0; i < manifest->warnings->len; i++) {
 		g_print("%s\n", (gchar *)g_ptr_array_index(manifest->warnings, i));
 	}
 
