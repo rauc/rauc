@@ -741,7 +741,7 @@ static gboolean finish_configure(struct RaucNBDContext *ctx, struct RaucNBDTrans
 	code = curl_easy_getinfo(xfer->easy, CURLINFO_EFFECTIVE_URL, &effective_url);
 	if (code == CURLE_OK) {
 		if (!g_str_equal(ctx->url, effective_url))
-			g_message("redirected from %s to %s",ctx->url, effective_url);
+			g_message("redirected from %s to %s", ctx->url, effective_url);
 		g_free(ctx->url);
 		ctx->url = g_strdup(effective_url);
 	}
