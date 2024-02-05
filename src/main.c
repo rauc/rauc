@@ -2053,7 +2053,7 @@ static void r_event_log_booted(const RaucSlot *booted_slot)
 	} else {
 		fields[5].value =  "unknown";
 	}
-	g_log_structured_array(G_LOG_LEVEL_INFO, fields, G_N_ELEMENTS(fields));
+	g_log_structured_array(G_LOG_LEVEL_MESSAGE, fields, G_N_ELEMENTS(fields));
 }
 
 static void r_event_log_booted_external(void)
@@ -2070,7 +2070,7 @@ static void r_event_log_booted_external(void)
 	message = g_strdup_printf("Booted from external source");
 	fields[0].value = message;
 	fields[4].value = r_context()->boot_id;
-	g_log_structured_array(G_LOG_LEVEL_INFO, fields, G_N_ELEMENTS(fields));
+	g_log_structured_array(G_LOG_LEVEL_MESSAGE, fields, G_N_ELEMENTS(fields));
 }
 
 G_GNUC_UNUSED
