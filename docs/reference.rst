@@ -1245,6 +1245,10 @@ The following environment variables will be passed to the hook executable:
   The value of the version field as provided by the current bundle,
   e.g. ``"V1.2.1-2020-02-28"``
 
+``RAUC_MF_BUILD``
+  The value of the build field as provided by the current bundle,
+  e.g. ``"20240205092747"``
+
 ``RAUC_MOUNT_PREFIX``
   The global RAUC mount prefix path, e.g. ``"/run/mount/rauc"``
 

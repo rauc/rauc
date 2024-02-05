@@ -777,6 +777,7 @@ static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const 
 
 	g_subprocess_launcher_setenv(launcher, "RAUC_MF_COMPATIBLE", manifest->update_compatible, TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_MF_VERSION", manifest->update_version ?: "", TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_MF_BUILD", manifest->update_build ?: "", TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
 
 	sproc = g_subprocess_launcher_spawn(
