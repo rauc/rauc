@@ -2118,7 +2118,6 @@ static gboolean service_start(int argc, char **argv)
 	if (r_context()->system_status) {
 		/* Boot ID-based system reboot vs service restart detection */
 		if (g_strcmp0(r_context()->system_status->boot_id, r_context()->boot_id) == 0) {
-			g_message("Restarted RAUC service");
 			r_event_log_message(R_EVENT_LOG_TYPE_SERVICE, "Service restarted");
 		} else {
 			if (g_strcmp0(r_context()->bootslot, "_external_") == 0) {
@@ -2143,7 +2142,6 @@ static gboolean service_start(int argc, char **argv)
 			}
 		}
 	} else {
-		g_message("Started RAUC service");
 		r_event_log_message(R_EVENT_LOG_TYPE_SERVICE, "Service started");
 	}
 
