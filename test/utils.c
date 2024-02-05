@@ -175,7 +175,7 @@ static void fakeroot_test(void)
 	g_autofree gchar *stdout = NULL;
 	gboolean res = FALSE;
 
-	if (g_strcmp0(g_get_host_name(), "qemu-test") !=0) {
+	if (g_strcmp0(g_get_host_name(), "qemu-test") != 0) {
 		g_test_message("fakeroot test is only supported under qemu-test");
 		g_test_skip("not running under qemu-test");
 		return;
