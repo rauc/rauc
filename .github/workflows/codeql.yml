@@ -2,7 +2,11 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "tseting2" ]
+    branches: [ "master", "codeql" ]
+  pull_request:
+    branches: [ "master", "codeql" ]
+  schedule:
+    - cron: "23 8 * * 5"
 
 jobs:
   analyze:
