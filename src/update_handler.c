@@ -1089,13 +1089,18 @@ out:
 	return res;
 }
 
-static gboolean nor_write_slot(const gchar *image, const gchar *device, GError **error)
+static gboolean nor_write_slot(const gchar *image, const gchar *device, const unsigned long long wr_last, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(5, g_free);
 
 	g_ptr_array_add(args, g_strdup("flashcp"));
+	if (wr_last > 0) {
+		g_ptr_array_add(args, g_strdup("-l"));
+		g_ptr_array_add(args, g_strdup_printf("%llu", wr_last));
+		g_ptr_array_add(args, g_strdup("-v")); // We should not need verbose except for debugging
+	}
 	g_ptr_array_add(args, g_strdup(image));
 	g_ptr_array_add(args, g_strdup(device));
 	g_ptr_array_add(args, NULL);
@@ -1882,7 +1887,7 @@ static gboolean img_to_nor_handler(RaucImage *image, RaucSlot *dest_slot, const 
 
 	/* write */
 	g_message("writing slot device %s", dest_slot->device);
-	res = nor_write_slot(image->filename, dest_slot->device, &ierror);
+	res = nor_write_slot(image->filename, dest_slot->device, 0, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -2408,6 +2413,102 @@ out:
 	return res;
 }
 
+static gboolean img_to_boot_nor_fallback_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	gchar** devices = NULL;
+	gboolean primary_clear;
+	char *part_names[2] = {
+		"primary",
+		"fallback"
+	};
+	int first_part_desc_index = 1;
+	const gsize header_size = 512; /* TODO: this value should be settable through the system config file. */
+
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(dest_slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	devices = g_strsplit(dest_slot->device, ":", -1);
+	if (g_strv_length(devices) != 2) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Slot device string does not contain two comma separated devices. Aborting!");
+		goto out;
+	}
+
+	g_message("Executing nor fallback handler on slot %s with primary device %s and fallback device %s",
+			dest_slot->name, devices[0], devices[1]);
+
+	/* If the primary partition is not fully programmed, it most likely means that the fallback
+	 * partition was used to boot and is therefore valid. To avoid ending up with two broken partitions,
+	 * upgrade the primary partition first.
+	 *
+	 * We are only checking the header area, as it is the last thing written.
+	 */
+	res = check_if_area_is_clear(devices[0], 0, header_size, &primary_clear, &ierror);
+	if (!res) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Failed to check area at %"G_GUINT64_FORMAT " on %s",
+				dest_slot->region_start, dest_slot->device);
+		goto out;
+	}
+
+	if (primary_clear) {
+		g_message("Updating the primary partition first as it is empty, so we assume we booted from fallback.");
+		first_part_desc_index++;
+	}
+
+	for (gint i = 0; i < 2; i++) {
+		gint part_index = (first_part_desc_index + i) % 2;
+
+		g_message("Updating %s partition on %s", part_names[part_index], devices[part_index]);
+
+		/* erase */
+		g_message("Erasing slot device %s", devices[part_index]);
+		res = flash_format_slot(devices[part_index], &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+		/* TODO: This write should write the first sector last,
+		 * unfortunately flashcp does not support offsets.
+		 */
+		/* write */
+		g_message("Writing slot device %s", devices[part_index]);
+		res = nor_write_slot(image->filename, devices[part_index], header_size, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+out:
+	if (devices != NULL) {
+		g_strfreev(devices);
+	}
+	return res;
+}
+
 static gboolean img_to_boot_raw_fallback_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GError *ierror = NULL;
@@ -2635,6 +2736,8 @@ RaucUpdatePair updatepairs[] = {
 	{"*", "boot-gpt-switch", NULL},
 	{"*.img", "boot-raw-fallback", img_to_boot_raw_fallback_handler},
 	{"*", "boot-raw-fallback", NULL},
+	{"*.img", "boot-nor-fallback", img_to_boot_nor_fallback_handler},
+	{"*", "boot-nor-fallback", NULL},
 	{"*.img.caibx", "*", img_to_raw_handler}, /* fallback */
 	{"*.img", "*", img_to_raw_handler}, /* fallback */
 	{0}
