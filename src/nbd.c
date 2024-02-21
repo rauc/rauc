@@ -652,19 +652,25 @@ static void start_request(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xf
 static gboolean finish_read(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xfer)
 {
 	gboolean res = FALSE;
-	CURLcode code;
-	long response_code = 0;
 
 	if (!xfer->done) { /* retry */
 		res = TRUE;
 		goto out;
 	}
 
-	code = curl_easy_getinfo(xfer->easy, CURLINFO_RESPONSE_CODE, &response_code);
-	if (code != CURLE_OK)
-		g_error("unexpected error from curl_easy_getinfo in %s", G_STRFUNC);
-	if (response_code != 206)
-		g_error("unexpected HTTP response code %ld from curl_easy_getinfo in %s", response_code, G_STRFUNC);
+	/* If reply is considered error-free so far, check that response_code
+	 * is actually 206 */
+	if (xfer->reply.error == 0) {
+		long response_code = 0;
+		CURLcode code = curl_easy_getinfo(xfer->easy, CURLINFO_RESPONSE_CODE, &response_code);
+		if (code != CURLE_OK)
+			g_error("unexpected error from curl_easy_getinfo in %s", G_STRFUNC);
+
+		if (response_code != 206) {
+			g_warning("unexpected HTTP response code %ld from curl_easy_getinfo in %s", response_code, G_STRFUNC);
+			xfer->reply.error = GUINT32_TO_BE(5); /* NBD_EIO */
+		}
+	}
 
 	if (!r_write_exact(ctx->sock, (guint8*)&xfer->reply, sizeof(xfer->reply), NULL))
 		g_error("failed to send nbd read reply header");
