@@ -1165,6 +1165,7 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	GError *ierror = NULL;
 	g_autoptr(GPtrArray) install_plans = NULL;
 	RaucSlot *boot_mark_slot = NULL;
+	gboolean extboot = FALSE;
 
 	install_plans = r_install_make_plans(manifest, target_group, &ierror);
 	if (install_plans == NULL) {
@@ -1179,6 +1180,10 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		return FALSE;
 	}
 
+	if (g_strcmp0(r_context()->bootslot, "_external_") == 0) {
+		extboot = TRUE;
+	}
+
 	if (boot_mark_slot) {
 		/* Mark boot slot non-bootable */
 		g_message("Marking target slot %s as non-bootable...", boot_mark_slot->name);
@@ -1186,7 +1191,8 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_NONBOOTABLE,
 					"Failed marking slot %s non-bootable: %s", boot_mark_slot->name, ierror->message);
 			g_clear_error(&ierror);
-			return FALSE;
+			if (!extboot)
+				return FALSE;
 		}
 	}
 
@@ -1216,7 +1222,8 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 			if (!r_mark_active(boot_mark_slot, &ierror)) {
 				g_propagate_prefixed_error(error, ierror,
 						"Failed marking slot %s bootable: ", boot_mark_slot->name);
-				return FALSE;
+				if (!extboot)
+					return FALSE;
 			}
 		} else {
 			g_message("Leaving target slot non-bootable as requested by activate_installed == false.");
