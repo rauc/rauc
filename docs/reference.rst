@@ -138,7 +138,6 @@ Example configuration:
 .. _statusfile:
 
 ``statusfile`` (deprecated, optional)
-
   .. note:: This option is deprecated. Consider using ``data-directory``
      instead.
      For more details about backwards compatibility, see :ref:`data-directory
