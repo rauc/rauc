@@ -138,7 +138,6 @@ Example configuration:
 .. _statusfile:
 
 ``statusfile`` (deprecated, optional)
-
   .. note:: This option is deprecated. Consider using ``data-directory``
      instead.
      For more details about backwards compatibility, see :ref:`data-directory
@@ -712,11 +711,21 @@ No built-in slot update will run and no hook will be executed.
 
 .. _image.slot-class-section:
 
-``[image.<slot-class>]`` Sections
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``[image.*]`` Sections
+~~~~~~~~~~~~~~~~~~~~~~
 
-For each image to install to a slot (class), a corresponding
-``[image.<slot-class]`` section must exist.
+The image section names can take different forms to support variants.
+
+``[image.<slot-class>]``
+  For each image to install to a slot (class), a corresponding
+  section must exist.
+
+``[image.<slot-class>.<variant>]``
+  This image will be used instead of the default one above if the target
+  system's variant matches ``<variant>``.
+  Refer to chapter :ref:`sec-variants` for more information.
+
+The following fields are supported for image sections:
 
 .. _image.slot-filename:
 
