@@ -2035,6 +2035,8 @@ static void r_event_log_booted(const RaucSlot *booted_slot)
 		{"MESSAGE_ID", MESSAGE_ID_BOOTED, -1 },
 		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
 		{"RAUC_EVENT_TYPE", "boot", -1},
+		{"SLOT_NAME", NULL, -1},
+		{"SLOT_BOOTNAME", NULL, -1},
 		{"BOOT_ID", NULL, -1},
 		{"BUNDLE_HASH", NULL, -1},
 	};
@@ -2043,13 +2045,15 @@ static void r_event_log_booted(const RaucSlot *booted_slot)
 
 	message = g_strdup_printf("Booted into %s (%s)", booted_slot->name, booted_slot->bootname);
 	fields[0].value = message;
-	fields[4].value = r_context()->boot_id;
+	fields[4].value = booted_slot->name;
+	fields[5].value = booted_slot->bootname;
+	fields[6].value = r_context()->boot_id;
 	if (booted_slot->status && booted_slot->status->bundle_hash) {
 		fields[5].value =  booted_slot->status->bundle_hash;
 	} else {
 		fields[5].value =  "unknown";
 	}
-	g_log_structured_array(G_LOG_LEVEL_INFO, fields, G_N_ELEMENTS(fields));
+	g_log_structured_array(G_LOG_LEVEL_MESSAGE, fields, G_N_ELEMENTS(fields));
 }
 
 static void r_event_log_booted_external(void)
@@ -2066,7 +2070,7 @@ static void r_event_log_booted_external(void)
 	message = g_strdup_printf("Booted from external source");
 	fields[0].value = message;
 	fields[4].value = r_context()->boot_id;
-	g_log_structured_array(G_LOG_LEVEL_INFO, fields, G_N_ELEMENTS(fields));
+	g_log_structured_array(G_LOG_LEVEL_MESSAGE, fields, G_N_ELEMENTS(fields));
 }
 
 G_GNUC_UNUSED
@@ -2114,7 +2118,6 @@ static gboolean service_start(int argc, char **argv)
 	if (r_context()->system_status) {
 		/* Boot ID-based system reboot vs service restart detection */
 		if (g_strcmp0(r_context()->system_status->boot_id, r_context()->boot_id) == 0) {
-			g_message("Restarted RAUC service");
 			r_event_log_message(R_EVENT_LOG_TYPE_SERVICE, "Service restarted");
 		} else {
 			if (g_strcmp0(r_context()->bootslot, "_external_") == 0) {
@@ -2139,7 +2142,6 @@ static gboolean service_start(int argc, char **argv)
 			}
 		}
 	} else {
-		g_message("Started RAUC service");
 		r_event_log_message(R_EVENT_LOG_TYPE_SERVICE, "Service started");
 	}
 
