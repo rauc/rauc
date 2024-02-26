@@ -231,7 +231,7 @@ static void dm_verity_simple_test(void)
 	g_assert_no_error(error);
 	g_assert_true(res);
 
-	for (int i = 0; i<129; i++) {
+	for (int i = 0; i < 129; i++) {
 		int r = read(fd, buf, sizeof(buf));
 		g_assert_cmpint(r, ==, 4096);
 		g_assert_cmpint(buf[0], ==, 0);

@@ -2049,9 +2049,9 @@ static void r_event_log_booted(const RaucSlot *booted_slot)
 	fields[5].value = booted_slot->bootname;
 	fields[6].value = r_context()->boot_id;
 	if (booted_slot->status && booted_slot->status->bundle_hash) {
-		fields[5].value =  booted_slot->status->bundle_hash;
+		fields[5].value = booted_slot->status->bundle_hash;
 	} else {
-		fields[5].value =  "unknown";
+		fields[5].value = "unknown";
 	}
 	g_log_structured_array(G_LOG_LEVEL_MESSAGE, fields, G_N_ELEMENTS(fields));
 }
@@ -2358,15 +2358,15 @@ static void create_option_groups(void)
 		g_option_group_add_entries(install_group, entries_bundle_access);
 
 	if (ENABLE_CREATE) {
-		bundle_group  = g_option_group_new("bundle", "Bundle options:", "help dummy", NULL, NULL);
+		bundle_group = g_option_group_new("bundle", "Bundle options:", "help dummy", NULL, NULL);
 		g_option_group_add_entries(bundle_group, entries_bundle);
 		g_option_group_add_entries(bundle_group, entries_signing);
 
-		resign_group  = g_option_group_new("resign", "Resign options:", "help dummy", NULL, NULL);
+		resign_group = g_option_group_new("resign", "Resign options:", "help dummy", NULL, NULL);
 		g_option_group_add_entries(resign_group, entries_resign);
 		g_option_group_add_entries(resign_group, entries_signing);
 
-		replace_group  = g_option_group_new("replace-signature", "Replace signature options:", "help dummy", NULL, NULL);
+		replace_group = g_option_group_new("replace-signature", "Replace signature options:", "help dummy", NULL, NULL);
 		g_option_group_add_entries(replace_group, entries_replace);
 
 		convert_group = g_option_group_new("convert", "Convert options:", "help dummy", NULL, NULL);
@@ -2383,15 +2383,15 @@ static void create_option_groups(void)
 	extract_group = g_option_group_new("extract", "Extract options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(extract_group, entries_extract);
 
-	info_group    = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
+	info_group = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(info_group, entries_info);
 	if (ENABLE_STREAMING)
 		g_option_group_add_entries(info_group, entries_bundle_access);
 
-	status_group  = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
+	status_group = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(status_group, entries_status);
 
-	service_group  = g_option_group_new("service", "Service options:", "help dummy", NULL, NULL);
+	service_group = g_option_group_new("service", "Service options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(service_group, entries_service);
 }
 

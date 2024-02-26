@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 	int count = 1024;
 
 	if (ioctl(fd, RNDADDTOENTCNT, &count) != 0) {
-		printf("RNDADDENTROPY failed: %s\n",strerror(errno));
+		printf("RNDADDENTROPY failed: %s\n", strerror(errno));
 		return 1;
 	}
 

@@ -342,7 +342,7 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	/* prepare image and slot information */
 	image_size = IMAGE_SIZE;
 	imagename = g_strconcat("image.", test_pair->imagetype, NULL);
-	if (g_strcmp0(test_pair->slottype, "ubivol") == 0||
+	if (g_strcmp0(test_pair->slottype, "ubivol") == 0 ||
 	    g_strcmp0(test_pair->slottype, "ubifs") == 0) {
 		slotpath = g_strdup(g_getenv("RAUC_TEST_MTD_UBIVOL"));
 		if (!slotpath) {
