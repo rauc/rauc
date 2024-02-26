@@ -896,7 +896,8 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 
 	res = load_manifest_file(manifestpath, &manifest, &ierror);
 	if (!res) {
-		g_propagate_error(error, ierror);
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to load manifest: ");
 		goto out;
 	}
 
@@ -1126,7 +1127,8 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 	/* Load manifest from content/ dir */
 	res = load_manifest_file(mfpath, &manifest, &ierror);
 	if (!res) {
-		g_propagate_error(error, ierror);
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to load manifest: ");
 		goto out;
 	}
 
@@ -2219,7 +2221,8 @@ gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *
 	} else {
 		res = load_manifest_from_bundle(bundle, &loaded_manifest, &ierror);
 		if (!res) {
-			g_propagate_error(error, ierror);
+			g_propagate_prefixed_error(error, ierror,
+					"Failed to load manifest: ");
 			goto out;
 		}
 		manifest = loaded_manifest;
