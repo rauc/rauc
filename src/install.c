@@ -1356,7 +1356,6 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	}
 
 	if (bundle->manifest && bundle->manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT && !bundle->was_encrypted) {
-		r_event_log_message(R_EVENT_LOG_TYPE_INSTALL, "Installation %.8s rejected: Refusing to install unencrypted crypt bundles", args->transaction);
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED, "Refusing to install unencrypted crypt bundles");
 		res = FALSE;
 		goto out;
