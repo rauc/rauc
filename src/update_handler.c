@@ -2333,7 +2333,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 
 	if (part_active == part_active_after) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Toggling the boot partition failed! Your kernel is most-likely affected by the ioctl ext_csd bug: see http://rauc.readthedocs.io/en/latest/advanced.html#update-emmc-boot-partitions");
+				"Toggling the boot partition failed! Your kernel is most-likely affected by the ioctl ext_csd bug: see https://rauc.readthedocs.io/en/latest/advanced.html#update-bootloader-in-emmc-boot-partitions");
 		res = FALSE;
 		goto out;
 	}
