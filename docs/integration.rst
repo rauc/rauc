@@ -62,7 +62,10 @@ field, make sure it meets both current and possible future requirements.
   The ``/etc/fstab`` in your system's root FS (and RAUC's ``system.conf``)
   should normally use stable paths to refer to partitions or devices.
   Especially filesystem UUIDs (``UUID=<uuid>`` or ``/dev/disk/by-uuid/<uuid>``)
-  should *not* be used, as they are likely to be different after an update.
+  or labels (``/dev/disk/by-label/<label>``) should *not* be used, as they
+  depend on the partition contents.
+  UUIDs are likely to be different after an update and labels are usually not
+  unique in an A/B setup.
 
   Depending on your system design and firmware, good stable paths can be:
 
