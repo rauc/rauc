@@ -2099,9 +2099,7 @@ static gboolean service_start(int argc, char **argv)
 			if (g_strcmp0(r_context()->bootslot, "_external_") == 0) {
 				r_event_log_booted_external();
 			} else {
-				RaucSlot *booted_slot = r_slot_find_by_device(r_context()->config->slots, r_context()->bootslot);
-				if (!booted_slot)
-					booted_slot = r_slot_find_by_bootname(r_context()->config->slots, r_context()->bootslot);
+				RaucSlot *booted_slot = r_slot_get_booted(r_context()->config->slots);
 
 				r_slot_status_load(booted_slot);
 
