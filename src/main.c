@@ -1392,9 +1392,7 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 
 	g_return_val_if_fail(status, NULL);
 
-	bootedfrom = r_slot_find_by_device(status->slots, status->bootslot);
-	if (!bootedfrom)
-		bootedfrom = r_slot_find_by_bootname(status->slots, status->bootslot);
+	bootedfrom = r_slot_get_booted(status->slots);
 
 	g_string_append(text, "=== System Info ===\n");
 	g_string_append_printf(text, "Compatible:  %s\n", status->compatible);
