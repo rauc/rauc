@@ -96,6 +96,26 @@ out:
 	return slot;
 }
 
+RaucSlot *r_slot_get_booted(GHashTable *slots)
+{
+	GHashTableIter iter;
+	RaucSlot *slot;
+
+	g_return_val_if_fail(slots, NULL);
+
+	g_hash_table_iter_init(&iter, slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+		if (slot->state == ST_BOOTED) {
+			goto out;
+		}
+	}
+
+	slot = NULL;
+
+out:
+	return slot;
+}
+
 /* returns string representation of slot state */
 const gchar* r_slot_slotstate_to_str(SlotState slotstate)
 {
