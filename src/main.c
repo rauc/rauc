@@ -1413,9 +1413,7 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 
 	g_return_val_if_fail(status, NULL);
 
-	bootedfrom = r_slot_find_by_device(status->slots, status->bootslot);
-	if (!bootedfrom)
-		bootedfrom = r_slot_find_by_bootname(status->slots, status->bootslot);
+	bootedfrom = r_slot_get_booted(status->slots);
 
 	g_string_append(text, "=== System Info ===\n");
 	g_string_append_printf(text, "Compatible:  %s\n", status->compatible);
@@ -2123,9 +2121,7 @@ static gboolean service_start(int argc, char **argv)
 			if (g_strcmp0(r_context()->bootslot, "_external_") == 0) {
 				r_event_log_booted_external();
 			} else {
-				RaucSlot *booted_slot = r_slot_find_by_device(r_context()->config->slots, r_context()->bootslot);
-				if (!booted_slot)
-					booted_slot = r_slot_find_by_bootname(r_context()->config->slots, r_context()->bootslot);
+				RaucSlot *booted_slot = r_slot_get_booted(r_context()->config->slots);
 
 				r_slot_status_load(booted_slot);
 

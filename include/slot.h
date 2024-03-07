@@ -100,15 +100,13 @@ RaucSlot *r_slot_find_by_device(GHashTable *slots, const gchar *device)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
- * Finds a slot given its bootname
+ * Returns booted slot.
  *
  * @param slots a GHashTable containing (gchar, RaucSlot) entries
- * @param botname the bootname to search for
  *
  * @return a RaucSlot pointer or NULL
  */
-RaucSlot *r_slot_find_by_bootname(GHashTable *slots, const gchar *bootname)
-G_GNUC_WARN_UNUSED_RESULT;
+RaucSlot *r_slot_get_booted(GHashTable *slots);
 
 /**
  * Get string representation of slot state
