@@ -1,0 +1,99 @@
+-- e60e0addd3454cb8b796eae0d497af96
+Subject: RAUC detected boot into @SLOT_NAME@ (@SLOT_BOOTNAME@)
+Defined-By: rauc
+Support: https://rauc.io
+
+RAUC detected boot into @SLOT_NAME@ (@SLOT_BOOTNAME@).
+
+The boot id is @BOOT_ID@.
+The booted system was installed from bundle hash @BUNDLE_HASH@.
+
+-- dd237efdad1945d9b1e471bc2b994532
+Subject: RAUC detected an external boot
+Defined-By: rauc
+Support: https://rauc.io
+
+RAUC detected an explicit external boot via 'rauc.external' in /proc/cmdline.
+This means that the system is not running from any configured RAUC slot.
+
+The boot id is @BOOT_ID@.
+
+-- b05410e8a93345389cd061aab1e9516d
+Subject: RAUC Installation started
+Defined-By: rauc
+Support: https://rauc.io
+Documentation: https://rauc.readthedocs.io
+
+The installation with transaction ID @TRANSACTION_ID@ started.
+
+-- 0163db5468ac4237b090d28490c301ed
+Subject: RAUC Installation succeeded
+Defined-By: rauc
+Support: https://rauc.io
+Documentation: https://rauc.readthedocs.io
+
+The installation with transaction ID @TRANSACTION_ID@ succeeded.
+
+It installed the bundle version @BUNDLE_VERSION
+with hash @BUNDLE_HASH@ on your system.
+
+-- c48141f7fd49443aafff862b4809168f
+Subject: RAUC Installation failed
+Defined-By: rauc
+Support: https://rauc.io
+Documentation: https://rauc.readthedocs.io
+
+An error occurred while attempting to install the update bundle with hash
+@BUNDLE_HASH@ on your system
+and thus the installation with transaction ID @TRANSACTION_ID@ failed.
+
+While target slot contents can be inconsistent or partially written, the slots
+of the running system will not be affected.
+
+Use 'rauc status' to check if the bootable slot group is deactivated (marked as
+'bad'). Add '--detailed' option to see the slot's individual status.
+
+-- 60bea7e4fea549ccad68af457308b13a
+Subject: RAUC Installation rejected
+Defined-By: rauc
+Support: https://rauc.io
+Documentation: https://rauc.readthedocs.io
+
+The installation with transaction ID @TRANSACTION_ID@ was rejected.
+
+This means that the update bundle is incompatible with your target system.
+
+-- 8b5e7435e1054d86858278e7544fe6da
+Subject: RAUC slot @SLOT_NAME@ was marked as 'active'
+Defined-By: rauc
+Support: https://rauc.io
+Documentation: https://rauc.readthedocs.io/en/latest/using.html#react-to-a-successfully-booted-system-failed-boot
+
+The RAUC slot @SLOT_NAME@ was marked as 'active'.
+
+This informs the bootloader to boot the entry for '@SLOT_BOOTNAME@' as first
+choice.
+This will boot the system installed from bundle @BUNDLE_HASH@.
+
+-- 3304e15a7a9a447885eb208ba7ae3a05
+Subject: RAUC slot @SLOT_NAME@ was marked as 'good'
+Defined-By: rauc
+Support: https://rauc.io
+Documentation: https://rauc.readthedocs.io/en/latest/using.html#react-to-a-successfully-booted-system-failed-boot
+
+The RAUC slot @SLOT_NAME@ was marked as 'good'.
+
+Depending on the underlying bootloader, this will reset the attempts counter
+for the boot entry '@SLOT_BOOTNAME@'.
+
+-- ccb0e584a47043d7a5316994bce77ae5
+Subject: RAUC slot @SLOT_NAME@ was marked as 'bad'
+Defined-By: rauc
+Support: https://rauc.io
+Documentation: https://rauc.readthedocs.io/en/latest/using.html#react-to-a-successfully-booted-system-failed-boot
+
+The RAUC slot '@SLOT_NAME@' was marked as 'bad'.
+
+This informs the bootloader to not boot the entry for '@SLOT_BOOTNAME@' anymore.
+Where this information is persisted, mainly depends on the bootloader used
+(configured in your RAUC system config).

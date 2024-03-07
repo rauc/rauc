@@ -29,3 +29,5 @@ rauc_dbus_policy = configure_file(
   copy : true
 )
 install_data(rauc_dbus_policy, install_dir : dbuspolicydir)
+
+install_data('rauc.catalog', install_dir : systemdcatalogdir)

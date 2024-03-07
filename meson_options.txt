@@ -44,6 +44,11 @@ option(
   value : '',
   description : 'Directory for systemd service files')
 option(
+  'systemdcatalogdir',
+  type : 'string',
+  value : '',
+  description : 'Directory for systemd journal catalog files')
+option(
   'dbuspolicydir',
   type : 'string',
   value : '',
