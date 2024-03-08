@@ -34,6 +34,10 @@ static void manifest_check_common(RaucManifest *rm)
 		g_assert_nonnull(img->checksum.digest);
 		g_assert_nonnull(img->filename);
 	}
+
+	g_assert_false(r_manifest_has_artifact_image(rm, NULL, NULL));
+	g_assert_false(r_manifest_has_artifact_image(rm, "repo", NULL));
+	g_assert_false(r_manifest_has_artifact_image(rm, "repo", "artifact"));
 }
 
 /* Test manifest/load:
@@ -125,6 +129,13 @@ static void check_manifest_contents(const RaucManifest *rm)
 	g_assert_cmpint(image->converted->len, ==, 2);
 	g_assert_cmpstr(image->converted->pdata[0], ==, "invalid-converted");
 	g_assert_cmpstr(image->converted->pdata[1], ==, "another-invalid-converted");
+
+	g_assert_true(r_manifest_has_artifact_image(rm, NULL, NULL));
+	g_assert_false(r_manifest_has_artifact_image(rm, "repo", NULL));
+	g_assert_false(r_manifest_has_artifact_image(rm, "repo", "app-a"));
+	g_assert_true(r_manifest_has_artifact_image(rm, "appfs", NULL));
+	g_assert_false(r_manifest_has_artifact_image(rm, "appfs", "artifact"));
+	g_assert_true(r_manifest_has_artifact_image(rm, "appfs", "app-a"));
 
 	g_assert_true(rm->hooks.install_check);
 

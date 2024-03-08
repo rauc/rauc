@@ -192,6 +192,22 @@ GVariant *r_manifest_to_dict(const RaucManifest *manifest)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Checks if the manifest has an artifact image:
+ * - for any repository
+ * - for a specific repository
+ * - for a specific artifact name in a specific repository
+ *
+ * @param manifest pointer to the manifest
+ * @param repo name of the repository, or NULL.
+ *             Must be set if artifact is set.
+ * @param artifact name of the artifact in the repository, or NULL
+ *
+ * @return TRUE if image was found, FALSE otherwise
+ */
+gboolean r_manifest_has_artifact_image(const RaucManifest *manifest, const gchar *repo, const gchar *artifact)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Creates a rauc image
  */
 RaucImage *r_new_image(void)

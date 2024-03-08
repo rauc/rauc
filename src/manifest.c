@@ -964,6 +964,34 @@ GVariant* r_manifest_to_dict(const RaucManifest *manifest)
 	return g_variant_dict_end(&root_dict);
 }
 
+gboolean r_manifest_has_artifact_image(const RaucManifest *manifest, const gchar *repo, const gchar *artifact)
+{
+	g_return_val_if_fail(manifest != NULL, FALSE);
+	g_return_val_if_fail((!repo && !artifact) ||
+			(repo && !artifact) ||
+			(repo && artifact), FALSE);
+
+	for (GList *l = manifest->images; l != NULL; l = l->next) {
+		const RaucImage *img = l->data;
+
+		/* skip images which are not an artifact */
+		if (!img->artifact)
+			continue;
+
+		/* skip images for different repos */
+		if (repo && g_strcmp0(repo, img->slotclass) != 0)
+			continue;
+
+		/* skip images with different artifact names */
+		if (artifact && g_strcmp0(artifact, img->artifact) != 0)
+			continue;
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 RaucImage *r_new_image(void)
 {
 	RaucImage *image = g_new0(RaucImage, 1);
