@@ -11,6 +11,7 @@
 #include "mark.h"
 #include "rauc-installer-generated.h"
 #include "service.h"
+#include "signature.h"
 #include "status_file.h"
 #include "utils.h"
 
@@ -234,6 +235,80 @@ out:
 				manifest->update_compatible,
 				manifest->update_version ? manifest->update_version : "");
 	}
+
+	return TRUE;
+}
+
+static gboolean r_on_handle_dump_certificate(RInstaller *interface,
+		GDBusMethodInvocation  *invocation,
+		const gchar *arg_bundle,
+		const gchar *cert_encoding)
+{
+	g_autoptr(RaucBundle) bundle = NULL;
+	gboolean res = TRUE;
+	g_autofree gchar *message = NULL;
+	GError *error = NULL;
+	gchar *cert = NULL;
+	gchar *encoding;
+
+	g_print("bundle: %s\n", arg_bundle);
+
+	res = !r_context_get_busy();
+	if (!res) {
+		message = g_strdup("already processing a different method");
+		goto out;
+	}
+
+	res = check_bundle(arg_bundle, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &error);
+	if (!res && error != NULL && g_error_matches(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID)) {
+		g_clear_error(&error);
+		res = check_bundle(arg_bundle, &bundle, CHECK_BUNDLE_NO_VERIFY, NULL, &error);
+	}
+
+	if (!res) {
+		if (error != NULL)
+			message = g_strdup(error->message);
+		else
+			message = g_strdup("Error when parsing the bundle");
+		g_clear_error(&error);
+		goto out;
+	}
+
+	encoding = g_ascii_strup(cert_encoding, strlen(cert_encoding));
+
+	if (bundle->signature_verified) {
+		cert = extract_pkcs7_chain(bundle->verified_chain, encoding);
+		if (cert == NULL) {
+			message = g_strdup("Failed to extract the certificate chain");
+			res = FALSE;
+		}
+	} else if (bundle->sigdata) {
+		cert = extract_unverified_pkcs7_chain(bundle->sigdata, encoding, &error);
+		if (cert == NULL) {
+			res = FALSE;
+			message = g_strdup(error->message);
+			g_clear_error(&error);
+		}
+	} else {
+		message = g_strdup("There is no available signature for the specified bundle");
+		res = FALSE;
+	}
+
+	g_free(encoding);
+
+out:
+	if (!res) {
+		g_dbus_method_invocation_return_error(invocation,
+				G_IO_ERROR,
+				G_IO_ERROR_FAILED_HANDLED,
+				"%s", message);
+		return TRUE;
+	}
+
+	r_installer_complete_dump_certificate(
+			interface,
+			invocation,
+			cert);
 
 	return TRUE;
 }
@@ -532,6 +607,10 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 
 	g_signal_connect(r_installer, "handle-inspect-bundle",
 			G_CALLBACK(r_on_handle_inspect_bundle),
+			NULL);
+
+	g_signal_connect(r_installer, "handle-dump-certificate",
+			G_CALLBACK(r_on_handle_dump_certificate),
 			NULL);
 
 	g_signal_connect(r_installer, "handle-mark",

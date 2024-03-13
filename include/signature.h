@@ -233,6 +233,27 @@ gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Return string representation of certificate chain as a PKCS#7 certificate.
+ *
+ * @param verified_chain Stack of X509 certificates to convert
+ * @param encoding The target output encoding for the certificate (PEM/DER). The default is PEM.
+ * @return allocated string containing text representation of certificate chain
+ */
+gchar* extract_pkcs7_chain(STACK_OF(X509) *verified_chain, const gchar *encoding)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Return string representation of certificate chain as a PKCS#7 certificate.
+ *
+ * @param sig Array of bytes containing the signature of the bundle
+ * @param encoding The target output encoding for the certificate (PEM/DER). The default is PEM.
+ * @param[out] error return location for a GError, or NULL
+ * @return allocated string containing text representation of certificate chain
+ */
+gchar* extract_unverified_pkcs7_chain(GBytes *sig, const gchar *encoding, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Get infos about signer and verification chain.
  *
  * Must be called *after* cms_verify()
