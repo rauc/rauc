@@ -809,6 +809,22 @@ static gboolean artifact_get_converted(const RaucImage *image, const gchar *meth
 	return FALSE;
 }
 
+RArtifact *r_artifact_find(const RArtifactRepo *repo, const gchar *name, const gchar *digest)
+{
+	g_return_val_if_fail(repo, NULL);
+	g_return_val_if_fail(name, NULL);
+	g_return_val_if_fail(digest, NULL);
+
+	name = g_intern_string(name);
+	digest = g_intern_string(digest);
+
+	GHashTable *inner = g_hash_table_lookup(repo->artifacts, name);
+	if (!inner)
+		return NULL;
+
+	return g_hash_table_lookup(inner, digest);
+}
+
 gboolean r_artifact_install(const RArtifact *artifact, const RaucImage *image, GError **error)
 {
 	GError *ierror = NULL;
