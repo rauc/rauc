@@ -91,6 +91,46 @@ static void test_init(ArtifactsFixture *fixture, gconstpointer user_data)
 	g_assert_true(res);
 }
 
+static void test_early_return(ArtifactsFixture *fixture, gconstpointer user_data)
+{
+	r_artifact_free(NULL);
+
+	r_artifact_repo_free(NULL);
+}
+
+static void test_find(ArtifactsFixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(GError) error = NULL;
+	gboolean res = FALSE;
+
+	res = r_artifact_repo_prepare(fixture->repo, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	res = r_artifact_repo_prune(fixture->repo, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	/* create artifact */
+	RArtifact *artifact = create_random_artifact(fixture->repo->path, "a1", 64, 21799804);
+	res = r_artifact_repo_insert(fixture->repo, artifact, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+	g_assert_cmpuint(g_hash_table_size(fixture->repo->artifacts), ==, 1);
+
+	g_assert_null(r_artifact_find(fixture->repo,
+			g_intern_static_string("missing"),
+			g_intern_static_string("foo")));
+
+	g_assert_null(r_artifact_find(fixture->repo,
+			g_intern_static_string("a1"),
+			g_intern_static_string("foo")));
+
+	g_assert_true(r_artifact_find(fixture->repo,
+			g_intern_static_string("a1"),
+			g_intern_static_string("6fb6a28f1b3d788150c8b02651575287ecb892312e4f077add0e84db55231d41")) == artifact);
+}
+
 static void test_create_load(ArtifactsFixture *fixture, gconstpointer user_data)
 {
 	g_autoptr(GError) error = NULL;
@@ -240,6 +280,14 @@ int main(int argc, char *argv[])
 
 	g_test_add("/artifacts/init", ArtifactsFixture, NULL,
 			artifacts_fixture_set_up, test_init,
+			artifacts_fixture_tear_down);
+
+	g_test_add("/artifacts/early_return", ArtifactsFixture, NULL,
+			artifacts_fixture_set_up, test_early_return,
+			artifacts_fixture_tear_down);
+
+	g_test_add("/artifacts/find", ArtifactsFixture, NULL,
+			artifacts_fixture_set_up, test_find,
 			artifacts_fixture_tear_down);
 
 	g_test_add("/artifacts/create_load", ArtifactsFixture, NULL,
