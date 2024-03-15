@@ -1125,6 +1125,9 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 	json_builder_set_member_name(builder, "build");
 	json_builder_add_string_value(builder, manifest->update_build);
 
+	json_builder_set_member_name(builder, "format");
+	json_builder_add_string_value(builder, r_manifest_bundle_format_to_str(manifest->bundle_format));
+
 	json_builder_set_member_name(builder, "hooks");
 	json_builder_begin_array(builder);
 	if (manifest->hooks.install_check == TRUE) {
