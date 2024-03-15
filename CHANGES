@@ -1,3 +1,15 @@
+Release 1.11.3 (released Mar 15, 2024)
+--------------------------------------
+
+.. rubric:: Bug fixes
+
+* Fix service startup when using symlinks in ``system.conf`` and ``root=`` in
+  the kernel commandline.
+  Systems using ``rauc.slot=<bootname>`` or ``bootchooser.active=<bootname>``
+  are not affected.
+
+Contributions from: Enrico Jörns
+
 Release 1.11.2 (released Feb 28, 2024)
 --------------------------------------
 
