@@ -15,7 +15,7 @@ To integrate RAUC, you first need to be able to build RAUC as both a host and a
 target application.
 The host application is needed for generating update bundles while the target
 application or service performs the core task of RAUC:
-updating you device.
+updating your device.
 
 In an update system, a lot of components have to play together and have to be
 configured appropriately to interact correctly.
