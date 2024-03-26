@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ $# -eq 1 ] && [ "$1" = "-V" ]; then
+	echo "grub-editenv (RAUC test drop-in) 0.0.0"
+	exit 0
+fi
+
 # Variable argument count
 if [ $# -lt 2 ]; then
 	echo "At least path to grubenv file and command must be specified!"
@@ -15,7 +20,8 @@ function variables_load()
 {
 	if ! [ -f "$GRUBENV" ]; then
 		echo "GRUB environment file not found: $GRUBENV"
-		exit 1
+		echo -n "" > "$GRUBENV"
+		return 0
 	fi
 
 	while read -r line; do
@@ -39,16 +45,27 @@ function variables_store()
 	variable_store "B_TRY"
 	variable_store "A_OK"
 	variable_store "B_OK"
+
+	variable_store "system0_TRY"
+	variable_store "system1_TRY"
+	variable_store "system0_OK"
+	variable_store "system1_OK"
+
 	variable_store "ORDER"
 }
 
 # Validates and sets variable value
 function variable_set {
 	if [ "$1" = "ORDER" ]; then
-		if ! [ "$2" = "A B" -o "$2" = "B A" ]; then
-			echo "Invalid argument for ORDER: '$2'"
-			exit 1
-		fi
+		case "$2" in
+			"A B"|"B A"|"system1 system0"|"system0 system1"|"system1 system0 factory0"|"system0 system1 factory0")
+				:
+			;;
+			*)
+				echo "Invalid argument for ORDER: '$2'"
+				exit 1
+			;;
+		esac
 	elif [ "$1" = "A_OK" ]; then
 		if ! [ "$2" -ge 0 -a "$2" -le 1 ]; then
 			echo "Invalid argument for A_OK: '$2'"
@@ -67,6 +84,26 @@ function variable_set {
 	elif [ "$1" = "B_TRY" ]; then
 		if ! [ "$2" -ge 0 -a "$2" -le 1 ]; then
 			echo "Invalid argument for B_TRY: '$2'"
+			exit 1
+		fi
+	elif [ "$1" = "system0_OK" ]; then
+		if ! [ "$2" -ge 0 -a "$2" -le 1 ]; then
+			echo "Invalid argument for system0_OK: '$2'"
+			exit 1
+		fi
+	elif [ "$1" = "system1_OK" ]; then
+		if ! [ "$2" -ge 0 -a "$2" -le 1 ]; then
+			echo "Invalid argument for system1_OK: '$2'"
+			exit 1
+		fi
+	elif [ "$1" = "system0_TRY" ]; then
+		if ! [ "$2" -ge 0 -a "$2" -le 1 ]; then
+			echo "Invalid argument for system0_TRY: '$2'"
+			exit 1
+		fi
+	elif [ "$1" = "system1_TRY" ]; then
+		if ! [ "$2" -ge 0 -a "$2" -le 1 ]; then
+			echo "Invalid argument for system1_TRY: '$2'"
 			exit 1
 		fi
 	else
@@ -107,6 +144,12 @@ function variables_list()
 	variable_print "B_TRY"
 	variable_print "A_OK"
 	variable_print "B_OK"
+
+	variable_print "system0_TRY"
+	variable_print "system1_TRY"
+	variable_print "system0_OK"
+	variable_print "system1_OK"
+
 	variable_print "ORDER"
 }
 
@@ -120,6 +163,9 @@ case $CMD in
 		;;
 	"list")
 		variables_list "$@"
+		;;
+	"create")
+		echo -n "" > "$GRUBENV"
 		;;
 	*)
 		echo "Invalid command: '$CMD'"
