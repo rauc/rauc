@@ -52,6 +52,9 @@ echo "nameserver 10.0.2.3" > /etc/resolv.conf
 # switch to rauc dir
 cd "$(dirname "$0")"
 
+# allow git access to our repo
+git config --system --add safe.directory "$(pwd)"
+
 # fake entropy
 $BUILD_DIR/test/fakerand
 
