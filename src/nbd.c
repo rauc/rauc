@@ -287,13 +287,12 @@ struct RaucNBDContext {
 	gchar *tls_key; /* local file or PKCS#11 URI */
 	gchar *tls_ca; /* local file */
 	gboolean tls_no_verify;
-	GStrv headers; /* array of strings such as 'Foo: bar' */
+	struct curl_slist *headers_slist;
+	struct curl_slist *initial_headers_slist;
 
 	/* runtime state */
 	CURLM *multi;
 	gboolean done;
-	struct curl_slist *headers_slist;
-	struct curl_slist *initial_headers_slist;
 
 	/* statistics */
 	RaucStats *dl_size, *dl_speed, *namelookup, *connect, *starttransfer, *total;
@@ -527,7 +526,7 @@ static void start_read(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xfer)
 		g_error("unexpected error from curl_multi_add_handle in %s", G_STRFUNC);
 }
 
-/* Appends Gstrv elements to curl_slist (only pointers, no data).
+/* Appends Gstrv elements to curl_slist (strings are copied).
  * If curl_slist does not exist yet (NULL passed), it will be created.
  * The created list needs to be freed (after usage) by the caller with
  * curl_slist_free_all(). */
@@ -563,7 +562,8 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 		g_autofree guint8 *data = g_malloc(xfer->request.len);
 		g_autoptr(GVariant) v = NULL;
 		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
-		GStrv info_headers = NULL; /* array of strings such as 'Foo: bar' */
+		g_auto(GStrv) headers = NULL; /* array of strings such as 'Foo: bar' */
+		g_auto(GStrv) info_headers = NULL; /* array of strings such as 'Foo: bar' */
 
 		res = r_read_exact(ctx->sock, (guint8*)data, xfer->request.len, NULL);
 		g_assert_true(res);
@@ -584,13 +584,13 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 		g_variant_dict_lookup(&dict, "key", "s", &ctx->tls_key);
 		g_variant_dict_lookup(&dict, "ca", "s", &ctx->tls_ca);
 		g_variant_dict_lookup(&dict, "no-verify", "b", &ctx->tls_no_verify);
-		g_variant_dict_lookup(&dict, "headers", "^as", &ctx->headers);
+		g_variant_dict_lookup(&dict, "headers", "^as", &headers);
 		g_variant_dict_lookup(&dict, "info-headers", "^as", &info_headers);
 		g_assert_nonnull(ctx->url);
 
-		if (ctx->headers) {
-			ctx->headers_slist = gstrv_add_to_slist(NULL, ctx->headers);
-			ctx->initial_headers_slist = gstrv_add_to_slist(NULL, ctx->headers);
+		if (headers) {
+			ctx->headers_slist = gstrv_add_to_slist(NULL, headers);
+			ctx->initial_headers_slist = gstrv_add_to_slist(NULL, headers);
 		}
 		if (info_headers) {
 			ctx->initial_headers_slist = gstrv_add_to_slist(ctx->initial_headers_slist, info_headers);
