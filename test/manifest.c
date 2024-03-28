@@ -83,6 +83,7 @@ static void test_load_manifest(void)
 static void check_manifest_contents(const RaucManifest *rm)
 {
 	GHashTable *kvs = NULL;
+	RaucImage *image = NULL;
 
 	g_assert_nonnull(rm);
 	g_assert_cmpstr(rm->update_compatible, ==, "BarCorp FooBazzer");
@@ -94,16 +95,17 @@ static void check_manifest_contents(const RaucManifest *rm)
 	g_assert_cmpuint(g_list_length(rm->images), ==, 3);
 
 	for (GList *l = rm->images; l != NULL; l = l->next) {
-		RaucImage *image = (RaucImage*) l->data;
+		image = l->data;
 		g_assert_nonnull(image);
 		g_assert_nonnull(image->slotclass);
 		g_assert_nonnull(image->checksum.digest);
 		g_assert_nonnull(image->filename);
 	}
 
-	g_assert_nonnull(g_list_nth_data(rm->images, 0));
-	g_assert_true(((RaucImage*)g_list_nth_data(rm->images, 0))->hooks.pre_install);
-	g_assert_true(((RaucImage*)g_list_nth_data(rm->images, 0))->hooks.post_install);
+	image = g_list_nth_data(rm->images, 0);
+	g_assert_nonnull(image);
+	g_assert_true(image->hooks.pre_install);
+	g_assert_true(image->hooks.post_install);
 
 	g_assert_true(rm->hooks.install_check);
 
