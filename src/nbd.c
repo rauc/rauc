@@ -87,6 +87,7 @@ void r_nbd_free_server(RaucNBDServer *nbd_srv)
 	g_free(nbd_srv->tls_ca);
 	g_strfreev(nbd_srv->headers);
 	g_strfreev(nbd_srv->info_headers);
+	g_free(nbd_srv->effective_url);
 	g_free(nbd_srv);
 }
 
