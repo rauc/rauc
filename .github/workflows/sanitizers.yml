@@ -41,7 +41,7 @@ jobs:
         build/test/hash_index-test
         build/test/install-test
         build/test/manifest-test
-        build/test/nbd-test -l
+        build/test/nbd-test
         build/test/network-test
         build/test/progress-test
         build/test/service-test -l

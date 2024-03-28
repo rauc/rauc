@@ -87,6 +87,7 @@ void r_nbd_free_server(RaucNBDServer *nbd_srv)
 	g_free(nbd_srv->tls_ca);
 	g_strfreev(nbd_srv->headers);
 	g_strfreev(nbd_srv->info_headers);
+	g_free(nbd_srv->effective_url);
 	g_free(nbd_srv);
 }
 
@@ -286,13 +287,12 @@ struct RaucNBDContext {
 	gchar *tls_key; /* local file or PKCS#11 URI */
 	gchar *tls_ca; /* local file */
 	gboolean tls_no_verify;
-	GStrv headers; /* array of strings such as 'Foo: bar' */
+	struct curl_slist *headers_slist;
+	struct curl_slist *initial_headers_slist;
 
 	/* runtime state */
 	CURLM *multi;
 	gboolean done;
-	struct curl_slist *headers_slist;
-	struct curl_slist *initial_headers_slist;
 
 	/* statistics */
 	RaucStats *dl_size, *dl_speed, *namelookup, *connect, *starttransfer, *total;
@@ -526,7 +526,7 @@ static void start_read(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xfer)
 		g_error("unexpected error from curl_multi_add_handle in %s", G_STRFUNC);
 }
 
-/* Appends Gstrv elements to curl_slist (only pointers, no data).
+/* Appends Gstrv elements to curl_slist (strings are copied).
  * If curl_slist does not exist yet (NULL passed), it will be created.
  * The created list needs to be freed (after usage) by the caller with
  * curl_slist_free_all(). */
@@ -556,13 +556,14 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 	gboolean res = FALSE;
 	CURLcode code = 0;
 	CURLMcode mcode = 0;
-	g_autofree guint8 *data = g_malloc(xfer->request.len);
-	g_autoptr(GVariant) v = NULL;
-	GVariantDict dict;
 
 	/* only read from the client on the first try */
 	if (!ctx->url) {
-		GStrv info_headers = NULL; /* array of strings such as 'Foo: bar' */
+		g_autofree guint8 *data = g_malloc(xfer->request.len);
+		g_autoptr(GVariant) v = NULL;
+		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
+		g_auto(GStrv) headers = NULL; /* array of strings such as 'Foo: bar' */
+		g_auto(GStrv) info_headers = NULL; /* array of strings such as 'Foo: bar' */
 
 		res = r_read_exact(ctx->sock, (guint8*)data, xfer->request.len, NULL);
 		g_assert_true(res);
@@ -578,19 +579,18 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 		}
 
 		g_variant_dict_init(&dict, v);
-
 		g_variant_dict_lookup(&dict, "url", "s", &ctx->url);
 		g_variant_dict_lookup(&dict, "cert", "s", &ctx->tls_cert);
 		g_variant_dict_lookup(&dict, "key", "s", &ctx->tls_key);
 		g_variant_dict_lookup(&dict, "ca", "s", &ctx->tls_ca);
 		g_variant_dict_lookup(&dict, "no-verify", "b", &ctx->tls_no_verify);
-		g_variant_dict_lookup(&dict, "headers", "^as", &ctx->headers);
+		g_variant_dict_lookup(&dict, "headers", "^as", &headers);
 		g_variant_dict_lookup(&dict, "info-headers", "^as", &info_headers);
 		g_assert_nonnull(ctx->url);
 
-		if (ctx->headers) {
-			ctx->headers_slist = gstrv_add_to_slist(NULL, ctx->headers);
-			ctx->initial_headers_slist = gstrv_add_to_slist(NULL, ctx->headers);
+		if (headers) {
+			ctx->headers_slist = gstrv_add_to_slist(NULL, headers);
+			ctx->initial_headers_slist = gstrv_add_to_slist(NULL, headers);
 		}
 		if (info_headers) {
 			ctx->initial_headers_slist = gstrv_add_to_slist(ctx->initial_headers_slist, info_headers);
@@ -636,6 +636,7 @@ static void start_request(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xf
 		case NBD_CMD_DISC: {
 			g_message("nbd server received disconnect request");
 			ctx->done = TRUE;
+			g_free(xfer); /* not queued via curl_multi_add_handle */
 			break;
 		}
 		case RAUC_NBD_CMD_CONFIGURE: {
@@ -930,6 +931,7 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 						error,
 						R_NBD_ERROR, R_NBD_ERROR_SHUTDOWN,
 						"finish_request failed, shutting down");
+				g_free(xfer);
 				goto out;
 			}
 
@@ -952,6 +954,10 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 
 	res = TRUE;
 out:
+	g_clear_pointer(&ctx.url, g_free);
+	g_clear_pointer(&ctx.tls_cert, g_free);
+	g_clear_pointer(&ctx.tls_key, g_free);
+	g_clear_pointer(&ctx.tls_ca, g_free);
 	g_clear_pointer(&ctx.dl_size, r_stats_free);
 	g_clear_pointer(&ctx.dl_speed, r_stats_free);
 	g_clear_pointer(&ctx.namelookup, r_stats_free);
