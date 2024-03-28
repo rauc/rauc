@@ -892,6 +892,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 	formatter_shell_append(text, "RAUC_MF_DESCRIPTION", manifest->update_description);
 	formatter_shell_append(text, "RAUC_MF_BUILD", manifest->update_build);
 	formatter_shell_append(text, "RAUC_MF_HASH", manifest->hash);
+	formatter_shell_append(text, "RAUC_MF_FORMAT", r_manifest_bundle_format_to_str(manifest->bundle_format));
 	g_string_append_printf(text, "RAUC_MF_IMAGES=%d\n", g_list_length(manifest->images));
 
 	hooks = g_ptr_array_new();
@@ -1123,6 +1124,9 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 
 	json_builder_set_member_name(builder, "build");
 	json_builder_add_string_value(builder, manifest->update_build);
+
+	json_builder_set_member_name(builder, "format");
+	json_builder_add_string_value(builder, r_manifest_bundle_format_to_str(manifest->bundle_format));
 
 	json_builder_set_member_name(builder, "hooks");
 	json_builder_begin_array(builder);
