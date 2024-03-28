@@ -931,6 +931,7 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 						error,
 						R_NBD_ERROR, R_NBD_ERROR_SHUTDOWN,
 						"finish_request failed, shutting down");
+				g_free(xfer);
 				goto out;
 			}
 
