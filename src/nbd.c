@@ -951,6 +951,10 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 
 	res = TRUE;
 out:
+	g_clear_pointer(&ctx.url, g_free);
+	g_clear_pointer(&ctx.tls_cert, g_free);
+	g_clear_pointer(&ctx.tls_key, g_free);
+	g_clear_pointer(&ctx.tls_ca, g_free);
 	g_clear_pointer(&ctx.dl_size, r_stats_free);
 	g_clear_pointer(&ctx.dl_speed, r_stats_free);
 	g_clear_pointer(&ctx.namelookup, r_stats_free);
