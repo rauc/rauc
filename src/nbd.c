@@ -556,12 +556,12 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 	gboolean res = FALSE;
 	CURLcode code = 0;
 	CURLMcode mcode = 0;
-	g_autofree guint8 *data = g_malloc(xfer->request.len);
-	g_autoptr(GVariant) v = NULL;
-	GVariantDict dict;
 
 	/* only read from the client on the first try */
 	if (!ctx->url) {
+		g_autofree guint8 *data = g_malloc(xfer->request.len);
+		g_autoptr(GVariant) v = NULL;
+		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
 		GStrv info_headers = NULL; /* array of strings such as 'Foo: bar' */
 
 		res = r_read_exact(ctx->sock, (guint8*)data, xfer->request.len, NULL);
@@ -578,7 +578,6 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 		}
 
 		g_variant_dict_init(&dict, v);
-
 		g_variant_dict_lookup(&dict, "url", "s", &ctx->url);
 		g_variant_dict_lookup(&dict, "cert", "s", &ctx->tls_cert);
 		g_variant_dict_lookup(&dict, "key", "s", &ctx->tls_key);
