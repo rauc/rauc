@@ -74,16 +74,6 @@ mkfs.ext4 /tmp/rootdev
 truncate --size=64M /tmp/appdev
 mkfs.ext4 /tmp/appdev
 
-# dbus daemon if service is enabled
-if grep -q "ENABLE_SERVICE 1" $BUILD_DIR/config.h; then
-  cp -a $BUILD_DIR/data/de.pengutronix.rauc.conf /etc/dbus-1/system.d
-  chown root:root /etc/dbus-1/system.d/de.pengutronix.rauc.conf
-  chmod 644 /etc/dbus-1/system.d/de.pengutronix.rauc.conf
-  mount -t tmpfs none /var/run
-  mkdir -p /var/run/dbus
-  time dbus-daemon --system --fork --nopidfile --nosyslog --print-address
-fi
-
 # rauc binary in PATH
 if [ -n "$SHELL" ]; then
   mkdir /tmp/bin
@@ -119,18 +109,30 @@ if type casync; then
   export RAUC_TEST_CASYNC=1
 fi
 
-# rauc system config & service start
-if [ -n "$SERVICE" ]; then
-  # remove potential host rauc system config
-  rm -rf /etc/rauc
-  # create rauc system config for testing and data directory
-  mkdir /etc/rauc /tmp/rauc
-  cp qemu-test-rauc-config /tmp/rauc/system.conf
-  cp test/openssl-ca/dev-ca.pem /tmp/rauc/ca.cert.pem
-  if [ -n "$SERVICE_BACKTRACE" ] && type gdb; then
-    gdb --batch --ex "run" --ex "thread apply all bt" --args rauc service --conf=/tmp/rauc/system.conf &
-  else
-    rauc service --conf=/tmp/rauc/system.conf &
+# remove potential host rauc system config
+rm -rf /etc/rauc
+# create rauc system config for testing and data directory
+mkdir /etc/rauc /tmp/rauc
+cp qemu-test-rauc-config /etc/rauc/system.conf
+cp test/openssl-ca/dev-ca.pem /etc/rauc/ca.cert.pem
+
+# rauc and dbus service start
+if grep -q "ENABLE_SERVICE 1" $BUILD_DIR/config.h; then
+  # dbus
+  cp -a $BUILD_DIR/data/de.pengutronix.rauc.conf /etc/dbus-1/system.d
+  chown root:root /etc/dbus-1/system.d/de.pengutronix.rauc.conf
+  chmod 644 /etc/dbus-1/system.d/de.pengutronix.rauc.conf
+  mount -t tmpfs none /var/run
+  mkdir -p /var/run/dbus
+  time dbus-daemon --system --fork --nopidfile --nosyslog --print-address
+
+  # rauc
+  if [ -n "$SERVICE" ]; then
+    if [ -n "$SERVICE_BACKTRACE" ] && type gdb; then
+      gdb --batch --ex "run" --ex "thread apply all bt" --args rauc service &
+    else
+      rauc service &
+    fi
   fi
 fi
 
