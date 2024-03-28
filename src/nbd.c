@@ -636,6 +636,7 @@ static void start_request(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xf
 		case NBD_CMD_DISC: {
 			g_message("nbd server received disconnect request");
 			ctx->done = TRUE;
+			g_free(xfer); /* not queued via curl_multi_add_handle */
 			break;
 		}
 		case RAUC_NBD_CMD_CONFIGURE: {
