@@ -2525,6 +2525,15 @@ static void cmdline_handler(int argc, char **argv)
 		}
 		domains = g_getenv("G_MESSAGES_DEBUG");
 		g_message("Debug log domains: '%s'", domains);
+		g_debug(PACKAGE_VERSION
+				" create=" G_STRINGIFY(ENABLE_CREATE)
+				" emmc-boot=" G_STRINGIFY(ENABLE_EMMC_BOOT_SUPPORT)
+				" gpt=" G_STRINGIFY(ENABLE_GPT)
+				" json=" G_STRINGIFY(ENABLE_JSON)
+				" network=" G_STRINGIFY(ENABLE_NETWORK)
+				" service=" G_STRINGIFY(ENABLE_SERVICE)
+				" streaming=" G_STRINGIFY(ENABLE_STREAMING)
+				);
 	}
 
 	/* get first parameter without dashes */
