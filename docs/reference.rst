@@ -1370,6 +1370,8 @@ de.pengutronix.rauc.Installer
 
 Methods
 ~~~~~~~
+:ref:`DumpCertificate <gdbus-method-de-pengutronix-rauc-Installer.DumpCertificate>` (IN  s source, IN s encoding, s certificate);
+
 :ref:`InstallBundle <gdbus-method-de-pengutronix-rauc-Installer.InstallBundle>` (IN  s source, IN a{sv} args);
 
 :ref:`Install <gdbus-method-de-pengutronix-rauc-Installer.Install>` (IN  s source); (deprecated)
@@ -1407,6 +1409,29 @@ Description
 
 Method Details
 ~~~~~~~~~~~~~~
+
+.. _gdbus-method-de-pengutronix-rauc-Installer.DumpCertificate:
+
+The DumpCertificate() Method
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer.DumpCertificate()
+  DumpCertificate (IN  s source, IN s encoding, s certificate);
+
+Returns the certificate chain from the bundle in PKCS #7 format with the requested encoding.
+
+IN s *source*:
+    Path or URL to the bundle to get the certificate chain from
+
+IN s *encoding*:
+    The encoding to be exported in. Possible options: DER (hexadecimal) or PEM.
+    The default is PEM if incorrect value given.
+    The argument is case insensitive.
+
+s *certificate*:
+    The certificate chain as encoded PKCS #7 string from the bundle if the extraction was successful.
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.InstallBundle:
 

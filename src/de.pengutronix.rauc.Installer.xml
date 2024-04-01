@@ -3,6 +3,18 @@
 <node>
   <interface name="de.pengutronix.rauc.Installer">
     <!--
+         DumpCertificate: Export public certificate and trustchain used for signing in PKCS#7 format
+         @bundle: Path or URL to the bundle.
+         @encoding: The encoding of the certificates to be in (PEM or hex encoded DER)
+         @certificate: string of PKCS#7 certificate chain from the bundle
+    -->
+    <method name="DumpCertificate">
+      <arg name="bundle" type="s" direction="in" />
+      <arg name="encoding" type="s" direction="in"/>
+      <arg name="certificate" type="s" direction="out"/>
+    </method>
+
+    <!--
          Install:
          @source: Path to bundle to be installed
 
