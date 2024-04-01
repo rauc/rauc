@@ -37,6 +37,8 @@ typedef struct _RaucSlot {
 	gchar *device;
 	/** the slots partition type */
 	gchar *type;
+	/** extra mkfs options for this slot */
+	gchar **extra_mkfs_opts;
 	/** the name this slot is known to the bootloader */
 	gchar *bootname;
 	/** flag to indicate that this slot can be updated even if already mounted */

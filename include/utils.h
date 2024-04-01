@@ -82,11 +82,14 @@ G_GNUC_WARN_UNUSED_RESULT;
  * Adds elements of a zero-terminated GStrv/gchar** to an existing GPtrArray
  *
  * @param ptrarray GPtrArray to add to
- * @param argvp arguments to add
+ * @param argvp arguments to add (may be NULL)
  * @param copy whether to just add the pointer (FALSE) or copy the underlying data (TRUE)
  */
 static inline void r_ptr_array_addv(GPtrArray *ptrarray, gchar **argvp, gboolean copy)
 {
+	if (argvp == NULL)
+		return;
+
 	for (gchar **addarg = argvp; *addarg != NULL; addarg++) {
 		g_ptr_array_add(ptrarray, copy ? g_strdup(*addarg) : *addarg);
 	}

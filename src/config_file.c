@@ -410,6 +410,16 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 				return NULL;
 			}
 
+			value = key_file_consume_string(key_file, groups[i], "extra-mkfs-opts", NULL);
+			if (value != NULL) {
+				if (!g_shell_parse_argv(value, NULL, &(slot->extra_mkfs_opts), &ierror)) {
+					g_free(value);
+					g_propagate_prefixed_error(error, ierror, "Failed to parse extra-mkfs-opts: ");
+					return NULL;
+				}
+				g_free(value);
+			}
+
 			value = key_file_consume_string(key_file, groups[i], "bootname", NULL);
 
 			slot->bootname = value;
