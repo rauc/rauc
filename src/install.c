@@ -264,7 +264,7 @@ gboolean determine_boot_states(GError **error)
 	/* get boot state */
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
-		GError *ierror = NULL;
+		g_autoptr(GError) ierror = NULL;
 
 		if (!slot->bootname)
 			continue;
