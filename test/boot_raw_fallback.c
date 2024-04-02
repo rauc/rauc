@@ -267,6 +267,7 @@ static void test_boot_raw_fallback(BootRawFallbackFixture *fixture,
 
 	if (data->options & OPT_EXPECT_FAIL) {
 		g_assert_error(ierror, data->err_domain, data->err_code);
+		g_clear_error(&ierror);
 		g_assert_false(res);
 		goto out;
 	} else {
