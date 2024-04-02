@@ -17,6 +17,9 @@ mount -t tmpfs none /tmp
 mkdir /tmp/etc-overlay /tmp/etc-work
 mount -t overlay overlay -o lowerdir=/etc,upperdir=/tmp/etc-overlay,workdir=/tmp/etc-work /etc
 
+# switch to rauc dir
+cd "$(dirname "$0")"
+
 BUILD_DIR="build/"
 
 # parse cmdline
@@ -29,6 +32,7 @@ for x in $(cat /proc/cmdline); do
   elif [ "$x" = "asan" ]; then
     export G_SLICE=always-malloc G_DEBUG=gc-friendly
     export ASAN_OPTIONS=malloc_context_size=64:fast_unwind_on_malloc=0
+    export LSAN_OPTIONS=suppressions="$(pwd)/test/asan.supp"
   elif [ "$x" = "service-backtrace" ]; then
     SERVICE_BACKTRACE=1
   fi
@@ -49,9 +53,6 @@ ip addr add 10.0.2.15/24 dev eth0
 ip link set eth0 up
 ip route add default via 10.0.2.2
 echo "nameserver 10.0.2.3" > /etc/resolv.conf
-
-# switch to rauc dir
-cd "$(dirname "$0")"
 
 # allow git access to our repo
 git config --system --add safe.directory "$(pwd)"
