@@ -175,6 +175,8 @@ Example configuration:
   Defines the maximum downloadable bundle size in bytes, and thus must be
   a simple integer value (without unit) greater than zero.
   It overwrites the compiled-in default value of 8388608 (8 MiB).
+  If RAUC is configured with streaming support, this has no effect, as the
+  bundle is not downloaded as a whole.
 
 ``variant-name`` (optional)
   String to be used as variant name for this board.

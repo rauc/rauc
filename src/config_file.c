@@ -737,6 +737,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
 		return FALSE;
+	} else if (ENABLE_STREAMING) {
+		g_message("Using max-bundle-download-size with streaming has no effect.");
 	}
 	if (c->max_bundle_download_size == 0) {
 		g_set_error(
