@@ -1338,15 +1338,10 @@ static gboolean run_slot_hook_extra_env(const gchar *hook_name, const gchar *hoo
 
 	bundle = r_context()->install_info->mounted_bundle;
 	if (bundle) {
-		gchar **hashes = NULL;
-		gchar *string = NULL;
-
-		hashes = get_pubkey_hashes(bundle->verified_chain);
-		string = g_strjoinv(" ", hashes);
-		g_strfreev(hashes);
+		g_auto(GStrv) hashes = get_pubkey_hashes(bundle->verified_chain);
+		g_autofree gchar *string = g_strjoinv(" ", hashes);
 
 		g_subprocess_launcher_setenv(launcher, "RAUC_BUNDLE_SPKI_HASHES", string, TRUE);
-		g_free(string);
 
 		g_subprocess_launcher_setenv(launcher, "RAUC_BUNDLE_MOUNT_POINT", bundle->mount_point, TRUE);
 	}

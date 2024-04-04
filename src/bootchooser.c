@@ -1101,7 +1101,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	g_autofree gchar *matched = NULL;
 	g_autolist(efi_bootentry) entries = NULL;
 	g_autoptr(GList) returnorder = NULL;
-	gchar **bootnumorder = NULL;
+	g_auto(GStrv) bootnumorder = NULL;
 
 	g_return_val_if_fail(bootorder_entries == NULL || *bootorder_entries == NULL, FALSE);
 	g_return_val_if_fail(all_entries != NULL && *all_entries == NULL, FALSE);
@@ -1215,8 +1215,6 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 		if (bentry)
 			returnorder = g_list_append(returnorder, bentry);
 	}
-
-	g_strfreev(bootnumorder);
 
 	if (bootorder_entries)
 		*bootorder_entries = g_steal_pointer(&returnorder);
