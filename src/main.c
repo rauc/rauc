@@ -2716,5 +2716,6 @@ int main(int argc, char **argv)
 	create_option_groups();
 	cmdline_handler(argc, argv);
 
+	r_context_clean();
 	return r_exit_status;
 }
