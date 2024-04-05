@@ -489,15 +489,15 @@ gboolean r_context_configure(GError **error)
 	}
 
 	if (context->keyringpath) {
-		context->config->keyring_path = g_strdup(context->keyringpath);
+		r_replace_strdup(&context->config->keyring_path, context->keyringpath);
 	}
 
 	if (context->keyringdirectory) {
-		context->config->keyring_directory = g_strdup(context->keyringdirectory);
+		r_replace_strdup(&context->config->keyring_directory, context->keyringdirectory);
 	}
 
 	if (context->encryption_key) {
-		context->config->encryption_key = g_strdup(context->encryption_key);
+		r_replace_strdup(&context->config->encryption_key, context->encryption_key);
 	}
 
 	/* When no context is required, we can safely assume that we do not
