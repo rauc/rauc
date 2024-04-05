@@ -1254,7 +1254,7 @@ out:
 gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error)
 {
 	GError *ierror = NULL;
-	GBytes *encdata = NULL;
+	g_autoptr(GBytes) encdata = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
