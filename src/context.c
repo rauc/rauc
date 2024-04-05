@@ -133,9 +133,7 @@ static gchar* get_cmdline_bootname(void)
 
 	if (g_strcmp0(realdev, bootname) != 0) {
 		g_debug("Resolved bootname %s to %s", bootname, realdev);
-
-		g_free((gchar*) bootname);
-		bootname = g_strdup(realdev);
+		r_replace_strdup(&bootname, realdev);
 	}
 
 	return bootname;
@@ -331,12 +329,10 @@ static GHashTable *get_system_info_from_handler(GError **error)
 	while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
 		/* legacy handling */
 		if (g_strcmp0(key, "RAUC_SYSTEM_SERIAL") == 0) {
-			g_clear_pointer(&context->system_serial, g_free);
-			context->system_serial = g_strdup(value);
+			r_replace_strdup(&context->system_serial, value);
 		} else if (g_strcmp0(key, "RAUC_SYSTEM_VARIANT") == 0) {
 			/* set variant (overrides possible previous value) */
-			g_clear_pointer(&context->config->system_variant, g_free);
-			context->config->system_variant = g_strdup(value);
+			r_replace_strdup(&context->config->system_variant, value);
 		}
 	}
 
@@ -489,8 +485,7 @@ gboolean r_context_configure(GError **error)
 	}
 
 	if (context->mountprefix) {
-		g_free(context->config->mount_prefix);
-		context->config->mount_prefix = g_strdup(context->mountprefix);
+		r_replace_strdup(&context->config->mount_prefix, context->mountprefix);
 	}
 
 	if (context->keyringpath) {
