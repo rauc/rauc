@@ -585,7 +585,7 @@ G_GNUC_UNUSED
 static gboolean replace_signature_start(int argc, char **argv)
 {
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
-	RaucBundle *bundle = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("replace signature start");
 
@@ -644,7 +644,7 @@ G_GNUC_UNUSED
 static gboolean extract_signature_start(int argc, char **argv)
 {
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
-	RaucBundle *bundle = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("extract signature start");
 
@@ -693,7 +693,7 @@ out:
 static gboolean extract_start(int argc, char **argv)
 {
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
-	RaucBundle *bundle = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("extract start");
 
@@ -743,7 +743,7 @@ G_GNUC_UNUSED
 static gboolean convert_start(int argc, char **argv)
 {
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
-	RaucBundle *bundle = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("convert start");
 
@@ -803,7 +803,7 @@ out:
 G_GNUC_UNUSED
 static gboolean encrypt_start(int argc, char **argv)
 {
-	RaucBundle *bundle = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("encrypt start");
 
