@@ -16,7 +16,7 @@ jobs:
         sudo apt-get update
         DEBIAN_FRONTEND='noninteractive' sudo apt-get install -qy meson libtool libglib2.0-dev libcurl3-dev libssl-dev libdbus-1-dev libjson-glib-dev libfdisk-dev libnl-genl-3-dev dbus-x11 clang-tools
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Run meson
       run: |
