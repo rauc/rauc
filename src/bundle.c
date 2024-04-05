@@ -198,8 +198,8 @@ static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath,
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	GPtrArray *args = g_ptr_array_new_full(15, g_free);
-	GPtrArray *iargs = g_ptr_array_new_full(15, g_free);
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(15, g_free);
+	g_autoptr(GPtrArray) iargs = g_ptr_array_new_full(15, g_free);
 	const gchar *tmpdir = NULL;
 
 	g_return_val_if_fail(idxpath != NULL, FALSE);
@@ -276,7 +276,7 @@ static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath,
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	GPtrArray *args = g_ptr_array_new_full(5, g_free);
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(5, g_free);
 
 	g_return_val_if_fail(idxpath != NULL, FALSE);
 	g_return_val_if_fail(contentpath != NULL, FALSE);
