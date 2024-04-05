@@ -23,6 +23,7 @@ RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
 
 # Required for testing
 RUN apt-get install -q -y --no-install-recommends \
+  acl \
   squashfs-tools \
   dosfstools \
   lcov \
