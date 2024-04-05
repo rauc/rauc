@@ -158,7 +158,10 @@ test -f ${SOFTHSM2_MOD} &&
   test_set_prereq PKCS11
 
 # Prerequisite: faketime available [FAKETIME]
+# On some platforms faketime is broken, see e.g. https://github.com/wolfcw/libfaketime/issues/418
+# Only use it if it works for date
 faketime "2018-01-01" date &&
+faketime "2018-01-01" date -R | grep "Jan 2018" &&
   test_set_prereq FAKETIME
 
 # Prerequisite: grub-editenv available [GRUB]
