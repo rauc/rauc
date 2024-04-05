@@ -571,6 +571,12 @@ goffset get_device_size(gint fd, GError **error)
 	return size;
 }
 
+void r_replace_strdup(gchar **dst, const gchar *src)
+{
+	g_free(*dst);
+	*dst = g_strdup(src);
+}
+
 gchar *r_prepare_env_key(const gchar *key, GError **error)
 {
 	g_autofree gchar *result = NULL;

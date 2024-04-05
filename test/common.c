@@ -418,8 +418,7 @@ void flip_bits_filename(gchar *filename, off_t offset, guint8 mask)
 
 void replace_strdup(gchar **dst, const gchar *src)
 {
-	g_free(*dst);
-	*dst = g_strdup(src);
+	r_replace_strdup(dst, src);
 }
 
 GPtrArray *test_ptr_array_from_strsplit(const gchar *input)
