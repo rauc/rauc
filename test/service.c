@@ -73,6 +73,8 @@ static void service_fixture_tear_down(ServiceFixture *fixture, gconstpointer use
 	g_assert_no_error(error);
 	g_assert_true(ret);
 	g_free(fixture->tmpdir);
+
+	g_clear_pointer(&testloop, g_main_loop_unref);
 }
 
 static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,

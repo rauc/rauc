@@ -78,7 +78,7 @@ fi
 qemu-system-x86_64 \
   $QEMU_ARGS \
   -machine q35 \
-  -m 512M \
+  -m 1G \
   -smp 2 \
   -kernel bzImage \
   -nographic -serial mon:stdio \

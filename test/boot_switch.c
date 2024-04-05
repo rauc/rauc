@@ -52,7 +52,7 @@ typedef struct {
 
 static gchar *sfdisk_get(const gchar *device)
 {
-	GSubprocess *sub;
+	g_autoptr(GSubprocess) sub = NULL;
 	GError *error = NULL;
 	GBytes *stdout_buf = NULL;
 	gsize size;
@@ -129,7 +129,7 @@ static void sfdisk_check(const gchar *device, const gchar *expected)
 
 static void sfdisk_set(const gchar *device, const gchar *dump)
 {
-	GSubprocess *sub;
+	g_autoptr(GSubprocess) sub = NULL;
 	GError *error = NULL;
 	g_autoptr(GBytes) stdin_buf = NULL;
 	gboolean res = FALSE;
@@ -366,6 +366,7 @@ static void test_boot_switch(BootSwitchFixture *fixture,
 
 	if (data->params & BOOT_SWITCH_EXPECT_FAIL) {
 		g_assert_error(ierror, data->err_domain, data->err_code);
+		g_clear_error(&ierror);
 		g_assert_false(res);
 		goto out;
 	} else {
