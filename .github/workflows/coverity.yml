@@ -12,7 +12,7 @@ jobs:
       image: ghcr.io/rauc/rauc/rauc-ci:latest
       options: --user=root
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - run: |
         PLATFORM=`uname`
         export TOOL_BASE="/tmp/coverity-scan-analysis"

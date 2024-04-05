@@ -16,7 +16,7 @@ jobs:
         gcc --version
         ls -l /dev/kvm || true
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Test with service and gpt
       run: |
@@ -91,7 +91,7 @@ jobs:
         - "arm64/v8"
         - "386"
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install QEMU
       run: |
@@ -139,7 +139,7 @@ jobs:
         - "debian:bullseye"
         - "debian:testing"
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     # remove this when Ubuntu 24.04 is available on GitHub Actions
     - name: Enable Ubuntu noble and update podman

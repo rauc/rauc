@@ -26,7 +26,7 @@ jobs:
         sudo apt-get update
         DEBIAN_FRONTEND='noninteractive' sudo apt-get install -qy buildah
         buildah version
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Build Images
       id: build-image
       uses: redhat-actions/buildah-build@v2
