@@ -44,7 +44,7 @@ jobs:
         build/test/nbd-test
         build/test/network-test
         build/test/progress-test
-        build/test/service-test -l
+        build/test/service-test
         build/test/signature-test
         build/test/slot-test
         build/test/stats-test
