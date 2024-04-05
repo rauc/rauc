@@ -1334,7 +1334,7 @@ static void free_status_print(RaucStatusPrint *status)
 	g_free(status->variant);
 	g_free(status->bootslot);
 	if (status->slots)
-		g_hash_table_destroy(status->slots);
+		g_hash_table_unref(status->slots);
 
 	g_free(status);
 }
@@ -1948,10 +1948,10 @@ static gboolean status_start(int argc, char **argv)
 			g_clear_error(&ierror);
 		}
 
-		status_print->compatible = r_context()->config->system_compatible;
-		status_print->variant = r_context()->config->system_variant;
-		status_print->bootslot = r_context()->bootslot;
-		status_print->slots = r_context()->config->slots;
+		status_print->compatible = g_strdup(r_context()->config->system_compatible);
+		status_print->variant = g_strdup(r_context()->config->system_variant);
+		status_print->bootslot = g_strdup(r_context()->bootslot);
+		status_print->slots = g_hash_table_ref(r_context()->config->slots);
 	} else {
 		if (!retrieve_status_via_dbus(&status_print, &ierror)) {
 			g_printerr("Error retrieving slot status via D-Bus: %s\n",
