@@ -55,6 +55,8 @@ ip link set eth0 up
 ip route add default via 10.0.2.2
 echo "nameserver 10.0.2.3" > /etc/resolv.conf
 
+export HOME="/root"
+
 # allow git access to our repo
 git config --system --add safe.directory "$(pwd)"
 
@@ -73,6 +75,13 @@ save_gcov_data () {
     cp -r -T "$GCOV_PREFIX$BUILD_DIR_FULL" "$BUILD_DIR_FULL" || true
   fi
 }
+
+# enable gdb history
+cat > /root/.gdbinit <<EOF
+set history filename $(pwd)/.qemu_gdb_history
+set history save on
+set print pretty on
+EOF
 
 # fake entropy
 $BUILD_DIR/test/fakerand
