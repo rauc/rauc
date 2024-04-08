@@ -14,6 +14,7 @@ GQuark r_checksum_error_quark(void);
 typedef struct {
 	GChecksumType type;
 	gchar *digest;
+	/* image size (-1 indicates no size in manifest) */
 	goffset size;
 } RaucChecksum;
 

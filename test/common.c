@@ -196,14 +196,14 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, cons
 	}
 
 	if (options->slots) {
-		img = g_new0(RaucImage, 1);
+		img = r_new_image();
 		img->slotclass = g_strdup("rootfs");
 		img->filename = g_strdup("rootfs.ext4");
 		if (options->hooks)
 			img->hooks.post_install = TRUE;
 		rm->images = g_list_append(rm->images, img);
 
-		img = g_new0(RaucImage, 1);
+		img = r_new_image();
 		img->slotclass = g_strdup("appfs");
 		img->filename = g_strdup("appfs.ext4");
 		rm->images = g_list_append(rm->images, img);

@@ -440,7 +440,7 @@ out:
 static gboolean write_slot_start(int argc, char **argv)
 {
 	GError *ierror = NULL;
-	g_autoptr(RaucImage) image = g_new0(RaucImage, 1);
+	g_autoptr(RaucImage) image = r_new_image();
 	RaucSlot *slot = NULL;
 	g_autoptr(GFileInfo) info = NULL;
 	g_autoptr(GInputStream) instream = NULL;

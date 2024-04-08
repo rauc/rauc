@@ -145,8 +145,7 @@ static void test_save_load_manifest(void)
 	rm->hook_name = g_strdup("hook.sh");
 	rm->hooks.install_check = TRUE;
 
-	new_image = g_new0(RaucImage, 1);
-
+	new_image = r_new_image();
 	new_image->slotclass = g_strdup("rootfs");
 	new_image->checksum.type = G_CHECKSUM_SHA256;
 	new_image->checksum.digest = g_strdup("c8af04e62bad4ab75dafd22119026e5e3943f385bdcbe7731a4938102453754c");
@@ -155,8 +154,7 @@ static void test_save_load_manifest(void)
 	new_image->hooks.post_install = TRUE;
 	rm->images = g_list_append(rm->images, new_image);
 
-	new_image = g_new0(RaucImage, 1);
-
+	new_image = r_new_image();
 	new_image->slotclass = g_strdup("rootfs");
 	new_image->variant = g_strdup("variant-1");
 	new_image->checksum.type = G_CHECKSUM_SHA256;
@@ -167,8 +165,7 @@ static void test_save_load_manifest(void)
 	new_image->adaptive = g_strsplit("invalid-method;another-invalid-method", ";", 0);
 	rm->images = g_list_append(rm->images, new_image);
 
-	new_image = g_new0(RaucImage, 1);
-
+	new_image = r_new_image();
 	new_image->slotclass = g_strdup("appfs");
 	new_image->checksum.type = G_CHECKSUM_SHA256;
 	new_image->checksum.digest = g_strdup("4e7e45db749b073eda450d30c978c7e2f6035b057d3e33ac4c61d69ce5155313");
