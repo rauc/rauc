@@ -13,6 +13,32 @@ Release 1.12 (development)
 
 Contributions from: 
 
+Release 1.11.3 (released Mar 15, 2024)
+--------------------------------------
+
+.. rubric:: Bug fixes
+
+* Fix service startup when using symlinks in ``system.conf`` and ``root=`` in
+  the kernel commandline.
+  Systems using ``rauc.slot=<bootname>`` or ``bootchooser.active=<bootname>``
+  are not affected.
+
+Contributions from: Enrico Jörns
+
+Release 1.11.2 (released Feb 28, 2024)
+--------------------------------------
+
+.. rubric:: Bug fixes
+
+* Fix 'rauc info' when used with streaming.
+* Fix streaming helper shutdown when used with 'rauc info'.
+  This avoids a 'nbd server failed' message.
+* Fix handling of streaming request retries.
+* Remove a redundant event log message when trying to install an encrypted
+  bundle with an unencrypted manifest.
+
+Contributions from: Enrico Jörns
+
 Release 1.11.1 (released Jan 15, 2024)
 --------------------------------------
 
