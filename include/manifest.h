@@ -188,6 +188,12 @@ GVariant *r_manifest_to_dict(const RaucManifest *manifest)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Creates a rauc image
+ */
+RaucImage *r_new_image(void)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Frees a rauc image
  */
 void r_free_image(gpointer data);

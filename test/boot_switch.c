@@ -308,7 +308,7 @@ static void test_boot_switch(BootSwitchFixture *fixture,
 	clear_device(slotpath);
 
 	/* create source image */
-	image = g_new0(RaucImage, 1);
+	image = r_new_image();
 	image->slotclass = g_strdup("rootfs");
 	image->filename = g_strdup(imagepath);
 	image->checksum.size = IMAGE_SIZE;

@@ -17,7 +17,7 @@ GQuark r_manifest_error_quark(void)
 
 static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **image, GError **error)
 {
-	g_autoptr(RaucImage) iimage = g_new0(RaucImage, 1);
+	g_autoptr(RaucImage) iimage = r_new_image();
 	g_auto(GStrv) groupsplit = NULL;
 	gchar *value;
 	g_auto(GStrv) hooks = NULL;
@@ -49,6 +49,7 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 	iimage->checksum.size = g_key_file_get_uint64(key_file,
 			group, "size", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		/* restore size to the default of -1 */
 		iimage->checksum.size = -1;
 		g_clear_error(&ierror);
 	} else if (ierror) {
@@ -890,6 +891,15 @@ GVariant* r_manifest_to_dict(const RaucManifest *manifest)
 	g_variant_dict_insert(&root_dict, "meta", "v", g_variant_builder_end(&builder));
 
 	return g_variant_dict_end(&root_dict);
+}
+
+RaucImage *r_new_image(void)
+{
+	RaucImage *image = g_new0(RaucImage, 1);
+
+	image->checksum.size = -1;
+
+	return image;
 }
 
 void r_free_image(gpointer data)

@@ -54,7 +54,7 @@ static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer
 	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair*) user_data;
 	GError *ierror = NULL;
 
-	image = g_new0(RaucImage, 1);
+	image = r_new_image();
 	image->slotclass = g_strdup("rootfs");
 	image->filename = g_strconcat("rootfs.", test_pair->imagetype, NULL);
 
@@ -87,7 +87,7 @@ static void test_get_custom_update_handler(UpdateHandlerFixture *fixture, gconst
 	img_to_slot_handler handler;
 	GError *ierror = NULL;
 
-	image = g_new0(RaucImage, 1);
+	image = r_new_image();
 	image->slotclass = g_strdup("rootfs");
 	image->filename = g_strdup("rootfs.custom");
 	image->hooks.install = TRUE;
@@ -389,7 +389,7 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	}
 
 	/* create source image */
-	image = g_new0(RaucImage, 1);
+	image = r_new_image();
 	image->slotclass = g_strdup("rootfs");
 	image->filename = g_strdup(imagepath);
 	image->checksum.size = image_size;
