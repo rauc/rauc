@@ -585,7 +585,7 @@ G_GNUC_UNUSED
 static gboolean replace_signature_start(int argc, char **argv)
 {
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
-	RaucBundle *bundle = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("replace signature start");
 
@@ -644,7 +644,7 @@ G_GNUC_UNUSED
 static gboolean extract_signature_start(int argc, char **argv)
 {
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
-	RaucBundle *bundle = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("extract signature start");
 
@@ -693,7 +693,7 @@ out:
 static gboolean extract_start(int argc, char **argv)
 {
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
-	RaucBundle *bundle = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("extract start");
 
@@ -743,7 +743,7 @@ G_GNUC_UNUSED
 static gboolean convert_start(int argc, char **argv)
 {
 	CheckBundleParams check_bundle_params = CHECK_BUNDLE_DEFAULT;
-	RaucBundle *bundle = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("convert start");
 
@@ -803,7 +803,7 @@ out:
 G_GNUC_UNUSED
 static gboolean encrypt_start(int argc, char **argv)
 {
-	RaucBundle *bundle = NULL;
+	g_autoptr(RaucBundle) bundle = NULL;
 	GError *ierror = NULL;
 	g_debug("encrypt start");
 
@@ -1334,7 +1334,7 @@ static void free_status_print(RaucStatusPrint *status)
 	g_free(status->variant);
 	g_free(status->bootslot);
 	if (status->slots)
-		g_hash_table_destroy(status->slots);
+		g_hash_table_unref(status->slots);
 
 	g_free(status);
 }
@@ -1948,10 +1948,10 @@ static gboolean status_start(int argc, char **argv)
 			g_clear_error(&ierror);
 		}
 
-		status_print->compatible = r_context()->config->system_compatible;
-		status_print->variant = r_context()->config->system_variant;
-		status_print->bootslot = r_context()->bootslot;
-		status_print->slots = r_context()->config->slots;
+		status_print->compatible = g_strdup(r_context()->config->system_compatible);
+		status_print->variant = g_strdup(r_context()->config->system_variant);
+		status_print->bootslot = g_strdup(r_context()->bootslot);
+		status_print->slots = g_hash_table_ref(r_context()->config->slots);
 	} else {
 		if (!retrieve_status_via_dbus(&status_print, &ierror)) {
 			g_printerr("Error retrieving slot status via D-Bus: %s\n",
@@ -2608,7 +2608,7 @@ static void cmdline_handler(int argc, char **argv)
 				r_context_conf()->configmode = R_CONTEXT_CONFIG_MODE_NONE;
 		}
 		if (confpath)
-			r_context_conf()->configpath = confpath;
+			r_context_conf()->configpath = g_steal_pointer(&confpath);
 		if (certpath)
 			r_context_conf()->certpath = certpath;
 		if (keypath) {
@@ -2620,7 +2620,7 @@ static void cmdline_handler(int argc, char **argv)
 				r_context_conf()->keypath = keypath;
 		}
 		if (keyring)
-			r_context_conf()->keyringpath = keyring;
+			r_context_conf()->keyringpath = g_steal_pointer(&keyring);
 		if (signing_keyring)
 			r_context_conf()->signing_keyringpath = signing_keyring;
 		if (mksquashfs_args)
@@ -2632,7 +2632,7 @@ static void cmdline_handler(int argc, char **argv)
 		if (intermediate)
 			r_context_conf()->intermediatepaths = intermediate;
 		if (mount)
-			r_context_conf()->mountprefix = mount;
+			r_context_conf()->mountprefix = g_steal_pointer(&mount);
 		if (bootslot)
 			r_context_conf()->bootslot = bootslot;
 		if (handler_args)
@@ -2716,5 +2716,6 @@ int main(int argc, char **argv)
 	create_option_groups();
 	cmdline_handler(argc, argv);
 
+	r_context_clean();
 	return r_exit_status;
 }

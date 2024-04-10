@@ -272,6 +272,16 @@ goffset get_device_size(gint fd, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Replaces a string pointer with a newly allocated copy of the source string.
+ *
+ * If the pointer was non-NULL previously, the old string is freed.
+ *
+ * @param dst the pointer to update
+ * @param src the string to copy
+ */
+void r_replace_strdup(gchar **dst, const gchar *src);
+
+/**
  * Converts a key for use in an environment variable name.
  *
  * Only alphanumeric characters and '_' are allowed. '-' is converted to '_'.
