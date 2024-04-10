@@ -21,6 +21,7 @@ mount -t overlay overlay -o lowerdir=/etc,upperdir=/tmp/etc-overlay,workdir=/tmp
 cd "$(dirname "$0")"
 
 BUILD_DIR="build/"
+BUILD_DIR_FULL="$(realpath build)/"
 
 # parse cmdline
 for x in $(cat /proc/cmdline); do
@@ -56,6 +57,22 @@ echo "nameserver 10.0.2.3" > /etc/resolv.conf
 
 # allow git access to our repo
 git config --system --add safe.directory "$(pwd)"
+
+# try to store coverage in tmpfs with acls to avoid issues with the
+# unprivileged nbd helper
+if type setfacl; then
+  mkdir /tmp/cov
+  setfacl -m d:u::rwx /tmp/cov
+  setfacl -m d:g::rwx /tmp/cov
+  setfacl -m d:o::rwx /tmp/cov
+  export GCOV_PREFIX=/tmp/cov
+fi
+
+save_gcov_data () {
+  if [ -n "$GCOV_PREFIX" ]; then
+    cp -r -T "$GCOV_PREFIX$BUILD_DIR_FULL" "$BUILD_DIR_FULL" || true
+  fi
+}
 
 # fake entropy
 $BUILD_DIR/test/fakerand
@@ -160,6 +177,7 @@ if [ -n "$SHELL" ]; then
   fi
   HISTFILE="$(pwd)/.qemu_bash_history" \
   setsid bash -c "$BASH_CMD" </dev/ttyS0 >/dev/ttyS0 2>&1 || echo exit-code=$?
+  save_gcov_data
   echo o > /proc/sysrq-trigger
 fi
 
@@ -178,6 +196,7 @@ else
   free || true
   echo "RESULT: FAILED"
 fi
+save_gcov_data
 sleep 1
 echo o > /proc/sysrq-trigger
 sleep 1
