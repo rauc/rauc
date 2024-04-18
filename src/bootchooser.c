@@ -1,6 +1,8 @@
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <gio/gio.h>
+#include <glib/gstdio.h>
 
 #include "bootchooser.h"
 #include "config_file.h"
@@ -22,10 +24,11 @@ GQuark r_bootchooser_error_quark(void)
 #define UBOOT_FWPRINTENV_NAME "fw_printenv"
 #define UBOOT_DEFAULT_ATTEMPTS  3
 #define UBOOT_ATTEMPTS_PRIMARY  3
+#define RASPBERRYPI_VCMAILBOX "vcmailbox"
 #define EFIBOOTMGR_NAME "efibootmgr"
 #define GRUB_EDITENV "grub-editenv"
 
-static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "custom", "noop", NULL};
+static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "raspberrypi", "efi", "custom", "noop", NULL};
 
 gboolean r_boot_is_supported_bootloader(const gchar *bootloader)
 {
@@ -975,6 +978,485 @@ static gboolean uboot_set_primary(RaucSlot *slot, GError **error)
 	return TRUE;
 }
 
+static RaucSlot *raspberrypi_find_config_slot_by_boot_partition(RaucConfig *config, gint boot_partition)
+{
+	g_autofree gchar *name = g_strdup_printf("%u", boot_partition);
+	return find_config_slot_by_bootname(config, name);
+}
+
+static gboolean raspberrypi_load_autoboot(const gchar *filename, GKeyFile **key_file, GError **error)
+{
+	GError *ierror = NULL;
+	g_autofree gchar *data = NULL;
+	gsize length;
+	g_autoptr(GKeyFile) c = NULL;
+
+	g_return_val_if_fail(filename, FALSE);
+	g_return_val_if_fail(key_file && *key_file == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!g_file_get_contents(filename, &data, &length, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	c = g_key_file_new();
+
+	if (!g_key_file_load_from_data(c, data, length, G_KEY_FILE_NONE, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	*key_file = g_steal_pointer(&c);
+
+	return TRUE;
+}
+
+static int r_rename(const gchar *oldfilename, const char *newfilename)
+{
+	int res;
+
+	/* Try to exchange files... */
+	res = renameat2(AT_FDCWD, oldfilename, AT_FDCWD, newfilename, RENAME_EXCHANGE);
+	if (res == 0) {
+		/* ... and remove old file. */
+		if (g_remove(oldfilename) == -1) {
+			int err = errno;
+			g_warning("Failed to remove file %s: %s", oldfilename, g_strerror(err));
+		}
+
+		return 0;
+	}
+
+	/* ... or, try to replace file if filesystem does not support exchange. */
+	if (res == -1 && errno == EINVAL)
+		res = renameat2(AT_FDCWD, oldfilename, AT_FDCWD, newfilename, 0);
+
+	return res;
+}
+
+static gboolean raspberrypi_save_autoboot(GKeyFile *key_file, GError **error)
+{
+	GError *ierror = NULL;
+	g_autofree gchar *filename_tmp = NULL;
+	gboolean res = FALSE;
+	gchar *filename;
+	gchar *data;
+	gsize size;
+	int fd;
+
+	g_return_val_if_fail(key_file, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	filename = r_context()->config->raspberrypi_autoboottxt_path;
+	filename_tmp = g_strdup_printf("%s.tmp", filename);
+
+	data = g_key_file_to_data(key_file, &size, &ierror);
+	if (!data) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	fd = g_open(filename_tmp, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR);
+	if (fd < 0) {
+		int err = errno;
+		g_set_error(
+				error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to open file %s: %s", filename_tmp, g_strerror(err));
+		return FALSE;
+	}
+
+	if (write(fd, data, size) != (gssize)size) {
+		int err = errno;
+		g_set_error(
+				error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to write file %s: %s", filename_tmp, g_strerror(err));
+		goto out;
+	}
+
+	if (fsync(fd) == -1) {
+		int err = errno;
+		g_set_error(
+				error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to sync file %s: %s", filename_tmp, g_strerror(err));
+		goto out;
+	}
+
+	g_close(fd, NULL);
+	fd = -1;
+
+	if (r_rename(filename_tmp, filename) == -1) {
+		int err = errno;
+		g_set_error(
+				error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to rename %s to %s: %s", filename_tmp, filename, g_strerror(err));
+		goto out;
+	}
+
+	res = TRUE;
+
+out:
+	if (fd > 0)
+		g_close(fd, NULL);
+
+	return res;
+}
+
+static gboolean raspberrypi_bootloader_get(const gchar *property, guint *value, GError **error)
+{
+	g_autofree gchar *filename = NULL;
+	gboolean res = FALSE;
+	guint32 val;
+	gint fd;
+
+	g_return_val_if_fail(property, FALSE);
+	g_return_val_if_fail(value, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	filename = g_build_filename(r_context()->config->raspberrypi_devicetree_base_path, "chosen", "bootloader", property, NULL);
+
+	fd = g_open(filename, O_RDONLY);
+	if (fd < 0) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Failed to open file: %s", filename);
+		return FALSE;
+	}
+
+	if (read(fd, &val, sizeof(val)) != sizeof(val)) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Failed to read integer from file: %s", filename);
+		goto out;
+	}
+
+	*value = val;
+	res = TRUE;
+
+out:
+	g_close(fd, NULL);
+
+	return res;
+}
+
+static gboolean raspberrypi_bootloader_get_partition(guint *partition, GError **error)
+{
+	return raspberrypi_bootloader_get("partition", partition, error);
+}
+
+static gboolean raspberrypi_bootloader_get_tryboot(gboolean *tryboot, GError **error)
+{
+	guint value;
+
+	if (!raspberrypi_bootloader_get("tryboot", &value, error))
+		return FALSE;
+
+	*tryboot = value ? TRUE : FALSE;
+
+	return TRUE;
+}
+
+static gboolean raspberrypi_tryboot_set(gboolean enable, GError **error)
+{
+	g_autoptr(GSubprocess) sub = NULL;
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, RASPBERRYPI_VCMAILBOX,
+			"0x00038064", "4", "0", enable ? "1" : "0", NULL);
+	if (!sub) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start " RASPBERRYPI_VCMAILBOX ": ");
+		return FALSE;
+	}
+
+	if (!g_subprocess_wait_check(sub, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run " RASPBERRYPI_VCMAILBOX ": ");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/* Get slot marked as primary one, i.e. the slot with boot_partition set in the
+ * section [all] in the file autoboot.txt */
+static RaucSlot *raspberrypi_get_primary(GError **error)
+{
+	g_autoptr(GKeyFile) key_file = NULL;
+	GError *ierror = NULL;
+	const gchar *filename;
+	gint boot_partition;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	filename = r_context()->config->raspberrypi_autoboottxt_path;
+	if (!raspberrypi_load_autoboot(filename, &key_file, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	boot_partition = g_key_file_get_integer(key_file, "all", "boot_partition", &ierror);
+	if (ierror) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Property boot_partition not set in %s", filename);
+		return NULL;
+	}
+
+	return raspberrypi_find_config_slot_by_boot_partition(r_context()->config, boot_partition);
+}
+
+/* Set the oneshot reboot flag to cause the firmware to run tryboot at next
+ * reboot.
+ *
+ * The firmware uses the boot_partition defined in the [tryboot] section and it
+ * loads the alternate configuration file tryboot.txt instead of config.txt at
+ * next boot. */
+static gboolean raspberrypi_set_primary_temporary(GError **error)
+{
+	GError *ierror = NULL;
+
+	if (!raspberrypi_tryboot_set(TRUE, error)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to set reboot flag: ");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/* Swap the boot_partition configurations in autoboot.txt to cause the firmware
+ * to use the boot_partition that is defined in the [tryboot] section as the
+ * default boot_partition. */
+static gboolean raspberrypi_set_primary_persistent(GError **error)
+{
+	g_autoptr(GKeyFile) key_file = NULL;
+	GError *ierror = NULL;
+	const gchar *filename;
+	gint boot_partition;
+	gint tryboot_boot_partition;
+
+	filename = r_context()->config->raspberrypi_autoboottxt_path;
+	if (!raspberrypi_load_autoboot(filename, &key_file, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	boot_partition = g_key_file_get_integer(key_file, "all", "boot_partition", &ierror);
+	if (ierror) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Property boot_partition not set in section [all] in file %s", filename);
+		return FALSE;
+	}
+
+	tryboot_boot_partition = g_key_file_get_integer(key_file, "tryboot", "boot_partition", &ierror);
+	if (ierror) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Property boot_partition not set in section [tryboot] in file %s", filename);
+		return FALSE;
+	}
+
+	if (!g_key_file_remove_key(key_file, "all", "boot_partition", &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to remove boot_partition key in section [all]: ");
+		return FALSE;
+	}
+
+	if (!g_key_file_remove_key(key_file, "tryboot", "boot_partition", &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to remove boot_partition key: ");
+		return FALSE;
+	}
+
+	g_key_file_set_integer(key_file, "all", "boot_partition", tryboot_boot_partition);
+	g_key_file_set_integer(key_file, "tryboot", "boot_partition", boot_partition);
+	if (!raspberrypi_save_autoboot(key_file, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to save file: ");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/* Set slot as primary boot slot, i.e. either persistently in the static file
+ * autoboot.txt if it is the boot'ed slot or temporarily via the tryboot reboot
+ * flag otherwise. */
+static gboolean raspberrypi_set_primary(RaucSlot *slot, GError **error)
+{
+	RaucSlot *primary;
+	GError *ierror = NULL;
+	gboolean tryboot;
+
+	primary = raspberrypi_get_primary(&ierror);
+	if (!primary) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to get primary: ");
+		return FALSE;
+	}
+
+	if (slot == primary)
+		return TRUE;
+
+	if (!raspberrypi_bootloader_get_tryboot(&tryboot, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to get bootloader tryboot property: ");
+		return FALSE;
+	}
+
+	if (!tryboot) {
+		if (!raspberrypi_set_primary_temporary(&ierror)) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed to set primary temporary: ");
+			return FALSE;
+		}
+
+		return TRUE;
+	}
+
+	if (!raspberrypi_set_primary_persistent(&ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to set primary persistent: ");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/* We assume bootstate to be good if the slot is the booted slot or if the slot
+ * is not the booted slot and the reboot flag is set; we assume bootstate to be
+ * bad otherwise */
+static gboolean raspberrypi_get_state(RaucSlot *slot, gboolean *good, GError **error)
+{
+	g_autoptr(GKeyFile) key_file = NULL;
+	GError *ierror = NULL;
+	RaucSlot *primary;
+	const gchar *filename;
+	gboolean bootloader_tryboot;
+	gint boot_partition;
+	guint bootloader_partition;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(good, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!raspberrypi_bootloader_get_partition(&bootloader_partition, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to get bootloader partition property: ");
+		return FALSE;
+	}
+
+	filename = r_context()->config->raspberrypi_autoboottxt_path;
+	if (!raspberrypi_load_autoboot(filename, &key_file, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	boot_partition = g_key_file_get_integer(key_file, "all", "boot_partition", &ierror);
+	if (ierror) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Property boot_partition not set in %s", filename);
+		return FALSE;
+	}
+
+	primary = raspberrypi_find_config_slot_by_boot_partition(r_context()->config, boot_partition);
+	if (!primary) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"No slot found with boot_partition %i", boot_partition);
+		return FALSE;
+	}
+
+	if (!raspberrypi_bootloader_get_tryboot(&bootloader_tryboot, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to get bootloader tryboot property: ");
+		return FALSE;
+	}
+
+	*good = (primary == slot || bootloader_tryboot) ? TRUE : FALSE;
+
+	return TRUE;
+}
+
+/* Set slot status values */
+static gboolean raspberrypi_set_state(RaucSlot *slot, gboolean good, GError **error)
+{
+	RaucSlot *primary;
+	GError *ierror = NULL;
+
+	primary = raspberrypi_get_primary(&ierror);
+	if (!primary) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to get primary: ");
+		return FALSE;
+	}
+
+	if ((slot == primary && !good) || (slot != primary && good)) {
+		if (!raspberrypi_set_primary_persistent(&ierror)) {
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed to set primary persistent: ");
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
 typedef struct {
 	gchar* num;
 	gchar* name;
@@ -1672,6 +2154,8 @@ gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 		res = grub_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
 		res = uboot_get_state(slot, good, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "raspberrypi") == 0) {
+		res = raspberrypi_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = efi_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
@@ -1709,6 +2193,8 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 		res = grub_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
 		res = uboot_set_state(slot, good, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "raspberrypi") == 0) {
+		res = raspberrypi_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = efi_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
@@ -1748,6 +2234,8 @@ RaucSlot* r_boot_get_primary(GError **error)
 		slot = grub_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
 		slot = uboot_get_primary(&ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "raspberrypi") == 0) {
+		slot = raspberrypi_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		slot = efi_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
@@ -1785,6 +2273,8 @@ gboolean r_boot_set_primary(RaucSlot *slot, GError **error)
 		res = grub_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
 		res = uboot_set_primary(slot, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "raspberrypi") == 0) {
+		res = raspberrypi_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = efi_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
