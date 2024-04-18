@@ -1,0 +1,27 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]; then
+	echo "Usage vcmailbox [word0] [word1] ..."
+	exit 1
+fi
+
+if [ $# -ne 4 ]; then
+	echo "ioctl_set_msg failed:-1"
+	exit 1
+fi
+
+# vcmailbox 0x00038064 4 0 0
+# or
+# vcmailbox 0x00038064 4 0 1
+if [ "$1" = "0x00038064" ]; then
+	printf "%i" "$4" >"$RASPBERRYPI_TMPDIR/00038064"
+	exit 0
+fi
+
+# vcmailbox 0x00030064 4 0 0
+# 0x0000001c 0x80000000 0x00030064 0x00000004 0x80000004 0x00000000 0x00000000
+# or
+# 0x0000001c 0x80000000 0x00030064 0x00000004 0x80000004 0x00000001 0x00000000
+value="0x00000000$(<"$RASPBERRYPI_TMPDIR/00038064")"
+echo 0x0000001c 0x80000000 0x00038064 0x00000004 0x80000004 "$value" 0x00000000
+exit 0
