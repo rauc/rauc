@@ -249,14 +249,14 @@ parent relationship to this bootable slot as follows:
   ...
 
   [slot.appfs.0]
-  parent = rootfs.0
+  parent=rootfs.0
   ...
 
   [slot.rootfs.1]
   ...
 
   [slot.appfs.1]
-  parent = rootfs.1
+  parent=rootfs.1
   ...
 
 Library Dependencies
