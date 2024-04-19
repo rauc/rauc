@@ -22,7 +22,7 @@ while [[ $# > 1 ]]; do
 			exit 1
 			;;
 	esac
-shift
+	shift
 done
 
 function check_var {
