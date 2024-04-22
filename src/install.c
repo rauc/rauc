@@ -986,8 +986,8 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 		g_message("Skipping update for correct image %s", plan->image->filename);
 		r_context_end_step("check_slot", TRUE);
 
-		/* Dummy step to indicate slot was skipped */
-		r_context_begin_step("skip_image", "Copying image skipped", 0);
+		/* Dummy step to indicate slot was skipped and complete required 'update_slots' substeps */
+		r_context_begin_step_weighted_formatted("skip_image", 0, 9, "Copying image skipped");
 
 		/* Update the status also for skipped slots */
 		g_message("Updating slot %s status", plan->target_slot->name);
