@@ -1598,6 +1598,17 @@ It is also available via PyPI:
 
 https://pypi.org/project/upparat/
 
+qbee: Fleet Management with Support for RAUC
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+qbee offers a fleet management service with an `Open Source agent
+<https://github.com/qbee-io/qbee-agent>`_ which supports using RAUC with
+streaming to perform OTA updates.
+
+For more information visit the documentation:
+
+https://qbee.io/docs/update-ota-image.html
+
 .. _sec-advanced-event-log:
 
 Installation History and Event Logging
