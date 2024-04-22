@@ -176,6 +176,23 @@ adaptive=adaptive-test-method;block-hash-index";
 	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
+static void install_fixture_set_up_slot_skipping(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	InstallData *data = (InstallData*) user_data;
+	const gchar *manifest_file = "\
+[update]\n\
+compatible=Test Config\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.ext4";
+
+	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	fixture_helper_set_up_system(fixture->tmpdir, "test/test-install-same-false.conf");
+	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
+}
+
 static void install_fixture_set_up_system_conf(InstallFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1125,6 +1142,16 @@ static void install_test_bundle(InstallFixture *fixture,
 	args->cleanup(args);
 }
 
+static void install_test_bundle_twice(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	/* First run */
+	install_test_bundle(fixture, user_data);
+
+	/* Second run */
+	install_test_bundle(fixture, user_data);
+}
+
 static void install_test_bundle_thread(InstallFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1592,6 +1619,11 @@ int main(int argc, char *argv[])
 	g_test_add("/install/adaptive",
 			InstallFixture, install_data,
 			install_fixture_set_up_bundle_adaptive, install_test_bundle,
+			install_fixture_tear_down);
+
+	g_test_add("/install/slot-skipping",
+			InstallFixture, install_data,
+			install_fixture_set_up_slot_skipping, install_test_bundle_twice,
 			install_fixture_tear_down);
 
 	return g_test_run();
