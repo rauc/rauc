@@ -1111,6 +1111,7 @@ static void install_test_bundle(InstallFixture *fixture,
 	g_assert(test_mount(slotfile, mountdir));
 	g_assert(g_file_test(testfilepath, G_FILE_TEST_IS_REGULAR));
 	g_assert(test_umount(fixture->tmpdir, "mnt"));
+	g_assert(test_rm_tree(fixture->tmpdir, "mnt"));
 
 	if (data != NULL && data->message_needles != NULL) {
 		const gchar **message_needles = data->message_needles;
