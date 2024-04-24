@@ -1278,8 +1278,10 @@ gboolean r_nbd_stop_server(RaucNBDServer *nbd_srv, GError **error)
 		request.magic = GUINT32_TO_BE(NBD_REQUEST_MAGIC);
 		request.type = GUINT32_TO_BE(NBD_CMD_DISC);
 		request.len = 0;
-		if (!r_write_exact(nbd_srv->sock, (guint8*)&request, sizeof(request), NULL))
-			g_error("failed to send nbd disconnect request");
+		if (!r_write_exact(nbd_srv->sock, (guint8*)&request, sizeof(request), &ierror)) {
+			g_message("failed to send nbd disconnect request, closing socket: %s", ierror->message);
+			g_clear_error(&ierror);
+		}
 
 		g_close(nbd_srv->sock, NULL);
 		nbd_srv->sock = -1;
