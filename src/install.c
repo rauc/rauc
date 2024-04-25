@@ -980,30 +980,14 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 		return FALSE;
 	}
 
-	/* For global slot status: Clear checksum info and make status
-	 * 'pending' to prevent the slot status from looking valid later in
-	 * case we crash while installing. */
-	if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") != 0) {
-		g_clear_pointer(&slot_state->status, g_free);
-		slot_state->status = g_strdup("pending");
-		g_clear_pointer(&slot_state->checksum.digest, g_free);
-		slot_state->checksum.size = 0;
-
-		if (!r_slot_status_save(plan->target_slot, &ierror)) {
-			g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
-			r_context_end_step("check_slot", FALSE);
-			return FALSE;
-		}
-	}
-
 	/* if explicitly enabled, skip update of up-to-date slots */
 	if (!plan->target_slot->install_same && g_strcmp0(plan->image->checksum.digest, slot_state->checksum.digest) == 0) {
 		install_args_update(args, "Skipping update for correct image %s", plan->image->filename);
 		g_message("Skipping update for correct image %s", plan->image->filename);
 		r_context_end_step("check_slot", TRUE);
 
-		/* Dummy step to indicate slot was skipped */
-		r_context_begin_step("skip_image", "Copying image skipped", 0);
+		/* Dummy step to indicate slot was skipped and complete required 'update_slots' substeps */
+		r_context_begin_step_weighted_formatted("skip_image", 0, 9, "Copying image skipped");
 
 		/* Update the status also for skipped slots */
 		g_message("Updating slot %s status", plan->target_slot->name);
@@ -1018,6 +1002,22 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 
 		install_args_update(args, "Updating slot %s done", plan->target_slot->name);
 		return TRUE;
+	}
+
+	/* For global slot status: Clear checksum info and make status
+	 * 'pending' to prevent the slot status from looking valid later in
+	 * case we crash while installing. */
+	if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") != 0) {
+		g_clear_pointer(&slot_state->status, g_free);
+		slot_state->status = g_strdup("pending");
+		g_clear_pointer(&slot_state->checksum.digest, g_free);
+		slot_state->checksum.size = 0;
+
+		if (!r_slot_status_save(plan->target_slot, &ierror)) {
+			g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
+			r_context_end_step("check_slot", FALSE);
+			return FALSE;
+		}
 	}
 
 	g_free(slot_state->status);
