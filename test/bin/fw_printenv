@@ -36,5 +36,4 @@ for i in $1; do
 	eval echo $(echo ${i%=*})=\$$(echo ${i%=*})
 done
 
-
 exit 0

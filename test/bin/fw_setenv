@@ -4,7 +4,6 @@
 eval $(cat $UBOOT_STATE_PATH | sed  "s/\(.*\)=\(.*\)/export \1=\"\2\"/g")
 UBOOT_VARS_PRE=$(cat $UBOOT_STATE_PATH | sed  "s/\(.*\)=\(.*\)/\1/g" | tr '\n' ' ')
 
-
 function check_var {
 	found=0
 	for l in $UBOOT_VARS_PRE; do

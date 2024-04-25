@@ -985,7 +985,7 @@ static void test_custom_initialize_state(const BootchooserFixture *fixture, cons
 }
 
 /* Content written should identical to format described for
- * test_custom_backend_initialize_state().
+ * test_custom_initialize_state().
  *
  * Returns TRUE if mock tools state content equals desired content,
  * FALSE otherwise
