@@ -831,6 +831,9 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 		return FALSE;
 	}
 
+	// let us handle broken pipes explicitly
+	signal(SIGPIPE, SIG_IGN);
+
 	g_message("nbd server running as UID %d, GID %d", getuid(), getgid());
 
 	ctx.dl_size = r_stats_new("nbd dl_size");
