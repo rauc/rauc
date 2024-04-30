@@ -60,6 +60,17 @@ Example configuration:
   firmware. It will be matched against the ``compatible`` string defined in the
   update manifest.
 
+``min-bundle-version`` (optional)
+  An optional user-defined version string that follows the
+  `semantic versioning scheme <https://semver.org>`_.
+  The 'version core' and '-pre_release' parts from the ``version`` string in the
+  update manifest is compared against. This allows to roll out updates with some
+  (breaking) change, which set the ``min-bundle-version`` accordingly, and
+  through that disallow the installation of prior version bundle - which would
+  render the device inoperable.
+
+  Note that equating the bundle-version with the system-version in this way has the caveat that cases where a rollback (due to a regression for example) would be required, could lead to scenanrios where the bundle version would need to be incremented to pass the version-limit, but the rolled back system version would end up at a number below the limit. E.g. 1.2.9 = good; update to 1.3.0 with limit set to 1.3.0; problems!; update-bundle version:=1.3.1 but with content=1.2.9.
+
 ``bootloader`` (required)
   The bootloader implementation RAUC should use for its slot switching
   mechanism. Currently supported values (and bootloaders) are ``barebox``,
