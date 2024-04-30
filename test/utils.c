@@ -399,6 +399,42 @@ static void semver_parse_test(void)
 	g_clear_error(&error);
 }
 
+static void semver_less_equal_test(void)
+{
+	g_autofree GError *error = NULL;
+
+	/* core version comparisons */
+	g_assert_true(r_semver_less_equal("3.2.1", "3.2.1", &error));
+	g_assert_false(r_semver_less_equal("3.2.2", "3.2.1", &error));
+	g_assert_true(r_semver_less_equal("3.2.2", "3.3.1", &error));
+	g_assert_false(r_semver_less_equal("4.2.2", "3.3.1", &error));
+
+	/* lexicographic pre_releases */
+	g_assert_true(r_semver_less_equal("3.2.1-foo", "3.2.1-foo", &error));
+	g_assert_true(r_semver_less_equal("3.2.1-foo", "3.2.1", &error));
+	g_assert_true(r_semver_less_equal("3.2.1-foo", "3.2.1-goo", &error));
+	g_assert_false(r_semver_less_equal("3.2.1-foop", "3.2.1-foo", &error));
+
+	/* numerical/dot-separated pre_releases */
+	g_assert_true(r_semver_less_equal("3.2.1-1.2.3", "3.2.1-1.2.3", &error));
+	g_assert_true(r_semver_less_equal("3.2.1-123", "3.2.1-123", &error));
+	g_assert_false(r_semver_less_equal("3.2.1-124", "3.2.1-123", &error));
+	g_assert_true(r_semver_less_equal("3.2.1-23", "3.2.1-123", &error));
+	g_assert_true(r_semver_less_equal("3.2.1-23.0.1", "3.2.1-123.0.12", &error));
+	g_assert_true(r_semver_less_equal("3.2.1-23.0.111111", "3.2.1-123.0.12", &error));
+
+	/* mixed */
+	g_assert_true(r_semver_less_equal("3.2.1-1.abc", "3.2.1-1.abc", &error));
+	g_assert_false(r_semver_less_equal("3.2.1-1.abz", "3.2.1-1.abc", &error));
+	g_assert_true(r_semver_less_equal("3.2.1-1.abc.1", "3.2.1-1.abc.2", &error));
+	g_assert_false(r_semver_less_equal("3.2.1-1.abc.3", "3.2.1-1.abc.2", &error));
+	g_assert_false(r_semver_less_equal("3.2.1-1abc.3", "3.2.1-1000.3", &error));
+	g_assert_true(r_semver_less_equal("3.2.1-1999.3", "3.2.1-1abc.3", &error));
+
+	/* none of the tests should have raised an error */
+	g_assert_no_error(error);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -415,6 +451,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/utils/bytes_unref_to_string", test_bytes_unref_to_string);
 	g_test_add_func("/utils/environ", environ_test);
 	g_test_add_func("/utils/semver_parse_test", semver_parse_test);
+	g_test_add_func("/utils/semver_less_equal_test", semver_less_equal_test);
 
 	return g_test_run();
 }

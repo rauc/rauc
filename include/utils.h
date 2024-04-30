@@ -415,3 +415,14 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return TRUE if the parsing was successful, FALSE otherwise
  */
 gboolean r_semver_parse(const gchar *version_string, guint64 version_core[3], gchar **pre_release, gchar **build, GError **error);
+
+/**
+ * Compare two "semantic version" strings over their version-core and pre_release identifier.
+ *
+ * @param version_string_a version A
+ * @param version_string_b version B
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if A<=B, FALSE otherwise
+ */
+gboolean r_semver_less_equal(const gchar *version_string_a, const gchar *version_string_b, GError **error);

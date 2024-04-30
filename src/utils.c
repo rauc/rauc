@@ -924,3 +924,90 @@ out:
 		g_clear_pointer(build, g_free);
 	return FALSE;
 }
+
+gboolean r_semver_less_equal(const gchar *version_string_a, const gchar *version_string_b, GError **error)
+{
+	guint64 version_core_a[3] = {0};
+	g_autofree gchar *pre_release_a = NULL;
+	guint64 version_core_b[3] = {0};
+	g_autofree gchar *pre_release_b = NULL;
+	g_auto(GStrv) pre_fields_a = NULL;
+	g_auto(GStrv) pre_fields_b = NULL;
+	int i = 0;
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!r_semver_parse(version_string_a, version_core_a, &pre_release_a, NULL, &ierror)) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to parse semantic version A for comparison: ");
+		return FALSE;
+	}
+	if (!r_semver_parse(version_string_b, version_core_b, &pre_release_b, NULL, &ierror)) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to parse semantic version B for comparison: ");
+		return FALSE;
+	}
+
+	/* compare version cores: major, minor, patch */
+	for (i = 0; i < 3; i++) {
+		if (version_core_a[i] < version_core_b[i]) {
+			return TRUE;
+		} else if (version_core_a[i] > version_core_b[i]) {
+			return FALSE;
+		}
+	}
+
+	/* version cores are equal, compare pre-release identifiers */
+	if (pre_release_a == NULL && pre_release_b == NULL) {
+		return TRUE;
+	} else if (pre_release_a == NULL) {
+		return FALSE; /* version_a > version_b-pre_release */
+	} else if (pre_release_b == NULL) {
+		return TRUE; /* version_a-pre_release < version_b */
+	}
+
+	/* compare dot-separated fields of pre-release identifiers */
+	pre_fields_a = g_strsplit(pre_release_a, ".", 0);
+	pre_fields_b = g_strsplit(pre_release_b, ".", 0);
+
+	i = 0;
+	while (pre_fields_a[i] != NULL && pre_fields_b[i] != NULL) {
+		gboolean is_num_a = FALSE;
+		gboolean is_num_b = FALSE;
+		guint64 num_a = 0;
+		guint64 num_b = 0;
+		gint cmp = 0;
+		is_num_a = g_ascii_string_to_unsigned(pre_fields_a[i], 10, 0, G_MAXUINT64, &num_a, NULL);
+		is_num_b = g_ascii_string_to_unsigned(pre_fields_b[i], 10, 0, G_MAXUINT64, &num_b, NULL);
+
+		if (is_num_a && is_num_b) {
+			/* compare numerically */
+			if (num_a < num_b) {
+				return TRUE; /* version_a < version_b */
+			} else if (num_a > num_b) {
+				return FALSE; /* version_a > version_b */
+			}
+
+			/* Numeric identifiers always have lower precedence than non-numeric identifiers. */
+		} else if (is_num_a && !is_num_b) {
+			return TRUE;
+		} else if (!is_num_a && is_num_b) {
+			return FALSE;
+		} else {
+			/* compare lexically */
+			cmp = g_strcmp0(pre_fields_a[i], pre_fields_b[i]);
+			if (cmp < 0) {
+				return TRUE; /* version_a < version_b */
+			} else if (cmp > 0) {
+				return FALSE; /* version_a > version_b */
+			}
+		}
+		i++;
+	}
+
+	if (pre_fields_a[i] == NULL && pre_fields_b[i] == NULL)
+		return TRUE;
+	else
+		return (pre_fields_a[i] == NULL) && (pre_fields_b[i] != NULL);
+}
