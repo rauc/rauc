@@ -615,6 +615,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	g_autoptr(GKeyFile) key_file = NULL;
 	gboolean dtbvariant;
 	g_autofree gchar *variant_data = NULL;
+	g_autofree gchar *version_data = NULL;
 	g_autofree gchar *bundle_formats = NULL;
 	gsize entries;
 
@@ -642,6 +643,29 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
+
+	/* check optional 'min-bundle-version' key for validity */
+	version_data = key_file_consume_string(key_file, "system", "min-bundle-version", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_clear_pointer(&version_data, g_free);
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	if (version_data) {
+		if (!r_semver_less_equal("0", version_data, NULL)) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_INVALID_FORMAT,
+					"Min version format invalid, expected: Major[.Minor[.Patch]][-pre_release], got: %s",
+					version_data);
+			return FALSE;
+		}
+		c->system_min_bundle_version = g_steal_pointer(&version_data);
+	}
+
 	c->system_bootloader = key_file_consume_string(key_file, "system", "bootloader", NULL);
 	if (!c->system_bootloader) {
 		g_set_error_literal(
@@ -1113,6 +1137,7 @@ void free_config(RaucConfig *config)
 		return;
 
 	g_free(config->system_compatible);
+	g_free(config->system_min_bundle_version);
 	g_free(config->system_variant);
 	g_free(config->system_bootloader);
 	g_free(config->system_bb_statename);
