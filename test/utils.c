@@ -315,6 +315,90 @@ static void environ_test(void)
 	g_assert_cmpstr(g_environ_getenv(env, "FOO_12"), ==, "bar$");
 }
 
+static void semver_parse_test(void)
+{
+	g_autofree gchar *version_string;
+	g_autofree guint64 version[3] = {0};
+	g_autofree gchar *pre_release = NULL;
+	g_autofree gchar *build = NULL;
+	g_autofree GError *error = NULL;
+
+	version_string = g_strdup("1.2.3");
+	g_assert_true(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_no_error(error);
+	g_assert_cmpint(version[0], ==, 1);
+	g_assert_cmpint(version[1], ==, 2);
+	g_assert_cmpint(version[2], ==, 3);
+	g_assert_null(pre_release);
+	g_assert_null(build);
+
+	r_replace_strdup(&version_string, "1.2.3-foo+baa");
+	g_assert_true(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_no_error(error);
+	g_assert_cmpint(version[0], ==, 1);
+	g_assert_cmpint(version[1], ==, 2);
+	g_assert_cmpint(version[2], ==, 3);
+	g_assert_cmpstr(pre_release, ==, "foo");
+	g_assert_cmpstr(build, ==, "baa");
+	g_clear_pointer(&pre_release, g_free);
+	g_clear_pointer(&build, g_free);
+
+	r_replace_strdup(&version_string, "1.2.3-foo");
+	g_assert_true(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_no_error(error);
+	g_assert_cmpint(version[0], ==, 1);
+	g_assert_cmpint(version[1], ==, 2);
+	g_assert_cmpint(version[2], ==, 3);
+	g_assert_cmpstr(pre_release, ==, "foo");
+	g_assert_null(build);
+	g_clear_pointer(&pre_release, g_free);
+
+	r_replace_strdup(&version_string, "1.2.3+baa");
+	g_assert_true(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_no_error(error);
+	g_assert_cmpint(version[0], ==, 1);
+	g_assert_cmpint(version[1], ==, 2);
+	g_assert_cmpint(version[2], ==, 3);
+	g_assert_null(pre_release);
+	g_assert_cmpstr(build, ==, "baa");
+	g_clear_pointer(&build, g_free);
+
+	r_replace_strdup(&version_string, "1.2.3-a.2.d");
+	g_assert_true(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_no_error(error);
+	g_assert_cmpint(version[0], ==, 1);
+	g_assert_cmpint(version[1], ==, 2);
+	g_assert_cmpint(version[2], ==, 3);
+	g_assert_cmpstr(pre_release, ==, "a.2.d");
+	g_assert_null(build);
+
+	/* test error cases */
+	r_replace_strdup(&version_string, "v1.2.3");
+	g_assert_false(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_error(error, G_NUMBER_PARSER_ERROR, G_NUMBER_PARSER_ERROR_INVALID);
+	g_clear_error(&error);
+
+	r_replace_strdup(&version_string, "1.foo.3");
+	g_assert_false(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_error(error, G_NUMBER_PARSER_ERROR, G_NUMBER_PARSER_ERROR_INVALID);
+	g_clear_error(&error);
+
+	r_replace_strdup(&version_string, "1..3");
+	g_assert_false(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_error(error, G_NUMBER_PARSER_ERROR, G_NUMBER_PARSER_ERROR_INVALID);
+	g_clear_error(&error);
+
+	r_replace_strdup(&version_string, "..");
+	g_assert_false(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_error(error, G_NUMBER_PARSER_ERROR, G_NUMBER_PARSER_ERROR_INVALID);
+	g_clear_error(&error);
+
+	r_replace_strdup(&version_string, "");
+	g_assert_false(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_error(error, R_UTILS_ERROR, R_UTILS_ERROR_SEMVER_PARSE);
+	g_clear_error(&error);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -330,6 +414,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/utils/fakeroot", fakeroot_test);
 	g_test_add_func("/utils/bytes_unref_to_string", test_bytes_unref_to_string);
 	g_test_add_func("/utils/environ", environ_test);
+	g_test_add_func("/utils/semver_parse_test", semver_parse_test);
 
 	return g_test_run();
 }

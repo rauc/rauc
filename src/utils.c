@@ -826,3 +826,101 @@ gchar *r_bytes_unref_to_string(GBytes **bytes)
 
 	return g_strndup(data, size);
 }
+
+gboolean r_semver_parse(const gchar *version_string, guint64 version_core[3], gchar **pre_release, gchar **build, GError **error)
+{
+	g_autofree gchar *version_copy = g_strdup(version_string);
+	gchar *build_pos = NULL;
+	gchar *pre_release_pos = NULL;
+	g_auto(GStrv) version_parts = NULL;
+	GError *ierror = NULL;
+	int i = 0;
+
+	g_return_val_if_fail(pre_release == NULL || *pre_release == NULL, FALSE);
+	g_return_val_if_fail(build == NULL || *build == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* semantic versions BNF:
+	 * <valid semver> ::= <version core>
+	 * | <version core> "-" <pre-release>
+	 * | <version core> "+" <build>
+	 * | <version core> "-" <pre-release> "+" <build>
+	 *
+	 * detect first the '+build', separate it out by null terminating the
+	 * version_copy at it's start position; repeat for the '-pre-release'; and
+	 * then parse the remaining 'version core'
+	 */
+
+	build_pos = g_strrstr(version_copy, "+");
+	if (build_pos != NULL) {
+		if (build != NULL) {
+			*build = g_strdup(build_pos + 1);
+			if (*build == NULL) {
+				g_set_error(error,
+						R_UTILS_ERROR,
+						R_UTILS_ERROR_SEMVER_PARSE,
+						"Failed to parse semantic version '%s', '+build' turned out to be empty.",
+						version_string);
+				goto out;
+			}
+		}
+		*build_pos = '\0';
+	}
+
+	pre_release_pos = g_strrstr(version_copy, "-");
+	if (pre_release_pos != NULL) {
+		if (pre_release != NULL) {
+			*pre_release = g_strdup(pre_release_pos + 1);
+			if (*pre_release == NULL) {
+				g_set_error(error,
+						R_UTILS_ERROR,
+						R_UTILS_ERROR_SEMVER_PARSE,
+						"Failed to parse semantic version '%s', '-pre_release' turned out to be empty.",
+						version_string);
+				goto out;
+			}
+		}
+		*pre_release_pos = '\0';
+	}
+
+	version_parts = g_strsplit(version_copy, ".", 3);
+	/* Note that g_strsplit returns an empty array when splitting: "" */
+	if (version_parts == NULL) {
+		g_set_error(error,
+				R_UTILS_ERROR,
+				R_UTILS_ERROR_SEMVER_PARSE,
+				"Failed to parse semantic version '%s', 'version core' turned out to be empty.",
+				version_string);
+		goto out;
+	}
+	/* and NULL terminates arrays it creates */
+	if (version_parts[0] == NULL) {
+		g_set_error(error,
+				R_UTILS_ERROR,
+				R_UTILS_ERROR_SEMVER_PARSE,
+				"Failed to parse semantic version '%s', 'version core' has no components.",
+				version_string);
+		goto out;
+	}
+
+	for (i = 0; i < 3; i++)
+		version_core[i] = 0;
+	i = 0;
+	while (version_parts[i]) {
+		if (!g_ascii_string_to_unsigned(version_parts[i], 10, 0, G_MAXUINT64, &version_core[i], &ierror)) {
+			g_propagate_prefixed_error(error, ierror,
+					"Failed to parse core version component '%s' as uint: ", version_parts[i]);
+			goto out;
+		}
+		i++;
+	}
+
+	return TRUE;
+
+out:
+	if (pre_release)
+		g_clear_pointer(pre_release, g_free);
+	if (build)
+		g_clear_pointer(build, g_free);
+	return FALSE;
+}

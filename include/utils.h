@@ -11,6 +11,7 @@ typedef enum {
 	R_UTILS_ERROR_FAILED,
 	R_UTILS_ERROR_INAPPROPRIATE_IOCTL,
 	R_UTILS_ERROR_INVALID_ENV_KEY,
+	R_UTILS_ERROR_SEMVER_PARSE,
 } RUtilsError;
 
 #define BIT(nr) (1UL << (nr))
@@ -400,3 +401,17 @@ G_GNUC_WARN_UNUSED_RESULT;
  */
 gchar *r_bytes_unref_to_string(GBytes **bytes)
 G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Parse a "semantic version" string into its constituents.
+ *
+ *
+ * @param version_string input string
+ * @param[out] version_core return location for version-core as {major,minor,patch}
+ * @param[out] pre_release return location for pre_release version part, can be NULL
+ * @param[out] build return location for build version part, can be NULL
+ * @param[out] error return location for a GError, or NULL
+ *
+ * @return TRUE if the parsing was successful, FALSE otherwise
+ */
+gboolean r_semver_parse(const gchar *version_string, guint64 version_core[3], gchar **pre_release, gchar **build, GError **error);
