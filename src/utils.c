@@ -170,6 +170,9 @@ gchar *resolve_path(const gchar *basefile, const gchar *path)
 	if (path == NULL)
 		return NULL;
 
+	if (g_str_has_prefix(path, "pkcs11:"))
+		return g_strdup(path);
+
 	if (g_path_is_absolute(path))
 		return g_strdup(path);
 
