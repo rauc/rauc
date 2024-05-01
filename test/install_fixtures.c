@@ -15,7 +15,7 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 	g_autofree gchar *capath = NULL;
 
 	g_assert_nonnull(tmpdir);
-	g_print("bundle tmpdir: %s\n", tmpdir);
+	g_test_message("bundle tmpdir: %s", tmpdir);
 
 	g_assert(test_mkdir_relative(tmpdir, "bin", 0777) == 0);
 	g_assert(test_mkdir_relative(tmpdir, "content", 0777) == 0);

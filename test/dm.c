@@ -30,7 +30,7 @@ static void dm_fixture_set_up(DMFixture *fixture,
 {
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
-	g_print("dm tmpdir: %s\n", fixture->tmpdir);
+	g_test_message("dm tmpdir: %s\n", fixture->tmpdir);
 }
 
 static void dm_fixture_tear_down(DMFixture *fixture,

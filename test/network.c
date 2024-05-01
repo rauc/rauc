@@ -16,7 +16,7 @@ static void network_fixture_set_up(NetworkFixture *fixture,
 {
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
-	g_print("network tmpdir: %s\n", fixture->tmpdir);
+	g_test_message("network tmpdir: %s\n", fixture->tmpdir);
 }
 
 static void network_fixture_tear_down(NetworkFixture *fixture,
