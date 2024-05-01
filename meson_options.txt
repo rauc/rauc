@@ -76,6 +76,11 @@ option(
   value : 'true',
   description : 'Enable/Disable test suite')
 option(
+  'install-tests',
+  type : 'boolean',
+  value : 'false',
+  description : 'install test executables and assets')
+option(
   'fuzzing',
   type : 'boolean',
   value : 'false',
