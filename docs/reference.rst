@@ -1451,6 +1451,10 @@ IN a{sv} *args*:
         installation of bundles on platforms that a compatible not matching the one
         of the bundle to be installed
 
+    :STRING 'ignore-version-limit', VARIANT 'b' <true/false>: Disables all
+        version checks, which normally would compare the bundle version against
+        the system.conf set ``min-version`` and/or ``max-version``.
+
     :STRING 'transaction-id', VARIANT 's' <UUID>: Set UUID to use for
         identifying the (installation) transaction.
         If not given, RAUC will generate a random one.
