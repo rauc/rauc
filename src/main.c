@@ -30,7 +30,7 @@
 GMainLoop *r_loop = NULL;
 int r_exit_status = 0;
 
-gboolean install_ignore_compatible, install_progressbar = FALSE;
+gboolean install_ignore_compatible, install_ignore_version_limit, install_progressbar = FALSE;
 gboolean trust_environment = FALSE;
 gboolean verification_disabled = FALSE;
 gboolean no_check_time = FALSE;
@@ -259,6 +259,7 @@ static gboolean install_start(int argc, char **argv)
 	args->status_result = 2;
 
 	args->ignore_compatible = install_ignore_compatible;
+	args->ignore_version_limit = install_ignore_version_limit;
 	args->transaction = installation_txn;
 	if (access_args.tls_cert)
 		args->access_args.tls_cert = g_strdup(access_args.tls_cert);
@@ -278,6 +279,7 @@ static gboolean install_start(int argc, char **argv)
 		g_unix_signal_add(SIGINT, on_sigint, args);
 
 		g_variant_dict_insert(&dict, "ignore-compatible", "b", args->ignore_compatible);
+		g_variant_dict_insert(&dict, "ignore-version-limit", "b", args->ignore_version_limit);
 		if (args->transaction)
 			g_variant_dict_insert(&dict, "transaction-id", "s", args->transaction);
 		if (args->access_args.tls_cert)
@@ -2217,6 +2219,7 @@ typedef struct {
 
 static GOptionEntry entries_install[] = {
 	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
+	{"ignore-version-limit", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_version_limit, "disable version check", NULL},
 	{"transaction-id", '\0', 0, G_OPTION_ARG_STRING, &installation_txn, "custom transaction id", "UUID"},
 #if ENABLE_SERVICE == 1
 	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
