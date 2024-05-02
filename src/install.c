@@ -550,6 +550,36 @@ static gboolean verify_compatible(RaucInstallArgs *args, RaucManifest *manifest,
 	}
 }
 
+static gboolean check_version_limits(RaucInstallArgs *args, RaucManifest *manifest, GError **error)
+{
+	GError *ierror = NULL;
+
+	if (args->ignore_version_limit)
+		return TRUE;
+
+	if (!r_context()->config->system_min_bundle_version) {
+		g_debug("No min_bundle_version configured in the system.conf. Version-limit check does nothing.");
+		return TRUE;
+	}
+
+	if (!semver_less_equal(
+			r_context()->config->system_min_bundle_version,
+			manifest->update_version,
+			&ierror)) {
+		if (ierror) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		} else {
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_VERSION_MISMATCH,
+					"Version mismatch: Expected at least '%s' but bundle manifest has '%s'",
+					r_context()->config->system_min_bundle_version,
+					manifest->update_version);
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
 static gchar **add_system_environment(gchar **envp)
 {
 	GHashTableIter iter;
@@ -1410,6 +1440,12 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 			goto umount;
 		}
 	} else if (!verify_compatible(args, bundle->manifest, &ierror)) {
+		res = FALSE;
+		g_propagate_error(error, ierror);
+		goto umount;
+	}
+
+	if (!check_version_limits(args, bundle->manifest, &ierror)) {
 		res = FALSE;
 		g_propagate_error(error, ierror);
 		goto umount;
