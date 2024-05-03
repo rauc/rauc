@@ -77,3 +77,21 @@ test(
   env : ['SHARNESS_BUILD_DIRECTORY=' + meson.build_root()],
   workdir : meson.current_source_dir(),
 )
+
+pytest = find_program('pytest', required: false)
+
+if pytest.found()
+  pytests = [
+    'test_cmdline',
+  ]
+  foreach test_name : pytests
+    test(
+      'pytest_' + test_name,
+      pytest,
+      args: ['--basetemp', '/tmp/pytest-custom-root', '-vv', test_name + '.py'],
+      is_parallel : false,
+      timeout : 120,
+      workdir : meson.current_source_dir(),
+      )
+  endforeach
+endif
