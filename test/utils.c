@@ -371,6 +371,7 @@ static void semver_parse_test(void)
 	g_assert_cmpint(version[2], ==, 3);
 	g_assert_cmpstr(pre_release, ==, "a.2.d");
 	g_assert_null(build);
+	g_clear_pointer(&pre_release, g_free);
 
 	/* test error cases */
 	r_replace_strdup(&version_string, "v1.2.3");
@@ -397,11 +398,56 @@ static void semver_parse_test(void)
 	g_assert_false(r_semver_parse(version_string, version, &pre_release, &build, &error));
 	g_assert_error(error, R_UTILS_ERROR, R_UTILS_ERROR_SEMVER_PARSE);
 	g_clear_error(&error);
+
+	/* test "relaxed" semantic versions */
+	r_replace_strdup(&version_string, "1012.11-a.2.d");
+	g_assert_true(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_no_error(error);
+	g_assert_cmpint(version[0], ==, 1012);
+	g_assert_cmpint(version[1], ==, 11);
+	g_assert_cmpint(version[2], ==, 0);
+	g_assert_cmpstr(pre_release, ==, "a.2.d");
+	g_assert_null(build);
+	g_clear_pointer(&pre_release, g_free);
+
+	r_replace_strdup(&version_string, "1012-abc");
+	g_assert_true(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_no_error(error);
+	g_assert_cmpint(version[0], ==, 1012);
+	g_assert_cmpint(version[1], ==, 0);
+	g_assert_cmpint(version[2], ==, 0);
+	g_assert_cmpstr(pre_release, ==, "abc");
+	g_assert_null(build);
+	g_clear_pointer(&pre_release, g_free);
+
+	r_replace_strdup(&version_string, "1012");
+	g_assert_true(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_no_error(error);
+	g_assert_cmpint(version[0], ==, 1012);
+	g_assert_cmpint(version[1], ==, 0);
+	g_assert_cmpint(version[2], ==, 0);
+	g_assert_null(pre_release);
+	g_assert_null(build);
+
+	r_replace_strdup(&version_string, "0");
+	g_assert_true(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_no_error(error);
+	g_assert_cmpint(version[0], ==, 0);
+	g_assert_cmpint(version[1], ==, 0);
+	g_assert_cmpint(version[2], ==, 0);
+	g_assert_null(pre_release);
+	g_assert_null(build);
 }
 
 static void semver_less_equal_test(void)
 {
 	g_autofree GError *error = NULL;
+
+	/* test "relaxed" semantic versions */
+	g_assert_true(r_semver_less_equal("0", "3.2.1", &error));
+	g_assert_true(r_semver_less_equal("3", "3.2.1", &error));
+	g_assert_true(r_semver_less_equal("3.2", "3.2.1", &error));
+	g_assert_false(r_semver_less_equal("4", "3.2.1", &error));
 
 	/* core version comparisons */
 	g_assert_true(r_semver_less_equal("3.2.1", "3.2.1", &error));

@@ -80,6 +80,11 @@ Example configuration:
   to 1.3.0 with limit set to 1.3.0; problems!; update-bundle version:=1.3.1 but
   with content=1.2.9.
 
+  Also note that the implementation in RAUC relaxes the strict Major.Minor.Path
+  version-core format imposed by the semantic versioning scheme. To accommodate
+  versioning schemes that use YEAR.MONTH or similar, version-cores with just
+  Major or Major.Minor are also allowed.
+
 ``bootloader`` (required)
   The bootloader implementation RAUC should use for its slot switching
   mechanism. Currently supported values (and bootloaders) are ``barebox``,
