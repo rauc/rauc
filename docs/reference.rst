@@ -71,6 +71,9 @@ Example configuration:
 
   Note that equating the bundle-version with the system-version in this way has the caveat that cases where a rollback (due to a regression for example) would be required, could lead to scenanrios where the bundle version would need to be incremented to pass the version-limit, but the rolled back system version would end up at a number below the limit. E.g. 1.2.9 = good; update to 1.3.0 with limit set to 1.3.0; problems!; update-bundle version:=1.3.1 but with content=1.2.9.
 
+  Also note that the implementation in RAUC relaxes the strict Major.Minor.Path version-core format imposed by the semantic versioning scheme.
+  To accomondate versioning schemes that use YEAR.MONTH or similar, version-cores with just Major or Major.Minor are also allowed.
+
 ``bootloader`` (required)
   The bootloader implementation RAUC should use for its slot switching
   mechanism. Currently supported values (and bootloaders) are ``barebox``,
