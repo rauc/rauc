@@ -58,21 +58,26 @@ To make sure your changes match the expected code style, run::
 from the RAUC source code's root directory.
 It will adapt style where necessary.
 
-CLI Tests - sharness
-~~~~~~~~~~~~~~~~~~~~
+CLI Tests - pytest
+~~~~~~~~~~~~~~~~~~
 
-For high-level tests of the RAUC command line interface we use the `sharness
-<https://github.com/chriscool/sharness>`_ shell library.
+For high-level tests of the RAUC command line interface we use `pytest
+<https://docs.pytest.org/>`_.
 
 You can run these checks manually by executing::
 
-  cd test
-  ./rauc.t
+  pytest test/
 
 from the RAUC source code's root directory but they will also be triggered by
 the general test suite run (see below).
 If you add or change subcommands or arguments of the CLI tool, make sure these
 tests succeed and extend them if possible.
+When touching the test code, make sure to run the 'ruff' linter/formatter on
+the changed code::
+
+  ruff format test/
+  ruff check test/
+
 As many of these tests need root permissions, we recommend running them using the
 ``qemu-test`` helper below.
 
@@ -98,7 +103,7 @@ To run all tests, run::
 
   meson test -C build
 
-This will also run the sharness CLI tests mentioned above.
+This will also run the pytest CLI tests mentioned above.
 
 .. note:: Although some of the tests need to run as root, do NOT use 'sudo', but
    use our ``qemu-test`` helper instead!

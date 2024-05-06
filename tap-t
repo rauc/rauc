@@ -1,7 +1,0 @@
-#!/bin/sh
-
-# run a sharness test. The test binary is passed as $1
-test=$1
-shift
-cd "$(dirname "$test")"
-./$(basename "$test") -v $*
