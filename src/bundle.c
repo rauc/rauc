@@ -63,6 +63,9 @@
 #ifndef NTFS_SB_MAGIC
 #define NTFS_SB_MAGIC 0x5346544e
 #endif
+#ifndef NTFS3_SUPER_MAGIC
+#define NTFS3_SUPER_MAGIC 0x7366746e
+#endif
 #ifndef OVERLAYFS_SUPER_MAGIC
 #define OVERLAYFS_SUPER_MAGIC 0x794c7630
 #endif
@@ -1484,6 +1487,7 @@ static gboolean check_bundle_access(int bundle_fd, GError **error)
 			case JFFS2_SUPER_MAGIC:
 			case MSDOS_SUPER_MAGIC:
 			case NTFS_SB_MAGIC:
+			case NTFS3_SUPER_MAGIC:
 			case ROMFS_MAGIC:
 			case SQUASHFS_MAGIC:
 			case UDF_SUPER_MAGIC:
