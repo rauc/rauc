@@ -122,6 +122,11 @@ prepare_softhsm2 ()
   export RAUC_PKCS11_MODULE=${SOFTHSM2_MOD}
 }
 
+test -f $SHARNESS_BUILD_DIRECTORY/config.h || {
+  echo >&2 "Did not find '$SHARNESS_BUILD_DIRECTORY/config.h'"
+  exit 1
+}
+
 # Prerequisite: JSON support enabled [JSON]
 grep -q "ENABLE_JSON 1" $SHARNESS_BUILD_DIRECTORY/config.h && \
   test_set_prereq JSON
@@ -132,7 +137,7 @@ grep -q "ENABLE_SERVICE 1" $SHARNESS_BUILD_DIRECTORY/config.h &&
   select_system_or_session_bus
 
 # Prerequisite: openssl available [OPENSSL]
-openssl asn1parse -help &&
+openssl asn1parse -help 2>/dev/null &&
   test_set_prereq OPENSSL
 
 # Prerequisite: HTTP server available [HTTP]
@@ -144,12 +149,16 @@ grep -q "ENABLE_STREAMING 1" $SHARNESS_BUILD_DIRECTORY/config.h &&
   test -n "$RAUC_TEST_HTTP_SERVER" &&
   test_set_prereq STREAMING
 
+# Prerequisite: bundle create support enabled [CREATE]
+grep -q "ENABLE_CREATE 1" $SHARNESS_BUILD_DIRECTORY/config.h &&
+  test_set_prereq CREATE
+
 # Prerequisite: casync available [CASYNC]
-casync --version &&
+casync --version 2>/dev/null &&
   test_set_prereq CASYNC
 
 # Prerequisite: desync available [DESYNC]
-desync --help &&
+desync --help 2>/dev/null &&
   test_set_prereq DESYNC
 
 # Prerequisite: softhsm2 installed [PKCS11]
@@ -165,7 +174,7 @@ faketime "2018-01-01" date -R | grep "Jan 2018" &&
   test_set_prereq FAKETIME
 
 # Prerequisite: grub-editenv available [GRUB]
-grub-editenv -V &&
+grub-editenv -V 2>/dev/null &&
   test_set_prereq GRUB
 
 # Prerequisite: root available [ROOT]
@@ -188,7 +197,10 @@ test_expect_success "rauc missing arg" "
   test_expect_code 1 rauc install &&
   test_expect_code 1 rauc write-slot &&
   test_expect_code 1 rauc write-slot slot &&
-  test_expect_code 1 rauc info &&
+  test_expect_code 1 rauc info
+"
+
+test_expect_success CREATE "rauc create missing arg" "
   test_expect_code 1 rauc bundle &&
   test_expect_code 1 rauc bundle input &&
   test_expect_code 1 rauc resign input &&
@@ -201,7 +213,10 @@ test_expect_success "rauc missing arg" "
 test_expect_success "rauc excess args" "
   test_expect_code 1 rauc install bundle excess &&
   test_expect_code 1 rauc write-slot source target excess &&
-  test_expect_code 1 rauc info bundle excess &&
+  test_expect_code 1 rauc info bundle excess
+"
+
+test_expect_success CREATE "rauc create excess args" "
   test_expect_code 1 rauc bundle indir outbundle excess &&
   test_expect_code 1 rauc resign inbundle outbundle excess &&
   test_expect_code 1 rauc replace-signature inbundle insig outbundle excess &&
@@ -216,11 +231,13 @@ test_expect_success "rauc help" "
   rauc --help &&
   rauc install --help &&
   rauc write-slot --help &&
-  rauc info --help &&
+  rauc info --help
+"
+
+test_expect_success CREATE "rauc create help" "
   rauc bundle --help &&
   rauc resign --help &&
-  rauc replace-signature --help &&
-  rauc info --help
+  rauc replace-signature --help
 "
 
 test_expect_success "rauc info (plain)" "
@@ -355,7 +372,7 @@ test_expect_success "rauc info invalid" "
     info ${TEST_TMPDIR}/good-bundle.raucb
 "
 
-test_expect_success "rauc bundle" "
+test_expect_success CREATE "rauc bundle" "
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
@@ -367,7 +384,7 @@ test_expect_success "rauc bundle" "
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success "rauc bundle (test compatibiltiy for cert/key args before subcommand)" "
+test_expect_success CREATE "rauc bundle (test compatibiltiy for cert/key args before subcommand)" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
@@ -379,7 +396,7 @@ test_expect_success "rauc bundle (test compatibiltiy for cert/key args before su
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success "rauc bundle mksquashfs extra args" "
+test_expect_success CREATE "rauc bundle mksquashfs extra args" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
@@ -392,7 +409,7 @@ test_expect_success "rauc bundle mksquashfs extra args" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success PKCS11 "rauc bundle with PKCS11 (key 1)" "
+test_expect_success CREATE,PKCS11 "rauc bundle with PKCS11 (key 1)" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
@@ -403,7 +420,7 @@ test_expect_success PKCS11 "rauc bundle with PKCS11 (key 1)" "
   rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success PKCS11 "rauc bundle with PKCS11 (key 2, revoked)" "
+test_expect_success CREATE,PKCS11 "rauc bundle with PKCS11 (key 2, revoked)" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
@@ -414,7 +431,7 @@ test_expect_success PKCS11 "rauc bundle with PKCS11 (key 2, revoked)" "
   test_must_fail rauc -c $SHARNESS_TEST_DIRECTORY/test.conf info ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success PKCS11 "rauc bundle with PKCS11 (key mismatch)" "
+test_expect_success CREATE,PKCS11 "rauc bundle with PKCS11 (key mismatch)" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
@@ -654,7 +671,7 @@ test_expect_success FAKETIME "rauc info --no-check-time" "
   faketime "2022-01-01" rauc info --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/rel-ca.pem --no-check-time ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success FAKETIME "rauc sign bundle with expired certificate" "
+test_expect_success CREATE,FAKETIME "rauc sign bundle with expired certificate" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
@@ -667,7 +684,7 @@ test_expect_success FAKETIME "rauc sign bundle with expired certificate" "
   test ! -f ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success FAKETIME "rauc sign bundle with not yet valid certificate" "
+test_expect_success CREATE,FAKETIME "rauc sign bundle with not yet valid certificate" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
@@ -680,7 +697,7 @@ test_expect_success FAKETIME "rauc sign bundle with not yet valid certificate" "
   test ! -f ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success FAKETIME "rauc sign bundle with almost expired certificate" "
+test_expect_success CREATE,FAKETIME "rauc sign bundle with almost expired certificate" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
@@ -693,7 +710,7 @@ test_expect_success FAKETIME "rauc sign bundle with almost expired certificate" 
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success FAKETIME "rauc sign bundle with valid certificate" "
+test_expect_success CREATE,FAKETIME "rauc sign bundle with valid certificate" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
@@ -706,7 +723,7 @@ test_expect_success FAKETIME "rauc sign bundle with valid certificate" "
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success FAKETIME "rauc sign bundle with valid certificate (encrypted key)" "
+test_expect_success CREATE,FAKETIME "rauc sign bundle with valid certificate (encrypted key)" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
@@ -720,7 +737,7 @@ test_expect_success FAKETIME "rauc sign bundle with valid certificate (encrypted
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success OPENSSL "rauc extract signature" "
+test_expect_success CREATE,OPENSSL "rauc extract signature" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rauc \
@@ -731,7 +748,7 @@ test_expect_success OPENSSL "rauc extract signature" "
   rm -f $TEST_TMPDIR/bundle.sig
 "
 
-test_expect_success OPENSSL "rauc extract signature (crypt)" "
+test_expect_success CREATE,OPENSSL "rauc extract signature (crypt)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-encrypted.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-crypt-bundle-encrypted.raucb &&
   rauc \
@@ -772,7 +789,7 @@ test_expect_success "rauc extract (crypt)" "
   rm -rf $TEST_TMPDIR/bundle-extract
 "
 
-test_expect_success CASYNC "rauc convert" "
+test_expect_success CREATE,CASYNC "rauc convert" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f casync.raucb &&
@@ -784,7 +801,7 @@ test_expect_success CASYNC "rauc convert" "
   test -f casync.raucb
 "
 
-test_expect_success CASYNC "rauc convert (ignore-image)" "
+test_expect_success CREATE,CASYNC "rauc convert (ignore-image)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f casync.raucb &&
@@ -798,7 +815,7 @@ test_expect_success CASYNC "rauc convert (ignore-image)" "
   test -f casync.raucb
 "
 
-test_expect_success CASYNC "rauc convert (output exists)" "
+test_expect_success CREATE,CASYNC "rauc convert (output exists)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   touch casync.raucb &&
@@ -810,7 +827,7 @@ test_expect_success CASYNC "rauc convert (output exists)" "
   test -f casync.raucb
 "
 
-test_expect_success CASYNC "rauc convert (error)" "
+test_expect_success CREATE,CASYNC "rauc convert (error)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f casync.raucb &&
@@ -822,7 +839,7 @@ test_expect_success CASYNC "rauc convert (error)" "
   test ! -f casync.raucb
 "
 
-test_expect_success CASYNC "rauc convert casync extra args" "
+test_expect_success CREATE,CASYNC "rauc convert casync extra args" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   test_when_finished rm -rf ${TEST_TMPDIR}/casync-extra-args.raucb &&
@@ -839,7 +856,7 @@ test_expect_success CASYNC "rauc convert casync extra args" "
   test -d casync-extra-args.castr
 "
 
-test_expect_success CASYNC "rauc convert (verity)" "
+test_expect_success CREATE,CASYNC "rauc convert (verity)" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/tmp-verity.raucb &&
   test_when_finished rm -f ${TEST_TMPDIR}/casync-verity.raucb &&
@@ -859,7 +876,7 @@ test_expect_success CASYNC "rauc convert (verity)" "
   test -d ${TEST_TMPDIR}/casync-verity.castr
 "
 
-test_expect_success DESYNC "rauc convert with desync" "
+test_expect_success CREATE,DESYNC "rauc convert with desync" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   test_when_finished rm -f desync.raucb &&
@@ -874,7 +891,7 @@ test_expect_success DESYNC "rauc convert with desync" "
   test -d desync.castr
 "
 
-test_expect_success DESYNC "rauc convert with desync (output exists)" "
+test_expect_success CREATE,DESYNC "rauc convert with desync (output exists)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   touch desync.raucb &&
@@ -887,7 +904,7 @@ test_expect_success DESYNC "rauc convert with desync (output exists)" "
   test -f desync.raucb
 "
 
-test_expect_success DESYNC "rauc convert with desync (error)" "
+test_expect_success CREATE,DESYNC "rauc convert with desync (error)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f desync.raucb &&
@@ -900,7 +917,7 @@ test_expect_success DESYNC "rauc convert with desync (error)" "
   test ! -f desync.raucb
 "
 
-test_expect_success DESYNC "rauc convert desync extra args" "
+test_expect_success CREATE,DESYNC "rauc convert desync extra args" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f desync-extra-args.raucb &&
@@ -915,7 +932,7 @@ test_expect_success DESYNC "rauc convert desync extra args" "
   test -f desync-extra-args.raucb
 "
 
-test_expect_success "rauc resign" "
+test_expect_success CREATE "rauc resign" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f ${TEST_TMPDIR}/out.raucb &&
@@ -934,7 +951,7 @@ test_expect_success "rauc resign" "
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success "rauc resign (verity bundle)" "
+test_expect_success CREATE "rauc resign (verity bundle)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-verity-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-verity-bundle.raucb &&
   rm -f ${TEST_TMPDIR}/out.raucb &&
@@ -953,7 +970,7 @@ test_expect_success "rauc resign (verity bundle)" "
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success "rauc resign (crypt bundle)" "
+test_expect_success CREATE "rauc resign (crypt bundle)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-crypt-bundle-unencrypted.raucb &&
   rm -f ${TEST_TMPDIR}/out.raucb &&
@@ -972,7 +989,7 @@ test_expect_success "rauc resign (crypt bundle)" "
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success "rauc resign (output exists)" "
+test_expect_success CREATE "rauc resign (output exists)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   touch ${TEST_TMPDIR}/out.raucb &&
@@ -984,7 +1001,7 @@ test_expect_success "rauc resign (output exists)" "
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success FAKETIME "rauc resign extend (not expired)" "
+test_expect_success CREATE,FAKETIME "rauc resign extend (not expired)" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out1.raucb &&
   test_when_finished rm -f ${TEST_TMPDIR}/out2.raucb &&
@@ -1005,7 +1022,7 @@ test_expect_success FAKETIME "rauc resign extend (not expired)" "
   test -f ${TEST_TMPDIR}/out2.raucb
 "
 
-test_expect_success FAKETIME "rauc resign extend (expired)" "
+test_expect_success CREATE,FAKETIME "rauc resign extend (expired)" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out1.raucb &&
   test_when_finished rm -f ${TEST_TMPDIR}/out2.raucb &&
@@ -1026,7 +1043,7 @@ test_expect_success FAKETIME "rauc resign extend (expired)" "
   test ! -f ${TEST_TMPDIR}/out2.raucb
 "
 
-test_expect_success FAKETIME "rauc resign extend (expired, no-verify)" "
+test_expect_success CREATE,FAKETIME "rauc resign extend (expired, no-verify)" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out1.raucb &&
   test_when_finished rm -f ${TEST_TMPDIR}/out2.raucb &&
@@ -1047,7 +1064,7 @@ test_expect_success FAKETIME "rauc resign extend (expired, no-verify)" "
   test -f ${TEST_TMPDIR}/out2.raucb
 "
 
-test_expect_success OPENSSL "rauc replace signature (plain)" "
+test_expect_success CREATE,OPENSSL "rauc replace signature (plain)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f ${TEST_TMPDIR}/out1.raucb && rm -f ${TEST_TMPDIR}/out2.raucb &&
@@ -1071,7 +1088,7 @@ test_expect_success OPENSSL "rauc replace signature (plain)" "
   test -f ${TEST_TMPDIR}/out2.raucb
 "
 
-test_expect_success OPENSSL "rauc replace signature (verity)" "
+test_expect_success CREATE,OPENSSL "rauc replace signature (verity)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-verity-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-verity-bundle.raucb &&
   rm -f ${TEST_TMPDIR}/out1.raucb && rm -f ${TEST_TMPDIR}/out2.raucb &&
@@ -1095,7 +1112,7 @@ test_expect_success OPENSSL "rauc replace signature (verity)" "
   test -f ${TEST_TMPDIR}/out2.raucb
 "
 
-test_expect_success OPENSSL "rauc replace signature (crypt)" "
+test_expect_success CREATE,OPENSSL "rauc replace signature (crypt)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-crypt-bundle-unencrypted.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-crypt-bundle-unencrypted.raucb &&
   rm -f ${TEST_TMPDIR}/out1.raucb && rm -f ${TEST_TMPDIR}/out2.raucb &&
@@ -1119,7 +1136,7 @@ test_expect_success OPENSSL "rauc replace signature (crypt)" "
   test -f ${TEST_TMPDIR}/out2.raucb
 "
 
-test_expect_success OPENSSL "rauc replace signature (output exists)" "
+test_expect_success CREATE,OPENSSL "rauc replace signature (output exists)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f ${TEST_TMPDIR}/out1.raucb && rm -f ${TEST_TMPDIR}/out2.raucb &&
@@ -1143,7 +1160,7 @@ test_expect_success OPENSSL "rauc replace signature (output exists)" "
   test -f ${TEST_TMPDIR}/out2.raucb
 "
 
-test_expect_success OPENSSL "rauc replace signature (bad keyring)" "
+test_expect_success CREATE,OPENSSL "rauc replace signature (bad keyring)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f ${TEST_TMPDIR}/out1.raucb && rm -f ${TEST_TMPDIR}/out2.raucb &&
@@ -1165,7 +1182,7 @@ test_expect_success OPENSSL "rauc replace signature (bad keyring)" "
   test ! -f ${TEST_TMPDIR}/out2.raucb
 "
 
-test_expect_success OPENSSL "rauc replace signature (no-verify)" "
+test_expect_success CREATE,OPENSSL "rauc replace signature (no-verify)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f ${TEST_TMPDIR}/out1.raucb && rm -f ${TEST_TMPDIR}/out2.raucb &&
@@ -1189,7 +1206,7 @@ test_expect_success OPENSSL "rauc replace signature (no-verify)" "
   test -f ${TEST_TMPDIR}/out2.raucb
 "
 
-test_expect_success OPENSSL "rauc replace signature (invalid bundle/signature/output)" "
+test_expect_success CREATE,OPENSSL "rauc replace signature (invalid bundle/signature/output)" "
   cp -L ${SHARNESS_TEST_DIRECTORY}/good-bundle.raucb ${TEST_TMPDIR}/ &&
   test_when_finished rm -f ${TEST_TMPDIR}/good-bundle.raucb &&
   rm -f ${TEST_TMPDIR}/invalid.raucb ${TEST_TMPDIR}/invalid.sig \
@@ -1222,7 +1239,7 @@ test_expect_success OPENSSL "rauc replace signature (invalid bundle/signature/ou
   test -f ${TEST_TMPDIR}/good-bundle.raucb
 "
 
-test_expect_success "rauc bundle (crypt bundle)" "
+test_expect_success CREATE "rauc bundle (crypt bundle)" "
   test_when_finished rm -rf ${TEST_TMPDIR}/install-content &&
   test_when_finished rm -f ${TEST_TMPDIR}/out.raucb &&
   cp -rL ${SHARNESS_TEST_DIRECTORY}/install-content ${TEST_TMPDIR}/ &&
@@ -1235,7 +1252,7 @@ test_expect_success "rauc bundle (crypt bundle)" "
   test -f ${TEST_TMPDIR}/out.raucb
 "
 
-test_expect_success "rauc encrypt (multiple single-cert PEM files)" "
+test_expect_success CREATE "rauc encrypt (multiple single-cert PEM files)" "
   test_when_finished rm -f ${TEST_TMPDIR}/encrypted.raucb &&
   rauc encrypt \
     --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/cert-000.pem \
@@ -1245,7 +1262,7 @@ test_expect_success "rauc encrypt (multiple single-cert PEM files)" "
   test -f ${TEST_TMPDIR}/encrypted.raucb
 "
 
-test_expect_success "rauc encrypt (single multiple-cert PEM file)" "
+test_expect_success CREATE "rauc encrypt (single multiple-cert PEM file)" "
   test_when_finished rm -f ${TEST_TMPDIR}/encrypted.raucb &&
   rauc encrypt \
     --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/certs.pem \
@@ -1254,7 +1271,7 @@ test_expect_success "rauc encrypt (single multiple-cert PEM file)" "
   test -f ${TEST_TMPDIR}/encrypted.raucb
 "
 
-test_expect_success "rauc encrypt (single multiple-cert PEM file, RSA+ECC mixed)" "
+test_expect_success CREATE "rauc encrypt (single multiple-cert PEM file, RSA+ECC mixed)" "
   test_when_finished rm -f ${TEST_TMPDIR}/encrypted.raucb &&
   rauc encrypt \
     --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/certs.pem \
@@ -1264,7 +1281,7 @@ test_expect_success "rauc encrypt (single multiple-cert PEM file, RSA+ECC mixed)
   test -f ${TEST_TMPDIR}/encrypted.raucb
 "
 
-test_expect_success "rauc encrypt (broken multiple-cert PEM file)" "
+test_expect_success CREATE "rauc encrypt (broken multiple-cert PEM file)" "
   test_when_finished rm -f ${TEST_TMPDIR}/encrypted.raucb &&
   test_when_finished rm -f ${TEST_TMPDIR}/certs.pem &&
   head -n -5 $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/certs.pem > ${TEST_TMPDIR}/certs.pem &&
@@ -1275,7 +1292,7 @@ test_expect_success "rauc encrypt (broken multiple-cert PEM file)" "
   test ! -f ${TEST_TMPDIR}/encrypted.raucb
 "
 
-test_expect_success "rauc encrypt (verity bundle)" "
+test_expect_success CREATE "rauc encrypt (verity bundle)" "
   test_must_fail rauc encrypt \
     --to $SHARNESS_TEST_DIRECTORY/openssl-enc/keys/rsa-4096/cert-000.pem \
     --keyring $SHARNESS_TEST_DIRECTORY/openssl-ca/dev-ca.pem \

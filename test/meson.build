@@ -16,13 +16,16 @@ tests = [
   'update_handler',
   'utils',
   'install',
-  'service',
   'status_file',
   'bundle',
   'progress',
   'slot',
   'stats',
 ]
+
+if get_option('service')
+  tests += 'service'
+endif
 
 if get_option('network')
   tests += 'network'
@@ -49,6 +52,9 @@ foreach test_name : tests
     link_with : librauc,
     c_args : '-DTEST_SERVICES="' + meson.build_root() + '"',
     include_directories : incdir,
+    install_mode : 'rwxr-xr-x',
+    install : get_option('install-tests'),
+    install_dir : get_option('libdir') / 'rauc' / 'tests',
     dependencies : rauc_deps)
 
   test(
@@ -62,6 +68,9 @@ endforeach
 fakerand = executable(
   'fakerand',
   'fakerand.c',
+  install_mode : 'rwxr-xr-x',
+  install : get_option('install-tests'),
+  install_dir : get_option('libdir') / 'rauc' / 'tests',
 )
 
 rauc_t = find_program(
@@ -76,4 +85,14 @@ test(
   timeout : 360,
   env : ['SHARNESS_BUILD_DIRECTORY=' + meson.build_root()],
   workdir : meson.current_source_dir(),
+)
+
+install_data(
+  meson.build_root() / 'config.h',
+  install_dir: get_option('libdir') / 'rauc' / 'tests',
+)
+
+install_subdir(
+  meson.source_root() / 'test',
+  install_dir: get_option('libdir') / 'rauc' / 'tests',
 )
