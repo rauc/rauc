@@ -913,6 +913,8 @@ GVariant* r_manifest_to_dict(const RaucManifest *manifest)
 
 		g_variant_builder_open(&builder, G_VARIANT_TYPE("a{sv}"));
 		g_variant_builder_add(&builder, "{sv}", "slot-class", g_variant_new_string(img->slotclass));
+		if (img->artifact)
+			g_variant_builder_add(&builder, "{sv}", "artifact", g_variant_new_string(img->artifact));
 		if (img->variant)
 			g_variant_builder_add(&builder, "{sv}", "variant", g_variant_new_string(img->variant));
 		if (img->filename)
@@ -932,6 +934,11 @@ GVariant* r_manifest_to_dict(const RaucManifest *manifest)
 
 		if (img->adaptive)
 			g_variant_builder_add(&builder, "{sv}", "adaptive", g_variant_new_strv((const gchar * const*)(img->adaptive), -1));
+
+		if (img->convert)
+			g_variant_builder_add(&builder, "{sv}", "convert", g_variant_new_strv((const gchar * const*)(img->convert), -1));
+		if (img->converted)
+			g_variant_builder_add(&builder, "{sv}", "converted", g_variant_new_strv((const gchar * const*)(img->converted->pdata), img->converted->len));
 
 		g_variant_builder_close(&builder);
 	}
