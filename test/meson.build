@@ -70,6 +70,7 @@ pytest = find_program('pytest', required: false)
 
 if pytest.found()
   pytests = [
+    'test_artifacts',
     'test_bundle',
     'test_cmdline',
     'test_convert',
