@@ -65,16 +65,35 @@ fakerand = executable(
   'fakerand.c',
 )
 
-rauc_t = find_program(
-  'rauc.t'
-)
+pytest = find_program('pytest', required: false)
 
-test(
-  'rauc.t',
-  rauc_t,
-  args : '-v',
-  is_parallel : false,
-  timeout : 360,
-  env : ['SHARNESS_BUILD_DIRECTORY=' + meson.build_root()],
-  workdir : meson.current_source_dir(),
-)
+if pytest.found()
+  pytests = [
+    'test_cmdline',
+    'test_info',
+    'test_bundle',
+    'test_status',
+    'test_mount',
+    'test_service',
+    'test_mark',
+    'test_extract',
+    'test_convert',
+    'test_resign',
+    'test_install',
+    'test_verify',
+    'test_sign',
+    'test_replace_signature',
+    'test_encrypt',
+    'test_write_slot',
+  ]
+  foreach test_name : pytests
+    test(
+      'pytest_' + test_name,
+      pytest,
+      args: ['--basetemp', '/tmp/pytest-custom-root', '-vv', test_name + '.py'],
+      is_parallel : false,
+      timeout : 120,
+      workdir : meson.current_source_dir(),
+      )
+  endforeach
+endif

@@ -21,3 +21,10 @@ jobs:
     - name: Run codespell check
       run: |
         codespell -L parms,cas -S 'openssl-ca,build,*.log' src include test docs
+
+    - name: Install ruff & run checks
+      run: |
+        python3 -m venv venv
+        . venv/bin/activate
+        pip install ruff
+        ruff format --check --diff test/ && ruff check test/

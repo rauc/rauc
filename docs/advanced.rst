@@ -359,8 +359,8 @@ When working with PKCS#11, some tools are useful to configure and show your toke
 
   It is used in the RAUC test suite to emulate a real HSM and can also be used
   to try the PKCS#11 functionality in RAUC without any hardware.
-  The ``prepare_softhsm2`` shell function in ``test/rauc.t`` can be used as an
-  example on how to initialize SoftHSM2 token.
+  The ``prepare_softhsm2`` pytest fixture in ``test/conftest.py`` can be used
+  as an example on how to initialize SoftHSM2 token.
 
 `aws-kms-pkcs11 <https://github.com/JackOfMostTrades/aws-kms-pkcs11>`_
   aws-kms-pkcs11 is a PKCS#11 which uses the AWS KMS as its backend.
