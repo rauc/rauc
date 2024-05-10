@@ -1,6 +1,7 @@
 /.cache/
 /build/
 /.qemu_bash_history
+/.qemu_gdb_history
 /qemu-test-ok
 app.info
 /bzImage
