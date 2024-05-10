@@ -42,7 +42,7 @@ static void nbd_fixture_set_up(NBDFixture *fixture, gconstpointer user_data)
 {
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
-	g_print("tmpdir: %s\n", fixture->tmpdir);
+	g_test_message("tmpdir: %s\n", fixture->tmpdir);
 }
 
 static void nbd_fixture_tear_down(NBDFixture *fixture, gconstpointer user_data)

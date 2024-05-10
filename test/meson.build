@@ -56,6 +56,7 @@ foreach test_name : tests
     exe,
     is_parallel : false,
     timeout : 240,
+    protocol: 'tap',
     workdir : meson.source_root())
 endforeach
 

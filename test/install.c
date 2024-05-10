@@ -258,7 +258,7 @@ device=/path/to/prebootloader";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
-	g_print("system conf tmpdir: %s\n", fixture->tmpdir);
+	g_test_message("system conf tmpdir: %s\n", fixture->tmpdir);
 
 	pathname = write_tmp_file(fixture->tmpdir, "system.conf", cfg_file, NULL);
 	g_assert_nonnull(pathname);

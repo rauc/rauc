@@ -29,7 +29,7 @@ static void bundle_fixture_set_up(BundleFixture *fixture,
 {
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
-	g_print("bundle tmpdir: %s\n", fixture->tmpdir);
+	g_test_message("bundle tmpdir: %s\n", fixture->tmpdir);
 }
 
 static void prepare_bundle(BundleFixture *fixture, gconstpointer user_data)

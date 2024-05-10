@@ -20,7 +20,7 @@ static void fixture_set_up(Fixture *fixture,
 {
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
-	g_print("hash_index tmpdir: %s\n", fixture->tmpdir);
+	g_test_message("hash_index tmpdir: %s\n", fixture->tmpdir);
 }
 
 static void fixture_tear_down(Fixture *fixture,
