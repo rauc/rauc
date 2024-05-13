@@ -350,3 +350,16 @@ void r_fakeroot_add_args(GPtrArray *args, const gchar *envpath);
  */
 gboolean r_fakeroot_cleanup(const gchar *envpath, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Returns the contents of the GBytes as a '\0'-terminated string.
+ *
+ * The provided GBytes pointer is freed and nulled.
+ * Internally, it uses g_strndup.
+ *
+ * @param bytes GBytes to take the contents from
+ *
+ * @return null-terminated string, to be freed by the caller
+ */
+gchar *r_bytes_unref_to_string(GBytes **bytes)
+G_GNUC_WARN_UNUSED_RESULT;

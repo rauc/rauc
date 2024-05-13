@@ -746,3 +746,18 @@ gboolean r_fakeroot_cleanup(const gchar *envpath, GError **error)
 
 	return rm_tree(tmpdir, error);
 }
+
+gchar *r_bytes_unref_to_string(GBytes **bytes)
+{
+	g_autofree gchar *data = NULL;
+	gsize size = 0;
+
+	g_return_val_if_fail(bytes != NULL && *bytes != NULL, NULL);
+
+	data = g_bytes_unref_to_data(*bytes, &size);
+	*bytes = NULL;
+	if (size == 0)
+		return g_strdup("");
+
+	return g_strndup(data, size);
+}

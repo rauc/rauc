@@ -256,6 +256,36 @@ static void fakeroot_test(void)
 	g_assert_true(res);
 }
 
+static void test_bytes_unref_to_string(void)
+{
+	g_autoptr(GBytes) bytes = NULL;
+	g_autofree gchar *str = NULL;
+
+	bytes = g_bytes_new("", 0);
+	str = r_bytes_unref_to_string(&bytes);
+	g_assert_null(bytes);
+	g_assert_nonnull(str);
+	g_assert_cmpuint(strlen(str), ==, 0);
+	g_assert_cmpstr(str, ==, "");
+	g_clear_pointer(&str, g_free);
+
+	bytes = g_bytes_new("", 1);
+	str = r_bytes_unref_to_string(&bytes);
+	g_assert_null(bytes);
+	g_assert_nonnull(str);
+	g_assert_cmpuint(strlen(str), ==, 0);
+	g_assert_cmpstr(str, ==, "");
+	g_clear_pointer(&str, g_free);
+
+	bytes = g_bytes_new("test", 4);
+	str = r_bytes_unref_to_string(&bytes);
+	g_assert_null(bytes);
+	g_assert_nonnull(str);
+	g_assert_cmpuint(strlen(str), ==, 4);
+	g_assert_cmpstr(str, ==, "test");
+	g_clear_pointer(&str, g_free);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -269,6 +299,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/utils/get_device_size", get_device_size_test);
 	g_test_add_func("/utils/update_symlink", update_symlink_test);
 	g_test_add_func("/utils/fakeroot", fakeroot_test);
+	g_test_add_func("/utils/bytes_unref_to_string", test_bytes_unref_to_string);
 
 	return g_test_run();
 }
