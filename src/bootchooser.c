@@ -356,9 +356,8 @@ static gboolean grub_env_get(const gchar *key, GString **value, GError **error)
 	g_autoptr(GPtrArray) sub_args = NULL;
 	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
-	g_autoptr(GBytes) sub_stdout_buf = NULL;
-	const char *sub_stdout;
-	gsize sub_stdout_size;
+	g_autoptr(GBytes) stdout_bytes = NULL;
+	g_autofree gchar *stdout_str = NULL;
 	gsize offset;
 	gsize size;
 	gint ret;
@@ -384,7 +383,7 @@ static gboolean grub_env_get(const gchar *key, GString **value, GError **error)
 		return FALSE;
 	}
 
-	if (!g_subprocess_communicate(sub, NULL, NULL, &sub_stdout_buf, NULL, &ierror)) {
+	if (!g_subprocess_communicate(sub, NULL, NULL, &stdout_bytes, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
@@ -412,10 +411,10 @@ static gboolean grub_env_get(const gchar *key, GString **value, GError **error)
 	}
 
 	/* Call to grub-editenv lists all variables */
-	sub_stdout = g_bytes_get_data(sub_stdout_buf, &sub_stdout_size);
-	if (sub_stdout) {
+	stdout_str = r_bytes_unref_to_string(&stdout_bytes);
+	if (stdout_str) {
 		g_autofree gchar *key_prefix = g_strdup_printf("%s=", key);
-		g_auto(GStrv) variables = g_strsplit(sub_stdout, "\n", -1);
+		g_auto(GStrv) variables = g_strsplit(stdout_str, "\n", -1);
 		for (gchar **variable = variables; *variable; variable++) {
 			if (!g_str_has_prefix(*variable, key_prefix)) {
 				continue;
@@ -664,7 +663,7 @@ static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
 {
 	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
-	g_autoptr(GBytes) stdout_buf = NULL;
+	g_autoptr(GBytes) stdout_bytes = NULL;
 	const char *data;
 	gsize offset;
 	gsize size;
@@ -684,7 +683,7 @@ static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
 		return FALSE;
 	}
 
-	if (!g_subprocess_communicate(sub, NULL, NULL, &stdout_buf, NULL, &ierror)) {
+	if (!g_subprocess_communicate(sub, NULL, NULL, &stdout_bytes, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
@@ -713,7 +712,7 @@ static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
 
 	/* offset is composed of key + equal sign, e.g. 'BOOT_ORDER=A B R' */
 	offset = strlen(key) + 1;
-	data = g_bytes_get_data(stdout_buf, &size);
+	data = g_bytes_get_data(stdout_bytes, &size);
 	*value = g_string_new_len(data + offset, size - offset);
 	g_strchomp((*value)->str);
 
@@ -1093,7 +1092,8 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 {
 	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
-	g_autoptr(GBytes) stdout_buf = NULL;
+	g_autoptr(GBytes) stdout_bytes = NULL;
+	g_autofree gchar *stdout_str = NULL;
 	gboolean res = FALSE;
 	gint ret;
 	GRegex *regex = NULL;
@@ -1118,7 +1118,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 		goto out;
 	}
 
-	res = g_subprocess_communicate(sub, NULL, NULL, &stdout_buf, NULL, &ierror);
+	res = g_subprocess_communicate(sub, NULL, NULL, &stdout_bytes, NULL, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(
 				error,
@@ -1148,9 +1148,11 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 		goto out;
 	}
 
+	stdout_str = r_bytes_unref_to_string(&stdout_bytes);
+
 	/* Obtain mapping of efi boot numbers to bootnames */
 	regex = g_regex_new("^Boot([0-9a-fA-F]{4})[\\* ] (.+)$", G_REGEX_MULTILINE, 0, NULL);
-	if (!g_regex_match(regex, g_bytes_get_data(stdout_buf, NULL), 0, &match)) {
+	if (!g_regex_match(regex, stdout_str, 0, &match)) {
 		g_set_error(
 				error,
 				R_BOOTCHOOSER_ERROR,
@@ -1182,7 +1184,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 
 	/* obtain bootnext */
 	regex = g_regex_new("^BootNext: ([0-9a-fA-F]{4})$", G_REGEX_MULTILINE, 0, NULL);
-	if (g_regex_match(regex, g_bytes_get_data(stdout_buf, NULL), 0, &match)) {
+	if (g_regex_match(regex, stdout_str, 0, &match)) {
 		if (bootnext) {
 			g_clear_pointer(&matched, g_free);
 			matched = g_match_info_fetch(match, 1);
@@ -1195,7 +1197,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 
 	/* Obtain boot order */
 	regex = g_regex_new("^BootOrder: (\\S+)$", G_REGEX_MULTILINE, 0, NULL);
-	if (!g_regex_match(regex, g_bytes_get_data(stdout_buf, NULL), 0, &match)) {
+	if (!g_regex_match(regex, stdout_str, 0, &match)) {
 		g_set_error(
 				error,
 				R_BOOTCHOOSER_ERROR,
@@ -1468,10 +1470,8 @@ static gboolean custom_backend_get(const gchar *cmd, const gchar *bootname, gcha
 {
 	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
-	g_autoptr(GBytes) stdout_buf = NULL;
+	g_autoptr(GBytes) stdout_bytes = NULL;
 	gint ret;
-	gsize size;
-	const gchar *data;
 	gchar *backend_name = r_context()->config->custom_bootloader_backend;
 
 	g_return_val_if_fail(cmd, FALSE);
@@ -1491,7 +1491,7 @@ static gboolean custom_backend_get(const gchar *cmd, const gchar *bootname, gcha
 		return FALSE;
 	}
 
-	if (!g_subprocess_communicate(sub, NULL, NULL, &stdout_buf, NULL, &ierror)) {
+	if (!g_subprocess_communicate(sub, NULL, NULL, &stdout_bytes, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
@@ -1518,12 +1518,10 @@ static gboolean custom_backend_get(const gchar *cmd, const gchar *bootname, gcha
 		return FALSE;
 	}
 
-	data = g_bytes_get_data(stdout_buf, &size);
-	*ret_str = g_strndup(data, size);
+	*ret_str = r_bytes_unref_to_string(&stdout_bytes);
 
 	/* Cleanup string for newlines */
-	if (size > 0)
-		g_strstrip(*ret_str);
+	g_strstrip(*ret_str);
 
 	return TRUE;
 }
