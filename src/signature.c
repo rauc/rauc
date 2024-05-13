@@ -399,6 +399,28 @@ static GBytes *bytes_from_bio(BIO *bio)
 	return g_bytes_new(data, size);
 }
 
+/* this does not take ownership of the memory, so the GBytes needs to be kept alive */
+static BIO *bytes_as_bio(GBytes *bytes)
+{
+	gsize size = 0;
+	const void *data = NULL;
+	BIO *bio = NULL;
+
+	g_return_val_if_fail(bytes != NULL, NULL);
+
+	data = g_bytes_get_data(bytes, &size);
+	if (!data)
+		g_error("bytes_as_bio: no data");
+	if (size == 0)
+		g_error("bytes_as_bio: size is zero");
+
+	bio = BIO_new_mem_buf(data, size);
+	if (!bio)
+		g_error("bytes_as_bio: BIO_new_mem_buf() failed");
+
+	return bio;
+}
+
 static gboolean file_contains_crl(const gchar *capath)
 {
 	g_autofree gchar *contents = NULL;
@@ -497,8 +519,7 @@ X509_STORE* setup_x509_store(const gchar *capath, const gchar *cadir, GError **e
 GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
 {
 	GError *ierror = NULL;
-	BIO *incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
-			g_bytes_get_size(content));
+	BIO *incontent = bytes_as_bio(content);
 	BIO *outsig = BIO_new(BIO_s_mem());
 	g_autoptr(X509) signcert = NULL;
 	g_autoptr(EVP_PKEY) pkey = NULL;
@@ -742,8 +763,7 @@ gchar* sigdata_to_string(GBytes *sig, GError **error)
 	g_autoptr(CMS_ContentInfo) cms = NULL;
 	STACK_OF(X509) *signers = NULL;
 	gchar *ret;
-	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
-			g_bytes_get_size(sig));
+	BIO *insig = bytes_as_bio(sig);
 
 	g_return_val_if_fail(sig != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -816,10 +836,7 @@ gchar* envelopeddata_to_string(GBytes *sig, GError **error)
 	g_return_val_if_fail(sig != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
-			g_bytes_get_size(sig));
-	if (!insig)
-		g_error("BIO_new_mem_buf() failed");
+	insig = bytes_as_bio(sig);
 
 	if (!(cms = d2i_CMS_bio(insig, NULL))) {
 		BIO_free(insig);
@@ -1141,10 +1158,7 @@ gboolean cms_is_detached(GBytes *sig, gboolean *detached, GError **error)
 
 	g_assert(g_bytes_get_size(sig) > 0);
 
-	insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
-			g_bytes_get_size(sig));
-	if (!insig)
-		g_error("BIO_new_mem_buf() failed");
+	insig = bytes_as_bio(sig);
 
 	if (!(cms = d2i_CMS_bio(insig, NULL))) {
 		g_set_error(
@@ -1172,10 +1186,7 @@ gboolean cms_is_envelopeddata(GBytes *cms_data)
 
 	g_return_val_if_fail(cms_data != NULL, FALSE);
 
-	insig = BIO_new_mem_buf((void *)g_bytes_get_data(cms_data, NULL),
-			g_bytes_get_size(cms_data));
-	if (!insig)
-		g_error("BIO_new_mem_buf() failed");
+	insig = bytes_as_bio(cms_data);
 
 	if (!(cms = d2i_CMS_bio(insig, NULL)))
 		goto out;
@@ -1190,8 +1201,7 @@ out:
 gboolean cms_get_unverified_manifest(GBytes *sig, GBytes **manifest, GError **error)
 {
 	g_autoptr(CMS_ContentInfo) cms = NULL;
-	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
-			g_bytes_get_size(sig));
+	BIO *insig = bytes_as_bio(sig);
 	ASN1_OCTET_STRING **content = NULL;
 	GBytes *tmp = NULL;
 	gboolean res = FALSE;
@@ -1258,8 +1268,7 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 	GError *ierror = NULL;
 	g_autoptr(CMS_ContentInfo) icms = NULL;
 	BIO *incontent = NULL;
-	BIO *insig = BIO_new_mem_buf((void *)g_bytes_get_data(sig, NULL),
-			g_bytes_get_size(sig));
+	BIO *insig = bytes_as_bio(sig);
 	BIO *outcontent = BIO_new(BIO_s_mem());
 	g_autofree gchar *signers = NULL;
 	gboolean res = FALSE;
@@ -1305,8 +1314,7 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 					"unexpected manifest output location for detached signature");
 			goto out;
 		}
-		incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
-				g_bytes_get_size(content));
+		incontent = bytes_as_bio(content);
 	} else {
 		if (content != NULL) {
 			/* we have an inline signature but some content to verify */
@@ -1548,10 +1556,7 @@ GBytes *cms_encrypt(GBytes *content, gchar **recipients, GError **error)
 	g_return_val_if_fail(recipients, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	incontent = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
-			g_bytes_get_size(content));
-	if (!incontent)
-		g_error("BIO_new_mem_buf() failed");
+	incontent = bytes_as_bio(content);
 
 	recipcerts = sk_X509_new_null();
 
@@ -1623,10 +1628,7 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 	g_return_val_if_fail(keyfile != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	inenc = BIO_new_mem_buf((void *)g_bytes_get_data(content, NULL),
-			g_bytes_get_size(content));
-	if (!inenc)
-		g_error("BIO_new_mem_buf() failed");
+	inenc = bytes_as_bio(content);
 
 	if (certfile) {
 		decrypt_cert = load_cert(certfile, &ierror);
