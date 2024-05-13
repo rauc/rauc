@@ -54,8 +54,7 @@ static gchar *sfdisk_get(const gchar *device)
 {
 	g_autoptr(GSubprocess) sub = NULL;
 	GError *error = NULL;
-	GBytes *stdout_buf = NULL;
-	gsize size;
+	g_autofree gchar *stdout_buf = NULL;
 	gboolean res = FALSE;
 
 	sub = g_subprocess_new(
@@ -68,7 +67,7 @@ static gchar *sfdisk_get(const gchar *device)
 	g_assert_no_error(error);
 	g_assert_nonnull(sub);
 
-	res = g_subprocess_communicate(sub, NULL, NULL, &stdout_buf, NULL, &error);
+	res = g_subprocess_communicate_utf8(sub, NULL, NULL, &stdout_buf, NULL, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
 
@@ -76,7 +75,7 @@ static gchar *sfdisk_get(const gchar *device)
 	g_assert_no_error(error);
 	g_assert_true(res);
 
-	return g_bytes_unref_to_data(stdout_buf, &size);
+	return g_steal_pointer(&stdout_buf);
 }
 
 static void sfdisk_check(const gchar *device, const gchar *expected)
