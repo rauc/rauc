@@ -952,6 +952,7 @@ static gboolean ubifs_format_slot(RaucSlot *dest_slot, GError **error)
 
 	g_ptr_array_add(args, g_strdup("mkfs.ubifs"));
 	g_ptr_array_add(args, g_strdup("-y"));
+	r_ptr_array_addv(args, dest_slot->extra_mkfs_opts, TRUE);
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 
@@ -995,7 +996,7 @@ static gboolean ext4_format_slot(RaucSlot *dest_slot, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	g_autoptr(GPtrArray) args = g_ptr_array_new_full(4, g_free);
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(6, g_free);
 
 	g_ptr_array_add(args, g_strdup("mkfs.ext4"));
 	g_ptr_array_add(args, g_strdup("-F"));
@@ -1004,6 +1005,7 @@ static gboolean ext4_format_slot(RaucSlot *dest_slot, GError **error)
 		g_ptr_array_add(args, g_strdup(dest_slot->name));
 	}
 	g_ptr_array_add(args, g_strdup("-I256"));
+	r_ptr_array_addv(args, dest_slot->extra_mkfs_opts, TRUE);
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 
@@ -1073,6 +1075,7 @@ static gboolean vfat_format_slot(RaucSlot *dest_slot, GError **error)
 	g_ptr_array_add(args, g_strdup("mkfs.vfat"));
 	g_ptr_array_add(args, g_strdup("-n"));
 	g_ptr_array_add(args, vfat_label_generator(dest_slot->name));
+	r_ptr_array_addv(args, dest_slot->extra_mkfs_opts, TRUE);
 	g_ptr_array_add(args, g_strdup(dest_slot->device));
 	g_ptr_array_add(args, NULL);
 

@@ -70,6 +70,7 @@ readonly=true\n\
 description=Root filesystem partition 0\n\
 device=/dev/rootfs-0\n\
 type=ext4\n\
+extra-mkfs-opts=\n\
 bootname=system0\n\
 readonly=false\n\
 force-install-same=false\n\
@@ -78,6 +79,7 @@ force-install-same=false\n\
 description=Root filesystem partition 1\n\
 device=/dev/rootfs-1\n\
 type=ext4\n\
+extra-mkfs-opts= \n\
 bootname=system1\n\
 readonly=false\n\
 ignore-checksum=false\n\
@@ -93,9 +95,9 @@ install-same=false\n\
 description=Application filesystem partition 1\n\
 device=/dev/appfs-1\n\
 type=ext4\n\
+extra-mkfs-opts=-L mylabel -i 8192\n\
 parent=rootfs.1\n\
 install-same=false\n";
-
 	g_autofree gchar* pathname = write_tmp_file(fixture->tmpdir, "full_config.conf", cfg_file, NULL);
 	g_assert_nonnull(pathname);
 
@@ -135,6 +137,7 @@ install-same=false\n";
 	g_assert_cmpstr(slot->device, ==, "/dev/rootfs-0");
 	g_assert_cmpstr(slot->bootname, ==, "system0");
 	g_assert_cmpstr(slot->type, ==, "ext4");
+	g_assert_null(slot->extra_mkfs_opts);
 	g_assert_false(slot->readonly);
 	g_assert_false(slot->install_same);
 	g_assert_null(slot->parent);
@@ -146,6 +149,7 @@ install-same=false\n";
 	g_assert_cmpstr(slot->device, ==, "/dev/rootfs-1");
 	g_assert_cmpstr(slot->bootname, ==, "system1");
 	g_assert_cmpstr(slot->type, ==, "ext4");
+	g_assert_null(slot->extra_mkfs_opts);
 	g_assert_false(slot->readonly);
 	g_assert_false(slot->install_same);
 	g_assert_null(slot->parent);
@@ -157,6 +161,7 @@ install-same=false\n";
 	g_assert_cmpstr(slot->device, ==, "/dev/appfs-0");
 	g_assert_null(slot->bootname);
 	g_assert_cmpstr(slot->type, ==, "ext4");
+	g_assert_null(slot->extra_mkfs_opts);
 	g_assert_false(slot->readonly);
 	g_assert_false(slot->install_same);
 	g_assert_nonnull(slot->parent);
@@ -168,6 +173,14 @@ install-same=false\n";
 	g_assert_cmpstr(slot->device, ==, "/dev/appfs-1");
 	g_assert_null(slot->bootname);
 	g_assert_cmpstr(slot->type, ==, "ext4");
+
+	g_assert_nonnull(slot->extra_mkfs_opts);
+	g_assert_cmpstr(slot->extra_mkfs_opts[0], ==, "-L");
+	g_assert_cmpstr(slot->extra_mkfs_opts[1], ==, "mylabel");
+	g_assert_cmpstr(slot->extra_mkfs_opts[2], ==, "-i");
+	g_assert_cmpstr(slot->extra_mkfs_opts[3], ==, "8192");
+	g_assert_null(slot->extra_mkfs_opts[4]);
+
 	g_assert_false(slot->readonly);
 	g_assert_false(slot->install_same);
 	g_assert_nonnull(slot->parent);
@@ -943,6 +956,43 @@ extra-mount-opts=ro,noatime\n";
 	g_assert_cmpstr(slot->extra_mount_opts, ==, "ro,noatime");
 }
 
+static void config_file_extra_mkfs_opts(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	GError *ierror = NULL;
+	gboolean res;
+	g_autofree gchar* pathname = NULL;
+	RaucSlot *slot = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/null\n\
+type=ext4\n\
+extra-mkfs-opts=-L \"my label\" -i 8192\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "extra_mkfs.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(config);
+
+	slot = g_hash_table_lookup(config->slots, "rootfs.0");
+	g_assert_nonnull(slot);
+	g_assert_nonnull(slot->extra_mkfs_opts);
+	g_assert_cmpstr(slot->extra_mkfs_opts[0], ==, "-L");
+	g_assert_cmpstr(slot->extra_mkfs_opts[1], ==, "my label");
+	g_assert_cmpstr(slot->extra_mkfs_opts[2], ==, "-i");
+	g_assert_cmpstr(slot->extra_mkfs_opts[3], ==, "8192");
+	g_assert_null(slot->extra_mkfs_opts[4]);
+}
+
 static void config_file_statusfile_missing(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1511,6 +1561,9 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/extra-mount-opts", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_extra_mount_opts,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/extra-mkfs-opts", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_extra_mkfs_opts,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/statusfile-missing", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_statusfile_missing,

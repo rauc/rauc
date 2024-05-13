@@ -17,6 +17,7 @@ void r_slot_free(gpointer value)
 	g_free(slot->description);
 	g_free(slot->device);
 	g_free(slot->type);
+	g_strfreev(slot->extra_mkfs_opts);
 	g_free(slot->bootname);
 	g_free(slot->extra_mount_opts);
 	g_free(slot->parent_name);

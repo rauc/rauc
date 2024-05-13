@@ -465,6 +465,10 @@ hierarchical separator.
   See table :ref:`sec-slot-type` for a more detailed list of these different types.
   Defaults to ``raw`` if none given.
 
+``extra-mkfs-opts=<options>`` (optional)
+  Allows to specify custom filesystem creation options that will be passed to the slot's
+  ``mkfs.<type>`` call (ext4, vfat, and ubifs only).
+
 ``bootname=<name>`` (optional)
   Registers the slot for being handled by the
   :ref:`bootselection interface <bootloader-interaction>` with the ``<name>``
@@ -511,7 +515,7 @@ hierarchical separator.
   file system to an ext4 slot, i.e. if the slot has``type=ext4`` set.
 
 ``extra-mount-opts=<options>`` (optional)
-  Allows to specify custom mount options that will be passed to the slots
+  Allows to specify custom mount options that will be passed to the slot's
   ``mount`` call as ``-o`` argument value.
 
 .. _ref-logger-sections:
