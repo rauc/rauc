@@ -45,6 +45,7 @@ static void config_file_full_config(ConfigFileFixture *fixture,
 	const gchar *cfg_file = "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
+min-bundle-version=2024.05-downgrade+barrier\n\
 bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
 statusfile=/mnt/persistent-rw-fs/system.raucs\n\
@@ -106,6 +107,7 @@ install-same=false\n";
 	g_assert_true(res);
 	g_assert_nonnull(config);
 	g_assert_cmpstr(config->system_compatible, ==, "FooCorp Super BarBazzer");
+	g_assert_cmpstr(config->system_min_bundle_version, ==, "2024.05-downgrade+barrier");
 	g_assert_cmpstr(config->system_bootloader, ==, "barebox");
 	g_assert_cmpstr(config->mount_prefix, ==, "/mnt/myrauc/");
 	g_assert_true(config->activate_installed);
@@ -1478,6 +1480,58 @@ max-files=-1\n\
 	g_assert_null(config);
 }
 
+/* Test specifying a valid min-bundle-version */
+static void config_file_min_bundle_version_good(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+min-bundle-version=2024.05.15-pre+4a5428\n\
+bootloader=barebox\n\
+";
+
+	pathname = write_tmp_file(fixture->tmpdir, "min_bundle_version.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(config);
+
+	g_assert_cmpstr(config->system_min_bundle_version, ==, "2024.05.15-pre+4a5428");
+}
+
+/* Test providing an invalid min-bundle-version */
+static void config_file_min_bundle_version_bad(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+min-bundle-version=v1.foo.2-baa\n\
+bootloader=barebox\n\
+";
+
+	pathname = write_tmp_file(fixture->tmpdir, "min_bundle_version.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT);
+	g_assert_false(res);
+	g_assert_null(config);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -1604,6 +1658,12 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/logger/invalid-max-size", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_logger_invalid_max_size,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/min-bundle-version/good", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_min_bundle_version_good,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/min-bundle-version/bad", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_min_bundle_version_bad,
 			config_file_fixture_tear_down);
 	return g_test_run();
 }
