@@ -386,6 +386,9 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 			}
 			slot->device = value;
 
+			slot->casync_seed_device = resolve_path_take(filename,
+					key_file_consume_string(key_file, groups[i], "casync-seed-device", NULL));
+
 			value = key_file_consume_string(key_file, groups[i], "type", NULL);
 			if (!value)
 				value = g_strdup("raw");
