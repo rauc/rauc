@@ -1487,6 +1487,7 @@ static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, con
 			g_propagate_error(error, ierror);
 			goto out;
 		}
+		/* at this point, out_fd has already been closed by glib */
 	} else {
 		/* copy */
 		res = copy_raw_image(image, outstream, 0, &ierror);
@@ -1494,12 +1495,12 @@ static gboolean img_to_ubivol_handler(RaucImage *image, RaucSlot *dest_slot, con
 			g_propagate_error(error, ierror);
 			goto out;
 		}
-	}
 
-	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		return FALSE;
+		res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
 	}
 
 	/* run slot post install hook if enabled */
@@ -1556,6 +1557,7 @@ static gboolean img_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 			g_propagate_error(error, ierror);
 			goto out;
 		}
+		/* at this point, out_fd has already been closed by glib */
 	} else {
 		/* copy */
 		res = copy_raw_image(image, outstream, 0, &ierror);
@@ -1563,12 +1565,12 @@ static gboolean img_to_ubifs_handler(RaucImage *image, RaucSlot *dest_slot, cons
 			g_propagate_error(error, ierror);
 			goto out;
 		}
-	}
 
-	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		return FALSE;
+		res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
 	}
 
 	/* run slot post install hook if enabled */
