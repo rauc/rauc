@@ -266,18 +266,27 @@ def dbus_session_bus():
 
 
 @pytest.fixture
-def create_system_files():
-    shutil.rmtree("images", ignore_errors=True)
-    os.mkdir("images")
-    open("images/rootfs-0", mode="w").close()
-    open("images/rootfs-1", mode="w").close()
-    open("images/appfs-0", mode="w").close()
-    open("images/appfs-1", mode="w").close()
+def create_system_files(tmp_path):
+    os.mkdir(tmp_path / "images")
+    open(tmp_path / "images/rootfs-0", mode="w").close()
+    open(tmp_path / "images/rootfs-1", mode="w").close()
+    open(tmp_path / "images/appfs-0", mode="w").close()
+    open(tmp_path / "images/appfs-1", mode="w").close()
+    os.mkdir(tmp_path / "repos")
+    os.mkdir(tmp_path / "repos/files")
+    os.mkdir(tmp_path / "repos/trees")
+    os.symlink(os.path.abspath("bin"), tmp_path / "bin")
+    os.symlink(os.path.abspath("openssl-ca"), tmp_path / "openssl-ca")
+    os.symlink(os.path.abspath("openssl-enc"), tmp_path / "openssl-enc")
+    shutil.copy("grubenv.test", tmp_path / "grubenv.test")
 
 
 def _rauc_dbus_service(tmp_path, conf_file, bootslot):
+    tmp_conf_file = tmp_path / "system.conf"
+    shutil.copy(conf_file, tmp_conf_file)
+
     service = subprocess.Popen(
-        f"rauc service --conf={conf_file} " f"--mount={tmp_path}/mnt " f"--override-boot-slot={bootslot}".split()
+        f"rauc service --conf={tmp_conf_file} --mount={tmp_path}/mnt --override-boot-slot={bootslot}".split()
     )
 
     bus = SessionBus()
@@ -298,7 +307,7 @@ def _rauc_dbus_service(tmp_path, conf_file, bootslot):
 
 
 @pytest.fixture
-def rauc_dbus_service(tmp_path, dbus_session_bus):
+def rauc_dbus_service(tmp_path, dbus_session_bus, create_system_files):
     service, bus = _rauc_dbus_service(tmp_path, "minimal-test.conf", "system0")
 
     yield bus
