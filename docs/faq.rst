@@ -201,3 +201,29 @@ When using Yocto, in case of the ``orphan_file`` file feature, you could use::
 in the image recipe or an appropriate conf file to disable the feature until
 all systems have been updated with versions of ``resize2fs`` which support this
 feature.
+
+Why does bundle creation fail with a "not supported as contents" error?
+-----------------------------------------------------------------------
+
+Previous versions of RAUC modified and added files in the input directory during
+bundle creation.
+While this wasn't much of a problem, we need to delete the original files when
+converting tar archives to file trees in the context of artifact updates.
+That would require the user to always re-create the bundle input directory after
+running ``rauc bundle``, which would be unexpected and annoying.
+
+Since version 1.12, RAUC hard-links all files from the input directory to a
+``.rauc-workdir`` subdirectory.
+This way, we don't actually need to copy any data and can perform any
+preparation of the contents without affecting the input directory.
+
+For simplicity, we abort on anything in the input directory which is not a
+regular file.
+In that case, one of the following errors will be shown:
+
+  * ``Failed to create bundle: symlinks are not supported as bundle contents (a_symlink)``
+  * ``Failed to create bundle: directories are not supported as bundle contents (a_directory)``
+  * ``Failed to create bundle: only regular files are supported as bundle contents (a_fifo)``
+
+If someone relies on the old undocumented behavior of including directories and
+symlinks in the bundle, please contact us.
