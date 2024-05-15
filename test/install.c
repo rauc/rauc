@@ -16,6 +16,8 @@ GMainLoop *r_loop = NULL;
 
 typedef struct {
 	const gchar **message_needles;
+	GQuark install_err_domain;
+	gint install_err_code;
 	SystemTestOptions system_test_options;
 	ManifestTestOptions manifest_test_options;
 } InstallData;
@@ -1119,17 +1121,23 @@ static void install_test_bundle(InstallFixture *fixture,
 	args->notify = install_notify;
 	args->cleanup = install_cleanup;
 	res = do_install_bundle(args, &ierror);
-	g_assert_no_error(ierror);
-	g_assert_true(res);
+	if (!data->install_err_domain) {
+		g_assert_no_error(ierror);
+		g_assert_true(res);
 
-	slotfile = g_build_filename(fixture->tmpdir, "images/rootfs-1", NULL);
-	mountdir = g_build_filename(fixture->tmpdir, "mnt", NULL);
-	g_assert(test_mkdir_relative(fixture->tmpdir, "mnt", 0777) == 0);
-	testfilepath = g_build_filename(mountdir, "verify.txt", NULL);
-	g_assert(test_mount(slotfile, mountdir));
-	g_assert(g_file_test(testfilepath, G_FILE_TEST_IS_REGULAR));
-	g_assert(test_umount(fixture->tmpdir, "mnt"));
-	g_assert(test_rm_tree(fixture->tmpdir, "mnt"));
+		slotfile = g_build_filename(fixture->tmpdir, "images/rootfs-1", NULL);
+		mountdir = g_build_filename(fixture->tmpdir, "mnt", NULL);
+		g_assert(test_mkdir_relative(fixture->tmpdir, "mnt", 0777) == 0);
+		testfilepath = g_build_filename(mountdir, "verify.txt", NULL);
+		g_assert(test_mount(slotfile, mountdir));
+		g_assert(g_file_test(testfilepath, G_FILE_TEST_IS_REGULAR));
+		g_assert(test_umount(fixture->tmpdir, "mnt"));
+		g_assert(test_rm_tree(fixture->tmpdir, "mnt"));
+	} else {
+		/* expected installation error */
+		g_assert_error(ierror, data->install_err_domain, data->install_err_code);
+		g_assert_false(res);
+	}
 
 	if (data != NULL && data->message_needles != NULL) {
 		const gchar **message_needles = data->message_needles;
@@ -1625,6 +1633,56 @@ int main(int argc, char *argv[])
 	g_test_add("/install/slot-skipping",
 			InstallFixture, install_data,
 			install_fixture_set_up_slot_skipping, install_test_bundle_twice,
+			install_fixture_tear_down);
+
+	install_data = dup_test_data(ptrs, (&(InstallData) {
+		.install_err_domain = R_INSTALL_ERROR,
+		.install_err_code = R_INSTALL_ERROR_VERSION_MISMATCH,
+		.system_test_options = {
+		        .min_bundle_version = "1.0",
+		},
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_VERITY,
+		        .slots = TRUE,
+		        .bundle_version = "0.0.1",
+		},
+	}));
+	g_test_add("/install/min-bundle-version/version-bad",
+			InstallFixture, install_data,
+			install_fixture_set_up_bundle,
+			install_test_bundle,
+			install_fixture_tear_down);
+
+	install_data = dup_test_data(ptrs, (&(InstallData) {
+		.system_test_options = {
+		        .min_bundle_version = "1.0",
+		},
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_VERITY,
+		        .slots = TRUE,
+		        .bundle_version = "1.0.1",
+		},
+	}));
+	g_test_add("/install/min-bundle-version/version-good-1",
+			InstallFixture, install_data,
+			install_fixture_set_up_bundle,
+			install_test_bundle,
+			install_fixture_tear_down);
+
+	install_data = dup_test_data(ptrs, (&(InstallData) {
+		.system_test_options = {
+		        .min_bundle_version = "1.0",
+		},
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_VERITY,
+		        .slots = TRUE,
+		        .bundle_version = "2025.1-foo+bar",
+		},
+	}));
+	g_test_add("/install/min-bundle-version/version-good-2",
+			InstallFixture, install_data,
+			install_fixture_set_up_bundle,
+			install_test_bundle,
 			install_fixture_tear_down);
 
 	return g_test_run();
