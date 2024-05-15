@@ -270,6 +270,7 @@ def _rauc_dbus_service(tmp_path, conf_file, bootslot):
     # Wait for de.pengutronix.rauc to appear on the bus
     timeout = time.monotonic() + 5.0
     while True:
+        time.sleep(0.1)
         try:
             proxy = bus.get("de.pengutronix.rauc", "/")
             break
