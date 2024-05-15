@@ -13,6 +13,10 @@ mount -t tmpfs none /root
 mount -t tmpfs none /run
 mount -t tmpfs none /tmp
 
+# create /dev/shm for faketime
+mkdir /dev/shm
+mount -t tmpfs none /dev/shm
+
 # create overlay for /etc
 mkdir /tmp/etc-overlay /tmp/etc-work
 mount -t overlay overlay -o lowerdir=/etc,upperdir=/tmp/etc-overlay,workdir=/tmp/etc-work /etc
