@@ -8,7 +8,7 @@ from helper import run
 pytestmark = root
 
 
-def test_install(rauc_service, rauc_dbus_service_with_system, tmp_path):
+def test_install(rauc_dbus_service_with_system, tmp_path):
     assert os.path.exists("images/rootfs-1")
     assert not os.path.getsize("images/rootfs-1") > 0
     assert os.path.isdir("/run/rauc/slots/active")
@@ -24,7 +24,7 @@ def test_install(rauc_service, rauc_dbus_service_with_system, tmp_path):
     assert os.path.getsize("images/rootfs-1") > 0
 
 
-def test_install_verity(rauc_service, rauc_dbus_service_with_system, tmp_path):
+def test_install_verity(rauc_dbus_service_with_system, tmp_path):
     assert os.path.exists("images/rootfs-1")
     assert not os.path.getsize("images/rootfs-1") > 0
 
@@ -37,7 +37,7 @@ def test_install_verity(rauc_service, rauc_dbus_service_with_system, tmp_path):
     assert os.path.getsize("images/rootfs-1") > 0
 
 
-def test_install_crypt(rauc_service, rauc_dbus_service_with_system_crypt, tmp_path):
+def test_install_crypt(rauc_dbus_service_with_system_crypt, tmp_path):
     assert os.path.exists("images/rootfs-1")
     assert not os.path.getsize("images/rootfs-1") > 0
 
@@ -51,7 +51,7 @@ def test_install_crypt(rauc_service, rauc_dbus_service_with_system_crypt, tmp_pa
 
 
 @have_casync
-def test_install_plain_casync_local(rauc_service, rauc_dbus_service_with_system, tmp_path):
+def test_install_plain_casync_local(rauc_dbus_service_with_system, tmp_path):
     assert os.path.exists("images/rootfs-1")
     assert not os.path.getsize("images/rootfs-1") > 0
 
@@ -67,7 +67,7 @@ def test_install_plain_casync_local(rauc_service, rauc_dbus_service_with_system,
 
 @have_casync
 @have_http
-def test_install_verity_casync_http(rauc_service, rauc_dbus_service_with_system, tmp_path):
+def test_install_verity_casync_http(rauc_dbus_service_with_system, tmp_path):
     assert os.path.exists("images/rootfs-1")
     assert not os.path.getsize("images/rootfs-1") > 0
 
@@ -78,7 +78,7 @@ def test_install_verity_casync_http(rauc_service, rauc_dbus_service_with_system,
 
 
 @have_streaming
-def test_install_streaming(rauc_service, rauc_dbus_service_with_system, tmp_path):
+def test_install_streaming(rauc_dbus_service_with_system, tmp_path):
     assert os.path.exists("images/rootfs-1")
     assert not os.path.getsize("images/rootfs-1") > 0
 
@@ -89,7 +89,7 @@ def test_install_streaming(rauc_service, rauc_dbus_service_with_system, tmp_path
 
 
 @have_streaming
-def test_install_streaming_error(rauc_service, rauc_dbus_service_with_system, tmp_path):
+def test_install_streaming_error(rauc_dbus_service_with_system, tmp_path):
     assert os.path.exists("images/rootfs-1")
     assert not os.path.getsize("images/rootfs-1") > 0
 
@@ -99,7 +99,7 @@ def test_install_streaming_error(rauc_service, rauc_dbus_service_with_system, tm
     assert not os.path.getsize("images/rootfs-1") > 0
 
 
-def test_install_progress(rauc_service, rauc_dbus_service_with_system, tmp_path):
+def test_install_progress(rauc_dbus_service_with_system, tmp_path):
     assert os.path.exists("images/rootfs-1")
     assert not os.path.getsize("images/rootfs-1") > 0
 
@@ -112,7 +112,7 @@ def test_install_progress(rauc_service, rauc_dbus_service_with_system, tmp_path)
     assert os.path.getsize("images/rootfs-1") > 0
 
 
-def test_install_rauc_external(rauc_service, rauc_dbus_service_with_system_external, tmp_path):
+def test_install_rauc_external(rauc_dbus_service_with_system_external, tmp_path):
     assert os.path.exists("images/rootfs-1")
     assert not os.path.getsize("images/rootfs-1") > 0
 

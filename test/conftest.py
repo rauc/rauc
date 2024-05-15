@@ -1,5 +1,4 @@
 import os
-import re
 import shutil
 import signal
 import subprocess
@@ -220,18 +219,10 @@ def pkcs11(tmp_path_factory):
     prepare_softhsm2(tmp_path_factory.mktemp("blub"), softhsm2_mod)
 
 
-# If running under qemu use the prepared system bus otherwise start a
-# dedicated session bus
 @pytest.fixture(scope="session")
-def select_system_or_session_bus():
+def dbus_session_bus():
     if not have_service():
         pytest.skip("No service")
-
-    with open("/proc/cmdline") as f:
-        if re.search("init=[^ ]*/qemu-test-init", f.read()):
-            print("Running from QEMU")
-        else:
-            print("Running locally")
 
     # Run the dbus-launch command and capture its output
     output = subprocess.check_output(["dbus-launch", "--sh-syntax"], universal_newlines=True, shell=True)
@@ -248,19 +239,14 @@ def select_system_or_session_bus():
         os.environ[key] = value
 
     dbus_session_bus_address = os.environ.get("DBUS_SESSION_BUS_ADDRESS")
-    if dbus_session_bus_address:
-        print(f"DBUS_SESSION_BUS_ADDRESS: {dbus_session_bus_address}")
+    assert dbus_session_bus_address
+    print(f"DBUS_SESSION_BUS_ADDRESS: {dbus_session_bus_address}")
 
     yield
 
     pid = os.environ["DBUS_SESSION_BUS_PID"]
     print(f"Killing PID {pid}")
     os.kill(int(pid), signal.SIGTERM)
-
-
-@pytest.fixture
-def rauc_service(select_system_or_session_bus):
-    pass
 
 
 @pytest.fixture
@@ -284,6 +270,7 @@ def _rauc_dbus_service(tmp_path, conf_file, bootslot):
     # Wait for de.pengutronix.rauc to appear on the bus
     timeout = time.monotonic() + 5.0
     while True:
+        time.sleep(0.1)
         try:
             proxy = bus.get("de.pengutronix.rauc", "/")
             break
@@ -295,7 +282,7 @@ def _rauc_dbus_service(tmp_path, conf_file, bootslot):
 
 
 @pytest.fixture
-def rauc_dbus_service(tmp_path):
+def rauc_dbus_service(tmp_path, dbus_session_bus):
     service, bus = _rauc_dbus_service(tmp_path, "minimal-test.conf", "system0")
 
     yield bus
@@ -305,7 +292,7 @@ def rauc_dbus_service(tmp_path):
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system(tmp_path, create_system_files):
+def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_files):
     service, bus = _rauc_dbus_service(tmp_path, "minimal-test.conf", "system0")
 
     yield bus
@@ -315,7 +302,7 @@ def rauc_dbus_service_with_system(tmp_path, create_system_files):
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system_crypt(tmp_path, create_system_files):
+def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_system_files):
     service, bus = _rauc_dbus_service(tmp_path, "crypt-test.conf", "system0")
 
     yield bus
@@ -325,7 +312,7 @@ def rauc_dbus_service_with_system_crypt(tmp_path, create_system_files):
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system_external(tmp_path, create_system_files):
+def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_system_files):
     service, bus = _rauc_dbus_service(tmp_path, "crypt-test.conf", "_external_")
 
     yield bus

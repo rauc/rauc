@@ -59,7 +59,7 @@ def test_status_mark_good_non_bootslot():
 
 
 @have_grub
-def test_status_mark_good_dbus(rauc_service, rauc_dbus_service):
+def test_status_mark_good_dbus(rauc_dbus_service):
     out, err, exitcode = run("rauc status mark-good")
 
     assert exitcode == 0
@@ -67,7 +67,7 @@ def test_status_mark_good_dbus(rauc_service, rauc_dbus_service):
 
 
 @have_grub
-def test_status_mark_bad_dbus(rauc_service, rauc_dbus_service):
+def test_status_mark_bad_dbus(rauc_dbus_service):
     out, err, exitcode = run("rauc status mark-bad")
 
     assert exitcode == 0
@@ -75,7 +75,7 @@ def test_status_mark_bad_dbus(rauc_service, rauc_dbus_service):
 
 
 @have_grub
-def test_status_mark_active_dbus(rauc_service, rauc_dbus_service):
+def test_status_mark_active_dbus(rauc_dbus_service):
     out, err, exitcode = run("rauc status mark-active")
 
     assert exitcode == 0
