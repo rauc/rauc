@@ -476,8 +476,20 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const 
 	g_ptr_array_add(args, NULL);
 
 	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_NONE);
-	if (out_fd >= 0)
-		g_subprocess_launcher_take_stdout_fd(launcher, out_fd);
+
+	if (out_fd >= 0) {
+		/* Must be a copy: glib automatically closes stdout_fd, but we close out_fd as well */
+		int out_fd_copy = dup(out_fd);
+		if (out_fd_copy == -1) {
+			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+					"Failed to dup() output file descriptor: %s",
+					strerror(errno));
+			res = FALSE;
+			goto out;
+		}
+		g_subprocess_launcher_take_stdout_fd(launcher, out_fd_copy);
+	}
+
 	if (tmpdir)
 		g_subprocess_launcher_setenv(launcher, "TMPDIR", tmpdir, TRUE);
 
