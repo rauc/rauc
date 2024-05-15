@@ -265,6 +265,62 @@ device=/path/to/prebootloader";
 	replace_strdup(&r_context_conf()->configpath, pathname);
 }
 
+static void install_fixture_set_up_system_conf_min_bundle_version(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autofree gchar* sysconfpath = NULL;
+	g_autofree gchar* grubenvpath = NULL;
+	const gchar *system_conf = "\
+[system]\n\
+compatible=MinBundleVersion\n\
+min-bundle-version=1.0\n\
+\n\
+bootloader=grub\n\
+grubenv=grubenv.test\n\
+\n\
+[keyring]\n\
+path=openssl-ca/dev-ca.pem\n\
+check-crl=true\n\
+\n\
+[slot.rootfs.0]\n\
+device=images/rootfs-0\n\
+type=ext4\n\
+bootname=A\n\
+\n\
+[slot.rootfs.1]\n\
+device=images/rootfs-1\n\
+type=ext4\n\
+bootname=B\n\
+";
+
+	//TODO: can we get around the bootloader part?
+	const gchar *grub_env = "\
+A_TRY=1\n\
+B_TRY=0\n\
+A_OK=1\n\
+B_OK=0\n\
+ORDER=A B\n\
+";
+
+	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(fixture->tmpdir);
+	g_test_message("system conf tmpdir: %s\n", fixture->tmpdir);
+
+	/*TODO: the helper expects a file != 'system.conf' as copy target */
+	sysconfpath = write_tmp_file(fixture->tmpdir, "system.conf_", system_conf, NULL);
+	g_assert_nonnull(sysconfpath);
+	fixture_helper_set_up_system(fixture->tmpdir, sysconfpath);
+
+	//TODO: drop?
+	grubenvpath = write_tmp_file(fixture->tmpdir, "grubenv.test", grub_env, NULL);
+	g_assert_nonnull(grubenvpath);
+
+	/* Set up system context */
+	replace_strdup(&r_context_conf()->configpath, sysconfpath);
+	replace_strdup(&r_context_conf()->bootslot, "A");
+	r_context();
+}
+
 static void install_fixture_tear_down(InstallFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1464,6 +1520,132 @@ static void install_fixture_set_up_system_user(InstallFixture *fixture,
 	fixture_helper_fixture_set_up_system_user(fixture->tmpdir, NULL);
 }
 
+static void test_install_min_bundle_version_0(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	InstallData *data = (InstallData*) user_data;
+	g_autofree gchar *bundlepath = NULL;
+	RaucInstallArgs *args;
+	g_autoptr(GError) error = NULL;
+	gboolean res;
+
+	const gchar *bundle_manifest = "\
+[update]\n\
+compatible=MinBundleVersion\n\
+version=0.0.1\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.ext4\n\
+";
+
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
+	fixture_helper_set_up_bundle(fixture->tmpdir, bundle_manifest,	&data->manifest_test_options);
+	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_nonnull(bundlepath);
+
+	res = determine_slot_states(&error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	args = install_args_new();
+	args->name = g_steal_pointer(&bundlepath);
+	args->notify = install_notify;
+	args->cleanup = install_cleanup;
+	res = do_install_bundle(args, &error);
+	g_assert_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_VERSION_MISMATCH);
+	g_assert_false(res);
+
+	args->status_result = 0;
+	args->cleanup(args);
+}
+
+static void test_install_min_bundle_version_1(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	InstallData *data = (InstallData*) user_data;
+	g_autofree gchar *bundlepath = NULL;
+	RaucInstallArgs *args;
+	g_autoptr(GError) error = NULL;
+	gboolean res;
+
+	const gchar *bundle_manifest = "\
+[update]\n\
+compatible=MinBundleVersion\n\
+version=1.0.1\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.ext4\n\
+";
+
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
+	fixture_helper_set_up_bundle(fixture->tmpdir, bundle_manifest,	&data->manifest_test_options);
+	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_nonnull(bundlepath);
+
+	res = determine_slot_states(&error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	args = install_args_new();
+	args->name = g_steal_pointer(&bundlepath);
+	args->notify = install_notify;
+	args->cleanup = install_cleanup;
+	res = do_install_bundle(args, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	args->status_result = 0;
+	args->cleanup(args);
+}
+
+static void test_install_min_bundle_version_2(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	InstallData *data = (InstallData*) user_data;
+	g_autofree gchar *bundlepath = NULL;
+	RaucInstallArgs *args;
+	g_autoptr(GError) error = NULL;
+	gboolean res;
+
+	const gchar *bundle_manifest = "\
+[update]\n\
+compatible=MinBundleVersion\n\
+version=2025.1-foo+bar\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.ext4\n\
+";
+
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
+	fixture_helper_set_up_bundle(fixture->tmpdir, bundle_manifest,	&data->manifest_test_options);
+	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_nonnull(bundlepath);
+
+	res = determine_slot_states(&error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	args = install_args_new();
+	args->name = g_steal_pointer(&bundlepath);
+	args->notify = install_notify;
+	args->cleanup = install_cleanup;
+	res = do_install_bundle(args, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	args->status_result = 0;
+	args->cleanup(args);
+}
+
 int main(int argc, char *argv[])
 {
 	g_autoptr(GPtrArray) ptrs = g_ptr_array_new_with_free_func(g_free);
@@ -1624,6 +1806,24 @@ int main(int argc, char *argv[])
 	g_test_add("/install/slot-skipping",
 			InstallFixture, install_data,
 			install_fixture_set_up_slot_skipping, install_test_bundle_twice,
+			install_fixture_tear_down);
+
+	g_test_add("/install/min-bundle-version/version0",
+			InstallFixture, install_data,
+			install_fixture_set_up_system_conf_min_bundle_version,
+			test_install_min_bundle_version_0,
+			install_fixture_tear_down);
+
+	g_test_add("/install/min-bundle-version/version1",
+			InstallFixture, install_data,
+			install_fixture_set_up_system_conf_min_bundle_version,
+			test_install_min_bundle_version_1,
+			install_fixture_tear_down);
+
+	g_test_add("/install/min-bundle-version/version2",
+			InstallFixture, install_data,
+			install_fixture_set_up_system_conf_min_bundle_version,
+			test_install_min_bundle_version_2,
 			install_fixture_tear_down);
 
 	return g_test_run();
