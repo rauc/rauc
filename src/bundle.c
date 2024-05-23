@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 
 #include <openssl/rand.h>
+#include <unistd.h>
 
 #include "bundle.h"
 #include "context.h"
@@ -881,11 +882,95 @@ out:
 	return res;
 }
 
+static gchar *prepare_workdir(const gchar *contentdir, GError **error)
+{
+	GError *ierror = NULL;
+	g_autofree gchar* workdir = NULL;
+	g_autoptr(GDir) dir = NULL;
+	const gchar *name;
+
+	g_return_val_if_fail(contentdir, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	/* This could be simplified with g_canonicalize_file() after bumping the
+	 * glib requirement to 2.58. */
+	if (g_path_is_absolute(contentdir)) {
+		workdir = g_build_filename(contentdir, ".rauc-workdir", NULL);
+	} else {
+		g_autofree gchar* cwd = g_get_current_dir();
+		workdir = g_build_filename(cwd, contentdir, ".rauc-workdir", NULL);
+	}
+
+	if (g_file_test(workdir, G_FILE_TEST_EXISTS)) {
+		if (!rm_tree(workdir, &ierror)) {
+			g_propagate_prefixed_error(error, ierror, "Failed to remove old workdir: ");
+			return NULL;
+		}
+	}
+
+	if (g_mkdir(workdir, 0700) != 0) {
+		int err = errno;
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
+				"failed to create the workdir '%s': %s", workdir, g_strerror(err));
+		return NULL;
+	}
+
+	dir = g_dir_open(contentdir, 0, &ierror);
+	if (!dir) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	while ((name = g_dir_read_name(dir))) {
+		g_autofree gchar *oldpath = NULL;
+		g_autofree gchar *newpath = NULL;
+
+		if (g_strcmp0(name, ".rauc-workdir") == 0)
+			continue;
+
+		oldpath = g_build_filename(contentdir, name, NULL);
+
+		/* It's not clear what symlinks in the bundle input should mean, so
+		 * reject them. If you have a use case for this, contact us. */
+		if (g_file_test(oldpath, G_FILE_TEST_IS_SYMLINK)) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_PAYLOAD,
+					"symlinks are not supported as bundle contents (%s)", name);
+			return NULL;
+		}
+
+		/* Directories should not be needed in the bundle input, so reject
+		 * them. If you have a use case for this, contact us. */
+		if (g_file_test(oldpath, G_FILE_TEST_IS_DIR)) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_PAYLOAD,
+					"directories are not supported as bundle contents (%s)", name);
+			return NULL;
+		}
+
+		if (!g_file_test(oldpath, G_FILE_TEST_IS_REGULAR)) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_PAYLOAD,
+					"only regular files are supported as bundle contents (%s)", name);
+			return NULL;
+		}
+
+		newpath = g_build_filename(workdir, name, NULL);
+
+		if (link(oldpath, newpath) != 0) {
+			int err = errno;
+			g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
+					"failed to hard-link file '%s' to workdir: %s", name, g_strerror(err));
+			return NULL;
+		}
+	}
+
+	return g_steal_pointer(&workdir);
+}
+
 gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error)
 {
 	GError *ierror = NULL;
-	g_autofree gchar* manifestpath = g_build_filename(contentdir, "manifest.raucm", NULL);
+	g_autofree gchar* manifestpath = NULL;
 	g_autoptr(RaucManifest) manifest = NULL;
+	g_autofree gchar *workdir = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundlename != NULL, FALSE);
@@ -897,6 +982,13 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		return FALSE;
 	}
 
+	workdir = prepare_workdir(contentdir, &ierror);
+	if (!workdir) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	manifestpath = g_build_filename(workdir, "manifest.raucm", NULL);
 	res = load_manifest_file(manifestpath, &manifest, &ierror);
 	if (!res) {
 		g_propagate_prefixed_error(error, ierror,
@@ -911,13 +1003,13 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		g_print("%s\n", (gchar *)g_ptr_array_index(manifest->warnings, i));
 	}
 
-	res = sync_manifest_with_contentdir(manifest, contentdir, &ierror);
+	res = sync_manifest_with_contentdir(manifest, workdir, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
 
-	res = generate_adaptive_data(manifest, contentdir, &ierror);
+	res = generate_adaptive_data(manifest, workdir, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -929,7 +1021,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		goto out;
 	}
 
-	res = mksquashfs(bundlename, contentdir, &ierror);
+	res = mksquashfs(bundlename, workdir, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -946,6 +1038,11 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 	res = sign_bundle(bundlename, manifest, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	if (workdir && !rm_tree(workdir, &ierror)) {
+		g_propagate_prefixed_error(error, ierror, "Failed to remove workdir: ");
 		goto out;
 	}
 
