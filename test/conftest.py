@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import shutil
@@ -41,6 +42,14 @@ def env_setup(monkeysession):
     monkeysession.setenv("DBUS_STARTER_BUS_TYPE", "session")
 
     os.chdir(f"{os.path.dirname(os.path.abspath(__file__))}")
+
+
+@cache
+def meson_buildoptions():
+    with open(meson_build + "meson-info/intro-buildoptions.json") as f:
+        data = json.loads(f.read())
+
+    return {o["name"]: o for o in data}
 
 
 @cache
@@ -96,6 +105,13 @@ have_desync = pytest.mark.skipif(not _have_desync(), reason="Have no desync")
 
 
 def _have_faketime():
+    # faketime is not compatible with sanitizers:
+    # https://github.com/wolfcw/libfaketime/issues/412#issuecomment-1293686539
+    b_sanitize = meson_buildoptions().get("b_sanitize", {})
+    if b_sanitize.get("value", "none") != "none":
+        print("faketime not compatible with sanitizers")
+        return False
+
     try:
         out, err, exitcode = run('faketime "2018-01-01" date')
         if exitcode != 0:
