@@ -73,6 +73,71 @@ void close_preserve_errno(int fd)
 	errno = err;
 }
 
+void r_ptr_array_add_printf(GPtrArray *ptrarray, const gchar *format, ...)
+{
+	va_list args;
+
+	g_return_if_fail(ptrarray != NULL);
+	g_return_if_fail(format != NULL);
+
+	va_start(args, format);
+	g_ptr_array_add(ptrarray, g_strdup_vprintf(format, args));
+	va_end(args);
+}
+
+gchar *r_ptr_array_env_to_shell(const GPtrArray *ptrarray)
+{
+	g_autoptr(GString) text = g_string_new(NULL);
+
+	g_return_val_if_fail(ptrarray != NULL, NULL);
+
+	for (guint i = 0; i < ptrarray->len; i++) {
+		const gchar *element = g_ptr_array_index(ptrarray, i);
+		gchar *eq = strchr(element, '=');
+		g_autofree gchar *k = NULL;
+		g_autofree gchar *v = NULL;
+
+		if (!eq) {
+			g_error("missing '=' in '%s'", element);
+			return NULL;
+		}
+
+		k = g_strndup(element, eq-element);
+		v = g_shell_quote(eq+1);
+
+		g_string_append_printf(text, "%s=%s\n", k, v);
+	}
+
+	/* remove final \n */
+	if (text->len > 1)
+		g_string_truncate(text, text->len - 1);
+
+	return g_string_free(g_steal_pointer(&text), FALSE);
+}
+
+gchar **r_environ_setenv_ptr_array(gchar **envp, const GPtrArray *ptrarray, gboolean overwrite)
+{
+	g_return_val_if_fail(envp != NULL, NULL);
+	g_return_val_if_fail(ptrarray != NULL, NULL);
+
+	for (guint i = 0; i < ptrarray->len; i++) {
+		const gchar *element = g_ptr_array_index(ptrarray, i);
+		gchar *eq = strchr(element, '=');
+		g_autofree gchar *k = NULL;
+
+		if (!eq) {
+			g_error("missing '=' in '%s'", element);
+			return NULL;
+		}
+
+		k = g_strndup(element, eq-element);
+
+		envp = g_environ_setenv(envp, k, eq+1, overwrite);
+	}
+
+	return envp;
+}
+
 GBytes *read_file(const gchar *filename, GError **error)
 {
 	gchar *contents;
