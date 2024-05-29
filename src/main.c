@@ -882,18 +882,18 @@ static void formatter_shell_append_n(GString* text, const gchar* varname, gint c
 
 static gchar *info_formatter_shell(RaucManifest *manifest)
 {
-	GString *text = g_string_new(NULL);
+	g_autoptr(GPtrArray) entries = g_ptr_array_new_with_free_func(g_free);
 	GPtrArray *hooks = NULL;
 	gchar *temp_string = NULL;
 	gint cnt;
 
-	formatter_shell_append(text, "RAUC_MF_COMPATIBLE", manifest->update_compatible);
-	formatter_shell_append(text, "RAUC_MF_VERSION", manifest->update_version);
-	formatter_shell_append(text, "RAUC_MF_DESCRIPTION", manifest->update_description);
-	formatter_shell_append(text, "RAUC_MF_BUILD", manifest->update_build);
-	formatter_shell_append(text, "RAUC_MF_HASH", manifest->hash);
-	formatter_shell_append(text, "RAUC_MF_FORMAT", r_manifest_bundle_format_to_str(manifest->bundle_format));
-	g_string_append_printf(text, "RAUC_MF_IMAGES=%d\n", g_list_length(manifest->images));
+	r_ptr_array_add_printf(entries, "RAUC_MF_COMPATIBLE=%s", manifest->update_compatible ?: "");
+	r_ptr_array_add_printf(entries, "RAUC_MF_VERSION=%s", manifest->update_version ?: "");
+	r_ptr_array_add_printf(entries, "RAUC_MF_DESCRIPTION=%s", manifest->update_description ?: "");
+	r_ptr_array_add_printf(entries, "RAUC_MF_BUILD=%s", manifest->update_build ?: "");
+	r_ptr_array_add_printf(entries, "RAUC_MF_HASH=%s", manifest->hash ?: "");
+	r_ptr_array_add_printf(entries, "RAUC_MF_FORMAT=%s", r_manifest_bundle_format_to_str(manifest->bundle_format));
+	r_ptr_array_add_printf(entries, "RAUC_MF_IMAGES=%d", g_list_length(manifest->images));
 
 	hooks = g_ptr_array_new();
 	if (manifest->hooks.install_check == TRUE) {
@@ -902,7 +902,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 	g_ptr_array_add(hooks, NULL);
 
 	temp_string = g_strjoinv(" ", (gchar**) hooks->pdata);
-	formatter_shell_append(text, "RAUC_MF_HOOKS", temp_string);
+	r_ptr_array_add_printf(entries, "RAUC_MF_HOOKS=%s", temp_string);
 	g_free(temp_string);
 
 	g_ptr_array_unref(hooks);
@@ -924,13 +924,11 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 			g_hash_table_iter_init(&kvs_iter, kvs);
 			while (g_hash_table_iter_next(&kvs_iter, (gpointer*)&key, (gpointer*)&value)) {
 				g_autofree gchar *env_key = r_prepare_env_key(key, NULL);
-				g_autofree gchar *var = NULL;
 
 				if (!env_key)
 					continue;
 
-				var = g_strdup_printf("RAUC_META_%s_%s", env_group, env_key);
-				formatter_shell_append(text, var, value);
+				r_ptr_array_add_printf(entries, "RAUC_META_%s_%s=%s", env_group, env_key, value);
 			}
 		}
 	}
@@ -938,11 +936,11 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 	cnt = 0;
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		RaucImage *img = l->data;
-		formatter_shell_append_n(text, "RAUC_IMAGE_NAME", cnt, img->filename);
-		formatter_shell_append_n(text, "RAUC_IMAGE_CLASS", cnt, img->slotclass);
-		formatter_shell_append_n(text, "RAUC_IMAGE_VARIANT", cnt, img->variant);
-		formatter_shell_append_n(text, "RAUC_IMAGE_DIGEST", cnt, img->checksum.digest);
-		g_string_append_printf(text, "RAUC_IMAGE_SIZE_%d=%"G_GOFFSET_FORMAT "\n", cnt, img->checksum.size);
+		r_ptr_array_add_printf(entries, "RAUC_IMAGE_NAME_%d=%s", cnt, img->filename ?: "");
+		r_ptr_array_add_printf(entries, "RAUC_IMAGE_CLASS_%d=%s", cnt, img->slotclass ?: "");
+		r_ptr_array_add_printf(entries, "RAUC_IMAGE_VARIANT_%d=%s", cnt, img->variant ?: "");
+		r_ptr_array_add_printf(entries, "RAUC_IMAGE_DIGEST_%d=%s", cnt, img->checksum.digest ?: "");
+		r_ptr_array_add_printf(entries, "RAUC_IMAGE_SIZE_%d=%"G_GOFFSET_FORMAT, cnt, img->checksum.size);
 
 		hooks = g_ptr_array_new();
 		if (img->hooks.pre_install == TRUE) {
@@ -957,21 +955,21 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 		g_ptr_array_add(hooks, NULL);
 
 		temp_string = g_strjoinv(" ", (gchar**) hooks->pdata);
-		formatter_shell_append_n(text, "RAUC_IMAGE_HOOKS", cnt, temp_string);
+		r_ptr_array_add_printf(entries, "RAUC_IMAGE_HOOKS_%d=%s", cnt, temp_string);
 		g_free(temp_string);
 
 		g_ptr_array_unref(hooks);
 
 		if (img->adaptive) {
 			temp_string = g_strjoinv(" ", (gchar**) img->adaptive);
-			formatter_shell_append_n(text, "RAUC_IMAGE_ADAPTIVE", cnt, temp_string);
+			r_ptr_array_add_printf(entries, "RAUC_IMAGE_ADAPTIVE_%d=%s", cnt, temp_string);
 			g_free(temp_string);
 		}
 
 		cnt++;
 	}
 
-	return g_string_free(text, FALSE);
+	return r_ptr_array_env_to_shell(entries);
 }
 
 static gchar *info_formatter_readable(RaucManifest *manifest)
