@@ -865,21 +865,6 @@ out:
 #define KWHT  "\x1B[37m"
 #define KBLD  "\x1B[1m"
 
-/* Takes a shell variable and its desired argument as input and appends it to
- * the provided text with taking care of correct shell quoting */
-static void formatter_shell_append(GString* text, const gchar* varname, const gchar* argument)
-{
-	g_autofree gchar* quoted = g_shell_quote(argument ?: "");
-	g_string_append_printf(text, "%s=%s\n", varname, quoted);
-}
-/* Same as above, expect that it has a cnt argument to add per-slot-number
- * strings */
-static void formatter_shell_append_n(GString* text, const gchar* varname, gint cnt, const gchar* argument)
-{
-	g_autofree gchar* quoted = g_shell_quote(argument ?: "");
-	g_string_append_printf(text, "%s_%d=%s\n", varname, cnt, quoted);
-}
-
 static gchar *info_formatter_shell(RaucManifest *manifest)
 {
 	g_autoptr(GPtrArray) entries = g_ptr_array_new_with_free_func(g_free);
