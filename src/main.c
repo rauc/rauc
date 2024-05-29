@@ -1515,25 +1515,17 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 		else
 			r_ptr_array_add_printf(entries, "RAUC_SLOT_BOOT_STATUS_%d=", slotcnt);
 		if (status_detailed && slot_state) {
-			gchar *str;
-
 			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_BUNDLE_COMPATIBLE_%d=%s", slotcnt, slot_state->bundle_compatible ?: "");
 			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_BUNDLE_VERSION_%d=%s", slotcnt, slot_state->bundle_version ?: "");
 			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_BUNDLE_DESCRIPTION_%d=%s", slotcnt, slot_state->bundle_description ?: "");
 			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_BUNDLE_BUILD_%d=%s", slotcnt, slot_state->bundle_build ?: "");
 			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_BUNDLE_HASH_%d=%s", slotcnt, slot_state->bundle_hash ?: "");
 			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_CHECKSUM_SHA256_%d=%s", slotcnt, slot_state->checksum.digest ?: "");
-			str = g_strdup_printf("%"G_GOFFSET_FORMAT, slot_state->checksum.size);
-			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_CHECKSUM_SIZE_%d=%s", slotcnt, str);
-			g_free(str);
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_CHECKSUM_SIZE_%d=%"G_GOFFSET_FORMAT, slotcnt, slot_state->checksum.size);
 			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_INSTALLED_TIMESTAMP_%d=%s", slotcnt, slot_state->installed_timestamp ?: "");
-			str = g_strdup_printf("%u", slot_state->installed_count);
-			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_INSTALLED_COUNT_%d=%s", slotcnt, str);
-			g_free(str);
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_INSTALLED_COUNT_%d=%u", slotcnt, slot_state->installed_count);
 			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_ACTIVATED_TIMESTAMP_%d=%s", slotcnt, slot_state->activated_timestamp ?: "");
-			str = g_strdup_printf("%u", slot_state->activated_count);
-			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_ACTIVATED_COUNT_%d=%s", slotcnt, str);
-			g_free(str);
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_ACTIVATED_COUNT_%d=%u", slotcnt, slot_state->activated_count);
 			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_STATUS_%d=%s", slotcnt, slot_state->status ?: "");
 		}
 	}
