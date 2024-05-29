@@ -74,7 +74,7 @@ have_grub = pytest.mark.skipif(not _have_grub(), reason="Have no grub-editenv")
 
 
 def _have_openssl():
-    out, err, exitcode = run("openssl asn1parse -help")
+    out, err, exitcode = run("openssl version")
     return exitcode == 0
 
 
