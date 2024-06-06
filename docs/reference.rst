@@ -518,6 +518,16 @@ hierarchical separator.
   Allows to specify custom mount options that will be passed to the slot's
   ``mount`` call as ``-o`` argument value.
 
+.. _casync-seed-device:
+
+``casync-seed-device=</path/to/dev>``
+  Block device that casync should use as a seed device when performing a blob
+  update, instead of ``device``. This can be useful if ``device`` is not
+  eligible as a seed, e.g. when it is a UBI character device. In this case an
+  equivalent ``/dev/ubiblock`` device could be used as a seed. Note that RAUC
+  will not create this device, the target needs to ensure that it exists during
+  the update (e.g. set up the ubiblock mapping with a systemd service).
+
 .. _ref-logger-sections:
 
 ``[log.<logger>]`` Sections
