@@ -286,6 +286,35 @@ static void test_bytes_unref_to_string(void)
 	g_clear_pointer(&str, g_free);
 }
 
+static void environ_test(void)
+{
+	g_autoptr(GPtrArray) env_array = g_ptr_array_new_full(2, g_free);
+	g_autofree gchar *shell_str = NULL;
+	g_auto(GStrv) env = NULL;
+
+	r_ptr_array_add_printf(env_array, "FOO_%d=%s", 12, "bar$");
+	r_ptr_array_add_printf(env_array, "BAZ=%s", "baz");
+
+	g_assert_cmpuint(env_array->len, ==, 2);
+	g_assert_cmpstr(env_array->pdata[0], ==, "FOO_12=bar$");
+	g_assert_cmpstr(env_array->pdata[1], ==, "BAZ=baz");
+
+	shell_str = r_ptr_array_env_to_shell(env_array);
+	g_assert_cmpstr(shell_str, ==, "FOO_12='bar$'\nBAZ='baz'");
+
+	env = g_environ_setenv(env, "OTHER", "other-value", FALSE);
+	env = g_environ_setenv(env, "BAZ", "old-value", FALSE);
+	env = r_environ_setenv_ptr_array(env, env_array, FALSE);
+	g_assert_cmpstr(g_environ_getenv(env, "OTHER"), ==, "other-value");
+	g_assert_cmpstr(g_environ_getenv(env, "BAZ"), ==, "old-value");
+	g_assert_cmpstr(g_environ_getenv(env, "FOO_12"), ==, "bar$");
+
+	env = r_environ_setenv_ptr_array(env, env_array, TRUE);
+	g_assert_cmpstr(g_environ_getenv(env, "OTHER"), ==, "other-value");
+	g_assert_cmpstr(g_environ_getenv(env, "BAZ"), ==, "baz");
+	g_assert_cmpstr(g_environ_getenv(env, "FOO_12"), ==, "bar$");
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -300,6 +329,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/utils/update_symlink", update_symlink_test);
 	g_test_add_func("/utils/fakeroot", fakeroot_test);
 	g_test_add_func("/utils/bytes_unref_to_string", test_bytes_unref_to_string);
+	g_test_add_func("/utils/environ", environ_test);
 
 	return g_test_run();
 }
