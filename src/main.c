@@ -865,35 +865,20 @@ out:
 #define KWHT  "\x1B[37m"
 #define KBLD  "\x1B[1m"
 
-/* Takes a shell variable and its desired argument as input and appends it to
- * the provided text with taking care of correct shell quoting */
-static void formatter_shell_append(GString* text, const gchar* varname, const gchar* argument)
-{
-	g_autofree gchar* quoted = g_shell_quote(argument ?: "");
-	g_string_append_printf(text, "%s=%s\n", varname, quoted);
-}
-/* Same as above, expect that it has a cnt argument to add per-slot-number
- * strings */
-static void formatter_shell_append_n(GString* text, const gchar* varname, gint cnt, const gchar* argument)
-{
-	g_autofree gchar* quoted = g_shell_quote(argument ?: "");
-	g_string_append_printf(text, "%s_%d=%s\n", varname, cnt, quoted);
-}
-
 static gchar *info_formatter_shell(RaucManifest *manifest)
 {
-	GString *text = g_string_new(NULL);
+	g_autoptr(GPtrArray) entries = g_ptr_array_new_with_free_func(g_free);
 	GPtrArray *hooks = NULL;
 	gchar *temp_string = NULL;
 	gint cnt;
 
-	formatter_shell_append(text, "RAUC_MF_COMPATIBLE", manifest->update_compatible);
-	formatter_shell_append(text, "RAUC_MF_VERSION", manifest->update_version);
-	formatter_shell_append(text, "RAUC_MF_DESCRIPTION", manifest->update_description);
-	formatter_shell_append(text, "RAUC_MF_BUILD", manifest->update_build);
-	formatter_shell_append(text, "RAUC_MF_HASH", manifest->hash);
-	formatter_shell_append(text, "RAUC_MF_FORMAT", r_manifest_bundle_format_to_str(manifest->bundle_format));
-	g_string_append_printf(text, "RAUC_MF_IMAGES=%d\n", g_list_length(manifest->images));
+	r_ptr_array_add_printf(entries, "RAUC_MF_COMPATIBLE=%s", manifest->update_compatible ?: "");
+	r_ptr_array_add_printf(entries, "RAUC_MF_VERSION=%s", manifest->update_version ?: "");
+	r_ptr_array_add_printf(entries, "RAUC_MF_DESCRIPTION=%s", manifest->update_description ?: "");
+	r_ptr_array_add_printf(entries, "RAUC_MF_BUILD=%s", manifest->update_build ?: "");
+	r_ptr_array_add_printf(entries, "RAUC_MF_HASH=%s", manifest->hash ?: "");
+	r_ptr_array_add_printf(entries, "RAUC_MF_FORMAT=%s", r_manifest_bundle_format_to_str(manifest->bundle_format));
+	r_ptr_array_add_printf(entries, "RAUC_MF_IMAGES=%d", g_list_length(manifest->images));
 
 	hooks = g_ptr_array_new();
 	if (manifest->hooks.install_check == TRUE) {
@@ -902,7 +887,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 	g_ptr_array_add(hooks, NULL);
 
 	temp_string = g_strjoinv(" ", (gchar**) hooks->pdata);
-	formatter_shell_append(text, "RAUC_MF_HOOKS", temp_string);
+	r_ptr_array_add_printf(entries, "RAUC_MF_HOOKS=%s", temp_string);
 	g_free(temp_string);
 
 	g_ptr_array_unref(hooks);
@@ -924,13 +909,11 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 			g_hash_table_iter_init(&kvs_iter, kvs);
 			while (g_hash_table_iter_next(&kvs_iter, (gpointer*)&key, (gpointer*)&value)) {
 				g_autofree gchar *env_key = r_prepare_env_key(key, NULL);
-				g_autofree gchar *var = NULL;
 
 				if (!env_key)
 					continue;
 
-				var = g_strdup_printf("RAUC_META_%s_%s", env_group, env_key);
-				formatter_shell_append(text, var, value);
+				r_ptr_array_add_printf(entries, "RAUC_META_%s_%s=%s", env_group, env_key, value);
 			}
 		}
 	}
@@ -938,11 +921,11 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 	cnt = 0;
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		RaucImage *img = l->data;
-		formatter_shell_append_n(text, "RAUC_IMAGE_NAME", cnt, img->filename);
-		formatter_shell_append_n(text, "RAUC_IMAGE_CLASS", cnt, img->slotclass);
-		formatter_shell_append_n(text, "RAUC_IMAGE_VARIANT", cnt, img->variant);
-		formatter_shell_append_n(text, "RAUC_IMAGE_DIGEST", cnt, img->checksum.digest);
-		g_string_append_printf(text, "RAUC_IMAGE_SIZE_%d=%"G_GOFFSET_FORMAT "\n", cnt, img->checksum.size);
+		r_ptr_array_add_printf(entries, "RAUC_IMAGE_NAME_%d=%s", cnt, img->filename ?: "");
+		r_ptr_array_add_printf(entries, "RAUC_IMAGE_CLASS_%d=%s", cnt, img->slotclass ?: "");
+		r_ptr_array_add_printf(entries, "RAUC_IMAGE_VARIANT_%d=%s", cnt, img->variant ?: "");
+		r_ptr_array_add_printf(entries, "RAUC_IMAGE_DIGEST_%d=%s", cnt, img->checksum.digest ?: "");
+		r_ptr_array_add_printf(entries, "RAUC_IMAGE_SIZE_%d=%"G_GOFFSET_FORMAT, cnt, img->checksum.size);
 
 		hooks = g_ptr_array_new();
 		if (img->hooks.pre_install == TRUE) {
@@ -957,21 +940,21 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 		g_ptr_array_add(hooks, NULL);
 
 		temp_string = g_strjoinv(" ", (gchar**) hooks->pdata);
-		formatter_shell_append_n(text, "RAUC_IMAGE_HOOKS", cnt, temp_string);
+		r_ptr_array_add_printf(entries, "RAUC_IMAGE_HOOKS_%d=%s", cnt, temp_string);
 		g_free(temp_string);
 
 		g_ptr_array_unref(hooks);
 
 		if (img->adaptive) {
 			temp_string = g_strjoinv(" ", (gchar**) img->adaptive);
-			formatter_shell_append_n(text, "RAUC_IMAGE_ADAPTIVE", cnt, temp_string);
+			r_ptr_array_add_printf(entries, "RAUC_IMAGE_ADAPTIVE_%d=%s", cnt, temp_string);
 			g_free(temp_string);
 		}
 
 		cnt++;
 	}
 
-	return g_string_free(text, FALSE);
+	return r_ptr_array_env_to_shell(entries);
 }
 
 static gchar *info_formatter_readable(RaucManifest *manifest)
@@ -1463,7 +1446,7 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 {
 	GHashTableIter iter;
 	gint slotcnt = 0;
-	GString *text = g_string_new(NULL);
+	g_autoptr(GPtrArray) entries = g_ptr_array_new_with_free_func(g_free);
 	GPtrArray *slotnames, *slotnumbers = NULL;
 	gchar* slotstring = NULL;
 	RaucSlot *slot = NULL;
@@ -1471,10 +1454,10 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 
 	g_return_val_if_fail(status, NULL);
 
-	formatter_shell_append(text, "RAUC_SYSTEM_COMPATIBLE", status->compatible);
-	formatter_shell_append(text, "RAUC_SYSTEM_VARIANT", status->variant);
-	formatter_shell_append(text, "RAUC_SYSTEM_BOOTED_BOOTNAME", status->bootslot);
-	formatter_shell_append(text, "RAUC_BOOT_PRIMARY", status->primary ? status->primary->name : NULL);
+	r_ptr_array_add_printf(entries, "RAUC_SYSTEM_COMPATIBLE=%s", status->compatible);
+	r_ptr_array_add_printf(entries, "RAUC_SYSTEM_VARIANT=%s", status->variant);
+	r_ptr_array_add_printf(entries, "RAUC_SYSTEM_BOOTED_BOOTNAME=%s", status->bootslot);
+	r_ptr_array_add_printf(entries, "RAUC_BOOT_PRIMARY=%s", status->primary ? status->primary->name : NULL);
 
 	slotnames = g_ptr_array_new();
 	slotnumbers = g_ptr_array_new_with_free_func(g_free);
@@ -1487,10 +1470,10 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 	g_ptr_array_add(slotnumbers, NULL);
 
 	slotstring = g_strjoinv(" ", (gchar**) slotnames->pdata);
-	formatter_shell_append(text, "RAUC_SYSTEM_SLOTS", slotstring);
+	r_ptr_array_add_printf(entries, "RAUC_SYSTEM_SLOTS=%s", slotstring);
 	g_free(slotstring);
 	slotstring = g_strjoinv(" ", (gchar**) slotnumbers->pdata);
-	formatter_shell_append(text, "RAUC_SLOTS", slotstring);
+	r_ptr_array_add_printf(entries, "RAUC_SLOTS=%s", slotstring);
 	g_free(slotstring);
 
 	g_ptr_array_unref(slotnumbers);
@@ -1503,42 +1486,34 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 
 		slotcnt++;
 
-		formatter_shell_append_n(text, "RAUC_SLOT_STATE", slotcnt, r_slot_slotstate_to_str(slot->state));
-		formatter_shell_append_n(text, "RAUC_SLOT_CLASS", slotcnt, slot->sclass);
-		formatter_shell_append_n(text, "RAUC_SLOT_DEVICE", slotcnt, slot->device);
-		formatter_shell_append_n(text, "RAUC_SLOT_TYPE", slotcnt, slot->type);
-		formatter_shell_append_n(text, "RAUC_SLOT_BOOTNAME", slotcnt, slot->bootname);
-		formatter_shell_append_n(text, "RAUC_SLOT_PARENT", slotcnt, slot->parent ? slot->parent->name : NULL);
-		formatter_shell_append_n(text, "RAUC_SLOT_MOUNTPOINT", slotcnt, slot->mount_point);
+		r_ptr_array_add_printf(entries, "RAUC_SLOT_STATE_%d=%s", slotcnt, r_slot_slotstate_to_str(slot->state));
+		r_ptr_array_add_printf(entries, "RAUC_SLOT_CLASS_%d=%s", slotcnt, slot->sclass);
+		r_ptr_array_add_printf(entries, "RAUC_SLOT_DEVICE_%d=%s", slotcnt, slot->device);
+		r_ptr_array_add_printf(entries, "RAUC_SLOT_TYPE_%d=%s", slotcnt, slot->type);
+		r_ptr_array_add_printf(entries, "RAUC_SLOT_BOOTNAME_%d=%s", slotcnt, slot->bootname ?: "");
+		r_ptr_array_add_printf(entries, "RAUC_SLOT_PARENT_%d=%s", slotcnt, slot->parent ? slot->parent->name : "");
+		r_ptr_array_add_printf(entries, "RAUC_SLOT_MOUNTPOINT_%d=%s", slotcnt, slot->mount_point ?: "");
 		if (slot->bootname)
-			formatter_shell_append_n(text, "RAUC_SLOT_BOOT_STATUS", slotcnt, slot->boot_good ? "good" : "bad");
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_BOOT_STATUS_%d=%s", slotcnt, slot->boot_good ? "good" : "bad");
 		else
-			formatter_shell_append_n(text, "RAUC_SLOT_BOOT_STATUS", slotcnt, NULL);
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_BOOT_STATUS_%d=", slotcnt);
 		if (status_detailed && slot_state) {
-			gchar *str;
-
-			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_COMPATIBLE", slotcnt, slot_state->bundle_compatible);
-			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_VERSION", slotcnt, slot_state->bundle_version);
-			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_DESCRIPTION", slotcnt, slot_state->bundle_description);
-			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_BUILD", slotcnt, slot_state->bundle_build);
-			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_BUNDLE_HASH", slotcnt, slot_state->bundle_hash);
-			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_CHECKSUM_SHA256", slotcnt, slot_state->checksum.digest);
-			str = g_strdup_printf("%"G_GOFFSET_FORMAT, slot_state->checksum.size);
-			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_CHECKSUM_SIZE", slotcnt, str);
-			g_free(str);
-			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_INSTALLED_TIMESTAMP", slotcnt, slot_state->installed_timestamp);
-			str = g_strdup_printf("%u", slot_state->installed_count);
-			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_INSTALLED_COUNT", slotcnt, str);
-			g_free(str);
-			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_ACTIVATED_TIMESTAMP", slotcnt, slot_state->activated_timestamp);
-			str = g_strdup_printf("%u", slot_state->activated_count);
-			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_ACTIVATED_COUNT", slotcnt, str);
-			g_free(str);
-			formatter_shell_append_n(text, "RAUC_SLOT_STATUS_STATUS", slotcnt, slot_state->status);
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_BUNDLE_COMPATIBLE_%d=%s", slotcnt, slot_state->bundle_compatible ?: "");
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_BUNDLE_VERSION_%d=%s", slotcnt, slot_state->bundle_version ?: "");
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_BUNDLE_DESCRIPTION_%d=%s", slotcnt, slot_state->bundle_description ?: "");
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_BUNDLE_BUILD_%d=%s", slotcnt, slot_state->bundle_build ?: "");
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_BUNDLE_HASH_%d=%s", slotcnt, slot_state->bundle_hash ?: "");
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_CHECKSUM_SHA256_%d=%s", slotcnt, slot_state->checksum.digest ?: "");
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_CHECKSUM_SIZE_%d=%"G_GOFFSET_FORMAT, slotcnt, slot_state->checksum.size);
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_INSTALLED_TIMESTAMP_%d=%s", slotcnt, slot_state->installed_timestamp ?: "");
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_INSTALLED_COUNT_%d=%u", slotcnt, slot_state->installed_count);
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_ACTIVATED_TIMESTAMP_%d=%s", slotcnt, slot_state->activated_timestamp ?: "");
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_ACTIVATED_COUNT_%d=%u", slotcnt, slot_state->activated_count);
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_STATUS_%d=%s", slotcnt, slot_state->status ?: "");
 		}
 	}
 
-	return g_string_free(text, FALSE);
+	return r_ptr_array_env_to_shell(entries);
 }
 
 static gchar* r_status_formatter_json(RaucStatusPrint *status, gboolean pretty)

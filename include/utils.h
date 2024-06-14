@@ -96,6 +96,40 @@ static inline void r_ptr_array_addv(GPtrArray *ptrarray, gchar **argvp, gboolean
 }
 
 /**
+ * Adds a formatted string to the end of a GPtrArray
+ *
+ * This is a shorter alternative to:
+ * g_ptr_array_add(arr, g_strdup_printf("%s: %s", ...));
+ *
+ * @param ptrarray GPtrArray to add to
+ * @param format the printf-like format string
+ * @param ... the parameters for the format string
+ */
+void r_ptr_array_add_printf(GPtrArray *ptrarray, const gchar *format, ...)
+__attribute__((__format__(__printf__, 2, 3)));
+
+/**
+ * Converts an array of 'key=value' strings to a shell quoted string.
+ *
+ * This is useful when generating shell-parsable output.
+ *
+ * @param ptrarray the GPtrArray to print
+ */
+gchar *r_ptr_array_env_to_shell(const GPtrArray *ptrarray);
+
+/**
+ * Calls g_environ_setenv for each 'key=value' string in the array.
+ *
+ * This is useful when setting up the environment for a subprocess.
+ *
+ * @param envp an environment list
+ * @param ptrarray the GPtrArray to add to the environment
+ * @param overwrite whether to change existing variables
+ */
+gchar **r_environ_setenv_ptr_array(gchar **envp, const GPtrArray *ptrarray, gboolean overwrite)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Read file content into a GBytes.
  *
  * @param filename Filename to read from
