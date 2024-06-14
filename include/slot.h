@@ -26,6 +26,8 @@ typedef struct {
 	guint32 activated_count;
 } RaucSlotStatus;
 
+#define RAUC_FORMAT_ISO_8601 "%Y-%m-%dT%H:%M:%SZ"
+
 typedef struct _RaucSlot {
 	/** name of the slot. A glib intern string. */
 	const gchar *name;
