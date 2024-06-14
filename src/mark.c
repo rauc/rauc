@@ -152,7 +152,7 @@ gboolean r_mark_active(RaucSlot *slot, GError **error)
 
 	g_free(slot_state->activated_timestamp);
 	now = g_date_time_new_now_utc();
-	slot_state->activated_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
+	slot_state->activated_timestamp = g_date_time_format(now, RAUC_FORMAT_ISO_8601);
 	slot_state->activated_count++;
 
 	if (!r_slot_status_save(slot, &ierror)) {

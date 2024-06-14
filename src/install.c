@@ -1069,7 +1069,7 @@ static void update_slot_status(RaucSlotStatus *slot_state, const gchar* status, 
 	slot_state->checksum.digest = g_strdup(plan->image->checksum.digest);
 	slot_state->checksum.size = plan->image->checksum.size;
 	slot_state->installed_txn = g_strdup(args->transaction);
-	slot_state->installed_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
+	slot_state->installed_timestamp = g_date_time_format(now, RAUC_FORMAT_ISO_8601);
 	slot_state->installed_count++;
 }
 
