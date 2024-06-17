@@ -24,8 +24,10 @@ GQuark r_bootchooser_error_quark(void)
 #define UBOOT_ATTEMPTS_PRIMARY  3
 #define EFIBOOTMGR_NAME "efibootmgr"
 #define GRUB_EDITENV "grub-editenv"
+#define BG_PRINTENV_NAME "bg_printenv"
+#define BG_SETENV_NAME "bg_setenv"
 
-static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "custom", "noop", NULL};
+static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "efibootguard", "custom", "noop", NULL};
 
 gboolean r_boot_is_supported_bootloader(const gchar *bootloader)
 {
@@ -1456,6 +1458,326 @@ static gboolean efi_get_state(RaucSlot* slot, gboolean *good, GError **error)
 	return TRUE;
 }
 
+// TODO add efibootguard bootchooser tests
+
+// Getting slots:
+// TODO call "bg_printenv --raw --part=1" & return k=>v array
+// TODO call "bg_printenv --raw --current"
+// TODO --part=1 can be "bootname" from config file
+
+// Setting slots:
+// TODO
+
+// #define BG_PRINTENV_NAME "bg_printenv"
+// #define BG_SETENV_NAME "bg_setenv"
+
+static gboolean efibootguard_env_get(const gchar *slot, const gchar *key, GString **value, GError **error)
+{
+	g_autoptr(GPtrArray) sub_args = NULL;
+	g_autoptr(GSubprocess) sub = NULL;
+	GError *ierror = NULL;
+	g_autoptr(GBytes) sub_stdout_buf = NULL;
+	const char *sub_stdout;
+	gsize sub_stdout_size;
+	gsize offset;
+	gsize size;
+	gint ret;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(key, FALSE);
+	g_return_val_if_fail(value && *value == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	sub_args = g_ptr_array_new_full(5, g_free);
+	g_ptr_array_add(sub_args, g_strdup(BG_PRINTENV_NAME));
+	g_ptr_array_add(sub_args, g_strdup("--raw"));
+	g_ptr_array_add(sub_args, g_strdup("-p"));
+	g_ptr_array_add(sub_args, g_strdup(slot));
+	g_ptr_array_add(sub_args, NULL);
+
+	sub = r_subprocess_newv(sub_args, G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_MERGE, &ierror);
+	if (!sub) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start " BG_PRINTENV_NAME ": ");
+		return FALSE;
+	}
+
+	if (!g_subprocess_communicate(sub, NULL, NULL, &sub_stdout_buf, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run " BG_PRINTENV_NAME ": ");
+		return FALSE;
+	}
+
+	if (!g_subprocess_get_if_exited(sub)) {
+		g_set_error_literal(
+				error,
+				G_SPAWN_ERROR,
+				G_SPAWN_ERROR_FAILED,
+				BG_PRINTENV_NAME " did not exit normally");
+		return FALSE;
+	}
+
+	ret = g_subprocess_get_exit_status(sub);
+	if (ret != 0) {
+		g_set_error(
+				error,
+				G_SPAWN_EXIT_ERROR,
+				ret,
+				BG_PRINTENV_NAME " failed with exit code: %i", ret);
+		return FALSE;
+	}
+
+	/* Call to bg_setenv lists all variables */
+	sub_stdout = g_bytes_get_data(sub_stdout_buf, &sub_stdout_size);
+	if (sub_stdout) {
+		g_autofree gchar *key_prefix = g_strdup_printf("%s=", key);
+		g_auto(GStrv) variables = g_strsplit(sub_stdout, "\n", -1);
+		for (gchar **variable = variables; *variable; variable++) {
+			if (!g_str_has_prefix(*variable, key_prefix)) {
+				continue;
+			}
+
+			offset = strlen(key_prefix);
+			size = strlen(*variable);
+			*value = g_string_new_len(*variable + offset, size - offset);
+			g_strchomp((*value)->str);
+			return TRUE;
+		}
+	}
+
+	/* Specified key not found */
+	g_set_error(
+			error,
+			R_BOOTCHOOSER_ERROR,
+			R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+			"Variable %s not set in efibootguard environment", key);
+	return FALSE;
+}
+
+static gboolean efibootguard_env_get_int(const gchar *slot, const gchar *key, guint64 *value_num, GError **error)
+{
+	g_autoptr(GString) value = NULL;
+	GError *ierror = NULL;
+
+	if (!efibootguard_env_get(slot, key, &value, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (!value->len) {
+		g_set_error_literal(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Variable is empty");
+		return FALSE;
+	}
+
+	*value_num = g_ascii_strtoll(value->str, NULL, 10);
+	return TRUE;
+}
+
+// efibootguard_env_get_slot_ustate
+// efibootguard_env_get_slot_revision
+
+static gboolean efibootguard_set_state(RaucSlot *slot, gboolean good, GError **error)
+{
+	g_autoptr(GSubprocess) sub = NULL;
+	GError *ierror = NULL;
+	g_autofree gchar *bg_state = NULL;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* If the slot is good, set the state to OK; otherwise FAILED */
+	if (good) {
+		bg_state = g_strdup("OK");
+	} else {
+		bg_state = g_strdup("FAILED");
+	}
+
+	/* TODO: move to own function efibootguard_set_state */
+	g_message("%s: setting slot %s state to %s", __func__, slot->name, bg_state);
+	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, BG_SETENV_NAME,
+					"-p", slot->bootname, "-s", bg_state, NULL);
+	if (!sub) {
+		g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed to start " BG_SETENV_NAME ": ");
+		return FALSE;
+	}
+
+	if (!g_subprocess_wait_check(sub, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed to run " BG_SETENV_NAME ": ");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static RaucSlot *efibootguard_get_primary(GError **error)
+{
+	RaucSlot *slot;
+	GHashTableIter iter;
+	RaucSlot *primary = NULL;
+	GError *ierror = NULL;
+	// TODO set to -1 ?
+	guint64 highest_revision = 0;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* Get efibootguard state for all of the slots */
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+		guint64 slot_revision;
+		guint64 slot_ustate;
+
+		if (!slot->bootname)
+			continue;
+
+		/* TODO: move to own function; efibootguard_env_get_slot_revision which returns guint64 */
+		if (!efibootguard_env_get_int(slot->bootname, "REVISION", &slot_revision, &ierror)) {
+			g_propagate_error(error, ierror);
+			return NULL;
+		}
+
+		/* TODO: move to own function; efibootguard_env_get_slot_state which returns an enum */
+		if (!efibootguard_env_get_int(slot->bootname, "USTATE", &slot_ustate, &ierror)) {
+			g_propagate_error(error, ierror);
+			return NULL;
+		}
+
+		g_message("%s: slot %s revision=%lu, state=%lu", __func__, slot->name, slot_revision, slot_ustate);
+
+		/* Primary slot is the slot with highest revision with status != FAILED */
+		// TODO: Don't hardcode state (3=FAILED)
+		if (slot_revision > highest_revision && slot_ustate != 3) {
+			highest_revision = slot_revision;
+			primary = slot;
+		}
+	}
+
+	if (!primary) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Cannot find slot matching any configured bootname");
+	}
+
+	return primary;
+}
+
+static gboolean efibootguard_set_primary(RaucSlot *slot, GError **error)
+{
+	RaucSlot *slot_iter;
+	GHashTableIter iter;
+	GError *ierror = NULL;
+	guint64 highest_revision = 0;
+	guint64 bg_revision = 0;
+	g_autofree gchar *bg_state = NULL;
+	g_autoptr(GSubprocess) sub = NULL;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* Find the highest revision of the OTHER slots. */
+	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot_iter)) {
+		guint64 slot_revision;
+
+		if (!slot_iter->bootname)
+			continue;
+
+		/* Ignore the current slot */
+		if (g_strcmp0(slot_iter->bootname, slot->bootname) == 0) {
+			continue;
+		}
+
+		/* TODO: move to own function; efibootguard_env_get_slot_revision which returns guint64 */
+		if (!efibootguard_env_get_int(slot_iter->bootname, "REVISION", &slot_revision, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+
+		g_message("%s: slot %s revision=%lu", __func__, slot_iter->name, slot_revision);
+
+		if (slot_revision > highest_revision) {
+			highest_revision = slot_revision;
+		}
+	}
+	g_message("%s: highest_revision=%lu", __func__, highest_revision);
+
+	/* To mark a slot as primary:
+	   - set ustate to INSTALLED
+	   - set the revision of this slot to the highest */
+	bg_revision = highest_revision + 1;
+	bg_state = g_strdup("INSTALLED");
+
+	/* TODO: move to own function efibootguard_set_state & efibootguard_set_revision */
+	g_message("%s: setting slot %s state to %s & revision to %lu", __func__, slot->name, bg_state, bg_revision);
+	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, BG_SETENV_NAME,
+					"-p", slot->bootname,
+					"-s", bg_state,
+					"-r", g_strdup_printf("%lu", bg_revision), NULL);
+	if (!sub) {
+		g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed to start " BG_SETENV_NAME ": ");
+		return FALSE;
+	}
+
+	if (!g_subprocess_wait_check(sub, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed to run " BG_SETENV_NAME ": ");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static gboolean efibootguard_get_state(RaucSlot* slot, gboolean *good, GError **error)
+{
+	GError *ierror = NULL;
+	guint64 slot_ustate;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!slot->bootname) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Need to set bootname for slot '%s'", slot->name);
+		return FALSE;
+	}
+
+	/* TODO: move to own function; efibootguard_env_get_slot_state which returns an enum */
+	if (!efibootguard_env_get_int(slot->bootname, "USTATE", &slot_ustate, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	g_message("%s: slot %s state=%lu", __func__, slot->name, slot_ustate);
+
+	/* ustate=FAILED is the only bad state */
+	// TODO: Don't hardcode state (3=FAILED)
+	*good = (slot_ustate != 3) ? TRUE : FALSE;
+	return TRUE;
+}
+
 /* Wrapper for get commands accessing custom script
  *
  * @param cmd What to input as command to the custom backend. Mandatory.
@@ -1678,6 +2000,8 @@ gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 		res = uboot_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = efi_get_state(slot, good, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "efibootguard") == 0) {
+		res = efibootguard_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
 		res = custom_get_state(slot, good, &ierror);
 	} else {
@@ -1715,6 +2039,8 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 		res = uboot_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = efi_set_state(slot, good, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "efibootguard") == 0) {
+		res = efibootguard_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
 		res = custom_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "noop") == 0) {
@@ -1754,6 +2080,8 @@ RaucSlot* r_boot_get_primary(GError **error)
 		slot = uboot_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		slot = efi_get_primary(&ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "efibootguard") == 0) {
+		slot = efibootguard_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
 		slot = custom_get_primary(&ierror);
 	} else {
@@ -1791,6 +2119,8 @@ gboolean r_boot_set_primary(RaucSlot *slot, GError **error)
 		res = uboot_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = efi_set_primary(slot, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "efibootguard") == 0) {
+		res = efibootguard_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
 		res = custom_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "noop") == 0) {
