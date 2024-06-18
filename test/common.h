@@ -9,6 +9,11 @@ typedef struct {
 	gboolean custom_handler;
 	gboolean hooks;
 	gboolean slots;
+
+	const gchar *artifact_file;
+	const gchar *artifact_slotclass;
+	const gchar *artifact_convert;
+
 	RManifestBundleFormat format;
 } ManifestTestOptions;
 

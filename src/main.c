@@ -13,6 +13,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#include "artifacts.h"
 #include "bundle.h"
 #include "bootchooser.h"
 #include "config_file.h"
@@ -22,6 +23,7 @@
 #include "rauc-installer-generated.h"
 #include "service.h"
 #include "signature.h"
+#include "slot.h"
 #include "status_file.h"
 #include "update_handler.h"
 #include "utils.h"
@@ -865,6 +867,28 @@ out:
 #define KWHT  "\x1B[37m"
 #define KBLD  "\x1B[1m"
 
+static void formatter_shell_append_idx_str(GPtrArray *entries, const gchar* varname, gint outer_idx, guint cnt)
+{
+	GString *text = g_string_new(NULL);
+
+	g_string_append_printf(text, "%s", varname);
+
+	if (outer_idx >= 0) {
+		g_string_append_printf(text, "_%d", outer_idx);
+	}
+
+	g_string_append_c(text, '=');
+
+	for (guint i = 1; i <= cnt; i++) {
+		g_string_append_printf(text, "%d ", i);
+	}
+
+	/* remove final space */
+	g_string_truncate(text, text->len - 1);
+
+	g_ptr_array_add(entries, g_string_free(text, FALSE));
+}
+
 static gchar *info_formatter_shell(RaucManifest *manifest)
 {
 	g_autoptr(GPtrArray) entries = g_ptr_array_new_with_free_func(g_free);
@@ -923,6 +947,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 		RaucImage *img = l->data;
 		r_ptr_array_add_printf(entries, "RAUC_IMAGE_NAME_%d=%s", cnt, img->filename ?: "");
 		r_ptr_array_add_printf(entries, "RAUC_IMAGE_CLASS_%d=%s", cnt, img->slotclass ?: "");
+		r_ptr_array_add_printf(entries, "RAUC_IMAGE_ARTIFACT_%d=%s", cnt, img->artifact ?: "");
 		r_ptr_array_add_printf(entries, "RAUC_IMAGE_VARIANT_%d=%s", cnt, img->variant ?: "");
 		r_ptr_array_add_printf(entries, "RAUC_IMAGE_DIGEST_%d=%s", cnt, img->checksum.digest ?: "");
 		r_ptr_array_add_printf(entries, "RAUC_IMAGE_SIZE_%d=%"G_GOFFSET_FORMAT, cnt, img->checksum.size);
@@ -948,6 +973,17 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 		if (img->adaptive) {
 			temp_string = g_strjoinv(" ", (gchar**) img->adaptive);
 			r_ptr_array_add_printf(entries, "RAUC_IMAGE_ADAPTIVE_%d=%s", cnt, temp_string);
+			g_free(temp_string);
+		}
+
+		if (img->convert) {
+			temp_string = g_strjoinv(" ", (gchar**) img->convert);
+			r_ptr_array_add_printf(entries, "RAUC_IMAGE_CONVERT_%d=%s", cnt, temp_string);
+			g_free(temp_string);
+		}
+		if (img->converted) {
+			temp_string = g_strjoinv(" ", (gchar**) img->converted);
+			r_ptr_array_add_printf(entries, "RAUC_IMAGE_CONVERTED_%d=%s", cnt, temp_string);
 			g_free(temp_string);
 		}
 
@@ -1030,6 +1066,8 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		g_string_append_printf(text, "  "KBLD "[%s]"KNRM "\n", img->slotclass);
 		if (img->variant)
 			g_string_append_printf(text, "\tVariant:   %s\n", img->variant);
+		if (img->artifact)
+			g_string_append_printf(text, "\tArtifact:  %s\n", img->artifact);
 		if (img->filename) {
 			g_autofree gchar* formatted_size = g_format_size_full(img->checksum.size, G_FORMAT_SIZE_LONG_FORMAT);
 			g_string_append_printf(text, "\tFilename:  %s\n", img->filename);
@@ -1063,6 +1101,17 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 			g_free(temp_string);
 		}
 
+		if (img->convert) {
+			temp_string = g_strjoinv(" ", (gchar**) img->convert);
+			g_string_append_printf(text, "\tConvert:   %s\n", temp_string);
+			g_free(temp_string);
+		}
+		if (img->converted) {
+			temp_string = g_strjoinv(" ", (gchar**) img->converted);
+			g_string_append_printf(text, "\tConverted: %s\n", temp_string);
+			g_free(temp_string);
+		}
+
 		cnt++;
 	}
 
@@ -1082,6 +1131,19 @@ static void strv_to_json_array(JsonBuilder *builder, GStrv strv)
 		for (gchar **m = strv; *m != NULL; m++) {
 			json_builder_add_string_value(builder, *m);
 		}
+	}
+	json_builder_end_array(builder);
+}
+
+/* Takes a GPtrArray and adds a JSON array to the builder. */
+static void ptrarray_to_json_array(JsonBuilder *builder, GPtrArray *ptrarray)
+{
+	g_return_if_fail(JSON_IS_BUILDER(builder));
+	g_return_if_fail(ptrarray);
+
+	json_builder_begin_array(builder);
+	for (guint i = 0; i < ptrarray->len; i++) {
+		json_builder_add_string_value(builder, ptrarray->pdata[i]);
 	}
 	json_builder_end_array(builder);
 }
@@ -1130,6 +1192,8 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 		json_builder_begin_object(builder);
 		json_builder_set_member_name(builder, img->slotclass);
 		json_builder_begin_object(builder);
+		json_builder_set_member_name(builder, "artifact");
+		json_builder_add_string_value(builder, img->artifact);
 		json_builder_set_member_name(builder, "variant");
 		json_builder_add_string_value(builder, img->variant);
 		json_builder_set_member_name(builder, "filename");
@@ -1152,6 +1216,14 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 		json_builder_end_array(builder);
 		json_builder_set_member_name(builder, "adaptive");
 		strv_to_json_array(builder, img->adaptive);
+		if (img->convert) {
+			json_builder_set_member_name(builder, "convert");
+			strv_to_json_array(builder, img->convert);
+		}
+		if (img->converted) {
+			json_builder_set_member_name(builder, "converted");
+			ptrarray_to_json_array(builder, img->converted);
+		}
 		json_builder_end_object(builder);
 		json_builder_end_object(builder);
 	}
@@ -1306,6 +1378,7 @@ typedef struct {
 	gchar *variant;
 	gchar *bootslot;
 	GHashTable *slots;
+	GVariant *artifacts;
 } RaucStatusPrint;
 
 static void free_status_print(RaucStatusPrint *status)
@@ -1318,6 +1391,8 @@ static void free_status_print(RaucStatusPrint *status)
 	g_free(status->bootslot);
 	if (status->slots)
 		g_hash_table_unref(status->slots);
+	if (status->artifacts)
+		g_variant_unref(status->artifacts);
 
 	g_free(status);
 }
@@ -1439,13 +1514,79 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 		}
 	}
 
+	if (status->artifacts && g_variant_n_children(status->artifacts) > 0) {
+		GVariantIter repo_iter;
+		GVariant *repo_var;
+
+		g_string_append(text, "=== Artifact States ===\n");
+		g_variant_iter_init(&repo_iter, status->artifacts);
+		while (g_variant_iter_loop(&repo_iter, "@a{sv}", &repo_var)) {
+			g_autoptr(GVariant) artifacts = NULL;
+			const gchar *tmp = NULL;
+			gboolean has_parent = FALSE;
+			g_message("repo_var: %s", g_variant_get_type_string(repo_var));
+
+			if (g_variant_lookup(repo_var, "name", "&s", &tmp)) {
+				g_string_append_printf(text, "name:  %s\n", tmp);
+			}
+			if (g_variant_lookup(repo_var, "path", "&s", &tmp)) {
+				g_string_append_printf(text, "path:  %s\n", tmp);
+			}
+			if (g_variant_lookup(repo_var, "type", "&s", &tmp)) {
+				g_string_append_printf(text, "type:  %s\n", tmp);
+			}
+			if (g_variant_lookup(repo_var, "parent-class", "&s", &tmp)) {
+				g_string_append_printf(text, "parent-class:  %s\n", tmp);
+				has_parent = TRUE;
+			}
+
+			if (g_variant_lookup(repo_var, "artifacts", "@aa{sv}", &artifacts)) {
+				GVariantIter artifact_iter;
+				GVariant *artifact_var;
+
+				g_autofree gchar *tmp2 = g_variant_print(artifacts, TRUE);
+				g_message("debug: %s", tmp2);
+
+				g_variant_iter_init(&artifact_iter, artifacts);
+				while (g_variant_iter_loop(&artifact_iter, "@a{sv}", &artifact_var)) {
+					g_autofree gchar **references = NULL;
+
+
+					if (g_variant_lookup(artifact_var, "name", "&s", &tmp)) {
+						g_string_append_printf(text, "name:    %s\n", tmp);
+					}
+					if (g_variant_lookup(artifact_var, "checksum", "&s", &tmp)) {
+						g_string_append_printf(text, "checksum:    %s\n", tmp);
+					}
+
+					if (g_variant_lookup(artifact_var, "references", "^a&s", &references)) {
+						if (!has_parent) {
+							if (references[0]) {
+								g_string_append_printf(text, "active");
+							} else {
+								g_string_append_printf(text, "inactive");
+							}
+						} else {
+							g_autofree gchar *joined = g_strjoinv(" ", references);
+							if (references[0]) {
+								g_string_append_printf(text, "references: %s\n", joined);
+							} else {
+								g_string_append_printf(text, "references: (none)");
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	return g_string_free(text, FALSE);
 }
 
 static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 {
 	GHashTableIter iter;
-	gint slotcnt = 0;
+	gint slotcnt = 0, repocnt = 0;
 	g_autoptr(GPtrArray) entries = g_ptr_array_new_with_free_func(g_free);
 	GPtrArray *slotnames, *slotnumbers = NULL;
 	gchar* slotstring = NULL;
@@ -1512,6 +1653,66 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 			r_ptr_array_add_printf(entries, "RAUC_SLOT_STATUS_STATUS_%d=%s", slotcnt, slot_state->status ?: "");
 		}
 	}
+
+	if (status->artifacts && g_variant_n_children(status->artifacts) > 0) {
+		GVariantIter repo_iter;
+		GVariant *repo_var;
+
+		g_variant_iter_init(&repo_iter, status->artifacts);
+		while (g_variant_iter_loop(&repo_iter, "@a{sv}", &repo_var)) {
+			gint artifactcnt = 0;
+			g_autoptr(GVariant) artifacts = NULL;
+			const gchar *tmp = NULL;
+			gboolean has_parent = FALSE;
+
+			repocnt++;
+
+			if (g_variant_lookup(repo_var, "name", "&s", &tmp)) {
+				r_ptr_array_add_printf(entries, "RAUC_REPO_NAME_%d=%s", repocnt, tmp);
+			}
+			if (g_variant_lookup(repo_var, "path", "&s", &tmp)) {
+				r_ptr_array_add_printf(entries, "RAUC_REPO_PATH_%d=%s", repocnt, tmp);
+			}
+			if (g_variant_lookup(repo_var, "type", "&s", &tmp)) {
+				r_ptr_array_add_printf(entries, "RAUC_REPO_TYPE_%d=%s", repocnt, tmp);
+			}
+			if (g_variant_lookup(repo_var, "parent-class", "&s", &tmp)) {
+				r_ptr_array_add_printf(entries, "RAUC_REPO_PARENT_CLASS_%d=%s", repocnt, tmp);
+				has_parent = TRUE;
+			}
+
+			if (g_variant_lookup(repo_var, "artifacts", "@aa{sv}", &artifacts)) {
+				GVariantIter artifact_iter;
+				GVariant *artifact_var;
+
+				artifactcnt++;
+
+				g_variant_iter_init(&artifact_iter, artifacts);
+				while (g_variant_iter_loop(&artifact_iter, "@a{sv}", &artifact_var)) {
+					g_autofree gchar **references = NULL;
+
+
+					if (g_variant_lookup(artifact_var, "name", "&s", &tmp)) {
+						r_ptr_array_add_printf(entries, "RAUC_REPO_ARTIFACT_NAME_%d_%d=%s", repocnt, artifactcnt, tmp);
+					}
+					if (g_variant_lookup(artifact_var, "checksum", "&s", &tmp)) {
+						r_ptr_array_add_printf(entries, "RAUC_REPO_ARTIFACT_CHECKSUM_%d_%d=%s", repocnt, artifactcnt, tmp);
+					}
+
+					if (g_variant_lookup(artifact_var, "references", "^a&s", &references)) {
+						if (!has_parent) {
+							r_ptr_array_add_printf(entries, "RAUC_REPO_ARTIFACT_ACTIVE_%d_%d=%s", repocnt, artifactcnt, references[0] ? "1" : "0");
+						} else {
+							g_autofree gchar *joined = g_strjoinv(" ", references);
+							r_ptr_array_add_printf(entries, "RAUC_REPO_ARTIFACT_REFERENCES_%d_%d=%s", repocnt, artifactcnt, joined);
+						}
+					}
+				}
+				formatter_shell_append_idx_str(entries, "RAUC_REPO_ARTIFACTS", repocnt, artifactcnt);
+			}
+		}
+	}
+	formatter_shell_append_idx_str(entries, "RAUC_REPOS", -1, repocnt);
 
 	return r_ptr_array_env_to_shell(entries);
 }
@@ -1632,6 +1833,11 @@ static gchar* r_status_formatter_json(RaucStatusPrint *status, gboolean pretty)
 	}
 
 	json_builder_end_array(builder);
+
+	if (status->artifacts) {
+		json_builder_set_member_name(builder, "artifact-repositories");
+		json_builder_add_value(builder, json_gvariant_serialize(status->artifacts));
+	}
 
 	json_builder_end_object(builder);
 
@@ -1849,6 +2055,17 @@ static gboolean retrieve_status_via_dbus(RaucStatusPrint **status_print, GError 
 	if (primary)
 		istatus->primary = g_hash_table_lookup(istatus->slots, primary);
 
+	if (!r_installer_call_get_artifact_status_sync(proxy, &istatus->artifacts, NULL, &ierror)) {
+		if (g_dbus_error_is_remote_error(ierror))
+			g_dbus_error_strip_remote_error(ierror);
+		g_set_error(error,
+				G_IO_ERROR,
+				G_IO_ERROR_FAILED,
+				"error calling D-Bus method \"GetArtifactStatus\": %s", ierror->message);
+		g_error_free(ierror);
+		return FALSE;
+	}
+
 	*status_print = g_steal_pointer(&istatus);
 
 	return TRUE;
@@ -1858,6 +2075,10 @@ static gboolean print_status(RaucStatusPrint *status_print)
 {
 	g_autofree gchar *text = NULL;
 
+	{
+		g_autofree gchar *tmp = g_variant_print(status_print->artifacts, TRUE);
+		g_message("artifacts: %s", tmp);
+	}
 	if (!output_format || g_strcmp0(output_format, "readable") == 0) {
 		text = r_status_formatter_readable(status_print);
 	} else if (g_strcmp0(output_format, "shell") == 0) {
@@ -1914,8 +2135,15 @@ static gboolean status_start(int argc, char **argv)
 			while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot))
 				r_slot_status_load(slot);
 		}
-
 		status_print = g_new0(RaucStatusPrint, 1);
+
+		/* initialize without pruning, as an install might be ongoing in the background */
+		if (!r_artifacts_init(FALSE, &ierror)) {
+			g_printerr("Failed to initialize artifact repos: %s\n", ierror->message);
+			g_clear_error(&ierror);
+			r_exit_status = 1;
+			return TRUE;
+		}
 
 		status_print->primary = r_boot_get_primary(&ierror);
 		if (!status_print->primary) {
@@ -1927,6 +2155,7 @@ static gboolean status_start(int argc, char **argv)
 		status_print->variant = g_strdup(r_context()->config->system_variant);
 		status_print->bootslot = g_strdup(r_context()->bootslot);
 		status_print->slots = g_hash_table_ref(r_context()->config->slots);
+		status_print->artifacts = r_artifacts_to_dict();
 	} else {
 		if (!retrieve_status_via_dbus(&status_print, &ierror)) {
 			g_printerr("Error retrieving slot status via D-Bus: %s\n",
@@ -2055,7 +2284,9 @@ static void create_run_links(void)
 {
 	g_autoptr(GError) ierror = NULL;
 	GHashTableIter iter;
+	RaucSlot *booted_slot = NULL;
 	RaucSlot *slot;
+	RArtifactRepo *repo;
 
 	if (g_mkdir_with_parents("/run/rauc/slots/active", 0755) != 0) {
 		g_warning("Failed to create /run/rauc/slots/active");
@@ -2069,10 +2300,37 @@ static void create_run_links(void)
 		if (!(slot->state & ST_ACTIVE))
 			continue;
 
+		if (slot->state == ST_BOOTED)
+			booted_slot = slot;
+
 		path = g_build_filename("/run/rauc/slots/active", slot->sclass, NULL);
 
 		if (!r_update_symlink(slot->device, path, &ierror)) {
 			g_warning("Failed to create symlink for active slot: %s", ierror->message);
+		}
+	}
+
+	if (!booted_slot)
+		return;
+
+	if (g_mkdir_with_parents("/run/rauc/artifacts", 0755) != 0) {
+		g_warning("Failed to create /run/rauc/artifacts");
+		return;
+	}
+
+	g_hash_table_iter_init(&iter, r_context()->config->artifact_repos);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*)&repo)) {
+		g_autofree gchar* path = g_build_filename("/run/rauc/artifacts", repo->name, NULL);
+		g_autofree gchar* target = NULL;
+
+		if (!repo->parent_class) {
+			target = g_build_filename(repo->path, NULL);
+		} else {
+			target = g_build_filename(repo->path, booted_slot->name, NULL);
+		}
+
+		if (!r_update_symlink(target, path, &ierror)) {
+			g_warning("Failed to create symlink for artifact repository: %s", ierror->message);
 		}
 	}
 }
@@ -2086,6 +2344,13 @@ static gboolean service_start(int argc, char **argv)
 
 	if (!determine_slot_states(&ierror)) {
 		g_printerr("Failed to determine slot states: %s\n", ierror->message);
+		r_exit_status = 1;
+		return TRUE;
+	}
+
+	if (!r_artifacts_init(FALSE, &ierror)) {
+		g_printerr("Failed to initialize artifact repos: %s\n", ierror->message);
+		g_clear_error(&ierror);
 		r_exit_status = 1;
 		return TRUE;
 	}
