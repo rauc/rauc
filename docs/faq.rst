@@ -227,3 +227,65 @@ In that case, one of the following errors will be shown:
 
 If someone relies on the old undocumented behavior of including directories and
 symlinks in the bundle, please contact us.
+
+How can I access the manifest without using RAUC?
+-------------------------------------------------
+
+For bundles which use the :ref:`verity format <sec_ref_format_verity>`, you
+only need to locate the CMS data and verify the signature.
+The CMS data is located almost at the end of the bundle and is followed by
+its size as a 8 byte big endian integer.
+
+To see how this can be done, take a look at the `Python example script in
+contrib/get-cms.py
+<https://github.com/rauc/rauc/blob/master/contrib/get-cms.py>`_.
+Used in the RAUC source directory, you would get::
+
+  $ contrib/get-cms.py test/good-verity-bundle.raucb verity.cms
+  CMS length is 1922 bytes.
+  CMS written to 'cms.der'. You can now...
+
+      print the CMS data structure:
+      $ openssl cms -cmsout -in cms.der -inform DER -print
+
+      skip the signature verification and print the manifest (verity format):
+      $ openssl cms -verify -in cms.der -inform DER -noverify
+
+      verify the signature and print the manifest (verity format):
+      $ openssl cms -verify -in cms.der -inform DER -CAfile <your_ca.pem>
+
+      decrypt, verify and print the manifest (crypt format):
+      $ openssl cms -decrypt -in cms.der -inform DER -inkey <your_key.pem> |
+        openssl cms -verify -inform DER -CAfile <your_ca.pem>
+
+  $ openssl cms -verify -in verity.cms -inform DER -CAfile test/openssl-ca/dev-ca.pem
+  [update]
+  compatible=Test Config
+  version=2011.03-2
+
+  [bundle]
+  format=verity
+  verity-hash=931b44c2989432c0fcfcd215ec94384576b973d70530fdc75b6c4c67b0a60297
+  verity-salt=ea12cb34c699ebbad0ebee8f6aca0049ee991f289011345d9cdb473ba4fdd285
+  verity-size=4096
+
+  [image.rootfs]
+  sha256=101a4fc5c369a5c89a51a61bcbacedc9016e9510e59a4383f739ef55521f678d
+  size=8192
+  filename=rootfs.img
+
+  [image.appfs]
+  sha256=f95c0891937265df18ff962869b78e32148e7e97eab53fad7341536a24242450
+  size=8192
+  filename=appfs.img
+  CMS Verification successful
+
+For bundles which use the :ref:`crypt format <sec_ref_format_crypt>`, you need
+to decrypt the CMS data before verifying it.
+See the script output for an example command line.
+
+For bundles which use the :ref:`plain format <sec_ref_format_plain>`, you would
+need to split the payload and CMS data and then use `openssl cms -verify` with
+the `-content` option.
+As this is more involved, we recommend using either `rauc extract` or switching
+to verity bundles.
