@@ -208,19 +208,19 @@ static void load_slot_status_locally(RaucSlot *dest_slot)
 	}
 }
 
-static void load_slot_status_globally(void)
+void r_slot_status_load_globally(const gchar *filename, GHashTable *slots)
 {
 	GError *ierror = NULL;
-	GHashTable *slots = r_context()->config->slots;
 	g_autoptr(GKeyFile) key_file = g_key_file_new();
 	g_auto(GStrv) groups = NULL;
 	gchar **group, *slotname;
 	GHashTableIter iter;
 	RaucSlot *slot;
 
-	g_return_if_fail(r_context()->config->statusfile_path);
+	g_return_if_fail(filename);
+	g_return_if_fail(slots);
 
-	g_key_file_load_from_file(key_file, r_context()->config->statusfile_path, G_KEY_FILE_NONE, &ierror);
+	g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror);
 	if (ierror && !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_NOENT))
 		g_message("Failed to load global slot status file: %s", ierror->message);
 	g_clear_error(&ierror);
@@ -260,7 +260,7 @@ void r_slot_status_load(RaucSlot *dest_slot)
 		if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") == 0)
 			load_slot_status_locally(dest_slot);
 		else
-			load_slot_status_globally();
+			r_slot_status_load_globally(r_context()->config->statusfile_path, r_context()->config->slots);
 	}
 
 	r_slot_clean_data_directory(dest_slot);
