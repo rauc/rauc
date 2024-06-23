@@ -372,6 +372,8 @@ static gboolean r_context_configure_target(GError **error)
 			g_message("Failed to load system status: %s", ierror->message);
 			g_clear_error(&ierror);
 		}
+
+		r_slot_status_load_globally(context->config->statusfile_path, context->config->slots);
 	}
 
 	/* set up logging */
