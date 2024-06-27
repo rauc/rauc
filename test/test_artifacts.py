@@ -34,6 +34,19 @@ def get_info(path):
     return info
 
 
+def get_composefs_info(image):
+    out, err, exitcode = run(f"composefs-info ls {image}")
+    assert exitcode == 0
+    assert err == ""
+
+    result = {}
+    for line in out.splitlines():
+        name, obj = line.split("@", 1)
+        result[name.rstrip("\t")] = obj.strip()
+
+    return result
+
+
 class RepoStatus(dict):
     @property
     def artifacts(self):
@@ -87,7 +100,7 @@ def get_status():
 
 
 @contextmanager
-def extracted_bundle(tmp_path, bundle_path):
+def extracted_bundle(tmp_path, bundle_path, remove=True):
     path = tmp_path / "extracted"
     assert not path.exists()
 
@@ -96,7 +109,20 @@ def extracted_bundle(tmp_path, bundle_path):
         assert exitcode == 0
         yield path
     finally:
-        shutil.rmtree(path)
+        if remove:
+            shutil.rmtree(path)
+
+
+@contextmanager
+def mounted_composefs(tmp_path, image_path, store_path):
+    mount_path = tmp_path / "mounted-composefs"
+    mount_path.mkdir(exist_ok=True)
+
+    run(f"mount.composefs -o basedir={store_path} {image_path} {mount_path}")
+    try:
+        yield mount_path
+    finally:
+        run(f"umount {mount_path}")
 
 
 def test_bundle(tmp_path, bundle):
@@ -220,6 +246,60 @@ def test_bundle_convert_tree_keep(tmp_path, bundle):
             assert f.read() == b"contents-a"
 
 
+def test_bundle_convert_composefs(tmp_path, bundle):
+    """Create a bundle by converting a tar file to a composfs image and objects."""
+    bundle.manifest["image.trees/artifact-1"] = {
+        "filename": "tree-a.tar",
+        "convert": "composefs",
+    }
+    data_a = b"content-a" * 1024
+    data_b = b"content-b" * 1024
+    make_tarfile(
+        bundle.content / "tree-a.tar",
+        {
+            "file-a-1": data_a,
+            "file-a-2": data_a,
+            "file-b": data_b,
+        },
+    )
+    bundle.build()
+
+    info = get_info(bundle.output)
+    pprint(info)
+    assert info["images"][0]["filename"] == "tree-a.tar"
+    assert info["images"][0]["slot-class"] == "trees"
+    assert info["images"][0]["artifact"] == "artifact-1"
+    assert info["images"][0]["convert"] == ["composefs"]
+    assert info["images"][0]["converted"] == ["tree-a.tar.cfs"]
+
+    with extracted_bundle(tmp_path, bundle.output, remove=False) as extracted:
+        run_tree(extracted)
+
+        image_path = extracted / "tree-a.tar.cfs" / "image"
+        store_path = extracted / ".rauc-cfs-store"
+
+        assert not (extracted / "tree-a.tar").exists()
+        assert image_path.is_file()
+        assert store_path.is_dir()
+
+        composefs_info = get_composefs_info(extracted / "tree-a.tar.cfs/image")
+        assert set(composefs_info.keys()) == {
+            "/file-a-1",
+            "/file-a-2",
+            "/file-b",
+        }
+        # both files should share one object
+        assert composefs_info["/file-a-1"] == composefs_info["/file-a-2"]
+
+        with mounted_composefs(tmp_path, image_path, store_path) as mount_path:
+            with open(mount_path / "file-a-1", "rb") as f:
+                assert f.read() == data_a
+            with open(mount_path / "file-a-2", "rb") as f:
+                assert f.read() == data_a
+            with open(mount_path / "file-b", "rb") as f:
+                assert f.read() == data_b
+
+
 def do_install_file(tmp_path, name, repo_name, artifact_name, artifact_data):
     bundle = Bundle(tmp_path, name)
     bundle.manifest[f"image.{repo_name}/{artifact_name}"] = {
@@ -249,9 +329,24 @@ def do_install_tree(tmp_path, name, repo_name, artifact_name, artifact_contents)
     bundle.output.unlink()
 
 
+def do_install_composefs(tmp_path, name, repo_name, artifact_name, artifact_contents):
+    bundle = Bundle(tmp_path, name)
+    bundle.manifest[f"image.{repo_name}/{artifact_name}"] = {
+        "filename": "tree.tar",
+        "convert": "composefs",
+    }
+    make_tarfile(bundle.content / "tree.tar", artifact_contents)
+    bundle.build()
+
+    out, err, exitcode = run(f"rauc install {bundle.output}")
+    assert exitcode == 0
+
+    bundle.output.unlink()
+
+
 def test_file_install(rauc_dbus_service_with_system, tmp_path):
     status = get_status()
-    assert set(status.repos.keys()) == {"files", "trees"}
+    assert set(status.repos.keys()) == {"files", "trees", "composefs"}
     assert set(status.repos["files"].artifacts) == set()
     assert set(status.repos["trees"].artifacts) == set()
 
@@ -309,7 +404,7 @@ def test_file_install(rauc_dbus_service_with_system, tmp_path):
     out, err, exitcode = run("rauc status --output-format=shell")
     assert exitcode == 0
     out = out.splitlines()
-    assert "RAUC_REPOS='1 2'" in out
+    assert "RAUC_REPOS='1 2 3'" in out
     assert "RAUC_REPO_ARTIFACTS_2='1'" in out
     assert "RAUC_REPO_ARTIFACT_NAME_2_1='artifact-2'" in out
     assert "RAUC_REPO_ARTIFACT_INSTANCES_2_1='1'" in out
@@ -326,7 +421,7 @@ def test_file_install(rauc_dbus_service_with_system, tmp_path):
 
 def test_tree_install(rauc_dbus_service_with_system, tmp_path):
     status = get_status()
-    assert set(status.repos.keys()) == {"files", "trees"}
+    assert set(status.repos.keys()) == {"files", "trees", "composefs"}
     assert set(status.repos["files"].artifacts) == set()
     assert set(status.repos["trees"].artifacts) == set()
 
@@ -386,7 +481,7 @@ def test_install_keep_other(rauc_dbus_service_with_system, tmp_path):
     removed.
     """
     status = get_status()
-    assert set(status.repos.keys()) == {"files", "trees"}
+    assert set(status.repos.keys()) == {"files", "trees", "composefs"}
     assert set(status.repos["files"].artifacts) == set()
     assert set(status.repos["trees"].artifacts) == set()
 
@@ -430,7 +525,7 @@ def test_install_keep_other(rauc_dbus_service_with_system, tmp_path):
 
 def test_tree_in_use(rauc_dbus_service_with_system, tmp_path):
     status = get_status()
-    assert set(status.repos.keys()) == {"files", "trees"}
+    assert set(status.repos.keys()) == {"files", "trees", "composefs"}
     assert set(status.repos["files"].artifacts) == set()
     assert set(status.repos["trees"].artifacts) == set()
 
@@ -473,3 +568,77 @@ def test_tree_in_use(rauc_dbus_service_with_system, tmp_path):
     active_file.close()
     with open(active_file_path, "rb") as f:
         assert f.read() == data_a
+
+
+def test_composefs_install(rauc_dbus_service_with_system, tmp_path):
+    status = get_status()
+    assert "composefs" in status.repos
+    assert set(status.repos["composefs"].artifacts) == set()
+
+    # install one composefs artifact and check result
+    data_a = b"content-a" * 1024
+    do_install_composefs(tmp_path, "a", "composefs", "artifact-1", {"file-a": data_a})
+    status = get_status()
+    assert "composefs" in status.repos
+    repo = status.repos["composefs"]
+    assert "artifact-1" in repo.referenced_artifacts
+
+    artifact_path = repo.path / "artifact-1"
+    run_tree(repo.path)
+    assert artifact_path.is_symlink()
+    with mounted_composefs(tmp_path, artifact_path / "image", repo.path / ".rauc-cfs-store") as mount_path:
+        run_tree(mount_path)
+        with open(mount_path / "file-a", "rb") as f:
+            assert f.read() == data_a
+    assert artifact_path.samefile(Path("/run/rauc/artifacts/composefs/artifact-1"))
+
+    # update one composefs artifact and check result
+    data_b = b"content-b" * 1024
+    do_install_composefs(tmp_path, "b", "composefs", "artifact-1", {"file-b": data_b})
+    status = get_status()
+    assert "composefs" in status.repos
+    repo = status.repos["composefs"]
+    assert "artifact-1" in repo.referenced_artifacts
+
+    artifact_path = repo.path / "artifact-1"
+    run_tree(repo.path)
+    assert artifact_path.is_symlink()
+    with mounted_composefs(tmp_path, artifact_path / "image", repo.path / ".rauc-cfs-store") as mount_path:
+        run_tree(mount_path)
+        with open(mount_path / "file-b", "rb") as f:
+            assert f.read() == data_b
+    # old file must be gone
+    assert not (artifact_path / "file-a").exists()
+    assert artifact_path.samefile(Path("/run/rauc/artifacts/composefs/artifact-1"))
+
+    # install a different composefs artifact and check result
+    data_c = b"content-c" * 1024
+    data_d = b"content-d" * 1024  # fetch multiple objects to exercise sorting
+    do_install_composefs(
+        tmp_path,
+        "c",
+        "composefs",
+        "artifact-2",
+        {
+            "file-a": data_c,
+            "file-b": data_b,
+            "file-d": data_d,
+        },
+    )
+    status = get_status()
+    assert "composefs" in status.repos
+    repo = status.repos["composefs"]
+    assert "artifact-2" in repo.referenced_artifacts
+    assert "artifact-1" not in repo.referenced_artifacts
+
+    artifact_path = repo.path / "artifact-2"
+    run_tree(repo.path)
+    assert artifact_path.is_symlink()
+    with mounted_composefs(tmp_path, artifact_path / "image", repo.path / ".rauc-cfs-store") as mount_path:
+        run_tree(mount_path)
+        with open(mount_path / "file-a", "rb") as f:
+            assert f.read() == data_c
+    assert artifact_path.samefile(Path("/run/rauc/artifacts/composefs/artifact-2"))
+    artifact_path = repo.path / "artifact-1"
+    assert not artifact_path.exists()
+    assert not Path("/run/rauc/artifacts/composefs/artifact-1").exists()

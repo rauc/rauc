@@ -130,6 +130,12 @@ touch /tmp/file-artifacts-dual/.artifact-empty-e3b0c44298fc1c149afbf4c8996fb9242
 ln -s ../.artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 /tmp/file-artifacts-dual/rootfs.0/empty
 mkdir /tmp/tree-artifacts
 
+# composefs may be a subproject
+if [ -e "$BUILD_DIR/subprojects/composefs/tools" ]; then
+  export PATH="$BUILD_DIR/subprojects/composefs/tools:$PATH"
+  export LD_LIBRARY_PATH="$BUILD_DIR/subprojects/composefs/libcomposefs:$LD_LIBRARY_PATH"
+fi
+
 # rauc binary in PATH
 if [ -n "$SHELL" ]; then
   cp -a $BUILD_DIR/rauc /tmp/bin/rauc
