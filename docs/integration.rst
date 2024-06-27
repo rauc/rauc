@@ -366,6 +366,29 @@ manages artifacts.
      In the future, this could be combined with adaptive updates using new
      methods which could detect unmodified files.
 
+``composefs``
+  Each artifact is a directory containing a `composefs
+  <https://github.com/containers/composefs>`_ metadata image.
+  In addition to the metadata image, the repository contains an object store in
+  the ``<repo>/.rauc-cfs-store`` directory.
+  An image should be a converted tar archive using ``convert=composefs``.
+
+  See the `composefs README
+  <https://github.com/containers/composefs?tab=readme-ov-file#composefs>`_ and
+  `Alexander Larsson's talk at FOSDEM 2024
+  <https://fosdem.org/2024/schedule/event/fosdem-2024-3250-composefs-and-containers/>`_
+  for information on how composefs works and can be used.
+
+  The use-cases for this type are very similar to the ``tree`` type above, but as
+  composefs stores file data separately from metadata, every unique file content
+  is stored in the repository only once and is installed from the bundle only once.
+  This also reduces the amount of data downloaded when using streaming.
+
+  .. note::
+     In the future, this type could be extended to reuse file data from the
+     normal slots and with delta compression for large files.
+     If that seems interesting to you, please reach out to us.
+
 Library Dependencies
 --------------------
 

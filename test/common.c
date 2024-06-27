@@ -241,6 +241,9 @@ type=files\n\
 [artifacts.trees]\n\
 path=repos/trees\n\
 type=trees\n\
+[artifacts.composefs]\n\
+path=repos/composefs\n\
+type=composefs\n\
 ");
 
 	g_assert_true(g_file_set_contents(path, config->str, config->len, NULL));
@@ -301,6 +304,11 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, cons
 				img->hooks.post_install = TRUE;
 		} else if (g_strcmp0(options->artifact_file, "payload-special.tar") == 0) {
 			img->artifact = g_strdup("special");
+			if (options->hooks)
+				img->hooks.post_install = TRUE;
+		} else if (g_strcmp0(options->artifact_file, "payload-medium-data-size-a.tar.gz") == 0 ||
+		           g_strcmp0(options->artifact_file, "payload-medium-data-size-b.tar.gz") == 0) {
+			img->artifact = g_strdup("medium-data-size");
 			if (options->hooks)
 				img->hooks.post_install = TRUE;
 		} else {
@@ -477,6 +485,28 @@ gboolean test_running_as_root(void)
 			(unsigned long) uid, (unsigned long) euid);
 	g_test_skip("not running as root");
 	return FALSE;
+}
+
+void test_show_tree(const gchar *path, gboolean inodes)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(7, g_free);
+
+	g_return_if_fail(path != NULL);
+
+	g_ptr_array_add(args, g_strdup("tree"));
+	g_ptr_array_add(args, g_strdup("--metafirst"));
+	g_ptr_array_add(args, g_strdup("-ax")); // listing options
+	g_ptr_array_add(args, g_strdup("-pugs")); // file options
+	if (inodes)
+		g_ptr_array_add(args, g_strdup("--inodes"));
+	g_ptr_array_add(args, g_strdup(path));
+	g_ptr_array_add(args, NULL);
+
+	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
 }
 
 gsize get_file_size(gchar* filename, GError **error)

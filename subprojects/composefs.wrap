@@ -1,0 +1,6 @@
+[wrap-git]
+url=https://github.com/jluebbe/composefs.git
+revision=d82f68c68edd55aee6f7d8b76e6c31cbaf45d3ca
+
+[provide]
+composefs=composefs_dep
