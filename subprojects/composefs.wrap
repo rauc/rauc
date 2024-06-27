@@ -1,0 +1,6 @@
+[wrap-git]
+url=https://github.com/containers/composefs.git
+revision=2d2c09db56cd3dea23a9c802dfe738c7bd309852
+
+[provide]
+composefs=composefs_dep
