@@ -25,11 +25,8 @@ set -e
 
 rm -f qemu-test-ok
 
-# TODO use virtfs with multidevs=remap on qemu 4.2
-# https://github.com/qemu/qemu/commit/1a6ed33cc56997479bbe5b48337ff8da44585bd4
-
-KERNEL_URL="https://github.com/jluebbe/linux/releases/download/rauc-test-20210201-1/bzImage"
-KERNEL_SHA256SUM="1d5e1ba27d4d1fb3da39cff3816f0dcc9e80ccdd2cbbf6965219ad5f46b5ba85"
+KERNEL_URL="https://github.com/jluebbe/linux/releases/download/rauc-test-20240628-1/bzImage"
+KERNEL_SHA256SUM="057bd2d1d82aa66af97797e06d0793963cb27e85ca9d5e6f718ddd8bd21b1e07"
 
 check_kernel() {
   if test -f bzImage && echo "$KERNEL_SHA256SUM bzImage" | sha256sum --check --status; then
@@ -83,7 +80,7 @@ qemu-system-x86_64 \
   -kernel bzImage \
   -nographic -serial mon:stdio \
   -no-reboot \
-  -virtfs local,id=rootfs,path=/,security_model=none,mount_tag=/dev/root \
+  -virtfs local,id=rootfs,path=/,security_model=none,mount_tag=/dev/root,multidevs=remap \
   -nic user,model=virtio-net-pci \
   -append "loglevel=6 console=ttyS0 nandsim.id_bytes=0x20,0xa2,0x00,0x15 nandsim.parts=0x100 mtdram.total_size=32768 root=/dev/root rootfstype=9p rootflags=msize=16777216 rw init=$(pwd)/qemu-test-init rauc.slot=$BOOTNAME $*"
 
