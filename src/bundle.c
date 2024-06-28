@@ -456,13 +456,14 @@ static gboolean output_stream_write_uint64_all(GOutputStream *stream,
 		GError **error)
 {
 	gsize bytes_written;
-	gboolean res;
 
 	data = GUINT64_TO_BE(data);
-	res = g_output_stream_write_all(stream, &data, sizeof(data), &bytes_written,
-			cancellable, error);
+	if (!g_output_stream_write_all(stream, &data, sizeof(data), &bytes_written,
+			cancellable, error))
+		return FALSE;
+
 	g_assert(bytes_written == sizeof(data));
-	return res;
+	return TRUE;
 }
 
 static gboolean input_stream_read_uint64_all(GInputStream *stream,
@@ -472,13 +473,14 @@ static gboolean input_stream_read_uint64_all(GInputStream *stream,
 {
 	guint64 tmp;
 	gsize bytes_read;
-	gboolean res;
 
-	res = g_input_stream_read_all(stream, &tmp, sizeof(tmp), &bytes_read,
-			cancellable, error);
+	if (!g_input_stream_read_all(stream, &tmp, sizeof(tmp), &bytes_read,
+			cancellable, error))
+		return FALSE;
+
 	g_assert(bytes_read == sizeof(tmp));
 	*data = GUINT64_FROM_BE(tmp);
-	return res;
+	return TRUE;
 }
 
 static gboolean output_stream_write_bytes_all(GOutputStream *stream,
