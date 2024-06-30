@@ -2630,6 +2630,11 @@ RaucUpdatePair updatepairs[] = {
 	{"*.ext4", "boot-gpt-switch", img_to_boot_gpt_switch_handler},
 	{"*.img", "boot-gpt-switch", img_to_boot_gpt_switch_handler},
 #endif
+	{"*", "ext4", img_to_raw_handler},
+	{"*", "raw", img_to_raw_handler},
+	{"*", "vfat", img_to_vfat_handler},
+	{"*", "ubivol", img_to_ubivol_handler},
+	{"*", "ubifs", img_to_ubifs_handler},
 	{"*", "boot-gpt-switch", NULL},
 	{"*.img", "boot-raw-fallback", img_to_boot_raw_fallback_handler},
 	{"*", "boot-raw-fallback", NULL},
