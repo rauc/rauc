@@ -241,6 +241,10 @@ void r_slot_clean_data_directory(const RaucSlot *slot)
 
 	g_assert(g_path_is_absolute(slot->data_directory));
 
+	/* Do not attempt to clean yet when slot status is still 'pending' */
+	if (slot->status && g_strcmp0(slot->status->status, "pending") == 0)
+		return;
+
 	if (slot->status) {
 		hex_digest = slot->status->checksum.digest;
 	} else {
