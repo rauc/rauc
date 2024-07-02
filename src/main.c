@@ -2026,9 +2026,9 @@ static void r_event_log_booted(const RaucSlot *booted_slot)
 	fields[5].value = booted_slot->bootname;
 	fields[6].value = r_context()->boot_id;
 	if (booted_slot->status && booted_slot->status->bundle_hash) {
-		fields[5].value = booted_slot->status->bundle_hash;
+		fields[7].value = booted_slot->status->bundle_hash;
 	} else {
-		fields[5].value = "unknown";
+		fields[7].value = "unknown";
 	}
 	g_log_structured_array(G_LOG_LEVEL_MESSAGE, fields, G_N_ELEMENTS(fields));
 }
