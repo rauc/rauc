@@ -1,0 +1,95 @@
+#!/bin/sh
+#
+# SPDX-License-Identifier: MIT
+#
+# rauc.client: a script to trigger a system update remotely
+#
+# DISCLAIMER: this tool is intended to be an example only and
+# shall not be used in production.
+#
+# It needs
+# * a configuration file in /etc/rauc-client.conf
+# * an alphabetically sortable VERSION_ID in /etc/os-release
+#   Ex: ${TIMESTAMP}-${VERSION}: 231220113929-41b0fa1
+# * a remote storage accessible through http/https where storing the
+#   update files.
+
+set -e
+
+# shellcheck source=rauc-client.conf
+. /etc/rauc-client.conf
+
+OS_VERSION=$(grep VERSION_ID /etc/os-release | cut -d"=" -f2)
+
+wait_interval () {
+    if [ -z "${CHANNEL_CHECK_TIME}" ]; then
+        interval="${CHANNEL_CHECK_INTERVAL}"
+    else
+        interval="$(( $(date -d "${CHANNEL_CHECK_TIME}" +%s) - $(date +%s) ))"
+        if [ ${interval} -lt 0 ]; then
+            interval="$(( interval + 86400 ))"
+        fi
+    fi
+
+    sleep "${interval}"
+}
+
+get_update_version () {
+    rauc info --output-format=shell "$1" | grep RAUC_MF_VERSION | cut -d"=" -f2
+}
+
+check_version () {
+    if expr "${OS_VERSION}" \> "$1" 2>&1 || [ "${OS_VERSION}" = "$1" ]; then
+        return 1
+    fi
+    return 0
+}
+
+install_update () {
+    echo "Installing update:" "$1"
+    rauc install "$1" && return 0 || return 1
+}
+
+needs_reboot () {
+    if [ "${REBOOT}" = "y" ]; then
+        echo "Rebooting ..."
+        /sbin/reboot
+    fi
+}
+
+perform_update () {
+    echo "Performing update ..."
+
+    echo "${CHANNEL}" | grep -q "eng"  && \
+        UPDATE_URLS="${UPDATE_URLS} ${CHANNEL_ENG_URL}"
+
+    echo "${CHANNEL}" | grep -q "beta"  && \
+        UPDATE_URLS="${UPDATE_URLS} ${CHANNEL_BETA_URL}"
+
+    echo "${CHANNEL}" | grep -q "prod"  && \
+        UPDATE_URLS="${UPDATE_URLS} ${CHANNEL_PROD_URL}"
+
+    for UPDATE_URL in ${UPDATE_URLS}; do
+        version=$(get_update_version "${UPDATE_URL}")
+
+        if check_version "${version}"; then
+            if install_update "${UPDATE_URL}"; then
+                needs_reboot
+            fi
+        fi
+    done
+
+    echo "Latest software version installed, nothing to update."
+}
+
+while true; do
+    if [ "${DEFER_UPDATE}" = "y" ]; then
+        wait_interval
+    fi
+
+    perform_update
+
+    if [ ! "${DEFER_UPDATE}" = "y" ]; then
+        wait_interval
+    fi
+done
