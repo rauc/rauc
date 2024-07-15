@@ -259,7 +259,7 @@ static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath,
 	g_ptr_array_add(args, g_strdup("fakeroot"));
 	g_ptr_array_add(args, g_strdup("sh"));
 	g_ptr_array_add(args, g_strdup("-c"));
-	g_ptr_array_add(args, g_strjoinv(" ", (gchar**) g_ptr_array_free(iargs, FALSE)));
+	g_ptr_array_add(args, g_strjoinv(" ", (gchar**) iargs->pdata));
 	g_ptr_array_add(args, NULL);
 
 	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
