@@ -882,7 +882,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 
 	hooks = g_ptr_array_new();
 	if (manifest->hooks.install_check == TRUE) {
-		g_ptr_array_add(hooks, g_strdup("install-check"));
+		g_ptr_array_add(hooks, (gchar*) "install-check");
 	}
 	g_ptr_array_add(hooks, NULL);
 
@@ -929,13 +929,13 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 
 		hooks = g_ptr_array_new();
 		if (img->hooks.pre_install == TRUE) {
-			g_ptr_array_add(hooks, g_strdup("pre-install"));
+			g_ptr_array_add(hooks, (gchar*) "pre-install");
 		}
 		if (img->hooks.install == TRUE) {
-			g_ptr_array_add(hooks, g_strdup("install"));
+			g_ptr_array_add(hooks, (gchar*) "install");
 		}
 		if (img->hooks.post_install == TRUE) {
-			g_ptr_array_add(hooks, g_strdup("post-install"));
+			g_ptr_array_add(hooks, (gchar*) "post-install");
 		}
 		g_ptr_array_add(hooks, NULL);
 
@@ -972,7 +972,7 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 
 	hooks = g_ptr_array_new();
 	if (manifest->hooks.install_check == TRUE) {
-		g_ptr_array_add(hooks, g_strdup("install-check"));
+		g_ptr_array_add(hooks, (gchar*) "install-check");
 	}
 	g_ptr_array_add(hooks, NULL);
 
@@ -1041,13 +1041,13 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 
 		hooks = g_ptr_array_new();
 		if (img->hooks.pre_install == TRUE) {
-			g_ptr_array_add(hooks, g_strdup("pre-install"));
+			g_ptr_array_add(hooks, (gchar*) "pre-install");
 		}
 		if (img->hooks.install == TRUE) {
-			g_ptr_array_add(hooks, g_strdup("install"));
+			g_ptr_array_add(hooks, (gchar*) "install");
 		}
 		if (img->hooks.post_install == TRUE) {
-			g_ptr_array_add(hooks, g_strdup("post-install"));
+			g_ptr_array_add(hooks, (gchar*) "post-install");
 		}
 		g_ptr_array_add(hooks, NULL);
 
