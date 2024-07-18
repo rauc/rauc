@@ -20,7 +20,7 @@ jobs:
 
     - name: Run meson
       run: |
-        meson setup build -Db_sanitize=address
+        meson setup build -Db_sanitize=address,undefined
         meson configure build
         meson compile -C build
 
