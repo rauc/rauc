@@ -56,7 +56,6 @@ c_warn_flags = '''
   -Wcast-align
   -Wcast-align=strict
   -Wdate-time
-  -Wdeclaration-after-statement
   -Wformat=2
   -Wformat-nonliteral
   -Wformat-security
