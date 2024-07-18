@@ -30,6 +30,7 @@ BUILD_DIR="$(realpath build)/"
 for x in $(cat /proc/cmdline); do
   if [ "$x" = "shell" ]; then
     SHELL=1
+    export MESON_BUILD_DIR=$BUILD_DIR
   elif [ "$x" = "system" ]; then
     SHELL=1
     SERVICE=1
