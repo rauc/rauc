@@ -3,15 +3,70 @@ Release 1.12 (development)
 
 .. rubric:: Enhancements
 
+* Avoid modifying the input directory during ``rauc bundle`` by using a
+  hard-linked copy.
+  For simplicity, we abort on anything in the input directory which is not a
+  regular file.
+  If someone relies on the old (undocumented) behavior of including directories
+  and symlinks in the bundle, please contact us.
+* Allow configuration of additional mkfs options per slot using
+  ``extra-mkfs-opts=<options>`` in ``system.conf``. (by David Robertson)
+* Improve messages printed when aborting ``rauc install`` with Ctrl+C.
+* Add the manifest build value to the hook execution environment. (by Heiko
+  Thiery)
+* Add the bundle format to the ``rauc info`` shell and JSON formatters. (by
+  Peter Korsgaard)
+* Add a systemd `journald message catalog
+  <https://www.freedesktop.org/wiki/Software/systemd/catalog/>`_.
+* Allow plain bundles on ntfs3 mounts.
+* Add contrib script to demonstrate how to get the CMS data from a bundle.
+
 .. rubric:: Bug fixes
+
+* Fix handling of slot installation skipping with global slot status and add a
+  test case.
+* Fix PKCS11 URI handling in ``system.conf``. (by David Hollister)
+* Fix block-hash-index cache by not cleaning the slot's data directory during
+  installation.
+  This avoids redundant slot scans to find reusable blocks during installation.
+* Fix out-of-bounds reads in bootchooser backends.
+* Fix some memory leaks in the NBD helper, D-Bus service and CLI.
+* Fix logging of the BUNDLE_HASH and SLOT_BOOTNAME values in the booted event.
+* Improve NBD helper shutdown error handling.
 
 .. rubric:: Testing
 
+* Replace sharness with pytest.
+  This will make it easier to write and maintain complex test cases.
+* Execute tests for ARMv5/7/8 and i386 using QEMU and multi-arch containers.
+* Enable address sanitizer for nbd and service tests.
+* Run faketime tests only if it works. (by Uwe Kleine-König)
+* Fix faketime when running under qemu-test.
+* Update GitHub Actions to current versions.
+* Fix coverage collection from the NBD helper in qemu-test.
+* Update the kernel used in qemu-test to 6.6.36.
+
 .. rubric:: Code
+
+* Refactor manifest checks.
+  This makes it easier to reject invalid configurations during bundle creation.
+* Add logging of build configuration at debug level.
+  This should help when analyzing bug reports.
+* Ignore SIGPIPE to handle broken pipes explicitly.
+* Add a helper to simplify GBytes access from OpenSSL.
+* Refactor shell formatting for ``rauc status`` and ``rauc info`` to prepare
+  for consolidation with hook/handler environment setup.
 
 .. rubric:: Documentation
 
-Contributions from: 
+* Improve reference sections for ``system.conf`` and the manifest by indicating
+  default values and fixing inconsistencies.
+* Add missing reference documentation for image variants.
+* Fix some typos. (by Gaël PORTAY and Michael B. Sumulong)
+
+Contributions from: David Hollister, David Robertson, Enrico Jörns, Gaël
+PORTAY, Heiko Thiery, Jan Lübbe, Michael B. Sumulong, Peter Korsgaard, Uwe
+Kleine-König
 
 Release 1.11.3 (released Mar 15, 2024)
 --------------------------------------
