@@ -8,7 +8,7 @@ from helper import run
 @have_casync
 def test_convert(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc"
@@ -26,7 +26,7 @@ def test_convert(tmp_path):
 @have_casync
 def test_convert_ignore_image(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc"
@@ -46,7 +46,7 @@ def test_convert_ignore_image(tmp_path):
 @have_casync
 def test_convert_output_exists(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     open(f"{tmp_path}/casync.raucb", "a").close()
 
@@ -67,7 +67,7 @@ def test_convert_output_exists(tmp_path):
 @have_casync
 def test_convert_error(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc"
@@ -85,7 +85,7 @@ def test_convert_error(tmp_path):
 @have_casync
 def test_convert_casync_extra_args(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc"
@@ -131,7 +131,7 @@ def test_convert_verity(tmp_path):
 @have_desync
 def test_convert_desync(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc"
@@ -151,7 +151,7 @@ def test_convert_desync(tmp_path):
 @have_desync
 def test_convert_desync_output_exists(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     open(f"{tmp_path}/desync.raucb", "a").close()
 
@@ -173,7 +173,7 @@ def test_convert_desync_output_exists(tmp_path):
 @have_desync
 def test_convert_desync_error(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc"
@@ -192,7 +192,7 @@ def test_convert_desync_error(tmp_path):
 @have_desync
 def test_convert_desync_extra_args(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc"

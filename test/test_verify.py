@@ -9,7 +9,7 @@ pytestmark = have_faketime
 
 
 def prepare_signing_time_conf(tmp_path):
-    shutil.copy("openssl-ca/dev-ca.pem", tmp_path / "test-ca.pem")
+    shutil.copyfile("openssl-ca/dev-ca.pem", tmp_path / "test-ca.pem")
     with open(f"{tmp_path}/use-bundle-signing-time.conf", "a") as f:
         f.write("""
 [system]

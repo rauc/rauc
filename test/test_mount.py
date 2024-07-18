@@ -7,7 +7,7 @@ from helper import run
 
 @root
 def test_mount(tmp_path):
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     try:
         out, err, exitcode = run(f"rauc --conf=test.conf mount {tmp_path}/good-bundle.raucb")

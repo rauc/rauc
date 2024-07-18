@@ -91,6 +91,7 @@ if pytest.found()
       'pytest_' + test_name,
       pytest,
       args: ['--basetemp', '/tmp/pytest-custom-root', '-vv', test_name + '.py'],
+      env: ['MESON_BUILD_DIR=' + rauc_build_root],
       is_parallel : false,
       timeout : 120,
       workdir : meson.current_source_dir(),

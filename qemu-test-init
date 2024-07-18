@@ -24,13 +24,13 @@ mount -t overlay overlay -o lowerdir=/etc,upperdir=/tmp/etc-overlay,workdir=/tmp
 # switch to rauc dir
 cd "$(dirname "$0")"
 
-BUILD_DIR="build/"
-BUILD_DIR_FULL="$(realpath build)/"
+BUILD_DIR="$(realpath build)/"
 
 # parse cmdline
 for x in $(cat /proc/cmdline); do
   if [ "$x" = "shell" ]; then
     SHELL=1
+    export MESON_BUILD_DIR=$BUILD_DIR
   elif [ "$x" = "system" ]; then
     SHELL=1
     SERVICE=1
@@ -76,7 +76,7 @@ fi
 
 save_gcov_data () {
   if [ -n "$GCOV_PREFIX" ]; then
-    cp -r -T "$GCOV_PREFIX$BUILD_DIR_FULL" "$BUILD_DIR_FULL" || true
+    cp -r -T "$GCOV_PREFIX$BUILD_DIR" "$BUILD_DIR" || true
   fi
 }
 
@@ -111,7 +111,7 @@ if [ -n "$SHELL" ]; then
   cp -a $BUILD_DIR/rauc /tmp/bin/rauc
   export PATH=/tmp/bin:$PATH
 fi
-export RAUC_TEST_NBD_SERVER="$(realpath $BUILD_DIR/rauc)"
+export RAUC_TEST_NBD_SERVER="$BUILD_DIR/rauc"
 
 if type losetup; then
   truncate --size=64M /tmp/rauc-disk.img

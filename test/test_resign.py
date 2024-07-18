@@ -7,7 +7,7 @@ from helper import run
 
 def test_resign(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc"
@@ -31,7 +31,7 @@ def test_resign(tmp_path):
 
 def test_resign_verity(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-verity-bundle.raucb", tmp_path / "good-verity-bundle.raucb")
+    shutil.copyfile("good-verity-bundle.raucb", tmp_path / "good-verity-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc"
@@ -55,7 +55,7 @@ def test_resign_verity(tmp_path):
 
 def test_resign_crypt(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-crypt-bundle-unencrypted.raucb", tmp_path / "good-crypt-bundle-unencrypted.raucb")
+    shutil.copyfile("good-crypt-bundle-unencrypted.raucb", tmp_path / "good-crypt-bundle-unencrypted.raucb")
 
     out, err, exitcode = run(
         "rauc"
@@ -79,7 +79,7 @@ def test_resign_crypt(tmp_path):
 
 def test_resign_output_exists(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     open(f"{tmp_path}/out.raucb", "a").close()
 
