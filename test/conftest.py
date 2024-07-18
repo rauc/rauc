@@ -23,8 +23,11 @@ from helper import run
 shutil._USE_CP_SENDFILE = False
 
 
-# FIXME: better alternative?
-meson_build = os.path.dirname(os.path.abspath(__file__)) + "/../build/"
+meson_build = os.environ.get("MESON_BUILD_DIR")
+if not meson_build:
+    raise Exception("Please set MESON_BUILD_DIR to point to the meson build directory.")
+if not os.path.isabs(meson_build):
+    meson_build = os.path.abspath(meson_build)
 
 
 @pytest.fixture(scope="session")
@@ -35,7 +38,7 @@ def monkeysession():
 
 @pytest.fixture(scope="session", autouse=True)
 def env_setup(monkeysession):
-    monkeysession.setenv("PATH", f"{os.path.dirname(os.path.abspath(__file__))}/../build", prepend=os.pathsep)
+    monkeysession.setenv("PATH", meson_build, prepend=os.pathsep)
     monkeysession.setenv("LC_ALL", "C")
     monkeysession.setenv("TZ", "UTC")
     monkeysession.setenv("DBUS_STARTER_BUS_TYPE", "session")
@@ -45,7 +48,7 @@ def env_setup(monkeysession):
 
 @cache
 def meson_buildoptions():
-    with open(meson_build + "meson-info/intro-buildoptions.json") as f:
+    with open(os.path.join(meson_build, "meson-info/intro-buildoptions.json")) as f:
         data = json.loads(f.read())
 
     return {o["name"]: o for o in data}
@@ -53,7 +56,7 @@ def meson_buildoptions():
 
 @cache
 def string_in_config_h(findstring):
-    with open(meson_build + "config.h") as f:
+    with open(os.path.join(meson_build, "config.h")) as f:
         if findstring in f.read():
             return True
     return False
