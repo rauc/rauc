@@ -325,7 +325,11 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 		gconstpointer user_data)
 {
 	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair*) user_data;
-	gchar *slotpath, *imagename, *imagepath, *mountprefix, *hookpath = NULL;
+	g_autofree gchar *slotpath = NULL;
+	g_autofree gchar *imagename = NULL;
+	g_autofree gchar *imagepath = NULL;
+	g_autofree gchar *mountprefix = NULL;
+	g_autofree gchar *hookpath = NULL;
 	goffset image_size;
 	RaucImage *image;
 	RaucSlot *targetslot;
@@ -493,11 +497,10 @@ no_image:
 		g_assert(test_mount(slotpath, mountprefix));
 		g_assert(r_umount(slotpath, NULL));
 	} else if ((g_strcmp0(test_pair->imagetype, "tar") == 0) || ((g_strcmp0(test_pair->imagetype, "caidx") == 0))) {
-		gchar *testpath = g_build_filename(mountprefix, "testfile.txt", NULL);
+		g_autofree gchar *testpath = g_build_filename(mountprefix, "testfile.txt", NULL);
 		g_assert(test_mount(slotpath, mountprefix));
 		g_assert_true(g_file_test(testpath, G_FILE_TEST_IS_REGULAR));
 		g_assert(r_umount(slotpath, NULL));
-		g_free(testpath);
 	}
 
 	/* check statistics */
@@ -600,11 +603,6 @@ out:
 
 	g_assert(g_rmdir(mountprefix) == 0);
 
-	g_free(slotpath);
-	g_free(imagename);
-	g_free(imagepath);
-	g_clear_pointer(&hookpath, g_free);
-	g_free(mountprefix);
 	r_free_image(image);
 	r_slot_free(targetslot);
 }

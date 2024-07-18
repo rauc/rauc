@@ -4,50 +4,31 @@ on: [push, pull_request]
 
 jobs:
   address:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/rauc/rauc/rauc-ci:latest
+      # allow mounting and devtmpfs in the container
+      options: --user=root --privileged -v /dev:/dev
     steps:
     - name: Inspect environment
       run: |
         whoami
         gcc --version
-
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        DEBIAN_FRONTEND='noninteractive' sudo apt-get install -qy meson libtool libglib2.0-dev libcurl3-dev libssl-dev libdbus-1-dev libjson-glib-dev libfdisk-dev libnl-genl-3-dev dbus-x11 clang-tools
+        ls -l /dev/kvm || true
 
     - uses: actions/checkout@v4
 
     - name: Run meson
       run: |
-        meson setup build -Db_sanitize=address
+        meson setup build -Db_sanitize=address,undefined
+        meson configure build
         meson compile -C build
 
-    - name: Run selected tests
+    - name: Run tests
       run: |
-        # Configure glib to be compatible with address sanitizer (see
-        # https://developer-old.gnome.org/glib/unstable/glib-running.html).
-        export G_SLICE=always-malloc G_DEBUG=gc-friendly
-        export ASAN_OPTIONS=malloc_context_size=64:fast_unwind_on_malloc=0
-        build/test/bootchooser-test
-        build/test/boot_raw_fallback-test
-        build/test/boot_switch-test
-        build/test/bundle-test
-        build/test/checksum-test
-        build/test/config_file-test
-        build/test/context-test
-        build/test/dm-test
-        build/test/event_log-test
-        build/test/hash_index-test
-        build/test/install-test
-        build/test/manifest-test
-        build/test/nbd-test
-        build/test/network-test
-        build/test/progress-test
-        build/test/service-test
-        build/test/signature-test
-        build/test/slot-test
-        build/test/stats-test
-        build/test/status_file-test
-        build/test/update_handler-test
-        build/test/utils-test
+        ./qemu-test asan
+
+    - name: Show logs
+      if: ${{ failure() }}
+      run: |
+        cat build/meson-logs/testlog.txt || true

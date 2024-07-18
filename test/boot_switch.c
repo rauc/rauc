@@ -274,9 +274,13 @@ static void test_boot_switch(BootSwitchFixture *fixture,
 		gconstpointer user_data)
 {
 	BootSwitchData *data = (BootSwitchData*) user_data;
-	gchar *slotpath, *imagename, *imagepath, *mountprefix, *hookpath = NULL;
-	RaucImage *image;
-	RaucSlot *targetslot;
+	g_autofree gchar *slotpath = NULL;
+	g_autofree gchar *imagename = NULL;
+	g_autofree gchar *imagepath = NULL;
+	g_autofree gchar *mountprefix = NULL;
+	g_autofree gchar *hookpath = NULL;
+	RaucImage *image = NULL;
+	RaucSlot *targetslot = NULL;
 	img_to_slot_handler handler;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -395,11 +399,6 @@ out:
 
 	g_rmdir(mountprefix);
 
-	g_free(slotpath);
-	g_free(imagename);
-	g_free(imagepath);
-	g_clear_pointer(&hookpath, g_free);
-	g_free(mountprefix);
 	r_free_image(image);
 	r_slot_free(targetslot);
 }
