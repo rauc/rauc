@@ -38,6 +38,7 @@ for x in $(cat /proc/cmdline); do
     export G_SLICE=always-malloc G_DEBUG=gc-friendly
     export ASAN_OPTIONS=malloc_context_size=64:fast_unwind_on_malloc=0
     export LSAN_OPTIONS=suppressions="$(pwd)/test/asan.supp"
+    export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
   elif [ "$x" = "service-backtrace" ]; then
     SERVICE_BACKTRACE=1
   fi
