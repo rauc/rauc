@@ -24,31 +24,11 @@ jobs:
         meson configure build
         meson compile -C build
 
-    - name: Run selected tests
+    - name: Run tests
       run: |
-        # Configure glib to be compatible with address sanitizer (see
-        # https://developer-old.gnome.org/glib/unstable/glib-running.html).
-        export G_SLICE=always-malloc G_DEBUG=gc-friendly
-        export ASAN_OPTIONS=malloc_context_size=64:fast_unwind_on_malloc=0
-        build/test/bootchooser-test
-        build/test/boot_raw_fallback-test
-        build/test/boot_switch-test
-        build/test/bundle-test
-        build/test/checksum-test
-        build/test/config_file-test
-        build/test/context-test
-        build/test/dm-test
-        build/test/event_log-test
-        build/test/hash_index-test
-        build/test/install-test
-        build/test/manifest-test
-        build/test/nbd-test
-        build/test/network-test
-        build/test/progress-test
-        build/test/service-test
-        build/test/signature-test
-        build/test/slot-test
-        build/test/stats-test
-        build/test/status_file-test
-        build/test/update_handler-test
-        build/test/utils-test
+        ./qemu-test asan
+
+    - name: Show logs
+      if: ${{ failure() }}
+      run: |
+        cat build/meson-logs/testlog.txt || true
