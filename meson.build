@@ -51,15 +51,23 @@ conf.set10('ENABLE_CREATE', get_option('create'))
 conf.set10('ENABLE_JSON', jsonglibdep.found())
 
 c_warn_flags = '''
+  -Walloca
   -Warray-bounds
   -Wcast-align
+  -Wcast-align=strict
+  -Wdate-time
   -Wdeclaration-after-statement
   -Wformat=2
   -Wformat-nonliteral
   -Wformat-security
+  -Wformat-truncation=2
   -Wimplicit-function-declaration
   -Winit-self
   -Winline
+  -Wint-conversion
+  -Winvalid-utf8
+  -Wjump-misses-init
+  -Wlogical-op
   -Wmissing-declarations
   -Wmissing-format-attribute
   -Wmissing-include-dirs
@@ -74,11 +82,14 @@ c_warn_flags = '''
   -Wshadow
   -Wsign-compare
   -Wstrict-aliasing
+  -Wstrict-overflow
   -Wstrict-prototypes
   -Wswitch-default
   -Wswitch-enum
+  -Wtrampolines
   -Wundef
   -Wunused-but-set-variable
+  -Wuse-after-free=3
   -Wwrite-strings
   -Wno-unused-parameter
   -Wno-error=unused-parameter
