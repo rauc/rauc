@@ -4,23 +4,24 @@ on: [push, pull_request]
 
 jobs:
   address:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/rauc/rauc/rauc-ci:latest
+      # allow mounting and devtmpfs in the container
+      options: --user=root --privileged -v /dev:/dev
     steps:
     - name: Inspect environment
       run: |
         whoami
         gcc --version
-
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        DEBIAN_FRONTEND='noninteractive' sudo apt-get install -qy meson libtool libglib2.0-dev libcurl3-dev libssl-dev libdbus-1-dev libjson-glib-dev libfdisk-dev libnl-genl-3-dev dbus-x11 clang-tools
+        ls -l /dev/kvm || true
 
     - uses: actions/checkout@v4
 
     - name: Run meson
       run: |
         meson setup build -Db_sanitize=address
+        meson configure build
         meson compile -C build
 
     - name: Run selected tests
