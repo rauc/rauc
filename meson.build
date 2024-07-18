@@ -60,7 +60,6 @@ c_warn_flags = '''
   -Wstrict-prototypes
   -Wredundant-decls
   -Wno-unused-parameter
-  -Wno-missing-field-initializers
   -Wdeclaration-after-statement
   -Wformat=2
   -Wold-style-definition
@@ -83,7 +82,6 @@ c_warn_flags = '''
   -Wswitch-enum
   -Wswitch-default
   -Wno-error=unused-parameter
-  -Wno-error=missing-field-initializers
 '''.split()
 # To allow building against OpenSSL 3.0, we still need to allow deprecated
 # declarations
