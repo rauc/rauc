@@ -8,7 +8,7 @@ from helper import run
 @have_openssl
 def test_replace_signature_plain(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc "
@@ -47,7 +47,7 @@ def test_replace_signature_plain(tmp_path):
 @have_openssl
 def test_replace_signature_verity(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-verity-bundle.raucb", tmp_path / "good-verity-bundle.raucb")
+    shutil.copyfile("good-verity-bundle.raucb", tmp_path / "good-verity-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc "
@@ -86,7 +86,7 @@ def test_replace_signature_verity(tmp_path):
 @have_openssl
 def test_replace_signature_crypt(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-crypt-bundle-unencrypted.raucb", tmp_path / "good-crypt-bundle-unencrypted.raucb")
+    shutil.copyfile("good-crypt-bundle-unencrypted.raucb", tmp_path / "good-crypt-bundle-unencrypted.raucb")
 
     out, err, exitcode = run(
         "rauc "
@@ -125,7 +125,7 @@ def test_replace_signature_crypt(tmp_path):
 @have_openssl
 def test_replace_signature_output_exists(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     open(f"{tmp_path}/out2.raucb", "a").close()
 
@@ -166,7 +166,7 @@ def test_replace_signature_output_exists(tmp_path):
 @have_openssl
 def test_replace_signature_bad_keyring(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc "
@@ -205,7 +205,7 @@ def test_replace_signature_bad_keyring(tmp_path):
 @have_openssl
 def test_replace_signature_no_verify(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc "
@@ -245,7 +245,7 @@ def test_replace_signature_no_verify(tmp_path):
 @have_openssl
 def test_replace_signature_invalid_bundle_signature_output(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     open(f"{tmp_path}/invalid.raucb", "a").close()
     open(f"{tmp_path}/invalid.sig", "a").close()

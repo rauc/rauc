@@ -8,7 +8,7 @@ from helper import run
 @have_openssl
 def test_extract_signature(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc --keyring openssl-ca/dev-ca.pem"
@@ -42,7 +42,7 @@ def test_extract_signature_crypt(tmp_path):
 @have_openssl
 def test_extract(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc --keyring openssl-ca/dev-ca.pem" f" extract {tmp_path}/good-bundle.raucb {tmp_path}/bundle-extract "
@@ -60,7 +60,7 @@ def test_extract(tmp_path):
 @have_openssl
 def test_extract_crypt(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc --keyring openssl-ca/dev-ca.pem"

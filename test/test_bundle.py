@@ -120,7 +120,7 @@ def test_bundle_pkcs11_key_mismatch(tmp_path, pkcs11):
 
 def test_bundle_crypt(tmp_path):
     shutil.copytree("install-content", tmp_path / "install-content")
-    shutil.copy("install-content/manifest.raucm.crypt", tmp_path / "install-content/manifest.raucm")
+    shutil.copyfile("install-content/manifest.raucm.crypt", tmp_path / "install-content/manifest.raucm")
 
     out, err, exitcode = run(
         "rauc bundle "

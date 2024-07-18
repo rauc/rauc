@@ -8,7 +8,7 @@ from helper import run
 
 def test_info_plain(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-ca.pem info {tmp_path}/good-bundle.raucb")
 
@@ -44,7 +44,7 @@ def test_info_streaming():
 
 def test_info_casync_plain(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-casync-bundle-1.5.1.raucb", tmp_path / "good-casync-bundle-1.5.1.raucb")
+    shutil.copyfile("good-casync-bundle-1.5.1.raucb", tmp_path / "good-casync-bundle-1.5.1.raucb")
 
     out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-ca.pem info {tmp_path}/good-casync-bundle-1.5.1.raucb")
 
@@ -108,7 +108,7 @@ def test_info_dump_recipients_crypt_encrypted():
 
 def test_info_with_config(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(f"rauc --conf=test.conf info {tmp_path}/good-bundle.raucb")
 
@@ -119,7 +119,7 @@ def test_info_with_config(tmp_path):
 
 def test_info_verification_failure(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("invalid-sig-bundle.raucb", tmp_path / "invalid-sig-bundle.raucb")
+    shutil.copyfile("invalid-sig-bundle.raucb", tmp_path / "invalid-sig-bundle.raucb")
 
     out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-ca.pem info {tmp_path}/invalid-sig-bundle.raucb")
 
@@ -136,7 +136,7 @@ def test_info_dump_cert_unverified():
 
 def test_info_valid_file_uri(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(f"rauc info --keyring openssl-ca/dev-ca.pem file://{tmp_path}/good-bundle.raucb")
 
@@ -159,7 +159,7 @@ def test_info_invalid_file_uri():
 
 def test_info_format_shell(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-adaptive-meta-bundle.raucb", tmp_path / "good-adaptive-meta-bundle.raucb")
+    shutil.copyfile("good-adaptive-meta-bundle.raucb", tmp_path / "good-adaptive-meta-bundle.raucb")
 
     proc = subprocess.run(
         "rauc info --keyring openssl-ca/dev-ca.pem "
@@ -172,7 +172,7 @@ def test_info_format_shell(tmp_path):
 @have_json
 def test_info_format_json(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc info --keyring openssl-ca/dev-ca.pem " f"--output-format=json {tmp_path}/good-bundle.raucb"
@@ -185,7 +185,7 @@ def test_info_format_json(tmp_path):
 @have_json
 def test_info_format_json_pretty(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc info --keyring openssl-ca/dev-ca.pem " f"--output-format=json-pretty {tmp_path}/good-bundle.raucb"
@@ -198,7 +198,7 @@ def test_info_format_json_pretty(tmp_path):
 @have_json
 def test_info_format_json2(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copy("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
         "rauc info --keyring openssl-ca/dev-ca.pem " f"--output-format=json-2 {tmp_path}/good-bundle.raucb"
