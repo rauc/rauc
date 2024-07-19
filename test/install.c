@@ -16,6 +16,7 @@ GMainLoop *r_loop = NULL;
 
 typedef struct {
 	const gchar **message_needles;
+	SystemTestOptions system_test_options;
 	ManifestTestOptions manifest_test_options;
 } InstallData;
 
@@ -25,7 +26,7 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 	InstallData *data = (InstallData*) user_data;
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, NULL, NULL);
+	fixture_helper_set_up_system(fixture->tmpdir, NULL, &data->system_test_options);
 	fixture_helper_set_up_bundle(fixture->tmpdir, NULL, &data->manifest_test_options);
 }
 
