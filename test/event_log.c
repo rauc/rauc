@@ -274,8 +274,9 @@ static void event_log_test_structured_logging(EventLogFixture *fixture,
 {
 	REventLogger *logger = NULL;
 	GLogField fields[] = {
-		{"MESSAGE", "This is a test (mark) log message", -1 },
-		{"MESSAGE_ID", "1d1b7a5aa9084c3a9004650c9d2ce850", -1 },
+		{"MESSAGE", "This is a test (mark) log message", -1},
+		{"PRIORITY", r_event_log_level_to_priority(G_LOG_LEVEL_INFO), -1},
+		{"MESSAGE_ID", "1d1b7a5aa9084c3a9004650c9d2ce850", -1},
 		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
 		{"RAUC_EVENT_TYPE", "mark", -1},
 		{"BUNDLE_HASH", "b970468f-89e4-4793-9904-06c922902b25", -1},
