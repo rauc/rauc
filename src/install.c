@@ -1124,8 +1124,8 @@ static void log_event_installation_done(RaucInstallArgs *args, RaucManifest *man
 {
 	g_autofree gchar *formatted = NULL;
 	GLogField fields[] = {
-		{"MESSAGE", NULL, -1 },
-		{"MESSAGE_ID", NULL, -1 },
+		{"MESSAGE", NULL, -1},
+		{"MESSAGE_ID", NULL, -1},
 		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
 		{"RAUC_EVENT_TYPE", "install", -1},
 		{"BUNDLE_HASH", "", -1},
