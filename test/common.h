@@ -13,6 +13,10 @@ typedef struct {
 	const gchar *bundle_version;
 } ManifestTestOptions;
 
+typedef struct {
+	const gchar *min_bundle_version;
+} SystemTestOptions;
+
 guint8* random_bytes(gsize size, guint32 seed);
 gchar* write_random_file(const gchar *tmpdir, const gchar *filename,
 		gsize size, const guint32 seed);
@@ -24,6 +28,7 @@ int test_rmdir(const gchar *dirname, const gchar *filename);
 int test_remove(const gchar *dirname, const gchar *filename);
 int test_lstat(const gchar *dirname, const gchar *filename, GStatBuf *buf);
 gboolean test_rm_tree(const gchar *dirname, const gchar *filename);
+int test_prepare_system_conf(const gchar *dirname, const gchar *filename, const SystemTestOptions *options);
 int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, const ManifestTestOptions *options);
 gboolean test_make_filesystem(const gchar *dirname, const gchar *filename);
 gboolean test_mount(const gchar *src, const gchar *dest);

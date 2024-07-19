@@ -25,7 +25,7 @@ static void install_fixture_set_up_bundle(InstallFixture *fixture,
 	InstallData *data = (InstallData*) user_data;
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, NULL);
+	fixture_helper_set_up_system(fixture->tmpdir, NULL, NULL);
 	fixture_helper_set_up_bundle(fixture->tmpdir, NULL, &data->manifest_test_options);
 }
 
@@ -35,7 +35,7 @@ static void install_fixture_set_up_bundle_central_status(InstallFixture *fixture
 	InstallData *data = (InstallData*) user_data;
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, "test/test-global.conf");
+	fixture_helper_set_up_system(fixture->tmpdir, "test/test-global.conf", NULL);
 	fixture_helper_set_up_bundle(fixture->tmpdir, NULL, &data->manifest_test_options);
 }
 
@@ -57,7 +57,7 @@ hooks=install\n\
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, NULL);
+	fixture_helper_set_up_system(fixture->tmpdir, NULL, NULL);
 	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
@@ -79,7 +79,7 @@ filename=rootfs.ext4\n\
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, NULL);
+	fixture_helper_set_up_system(fixture->tmpdir, NULL, NULL);
 	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
@@ -103,7 +103,7 @@ filename=appfs.ext4";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, NULL);
+	fixture_helper_set_up_system(fixture->tmpdir, NULL, NULL);
 	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
@@ -129,7 +129,7 @@ hooks=install";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, NULL);
+	fixture_helper_set_up_system(fixture->tmpdir, NULL, NULL);
 	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
@@ -154,7 +154,7 @@ hooks=post-install";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, NULL);
+	fixture_helper_set_up_system(fixture->tmpdir, NULL, NULL);
 	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
@@ -172,7 +172,7 @@ adaptive=adaptive-test-method;block-hash-index";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, "test/test-datadir.conf");
+	fixture_helper_set_up_system(fixture->tmpdir, "test/test-datadir.conf", NULL);
 	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
@@ -189,7 +189,7 @@ filename=rootfs.ext4";
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, "test/test-install-same-false.conf");
+	fixture_helper_set_up_system(fixture->tmpdir, "test/test-install-same-false.conf", NULL);
 	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
@@ -1461,7 +1461,7 @@ static void install_fixture_set_up_system_user(InstallFixture *fixture,
 {
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_fixture_set_up_system_user(fixture->tmpdir, NULL);
+	fixture_helper_fixture_set_up_system_user(fixture->tmpdir, NULL, NULL);
 }
 
 int main(int argc, char *argv[])

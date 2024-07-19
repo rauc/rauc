@@ -31,7 +31,7 @@ static void service_fixture_set_up(ServiceFixture *fixture, gconstpointer user_d
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 
-	fixture_helper_set_up_system(fixture->tmpdir, NULL);
+	fixture_helper_set_up_system(fixture->tmpdir, NULL, NULL);
 
 	/* Write a D-Bus service file with current tmpdir */
 	contents = g_strdup_printf("\

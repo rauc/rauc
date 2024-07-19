@@ -177,6 +177,66 @@ gboolean test_rm_tree(const gchar *dirname, const gchar *filename)
 	return res;
 }
 
+int test_prepare_system_conf(const gchar *dirname, const gchar *filename, const SystemTestOptions *options)
+{
+	g_autofree gchar *path = g_build_filename(dirname, filename, NULL);
+	g_autoptr(GString) config = g_string_sized_new(1024);
+
+	g_string_append(config, "[system]\n\
+compatible=Test Config\n\
+bootloader=grub\n\
+grubenv=grubenv.test\n\
+variant-name=Default Variant\n\
+");
+	if (options && options->min_bundle_version)
+		g_string_append_printf(config, "min-bundle-version=%s\n", options->min_bundle_version);
+	g_string_append(config, "\n");
+
+	g_string_append(config, "[handlers]\n\
+system-info=bin/systeminfo.sh\n\
+pre-install=bin/preinstall.sh\n\
+post-install=bin/postinstall.sh\n\
+\n\
+[keyring]\n\
+path=openssl-ca/dev-ca.pem\n\
+check-crl=true\n\
+\n\
+[slot.rescue.0]\n\
+device=images/rescue-0\n\
+type=ext4\n\
+bootname=factory0\n\
+readonly=true\n\
+\n\
+[slot.rootfs.0]\n\
+device=images/rootfs-0\n\
+type=ext4\n\
+bootname=system0\n\
+\n\
+[slot.rootfs.1]\n\
+device=images/rootfs-1\n\
+type=ext4\n\
+bootname=system1\n\
+\n\
+[slot.appfs.0]\n\
+device=images/appfs-0\n\
+type=ext4\n\
+parent=rootfs.0\n\
+\n\
+[slot.appfs.1]\n\
+device=images/appfs-1\n\
+type=ext4\n\
+parent=rootfs.1\n\
+\n\
+[slot.bootloader.0]\n\
+device=images/bootloader-0\n\
+type=ext4\n\
+allow-mounted=true\n\
+");
+
+	g_assert_true(g_file_set_contents(path, config->str, config->len, NULL));
+
+	return 0;
+}
 int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, const ManifestTestOptions *options)
 {
 	g_autofree gchar *path = g_build_filename(dirname, filename, NULL);

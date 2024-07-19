@@ -7,12 +7,14 @@
 #include "common.h"
 
 void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
-		const gchar *configname)
+		const gchar *configname, const SystemTestOptions *options)
 {
 	g_autofree gchar *configpath = NULL;
 	g_autofree gchar *certpath = NULL;
 	g_autofree gchar *keypath = NULL;
 	g_autofree gchar *capath = NULL;
+
+	g_return_if_fail(!configname || !options);
 
 	g_assert_nonnull(tmpdir);
 	g_test_message("bundle tmpdir: %s", tmpdir);
@@ -26,11 +28,13 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 	g_assert(test_mkdir_relative(tmpdir, "bootloader", 0777) == 0);
 
 	/* copy system config to temp dir*/
-	if (!configname)
-		configname = "test/test.conf";
 	configpath = g_build_filename(tmpdir, "system.conf", NULL);
 	g_assert_nonnull(configpath);
-	g_assert_true(test_copy_file(configname, NULL, configpath, NULL));
+	if (configname) {
+		g_assert_true(test_copy_file(configname, NULL, configpath, NULL));
+	}  else {
+		test_prepare_system_conf(tmpdir, "system.conf", options);
+	}
 	replace_strdup(&r_context_conf()->configpath, configpath);
 
 	/* copy systeminfo, preinstall and postinstall handler to temp dir*/
@@ -81,16 +85,18 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 }
 
 void fixture_helper_set_up_system(gchar *tmpdir,
-		const gchar *configname)
+		const gchar *configname, const SystemTestOptions *options)
 {
 	gchar *slotfile;
 	gchar *slotpath;
+
+	g_return_if_fail(!configname || !options);
 
 	/* needs to run as root */
 	if (!test_running_as_root())
 		return;
 
-	fixture_helper_fixture_set_up_system_user(tmpdir, configname);
+	fixture_helper_fixture_set_up_system_user(tmpdir, configname, options);
 
 	/* Make images user-writable */
 	test_make_slot_user_writable(tmpdir, "images/rootfs-0");
