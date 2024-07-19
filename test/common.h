@@ -10,6 +10,7 @@ typedef struct {
 	gboolean hooks;
 	gboolean slots;
 	RManifestBundleFormat format;
+	gboolean no_bundle_version;
 	const gchar *bundle_version;
 } ManifestTestOptions;
 

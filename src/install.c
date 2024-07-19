@@ -568,6 +568,13 @@ static gboolean check_version_limits(RaucInstallArgs *args, RaucManifest *manife
 		return TRUE;
 	}
 
+	if (!manifest->update_version) {
+		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_VERSION_MISMATCH,
+				"Version mismatch: Expected at least '%s' but bundle manifest has no version",
+				r_context()->config->system_min_bundle_version);
+		return FALSE;
+	}
+
 	if (!r_semver_less_equal(
 			r_context()->config->system_min_bundle_version,
 			manifest->update_version,

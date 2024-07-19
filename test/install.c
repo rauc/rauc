@@ -1685,5 +1685,23 @@ int main(int argc, char *argv[])
 			install_test_bundle,
 			install_fixture_tear_down);
 
+	install_data = dup_test_data(ptrs, (&(InstallData) {
+		.install_err_domain = R_INSTALL_ERROR,
+		.install_err_code = R_INSTALL_ERROR_VERSION_MISMATCH,
+		.system_test_options = {
+		        .min_bundle_version = "1.0",
+		},
+		.manifest_test_options = {
+		        .format = R_MANIFEST_FORMAT_VERITY,
+		        .slots = TRUE,
+		        .no_bundle_version = TRUE,
+		},
+	}));
+	g_test_add("/install/min-bundle-version/version-missing",
+			InstallFixture, install_data,
+			install_fixture_set_up_bundle,
+			install_test_bundle,
+			install_fixture_tear_down);
+
 	return g_test_run();
 }
