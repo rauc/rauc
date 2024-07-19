@@ -836,6 +836,8 @@ gboolean r_semver_parse(const gchar *version_string, guint64 version_core[3], gc
 	GError *ierror = NULL;
 	int i = 0;
 
+	g_return_val_if_fail(version_string, FALSE);
+	g_return_val_if_fail(version_core, FALSE);
 	g_return_val_if_fail(pre_release == NULL || *pre_release == NULL, FALSE);
 	g_return_val_if_fail(build == NULL || *build == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -936,6 +938,8 @@ gboolean r_semver_less_equal(const gchar *version_string_a, const gchar *version
 	int i = 0;
 	GError *ierror = NULL;
 
+	g_return_val_if_fail(version_string_a, FALSE);
+	g_return_val_if_fail(version_string_b, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (!r_semver_parse(version_string_a, version_core_a, &pre_release_a, NULL, &ierror)) {
