@@ -73,6 +73,15 @@ typedef struct _REventLogger {
 } REventLogger;
 
 /**
+ * Returns log level to use for "PRIORITY" field of structured log array
+ *
+ * @param log_level log level
+ *
+ * @return static string representing the log priority.
+ */
+const gchar* r_event_log_level_to_priority(GLogLevelFlags log_level);
+
+/**
  * Tests type string for being a supported event log type.
  *
  * @param type Type string to test

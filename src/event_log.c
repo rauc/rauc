@@ -24,6 +24,25 @@ gboolean r_event_log_is_supported_type(const gchar *type)
 	return g_strv_contains(supported_event_types, type);
 }
 
+const gchar * r_event_log_level_to_priority(GLogLevelFlags log_level)
+{
+	if (log_level & G_LOG_LEVEL_ERROR)
+		return "3";
+	else if (log_level & G_LOG_LEVEL_CRITICAL)
+		return "4";
+	else if (log_level & G_LOG_LEVEL_WARNING)
+		return "4";
+	else if (log_level & G_LOG_LEVEL_MESSAGE)
+		return "5";
+	else if (log_level & G_LOG_LEVEL_INFO)
+		return "6";
+	else if (log_level & G_LOG_LEVEL_DEBUG)
+		return "7";
+
+	/* Default to LOG_NOTICE for custom log levels. */
+	return "5";
+}
+
 void r_event_log_message(const gchar *type, const gchar *message, ...)
 {
 	va_list list;
