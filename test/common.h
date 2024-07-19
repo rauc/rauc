@@ -10,6 +10,7 @@ typedef struct {
 	gboolean hooks;
 	gboolean slots;
 	RManifestBundleFormat format;
+	const gchar *bundle_version;
 } ManifestTestOptions;
 
 guint8* random_bytes(gsize size, guint32 seed);

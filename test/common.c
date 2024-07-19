@@ -184,7 +184,10 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, cons
 	RaucImage *img;
 
 	rm->update_compatible = g_strdup("Test Config");
-	rm->update_version = g_strdup("2011.03-2");
+	if (options->bundle_version)
+		rm->update_version = g_strdup(options->bundle_version);
+	else
+		rm->update_version = g_strdup("2011.03-2");
 
 	rm->bundle_format = options->format;
 
