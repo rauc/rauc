@@ -51,39 +51,47 @@ conf.set10('ENABLE_CREATE', get_option('create'))
 conf.set10('ENABLE_JSON', jsonglibdep.found())
 
 c_warn_flags = '''
-  -Wundef
-  -Wnested-externs
-  -Wwrite-strings
-  -Wpointer-arith
-  -Wmissing-declarations
-  -Wmissing-prototypes
-  -Wstrict-prototypes
-  -Wredundant-decls
-  -Wno-unused-parameter
-  -Wno-missing-field-initializers
-  -Wdeclaration-after-statement
-  -Wformat=2
-  -Wold-style-definition
+  -Walloca
+  -Warray-bounds
   -Wcast-align
+  -Wcast-align=strict
+  -Wdate-time
+  -Wformat=2
   -Wformat-nonliteral
   -Wformat-security
+  -Wformat-truncation=2
+  -Wimplicit-function-declaration
+  -Winit-self
+  -Winline
+  -Wint-conversion
+  -Winvalid-utf8
+  -Wjump-misses-init
+  -Wlogical-op
+  -Wmissing-declarations
+  -Wmissing-format-attribute
+  -Wmissing-include-dirs
+  -Wmissing-noreturn
+  -Wmissing-prototypes
+  -Wnested-externs
+  -Wold-style-definition
+  -Wpacked
+  -Wpointer-arith
+  -Wredundant-decls
+  -Wreturn-type
+  -Wshadow
   -Wsign-compare
   -Wstrict-aliasing
-  -Wshadow
-  -Winline
-  -Wpacked
-  -Wmissing-format-attribute
-  -Wmissing-noreturn
-  -Winit-self
-  -Wmissing-include-dirs
-  -Wunused-but-set-variable
-  -Warray-bounds
-  -Wimplicit-function-declaration
-  -Wreturn-type
-  -Wswitch-enum
+  -Wstrict-overflow
+  -Wstrict-prototypes
   -Wswitch-default
+  -Wswitch-enum
+  -Wtrampolines
+  -Wundef
+  -Wunused-but-set-variable
+  -Wuse-after-free=3
+  -Wwrite-strings
+  -Wno-unused-parameter
   -Wno-error=unused-parameter
-  -Wno-error=missing-field-initializers
 '''.split()
 # To allow building against OpenSSL 3.0, we still need to allow deprecated
 # declarations
