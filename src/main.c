@@ -2010,6 +2010,7 @@ static void r_event_log_booted(const RaucSlot *booted_slot)
 	GLogField fields[] = {
 		{"MESSAGE", NULL, -1 },
 		{"MESSAGE_ID", MESSAGE_ID_BOOTED, -1 },
+		{"PRIORITY", r_event_log_level_to_priority(G_LOG_LEVEL_MESSAGE), -1},
 		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
 		{"RAUC_EVENT_TYPE", "boot", -1},
 		{"SLOT_NAME", NULL, -1},
@@ -2022,13 +2023,13 @@ static void r_event_log_booted(const RaucSlot *booted_slot)
 
 	message = g_strdup_printf("Booted into %s (%s)", booted_slot->name, booted_slot->bootname);
 	fields[0].value = message;
-	fields[4].value = booted_slot->name;
-	fields[5].value = booted_slot->bootname;
-	fields[6].value = r_context()->boot_id;
+	fields[5].value = booted_slot->name;
+	fields[6].value = booted_slot->bootname;
+	fields[7].value = r_context()->boot_id;
 	if (booted_slot->status && booted_slot->status->bundle_hash) {
-		fields[7].value = booted_slot->status->bundle_hash;
+		fields[8].value = booted_slot->status->bundle_hash;
 	} else {
-		fields[7].value = "unknown";
+		fields[8].value = "unknown";
 	}
 	g_log_structured_array(G_LOG_LEVEL_MESSAGE, fields, G_N_ELEMENTS(fields));
 }
@@ -2039,6 +2040,7 @@ static void r_event_log_booted_external(void)
 	GLogField fields[] = {
 		{"MESSAGE", NULL, -1 },
 		{"MESSAGE_ID", MESSAGE_ID_BOOTED_EXTERNAL, -1 },
+		{"PRIORITY", r_event_log_level_to_priority(G_LOG_LEVEL_MESSAGE), -1},
 		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
 		{"RAUC_EVENT_TYPE", "boot", -1},
 		{"BOOT_ID", NULL, -1},
@@ -2046,7 +2048,7 @@ static void r_event_log_booted_external(void)
 
 	message = g_strdup_printf("Booted from external source");
 	fields[0].value = message;
-	fields[4].value = r_context()->boot_id;
+	fields[5].value = r_context()->boot_id;
 	g_log_structured_array(G_LOG_LEVEL_MESSAGE, fields, G_N_ELEMENTS(fields));
 }
 

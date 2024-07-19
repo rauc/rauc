@@ -1126,6 +1126,7 @@ static void log_event_installation_done(RaucInstallArgs *args, RaucManifest *man
 	GLogField fields[] = {
 		{"MESSAGE", NULL, -1},
 		{"MESSAGE_ID", NULL, -1},
+		{"PRIORITY", r_event_log_level_to_priority(G_LOG_LEVEL_MESSAGE), -1},
 		{"GLIB_DOMAIN", R_EVENT_LOG_DOMAIN, -1},
 		{"RAUC_EVENT_TYPE", "install", -1},
 		{"BUNDLE_HASH", "", -1},
@@ -1152,9 +1153,9 @@ static void log_event_installation_done(RaucInstallArgs *args, RaucManifest *man
 
 	fields[0].value = formatted;
 	if (manifest) {
-		fields[4].value = manifest->hash ?: "";
-		fields[5].value = manifest->update_description ?: "";
-		fields[6].value = manifest->update_version ?: "";
+		fields[5].value = manifest->hash ?: "";
+		fields[6].value = manifest->update_description ?: "";
+		fields[7].value = manifest->update_version ?: "";
 	}
 
 	g_log_structured_array(G_LOG_LEVEL_MESSAGE, fields, G_N_ELEMENTS(fields));
