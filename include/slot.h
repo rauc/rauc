@@ -35,6 +35,8 @@ typedef struct _RaucSlot {
 	const gchar *sclass;
 	/** device this slot uses */
 	gchar *device;
+	/** alternate block device for casync to use as a seed (if NULL, equal to slot device) */
+	gchar *casync_seed_device;
 	/** the slots partition type */
 	gchar *type;
 	/** extra mkfs options for this slot */
