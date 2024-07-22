@@ -3,6 +3,9 @@ Release 1.12 (development)
 
 .. rubric:: Enhancements
 
+* Add a ``min-bundle-version`` using SemVer format in ``system.conf``.
+  This causes RAUC to reject bundles with an older version. (by Johannes
+  Schneider)
 * Avoid modifying the input directory during ``rauc bundle`` by using a
   hard-linked copy.
   For simplicity, we abort on anything in the input directory which is not a
@@ -30,8 +33,11 @@ Release 1.12 (development)
   installation.
   This avoids redundant slot scans to find reusable blocks during installation.
 * Fix out-of-bounds reads in bootchooser backends.
-* Fix some memory leaks in the NBD helper, D-Bus service and CLI.
+* Fix some memory leaks in the NBD helper, D-Bus service, CLI and tests.
 * Fix logging of the BUNDLE_HASH and SLOT_BOOTNAME values in the booted event.
+* Fix double close of output file descriptor when using UBI volumes with
+  casync. (by Tim van der Staaij)
+* Add missing "PRIORITY" field in event log messages.
 * Improve NBD helper shutdown error handling.
 
 .. rubric:: Testing
@@ -39,7 +45,8 @@ Release 1.12 (development)
 * Replace sharness with pytest.
   This will make it easier to write and maintain complex test cases.
 * Execute tests for ARMv5/7/8 and i386 using QEMU and multi-arch containers.
-* Enable address sanitizer for nbd and service tests.
+* Enable address sanitizer for all remaining tests.
+* Enable undefined behavior sanitizer in CI.
 * Run faketime tests only if it works. (by Uwe Kleine-König)
 * Fix faketime when running under qemu-test.
 * Update GitHub Actions to current versions.
@@ -56,6 +63,7 @@ Release 1.12 (development)
 * Add a helper to simplify GBytes access from OpenSSL.
 * Refactor shell formatting for ``rauc status`` and ``rauc info`` to prepare
   for consolidation with hook/handler environment setup.
+* Allow declarations after statements.
 
 .. rubric:: Documentation
 
@@ -65,8 +73,8 @@ Release 1.12 (development)
 * Fix some typos. (by Gaël PORTAY and Michael B. Sumulong)
 
 Contributions from: David Hollister, David Robertson, Enrico Jörns, Gaël
-PORTAY, Heiko Thiery, Jan Lübbe, Michael B. Sumulong, Peter Korsgaard, Uwe
-Kleine-König
+PORTAY, Heiko Thiery, Jan Lübbe, Johannes Schneider, Michael B. Sumulong, Peter
+Korsgaard, Tim van der Staaij, Uwe Kleine-König
 
 Release 1.11.3 (released Mar 15, 2024)
 --------------------------------------
