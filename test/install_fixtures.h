@@ -32,16 +32,21 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
  *
  * @param fixture the test fixture
  * @param configname the system.conf template to use or NULL for default
+ * @param options SystemTestOptions to customize a generated system.conf
  */
 void fixture_helper_set_up_system(gchar *tmpdir,
-		const gchar *configname);
+		const gchar *configname,
+		const SystemTestOptions *options);
 
 /**
  * Fixture helper to set up a fake target system for testing.
  *
+ * A config is generated if configname is NULL
+ *
  * @param fixture the test fixture
- * @param user_data the test fixture user data
  * @param configname the system.conf template to use or NULL for default
+ * @param options SystemTestOptions to customize a generated system.conf
  */
 void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
-		const gchar *configname);
+		const gchar *configname,
+		const SystemTestOptions *options);

@@ -35,6 +35,7 @@ typedef enum {
 /* System configuration */
 typedef struct {
 	gchar *system_compatible;
+	gchar *system_min_bundle_version;
 	RConfigSysVariant system_variant_type;
 	gchar *system_variant;
 	gchar *system_bootloader;

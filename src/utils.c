@@ -826,3 +826,192 @@ gchar *r_bytes_unref_to_string(GBytes **bytes)
 
 	return g_strndup(data, size);
 }
+
+gboolean r_semver_parse(const gchar *version_string, guint64 version_core[3], gchar **pre_release, gchar **build, GError **error)
+{
+	g_autofree gchar *version_copy = g_strdup(version_string);
+	gchar *build_pos = NULL;
+	gchar *pre_release_pos = NULL;
+	g_auto(GStrv) version_parts = NULL;
+	GError *ierror = NULL;
+	int i = 0;
+
+	g_return_val_if_fail(version_string, FALSE);
+	g_return_val_if_fail(version_core, FALSE);
+	g_return_val_if_fail(pre_release == NULL || *pre_release == NULL, FALSE);
+	g_return_val_if_fail(build == NULL || *build == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* semantic versions BNF:
+	 * <valid semver> ::= <version core>
+	 * | <version core> "-" <pre-release>
+	 * | <version core> "+" <build>
+	 * | <version core> "-" <pre-release> "+" <build>
+	 *
+	 * detect first the '+build', separate it out by null terminating the
+	 * version_copy at it's start position; repeat for the '-pre-release'; and
+	 * then parse the remaining 'version core'
+	 */
+
+	build_pos = g_strrstr(version_copy, "+");
+	if (build_pos != NULL) {
+		if (build != NULL) {
+			*build = g_strdup(build_pos + 1);
+			if (*build == NULL) {
+				g_set_error(error,
+						R_UTILS_ERROR,
+						R_UTILS_ERROR_SEMVER_PARSE,
+						"Failed to parse semantic version '%s', '+build' turned out to be empty.",
+						version_string);
+				goto out;
+			}
+		}
+		*build_pos = '\0';
+	}
+
+	pre_release_pos = g_strrstr(version_copy, "-");
+	if (pre_release_pos != NULL) {
+		if (pre_release != NULL) {
+			*pre_release = g_strdup(pre_release_pos + 1);
+			if (*pre_release == NULL) {
+				g_set_error(error,
+						R_UTILS_ERROR,
+						R_UTILS_ERROR_SEMVER_PARSE,
+						"Failed to parse semantic version '%s', '-pre_release' turned out to be empty.",
+						version_string);
+				goto out;
+			}
+		}
+		*pre_release_pos = '\0';
+	}
+
+	version_parts = g_strsplit(version_copy, ".", 3);
+	/* Note that g_strsplit returns an empty array when splitting: "" */
+	if (version_parts == NULL) {
+		g_set_error(error,
+				R_UTILS_ERROR,
+				R_UTILS_ERROR_SEMVER_PARSE,
+				"Failed to parse semantic version '%s', 'version core' turned out to be empty.",
+				version_string);
+		goto out;
+	}
+	/* and NULL terminates arrays it creates */
+	if (version_parts[0] == NULL) {
+		g_set_error(error,
+				R_UTILS_ERROR,
+				R_UTILS_ERROR_SEMVER_PARSE,
+				"Failed to parse semantic version '%s', 'version core' has no components.",
+				version_string);
+		goto out;
+	}
+
+	for (i = 0; i < 3; i++)
+		version_core[i] = 0;
+	i = 0;
+	while (version_parts[i]) {
+		if (!g_ascii_string_to_unsigned(version_parts[i], 10, 0, G_MAXUINT64, &version_core[i], &ierror)) {
+			g_propagate_prefixed_error(error, ierror,
+					"Failed to parse core version component '%s' as uint: ", version_parts[i]);
+			goto out;
+		}
+		i++;
+	}
+
+	return TRUE;
+
+out:
+	if (pre_release)
+		g_clear_pointer(pre_release, g_free);
+	if (build)
+		g_clear_pointer(build, g_free);
+	return FALSE;
+}
+
+gboolean r_semver_less_equal(const gchar *version_string_a, const gchar *version_string_b, GError **error)
+{
+	guint64 version_core_a[3] = {0};
+	g_autofree gchar *pre_release_a = NULL;
+	guint64 version_core_b[3] = {0};
+	g_autofree gchar *pre_release_b = NULL;
+	g_auto(GStrv) pre_fields_a = NULL;
+	g_auto(GStrv) pre_fields_b = NULL;
+	int i = 0;
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(version_string_a, FALSE);
+	g_return_val_if_fail(version_string_b, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!r_semver_parse(version_string_a, version_core_a, &pre_release_a, NULL, &ierror)) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to parse semantic version A for comparison: ");
+		return FALSE;
+	}
+	if (!r_semver_parse(version_string_b, version_core_b, &pre_release_b, NULL, &ierror)) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to parse semantic version B for comparison: ");
+		return FALSE;
+	}
+
+	/* compare version cores: major, minor, patch */
+	for (i = 0; i < 3; i++) {
+		if (version_core_a[i] < version_core_b[i]) {
+			return TRUE;
+		} else if (version_core_a[i] > version_core_b[i]) {
+			return FALSE;
+		}
+	}
+
+	/* version cores are equal, compare pre-release identifiers */
+	if (pre_release_a == NULL && pre_release_b == NULL) {
+		return TRUE;
+	} else if (pre_release_a == NULL) {
+		return FALSE; /* version_a > version_b-pre_release */
+	} else if (pre_release_b == NULL) {
+		return TRUE; /* version_a-pre_release < version_b */
+	}
+
+	/* compare dot-separated fields of pre-release identifiers */
+	pre_fields_a = g_strsplit(pre_release_a, ".", 0);
+	pre_fields_b = g_strsplit(pre_release_b, ".", 0);
+
+	i = 0;
+	while (pre_fields_a[i] != NULL && pre_fields_b[i] != NULL) {
+		gboolean is_num_a = FALSE;
+		gboolean is_num_b = FALSE;
+		guint64 num_a = 0;
+		guint64 num_b = 0;
+		gint cmp = 0;
+		is_num_a = g_ascii_string_to_unsigned(pre_fields_a[i], 10, 0, G_MAXUINT64, &num_a, NULL);
+		is_num_b = g_ascii_string_to_unsigned(pre_fields_b[i], 10, 0, G_MAXUINT64, &num_b, NULL);
+
+		if (is_num_a && is_num_b) {
+			/* compare numerically */
+			if (num_a < num_b) {
+				return TRUE; /* version_a < version_b */
+			} else if (num_a > num_b) {
+				return FALSE; /* version_a > version_b */
+			}
+
+			/* Numeric identifiers always have lower precedence than non-numeric identifiers. */
+		} else if (is_num_a && !is_num_b) {
+			return TRUE;
+		} else if (!is_num_a && is_num_b) {
+			return FALSE;
+		} else {
+			/* compare lexically */
+			cmp = g_strcmp0(pre_fields_a[i], pre_fields_b[i]);
+			if (cmp < 0) {
+				return TRUE; /* version_a < version_b */
+			} else if (cmp > 0) {
+				return FALSE; /* version_a > version_b */
+			}
+		}
+		i++;
+	}
+
+	if (pre_fields_a[i] == NULL && pre_fields_b[i] == NULL)
+		return TRUE;
+	else
+		return (pre_fields_a[i] == NULL) && (pre_fields_b[i] != NULL);
+}
