@@ -166,6 +166,22 @@ RaucSlot* r_slot_get_parent_root(RaucSlot *slot)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Moves a data directory to a name with a different digest.
+ *
+ * This is useful when we want to update a slot, as we move it to the "unknown"
+ * digest while we are writing to it. Existing data for the new digest is
+ * removed. If no data exists for the old digest, nothing is moved.
+ *
+ * @param slot slot for which the data directory should be moved
+ * @param old_digest the old digest or NULL
+ * @param new_digest the new digest or NULL
+ *
+ * @return TRUE if successful, otherwise FALSE
+ */
+gboolean r_slot_move_checksum_data_directory(const RaucSlot *slot, const gchar *old_digest, const gchar *new_digest, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Returns the data subdirectory corresponding to the current or given
  * hash/checksum.
  *

@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <stdio.h>
 
 #include "slot.h"
 
@@ -223,6 +224,55 @@ gchar *r_slot_get_checksum_data_directory(const RaucSlot *slot, const RaucChecks
 	}
 
 	return g_steal_pointer(&path);
+}
+
+gboolean r_slot_move_checksum_data_directory(const RaucSlot *slot, const gchar *old_digest, const gchar *new_digest, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!slot->data_directory) {
+		/* nothing to do */
+		return TRUE;
+	}
+
+	if (!old_digest) {
+		/* nothing to do */
+		return TRUE;
+	}
+
+	if (!new_digest) {
+		new_digest = "unknown";
+	}
+
+	g_autofree gchar *old_sub_directory = g_strdup_printf("hash-%s", old_digest);
+	g_autofree gchar *old_path = g_build_filename(slot->data_directory, old_sub_directory, NULL);
+
+	g_autofree gchar *new_sub_directory = g_strdup_printf("hash-%s", new_digest);
+	g_autofree gchar *new_path = g_build_filename(slot->data_directory, new_sub_directory, NULL);
+
+	if (g_file_test(new_path, G_FILE_TEST_EXISTS)) {
+		if (!rm_tree(new_path, &ierror)) {
+			g_propagate_prefixed_error(error, ierror, "Failed to remove existing data directory %s: ", new_path);
+			return FALSE;
+		}
+	}
+
+	if (rename(old_path, new_path) == -1) {
+		int err = errno;
+		/* Continue if the old path doesn't exist. */
+		if (err == ENOENT)
+			return TRUE;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to move data directory to %s: %s", new_path, g_strerror(err));
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 void r_slot_clean_data_directory(const RaucSlot *slot)
