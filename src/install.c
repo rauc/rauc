@@ -22,6 +22,7 @@
 #include "mount.h"
 #include "service.h"
 #include "signature.h"
+#include "slot.h"
 #include "status_file.h"
 #include "update_handler.h"
 #include "utils.h"
@@ -1053,8 +1054,14 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 	if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") != 0) {
 		g_clear_pointer(&slot_state->status, g_free);
 		slot_state->status = g_strdup("pending");
-		g_clear_pointer(&slot_state->checksum.digest, g_free);
+
+		g_autofree gchar *old_digest = g_steal_pointer(&slot_state->checksum.digest);
 		slot_state->checksum.size = 0;
+
+		if (!r_slot_move_checksum_data_directory(plan->target_slot, old_digest, NULL, &ierror)) {
+			g_warning("Failed to move slot data directory, but will try to continue: %s", ierror->message);
+			g_clear_error(&ierror);
+		}
 
 		if (!r_slot_status_save(plan->target_slot, &ierror)) {
 			g_propagate_prefixed_error(error, ierror, "Error while writing status file: ");
