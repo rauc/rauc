@@ -33,7 +33,8 @@ static void status_file_test_read_slot_status(void)
 {
 	GError *ierror = NULL;
 	gboolean res;
-	RaucSlotStatus *ss = g_new0(RaucSlotStatus, 1);
+	g_autoptr(RaucSlotStatus) ss = g_new0(RaucSlotStatus, 1);
+
 	res = r_slot_status_read("test/rootfs.raucs", ss, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
@@ -42,14 +43,12 @@ static void status_file_test_read_slot_status(void)
 	g_assert_cmpint(ss->checksum.type, ==, G_CHECKSUM_SHA256);
 	g_assert_cmpstr(ss->checksum.digest, ==,
 			"e437ab217356ee47cd338be0ffe33a3cb6dc1ce679475ea59ff8a8f7f6242b27");
-
-	r_slot_free_status(ss);
 }
 
 
 static void status_file_test_write_slot_status(void)
 {
-	RaucSlotStatus *ss = g_new0(RaucSlotStatus, 1);
+	g_autoptr(RaucSlotStatus) ss = g_new0(RaucSlotStatus, 1);
 
 	ss->status = g_strdup("ok");
 	ss->checksum.type = G_CHECKSUM_SHA256;
@@ -67,8 +66,6 @@ static void status_file_test_write_slot_status(void)
 	g_assert_cmpint(ss->checksum.type, ==, G_CHECKSUM_SHA256);
 	g_assert_cmpstr(ss->checksum.digest, ==,
 			"dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551");
-
-	r_slot_free_status(ss);
 }
 
 static void status_file_test_global_slot_status(StatusFileFixture *fixture,

@@ -90,6 +90,8 @@ void r_slot_clear_status(RaucSlotStatus *slotstatus);
  */
 void r_slot_free_status(RaucSlotStatus *slotstatus);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucSlotStatus, r_slot_free_status);
+
 /**
  * Finds a slot given its device path.
  *
