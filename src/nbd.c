@@ -697,6 +697,7 @@ static gboolean finish_configure(struct RaucNBDContext *ctx, struct RaucNBDTrans
 	gboolean res = FALSE;
 	CURLcode code;
 	long response_code = 0;
+	long http_version = 0;
 	const char *effective_url = NULL;
 	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
 	g_autoptr(GVariant) v = NULL;
@@ -751,6 +752,13 @@ static gboolean finish_configure(struct RaucNBDContext *ctx, struct RaucNBDTrans
 			g_message("redirected from %s to %s", ctx->url, effective_url);
 		g_free(ctx->url);
 		ctx->url = g_strdup(effective_url);
+	}
+
+	code = curl_easy_getinfo(xfer->easy, CURLINFO_HTTP_VERSION, &http_version);
+	if (code == CURLE_OK) {
+		if (http_version == CURL_HTTP_VERSION_1_0 ||
+		    http_version == CURL_HTTP_VERSION_1_1)
+			g_warning("using HTTP/1 for streaming, expect slow installation; enable HTTP/2 if possible");
 	}
 
 	collect_curl_stats(ctx, xfer);
