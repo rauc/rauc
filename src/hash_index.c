@@ -77,7 +77,7 @@ static GBytes *hash_file(int data_fd, guint32 count, GError **error)
 				g_set_error(error,
 						R_HASH_INDEX_ERROR,
 						R_HASH_INDEX_ERROR_SIZE,
-						"data file ended unexpectedly");
+						"image/partition ended unexpectedly");
 			}
 			return NULL;
 		}
@@ -533,7 +533,7 @@ gboolean r_hash_index_get_chunk(const RaucHashIndex *idx, const guint8 *hash, Ra
 			g_set_error(error,
 					R_HASH_INDEX_ERROR,
 					R_HASH_INDEX_ERROR_SIZE,
-					"data file ended unexpectedly");
+					"image/partition ended unexpectedly");
 		}
 		ret = FALSE;
 		goto out;
