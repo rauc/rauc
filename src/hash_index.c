@@ -190,20 +190,20 @@ static guint32 get_chunk_count(int data_fd, GError **error)
 		g_set_error(error,
 				R_HASH_INDEX_ERROR,
 				R_HASH_INDEX_ERROR_SIZE,
-				"data file is empty");
+				"image/partition is empty");
 		return 0;
 	} else if ((size / 4096) > (off_t)G_MAXUINT32) {
 		g_set_error(error,
 				R_HASH_INDEX_ERROR,
 				R_HASH_INDEX_ERROR_SIZE,
-				"data file size (%"G_GINT64_FORMAT ") is too large",
+				"image/partition size (%"G_GINT64_FORMAT ") is too large",
 				(gint64)size);
 		return 0;
 	} else if (size % 4096) {
 		g_set_error(error,
 				R_HASH_INDEX_ERROR,
 				R_HASH_INDEX_ERROR_SIZE,
-				"data file size (%"G_GINT64_FORMAT ") is not a multiple of 4096 bytes",
+				"image/partition size (%"G_GINT64_FORMAT ") is not a multiple of 4096 bytes",
 				(gint64)size);
 		return 0;
 	}
