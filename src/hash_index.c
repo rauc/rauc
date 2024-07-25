@@ -272,7 +272,7 @@ RaucHashIndex *r_hash_index_open(const gchar *label, int data_fd, const gchar *h
 	}
 
 	if (!idx->hashes) {
-		g_info("building new hash index for %s with %"G_GUINT32_FORMAT " chunks", label, idx->count);
+		g_message("Building new hash index for %s with %"G_GUINT32_FORMAT " chunks", label, idx->count);
 		idx->hashes = hash_file(data_fd, idx->count, &ierror);
 		if (!idx->hashes) {
 			g_propagate_error(error, ierror);
