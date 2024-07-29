@@ -12,6 +12,7 @@ typedef enum {
 	R_UTILS_ERROR_INAPPROPRIATE_IOCTL,
 	R_UTILS_ERROR_INVALID_ENV_KEY,
 	R_UTILS_ERROR_SEMVER_PARSE,
+	R_UTILS_ERROR_OPEN_FILE,
 } RUtilsError;
 
 #define BIT(nr) (1UL << (nr))
@@ -199,6 +200,17 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return TRUE on success, FALSE if an error occurred
  */
 gboolean rm_tree(const gchar *path, GError **error);
+
+/**
+ * Recursively check directory tree for open files.
+ *
+ * @param path path of directory to check
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if no files are open, FALSE otherwise
+ */
+gboolean r_tree_check_open(const gchar *path, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Resolve path based on directory of `basefile` argument or current working dir.

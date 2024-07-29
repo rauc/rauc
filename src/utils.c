@@ -235,6 +235,100 @@ gboolean rm_tree(const gchar *path, GError **error)
 	return TRUE;
 }
 
+static GPrivate tree_check_open_error = G_PRIVATE_INIT((GDestroyNotify)g_error_free);
+
+static int tree_check_open_cb(const char *fpath, const struct stat *sb,
+		int typeflag, struct FTW *ftwbuf)
+{
+	g_auto(filedesc) fd = -1;
+
+	switch (typeflag) {
+		case FTW_F:
+			/* check for other open file descriptors via leases (see fcntl(2)) */
+			fd = g_open(fpath, O_RDONLY);
+			if (fd == -1) {
+				int err = errno;
+				g_private_set(&tree_check_open_error,
+						g_error_new(
+								G_FILE_ERROR,
+								g_file_error_from_errno(err),
+								"Failed to open %s: %s", fpath, g_strerror(err)
+								)
+						);
+				return -1;
+			}
+			if (fcntl(fd, F_SETLEASE, F_WRLCK)) {
+				int err = errno;
+				if (err == EAGAIN) {
+					g_private_set(&tree_check_open_error,
+							g_error_new(
+									R_UTILS_ERROR,
+									R_UTILS_ERROR_OPEN_FILE,
+									"File %s is currently open", fpath
+									)
+							);
+					return 1;
+				}
+				const gchar *message = NULL;
+				if (err == EACCES) {
+					message = "EACCES: missing capability CAP_LEASE?";
+				} else {
+					message = g_strerror(err);
+				}
+				g_private_set(&tree_check_open_error,
+						g_error_new(
+								G_FILE_ERROR,
+								g_file_error_from_errno(err),
+								"Failed to check if %s is open: %s", fpath, message
+								)
+						);
+				return -1;
+			}
+			return 0;
+		case FTW_SL:
+		case FTW_DP:
+			return 0; /* continue walk */
+		default:
+			return -1;
+	}
+}
+
+gboolean r_tree_check_open(const gchar *path, GError **error)
+{
+	int flags = FTW_DEPTH | FTW_MOUNT | FTW_PHYS;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+	g_return_val_if_fail(path != NULL, FALSE);
+	g_return_val_if_fail(strlen(path) > 1, FALSE);
+	g_return_val_if_fail(path[0] == '/', FALSE);
+	g_return_val_if_fail(g_private_get(&tree_check_open_error) == NULL, FALSE);
+
+	int ret = nftw(path, &tree_check_open_cb, 20, flags);
+	if (ret) {
+		g_autofree GError *ierror = g_private_get(&tree_check_open_error);
+		g_private_set(&tree_check_open_error, NULL);
+		if (ret < 0 && ierror) {
+			g_propagate_prefixed_error(error, ierror,
+					"Failed to check tree at %s for open files: ",
+					path
+					);
+			ierror = NULL;
+		} else if (ret < 0) {
+			g_set_error(error,
+					G_FILE_ERROR, G_FILE_ERROR_FAILED,
+					"Failed to check tree at %s for open files: %s",
+					path, g_strerror(errno)
+					);
+		} else if (ret == 1) {
+			g_propagate_error(error, ierror);
+			ierror = NULL;
+		}
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 gchar *resolve_path(const gchar *basefile, const gchar *path)
 {
 	if (path == NULL)
