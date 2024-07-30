@@ -1099,6 +1099,8 @@ static void install_test_bundle(InstallFixture *fixture,
 	g_autoptr(GError) ierror = NULL;
 	gboolean res;
 
+	g_assert_nonnull(data);
+
 	/* needs to run as root */
 	if (!test_running_as_root())
 		return;
@@ -1139,7 +1141,7 @@ static void install_test_bundle(InstallFixture *fixture,
 		g_assert_false(res);
 	}
 
-	if (data != NULL && data->message_needles != NULL) {
+	if (data->message_needles != NULL) {
 		const gchar **message_needles = data->message_needles;
 		while (*message_needles != NULL) {
 			g_assert_true(install_args_find_message(args, *message_needles));
