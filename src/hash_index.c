@@ -77,7 +77,7 @@ static GBytes *hash_file(int data_fd, guint32 count, GError **error)
 				g_set_error(error,
 						R_HASH_INDEX_ERROR,
 						R_HASH_INDEX_ERROR_SIZE,
-						"data file ended unexpectedly");
+						"image/partition ended unexpectedly");
 			}
 			return NULL;
 		}
@@ -190,20 +190,20 @@ static guint32 get_chunk_count(int data_fd, GError **error)
 		g_set_error(error,
 				R_HASH_INDEX_ERROR,
 				R_HASH_INDEX_ERROR_SIZE,
-				"data file is empty");
+				"image/partition is empty");
 		return 0;
 	} else if ((size / 4096) > (off_t)G_MAXUINT32) {
 		g_set_error(error,
 				R_HASH_INDEX_ERROR,
 				R_HASH_INDEX_ERROR_SIZE,
-				"data file size (%"G_GINT64_FORMAT ") is too large",
+				"image/partition size (%"G_GINT64_FORMAT ") is too large",
 				(gint64)size);
 		return 0;
 	} else if (size % 4096) {
 		g_set_error(error,
 				R_HASH_INDEX_ERROR,
 				R_HASH_INDEX_ERROR_SIZE,
-				"data file size (%"G_GINT64_FORMAT ") is not a multiple of 4096 bytes",
+				"image/partition size (%"G_GINT64_FORMAT ") is not a multiple of 4096 bytes",
 				(gint64)size);
 		return 0;
 	}
@@ -272,7 +272,7 @@ RaucHashIndex *r_hash_index_open(const gchar *label, int data_fd, const gchar *h
 	}
 
 	if (!idx->hashes) {
-		g_info("building new hash index for %s with %"G_GUINT32_FORMAT " chunks", label, idx->count);
+		g_message("Building new hash index for %s with %"G_GUINT32_FORMAT " chunks", label, idx->count);
 		idx->hashes = hash_file(data_fd, idx->count, &ierror);
 		if (!idx->hashes) {
 			g_propagate_error(error, ierror);
@@ -533,7 +533,7 @@ gboolean r_hash_index_get_chunk(const RaucHashIndex *idx, const guint8 *hash, Ra
 			g_set_error(error,
 					R_HASH_INDEX_ERROR,
 					R_HASH_INDEX_ERROR_SIZE,
-					"data file ended unexpectedly");
+					"image/partition ended unexpectedly");
 		}
 		ret = FALSE;
 		goto out;

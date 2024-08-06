@@ -130,8 +130,8 @@ static void update_handler_fixture_set_up(UpdateHandlerFixture *fixture,
 				"Image detected as type: *");
 		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_INFO,
 				"Selected adaptive update method *");
-		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_INFO,
-				"building*");
+		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
+				"Building new hash index for *");
 		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING,
 				"Continuing after adaptive mode error: Slot * is too small for image *");
 	}
