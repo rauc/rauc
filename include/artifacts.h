@@ -195,3 +195,26 @@ G_GNUC_WARN_UNUSED_RESULT;
  */
 gboolean r_artifact_install(const RArtifact *artifact, const RaucImage *image, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Activate an artifact for the given parent.
+ *
+ * Other versions of this artifact are deactivated. This change must be
+ * separately persisted by r_artifact_repo_commit().
+ *
+ * @param artifact RArtifact to activate
+ * @param parent "" or name of the parent slot
+ * @param[out] error Return location for a GError, or NULL
+ */
+void r_artifact_activate(const RArtifact *artifact, const gchar *parent);
+
+/**
+ * Deactivate an artifact for the given parent.
+ *
+ * This change must be separately persisted by r_artifact_repo_commit().
+ *
+ * @param artifact RArtifact to deactivate
+ * @param parent NULL or name of the parent slot
+ * @param[out] error Return location for a GError, or NULL
+ */
+void r_artifact_deactivate(const RArtifact *artifact, const gchar *parent);

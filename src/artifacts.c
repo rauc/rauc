@@ -914,3 +914,44 @@ gboolean r_artifact_install(const RArtifact *artifact, const RaucImage *image, G
 
 	return TRUE;
 }
+
+void r_artifact_activate(const RArtifact *artifact, const gchar *parent)
+{
+	g_return_if_fail(artifact);
+	g_return_if_fail(artifact->repo);
+	g_return_if_fail(parent);
+
+	parent = g_intern_string(parent);
+
+	g_return_if_fail(g_ptr_array_find(artifact->repo->possible_references, parent, NULL));
+
+	GHashTable *inner = g_hash_table_lookup(artifact->repo->artifacts, artifact->name);
+	g_assert(inner);
+
+	GHashTableIter inner_iter;
+	RArtifact *other_artifact = NULL;
+	g_hash_table_iter_init(&inner_iter, inner);
+	while (g_hash_table_iter_next(&inner_iter, NULL, (gpointer*)&other_artifact)) {
+		if (other_artifact == artifact)
+			continue;
+		r_artifact_deactivate(other_artifact, parent);
+	}
+
+	if (!g_ptr_array_find(artifact->references, (gpointer)parent, NULL)) {
+		g_ptr_array_add(artifact->references, (gpointer)parent);
+	}
+}
+
+void r_artifact_deactivate(const RArtifact *artifact, const gchar *parent)
+{
+	g_return_if_fail(artifact);
+	g_return_if_fail(artifact->repo);
+	g_return_if_fail(parent);
+
+	parent = g_intern_string(parent);
+
+	g_return_if_fail(g_ptr_array_find(artifact->repo->possible_references, parent, NULL));
+
+	g_assert(artifact->references != NULL);
+	g_ptr_array_remove(artifact->references, (gpointer)parent);
+}
