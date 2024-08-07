@@ -1086,11 +1086,15 @@ static gboolean nbd_configure(RaucNBDServer *nbd_srv, GError **error)
 	}
 
 	g_variant_dict_lookup(&dict, "url", "s", &nbd_srv->effective_url);
+
 	g_variant_dict_lookup(&dict, "size", "t", &nbd_srv->data_size);
-	if (nbd_srv->data_size) {
-		g_autofree gchar* formatted_size = g_format_size_full(nbd_srv->data_size, G_FORMAT_SIZE_LONG_FORMAT);
-		g_message("received HTTP server info: total size %s", formatted_size);
+	if (!nbd_srv->data_size) {
+		g_set_error(error, R_NBD_ERROR, R_NBD_ERROR_CONFIGURATION, "server did not send bundle size");
+		return FALSE;
 	}
+	g_autofree gchar* formatted_size = g_format_size_full(nbd_srv->data_size, G_FORMAT_SIZE_LONG_FORMAT);
+	g_message("received HTTP server info: total size %s", formatted_size);
+
 	g_variant_dict_lookup(&dict, "current-time", "t", &nbd_srv->current_time);
 	if (nbd_srv->current_time) {
 		g_autoptr(GDateTime) datetime = g_date_time_new_from_unix_utc(nbd_srv->current_time);
