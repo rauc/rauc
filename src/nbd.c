@@ -772,8 +772,10 @@ reply:
 
 	if (ctx->url)
 		g_variant_dict_insert(&dict, "url", "s", ctx->url);
-	if (xfer->content_size)
+	if (xfer->content_size) {
+		ctx->data_size = xfer->content_size;
 		g_variant_dict_insert(&dict, "size", "t", xfer->content_size);
+	}
 	if (xfer->current_time)
 		g_variant_dict_insert(&dict, "current-time", "t", xfer->current_time);
 	if (xfer->modified_time)
@@ -962,6 +964,11 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 	r_stats_show(ctx.connect, NULL);
 	r_stats_show(ctx.starttransfer, NULL);
 	r_stats_show(ctx.total, NULL);
+
+	if (ctx.data_size) {
+		double percent_dl = ctx.dl_size->sum * 100.0 / (double)ctx.data_size;
+		g_message("downloaded %.1f%% of the full bundle", percent_dl);
+	}
 
 	res = TRUE;
 out:
