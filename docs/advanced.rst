@@ -796,6 +796,8 @@ your ``system.conf``.
 
 Currently, the only supported adaptive method is ``block-hash-index``.
 
+.. _sec-adaptive-block-hash-index:
+
 Block-based Adaptive Update (``block-hash-index``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

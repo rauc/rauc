@@ -794,7 +794,11 @@ The following fields are supported for image sections:
 
   Currently implemented adaptive methods:
 
-  * ``block-hash-index``
+  ``block-hash-index``
+    Build an index which stores the SHA256 hash for each 4kiB block of the input
+    image, allowing reuse of unchanged blocks.
+
+    For information on this method, see :ref:`sec-adaptive-block-hash-index`.
 
 .. _meta.label-section:
 

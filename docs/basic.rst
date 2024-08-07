@@ -128,8 +128,10 @@ target device / partition on your board.
 In order to allow RAUC to handle your device correctly, we need to give it the
 right view on your system.
 
+.. _sec-basic-slots:
+
 Slots
-~~~~~
+-----
 
 In RAUC, everything that can be updated is a *slot*.
 Thus a slot can either be a full device, a partition, a volume or simply a file.
