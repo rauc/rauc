@@ -227,9 +227,11 @@ if dbussystemservicedir == ''
   endif
 endif
 
+dbusdatadir = dbusdep.get_variable(pkgconfig: 'datadir', default_value: datadir) / 'dbus-1'
+
 dbuspolicydir = get_option('dbuspolicydir')
 if dbuspolicydir == ''
-  dbuspolicydir = datadir / 'dbus-1' / 'system.d'
+  dbuspolicydir = dbusdatadir / 'system.d'
 endif
 
 dbusinterfacesdir = get_option('dbusinterfacesdir')
