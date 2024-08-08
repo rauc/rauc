@@ -232,3 +232,13 @@ G_GNUC_WARN_UNUSED_RESULT;
  */
 GList* r_slot_get_all_children(GHashTable *slots, RaucSlot *parent)
 G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Returns if currently mounted slot is mounted readonly.
+ *
+ * @param slot Slot to get this information for
+ *
+ * @return TRUE if 'ro' is in mount options. FALSE otherwise
+ */
+gboolean r_slot_mount_is_readonly(RaucSlot *slot)
+G_GNUC_WARN_UNUSED_RESULT;
