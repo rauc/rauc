@@ -23,14 +23,17 @@ Release 1.12 (development)
   <https://www.freedesktop.org/wiki/Software/systemd/catalog/>`_.
 * Allow plain bundles on ntfs3 mounts.
 * Add contrib script to demonstrate how to get the CMS data from a bundle.
+* Warn when using slower HTTP/1 instead of HTTP/2 for streaming.
+* Improve messages and errors printed for hash index generation and make some
+  more visible.
 
 .. rubric:: Bug fixes
 
 * Fix handling of slot installation skipping with global slot status and add a
   test case.
 * Fix PKCS11 URI handling in ``system.conf``. (by David Hollister)
-* Fix block-hash-index cache by not cleaning the slot's data directory during
-  installation.
+* Fix block-hash-index cache by not cleaning and properly re-using the slot's
+  data directory during installation.
   This avoids redundant slot scans to find reusable blocks during installation.
 * Fix out-of-bounds reads in bootchooser backends.
 * Fix some memory leaks in the NBD helper, D-Bus service, CLI and tests.
@@ -39,6 +42,7 @@ Release 1.12 (development)
   casync. (by Tim van der Staaij)
 * Add missing "PRIORITY" field in event log messages.
 * Improve NBD helper shutdown error handling.
+* Fix inconsistent default D-Bus policy installation directory.
 
 .. rubric:: Testing
 
@@ -70,6 +74,7 @@ Release 1.12 (development)
 * Improve reference sections for ``system.conf`` and the manifest by indicating
   default values and fixing inconsistencies.
 * Add missing reference documentation for image variants.
+* Extend reference documentation for adaptive method 'block-hash-index'.
 * Fix some typos. (by Gaël PORTAY and Michael B. Sumulong)
 
 Contributions from: David Hollister, David Robertson, Enrico Jörns, Gaël
