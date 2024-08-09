@@ -1581,7 +1581,7 @@ in your platformconfig (by using ``ptxdist platformconfig``).
 
 This adds a default image recipe for building a RAUC update bundle out of the
 system's rootfs.
-As for most image recipes, the `genimage <genimage_>` tool is used to configure
+As for most image recipes, the `genimage <genimage_>`_ tool is used to configure
 and generate the update bundle.
 
 PTXdist's default bundle configuration is placed in
