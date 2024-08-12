@@ -16,6 +16,9 @@ different partition sizes, tar archives are preferable to filesystem images.
 When RAUC installs from a tar archive, it will first create a new filesystem on
 the target partition, allowing use of the full size.
 
+Alternatively configure the option ``resize=true`` for all corresponding slots
+to resize the installed filesystem to fully utilize the partitions' space.
+
 Is it possible to use RAUC without D-Bus (Client/Server mode)?
 --------------------------------------------------------------
 
