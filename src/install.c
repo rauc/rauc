@@ -384,7 +384,6 @@ GHashTable* determine_target_install_group(void)
 		RaucSlot *parent = r_slot_get_parent_root(iterslot);
 		g_debug("Checking slot: '%s'", iterslot->name);
 
-
 		if (r_slot_list_contains(selected_root_slots, parent)) {
 			g_debug("\tAdding mapping: '%s' -> '%s'", iterslot->sclass, iterslot->name);
 			g_hash_table_insert(targetgroup, (gpointer) iterslot->sclass, iterslot);
@@ -1275,7 +1274,6 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 		}
 	}
 
-
 	return TRUE;
 }
 
@@ -1493,7 +1491,6 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 			goto umount;
 		}
 	}
-
 
 	res = TRUE;
 
