@@ -24,7 +24,7 @@ def test_bundle(tmp_path):
 
 
 def test_bundle_args_compat(tmp_path):
-    "test compatibiltiy for cert/key args before subcommand"
+    "test compatibility for cert/key args before subcommand"
 
     shutil.copytree("install-content", tmp_path / "install-content")
 
