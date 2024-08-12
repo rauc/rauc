@@ -1519,8 +1519,8 @@ int main(int argc, char *argv[])
 
 		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.manifest_test_options = {
-			        .format = format,
-			        .slots = TRUE,
+				.format = format,
+				.slots = TRUE,
 			},
 		}));
 		g_test_add(dup_test_printf(ptrs, "/install/bootname/%s", format_name),
@@ -1558,9 +1558,9 @@ int main(int argc, char *argv[])
 				NULL,
 			})),
 			.manifest_test_options = {
-			        .custom_handler = TRUE,
-			        .hooks = FALSE,
-			        .slots = TRUE,
+				.custom_handler = TRUE,
+				.hooks = FALSE,
+				.slots = TRUE,
 			},
 		}));
 		g_test_add(dup_test_printf(ptrs, "/install/bundle-custom-handler/%s", format_name),
@@ -1571,9 +1571,9 @@ int main(int argc, char *argv[])
 		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.message_needles = NULL,
 			.manifest_test_options = {
-			        .custom_handler = FALSE,
-			        .hooks = TRUE,
-			        .slots = TRUE,
+				.custom_handler = FALSE,
+				.hooks = TRUE,
+				.slots = TRUE,
 			},
 		}));
 		g_test_add(dup_test_printf(ptrs, "/install/bundle-hook/install-check/%s", format_name),
@@ -1584,9 +1584,9 @@ int main(int argc, char *argv[])
 		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.message_needles = NULL,
 			.manifest_test_options = {
-			        .custom_handler = FALSE,
-			        .hooks = TRUE,
-			        .slots = TRUE,
+				.custom_handler = FALSE,
+				.hooks = TRUE,
+				.slots = TRUE,
 			},
 		}));
 		g_test_add(dup_test_printf(ptrs, "/install/bundle-hook/slot-install/%s", format_name),
@@ -1597,9 +1597,9 @@ int main(int argc, char *argv[])
 		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.message_needles = NULL,
 			.manifest_test_options = {
-			        .custom_handler = FALSE,
-			        .hooks = TRUE,
-			        .slots = TRUE,
+				.custom_handler = FALSE,
+				.hooks = TRUE,
+				.slots = TRUE,
 			},
 		}));
 		g_test_add(dup_test_printf(ptrs, "/install/bundle-hook/slot-post-install/%s", format_name),
@@ -1610,9 +1610,9 @@ int main(int argc, char *argv[])
 		install_data = dup_test_data(ptrs, (&(InstallData) {
 			.message_needles = NULL,
 			.manifest_test_options = {
-			        .custom_handler = TRUE,
-			        .hooks = TRUE,
-			        .slots = TRUE,
+				.custom_handler = TRUE,
+				.hooks = TRUE,
+				.slots = TRUE,
 			},
 		}));
 		g_test_add(dup_test_printf(ptrs, "/install/already-mounted/%s", format_name),
@@ -1623,8 +1623,8 @@ int main(int argc, char *argv[])
 
 	install_data = dup_test_data(ptrs, (&(InstallData) {
 		.manifest_test_options = {
-		        .format = R_MANIFEST_FORMAT_VERITY,
-		        .slots = TRUE,
+			.format = R_MANIFEST_FORMAT_VERITY,
+			.slots = TRUE,
 		},
 	}));
 	g_test_add("/install/adaptive",
@@ -1641,12 +1641,12 @@ int main(int argc, char *argv[])
 		.install_err_domain = R_INSTALL_ERROR,
 		.install_err_code = R_INSTALL_ERROR_VERSION_MISMATCH,
 		.system_test_options = {
-		        .min_bundle_version = "1.0",
+			.min_bundle_version = "1.0",
 		},
 		.manifest_test_options = {
-		        .format = R_MANIFEST_FORMAT_VERITY,
-		        .slots = TRUE,
-		        .bundle_version = "0.0.1",
+			.format = R_MANIFEST_FORMAT_VERITY,
+			.slots = TRUE,
+			.bundle_version = "0.0.1",
 		},
 	}));
 	g_test_add("/install/min-bundle-version/version-bad",
@@ -1657,12 +1657,12 @@ int main(int argc, char *argv[])
 
 	install_data = dup_test_data(ptrs, (&(InstallData) {
 		.system_test_options = {
-		        .min_bundle_version = "1.0",
+			.min_bundle_version = "1.0",
 		},
 		.manifest_test_options = {
-		        .format = R_MANIFEST_FORMAT_VERITY,
-		        .slots = TRUE,
-		        .bundle_version = "1.0.1",
+			.format = R_MANIFEST_FORMAT_VERITY,
+			.slots = TRUE,
+			.bundle_version = "1.0.1",
 		},
 	}));
 	g_test_add("/install/min-bundle-version/version-good-1",
@@ -1673,12 +1673,12 @@ int main(int argc, char *argv[])
 
 	install_data = dup_test_data(ptrs, (&(InstallData) {
 		.system_test_options = {
-		        .min_bundle_version = "1.0",
+			.min_bundle_version = "1.0",
 		},
 		.manifest_test_options = {
-		        .format = R_MANIFEST_FORMAT_VERITY,
-		        .slots = TRUE,
-		        .bundle_version = "2025.1-foo+bar",
+			.format = R_MANIFEST_FORMAT_VERITY,
+			.slots = TRUE,
+			.bundle_version = "2025.1-foo+bar",
 		},
 	}));
 	g_test_add("/install/min-bundle-version/version-good-2",
@@ -1691,12 +1691,12 @@ int main(int argc, char *argv[])
 		.install_err_domain = R_INSTALL_ERROR,
 		.install_err_code = R_INSTALL_ERROR_VERSION_MISMATCH,
 		.system_test_options = {
-		        .min_bundle_version = "1.0",
+			.min_bundle_version = "1.0",
 		},
 		.manifest_test_options = {
-		        .format = R_MANIFEST_FORMAT_VERITY,
-		        .slots = TRUE,
-		        .no_bundle_version = TRUE,
+			.format = R_MANIFEST_FORMAT_VERITY,
+			.slots = TRUE,
+			.no_bundle_version = TRUE,
 		},
 	}));
 	g_test_add("/install/min-bundle-version/version-missing",
