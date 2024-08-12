@@ -595,7 +595,7 @@ out:
 		}
 	}
 
-	/* clean up hook scrip if it was generated */
+	/* clean up hook script if it was generated */
 	if ((test_pair->params & TEST_UPDATE_HANDLER_HOOKS) &&
 	    !(test_pair->params & TEST_UPDATE_HANDLER_NO_HOOK_FILE)) {
 		g_assert(g_remove(hookpath) == 0);
