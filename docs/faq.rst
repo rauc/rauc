@@ -79,8 +79,9 @@ Yes you can, as long as the offline-generated dm-verity hash tree is simply part
 of the images that RAUC writes to the slots.
 To ensure RAUC does not corrupt the dm-verity-protected partition by executing
 hooks or writing slot status information, use ``type=raw`` in the respective
-slot config and use a global :ref:`slot status file <statusfile>` on a separate
-non-redundant partition with setting ``statusfile=</path/to/global.status>``.
+slot config and use a :ref:`shared data directory <data-directory>` on a
+separate non-redundant partition by setting
+``data-directory=</path/to/data-directory>``.
 
 Can I use RAUC with a dm-crypt-protected partition?
 ---------------------------------------------------
