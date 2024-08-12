@@ -80,7 +80,7 @@ static gchar *resolve_loop_device(const gchar *devicepath, GError **error)
 		g_propagate_prefixed_error(
 				error,
 				ierror,
-				"Error getting loop backing_file for %s: ", devicepath);
+				"Error getting loop backing_file for '%s': ", devicepath);
 		return NULL;
 	}
 
@@ -123,7 +123,7 @@ gboolean update_external_mount_points(GError **error)
 				continue;
 			}
 			s->ext_mount_point = g_strdup(g_unix_mount_get_mount_path(m));
-			g_debug("Found external mountpoint for slot %s at %s", s->name, s->ext_mount_point);
+			g_debug("Found external mountpoint for slot '%s' at '%s'", s->name, s->ext_mount_point);
 		}
 	}
 
@@ -243,7 +243,7 @@ gboolean determine_slot_states(GError **error)
 
 		if (s == booted) {
 			s->state = ST_BOOTED;
-			g_debug("Found booted slot: %s on %s", s->name, s->device);
+			g_debug("Found booted slot: '%s' on '%s'", s->name, s->device);
 		} else if (s->parent && s->parent == booted) {
 			s->state = ST_ACTIVE;
 		} else {
@@ -271,7 +271,7 @@ gboolean determine_boot_states(GError **error)
 			continue;
 
 		if (!r_boot_get_state(slot, &slot->boot_good, &ierror)) {
-			g_message("Failed to get boot state of %s: %s", slot->name, ierror->message);
+			g_message("Failed to get boot state of '%s': %s", slot->name, ierror->message);
 			had_errors = TRUE;
 		}
 	}
@@ -382,11 +382,11 @@ GHashTable* determine_target_install_group(void)
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &iterslot)) {
 		RaucSlot *parent = r_slot_get_parent_root(iterslot);
-		g_debug("Checking slot: %s", iterslot->name);
+		g_debug("Checking slot: '%s'", iterslot->name);
 
 
 		if (r_slot_list_contains(selected_root_slots, parent)) {
-			g_debug("\tAdding mapping: %s -> %s", iterslot->sclass, iterslot->name);
+			g_debug("\tAdding mapping: '%s' -> '%s'", iterslot->sclass, iterslot->name);
 			g_hash_table_insert(targetgroup, (gpointer) iterslot->sclass, iterslot);
 		} else {
 			g_debug("\tNo mapping found");
@@ -442,7 +442,7 @@ GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target
 				if (!matching_img)
 					matching_img = lookup_image;
 			} else if (g_strcmp0(lookup_image->variant, r_context()->config->system_variant) == 0) {
-				g_debug("Using variant %s image %s for %s", lookup_image->variant, lookup_image->filename, lookup_image->slotclass);
+				g_debug("Using variant '%s' image '%s' for '%s'", lookup_image->variant, lookup_image->filename, lookup_image->slotclass);
 				matching_img = lookup_image;
 				break;
 			}
@@ -454,11 +454,11 @@ GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target
 			g_set_error(error,
 					R_INSTALL_ERROR,
 					R_INSTALL_ERROR_FAILED,
-					"Failed to find matching variant of image for %s", *cls);
+					"Failed to find matching variant of image for slot class '%s'", *cls);
 			return NULL;
 		}
 
-		g_debug("Found image mapping: %s -> %s", matching_img->filename, matching_img->slotclass);
+		g_debug("Found image mapping: '%s' -> '%s'", matching_img->filename, matching_img->slotclass);
 		plan->image = matching_img;
 
 		/* Check if target_group contains an appropriate slot for this image */
@@ -467,14 +467,14 @@ GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target
 			g_set_error(error,
 					R_INSTALL_ERROR,
 					R_INSTALL_ERROR_FAILED,
-					"No target slot for class %s of image %s found", matching_img->slotclass, matching_img->filename);
+					"No target slot for class '%s' of image '%s' found", matching_img->slotclass, matching_img->filename);
 			return NULL;
 		}
 		if (plan->target_slot->readonly) {
 			g_set_error(error,
 					R_INSTALL_ERROR,
 					R_INSTALL_ERROR_FAILED,
-					"Target slot for class %s of image %s is readonly", matching_img->slotclass, matching_img->filename);
+					"Target slot for class '%s' of image '%s' is readonly", matching_img->slotclass, matching_img->filename);
 			return NULL;
 		}
 
@@ -812,7 +812,7 @@ static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const 
 
 	hook_name = g_build_filename(bundledir, manifest->hook_name, NULL);
 
-	g_message("Running bundle hook %s", hook_cmd);
+	g_message("Running bundle hook '%s'", hook_cmd);
 
 	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDERR_PIPE);
 
@@ -856,7 +856,7 @@ static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const 
 			if (hookreturnmsg) {
 				g_clear_error(&ierror);
 				g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED,
-						"Hook returned: %s", hookreturnmsg);
+						"Hook returned: '%s'", hookreturnmsg);
 			} else {
 				g_propagate_prefixed_error(
 						error,
@@ -1026,8 +1026,8 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 
 	/* if explicitly enabled, skip update of up-to-date slots */
 	if (!plan->target_slot->install_same && g_strcmp0(plan->image->checksum.digest, slot_state->checksum.digest) == 0) {
-		install_args_update(args, "Skipping update for correct image %s", plan->image->filename);
-		g_message("Skipping update for correct image %s", plan->image->filename);
+		install_args_update(args, "Skipping update for correct image '%s'", plan->image->filename);
+		g_message("Skipping update for correct image '%s'", plan->image->filename);
 		r_context_end_step("check_slot", TRUE);
 
 		/* Dummy step to indicate slot was skipped and complete required 'update_slots' substeps */
@@ -1580,7 +1580,7 @@ gboolean install_run(RaucInstallArgs *args)
 	g_autoptr(GThread) thread = NULL;
 	r_context_set_busy(TRUE);
 
-	g_message("Active slot bootname: %s", r_context()->bootslot);
+	g_message("Active slot bootname: '%s'", r_context()->bootslot);
 
 	thread = g_thread_new("installer", install_thread, args);
 	if (thread == NULL)
