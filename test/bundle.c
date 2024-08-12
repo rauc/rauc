@@ -787,7 +787,7 @@ int main(int argc, char *argv[])
 
 		bundle_data = dup_test_data(ptrs, (&(BundleData) {
 			.manifest_test_options = {
-			        .format = format,
+				.format = format,
 			},
 		}));
 
@@ -883,7 +883,7 @@ int main(int argc, char *argv[])
 	/* test plain bundles against possible masks */
 	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
-		        .format = R_MANIFEST_FORMAT_PLAIN,
+			.format = R_MANIFEST_FORMAT_PLAIN,
 		},
 		.bundle_formats = "plain",
 	}));
@@ -894,7 +894,7 @@ int main(int argc, char *argv[])
 
 	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
-		        .format = R_MANIFEST_FORMAT_PLAIN,
+			.format = R_MANIFEST_FORMAT_PLAIN,
 		},
 		.bundle_formats = "verity",
 	}));
@@ -905,7 +905,7 @@ int main(int argc, char *argv[])
 
 	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
-		        .format = R_MANIFEST_FORMAT_PLAIN,
+			.format = R_MANIFEST_FORMAT_PLAIN,
 		},
 		.bundle_formats = "plain verity",
 	}));
@@ -916,7 +916,7 @@ int main(int argc, char *argv[])
 
 	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
-		        .format = R_MANIFEST_FORMAT_PLAIN,
+			.format = R_MANIFEST_FORMAT_PLAIN,
 		},
 		.bundle_formats = "-plain",
 	}));
@@ -927,7 +927,7 @@ int main(int argc, char *argv[])
 
 	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
-		        .format = R_MANIFEST_FORMAT_PLAIN,
+			.format = R_MANIFEST_FORMAT_PLAIN,
 		},
 		.bundle_formats = "-verity",
 	}));
@@ -939,7 +939,7 @@ int main(int argc, char *argv[])
 	/* test verity bundles against possible masks */
 	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
-		        .format = R_MANIFEST_FORMAT_VERITY,
+			.format = R_MANIFEST_FORMAT_VERITY,
 		},
 		.bundle_formats = "plain",
 	}));
@@ -950,7 +950,7 @@ int main(int argc, char *argv[])
 
 	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
-		        .format = R_MANIFEST_FORMAT_VERITY,
+			.format = R_MANIFEST_FORMAT_VERITY,
 		},
 		.bundle_formats = "verity",
 	}));
@@ -961,7 +961,7 @@ int main(int argc, char *argv[])
 
 	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
-		        .format = R_MANIFEST_FORMAT_VERITY,
+			.format = R_MANIFEST_FORMAT_VERITY,
 		},
 		.bundle_formats = "plain verity",
 	}));
@@ -972,7 +972,7 @@ int main(int argc, char *argv[])
 
 	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
-		        .format = R_MANIFEST_FORMAT_VERITY,
+			.format = R_MANIFEST_FORMAT_VERITY,
 		},
 		.bundle_formats = "-plain",
 	}));
@@ -983,7 +983,7 @@ int main(int argc, char *argv[])
 
 	bundle_data = dup_test_data(ptrs, (&(BundleData) {
 		.manifest_test_options = {
-		        .format = R_MANIFEST_FORMAT_VERITY,
+			.format = R_MANIFEST_FORMAT_VERITY,
 		},
 		.bundle_formats = "-verity",
 	}));

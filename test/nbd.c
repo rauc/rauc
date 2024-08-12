@@ -269,7 +269,7 @@ int main(int argc, char *argv[])
 	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "http://127.0.0.1/basic/test/good-verity-bundle.raucb",
 		.access_args = {
-		        .http_headers = dup_test_data(ptrs, http_headers),
+			.http_headers = dup_test_data(ptrs, http_headers),
 		},
 	}));
 	g_test_add("/nbd/basic-auth/good-2",
@@ -325,7 +325,7 @@ int main(int argc, char *argv[])
 	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "https://127.0.0.1/test/good-verity-bundle.raucb",
 		.access_args = {
-		        .tls_no_verify = TRUE,
+			.tls_no_verify = TRUE,
 		},
 	}));
 	g_test_add("/nbd/mount/https-no-verify",
@@ -336,7 +336,7 @@ int main(int argc, char *argv[])
 	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "https://127.0.0.1/test/good-verity-bundle.raucb",
 		.access_args = {
-		        .tls_ca = dup_test_printf(ptrs, "test/openssl-ca/web-ca.pem"),
+			.tls_ca = dup_test_printf(ptrs, "test/openssl-ca/web-ca.pem"),
 		},
 	}));
 	g_test_add("/nbd/mount/https",
@@ -348,7 +348,7 @@ int main(int argc, char *argv[])
 	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "https://127.0.0.2/test/good-verity-bundle.raucb",
 		.access_args = {
-		        .tls_ca = dup_test_printf(ptrs, "test/openssl-ca/web-ca.pem"),
+			.tls_ca = dup_test_printf(ptrs, "test/openssl-ca/web-ca.pem"),
 		},
 	}));
 	g_test_add("/nbd/mount/http2",
@@ -360,9 +360,9 @@ int main(int argc, char *argv[])
 	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "https://127.0.0.3/test/good-verity-bundle.raucb",
 		.access_args = {
-		        .tls_cert = dup_test_printf(ptrs, "test/openssl-ca/web/client-1.cert.pem"),
-		        .tls_key = dup_test_printf(ptrs, "test/openssl-ca/web/private/client-1.pem"),
-		        .tls_ca = dup_test_printf(ptrs, "test/openssl-ca/web-ca.pem"),
+			.tls_cert = dup_test_printf(ptrs, "test/openssl-ca/web/client-1.cert.pem"),
+			.tls_key = dup_test_printf(ptrs, "test/openssl-ca/web/private/client-1.pem"),
+			.tls_ca = dup_test_printf(ptrs, "test/openssl-ca/web-ca.pem"),
 		},
 	}));
 	g_test_add("/nbd/mount/client-cert/good",
@@ -374,9 +374,9 @@ int main(int argc, char *argv[])
 	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "https://127.0.0.3/error/404",
 		.access_args = {
-		        .tls_cert = dup_test_printf(ptrs, "test/openssl-ca/web/client-1.cert.pem"),
-		        .tls_key = dup_test_printf(ptrs, "test/openssl-ca/web/private/client-1.pem"),
-		        .tls_ca = dup_test_printf(ptrs, "test/openssl-ca/web-ca.pem"),
+			.tls_cert = dup_test_printf(ptrs, "test/openssl-ca/web/client-1.cert.pem"),
+			.tls_key = dup_test_printf(ptrs, "test/openssl-ca/web/private/client-1.pem"),
+			.tls_ca = dup_test_printf(ptrs, "test/openssl-ca/web-ca.pem"),
 		},
 		.err_domain = R_NBD_ERROR,
 		.err_code = R_NBD_ERROR_NOT_FOUND,
@@ -390,7 +390,7 @@ int main(int argc, char *argv[])
 	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "https://127.0.0.3/test/good-verity-bundle.raucb",
 		.access_args = {
-		        .tls_ca = dup_test_printf(ptrs, "test/openssl-ca/web-ca.pem"),
+			.tls_ca = dup_test_printf(ptrs, "test/openssl-ca/web-ca.pem"),
 		},
 		.err_domain = R_NBD_ERROR,
 		.err_code = R_NBD_ERROR_CONFIGURATION, /* missing client cert */
@@ -425,7 +425,7 @@ int main(int argc, char *argv[])
 	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "http://127.0.0.1/backend/token.raucb",
 		.access_args = {
-		        .http_headers = dup_test_data(ptrs, http_headers),
+			.http_headers = dup_test_data(ptrs, http_headers),
 		},
 		.needs_backend = TRUE,
 		.err_domain = R_NBD_ERROR,
@@ -440,7 +440,7 @@ int main(int argc, char *argv[])
 		.bundle_url = "http://127.0.0.1/backend/token.raucb",
 		.needs_backend = TRUE,
 		.access_args = {
-		        .http_headers = dup_test_data(ptrs, http_headers),
+			.http_headers = dup_test_data(ptrs, http_headers),
 		},
 	}));
 	g_test_add("/nbd/token/good",
