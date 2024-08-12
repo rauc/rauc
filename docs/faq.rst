@@ -75,12 +75,12 @@ two step migration using an :ref:`intermediate version
 Can I use RAUC with a dm-verity-protected partition?
 ----------------------------------------------------
 
-Yes you can, as the offline-generated dm-verity hash tree is simply part of
-the image that RAUC writes to the partition.
-To ensure RAUC does not corrupt the partition by executing hooks or writing
-slot status information, use ``type=raw`` in the respective slot config and
-use a global :ref:`slot status file <statusfile>` on a separate non-redundant
-partition with setting ``statusfile=</path/to/global.status>``.
+Yes you can, as long as the offline-generated dm-verity hash tree is simply part
+of the images that RAUC writes to the slots.
+To ensure RAUC does not corrupt the dm-verity-protected partition by executing
+hooks or writing slot status information, use ``type=raw`` in the respective
+slot config and use a global :ref:`slot status file <statusfile>` on a separate
+non-redundant partition with setting ``statusfile=</path/to/global.status>``.
 
 Can I use RAUC with a dm-crypt-protected partition?
 ---------------------------------------------------
