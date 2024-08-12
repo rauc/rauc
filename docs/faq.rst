@@ -172,7 +172,7 @@ name.
 Why does the installation fail with a ``resize2fs`` error?
 ----------------------------------------------------------
 
-When installing a ext4 image with ``resize=true`` configured for that slot, it
+When installing an ext4 image with ``resize=true`` configured for that slot, it
 may happen that the ext4 image has features enabled which are not supported by
 the currently used version of ``resize2fs``.
 
@@ -196,8 +196,8 @@ In the log output from RAUC, you'll find more details::
   rauc[409]: Installation error: Failed updating slot rootfs.1: Failed to run resize2fs: Child process exited with code 1
   …
 
-The solution for this is to disable the unsupported filesystem features during
-the image generation.
+A solution for this is to disable the unsupported filesystem features during the
+image generation.
 When using Yocto, in case of the ``orphan_file`` file feature, you could use::
 
   EXTRA_IMAGECMD:ext4:append = " -O ^orphan_file"
@@ -238,7 +238,7 @@ How can I access the manifest without using RAUC?
 For bundles which use the :ref:`verity format <sec_ref_format_verity>`, you
 only need to locate the CMS data and verify the signature.
 The CMS data is located almost at the end of the bundle and is followed by
-its size as a 8 byte big endian integer.
+its size as an 8 byte big endian integer.
 
 To see how this can be done, take a look at the `Python example script in
 contrib/get-cms.py
