@@ -353,11 +353,11 @@ static void bundle_test_check_casync_old(BundleFixture *fixture, gconstpointer u
 	g_assert_true(test_copy_file("test", "good-casync-bundle-1.4.raucb", fixture->tmpdir, "bundle.raucb"));
 
 	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
-			"Reading bundle*" );
+			"Reading bundle*");
 	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
 			"Payload size (5661) is not a multiple of 4KiB.*");
 	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
-			"Verifying bundle signature*" );
+			"Verifying bundle signature*");
 
 	res = check_bundle(bundlepath, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
@@ -385,7 +385,7 @@ static void bundle_test_check_casync_new(BundleFixture *fixture, gconstpointer u
 	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
 			"Reading bundle*");
 	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
-			"Verifying bundle signature*" );
+			"Verifying bundle signature*");
 
 	res = check_bundle(bundlepath, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
 	g_assert_no_error(ierror);
@@ -746,8 +746,8 @@ static void bundle_test_purpose_codesign(BundleFixture *fixture,
 
 	g_message("testing purpose 'codesign' with 'codesign' cert");
 	replace_strdup(&r_context()->config->keyring_check_purpose, "codesign-rauc");
-	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, "Reading bundle*" );
-	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, "Verifying bundle*" );
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, "Reading bundle*");
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, "Verifying bundle*");
 	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Signer certificate should specify 'Key Usage' and mark it 'critical' to be fully CAB Forum compliant.");
 	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, "Verified * signature*");
 	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Signer certificate should specify 'Key Usage' and mark it 'critical' to be fully CAB Forum compliant.");
