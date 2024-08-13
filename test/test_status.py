@@ -48,7 +48,7 @@ def test_status_no_service_output_json_pretty(rauc_no_service):
 
 @no_service
 @have_json
-def test_status_no_service_output_nvalid(rauc_no_service):
+def test_status_no_service_output_invalid(rauc_no_service):
     out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=system0 status --output-format=invalid")
 
     assert exitcode == 1
