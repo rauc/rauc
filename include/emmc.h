@@ -33,7 +33,6 @@
 #define MMC_RSP_R1				(MMC_RSP_PRESENT|MMC_RSP_CRC|MMC_RSP_OPCODE)
 #define MMC_RSP_R1B				(MMC_RSP_PRESENT|MMC_RSP_CRC|MMC_RSP_OPCODE|MMC_RSP_BUSY)
 
-
 /**
  * Reads the active eMMC boot partition index of given eMMC device into the
  * given variable.

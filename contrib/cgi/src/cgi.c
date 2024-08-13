@@ -20,7 +20,6 @@ const gchar *STATUS_FILE_LOCATION = "/tmp/rauc-status.json";
  */
 const gchar *HTTP_HEADERS[] = {"upload_client_id", NULL};
 
-
 #define CGI_ERROR cgi_error_quark()
 
 static GQuark cgi_error_quark(void)

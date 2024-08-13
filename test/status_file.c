@@ -40,7 +40,6 @@ static void status_file_fixture_tear_down(StatusFileFixture *fixture,
 	r_context_clean();
 }
 
-
 static void status_file_test_read_slot_status(void)
 {
 	GError *ierror = NULL;
@@ -56,7 +55,6 @@ static void status_file_test_read_slot_status(void)
 	g_assert_cmpstr(ss->checksum.digest, ==,
 			"e437ab217356ee47cd338be0ffe33a3cb6dc1ce679475ea59ff8a8f7f6242b27");
 }
-
 
 static void status_file_test_write_slot_status(void)
 {

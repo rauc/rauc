@@ -374,7 +374,6 @@ static gboolean write_boot_switch_partition(RaucImage *image, const gchar *devic
 		const struct boot_switch_partition *dest_partition,
 		gsize len_header_last,
 		GError **error)
-
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -570,7 +569,7 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 		goto extract;
 	}
 
-	if (g_str_has_suffix(image->filename, ".caidx" )) {
+	if (g_str_has_suffix(image->filename, ".caidx")) {
 		/* We need to have the seed slot (bind) mounted to a distinct
 		 * path to allow seeding. E.g. using mount path '/' for the
 		 * rootfs slot seed is inaproppriate as it contains virtual
@@ -855,7 +854,6 @@ static gboolean copy_block_hash_index_image_to_dev(RaucImage *image, RaucSlot *s
 		res = FALSE;
 		goto out;
 	}
-
 
 	/* Flush to block device before closing to assure content is written to disk */
 	if (fsync(target_fd) == -1) {
@@ -1287,9 +1285,9 @@ out:
 
 static gboolean unpack_archive(RaucImage *image, gchar *dest, GError **error)
 {
-	if (g_str_has_suffix(image->filename, ".caidx" ))
+	if (g_str_has_suffix(image->filename, ".caidx"))
 		return casync_extract_image(image, dest, -1, error);
-	else if (g_str_has_suffix(image->filename, ".catar" ))
+	else if (g_str_has_suffix(image->filename, ".catar"))
 		return casync_extract_image(image, dest, -1, error);
 	else
 		return untar_image(image, dest, error);

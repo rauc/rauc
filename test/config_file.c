@@ -256,7 +256,6 @@ mountprefix=/mnt/myrauc/\n";
 compatible=FooCorp Super BarBazzer\n\
 mountprefix=/mnt/myrauc/\n";
 
-
 	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", boot_inval_cfg_file, NULL);
 	g_assert_nonnull(pathname);
 
@@ -310,7 +309,6 @@ bootloader=uboot\n\
 boot-attempts=5\n\
 boot-attempts-primary=-10\n\
 mountprefix=/mnt/myrauc/\n";
-
 
 	pathname = write_tmp_file(fixture->tmpdir, "valid_bootloader.conf", valid_boot_attempts_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -366,7 +364,6 @@ device=/dev/null\n\
 type=oups\n\
 \t";
 
-
 	pathname = write_tmp_file(fixture->tmpdir, "system.conf", invalid_slot_type, NULL);
 	g_assert_nonnull(pathname);
 
@@ -392,7 +389,6 @@ bootloader=barebox\n\
 device=/dev/null\n\
 parent=invalid\n\
 \t";
-
 
 	pathname = write_tmp_file(fixture->tmpdir, "nonexisting_bootloader.conf", nonexisting_parent, NULL);
 	g_assert_nonnull(pathname);
@@ -746,7 +742,6 @@ bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
 activate-installed=true\n";
 
-
 	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", cfg_file, NULL);
 	g_assert_nonnull(pathname);
 
@@ -771,7 +766,6 @@ compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
 activate-installed=false\n";
-
 
 	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -908,7 +902,6 @@ activate-installed=false\n\
 [slot.rootfs.0]\n\
 device=/dev/null\n";
 
-
 	pathname = write_tmp_file(fixture->tmpdir, "extra_mount.conf", cfg_file, NULL);
 	g_assert_nonnull(pathname);
 
@@ -917,12 +910,10 @@ device=/dev/null\n";
 	g_assert_true(res);
 	g_assert_nonnull(config);
 
-
 	slot = g_hash_table_lookup(config->slots, "rootfs.0");
 	g_assert_nonnull(slot);
 	g_assert_cmpstr(slot->extra_mount_opts, ==, NULL);
 }
-
 
 static void config_file_extra_mount_opts(ConfigFileFixture *fixture,
 		gconstpointer user_data)
@@ -943,7 +934,6 @@ activate-installed=false\n\
 [slot.rootfs.0]\n\
 device=/dev/null\n\
 extra-mount-opts=ro,noatime\n";
-
 
 	pathname = write_tmp_file(fixture->tmpdir, "extra_mount.conf", cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -1008,7 +998,6 @@ static void config_file_statusfile_missing(ConfigFileFixture *fixture,
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n";
-
 
 	pathname = write_tmp_file(fixture->tmpdir, "valid_bootloader.conf", cfg_file, NULL);
 	g_assert_nonnull(pathname);

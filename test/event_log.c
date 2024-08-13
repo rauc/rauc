@@ -301,7 +301,6 @@ static void event_log_test_structured_logging(EventLogFixture *fixture,
 	g_assert_nonnull(strstr(contents, "This is a test (mark) log message"));
 }
 
-
 /* Test setting up a logger for structured logging and log with r_event_log_message */
 static void event_log_test_log_utility(EventLogFixture *fixture,
 		gconstpointer user_data)
@@ -358,7 +357,6 @@ static void event_log_test_log_filtering(EventLogFixture *fixture,
 	g_assert_nonnull(strstr(contents, "Example install message"));
 	g_assert_nonnull(strstr(contents, "Example second mark message"));
 }
-
 
 int main(int argc, char *argv[])
 {

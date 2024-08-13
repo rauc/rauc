@@ -338,7 +338,6 @@ static gboolean install_start(int argc, char **argv)
 
 	g_main_loop_run(r_loop);
 
-
 out_loop:
 	switch (args->status_result) {
 		case 0:
@@ -1070,7 +1069,6 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 
 	return g_string_free(text, FALSE);
 }
-
 
 #if ENABLE_JSON
 /* Takes a GStrv and adds a JSON array to the builder. If the GStrv is NULL, an

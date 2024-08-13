@@ -79,7 +79,6 @@ static void test_bootslot_custom_bootloader(void)
 	r_context_clean();
 }
 
-
 /* Tests that the infos provided by the configured system-info handler make it
  * into RAUC's system information.
  */

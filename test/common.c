@@ -237,6 +237,7 @@ allow-mounted=true\n\
 
 	return 0;
 }
+
 int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, const ManifestTestOptions *options)
 {
 	g_autofree gchar *path = g_build_filename(dirname, filename, NULL);

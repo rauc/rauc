@@ -309,6 +309,7 @@ static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest)
 
 	return (gchar**) g_ptr_array_free(slotclasses, FALSE);
 }
+
 /* Selects a single appropriate inactive slot of root slot class
  *
  * Note: This function may be extended to be more sophisticated or follow a
