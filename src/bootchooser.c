@@ -1587,7 +1587,7 @@ static RaucSlot* custom_get_primary(GError **error)
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (!custom_backend_get("get-primary", NULL, &ret_str, &ierror) ) {
+	if (!custom_backend_get("get-primary", NULL, &ret_str, &ierror)) {
 		g_propagate_error(error, ierror);
 		return NULL;
 	}
