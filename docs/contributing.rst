@@ -16,8 +16,8 @@ Workflow
 - Changes should be submitted via a `GitHub pull request
   <https://github.com/rauc/rauc/pulls>`_.
 - Try to limit each commit to a single conceptual change.
-- Add a signed-off-by line to your commits according to the `Developer's
-  Certificate of Origin` (see below).
+- Add a signed-off-by line to your commits according to the :ref:`Developer's
+  Certificate of Origin <sec-dco>`.
 - Check that the tests still work before submitting the pull request. Also
   check the CI's feedback on the pull request after submission.
 - When adding new features, please also add the corresponding
@@ -130,6 +130,8 @@ which will pass through your host's CPU features to the guest.
 For interactive access to the test environment, use::
 
   ./qemu-test shell
+
+.. _sec-dco:
 
 Developer's Certificate of Origin
 ---------------------------------
