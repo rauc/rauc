@@ -374,7 +374,6 @@ static gboolean write_boot_switch_partition(RaucImage *image, const gchar *devic
 		const struct boot_switch_partition *dest_partition,
 		gsize len_header_last,
 		GError **error)
-
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
