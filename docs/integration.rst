@@ -1610,8 +1610,6 @@ Buildroot
 To build RAUC using Buildroot, enable ``BR2_PACKAGE_RAUC`` in your
 configuration.
 
-.. _sec_int_migration:
-
 Package-Based Distributions
 ---------------------------
 
@@ -1644,6 +1642,8 @@ to create and inspect bundles, for which the D-Bus service is not required.
   * https://packages.ubuntu.com/search?keywords=rauc&searchon=sourcenames
 
 .. _repology-rauc: https://repology.org/project/rauc/versions
+
+.. _sec_int_migration:
 
 Bundle Format Migration
 -----------------------
