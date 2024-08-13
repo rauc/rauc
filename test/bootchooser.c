@@ -228,7 +228,6 @@ bootname=system0\n";
 	rootfs0 = find_config_slot_by_name(r_context()->config, "rootfs.0");
 	g_assert_nonnull(rootfs0);
 
-
 	/* check rootfs.0 is marked bad (prio and attempts 0) for asymmetric update scenarios */
 	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.recovery.remaining_attempts=3\n\
@@ -319,7 +318,6 @@ bootstate.system1.priority=10\n\
 	res = r_boot_set_state(rootfs0, TRUE, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
-
 
 	/* check rootfs.0 is marked primary with configured primary attempts */
 	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \

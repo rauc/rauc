@@ -856,7 +856,6 @@ static gboolean copy_block_hash_index_image_to_dev(RaucImage *image, RaucSlot *s
 		goto out;
 	}
 
-
 	/* Flush to block device before closing to assure content is written to disk */
 	if (fsync(target_fd) == -1) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED, "Syncing content to slot failed: %s", strerror(errno));

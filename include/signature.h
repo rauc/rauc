@@ -277,7 +277,6 @@ GBytes *cms_encrypt(GBytes *content, gchar **recipients, GError **error);
  */
 GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile, GError **error);
 
-
 /**
  * Dump content of enevloped CMS.
  *

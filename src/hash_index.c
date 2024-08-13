@@ -280,7 +280,6 @@ RaucHashIndex *r_hash_index_open(const gchar *label, int data_fd, const gchar *h
 		}
 	}
 
-
 	hash_index_prepare(idx);
 
 	return g_steal_pointer(&idx);

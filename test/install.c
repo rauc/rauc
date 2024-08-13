@@ -295,7 +295,6 @@ static void install_test_target(InstallFixture *fixture,
 	g_autoptr(GError) error = NULL;
 	gboolean result;
 
-
 	const gchar *manifest_file = "\
 [update]\n\
 compatible=FooCorp Super BarBazzer\n\
@@ -912,7 +911,6 @@ readonly=true\n\
 	g_assert_null(install_plans);
 	g_assert_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED);
 }
-
 
 static void test_install_image_variants(void)
 {

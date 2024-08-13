@@ -129,7 +129,6 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, GEr
 	g_ptr_array_add(args, g_strdup("-no-progress"));
 	g_ptr_array_add(args, g_strdup("-no-xattrs"));
 
-
 	if (r_context()->mksquashfs_args != NULL) {
 		g_auto(GStrv) mksquashfs_argvp = NULL;
 		res = g_shell_parse_argv(r_context()->mksquashfs_args, NULL, &mksquashfs_argvp, &ierror);
@@ -725,7 +724,6 @@ static GBytes *generate_bundle_signature(const gchar *bundlename, RaucManifest *
 
 	return g_steal_pointer(&sig);
 }
-
 
 static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GError **error)
 {

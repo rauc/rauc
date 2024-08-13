@@ -369,7 +369,6 @@ static void bundle_test_check_casync_old(BundleFixture *fixture, gconstpointer u
 	g_assert_true(res);
 	g_assert_nonnull(bundle->manifest);
 
-
 	assert_casync_manifest(bundle->manifest);
 }
 

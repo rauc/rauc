@@ -256,7 +256,6 @@ out:
 	return res;
 }
 
-
 /* Creates a mount subdir in mount path prefix */
 gchar* r_create_mount_point(const gchar *name, GError **error)
 {

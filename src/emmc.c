@@ -13,7 +13,6 @@
 #include "emmc.h"
 #include "update_handler.h"
 
-
 static int r_emmc_read_extcsd(int fd, guint8 extcsd[512])
 {
 	struct mmc_ioc_cmd cmd = {};

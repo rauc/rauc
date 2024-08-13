@@ -712,7 +712,6 @@ static void signature_cmsverify_dir_single_fail(SignatureFixture *fixture,
 	g_assert_true(X509_STORE_load_locations(a_store, "test/openssl-ca/dir/a.cert.pem", NULL));
 	g_assert_true(X509_STORE_load_locations(ab_dir_store, NULL, "test/openssl-ca/dir/hash/ab"));
 
-
 	/* Sign with "B" key and cert */
 	fixture->sig = cms_sign(fixture->content,
 			TRUE,

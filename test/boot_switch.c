@@ -217,7 +217,6 @@ static guint64 get_marker(const gchar *device, goffset offset)
 	return found_marker;
 }
 
-
 static void clear_device(const gchar *device)
 {
 	GError *error = NULL;

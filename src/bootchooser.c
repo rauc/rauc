@@ -156,7 +156,6 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 	return TRUE;
 }
 
-
 /* names: list of gchar, values: list of gint */
 static gboolean barebox_state_set(GPtrArray *pairs, GError **error)
 {
@@ -1013,7 +1012,6 @@ static gboolean efi_bootorder_set(gchar *order, GError **error)
 		return FALSE;
 	}
 
-
 	if (!g_subprocess_wait_check(sub, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
@@ -1043,7 +1041,6 @@ static gboolean efi_set_bootnext(gchar *bootnumber, GError **error)
 				"Failed to start " EFIBOOTMGR_NAME ": ");
 		return FALSE;
 	}
-
 
 	if (!g_subprocess_wait_check(sub, NULL, &ierror)) {
 		g_propagate_prefixed_error(
@@ -1656,7 +1653,6 @@ static gboolean custom_set_primary(RaucSlot *slot, GError **error)
 
 	return custom_backend_set("set-primary", slot->bootname, NULL, error);
 }
-
 
 gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 {

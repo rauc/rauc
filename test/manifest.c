@@ -261,7 +261,6 @@ static void test_load_manifest_mem(void)
 	free_manifest(rm);
 }
 
-
 static void test_manifest_load_variants(void)
 {
 	gchar *tmpdir;

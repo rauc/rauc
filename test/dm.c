@@ -15,7 +15,6 @@
 
 #include "common.h"
 
-
 typedef struct {
 	gchar *tmpdir;
 } DMFixture;

@@ -4,7 +4,6 @@
 #include <glib-object.h>
 #include <glib/gprintf.h>
 
-
 #include "config_file.h"
 #include "status_file.h"
 #include "bundle.h"
