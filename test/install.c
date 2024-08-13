@@ -926,7 +926,7 @@ static void test_install_image_variants(void)
 	g_autoptr(GError) error = NULL;
 	gboolean res;
 
-#define MANIFEST_VARIANT "\
+	const gchar *manifest_variant = "\
 [update]\n\
 compatible=foo\n\
 \n\
@@ -935,24 +935,21 @@ filename=dummy.img\n\
 \n\
 [image.rootfs]\n\
 filename=dummy.img\n\
-"
-
-#define MANIFEST_DEFAULT_VARIANT "\
+";
+	const gchar *manifest_default_variant = "\
 [update]\n\
 compatible=foo\n\
 \n\
 [image.rootfs]\n\
 filename=dummy.img\n\
-"
-
-#define MANIFEST_OTHER_VARIANT "\
+";
+	const gchar *manifest_other_variant = "\
 [update]\n\
 compatible=foo\n\
 \n\
 [image.rootfs.variant-2]\n\
 filename=dummy.img\n\
-"
-
+";
 	const gchar *system_conf_variant = "\
 [system]\n\
 compatible=foo\n\
@@ -986,7 +983,7 @@ device=/dev/null\n\
 	g_assert_nonnull(tgrp);
 
 	/* Test with manifest containing default and specific variant */
-	data = g_bytes_new_static(MANIFEST_VARIANT, sizeof(MANIFEST_VARIANT));
+	data = g_bytes_new_static(manifest_variant, strlen(manifest_variant));
 	res = load_manifest_mem(data, &rm, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
@@ -1007,7 +1004,7 @@ device=/dev/null\n\
 	g_clear_pointer(&install_plans, g_ptr_array_unref);
 
 	/* Test with manifest containing only default variant */
-	data = g_bytes_new_static(MANIFEST_DEFAULT_VARIANT, sizeof(MANIFEST_DEFAULT_VARIANT));
+	data = g_bytes_new_static(manifest_default_variant, strlen(manifest_default_variant));
 	res = load_manifest_mem(data, &rm, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
@@ -1028,7 +1025,7 @@ device=/dev/null\n\
 	g_clear_pointer(&install_plans, g_ptr_array_unref);
 
 	/* Test with manifest containing only non-matching specific variant (must fail) */
-	data = g_bytes_new_static(MANIFEST_OTHER_VARIANT, sizeof(MANIFEST_OTHER_VARIANT));
+	data = g_bytes_new_static(manifest_other_variant, strlen(manifest_other_variant));
 	res = load_manifest_mem(data, &rm, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
