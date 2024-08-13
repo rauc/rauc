@@ -516,7 +516,7 @@ static gboolean grub_get_state(RaucSlot* slot, gboolean *good, GError **error)
 
 	/* Check slot state */
 	key = g_strdup_printf("%s_OK", slot->bootname);
-	if (!grub_env_get(key, &slot_ok,  &ierror)) {
+	if (!grub_env_get(key, &slot_ok, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}

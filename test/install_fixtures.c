@@ -32,7 +32,7 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 	g_assert_nonnull(configpath);
 	if (configname) {
 		g_assert_true(test_copy_file(configname, NULL, configpath, NULL));
-	}  else {
+	} else {
 		test_prepare_system_conf(tmpdir, "system.conf", options);
 	}
 	replace_strdup(&r_context_conf()->configpath, configpath);

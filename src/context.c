@@ -315,7 +315,7 @@ static GHashTable *get_system_info_from_handler(GError **error)
 	gchar *value = NULL;
 
 	if (!g_file_test(context->config->systeminfo_handler, G_FILE_TEST_EXISTS)) {
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT,  "System info handler script/binary '%s' not found.", context->config->systeminfo_handler);
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT, "System info handler script/binary '%s' not found.", context->config->systeminfo_handler);
 		return NULL;
 	}
 
