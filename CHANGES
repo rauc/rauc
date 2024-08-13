@@ -112,7 +112,7 @@ Release 1.11.1 (released Jan 15, 2024)
 
 .. rubric:: Bug fixes
 
-* Ensure that only bootable slots can be marked with ``rauc staus mark-*``.
+* Ensure that only bootable slots can be marked with ``rauc status mark-*``.
 * Fix boot detection when using the ``rauc.external`` kernel command-line flag.
 * Fix compatibility with OpenSSL 3.2 when using the ``codesign`` certificate
   purpose.
