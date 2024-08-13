@@ -12,8 +12,7 @@ typedef struct {
 } BootRawFallbackFixture;
 
 #define BIT(nr) (1UL << (nr))
-typedef enum
-{
+typedef enum {
 	OPT_NONE                      = 0,
 	OPT_EXPECT_FAIL               = BIT(0),
 	OPT_PRE_INSTALL_PRIMARY_HEAD  = BIT(1),
