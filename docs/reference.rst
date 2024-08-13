@@ -573,7 +573,7 @@ a look at :ref:`sec-advanced-event-log`.
 ``format`` (optional)
   The output format used for the logger. Supported values are
 
-  * ``readable``: readable mutli-line output (default)
+  * ``readable``: readable multi-line output (default)
   * ``short``: Single-line readable output
   * ``json``: single-line JSON output
   * ``json-pretty``: formatted JSON output
