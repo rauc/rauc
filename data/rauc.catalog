@@ -34,7 +34,7 @@ Documentation: https://rauc.readthedocs.io
 
 The installation with transaction ID @TRANSACTION_ID@ succeeded.
 
-It installed the bundle version @BUNDLE_VERSION
+It installed the bundle version @BUNDLE_VERSION@
 with hash @BUNDLE_HASH@ on your system.
 
 -- c48141f7fd49443aafff862b4809168f
