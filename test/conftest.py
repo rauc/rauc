@@ -280,6 +280,14 @@ def create_system_files(env_setup, tmp_path):
     os.symlink(os.path.abspath("openssl-enc"), tmp_path / "openssl-enc")
 
 
+@pytest.fixture
+def rauc_no_service(create_system_files, tmp_path):
+    tmp_conf_file = tmp_path / "system.conf"
+    shutil.copy("test.conf", tmp_conf_file)
+
+    return f"rauc -c {tmp_conf_file}"
+
+
 def _rauc_dbus_service(tmp_path, conf_file, bootslot):
     tmp_conf_file = tmp_path / "system.conf"
     shutil.copy(conf_file, tmp_conf_file)

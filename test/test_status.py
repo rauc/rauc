@@ -5,24 +5,24 @@ from helper import run
 
 
 @no_service
-def test_status_no_service():
-    out, err, exitcode = run("rauc -c test.conf --override-boot-slot=system0 status")
+def test_status_no_service(rauc_no_service):
+    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=system0 status")
 
     assert exitcode == 0
     assert "=== System Info ===" in out
 
 
 @no_service
-def test_status_no_service_output_readable():
-    out, err, exitcode = run("rauc -c test.conf --override-boot-slot=system0 status " "--output-format=readable")
+def test_status_no_service_output_readable(rauc_no_service):
+    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=system0 status --output-format=readable")
 
     assert exitcode == 0
     assert "=== System Info ===" in out
 
 
 @no_service
-def test_status_no_service_output_shell():
-    out, err, exitcode = run("rauc -c test.conf --override-boot-slot=system0 status " "--output-format=shell")
+def test_status_no_service_output_shell(rauc_no_service):
+    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=system0 status --output-format=shell")
 
     assert exitcode == 0
     assert "RAUC_SYSTEM_COMPATIBLE='Test Config'" in out
@@ -30,8 +30,8 @@ def test_status_no_service_output_shell():
 
 @no_service
 @have_json
-def test_status_no_service_output_json():
-    out, err, exitcode = run("rauc -c test.conf --override-boot-slot=system0 status " "--output-format=json")
+def test_status_no_service_output_json(rauc_no_service):
+    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=system0 status --output-format=json")
 
     assert exitcode == 0
     assert '"compatible":"Test Config"' in out
@@ -39,8 +39,8 @@ def test_status_no_service_output_json():
 
 @no_service
 @have_json
-def test_status_no_service_output_json_pretty():
-    out, err, exitcode = run("rauc -c test.conf --override-boot-slot=system0 status " "--output-format=json-pretty")
+def test_status_no_service_output_json_pretty(rauc_no_service):
+    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=system0 status --output-format=json-pretty")
 
     assert exitcode == 0
     assert '"compatible" : "Test Config"' in out
@@ -48,8 +48,8 @@ def test_status_no_service_output_json_pretty():
 
 @no_service
 @have_json
-def test_status_no_service_output_nvalid():
-    out, err, exitcode = run("rauc -c test.conf --override-boot-slot=system0 status " "--output-format=invalid")
+def test_status_no_service_output_invalid(rauc_no_service):
+    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=system0 status --output-format=invalid")
 
     assert exitcode == 1
     assert "Unknown output format: 'invalid'" in err
