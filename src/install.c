@@ -1383,6 +1383,8 @@ static gboolean handle_artifact_install_plan(const RaucManifest *manifest, const
 	}
 	r_context_end_step("check_repo", TRUE);
 
+	r_event_log_message(R_EVENT_LOG_TYPE_WRITE_SLOT, "Updating artifact '%s' in repo '%s'", artifact->name, plan->target_repo->name);
+
 	if (need_install) {
 		r_context_begin_step_weighted_formatted("copy_image", 0, 9, "Copying artifact image to repo '%s'", plan->target_repo->name);
 
