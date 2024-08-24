@@ -441,11 +441,20 @@ GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target
 			if (lookup_image->variant == NULL) {
 				if (!matching_img)
 					matching_img = lookup_image;
-			} else if (g_strcmp0(lookup_image->variant,
-					g_array_index(r_context()->config->system_variant, gchar *, 0)) == 0) {
-				g_debug("Using variant '%s' image '%s' for '%s'", lookup_image->variant, lookup_image->filename, lookup_image->slotclass);
-				matching_img = lookup_image;
-				break;
+			} else {
+				for (guint index = 0; index < r_context()->config->system_variant->len; index++) {
+					gchar *compatible = g_array_index(r_context()->config->system_variant, gchar *, index);
+					if (g_strcmp0(lookup_image->variant, compatible) == 0) {
+						g_debug("Using variant '%s' of image '%s' on slot '%s'",
+								lookup_image->variant,
+								lookup_image->filename,
+								lookup_image->slotclass);
+						matching_img = lookup_image;
+						break;
+					}
+				}
+				if (matching_img)
+					break;
 			}
 		}
 
