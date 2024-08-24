@@ -1924,7 +1924,7 @@ static gboolean status_start(int argc, char **argv)
 		}
 
 		status_print->compatible = g_strdup(r_context()->config->system_compatible);
-		status_print->variant = g_strdup(r_context()->config->system_variant);
+		status_print->variant = g_array_index(r_context()->config->system_variant, gchar *, 0);
 		status_print->bootslot = g_strdup(r_context()->bootslot);
 		status_print->slots = g_hash_table_ref(r_context()->config->slots);
 	} else {

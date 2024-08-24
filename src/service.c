@@ -563,7 +563,7 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 	}
 
 	r_installer_set_compatible(r_installer, r_context()->config->system_compatible);
-	r_installer_set_variant(r_installer, r_context()->config->system_variant);
+	r_installer_set_variant(r_installer, g_array_index(r_context()->config->system_variant, gchar *, 0));
 	r_installer_set_boot_slot(r_installer, r_context()->bootslot);
 
 	return;

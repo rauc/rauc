@@ -801,6 +801,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	g_key_file_remove_key(key_file, "system", "activate-installed", NULL);
 
 	c->system_variant_type = R_CONFIG_SYS_VARIANT_NONE;
+	c->system_variant = g_array_new(FALSE, FALSE, sizeof(gchar *));
 
 	/* parse 'variant-dtb' key */
 	dtbvariant = g_key_file_get_boolean(key_file, "system", "variant-dtb", &ierror);
@@ -835,7 +836,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		}
 
 		c->system_variant_type = R_CONFIG_SYS_VARIANT_FILE;
-		c->system_variant = g_steal_pointer(&variant_data);
+		g_array_append_val(c->system_variant, variant_data);
 	}
 
 	/* parse 'variant-name' key */
@@ -858,7 +859,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		}
 
 		c->system_variant_type = R_CONFIG_SYS_VARIANT_NAME;
-		c->system_variant = g_steal_pointer(&variant_data);
+		g_array_append_val(c->system_variant, variant_data);
 	}
 
 	/* parse data/status location
@@ -1138,7 +1139,8 @@ void free_config(RaucConfig *config)
 
 	g_free(config->system_compatible);
 	g_free(config->system_min_bundle_version);
-	g_free(config->system_variant);
+	if (config->system_variant)
+		g_array_free(config->system_variant, TRUE);
 	g_free(config->system_bootloader);
 	g_free(config->system_bb_statename);
 	g_free(config->system_bb_dtbpath);

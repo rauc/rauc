@@ -1322,7 +1322,7 @@ static gboolean run_slot_hook_extra_env(const gchar *hook_name, const gchar *hoo
 	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_NONE);
 
 	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_COMPATIBLE", r_context()->config->system_compatible ?: "", TRUE);
-	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_VARIANT", r_context()->config->system_variant ?: "", TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_VARIANT", g_array_index(r_context()->config->system_variant, gchar *, 0) ?: "", TRUE);
 
 	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_NAME", slot->name, TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_SLOT_STATE", r_slot_slotstate_to_str(slot->state), TRUE);

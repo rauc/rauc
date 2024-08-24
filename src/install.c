@@ -441,7 +441,8 @@ GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target
 			if (lookup_image->variant == NULL) {
 				if (!matching_img)
 					matching_img = lookup_image;
-			} else if (g_strcmp0(lookup_image->variant, r_context()->config->system_variant) == 0) {
+			} else if (g_strcmp0(lookup_image->variant,
+					g_array_index(r_context()->config->system_variant, gchar *, 0)) == 0) {
 				g_debug("Using variant '%s' image '%s' for '%s'", lookup_image->variant, lookup_image->filename, lookup_image->slotclass);
 				matching_img = lookup_image;
 				break;
@@ -817,7 +818,9 @@ static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const 
 	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDERR_PIPE);
 
 	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_COMPATIBLE", r_context()->config->system_compatible, TRUE);
-	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_VARIANT", r_context()->config->system_variant ?: "", TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_VARIANT",
+			g_array_index(r_context()->config->system_variant, gchar *, 0) ?: "",
+			TRUE);
 
 	g_subprocess_launcher_setenv(launcher, "RAUC_MF_COMPATIBLE", manifest->update_compatible, TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_MF_VERSION", manifest->update_version ?: "", TRUE);
@@ -1336,7 +1339,7 @@ static gchar **assemble_info_headers(RaucInstallArgs *args)
 		if (g_strcmp0(*header, "serial") == 0)
 			g_ptr_array_add(headers, g_strdup_printf("RAUC-Serial: %s", r_context()->system_serial));
 		if (g_strcmp0(*header, "variant") == 0)
-			g_ptr_array_add(headers, g_strdup_printf("RAUC-Variant: %s", r_context()->config->system_variant));
+			g_ptr_array_add(headers, g_strdup_printf("RAUC-Variant: %s", g_array_index(r_context()->config->system_variant, gchar *, 0)));
 		/* Add per-installation information */
 		if (g_strcmp0(*header, "transaction-id") == 0)
 			g_ptr_array_add(headers, g_strdup_printf("RAUC-Transaction-ID: %s", args->transaction));

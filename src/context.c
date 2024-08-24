@@ -262,21 +262,37 @@ static gboolean launch_and_wait_variables_handler(gchar *handler_name, GHashTabl
 	return TRUE;
 }
 
-static gchar* get_system_dtb_compatible(GError **error)
+static gboolean get_system_dtb_compatible(GError **error)
 {
 	gchar *contents = NULL;
 	GError *ierror = NULL;
+	gsize length;
 
-	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (!g_file_get_contents("/sys/firmware/devicetree/base/compatible", &contents, NULL, &ierror)) {
+	if (!g_file_get_contents("/sys/firmware/devicetree/base/compatible", &contents, &length, &ierror)) {
 		g_propagate_error(error, ierror);
-		return NULL;
+		return FALSE;
 	}
 
 	g_assert_nonnull(contents); /* fixes scan-build false positive */
+	const char *start = contents;
+	const char *end = contents;
 
-	return contents;
+	while (end < contents + length) {
+		if (*end == '\0') {
+			size_t token_length = end - start;
+			if (token_length > 0) {
+				gchar *substring = g_strndup(start, token_length);
+				g_array_append_val(context->config->system_variant, substring);
+				g_debug("added devicetree compatible: %s", substring);
+			}
+			start = end + 1; // Move start to the next character after '\0'
+		}
+		end++;
+	}
+
+	return TRUE;
 }
 
 static gchar* get_variant_from_file(const gchar* filename, GError **error)
@@ -332,7 +348,8 @@ static GHashTable *get_system_info_from_handler(GError **error)
 			r_replace_strdup(&context->system_serial, value);
 		} else if (g_strcmp0(key, "RAUC_SYSTEM_VARIANT") == 0) {
 			/* set variant (overrides possible previous value) */
-			r_replace_strdup(&context->config->system_variant, value);
+			g_array_remove_index(context->config->system_variant, 0);
+			g_array_append_val(context->config->system_variant, value);
 		}
 	}
 
@@ -381,21 +398,19 @@ static gboolean r_context_configure_target(GError **error)
 	}
 
 	if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_DTB) {
-		gchar *compatible = get_system_dtb_compatible(&ierror);
-		if (!compatible) {
+		if (!get_system_dtb_compatible(&ierror)) {
 			g_warning("Failed to read dtb compatible: %s", ierror->message);
 			g_clear_error(&ierror);
 		}
-		g_free(context->config->system_variant);
-		context->config->system_variant = compatible;
 	} else if (context->config->system_variant_type == R_CONFIG_SYS_VARIANT_FILE) {
-		gchar *variant = get_variant_from_file(context->config->system_variant, &ierror);
+		gchar *filename = g_array_index(context->config->system_variant, gchar *, 0);
+		gchar *variant = get_variant_from_file(filename, &ierror);
 		if (!variant) {
 			g_warning("Failed to read system variant from file: %s", ierror->message);
 			g_clear_error(&ierror);
 		}
-		g_free(context->config->system_variant);
-		context->config->system_variant = variant;
+		g_array_remove_index(context->config->system_variant, 0);
+		g_array_append_val(context->config->system_variant, variant);
 	}
 
 	g_clear_pointer(&context->system_info, g_hash_table_destroy);
@@ -410,8 +425,9 @@ static gboolean r_context_configure_target(GError **error)
 		context->system_info = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 	}
 
-	if (r_whitespace_removed(context->config->system_variant))
-		g_warning("Ignoring surrounding whitespace in system variant: %s", context->config->system_variant);
+	gchar *system_variant = g_array_index(context->config->system_variant, gchar *, 0);
+	if (r_whitespace_removed(system_variant))
+		g_warning("Ignoring surrounding whitespace in system variant: %s", system_variant);
 
 	if (context->bootslot == NULL) {
 		context->bootslot = get_cmdline_bootname();

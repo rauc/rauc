@@ -37,7 +37,7 @@ typedef struct {
 	gchar *system_compatible;
 	gchar *system_min_bundle_version;
 	RConfigSysVariant system_variant_type;
-	gchar *system_variant;
+	GArray *system_variant;
 	gchar *system_bootloader;
 	gchar *system_bb_statename;
 	gchar *system_bb_dtbpath;
