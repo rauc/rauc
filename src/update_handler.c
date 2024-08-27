@@ -218,7 +218,7 @@ static gboolean splice_with_progress(GUnixInputStream *image_stream,
 			last_percent = percent;
 			r_context_set_step_percentage("copy_image", percent);
 		}
-	} while (out_size);
+	} while (out_size && (sum_size < stat.st_size));
 
 	return TRUE;
 }
