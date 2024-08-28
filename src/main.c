@@ -2432,9 +2432,9 @@ static void cmdline_handler(int argc, char **argv)
 		{STATUS, "status", "status",
 		 "Show system status\n\n"
 		 "List of status commands (default slot is the currently booted slot):\n"
-		 "  mark-good [booted | other | <SLOT_NAME>] \tMark the slot as good\n"
-		 "  mark-bad [booted | other | <SLOT_NAME>] \tMark the slot as bad\n"
-		 "  mark-active [booted | other | <SLOT_NAME>] \tMark the slot as active",
+		 "  mark-good [booted | other | <SLOT_NAME>]    Mark the slot as good\n"
+		 "  mark-bad [booted | other | <SLOT_NAME>]     Mark the slot as bad\n"
+		 "  mark-active [booted | other | <SLOT_NAME>]  Mark the slot as active",
 		 status_start, status_group, R_CONTEXT_CONFIG_MODE_REQUIRED, TRUE},
 		{WRITE_SLOT, "write-slot", "write-slot <SLOTNAME> <IMAGE>",
 		 "Write image to slot and bypass all update logic",
@@ -2462,29 +2462,29 @@ static void cmdline_handler(int argc, char **argv)
 			"\n"
 			"List of rauc bundle handling commands:\n"
 #if ENABLE_CREATE == 1
-			"  bundle\t\tCreate a bundle\n"
-			"  resign\t\tResign an already signed bundle\n"
-			"  convert\t\tConvert classic to casync bundle\n"
-			"  encrypt\t\tEncrypt a crypt bundle\n"
-			"  replace-signature\tReplaces the signature of an already signed bundle\n"
-			"  extract-signature\tExtract the bundle signature\n"
+			"  bundle                  Create a bundle\n"
+			"  resign                  Resign an already signed bundle\n"
+			"  convert                 Convert classic to casync bundle\n"
+			"  encrypt                 Encrypt a crypt bundle\n"
+			"  replace-signature       Replaces the signature of an already signed bundle\n"
+			"  extract-signature       Extract the bundle signature\n"
 #endif
-			"  extract\t\tExtract the bundle content\n"
-			"  info\t\t\tShow bundle information\n"
+			"  extract                 Extract the bundle content\n"
+			"  info                    Show bundle information\n"
 			"\n"
 			"List of rauc target commands:\n"
 #if ENABLE_SERVICE == 1
-			"  service\t\tStart RAUC service\n"
+			"  service                 Start RAUC service\n"
 #endif
-			"  install\t\tInstall a bundle\n"
-			"  status\t\tShow status\n"
-			"  mount\t\t\tMount a bundle\n"
-			"  write-slot\t\tWrite image to slot and bypass all update logic\n"
+			"  install                 Install a bundle\n"
+			"  status                  Show status\n"
+			"  mount                   Mount a bundle\n"
+			"  write-slot              Write image to slot and bypass all update logic\n"
 			"\n"
 			"Environment variables:\n"
-			"  RAUC_KEY_PASSPHRASE Passphrase to use for accessing key files (signing only)\n"
-			"  RAUC_PKCS11_MODULE  Library filename for PKCS#11 module (signing only)\n"
-			"  RAUC_PKCS11_PIN     PIN to use for accessing PKCS#11 keys (signing only)");
+			"  RAUC_KEY_PASSPHRASE     Passphrase to use for accessing key files (signing only)\n"
+			"  RAUC_PKCS11_MODULE      Library filename for PKCS#11 module (signing only)\n"
+			"  RAUC_PKCS11_PIN         PIN to use for accessing PKCS#11 keys (signing only)");
 
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
 		g_printerr("%s\n", error->message);
