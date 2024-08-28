@@ -1871,6 +1871,7 @@ static gboolean print_status(RaucStatusPrint *status_print)
 		return FALSE;
 	}
 
+	g_strchomp(text);
 	g_print("%s\n", text);
 
 	return TRUE;
