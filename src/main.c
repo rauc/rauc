@@ -1348,13 +1348,13 @@ static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint 
 			slot->state == ST_BOOTED ? KBLD : "",
 			r_slot_slotstate_to_str(slot->state));
 	if (slot->bootname)
-		g_string_append_printf(text, "\n\tbootname: "KBLU "%s"KNRM, slot->bootname);
+		g_string_append_printf(text, "\n      bootname: "KBLU "%s"KNRM, slot->bootname);
 	if (slot->description)
-		g_string_append_printf(text, "\n\tdescription: %s", slot->description);
+		g_string_append_printf(text, "\n      description: %s", slot->description);
 	if (slot->mount_point)
-		g_string_append_printf(text, "\n\tmounted: %s", slot->mount_point);
+		g_string_append_printf(text, "\n      mounted: %s", slot->mount_point);
 	if (slot->bootname)
-		g_string_append_printf(text, "\n\tboot status: %s", slot->boot_good ? KGRN "good"KNRM : KRED "bad"KNRM);
+		g_string_append_printf(text, "\n      boot status: %s", slot->boot_good ? KGRN "good"KNRM : KRED "bad"KNRM);
 	if (status_detailed && slot_state) {
 		g_string_append_printf(text, "\n      slot status:");
 		g_string_append_printf(text, "\n          bundle:");
