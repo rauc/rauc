@@ -966,10 +966,10 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	gboolean show_crypt_key = FALSE; /* change to TRUE to display dm-crypt key */
 	gint cnt;
 
-	g_string_append_printf(text, "Compatible: \t'%s'\n", manifest->update_compatible);
-	g_string_append_printf(text, "Version:    \t'%s'\n", manifest->update_version);
-	g_string_append_printf(text, "Description:\t'%s'\n", manifest->update_description);
-	g_string_append_printf(text, "Build:      \t'%s'\n", manifest->update_build);
+	g_string_append_printf(text, "Compatible:     '%s'\n", manifest->update_compatible);
+	g_string_append_printf(text, "Version:        '%s'\n", manifest->update_version);
+	g_string_append_printf(text, "Description:    '%s'\n", manifest->update_description);
+	g_string_append_printf(text, "Build:          '%s'\n", manifest->update_build);
 
 	hooks = g_ptr_array_new();
 	if (manifest->hooks.install_check == TRUE) {
@@ -978,10 +978,10 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	g_ptr_array_add(hooks, NULL);
 
 	temp_string = g_strjoinv(" ", (gchar**) hooks->pdata);
-	g_string_append_printf(text, "Hooks:      \t'%s'\n", temp_string);
+	g_string_append_printf(text, "Hooks:          '%s'\n", temp_string);
 	g_free(temp_string);
 
-	g_string_append_printf(text, "Bundle Format: \t%s", r_manifest_bundle_format_to_str(manifest->bundle_format));
+	g_string_append_printf(text, "Bundle Format:  %s", r_manifest_bundle_format_to_str(manifest->bundle_format));
 	if (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
 		if (manifest->was_encrypted)
 			g_string_append_printf(text, KBLD KGRN " [encrypted CMS]"KNRM);
@@ -991,14 +991,14 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	g_string_append_printf(text, "\n");
 
 	if (manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
-		g_string_append_printf(text, "  Crypt Key: \t'%s'\n", show_crypt_key ? manifest->bundle_crypt_key : "<hidden>");
+		g_string_append_printf(text, "  Crypt Key:    '%s'\n", show_crypt_key ? manifest->bundle_crypt_key : "<hidden>");
 	}
 	if (manifest->bundle_format == R_MANIFEST_FORMAT_VERITY || manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT) {
-		g_string_append_printf(text, "  Verity Salt: \t'%s'\n", manifest->bundle_verity_salt);
-		g_string_append_printf(text, "  Verity Hash: \t'%s'\n", manifest->bundle_verity_hash);
-		g_string_append_printf(text, "  Verity Size: \t%"G_GUINT64_FORMAT "\n", manifest->bundle_verity_size);
+		g_string_append_printf(text, "  Verity Salt:  '%s'\n", manifest->bundle_verity_salt);
+		g_string_append_printf(text, "  Verity Hash:  '%s'\n", manifest->bundle_verity_hash);
+		g_string_append_printf(text, "  Verity Size:  %"G_GUINT64_FORMAT "\n", manifest->bundle_verity_size);
 	}
-	g_string_append_printf(text, "Manifest Hash:\t'%s'\n\n", manifest->hash);
+	g_string_append_printf(text, "Manifest Hash:  '%s'\n\n", manifest->hash);
 
 	g_ptr_array_unref(hooks);
 
@@ -1014,11 +1014,11 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 			GHashTableIter kvs_iter;
 			const gchar *key, *value;
 
-			g_string_append_printf(text, "\t%s:\n", group);
+			g_string_append_printf(text, "  %s:\n", group);
 
 			g_hash_table_iter_init(&kvs_iter, kvs);
 			while (g_hash_table_iter_next(&kvs_iter, (gpointer*)&key, (gpointer*)&value)) {
-				g_string_append_printf(text, "\t\t%s: %s\n", key, value);
+				g_string_append_printf(text, "    %s: %s\n", key, value);
 			}
 		}
 	}
@@ -1030,14 +1030,14 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		RaucImage *img = l->data;
 		g_string_append_printf(text, "  "KBLD "[%s]"KNRM "\n", img->slotclass);
 		if (img->variant)
-			g_string_append_printf(text, "\tVariant:   %s\n", img->variant);
+			g_string_append_printf(text, "    Variant:   %s\n", img->variant);
 		if (img->filename) {
 			g_autofree gchar* formatted_size = g_format_size_full(img->checksum.size, G_FORMAT_SIZE_LONG_FORMAT);
-			g_string_append_printf(text, "\tFilename:  %s\n", img->filename);
-			g_string_append_printf(text, "\tChecksum:  %s\n", img->checksum.digest);
-			g_string_append_printf(text, "\tSize:      %s\n", formatted_size);
+			g_string_append_printf(text, "    Filename:  %s\n", img->filename);
+			g_string_append_printf(text, "    Checksum:  %s\n", img->checksum.digest);
+			g_string_append_printf(text, "    Size:      %s\n", formatted_size);
 		} else {
-			g_string_append_printf(text, "\t(no image file)\n");
+			g_string_append_printf(text, "    (no image file)\n");
 		}
 
 		hooks = g_ptr_array_new();
@@ -1053,14 +1053,14 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		g_ptr_array_add(hooks, NULL);
 
 		temp_string = g_strjoinv(" ", (gchar**) hooks->pdata);
-		g_string_append_printf(text, "\tHooks:     %s\n", temp_string);
+		g_string_append_printf(text, "    Hooks:     %s\n", temp_string);
 		g_free(temp_string);
 
 		g_ptr_array_unref(hooks);
 
 		if (img->adaptive) {
 			temp_string = g_strjoinv(" ", (gchar**) img->adaptive);
-			g_string_append_printf(text, "\tAdaptive:  %s\n", temp_string);
+			g_string_append_printf(text, "    Adaptive:  %s\n", temp_string);
 			g_free(temp_string);
 		}
 
