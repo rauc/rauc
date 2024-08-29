@@ -772,8 +772,10 @@ reply:
 
 	if (ctx->url)
 		g_variant_dict_insert(&dict, "url", "s", ctx->url);
-	if (xfer->content_size)
+	if (xfer->content_size) {
+		ctx->data_size = xfer->content_size;
 		g_variant_dict_insert(&dict, "size", "t", xfer->content_size);
+	}
 	if (xfer->current_time)
 		g_variant_dict_insert(&dict, "current-time", "t", xfer->current_time);
 	if (xfer->modified_time)
@@ -963,6 +965,11 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 	r_stats_show(ctx.starttransfer, NULL);
 	r_stats_show(ctx.total, NULL);
 
+	if (ctx.data_size) {
+		double percent_dl = ctx.dl_size->sum * 100.0 / (double)ctx.data_size;
+		g_message("downloaded %.1f%% of the full bundle", percent_dl);
+	}
+
 	res = TRUE;
 out:
 	g_clear_pointer(&ctx.url, g_free);
@@ -1086,11 +1093,15 @@ static gboolean nbd_configure(RaucNBDServer *nbd_srv, GError **error)
 	}
 
 	g_variant_dict_lookup(&dict, "url", "s", &nbd_srv->effective_url);
+
 	g_variant_dict_lookup(&dict, "size", "t", &nbd_srv->data_size);
-	if (nbd_srv->data_size) {
-		g_autofree gchar* formatted_size = g_format_size_full(nbd_srv->data_size, G_FORMAT_SIZE_LONG_FORMAT);
-		g_message("received HTTP server info: total size %s", formatted_size);
+	if (!nbd_srv->data_size) {
+		g_set_error(error, R_NBD_ERROR, R_NBD_ERROR_CONFIGURATION, "server did not send bundle size");
+		return FALSE;
 	}
+	g_autofree gchar* formatted_size = g_format_size_full(nbd_srv->data_size, G_FORMAT_SIZE_LONG_FORMAT);
+	g_message("received HTTP server info: total size %s", formatted_size);
+
 	g_variant_dict_lookup(&dict, "current-time", "t", &nbd_srv->current_time);
 	if (nbd_srv->current_time) {
 		g_autoptr(GDateTime) datetime = g_date_time_new_from_unix_utc(nbd_srv->current_time);
