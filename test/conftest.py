@@ -195,10 +195,29 @@ def softhsm2_test_signature(tmp_path, cert, label, ca):
     assert (test_tmp / "message.out").read_text() == "test message\n"
 
 
+def softhsm2_test_encryption(tmp_path, cert, label):
+    test_tmp = tmp_path / "softhsm2_test" / label
+    test_tmp.mkdir(parents=True)
+    (test_tmp / "message.txt").write_text("test message\n")
+
+    subprocess.check_call(
+        f"openssl cms -encrypt -in {test_tmp}/message.txt -out {test_tmp}/message.enc -binary {cert}",
+        shell=True,
+    )
+    subprocess.check_call(
+        "openssl cms -engine pkcs11 -keyform engine -decrypt "
+        f"-in {test_tmp}/message.enc -out {test_tmp}/message.out -binary "
+        f"-recip {cert} -inkey 'pkcs11:token=rauc;object={label}&pin-value=1111'",
+        shell=True,
+    )
+
+    assert (test_tmp / "message.out").read_text() == "test message\n"
+
 
 def prepare_softhsm2(tmp_path, softhsm2_mod):
     ca_dev = Path("openssl-ca/dev")
     ca_cert = Path("openssl-ca/dev-ca.pem")
+    enc_keys = Path("openssl-enc/keys")
 
     softhsm2_conf = tmp_path / "softhsm2.conf"
     softhsm2_dir = tmp_path / "softhsm2.tokens"
@@ -241,6 +260,17 @@ def prepare_softhsm2(tmp_path, softhsm2_mod):
 
     softhsm2_test_signature(tmp_path, ca_dev / "autobuilder-1.cert.pem", "autobuilder-1", ca_cert)
     softhsm2_test_signature(tmp_path, ca_dev / "autobuilder-2.cert.pem", "autobuilder-2", ca_cert)
+
+    # load encryption key pair
+    softhsm2_load_key_pair(
+        enc_keys / "rsa-4096/cert-000.pem",
+        enc_keys / "rsa-4096/private-key-000.pem",
+        "enc-rsa-000",
+        "11",
+        softhsm2_mod,
+    )
+
+    softhsm2_test_encryption(tmp_path, enc_keys / "rsa-4096/cert-000.pem", "enc-rsa-000")
 
     subprocess.check_call(f"pkcs11-tool --module {softhsm2_mod} -l --pin 1111 --list-objects", shell=True)
 
