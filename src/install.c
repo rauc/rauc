@@ -620,7 +620,7 @@ static gchar **add_system_environment(gchar **envp)
 /**
  * Sets up an environment containing RAUC information, ready to be passed to e.g. handlers
  *
- * Extends the system environment so that the result is save to be used with
+ * Extends the system environment so that the result is safe to be used with
  * g_subprocess_launcher_set_environ().
  *
  * @param update_source Path to the current bundle mount point
