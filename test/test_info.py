@@ -13,23 +13,23 @@ def test_info_plain(tmp_path):
     out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-ca.pem info {tmp_path}/good-bundle.raucb")
 
     assert exitcode == 0
-    assert out.startswith("Compatible: 	'Test Config'")
-    assert "Bundle Format: 	plain" in out
+    assert out.startswith("Compatible:     'Test Config'")
+    assert "Bundle Format:  plain" in out
 
 
 def test_info_verity():
     out, err, exitcode = run("rauc --keyring openssl-ca/dev-ca.pem info good-verity-bundle.raucb")
 
     assert exitcode == 0
-    assert out.startswith("Compatible: 	'Test Config'")
-    assert "Bundle Format: 	verity" in out
+    assert out.startswith("Compatible:     'Test Config'")
+    assert "Bundle Format:  verity" in out
 
 
 def test_info_verity_adaptive_meta():
     out, err, exitcode = run("rauc --keyring openssl-ca/dev-ca.pem info good-adaptive-meta-bundle.raucb")
 
     assert exitcode == 0
-    assert out.startswith("Compatible: 	'Test Config'")
+    assert out.startswith("Compatible:     'Test Config'")
 
 
 @have_streaming
@@ -39,7 +39,7 @@ def test_info_streaming():
     )
 
     assert exitcode == 0
-    assert out.startswith("Compatible: 	'Test Config'")
+    assert out.startswith("Compatible:     'Test Config'")
 
 
 def test_info_casync_plain(tmp_path):
@@ -49,7 +49,7 @@ def test_info_casync_plain(tmp_path):
     out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-ca.pem info {tmp_path}/good-casync-bundle-1.5.1.raucb")
 
     assert exitcode == 0
-    assert out.startswith("Compatible: 	'Test Config'")
+    assert out.startswith("Compatible:     'Test Config'")
     assert "rootfs.img.caibx" in out
     assert "appfs.img.caibx" in out
 
@@ -58,7 +58,7 @@ def test_info_casync_verity():
     out, err, exitcode = run("rauc --keyring openssl-ca/dev-ca.pem info good-casync-bundle-verity.raucb")
 
     assert exitcode == 0
-    assert out.startswith("Compatible: 	'Test Config'")
+    assert out.startswith("Compatible:     'Test Config'")
     assert "rootfs.img.caibx" in out
     assert "appfs.img.caibx" in out
 
@@ -67,8 +67,8 @@ def test_info_crypt_unencrypted():
     out, err, exitcode = run("rauc --keyring openssl-ca/dev-ca.pem info good-crypt-bundle-unencrypted.raucb")
 
     assert exitcode == 0
-    assert out.startswith("Compatible: 	'Test Config'")
-    assert "Bundle Format: 	crypt" in out
+    assert out.startswith("Compatible:     'Test Config'")
+    assert "Bundle Format:  crypt" in out
 
 
 def test_info_crypt_encrypted_valid_key():
@@ -79,8 +79,8 @@ def test_info_crypt_encrypted_valid_key():
     )
 
     assert exitcode == 0
-    assert out.startswith("Compatible: 	'Test Config'")
-    assert "Bundle Format: 	crypt" in out
+    assert out.startswith("Compatible:     'Test Config'")
+    assert "Bundle Format:  crypt" in out
 
 
 def test_info_crypt_encrypted_invalid_key():
@@ -113,8 +113,8 @@ def test_info_with_config(tmp_path):
     out, err, exitcode = run(f"rauc --conf=test.conf info {tmp_path}/good-bundle.raucb")
 
     assert exitcode == 0
-    assert out.startswith("Compatible: 	'Test Config'")
-    assert "Bundle Format: 	plain" in out
+    assert out.startswith("Compatible:     'Test Config'")
+    assert "Bundle Format:  plain" in out
 
 
 def test_info_verification_failure(tmp_path):
@@ -141,8 +141,8 @@ def test_info_valid_file_uri(tmp_path):
     out, err, exitcode = run(f"rauc info --keyring openssl-ca/dev-ca.pem file://{tmp_path}/good-bundle.raucb")
 
     assert exitcode == 0
-    assert out.startswith("Compatible: 	'Test Config'")
-    assert "Bundle Format: 	plain" in out
+    assert out.startswith("Compatible:     'Test Config'")
+    assert "Bundle Format:  plain" in out
 
 
 def test_info_invalid_file_uri():
