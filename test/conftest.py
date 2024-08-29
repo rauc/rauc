@@ -6,6 +6,7 @@ import subprocess
 import time
 from functools import cache
 from configparser import ConfigParser
+from pathlib import Path
 from random import Random
 
 import pytest
@@ -150,11 +151,33 @@ def have_service():
     return string_in_config_h("ENABLE_SERVICE 1")
 
 
-ca_dev = "openssl-ca/dev"
-ca_rel = "openssl-ca/rel"
+def softhsm2_load_key_pair(cert, privkey, label, id_, softhsm2_mod):
+    proc = subprocess.run(
+        f"openssl x509 -in {cert} -inform pem -outform der "
+        f"| pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y cert -w /proc/self/fd/0 "
+        f"--label {label} --id {id_}",
+        shell=True,
+    )
+    assert proc.returncode == 0
+    proc = subprocess.run(
+        f"openssl rsa -in {privkey} -inform pem -pubout -outform der "
+        f"| pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y pubkey -w /proc/self/fd/0 "
+        f"--label {label} --id {id_}",
+        shell=True,
+    )
+    assert proc.returncode == 0
+    proc = subprocess.run(
+        f"openssl rsa -in {privkey} -inform pem -outform der "
+        f"| pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y privkey -w /proc/self/fd/0 "
+        f"--label {label} --id {id_}",
+        shell=True,
+    )
+    assert proc.returncode == 0
 
 
 def prepare_softhsm2(tmp_path, softhsm2_mod):
+    ca_dev = Path("openssl-ca/dev")
+
     softhsm2_conf = tmp_path / "softhsm2.conf"
     softhsm2_dir = tmp_path / "softhsm2.tokens"
 
@@ -177,48 +200,13 @@ def prepare_softhsm2(tmp_path, softhsm2_mod):
     out, err, exitcode = run("openssl engine pkcs11 -tt -vvvv")
     assert exitcode == 0
 
-    proc = subprocess.run(
-        f"openssl x509 -in {ca_dev}/autobuilder-1.cert.pem -inform pem -outform der "
-        f"| pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y cert -w /proc/self/fd/0 "
-        "--label autobuilder-1 --id 01",
-        shell=True,
+    # load signing key pairs
+    softhsm2_load_key_pair(
+        ca_dev / "autobuilder-1.cert.pem", ca_dev / "private/autobuilder-1.pem", "autobuilder-1", "01", softhsm2_mod
     )
-    assert proc.returncode == 0
-    proc = subprocess.run(
-        f"openssl rsa -in {ca_dev}/private/autobuilder-1.pem -inform pem -pubout -outform der "
-        f"| pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y pubkey -w /proc/self/fd/0 "
-        "--label autobuilder-1 --id 01",
-        shell=True,
+    softhsm2_load_key_pair(
+        ca_dev / "autobuilder-2.cert.pem", ca_dev / "private/autobuilder-2.pem", "autobuilder-2", "02", softhsm2_mod
     )
-    assert proc.returncode == 0
-    proc = subprocess.run(
-        f"openssl rsa -in {ca_dev}/private/autobuilder-1.pem -inform pem -outform der "
-        f"| pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y privkey -w /proc/self/fd/0 "
-        "--label autobuilder-1 --id 01",
-        shell=True,
-    )
-    assert proc.returncode == 0
-    proc = subprocess.run(
-        f"openssl x509 -in {ca_dev}/autobuilder-2.cert.pem -inform pem -outform der "
-        f"| pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y cert -w /proc/self/fd/0 "
-        "--label autobuilder-2 --id 02",
-        shell=True,
-    )
-    assert proc.returncode == 0
-    proc = subprocess.run(
-        f"openssl rsa -in {ca_dev}/private/autobuilder-2.pem -inform pem -pubout -outform der "
-        f"| pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y pubkey -w /proc/self/fd/0 "
-        "--label autobuilder-2 --id 02",
-        shell=True,
-    )
-    assert proc.returncode == 0
-    proc = subprocess.run(
-        f"openssl rsa -in {ca_dev}/private/autobuilder-2.pem -inform pem -outform der "
-        f"| pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y privkey -w /proc/self/fd/0 "
-        "--label autobuilder-2 --id 02",
-        shell=True,
-    )
-    assert proc.returncode == 0
 
     out, err, exitcode = run(f"pkcs11-tool --module {softhsm2_mod} -l --pin 1111 --list-objects")
     assert exitcode == 0
