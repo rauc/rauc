@@ -94,6 +94,18 @@ def test_info_crypt_encrypted_invalid_key():
     assert "Failed to decrypt CMS EnvelopedData" in err
 
 
+def test_info_crypt_encrypted_pkcs11(pkcs11):
+    out, err, exitcode = run(
+        "rauc --keyring openssl-ca/dev-ca.pem "
+        "--key 'pkcs11:token=rauc;object=enc-rsa-000' "
+        "info good-crypt-bundle-encrypted.raucb"
+    )
+
+    assert exitcode == 0
+    assert out.startswith("Compatible:     'Test Config'")
+    assert "Bundle Format:  crypt" in out
+
+
 def test_info_dump_recipients_crypt_encrypted():
     out, err, exitcode = run(
         "rauc --keyring openssl-ca/dev-ca.pem "
