@@ -1,5 +1,6 @@
 import os
 import shutil
+from textwrap import dedent
 
 from conftest import have_casync, have_http, have_streaming, no_service, root
 from helper import run
@@ -211,3 +212,75 @@ def test_install_no_service_streaming_error(tmp_path, create_system_files):
 
     assert exitcode == 1
     assert not os.path.getsize(tmp_path / "images/rootfs-1") > 0
+
+
+def test_install_hook_env(rauc_dbus_service_with_system, tmp_path, bundle):
+    bundle.add_hook_script(
+        dedent("""\
+    #!/bin/bash
+    set -e
+
+    if [ -z "$RAUC_PYTEST_TMP" ]; then
+        exit 1
+    fi
+
+    case "$1" in
+        install-check)
+            env | sort > "$RAUC_PYTEST_TMP/install-check-hook-env"
+            ;;
+        slot-pre-install)
+            env | sort > "$RAUC_PYTEST_TMP/slot-pre-install-hook-env"
+            ;;
+        slot-install)
+            env | sort > "$RAUC_PYTEST_TMP/slot-install-hook-env"
+            ;;
+        slot-post-install)
+            env | sort > "$RAUC_PYTEST_TMP/slot-post-install-hook-env"
+            ;;
+        *)
+            exit 1
+            ;;
+    esac
+    """)
+    )
+    bundle.manifest["hooks"]["hooks"] = "install-check"
+    bundle.manifest["image.rootfs"] = {
+        "filename": "rootfs.img",
+        "hooks": "pre-install;post-install",
+    }
+    bundle.make_random_image("rootfs", 4096, "random rootfs")
+    bundle.manifest["image.appfs"] = {
+        "filename": "appfs.img",
+        "hooks": "install",
+    }
+    bundle.make_random_image("appfs", 4096, "random appfs")
+    bundle.build()
+
+    out, err, exitcode = run(f"rauc install {bundle.output}")
+
+    assert exitcode == 0
+    assert os.path.getsize(tmp_path / "images/rootfs-1") > 0
+
+    with open(tmp_path / "install-check-hook-env") as f:
+        check_lines = f.readlines()
+        assert "RAUC_MF_VERSION=2011.03-2\n" in check_lines
+        assert "RAUC_SYSTEM_COMPATIBLE=Test Config\n" in check_lines
+        assert "RAUC_SYSTEM_VARIANT=Default Variant\n" in check_lines
+
+    with open(tmp_path / "slot-pre-install-hook-env") as f:
+        pre_lines = f.readlines()
+        assert "RAUC_IMAGE_CLASS=rootfs\n" in pre_lines
+        assert "RAUC_IMAGE_SIZE=4096\n" in pre_lines
+        assert "RAUC_SLOT_NAME=rootfs.1\n" in pre_lines
+        assert "RAUC_SLOT_STATE=inactive\n" in pre_lines
+
+    with open(tmp_path / "slot-post-install-hook-env") as f:
+        post_lines = f.readlines()
+        assert post_lines == pre_lines
+
+    with open(tmp_path / "slot-install-hook-env") as f:
+        install_lines = f.readlines()
+        assert "RAUC_IMAGE_CLASS=appfs\n" in install_lines
+        assert "RAUC_IMAGE_SIZE=4096\n" in install_lines
+        assert "RAUC_SLOT_NAME=appfs.1\n" in install_lines
+        assert "RAUC_SLOT_STATE=inactive\n" in install_lines

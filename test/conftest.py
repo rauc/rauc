@@ -5,6 +5,8 @@ import signal
 import subprocess
 import time
 from functools import cache
+from configparser import ConfigParser
+from random import Random
 
 import pytest
 from pydbus import SessionBus
@@ -365,3 +367,68 @@ def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_sy
 
     service.kill()
     service.wait()
+
+
+class Bundle:
+    def __init__(self, tmp_path, name):
+        self.tmp_path = tmp_path
+        self.output = tmp_path / name
+        self.content = tmp_path / "install-content"
+
+        assert not self.output.exists()
+        assert not self.content.exists()
+        self.content.mkdir()
+
+        # default manifest
+        self.manifest = ConfigParser()
+        self.manifest["update"] = {
+            "compatible": "Test Config",
+            "version": "2011.03-2",
+        }
+        self.manifest["bundle"] = {
+            "format": "verity",
+        }
+
+        # some padding
+        self._make_random_file(self.content / "padding", 4096, "fixed padding")
+
+    def _make_random_file(self, path, size, seed):
+        rand = Random(seed)
+
+        with open(path, "wb") as f:
+            f.write(bytes(rand.getrandbits(8) for _ in range(size)))
+
+    def make_random_image(self, image_name, size, seed):
+        path = self.content / self.manifest[f"image.{image_name}"]["filename"]
+        self._make_random_file(path, size, seed)
+
+    def add_hook_script(self, hook_script):
+        path = self.content / "hook.sh"
+        with open(path, "w") as f:
+            f.write(hook_script)
+        path.chmod(0o755)
+
+        self.manifest["hooks"] = {
+            "filename": "hook.sh",
+        }
+
+    def build(self):
+        with open(self.content / "manifest.raucm", "w") as f:
+            self.manifest.write(f, space_around_delimiters=False)
+
+        out, err, exitcode = run(
+            "rauc bundle "
+            "--cert openssl-ca/dev/autobuilder-1.cert.pem "
+            "--key openssl-ca/dev/private/autobuilder-1.pem "
+            f"{self.content} {self.output}"
+        )
+        assert exitcode == 0
+        assert "Creating 'verity' format bundle" in out
+        assert self.output.is_file()
+
+
+@pytest.fixture
+def bundle(tmp_path):
+    bundle = Bundle(tmp_path, "test.raucb")
+
+    yield bundle
