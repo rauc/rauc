@@ -242,8 +242,7 @@ def prepare_softhsm2(tmp_path, softhsm2_mod):
     softhsm2_test_signature(tmp_path, ca_dev / "autobuilder-1.cert.pem", "autobuilder-1", ca_cert)
     softhsm2_test_signature(tmp_path, ca_dev / "autobuilder-2.cert.pem", "autobuilder-2", ca_cert)
 
-    out, err, exitcode = run(f"pkcs11-tool --module {softhsm2_mod} -l --pin 1111 --list-objects")
-    assert exitcode == 0
+    subprocess.check_call(f"pkcs11-tool --module {softhsm2_mod} -l --pin 1111 --list-objects", shell=True)
 
     os.environ["RAUC_PKCS11_PIN"] = "1111"
     # setting the module is needed only if p11-kit doesn't work
