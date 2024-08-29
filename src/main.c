@@ -21,6 +21,7 @@
 #include "install.h"
 #include "rauc-installer-generated.h"
 #include "service.h"
+#include "shell.h"
 #include "signature.h"
 #include "status_file.h"
 #include "update_handler.h"
@@ -893,31 +894,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 
 	g_ptr_array_unref(hooks);
 
-	if (manifest->meta && g_hash_table_size(manifest->meta)) {
-		GHashTableIter iter;
-		GHashTable *kvs;
-		const gchar *group;
-
-		g_hash_table_iter_init(&iter, manifest->meta);
-		while (g_hash_table_iter_next(&iter, (gpointer*)&group, (gpointer*)&kvs)) {
-			GHashTableIter kvs_iter;
-			const gchar *key, *value;
-			g_autofree gchar *env_group = r_prepare_env_key(group, NULL);
-
-			if (!env_group)
-				continue;
-
-			g_hash_table_iter_init(&kvs_iter, kvs);
-			while (g_hash_table_iter_next(&kvs_iter, (gpointer*)&key, (gpointer*)&value)) {
-				g_autofree gchar *env_key = r_prepare_env_key(key, NULL);
-
-				if (!env_key)
-					continue;
-
-				r_ptr_array_add_printf(entries, "RAUC_META_%s_%s=%s", env_group, env_key, value);
-			}
-		}
-	}
+	r_shell_from_manifest_meta(entries, manifest);
 
 	cnt = 0;
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
