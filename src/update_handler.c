@@ -1300,6 +1300,7 @@ static gboolean unpack_archive(RaucImage *image, gchar *dest, GError **error)
  * @param hook_cmd first argument to the hook script
  * @param image image to be installed (optional)
  * @param slot target slot
+ * @param variables extra environment variables, or NULL
  * @param error return location for a GError, or NULL
  *
  * @return TRUE on success, FALSE if an error occurred

@@ -138,6 +138,27 @@ gchar **r_environ_setenv_ptr_array(gchar **envp, const GPtrArray *ptrarray, gboo
 	return envp;
 }
 
+void r_subprocess_launcher_setenv_ptr_array(GSubprocessLauncher *launcher, const GPtrArray *ptrarray, gboolean overwrite)
+{
+	g_return_if_fail(launcher != NULL);
+	g_return_if_fail(ptrarray != NULL);
+
+	for (guint i = 0; i < ptrarray->len; i++) {
+		const gchar *element = g_ptr_array_index(ptrarray, i);
+		gchar *eq = strchr(element, '=');
+		g_autofree gchar *k = NULL;
+
+		if (!eq) {
+			g_error("missing '=' in '%s'", element);
+			return;
+		}
+
+		k = g_strndup(element, eq-element);
+
+		g_subprocess_launcher_setenv(launcher, k, eq+1, overwrite);
+	}
+}
+
 GBytes *read_file(const gchar *filename, GError **error)
 {
 	gchar *contents;

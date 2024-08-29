@@ -808,9 +808,10 @@ The following fields are supported for image sections:
 The ``meta.<label>`` sections are intended to provide a forwards-compatible
 way to add metadata to the manifest which is not interpreted by RAUC in any
 way.
-They are accessible via ``rauc info`` and the :ref:`"InspectBundle" D-Bus API
-<gdbus-method-de-pengutronix-rauc-Installer.InspectBundle>`.
-In future releases, they will be accessible in hooks/handlers, as well.
+They are accessible via ``rauc info``, the :ref:`"InspectBundle" D-Bus API
+<gdbus-method-de-pengutronix-rauc-Installer.InspectBundle>`, pre-/post-install
+:ref:`handlers <sec-handler-interface>` and the ``install-check`` hook.
+In future releases, they will be accessible in other hooks, as well.
 
 ``<key>`` (optional)
   Keys (and values) can be defined freely in this section.
@@ -1224,6 +1225,10 @@ variables.
 
 ``RAUC_MOUNT_PREFIX``
   Provides the path prefix that may be used for RAUC mount points
+
+``RAUC_META_*``
+  Exposes the :ref:`meta-data sections <meta.label-section>` from the bundle's manifest.
+  This uses the same format as ``rauc info --output-format=shell …``.
 
 ``RAUC_SLOTS``
   An iterator list to loop over all existing slots. Each item in the list is
