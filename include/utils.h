@@ -131,6 +131,17 @@ gchar **r_environ_setenv_ptr_array(gchar **envp, const GPtrArray *ptrarray, gboo
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Calls g_subprocess_launcher_setenv for each 'key=value' string in the array.
+ *
+ * This is useful when setting up the environment via a subprocess launcher.
+ *
+ * @param launcher a GSubprocessLauncher
+ * @param ptrarray the GPtrArray to add to the environment
+ * @param overwrite whether to change existing variables
+ */
+void r_subprocess_launcher_setenv_ptr_array(GSubprocessLauncher *launcher, const GPtrArray *ptrarray, gboolean overwrite);
+
+/**
  * Read file content into a GBytes.
  *
  * @param filename Filename to read from

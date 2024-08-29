@@ -254,6 +254,9 @@ def test_install_hook_env(rauc_dbus_service_with_system, tmp_path, bundle):
         "hooks": "install",
     }
     bundle.make_random_image("appfs", 4096, "random appfs")
+    bundle.manifest["meta.test"] = {
+        "foo": "bar",
+    }
     bundle.build()
 
     out, err, exitcode = run(f"rauc install {bundle.output}")
@@ -266,6 +269,7 @@ def test_install_hook_env(rauc_dbus_service_with_system, tmp_path, bundle):
         assert "RAUC_MF_VERSION=2011.03-2\n" in check_lines
         assert "RAUC_SYSTEM_COMPATIBLE=Test Config\n" in check_lines
         assert "RAUC_SYSTEM_VARIANT=Default Variant\n" in check_lines
+        assert "RAUC_META_TEST_FOO=bar\n" in check_lines
 
     with open(tmp_path / "slot-pre-install-hook-env") as f:
         pre_lines = f.readlines()
