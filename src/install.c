@@ -21,6 +21,7 @@
 #include "mark.h"
 #include "mount.h"
 #include "service.h"
+#include "shell.h"
 #include "signature.h"
 #include "slot.h"
 #include "status_file.h"
@@ -620,7 +621,7 @@ static gchar **add_system_environment(gchar **envp)
 /**
  * Sets up an environment containing RAUC information, ready to be passed to e.g. handlers
  *
- * Extends the system environment so that the result is save to be used with
+ * Extends the system environment so that the result is safe to be used with
  * g_subprocess_launcher_set_environ().
  *
  * @param update_source Path to the current bundle mount point
@@ -715,6 +716,10 @@ static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest,
 
 	envp = g_environ_setenv(envp, "RAUC_SLOTS", slots->str, TRUE);
 	envp = g_environ_setenv(envp, "RAUC_TARGET_SLOTS", target_slots->str, TRUE);
+
+	g_autoptr(GPtrArray) shell_vars = g_ptr_array_new_with_free_func(g_free);
+	r_shell_from_manifest_meta(shell_vars, manifest);
+	envp = r_environ_setenv_ptr_array(envp, shell_vars, FALSE);
 
 	return envp;
 }

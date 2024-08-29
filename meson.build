@@ -125,6 +125,7 @@ sources_rauc = files([
   'src/mbr.c',
   'src/mount.c',
   'src/service.c',
+  'src/shell.c',
   'src/signature.c',
   'src/stats.c',
   'src/status_file.c',
