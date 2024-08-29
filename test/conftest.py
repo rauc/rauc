@@ -292,8 +292,12 @@ def _rauc_dbus_service(tmp_path, conf_file, bootslot):
     tmp_conf_file = tmp_path / "system.conf"
     shutil.copy(conf_file, tmp_conf_file)
 
+    env = os.environ.copy()
+    env["RAUC_PYTEST_TMP"] = str(tmp_path)
+
     service = subprocess.Popen(
-        f"rauc service --conf={tmp_conf_file} --mount={tmp_path}/mnt --override-boot-slot={bootslot}".split()
+        f"rauc service --conf={tmp_conf_file} --mount={tmp_path}/mnt --override-boot-slot={bootslot}".split(),
+        env=env,
     )
 
     bus = SessionBus()
@@ -346,6 +350,16 @@ def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_syste
 @pytest.fixture
 def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_system_files):
     service, bus = _rauc_dbus_service(tmp_path, "crypt-test.conf", "_external_")
+
+    yield bus
+
+    service.kill()
+    service.wait()
+
+
+@pytest.fixture
+def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_system_files):
+    service, bus = _rauc_dbus_service(tmp_path, "adaptive-test.conf", "system0")
 
     yield bus
 
