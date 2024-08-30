@@ -396,7 +396,7 @@ static gboolean generate_adaptive_data(RaucManifest *manifest, const gchar *dir,
 				g_autofree gchar *indexname = g_strconcat(image->filename, ".block-hash-index", NULL);
 				g_autofree gchar *indexpath = g_build_filename(dir, indexname, NULL);
 				g_autoptr(RaucHashIndex) index = NULL;
-				int fd = -1;
+				g_auto(filedesc) fd = -1;
 
 				if (image_is_archive(image)) {
 					g_warning("Generating block hash index requires a block device image but %s looks like an archive", image->filename);
@@ -419,7 +419,6 @@ static gboolean generate_adaptive_data(RaucManifest *manifest, const gchar *dir,
 							error,
 							ierror,
 							"Failed to generate hash index for %s: ", image->filename);
-					g_close(fd, NULL);
 					return FALSE;
 				}
 
@@ -428,7 +427,6 @@ static gboolean generate_adaptive_data(RaucManifest *manifest, const gchar *dir,
 							error,
 							ierror,
 							"Failed to write hash index for %s: ", image->filename);
-					g_close(fd, NULL);
 					return FALSE;
 				}
 

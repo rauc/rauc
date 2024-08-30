@@ -282,6 +282,26 @@ static void test_ranges(Fixture *fixture, gconstpointer user_data)
 	g_clear_pointer(&hash, g_free);
 }
 
+/* Tests error handling when opening hash index for a file size that is not a
+ * multiple of 4096 */
+static void test_invalid_size(Fixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(RaucHashIndex) index = NULL;
+	int datafd = -1;
+
+	g_autofree gchar *data_filename = write_random_file(fixture->tmpdir, "broken.img", 2048*63, 0xf56ce6bf);
+	g_assert_nonnull(data_filename);
+
+	datafd = g_open(data_filename, O_RDONLY|O_CLOEXEC, 0);
+	g_assert_cmpint(datafd, >, 0);
+
+	// open and calculate hash index
+	index = r_hash_index_open("test", datafd, NULL, &error);
+	g_assert_error(error, R_HASH_INDEX_ERROR, R_HASH_INDEX_ERROR_SIZE);
+	g_assert_null(index);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -290,6 +310,7 @@ int main(int argc, char *argv[])
 
 	g_test_add("/hash_index/basic", Fixture, NULL, fixture_set_up, test_basic, fixture_tear_down);
 	g_test_add("/hash_index/ranges", Fixture, NULL, fixture_set_up, test_ranges, fixture_tear_down);
+	g_test_add("/hash_index/invalid-size", Fixture, NULL, fixture_set_up, test_invalid_size, fixture_tear_down);
 
 	return g_test_run();
 }

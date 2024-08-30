@@ -463,16 +463,19 @@ class Bundle:
             "filename": "hook.sh",
         }
 
-    def build(self):
+    def build_nocheck(self):
         with open(self.content / "manifest.raucm", "w") as f:
             self.manifest.write(f, space_around_delimiters=False)
 
-        out, err, exitcode = run(
+        return run(
             "rauc bundle "
             "--cert openssl-ca/dev/autobuilder-1.cert.pem "
             "--key openssl-ca/dev/private/autobuilder-1.pem "
             f"{self.content} {self.output}"
         )
+
+    def build(self):
+        out, err, exitcode = self.build_nocheck()
         assert exitcode == 0
         assert "Creating 'verity' format bundle" in out
         assert self.output.is_file()

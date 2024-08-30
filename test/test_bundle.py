@@ -137,3 +137,16 @@ def test_bundle_crypt(tmp_path):
 
     out, err, exitcode = run(f"rauc -c test.conf info {tmp_path}/out.raucb")
     assert exitcode == 0
+
+
+def test_bundle_adaptive(tmp_path, bundle):
+    bundle.manifest["image.rootfs"] = {
+        "filename": "rootfs.img",
+        "adaptive": "block-hash-index",
+    }
+    bundle.make_random_image("rootfs", 4097, "random rootfs")
+    out, err, exitcode = bundle.build_nocheck()
+    assert exitcode == 1
+    assert "Creating 'verity' format bundle" in out
+    assert "not a multiple of 4096 bytes" in err
+    assert not bundle.output.is_file()
