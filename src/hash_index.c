@@ -236,7 +236,7 @@ RaucHashIndex *r_hash_index_open(const gchar *label, int data_fd, const gchar *h
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	idx->label = g_strdup(label);
-	idx->data_fd = data_fd;
+	idx->data_fd = dup(data_fd);
 
 	idx->count = get_chunk_count(data_fd, &ierror);
 	if (!idx->count) {
@@ -321,7 +321,7 @@ RaucHashIndex *r_hash_index_open_slot(const gchar *label, const RaucSlot *slot, 
 	g_autoptr(RaucHashIndex) idx = NULL;
 	g_autofree gchar *dir = NULL;
 	g_autofree gchar *index_filename = NULL;
-	int data_fd = -1;
+	g_auto(filedesc) data_fd = -1;
 
 	g_return_val_if_fail(label, NULL);
 	g_return_val_if_fail(slot, NULL);
@@ -351,13 +351,9 @@ RaucHashIndex *r_hash_index_open_slot(const gchar *label, const RaucSlot *slot, 
 		g_propagate_error(error, ierror);
 		goto out;
 	}
-	data_fd = -1; /* belongs to idx now */
 
 	g_debug("opened hash index for slot %s as %s", slot->name, label);
 out:
-	if (data_fd >= 0) {
-		g_close(data_fd, NULL);
-	}
 	return g_steal_pointer(&idx);
 }
 
@@ -366,7 +362,7 @@ RaucHashIndex *r_hash_index_open_image(const gchar *label, const RaucImage *imag
 	GError *ierror = NULL;
 	g_autoptr(RaucHashIndex) idx = NULL;
 	g_autofree gchar *index_filename = NULL;
-	int data_fd = -1;
+	g_auto(filedesc) data_fd = -1;
 
 	g_return_val_if_fail(label, NULL);
 	g_return_val_if_fail(image, NULL);
@@ -389,13 +385,9 @@ RaucHashIndex *r_hash_index_open_image(const gchar *label, const RaucImage *imag
 		g_propagate_error(error, ierror);
 		goto out;
 	}
-	data_fd = -1; /* belongs to idx now */
 
 	g_debug("opened hash index for image %s with index %s", image->filename, index_filename);
 out:
-	if (data_fd >= 0) {
-		g_close(data_fd, NULL);
-	}
 	return g_steal_pointer(&idx);
 }
 
