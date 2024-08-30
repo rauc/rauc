@@ -61,6 +61,20 @@ def test_encrypt_broken_multi_cert_pem(tmp_path):
     assert not os.path.exists(f"{tmp_path}/encrypted.raucb")
 
 
+def test_encrypt_missing_cert_in_file(tmp_path):
+    out, err, exitcode = run(
+        "rauc encrypt "
+        "--to openssl-enc/keys/rsa-4096/private-key-001.pem "
+        "--keyring openssl-ca/dev-ca.pem "
+        f"good-crypt-bundle-unencrypted.raucb {tmp_path}/encrypted.raucb"
+    )
+
+    assert exitcode == 1
+    assert "Expecting: CERTIFICATE" in err
+
+    assert not os.path.exists(f"{tmp_path}/encrypted.raucb")
+
+
 def test_encrypt_verity_bundle(tmp_path):
     out, err, exitcode = run(
         "rauc encrypt "
