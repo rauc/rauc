@@ -334,13 +334,13 @@ RaucHashIndex *r_hash_index_open_slot(const gchar *label, const RaucSlot *slot, 
 				G_FILE_ERROR,
 				g_file_error_from_errno(err),
 				"Failed to open slot device %s: %s", slot->device, g_strerror(err));
-		goto out;
+		return NULL;
 	}
 
 	dir = r_slot_get_checksum_data_directory(slot, NULL, &ierror);
 	if (!dir) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return NULL;
 	}
 
 	index_filename = g_build_filename(dir, "block-hash-index", NULL);
@@ -349,11 +349,11 @@ RaucHashIndex *r_hash_index_open_slot(const gchar *label, const RaucSlot *slot, 
 	idx = r_hash_index_open(label, data_fd, index_filename, &ierror);
 	if (!idx) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return NULL;
 	}
 
 	g_debug("opened hash index for slot %s as %s", slot->name, label);
-out:
+
 	return g_steal_pointer(&idx);
 }
 
@@ -375,7 +375,7 @@ RaucHashIndex *r_hash_index_open_image(const gchar *label, const RaucImage *imag
 				G_FILE_ERROR,
 				g_file_error_from_errno(err),
 				"Failed to open image file %s: %s", image->filename, g_strerror(err));
-		goto out;
+		return NULL;
 	}
 
 	index_filename = g_strdup_printf("%s.block-hash-index", image->filename);
@@ -383,11 +383,11 @@ RaucHashIndex *r_hash_index_open_image(const gchar *label, const RaucImage *imag
 	idx = r_hash_index_open(label, data_fd, index_filename, &ierror);
 	if (!idx) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return NULL;
 	}
 
 	g_debug("opened hash index for image %s with index %s", image->filename, index_filename);
-out:
+
 	return g_steal_pointer(&idx);
 }
 
