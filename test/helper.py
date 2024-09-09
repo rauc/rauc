@@ -45,3 +45,7 @@ def run(command, *, timeout=30):
     logger.info("exitcode: %d", proc.returncode)
 
     return proc.stdout, proc.stderr, proc.returncode
+
+
+def run_tree(path):
+    subprocess.check_call(["tree", "--metafirst", "-ax", "-pugs", "--inodes", path])
