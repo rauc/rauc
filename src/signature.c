@@ -316,7 +316,8 @@ static STACK_OF(X509) *load_certs_from_file(const gchar *certfile, GError **erro
 		if (cert_x509 == NULL) {
 			err = ERR_peek_last_error();
 
-			if (ERR_GET_REASON(err) == PEM_R_NO_START_LINE) {
+			if (ERR_GET_REASON(err) == PEM_R_NO_START_LINE &&
+			    sk_X509_num(certs) != 0) {
 				/* simply reached end of file */
 				ERR_clear_error();
 				break;
