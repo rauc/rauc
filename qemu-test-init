@@ -75,11 +75,23 @@ if type setfacl; then
   export GCOV_PREFIX=/tmp/cov
 fi
 
-save_gcov_data () {
-  if [ -n "$GCOV_PREFIX" ]; then
-    cp -r -T "$GCOV_PREFIX$BUILD_DIR" "$BUILD_DIR" || true
-  fi
-}
+mkdir /tmp/bin
+export PATH=/tmp/bin:$PATH
+
+# create helper scripts to manage coverage data
+if [ -n "$GCOV_PREFIX" ]; then
+  cat > /tmp/bin/save_gcov_data <<EOF
+#!/bin/sh
+set -ex
+cp -r -T "$GCOV_PREFIX$BUILD_DIR" "$BUILD_DIR" || true
+EOF
+  cat > /tmp/bin/clear_gcov_data <<EOF
+#!/bin/sh
+set -ex
+  rm -rf "$GCOV_PREFIX$BUILD_DIR" || true
+EOF
+  chmod +x /tmp/bin/save_gcov_data /tmp/bin/clear_gcov_data
+fi
 
 # enable gdb history
 cat > /root/.gdbinit <<EOF
@@ -108,9 +120,7 @@ mkfs.ext4 /tmp/appdev
 
 # rauc binary in PATH
 if [ -n "$SHELL" ]; then
-  mkdir /tmp/bin
   cp -a $BUILD_DIR/rauc /tmp/bin/rauc
-  export PATH=/tmp/bin:$PATH
 fi
 export RAUC_TEST_NBD_SERVER="$BUILD_DIR/rauc"
 

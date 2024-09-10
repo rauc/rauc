@@ -441,10 +441,13 @@ def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_sy
 
 
 class Bundle:
-    def __init__(self, tmp_path, name):
+    def __init__(self, tmp_path, name=None):
+        if name is None:
+            name = "test"
+
         self.tmp_path = tmp_path
-        self.output = tmp_path / name
-        self.content = tmp_path / "install-content"
+        self.output = tmp_path / f"{name}.raucb"
+        self.content = tmp_path / f"{name}-install-content"
 
         assert not self.output.exists()
         assert not self.content.exists()
@@ -503,6 +506,6 @@ class Bundle:
 
 @pytest.fixture
 def bundle(tmp_path):
-    bundle = Bundle(tmp_path, "test.raucb")
+    bundle = Bundle(tmp_path)
 
     yield bundle
