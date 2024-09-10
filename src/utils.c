@@ -20,37 +20,33 @@ GQuark r_utils_error_quark(void)
 
 GSubprocess *r_subprocess_new(GSubprocessFlags flags, GError **error, const gchar *argv0, ...)
 {
-	GSubprocess *result;
-	g_autoptr(GPtrArray) args = NULL;
-	const gchar *arg;
-	va_list ap;
-
 	g_return_val_if_fail(argv0 != NULL && argv0[0] != '\0', NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	args = g_ptr_array_new();
+	g_autoptr(GPtrArray) args = g_ptr_array_new();
 
+	va_list ap;
 	va_start(ap, argv0);
 	g_ptr_array_add(args, (gchar *) argv0);
+	const gchar *arg;
 	while ((arg = va_arg(ap, const gchar *)))
 		g_ptr_array_add(args, (gchar *) arg);
 	g_ptr_array_add(args, NULL);
 	va_end(ap);
 
-	result = r_subprocess_newv(args, flags, error);
+	GSubprocess *result = r_subprocess_newv(args, flags, error);
 
 	return result;
 }
 
 gboolean r_subprocess_runv(GPtrArray *args, GSubprocessFlags flags, GError **error)
 {
-	g_autoptr(GSubprocess) sproc = NULL;
 	GError *ierror = NULL;
 
 	g_return_val_if_fail(args != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	sproc = r_subprocess_newv(args, flags, &ierror);
+	g_autoptr(GSubprocess) sproc = r_subprocess_newv(args, flags, &ierror);
 	if (sproc == NULL) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -66,9 +62,7 @@ gboolean r_subprocess_runv(GPtrArray *args, GSubprocessFlags flags, GError **err
 
 void close_preserve_errno(int fd)
 {
-	int err;
-
-	err = errno;
+	int err = errno;
 	(void) close(fd);
 	errno = err;
 }
@@ -94,16 +88,14 @@ gchar *r_ptr_array_env_to_shell(const GPtrArray *ptrarray)
 	for (guint i = 0; i < ptrarray->len; i++) {
 		const gchar *element = g_ptr_array_index(ptrarray, i);
 		gchar *eq = strchr(element, '=');
-		g_autofree gchar *k = NULL;
-		g_autofree gchar *v = NULL;
 
 		if (!eq) {
 			g_error("missing '=' in '%s'", element);
 			return NULL;
 		}
 
-		k = g_strndup(element, eq-element);
-		v = g_shell_quote(eq+1);
+		g_autofree gchar *k = g_strndup(element, eq-element);
+		g_autofree gchar *v = g_shell_quote(eq+1);
 
 		g_string_append_printf(text, "%s=%s\n", k, v);
 	}
@@ -123,14 +115,13 @@ gchar **r_environ_setenv_ptr_array(gchar **envp, const GPtrArray *ptrarray, gboo
 	for (guint i = 0; i < ptrarray->len; i++) {
 		const gchar *element = g_ptr_array_index(ptrarray, i);
 		gchar *eq = strchr(element, '=');
-		g_autofree gchar *k = NULL;
 
 		if (!eq) {
 			g_error("missing '=' in '%s'", element);
 			return NULL;
 		}
 
-		k = g_strndup(element, eq-element);
+		g_autofree gchar *k = g_strndup(element, eq-element);
 
 		envp = g_environ_setenv(envp, k, eq+1, overwrite);
 	}
@@ -146,14 +137,13 @@ void r_subprocess_launcher_setenv_ptr_array(GSubprocessLauncher *launcher, const
 	for (guint i = 0; i < ptrarray->len; i++) {
 		const gchar *element = g_ptr_array_index(ptrarray, i);
 		gchar *eq = strchr(element, '=');
-		g_autofree gchar *k = NULL;
 
 		if (!eq) {
 			g_error("missing '=' in '%s'", element);
 			return;
 		}
 
-		k = g_strndup(element, eq-element);
+		g_autofree gchar *k = g_strndup(element, eq-element);
 
 		g_subprocess_launcher_setenv(launcher, k, eq+1, overwrite);
 	}
@@ -174,12 +164,11 @@ gchar *read_file_str(const gchar *filename, GError **error)
 {
 	gchar *contents;
 	gsize length;
-	gchar *res = NULL;
 
 	if (!g_file_get_contents(filename, &contents, &length, error))
 		return NULL;
 
-	res = g_strndup(contents, length);
+	gchar *res = g_strndup(contents, length);
 	g_free(contents);
 
 	return res;
@@ -187,14 +176,12 @@ gchar *read_file_str(const gchar *filename, GError **error)
 
 gboolean write_file(const gchar *filename, GBytes *bytes, GError **error)
 {
-	const gchar *contents;
-	gsize length;
-
 	g_return_val_if_fail(filename != NULL, FALSE);
 	g_return_val_if_fail(bytes != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	contents = g_bytes_get_data(bytes, &length);
+	gsize length;
+	const gchar *contents = g_bytes_get_data(bytes, &length);
 
 	return g_file_set_contents(filename, contents, length, error);
 }
@@ -250,9 +237,6 @@ gboolean rm_tree(const gchar *path, GError **error)
 
 gchar *resolve_path(const gchar *basefile, const gchar *path)
 {
-	g_autofree gchar *cwd = NULL;
-	g_autofree gchar *dir = NULL;
-
 	if (path == NULL)
 		return NULL;
 
@@ -262,12 +246,12 @@ gchar *resolve_path(const gchar *basefile, const gchar *path)
 	if (g_path_is_absolute(path))
 		return g_strdup(path);
 
-	cwd = g_get_current_dir();
+	g_autofree gchar *cwd = g_get_current_dir();
 
 	if (!basefile)
 		return g_build_filename(cwd, path, NULL);
 
-	dir = g_path_get_dirname(basefile);
+	g_autofree gchar *dir = g_path_get_dirname(basefile);
 	if (g_path_is_absolute(dir))
 		return g_build_filename(dir, path, NULL);
 
@@ -284,9 +268,7 @@ gchar *resolve_path_take(const char *basefile, gchar *path)
 gboolean check_remaining_groups(GKeyFile *key_file, GError **error)
 {
 	gsize rem_num_groups;
-	g_auto(GStrv) rem_groups = NULL;
-
-	rem_groups = g_key_file_get_groups(key_file, &rem_num_groups);
+	g_auto(GStrv) rem_groups = g_key_file_get_groups(key_file, &rem_num_groups);
 	if (rem_num_groups != 0) {
 		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
 				"Invalid group '[%s]'", rem_groups[0]);
@@ -299,9 +281,7 @@ gboolean check_remaining_groups(GKeyFile *key_file, GError **error)
 gboolean check_remaining_keys(GKeyFile *key_file, const gchar *groupname, GError **error)
 {
 	gsize rem_num_keys;
-	g_auto(GStrv) rem_keys = NULL;
-
-	rem_keys = g_key_file_get_keys(key_file, groupname, &rem_num_keys, NULL);
+	g_auto(GStrv) rem_keys = g_key_file_get_keys(key_file, groupname, &rem_num_keys, NULL);
 	if (rem_keys && rem_num_keys != 0) {
 		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
 				"Invalid key '%s' in group '[%s]'", rem_keys[0],
@@ -318,10 +298,9 @@ gchar * key_file_consume_string(
 		const gchar *key,
 		GError **error)
 {
-	gchar *result = NULL;
 	GError *ierror = NULL;
 
-	result = g_key_file_get_string(key_file, group_name, key, &ierror);
+	gchar *result = g_key_file_get_string(key_file, group_name, key, &ierror);
 	if (!result) {
 		g_propagate_error(error, ierror);
 		return NULL;
@@ -361,10 +340,9 @@ gint key_file_consume_integer(
 		const gchar *key,
 		GError **error)
 {
-	gint result;
 	GError *ierror = NULL;
 
-	result = g_key_file_get_integer(key_file, group_name, key, &ierror);
+	gint result = g_key_file_get_integer(key_file, group_name, key, &ierror);
 	if (ierror == NULL)
 		g_key_file_remove_key(key_file, group_name, key, NULL);
 	else
@@ -378,23 +356,20 @@ guint64 key_file_consume_binary_suffixed_string(GKeyFile *key_file,
 		const gchar *key,
 		GError **error)
 {
-	g_autofree gchar *string = NULL;
-	guint64 result;
-	gchar *scale;
-	guint scale_shift = 0;
 	GError *ierror = NULL;
 
-	string = key_file_consume_string(key_file, group_name, key, &ierror);
+	g_autofree gchar *string = key_file_consume_string(key_file, group_name, key, &ierror);
 	if (!string) {
 		g_propagate_error(error, ierror);
 		return 0;
 	}
 
-	result = g_ascii_strtoull(string, &scale, 10);
-
+	gchar *scale;
+	guint64 result = g_ascii_strtoull(string, &scale, 10);
 	if (result == 0)
 		return result;
 
+	guint scale_shift = 0;
 	switch (*scale | 0x20) {
 		case 'k':
 			scale_shift = 10;
@@ -419,21 +394,17 @@ guint64 key_file_consume_binary_suffixed_string(GKeyFile *key_file,
 gchar * r_realpath(const gchar *path)
 {
 	gchar buf[PATH_MAX + 1];
-	gchar *rpath;
-
-	rpath = realpath(path, buf);
+	gchar *rpath = realpath(path, buf);
 
 	return g_strdup(rpath);
 }
 
 gboolean r_whitespace_removed(gchar *str)
 {
-	gsize len;
-
 	if (str == NULL)
 		return FALSE;
 
-	len = strlen(str);
+	gsize len = strlen(str);
 
 	if (len == 0)
 		return FALSE;
@@ -445,16 +416,13 @@ gboolean r_whitespace_removed(gchar *str)
 
 guint8 *r_hex_decode(const gchar *hex, size_t len)
 {
-	g_autofree guint8 *raw = NULL;
-	size_t input_len = 0;
-
 	g_assert(hex != NULL);
 
-	input_len = strlen(hex);
+	size_t input_len = strlen(hex);
 	if (input_len != (len * 2))
 		return NULL;
 
-	raw = g_malloc0(len);
+	g_autofree guint8 *raw = g_malloc0(len);
 	for (size_t i = 0; i < len; i++) {
 		gint upper = g_ascii_xdigit_value(hex[i*2]);
 		gint lower = g_ascii_xdigit_value(hex[i*2+1]);
@@ -471,13 +439,12 @@ guint8 *r_hex_decode(const gchar *hex, size_t len)
 gchar *r_hex_encode(const guint8 *raw, size_t len)
 {
 	const char hex_chars[] = "0123456789abcdef";
-	gchar *hex = NULL;
 
 	g_assert(raw != NULL);
 	g_assert(len > 0);
 
 	len *= 2;
-	hex = g_malloc0(len+1);
+	gchar *hex = g_malloc0(len+1);
 	for (size_t i = 0; i < len; i += 2) {
 		hex[i] = hex_chars[(raw[i/2] >> 4)];
 		hex[i+1] = hex_chars[(raw[i/2] & 0xf)];
@@ -668,14 +635,11 @@ void r_replace_strdup(gchar **dst, const gchar *src)
 
 gchar *r_prepare_env_key(const gchar *key, GError **error)
 {
-	g_autofree gchar *result = NULL;
-	size_t len = 0;
-
 	g_return_val_if_fail(key != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, 0);
 
-	len = strlen(key);
-	result = g_ascii_strup(key, len);
+	size_t len = strlen(key);
+	g_autofree gchar *result = g_ascii_strup(key, len);
 
 	for (size_t i = 0; i < len; i++) {
 		if (g_ascii_isalnum(result[i]))
@@ -700,10 +664,8 @@ gchar *r_prepare_env_key(const gchar *key, GError **error)
 gboolean r_update_symlink(const gchar *target, const gchar *name, GError **error)
 {
 	GError *ierror = NULL;
-	g_autofree gchar *old_target = NULL;
-	g_autofree gchar *tmp_name = NULL;
 
-	old_target = g_file_read_link(name, &ierror);
+	g_autofree gchar *old_target = g_file_read_link(name, &ierror);
 	if (old_target == NULL) {
 		if (!g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_NOENT)) {
 			g_propagate_error(error, ierror);
@@ -714,8 +676,7 @@ gboolean r_update_symlink(const gchar *target, const gchar *name, GError **error
 		return TRUE;
 	}
 
-	tmp_name = g_strdup_printf("%s.tmp-link", name);
-
+	g_autofree gchar *tmp_name = g_strdup_printf("%s.tmp-link", name);
 	if (symlink(target, tmp_name) == -1) {
 		int err = errno;
 		g_set_error(error,
@@ -742,12 +703,10 @@ gboolean r_update_symlink(const gchar *target, const gchar *name, GError **error
 
 gboolean r_syncfs(const gchar *path, GError **error)
 {
-	g_auto(filedesc) fd = -1;
-
 	g_return_val_if_fail(path != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	fd = g_open(path, O_RDONLY);
+	g_auto(filedesc) fd = g_open(path, O_RDONLY);
 	if (fd == -1) {
 		int err = errno;
 		g_set_error(error,
@@ -772,20 +731,17 @@ gboolean r_syncfs(const gchar *path, GError **error)
 gchar* r_fakeroot_init(GError **error)
 {
 	GError *ierror = NULL;
-	g_autofree gchar *tmpdir = NULL;
-	g_autofree gchar *tmpfile = NULL;
-	g_auto(filedesc) fd = -1;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	tmpdir = g_dir_make_tmp("rauc-fakeroot-XXXXXX", &ierror);
+	g_autofree gchar *tmpdir = g_dir_make_tmp("rauc-fakeroot-XXXXXX", &ierror);
 	if (tmpdir == NULL) {
 		g_propagate_prefixed_error(error, ierror, "Failed to create tmp dir: ");
 		return NULL;
 	}
 
-	tmpfile = g_build_filename(tmpdir, "environment", NULL);
-	fd = g_open(tmpfile, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+	g_autofree gchar *tmpfile = g_build_filename(tmpdir, "environment", NULL);
+	g_auto(filedesc) fd = g_open(tmpfile, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
 	if (fd == -1) {
 		int err = errno;
 		g_set_error(error,
@@ -818,8 +774,6 @@ void r_fakeroot_add_args(GPtrArray *args, const gchar *envpath)
 
 gboolean r_fakeroot_cleanup(const gchar *envpath, GError **error)
 {
-	g_autofree gchar *tmpdir = NULL;
-
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (!envpath)
@@ -828,19 +782,17 @@ gboolean r_fakeroot_cleanup(const gchar *envpath, GError **error)
 	g_assert(g_path_is_absolute(envpath));
 	g_assert(g_str_has_suffix(envpath, "/environment"));
 
-	tmpdir = g_path_get_dirname(envpath);
+	g_autofree gchar *tmpdir = g_path_get_dirname(envpath);
 
 	return rm_tree(tmpdir, error);
 }
 
 gchar *r_bytes_unref_to_string(GBytes **bytes)
 {
-	g_autofree gchar *data = NULL;
-	gsize size = 0;
-
 	g_return_val_if_fail(bytes != NULL && *bytes != NULL, NULL);
 
-	data = g_bytes_unref_to_data(*bytes, &size);
+	gsize size = 0;
+	g_autofree gchar *data = g_bytes_unref_to_data(*bytes, &size);
 	*bytes = NULL;
 	if (size == 0)
 		return g_strdup("");
@@ -950,12 +902,6 @@ out:
 
 gboolean r_semver_less_equal(const gchar *version_string_a, const gchar *version_string_b, GError **error)
 {
-	guint64 version_core_a[3] = {0};
-	g_autofree gchar *pre_release_a = NULL;
-	guint64 version_core_b[3] = {0};
-	g_autofree gchar *pre_release_b = NULL;
-	g_auto(GStrv) pre_fields_a = NULL;
-	g_auto(GStrv) pre_fields_b = NULL;
 	int i = 0;
 	GError *ierror = NULL;
 
@@ -963,11 +909,15 @@ gboolean r_semver_less_equal(const gchar *version_string_a, const gchar *version
 	g_return_val_if_fail(version_string_b, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	guint64 version_core_a[3] = {0};
+	g_autofree gchar *pre_release_a = NULL;
 	if (!r_semver_parse(version_string_a, version_core_a, &pre_release_a, NULL, &ierror)) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to parse semantic version A for comparison: ");
 		return FALSE;
 	}
+	guint64 version_core_b[3] = {0};
+	g_autofree gchar *pre_release_b = NULL;
 	if (!r_semver_parse(version_string_b, version_core_b, &pre_release_b, NULL, &ierror)) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to parse semantic version B for comparison: ");
@@ -993,18 +943,15 @@ gboolean r_semver_less_equal(const gchar *version_string_a, const gchar *version
 	}
 
 	/* compare dot-separated fields of pre-release identifiers */
-	pre_fields_a = g_strsplit(pre_release_a, ".", 0);
-	pre_fields_b = g_strsplit(pre_release_b, ".", 0);
+	g_auto(GStrv) pre_fields_a = g_strsplit(pre_release_a, ".", 0);
+	g_auto(GStrv) pre_fields_b = g_strsplit(pre_release_b, ".", 0);
 
 	i = 0;
 	while (pre_fields_a[i] != NULL && pre_fields_b[i] != NULL) {
-		gboolean is_num_a = FALSE;
-		gboolean is_num_b = FALSE;
 		guint64 num_a = 0;
+		gboolean is_num_a = g_ascii_string_to_unsigned(pre_fields_a[i], 10, 0, G_MAXUINT64, &num_a, NULL);
 		guint64 num_b = 0;
-		gint cmp = 0;
-		is_num_a = g_ascii_string_to_unsigned(pre_fields_a[i], 10, 0, G_MAXUINT64, &num_a, NULL);
-		is_num_b = g_ascii_string_to_unsigned(pre_fields_b[i], 10, 0, G_MAXUINT64, &num_b, NULL);
+		gboolean is_num_b = g_ascii_string_to_unsigned(pre_fields_b[i], 10, 0, G_MAXUINT64, &num_b, NULL);
 
 		if (is_num_a && is_num_b) {
 			/* compare numerically */
@@ -1021,7 +968,7 @@ gboolean r_semver_less_equal(const gchar *version_string_a, const gchar *version
 			return FALSE;
 		} else {
 			/* compare lexically */
-			cmp = g_strcmp0(pre_fields_a[i], pre_fields_b[i]);
+			gint cmp = g_strcmp0(pre_fields_a[i], pre_fields_b[i]);
 			if (cmp < 0) {
 				return TRUE; /* version_a < version_b */
 			} else if (cmp > 0) {
