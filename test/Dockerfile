@@ -42,6 +42,7 @@ RUN apt-get install -q -y --no-install-recommends \
   faketime \
   pseudo \
   time \
+  tree \
   kmod \
   uncrustify \
   casync \
