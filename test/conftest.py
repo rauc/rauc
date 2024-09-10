@@ -376,8 +376,12 @@ def rauc_dbus_service(tmp_path, dbus_session_bus, create_system_files):
 
     yield bus
 
-    service.kill()
-    service.wait()
+    service.terminate()
+    try:
+        service.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        service.kill()
+        service.wait()
 
 
 @pytest.fixture
@@ -386,8 +390,12 @@ def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_file
 
     yield bus
 
-    service.kill()
-    service.wait()
+    service.terminate()
+    try:
+        service.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        service.kill()
+        service.wait()
 
 
 @pytest.fixture
@@ -396,8 +404,12 @@ def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_syste
 
     yield bus
 
-    service.kill()
-    service.wait()
+    service.terminate()
+    try:
+        service.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        service.kill()
+        service.wait()
 
 
 @pytest.fixture
@@ -406,8 +418,12 @@ def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_sy
 
     yield bus
 
-    service.kill()
-    service.wait()
+    service.terminate()
+    try:
+        service.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        service.kill()
+        service.wait()
 
 
 @pytest.fixture
@@ -416,8 +432,12 @@ def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_sy
 
     yield bus
 
-    service.kill()
-    service.wait()
+    service.terminate()
+    try:
+        service.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        service.kill()
+        service.wait()
 
 
 class Bundle:
