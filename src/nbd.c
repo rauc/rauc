@@ -958,6 +958,8 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 		}
 	}
 
+	res = TRUE;
+out:
 	r_stats_show(ctx.dl_size, NULL);
 	r_stats_show(ctx.dl_speed, NULL);
 	r_stats_show(ctx.namelookup, NULL);
@@ -970,8 +972,6 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 		g_message("downloaded %.1f%% of the full bundle", percent_dl);
 	}
 
-	res = TRUE;
-out:
 	g_clear_pointer(&ctx.url, g_free);
 	g_clear_pointer(&ctx.tls_cert, g_free);
 	g_clear_pointer(&ctx.tls_key, g_free);
