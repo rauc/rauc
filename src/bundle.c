@@ -106,7 +106,7 @@ r_bundle_error_quark(void)
 	return g_quark_from_static_string("r-bundle-error-quark");
 }
 
-static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, const gchar *fakeroot, GError **error)
+static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, gboolean keep_metadata, const gchar *fakeroot, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -130,7 +130,7 @@ static gboolean mksquashfs(const gchar *bundlename, const gchar *contentdir, con
 	g_ptr_array_add(args, g_strdup(bundlename));
 	g_ptr_array_add(args, g_strdup("-noappend"));
 	g_ptr_array_add(args, g_strdup("-no-progress"));
-	if (!fakeroot) {
+	if (!keep_metadata) {
 		g_ptr_array_add(args, g_strdup("-all-root"));
 		g_ptr_array_add(args, g_strdup("-no-xattrs"));
 	}
@@ -1131,22 +1131,38 @@ static gchar *prepare_workdir(const gchar *contentdir, GError **error)
 	return g_steal_pointer(&workdir);
 }
 
-static gboolean needs_fakeroot(const RaucManifest *manifest)
+static gboolean needs_fakeroot(const RaucManifest *manifest, gboolean *mksquashfs_metadata)
 {
-	/* If pseudo is active, we don't need to use fakeroot. */
-	if (check_pseudo_active())
-		return FALSE;
+	g_return_val_if_fail(manifest != NULL, FALSE);
+	g_return_val_if_fail(mksquashfs_metadata != NULL, FALSE);
 
+	*mksquashfs_metadata = FALSE;
+
+	gboolean may_need_fakeroot = FALSE;
 	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
 		RaucImage *image = elem->data;
 
 		if (image->convert) {
-			if (g_strv_contains((const gchar * const *)image->convert, "tar-extract"))
-				return TRUE;
+			if (g_strv_contains((const gchar * const *)image->convert, "tar-extract")) {
+				/* This produces files with metadata in the bundle itself. */
+				*mksquashfs_metadata = TRUE;
+				may_need_fakeroot = TRUE;
+			}
 		}
 	}
 
-	return FALSE;
+	if (!may_need_fakeroot)
+		return FALSE;
+
+	/* If pseudo is active, we don't need to use fakeroot. */
+	if (check_pseudo_active())
+		return FALSE;
+
+	/* When running as root, we don't need to use fakeroot. */
+	if (geteuid() == 0)
+		return FALSE;
+
+	return TRUE;
 }
 
 gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError **error)
@@ -1156,6 +1172,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 	g_autoptr(RaucManifest) manifest = NULL;
 	g_autofree gchar *workdir = NULL;
 	g_autofree gchar *fakeroot = NULL;
+	gboolean mksquashfs_metadata = FALSE;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundlename != NULL, FALSE);
@@ -1206,7 +1223,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		goto out;
 	}
 
-	if (needs_fakeroot(manifest)) {
+	if (needs_fakeroot(manifest, &mksquashfs_metadata)) {
 		fakeroot = r_fakeroot_init(&ierror);
 		if (!fakeroot) {
 			g_propagate_error(error, ierror);
@@ -1232,7 +1249,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		goto out;
 	}
 
-	res = mksquashfs(bundlename, workdir, fakeroot, &ierror);
+	res = mksquashfs(bundlename, workdir, mksquashfs_metadata, fakeroot, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -1513,7 +1530,7 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 		goto out;
 	}
 
-	res = mksquashfs(outbundle, contentdir, NULL, &ierror);
+	res = mksquashfs(outbundle, contentdir, FALSE, NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
