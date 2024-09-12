@@ -221,7 +221,7 @@ if [ -n "$SERVICE" ]; then
   rauc status mark-good
 fi
 
-if meson test -C $BUILD_DIR "$MESON_TEST" -v; then
+if meson test -C $BUILD_DIR --suite rauc "$MESON_TEST" -v; then
   touch qemu-test-ok
   echo "RESULT: PASSED"
 else
