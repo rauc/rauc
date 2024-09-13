@@ -72,6 +72,11 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 			goto out;
 		}
 	}
+	if (iimage->hooks.install && (iimage->hooks.pre_install || iimage->hooks.post_install)) {
+		g_set_error_literal(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+				"'install' hook must not be combined with 'pre-install' or 'post-install' hook");
+		goto out;
+	}
 	g_key_file_remove_key(key_file, group, "hooks", NULL);
 
 	iimage->filename = key_file_consume_string(key_file, group, "filename", &ierror);
