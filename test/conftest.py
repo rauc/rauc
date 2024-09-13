@@ -1,7 +1,6 @@
 import json
 import os
 import shutil
-import signal
 import subprocess
 import time
 from functools import cache
@@ -292,33 +291,42 @@ def pkcs11(tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-def dbus_session_bus():
+def dbus_session_bus(tmp_path_factory):
     if not have_service():
         pytest.skip("No service")
 
-    # Run the dbus-launch command and capture its output
-    output = subprocess.check_output(["dbus-launch", "--sh-syntax"], universal_newlines=True, shell=True)
+    addr_r_fd, addr_w_fd = os.pipe()
 
-    # Parse the output to extract environment variable assignments
-    env_vars = {}
-    for line in output.splitlines():
-        if "=" in line:
-            key, value = line.split("=", 1)
-            env_vars[key] = value
+    try:
+        # Start the dbus-daemon
+        dbus = subprocess.Popen(
+            [
+                "dbus-daemon",
+                "--session",
+                f"--address=unix:path={tmp_path_factory.mktemp('dbus')}/socket",
+                f"--print-address={addr_w_fd}",
+            ],
+            pass_fds=(addr_w_fd,),
+        )
+        # Wait until readiness is signaled by writing the address
+        addr = os.read(addr_r_fd, 4096).decode()
+    finally:
+        os.close(addr_r_fd)
+        os.close(addr_w_fd)
 
-    # Set the environment variables in the current process's environment
-    for key, value in env_vars.items():
-        os.environ[key] = value
+    print(f"DBUS_SESSION_BUS_ADDRESS: {addr}")
 
-    dbus_session_bus_address = os.environ.get("DBUS_SESSION_BUS_ADDRESS")
-    assert dbus_session_bus_address
-    print(f"DBUS_SESSION_BUS_ADDRESS: {dbus_session_bus_address}")
+    # Set the address in the current process's environment
+    os.environ["DBUS_SESSION_BUS_ADDRESS"] = addr
 
     yield
 
-    pid = os.environ["DBUS_SESSION_BUS_PID"]
-    print(f"Killing PID {pid}")
-    os.kill(int(pid), signal.SIGTERM)
+    dbus.terminate()
+    try:
+        dbus.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        dbus.kill()
+        dbus.wait()
 
 
 @pytest.fixture
