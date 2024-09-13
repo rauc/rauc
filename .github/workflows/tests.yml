@@ -44,9 +44,10 @@ jobs:
         meson compile -C build
         meson test -C build --suite rauc:fuzzing
         
-    - uses: codecov/codecov-action@v3
+    - uses: codecov/codecov-action@v4
       with:
         files: service.info,noservice.info
+        token: ${{ secrets.CODECOV_TOKEN }}
         verbose: true
 
     - name: Build documentation
