@@ -497,6 +497,38 @@ hooks=doesnotexist\n\
 	g_assert_null(rm);
 }
 
+static void test_manifest_invalid_hook_combination(void)
+{
+	const gchar *mffile = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs-default.ext4\n\
+sha256=0815\n\
+size=1\n\
+hooks=install;pre-install\n\
+";
+
+	g_autofree gchar *tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	g_autofree gchar *manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
+	g_assert_nonnull(manifestpath);
+
+	g_autoptr(RaucManifest) rm = NULL;
+	g_autoptr(GError) error = NULL;
+	gboolean res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	res = check_manifest_create(rm, &error);
+	g_assert_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR);
+	g_assert_cmpstr("An 'install' hook must not be combined with 'pre-install' or 'post-install' hooks", ==, error->message);
+	g_assert_false(res);
+}
+
 static void test_manifest_missing_hook_name(void)
 {
 	g_autofree gchar *tmpdir;
@@ -740,6 +772,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/manifest/load_meta", test_manifest_load_meta);
 	g_test_add_func("/manifest/load_details", test_manifest_load_details);
 	g_test_add_func("/manifest/invalid_hook_name", test_manifest_invalid_hook_name);
+	g_test_add_func("/manifest/invalid_hook_combination", test_manifest_invalid_hook_combination);
 	g_test_add_func("/manifest/missing_hook_name", test_manifest_missing_hook_name);
 	g_test_add_func("/manifest/missing_image_size", test_manifest_missing_image_size);
 	g_test_add_func("/manifest/invalid_data", test_invalid_data);

@@ -132,6 +132,20 @@ gboolean check_manifest_external(const RaucManifest *manifest, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Check a new manifest for consistency during bundle creation.
+ *
+ * This is used for checks that could otherwise break compatibility of new RAUC
+ * versions with old bundles.
+ *
+ * @param manifest Pointer to the manifest to check
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean check_manifest_create(const RaucManifest *mf, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Stores the manifest to memory.
  *
  * @param mem location to store manifest
