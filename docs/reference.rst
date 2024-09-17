@@ -1248,12 +1248,13 @@ Command Line Tool
     rauc [OPTION?] <COMMAND>
 
   Options:
-    -c, --conf=FILENAME     config file
-    --keyring=PEMFILE       keyring file
-    --mount=PATH            mount prefix
-    -d, --debug             enable debug output
-    --version               display version
-    -h, --help              display help and exit
+    -c, --conf=FILENAME                 config file
+    -C, --confopt=SECTION:KEY=VALUE     config settings that override parameters from the config file
+    --keyring=PEMFILE                   keyring file
+    --mount=PATH                        mount prefix
+    -d, --debug                         enable debug output
+    --version                           display version
+    -h, --help                          display help and exit
 
   Command-specific help:
     rauc <COMMAND> --help
@@ -1277,6 +1278,10 @@ Command Line Tool
     RAUC_KEY_PASSPHRASE Passphrase to use for accessing key files (signing only)
     RAUC_PKCS11_MODULE  Library filename for PKCS#11 module (signing only)
     RAUC_PKCS11_PIN     PIN to use for accessing PKCS#11 keys (signing only)
+
+.. note:: 
+  Using -C / --confopt can not only override settings of the config file but also 
+  set new values that haven't been present before.
 
 .. _sec-handler-interface:
 

@@ -225,3 +225,24 @@ def test_info_format_invalid():
 
     assert exitcode == 1
     assert "Unknown output format: 'invalid'" in err
+
+
+def test_info_configoverride(tmp_path):
+    # copy to tmp path for safe ownership check
+    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+
+    out, err, exitcode = run(f"rauc info -c test.conf -C system:bundle-formats=verity {tmp_path}/good-bundle.raucb")
+    assert exitcode == 1
+    assert "Bundle format 'plain' not allowed" in err
+
+    out, err, exitcode = run("rauc info -C system:bundle-formats")
+    assert exitcode == 1
+    assert "Error in parsing override: Missing '='" in err
+
+    out, err, exitcode = run("rauc info -C systembundle-formats=verity")
+    assert exitcode == 1
+    assert "Error in parsing override: Missing ':'" in err
+
+    out, err, exitcode = run("rauc info -C")
+    assert exitcode == 1
+    assert "Error in parsing override: you must specify it in format SECTION:KEY=VALUE" in err
