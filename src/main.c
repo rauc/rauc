@@ -2648,48 +2648,48 @@ static void create_option_groups(void)
 
 // Callback function to handle the repeated option
 static gboolean collect_config_values(const gchar *option_name, const gchar *value, gpointer data, GError **error) {
-    gchar* copy = g_strdup(value);
+	if (value == NULL) {
+		return FALSE;
+	}
+    g_autofree gchar* copy = g_strdup(value);
+	
 	//find colon
 	gchar* colon_delimiter = strstr(copy, ":");
 	if (colon_delimiter == NULL){
-		g_free(copy);
 		return FALSE;
 	}
 	*colon_delimiter = 0;
 
 	if (g_strcmp0("keyring", copy)){
-		g_free(copy);
 		return FALSE;
 	}
 
 	colon_delimiter++;
 	gchar* equal_delimiter = strstr(colon_delimiter, "=");
 	if (equal_delimiter == NULL){
-		g_free(copy);
 		return FALSE;
 	}
 	*equal_delimiter = 0;
 
 	equal_delimiter++;
 
-	if (!g_strcmp0("check-purpose", colon_delimiter)){
-		if (!g_strcmp0("codesign", equal_delimiter)){
+	if (!g_strcmp0("check-purpose", colon_delimiter)) {
+		if (!g_strcmp0("codesign", equal_delimiter)) {
 			//TODO: handle parameter
-			g_free(copy);
+			r_context_conf()->configoverwrite.keyring_check_purpose_value = g_strdup(equal_delimiter);
+			r_context_conf()->configoverwrite.keyring_check_purpose_overwrite = TRUE;
 			return TRUE;
 		}
 	}
 
-	if (!g_strcmp0("check-crl", colon_delimiter)){
-		if (!g_strcmp0("false", equal_delimiter)){
-			//TODO: handle parameter
-			g_free(copy);
+	if (!g_strcmp0("check-crl", colon_delimiter)) {
+		if (!g_strcmp0("false", equal_delimiter)) {
+			r_context_conf()->configoverwrite.keyring_check_crl_value = g_strdup(equal_delimiter);
+			r_context_conf()->configoverwrite.keyring_check_purpose_overwrite = TRUE;
 			return TRUE;
 		}
 	}
 
-
-	g_free(copy);
 	return FALSE;
 }
 
