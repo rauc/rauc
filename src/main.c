@@ -2646,6 +2646,53 @@ static void create_option_groups(void)
 	g_option_group_add_entries(service_group, entries_service);
 }
 
+// Callback function to handle the repeated option
+static gboolean collect_config_values(const gchar *option_name, const gchar *value, gpointer data, GError **error) {
+    gchar* copy = g_strdup(value);
+	//find colon
+	gchar* colon_delimiter = strstr(copy, ":");
+	if (colon_delimiter == NULL){
+		g_free(copy);
+		return FALSE;
+	}
+	*colon_delimiter = 0;
+
+	if (g_strcmp0("keyring", copy)){
+		g_free(copy);
+		return FALSE;
+	}
+
+	colon_delimiter++;
+	gchar* equal_delimiter = strstr(colon_delimiter, "=");
+	if (equal_delimiter == NULL){
+		g_free(copy);
+		return FALSE;
+	}
+	*equal_delimiter = 0;
+
+	equal_delimiter++;
+
+	if (!g_strcmp0("check-purpose", colon_delimiter)){
+		if (!g_strcmp0("codesign", equal_delimiter)){
+			//TODO: handle parameter
+			g_free(copy);
+			return TRUE;
+		}
+	}
+
+	if (!g_strcmp0("check-crl", colon_delimiter)){
+		if (!g_strcmp0("false", equal_delimiter)){
+			//TODO: handle parameter
+			g_free(copy);
+			return TRUE;
+		}
+	}
+
+
+	g_free(copy);
+	return FALSE;
+}
+
 static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, debug = FALSE, version = FALSE;
@@ -2654,6 +2701,7 @@ static void cmdline_handler(int argc, char **argv)
 	g_autoptr(GOptionContext) context = NULL;
 	GOptionEntry entries[] = {
 		{"conf", 'c', 0, G_OPTION_ARG_FILENAME, &confpath, "config file", "FILENAME"},
+		{"cmdconf", 'C', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, collect_config_values, "Config Settings that overwrite parameters from the config file, valid options are keyring:check-purpose=codesign and keyring:check-crl=false", "SECTION:KEY=VALUE" },
 		/* NOTE: cert and key kept for backwards-compatibility, but made invisible */
 		{"cert", '\0', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_FILENAME, &certpath, "cert file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 		{"key", '\0', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_FILENAME, &keypath, "key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
