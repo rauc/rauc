@@ -178,6 +178,7 @@ of a rootfs and application slot each that will be used together.
 To detect the active slots, RAUC attempts to detect the currently booted slot.
 For this, it relies on explicit mapping information provided via the kernel command
 line, or attempts to find it out using mount information.
+For more details on this, see :ref:`sec-integration-boot-slot-detection`.
 
 All slots of the group containing the active slot will be considered active,
 too.
