@@ -524,6 +524,7 @@ class System:
             "bootloader": "grub",
             "grubenv": "grubenv.test",
             "variant-name": "Default Variant",
+            "data-directory": "data-dir",
         }
         self.config["keyring"] = {
             "path": "openssl-ca/dev-ca.pem",
