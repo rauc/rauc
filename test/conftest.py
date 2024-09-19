@@ -390,6 +390,32 @@ def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_sy
         yield system.proxy
 
 
+@pytest.fixture
+def rauc_dbus_service_with_system_abc(tmp_path, dbus_session_bus, create_system_files, system):
+    system.prepare_minimal_config()
+    # add third slot group
+    system.config["slot.rootfs.2"] = {
+        "device": "images/rootfs-2",
+        "type": "raw",
+        "bootname": "C",
+    }
+    system.config["slot.appfs.2"] = {
+        "device": "images/appfs-2",
+        "type": "raw",
+        "parent": "rootfs.2",
+    }
+    system.write_config()
+    # create target devices for third slot group
+    open(tmp_path / "images/rootfs-2", mode="w").close()
+    open(tmp_path / "images/appfs-2", mode="w").close()
+    # prepare grub env for 3 slots
+    run(
+        f'grub-editenv {tmp_path}/grubenv.test set ORDER="A B C" A_TRY="0" B_TRY="0" C_TRY="0" A_OK="1" B_OK="1" C_OK="1"'
+    )
+    with system.running_service("A"):
+        yield system.proxy
+
+
 class Bundle:
     def __init__(self, tmp_path, name=None):
         if name is None:
