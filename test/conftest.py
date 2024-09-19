@@ -422,7 +422,7 @@ def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_syste
 
 @pytest.fixture
 def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_system_files):
-    service, bus = _rauc_dbus_service(tmp_path, "crypt-test.conf", "_external_")
+    service, bus = _rauc_dbus_service(tmp_path, "minimal-test.conf", "_external_")
 
     yield bus
 
