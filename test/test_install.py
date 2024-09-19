@@ -151,6 +151,13 @@ def test_install_rauc_external(rauc_dbus_service_with_system_external, tmp_path)
 
     assert exitcode == 0
     assert os.path.getsize(tmp_path / "images/rootfs-1") > 0
+    assert os.path.getsize(tmp_path / "images/rootfs-0") == 0
+
+    out, err, exitcode = run(f"rauc install {tmp_path}/good-bundle.raucb")
+
+    assert exitcode == 0
+    assert os.path.getsize(tmp_path / "images/rootfs-1") > 0
+    assert os.path.getsize(tmp_path / "images/rootfs-0") > 0
 
 
 @no_service
