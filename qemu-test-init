@@ -58,6 +58,9 @@ ip link set eth0 up
 ip addr add 10.0.2.15/24 dev eth0
 ip link set eth0 up
 ip route add default via 10.0.2.2
+
+# remove potential symlink and set new qemu nameserver
+rm -f /etc/resolv.conf
 echo "nameserver 10.0.2.3" > /etc/resolv.conf
 
 export HOME="/root"
