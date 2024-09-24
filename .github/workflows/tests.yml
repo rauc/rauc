@@ -82,7 +82,7 @@ jobs:
         dmesg | tail -n 100
 
   cross:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -98,15 +98,6 @@ jobs:
       run: |
         sudo apt-get update
         DEBIAN_FRONTEND='noninteractive' sudo apt-get install -qy qemu-user-static
-
-    # remove this when Ubuntu 24.04 is available on GitHub Actions
-    - name: Enable Ubuntu noble and update podman
-      run: |
-        echo 'deb http://archive.ubuntu.com/ubuntu/ noble main restricted universe' | sudo tee -a /etc/apt/sources.list.d/lunar.list
-        echo 'deb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted universe' | sudo tee -a /etc/apt/sources.list.d/lunar.list
-        sudo apt-get update
-        DEBIAN_FRONTEND='noninteractive' sudo apt-get install -qy podman
-        podman version
 
     - name: Prepare ${{ matrix.architecture }} container
       run: |
@@ -130,7 +121,7 @@ jobs:
         cat build/meson-logs/testlog.txt || true
 
   stable:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -142,15 +133,6 @@ jobs:
         - "debian:testing"
     steps:
     - uses: actions/checkout@v4
-
-    # remove this when Ubuntu 24.04 is available on GitHub Actions
-    - name: Enable Ubuntu noble and update podman
-      run: |
-        echo 'deb http://archive.ubuntu.com/ubuntu/ noble main restricted universe' | sudo tee -a /etc/apt/sources.list.d/lunar.list
-        echo 'deb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted universe' | sudo tee -a /etc/apt/sources.list.d/lunar.list
-        sudo apt-get update
-        DEBIAN_FRONTEND='noninteractive' sudo apt-get install -qy podman
-        podman version
 
     - name: Prepare ${{ matrix.release }} container for meson build
       run: |
