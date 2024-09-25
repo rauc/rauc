@@ -2041,7 +2041,10 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 		}
 		g_debug("Downloaded temp bundle to %s", ibundle->path);
 #else
-		g_warning("Mounting remote bundle not supported, recompile with -Dnetwork=true");
+		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSUPPORTED,
+				"Remote bundle access not supported, recompile with -Dstreaming=true");
+		res = FALSE;
+		goto out;
 #endif
 	} else {
 		ibundle->path = g_strdup(bundlename);

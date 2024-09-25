@@ -20,6 +20,7 @@ typedef enum {
 	R_BUNDLE_ERROR_FORMAT,
 	R_BUNDLE_ERROR_VERITY,
 	R_BUNDLE_ERROR_CRYPT,
+	R_BUNDLE_ERROR_UNSUPPORTED,
 } RBundleError;
 
 typedef struct {
