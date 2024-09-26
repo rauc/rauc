@@ -589,17 +589,26 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 		seed = g_strdup(seedslot->mount_point);
 	} else {
 		GStatBuf seedstat;
+		gchar *seed_candidate = NULL;
+
+		if (seedslot->casync_seed_device) {
+			g_debug("Using configured casync-seed-device: %s", seedslot->casync_seed_device);
+			seed_candidate = seedslot->casync_seed_device;
+		} else {
+			g_debug("Adding as casync blob seed: %s", seedslot->device);
+			seed_candidate = seedslot->device;
+		}
 
 		/* For the moment do not utilize UBI volumes as seed because they are
 		 * character devices - additional logic is needed to (temporarily) map
 		 * them to UBIBLOCK devices which are suitable for that purpose */
-		if (g_stat(seedslot->device, &seedstat) < 0 || S_ISCHR(seedstat.st_mode)) {
-			g_message("Cannot use %s as seed device (non-existing or char device)", seedslot->device);
-			goto extract;
+		if (g_stat(seed_candidate, &seedstat) < 0 || S_ISCHR(seedstat.st_mode)) {
+			g_message("Cannot use %s as seed device (non-existing or char device). "
+					"Perhaps the casync-seed-device option should be added or fixed for this slot.",
+					seed_candidate);
+		} else {
+			seed = g_strdup(seed_candidate);
 		}
-
-		g_debug("Adding as casync blob seed: %s", seedslot->device);
-		seed = g_strdup(seedslot->device);
 	}
 
 extract:

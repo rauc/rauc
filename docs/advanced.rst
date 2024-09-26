@@ -848,7 +848,9 @@ RAUC casync Support
   `git <https://github.com/systemd/casync>`_ repository).
 
   Also, for using UBI support, make sure to add casync patches from
-  https://github.com/systemd/casync/pull/227.
+  https://github.com/systemd/casync/pull/227. When using casync in blob mode
+  with UBI, seeding is disabled by default, which makes updates very inefficient
+  (refer :ref:`casync-seed-device <casync-seed-device>` per-slot option).
 
   If file system images are sufficient, also check the more lightweight
   `casync-nano <https://github.com/florolf/casync-nano>`_ tool which can be
