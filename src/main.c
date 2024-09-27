@@ -1999,10 +1999,10 @@ static void r_event_log_booted(const RaucSlot *booted_slot)
 
 	g_return_if_fail(booted_slot);
 
-	message = g_strdup_printf("Booted into %s (%s)", booted_slot->name, booted_slot->bootname);
+	message = g_strdup_printf("Booted into %s (%s)", booted_slot->name, booted_slot->bootname ?: "");
 	fields[0].value = message;
 	fields[5].value = booted_slot->name;
-	fields[6].value = booted_slot->bootname;
+	fields[6].value = booted_slot->bootname ?: "";
 	fields[7].value = r_context()->boot_id;
 	if (booted_slot->status && booted_slot->status->bundle_hash) {
 		fields[8].value = booted_slot->status->bundle_hash;
