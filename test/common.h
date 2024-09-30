@@ -9,6 +9,11 @@ typedef struct {
 	gboolean custom_handler;
 	gboolean hooks;
 	gboolean slots;
+
+	const gchar *artifact_file;
+	const gchar *artifact_slotclass;
+	const gchar *artifact_convert;
+
 	RManifestBundleFormat format;
 	gboolean no_bundle_version;
 	const gchar *bundle_version;
@@ -16,6 +21,7 @@ typedef struct {
 
 typedef struct {
 	const gchar *min_bundle_version;
+	gboolean artifact_repos;
 } SystemTestOptions;
 
 guint8* random_bytes(gsize size, guint32 seed);
@@ -40,6 +46,7 @@ gboolean test_make_slot_user_writable(const gchar* path, const gchar* file);
 void test_create_content(gchar *contentdir, const ManifestTestOptions *options);
 void test_create_bundle(gchar *contentdir, gchar *bundlename);
 gboolean test_running_as_root(void);
+void test_show_tree(const gchar *path, gboolean inodes);
 gsize get_file_size(gchar* filename, GError **error);
 void flip_bits_fd(int fd, off_t offset, guint8 mask);
 void flip_bits_filename(gchar *filename, off_t offset, guint8 mask);

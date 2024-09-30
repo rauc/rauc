@@ -81,6 +81,14 @@
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="RaucSlotStatusArray"/>
     </method>
 
+    <!--
+         GetArtifactStatus:
+         @artifacts: string variant dict of artifact and repository information
+    -->
+    <method name="GetArtifactStatus">
+      <arg name="artifacts" type="aa{sv}" direction="out"/>
+    </method>
+
     <!-- Operation: Represents the current (global) operation rauc performs -->
     <property name="Operation" type="s" access="read"/>
     <!-- LastError: Holds a message describing the last error that occurred -->

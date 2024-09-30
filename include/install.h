@@ -2,6 +2,7 @@
 
 #include <glib.h>
 
+#include "artifacts.h"
 #include "bundle.h"
 #include "manifest.h"
 #include "slot.h"
@@ -132,6 +133,8 @@ typedef struct {
 
 	RaucSlot *target_slot;
 	img_to_slot_handler slot_handler;
+
+	RArtifactRepo *target_repo;
 } RImageInstallPlan;
 
 void r_image_install_plan_free(gpointer value);

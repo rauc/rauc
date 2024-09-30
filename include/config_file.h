@@ -17,9 +17,11 @@ typedef enum {
 	R_CONFIG_ERROR_MAX_BUNDLE_DOWNLOAD_SIZE,
 	R_CONFIG_ERROR_CHILD_HAS_BOOTNAME,
 	R_CONFIG_ERROR_DUPLICATE_BOOTNAME,
+	R_CONFIG_ERROR_DUPLICATE_CLASS,
 	R_CONFIG_ERROR_SLOT_TYPE,
 	R_CONFIG_ERROR_INVALID_DEVICE,
 	R_CONFIG_ERROR_DATA_DIRECTORY,
+	R_CONFIG_ERROR_ARTIFACT_REPO_TYPE,
 } RConfigError;
 
 #define R_CONFIG_ERROR r_config_error_quark()
@@ -93,6 +95,8 @@ typedef struct {
 	/* flag to ensure slot states were determined */
 	gboolean slot_states_determined;
 	gchar *file_checksum;
+
+	GHashTable *artifact_repos;
 } RaucConfig;
 
 typedef enum {

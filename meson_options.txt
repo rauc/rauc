@@ -29,6 +29,11 @@ option(
   type : 'feature',
   value : 'auto',
   description : 'Enable/Disable GPT support')
+option(
+  'composefs',
+  type : 'feature',
+  value : 'auto',
+  description : 'Enable/Disable composefs support')
 
 # other options
 option(
