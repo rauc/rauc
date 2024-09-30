@@ -121,6 +121,15 @@ mkfs.ext4 /tmp/rootdev
 truncate --size=64M /tmp/appdev
 mkfs.ext4 /tmp/appdev
 
+# fake artifact repos
+mkdir /tmp/file-artifacts-single
+touch /tmp/file-artifacts-single/.artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+ln -s .artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 /tmp/file-artifacts-single/empty
+mkdir /tmp/file-artifacts-dual /tmp/file-artifacts-dual/rootfs.0 /tmp/file-artifacts-dual/rootfs.1
+touch /tmp/file-artifacts-dual/.artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+ln -s ../.artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 /tmp/file-artifacts-dual/rootfs.0/empty
+mkdir /tmp/tree-artifacts
+
 # rauc binary in PATH
 if [ -n "$SHELL" ]; then
   cp -a $BUILD_DIR/rauc /tmp/bin/rauc

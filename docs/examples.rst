@@ -356,6 +356,37 @@ setup.
 Anyway, you can still define it as a slot if you need to be able to provide
 an update for this, too.
 
+Symmetric A/B Setup + Shared (Single-File) Artifacts Repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Configuring a ``file`` *artifact repository* in addition to the A/B *system
+slots* can be useful for systems which use one or several larger data files
+(e.g.  map data) that should be updated more frequently and/or independently of
+the main A/B rootfs.
+
+.. code-block:: cfg
+  :emphasize-lines: 13-15
+
+  [...]
+
+  [slot.rootfs.0]
+  device=/dev/sda2
+  type=ext4
+  bootname=A
+
+  [slot.rootfs.1]
+  device=/dev/sda3
+  type=ext4
+  bootname=B
+
+  [artifacts.map-data]
+  path=/srv/maps
+  type=file
+
+The artifacts directory ``maps`` from this example must be located on a separate
+(shared) partition that is mounted to the respective active rootfs slot under
+``/srv``.
+
 Example Integrations
 --------------------
 

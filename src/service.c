@@ -3,6 +3,7 @@
 #include <glib.h>
 #include <stdio.h>
 
+#include "artifacts.h"
 #include "bundle.h"
 #include "bootchooser.h"
 #include "config_file.h"
@@ -435,6 +436,34 @@ static gboolean r_on_handle_get_slot_status(RInstaller *interface,
 	return TRUE;
 }
 
+static gboolean r_on_handle_get_artifact_status(RInstaller *interface,
+		GDBusMethodInvocation  *invocation)
+{
+	GVariant *artifactstatus;
+	GError *ierror = NULL;
+	gboolean res;
+
+	res = !r_context_get_busy();
+
+	if (!res) {
+		g_dbus_method_invocation_return_error(invocation,
+				G_IO_ERROR,
+				G_IO_ERROR_FAILED_HANDLED,
+				"already processing a different method");
+		return TRUE;
+	}
+
+	artifactstatus = r_artifacts_to_dict();
+	if (!artifactstatus) {
+		g_dbus_method_invocation_return_gerror(invocation, ierror);
+		return TRUE;
+	}
+
+	r_installer_complete_get_artifact_status(interface, invocation, artifactstatus);
+
+	return TRUE;
+}
+
 static gboolean r_on_handle_get_primary(RInstaller *interface,
 		GDBusMethodInvocation  *invocation)
 {
@@ -543,6 +572,10 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 
 	g_signal_connect(r_installer, "handle-get-slot-status",
 			G_CALLBACK(r_on_handle_get_slot_status),
+			NULL);
+
+	g_signal_connect(r_installer, "handle-get-artifact-status",
+			G_CALLBACK(r_on_handle_get_artifact_status),
 			NULL);
 
 	g_signal_connect(r_installer, "handle-get-primary",

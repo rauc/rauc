@@ -28,3 +28,17 @@ parent=rootfs.0
 [slot.appfs.1]
 device=/tmp/appdev
 parent=rootfs.1
+
+[artifacts.files-single]
+path=/tmp/file-artifacts-single
+type=files
+
+# not yet fully implemented
+#[artifacts.files-dual]
+#path=/tmp/file-artifacts-dual
+#type=files
+#parent-class=rootfs
+
+[artifacts.trees]
+path=/tmp/tree-artifacts
+type=trees
