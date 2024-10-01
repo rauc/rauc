@@ -2685,7 +2685,7 @@ static gboolean collect_config_values(const gchar *option_name, const gchar *val
 	if (!g_strcmp0("check-crl", colon_delimiter)) {
 		if (!g_strcmp0("false", equal_delimiter)) {
 			r_context_conf()->configoverwrite.keyring_check_crl_value = g_strdup(equal_delimiter);
-			r_context_conf()->configoverwrite.keyring_check_purpose_overwrite = TRUE;
+			r_context_conf()->configoverwrite.keyring_check_crl_overwrite = TRUE;
 			return TRUE;
 		}
 	}
