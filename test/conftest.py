@@ -334,8 +334,10 @@ def create_system_files(env_setup, tmp_path):
     os.mkdir(tmp_path / "images")
     open(tmp_path / "images/rootfs-0", mode="w").close()
     open(tmp_path / "images/rootfs-1", mode="w").close()
+    open(tmp_path / "images/rootfs-2", mode="w").close()
     open(tmp_path / "images/appfs-0", mode="w").close()
     open(tmp_path / "images/appfs-1", mode="w").close()
+    open(tmp_path / "images/appfs-2", mode="w").close()
     os.symlink(os.path.abspath("bin"), tmp_path / "bin")
     os.symlink(os.path.abspath("openssl-ca"), tmp_path / "openssl-ca")
     os.symlink(os.path.abspath("openssl-enc"), tmp_path / "openssl-enc")
@@ -422,7 +424,21 @@ def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_syste
 
 @pytest.fixture
 def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_system_files):
-    service, bus = _rauc_dbus_service(tmp_path, "crypt-test.conf", "_external_")
+    service, bus = _rauc_dbus_service(tmp_path, "minimal-test.conf", "_external_")
+
+    yield bus
+
+    service.terminate()
+    try:
+        service.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        service.kill()
+        service.wait()
+
+
+@pytest.fixture
+def rauc_dbus_service_with_system_abc(tmp_path, dbus_session_bus, create_system_files):
+    service, bus = _rauc_dbus_service(tmp_path, "abc-test.conf", "system0")
 
     yield bus
 
