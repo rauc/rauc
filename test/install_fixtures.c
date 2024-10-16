@@ -80,6 +80,11 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 	g_assert_true(test_make_filesystem(tmpdir, "images/appfs-1"));
 	g_assert_true(test_make_filesystem(tmpdir, "images/bootloader-0"));
 
+	/* create artifact repos */
+	g_assert(test_mkdir_relative(tmpdir, "repos", 0700) == 0);
+	g_assert(test_mkdir_relative(tmpdir, "repos/files", 0700) == 0);
+	g_assert(test_mkdir_relative(tmpdir, "repos/trees", 0700) == 0);
+
 	/* Set dummy bootname provider */
 	replace_strdup(&r_context_conf()->bootslot, "system0");
 }
@@ -170,6 +175,18 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 		g_assert_true(g_file_set_contents(testfilepath, "0xdeadbeaf", -1, NULL));
 		g_assert_true(r_umount(mountdir, NULL));
 		g_assert(test_rmdir(tmpdir, "mnt") == 0);
+	}
+
+	if (options->artifact_file) {
+		g_print("artifact file %s\n", options->artifact_file);
+		if (g_strcmp0(options->artifact_file, "artifact-1.file") == 0) {
+			g_autofree gchar *filename = write_random_file(contentdir, "artifact-1.file", 16*1024, 0x34f474b1);
+			g_assert_nonnull(filename);
+		} else if (g_str_has_prefix(options->artifact_file, "payload-")) {
+			g_assert_true(test_copy_file("test/install-content", options->artifact_file, contentdir, options->artifact_file));
+			/* add some padding to get the size above 4kiB */
+			g_assert_true(test_copy_file("test/install-content", "space-dummy", contentdir, "space-dummy"));
+		}
 	}
 
 	/* Copy custom handler */

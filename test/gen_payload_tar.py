@@ -40,6 +40,11 @@ with tarfile.open(name="payload-common.tar", mode="w") as t:
     f.linkname = "./dir/file"
     t.addfile(f)
 
+    f = tarfile.TarInfo(name="broken-symlink")
+    f.type = tarfile.SYMTYPE
+    f.linkname = "/nonexistent/symlink/target"
+    t.addfile(f)
+
     f = tarfile.TarInfo(name="hardlink")
     f.type = tarfile.LNKTYPE
     f.linkname = "file"
@@ -78,4 +83,54 @@ with tarfile.open(name="payload-special.tar", mode="w") as t:
 
     f = tarfile.TarInfo(name="selinux")
     f.pax_headers["RHT.security.selinux"] = "system_u:object_r:dummy_t"
+    t.addfile(f)
+
+# Generate two tars which use the same contents multiple times in different
+# combinations, which is useful for artifact testing.
+CONTENTS_A = b"contents-a\n" * 10000
+CONTENTS_B = b"contents-b\n" * 10000
+CONTENTS_C = b"contents-c\n" * 10000
+CONTENTS_D = b"contents-d\n" * 10000
+
+
+def add_file(tar, name, contents, uid=0):
+    c = BytesIO(contents)
+    f = tarfile.TarInfo(name=name)
+    f.size = len(c.getbuffer())
+    f.uid = uid
+    tar.addfile(f, c)
+
+
+with tarfile.open(name="payload-medium-data-size-a.tar.gz", mode="w:gz") as t:
+    add_file(t, "file-a-1", CONTENTS_A)
+    add_file(t, "file-a-2", CONTENTS_A, uid=1000)
+    add_file(t, "file-b-1", CONTENTS_B)
+    add_file(t, "file-b-2", CONTENTS_B)
+    add_file(t, "file-c-1", CONTENTS_C)
+
+    f = tarfile.TarInfo(name="file-a-1.symlink")
+    f.type = tarfile.SYMTYPE
+    f.linkname = "./file-a-1"
+    t.addfile(f)
+
+    f = tarfile.TarInfo(name="file-a-1.hardlink")
+    f.type = tarfile.LNKTYPE
+    f.linkname = "file-a-1"
+    t.addfile(f)
+
+
+with tarfile.open(name="payload-medium-data-size-b.tar.gz", mode="w:gz") as t:
+    add_file(t, "file-b-1", CONTENTS_B)
+    add_file(t, "file-c-1", CONTENTS_C)
+    add_file(t, "file-c-2", CONTENTS_C, uid=1000)
+    add_file(t, "file-d-1", CONTENTS_D)
+
+    f = tarfile.TarInfo(name="file-b-1.symlink")
+    f.type = tarfile.SYMTYPE
+    f.linkname = "./file-b-1"
+    t.addfile(f)
+
+    f = tarfile.TarInfo(name="file-b-1.hardlink")
+    f.type = tarfile.LNKTYPE
+    f.linkname = "file-b-1"
     t.addfile(f)

@@ -26,11 +26,15 @@ typedef struct {
 
 typedef struct {
 	gchar* slotclass;
+	gchar* artifact;
 	gchar* variant;
 	RaucChecksum checksum;
 	gchar* filename;
 	SlotHooks hooks;
 	GStrv adaptive;
+	GStrv convert;
+	/* String array of converted filenames. Not NULL-terminated! */
+	GPtrArray* converted;
 } RaucImage;
 
 typedef enum {
@@ -101,6 +105,19 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return TRUE on success, FALSE if an error occurred
  */
 gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Check a loaded input manifest for consistency. Manifests to be used with 'rauc
+ * bundle' must pass this check. They should not contain information that will be
+ * generated (such as hashes or converted filenames);
+ *
+ * @param manifest Pointer to the manifest to check
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean check_manifest_input(const RaucManifest *manifest, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
@@ -185,6 +202,22 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return new GVariant containing the dict
  */
 GVariant *r_manifest_to_dict(const RaucManifest *manifest)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Checks if the manifest has an artifact image:
+ * - for any repository
+ * - for a specific repository
+ * - for a specific artifact name in a specific repository
+ *
+ * @param manifest pointer to the manifest
+ * @param repo name of the repository, or NULL.
+ *             Must be set if artifact is set.
+ * @param artifact name of the artifact in the repository, or NULL
+ *
+ * @return TRUE if image was found, FALSE otherwise
+ */
+gboolean r_manifest_has_artifact_image(const RaucManifest *manifest, const gchar *repo, const gchar *artifact)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**

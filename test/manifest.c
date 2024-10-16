@@ -34,6 +34,10 @@ static void manifest_check_common(RaucManifest *rm)
 		g_assert_nonnull(img->checksum.digest);
 		g_assert_nonnull(img->filename);
 	}
+
+	g_assert_false(r_manifest_has_artifact_image(rm, NULL, NULL));
+	g_assert_false(r_manifest_has_artifact_image(rm, "repo", NULL));
+	g_assert_false(r_manifest_has_artifact_image(rm, "repo", "artifact"));
 }
 
 /* Test manifest/load:
@@ -94,18 +98,44 @@ static void check_manifest_contents(const RaucManifest *rm)
 
 	g_assert_cmpuint(g_list_length(rm->images), ==, 3);
 
-	for (GList *l = rm->images; l != NULL; l = l->next) {
-		image = l->data;
-		g_assert_nonnull(image);
-		g_assert_nonnull(image->slotclass);
-		g_assert_nonnull(image->checksum.digest);
-		g_assert_nonnull(image->filename);
-	}
-
 	image = g_list_nth_data(rm->images, 0);
 	g_assert_nonnull(image);
+	g_assert_cmpstr(image->slotclass, ==, "rootfs");
+	g_assert_cmpstr(image->checksum.digest, ==, "c8af04e62bad4ab75dafd22119026e5e3943f385bdcbe7731a4938102453754c");
+	g_assert_cmpstr(image->filename, ==, "myrootimg.ext4");
 	g_assert_true(image->hooks.pre_install);
 	g_assert_true(image->hooks.post_install);
+
+	image = g_list_nth_data(rm->images, 1);
+	g_assert_nonnull(image);
+	g_assert_cmpstr(image->slotclass, ==, "rootfs");
+	g_assert_cmpstr(image->variant, ==, "variant-1");
+	g_assert_cmpstr(image->checksum.digest, ==, "768c36e72bedd35dac67c39b6145f97ef174179f5903a31c4c03abc0eb5d954c");
+	g_assert_cmpstr(image->filename, ==, "myrootimg_variant1.ext4");
+	g_assert_cmpint(g_strv_length(image->adaptive), ==, 2);
+	g_assert_cmpstr(image->adaptive[0], ==, "invalid-method");
+	g_assert_cmpstr(image->adaptive[1], ==, "another-invalid-method");
+
+	image = g_list_nth_data(rm->images, 2);
+	g_assert_nonnull(image);
+	g_assert_cmpstr(image->slotclass, ==, "appfs");
+	g_assert_cmpstr(image->artifact, ==, "app-a");
+	g_assert_cmpstr(image->checksum.digest, ==, "4e7e45db749b073eda450d30c978c7e2f6035b057d3e33ac4c61d69ce5155313");
+	g_assert_cmpstr(image->filename, ==, "myappimg.ext4");
+	g_assert_cmpint(g_strv_length(image->convert), ==, 2);
+	g_assert_cmpstr(image->convert[0], ==, "invalid-convert");
+	g_assert_cmpstr(image->convert[1], ==, "another-invalid-convert");
+	g_assert_nonnull(image->converted);
+	g_assert_cmpint(image->converted->len, ==, 2);
+	g_assert_cmpstr(image->converted->pdata[0], ==, "invalid-converted");
+	g_assert_cmpstr(image->converted->pdata[1], ==, "another-invalid-converted");
+
+	g_assert_true(r_manifest_has_artifact_image(rm, NULL, NULL));
+	g_assert_false(r_manifest_has_artifact_image(rm, "repo", NULL));
+	g_assert_false(r_manifest_has_artifact_image(rm, "repo", "app-a"));
+	g_assert_true(r_manifest_has_artifact_image(rm, "appfs", NULL));
+	g_assert_false(r_manifest_has_artifact_image(rm, "appfs", "artifact"));
+	g_assert_true(r_manifest_has_artifact_image(rm, "appfs", "app-a"));
 
 	g_assert_true(rm->hooks.install_check);
 
@@ -167,9 +197,12 @@ static void test_save_load_manifest(void)
 
 	new_image = r_new_image();
 	new_image->slotclass = g_strdup("appfs");
+	new_image->artifact = g_strdup("app-a");
 	new_image->checksum.type = G_CHECKSUM_SHA256;
 	new_image->checksum.digest = g_strdup("4e7e45db749b073eda450d30c978c7e2f6035b057d3e33ac4c61d69ce5155313");
 	new_image->filename = g_strdup("myappimg.ext4");
+	new_image->convert = g_strsplit("invalid-convert;another-invalid-convert", ";", 0);
+	new_image->converted = test_ptr_array_from_strsplit("invalid-converted;another-invalid-converted");
 	rm->images = g_list_append(rm->images, new_image);
 
 	g_assert_cmpuint(g_list_length(rm->images), ==, 3);

@@ -227,7 +227,7 @@ Additionally, there are specific slot types for :ref:`atomic bootloader updates
 <sec-advanced-updating-bootloader>`: ``boot-emmc``, ``boot-mbr-switch``,
 ``boot-gpt-switch``, ``boot-raw-fallback``.
 
-Depending on this slot storage type and the slot's :ref:`image filename <image.slot-filename>`
+Depending on this slot storage type and the slot's :ref:`image filename <image-filename>`
 extension, RAUC determines how to extract the image content to the target slot.
 
 While the generic filename extension ``.img`` is supported for all filesystems,
@@ -258,6 +258,113 @@ parent relationship to this bootable slot as follows:
   [slot.appfs.1]
   parent=rootfs.1
   ...
+
+.. _sec-repository-config:
+
+Artifact Repository Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To configure :ref:`Artifact Repositories <sec-basic-artifact-repositories>`, you
+first need to have a shared partition which is mounted before starting the RAUC
+service.
+Each artifact repository needs its own directory on this shared partition.
+The directory must be created outside of RAUC.
+
+For each repository, you need to add an :ref:`[artifacts.\<repo-name\>] section
+<sec_ref_artifacts>` to your ``system.conf``.
+An artifact repository is referenced from the manifest using its name, so that
+the name needs to be unique across all slot and repository names.
+
+.. code-block:: cfg
+
+  [artifacts.add-ons]
+  path=/srv/add-ons
+  type=trees
+
+This example specifies one repository stored in the ``add-ons`` directory on the
+shared data partition mounted on ``/srv``.
+The directory must exist before starting RAUC as it will not be created
+automatically.
+The name of the repository is ``add-ons`` as well, so it could be targeted for
+installation with an :ref:`[image.add-ons/app-1] section <image-section>` in
+the manifest.
+In that case, RAUC would install the contents of the archive specified in the
+image to the repository and make it available via a link at
+``/srv/add-ons/app-1``.
+
+A single bundle can contain images for multiple artifacts across multiple
+repositories.
+The bundle defines the intended target state of each repository mentioned in
+its manifest.
+This means that previously installed artifacts can be removed from a repository
+by installing a bundle which contains a different artifact for that repository.
+Artifacts which are currently in use (i.e. which have open files that can be
+detected by trying to acquire a write lease) will not be deleted, but only their
+symlink is removed or replaced.
+
+.. note::
+
+  There is currently no way to remove *all* artifacts from a repository.
+  If you need that functionality, please reach out to us!
+
+Internally, artifacts are stored under their artifact name and image hash in
+the repository's directory.
+This means that artifacts are installed only if a given version is not yet
+available in the repository.
+A symlink is created from the image name to the actual artifact, making it
+available to the rest of the system atomically.
+
+.. note::
+   Currently, you need to ensure that enough space is available on the
+   filesystem for all installed artifacts and one temporary copy of a single
+   artifact during installation.
+   In the future, RAUC could be extended to check that enough space is available
+   by itself.
+
+You can use the :ref:`post-install handler <sec-post-install-handler>` to notify
+the running system about newly installed artifacts.
+By the time this handler is executed, the symlinks to the artifacts have
+been created.
+For example, you could restart all services or containers running from the
+artifact repositories.
+
+.. _sec-repository-types:
+
+Repository Type
+^^^^^^^^^^^^^^^
+
+Each repository is configured with a type which specifies how it stores and
+manages artifacts.
+
+``files``
+  Each artifact is a single file.
+
+  Possible use-cases for this type are:
+
+  * filesystem images for use with `systemd-sysext
+    <https://www.freedesktop.org/software/systemd/man/latest/systemd-sysext.html>`_
+  * large data files such as maps, videos or read-only databases
+  * disk images for virtual machines
+
+  .. note::
+     In the future, this could be combined with adaptive updates using the
+     ``block-hash-index`` method.
+
+``trees``
+  Each artifact is a directory tree containing files.
+  An image should be a tar archive or a tar converted to a directory tree using
+  ``convert=tar-extract`` in the input manifest.
+
+  Possible use-cases for this type are:
+
+  * add-on modules consisting of binaries and some meta-data
+  * container-like OS trees for use with  `systemd-nspawn
+    <https://www.freedesktop.org/software/systemd/man/latest/systemd-nspawn.html>`_
+    or other runtimes.
+
+  .. note::
+     In the future, this could be combined with adaptive updates using new
+     methods which could detect unmodified files.
 
 Library Dependencies
 --------------------

@@ -3,6 +3,7 @@ if not get_option('tests')
 endif
 
 tests = [
+  'artifacts',
   'boot_raw_fallback',
   'bootchooser',
   'bundle',
@@ -70,6 +71,7 @@ pytest = find_program('pytest', required: false)
 
 if pytest.found()
   pytests = [
+    'test_artifacts',
     'test_bundle',
     'test_cmdline',
     'test_convert',
