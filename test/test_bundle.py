@@ -150,3 +150,53 @@ def test_bundle_adaptive(tmp_path, bundle):
     assert "Creating 'verity' format bundle" in out
     assert "not a multiple of 4096 bytes" in err
     assert not bundle.output.is_file()
+
+
+def test_bundle_content_checks(tmp_path, bundle):
+    bundle.build()
+    assert bundle.output.exists()
+    bundle.output.unlink()
+
+    # absolute symlinks are not allowed
+    test_file = bundle.content / "abs-symlink"
+    test_file.symlink_to("/dev/null")
+    out, err, exitcode = bundle.build_nocheck()
+    assert exitcode == 1
+    assert "absolute symlinks are not supported as bundle contents (abs-symlink)" in err
+    assert not bundle.output.is_file()
+    test_file.unlink()
+
+    # relative symlinks are not allowed
+    test_file = bundle.content / "rel-symlink"
+    test_file.symlink_to("../foo")
+    out, err, exitcode = bundle.build_nocheck()
+    assert exitcode == 1
+    assert "symlinks containing slashes are not supported as bundle contents (rel-symlink)" in err
+    assert not bundle.output.is_file()
+    test_file.unlink()
+
+    # local symlinks are allowed
+    test_file = bundle.content / "local-symlink"
+    test_file.symlink_to("foo")
+    bundle.build()
+    assert bundle.output.is_file()
+    bundle.output.unlink()
+    test_file.unlink()
+
+    # directories are not allowed
+    test_dir = bundle.content / "subdir"
+    test_dir.mkdir()
+    out, err, exitcode = bundle.build_nocheck()
+    assert exitcode == 1
+    assert "directories are not supported as bundle contents (subdir)" in err
+    assert not bundle.output.is_file()
+    test_dir.rmdir()
+
+    # directories are not allowed
+    test_fifo = bundle.content / "fifo"
+    os.mkfifo(test_fifo)
+    out, err, exitcode = bundle.build_nocheck()
+    assert exitcode == 1
+    assert "only regular files are supported as bundle contents (fifo)"
+    assert not bundle.output.is_file()
+    test_fifo.unlink()
