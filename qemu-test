@@ -25,8 +25,8 @@ set -e
 
 rm -f qemu-test-ok
 
-KERNEL_URL="https://github.com/jluebbe/linux/releases/download/rauc-test-20240628-1/bzImage"
-KERNEL_SHA256SUM="057bd2d1d82aa66af97797e06d0793963cb27e85ca9d5e6f718ddd8bd21b1e07"
+KERNEL_URL="https://github.com/jluebbe/linux/releases/download/rauc-test-20241015-1/bzImage"
+KERNEL_SHA256SUM="1d645700187640c58ea3821e55723cfe1627b68fcf0f38706d7bdd93c71fa056"
 
 check_kernel() {
   if test -f bzImage && echo "$KERNEL_SHA256SUM bzImage" | sha256sum --check --status; then
