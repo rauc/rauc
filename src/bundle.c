@@ -997,14 +997,37 @@ out:
 
 static gboolean check_workdir_content(const gchar *path, GError **error)
 {
+	GError *ierror = NULL;
 	g_autofree gchar *name = g_path_get_basename(path);
 
-	/* It's not clear what symlinks in the bundle input should mean, so
-	 * reject them. If you have a use case for this, contact us. */
+	/* It's not clear what absolute or relative symlinks (with slashes)
+	 * in the bundle input should mean, so reject them. If you have a use
+	 * case for this, contact us. */
 	if (g_file_test(path, G_FILE_TEST_IS_SYMLINK)) {
-		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_PAYLOAD,
-				"symlinks are not supported as bundle contents (%s)", name);
-		return FALSE;
+		g_autofree gchar *link_target = g_file_read_link(path, &ierror);
+		if (!link_target) {
+			g_propagate_prefixed_error(error, ierror,
+					"failed to read symlink in bundle contents (%s): ", name);
+			return FALSE;
+		}
+
+		if (g_path_is_absolute(link_target)) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_PAYLOAD,
+					"absolute symlinks are not supported as bundle contents (%s)", name);
+			return FALSE;
+		}
+
+		if (strchr(link_target, '/')) {
+			g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_PAYLOAD,
+					"symlinks containing slashes are not supported as bundle contents (%s)", name);
+			return FALSE;
+		}
+
+		/* Local symlinks in the same directory (containing no slashes) seem
+		 * harmless and can be useful in special cases for backwards
+		 * compatibility, so allow them. */
+
+		return TRUE;
 	}
 
 	/* Directories should not be needed in the bundle input, so reject

@@ -222,10 +222,11 @@ This way, we don't actually need to copy any data and can perform any
 preparation of the contents without affecting the input directory.
 
 For simplicity, we abort on anything in the input directory which is not a
-regular file.
+regular file or a simple local symlink (containing no slashes).
 In that case, one of the following errors will be shown:
 
-  * ``Failed to create bundle: symlinks are not supported as bundle contents (a_symlink)``
+  * ``Failed to create bundle: absolute symlinks are not supported as bundle contents (a_symlink)``
+  * ``Failed to create bundle: symlinks containing slashes are not supported as bundle contents (a_symlink)``
   * ``Failed to create bundle: directories are not supported as bundle contents (a_directory)``
   * ``Failed to create bundle: only regular files are supported as bundle contents (a_fifo)``
 
