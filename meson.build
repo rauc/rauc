@@ -192,7 +192,7 @@ librauc = static_library('rauc',
   dependencies : rauc_deps + [versiondep],
   )
 
-executable('rauc',
+rauc_binary = executable('rauc',
   'src/main.c',
   dbus_sources,
   include_directories : incdir,
