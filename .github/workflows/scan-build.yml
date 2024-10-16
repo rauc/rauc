@@ -35,4 +35,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: scan-build-report
-        path: /tmp/scan-build-*
+        path: build/meson-logs/scanbuild/*
