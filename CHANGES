@@ -38,6 +38,15 @@ Release 1.13 (development)
   We intend to stabilize this feature as soon as we have confidence that the
   common use-cases work well.
 
+* Add support for `composefs <https://github.com/containers/composefs>`_ artifacts.
+  composefs combines `overlayfs
+  <https://www.kernel.org/doc/html/latest/filesystems/overlayfs.html>`_, `EROFS
+  <https://erofs.docs.kernel.org>`_ and optionally `fs-verity
+  <https://www.kernel.org/doc/html/latest/filesystems/fsverity.html>`_ into an
+  authenticated read-only filesystem with content-addressed file data.
+  In RAUC, we use it to optimize storage and download of artifacts such as
+  container filesystems.
+
 .. rubric:: Bug fixes
 
 .. rubric:: Testing

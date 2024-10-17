@@ -1785,5 +1785,21 @@ int main(int argc, char *argv[])
 			install_fixture_set_up_bundle, install_test_bundle,
 			install_fixture_tear_down);
 
+	install_data = dup_test_data(ptrs, (&(InstallData) {
+		.system_test_options = {
+			.artifact_repos = TRUE,
+		},
+		.manifest_test_options = {
+			.format = R_MANIFEST_FORMAT_VERITY,
+			.artifact_file = "payload-medium-data-size-a.tar.gz",
+			.artifact_slotclass = "composefs",
+			.artifact_convert = "composefs",
+		},
+	}));
+	g_test_add("/install/artifacts/composefs",
+			InstallFixture, install_data,
+			install_fixture_set_up_bundle, install_test_bundle,
+			install_fixture_tear_down);
+
 	return g_test_run();
 }

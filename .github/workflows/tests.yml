@@ -113,7 +113,7 @@ jobs:
 
     - name: Test
       run: |
-        podman exec -i cross meson test -C build --timeout-multiplier 3
+        podman exec -i cross meson test -C build --suite rauc --timeout-multiplier 3
 
     - name: Show logs
       if: ${{ failure() }}

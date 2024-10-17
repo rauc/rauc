@@ -339,6 +339,7 @@ def create_system_files(env_setup, tmp_path):
     os.mkdir(tmp_path / "repos")
     os.mkdir(tmp_path / "repos/files")
     os.mkdir(tmp_path / "repos/trees")
+    os.mkdir(tmp_path / "repos/composefs")
     os.symlink(os.path.abspath("bin"), tmp_path / "bin")
     os.symlink(os.path.abspath("openssl-ca"), tmp_path / "openssl-ca")
     os.symlink(os.path.abspath("openssl-enc"), tmp_path / "openssl-enc")
