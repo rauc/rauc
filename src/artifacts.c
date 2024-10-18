@@ -328,6 +328,7 @@ static gboolean artifact_repo_prune_subdir(RArtifactRepo *repo, const gchar *par
 	g_autofree gchar *path = g_build_filename(repo->path, parent, NULL);
 	g_autoptr(GDir) dir = g_dir_open(path, 0, &ierror);
 	if (dir == NULL) {
+		g_propagate_error(error, ierror);
 		return TRUE;
 	}
 
@@ -512,6 +513,7 @@ gboolean r_artifact_repo_commit(RArtifactRepo *repo, GError **error)
 							artifact->name,
 							artifact->checksum.digest
 							);
+					break;
 				} else {
 					g_debug("disabled");
 				}
