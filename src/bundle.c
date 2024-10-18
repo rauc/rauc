@@ -989,8 +989,12 @@ static gboolean decrypt_bundle_payload(RaucBundle *bundle, GError **error)
 out:
 	/* Remove temporary bundle creation directory.
 	 * RAUC will still have access to the decrypted bundle via the opened GFile */
-	if (tmpdir)
-		rm_tree(tmpdir, NULL);
+	if (tmpdir) {
+		g_autoptr(GError) tmperror = NULL;
+		if (!rm_tree(tmpdir, &tmperror)) {
+			g_warning("Failed to remove bundle decryption tmpdir %s: %s", tmpdir, tmperror->message);
+		}
+	}
 
 	return res;
 }
@@ -1516,8 +1520,12 @@ static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbun
 	res = TRUE;
 out:
 	/* Remove temporary bundle creation directory */
-	if (tmpdir)
-		rm_tree(tmpdir, NULL);
+	if (tmpdir) {
+		g_autoptr(GError) tmperror = NULL;
+		if (!rm_tree(tmpdir, &tmperror)) {
+			g_warning("Failed to remove conversion tmpdir %s: %s", tmpdir, tmperror->message);
+		}
+	}
 	return res;
 }
 
@@ -2735,8 +2743,12 @@ gboolean load_manifest_from_bundle(RaucBundle *bundle, RaucManifest **manifest, 
 		goto out;
 	}
 out:
-	if (tmpdir)
-		rm_tree(tmpdir, NULL);
+	if (tmpdir) {
+		g_autoptr(GError) tmperror = NULL;
+		if (!rm_tree(tmpdir, &tmperror)) {
+			g_warning("Failed to remove unsquashfs tmpdir %s: %s", tmpdir, tmperror->message);
+		}
+	}
 	return res;
 }
 
