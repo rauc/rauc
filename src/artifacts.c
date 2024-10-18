@@ -328,6 +328,7 @@ static gboolean artifact_repo_prune_subdir(RArtifactRepo *repo, const gchar *par
 	g_autofree gchar *path = g_build_filename(repo->path, parent, NULL);
 	g_autoptr(GDir) dir = g_dir_open(path, 0, &ierror);
 	if (dir == NULL) {
+		g_propagate_error(error, ierror);
 		return TRUE;
 	}
 
