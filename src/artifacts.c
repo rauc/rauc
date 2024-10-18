@@ -513,6 +513,7 @@ gboolean r_artifact_repo_commit(RArtifactRepo *repo, GError **error)
 							artifact->name,
 							artifact->checksum.digest
 							);
+					break;
 				} else {
 					g_debug("disabled");
 				}
