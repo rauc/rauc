@@ -27,6 +27,14 @@ jobs:
         ./qemu-test
         lcov --directory . --capture --output-file "service.info"
         
+    - name: Upload coverage to Codecov 
+      uses: codecov/codecov-action@v4
+      with:
+        files: service.info
+        flags: "service=true"
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true
+
     - name: Test without service and gpt
       run: |
         rm -rf build/
@@ -36,6 +44,14 @@ jobs:
         ./qemu-test
         lcov --directory . --capture --output-file "noservice.info"
 
+    - name: Upload coverage to Codecov 
+      uses: codecov/codecov-action@v4
+      with:
+        files: noservice.info
+        flags: "service=false"
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true
+
     - name: Test fuzzers
       run: |
         rm -rf build/
@@ -44,12 +60,6 @@ jobs:
         meson compile -C build
         meson test -C build --suite rauc:fuzzing
         
-    - uses: codecov/codecov-action@v4
-      with:
-        files: service.info,noservice.info
-        token: ${{ secrets.CODECOV_TOKEN }}
-        verbose: true
-
     - name: Build documentation
       run: |
         rm -rf build/
