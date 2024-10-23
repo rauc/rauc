@@ -1,6 +1,7 @@
 import json
+import shutil
 
-from conftest import have_json, no_service
+from conftest import have_json, no_service, root
 from helper import run
 
 
@@ -97,3 +98,22 @@ def test_status_invalid(rauc_dbus_service):
 
     assert exitcode == 1
     assert "Unknown output format" in err
+
+
+@root
+def test_status_after_install(rauc_dbus_service_with_system, tmp_path):
+    # copy to tmp path for safe ownership check
+    shutil.copyfile("good-verity-bundle.raucb", tmp_path / "good-verity-bundle.raucb")
+
+    out, err, exitcode = run(f"rauc install {tmp_path}/good-verity-bundle.raucb")
+    assert exitcode == 0
+
+    out, err, exitcode = run("rauc status --detailed --output-format=readable")
+    assert exitcode == 0
+
+    out, err, exitcode = run("rauc status --detailed --output-format=json")
+    assert exitcode == 0
+    assert json.loads(out)
+
+    out, err, exitcode = run("rauc status --detailed --output-format=shell")
+    assert exitcode == 0
