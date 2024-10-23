@@ -76,6 +76,7 @@ def test_status_shell(rauc_dbus_service):
     assert out.startswith("RAUC_SYSTEM_COMPATIBLE='Test Config'")
 
 
+@have_json
 def test_status_json(rauc_dbus_service):
     out, err, exitcode = run("rauc status --detailed --output-format=json")
 
@@ -83,6 +84,7 @@ def test_status_json(rauc_dbus_service):
     assert json.loads(out)
 
 
+@have_json
 def test_status_json_pretty(rauc_dbus_service):
     out, err, exitcode = run("rauc status --detailed --output-format=json-pretty")
 

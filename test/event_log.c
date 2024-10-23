@@ -150,6 +150,11 @@ static void event_log_test_log_write_json(EventLogFixture *fixture,
 	};
 	g_autofree gchar *contents = NULL;
 
+	if (!ENABLE_JSON) {
+		g_test_skip("Test requires RAUC being configured with \"-Djson=enabled\".");
+		return;
+	}
+
 	logger = g_new0(REventLogger, 1);
 	logger->name = g_strdup("testlogger");
 	logger->format = R_EVENT_LOGFMT_JSON;
