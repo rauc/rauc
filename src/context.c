@@ -871,6 +871,13 @@ void r_context_clean(void)
 
 		g_clear_pointer(&context->config, free_config);
 
+		for (GList *l = context->configoverwrite; l != NULL; l = l->next) {
+			ConfigFileOverwrite *overwrite = (ConfigFileOverwrite *)l->data;
+			g_clear_pointer(&overwrite->overwrite_section, g_free);
+			g_clear_pointer(&overwrite, g_free);
+    	}
+		g_clear_pointer(&context->configoverwrite, g_list_free);
+
 		g_clear_pointer(&context->system_status, r_system_status_free);
 
 		g_clear_pointer(&context, g_free);
