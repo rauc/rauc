@@ -2651,7 +2651,7 @@ static gboolean collect_config_values(const gchar *option_name, const gchar *val
 	if (value == NULL) {
 		return FALSE;
 	}
-    gchar* copy = g_strdup(value);
+	gchar* copy = g_strdup(value);
 	
 	//find colon
 	gchar* colon_delimiter = strstr(copy, ":");
