@@ -1125,12 +1125,6 @@ check-crl=true\n";
 	g_assert_true(config->keyring_allow_partial_chain);
 	g_assert_false(config->keyring_check_crl);
 	g_assert_cmpstr(config->keyring_check_purpose, ==, "codesign-rauc");
-	g_free(overwrite->overwrite_section);
-	g_free(overwrite2->overwrite_section);
-	g_free(overwrite->overwrite_name);
-	g_free(overwrite2->overwrite_name);
-	g_free(overwrite->overwrite_value);
-	g_free(overwrite2->overwrite_value);
 }
 
 static void config_file_bundle_formats(ConfigFileFixture *fixture,
