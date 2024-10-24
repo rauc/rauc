@@ -743,10 +743,9 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		return FALSE;
 	}
 
-	//overwrites
+	//process overwrites
 	for (GList *l = r_context_conf()->configoverwrite; l != NULL; l = l->next) {
-        ConfigFileOverwrite *overwrite = (ConfigFileOverwrite *)l->data;
-		
+		ConfigFileOverwrite *overwrite = (ConfigFileOverwrite *)l->data;
 		g_key_file_set_value(key_file, overwrite->overwrite_section, overwrite->overwrite_name, overwrite->overwrite_value);
     }
 

@@ -24,8 +24,8 @@ typedef enum {
 
 typedef struct {
 	gchar *overwrite_section;
-    gchar *overwrite_name;
-    gchar *overwrite_value;
+	gchar *overwrite_name;
+	gchar *overwrite_value;
 } ConfigFileOverwrite;
 
 typedef struct {
