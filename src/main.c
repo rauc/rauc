@@ -2646,7 +2646,16 @@ static void create_option_groups(void)
 	g_option_group_add_entries(service_group, entries_service);
 }
 
-// Callback function to handle the repeated option
+static gboolean append_config_overwrite(gchar *section, gchar *name, gchar *value) {
+	ConfigFileOverwrite *overwrite = g_new(ConfigFileOverwrite, 1);
+	overwrite->overwrite_section = section;
+	overwrite->overwrite_name = name;
+	overwrite->overwrite_value = value;
+	r_context_conf()->configoverwrite = g_list_append(r_context_conf()->configoverwrite, overwrite);
+	return TRUE;
+}
+
+// Callback function to handle the repeated -C option
 static gboolean collect_config_values(const gchar *option_name, const gchar *value, gpointer data, GError **error) {
 	if (value == NULL) {
 		return FALSE;
@@ -2676,23 +2685,13 @@ static gboolean collect_config_values(const gchar *option_name, const gchar *val
 
 	if (!g_strcmp0("check-purpose", colon_delimiter)) {
 		if (!g_strcmp0("codesign", equal_delimiter)) {
-			ConfigFileOverwrite *overwrite = g_new(ConfigFileOverwrite, 1);
-			overwrite->overwrite_section = copy;
-			overwrite->overwrite_name = colon_delimiter;
-			overwrite->overwrite_value = equal_delimiter;
-			r_context_conf()->configoverwrite = g_list_append(r_context_conf()->configoverwrite, overwrite);
-			return TRUE;
+			return append_config_overwrite(copy, colon_delimiter, equal_delimiter);
 		}
 	}
 
 	if (!g_strcmp0("check-crl", colon_delimiter)) {
 		if (!g_strcmp0("false", equal_delimiter)) {
-			ConfigFileOverwrite *overwrite = g_new(ConfigFileOverwrite, 1);
-			overwrite->overwrite_section = copy;
-			overwrite->overwrite_name = colon_delimiter;
-			overwrite->overwrite_value = equal_delimiter;
-			r_context_conf()->configoverwrite = g_list_append(r_context_conf()->configoverwrite, overwrite);
-			return TRUE;
+			return append_config_overwrite(copy, colon_delimiter, equal_delimiter);
 		}
 	}
 
