@@ -54,6 +54,42 @@ static void test_bootslot_nfs_boot(void)
 	r_context_clean();
 }
 
+static void test_bootslot_partlabel(void)
+{
+	r_context_conf()->configpath = g_strdup("test/test.conf");
+	r_context_conf()->configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
+	r_context_conf()->mock.proc_cmdline = "quiet root=PARTLABEL=root_partition";
+	g_clear_pointer(&r_context_conf()->bootslot, g_free);
+
+	g_assert_cmpstr(r_context()->bootslot, ==, "/dev/disk/by-partlabel/root_partition");
+
+	r_context_clean();
+}
+
+static void test_bootslot_partuuid(void)
+{
+	r_context_conf()->configpath = g_strdup("test/test.conf");
+	r_context_conf()->configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
+	r_context_conf()->mock.proc_cmdline = "quiet root=PARTUUID=12345678-01";
+	g_clear_pointer(&r_context_conf()->bootslot, g_free);
+
+	g_assert_cmpstr(r_context()->bootslot, ==, "/dev/disk/by-partuuid/12345678-01");
+
+	r_context_clean();
+}
+
+static void test_bootslot_uuid(void)
+{
+	r_context_conf()->configpath = g_strdup("test/test.conf");
+	r_context_conf()->configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
+	r_context_conf()->mock.proc_cmdline = "quiet root=UUID=123e4567-e89b-12d3-a456-426614174000";
+	g_clear_pointer(&r_context_conf()->bootslot, g_free);
+
+	g_assert_cmpstr(r_context()->bootslot, ==, "/dev/disk/by-uuid/123e4567-e89b-12d3-a456-426614174000");
+
+	r_context_clean();
+}
+
 static void test_bootslot_no_bootslot(void)
 {
 	r_context_conf()->configpath = g_strdup("test/test.conf");
@@ -134,6 +170,12 @@ int main(int argc, char *argv[])
 	g_test_add_func("/context/bootslot/external_boot", test_bootslot_external_boot);
 
 	g_test_add_func("/context/bootslot/nfs_boot", test_bootslot_nfs_boot);
+
+	g_test_add_func("/context/bootslot/partlabel", test_bootslot_partlabel);
+
+	g_test_add_func("/context/bootslot/partuuid", test_bootslot_partuuid);
+
+	g_test_add_func("/context/bootslot/uuid", test_bootslot_uuid);
 
 	g_test_add_func("/context/bootslot/no-bootslot", test_bootslot_no_bootslot);
 
