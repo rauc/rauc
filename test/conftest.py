@@ -382,20 +382,6 @@ def _rauc_dbus_service(tmp_path, conf_file, bootslot):
 
 
 @pytest.fixture
-def rauc_dbus_service(tmp_path, dbus_session_bus, create_system_files):
-    service, bus = _rauc_dbus_service(tmp_path, "minimal-test.conf", "system0")
-
-    yield bus
-
-    service.terminate()
-    try:
-        service.wait(timeout=10)
-    except subprocess.TimeoutExpired:
-        service.kill()
-        service.wait()
-
-
-@pytest.fixture
 def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_files):
     service, bus = _rauc_dbus_service(tmp_path, "minimal-test.conf", "system0")
 

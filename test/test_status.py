@@ -56,21 +56,21 @@ def test_status_no_service_output_invalid(rauc_no_service):
     assert "Unknown output format: 'invalid'" in err
 
 
-def test_status(rauc_dbus_service):
+def test_status(rauc_dbus_service_with_system):
     out, err, exitcode = run("rauc status")
 
     assert exitcode == 0
     assert out.startswith("=== System Info ===")
 
 
-def test_status_readable(rauc_dbus_service):
+def test_status_readable(rauc_dbus_service_with_system):
     out, err, exitcode = run("rauc status --detailed --output-format=readable")
 
     assert exitcode == 0
     assert out.startswith("=== System Info ===")
 
 
-def test_status_shell(rauc_dbus_service):
+def test_status_shell(rauc_dbus_service_with_system):
     out, err, exitcode = run("rauc status --detailed --output-format=shell")
 
     assert exitcode == 0
@@ -78,7 +78,7 @@ def test_status_shell(rauc_dbus_service):
 
 
 @have_json
-def test_status_json(rauc_dbus_service):
+def test_status_json(rauc_dbus_service_with_system):
     out, err, exitcode = run("rauc status --detailed --output-format=json")
 
     assert exitcode == 0
@@ -86,14 +86,14 @@ def test_status_json(rauc_dbus_service):
 
 
 @have_json
-def test_status_json_pretty(rauc_dbus_service):
+def test_status_json_pretty(rauc_dbus_service_with_system):
     out, err, exitcode = run("rauc status --detailed --output-format=json-pretty")
 
     assert exitcode == 0
     assert json.loads(out)
 
 
-def test_status_invalid(rauc_dbus_service):
+def test_status_invalid(rauc_dbus_service_with_system):
     out, err, exitcode = run("rauc status --detailed --output-format=invalid")
 
     assert exitcode == 1
