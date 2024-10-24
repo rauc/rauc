@@ -1067,6 +1067,14 @@ path=/dev/null\n\
 allow-partial-chain=true\n\
 check-crl=true\n\
 check-purpose=codesign\n";
+	const gchar *overwrite_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+[keyring]\n\
+path=/dev/null\n\
+allow-partial-chain=true\n\
+check-crl=true\n";
 
 	pathname = write_tmp_file(fixture->tmpdir, "simple.conf", simple_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -1092,6 +1100,37 @@ check-purpose=codesign\n";
 	g_assert_true(config->keyring_allow_partial_chain);
 	g_assert_true(config->keyring_check_crl);
 	g_assert_cmpstr(config->keyring_check_purpose, ==, "codesign-rauc");
+
+
+	g_free(pathname);
+	g_clear_pointer(&config, free_config);
+	pathname = write_tmp_file(fixture->tmpdir, "overwrite.conf", overwrite_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+	ConfigFileOverwrite *overwrite = g_new(ConfigFileOverwrite, 1);
+	overwrite->overwrite_section = g_strdup("keyring");
+	overwrite->overwrite_name = g_strdup("check-purpose");
+	overwrite->overwrite_value = g_strdup("codesign");
+	r_context_conf()->configoverwrite = g_list_append(r_context_conf()->configoverwrite, overwrite);
+
+	ConfigFileOverwrite *overwrite2 = g_new(ConfigFileOverwrite, 1);
+	overwrite2->overwrite_section = g_strdup("keyring");
+	overwrite2->overwrite_name = g_strdup("check-crl");
+	overwrite2->overwrite_value = g_strdup("false");
+	r_context_conf()->configoverwrite = g_list_append(r_context_conf()->configoverwrite, overwrite2);	
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(config);
+	g_assert_true(config->keyring_allow_partial_chain);
+	g_assert_false(config->keyring_check_crl);
+	g_assert_cmpstr(config->keyring_check_purpose, ==, "codesign-rauc");
+	g_free(overwrite->overwrite_section);
+	g_free(overwrite2->overwrite_section);
+	g_free(overwrite->overwrite_name);
+	g_free(overwrite2->overwrite_name);
+	g_free(overwrite->overwrite_value);
+	g_free(overwrite2->overwrite_value);
 }
 
 static void config_file_bundle_formats(ConfigFileFixture *fixture,

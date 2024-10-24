@@ -23,10 +23,9 @@ typedef enum {
 } RContextConfigMode;
 
 typedef struct {
-	gboolean keyring_check_purpose_overwrite; /* only overwrite if this is true*/
-	gchar* keyring_check_purpose_value;
-	gboolean keyring_check_crl_overwrite; /* only overwrite if this is true*/
-	gchar* keyring_check_crl_value;
+	gchar *overwrite_section;
+    gchar *overwrite_name;
+    gchar *overwrite_value;
 } ConfigFileOverwrite;
 
 typedef struct {
@@ -37,7 +36,7 @@ typedef struct {
 	/* system configuration data */
 	RContextConfigMode configmode;
 	gchar *configpath;
-	ConfigFileOverwrite configoverwrite;
+	GList *configoverwrite;
 	RaucConfig *config;
 
 	/* system status (not available when using per-slot status file) */

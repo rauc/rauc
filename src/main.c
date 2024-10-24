@@ -2651,7 +2651,7 @@ static gboolean collect_config_values(const gchar *option_name, const gchar *val
 	if (value == NULL) {
 		return FALSE;
 	}
-    g_autofree gchar* copy = g_strdup(value);
+    gchar* copy = g_strdup(value);
 	
 	//find colon
 	gchar* colon_delimiter = strstr(copy, ":");
@@ -2660,6 +2660,7 @@ static gboolean collect_config_values(const gchar *option_name, const gchar *val
 	}
 	*colon_delimiter = 0;
 
+	//only option currently implemented is keyring, abort if we get something else
 	if (g_strcmp0("keyring", copy)){
 		return FALSE;
 	}
@@ -2675,17 +2676,24 @@ static gboolean collect_config_values(const gchar *option_name, const gchar *val
 
 	if (!g_strcmp0("check-purpose", colon_delimiter)) {
 		if (!g_strcmp0("codesign", equal_delimiter)) {
-			//TODO: handle parameter
-			r_context_conf()->configoverwrite.keyring_check_purpose_value = g_strdup(equal_delimiter);
-			r_context_conf()->configoverwrite.keyring_check_purpose_overwrite = TRUE;
+			ConfigFileOverwrite *overwrite = g_new(ConfigFileOverwrite, 1);
+			overwrite->overwrite_section = copy;
+			overwrite->overwrite_name = colon_delimiter;
+			overwrite->overwrite_value = equal_delimiter;
+
+			r_context_conf()->configoverwrite = g_list_append(r_context_conf()->configoverwrite, overwrite);
 			return TRUE;
 		}
 	}
 
 	if (!g_strcmp0("check-crl", colon_delimiter)) {
 		if (!g_strcmp0("false", equal_delimiter)) {
-			r_context_conf()->configoverwrite.keyring_check_crl_value = g_strdup(equal_delimiter);
-			r_context_conf()->configoverwrite.keyring_check_crl_overwrite = TRUE;
+			ConfigFileOverwrite *overwrite = g_new(ConfigFileOverwrite, 1);
+			overwrite->overwrite_section = copy;
+			overwrite->overwrite_name = colon_delimiter;
+			overwrite->overwrite_value = equal_delimiter;
+
+			r_context_conf()->configoverwrite = g_list_append(r_context_conf()->configoverwrite, overwrite);
 			return TRUE;
 		}
 	}
