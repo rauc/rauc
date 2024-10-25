@@ -303,6 +303,7 @@ signature.
   (``codesign``).
   See ``-purpose`` and ``VERIFY OPERATION`` in the OpenSSL verify_ manual page
   and the :ref:`sec-key-usage` section for more information.
+  
   .. note:: You can overwrite that config file setting to "codesign" via command 
     line option "-C keyring:check-purpose=codesign"
 
