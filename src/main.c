@@ -2708,7 +2708,7 @@ static void cmdline_handler(int argc, char **argv)
 	g_autoptr(GOptionContext) context = NULL;
 	GOptionEntry entries[] = {
 		{"conf", 'c', 0, G_OPTION_ARG_FILENAME, &confpath, "config file", "FILENAME"},
-		{"cmdconf", 'C', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, collect_config_values, "Config Settings that overwrite parameters from the config file, valid options are keyring:check-purpose=codesign and keyring:check-crl=false", "SECTION:KEY=VALUE" },
+		{"cmdconf", 'C', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, collect_config_values, "config settings that overwrite parameters from the config file", "SECTION:KEY=VALUE" },
 		/* NOTE: cert and key kept for backwards-compatibility, but made invisible */
 		{"cert", '\0', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_FILENAME, &certpath, "cert file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 		{"key", '\0', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_FILENAME, &keypath, "key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
