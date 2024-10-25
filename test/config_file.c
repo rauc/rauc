@@ -1101,7 +1101,6 @@ check-crl=true\n";
 	g_assert_true(config->keyring_check_crl);
 	g_assert_cmpstr(config->keyring_check_purpose, ==, "codesign-rauc");
 
-
 	g_free(pathname);
 	g_clear_pointer(&config, free_config);
 	pathname = write_tmp_file(fixture->tmpdir, "overwrite.conf", overwrite_cfg_file, NULL);
@@ -1120,7 +1119,7 @@ check-crl=true\n";
 	overwrite2->overwrite_value = strchr(overwrite2->overwrite_section, '=');
 	*overwrite2->overwrite_name++ = '\0';
 	*overwrite2->overwrite_value++ = '\0';
-	r_context_conf()->configoverwrite = g_list_append(r_context_conf()->configoverwrite, overwrite2);	
+	r_context_conf()->configoverwrite = g_list_append(r_context_conf()->configoverwrite, overwrite2);
 
 	res = load_config(pathname, &config, &ierror);
 	g_assert_no_error(ierror);

@@ -2646,7 +2646,8 @@ static void create_option_groups(void)
 	g_option_group_add_entries(service_group, entries_service);
 }
 
-static gboolean append_config_overwrite(gchar *section, gchar *name, gchar *value) {
+static gboolean append_config_overwrite(gchar *section, gchar *name, gchar *value)
+{
 	ConfigFileOverwrite *overwrite = g_new(ConfigFileOverwrite, 1);
 	overwrite->overwrite_section = section;
 	overwrite->overwrite_name = name;
@@ -2656,27 +2657,28 @@ static gboolean append_config_overwrite(gchar *section, gchar *name, gchar *valu
 }
 
 // Callback function to handle the repeated -C option
-static gboolean collect_config_values(const gchar *option_name, const gchar *value, gpointer data, GError **error) {
+static gboolean collect_config_values(const gchar *option_name, const gchar *value, gpointer data, GError **error)
+{
 	if (value == NULL) {
 		return FALSE;
 	}
 	gchar* copy = g_strdup(value);
-	
+
 	//find colon
 	gchar* colon_delimiter = strstr(copy, ":");
-	if (colon_delimiter == NULL){
+	if (colon_delimiter == NULL) {
 		return FALSE;
 	}
 	*colon_delimiter = 0;
 
 	//only option currently implemented is keyring, abort if we get something else
-	if (g_strcmp0("keyring", copy)){
+	if (g_strcmp0("keyring", copy)) {
 		return FALSE;
 	}
 
 	colon_delimiter++;
 	gchar* equal_delimiter = strstr(colon_delimiter, "=");
-	if (equal_delimiter == NULL){
+	if (equal_delimiter == NULL) {
 		return FALSE;
 	}
 	*equal_delimiter = 0;
