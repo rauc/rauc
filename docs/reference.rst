@@ -289,6 +289,9 @@ signature.
   make sure you don't end up with an expired CRL on your device (which would
   block further updates).
 
+  .. note:: You can overwrite that config file setting to "false" via command 
+    line option "-C keyring:check-crl=false"
+
 .. _check-purpose:
 
 ``check-purpose`` (optional)
@@ -300,6 +303,8 @@ signature.
   (``codesign``).
   See ``-purpose`` and ``VERIFY OPERATION`` in the OpenSSL verify_ manual page
   and the :ref:`sec-key-usage` section for more information.
+  .. note:: You can overwrite that config file setting to "codesign" via command 
+    line option "-C keyring:check-purpose=codesign"
 
 .. _verify: https://www.openssl.org/docs/man1.1.1/man1/verify.html
 
@@ -1248,12 +1253,13 @@ Command Line Tool
     rauc [OPTION?] <COMMAND>
 
   Options:
-    -c, --conf=FILENAME     config file
-    --keyring=PEMFILE       keyring file
-    --mount=PATH            mount prefix
-    -d, --debug             enable debug output
-    --version               display version
-    -h, --help              display help and exit
+    -c, --conf=FILENAME                 config file
+    -C, --cmdconf=SECTION:KEY=VALUE     config settings that overwrite parameters from the config file
+    --keyring=PEMFILE                   keyring file
+    --mount=PATH                        mount prefix
+    -d, --debug                         enable debug output
+    --version                           display version
+    -h, --help                          display help and exit
 
   Command-specific help:
     rauc <COMMAND> --help
