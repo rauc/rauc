@@ -42,6 +42,9 @@ extra_test_sources = files([
   'install_fixtures.c',
 ])
 
+test_env = environment()
+test_env.set('MESON_BUILD_DIR', meson.build_root())
+
 foreach test_name : tests
   exe = executable(
     test_name + '-test',
@@ -94,7 +97,7 @@ if pytest.found()
       'pytest-' + test_name,
       pytest,
       args: ['--basetemp', '/tmp/pytest-custom-root', '-vv', 'test_' + test_name + '.py'],
-      env: ['MESON_BUILD_DIR=' + rauc_build_root],
+      env: test_env,
       depends : rauc_binary,
       is_parallel : false,
       timeout : 120,
