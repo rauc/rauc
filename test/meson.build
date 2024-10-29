@@ -44,6 +44,9 @@ extra_test_sources = files([
 
 test_env = environment()
 test_env.set('MESON_BUILD_DIR', meson.build_root())
+if composefsdep.found()
+  test_env.prepend('PATH', meson.build_root() + '/subprojects/composefs/tools')
+endif
 
 foreach test_name : tests
   exe = executable(
@@ -59,6 +62,7 @@ foreach test_name : tests
     test_name,
     exe,
     depends : rauc_binary,
+    env : test_env,
     is_parallel : false,
     timeout : 240,
     protocol: 'tap',
