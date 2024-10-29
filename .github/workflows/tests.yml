@@ -27,7 +27,7 @@ jobs:
         ./qemu-test
         lcov --directory . --capture --output-file "service.info"
         
-    - name: Upload coverage to Codecov 
+    - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
         files: service.info
@@ -44,7 +44,7 @@ jobs:
         ./qemu-test
         lcov --directory . --capture --output-file "noservice.info"
 
-    - name: Upload coverage to Codecov 
+    - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
         files: noservice.info
