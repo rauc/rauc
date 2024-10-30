@@ -38,13 +38,43 @@ Release 1.13 (development)
   We intend to stabilize this feature as soon as we have confidence that the
   common use-cases work well.
 
+* Expose manifest meta-data to handlers and the ``install-check`` hook as
+  environment variables.
+  This uses the same variable names (and implementation) as ``rauc info
+  --output-format=shell``.
+* Allow local symlinks in the bundle again.
+* Show how much of the bundle was downloaded when streaming.
+  This is useful to evaluate the effectiveness of adaptive update.
+* Show stats even if the NBD server exits with an error.
+* Added a simple shell-based update service as an example in
+  ``contrib/rauc-client/``. (by Angelo Compagnucci)
+
 .. rubric:: Bug fixes
 
+* Fix double file descriptor close when creating adaptive bundles.
+  This bug resulted in an abort when using glib since version 2.75.0.
+* Require at least one recipient certificate when encrypting bundles. (by
+  Florian Otte)
+
 .. rubric:: Testing
+
+* Add a test case for decryption via PKCS#11.
+* Use pytest ``tmp_path`` fixture to improve test case isolation.
+* Add helper scripts to save and clear coverage data when running under
+  ``qemu-test``.
+* Fix service shutdown to improve coverage reporting.
+* Update codecov CI integration to fix coverage reports and use different flags
+  for with/without D-Bus service builds.
+* Avoid pulling in X11 dependencies via dbus-launch and use dbus-daemon instead.
+* Fix startup of ``qemu-test`` in cases where the host has a
+  ``/etc/resolv.conf`` symlink.
+* Fix upload of ``scan-build`` reports in CI.
 
 .. rubric:: Code
 
 .. rubric:: Documentation
+
+* Improve some FAQ entries. (by Ulrich Ölmann)
 
 Contributions from:
 
