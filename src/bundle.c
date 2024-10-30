@@ -1192,6 +1192,12 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		g_print("%s\n", (gchar *)g_ptr_array_index(manifest->warnings, i));
 	}
 
+	res = check_manifest_create(manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
 	res = sync_manifest_with_contentdir(manifest, workdir, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);

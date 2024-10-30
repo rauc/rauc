@@ -739,6 +739,23 @@ out:
 	return res;
 }
 
+gboolean check_manifest_create(const RaucManifest *mf, GError **error)
+{
+	for (GList *l = mf->images; l != NULL; l = l->next) {
+		RaucImage *image = l->data;
+
+		g_assert(image);
+
+		if (image->hooks.install && (image->hooks.pre_install || image->hooks.post_install)) {
+			g_set_error_literal(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR,
+					"An 'install' hook must not be combined with 'pre-install' or 'post-install' hooks");
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
 static GKeyFile *prepare_manifest(const RaucManifest *mf)
 {
 	g_autoptr(GKeyFile) key_file = NULL;
