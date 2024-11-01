@@ -60,12 +60,12 @@ def test_extract(tmp_path):
 @have_openssl
 def test_extract_crypt(tmp_path):
     # copy to tmp path for safe ownership check
-    shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
+    shutil.copyfile("good-crypt-bundle-encrypted.raucb", tmp_path / "test.raucb")
 
     out, err, exitcode = run(
         "rauc --keyring openssl-ca/dev-ca.pem"
         " --key openssl-enc/keys/rsa-4096/private-key-000.pem"
-        f" extract {tmp_path}/good-bundle.raucb {tmp_path}/bundle-extract "
+        f" extract {tmp_path}/test.raucb {tmp_path}/bundle-extract "
     )
 
     assert exitcode == 0
