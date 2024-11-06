@@ -928,6 +928,16 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	if (dtbvariant)
 		c->system_variant_type = R_CONFIG_SYS_VARIANT_DTB;
 
+	c->prevent_fallback = g_key_file_get_boolean(key_file, "system", "prevent-fallback", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		c->prevent_fallback = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "system", "prevent-fallback", NULL);
+
 	/* parse 'variant-file' key */
 	variant_data = key_file_consume_string(key_file, "system", "variant-file", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {

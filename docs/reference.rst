@@ -244,6 +244,9 @@ Example configuration:
   It has no effect for ``plain`` bundles, as the signature verification already checks the
   whole bundle.
 
+``prevent-fallback=<true/false>`` (optional)
+  Prevent booting into another slot than the one that is currently marked as good.
+
 .. _keyring-section:
 
 ``[keyring]`` Section
