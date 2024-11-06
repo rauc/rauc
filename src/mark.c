@@ -233,6 +233,11 @@ gboolean mark_run(const gchar *state,
 
 		*slot_name = g_strdup(slot->name);
 		*message = g_strdup_printf("marked slot %s as good", *slot_name);
+
+		if (r_context()->config->prevent_fallback
+		    && g_strcmp0(slot_identifier, "booted") == 0) {
+			return mark_run("bad", "other", slot_name, message);
+		}
 	} else if (g_strcmp0(state, "bad") == 0) {
 		g_autoptr(GString) slot_names = g_string_new(NULL);
 
