@@ -229,6 +229,16 @@ gboolean mark_run(const gchar *state,
 			*message = g_strdup(ierror->message);
 			return FALSE;
 		}
+
+		if (r_context()->config->prevent_fallback
+		    && g_strcmp0(slot_identifier, "booted") == 0) {
+			g_autofree gchar *mark_bad_message = NULL;
+
+			if (!mark_run("bad", "other", NULL, &mark_bad_message)) {
+				*message = g_strdup(mark_bad_message);
+				return FALSE;
+			}
+		}
 	} else if (g_strcmp0(state, "bad") == 0) {
 		for (GList *l = slots; l != NULL; l = l->next) {
 			RaucSlot *slot = l->data;
