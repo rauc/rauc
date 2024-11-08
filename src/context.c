@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <gio/gio.h>
+#include <glib/gstdio.h>
 #include <string.h>
 
 #include "config_file.h"
@@ -447,6 +448,13 @@ static gboolean load_config_verbose(const char *configpath, GError **error)
 	return FALSE;
 }
 
+static const gchar *const search_paths[] = {
+	"/etc/rauc/system.conf",
+	"/run/rauc/system.conf",
+	"/usr/lib/rauc/system.conf",
+	NULL,
+};
+
 gboolean r_context_configure(GError **error)
 {
 	GError *ierror = NULL;
@@ -464,9 +472,14 @@ gboolean r_context_configure(GError **error)
 		/* explicitly set on the command line */
 		configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
 		configpath = context->configpath;
-	} else {
-		/* the default path */
-		configpath = "/etc/rauc/system.conf";
+	} else if (configmode != R_CONTEXT_CONFIG_MODE_NONE) {
+		for (const gchar *const *path = search_paths; *path; path++) {
+			GStatBuf st_buf;
+
+			configpath = *path;
+			if (g_stat(configpath, &st_buf) == 0)
+				break;
+		}
 	}
 	switch (configmode) {
 		case R_CONTEXT_CONFIG_MODE_REQUIRED:

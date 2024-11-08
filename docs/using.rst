@@ -222,7 +222,7 @@ the default behavior of RAUC.
 
 In general, there exist three major types of customization:
 
-* configuration parameters (in rootfs config file ``/etc/rauc/system.conf``)
+* configuration parameters (in the rootfs' ``rauc/system.conf`` file)
 * handlers (executables in rootfs)
 * hooks (executables in bundle)
 
