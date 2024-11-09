@@ -12,20 +12,12 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: Install QEMU
       run: |
         sudo apt-get update
         DEBIAN_FRONTEND='noninteractive' sudo apt-get install -qy qemu-user-static
-    # remove this when Ubuntu 24.04 is available on GitHub Actions
-    - name: Enable Ubuntu noble and update buildah
-      run: |
-        echo 'deb http://archive.ubuntu.com/ubuntu/ noble main restricted universe' | sudo tee -a /etc/apt/sources.list.d/lunar.list
-        echo 'deb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted universe' | sudo tee -a /etc/apt/sources.list.d/lunar.list
-        sudo apt-get update
-        DEBIAN_FRONTEND='noninteractive' sudo apt-get install -qy buildah
-        buildah version
     - uses: actions/checkout@v4
     - name: Build Images
       id: build-image
