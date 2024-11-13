@@ -90,6 +90,7 @@ typedef struct {
 RArtifactRepoType supported_repo_types[] = {
 	{"files"},
 	{"trees"},
+	{},
 };
 
 gboolean r_artifact_repo_is_valid_type(const gchar *type)

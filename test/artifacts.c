@@ -66,6 +66,13 @@ static RArtifact* create_random_artifact(const gchar *tmpdir, const gchar *name,
 	return g_steal_pointer(&artifact);
 }
 
+static void test_repo_type(ArtifactsFixture *fixture, gconstpointer user_data)
+{
+	g_assert_true(r_artifact_repo_is_valid_type("files"));
+	g_assert_true(r_artifact_repo_is_valid_type("trees"));
+	g_assert_false(r_artifact_repo_is_valid_type("badtype"));
+}
+
 static void test_init(ArtifactsFixture *fixture, gconstpointer user_data)
 {
 	g_autoptr(GError) error = NULL;
@@ -277,6 +284,10 @@ int main(int argc, char *argv[])
 	r_context();
 
 	g_test_init(&argc, &argv, NULL);
+
+	g_test_add("/artifacts/repo_type", ArtifactsFixture, NULL,
+			NULL, test_repo_type,
+			NULL);
 
 	g_test_add("/artifacts/init", ArtifactsFixture, NULL,
 			artifacts_fixture_set_up, test_init,
