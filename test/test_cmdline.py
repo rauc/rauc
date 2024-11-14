@@ -36,6 +36,7 @@ test_cmd_array_missing = [
     "rauc info",
     "rauc bundle",
     "rauc bundle input",
+    "rauc resign",
     "rauc resign input",
     "rauc replace-signature",
     "rauc replace-signature input",
