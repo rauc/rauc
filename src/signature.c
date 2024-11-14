@@ -1133,9 +1133,10 @@ static void debug_cms_ci(CMS_ContentInfo *cms)
 	gchar *out_str = NULL;
 	long size;
 
-	if ((domains == NULL) || (strstr(domains, G_LOG_DOMAIN "-signature") == NULL)) {
+	if (domains == NULL)
 		return;
-	}
+	if (!g_str_equal(domains, "all") && strstr(domains, G_LOG_DOMAIN "-signature") == NULL)
+		return;
 
 	out = BIO_new(BIO_s_mem());
 	CMS_ContentInfo_print_ctx(out, cms, 2, NULL);
