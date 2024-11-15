@@ -496,3 +496,29 @@ def bundle(tmp_path):
     bundle = Bundle(tmp_path)
 
     yield bundle
+
+
+class System:
+    def __init__(self, tmp_path):
+        self.tmp_path = tmp_path
+        self.output = tmp_path / "system.conf"
+        self.data_dir = tmp_path / "data_dir"
+
+        self.config = ConfigParser()
+        self.config["system"] = {
+            "compatible": "Test Config",
+            "bootloader": "noop",
+        }
+
+        self.prefix = f"rauc -c {self.output}"
+
+    def write_config(self):
+        with open(self.output, "w") as f:
+            self.config.write(f, space_around_delimiters=False)
+
+
+@pytest.fixture
+def system(tmp_path):
+    system = System(tmp_path)
+
+    yield system
