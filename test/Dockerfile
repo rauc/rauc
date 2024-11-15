@@ -49,6 +49,7 @@ RUN apt-get install -q -y --no-install-recommends \
   qemu-system-x86 \
   procps \
   mtd-utils \
+  mmc-utils \
   python3-aiohttp \
   nginx-light \
   fdisk
