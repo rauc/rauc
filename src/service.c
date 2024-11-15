@@ -258,6 +258,8 @@ static gboolean r_on_handle_mark(RInstaller *interface,
 	g_autofree gchar *slot_name = NULL;
 	g_autofree gchar *message = NULL;
 	gboolean res;
+	GList *slots = NULL;
+	GError *ierror = NULL;
 
 	res = !r_context_get_busy();
 	if (!res) {
@@ -265,19 +267,40 @@ static gboolean r_on_handle_mark(RInstaller *interface,
 		goto out;
 	}
 
-	res = mark_run(arg_state, arg_slot_identifier, &slot_name, &message);
+	slots = get_slots_by_identifier(arg_slot_identifier, &ierror);
+	if (ierror) {
+		res = FALSE;
+		message = g_strdup(ierror->message);
+		goto out;
+	}
+
+	for (GList *l = slots; l != NULL; l = l->next) {
+		RaucSlot *slot = l->data;
+		g_free(slot_name);
+		g_free(message);
+		slot_name = NULL;
+		message = NULL;
+		res = mark_run(arg_state, slot, &slot_name, &message);
+		if (!res)
+			goto out;
+	}
 
 out:
 	if (res) {
-		r_installer_complete_mark(interface, invocation, slot_name, message);
+		if (g_list_length(slots) > 1) {
+			r_installer_complete_mark(interface, invocation, "other", "Successfully marked slots");
+		} else {
+			r_installer_complete_mark(interface, invocation, slot_name, message);
+
+			if (message)
+				g_message("rauc mark: %s", message);
+		}
 	} else {
 		g_dbus_method_invocation_return_error(invocation,
 				G_IO_ERROR,
 				G_IO_ERROR_FAILED_HANDLED,
 				"%s", message);
 	}
-	if (message)
-		g_message("rauc mark: %s", message);
 
 	return TRUE;
 }

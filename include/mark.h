@@ -44,7 +44,11 @@ gboolean r_mark_bad(RaucSlot *slot, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 gboolean mark_run(const gchar *state,
-		const gchar *slot_identifier,
+		RaucSlot *slot,
 		gchar **slot_name,
 		gchar **message)
+G_GNUC_WARN_UNUSED_RESULT;
+
+GList* get_slots_by_identifier(const gchar *identifier,
+		GError **error)
 G_GNUC_WARN_UNUSED_RESULT;

@@ -2130,6 +2130,7 @@ static gboolean status_start(int argc, char **argv)
 	const gchar *state = NULL;
 	const gchar *slot_identifier = NULL;
 	GError *ierror = NULL;
+	GList *slots = NULL;
 	gboolean res = FALSE;
 	g_autoptr(RaucStatusPrint) status_print = NULL;
 
@@ -2242,9 +2243,18 @@ static gboolean status_start(int argc, char **argv)
 			return TRUE;
 		}
 	} else {
-		r_exit_status = mark_run(state, slot_identifier, NULL, &message) ? 0 : 1;
-		if (r_exit_status)
-			g_printerr("rauc mark: %s\n", message);
+		slots = get_slots_by_identifier(slot_identifier, &ierror);
+		if (ierror) {
+			res = FALSE;
+			message = g_strdup(ierror->message);
+		}
+
+		for (GList *l = slots; l != NULL; l = l->next) {
+			RaucSlot *slot = l->data;
+			r_exit_status = mark_run(state, slot, NULL, &message) ? 0 : 1;
+			if (r_exit_status)
+				g_printerr("rauc mark: %s\n", message);
+		}
 		return TRUE;
 	}
 
