@@ -117,6 +117,12 @@ As many of the unit tests require root privileges and thus could potentially
 damage your host system, we provide a QEMU-based test environment where one can
 safely run all checks in a virtual environment.
 
+Note that this does **not** run in a full VM with its own filesystem,
+but instead passes the host's VFS to the guest using virtfs (and adds some
+overlays).
+This allows seamless access to the sources and binaries built on the host.
+Accordingly, the test dependencies need to be installed on the host.
+
 To run the entire test suite, type::
 
   ./qemu-test
