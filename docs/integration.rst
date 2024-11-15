@@ -140,9 +140,13 @@ The system configuration file is the central configuration in RAUC that
 abstracts the loosely coupled storage setup, partitioning and boot strategy of
 your board to a coherent redundancy setup world view for RAUC.
 
-RAUC expects its central configuration file ``/etc/rauc/system.conf`` to
-describe the system it runs on in a way that all relevant information for
-performing updates and making decisions are given.
+RAUC configuration files are loaded from one of the listed directories in
+order of priority, only the first file found is used:
+``/etc/rauc/``, ``/run/rauc/``, ``/usr/lib/rauc/``.
+
+The ``system.conf`` is expected to describe the system RAUC runs on in a way
+that all relevant information for performing updates and making decisions are
+given.
 
 .. note:: For a full reference of the system.conf file refer to section
   :ref:`sec_ref_slot_config`.

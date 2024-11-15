@@ -394,15 +394,19 @@ PIN to use for accessing PKCS#11 keys (signing only)
 .SH FILES
 
 .TP
-.B /etc/rauc/system.conf
+.B /etc/rauc/system.conf, /run/rauc/system.conf, /usr/lib/rauc/system.conf
 
 The system configuration file is the central configuration in RAUC that
 abstracts the loosely coupled storage setup, partitioning and boot strategy of
 your board to a coherent redundancy setup world view for RAUC.
 
-RAUC expects its central configuration file \fB/etc/rauc/system.conf\fR to
-describe the system it runs on in a way that all relevant information for
-performing updates and making decisions are given.
+RAUC configuration files are loaded from one of the listed directories in
+order of priority, only the first file found is used:
+\fB/etc/rauc/\fR, \fB/run/rauc/\fR, \fB/usr/lib/rauc/\fR.
+
+The \fBsystem.conf\fR is expected to describe the system RAUC runs on in a way
+that all relevant information for performing updates and making decisions are
+given.
 
 Similar to other configuration files used by RAUC,
 the system configuration uses a key-value syntax (similar to those known

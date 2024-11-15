@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <gio/gio.h>
+#include <glib/gstdio.h>
 #include <string.h>
 
 #include "config_file.h"
@@ -432,6 +433,28 @@ static gboolean r_context_configure_target(GError **error)
 	return TRUE;
 }
 
+static gboolean load_config_verbose(const char *configpath, GError **error)
+{
+	GError *ierror = NULL;
+
+	if (load_config(configpath, &context->config, &ierror)) {
+		g_message("Using system config file %s", configpath);
+		if (!context->configpath)
+			context->configpath = g_strdup(configpath);
+		return TRUE;
+	}
+
+	g_propagate_prefixed_error(error, ierror, "Failed to load system config (%s): ", configpath);
+	return FALSE;
+}
+
+static const gchar *const search_paths[] = {
+	"/etc/rauc/system.conf",
+	"/run/rauc/system.conf",
+	"/usr/lib/rauc/system.conf",
+	NULL,
+};
+
 gboolean r_context_configure(GError **error)
 {
 	GError *ierror = NULL;
@@ -449,35 +472,33 @@ gboolean r_context_configure(GError **error)
 		/* explicitly set on the command line */
 		configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
 		configpath = context->configpath;
-	} else {
-		/* the default path */
-		configpath = "/etc/rauc/system.conf";
+	} else if (configmode != R_CONTEXT_CONFIG_MODE_NONE) {
+		for (const gchar *const *path = search_paths; *path; path++) {
+			GStatBuf st_buf;
+
+			configpath = *path;
+			if (g_stat(configpath, &st_buf) == 0)
+				break;
+		}
 	}
 	switch (configmode) {
+		case R_CONTEXT_CONFIG_MODE_REQUIRED:
+			if (load_config_verbose(configpath, error))
+				break;
+			return FALSE;
+		case R_CONTEXT_CONFIG_MODE_AUTO:
+			if (load_config_verbose(configpath, &ierror))
+				break;
+			if (ierror->domain != G_FILE_ERROR) {
+				g_propagate_error(error, ierror);
+				return FALSE;
+			}
+
+			g_clear_error(&ierror);
+		/* This is a hack as we cannot get rid of config easily */
+		/* Fallthrough */
 		case R_CONTEXT_CONFIG_MODE_NONE:
 			default_config(&context->config);
-			break;
-		case R_CONTEXT_CONFIG_MODE_AUTO:
-			if (load_config(configpath, &context->config, &ierror)) {
-				g_message("valid %s found, using it", configpath);
-				if (!context->configpath)
-					context->configpath = g_strdup(configpath);
-			} else if (ierror->domain != G_FILE_ERROR) {
-				g_propagate_prefixed_error(error, ierror, "Failed to load system config (%s): ", configpath);
-				return FALSE;
-			} else {
-				g_clear_error(&ierror);
-				/* This is a hack as we cannot get rid of config easily */
-				default_config(&context->config);
-			}
-			break;
-		case R_CONTEXT_CONFIG_MODE_REQUIRED:
-			if (!load_config(configpath, &context->config, &ierror)) {
-				g_propagate_prefixed_error(error, ierror, "Failed to load system config (%s): ", configpath);
-				return FALSE;
-			}
-			if (!context->configpath)
-				context->configpath = g_strdup(configpath);
 			break;
 		default:
 			g_error("invalid context config mode %d", configmode);

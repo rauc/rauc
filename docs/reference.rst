@@ -12,8 +12,13 @@ Reference
 System Configuration File
 -------------------------
 
-A configuration file located in ``/etc/rauc/system.conf`` describes the
-number and type of available slots.
+A configuration file named ``system.conf`` describes the number and type of
+available slots.
+
+This file is loaded from one of the listed directories in
+order of priority, only the first file found is used:
+``/etc/rauc/``, ``/run/rauc/``, ``/usr/lib/rauc/``.
+
 It is used to validate storage locations for update images.
 Each board type requires its special configuration.
 
@@ -1287,7 +1292,8 @@ Interaction between RAUC and custom handler shell scripts is done using shell
 variables.
 
 ``RAUC_SYSTEM_CONFIG``
-  Path to the system configuration file (default path is ``/etc/rauc/system.conf``)
+  Path to the chosen system configuration file (e.g. ``/usr/lib/rauc/system.conf``
+  if not overridden by a file in ``/etc`` or ``/run``)
 
 ``RAUC_CURRENT_BOOTNAME``
   Bootname of the slot the system is currently booted from

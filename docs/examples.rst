@@ -62,8 +62,8 @@ updated
   type=ext4
   bootname=B
 
-In this case, we need to place the signing certificate into
-``/etc/rauc/demo.cert.pem``, so that it is used by RAUC for verification.
+In this case, we need to place the signing certificate into the same
+directory as the ``system.conf``, so that it is used by RAUC for verification.
 
 GRUB Configuration
 ~~~~~~~~~~~~~~~~~~
