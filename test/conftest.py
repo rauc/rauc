@@ -150,6 +150,9 @@ def have_service():
     return string_in_config_h("ENABLE_SERVICE 1")
 
 
+needs_emmc = pytest.mark.skipif("RAUC_TEST_EMMC" not in os.environ, reason="Missing eMMC")
+
+
 def softhsm2_load_key_pair(cert, privkey, label, id_, softhsm2_mod):
     proc = subprocess.run(
         f"openssl x509 -in {cert} -inform pem -outform der "
