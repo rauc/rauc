@@ -3,6 +3,7 @@
 /.qemu_bash_history
 /.qemu_gdb_history
 /qemu-test-ok
+/qemu-test-emmc.img
 app.info
 /bzImage
 .ccls-cache

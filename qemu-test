@@ -76,6 +76,14 @@ if test -f /usr/share/qemu/qboot.rom; then
   QEMU_ARGS="$QEMU_ARGS -bios /usr/share/qemu/qboot.rom"
 fi
 
+if "$QEMU_BIN" -device help | grep -q 'name "emmc"'; then
+  echo "found emmc support, enabling"
+  truncate -s 64M qemu-test-emmc.img
+  QEMU_ARGS="$QEMU_ARGS -drive if=none,id=emmc-drive,file=qemu-test-emmc.img,format=raw"
+  QEMU_ARGS="$QEMU_ARGS -device sdhci-pci"
+  QEMU_ARGS="$QEMU_ARGS -device emmc,id=emmc0,drive=emmc-drive,boot-partition-size=1048576"
+fi
+
 $QEMU_BIN \
   $QEMU_ARGS \
   -machine q35 \
