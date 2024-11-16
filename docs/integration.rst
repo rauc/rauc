@@ -1482,7 +1482,7 @@ Yocto support for using RAUC is provided by the `meta-rauc
 
 The layer supports building RAUC both for the target as well as as a host tool.
 With the `bundle.bbclass
-<https://github.com/rauc/meta-rauc/blob/master/classes/bundle.bbclass>`_ it
+<https://github.com/rauc/meta-rauc/blob/master/classes-recipe/bundle.bbclass>`_ it
 provides a mechanism to specify and build bundles directly with the help of
 Yocto.
 
@@ -1595,7 +1595,7 @@ For using the built-in bundle generation, you need to specify some variables:
   ``boot``, or ``file``.
 
 .. note::
-  For a full list of supported variables, refer to `classes/bundle.bbclass` in
+  For a full list of supported variables, refer to `classes-recipe/bundle.bbclass` in
   meta-rauc.
 
 A minimal bundle recipe, such as `core-bundle-minimal.bb` that is contained in
