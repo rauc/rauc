@@ -489,7 +489,8 @@ gboolean r_context_configure(GError **error)
 		case R_CONTEXT_CONFIG_MODE_AUTO:
 			if (load_config_verbose(configpath, &ierror))
 				break;
-			if (ierror->domain != G_FILE_ERROR) {
+			if (ierror->domain != G_FILE_ERROR &&
+			    !g_error_matches(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_EMPTY_FILE)) {
 				g_propagate_error(error, ierror);
 				return FALSE;
 			}
