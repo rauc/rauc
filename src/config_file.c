@@ -734,6 +734,12 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
+	if (length == 0) {
+		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_EMPTY_FILE,
+				"Input file is empty");
+		return FALSE;
+	}
+
 	c->file_checksum = g_compute_checksum_for_data(G_CHECKSUM_SHA256, (guchar*) data, length);
 
 	key_file = g_key_file_new();
