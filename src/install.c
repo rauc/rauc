@@ -640,6 +640,7 @@ static gchar **add_system_environment(gchar **envp)
 	g_return_val_if_fail(envp, NULL);
 
 	envp = g_environ_setenv(envp, "RAUC_SYSTEM_CONFIG", r_context()->configpath, TRUE);
+	envp = g_environ_setenv(envp, "RAUC_SYSTEM_VARIANT", r_context()->config->system_variant ?: "", TRUE);
 	envp = g_environ_setenv(envp, "RAUC_CURRENT_BOOTNAME", r_context()->bootslot, TRUE);
 	envp = g_environ_setenv(envp, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
 
