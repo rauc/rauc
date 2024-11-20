@@ -421,16 +421,7 @@ def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_sy
 
 @pytest.fixture
 def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_system_files):
-    service, bus = _rauc_dbus_service(tmp_path, "adaptive-test.conf", "A")
-
-    yield bus
-
-    service.terminate()
-    try:
-        service.wait(timeout=10)
-    except subprocess.TimeoutExpired:
-        service.kill()
-        service.wait()
+    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, "adaptive-test.conf", "A")
 
 
 class Bundle:
