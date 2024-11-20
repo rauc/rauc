@@ -1295,6 +1295,10 @@ variables.
   Path to the chosen system configuration file (e.g. ``/usr/lib/rauc/system.conf``
   if not overridden by a file in ``/etc`` or ``/run``)
 
+``RAUC_SYSTEM_VARIANT``
+  The system's variant as obtained by the variant source
+  (refer :ref:`sec-variants`)
+
 ``RAUC_CURRENT_BOOTNAME``
   Bootname of the slot the system is currently booted from
 
