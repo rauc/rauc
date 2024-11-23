@@ -166,7 +166,7 @@ fi
 # remove potential host rauc system config
 rm -rf /etc/rauc
 # create rauc system config for testing and data directory
-mkdir /etc/rauc /tmp/rauc
+mkdir /etc/rauc
 cp qemu-test-rauc-config /etc/rauc/system.conf
 cp test/openssl-ca/dev-ca.pem /etc/rauc/ca.cert.pem
 
