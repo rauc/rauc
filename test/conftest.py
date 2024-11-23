@@ -401,14 +401,12 @@ def rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, co
 
 @pytest.fixture
 def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_files):
-    yield from rauc_dbus_service_helper(
-        tmp_path, dbus_session_bus, create_system_files, "minimal-test.conf", "system0"
-    )
+    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, "minimal-test.conf", "A")
 
 
 @pytest.fixture
 def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_system_files):
-    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, "crypt-test.conf", "system0")
+    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, "crypt-test.conf", "A")
 
 
 @pytest.fixture
@@ -420,7 +418,7 @@ def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_sy
 
 @pytest.fixture
 def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_system_files):
-    service, bus = _rauc_dbus_service(tmp_path, "adaptive-test.conf", "system0")
+    service, bus = _rauc_dbus_service(tmp_path, "adaptive-test.conf", "A")
 
     yield bus
 
