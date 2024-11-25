@@ -33,9 +33,9 @@ Creating Bundles
 To create an update bundle on your build host, RAUC provides the ``bundle``
 sub-command:
 
-.. code-block:: sh
+.. code-block:: console
 
-  rauc bundle --cert=<certfile|certurl> --key=<keyfile|keyurl> <input-dir> <bundle-name>
+  $ rauc bundle --cert=<certfile|certurl> --key=<keyfile|keyurl> <input-dir> <bundle-name>
 
 The ``<input-dir>`` must point to a directory containing all images, scripts
 and other files that should be part of the created update bundle.
@@ -62,9 +62,9 @@ process, for example to prevent signing with invalid or expired certificates.
 Obtaining Bundle Information
 ----------------------------
 
-.. code-block:: sh
+.. code-block:: console
 
-  rauc info --keyring=<certfile> [--output-format=<format>] <input-file>
+  $ rauc info --keyring=<certfile> [--output-format=<format>] <input-file>
 
 The ``info`` command lists the basic meta data of a bundle (compatible, version,
 build-id, description) and the images and hooks contained in the bundle.
@@ -88,9 +88,9 @@ Installing Bundles
 To actually install an update bundle on your target hardware, RAUC provides the
 ``install`` command:
 
-.. code-block:: sh
+.. code-block:: console
 
-  rauc install <bundle>
+  # rauc install <bundle>
 
 The ``<bundle>`` argument can be a local path, a local file URI, or a remote
 (HTTP/HTTPS) URL.
@@ -107,9 +107,9 @@ For debugging purposes and for scripting it is helpful to gain an overview of
 the current system as RAUC sees it.
 The ``status`` command allows this:
 
-.. code-block:: sh
+.. code-block:: console
 
-  rauc status [--detailed] [--output-format=<format>]
+  # rauc status [--detailed] [--output-format=<format>]
 
 You can choose the output ``<format>`` depending on your needs.
 By default (or with ``readable``), it will print a human readable representation
@@ -147,17 +147,17 @@ As the definition and detection of a `successful` operation is really
 system-dependent, RAUC provides commands to preserve a slot as being the
 preferred one to boot or to discard a slot from being bootable.
 
-.. code-block:: sh
+.. code-block:: console
 
-  rauc status mark-good
+  # rauc status mark-good
 
 After verifying that the currently booted system is fully operational, one
 wants to signal this information to the underlying bootloader implementation
 which then, for example, resets a boot attempt counter.
 
-.. code-block:: sh
+.. code-block:: console
 
-  rauc status mark-bad
+  # rauc status mark-bad
 
 If the current boot failed in some kind, this command can be used to communicate
 that to the underlying bootloader implementation. In most cases this will
@@ -166,9 +166,9 @@ disable the currently booted slot or at least switch to a different one.
 Although not very useful in the field, both commands recognize an optional
 argument to explicitly identify the slot to act on:
 
-.. code-block:: sh
+.. code-block:: console
 
-  rauc status mark-{good,bad} [booted | other | <SLOT_NAME>]
+  # rauc status mark-{good,bad} [booted | other | <SLOT_NAME>]
 
 This is to maintain consistency with respect to ``rauc status mark-active``
 where that argument is definitively wanted, see :ref:`here
@@ -195,9 +195,9 @@ To do so, RAUC offers the subcommand
 
 .. _optional-slot-identifier-argument:
 
-.. code-block:: sh
+.. code-block:: console
 
-  rauc status mark-active [booted | other | <SLOT_NAME>]
+  # rauc status mark-active [booted | other | <SLOT_NAME>]
 
 where the optional argument decides which slot to (re-)activate at the expense
 of the remaining slots. Choosing ``other`` switches to the next bootable slot
@@ -610,64 +610,64 @@ Examples Using ``busctl`` Command
 
 Triggering an installation:
 
-.. code-block:: sh
+.. code-block:: console
 
-  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer InstallBundle sa{sv} "<bundle-path>/<bundle-url>" 0
+  $ busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer InstallBundle sa{sv} "<bundle-path>/<bundle-url>" 0
 
 Mark a slot as good:
 
-.. code-block:: sh
+.. code-block:: console
 
-  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer Mark ss "good" "rootfs.0"
+  $ busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer Mark ss "good" "rootfs.0"
 
 Mark a slot as active:
 
-.. code-block:: sh
+.. code-block:: console
 
-  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer Mark ss "active" "rootfs.0"
+  $ busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer Mark ss "active" "rootfs.0"
 
 Get the `Operation` property containing the current operation:
 
-.. code-block:: sh
+.. code-block:: console
 
-  busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.Installer Operation
+  $ busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.Installer Operation
 
 Get the `Progress` property containing the progress information:
 
-.. code-block:: sh
+.. code-block:: console
 
-  busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.Installer Progress
+  $ busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.Installer Progress
 
 Get the `LastError` property, which contains the last error that occurred
 during an installation.
 
-.. code-block:: sh
+.. code-block:: console
 
-  busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.Installer LastError
+  $ busctl get-property de.pengutronix.rauc / de.pengutronix.rauc.Installer LastError
 
 Get the status of all slots
 
-.. code-block:: sh
+.. code-block:: console
 
-  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer GetSlotStatus
+  $ busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer GetSlotStatus
 
 Get the current primary slot
 
-.. code-block:: sh
+.. code-block:: console
 
-  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer GetPrimary
+  $ busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer GetPrimary
 
 Monitor the D-Bus interface
 
-.. code-block:: sh
+.. code-block:: console
 
-  busctl monitor de.pengutronix.rauc
+  $ busctl monitor de.pengutronix.rauc
 
 Obtain bundle information
 
-.. code-block:: sh
+.. code-block:: console
 
-  busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer InspectBundle sa{sv} "<bundle-path>/<bundle-url>" 0
+  $ busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer InspectBundle sa{sv} "<bundle-path>/<bundle-url>" 0
 
 .. _debugging:
 
@@ -687,7 +687,7 @@ controlled by your custom application or by the RAUC command line interface.
 The frontend will always only show the 'high level' error output, e.g. when an
 installation failed:
 
-.. code-block:: sh
+.. code-block:: console
 
   rauc-Message: 08:27:12.083: installing /home/enrico/Code/rauc/good-bundle-hook.raucb: LastError: Failed mounting bundle: failed to run mount: Child process exited with code 1
   rauc-Message: 08:27:12.083: installing /home/enrico/Code/rauc/good-bundle-hook.raucb: idle
@@ -700,9 +700,9 @@ service log instead.
 
 If you run RAUC using systemd, the log can be obtained using
 
-.. code-block:: sh
+.. code-block:: console
 
-  journalctl -u rauc
+  $ journalctl -u rauc
 
 When using SysVInit, your service script needs to configure logging itself.
 A common way is to dump the log e.g. /var/log/rauc.
@@ -723,7 +723,7 @@ The bundle is mounted below the configured mount prefix (``/mnt/rauc/bundle`` by
 default).
 When you are done, just use ``umount <mount point>`` to unmount the bundle.
 
-.. code-block:: sh
+.. code-block:: console
 
   $ rauc mount /var/tmp/test/good-verity-bundle.raucb
   rauc-Message: 12:37:36.869: Reading bundle: /var/tmp/test/good-verity-bundle.raucb
@@ -757,16 +757,16 @@ RAUC uses glib and the
 
 For simple cases, you can activate logging by passing the ``-d`` or ``--debug`` option to either the CLI:
 
-.. code-block:: sh
+.. code-block:: console
 
-  rauc install -d bundle.raucb ..
+  # rauc install -d bundle.raucb ..
 
 or the service (you might need to modify your systemd or SysVInit
 service file).
 
-.. code-block:: sh
+.. code-block:: console
 
-  rauc service -d
+  # rauc service -d
 
 For more fine grained and advanced debugging options, use the
 ``G_MESSAGES_DEBUG`` environment variable.
@@ -788,9 +788,9 @@ This allows enabling different log domains. Currently available are:
 
 Example invocation:
 
-.. code-block:: sh
+.. code-block:: console
 
-  G_MESSAGES_DEBUG="rauc rauc-subprocess" rauc service
+  # G_MESSAGES_DEBUG="rauc rauc-subprocess" rauc service
 
 Enabling Verbose CURL Output
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -809,13 +809,17 @@ The RAUC source code repository provides a :ref:`qemu-test
 unit tests in a safe environment. But this can also be used to reproduce and
 debug basic functionality of RAUC.
 
-When running::
+When running:
+
+.. code-block:: console
 
   $ ./qemu-test system
 
 you will boot into a QEMU shell that has a mocked RAUC setup allowing you to
 inspect status, install procedure, etc.
-For example::
+For example:
+
+.. code-block:: console
 
   root@qemu-test:/home/user/git/rauc# rauc status
   === System Info ===

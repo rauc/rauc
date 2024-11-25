@@ -278,9 +278,11 @@ For all commands which need create a signature ``bundle``, ``convert`` and
 instead of filenames for the ``--cert`` and ``--key`` arguments.
 
 For example, a bundle can be signed with a certificate and key available as
-``pkcs11:token=rauc;object=autobuilder-1``::
+``pkcs11:token=rauc;object=autobuilder-1``:
 
-  rauc bundle \
+.. code-block:: console
+
+  $ rauc bundle \
     --cert='pkcs11:token=rauc;object=autobuilder-1' \
     --key='pkcs11:token=rauc;object=autobuilder-1' \
     <input-dir> <output-file>
@@ -537,7 +539,7 @@ The already encrypted payload is reused unmodified.
 Any of the corresponding private keys can then be used by RAUC to first decrypt the
 manifest, which then contains the key needed to decrypt the (SquashFS) payload.
 
-.. code-block::
+.. code-block:: console
 
    $ rauc encrypt --to=recipient-certs.pem unencrypted-crypt-bundle.raucb encrypted-crypt-bundle.raucb
 
@@ -549,7 +551,9 @@ manifest, which then contains the key needed to decrypt the (SquashFS) payload.
    the signing PKI.
 
 To inspect an encrypted bundle on your build host, you need to provide the
-encryption key via the ``--key`` argument::
+encryption key via the ``--key`` argument:
+
+.. code-block:: console
 
    $ rauc info --key=/path/to/private-key.pem --keyring=/path/to/keyring.pem encrypted-crypt-bundle.raucb
    Compatible:     'Example Target'
@@ -577,7 +581,9 @@ the location of the target's private key in the system.conf:
    key=pkcs11:token=rauc;object=private-key-1
 
 The installation command then does not differ from the installation of an
-unencrypted bundle::
+unencrypted bundle:
+
+.. code-block:: console
 
    # rauc install encrypted-bundle.raucb
 
@@ -1119,9 +1125,9 @@ Manually Writing Images to Slots
 In order to write an image to a slot without using update mechanics like hooks,
 slot status etc. use:
 
-.. code-block:: sh
+.. code-block:: console
 
-  rauc write-slot <slotname> <image>
+  # rauc write-slot <slotname> <image>
 
 This uses the correct handler to write the image to the slot. It is useful for
 development scenarios as well as initial provisioning of embedded boards.

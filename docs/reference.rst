@@ -1056,7 +1056,7 @@ For this case ``rauc extract-signature`` can extract the bundle signature and
 As a `verity` format bundle signature is not a detached CMS, you can easily
 resign it externally.
 
-.. code-block:: shell
+.. code-block:: console
 
   # Extract the bundle signature
   $ rauc extract-signature --keyring ca.cert.pem bundle.raucb extracted-signature.cms
@@ -1073,7 +1073,7 @@ For the `plain` format bundle signature it's slightly different, as the
 signature is detached, it contains just the message digest.
 You can use ``openssl asn1parse`` for retrieving the message digest in the CMS.
 
-.. code-block:: shell
+.. code-block:: console
   :emphasize-lines: 9,11
 
   # Find the line which contains `:messageDigest` in `OBJECT` section
@@ -1098,7 +1098,7 @@ contains the manifest.
 
 Another method could be to extract the original binary from the RAUC bundle.
 
-.. code-block:: shell
+.. code-block:: console
 
   $ BUNDLE_SIZE="$(stat -L -c%s bundle.raucb)"
   $ CMS_SIZE="$(printf "%u" "0x$(tail -c "+$((( ${BUNDLE_SIZE} - 7 )))" bundle.raucb | xxd -ps)")"
@@ -1116,7 +1116,7 @@ Another method could be to extract the original binary from the RAUC bundle.
   The `asn1parse` method can also be used for the `verity` bundle but replacing
   `:messageDigest` by `:pkcs7-data` as follows
 
-  .. code-block:: shell
+  .. code-block:: console
     :emphasize-lines: 13,15
 
     # Find the line which contains `:pkcs7-data` in `OBJECT` section
