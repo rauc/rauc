@@ -186,8 +186,8 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  30, "Determining target install group", 2));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  40, "Determining target install group done.", 2));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  40, "Updating slots", 2));
-	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  40, "Checking slot rootfs.1", 3));
-	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  43, "Checking slot rootfs.1 done.", 3));
+	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  40, "Checking slot rootfs.1 (system1)", 3));
+	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  43, "Checking slot rootfs.1 (system1) done.", 3));
 	for (gint32 i = 43; i <= 69; i++)
 		g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)", i, "Copying image to rootfs.1", 3));
 	g_queue_push_tail(args, (gpointer*)g_variant_new("(isi)",  70, "Copying image to rootfs.1 done.", 3));

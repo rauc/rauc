@@ -1092,7 +1092,11 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 
 	install_args_update(args, "Checking slot %s", plan->target_slot->name);
 
-	r_context_begin_step_weighted_formatted("check_slot", 0, 1, "Checking slot %s", plan->target_slot->name);
+	r_context_begin_step_weighted_formatted("check_slot", 0, 1, "Checking slot %s%s%s%s",
+			plan->target_slot->name,
+			plan->target_slot->bootname ? " (" : "",
+			plan->target_slot->bootname ? plan->target_slot->bootname : "",
+			plan->target_slot->bootname ? ")" : "");
 
 	r_slot_status_load(plan->target_slot);
 	slot_state = plan->target_slot->status;
