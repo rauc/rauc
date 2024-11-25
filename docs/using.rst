@@ -705,7 +705,7 @@ If you run RAUC using systemd, the log can be obtained using
   $ journalctl -u rauc
 
 When using SysVInit, your service script needs to configure logging itself.
-A common way is to dump the log e.g. /var/log/rauc.
+A common way is to dump the log, e.g. to ``/var/log/rauc``.
 
 It may also be worth starting the RAUC service via command line on a second
 shell to have a live view of what is going on when you invoke e.g. ``rauc
