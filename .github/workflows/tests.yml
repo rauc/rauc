@@ -18,10 +18,10 @@ jobs:
 
     - uses: actions/checkout@v4
 
-    - name: Test with service and gpt
+    - name: Test with service, gpt and composefs
       run: |
         rm -rf build/
-        meson setup -Dservice=true -Dgpt=enabled -Db_coverage=true -Dwerror=true build
+        meson setup -Dservice=true -Dgpt=enabled -Dcomposefs=enabled -Db_coverage=true -Dwerror=true build
         meson configure build
         meson compile -C build
         ./qemu-test
@@ -35,10 +35,10 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         verbose: true
 
-    - name: Test without service or gpt
+    - name: Test without service, gpt or composefs
       run: |
         rm -rf build/
-        meson setup -Dservice=false -Dgpt=disabled -Db_coverage=true -Dwerror=true build
+        meson setup -Dservice=false -Dgpt=disabled -Dcomposefs=disabled -Db_coverage=true -Dwerror=true build
         meson configure build
         meson compile -C build
         ./qemu-test
