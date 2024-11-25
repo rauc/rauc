@@ -101,7 +101,7 @@ use ``-Dtest=`` option::
 
 You can run each compiled test individually::
 
-  ./build/test/bundle.test
+  ./build/test/bundle-test
 
 To run all tests, run::
 
