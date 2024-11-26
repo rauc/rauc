@@ -106,30 +106,6 @@ EOF
 # fake entropy
 $BUILD_DIR/test/fakerand
 
-# grub env
-mkdir -p /tmp/boot/grub
-mount --bind /tmp/boot /boot
-grub-editenv test/grubenv.test create
-touch /tmp/boot/grub/grubenv
-mount --bind test/grubenv.test /tmp/boot/grub/grubenv
-
-grub-editenv /tmp/boot/grub/grubenv set ORDER="A B" A_TRY="0" B_TRY="0" A_OK="1" B_OK="1"
-
-# fake slot devices
-truncate --size=64M /tmp/rootdev
-mkfs.ext4 /tmp/rootdev
-truncate --size=64M /tmp/appdev
-mkfs.ext4 /tmp/appdev
-
-# fake artifact repos
-mkdir /tmp/file-artifacts-single
-touch /tmp/file-artifacts-single/.artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-ln -s .artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 /tmp/file-artifacts-single/empty
-mkdir /tmp/file-artifacts-dual /tmp/file-artifacts-dual/rootfs.0 /tmp/file-artifacts-dual/rootfs.1
-touch /tmp/file-artifacts-dual/.artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-ln -s ../.artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 /tmp/file-artifacts-dual/rootfs.0/empty
-mkdir /tmp/tree-artifacts
-
 # rauc binary in PATH
 if [ -n "$SHELL" ]; then
   cp -a $BUILD_DIR/rauc /tmp/bin/rauc
@@ -169,23 +145,46 @@ fi
 
 # remove potential host rauc system config
 rm -rf /etc/rauc
-# create rauc system config for testing and data directory
-mkdir /etc/rauc /tmp/rauc
-cp qemu-test-rauc-config /etc/rauc/system.conf
-cp test/openssl-ca/dev-ca.pem /etc/rauc/ca.cert.pem
 
-# rauc and dbus service start
-if grep -q "ENABLE_SERVICE 1" $BUILD_DIR/config.h; then
-  # dbus
-  cp -a $BUILD_DIR/data/de.pengutronix.rauc.conf /etc/dbus-1/system.d
-  chown root:root /etc/dbus-1/system.d/de.pengutronix.rauc.conf
-  chmod 644 /etc/dbus-1/system.d/de.pengutronix.rauc.conf
-  mount -t tmpfs none /var/run
-  mkdir -p /var/run/dbus
-  time dbus-daemon --system --fork --nopidfile --nosyslog --print-address
+# setup required for interactive system
+if [ -n "$SERVICE" ]; then
 
-  # rauc
-  if [ -n "$SERVICE" ]; then
+  # create rauc system config for testing and data directory
+  mkdir /etc/rauc
+  cp qemu-test-rauc-config /etc/rauc/system.conf
+  cp test/openssl-ca/dev-ca.pem /etc/rauc/ca.cert.pem
+
+  # grub env
+  mkdir -p /tmp/boot/grub
+  mount --bind /tmp/boot /boot
+  grub-editenv /tmp/boot/grub/grubenv set ORDER="A B" A_TRY="0" B_TRY="0" A_OK="1" B_OK="1"
+
+  # fake slot devices
+  truncate --size=64M /tmp/rootdev
+  mkfs.ext4 /tmp/rootdev
+  truncate --size=64M /tmp/appdev
+  mkfs.ext4 /tmp/appdev
+
+  # fake artifact repos
+  mkdir /tmp/file-artifacts-single
+  touch /tmp/file-artifacts-single/.artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  ln -s .artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 /tmp/file-artifacts-single/empty
+  mkdir /tmp/file-artifacts-dual /tmp/file-artifacts-dual/rootfs.0 /tmp/file-artifacts-dual/rootfs.1
+  touch /tmp/file-artifacts-dual/.artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  ln -s ../.artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 /tmp/file-artifacts-dual/rootfs.0/empty
+  mkdir /tmp/tree-artifacts
+
+  # rauc and dbus service start
+  if grep -q "ENABLE_SERVICE 1" $BUILD_DIR/config.h; then
+    # dbus
+    cp -a $BUILD_DIR/data/de.pengutronix.rauc.conf /etc/dbus-1/system.d
+    chown root:root /etc/dbus-1/system.d/de.pengutronix.rauc.conf
+    chmod 644 /etc/dbus-1/system.d/de.pengutronix.rauc.conf
+    mount -t tmpfs none /var/run
+    mkdir -p /var/run/dbus
+    time dbus-daemon --system --fork --nopidfile --nosyslog --print-address
+
+    # rauc
     if [ -n "$SERVICE_BACKTRACE" ] && type gdb; then
       gdb --batch --ex "run" --ex "thread apply all bt" --args rauc service &
     else

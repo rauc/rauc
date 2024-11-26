@@ -346,6 +346,8 @@ def create_system_files(env_setup, tmp_path):
     os.symlink(os.path.abspath("openssl-ca"), tmp_path / "openssl-ca")
     os.symlink(os.path.abspath("openssl-enc"), tmp_path / "openssl-enc")
 
+    run(f'grub-editenv {tmp_path}/grubenv.test set ORDER="A B" A_TRY="0" B_TRY="0" A_OK="1" B_OK="1"')
+
 
 @pytest.fixture
 def rauc_no_service(create_system_files, tmp_path):
@@ -399,14 +401,12 @@ def rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, co
 
 @pytest.fixture
 def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_files):
-    yield from rauc_dbus_service_helper(
-        tmp_path, dbus_session_bus, create_system_files, "minimal-test.conf", "system0"
-    )
+    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, "minimal-test.conf", "A")
 
 
 @pytest.fixture
 def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_system_files):
-    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, "crypt-test.conf", "system0")
+    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, "crypt-test.conf", "A")
 
 
 @pytest.fixture
@@ -418,7 +418,7 @@ def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_sy
 
 @pytest.fixture
 def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_system_files):
-    service, bus = _rauc_dbus_service(tmp_path, "adaptive-test.conf", "system0")
+    service, bus = _rauc_dbus_service(tmp_path, "adaptive-test.conf", "A")
 
     yield bus
 

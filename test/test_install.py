@@ -67,7 +67,7 @@ def test_install_env(rauc_dbus_service_with_system_adaptive, tmp_path):
 
     with open(tmp_path / "preinstall-env") as f:
         pre_lines = f.readlines()
-        assert "RAUC_CURRENT_BOOTNAME=system0\n" in pre_lines
+        assert "RAUC_CURRENT_BOOTNAME=A\n" in pre_lines
         assert "RAUC_TARGET_SLOTS=1 2\n" in pre_lines
         assert "RAUC_META_UPDATE_POLL=86400\n" in pre_lines
         assert "RAUC_META_VERSION_CHANNEL=beta\n" in pre_lines
@@ -164,7 +164,7 @@ def test_install_no_service(tmp_path, create_system_files):
     tmp_conf_file = tmp_path / "system.conf"
     shutil.copy("minimal-test.conf", tmp_conf_file)
     out, err, exitcode = run(
-        f"rauc install --conf={tmp_conf_file} --override-boot-slot=system0 {tmp_path}/good-bundle.raucb"
+        f"rauc install --conf={tmp_conf_file} --override-boot-slot=A {tmp_path}/good-bundle.raucb"
     )
 
     assert exitcode == 0
@@ -182,7 +182,7 @@ def test_install_no_service_streaming(tmp_path, create_system_files):
     out, err, exitcode = run(
         "rauc "
         f"--conf={tmp_conf_file} "
-        "--override-boot-slot=system0 "
+        "--override-boot-slot=A "
         "install "
         "http://127.0.0.1/test/good-verity-bundle.raucb"
     )
@@ -205,7 +205,7 @@ def test_install_no_service_streaming_error(tmp_path, create_system_files):
     out, err, exitcode = run(
         "rauc "
         f"--conf={tmp_conf_file} "
-        "--override-boot-slot=system0 "
+        "--override-boot-slot=A "
         "install "
         "http://127.0.0.1/test/missing-bundle.raucb"
     )

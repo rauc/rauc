@@ -5,7 +5,7 @@ from helper import run
 @no_service
 @have_grub
 def test_status_mark_good_internally(rauc_no_service):
-    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=system0 status mark-good")
+    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=A status mark-good")
 
     assert exitcode == 0
 
@@ -13,7 +13,7 @@ def test_status_mark_good_internally(rauc_no_service):
 @no_service
 @have_grub
 def test_status_mark_bad_internally(rauc_no_service):
-    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=system0 status mark-bad")
+    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=A status mark-bad")
 
     assert exitcode == 0
 
@@ -21,7 +21,7 @@ def test_status_mark_bad_internally(rauc_no_service):
 @no_service
 @have_grub
 def test_status_mark_active_internally(rauc_no_service):
-    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=system0 status mark-active")
+    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=A status mark-active")
 
     assert exitcode == 0
 
@@ -29,7 +29,7 @@ def test_status_mark_active_internally(rauc_no_service):
 @no_service
 @have_grub
 def test_status_mark_good_booted(rauc_no_service):
-    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=system0 status mark-good booted")
+    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=A status mark-good booted")
 
     assert exitcode == 0
 
@@ -37,7 +37,7 @@ def test_status_mark_good_booted(rauc_no_service):
 @no_service
 @have_grub
 def test_status_mark_good_other(rauc_no_service):
-    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=system0 status mark-good other")
+    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=A status mark-good other")
 
     assert exitcode == 0
 
@@ -45,7 +45,7 @@ def test_status_mark_good_other(rauc_no_service):
 @no_service
 @have_grub
 def test_status_mark_good_any_bootslot(rauc_no_service):
-    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=system0 status mark-good rescue.0")
+    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=A status mark-good rescue.0")
 
     assert exitcode == 0
 
@@ -53,7 +53,7 @@ def test_status_mark_good_any_bootslot(rauc_no_service):
 @no_service
 @have_grub
 def test_status_mark_good_non_bootslot(rauc_no_service):
-    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=system0 status mark-good bootloader.0")
+    out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=A status mark-good bootloader.0")
 
     assert exitcode == 1
 
