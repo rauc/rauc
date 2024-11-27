@@ -154,17 +154,31 @@ def test_install_rauc_external(rauc_dbus_service_with_system_external, tmp_path)
 
 
 @no_service
-def test_install_no_service(tmp_path, create_system_files):
+def test_install_no_service(tmp_path, create_system_files, system):
     assert os.path.exists(tmp_path / "images/rootfs-1")
     assert not os.path.getsize(tmp_path / "images/rootfs-1") > 0
 
     # copy to tmp path for safe ownership check
     shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
-    tmp_conf_file = tmp_path / "system.conf"
-    shutil.copy("minimal-test.conf", tmp_conf_file)
+    system.prepare_minimal_config()
+    system.write_config()
+    out, err, exitcode = run(f"{system.prefix} install --override-boot-slot=A {tmp_path}/good-bundle.raucb")
+
+    assert exitcode == 0
+    assert os.path.getsize(tmp_path / "images/rootfs-1") > 0
+
+
+@no_service
+@have_streaming
+def test_install_no_service_streaming(tmp_path, create_system_files, system):
+    assert os.path.exists(tmp_path / "images/rootfs-1")
+    assert not os.path.getsize(tmp_path / "images/rootfs-1") > 0
+
+    system.prepare_minimal_config()
+    system.write_config()
     out, err, exitcode = run(
-        f"rauc install --conf={tmp_conf_file} --override-boot-slot=A {tmp_path}/good-bundle.raucb"
+        f"{system.prefix} --override-boot-slot=A install http://127.0.0.1/test/good-verity-bundle.raucb"
     )
 
     assert exitcode == 0
@@ -173,41 +187,17 @@ def test_install_no_service(tmp_path, create_system_files):
 
 @no_service
 @have_streaming
-def test_install_no_service_streaming(tmp_path, create_system_files):
-    assert os.path.exists(tmp_path / "images/rootfs-1")
-    assert not os.path.getsize(tmp_path / "images/rootfs-1") > 0
-
-    tmp_conf_file = tmp_path / "system.conf"
-    shutil.copy("minimal-test.conf", tmp_conf_file)
-    out, err, exitcode = run(
-        "rauc "
-        f"--conf={tmp_conf_file} "
-        "--override-boot-slot=A "
-        "install "
-        "http://127.0.0.1/test/good-verity-bundle.raucb"
-    )
-
-    assert exitcode == 0
-    assert os.path.getsize(tmp_path / "images/rootfs-1") > 0
-
-
-@no_service
-@have_streaming
-def test_install_no_service_streaming_error(tmp_path, create_system_files):
+def test_install_no_service_streaming_error(tmp_path, create_system_files, system):
     assert os.path.exists(tmp_path / "images/rootfs-1")
     assert not os.path.getsize(tmp_path / "images/rootfs-1") > 0
 
     # copy to tmp path for safe ownership check
     shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
-    tmp_conf_file = tmp_path / "system.conf"
-    shutil.copy("minimal-test.conf", tmp_conf_file)
+    system.prepare_minimal_config()
+    system.write_config()
     out, err, exitcode = run(
-        "rauc "
-        f"--conf={tmp_conf_file} "
-        "--override-boot-slot=A "
-        "install "
-        "http://127.0.0.1/test/missing-bundle.raucb"
+        f"{system.prefix} --override-boot-slot=A install http://127.0.0.1/test/missing-bundle.raucb"
     )
 
     assert exitcode == 1
