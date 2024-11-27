@@ -359,7 +359,8 @@ def rauc_no_service(create_system_files, tmp_path):
 
 def _rauc_dbus_service(tmp_path, conf_file, bootslot):
     tmp_conf_file = tmp_path / "system.conf"
-    shutil.copy(conf_file, tmp_conf_file)
+    if tmp_conf_file != conf_file:
+        shutil.copy(conf_file, tmp_conf_file)
 
     env = os.environ.copy()
     env["RAUC_PYTEST_TMP"] = str(tmp_path)
@@ -400,8 +401,10 @@ def rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, co
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_files):
-    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, "minimal-test.conf", "A")
+def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_files, system):
+    system.prepare_minimal_config()
+    system.write_config()
+    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, system.output, "A")
 
 
 @pytest.fixture
@@ -410,10 +413,10 @@ def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_syste
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_system_files):
-    yield from rauc_dbus_service_helper(
-        tmp_path, dbus_session_bus, create_system_files, "minimal-test.conf", "_external_"
-    )
+def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_system_files, system):
+    system.prepare_minimal_config()
+    system.write_config()
+    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, system.output, "_external_")
 
 
 @pytest.fixture
@@ -514,6 +517,46 @@ class System:
         }
 
         self.prefix = f"rauc -c {self.output}"
+
+    def prepare_minimal_config(self):
+        self.config["system"] = {
+            "compatible": "Test Config",
+            "bootloader": "grub",
+            "grubenv": "grubenv.test",
+            "variant-name": "Default Variant",
+        }
+        self.config["keyring"] = {
+            "path": "openssl-ca/dev-ca.pem",
+            "check-crl": "true",
+        }
+        self.config["slot.rootfs.0"] = {
+            "device": "images/rootfs-0",
+            "type": "raw",
+            "bootname": "A",
+        }
+        self.config["slot.rootfs.1"] = {
+            "device": "images/rootfs-1",
+            "type": "raw",
+            "bootname": "B",
+        }
+        self.config["slot.appfs.0"] = {
+            "device": "images/appfs-0",
+            "type": "raw",
+            "parent": "rootfs.0",
+        }
+        self.config["slot.appfs.1"] = {
+            "device": "images/appfs-1",
+            "type": "raw",
+            "parent": "rootfs.1",
+        }
+        self.config["artifacts.files"] = {
+            "path": "repos/files",
+            "type": "files",
+        }
+        self.config["artifacts.trees"] = {
+            "path": "repos/trees",
+            "type": "trees",
+        }
 
     def write_config(self):
         with open(self.output, "w") as f:
