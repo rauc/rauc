@@ -1606,7 +1606,7 @@ For using the built-in bundle generation, you need to specify some variables:
   For a full list of supported variables, refer to `classes-recipe/bundle.bbclass` in
   meta-rauc.
 
-A minimal bundle recipe, such as `core-bundle-minimal.bb` that is contained in
+A minimal bundle recipe, such as ``core-bundle-minimal.bb`` that is contained in
 meta-rauc will look as follows::
 
   inherit bundle
