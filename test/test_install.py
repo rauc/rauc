@@ -198,6 +198,33 @@ def test_install_per_slot_status(tmp_path, create_system_files, system):
         assert os.path.getsize(tmp_path / "images/rootfs-1") > 0
 
 
+def test_install_abc(rauc_dbus_service_with_system_abc, tmp_path):
+    """Tests that two consecutive calls of 'rauc install' update different slot groups"""
+    assert os.path.exists(tmp_path / "images/rootfs-1")
+    assert not os.path.getsize(tmp_path / "images/rootfs-1") > 0
+    assert os.path.exists(tmp_path / "images/rootfs-2")
+    assert not os.path.getsize(tmp_path / "images/rootfs-2") > 0
+
+    # copy to tmp path for safe ownership check
+    shutil.copyfile("good-verity-bundle.raucb", tmp_path / "good-verity-bundle.raucb")
+
+    # First installation should update rootfs-1 (implementation-defined)
+    out, err, exitcode = run(f"rauc install {tmp_path}/good-verity-bundle.raucb")
+
+    assert exitcode == 0
+    assert os.path.getsize(tmp_path / "images/rootfs-0") == 0
+    assert os.path.getsize(tmp_path / "images/rootfs-1") > 0
+    assert os.path.getsize(tmp_path / "images/rootfs-2") == 0
+
+    # Second installation should update rootfs-2 (implementation-defined)
+    out, err, exitcode = run(f"rauc install {tmp_path}/good-verity-bundle.raucb")
+
+    assert exitcode == 0
+    assert os.path.getsize(tmp_path / "images/rootfs-0") == 0
+    assert os.path.getsize(tmp_path / "images/rootfs-1") > 0
+    assert os.path.getsize(tmp_path / "images/rootfs-2") > 0
+
+
 @no_service
 def test_install_no_service(tmp_path, create_system_files, system):
     assert os.path.exists(tmp_path / "images/rootfs-1")
