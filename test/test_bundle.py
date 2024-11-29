@@ -28,11 +28,13 @@ def test_bundle_args_compat(tmp_path):
 
     shutil.copytree("install-content", tmp_path / "install-content")
 
-    out, err, exitcode = run(f"rauc \
+    out, err, exitcode = run(
+        f"rauc \
             --cert openssl-ca/dev/autobuilder-1.cert.pem \
             --key openssl-ca/dev/private/autobuilder-1.pem \
             bundle \
-            {tmp_path}/install-content {tmp_path}/out.raucb")
+            {tmp_path}/install-content {tmp_path}/out.raucb"
+    )
 
     assert exitcode == 0
     assert "Creating 'verity' format bundle" in out
@@ -46,12 +48,14 @@ def test_bundle_args_compat(tmp_path):
 def test_bundle_mksquashfs_extra_args(tmp_path):
     shutil.copytree("install-content", tmp_path / "install-content")
 
-    out, err, exitcode = run(f'rauc \
+    out, err, exitcode = run(
+        f'rauc \
             --cert openssl-ca/dev/autobuilder-1.cert.pem \
             --key openssl-ca/dev/private/autobuilder-1.pem \
             bundle \
             --mksquashfs-args="-comp xz -info -progress" \
-            {tmp_path}/install-content {tmp_path}/out.raucb')
+            {tmp_path}/install-content {tmp_path}/out.raucb'
+    )
 
     assert exitcode == 0
     assert "Creating 'verity' format bundle" in out
@@ -67,10 +71,12 @@ def test_bundle_pkcs11_key1(tmp_path, pkcs11):
 
     shutil.copytree("install-content", tmp_path / "install-content")
 
-    out, err, exitcode = run(f"rauc bundle \
+    out, err, exitcode = run(
+        f"rauc bundle \
             --cert 'pkcs11:token=rauc;object=autobuilder-1' \
             --key 'pkcs11:token=rauc;object=autobuilder-1' \
-            {tmp_path}/install-content {tmp_path}/out.raucb")
+            {tmp_path}/install-content {tmp_path}/out.raucb"
+    )
 
     assert exitcode == 0
     assert "Creating 'verity' format bundle" in out
@@ -86,10 +92,12 @@ def test_bundle_pkcs11_key2_revoked(tmp_path, pkcs11):
 
     shutil.copytree("install-content", tmp_path / "install-content")
 
-    out, err, exitcode = run(f"rauc bundle \
+    out, err, exitcode = run(
+        f"rauc bundle \
             --cert 'pkcs11:token=rauc;object=autobuilder-2' \
             --key 'pkcs11:token=rauc;object=autobuilder-2' \
-            {tmp_path}/install-content {tmp_path}/out.raucb")
+            {tmp_path}/install-content {tmp_path}/out.raucb"
+    )
 
     assert exitcode == 0
     assert "Creating 'verity' format bundle" in out
@@ -106,10 +114,12 @@ def test_bundle_pkcs11_key_mismatch(tmp_path, pkcs11):
 
     shutil.copytree("install-content", tmp_path / "install-content")
 
-    out, err, exitcode = run(f"rauc bundle \
+    out, err, exitcode = run(
+        f"rauc bundle \
             --cert 'pkcs11:token=rauc;object=autobuilder-1' \
             --key 'pkcs11:token=rauc;object=autobuilder-2' \
-            {tmp_path}/install-content {tmp_path}/out.raucb")
+            {tmp_path}/install-content {tmp_path}/out.raucb"
+    )
 
     assert exitcode == 1
     assert "Creating 'verity' format bundle" in out
