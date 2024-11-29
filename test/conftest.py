@@ -408,8 +408,10 @@ def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_file
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_system_files):
-    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, "crypt-test.conf", "A")
+def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_system_files, system):
+    system.prepare_crypt_config()
+    system.write_config()
+    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, system.output, "A")
 
 
 @pytest.fixture
@@ -420,17 +422,10 @@ def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_sy
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_system_files):
-    service, bus = _rauc_dbus_service(tmp_path, "adaptive-test.conf", "A")
-
-    yield bus
-
-    service.terminate()
-    try:
-        service.wait(timeout=10)
-    except subprocess.TimeoutExpired:
-        service.kill()
-        service.wait()
+def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_system_files, system):
+    system.prepare_adaptive_config()
+    system.write_config()
+    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, system.output, "A")
 
 
 class Bundle:
@@ -556,6 +551,22 @@ class System:
         self.config["artifacts.trees"] = {
             "path": "repos/trees",
             "type": "trees",
+        }
+
+    def prepare_crypt_config(self):
+        self.prepare_minimal_config()
+        self.config["encryption"] = {
+            "key": "openssl-enc/keys/rsa-4096/private-key-000.pem",
+            "cert": "openssl-enc/keys/rsa-4096/cert-000.pem",
+        }
+
+    def prepare_adaptive_config(self):
+        self.prepare_minimal_config()
+        self.config["system"]["data-directory"] = "data-dir"
+        self.config["handlers"] = {
+            "system-info": "bin/systeminfo.sh",
+            "pre-install": "bin/preinstall.sh",
+            "post-install": "bin/postinstall.sh",
         }
 
     def write_config(self):
