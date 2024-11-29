@@ -129,16 +129,20 @@ def test_convert_verity(tmp_path):
 
 
 @have_desync
-def test_convert_desync(tmp_path):
+def test_convert_desync(tmp_path, system):
     # copy to tmp path for safe ownership check
     shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
+    system.config["casync"] = {
+        "use-desync": "true",
+    }
+    system.write_config()
+
     out, err, exitcode = run(
-        "rauc"
+        f"{system.prefix}"
         " --cert openssl-ca/dev/autobuilder-1.cert.pem"
         " --key openssl-ca/dev/private/autobuilder-1.pem"
         " --keyring openssl-ca/dev-ca.pem"
-        " --conf minimal-desync-test.conf"
         f" convert {tmp_path}/good-bundle.raucb {tmp_path}/desync.raucb"
     )
 
@@ -149,18 +153,22 @@ def test_convert_desync(tmp_path):
 
 
 @have_desync
-def test_convert_desync_output_exists(tmp_path):
+def test_convert_desync_output_exists(tmp_path, system):
     # copy to tmp path for safe ownership check
     shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     open(f"{tmp_path}/desync.raucb", "a").close()
 
+    system.config["casync"] = {
+        "use-desync": "true",
+    }
+    system.write_config()
+
     out, err, exitcode = run(
-        "rauc"
+        f"{system.prefix}"
         " --cert openssl-ca/dev/autobuilder-1.cert.pem"
         " --key openssl-ca/dev/private/autobuilder-1.pem"
         " --keyring openssl-ca/dev-ca.pem"
-        " --conf minimal-desync-test.conf"
         f" convert {tmp_path}/good-bundle.raucb {tmp_path}/desync.raucb"
     )
 
@@ -171,16 +179,20 @@ def test_convert_desync_output_exists(tmp_path):
 
 
 @have_desync
-def test_convert_desync_error(tmp_path):
+def test_convert_desync_error(tmp_path, system):
     # copy to tmp path for safe ownership check
     shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
+    system.config["casync"] = {
+        "use-desync": "true",
+    }
+    system.write_config()
+
     out, err, exitcode = run(
-        "rauc"
+        f"{system.prefix}"
         " --cert openssl-ca/rel/release-2018.cert.pem"
         " --key openssl-ca/rel/private/release-2018.pem"
         " --keyring openssl-ca/rel-ca.pem"
-        " --conf minimal-desync-test.conf"
         f" convert {tmp_path}/good-bundle.raucb {tmp_path}/desync.raucb"
     )
 
@@ -190,16 +202,20 @@ def test_convert_desync_error(tmp_path):
 
 
 @have_desync
-def test_convert_desync_extra_args(tmp_path):
+def test_convert_desync_extra_args(tmp_path, system):
     # copy to tmp path for safe ownership check
     shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
+    system.config["casync"] = {
+        "use-desync": "true",
+    }
+    system.write_config()
+
     out, err, exitcode = run(
-        "rauc"
+        f"{system.prefix}"
         " --cert openssl-ca/dev/autobuilder-1.cert.pem"
         " --key openssl-ca/dev/private/autobuilder-1.pem"
         " --keyring openssl-ca/dev-ca.pem"
-        " --conf minimal-desync-test.conf"
         " convert"
         ' --casync-args="--chunk-size=32:128:512"'
         f" {tmp_path}/good-bundle.raucb {tmp_path}/desync-extra-args.raucb"
