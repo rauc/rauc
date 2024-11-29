@@ -36,7 +36,7 @@
       <arg name="compatible" type="s" direction="out" />
       <arg name="version" type="s" direction="out" />
     </method>
- 
+
     <!--
          InspectBundle: D-Bus variant of rauc info <bundle>
          @source: Path or URL to the queried bundle.
@@ -48,6 +48,7 @@
       <arg name="args" type="a{sv}" direction="in"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.In1" value="QVariantMap"/>
       <arg name="info" type="a{sv}" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QVariantMap"/>
     </method>
 
     <!--
@@ -87,6 +88,7 @@
     -->
     <method name="GetArtifactStatus">
       <arg name="artifacts" type="aa{sv}" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;QVariantMap>"/>
     </method>
 
     <!-- Operation: Represents the current (global) operation rauc performs -->
