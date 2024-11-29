@@ -28,7 +28,9 @@ Workflow
 Code
 ----
 
-- Basically follow the Linux kernel coding style
+- The projects coding style is inspired by the Linux kernel, but also deviates
+  from it in some points.
+  For details, see :ref:`sec-code-style`.
 
 Documentation
 -------------
@@ -43,6 +45,8 @@ runs a test suite consisting of several components.
 Some of them only run in CI, but most of them can be executed locally.
 When working on a new feature or fixing a bug, please make sure these tests
 succeed.
+
+.. _sec-code-style:
 
 Code Style - uncrustify
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -97,7 +101,7 @@ use ``-Dtest=`` option::
 
 You can run each compiled test individually::
 
-  ./build/test/bundle.test
+  ./build/test/bundle-test
 
 To run all tests, run::
 

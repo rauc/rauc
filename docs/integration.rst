@@ -857,7 +857,7 @@ boot target is required:
 You can verify your setup by calling ``devinfo state`` from Barebox,
 which would print this for example:
 
-.. code-block:: sh
+.. code-block:: console
 
   barebox@board:/ devinfo state
   Parameters:
@@ -900,7 +900,7 @@ RAUC uses the tool *barebox-state* from the
 Make sure to have this tool integrated on your target platform.
 You can verify your setup by calling it manually:
 
-.. code-block:: sh
+.. code-block:: console
 
   # barebox-state -d
   bootstate.system0.remaining_attempts=3
@@ -1420,14 +1420,14 @@ Read the :ref:`sec-security` chapter for more details.
 
 For the bundle content, simply create a new directory:
 
-.. code-block:: shell
+.. code-block:: console
 
   $ mkdir install-content
 
 Copy each image that should be installed via the bundle into the content
 directory, for example:
 
-.. code-block:: shell
+.. code-block:: console
 
   $ cp /path/to/system-image.ext3 install-content/system-image.ext4
   $ cp /path/to/barebox install-content/barebox.img
@@ -1438,7 +1438,7 @@ directory, for example:
 
 Create a manifest file called ``manifest.raucm`` in the content directory:
 
-.. code-block:: shell
+.. code-block:: console
 
   $ vi install-content/manifest.raucm
 
@@ -1465,7 +1465,9 @@ The ``system-image.ext4`` image will now serve as the update image for the
 ``rootfs`` slot class while the ``barebox.img`` will be the update image for
 the ``bootloader`` slot class.
 
-Finally, invoke RAUC to create the bundle from the created content directory::
+Finally, invoke RAUC to create the bundle from the created content directory:
+
+.. code-block:: console
 
   $ rauc bundle --cert=cert.pem --key=key-pem install-content/ my-update.raucb
 
@@ -1497,9 +1499,11 @@ For more information on how to use the layer, also see the layer's `README
 Target System Setup
 ~~~~~~~~~~~~~~~~~~~
 
-Add the `meta-rauc` layer to your setup::
+Add the `meta-rauc` layer to your setup:
 
-  git submodule add git@github.com:rauc/meta-rauc.git
+.. code-block:: console
+
+  $ git submodule add git@github.com:rauc/meta-rauc.git
 
 Add the RAUC tool to your image recipe (or package group)::
 
@@ -1541,14 +1545,18 @@ Having RAUC available as a host tool is useful for debugging, testing or for
 creating bundles manually.
 For the preferred way of creating bundles automatically, see the chapter
 :ref:`sec-integration-yocto-bundle`.
-In order to compile RAUC for your host system, simply run::
+In order to compile RAUC for your host system, simply run:
 
-  bitbake rauc-native
+.. code-block:: console
+
+  $ bitbake rauc-native
 
 This will place a copy of the RAUC binary in ``tmp/deploy/tools`` in your
-current build folder. To test it, try::
+current build folder. To test it, try:
 
-  tmp/deploy/tools/rauc --version
+.. code-block:: console
+
+  $ tmp/deploy/tools/rauc --version
 
 .. _sec-integration-yocto-bundle:
 
@@ -1598,7 +1606,7 @@ For using the built-in bundle generation, you need to specify some variables:
   For a full list of supported variables, refer to `classes-recipe/bundle.bbclass` in
   meta-rauc.
 
-A minimal bundle recipe, such as `core-bundle-minimal.bb` that is contained in
+A minimal bundle recipe, such as ``core-bundle-minimal.bb`` that is contained in
 meta-rauc will look as follows::
 
   inherit bundle
@@ -1624,9 +1632,11 @@ recipe or any global configuration (layer, site.conf, etc.), e.g.::
   For information on how to create a testing / development
   key/cert/keyring, please refer to `scripts/README` in meta-rauc.
 
-Based on this information, a call of::
+Based on this information, a call of:
 
-  bitbake core-bundle-minimal
+.. code-block:: console
+
+  $ bitbake core-bundle-minimal
 
 will build all required images and generate a signed RAUC bundle from this.
 The created bundle can be found in
