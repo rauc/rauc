@@ -1187,36 +1187,41 @@ Another method could be to extract the original binary from the RAUC bundle.
 
 .. _slot-status:
 
-Slot Status
------------
+Slot Status File
+----------------
 
-There is some slot specific metadata that are of interest for RAUC, e.g. a hash
-value of the slot's content (SHA-256 per default) that is matched against its
-counterpart of an image inside a bundle to decide if an update of the slot has
-to be performed or can be skipped.
-These slot metadata can be persisted in one of two ways:
-either in a slot status file stored on each slot containing a writable
-filesystem or in a central status file that lives on a persistent filesystem
-untouched by updates.
-The former is RAUC's default whereas the latter mechanism is enabled by making
-use of the optional key :ref:`statusfile <statusfile>` in the ``system.conf``
-file.
-Both are formatted as INI-like key/value files where the slot information is
-grouped in a section named [slot] for the case of a per-slot file or in sections
-termed with the slot name (e.g. [slot.rootfs.1]) for the central status file:
+For each slot, RAUC tracks some status data like the state of the slot, the
+origin of its content and a minimal installation history.
+RAUC provides this information via the :ref:`GetSlotStatus
+<gdbus-method-de-pengutronix-rauc-Installer.GetSlotStatus>` D-Bus method or
+prints it when ``rauc status`` is called with the ``--detailed`` options.
+
+The recommended way to store slot data is on a shared partition within
+RAUC's :ref:`data-directory <data-directory>`.
+When the data directory is enabled, the file ``<data-directory>/central.raucs``
+is used to store information for all slots.
+If no shared partition is available, RAUC can store the status file as
+``/slot.raucs`` on each slot that contains a writable filesystem.
+Slots without a writable filesystem will not have any status data stored in this case.
+
+Like the configuration files used by RAUC, the slot status files use a
+key-value syntax, similar to that found in .ini files.
+
+The information for each slot is grouped in a section like ``[slot.rootfs.1]``
+for the central status file, or ``[slot]`` in case of a per-slot file.
 
 .. code-block:: cfg
 
-  [slot]
+  [slot.rootfs.0]
   bundle.compatible=FooCorp Super BarBazzer
-  bundle.version=2016.08-1
+  bundle.version=2024.08-1
   bundle.description=Introduction of Galactic Feature XYZ
-  bundle.build=2016.08.1/imx6/20170324-7
+  bundle.build=2024.08.1/imx8mp/20240824-7
   status=ok
   sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
   size=419430400
   installed.transaction=dad3289a-7de1-4ad2-931e-fb827edc6496
-  installed.timestamp=2017-03-27T09:51:13Z
+  installed.timestamp=2024-09-06T09:51:13Z
   installed.count=3
 
 For a description of ``sha256`` and ``size`` keys see :ref:`this
