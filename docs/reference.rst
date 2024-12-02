@@ -1200,6 +1200,8 @@ The recommended way to store slot data is on a shared partition within
 RAUC's :ref:`data-directory <data-directory>`.
 When the data directory is enabled, the file ``<data-directory>/central.raucs``
 is used to store information for all slots.
+The same file is also used for storing :ref:`system status <system-status>`
+information.
 If no shared partition is available, RAUC can store the status file as
 ``/slot.raucs`` on each slot that contains a writable filesystem.
 Slots without a writable filesystem will not have any status data stored in this case.
@@ -1247,6 +1249,27 @@ Additionally RAUC tracks the point in time when a bootable slot is activated in
 see section :ref:`mark-active`.
 Comparing both timestamps is useful to decide if an installed slot has ever been
 activated or if its activation is still pending.
+
+
+.. _system-status:
+
+System Status File
+------------------
+
+The system status is only available if a central status file is configured for
+RAUC (by setting :ref:`data-directory <data-directory>`).
+The system status is stored in the same file as the :ref:`slot status
+<slot-status>`. It uses a distinct ``[system]`` section.
+
+.. code-block:: cfg
+
+  [system]
+  boot-id=d359b438-b28b-416b-9270-257484a8a58e
+
+The field ``boot-id`` contains the system's boot ID
+(``proc/sys/kernel/random/boot_id``) recorded on service startup.
+RAUC uses this ID to differentiate between reboots and service restarts by
+comparing it with the current boot ID.
 
 
 Command Line Tool
