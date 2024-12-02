@@ -1231,6 +1231,13 @@ and ``bundle.build`` are copies of the respective manifest properties.
 More information can be found in this :ref:`subsection <sec-manifest-update>` of
 section :ref:`Manifest <sec_ref_manifest>`.
 
+The ``status`` field records the status of each slot.
+It can have the following values:
+
+:ok: The latest update for this slot succeeded. Its content should be valid.
+:failed: The latest update for this slot failed. There is no valid content on it.
+:pending: The slot is currently being updated. There is no valid content on it, yet.
+
 For a description of ``sha256`` and ``size`` keys see :ref:`this
 <image-section>` part of the section :ref:`Manifest
 <sec_ref_manifest>`.
