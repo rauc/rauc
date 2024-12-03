@@ -749,6 +749,12 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		return FALSE;
 	}
 
+	//process overwrites
+	for (GList *l = r_context_conf()->configoverwrite; l != NULL; l = l->next) {
+		ConfigFileOverwrite *overwrite = (ConfigFileOverwrite *)l->data;
+		g_key_file_set_value(key_file, overwrite->overwrite_section, overwrite->overwrite_name, overwrite->overwrite_value);
+	}
+
 	/* parse [system] section */
 	c->system_compatible = key_file_consume_string(key_file, "system", "compatible", &ierror);
 	if (!c->system_compatible) {
