@@ -49,3 +49,18 @@ def run(command, *, timeout=30):
 
 def run_tree(path):
     subprocess.check_call(["tree", "--metafirst", "-ax", "-pugs", "--inodes", path])
+
+
+def slot_data_from_json(status_data, slotname):
+    """
+    Helper to return the slot data from 'rauc status' JSON output.
+
+    :param status_data: JSON data obtained from 'rauc status'.
+    :param slotname: The name of the slot to find in the data.
+    :return: Slot data as a dictionary.
+    """
+    for slot in status_data["slots"]:
+        if slotname in slot:
+            return slot[slotname]
+    else:
+        raise ValueError(f"Slot '{slotname}' not found")

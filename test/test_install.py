@@ -1,9 +1,11 @@
+import json
 import os
 import shutil
 from textwrap import dedent
 
 from conftest import have_casync, have_http, have_streaming, no_service, root
 from helper import run
+from helper import slot_data_from_json
 
 # all tests require root privileges
 pytestmark = root
@@ -16,6 +18,14 @@ def test_install(rauc_dbus_service_with_system, tmp_path):
     assert os.path.islink("/run/rauc/slots/active/rootfs")
     assert os.readlink("/run/rauc/slots/active/rootfs")
 
+    out, err, exitcode = run("rauc status --output-format=json-pretty")
+    assert exitcode == 0
+    status_data = json.loads(out)
+
+    assert slot_data_from_json(status_data, "rootfs.0")["boot_status"] == "good"
+    assert slot_data_from_json(status_data, "rootfs.1")["boot_status"] == "bad"
+    assert status_data["boot_primary"] == "rootfs.0"
+
     # copy to tmp path for safe ownership check
     shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
@@ -23,6 +33,14 @@ def test_install(rauc_dbus_service_with_system, tmp_path):
 
     assert exitcode == 0
     assert os.path.getsize(tmp_path / "images/rootfs-1") > 0
+
+    out, err, exitcode = run("rauc status --output-format=json-pretty")
+    assert exitcode == 0
+    status_data = json.loads(out)
+
+    assert slot_data_from_json(status_data, "rootfs.0")["boot_status"] == "good"
+    assert slot_data_from_json(status_data, "rootfs.1")["boot_status"] == "good"
+    assert status_data["boot_primary"] == "rootfs.1"
 
 
 def test_install_verity(rauc_dbus_service_with_system, tmp_path):

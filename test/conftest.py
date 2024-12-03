@@ -346,7 +346,7 @@ def create_system_files(env_setup, tmp_path):
     os.symlink(os.path.abspath("openssl-ca"), tmp_path / "openssl-ca")
     os.symlink(os.path.abspath("openssl-enc"), tmp_path / "openssl-enc")
 
-    run(f'grub-editenv {tmp_path}/grubenv.test set ORDER="A B" A_TRY="0" B_TRY="0" A_OK="1" B_OK="1"')
+    run(f'grub-editenv {tmp_path}/grubenv.test set ORDER="A B" A_TRY="0" B_TRY="0" A_OK="1" B_OK="0"')
 
 
 @pytest.fixture
