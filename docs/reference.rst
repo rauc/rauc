@@ -1187,37 +1187,56 @@ Another method could be to extract the original binary from the RAUC bundle.
 
 .. _slot-status:
 
-Slot Status
------------
+Slot Status File
+----------------
 
-There is some slot specific metadata that are of interest for RAUC, e.g. a hash
-value of the slot's content (SHA-256 per default) that is matched against its
-counterpart of an image inside a bundle to decide if an update of the slot has
-to be performed or can be skipped.
-These slot metadata can be persisted in one of two ways:
-either in a slot status file stored on each slot containing a writable
-filesystem or in a central status file that lives on a persistent filesystem
-untouched by updates.
-The former is RAUC's default whereas the latter mechanism is enabled by making
-use of the optional key :ref:`statusfile <statusfile>` in the ``system.conf``
-file.
-Both are formatted as INI-like key/value files where the slot information is
-grouped in a section named [slot] for the case of a per-slot file or in sections
-termed with the slot name (e.g. [slot.rootfs.1]) for the central status file:
+For each slot, RAUC tracks some status data like the state of the slot, the
+origin of its content and a minimal installation history.
+RAUC provides this information via the :ref:`GetSlotStatus
+<gdbus-method-de-pengutronix-rauc-Installer.GetSlotStatus>` D-Bus method or
+prints it when ``rauc status`` is called with the ``--detailed`` options.
+
+The recommended way to store slot data is on a shared partition within
+RAUC's :ref:`data-directory <data-directory>`.
+When the data directory is enabled, the file ``<data-directory>/central.raucs``
+is used to store information for all slots.
+The same file is also used for storing :ref:`system status <system-status>`
+information.
+If no shared partition is available, RAUC can store the status file as
+``/slot.raucs`` on each slot that contains a writable filesystem.
+Slots without a writable filesystem will not have any status data stored in this case.
+
+Like the configuration files used by RAUC, the slot status files use a
+key-value syntax, similar to that found in .ini files.
+
+The information for each slot is grouped in a section like ``[slot.rootfs.1]``
+for the central status file, or ``[slot]`` in case of a per-slot file.
 
 .. code-block:: cfg
 
-  [slot]
+  [slot.rootfs.0]
   bundle.compatible=FooCorp Super BarBazzer
-  bundle.version=2016.08-1
+  bundle.version=2024.08-1
   bundle.description=Introduction of Galactic Feature XYZ
-  bundle.build=2016.08.1/imx6/20170324-7
+  bundle.build=2024.08.1/imx8mp/20240824-7
   status=ok
   sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
   size=419430400
   installed.transaction=dad3289a-7de1-4ad2-931e-fb827edc6496
-  installed.timestamp=2017-03-27T09:51:13Z
+  installed.timestamp=2024-09-06T09:51:13Z
   installed.count=3
+
+The properties ``bundle.compatible``, ``bundle.version``, ``bundle.description``
+and ``bundle.build`` are copies of the respective manifest properties.
+More information can be found in this :ref:`subsection <sec-manifest-update>` of
+section :ref:`Manifest <sec_ref_manifest>`.
+
+The ``status`` field records the status of each slot.
+It can have the following values:
+
+:ok: The latest update for this slot succeeded. Its content should be valid.
+:failed: The latest update for this slot failed. There is no valid content on it.
+:pending: The slot is currently being updated. There is no valid content on it, yet.
 
 For a description of ``sha256`` and ``size`` keys see :ref:`this
 <image-section>` part of the section :ref:`Manifest
@@ -1225,11 +1244,6 @@ For a description of ``sha256`` and ``size`` keys see :ref:`this
 Having the slot's content's size allows to re-calculate the hash via ``head -c
 <size> <slot-device> | sha256sum`` or ``dd bs=<size> count=1 if=<slot-device> |
 sha256sum``.
-
-The properties ``bundle.compatible``, ``bundle.version``, ``bundle.description``
-and ``bundle.build`` are copies of the respective manifest properties.
-More information can be found in this :ref:`subsection <sec-manifest-update>` of
-section :ref:`Manifest <sec_ref_manifest>`.
 
 RAUC also stores information about the installation run during which the slot
 was updated:
@@ -1242,6 +1256,27 @@ Additionally RAUC tracks the point in time when a bootable slot is activated in
 see section :ref:`mark-active`.
 Comparing both timestamps is useful to decide if an installed slot has ever been
 activated or if its activation is still pending.
+
+
+.. _system-status:
+
+System Status File
+------------------
+
+The system status is only available if a central status file is configured for
+RAUC (by setting :ref:`data-directory <data-directory>`).
+The system status is stored in the same file as the :ref:`slot status
+<slot-status>`. It uses a distinct ``[system]`` section.
+
+.. code-block:: cfg
+
+  [system]
+  boot-id=d359b438-b28b-416b-9270-257484a8a58e
+
+The field ``boot-id`` contains the system's boot ID
+(``proc/sys/kernel/random/boot_id``) recorded on service startup.
+RAUC uses this ID to differentiate between reboots and service restarts by
+comparing it with the current boot ID.
 
 
 Command Line Tool
