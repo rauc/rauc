@@ -5,6 +5,7 @@ from helper import run
 from helper import slot_data_from_json
 
 
+
 @no_service
 @have_grub
 def test_status_mark_good_internally(rauc_no_service):
@@ -62,6 +63,21 @@ def test_status_mark_good_non_bootslot(rauc_no_service):
 
 
 @have_grub
+def test_status_mark_bad_other(rauc_dbus_service_with_system_abc):
+    out, err, exitcode = run("rauc status mark-bad other")
+    assert exitcode == 0
+
+    out, err, exitcode = run("rauc status --output-format=json")
+    assert exitcode == 0
+
+    status = json.loads(out)
+
+    for slotname, property in status["slots"][0].items():
+        if property["state"] != "booted" and property["class"] == "rootfs":
+            assert property["boot_status"] == "bad"
+
+
+@have_grub
 def test_status_mark_good_dbus(rauc_dbus_service_with_system):
     out, err, exitcode = run("rauc status --output-format=json-pretty")
     assert exitcode == 0
@@ -97,7 +113,7 @@ def test_status_mark_bad_dbus(rauc_dbus_service_with_system):
     out, err, exitcode = run("rauc status mark-bad")
 
     assert exitcode == 0
-    assert "marked slot rootfs.0 as bad" in out
+    assert "marked slot[s] rootfs.0 as bad" in out
 
     # check post-condition
     out, err, exitcode = run("rauc status --output-format=json-pretty")
