@@ -1,5 +1,6 @@
 from conftest import have_grub, no_service
 from helper import run
+import json
 
 
 @no_service
@@ -56,6 +57,21 @@ def test_status_mark_good_non_bootslot(rauc_no_service):
     out, err, exitcode = run(f"{rauc_no_service} --override-boot-slot=A status mark-good bootloader.0")
 
     assert exitcode == 1
+
+
+@have_grub
+def test_status_mark_bad_other(rauc_dbus_service_with_system_abc):
+    out, err, exitcode = run("rauc status mark-bad other")
+    assert exitcode == 0
+
+    out, err, exitcode = run("rauc status --output-format=json")
+    assert exitcode == 0
+
+    status = json.loads(out)
+
+    for slotname, property in status["slots"][0].items():
+        if property["state"] != "booted" and property["class"] == "rootfs":
+            assert property["boot_status"] == "bad"
 
 
 @have_grub
