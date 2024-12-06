@@ -73,7 +73,7 @@ def test_status_mark_good_dbus(rauc_dbus_service_with_system):
     out, err, exitcode = run("rauc status mark-good")
 
     assert exitcode == 0
-    assert "marked slot rootfs.0 as good" in out
+    assert "marked slot(s) rootfs.0 as good" in out
 
     out, err, exitcode = run("rauc status --output-format=json-pretty")
     assert exitcode == 0
@@ -97,7 +97,7 @@ def test_status_mark_bad_dbus(rauc_dbus_service_with_system):
     out, err, exitcode = run("rauc status mark-bad")
 
     assert exitcode == 0
-    assert "marked slot rootfs.0 as bad" in out
+    assert "marked slot(s) rootfs.0 as bad" in out
 
     # check post-condition
     out, err, exitcode = run("rauc status --output-format=json-pretty")
@@ -123,7 +123,7 @@ def test_status_mark_active_dbus(rauc_dbus_service_with_system):
     out, err, exitcode = run("rauc status mark-active other")
 
     assert exitcode == 0
-    assert "activated slot rootfs.1" in out
+    assert "rootfs.1 as active" in out
 
     # check post-condition
     out, err, exitcode = run("rauc status --output-format=json-pretty")

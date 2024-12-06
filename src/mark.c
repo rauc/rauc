@@ -6,10 +6,11 @@
 #include "slot.h"
 #include "status_file.h"
 
-static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
+static GList* get_slots_by_identifier(const gchar *identifier, GError **error)
 {
 	GHashTableIter iter;
-	RaucSlot *slot = NULL, *booted = NULL;
+	GList *slots = NULL;
+	RaucSlot *booted = NULL;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
@@ -22,7 +23,7 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 
 	if (g_strcmp0(identifier, "booted") == 0) {
 		if (booted)
-			slot = booted;
+			slots = g_list_append(slots, booted);
 		else
 			g_set_error(
 					error,
@@ -32,12 +33,13 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 	} else if (g_strcmp0(identifier, "other") == 0) {
 		if (booted) {
 			g_hash_table_iter_init(&iter, r_context()->config->slots);
+			RaucSlot *slot = NULL;
 			while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
-				if (slot->sclass == booted->sclass && !slot->parent && slot->bootname && slot != booted)
-					break;
-				slot = NULL;
+				if (slot->sclass == booted->sclass && !slot->parent && slot->bootname && slot != booted) {
+					slots = g_list_append(slots, slot);
+				}
 			}
-			if (!slot)
+			if (g_list_length(slots) == 0)
 				g_set_error(error,
 						R_SLOT_ERROR,
 						R_SLOT_ERROR_FAILED,
@@ -53,7 +55,7 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 		g_auto(GStrv) groupsplit = g_strsplit(identifier, ".", -1);
 
 		if (g_strv_length(groupsplit) == 2) {
-			slot = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, identifier);
+			RaucSlot *slot = (RaucSlot*) g_hash_table_lookup(r_context()->config->slots, identifier);
 			if (!slot) {
 				g_set_error(error,
 						R_SLOT_ERROR,
@@ -71,6 +73,7 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 						slot->name);
 				return NULL;
 			}
+			slots = g_list_append(slots, slot);
 		} else {
 			g_set_error(error,
 					R_SLOT_ERROR,
@@ -79,7 +82,7 @@ static RaucSlot* get_slot_by_identifier(const gchar *identifier, GError **error)
 		}
 	}
 
-	return slot;
+	return slots;
 }
 
 #define MESSAGE_ID_MARKED_ACTIVE "8b5e7435e1054d86858278e7544fe6da"
@@ -203,43 +206,66 @@ gboolean mark_run(const gchar *state,
 		gchar **slot_name,
 		gchar **message)
 {
-	RaucSlot *slot = NULL;
+	g_autoptr(GList) slots = NULL;
 	g_autoptr(GError) ierror = NULL;
 
 	g_assert(slot_name == NULL || *slot_name == NULL);
 	g_assert(message != NULL && *message == NULL);
 
-	slot = get_slot_by_identifier(slot_identifier, &ierror);
+	slots = get_slots_by_identifier(slot_identifier, &ierror);
 	if (ierror) {
 		*message = g_strdup(ierror->message);
 		return FALSE;
 	}
 
 	if (g_strcmp0(state, "good") == 0) {
+		if (g_list_length(slots) > 1) {
+			*message = g_strdup("cannot mark multiple slots as good");
+			return FALSE;
+		}
+		RaucSlot *slot = (RaucSlot*)g_list_first(slots)->data;
+
 		if (!r_mark_good(slot, &ierror)) {
 			*message = g_strdup(ierror->message);
 			return FALSE;
 		}
-		*message = g_strdup_printf("marked slot %s as good", slot->name);
 	} else if (g_strcmp0(state, "bad") == 0) {
-		if (!r_mark_bad(slot, &ierror)) {
-			*message = g_strdup(ierror->message);
+		for (GList *l = slots; l != NULL; l = l->next) {
+			RaucSlot *slot = l->data;
+			if (!r_mark_bad(slot, &ierror)) {
+				*message = g_strdup(ierror->message);
+				return FALSE;
+			}
+		}
+	} else if (g_strcmp0(state, "active") == 0) {
+		if (g_list_length(slots) > 1) {
+			*message = g_strdup("cannot activate multiple slots");
 			return FALSE;
 		}
-		*message = g_strdup_printf("marked slot %s as bad", slot->name);
-	} else if (g_strcmp0(state, "active") == 0) {
+		RaucSlot *slot = (RaucSlot*)g_list_first(slots)->data;
+
 		if (!r_mark_active(slot, &ierror)) {
 			*message = g_strdup(ierror->message);
 			return FALSE;
 		}
-		*message = g_strdup_printf("activated slot %s", slot->name);
 	} else {
 		*message = g_strdup_printf("unknown subcommand %s", state);
 		return FALSE;
 	}
 
+	g_autoptr(GString) slot_names = g_string_new(NULL);
+
+	for (GList *l = slots; l != NULL; l = l->next) {
+		RaucSlot *slot = l->data;
+		g_string_append_printf(slot_names, "%s ", slot->name);
+	}
+
+	if (slot_names->len > 1)
+		g_string_truncate(slot_names, slot_names->len - 1);
+
+	*message = g_strdup_printf("marked slot(s) %s as %s", slot_names->str, state);
 	if (slot_name)
-		*slot_name = g_strdup(slot->name);
+		*slot_name = g_strdup(slot_names->str);
 
 	return TRUE;
 }
