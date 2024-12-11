@@ -49,6 +49,8 @@ typedef struct {
 	gchar *grubenv_path;
 	gchar *custom_bootloader_backend;
 	gboolean efi_use_bootnext;
+	/** prevent fallback after successfully booting into primary slot*/
+	gboolean prevent_fallback;
 	/* maximum filesize to download in bytes */
 	guint64 max_bundle_download_size;
 	/* path prefix where rauc may create mount directories */
