@@ -1288,12 +1288,13 @@ Command Line Tool
     rauc [OPTION?] <COMMAND>
 
   Options:
-    -c, --conf=FILENAME     config file
-    --keyring=PEMFILE       keyring file
-    --mount=PATH            mount prefix
-    -d, --debug             enable debug output
-    --version               display version
-    -h, --help              display help and exit
+    -c, --conf=FILENAME      config file
+    --keyring=PEMFILE        keyring file
+    --mount=PATH             mount prefix
+    -d, --debug              enable debug output
+    -s, --syslog=[facility]  enable syslog output, optional facility, default: daemon
+    --version                display version
+    -h, --help               display help and exit
 
   Command-specific help:
     rauc <COMMAND> --help
