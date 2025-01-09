@@ -78,7 +78,7 @@ Features
   * USB Stick
 * Controllable via **D-Bus** interface
 * Supports data migration
-* Network protocol support using libcurl (https, http, ftp, ssh, ...)
+* Network protocol support using libcurl (https, http, tftp/ftp, ssh, ...)
 * Several layers of update customization
 
   * Update-specific extensions (hooks)
