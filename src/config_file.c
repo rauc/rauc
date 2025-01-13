@@ -260,6 +260,7 @@ static gboolean r_event_log_parse_config_sections(GKeyFile *key_file, RaucConfig
 
 		logger->events = g_key_file_get_string_list(key_file, *group, "events", &entries, &ierror);
 		if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+			g_assert_null(logger->events);
 			logger->events = g_malloc(2 * sizeof(gchar *));
 			logger->events[0] = g_strdup("all");
 			logger->events[1] = NULL;
@@ -996,6 +997,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 	c->statusfile_path = key_file_consume_string(key_file, "system", "statusfile", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_assert_null(c->statusfile_path);
 		if (c->data_directory) {
 			c->statusfile_path = g_build_filename(c->data_directory, "central.raucs", NULL);
 		} else {
@@ -1102,7 +1104,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	c->keyring_check_purpose = key_file_consume_string(key_file, "keyring", "check-purpose", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
 	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
-		c->keyring_check_purpose = NULL;
+		g_assert_null(c->keyring_check_purpose);
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
