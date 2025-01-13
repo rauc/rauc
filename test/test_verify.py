@@ -41,10 +41,7 @@ def test_verify_with_use_bundle_signing_time_valid_signing_invalid_current(tmp_p
     assert os.path.exists(f"{tmp_path}/out.raucb")
 
     out, err, exitcode = run(
-        'faketime "2022-01-01" '
-        "rauc "
-        f"--conf {tmp_path}/use-bundle-signing-time.conf "
-        f"info {tmp_path}/out.raucb"
+        f'faketime "2022-01-01" rauc --conf {tmp_path}/use-bundle-signing-time.conf info {tmp_path}/out.raucb'
     )
 
     assert exitcode == 0
@@ -67,10 +64,7 @@ def test_verify_with_use_bundle_signing_time_invalid_signing_valid_current(tmp_p
     assert os.path.exists(f"{tmp_path}/out.raucb")
 
     out, err, exitcode = run(
-        'faketime "2018-01-01" '
-        "rauc "
-        f"--conf {tmp_path}/use-bundle-signing-time.conf "
-        f"info {tmp_path}/out.raucb"
+        f'faketime "2018-01-01" rauc --conf {tmp_path}/use-bundle-signing-time.conf info {tmp_path}/out.raucb'
     )
 
     assert exitcode == 1
@@ -91,24 +85,16 @@ def test_info_no_check_time(tmp_path):
 
     assert os.path.exists(f"{tmp_path}/out.raucb")
 
-    out, err, exitcode = run(
-        'faketime "2018-01-01" ' "rauc " f"--keyring openssl-ca/rel-ca.pem " f"info {tmp_path}/out.raucb"
-    )
+    out, err, exitcode = run(f'faketime "2018-01-01" rauc --keyring openssl-ca/rel-ca.pem info {tmp_path}/out.raucb')
 
     assert exitcode == 0
 
-    out, err, exitcode = run(
-        'faketime "2022-01-01" ' "rauc " f"--keyring openssl-ca/rel-ca.pem " f"info {tmp_path}/out.raucb"
-    )
+    out, err, exitcode = run(f'faketime "2022-01-01" rauc --keyring openssl-ca/rel-ca.pem info {tmp_path}/out.raucb')
 
     assert exitcode == 1
 
     out, err, exitcode = run(
-        'faketime "2022-01-01" '
-        "rauc "
-        f"--keyring openssl-ca/rel-ca.pem "
-        "--no-check-time "
-        f"info {tmp_path}/out.raucb"
+        f'faketime "2022-01-01" rauc --keyring openssl-ca/rel-ca.pem --no-check-time info {tmp_path}/out.raucb'
     )
 
     assert exitcode == 0

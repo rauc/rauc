@@ -11,8 +11,7 @@ def test_extract_signature(tmp_path):
     shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
-        "rauc --keyring openssl-ca/dev-ca.pem"
-        f" extract-signature {tmp_path}/good-bundle.raucb {tmp_path}/bundle.sig "
+        f"rauc --keyring openssl-ca/dev-ca.pem extract-signature {tmp_path}/good-bundle.raucb {tmp_path}/bundle.sig "
     )
 
     assert exitcode == 0
@@ -45,7 +44,7 @@ def test_extract(tmp_path):
     shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
-        "rauc --keyring openssl-ca/dev-ca.pem" f" extract {tmp_path}/good-bundle.raucb {tmp_path}/bundle-extract "
+        f"rauc --keyring openssl-ca/dev-ca.pem extract {tmp_path}/good-bundle.raucb {tmp_path}/bundle-extract "
     )
 
     assert exitcode == 0

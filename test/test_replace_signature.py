@@ -23,9 +23,7 @@ def test_replace_signature_plain(tmp_path):
     assert os.path.exists(f"{tmp_path}/out1.raucb")
 
     out, err, exitcode = run(
-        "rauc "
-        "--keyring openssl-ca/dev-only-ca.pem "
-        f"extract-signature {tmp_path}/out1.raucb {tmp_path}/bundle.sig"
+        f"rauc --keyring openssl-ca/dev-only-ca.pem extract-signature {tmp_path}/out1.raucb {tmp_path}/bundle.sig"
     )
     assert exitcode == 0
     assert os.path.exists(f"{tmp_path}/bundle.sig")
@@ -62,9 +60,7 @@ def test_replace_signature_verity(tmp_path):
     assert os.path.exists(f"{tmp_path}/out1.raucb")
 
     out, err, exitcode = run(
-        "rauc "
-        "--keyring openssl-ca/dev-only-ca.pem "
-        f"extract-signature {tmp_path}/out1.raucb {tmp_path}/bundle.sig"
+        f"rauc --keyring openssl-ca/dev-only-ca.pem extract-signature {tmp_path}/out1.raucb {tmp_path}/bundle.sig"
     )
     assert exitcode == 0
     assert os.path.exists(f"{tmp_path}/bundle.sig")
@@ -101,9 +97,7 @@ def test_replace_signature_crypt(tmp_path):
     assert os.path.exists(f"{tmp_path}/out1.raucb")
 
     out, err, exitcode = run(
-        "rauc "
-        "--keyring openssl-ca/dev-only-ca.pem "
-        f"extract-signature {tmp_path}/out1.raucb {tmp_path}/bundle.sig"
+        f"rauc --keyring openssl-ca/dev-only-ca.pem extract-signature {tmp_path}/out1.raucb {tmp_path}/bundle.sig"
     )
     assert exitcode == 0
     assert os.path.exists(f"{tmp_path}/bundle.sig")
@@ -142,9 +136,7 @@ def test_replace_signature_output_exists(tmp_path):
     assert os.path.exists(f"{tmp_path}/out1.raucb")
 
     out, err, exitcode = run(
-        "rauc "
-        "--keyring openssl-ca/dev-only-ca.pem "
-        f"extract-signature {tmp_path}/out1.raucb {tmp_path}/bundle.sig"
+        f"rauc --keyring openssl-ca/dev-only-ca.pem extract-signature {tmp_path}/out1.raucb {tmp_path}/bundle.sig"
     )
     assert exitcode == 0
     assert os.path.exists(f"{tmp_path}/bundle.sig")
@@ -181,9 +173,7 @@ def test_replace_signature_bad_keyring(tmp_path):
     assert os.path.exists(f"{tmp_path}/out1.raucb")
 
     out, err, exitcode = run(
-        "rauc "
-        "--keyring openssl-ca/dev-only-ca.pem "
-        f"extract-signature {tmp_path}/out1.raucb {tmp_path}/bundle.sig"
+        f"rauc --keyring openssl-ca/dev-only-ca.pem extract-signature {tmp_path}/out1.raucb {tmp_path}/bundle.sig"
     )
     assert exitcode == 0
     assert os.path.exists(f"{tmp_path}/bundle.sig")
@@ -220,9 +210,7 @@ def test_replace_signature_no_verify(tmp_path):
     assert os.path.exists(f"{tmp_path}/out1.raucb")
 
     out, err, exitcode = run(
-        "rauc "
-        "--keyring openssl-ca/dev-only-ca.pem "
-        f"extract-signature {tmp_path}/out1.raucb {tmp_path}/bundle.sig"
+        f"rauc --keyring openssl-ca/dev-only-ca.pem extract-signature {tmp_path}/out1.raucb {tmp_path}/bundle.sig"
     )
     assert exitcode == 0
     assert os.path.exists(f"{tmp_path}/bundle.sig")
@@ -251,9 +239,7 @@ def test_replace_signature_invalid_bundle_signature_output(tmp_path):
     open(f"{tmp_path}/invalid.sig", "a").close()
 
     out, err, exitcode = run(
-        "rauc "
-        "--keyring openssl-ca/dev-ca.pem "
-        f"extract-signature {tmp_path}/good-bundle.raucb {tmp_path}/bundle.sig"
+        f"rauc --keyring openssl-ca/dev-ca.pem extract-signature {tmp_path}/good-bundle.raucb {tmp_path}/bundle.sig"
     )
     assert exitcode == 0
     assert os.path.exists(f"{tmp_path}/bundle.sig")

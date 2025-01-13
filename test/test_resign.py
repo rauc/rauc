@@ -22,10 +22,10 @@ def test_resign(tmp_path):
 
     assert os.path.exists(f"{tmp_path}/out.raucb")
 
-    out, err, exitcode = run("rauc" " --keyring openssl-ca/rel-ca.pem" f" info {tmp_path}/out.raucb")
+    out, err, exitcode = run(f"rauc --keyring openssl-ca/rel-ca.pem info {tmp_path}/out.raucb")
     assert exitcode == 1
 
-    out, err, exitcode = run("rauc" " --keyring openssl-ca/dev-only-ca.pem" f" info {tmp_path}/out.raucb")
+    out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-only-ca.pem info {tmp_path}/out.raucb")
     assert exitcode == 0
 
 
@@ -46,10 +46,10 @@ def test_resign_verity(tmp_path):
 
     assert os.path.exists(f"{tmp_path}/out.raucb")
 
-    out, err, exitcode = run("rauc" " --keyring openssl-ca/rel-ca.pem" f" info {tmp_path}/out.raucb")
+    out, err, exitcode = run(f"rauc --keyring openssl-ca/rel-ca.pem info {tmp_path}/out.raucb")
     assert exitcode == 1
 
-    out, err, exitcode = run("rauc" " --keyring openssl-ca/dev-only-ca.pem" f" info {tmp_path}/out.raucb")
+    out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-only-ca.pem info {tmp_path}/out.raucb")
     assert exitcode == 0
 
 
@@ -70,10 +70,10 @@ def test_resign_crypt(tmp_path):
 
     assert os.path.exists(f"{tmp_path}/out.raucb")
 
-    out, err, exitcode = run("rauc" " --keyring openssl-ca/dev-only-ca.pem" f" info {tmp_path}/out.raucb")
+    out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-only-ca.pem info {tmp_path}/out.raucb")
     assert exitcode == 1
 
-    out, err, exitcode = run("rauc" " --keyring openssl-ca/rel-ca.pem" f" info {tmp_path}/out.raucb")
+    out, err, exitcode = run(f"rauc --keyring openssl-ca/rel-ca.pem info {tmp_path}/out.raucb")
     assert exitcode == 0
 
 

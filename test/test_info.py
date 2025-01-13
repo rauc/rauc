@@ -187,7 +187,7 @@ def test_info_format_json(tmp_path):
     shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
-        "rauc info --keyring openssl-ca/dev-ca.pem " f"--output-format=json {tmp_path}/good-bundle.raucb"
+        f"rauc info --keyring openssl-ca/dev-ca.pem --output-format=json {tmp_path}/good-bundle.raucb"
     )
 
     assert exitcode == 0
@@ -200,7 +200,7 @@ def test_info_format_json_pretty(tmp_path):
     shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
-        "rauc info --keyring openssl-ca/dev-ca.pem " f"--output-format=json-pretty {tmp_path}/good-bundle.raucb"
+        f"rauc info --keyring openssl-ca/dev-ca.pem --output-format=json-pretty {tmp_path}/good-bundle.raucb"
     )
 
     assert exitcode == 0
@@ -213,7 +213,7 @@ def test_info_format_json2(tmp_path):
     shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
     out, err, exitcode = run(
-        "rauc info --keyring openssl-ca/dev-ca.pem " f"--output-format=json-2 {tmp_path}/good-bundle.raucb"
+        f"rauc info --keyring openssl-ca/dev-ca.pem --output-format=json-2 {tmp_path}/good-bundle.raucb"
     )
 
     assert exitcode == 0
@@ -221,7 +221,7 @@ def test_info_format_json2(tmp_path):
 
 
 def test_info_format_invalid():
-    out, err, exitcode = run("rauc info --keyring openssl-ca/dev-ca.pem " "--output-format=invalid good-bundle.raucb")
+    out, err, exitcode = run("rauc info --keyring openssl-ca/dev-ca.pem --output-format=invalid good-bundle.raucb")
 
     assert exitcode == 1
     assert "Unknown output format: 'invalid'" in err
