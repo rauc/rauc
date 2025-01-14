@@ -119,12 +119,16 @@ QEMU Test Runner - qemu-test
 
 As many of the unit tests require root privileges and thus could potentially
 damage your host system, we provide a QEMU-based test environment where one can
-safely run all checks in a virtual environment.
+run all checks in a virtual environment.
+By using a VM, the tests can access diverse emulated storage devices (block,
+NAND/MTD, eMMC) without any dependency on or risk to the host environment.
+Furthermore no root privileges are needed on the host.
 
 Note that this does **not** run in a full VM with its own filesystem,
 but instead passes the host's VFS to the guest using virtfs (and adds some
-overlays).
-This allows seamless access to the sources and binaries built on the host.
+tmpfs overlays).
+This allows seamless access to the sources and binaries built on the host,
+which saves a lot of time during the edit-compile-test loop.
 Accordingly, the test dependencies need to be installed on the host.
 
 To run the entire test suite, type::
