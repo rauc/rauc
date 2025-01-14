@@ -806,8 +806,8 @@ Reproducing Issues using QEMU Test Setup
 
 The RAUC source code repository provides a :ref:`qemu-test
 <sec-contributing-qemu-test>` script, mainly meant to be used for running the
-unit tests in a safe environment. But this can also be used to reproduce and
-debug basic functionality of RAUC.
+unit tests in a safe environment.
+It can also be used to reproduce issues and debug basic functionality of RAUC.
 
 When running:
 

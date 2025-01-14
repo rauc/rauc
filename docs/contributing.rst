@@ -119,12 +119,16 @@ QEMU Test Runner - qemu-test
 
 As many of the unit tests require root privileges and thus could potentially
 damage your host system, we provide a QEMU-based test environment where one can
-safely run all checks in a virtual environment.
+run all checks in a virtual environment.
+By using a VM, the tests can access diverse emulated storage devices (block,
+NAND/MTD, eMMC) without any dependency on or risk to the host environment.
+Furthermore no root privileges are needed on the host.
 
 Note that this does **not** run in a full VM with its own filesystem,
 but instead passes the host's VFS to the guest using virtfs (and adds some
-overlays).
-This allows seamless access to the sources and binaries built on the host.
+tmpfs overlays).
+This allows seamless access to the sources and binaries built on the host,
+which saves a lot of time during the edit-compile-test loop.
 Accordingly, the test dependencies need to be installed on the host.
 
 To run the entire test suite, type::
@@ -153,6 +157,13 @@ Additional parameters that you can add to a ``./qemu-test`` call are:
 
 :asan: sets up environment variables to support the address sanitizer.
   This requires meson was set up with ``-Db_sanitize=address,undefined``.
+
+If you want to collect coverage information (built with ``-Db_coverage=true``),
+you need to copy the generated gcov files from the VM back to the host system
+using the ``save_gcov_data`` helper before using ``ninja coverage-html`` on the
+host.
+To avoid inconsistent coverage data when recompiling without restarting
+qemu-test or to remove any coverage data in the VM, use ``clear_gcov_data``.
 
 Interactive Test System
 ^^^^^^^^^^^^^^^^^^^^^^^
