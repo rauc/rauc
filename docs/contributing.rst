@@ -158,6 +158,13 @@ Additional parameters that you can add to a ``./qemu-test`` call are:
 :asan: sets up environment variables to support the address sanitizer.
   This requires meson was set up with ``-Db_sanitize=address,undefined``.
 
+If you want to collect coverage information (built with ``-Db_coverage=true``),
+you need to copy the generated gcov files from the VM back to the host system
+using the ``save_gcov_data`` helper before using ``ninja coverage-html`` on the
+host.
+To avoid inconsistent coverage data when recompiling without restarting
+qemu-test or to remove any coverage data in the VM, use ``clear_gcov_data``.
+
 Interactive Test System
 ^^^^^^^^^^^^^^^^^^^^^^^
 
