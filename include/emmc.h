@@ -9,6 +9,8 @@ GQuark r_emmc_error_quark(void);
 typedef enum {
 	R_EMMC_ERROR_FAILED,
 	R_EMMC_ERROR_IOCTL,
+	R_EMMC_ERROR_BOOTPART_UDA,
+	R_EMMC_ERROR_BOOTPART_INVALID,
 } REmmcError;
 
 #define EMMC_BOOT_PARTITIONS			2
@@ -47,9 +49,7 @@ typedef enum {
  *
  * @param device eMMC /dev path (/dev/mmcblkX)
  * @param bootpart_active will contain the active boot partition
- * (0 for mmcblkXboot0, 1 for mmcblkXboot1, 6 for mmcblkX user partition and
- * -1 for no active boot partition)
- * for user partition)
+ *        (0 for boot0, 1 for boot1, -1 for no active boot partition)
  * @param error return location for a GError, or NULL
  *
  * @return True if succeeded, False if failed

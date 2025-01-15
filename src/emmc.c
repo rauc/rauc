@@ -59,10 +59,31 @@ gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError
 	/* retrieve active partition from BOOT_PART register */
 	active_partition = (extcsd[EXT_CSD_PART_CONFIG] & 0x38) >> 3;
 
-	/* return the partitions counted from 0 */
-	*bootpart_active = active_partition - 1;
+	switch (active_partition) {
+		case 0x0: /* not boot enabled */
+			*bootpart_active = -1;
+			return TRUE;
+		case 0x1: /* boot0 / boot 1 */
+		/* fallthgrough */
+		case 0x2:
+			/* return the partitions counted from 0 */
+			*bootpart_active = active_partition - 1;
+			return TRUE;
+		case 0x7: /* user data area */
+			g_set_error(error,
+					R_EMMC_ERROR,
+					R_EMMC_ERROR_BOOTPART_UDA,
+					"Active eMMC partition is UDA when boot0/boot1 was expected.");
+			return FALSE;
+		default:
+			g_set_error(error,
+					R_EMMC_ERROR,
+					R_EMMC_ERROR_BOOTPART_INVALID,
+					"Invalid (Reserved) eMMC boot part number.");
+			return FALSE;
+	}
 
-	return TRUE;
+	g_return_val_if_reached(FALSE);
 }
 
 static gint r_emmc_write_extcsd(int fd, guint8 index, guint8 value)
