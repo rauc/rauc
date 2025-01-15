@@ -12,6 +12,7 @@
 
 #include "emmc.h"
 #include "update_handler.h"
+#include "utils.h"
 
 static int r_emmc_read_extcsd(int fd, guint8 extcsd[512])
 {
@@ -30,10 +31,8 @@ static int r_emmc_read_extcsd(int fd, guint8 extcsd[512])
 
 gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError **error)
 {
-	gint ret;
-	gboolean res = FALSE;
 	guint8 extcsd[512];
-	int fd;
+	g_auto(filedesc) fd = -1;
 	/* count from 1 */
 	gint active_partition = -1;
 
@@ -42,15 +41,14 @@ gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError
 		int err = errno;
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"opening eMMC device failed: %s", g_strerror(err));
-		goto out;
+		return FALSE;
 	}
 
-	ret = r_emmc_read_extcsd(fd, extcsd);
-	if (ret) {
+	if (r_emmc_read_extcsd(fd, extcsd)) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Could not read from extcsd register %d in %s\n",
 				EXT_CSD_PART_CONFIG, device);
-		goto out;
+		return FALSE;
 	}
 
 	/* retrieve active partition from BOOT_PART register */
@@ -59,13 +57,7 @@ gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError
 	/* return the partitions counted from 0 */
 	*bootpart_active = active_partition - 1;
 
-	res = TRUE;
-
-out:
-	if (fd >= 0)
-		g_close(fd, NULL);
-
-	return res;
+	return TRUE;
 }
 
 static gint r_emmc_write_extcsd(int fd, guint8 index, guint8 value)
