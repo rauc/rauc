@@ -1207,10 +1207,16 @@ A ``system.conf`` could look like this:
 
 .. important::
 
-  A kernel bug may prevent consistent toggling of the eMMC ext_csd boot
-  partition register.
-  Be sure your kernel is >= 4.16-rc7 (resp. >= 4.15.14, >= 4.14.31) or contains
-  this patch: https://www.spinics.net/lists/linux-mmc/msg48271.html
+  Some kernel versions have bugs that prevent reliable use of the eMMC Extended CSD
+  boot partition config register:
+
+  * do not use kernels v6.8…v6.8.2, v6.7.3…v6.7.11, v6.6.15…v6.6.23,
+    v6.1.76…v6.1.83, v5.15.149…v5.15.153, v5.10.210…v5.10.214,
+    v5.4.269…v5.4.273, as these have a `bug related to uninitialized memory
+    <https://github.com/rauc/rauc/discussions/1363>`_.
+  * do not use kernels <v4.16, <v4.15.14 or <v4.14.31, as these don't contain an
+    `important register cache fix
+    <https://lore.kernel.org/all/20180308140811.6966-1-bst@pengutronix.de/>`_.
 
 .. _sec-mbr-partition:
 
