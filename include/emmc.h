@@ -3,6 +3,14 @@
 #include <glib.h>
 #include <linux/types.h>
 
+#define R_EMMC_ERROR r_emmc_error_quark()
+GQuark r_emmc_error_quark(void);
+
+typedef enum {
+	R_EMMC_ERROR_FAILED,
+	R_EMMC_ERROR_IOCTL,
+} REmmcError;
+
 #define EMMC_BOOT_PARTITIONS			2
 #define INACTIVE_BOOT_PARTITION(part_active)	((part_active + 1) % EMMC_BOOT_PARTITIONS)
 

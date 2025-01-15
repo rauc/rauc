@@ -14,6 +14,11 @@
 #include "update_handler.h"
 #include "utils.h"
 
+GQuark r_emmc_error_quark(void)
+{
+	return g_quark_from_static_string("r_emmc_error_quark");
+}
+
 static int r_emmc_read_extcsd(int fd, guint8 extcsd[512])
 {
 	struct mmc_ioc_cmd cmd = {};
@@ -39,13 +44,13 @@ gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError
 	fd = g_open(device, O_RDONLY);
 	if (fd == -1) {
 		int err = errno;
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
 				"opening eMMC device failed: %s", g_strerror(err));
 		return FALSE;
 	}
 
 	if (r_emmc_read_extcsd(fd, extcsd)) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+		g_set_error(error, R_EMMC_ERROR, R_EMMC_ERROR_IOCTL,
 				"Could not read from extcsd register %d in %s",
 				EXT_CSD_PART_CONFIG, device);
 		return FALSE;
@@ -86,13 +91,13 @@ gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError
 	fd = g_open(device, O_RDWR | O_EXCL);
 	if (fd == -1) {
 		int err = errno;
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
 				"opening eMMC device failed: %s", g_strerror(err));
 		return FALSE;
 	}
 
 	if (r_emmc_read_extcsd(fd, extcsd)) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+		g_set_error(error, R_EMMC_ERROR, R_EMMC_ERROR_IOCTL,
 				"Could not read from extcsd register %d in %s",
 				EXT_CSD_PART_CONFIG, device);
 		return FALSE;
@@ -112,7 +117,7 @@ gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError
 		value |= 0x10;
 
 	if (r_emmc_write_extcsd(fd, EXT_CSD_PART_CONFIG, value)) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+		g_set_error(error, R_EMMC_ERROR, R_EMMC_ERROR_IOCTL,
 				"Could not write 0x%02x to extcsd register %d in %s",
 				value, EXT_CSD_PART_CONFIG, device);
 		return FALSE;
@@ -134,14 +139,14 @@ static gboolean r_emmc_force_part_write(const gchar *device, gchar value, GError
 	f = g_fopen(sysfs_path, "w");
 	if (!f) {
 		int err = errno;
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
 				"Could not open device attribute %s: %s",
 				sysfs_path, g_strerror(err));
 		goto out;
 	}
 
 	if (fwrite(&value, 1, 1, f) != 1) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 				"Could not write to %s", sysfs_path);
 		goto out;
 	}
