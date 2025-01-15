@@ -46,7 +46,7 @@ gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError
 
 	if (r_emmc_read_extcsd(fd, extcsd)) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Could not read from extcsd register %d in %s\n",
+				"Could not read from extcsd register %d in %s",
 				EXT_CSD_PART_CONFIG, device);
 		return FALSE;
 	}
@@ -93,7 +93,7 @@ gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError
 
 	if (r_emmc_read_extcsd(fd, extcsd)) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Could not read from extcsd register %d in %s\n",
+				"Could not read from extcsd register %d in %s",
 				EXT_CSD_PART_CONFIG, device);
 		return FALSE;
 	}
@@ -113,7 +113,7 @@ gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError
 
 	if (r_emmc_write_extcsd(fd, EXT_CSD_PART_CONFIG, value)) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Could not write 0x%02x to extcsd register %d in %s\n",
+				"Could not write 0x%02x to extcsd register %d in %s",
 				value, EXT_CSD_PART_CONFIG, device);
 		return FALSE;
 	}
