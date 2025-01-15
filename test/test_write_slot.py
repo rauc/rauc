@@ -61,7 +61,7 @@ def test_write_boot_emmc(system):
     out, err, exitcode = run(f"{system.prefix} write-slot bootloader.0 install-content/rootfs.img")
     assert exitcode == 0
     assert "Slot written successfully" in out
-    assert "Found active eMMC boot partition <none>" in err
+    assert "eMMC device was not enabled for booting, yet. Ignoring." in err
     assert f"Boot partition {device}boot0 is now active" in err
 
     out, err, exitcode = run(f"{system.prefix} write-slot bootloader.0 install-content/rootfs.img")
