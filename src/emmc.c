@@ -77,9 +77,7 @@ static gint r_emmc_write_extcsd(int fd, guint8 index, guint8 value)
 
 gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError **error)
 {
-	gint ret;
-	gboolean res = FALSE;
-	int fd;
+	g_auto(filedesc) fd = -1;
 	guint8 extcsd[512];
 	guint8 value = 0;
 
@@ -90,15 +88,14 @@ gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError
 		int err = errno;
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"opening eMMC device failed: %s", g_strerror(err));
-		goto out;
+		return FALSE;
 	}
 
-	ret = r_emmc_read_extcsd(fd, extcsd);
-	if (ret) {
+	if (r_emmc_read_extcsd(fd, extcsd)) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Could not read from extcsd register %d in %s\n",
 				EXT_CSD_PART_CONFIG, device);
-		goto out;
+		return FALSE;
 	}
 
 	/* Keep BOOT_ACK value as it is. Resetting this bit might prevent
@@ -114,21 +111,14 @@ gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError
 	else if (bootpart_active == 1)
 		value |= 0x10;
 
-	ret = r_emmc_write_extcsd(fd, EXT_CSD_PART_CONFIG, value);
-	if (ret) {
+	if (r_emmc_write_extcsd(fd, EXT_CSD_PART_CONFIG, value)) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Could not write 0x%02x to extcsd register %d in %s\n",
 				value, EXT_CSD_PART_CONFIG, device);
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
-
-out:
-	if (fd >= 0)
-		g_close(fd, NULL);
-
-	return res;
+	return TRUE;
 }
 
 static gboolean r_emmc_force_part_write(const gchar *device, gchar value, GError **error)
