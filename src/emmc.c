@@ -12,6 +12,12 @@
 
 #include "emmc.h"
 #include "update_handler.h"
+#include "utils.h"
+
+GQuark r_emmc_error_quark(void)
+{
+	return g_quark_from_static_string("r_emmc_error_quark");
+}
 
 static int r_emmc_read_extcsd(int fd, guint8 extcsd[512])
 {
@@ -30,42 +36,54 @@ static int r_emmc_read_extcsd(int fd, guint8 extcsd[512])
 
 gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError **error)
 {
-	gint ret;
-	gboolean res = FALSE;
 	guint8 extcsd[512];
-	int fd;
+	g_auto(filedesc) fd = -1;
 	/* count from 1 */
 	gint active_partition = -1;
 
 	fd = g_open(device, O_RDONLY);
 	if (fd == -1) {
 		int err = errno;
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
 				"opening eMMC device failed: %s", g_strerror(err));
-		goto out;
+		return FALSE;
 	}
 
-	ret = r_emmc_read_extcsd(fd, extcsd);
-	if (ret) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Could not read from extcsd register %d in %s\n",
+	if (r_emmc_read_extcsd(fd, extcsd)) {
+		g_set_error(error, R_EMMC_ERROR, R_EMMC_ERROR_IOCTL,
+				"Could not read from extcsd register %d in %s",
 				EXT_CSD_PART_CONFIG, device);
-		goto out;
+		return FALSE;
 	}
 
 	/* retrieve active partition from BOOT_PART register */
 	active_partition = (extcsd[EXT_CSD_PART_CONFIG] & 0x38) >> 3;
 
-	/* return the partitions counted from 0 */
-	*bootpart_active = active_partition - 1;
+	switch (active_partition) {
+		case 0x0: /* not boot enabled */
+			*bootpart_active = -1;
+			return TRUE;
+		case 0x1: /* boot0 / boot 1 */
+		/* fallthgrough */
+		case 0x2:
+			/* return the partitions counted from 0 */
+			*bootpart_active = active_partition - 1;
+			return TRUE;
+		case 0x7: /* user data area */
+			g_set_error(error,
+					R_EMMC_ERROR,
+					R_EMMC_ERROR_BOOTPART_UDA,
+					"Active eMMC partition is UDA when boot0/boot1 was expected.");
+			return FALSE;
+		default:
+			g_set_error(error,
+					R_EMMC_ERROR,
+					R_EMMC_ERROR_BOOTPART_INVALID,
+					"Invalid (Reserved) eMMC boot part number.");
+			return FALSE;
+	}
 
-	res = TRUE;
-
-out:
-	if (fd >= 0)
-		g_close(fd, NULL);
-
-	return res;
+	g_return_val_if_reached(FALSE);
 }
 
 static gint r_emmc_write_extcsd(int fd, guint8 index, guint8 value)
@@ -85,9 +103,7 @@ static gint r_emmc_write_extcsd(int fd, guint8 index, guint8 value)
 
 gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError **error)
 {
-	gint ret;
-	gboolean res = FALSE;
-	int fd;
+	g_auto(filedesc) fd = -1;
 	guint8 extcsd[512];
 	guint8 value = 0;
 
@@ -96,17 +112,16 @@ gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError
 	fd = g_open(device, O_RDWR | O_EXCL);
 	if (fd == -1) {
 		int err = errno;
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
 				"opening eMMC device failed: %s", g_strerror(err));
-		goto out;
+		return FALSE;
 	}
 
-	ret = r_emmc_read_extcsd(fd, extcsd);
-	if (ret) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Could not read from extcsd register %d in %s\n",
+	if (r_emmc_read_extcsd(fd, extcsd)) {
+		g_set_error(error, R_EMMC_ERROR, R_EMMC_ERROR_IOCTL,
+				"Could not read from extcsd register %d in %s",
 				EXT_CSD_PART_CONFIG, device);
-		goto out;
+		return FALSE;
 	}
 
 	/* Keep BOOT_ACK value as it is. Resetting this bit might prevent
@@ -122,21 +137,14 @@ gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError
 	else if (bootpart_active == 1)
 		value |= 0x10;
 
-	ret = r_emmc_write_extcsd(fd, EXT_CSD_PART_CONFIG, value);
-	if (ret) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Could not write 0x%02x to extcsd register %d in %s\n",
+	if (r_emmc_write_extcsd(fd, EXT_CSD_PART_CONFIG, value)) {
+		g_set_error(error, R_EMMC_ERROR, R_EMMC_ERROR_IOCTL,
+				"Could not write 0x%02x to extcsd register %d in %s",
 				value, EXT_CSD_PART_CONFIG, device);
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
-
-out:
-	if (fd >= 0)
-		g_close(fd, NULL);
-
-	return res;
+	return TRUE;
 }
 
 static gboolean r_emmc_force_part_write(const gchar *device, gchar value, GError **error)
@@ -152,14 +160,14 @@ static gboolean r_emmc_force_part_write(const gchar *device, gchar value, GError
 	f = g_fopen(sysfs_path, "w");
 	if (!f) {
 		int err = errno;
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
 				"Could not open device attribute %s: %s",
 				sysfs_path, g_strerror(err));
 		goto out;
 	}
 
 	if (fwrite(&value, 1, 1, f) != 1) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 				"Could not write to %s", sysfs_path);
 		goto out;
 	}

@@ -2208,21 +2208,17 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		g_propagate_error(error, ierror);
 		goto out;
 	}
-	switch (part_active) {
-		case -1:
-			part_active_str = g_strdup("<none>");
-			break;
-		case 6:
-			part_active_str = g_strdup(realdev);
-			break;
-		default:
-			part_active_str = g_strdup_printf("%sboot%d", realdev, part_active);
+
+	if (part_active == -1) {
+		g_warning("eMMC device was not enabled for booting, yet. Ignoring.");
+		/* For simplicity: Consider boot1 to be active */
+		part_active = 1;
+	} else {
+		g_message("Found active eMMC boot partition %sboot%d", realdev, part_active);
 	}
-	g_message("Found active eMMC boot partition %s", part_active_str);
 
 	/* create a temporary RaucSlot with the actual (currently inactive) boot
-	 * partition as device; for simplicity reasons: in case the user partition
-	 * is active use mmcblkXboot1, in case no partition is active use mmcblkXboot0
+	 * partition as device.
 	 */
 	part_slot = g_new0(RaucSlot, 1);
 	part_slot->device = g_strdup_printf(
