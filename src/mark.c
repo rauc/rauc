@@ -204,7 +204,7 @@ gboolean mark_run(const gchar *state,
 		gchar **message)
 {
 	RaucSlot *slot = NULL;
-	GError *ierror = NULL;
+	g_autoptrt(GError) ierror = NULL;
 	gboolean res;
 
 	g_assert(slot_name == NULL || *slot_name == NULL);
@@ -241,7 +241,6 @@ gboolean mark_run(const gchar *state,
 			res = TRUE;
 			*message = g_strdup_printf("activated slot %s", slot->name);
 		}
-		g_clear_error(&ierror);
 	} else {
 		res = FALSE;
 		*message = g_strdup_printf("unknown subcommand %s", state);
@@ -250,8 +249,6 @@ gboolean mark_run(const gchar *state,
 out:
 	if (res && slot_name)
 		*slot_name = g_strdup(slot->name);
-
-	g_clear_error(&ierror);
 
 	return res;
 }
