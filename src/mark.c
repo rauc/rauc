@@ -204,54 +204,42 @@ gboolean mark_run(const gchar *state,
 		gchar **message)
 {
 	RaucSlot *slot = NULL;
-	GError *ierror = NULL;
-	gboolean res;
+	g_autoptr(GError) ierror = NULL;
 
 	g_assert(slot_name == NULL || *slot_name == NULL);
 	g_assert(message != NULL && *message == NULL);
 
 	slot = get_slot_by_identifier(slot_identifier, &ierror);
 	if (ierror) {
-		res = FALSE;
 		*message = g_strdup(ierror->message);
-		goto out;
+		return FALSE;
 	}
 
 	if (g_strcmp0(state, "good") == 0) {
 		if (!r_mark_good(slot, &ierror)) {
-			res = FALSE;
 			*message = g_strdup(ierror->message);
-		} else {
-			res = TRUE;
-			*message = g_strdup_printf("marked slot %s as good", slot->name);
+			return FALSE;
 		}
+		*message = g_strdup_printf("marked slot %s as good", slot->name);
 	} else if (g_strcmp0(state, "bad") == 0) {
 		if (!r_mark_bad(slot, &ierror)) {
-			res = FALSE;
 			*message = g_strdup(ierror->message);
-		} else {
-			res = TRUE;
-			*message = g_strdup_printf("marked slot %s as bad", slot->name);
+			return FALSE;
 		}
+		*message = g_strdup_printf("marked slot %s as bad", slot->name);
 	} else if (g_strcmp0(state, "active") == 0) {
 		if (!r_mark_active(slot, &ierror)) {
-			res = FALSE;
 			*message = g_strdup(ierror->message);
-		} else {
-			res = TRUE;
-			*message = g_strdup_printf("activated slot %s", slot->name);
+			return FALSE;
 		}
-		g_clear_error(&ierror);
+		*message = g_strdup_printf("activated slot %s", slot->name);
 	} else {
-		res = FALSE;
 		*message = g_strdup_printf("unknown subcommand %s", state);
+		return FALSE;
 	}
 
-out:
-	if (res && slot_name)
+	if (slot_name)
 		*slot_name = g_strdup(slot->name);
 
-	g_clear_error(&ierror);
-
-	return res;
+	return TRUE;
 }
