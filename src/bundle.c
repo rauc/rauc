@@ -202,6 +202,18 @@ out:
 	return res;
 }
 
+static gboolean check_pseudo_active(void)
+{
+	if (!g_getenv("PSEUDO_LOCALSTATEDIR"))
+		return FALSE;
+
+	const gchar *tmp = g_getenv("PSEUDO_DISABLED");
+	if (g_strcmp0(tmp, "1") == 0)
+		return FALSE;
+
+	return TRUE;
+}
+
 static gboolean casync_make_blob(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error);
 
 static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath, const gchar *store, GError **error)
@@ -262,7 +274,9 @@ static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath,
 	g_ptr_array_add(iargs, NULL);
 
 	/* Outer process calll */
-	g_ptr_array_add(args, g_strdup("fakeroot"));
+	if (!check_pseudo_active()) {
+		g_ptr_array_add(args, g_strdup("fakeroot"));
+	}
 	g_ptr_array_add(args, g_strdup("sh"));
 	g_ptr_array_add(args, g_strdup("-c"));
 	g_ptr_array_add(args, g_strjoinv(" ", (gchar**) iargs->pdata));
@@ -1115,18 +1129,6 @@ static gchar *prepare_workdir(const gchar *contentdir, GError **error)
 	}
 
 	return g_steal_pointer(&workdir);
-}
-
-static gboolean check_pseudo_active(void)
-{
-	if (!g_getenv("PSEUDO_LOCALSTATEDIR"))
-		return FALSE;
-
-	const gchar *tmp = g_getenv("PSEUDO_DISABLED");
-	if (g_strcmp0(tmp, "1") == 0)
-		return FALSE;
-
-	return TRUE;
 }
 
 static gboolean needs_fakeroot(const RaucManifest *manifest)
