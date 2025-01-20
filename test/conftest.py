@@ -7,6 +7,7 @@ from functools import cache
 from configparser import ConfigParser
 from pathlib import Path
 from random import Random
+from contextlib import contextmanager
 
 import pytest
 from pydbus import SessionBus
@@ -357,75 +358,36 @@ def rauc_no_service(create_system_files, tmp_path):
     return f"rauc -c {tmp_conf_file}"
 
 
-def _rauc_dbus_service(tmp_path, conf_file, bootslot):
-    tmp_conf_file = tmp_path / "system.conf"
-    if tmp_conf_file != conf_file:
-        shutil.copy(conf_file, tmp_conf_file)
-
-    env = os.environ.copy()
-    env["RAUC_PYTEST_TMP"] = str(tmp_path)
-
-    service = subprocess.Popen(
-        f"rauc service --conf={tmp_conf_file} --mount={tmp_path}/mnt --override-boot-slot={bootslot}".split(),
-        env=env,
-    )
-
-    bus = SessionBus()
-    proxy = None
-
-    # Wait for de.pengutronix.rauc to appear on the bus
-    timeout = time.monotonic() + 5.0
-    while True:
-        time.sleep(0.1)
-        try:
-            proxy = bus.get("de.pengutronix.rauc", "/")
-            break
-        except Exception:
-            if time.monotonic() > timeout:
-                raise
-
-    return service, proxy
-
-
-def rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, config, bootname):
-    service, bus = _rauc_dbus_service(tmp_path, config, bootname)
-
-    yield bus
-
-    service.terminate()
-    try:
-        service.wait(timeout=10)
-    except subprocess.TimeoutExpired:
-        service.kill()
-        service.wait()
-
-
 @pytest.fixture
 def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_minimal_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, system.output, "A")
+    with system.running_service("A"):
+        yield system.proxy
 
 
 @pytest.fixture
 def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_crypt_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, system.output, "A")
+    with system.running_service("A"):
+        yield system.proxy
 
 
 @pytest.fixture
 def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_minimal_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, system.output, "_external_")
+    with system.running_service("_external_"):
+        yield system.proxy
 
 
 @pytest.fixture
 def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_adaptive_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, system.output, "A")
+    with system.running_service("A"):
+        yield system.proxy
 
 
 class Bundle:
@@ -513,6 +475,9 @@ class System:
 
         self.prefix = f"rauc -c {self.output}"
 
+        self.service = None
+        self.proxy = None
+
     def prepare_minimal_config(self):
         self.config["system"] = {
             "compatible": "Test Config",
@@ -572,6 +537,41 @@ class System:
     def write_config(self):
         with open(self.output, "w") as f:
             self.config.write(f, space_around_delimiters=False)
+
+    @contextmanager
+    def running_service(self, bootslot):
+        assert self.service is None
+        assert self.proxy is None
+
+        env = os.environ.copy()
+        env["RAUC_PYTEST_TMP"] = str(self.tmp_path)
+
+        self.service = subprocess.Popen(
+            f"rauc service --conf={self.output} --mount={self.tmp_path}/mnt --override-boot-slot={bootslot}".split(),
+            env=env,
+        )
+
+        bus = SessionBus()
+
+        # Wait for de.pengutronix.rauc to appear on the bus
+        timeout = time.monotonic() + 5.0
+        while True:
+            time.sleep(0.1)
+            try:
+                self.proxy = bus.get("de.pengutronix.rauc", "/")
+                break
+            except Exception:
+                if time.monotonic() > timeout:
+                    raise
+
+        yield
+
+        self.service.terminate()
+        try:
+            self.service.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            self.service.kill()
+            self.service.wait()
 
 
 @pytest.fixture
