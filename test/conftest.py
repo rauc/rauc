@@ -357,38 +357,8 @@ def rauc_no_service(create_system_files, tmp_path):
     return f"rauc -c {tmp_conf_file}"
 
 
-def _rauc_dbus_service(tmp_path, conf_file, bootslot):
-    tmp_conf_file = tmp_path / "system.conf"
-    if tmp_conf_file != conf_file:
-        shutil.copy(conf_file, tmp_conf_file)
-
-    env = os.environ.copy()
-    env["RAUC_PYTEST_TMP"] = str(tmp_path)
-
-    service = subprocess.Popen(
-        f"rauc service --conf={tmp_conf_file} --mount={tmp_path}/mnt --override-boot-slot={bootslot}".split(),
-        env=env,
-    )
-
-    bus = SessionBus()
-    proxy = None
-
-    # Wait for de.pengutronix.rauc to appear on the bus
-    timeout = time.monotonic() + 5.0
-    while True:
-        time.sleep(0.1)
-        try:
-            proxy = bus.get("de.pengutronix.rauc", "/")
-            break
-        except Exception:
-            if time.monotonic() > timeout:
-                raise
-
-    return service, proxy
-
-
-def rauc_dbus_service_helper(tmp_path, config, bootname):
-    service, proxy = _rauc_dbus_service(tmp_path, config, bootname)
+def rauc_dbus_service_helper(system, bootname):
+    service, proxy = system.start_service(bootname)
 
     yield proxy
 
@@ -404,28 +374,28 @@ def rauc_dbus_service_helper(tmp_path, config, bootname):
 def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_minimal_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(tmp_path, system.output, "A")
+    yield from rauc_dbus_service_helper(system, "A")
 
 
 @pytest.fixture
 def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_crypt_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(tmp_path, system.output, "A")
+    yield from rauc_dbus_service_helper(system, "A")
 
 
 @pytest.fixture
 def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_minimal_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(tmp_path, system.output, "_external_")
+    yield from rauc_dbus_service_helper(system, "_external_")
 
 
 @pytest.fixture
 def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_adaptive_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(tmp_path, system.output, "A")
+    yield from rauc_dbus_service_helper(system, "A")
 
 
 class Bundle:
@@ -572,6 +542,31 @@ class System:
     def write_config(self):
         with open(self.output, "w") as f:
             self.config.write(f, space_around_delimiters=False)
+
+    def start_service(self, bootslot):
+        env = os.environ.copy()
+        env["RAUC_PYTEST_TMP"] = str(self.tmp_path)
+
+        service = subprocess.Popen(
+            f"rauc service --conf={self.output} --mount={self.tmp_path}/mnt --override-boot-slot={bootslot}".split(),
+            env=env,
+        )
+
+        bus = SessionBus()
+        proxy = None
+
+        # Wait for de.pengutronix.rauc to appear on the bus
+        timeout = time.monotonic() + 5.0
+        while True:
+            time.sleep(0.1)
+            try:
+                proxy = bus.get("de.pengutronix.rauc", "/")
+                break
+            except Exception:
+                if time.monotonic() > timeout:
+                    raise
+
+        return service, proxy
 
 
 @pytest.fixture
