@@ -7,6 +7,7 @@ from functools import cache
 from configparser import ConfigParser
 from pathlib import Path
 from random import Random
+from contextlib import contextmanager
 
 import pytest
 from pydbus import SessionBus
@@ -357,45 +358,36 @@ def rauc_no_service(create_system_files, tmp_path):
     return f"rauc -c {tmp_conf_file}"
 
 
-def rauc_dbus_service_helper(system, bootname):
-    system.start_service(bootname)
-
-    yield system.proxy
-
-    system.service.terminate()
-    try:
-        system.service.wait(timeout=10)
-    except subprocess.TimeoutExpired:
-        system.service.kill()
-        system.service.wait()
-
-
 @pytest.fixture
 def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_minimal_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(system, "A")
+    with system.running_service("A"):
+        yield system.proxy
 
 
 @pytest.fixture
 def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_crypt_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(system, "A")
+    with system.running_service("A"):
+        yield system.proxy
 
 
 @pytest.fixture
 def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_minimal_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(system, "_external_")
+    with system.running_service("_external_"):
+        yield system.proxy
 
 
 @pytest.fixture
 def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_adaptive_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(system, "A")
+    with system.running_service("A"):
+        yield system.proxy
 
 
 class Bundle:
@@ -546,7 +538,8 @@ class System:
         with open(self.output, "w") as f:
             self.config.write(f, space_around_delimiters=False)
 
-    def start_service(self, bootslot):
+    @contextmanager
+    def running_service(self, bootslot):
         assert self.service is None
         assert self.proxy is None
 
@@ -570,6 +563,15 @@ class System:
             except Exception:
                 if time.monotonic() > timeout:
                     raise
+
+        yield
+
+        self.service.terminate()
+        try:
+            self.service.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            self.service.kill()
+            self.service.wait()
 
 
 @pytest.fixture
