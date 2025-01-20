@@ -388,9 +388,9 @@ def _rauc_dbus_service(tmp_path, conf_file, bootslot):
 
 
 def rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, config, bootname):
-    service, bus = _rauc_dbus_service(tmp_path, config, bootname)
+    service, proxy = _rauc_dbus_service(tmp_path, config, bootname)
 
-    yield bus
+    yield proxy
 
     service.terminate()
     try:
