@@ -387,7 +387,7 @@ def _rauc_dbus_service(tmp_path, conf_file, bootslot):
     return service, proxy
 
 
-def rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, config, bootname):
+def rauc_dbus_service_helper(tmp_path, config, bootname):
     service, proxy = _rauc_dbus_service(tmp_path, config, bootname)
 
     yield proxy
@@ -404,28 +404,28 @@ def rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, co
 def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_minimal_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, system.output, "A")
+    yield from rauc_dbus_service_helper(tmp_path, system.output, "A")
 
 
 @pytest.fixture
 def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_crypt_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, system.output, "A")
+    yield from rauc_dbus_service_helper(tmp_path, system.output, "A")
 
 
 @pytest.fixture
 def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_minimal_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, system.output, "_external_")
+    yield from rauc_dbus_service_helper(tmp_path, system.output, "_external_")
 
 
 @pytest.fixture
 def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_adaptive_config()
     system.write_config()
-    yield from rauc_dbus_service_helper(tmp_path, dbus_session_bus, create_system_files, system.output, "A")
+    yield from rauc_dbus_service_helper(tmp_path, system.output, "A")
 
 
 class Bundle:
