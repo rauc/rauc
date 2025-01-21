@@ -23,6 +23,12 @@ typedef enum {
 } RContextConfigMode;
 
 typedef struct {
+	gchar *section;
+	gchar *name;
+	gchar *value;
+} ConfigFileOverride;
+
+typedef struct {
 	/* a busy context must not be reconfigured */
 	gboolean busy;
 	gboolean pending;
@@ -30,6 +36,7 @@ typedef struct {
 	/* system configuration data */
 	RContextConfigMode configmode;
 	gchar *configpath;
+	GList *configoverride;
 	RaucConfig *config;
 
 	/* system status (not available when using per-slot status file) */

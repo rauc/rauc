@@ -64,6 +64,11 @@ not all combinations make sense.
 use the given config file instead of the one at the compiled-in default path
 
 .TP
+\fB\-C\fR \fISECTION:KEY=VALUE\fR, \fB\-\-confopt=\fR\fISECTION:KEY=VALUE\fR
+Override parameters from the config file with the specified configuration settings.
+If specified parameter is not present in the config file it will still be set by this option.
+
+.TP
 \fB\-\-keyring=\fR\fIPEMFILE\fR
 use specific keyring file
 

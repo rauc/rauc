@@ -2646,6 +2646,34 @@ static void create_option_groups(void)
 	g_option_group_add_entries(service_group, entries_service);
 }
 
+// Callback function to handle the repeated -C option
+static gboolean collect_config_values(const gchar *option_name, const gchar *value, gpointer data, GError **error)
+{
+	if (value == NULL) {
+		g_set_error(error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE, "Error in parsing override: you must specify it in format SECTION:KEY=VALUE");
+		return FALSE;
+	}
+
+	g_auto(GStrv) key_value_split = g_strsplit(value, "=", 2);
+	if (g_strv_length(key_value_split) != 2) {
+		g_set_error(error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE, "Error in parsing override: Missing '='");
+		return FALSE;
+	}
+
+	g_auto(GStrv) section_key_split = g_strsplit(key_value_split[0], ":", 2);
+	if (g_strv_length(section_key_split) != 2) {
+		g_set_error(error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE, "Error in parsing override: Missing ':'");
+		return FALSE;
+	}
+
+	ConfigFileOverride *override = g_new(ConfigFileOverride, 1);
+	override->section = g_steal_pointer(&section_key_split[0]);
+	override->name = g_steal_pointer(&section_key_split[1]);
+	override->value = g_steal_pointer(&key_value_split[1]);
+	r_context_conf()->configoverride = g_list_append(r_context_conf()->configoverride, override);
+	return TRUE;
+}
+
 static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, debug = FALSE, version = FALSE;
@@ -2654,6 +2682,7 @@ static void cmdline_handler(int argc, char **argv)
 	g_autoptr(GOptionContext) context = NULL;
 	GOptionEntry entries[] = {
 		{"conf", 'c', 0, G_OPTION_ARG_FILENAME, &confpath, "config file", "FILENAME"},
+		{"confopt", 'C', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, collect_config_values, "config settings that override parameters from the config file", "SECTION:KEY=VALUE" },
 		/* NOTE: cert and key kept for backwards-compatibility, but made invisible */
 		{"cert", '\0', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_FILENAME, &certpath, "cert file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 		{"key", '\0', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_FILENAME, &keypath, "key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
