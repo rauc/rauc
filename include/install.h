@@ -90,20 +90,6 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
- * Basic network installation procedure.
- *
- * NOTE: The network mode of RAUC is deprecated and will be replaced by some
- * other mechanism in the near future. Do not rely on it for new designs.
- *
- * @param url URL to manifest to install
- * @param error return location for a GError
- *
- * @return TRUE if installation succeeded, FALSE if any critical error occurred
- */
-gboolean do_install_network(const gchar *url, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-/**
  * Initialize new RaucInstallArgs structure
  *
  * @return returns newly allocated RaucInstallArgs.
