@@ -1111,7 +1111,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 	}
 
 	/* if explicitly enabled, skip update of up-to-date slots */
-	if (!plan->target_slot->install_same && g_strcmp0(plan->image->checksum.digest, slot_state->checksum.digest) == 0) {
+	if (!plan->target_slot->install_same && g_strcmp0(slot_state->status, "ok") == 0 && g_strcmp0(plan->image->checksum.digest, slot_state->checksum.digest) == 0) {
 		install_args_update(args, "Skipping update for correct image '%s'", plan->image->filename);
 		g_message("Skipping update for correct image '%s'", plan->image->filename);
 		r_context_end_step("check_slot", TRUE);
