@@ -1,5 +1,5 @@
-Release 1.13 (development)
---------------------------
+Release 1.13 (released Jan 22, 2025)
+------------------------------------
 
 .. rubric:: Enhancements
 
@@ -16,67 +16,118 @@ Release 1.13 (development)
   multiple artifacts.
 
   Multiple :ref:`types of repositories <sec-repository-types>` are available for
-  different use-cases, such as files or directory trees, and the type determines
+  different use cases, such as files or directory trees, and the type determines
   how artifact are installed and managed.
 
   We expect that additional types will be added as needed to support adaptive
   updates for artifacts and deduplicated storage (e.g. using `composefs
   <https://github.com/containers/composefs>`_) in the future.
 
-.. note::
+  .. note::
 
-  Artifact updates are currently available at a preview level.
+    Artifact updates are currently available at a preview level.
 
-  This means that we want to allow users to try out this new feature and report
-  their experiences, but also that your use-case (such as parent classes) may
-  not be fully supported yet.
-  Depending on the feedback, we may need to change behaviour in ways that is not
-  backwards compatible.
-  So, try it out and report back `using GitHub discussions
-  <https://github.com/rauc/rauc/discussions/categories/artifact-updates>`_ or in
-  the Matrix/IRC chat channel, but don't rely on it for products yet.
-  We intend to stabilize this feature as soon as we have confidence that the
-  common use-cases work well.
+    This means that we want to allow users to try out this new feature and report
+    their experiences, but also that your use case (such as parent slot classes
+    for artifacts) may not be fully supported yet.
+    Depending on the feedback, we may need to change behaviour in ways that are
+    not backwards compatible.
+    So, try it out and report back `using GitHub discussions
+    <https://github.com/rauc/rauc/discussions/categories/artifact-updates>`_ or
+    in the `Matrix/IRC chat channel <https://matrix.to/#/#rauc:matrix.org>`_, but
+    don't rely on it for products yet.
+    We intend to stabilize this feature as soon as we have confidence that the
+    common use cases work well.
 
 * Expose manifest meta-data to handlers and the ``install-check`` hook as
   environment variables.
   This uses the same variable names (and implementation) as ``rauc info
   --output-format=shell``.
 * Allow local symlinks in the bundle again.
-* Show how much of the bundle was downloaded when streaming.
+* Support locating ``system.conf`` in ``/usr/lib/rauc`` and ``/run/rauc``
+  according to the `UAPI Group's "Configuration Files Specification"
+  <https://uapi-group.org/specifications/specs/configuration_files_specification/>`_.
+  (by Ahmad Fatoum)
+* Add support for adding and overriding system config options from the command
+  line using ``-C``/``--confopt``. (by Christian Aurich)
+* Expose the ``RAUC_SYSTEM_VARIANT`` for handlers as well. (by Ahmad Fatoum)
+* Print bootname in addition to the slot name in "checking slot" progress
+  messages. (by Richard Alpe)
+* Allow ``tftp://`` URLs for bundle download (but not for streaming). (by
+  Joachim Wiberg)
+* Log how much of the bundle was downloaded when streaming.
   This is useful to evaluate the effectiveness of adaptive update.
-* Show stats even if the NBD server exits with an error.
+* Log stats even if the NBD server exits with an error.
 * Added a simple shell-based update service as an example in
   ``contrib/rauc-client/``. (by Angelo Compagnucci)
+* Reject slots with both ``install`` and ``pre-install`` (or ``post-install``)
+  hooks set during creation, as only the ``install`` hook would be used.
+* Add more pre-condition checks to the eMMC boot partition support.
 
 .. rubric:: Bug fixes
 
+* Fix handling of failed installations in combination with
+  ``install-same=false``. (by Samer Kenawy)
 * Fix double file descriptor close when creating adaptive bundles.
   This bug resulted in an abort when using glib since version 2.75.0.
 * Require at least one recipient certificate when encrypting bundles. (by
   Florian Otte)
+* Fix error handling when using URLs with disabled network/streaming support.
+  (by Ahmad Fatoum)
+* Fix CMS debug output with ``G_MESSAGES_DEBUG=all``. (by Tamara Schmitz)
+* Add missing Qt D-Bus type annotation. (by Richard Hozák)
+* Fix casync archive generation when running under ``pseudo`` by avoiding
+  ``fakeroot`` in that case.
 
 .. rubric:: Testing
 
-* Add a test case for decryption via PKCS#11.
-* Use pytest ``tmp_path`` fixture to improve test case isolation.
 * Add helper scripts to save and clear coverage data when running under
   ``qemu-test``.
 * Fix service shutdown to improve coverage reporting.
 * Update codecov CI integration to fix coverage reports and use different flags
   for with/without D-Bus service builds.
+* Improve test coverage for:
+
+  * decryption via PKCS#11
+  * detailed status output in all formats
+  * ``rauc write-slot``
+  * boot slot detection via ``PARTLABEL``, ``PARTUUID`` and ``UUID``
+  * eMMC boot partitions by using emulation in QEMU
+  * boot/slot status changes
+
+  We now have `almost 85% coverage
+  <https://app.codecov.io/gh/rauc/rauc?trend=12%20months>`_ and mainly
+  hard-to-test syscall error handling code remains.
+* Use pytest ``tmp_path`` fixture to improve test case isolation.
 * Avoid pulling in X11 dependencies via dbus-launch and use dbus-daemon instead.
 * Fix startup of ``qemu-test`` in cases where the host has a
   ``/etc/resolv.conf`` symlink.
 * Fix upload of ``scan-build`` reports in CI.
+* Fix testing of encrypted bundle extraction.
+* Enable tests with disabled GPT support in CI.
+* Refactor fixtures for more flexible system context setup and config
+  generation.
+  This made some fixed config files obsolete, which were removed.
 
 .. rubric:: Code
 
+* Simplify control flow in eMMC boot partition code.
+* Simplify control flow in slot marking code.
+* Fix a typo in the bootchooser code. (by Gaël PORTAY).
+
 .. rubric:: Documentation
 
+* Extend documentation about slot and system status files.
 * Improve some FAQ entries. (by Ulrich Ölmann)
+* Improve documentation about ``qemu-test``.
+* Fix link to ``bundle.bbclass``. (by Emmanuel Ferdman)
+* Improve consistency for shell and console sections.
+* Add warning about EXT_CSD kernel regression to eMMC boot switch section.
 
-Contributions from:
+Contributions from: Ahmad Fatoum, Angelo Compagnucci, Christian Aurich,
+Emmanuel Ferdman, Enrico Jörns, Florian Otte, Gaël PORTAY, Jan Lübbe, Joachim
+Wiberg, Richard Alpe, Richard Hozák, Samer Kenawy, Tamara Schmitz, Ulrich
+Ölmann
 
 Release 1.12 (released Aug 9, 2024)
 -----------------------------------
