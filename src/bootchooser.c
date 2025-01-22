@@ -1039,9 +1039,9 @@ static gboolean raspberrypi_save_autoboot(GKeyFile *key_file, GError **error)
 {
 	GError *ierror = NULL;
 	g_autofree gchar *filename_tmp = NULL;
+	g_autofree gchar *data = NULL;
 	gboolean res = FALSE;
 	gchar *filename;
-	gchar *data;
 	gsize size;
 	int fd;
 
