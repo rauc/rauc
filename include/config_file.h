@@ -47,7 +47,6 @@ typedef struct {
 	gint boot_default_attempts;
 	gint boot_attempts_primary;
 	gchar *raspberrypi_autoboottxt_path;
-	gchar *raspberrypi_devicetree_base_path;
 	gchar *grubenv_path;
 	gchar *custom_bootloader_backend;
 	gboolean efi_use_bootnext;

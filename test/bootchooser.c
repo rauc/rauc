@@ -942,12 +942,11 @@ static void test_raspberrypi_initialize_reboot_tag(const BootchooserFixture *fix
 static void test_raspberrypi_initialize_bootloader_property(const gchar *property, guint32 value)
 {
 	g_autofree gchar *filename = NULL;
-	g_autofree gchar *dirname = NULL;
+	gchar *dirname;
 	int fd;
 
 	g_assert_nonnull(property);
-	dirname = g_build_filename(r_context()->config->raspberrypi_devicetree_base_path, "chosen", "bootloader", NULL);
-	g_assert_nonnull(dirname);
+	dirname = "/sys/firmware/devicetree/base/chosen/bootloader";
 	filename = g_build_filename(dirname, property, NULL);
 	g_assert_nonnull(filename);
 	g_assert(g_mkdir_with_parents(dirname, 0755) == 0);
@@ -1006,7 +1005,6 @@ static void bootchooser_raspberrypi(BootchooserFixture *fixture,
 compatible=FooCorp Super BarBazzer\n\
 bootloader=raspberrypi\n\
 raspberrypi-autoboot-txt=autoboot.txt\n\
-raspberrypi-devicetree-base=base/\n\
 mountprefix=/mnt/myrauc/\n\
 \n\
 [keyring]\n\

@@ -814,12 +814,6 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 			g_debug("No autoboot.txt path provided, using /boot/autoboot.txt as default");
 			c->raspberrypi_autoboottxt_path = g_strdup("/boot/autoboot.txt");
 		}
-		c->raspberrypi_devicetree_base_path = resolve_path_take(filename,
-				key_file_consume_string(key_file, "system", "raspberrypi-devicetree-base", NULL));
-		if (!c->raspberrypi_devicetree_base_path) {
-			g_debug("No fdt path provided, using /sys/firmware/devicetree/base as default");
-			c->raspberrypi_devicetree_base_path = g_strdup("/sys/firmware/devicetree/base");
-		}
 	} else if (g_strcmp0(c->system_bootloader, "grub") == 0) {
 		c->grubenv_path = resolve_path_take(filename,
 				key_file_consume_string(key_file, "system", "grubenv", NULL));
@@ -1299,7 +1293,6 @@ void free_config(RaucConfig *config)
 	g_free(config->tmp_path);
 	g_free(config->casync_install_args);
 	g_free(config->raspberrypi_autoboottxt_path);
-	g_free(config->raspberrypi_devicetree_base_path);
 	g_free(config->grubenv_path);
 	g_free(config->data_directory);
 	g_free(config->statusfile_path);

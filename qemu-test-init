@@ -17,6 +17,10 @@ mount -t tmpfs none /tmp
 mkdir /dev/shm
 mount -t tmpfs none /dev/shm
 
+# create overlay for /sys/firmware
+mkdir /tmp/sys-firmware-overlay /tmp/sys-firmware-work
+mount -t overlay overlay -o lowerdir=/sys/firmware,upperdir=/tmp/sys-firmware-overlay,workdir=/tmp/sys-firmware-work /sys/firmware
+
 # create overlay for /etc
 mkdir /tmp/etc-overlay /tmp/etc-work
 mount -t overlay overlay -o lowerdir=/etc,upperdir=/tmp/etc-overlay,workdir=/tmp/etc-work /etc
@@ -148,6 +152,8 @@ rm -rf /etc/rauc
 
 # setup required for interactive system
 if [ -n "$SERVICE" ]; then
+  # create bootloader node
+  mkdir -p /sys/firmware/devicetree/base/chosen/bootloader
 
   # create rauc system config for testing and data directory
   mkdir /etc/rauc
