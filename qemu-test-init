@@ -29,10 +29,10 @@ BUILD_DIR="$(realpath build)/"
 # parse cmdline
 for x in $(cat /proc/cmdline); do
   if [ "$x" = "shell" ]; then
-    SHELL=1
+    INTERACTIVE_SHELL=1
     export MESON_BUILD_DIR=$BUILD_DIR
   elif [ "$x" = "system" ]; then
-    SHELL=1
+    INTERACTIVE_SHELL=1
     SERVICE=1
   elif [ "$x" = "asan" ]; then
     export G_SLICE=always-malloc G_DEBUG=gc-friendly
@@ -107,7 +107,7 @@ EOF
 $BUILD_DIR/test/fakerand
 
 # rauc binary in PATH
-if [ -n "$SHELL" ]; then
+if [ -n "$INTERACTIVE_SHELL" ]; then
   cp -a $BUILD_DIR/rauc /tmp/bin/rauc
 fi
 export RAUC_TEST_NBD_SERVER="$BUILD_DIR/rauc"
@@ -208,7 +208,7 @@ echo "use ctrl-a x to exit and ctrl-a c to access the qemu monitor"
 
 echo "system ready"
 
-if [ -n "$SHELL" ]; then
+if [ -n "$INTERACTIVE_SHELL" ]; then
   echo "alias ll='ls -l'" >> /tmp/bashrc
   BASH_CMD="exec bash --rcfile /tmp/bashrc"
   if type resize; then
