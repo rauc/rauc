@@ -2,7 +2,7 @@
 
 #include <glib.h>
 
-#include "config_file.h"
+#include "context.h"
 
 #define R_BOOTCHOOSER_ERROR r_bootchooser_error_quark()
 GQuark r_bootchooser_error_quark(void);
@@ -19,6 +19,16 @@ GQuark r_bootchooser_error_quark(void);
  * @return TRUE if it is supported, otherwise FALSE
  */
 gboolean r_boot_is_supported_bootloader(const gchar *bootloader)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Get current bootname slot.
+ *
+ * @param config the RaucConfig
+ *
+ * @return bootname, NULL if detection failed
+ */
+gchar *r_boot_get_current_bootname(RaucConfig *config)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
