@@ -238,6 +238,19 @@ static gboolean barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
 	return TRUE;
 }
 
+/* Get current booted bootname */
+static gchar* barebox_get_bootname(GError **error)
+{
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_set_error(
+			error,
+			R_BOOTCHOOSER_ERROR,
+			R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+			"%s: Not implemented yet!", __func__);
+	return NULL;
+}
+
 /* Get slot marked as primary one */
 static RaucSlot* barebox_get_primary(GError **error)
 {
@@ -480,6 +493,19 @@ out:
 	g_ptr_array_remove_index(pairs, 1);
 	g_ptr_array_remove_index(pairs, 0);
 	return res;
+}
+
+/* Get current booted bootname */
+static gchar* grub_get_bootname(GError **error)
+{
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_set_error(
+			error,
+			R_BOOTCHOOSER_ERROR,
+			R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+			"%s: Not implemented yet!", __func__);
+	return NULL;
 }
 
 /* We assume bootstate to be good if slot is listed in 'ORDER', its
@@ -749,6 +775,19 @@ static gboolean uboot_env_set(const gchar *key, const gchar *value, GError **err
 	}
 
 	return TRUE;
+}
+
+/* Get current booted bootname */
+static gchar* uboot_get_bootname(GError **error)
+{
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_set_error(
+			error,
+			R_BOOTCHOOSER_ERROR,
+			R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+			"%s: Not implemented yet!", __func__);
+	return NULL;
 }
 
 /* We assume bootstate to be good if slot is listed in 'BOOT_ORDER' and its
@@ -1812,6 +1851,19 @@ static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend
 	return TRUE;
 }
 
+/* Get current booted bootname */
+static gchar *efi_get_bootname(GError **error)
+{
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_set_error(
+			error,
+			R_BOOTCHOOSER_ERROR,
+			R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+			"%s: Not implemented yet!", __func__);
+	return NULL;
+}
+
 static gboolean efi_set_state(RaucSlot *slot, gboolean good, GError **error)
 {
 	GError *ierror = NULL;
@@ -2048,6 +2100,72 @@ static gboolean custom_backend_set(const gchar *cmd, const gchar *bootname, cons
 	return TRUE;
 }
 
+/* Get current booted bootname */
+static gchar *custom_backend_get_bootname(GError **error)
+{
+	g_autoptr(GSubprocessLauncher) launcher = NULL;
+	g_autoptr(GSubprocess) handle = NULL;
+	g_autoptr(GDataInputStream) datainstream = NULL;
+	g_autoptr(GPtrArray) args_array = NULL;
+	g_autoptr(GError) ierror = NULL;
+	g_autofree gchar *outline = NULL;
+	GInputStream *instream;
+	int res;
+
+	args_array = g_ptr_array_new();
+	g_ptr_array_add(args_array, r_context()->config->custom_bootloader_backend);
+	g_ptr_array_add(args_array, (gchar *)("get-current"));
+	g_ptr_array_add(args_array, NULL);
+
+	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE);
+	handle = r_subprocess_launcher_spawnv(launcher, args_array, &ierror);
+	if (handle == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run custom backend '%s': ",
+				r_context()->config->custom_bootloader_backend);
+		return NULL;
+	}
+
+	instream = g_subprocess_get_stdout_pipe(handle);
+	datainstream = g_data_input_stream_new(instream);
+
+	outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
+	if (ierror) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to read custom backend output '%s': ",
+				r_context()->config->custom_bootloader_backend);
+		return NULL;
+	}
+
+	res = g_subprocess_wait_check(handle, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to get custom backend output '%s': ",
+				r_context()->config->custom_bootloader_backend);
+		return NULL;
+	}
+
+	if (!outline) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Failed to get custom backend bootname '%s': no output",
+				r_context()->config->custom_bootloader_backend);
+		return NULL;
+	}
+
+	g_debug("Resolved custom backend bootname to %s", outline);
+
+	return g_steal_pointer(&outline);
+}
+
 /* Set slot status values */
 static gboolean custom_set_state(RaucSlot *slot, gboolean good, GError **error)
 {
@@ -2133,6 +2251,44 @@ static gboolean custom_set_primary(RaucSlot *slot, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	return custom_backend_set("set-primary", slot->bootname, NULL, error);
+}
+
+/* Get current booted bootname */
+gchar* r_boot_get_bootname(GError **error)
+{
+	GError *ierror = NULL;
+	gchar *res = NULL;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
+		res = barebox_get_bootname(&ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
+		res = grub_get_bootname(&ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
+		res = uboot_get_bootname(&ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
+		res = efi_get_bootname(&ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
+		res = custom_backend_get_bootname(&ierror);
+	} else {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+				"Obtaining bootname from bootloader '%s' not supported yet", r_context()->config->system_bootloader);
+		return FALSE;
+	}
+
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"%s backend: ", r_context()->config->system_bootloader);
+	}
+
+
+	return res;
 }
 
 gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)

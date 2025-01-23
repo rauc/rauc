@@ -22,6 +22,16 @@ gboolean r_boot_is_supported_bootloader(const gchar *bootloader)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Get current booted bootname slot.
+ *
+ * @param error return location for a GError, or NULL
+ *
+ * @return bootname, NULL if detection failed
+ */
+gchar* r_boot_get_bootname(GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Mark slot as good or bad.
  *
  * @param slot Slot to mark
