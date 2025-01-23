@@ -1,11 +1,8 @@
-#include <string.h>
 #include <errno.h>
-#include <gio/gio.h>
 
 #include "bootchooser.h"
 #include "config_file.h"
 #include "context.h"
-#include "install.h"
 #include "utils.h"
 
 GQuark r_bootchooser_error_quark(void)
