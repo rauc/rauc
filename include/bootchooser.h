@@ -25,10 +25,11 @@ G_GNUC_WARN_UNUSED_RESULT;
  * Get current bootname slot.
  *
  * @param config the RaucConfig
+ * @param error return location for a GError, or NULL
  *
  * @return bootname, NULL if detection failed
  */
-gchar *r_boot_get_current_bootname(RaucConfig *config)
+gchar *r_boot_get_current_bootname(RaucConfig *config, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**

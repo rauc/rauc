@@ -378,7 +378,11 @@ static gboolean r_context_configure_target(GError **error)
 	}
 
 	if (context->bootslot == NULL) {
-		context->bootslot = r_boot_get_current_bootname(context->config);
+		context->bootslot = r_boot_get_current_bootname(context->config, &ierror);
+		if (ierror) {
+			g_message("Failed to get bootname: %s", ierror->message);
+			g_clear_error(&ierror);
+		}
 	}
 
 	g_clear_pointer(&context->boot_id, g_free);
