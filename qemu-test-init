@@ -86,7 +86,9 @@ if [ -n "$GCOV_PREFIX" ]; then
   cat > /tmp/bin/save_gcov_data <<EOF
 #!/bin/sh
 set -ex
-cp -r -T "$GCOV_PREFIX$BUILD_DIR" "$BUILD_DIR" || true
+if [ -d "$GCOV_PREFIX$BUILD_DIR" ]; then
+  cp -r -T "$GCOV_PREFIX$BUILD_DIR" "$BUILD_DIR" || true
+fi
 EOF
   cat > /tmp/bin/clear_gcov_data <<EOF
 #!/bin/sh
