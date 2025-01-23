@@ -171,7 +171,7 @@ static gchar* get_custom_bootname(void)
 	outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
 
 	if (ierror) {
-		g_message("Failed to read custom backend output");
+		g_message("Failed to read custom backend output: %s", ierror->message);
 		return NULL;
 	}
 
