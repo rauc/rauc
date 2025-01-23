@@ -1122,7 +1122,6 @@ static gboolean raspberrypi_bootloader_get(const gchar *property, guint *value, 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	filename = g_build_filename("/sys/firmware/devicetree/base/chosen/bootloader", property, NULL);
-
 	fd = g_open(filename, O_RDONLY);
 	if (fd < 0) {
 		g_set_error(
