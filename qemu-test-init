@@ -43,9 +43,6 @@ for x in $(cat /proc/cmdline); do
     SERVICE_BACKTRACE=1
   fi
 done
-if [ -n "$test" ]; then
-  MESON_TEST="$test"
-fi
 
 hostname qemu-test
 
@@ -227,7 +224,7 @@ if [ -n "$INTERACTIVE_SHELL" ]; then
   sleep 1
 fi
 
-if meson test -C $BUILD_DIR "$MESON_TEST" -v; then
+if meson test -C $BUILD_DIR $test -v; then
   touch qemu-test-ok
   echo "RESULT: PASSED"
 else
