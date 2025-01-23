@@ -942,7 +942,7 @@ static void test_raspberrypi_initialize_reboot_tag(const BootchooserFixture *fix
 static void test_raspberrypi_initialize_bootloader_property(const gchar *property, guint32 value)
 {
 	g_autofree gchar *filename = NULL;
-	gchar *dirname;
+	const gchar *dirname;
 	int fd;
 
 	g_assert_nonnull(property);
