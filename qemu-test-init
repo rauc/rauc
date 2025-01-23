@@ -91,7 +91,7 @@ EOF
   cat > /tmp/bin/clear_gcov_data <<EOF
 #!/bin/sh
 set -ex
-  rm -rf "$GCOV_PREFIX$BUILD_DIR" || true
+rm -rf "$GCOV_PREFIX$BUILD_DIR" || true
 EOF
   chmod +x /tmp/bin/save_gcov_data /tmp/bin/clear_gcov_data
 fi
