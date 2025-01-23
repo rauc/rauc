@@ -146,8 +146,8 @@ static gchar* get_custom_bootname(void)
 	g_autoptr(GSubprocess) handle = NULL;
 	g_autoptr(GDataInputStream) datainstream = NULL;
 	g_autoptr(GPtrArray) args_array = NULL;
+	g_autoptr(GError) ierror = NULL;
 	g_autofree gchar *outline = NULL;
-	GError *ierror = NULL;
 	GInputStream *instream;
 	int res;
 
@@ -171,7 +171,7 @@ static gchar* get_custom_bootname(void)
 	outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
 
 	if (ierror) {
-		g_message("Failed to read custom backend output");
+		g_message("Failed to read custom backend output: %s", ierror->message);
 		return NULL;
 	}
 
