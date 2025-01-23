@@ -218,6 +218,7 @@ if [ -n "$INTERACTIVE_SHELL" ]; then
   setsid bash -c "$BASH_CMD" </dev/ttyS0 >/dev/ttyS0 2>&1 || echo exit-code=$?
   save_gcov_data
   echo o > /proc/sysrq-trigger
+  sleep 1
 fi
 
 if [ -n "$SERVICE" ]; then
