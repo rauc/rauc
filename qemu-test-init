@@ -26,8 +26,8 @@ cd "$(dirname "$0")"
 
 BUILD_DIR="$(realpath build)/"
 
-# parse cmdline
-for x in $(cat /proc/cmdline); do
+# parse arguments
+for x in "$@"; do
   if [ "$x" = "shell" ]; then
     INTERACTIVE_SHELL=1
     export MESON_BUILD_DIR=$BUILD_DIR
