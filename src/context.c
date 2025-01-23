@@ -146,8 +146,8 @@ static gchar* get_custom_bootname(void)
 	g_autoptr(GSubprocess) handle = NULL;
 	g_autoptr(GDataInputStream) datainstream = NULL;
 	g_autoptr(GPtrArray) args_array = NULL;
+	g_autoptr(GError) ierror = NULL;
 	g_autofree gchar *outline = NULL;
-	GError *ierror = NULL;
 	GInputStream *instream;
 	int res;
 
