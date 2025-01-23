@@ -1234,6 +1234,24 @@ static gboolean raspberrypi_tryboot_set(gboolean enable, GError **error)
 	return TRUE;
 }
 
+/* Get booted bootname */
+static gchar* raspberrypi_get_bootname(GError **error)
+{
+	GError *ierror;
+	gchar *bootname = NULL;
+	guint partition;
+
+	if (!raspberrypi_bootloader_get_partition(&partition, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to get bootloader partition property: ");
+		return NULL;
+	}
+
+	return g_strdup_printf("%u", partition);
+}
+
 /* Get slot marked as primary one, i.e. the slot with boot_partition set in the
  * section [all] in the file autoboot.txt */
 static RaucSlot *raspberrypi_get_primary(GError **error)
@@ -2267,6 +2285,8 @@ gchar* r_boot_get_bootname(GError **error)
 		res = grub_get_bootname(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
 		res = uboot_get_bootname(&ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "raspberrypi") == 0) {
+		res = raspberrypi_get_bootname(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = efi_get_bootname(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
