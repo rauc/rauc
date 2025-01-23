@@ -1567,6 +1567,7 @@ static gboolean custom_backend_set(const gchar *cmd, const gchar *bootname, cons
 	return TRUE;
 }
 
+/* Get current bootname */
 static gchar *custom_backend_get_bootname(RaucConfig *config)
 {
 	g_autoptr(GSubprocessLauncher) launcher = NULL;
@@ -1662,7 +1663,7 @@ static RaucSlot* custom_get_primary(GError **error)
 	return primary;
 }
 
-/* Get state of current slot */
+/* Get state of given slot */
 static gboolean custom_get_state(RaucSlot *slot, gboolean *good, GError **error)
 {
 	GError *ierror = NULL;
@@ -1701,6 +1702,7 @@ static gboolean custom_set_primary(RaucSlot *slot, GError **error)
 	return custom_backend_set("set-primary", slot->bootname, NULL, error);
 }
 
+/* Get current bootname */
 gchar *r_boot_get_current_bootname(RaucConfig *config)
 {
 	gchar *res = NULL;
@@ -1714,6 +1716,7 @@ gchar *r_boot_get_current_bootname(RaucConfig *config)
 	return res;
 }
 
+/* Get state of given slot */
 gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 {
 	gboolean res = FALSE;
@@ -1755,6 +1758,7 @@ gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 	return res;
 }
 
+/* Set slot status values */
 gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 {
 	gboolean res = FALSE;
@@ -1795,6 +1799,7 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 	return res;
 }
 
+/* Get slot marked as primary one */
 RaucSlot* r_boot_get_primary(GError **error)
 {
 	RaucSlot *slot = NULL;
@@ -1831,6 +1836,7 @@ RaucSlot* r_boot_get_primary(GError **error)
 	return slot;
 }
 
+/* Set slot as primary boot slot */
 gboolean r_boot_set_primary(RaucSlot *slot, GError **error)
 {
 	gboolean res = FALSE;
