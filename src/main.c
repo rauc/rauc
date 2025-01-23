@@ -2979,7 +2979,7 @@ int main(int argc, char **argv)
 		utf8_supported = TRUE;
 
 	if (ENABLE_STREAMING && g_getenv("RAUC_NBD_SERVER")) {
-		GError *ierror = NULL;
+		g_autoptr(GError) ierror = NULL;
 		pthread_setname_np(pthread_self(), "rauc-nbd");
 		if (r_nbd_run_server(RAUC_SOCKET_FD, &ierror)) {
 			return 0;
