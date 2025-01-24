@@ -511,6 +511,7 @@ static gboolean write_slot_start(int argc, char **argv)
 	update_handler = get_update_handler(image, slot, &ierror);
 	if (update_handler == NULL) {
 		g_printerr("%s\n", ierror->message);
+		g_clear_error(&ierror);
 		r_exit_status = 1;
 		goto out;
 	}
@@ -2979,7 +2980,7 @@ int main(int argc, char **argv)
 		utf8_supported = TRUE;
 
 	if (ENABLE_STREAMING && g_getenv("RAUC_NBD_SERVER")) {
-		GError *ierror = NULL;
+		g_autoptr(GError) ierror = NULL;
 		pthread_setname_np(pthread_self(), "rauc-nbd");
 		if (r_nbd_run_server(RAUC_SOCKET_FD, &ierror)) {
 			return 0;
