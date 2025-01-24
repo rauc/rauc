@@ -108,7 +108,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @param repo RArtifactRepo to prepare
  * @param[out] error Return location for a GError, or NULL
  *
- * @return TRUE if the perparation was successful, otherwise FALSE
+ * @return TRUE if the preparation was successful, otherwise FALSE
  */
 gboolean r_artifact_repo_prepare(RArtifactRepo *repo, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
