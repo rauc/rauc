@@ -106,6 +106,12 @@ EOF
 # fake entropy
 $BUILD_DIR/test/fakerand
 
+# composefs may be a subproject
+if [ -e "$BUILD_DIR/subprojects/composefs/tools" ]; then
+  export PATH="$BUILD_DIR/subprojects/composefs/tools:$PATH"
+  export LD_LIBRARY_PATH="$BUILD_DIR/subprojects/composefs/libcomposefs:$LD_LIBRARY_PATH"
+fi
+
 # rauc binary in PATH
 if [ -n "$SHELL" ]; then
   cp -a $BUILD_DIR/rauc /tmp/bin/rauc
@@ -174,6 +180,14 @@ if [ -n "$SERVICE" ]; then
   ln -s ../.artifact-empty-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 /tmp/file-artifacts-dual/rootfs.0/empty
   mkdir /tmp/tree-artifacts
 
+  if grep -q "ENABLE_COMPOSEFS 1" $BUILD_DIR/config.h; then
+    echo "" >> /etc/rauc/system.conf
+    echo "[artifacts.composefs]" >> /etc/rauc/system.conf
+    echo "path=/tmp/composefs-artifacts" >> /etc/rauc/system.conf
+    echo "type=composefs" >> /etc/rauc/system.conf
+    mkdir /tmp/composefs-artifacts
+  fi
+
   # rauc and dbus service start
   if grep -q "ENABLE_SERVICE 1" $BUILD_DIR/config.h; then
     # dbus
@@ -224,7 +238,7 @@ if [ -n "$SERVICE" ]; then
   rauc status mark-good
 fi
 
-if meson test -C $BUILD_DIR "$MESON_TEST" -v; then
+if meson test -C $BUILD_DIR --suite rauc "$MESON_TEST" -v; then
   touch qemu-test-ok
   echo "RESULT: PASSED"
 else

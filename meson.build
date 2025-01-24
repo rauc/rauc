@@ -44,6 +44,7 @@ fdiskdep = dependency('fdisk', version : '>=2.29', required : get_option('gpt'))
 libcurldep = dependency('libcurl', version : '>=7.32.0', required : get_option('network'))
 libnlgenldep = dependency('libnl-genl-3.0', version : '>=3.1', required : get_option('streaming'))
 threaddep = dependency('threads', required : get_option('streaming'))
+composefsdep = dependency('composefs', fallback : ['composefs', 'libcomposefs_dep'], required : get_option('composefs'))
 systemddep = dependency('systemd', required : false)
 
 conf.set10('ENABLE_SERVICE', get_option('service'))
@@ -160,6 +161,11 @@ if fdiskdep.found()
   sources_rauc += files('src/gpt.c')
 endif
 
+conf.set10('ENABLE_COMPOSEFS', composefsdep.found())
+if composefsdep.found()
+  sources_rauc += files('src/artifacts_composefs.c')
+endif
+
 gnome = import('gnome')
 dbus_ifaces = files('src/de.pengutronix.rauc.Installer.xml')
 dbus_sources = gnome.gdbus_codegen(
@@ -183,7 +189,7 @@ versiondep = declare_dependency(sources: version_h)
 
 meson.add_dist_script('version-gen', meson.project_version())
 
-rauc_deps = [threaddep, libcurldep, libnlgenldep, jsonglibdep, dbusdep, glibdep, giodep, giounixdep, openssldep, fdiskdep]
+rauc_deps = [threaddep, libcurldep, libnlgenldep, jsonglibdep, dbusdep, glibdep, giodep, giounixdep, openssldep, fdiskdep, composefsdep]
 
 librauc = static_library('rauc',
   sources_rauc,

@@ -154,6 +154,9 @@ def have_service():
 needs_emmc = pytest.mark.skipif("RAUC_TEST_EMMC" not in os.environ, reason="Missing eMMC")
 
 
+needs_composefs = pytest.mark.skipif(not string_in_config_h("ENABLE_COMPOSEFS 1"), reason="Missing composefs support")
+
+
 def softhsm2_load_key_pair(cert, privkey, label, id_, softhsm2_mod):
     proc = subprocess.run(
         f"openssl x509 -in {cert} -inform pem -outform der "
@@ -343,6 +346,7 @@ def create_system_files(env_setup, tmp_path):
     os.mkdir(tmp_path / "repos")
     os.mkdir(tmp_path / "repos/files")
     os.mkdir(tmp_path / "repos/trees")
+    os.mkdir(tmp_path / "repos/composefs")
     os.symlink(os.path.abspath("bin"), tmp_path / "bin")
     os.symlink(os.path.abspath("openssl-ca"), tmp_path / "openssl-ca")
     os.symlink(os.path.abspath("openssl-enc"), tmp_path / "openssl-enc")
@@ -385,6 +389,14 @@ def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_sy
 @pytest.fixture
 def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_system_files, system):
     system.prepare_adaptive_config()
+    system.write_config()
+    with system.running_service("A"):
+        yield system.proxy
+
+
+@pytest.fixture
+def rauc_dbus_service_with_system_composefs(tmp_path, dbus_session_bus, create_system_files, system):
+    system.prepare_composefs_config()
     system.write_config()
     with system.running_service("A"):
         yield system.proxy
@@ -532,6 +544,13 @@ class System:
             "system-info": "bin/systeminfo.sh",
             "pre-install": "bin/preinstall.sh",
             "post-install": "bin/postinstall.sh",
+        }
+
+    def prepare_composefs_config(self):
+        self.prepare_minimal_config()
+        self.config["artifacts.composefs"] = {
+            "path": "repos/composefs",
+            "type": "composefs",
         }
 
     def write_config(self):

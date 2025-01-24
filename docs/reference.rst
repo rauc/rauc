@@ -573,8 +573,15 @@ The name must be different from any slot class names.
 ``type=<type>`` (required)
   The type of this repository.
   Currently supported values are ``files`` and ``trees``.
-  For ``files``, each artifact is a single file.
-  For ``trees``, each artifact is a directory tree containing files.
+
+  ``files``
+    each artifact is a single file
+
+  ``trees``
+    each artifact is a directory tree containing files
+
+  ``composefs``
+    each artifact is a directory containing a composefs metadata image
 
   See :ref:`sec-repository-types` for more details.
 
@@ -874,6 +881,14 @@ The following fields are supported for image sections:
     This method is not very useful on its own, but can be used to test creation
     and installation of bundles containing many files.
     The underlying implementation will also be used for future methods.
+
+  ``composefs``
+    Create a composefs metadata image and object store from a tar archive.
+    File contents from all composefs artifacts are placed in a shared object
+    store in the bundle (`<bundle>/.rauc-cfs-store`).
+    This way, duplicated files are stored in the bundle only once.
+    During bundle creation, ``fakeroot`` needs to be available when not running
+    under ``pseudo``.
 
   ``keep``
     Keep the original image after running the conversion methods.

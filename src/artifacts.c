@@ -3,6 +3,7 @@
 
 #include "artifacts.h"
 
+#include "artifacts_composefs.h"
 #include "context.h"
 #include "glib/gstdio.h"
 #include "slot.h"
@@ -73,6 +74,10 @@ void r_artifact_repo_free(gpointer value)
 	if (!repo)
 		return;
 
+	if (g_strcmp0(repo->type, "composefs") == 0) {
+		g_clear_pointer(&repo->composefs.local_store_objects, g_hash_table_destroy);
+	}
+
 	g_free(repo->description);
 	g_free(repo->path);
 	g_free(repo->type);
@@ -90,6 +95,9 @@ typedef struct {
 RArtifactRepoType supported_repo_types[] = {
 	{"files"},
 	{"trees"},
+#if ENABLE_COMPOSEFS == 1
+	{"composefs"},
+#endif
 	{},
 };
 
@@ -319,6 +327,13 @@ gboolean r_artifact_repo_prepare(RArtifactRepo *repo, GError **error)
 		}
 	}
 
+	if (g_strcmp0(repo->type, "composefs") == 0) {
+		if (!r_composefs_artifact_repo_prepare(repo, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+	}
+
 	return TRUE;
 }
 
@@ -413,7 +428,11 @@ gboolean r_artifact_repo_prune(RArtifactRepo *repo, GError **error)
 				continue;
 		}
 
-		/* TODO allow repo type-specific files here */
+		/* allow repo type specific files and dirs */
+		if (g_strcmp0(repo->type, "composefs") == 0) {
+			if (g_strcmp0(name, ".rauc-cfs-store") == 0)
+				continue;
+		}
 
 		g_message("Removing unexpected data in artifact repo: %s", full_name);
 		if (!rm_tree(full_name, &ierror)) {
@@ -463,6 +482,13 @@ gboolean r_artifact_repo_prune(RArtifactRepo *repo, GError **error)
 
 		if (!g_hash_table_size(inner))
 			g_hash_table_iter_remove(&iter);
+	}
+
+	if (g_strcmp0(repo->type, "composefs") == 0) {
+		if (!r_composefs_artifact_repo_prune(repo, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
 	}
 
 	return TRUE;
@@ -762,7 +788,8 @@ static gboolean tree_artifact_install_tar(const RArtifact *artifact, const RaucI
 	return TRUE;
 }
 
-static gboolean tree_artifact_install_extracted(const RArtifact *artifact, const RaucImage *image, const gchar *name, GError **error)
+/* also used by composefs for the metadata */
+gboolean r_tree_artifact_install_extracted(const RArtifact *artifact, const RaucImage *image, const gchar *name, GError **error)
 {
 	GError *ierror = NULL;
 
@@ -850,7 +877,7 @@ gboolean r_artifact_install(const RArtifact *artifact, const RaucImage *image, G
 	} else if (g_strcmp0(artifact->repo->type, "trees") == 0) {
 		g_autofree gchar *converted = NULL;
 		if (artifact_get_converted(image, "tar-extract", &converted)) {
-			if (!tree_artifact_install_extracted(artifact, image, converted, &ierror)) {
+			if (!r_tree_artifact_install_extracted(artifact, image, converted, &ierror)) {
 				g_propagate_error(error, ierror);
 				return FALSE;
 			}
@@ -865,6 +892,18 @@ gboolean r_artifact_install(const RArtifact *artifact, const RaucImage *image, G
 				g_propagate_error(error, ierror);
 				return FALSE;
 			}
+		}
+	} else if (g_strcmp0(artifact->repo->type, "composefs") == 0) {
+		g_autofree gchar *converted = NULL;
+		if (artifact_get_converted(image, "composefs", &converted)) {
+			if (!r_composefs_artifact_install(artifact, image, converted, &ierror)) {
+				g_propagate_error(error, ierror);
+				return FALSE;
+			}
+		} else {
+			g_error("Image '%s/%s' has unsupported format for repo type '%s'",
+					image->slotclass, image->artifact, artifact->repo->type);
+			return FALSE;
 		}
 	} else {
 		/* should never happen, as this is checked during startup */
