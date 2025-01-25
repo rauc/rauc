@@ -244,6 +244,14 @@ Example configuration:
   It has no effect for ``plain`` bundles, as the signature verification already checks the
   whole bundle.
 
+``prevent-late-fallback=<true/false>`` (optional)
+  In some use-cases, fallback to an older version must be prevented after the
+  update is completed successfully ('rauc status mark-good' executed from the
+  new version).
+  If this option is enabled, RAUC will execute the equivalent of 'rauc status
+  mark-bad other' after marking the currently booted slot as good.
+  This means that the other slot(s) is/are no longer eligible for fallback.
+
 .. _keyring-section:
 
 ``[keyring]`` Section
