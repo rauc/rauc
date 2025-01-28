@@ -24,11 +24,17 @@ gboolean r_mount_bundle(const gchar *source, const gchar *mountpoint, GError **e
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (mount(source, mountpoint, "squashfs", flags, NULL)) {
+		const gchar *errmsg;
 		int err = errno;
+		if (err == ENODEV) {
+			errmsg = "squashfs support not enabled in kernel";
+		} else {
+			errmsg = g_strerror(err);
+		}
 		g_set_error(error,
 				G_FILE_ERROR,
 				g_file_error_from_errno(err),
-				"failed to mount bundle: %s", g_strerror(err));
+				"%s", errmsg);
 		return FALSE;
 	}
 
