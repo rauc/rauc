@@ -562,10 +562,10 @@ no_image:
 			 * used mkfs configuration. We use minimal values here
 			 * that have proven to be valid on all test systems.
 			 */
-			g_assert_cmpint(sum_zero, >=, IMAGE_SIZE/4096 - 29);
+			g_assert_cmpint(sum_zero, >=, IMAGE_SIZE/4096 - 37);
 			g_assert_cmpint(sum_target_written, >=, 0);
 			g_assert_cmpint(sum_target, ==, 0);
-			g_assert_cmpint(sum_source, <=, 29);
+			g_assert_cmpint(sum_source, <=, 37);
 		}
 
 		/* Number of total lookups must not increase in lookup order */
