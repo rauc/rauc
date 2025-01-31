@@ -32,7 +32,7 @@ jobs:
 
     - name: Upload scan-build report
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: scan-build-report
         path: build/meson-logs/scanbuild/*
