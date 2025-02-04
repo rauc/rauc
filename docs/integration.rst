@@ -1204,9 +1204,16 @@ Assuming a simple A/B redundancy, you would need:
 To create boot entries for these, use the efibootmgr tool:
 
 .. code-block:: console
+  :emphasize-lines: 2, 4, 6, 8
 
-  # efibootmgr --create --disk /dev/sdaX --part 1 --label "system0" --loader \\EFI\\LINUX\\BZIMAGE.EFI --unicode "root=PARTUUID=<partuuid-of-part-1>"
-  # efibootmgr --create --disk /dev/sdaX --part 2 --label "system1" --loader \\EFI\\LINUX\\BZIMAGE.EFI --unicode "root=PARTUUID=<partuuid-of-part-2>"
+  # efibootmgr --create --disk /dev/sdaX \
+    --part 1 --label "system0" \
+    --loader \\EFI\\LINUX\\BZIMAGE.EFI \
+    --unicode "root=PARTUUID=<partuuid-of-part-1>"
+  # efibootmgr --create --disk /dev/sdaX \
+    --part 2 --label "system1" \
+    --loader \\EFI\\LINUX\\BZIMAGE.EFI \
+    --unicode "root=PARTUUID=<partuuid-of-part-2>"
 
 where you replace /dev/sdaX with the name of the disk you use for redundancy
 boot, ``<partuuid-of-part-1>`` with the PARTUUID of the first rootfs
