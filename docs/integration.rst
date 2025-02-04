@@ -926,9 +926,11 @@ RAUC uses this information for detecting the active booted slot (based on the
 slot's `bootname` property).
 
 If the kernel commandline of your booted system contains this line, you have
-successfully set up bootchooser to boot your slot::
+successfully set up bootchooser to boot your slot:
 
-  $ cat /proc/cmdline
+.. code-block:: console
+
+  # cat /proc/cmdline
 
 Enable Watchdog on Boot
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -990,9 +992,11 @@ You should integrate your boot selection script as ``boot.scr`` default boot
 script into U-Boot.
 
 For this you have to convert it to a U-boot readable default script
-(``boot.scr``) first::
+(``boot.scr``) first:
 
-  mkimage -A arm -T script -C none -n "Boot script" -d <path-to-input-script> boot.scr
+.. code-block:: console
+
+  $ mkimage -A arm -T script -C none -n "Boot script" -d <path-to-input-script> boot.scr
 
 If you place this on a partition next to U-Boot, it will use it as its boot
 script.
@@ -1197,19 +1201,23 @@ Assuming a simple A/B redundancy, you would need:
   (e.g. at ``EFI/LINUX/BZIMAGE.EFI``)
 * 2 redundant rootfs partitions
 
-To create boot entries for these, use the efibootmgr tool::
+To create boot entries for these, use the efibootmgr tool:
 
-  efibootmgr --create --disk /dev/sdaX --part 1 --label "system0" --loader \\EFI\\LINUX\\BZIMAGE.EFI --unicode "root=PARTUUID=<partuuid-of-part-1>"
-  efibootmgr --create --disk /dev/sdaX --part 2 --label "system1" --loader \\EFI\\LINUX\\BZIMAGE.EFI --unicode "root=PARTUUID=<partuuid-of-part-2>"
+.. code-block:: console
+
+  # efibootmgr --create --disk /dev/sdaX --part 1 --label "system0" --loader \\EFI\\LINUX\\BZIMAGE.EFI --unicode "root=PARTUUID=<partuuid-of-part-1>"
+  # efibootmgr --create --disk /dev/sdaX --part 2 --label "system1" --loader \\EFI\\LINUX\\BZIMAGE.EFI --unicode "root=PARTUUID=<partuuid-of-part-2>"
 
 where you replace /dev/sdaX with the name of the disk you use for redundancy
 boot, ``<partuuid-of-part-1>`` with the PARTUUID of the first rootfs
 partition and ``<partuuid-of-part-2>`` with the PARTUUID of the second rootfs
 partition.
 
-You can inspect and verify your settings by running::
+You can inspect and verify your settings by running:
 
-  efibootmgr -v
+.. code-block:: console
+
+  # efibootmgr -v
 
 In your ``system.conf``, you have to list both the EFI partitions (each containing
 one kernel) as well as the rootfs partitions.
@@ -1332,9 +1340,11 @@ There are several ways to run the RAUC service on your target.
 The recommended way is to use a systemd-based system and allow to start RAUC
 via D-Bus activation.
 
-You can start the RAUC service manually by executing::
+You can start the RAUC service manually by executing:
 
-  $ rauc service
+.. code-block:: console
+
+  # rauc service
 
 Keep in mind that rauc service reads the system.conf during startup and needs to be
 restarted for changes in the system.conf to take affect.
