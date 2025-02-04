@@ -694,6 +694,7 @@ static gboolean copy_block_hash_index_image_to_dev(RaucImage *image, RaucSlot *s
 	off_t offset = 0;
 	int target_fd = -1;
 	g_autoptr(RaucStats) zero_stats = NULL;
+	gint last_percent = -1, percent;
 
 	g_return_val_if_fail(image, FALSE);
 	g_return_val_if_fail(slot, FALSE);
@@ -844,6 +845,13 @@ static gboolean copy_block_hash_index_image_to_dev(RaucImage *image, RaucSlot *s
 			RaucHashIndex *target_old = g_ptr_array_index(sources, 1);
 			target_written->invalid_from = c+1;
 			target_old->invalid_below = c;
+		}
+
+		percent = c * 100 / chunk_count;
+		/* emit progress info (but only when in progress context) */
+		if (r_context()->progress && percent != last_percent) {
+			last_percent = percent;
+			r_context_set_step_percentage("copy_image", percent);
 		}
 	}
 
