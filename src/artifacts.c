@@ -883,8 +883,13 @@ gboolean r_artifact_install(const RArtifact *artifact, const RaucImage *image, G
 			}
 		} else {
 			/* fall back to either the 'keep' method or the original file */
-			if (!artifact_get_converted(image, "keep", &converted) &&
-			    g_file_test(image->filename, G_FILE_TEST_EXISTS)) {
+			if (!artifact_get_converted(image, "keep", &converted)) {
+				if (!g_file_test(image->filename, G_FILE_TEST_EXISTS)) {
+					g_set_error(error, R_ARTIFACTS_ERROR, R_ARTIFACTS_ERROR_INSTALL,
+							"Image '%s/%s has unsupported format for repo type '%s'",
+							image->slotclass, image->artifact, artifact->repo->type);
+					return FALSE;
+				}
 				converted = g_strdup(image->filename);
 			}
 
