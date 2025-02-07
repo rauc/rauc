@@ -91,7 +91,6 @@ gboolean r_copy_stream_with_progress(GInputStream *in_stream, GOutputStream *out
 	GError *ierror = NULL;
 	gsize out_size = 0;
 	goffset sum_size = 0;
-	gint last_percent = -1, percent;
 	gchar buffer[8192];
 	gssize in_size;
 
@@ -122,12 +121,9 @@ gboolean r_copy_stream_with_progress(GInputStream *in_stream, GOutputStream *out
 
 		sum_size += out_size;
 
-		percent = sum_size * 100 / size;
 		/* emit progress info (but only when in progress context) */
-		if (r_context()->progress && percent != last_percent) {
-			last_percent = percent;
-			r_context_set_step_percentage("copy_image", percent);
-		}
+		if (r_context()->progress)
+			r_context_set_step_percentage("copy_image", sum_size * 100 / size);
 	} while (out_size);
 
 	return TRUE;
