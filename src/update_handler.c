@@ -847,7 +847,7 @@ static gboolean copy_block_hash_index_image_to_dev(RaucImage *image, RaucSlot *s
 			target_old->invalid_below = c;
 		}
 
-		percent = c * 100 / chunk_count;
+		percent = (c + 1) * 100 / chunk_count;
 		/* emit progress info (but only when in progress context) */
 		if (r_context()->progress && percent != last_percent) {
 			last_percent = percent;
