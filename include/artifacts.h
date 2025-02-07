@@ -59,6 +59,13 @@ typedef struct _RArtifactRepo {
 
 	/** possible parents (intern strings), "" without parent */
 	GPtrArray *possible_references;
+
+	/** runtime information for different repo types */
+	union {
+		struct {
+			GHashTable *local_store_objects;
+		} composefs;
+	};
 } RArtifactRepo;
 
 /**
@@ -108,7 +115,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @param repo RArtifactRepo to prepare
  * @param[out] error Return location for a GError, or NULL
  *
- * @return TRUE if the perparation was successful, otherwise FALSE
+ * @return TRUE if the preparation was successful, otherwise FALSE
  */
 gboolean r_artifact_repo_prepare(RArtifactRepo *repo, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
@@ -168,6 +175,19 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return new GVariant containing the dict
  */
 GVariant *r_artifacts_to_dict(void)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Install a tree artifact from the bundle into the repo.
+ *
+ * @param artifact RArtifact to install to
+ * @param image RaucImage to install from
+ * @param name the converted directory name in the bundle
+ * @param error a GError, or NULL
+ *
+ * @return TRUE if the installation was successful, otherwise FALSE
+ */
+gboolean r_tree_artifact_install_extracted(const RArtifact *artifact, const RaucImage *image, const gchar *name, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
