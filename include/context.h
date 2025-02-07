@@ -63,6 +63,7 @@ typedef struct {
 	gchar *machine_id;
 
 	gchar *system_serial;
+	gchar *system_version;
 	GHashTable *system_info; /* key/values of system information */
 
 	/* optional custom handler extra arguments */
