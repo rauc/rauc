@@ -84,6 +84,7 @@ void fixture_helper_fixture_set_up_system_user(gchar *tmpdir,
 	g_assert(test_mkdir_relative(tmpdir, "repos", 0700) == 0);
 	g_assert(test_mkdir_relative(tmpdir, "repos/files", 0700) == 0);
 	g_assert(test_mkdir_relative(tmpdir, "repos/trees", 0700) == 0);
+	g_assert(test_mkdir_relative(tmpdir, "repos/composefs", 0700) == 0);
 
 	/* Set dummy bootname provider */
 	replace_strdup(&r_context_conf()->bootslot, "system0");
