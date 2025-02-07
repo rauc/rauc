@@ -224,7 +224,7 @@ if [ -n "$INTERACTIVE_SHELL" ]; then
   sleep 1
 fi
 
-if meson test -C $BUILD_DIR $test -v; then
+if meson test -C $BUILD_DIR --suite rauc $test -v; then
   touch qemu-test-ok
   echo "RESULT: PASSED"
 else
