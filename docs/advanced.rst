@@ -53,15 +53,16 @@ parameters for certificates and additional parameters to be stored during
 signing.
 Configuring a CA correctly (and securely) is a complex topic and obviously
 exceeds the scope of this documentation.
-As a starting point, the OpenSSL manual pages (especially ca_, req_, x509_, cms_,
-verify_ and config_) and Stefan H. Holek's pki-tutorial_ are useful.
+As a starting point, the OpenSSL manual pages (especially ca_, req_, x509_,
+cms_, verification-options_ and config_) and Stefan H. Holek's pki-tutorial_
+are useful.
 
-.. _ca: https://www.openssl.org/docs/man1.1.1/man1/ca.html
-.. _req: https://www.openssl.org/docs/man1.1.1/man1/req.html
-.. _x509: https://www.openssl.org/docs/man1.1.1/man1/x509.html
-.. _cms: https://www.openssl.org/docs/man1.1.1/man1/cms.html
-.. _verify: https://www.openssl.org/docs/man1.1.1/man1/verify.html
-.. _config: https://www.openssl.org/docs/man1.1.1/man5/config.html
+.. _ca: https://docs.openssl.org/3.4/man1/openssl-ca/
+.. _req: https://docs.openssl.org/3.4/man1/openssl-req/
+.. _x509: https://docs.openssl.org/3.4/man1/openssl-x509/
+.. _cms: https://docs.openssl.org/3.4/man1/openssl-cms/
+.. _verification-options: https://docs.openssl.org/3.4/man1/openssl-verification-options/
+.. _config: https://docs.openssl.org/3.4/man5/config/
 
 .. _pki-tutorial: https://pki-tutorial.readthedocs.io/
 
