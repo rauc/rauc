@@ -775,6 +775,10 @@ void r_context_set_step_percentage(const gchar *name, gint custom_percent)
 
 	percent_difference = custom_percent - step->last_explicit_percent;
 
+	/* skip progress update if percentage did not change */
+	if (percent_difference < 1)
+		return;
+
 	step->percent_done = step->percent_total
 	                     * (percent_difference / 100.0f);
 
