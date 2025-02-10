@@ -11,6 +11,7 @@ from contextlib import contextmanager
 
 import pytest
 from pydbus import SessionBus
+import requests
 
 from helper import run
 
@@ -627,3 +628,38 @@ def system(tmp_path):
     system = System(tmp_path)
 
     yield system
+
+
+class HTTPServer:
+    BASE = "http://127.0.0.1/backend"
+
+    def __init__(self):
+        self.url = f"{self.BASE}/get"
+
+    def setup(self, *, file_path):
+        resp = requests.post(
+            f"{self.BASE}/setup",
+            timeout=5,
+            json={
+                "file_path": file_path,
+            },
+        )
+        resp.raise_for_status()
+
+    def get(self, **kwargs):
+        kwargs.setdefault("timeout", 15)
+        return requests.get(self.url, **kwargs)
+
+    def head(self, **kwargs):
+        kwargs.setdefault("timeout", 5)
+        return requests.head(self.url, **kwargs)
+
+    def get_summary(self):
+        resp = requests.get(f"{self.BASE}/summary", timeout=15)
+        resp.raise_for_status()
+        return resp.json()
+
+
+@pytest.fixture
+def http_server():
+    return HTTPServer()
