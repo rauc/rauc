@@ -1428,9 +1428,10 @@ static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hoo
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
+	g_return_val_if_fail(hook_name, FALSE);
+	g_return_val_if_fail(hook_cmd, FALSE);
+	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
-	g_assert_nonnull(hook_name);
-	g_assert_nonnull(hook_cmd);
 
 	/* mount slot */
 	g_message("Mounting slot %s", slot->device);
