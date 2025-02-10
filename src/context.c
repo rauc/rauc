@@ -328,12 +328,14 @@ static GHashTable *get_system_info_from_handler(GError **error)
 
 	g_hash_table_iter_init(&iter, vars);
 	while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
-		/* legacy handling */
+		/* handle special-purpose variables */
 		if (g_strcmp0(key, "RAUC_SYSTEM_SERIAL") == 0) {
 			r_replace_strdup(&context->system_serial, value);
 		} else if (g_strcmp0(key, "RAUC_SYSTEM_VARIANT") == 0) {
 			/* set variant (overrides possible previous value) */
 			r_replace_strdup(&context->config->system_variant, value);
+		} else if (g_strcmp0(key, "RAUC_SYSTEM_VERSION") == 0) {
+			r_replace_strdup(&context->system_version, value);
 		}
 	}
 
@@ -885,6 +887,7 @@ void r_context_clean(void)
 		g_clear_pointer(&context->boot_id, g_free);
 		g_clear_pointer(&context->machine_id, g_free);
 		g_clear_pointer(&context->system_serial, g_free);
+		g_clear_pointer(&context->system_version, g_free);
 		g_clear_pointer(&context->system_info, g_hash_table_destroy);
 
 		g_clear_pointer(&context->handlerextra, g_free);

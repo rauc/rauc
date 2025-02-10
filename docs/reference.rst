@@ -452,6 +452,10 @@ See details about using handlers in `Custom Handlers (Interface)`_.
     Serial number of the individual board
   :``RAUC_SYSTEM_VARIANT``:
     Sets the RAUC system variant
+  :``RAUC_SYSTEM_VERSION``:
+    Sets the system version (depending on your versioning strategy, this could
+    match the version of a previously installed bundle or be completely
+    independent)
 
   System information is made available to other handlers via environment
   variables that have the exact same name and value.

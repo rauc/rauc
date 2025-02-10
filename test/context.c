@@ -127,11 +127,13 @@ static void test_context_system_info(void)
 	/* Test if special keys are retrieved */
 	g_assert_cmpstr(r_context()->system_serial, ==, "1234");
 	g_assert_cmpstr(r_context()->config->system_variant, ==, "test-variant-x");
+	g_assert_cmpstr(r_context()->system_version, ==, "1.0.0");
 
 	/* Test if configured keys appear in system_info hash table */
 	g_assert_nonnull(r_context()->system_info);
 	g_assert_true(g_hash_table_contains(r_context()->system_info, "RAUC_SYSTEM_SERIAL"));
 	g_assert_true(g_hash_table_contains(r_context()->system_info, "RAUC_SYSTEM_VARIANT"));
+	g_assert_true(g_hash_table_contains(r_context()->system_info, "RAUC_SYSTEM_VERSION"));
 	g_assert_true(g_hash_table_contains(r_context()->system_info, "RAUC_CUSTOM_VARIABLE"));
 	g_assert_false(g_hash_table_contains(r_context()->system_info, "RAUC_TEST_VAR"));
 
