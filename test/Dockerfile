@@ -51,6 +51,7 @@ RUN apt-get install -q -y --no-install-recommends \
   mtd-utils \
   mmc-utils \
   python3-aiohttp \
+  python3-requests \
   nginx-light \
   fdisk
 
