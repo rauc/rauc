@@ -1322,9 +1322,12 @@ static gboolean run_slot_hook_extra_env(const gchar *hook_name, const gchar *hoo
 	gboolean res = FALSE;
 	RaucBundle *bundle;
 
-	g_assert_nonnull(slot);
-	g_assert_nonnull(slot->name);
-	g_assert_nonnull(slot->sclass);
+	g_return_val_if_fail(hook_name, FALSE);
+	g_return_val_if_fail(hook_cmd, FALSE);
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(slot->name, FALSE);
+	g_return_val_if_fail(slot->sclass, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_message("Running slot hook '%s' for %s", hook_cmd, slot->name);
 
