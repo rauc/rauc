@@ -924,12 +924,11 @@ out:
 	return res;
 }
 
-static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, GError **error)
+static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bundledir, RaucManifest *manifest, GHashTable *target_group, gchar **env, GError **error)
 {
 	GError *ierror = NULL;
 	g_autofree gchar* handler_name = NULL;
 	g_autoptr(GPtrArray) handler_args = NULL;
-	g_auto(GStrv) env = NULL;
 	gboolean res = FALSE;
 
 	r_context_begin_step_weighted("launch_and_wait_custom_handler", "Launching update handler", 0, 6);
@@ -956,7 +955,6 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bun
 	}
 	g_ptr_array_add(handler_args, NULL);
 
-	env = prepare_environment(bundledir, manifest, args->transaction, target_group);
 	res = launch_and_wait_handler(args, handler_name, (gchar**) handler_args->pdata, env, error);
 
 out:
@@ -1694,7 +1692,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 
 	if (bundle->manifest->handler_name) {
 		g_message("Using custom handler: %s", bundle->manifest->handler_name);
-		res = launch_and_wait_custom_handler(args, bundle->mount_point, bundle->manifest, target_group, &ierror);
+		res = launch_and_wait_custom_handler(args, bundle->mount_point, bundle->manifest, target_group, handler_env, &ierror);
 	} else {
 		g_debug("Using default installation handler");
 		res = launch_and_wait_default_handler(args, bundle->mount_point, bundle->manifest, target_group, &ierror);
