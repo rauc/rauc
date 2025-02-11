@@ -203,19 +203,7 @@ gboolean determine_slot_states(GError **error)
 	}
 
 	if (!booted) {
-		gboolean extboot = FALSE;
-
-		if (g_strcmp0(r_context()->bootslot, "/dev/nfs") == 0) {
-			g_message("Detected nfs boot, ignoring missing active slot");
-			extboot = TRUE;
-		}
-
 		if (g_strcmp0(r_context()->bootslot, "_external_") == 0) {
-			g_message("Detected explicit external boot, ignoring missing active slot");
-			extboot = TRUE;
-		}
-
-		if (extboot) {
 			/* mark all as inactive */
 			g_debug("Marking all slots as 'inactive'");
 			for (GList *l = slotlist; l != NULL; l = l->next) {
