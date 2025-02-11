@@ -663,11 +663,12 @@ static gchar **add_system_environment(gchar **envp)
  *
  * @param update_source Path to the current bundle mount point
  * @param manifest Currently used manifest
+ * @param transaction Current transaction identifier
  * @param target_group Determined target group
  *
  * @return A newly allocated List of environment variables
  */
-static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest, GHashTable *target_group)
+static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest, gchar *transaction, GHashTable *target_group)
 {
 	GHashTableIter iter;
 	RaucSlot *slot;
@@ -682,6 +683,7 @@ static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest,
 	envp = g_environ_setenv(envp, "RAUC_BUNDLE_MOUNT_POINT", update_source, TRUE);
 	/* Deprecated, included for backwards compatibility: */
 	envp = g_environ_setenv(envp, "RAUC_UPDATE_SOURCE", update_source, TRUE);
+	envp = g_environ_setenv(envp, "RAUC_TRANSACTION_ID", transaction, TRUE);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
@@ -954,7 +956,7 @@ static gboolean launch_and_wait_custom_handler(RaucInstallArgs *args, gchar* bun
 	}
 	g_ptr_array_add(handler_args, NULL);
 
-	env = prepare_environment(bundledir, manifest, target_group);
+	env = prepare_environment(bundledir, manifest, args->transaction, target_group);
 	res = launch_and_wait_handler(args, handler_name, (gchar**) handler_args->pdata, env, error);
 
 out:
@@ -1649,8 +1651,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		goto umount;
 	}
 
-	handler_env = prepare_environment(bundle->mount_point, bundle->manifest, target_group);
-	handler_env = g_environ_setenv(handler_env, "RAUC_TRANSACTION_ID", args->transaction, TRUE);
+	handler_env = prepare_environment(bundle->mount_point, bundle->manifest, args->transaction, target_group);
 
 	if (r_context()->config->preinstall_handler) {
 		g_message("Starting pre install handler: %s", r_context()->config->preinstall_handler);
