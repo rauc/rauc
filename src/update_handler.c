@@ -189,7 +189,6 @@ static gboolean splice_with_progress(GUnixInputStream *image_stream,
 	struct stat stat = {};
 	ssize_t out_size = 0;
 	goffset sum_size = 0;
-	gint last_percent = -1, percent;
 
 	if (fstat(in_fd, &stat)) {
 		int err = errno;
@@ -212,12 +211,9 @@ static gboolean splice_with_progress(GUnixInputStream *image_stream,
 
 		sum_size += out_size;
 
-		percent = sum_size * 100 / stat.st_size;
 		/* emit progress info (but only when in progress context) */
-		if (r_context()->progress && percent != last_percent) {
-			last_percent = percent;
-			r_context_set_step_percentage("copy_image", percent);
-		}
+		if (r_context()->progress)
+			r_context_set_step_percentage("copy_image", sum_size * 100 / stat.st_size);
 	} while (out_size);
 
 	return TRUE;
@@ -694,7 +690,6 @@ static gboolean copy_block_hash_index_image_to_dev(RaucImage *image, RaucSlot *s
 	off_t offset = 0;
 	int target_fd = -1;
 	g_autoptr(RaucStats) zero_stats = NULL;
-	gint last_percent = -1, percent;
 
 	g_return_val_if_fail(image, FALSE);
 	g_return_val_if_fail(slot, FALSE);
@@ -847,12 +842,9 @@ static gboolean copy_block_hash_index_image_to_dev(RaucImage *image, RaucSlot *s
 			target_old->invalid_below = c;
 		}
 
-		percent = (c + 1) * 100 / chunk_count;
 		/* emit progress info (but only when in progress context) */
-		if (r_context()->progress && percent != last_percent) {
-			last_percent = percent;
-			r_context_set_step_percentage("copy_image", percent);
-		}
+		if (r_context()->progress)
+			r_context_set_step_percentage("copy_image", (c + 1) * 100 / chunk_count);
 	}
 
 	/* Seek after the written data so this behaves similar to the simpler write helpers */
