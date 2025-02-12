@@ -1314,9 +1314,12 @@ static gboolean run_slot_hook_extra_env(const gchar *hook_name, const gchar *hoo
 	gboolean res = FALSE;
 	RaucBundle *bundle;
 
-	g_assert_nonnull(slot);
-	g_assert_nonnull(slot->name);
-	g_assert_nonnull(slot->sclass);
+	g_return_val_if_fail(hook_name, FALSE);
+	g_return_val_if_fail(hook_cmd, FALSE);
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(slot->name, FALSE);
+	g_return_val_if_fail(slot->sclass, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_message("Running slot hook '%s' for %s", hook_cmd, slot->name);
 
@@ -1420,9 +1423,10 @@ static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hoo
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
+	g_return_val_if_fail(hook_name, FALSE);
+	g_return_val_if_fail(hook_cmd, FALSE);
+	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
-	g_assert_nonnull(hook_name);
-	g_assert_nonnull(hook_cmd);
 
 	/* mount slot */
 	g_message("Mounting slot %s", slot->device);
@@ -1870,130 +1874,112 @@ out:
 static gboolean img_to_nor_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
-		if (!res) {
+		if (!run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
 	/* erase */
 	g_message("erasing slot device %s", dest_slot->device);
-	res = flash_format_slot(dest_slot->device, &ierror);
-	if (!res) {
+	if (!flash_format_slot(dest_slot->device, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	/* write */
 	g_message("writing slot device %s", dest_slot->device);
-	res = nor_write_slot(image->filename, dest_slot->device, &ierror);
-	if (!res) {
+	if (!nor_write_slot(image->filename, dest_slot->device, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
-		if (!res) {
+		if (!run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
-out:
-	return res;
+	return TRUE;
 }
 
 static gboolean img_to_nand_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
-		if (!res) {
+		if (!run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
 	/* erase */
 	g_message("erasing slot device %s", dest_slot->device);
-	res = flash_format_slot(dest_slot->device, &ierror);
-	if (!res) {
+	if (!flash_format_slot(dest_slot->device, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	/* write */
 	g_message("writing slot device %s", dest_slot->device);
-	res = nand_write_slot(image->filename, dest_slot->device, &ierror);
-	if (!res) {
+	if (!nand_write_slot(image->filename, dest_slot->device, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
-		if (!res) {
+		if (!run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
-out:
-	return res;
+	return TRUE;
 }
 
 static gboolean img_to_fs_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
-		if (!res) {
+		if (!mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
 	/* copy */
-	res = write_image_to_dev(image, dest_slot, &ierror);
-	if (!res) {
+	if (!write_image_to_dev(image, dest_slot, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	if (dest_slot->resize && g_strcmp0(dest_slot->type, "ext4") == 0) {
 		g_message("Resizing %s", dest_slot->device);
-		res = ext4_resize_slot(dest_slot, &ierror);
-		if (!res) {
+		if (!ext4_resize_slot(dest_slot, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
-		if (!res) {
+		if (!mount_and_run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
-out:
-	return res;
+	return TRUE;
 }
 
 static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
@@ -2523,51 +2509,43 @@ static gboolean img_to_boot_raw_fallback_handler(RaucImage *image, RaucSlot *des
 static gboolean img_to_raw_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror);
-		if (!res) {
+		if (!run_slot_hook(hook_name, R_SLOT_HOOK_PRE_INSTALL, image, dest_slot, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
 	/* copy */
-	res = write_image_to_dev(image, dest_slot, &ierror);
-	if (!res) {
+	if (!write_image_to_dev(image, dest_slot, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	/* run slot post install hook if enabled */
 	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror);
-		if (!res) {
+		if (!run_slot_hook(hook_name, R_SLOT_HOOK_POST_INSTALL, image, dest_slot, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
-out:
-	return res;
+	return TRUE;
 }
 
 static gboolean hook_install_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 
 	/* run slot install hook */
-	res = run_slot_hook(hook_name, R_SLOT_HOOK_INSTALL, image, dest_slot, &ierror);
-	if (!res) {
+	if (!run_slot_hook(hook_name, R_SLOT_HOOK_INSTALL, image, dest_slot, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-out:
-	return res;
+	return TRUE;
 }
 
 typedef struct {
