@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import json
 import os
 import socket
 import sys
@@ -56,6 +57,56 @@ async def token_get(request):
         raise web.HTTPUnauthorized(text="bad cookie token")
     else:
         return web.FileResponse(path="test/good-verity-bundle.raucb")
+
+
+def reset_summary(request):
+    request.app["rauc"]["summary"] = {
+        "first_request_headers": {},
+        "requests": 0,
+        "range_requests": [],
+    }
+
+
+@routes.post("/setup")
+async def setup_handler(request):
+    try:
+        data = await request.json()
+        if "file_path" not in data:
+            return web.Response(text="missing file_path", status=400)
+
+        request.app["rauc"]["config"] = data
+        reset_summary(request)
+
+        return web.Response(text="OK")
+    except json.JSONDecodeError:
+        return web.Response(text="bad JSON", status=400)
+
+
+@routes.get("/get")
+async def get_handler(request):
+    config = request.app["rauc"].get("config", {})
+    if not config:
+        return web.Response(text="not set up yet", status=400)
+
+    summary = request.app["rauc"]["summary"]
+    summary["requests"] += 1
+
+    if not summary["first_request_headers"]:
+        summary["first_request_headers"] = dict(request.headers)
+
+    if request.http_range:
+        start = str(request.http_range.start) or ""
+        end = str(request.http_range.stop) or ""
+        summary["range_requests"].append(f"{start}:{end}")
+
+    return web.FileResponse(config["file_path"])
+
+
+@routes.get("/summary")
+async def summary_handler(request):
+    summary = request.app["rauc"].get("summary", {})
+    reset_summary(request)
+    return web.json_response(summary)
 
 
 s = open_socket("/tmp/backend.sock")
