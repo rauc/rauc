@@ -69,8 +69,10 @@ static gchar* get_cmdline_bootname(void)
 	else if (!g_file_get_contents("/proc/cmdline", &contents, NULL, NULL))
 		return NULL;
 
-	if (strstr(contents, "rauc.external") != NULL)
+	if (strstr(contents, "rauc.external") != NULL) {
+		g_message("Detected explicit external boot, ignoring missing active slot");
 		return g_strdup("_external_");
+	}
 
 	bootname = regex_match("rauc\\.slot=(\\S+)", contents);
 	if (bootname)
@@ -87,6 +89,11 @@ static gchar* get_cmdline_bootname(void)
 	}
 
 	bootname = regex_match("root=(\\S+)", contents);
+	if (g_strcmp0(bootname, "/dev/nfs") == 0) {
+		g_message("Detected nfs boot, ignoring missing active slot");
+		g_free(bootname);
+		return g_strdup("_external_");
+	}
 	if (!bootname)
 		bootname = regex_match("systemd\\.verity_root_data=(\\S+)", contents);
 

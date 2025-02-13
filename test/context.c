@@ -49,7 +49,7 @@ static void test_bootslot_nfs_boot(void)
 	r_context_conf()->mock.proc_cmdline = "quiet root=/dev/nfs";
 	g_clear_pointer(&r_context_conf()->bootslot, g_free);
 
-	g_assert_cmpstr(r_context()->bootslot, ==, "/dev/nfs");
+	g_assert_cmpstr(r_context()->bootslot, ==, "_external_");
 
 	r_context_clean();
 }
