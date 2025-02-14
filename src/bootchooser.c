@@ -24,8 +24,10 @@ GQuark r_bootchooser_error_quark(void)
 #define UBOOT_ATTEMPTS_PRIMARY  3
 #define EFIBOOTMGR_NAME "efibootmgr"
 #define GRUB_EDITENV "grub-editenv"
+#define GRUBALT_DEFAULT_ATTEMPTS	"3"
+#define GRUBALT_ATTEMPTS_PRIMARY	"3"
 
-static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "custom", "noop", NULL};
+static const gchar *supported_bootloaders[] = {"barebox", "grub", "grubalt", "uboot", "efi", "custom", "noop", NULL};
 
 gboolean r_boot_is_supported_bootloader(const gchar *bootloader)
 {
@@ -530,6 +532,49 @@ static gboolean grub_get_state(RaucSlot* slot, gboolean *good, GError **error)
 
 	return TRUE;
 }
+/* We assume bootstate to be good if slot is listed in 'BOOT_ORDER' and its
+ * remaining attempts counter is > 0 */
+static gboolean grubalt_get_state(RaucSlot* slot, gboolean *good, GError **error)
+{
+	g_autoptr(GString) order = NULL;
+	g_autoptr(GString) attempts = NULL;
+	g_auto(GStrv) bootnames = NULL;
+	g_autofree gchar *key = NULL;
+	GError *ierror = NULL;
+	gboolean found = FALSE;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(good, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!grub_env_get("BOOT_ORDER", &order, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	/* Scan boot order list for given slot */
+	bootnames = g_strsplit(order->str, " ", -1);
+	for (gchar **bootname = bootnames; *bootname; bootname++) {
+		if (g_strcmp0(*bootname, slot->bootname) == 0) {
+			found = TRUE;
+			break;
+		}
+	}
+	if (!found) {
+		*good = FALSE;
+		return TRUE;
+	}
+
+	/* Check remaining attempts */
+	key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
+	if (!grub_env_get(key, &attempts, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	*good = (atoi(attempts->str) > 0) ? TRUE : FALSE;
+
+	return TRUE;
+}
 
 /* Set slot status values */
 static gboolean grub_set_state(RaucSlot *slot, gboolean good, GError **error)
@@ -549,6 +594,62 @@ static gboolean grub_set_state(RaucSlot *slot, gboolean good, GError **error)
 		g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=0", slot->bootname));
 	}
 
+	if (!grub_env_set(pairs, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static gboolean grubalt_set_state(RaucSlot *slot, gboolean good, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(1, g_free);
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!good) {
+		g_autoptr(GString) order_current = NULL;
+		g_autoptr(GPtrArray) order_new = NULL;
+		g_auto(GStrv) bootnames = NULL;
+		g_autofree gchar *order = NULL;
+
+		if (!grub_env_get("BOOT_ORDER", &order_current, &ierror)) {
+			g_message("Unable to obtain BOOT_ORDER: %s", ierror->message);
+			g_clear_error(&ierror);
+			goto set_left;
+		}
+
+		order_new = g_ptr_array_new();
+		/* Iterate over current boot order */
+		bootnames = g_strsplit(order_current->str, " ", -1);
+		for (gchar **bootname = bootnames; *bootname; bootname++) {
+			/* Skip selected slot, as we want it to be removed */
+			if (g_strcmp0(*bootname, slot->bootname) == 0)
+				continue;
+
+			/* skip empty strings from head or tail */
+			if (g_strcmp0(*bootname, "") == 0)
+				continue;
+
+			g_ptr_array_add(order_new, *bootname);
+		}
+		g_ptr_array_add(order_new, NULL);
+
+		order = g_strjoinv(" ", (gchar**) order_new->pdata);
+		g_ptr_array_add(pairs, g_strdup_printf("BOOT_ORDER=%s", order));
+
+		if (!grub_env_set(pairs, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+	}
+
+set_left:
+
+	g_ptr_array_add(pairs, g_strdup_printf("BOOT_%s_LEFT=%s", slot->bootname, good ? GRUBALT_DEFAULT_ATTEMPTS : "0"));
 	if (!grub_env_set(pairs, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -634,6 +735,64 @@ static RaucSlot* grub_get_primary(GError **error)
 	return primary;
 }
 
+static RaucSlot* grubalt_get_primary(GError **error)
+{
+	g_autoptr(GString) order = NULL;
+	g_auto(GStrv) bootnames = NULL;
+	GError *ierror = NULL;
+	RaucSlot *primary = NULL;
+	RaucSlot *slot;
+	GHashTableIter iter;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!grub_env_get("BOOT_ORDER", &order, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* Iterate over current boot order */
+	bootnames = g_strsplit(order->str, " ", -1);
+	for (gchar **bootname = bootnames; *bootname; bootname++) {
+		/* find matching slot entry */
+		g_hash_table_iter_init(&iter, r_context()->config->slots);
+		while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+			g_autofree gchar *key = NULL;
+			g_autoptr(GString) attempts = NULL;
+
+			if (g_strcmp0(*bootname, slot->bootname) != 0)
+				continue;
+
+			/* Check that > 0 attempts left */
+			key = g_strdup_printf("BOOT_%s_LEFT", slot->bootname);
+			if (!grub_env_get(key, &attempts, &ierror)) {
+				g_propagate_error(error, ierror);
+				return NULL;
+			}
+
+			if (atoi(attempts->str) <= 0)
+				continue;
+
+			primary = slot;
+			break;
+		}
+
+		if (primary)
+			break;
+	}
+
+	if (!primary) {
+		g_set_error_literal(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Unable to find primary boot slot");
+	}
+
+	return primary;
+}
+
+
 /* Set slot as primary boot slot */
 static gboolean grub_set_primary(RaucSlot *slot, GError **error)
 {
@@ -650,6 +809,52 @@ static gboolean grub_set_primary(RaucSlot *slot, GError **error)
 	g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=%i", slot->bootname, 0));
 	g_ptr_array_add(pairs, g_strdup_printf("ORDER=%s", order->str));
 
+	if (!grub_env_set(pairs, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static gboolean grubalt_set_primary(RaucSlot *slot, GError **error)
+{
+	g_autoptr(GString) order_new = NULL;
+	g_autoptr(GString) order_current = NULL;
+	g_auto(GStrv) bootnames = NULL;
+	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(2, g_free);
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* Add updated slot as first entry in new boot order */
+	order_new = g_string_new(slot->bootname);
+
+	if (!grub_env_get("BOOT_ORDER", &order_current, &ierror)) {
+		g_message("Unable to obtain BOOT_ORDER (%s), using defaults", ierror->message);
+		g_clear_error(&ierror);
+
+		order_current = bootchooser_order_primay(slot);
+	}
+
+	/* Iterate over current boot order */
+	bootnames = g_strsplit(order_current->str, " ", -1);
+	for (gchar **bootname = bootnames; *bootname; bootname++) {
+		/* Skip updated slot, as it is already at the beginning */
+		if (g_strcmp0(*bootname, slot->bootname) == 0)
+			continue;
+
+		/* skip empty strings from head or tail */
+		if (g_strcmp0(*bootname, "") == 0)
+			continue;
+
+		g_string_append_c(order_new, ' ');
+		g_string_append(order_new, *bootname);
+	}
+
+	g_ptr_array_add(pairs, g_strdup_printf("BOOT_%s_LEFT=%s", slot->bootname, GRUBALT_ATTEMPTS_PRIMARY));
+	g_ptr_array_add(pairs, g_strdup_printf("BOOT_ORDER=%s", order_new->str));
 	if (!grub_env_set(pairs, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -1670,6 +1875,8 @@ gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 		res = barebox_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
 		res = grub_get_state(slot, good, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "grubalt") == 0) {
+		res = grubalt_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
 		res = uboot_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
@@ -1707,6 +1914,8 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 		res = barebox_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
 		res = grub_set_state(slot, good, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "grubalt") == 0) {
+		res = grubalt_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
 		res = uboot_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
@@ -1746,6 +1955,8 @@ RaucSlot* r_boot_get_primary(GError **error)
 		slot = barebox_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
 		slot = grub_get_primary(&ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "grubalt") == 0) {
+		slot = grubalt_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
 		slot = uboot_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
@@ -1783,6 +1994,8 @@ gboolean r_boot_set_primary(RaucSlot *slot, GError **error)
 		res = barebox_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
 		res = grub_set_primary(slot, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "grubalt") == 0) {
+		res = grubalt_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
 		res = uboot_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
