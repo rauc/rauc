@@ -1110,7 +1110,7 @@ void r_free_image(gpointer data)
 	g_free(image->filename);
 	g_strfreev(image->adaptive);
 	g_strfreev(image->convert);
-	g_clear_pointer(&image->converted, (GDestroyNotify)g_ptr_array_unref);
+	g_clear_pointer(&image->converted, g_ptr_array_unref);
 	g_free(image);
 }
 
@@ -1130,9 +1130,9 @@ void free_manifest(RaucManifest *manifest)
 	g_free(manifest->handler_args);
 	g_free(manifest->hook_name);
 	g_list_free_full(manifest->images, r_free_image);
-	g_clear_pointer(&manifest->meta, (GDestroyNotify)g_hash_table_destroy);
+	g_clear_pointer(&manifest->meta, g_hash_table_destroy);
 	g_free(manifest->hash);
-	g_clear_pointer(&manifest->warnings, (GDestroyNotify)g_ptr_array_unref);
+	g_clear_pointer(&manifest->warnings, g_ptr_array_unref);
 	g_free(manifest);
 }
 
