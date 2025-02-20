@@ -82,7 +82,7 @@ void r_artifact_repo_free(gpointer value)
 	g_free(repo->path);
 	g_free(repo->type);
 	g_free(repo->data_directory);
-	g_clear_pointer(&repo->artifacts, (GDestroyNotify)g_hash_table_destroy);
+	g_clear_pointer(&repo->artifacts, g_hash_table_destroy);
 	if (repo->possible_references)
 		g_ptr_array_free(repo->possible_references, TRUE);
 	g_free(repo);
