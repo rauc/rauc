@@ -86,7 +86,7 @@ void r_nbd_free_server(RaucNBDServer *nbd_srv)
 	g_free(nbd_srv->tls_key);
 	g_free(nbd_srv->tls_ca);
 	g_strfreev(nbd_srv->headers);
-	g_strfreev(nbd_srv->info_headers);
+	g_clear_pointer(&nbd_srv->info_headers, g_ptr_array_unref);
 	g_free(nbd_srv->effective_url);
 	g_free(nbd_srv);
 }
@@ -1032,7 +1032,8 @@ static gboolean nbd_configure(RaucNBDServer *nbd_srv, GError **error)
 	if (nbd_srv->headers)
 		g_variant_dict_insert(&dict, "headers", "^as", nbd_srv->headers);
 	if (nbd_srv->info_headers)
-		g_variant_dict_insert(&dict, "info-headers", "^as", nbd_srv->info_headers);
+		g_variant_dict_insert(&dict, "info-headers", "@as",
+				g_variant_new_strv((const gchar **)nbd_srv->info_headers->pdata, nbd_srv->info_headers->len));
 	v = g_variant_dict_end(&dict);
 	{
 		g_autofree gchar *tmp = g_variant_print(v, TRUE);

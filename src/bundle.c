@@ -2343,7 +2343,8 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 			ibundle->nbd_srv->tls_ca = g_strdup(access_args->tls_ca);
 			ibundle->nbd_srv->tls_no_verify = access_args->tls_no_verify;
 			ibundle->nbd_srv->headers = g_strdupv(access_args->http_headers);
-			ibundle->nbd_srv->info_headers = g_strdupv(access_args->http_info_headers);
+			if (access_args->http_info_headers)
+				ibundle->nbd_srv->info_headers = g_ptr_array_ref(access_args->http_info_headers);
 		}
 		if (!ibundle->nbd_srv->tls_cert)
 			ibundle->nbd_srv->tls_cert = g_strdup(r_context()->config->streaming_tls_cert);
@@ -3283,7 +3284,7 @@ void clear_bundle_access_args(RaucBundleAccessArgs *access_args)
 		g_free(access_args->tls_key);
 		g_free(access_args->tls_ca);
 		g_strfreev(access_args->http_headers);
-		g_strfreev(access_args->http_info_headers);
+		g_clear_pointer(&access_args->http_info_headers, g_ptr_array_unref);
 	}
 
 	memset(access_args, 0, sizeof(*access_args));

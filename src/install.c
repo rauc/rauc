@@ -1526,9 +1526,9 @@ static gchar *system_info_to_header(const gchar *key, const gchar *value)
 	return g_strdup_printf("RAUC-%s: %s", header_key, value);
 }
 
-static gchar **assemble_info_headers(RaucInstallArgs *args)
+static GPtrArray *assemble_info_headers(RaucInstallArgs *args)
 {
-	GPtrArray *headers = g_ptr_array_new_with_free_func(g_free);
+	g_autoptr(GPtrArray) headers = g_ptr_array_new_with_free_func(g_free);
 
 	g_return_val_if_fail(args, NULL);
 
@@ -1569,9 +1569,8 @@ no_std_headers:
 				g_ptr_array_add(headers, header);
 		}
 	}
-	g_ptr_array_add(headers, NULL);
 
-	return (gchar**) g_ptr_array_free(headers, FALSE);
+	return g_steal_pointer(&headers);
 }
 
 gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
