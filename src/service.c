@@ -530,6 +530,12 @@ void set_last_error(const gchar *message)
 		r_installer_set_last_error(r_installer, message);
 }
 
+void set_last_error_code(const int32_t code)
+{
+	if (r_installer)
+		r_installer_set_last_error_code(r_installer, code);
+}
+
 static void send_progress_callback(gint percentage,
 		const gchar *message,
 		gint nesting_depth)

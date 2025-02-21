@@ -95,6 +95,8 @@
     <property name="Operation" type="s" access="read"/>
     <!-- LastError: Holds a message describing the last error that occurred -->
     <property name="LastError" type="s" access="read"/>
+    <!-- LastErrorCode: Holds the code of the last error that occurred -->
+    <property name="LastErrorCode" type="i" access="read"/>
     <!-- Progress: Provides installation progress information in the form
          (percentage, message, nesting depth) -->
     <property name="Progress" type="(isi)" access="read">
