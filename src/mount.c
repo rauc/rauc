@@ -155,7 +155,7 @@ gboolean r_setup_loop(gint fd, gint *loopfd_out, gchar **loopname_out, goffset s
 
 		loopname = g_strdup_printf("/dev/loop%d", loopidx);
 
-		loopfd = open(loopname, O_RDWR|O_CLOEXEC);
+		loopfd = open(loopname, O_RDONLY|O_CLOEXEC);
 		if (loopfd < 0) {
 			int err = errno;
 			/* is this loop dev gone already? */
