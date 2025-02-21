@@ -1735,6 +1735,7 @@ static gpointer install_thread(gpointer data)
 
 	/* clear LastError property */
 	set_last_error("");
+	set_last_error_code(R_INSTALL_ERROR_NOERROR);
 
 	g_debug("thread started for %s", args->name);
 	install_args_update(args, "started");
@@ -1745,6 +1746,7 @@ static gpointer install_thread(gpointer data)
 		g_warning("%s", ierror->message);
 		install_args_update(args, "%s", ierror->message);
 		set_last_error(ierror->message);
+		set_last_error_code(ierror->code);
 		g_clear_error(&ierror);
 	}
 

@@ -111,8 +111,11 @@ static void on_installer_completed(GDBusProxy *proxy, gint result,
 		gpointer data)
 {
 	const gchar *last_error = NULL;
+	int32_t last_error_code = R_INSTALL_ERROR_NOERROR;
 	last_error = r_installer_get_last_error(installer);
+	last_error_code = r_installer_get_last_error_code(installer);
 	g_assert_cmpstr(last_error, ==, "");
+	g_assert_cmpint(last_error_code, ==, R_INSTALL_ERROR_NOERROR);
 	g_assert_cmpint(result, ==, 0);
 	g_main_loop_quit(testloop);
 }
@@ -121,8 +124,11 @@ static void on_installer_completed_failed(GDBusProxy *proxy, gint result,
 		gpointer data)
 {
 	const gchar *last_error = NULL;
+	int32_t last_error_code = R_INSTALL_ERROR_NOERROR;
 	last_error = r_installer_get_last_error(installer);
+	last_error_code = r_installer_get_last_error_code(installer);
 	g_assert_cmpstr(last_error, !=, "");
+	g_assert_cmpint(last_error_code, !=, R_INSTALL_ERROR_NOERROR);
 	g_assert_cmpint(result, !=, 0);
 	g_main_loop_quit(testloop);
 }
@@ -154,6 +160,7 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 {
 	g_autoptr(GQueue) args = g_queue_new();
 	const gchar *operation = NULL, *last_error = NULL;
+	int32_t last_error_code = R_INSTALL_ERROR_NOERROR;
 	GVariant *progress = NULL;
 	const gchar *compatible = NULL;
 	const gchar *variant = NULL;
@@ -217,6 +224,8 @@ static void service_test_install(ServiceFixture *fixture, gconstpointer user_dat
 	g_assert_cmpstr(operation, ==, "idle");
 	last_error = r_installer_get_last_error(installer);
 	g_assert_cmpstr(last_error, ==, "");
+	last_error_code = r_installer_get_last_error_code(installer);
+	g_assert_cmpint(last_error_code, ==, R_INSTALL_ERROR_NOERROR);
 
 	progress = r_installer_get_progress(installer);
 	assert_progress(progress, 0, "", 0);

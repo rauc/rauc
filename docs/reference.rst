@@ -1591,6 +1591,8 @@ Properties
 
 :ref:`LastError <gdbus-property-de-pengutronix-rauc-Installer.LastError>` readable   s
 
+:ref:`LastErrorCode <gdbus-property-de-pengutronix-rauc-Installer.LastErrorCode>` readable   i
+
 :ref:`Progress <gdbus-property-de-pengutronix-rauc-Installer.Progress>` readable   (isi)
 
 :ref:`Compatible <gdbus-property-de-pengutronix-rauc-Installer.Compatible>` readable   s
@@ -1911,6 +1913,18 @@ The "LastError" Property
   LastError  readable   s
 
 Holds the last message of the last error that occurred.
+
+.. _gdbus-property-de-pengutronix-rauc-Installer.LastErrorCode:
+
+The "LastErrorCode" Property
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer:LastErrorCode
+  LastError  readable   i
+
+Returns the error code of the last error.
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.Progress:
 
