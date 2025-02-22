@@ -14,7 +14,7 @@ GQuark r_bootchooser_error_quark(void);
 /**
  * Check if bootloader (name) is supported
  *
- * @param typename Name of bootloader as represented in config
+ * @param bootloader Typename name of bootloader as represented in config
  *
  * @return TRUE if it is supported, otherwise FALSE
  */
