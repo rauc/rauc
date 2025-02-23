@@ -22,6 +22,16 @@ gboolean r_boot_is_supported_bootloader(const gchar *bootloader)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Returns boot ordered bootnames, with the given slot as primary.
+ *
+ * @param slot The primary slot
+ *
+ * @return space-separated list of order slots bootname, otherwise NULL
+ */
+GString *r_bootchooser_order_primary(RaucSlot *slot)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Get current bootname slot.
  *
  * @param config the RaucConfig
@@ -76,67 +86,4 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return TRUE if successful, FALSE if failed
  */
 gboolean r_boot_get_state(RaucSlot *slot, gboolean *good, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gboolean r_barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gboolean r_barebox_set_primary(RaucSlot *slot, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-RaucSlot *r_barebox_get_primary(GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gboolean r_barebox_get_state(RaucSlot* slot, gboolean *good, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gchar *r_custom_get_current_bootname(RaucConfig *config, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gboolean r_custom_set_state(RaucSlot *slot, gboolean good, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gboolean r_custom_set_primary(RaucSlot *slot, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-RaucSlot *r_custom_get_primary(GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gboolean r_custom_get_state(RaucSlot* slot, gboolean *good, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gboolean r_efi_set_state(RaucSlot *slot, gboolean good, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gboolean r_efi_set_primary(RaucSlot *slot, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-RaucSlot *r_efi_get_primary(GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gboolean r_efi_get_state(RaucSlot* slot, gboolean *good, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gboolean r_grub_set_state(RaucSlot *slot, gboolean good, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gboolean r_grub_set_primary(RaucSlot *slot, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-RaucSlot *r_grub_get_primary(GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gboolean r_grub_get_state(RaucSlot* slot, gboolean *good, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gboolean r_uboot_set_state(RaucSlot *slot, gboolean good, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gboolean r_uboot_set_primary(RaucSlot *slot, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-RaucSlot *r_uboot_get_primary(GError **error)
-G_GNUC_WARN_UNUSED_RESULT;
-
-gboolean r_uboot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;

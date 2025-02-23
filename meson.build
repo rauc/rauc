@@ -112,6 +112,11 @@ incdir = include_directories('include')
 sources_rauc = files([
   'src/artifacts.c',
   'src/bootchooser.c',
+  'src/bootloaders/barebox.c',
+  'src/bootloaders/custom.c',
+  'src/bootloaders/efi.c',
+  'src/bootloaders/grub.c',
+  'src/bootloaders/uboot.c',
   'src/bundle.c',
   'src/checksum.c',
   'src/config_file.c',
