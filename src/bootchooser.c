@@ -201,7 +201,7 @@ static gboolean barebox_state_set(GPtrArray *pairs, GError **error)
 }
 
 /* Set slot status values */
-static gboolean barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
+gboolean r_barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
 {
 	GError *ierror = NULL;
 	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(10, g_free);
@@ -233,7 +233,7 @@ static gboolean barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
 }
 
 /* Get slot marked as primary one */
-static RaucSlot *barebox_get_primary(GError **error)
+RaucSlot *r_barebox_get_primary(GError **error)
 {
 	RaucSlot *slot;
 	GHashTableIter iter;
@@ -276,7 +276,7 @@ static RaucSlot *barebox_get_primary(GError **error)
 
 /* We assume a slot to be 'good' if its priority is > 0 AND its remaining
  * attempts counter is > 0 */
-static gboolean barebox_get_state(RaucSlot *slot, gboolean *good, GError **error)
+gboolean r_barebox_get_state(RaucSlot *slot, gboolean *good, GError **error)
 {
 	BareboxSlotState state;
 	GError *ierror = NULL;
@@ -295,7 +295,7 @@ static gboolean barebox_get_state(RaucSlot *slot, gboolean *good, GError **error
 }
 
 /* Set slot as primary boot slot */
-static gboolean barebox_set_primary(RaucSlot *slot, GError **error)
+gboolean r_barebox_set_primary(RaucSlot *slot, GError **error)
 {
 	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(10, g_free);
 	GError *ierror = NULL;
@@ -478,7 +478,7 @@ out:
 
 /* We assume bootstate to be good if slot is listed in 'ORDER', its
  * _TRY=0 and _OK=1 */
-static gboolean grub_get_state(RaucSlot *slot, gboolean *good, GError **error)
+gboolean r_grub_get_state(RaucSlot *slot, gboolean *good, GError **error)
 {
 	g_autoptr(GString) order = NULL;
 	g_autoptr(GString) slot_ok = NULL;
@@ -529,7 +529,7 @@ static gboolean grub_get_state(RaucSlot *slot, gboolean *good, GError **error)
 }
 
 /* Set slot status values */
-static gboolean grub_set_state(RaucSlot *slot, gboolean good, GError **error)
+gboolean r_grub_set_state(RaucSlot *slot, gboolean good, GError **error)
 {
 	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(6, g_free);
 	GError *ierror = NULL;
@@ -555,7 +555,7 @@ static gboolean grub_set_state(RaucSlot *slot, gboolean good, GError **error)
 }
 
 /* Get slot marked as primary one */
-static RaucSlot *grub_get_primary(GError **error)
+RaucSlot *r_grub_get_primary(GError **error)
 {
 	g_autoptr(GString) order = NULL;
 	g_auto(GStrv) bootnames = NULL;
@@ -632,7 +632,7 @@ static RaucSlot *grub_get_primary(GError **error)
 }
 
 /* Set slot as primary boot slot */
-static gboolean grub_set_primary(RaucSlot *slot, GError **error)
+gboolean r_grub_set_primary(RaucSlot *slot, GError **error)
 {
 	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(7, g_free);
 	g_autoptr(GString) order = NULL;
@@ -747,7 +747,7 @@ static gboolean uboot_env_set(const gchar *key, const gchar *value, GError **err
 
 /* We assume bootstate to be good if slot is listed in 'BOOT_ORDER' and its
  * remaining attempts counter is > 0 */
-static gboolean uboot_get_state(RaucSlot *slot, gboolean *good, GError **error)
+gboolean r_uboot_get_state(RaucSlot *slot, gboolean *good, GError **error)
 {
 	g_autoptr(GString) order = NULL;
 	g_autoptr(GString) attempts = NULL;
@@ -790,7 +790,7 @@ static gboolean uboot_get_state(RaucSlot *slot, gboolean *good, GError **error)
 }
 
 /* Set slot status values */
-static gboolean uboot_set_state(RaucSlot *slot, gboolean good, GError **error)
+gboolean r_uboot_set_state(RaucSlot *slot, gboolean good, GError **error)
 {
 	GError *ierror = NULL;
 	g_autofree gchar *key = NULL;
@@ -856,7 +856,7 @@ set_left:
 }
 
 /* Get slot marked as primary one */
-static RaucSlot *uboot_get_primary(GError **error)
+RaucSlot *r_uboot_get_primary(GError **error)
 {
 	g_autoptr(GString) order = NULL;
 	g_auto(GStrv) bootnames = NULL;
@@ -914,7 +914,7 @@ static RaucSlot *uboot_get_primary(GError **error)
 }
 
 /* Set slot as primary boot slot */
-static gboolean uboot_set_primary(RaucSlot *slot, GError **error)
+gboolean r_uboot_set_primary(RaucSlot *slot, GError **error)
 {
 	g_autoptr(GString) order_new = NULL;
 	g_autoptr(GString) order_current = NULL;
@@ -1328,7 +1328,7 @@ static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend
 	return TRUE;
 }
 
-static gboolean efi_set_state(RaucSlot *slot, gboolean good, GError **error)
+gboolean r_efi_set_state(RaucSlot *slot, gboolean good, GError **error)
 {
 	GError *ierror = NULL;
 
@@ -1343,7 +1343,7 @@ static gboolean efi_set_state(RaucSlot *slot, gboolean good, GError **error)
 	return TRUE;
 }
 
-static RaucSlot *efi_get_primary(GError **error)
+RaucSlot *r_efi_get_primary(GError **error)
 {
 	g_autoptr(GList) bootorder_entries = NULL;
 	g_autolist(efi_bootentry) all_entries = NULL;
@@ -1394,7 +1394,7 @@ static RaucSlot *efi_get_primary(GError **error)
 	return primary;
 }
 
-static gboolean efi_set_primary(RaucSlot *slot, GError **error)
+gboolean r_efi_set_primary(RaucSlot *slot, GError **error)
 {
 	GError *ierror = NULL;
 
@@ -1420,7 +1420,7 @@ static gboolean efi_set_primary(RaucSlot *slot, GError **error)
 
 /* We assume bootstate to be good if slot is listed in 'bootorder', otherwise
  * bad */
-static gboolean efi_get_state(RaucSlot *slot, gboolean *good, GError **error)
+gboolean r_efi_get_state(RaucSlot *slot, gboolean *good, GError **error)
 {
 	efi_bootentry *found_entry = NULL;
 	GError *ierror = NULL;
@@ -1565,7 +1565,7 @@ static gboolean custom_backend_set(const gchar *cmd, const gchar *bootname, cons
 }
 
 /* Get current bootname */
-static gchar *custom_get_current_bootname(RaucConfig *config, GError **error)
+gchar *r_custom_get_current_bootname(RaucConfig *config, GError **error)
 {
 	g_autoptr(GSubprocessLauncher) launcher = NULL;
 	g_autoptr(GSubprocess) handle = NULL;
@@ -1629,7 +1629,7 @@ static gchar *custom_get_current_bootname(RaucConfig *config, GError **error)
 }
 
 /* Set slot status values */
-static gboolean custom_set_state(RaucSlot *slot, gboolean good, GError **error)
+gboolean r_custom_set_state(RaucSlot *slot, gboolean good, GError **error)
 {
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -1638,7 +1638,7 @@ static gboolean custom_set_state(RaucSlot *slot, gboolean good, GError **error)
 }
 
 /* Get slot marked as primary one */
-static RaucSlot *custom_get_primary(GError **error)
+RaucSlot *r_custom_get_primary(GError **error)
 {
 	RaucSlot *slot;
 	GHashTableIter iter;
@@ -1677,7 +1677,7 @@ static RaucSlot *custom_get_primary(GError **error)
 }
 
 /* Get state of given slot */
-static gboolean custom_get_state(RaucSlot *slot, gboolean *good, GError **error)
+gboolean r_custom_get_state(RaucSlot *slot, gboolean *good, GError **error)
 {
 	GError *ierror = NULL;
 	g_autofree gchar *ret_str = NULL;
@@ -1707,7 +1707,7 @@ static gboolean custom_get_state(RaucSlot *slot, gboolean *good, GError **error)
 }
 
 /* Set slot as primary boot slot */
-static gboolean custom_set_primary(RaucSlot *slot, GError **error)
+gboolean r_custom_set_primary(RaucSlot *slot, GError **error)
 {
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -1725,7 +1725,7 @@ gchar *r_boot_get_current_bootname(RaucConfig *config, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	if (g_strcmp0(config->system_bootloader, "custom") == 0) {
-		res = custom_get_current_bootname(config, &ierror);
+		res = r_custom_get_current_bootname(config, &ierror);
 	}
 
 	if (ierror) {
@@ -1753,15 +1753,15 @@ gboolean r_boot_get_state(RaucSlot *slot, gboolean *good, GError **error)
 	g_assert_nonnull(slot->bootname);
 
 	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
-		res = barebox_get_state(slot, good, &ierror);
+		res = r_barebox_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
-		res = grub_get_state(slot, good, &ierror);
+		res = r_grub_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
-		res = uboot_get_state(slot, good, &ierror);
+		res = r_uboot_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
-		res = efi_get_state(slot, good, &ierror);
+		res = r_efi_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
-		res = custom_get_state(slot, good, &ierror);
+		res = r_custom_get_state(slot, good, &ierror);
 	} else {
 		g_set_error(
 				error,
@@ -1791,15 +1791,15 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
-		res = barebox_set_state(slot, good, &ierror);
+		res = r_barebox_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
-		res = grub_set_state(slot, good, &ierror);
+		res = r_grub_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
-		res = uboot_set_state(slot, good, &ierror);
+		res = r_uboot_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
-		res = efi_set_state(slot, good, &ierror);
+		res = r_efi_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
-		res = custom_set_state(slot, good, &ierror);
+		res = r_custom_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "noop") == 0) {
 		g_message("noop bootloader: ignore setting slot %s status to %s", slot->name, good ? "good" : "bad");
 		res = TRUE;
@@ -1831,15 +1831,15 @@ RaucSlot *r_boot_get_primary(GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
-		slot = barebox_get_primary(&ierror);
+		slot = r_barebox_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
-		slot = grub_get_primary(&ierror);
+		slot = r_grub_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
-		slot = uboot_get_primary(&ierror);
+		slot = r_uboot_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
-		slot = efi_get_primary(&ierror);
+		slot = r_efi_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
-		slot = custom_get_primary(&ierror);
+		slot = r_custom_get_primary(&ierror);
 	} else {
 		g_set_error(
 				error,
@@ -1869,15 +1869,15 @@ gboolean r_boot_set_primary(RaucSlot *slot, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
-		res = barebox_set_primary(slot, &ierror);
+		res = r_barebox_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "grub") == 0) {
-		res = grub_set_primary(slot, &ierror);
+		res = r_grub_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "uboot") == 0) {
-		res = uboot_set_primary(slot, &ierror);
+		res = r_uboot_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
-		res = efi_set_primary(slot, &ierror);
+		res = r_efi_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
-		res = custom_set_primary(slot, &ierror);
+		res = r_custom_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "noop") == 0) {
 		g_message("noop bootloader: ignore setting slot %s as primary", slot->name);
 		res = TRUE;
