@@ -62,7 +62,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  *
  * @return Primary slot, NULL if detection failed
  */
-RaucSlot* r_boot_get_primary(GError **error)
+RaucSlot *r_boot_get_primary(GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
@@ -75,5 +75,5 @@ G_GNUC_WARN_UNUSED_RESULT;
  *
  * @return TRUE if successful, FALSE if failed
  */
-gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
+gboolean r_boot_get_state(RaucSlot *slot, gboolean *good, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;

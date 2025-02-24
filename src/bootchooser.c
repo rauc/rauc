@@ -61,7 +61,7 @@ typedef struct {
 
 #define BOOTSTATE_PREFIX "bootstate"
 
-static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_state, GError **error)
+static gboolean barebox_state_get(const gchar *bootname, BareboxSlotState *bb_state, GError **error)
 {
 	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
@@ -103,7 +103,7 @@ static gboolean barebox_state_get(const gchar* bootname, BareboxSlotState *bb_st
 
 	for (int i = 0; i < 2; i++) {
 		gchar *endptr = NULL;
-		g_autofree gchar* outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
+		g_autofree gchar *outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
 		if (!outline) {
 			/* Having no error set there was means no content to read */
 			if (ierror == NULL) {
@@ -215,7 +215,7 @@ static gboolean barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
 		if (attempts <= 0)
 			attempts = BAREBOX_STATE_DEFAULT_ATTEMPTS;
 	} else {
-		/* for marking bad, also set priority to 0 */
+		/* For marking bad, also set priority to 0 */
 		attempts = 0;
 		g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".%s.priority=%i",
 				slot->bootname, 0));
@@ -233,7 +233,7 @@ static gboolean barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
 }
 
 /* Get slot marked as primary one */
-static RaucSlot* barebox_get_primary(GError **error)
+static RaucSlot *barebox_get_primary(GError **error)
 {
 	RaucSlot *slot;
 	GHashTableIter iter;
@@ -478,7 +478,7 @@ out:
 
 /* We assume bootstate to be good if slot is listed in 'ORDER', its
  * _TRY=0 and _OK=1 */
-static gboolean grub_get_state(RaucSlot* slot, gboolean *good, GError **error)
+static gboolean grub_get_state(RaucSlot *slot, gboolean *good, GError **error)
 {
 	g_autoptr(GString) order = NULL;
 	g_autoptr(GString) slot_ok = NULL;
@@ -555,7 +555,7 @@ static gboolean grub_set_state(RaucSlot *slot, gboolean good, GError **error)
 }
 
 /* Get slot marked as primary one */
-static RaucSlot* grub_get_primary(GError **error)
+static RaucSlot *grub_get_primary(GError **error)
 {
 	g_autoptr(GString) order = NULL;
 	g_auto(GStrv) bootnames = NULL;
@@ -583,7 +583,7 @@ static RaucSlot* grub_get_primary(GError **error)
 	/* Iterate over current boot order */
 	bootnames = g_strsplit(order->str, " ", -1);
 	for (gchar **bootname = bootnames; *bootname; bootname++) {
-		/* find matching slot entry */
+		/* Find matching slot entry */
 		g_hash_table_iter_init(&iter, r_context()->config->slots);
 		while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 			g_autofree gchar *key = NULL;
@@ -747,7 +747,7 @@ static gboolean uboot_env_set(const gchar *key, const gchar *value, GError **err
 
 /* We assume bootstate to be good if slot is listed in 'BOOT_ORDER' and its
  * remaining attempts counter is > 0 */
-static gboolean uboot_get_state(RaucSlot* slot, gboolean *good, GError **error)
+static gboolean uboot_get_state(RaucSlot *slot, gboolean *good, GError **error)
 {
 	g_autoptr(GString) order = NULL;
 	g_autoptr(GString) attempts = NULL;
@@ -820,7 +820,7 @@ static gboolean uboot_set_state(RaucSlot *slot, gboolean good, GError **error)
 			if (g_strcmp0(*bootname, slot->bootname) == 0)
 				continue;
 
-			/* skip empty strings from head or tail */
+			/* Skip empty strings from head or tail */
 			if (g_strcmp0(*bootname, "") == 0)
 				continue;
 
@@ -856,7 +856,7 @@ set_left:
 }
 
 /* Get slot marked as primary one */
-static RaucSlot* uboot_get_primary(GError **error)
+static RaucSlot *uboot_get_primary(GError **error)
 {
 	g_autoptr(GString) order = NULL;
 	g_auto(GStrv) bootnames = NULL;
@@ -944,7 +944,7 @@ static gboolean uboot_set_primary(RaucSlot *slot, GError **error)
 		if (g_strcmp0(*bootname, slot->bootname) == 0)
 			continue;
 
-		/* skip empty strings from head or tail */
+		/* Skip empty strings from head or tail */
 		if (g_strcmp0(*bootname, "") == 0)
 			continue;
 
@@ -973,8 +973,8 @@ static gboolean uboot_set_primary(RaucSlot *slot, GError **error)
 }
 
 typedef struct {
-	gchar* num;
-	gchar* name;
+	gchar *num;
+	gchar *name;
 	gboolean active;
 } efi_bootentry;
 
@@ -1050,7 +1050,7 @@ static gboolean efi_set_bootnext(gchar *bootnumber, GError **error)
 	return TRUE;
 }
 
-static efi_bootentry* get_efi_entry_by_bootnum(GList *entries, const gchar *bootnum)
+static efi_bootentry *get_efi_entry_by_bootnum(GList *entries, const gchar *bootnum)
 {
 	efi_bootentry *found_entry = NULL;
 
@@ -1163,7 +1163,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 		entry->name = g_match_info_fetch(match, 2);
 
 		/* Remove anything after a tab, as it is most likely path
-		 * information which we don't need. */
+		 * information which we don't need */
 		tab_point = strchr(entry->name, '\t');
 		if (tab_point)
 			*tab_point = '\0';
@@ -1176,7 +1176,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	g_clear_pointer(&regex, g_regex_unref);
 	g_clear_pointer(&match, g_match_info_free);
 
-	/* obtain bootnext */
+	/* Obtain bootnext */
 	regex = g_regex_new("^BootNext: ([0-9a-fA-F]{4})$", G_REGEX_MULTILINE, 0, NULL);
 	if (g_regex_match(regex, stdout_str, 0, &match)) {
 		if (bootnext) {
@@ -1189,7 +1189,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	g_clear_pointer(&regex, g_regex_unref);
 	g_clear_pointer(&match, g_match_info_free);
 
-	/* Obtain boot order */
+	/* Obtain bootorder */
 	regex = g_regex_new("^BootOrder: (\\S+)$", G_REGEX_MULTILINE, 0, NULL);
 	if (!g_regex_match(regex, stdout_str, 0, &match)) {
 		g_set_error(
@@ -1205,7 +1205,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	matched = g_match_info_fetch(match, 1);
 	bootnumorder = g_strsplit(matched, ",", 0);
 
-	/* Iterate over boot entries list in boot order */
+	/* Iterate over boot entries list in bootorder */
 	for (gchar **element = bootnumorder; *element; element++) {
 		efi_bootentry *bentry = get_efi_entry_by_bootnum(entries, *element);
 		if (bentry)
@@ -1234,7 +1234,7 @@ static gboolean efi_set_temp_primary(RaucSlot *slot, GError **error)
 		return FALSE;
 	}
 
-	/* Lookup efi boot entry matching slot. */
+	/* Lookup efi boot entry matching slot */
 	for (GList *entry = entries; entry != NULL; entry = entry->next) {
 		efi_bootentry *efi = entry->data;
 		if (g_strcmp0(efi->name, slot->bootname) == 0) {
@@ -1369,7 +1369,7 @@ static RaucSlot *efi_get_primary(GError **error)
 	for (GList *entry = bootorder_entries; entry != NULL; entry = entry->next) {
 		efi_bootentry *bootentry = entry->data;
 
-		/* find matching slot entry */
+		/* Find matching slot entry */
 		g_hash_table_iter_init(&iter, r_context()->config->slots);
 		while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 			if (g_strcmp0(bootentry->name, slot->bootname) == 0) {
@@ -1420,7 +1420,7 @@ static gboolean efi_set_primary(RaucSlot *slot, GError **error)
 
 /* We assume bootstate to be good if slot is listed in 'bootorder', otherwise
  * bad */
-static gboolean efi_get_state(RaucSlot* slot, gboolean *good, GError **error)
+static gboolean efi_get_state(RaucSlot *slot, gboolean *good, GError **error)
 {
 	efi_bootentry *found_entry = NULL;
 	GError *ierror = NULL;
@@ -1638,7 +1638,7 @@ static gboolean custom_set_state(RaucSlot *slot, gboolean good, GError **error)
 }
 
 /* Get slot marked as primary one */
-static RaucSlot* custom_get_primary(GError **error)
+static RaucSlot *custom_get_primary(GError **error)
 {
 	RaucSlot *slot;
 	GHashTableIter iter;
@@ -1740,7 +1740,7 @@ gchar *r_boot_get_current_bootname(RaucConfig *config, GError **error)
 }
 
 /* Get state of given slot */
-gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
+gboolean r_boot_get_state(RaucSlot *slot, gboolean *good, GError **error)
 {
 	gboolean res = FALSE;
 	GError *ierror = NULL;
@@ -1823,7 +1823,7 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 }
 
 /* Get slot marked as primary one */
-RaucSlot* r_boot_get_primary(GError **error)
+RaucSlot *r_boot_get_primary(GError **error)
 {
 	RaucSlot *slot = NULL;
 	GError *ierror = NULL;
