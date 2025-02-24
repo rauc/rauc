@@ -29,7 +29,7 @@ gboolean r_boot_is_supported_bootloader(const gchar *bootloader)
 	return g_strv_contains(supported_bootloaders, bootloader);
 }
 
-static GString *bootchooser_order_primary(RaucSlot *slot)
+static GString *r_bootchooser_order_primary(RaucSlot *slot)
 {
 	GString *order = NULL;
 	g_autoptr(GList) slots = NULL;
@@ -641,7 +641,7 @@ static gboolean grub_set_primary(RaucSlot *slot, GError **error)
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	order = bootchooser_order_primary(slot);
+	order = r_bootchooser_order_primary(slot);
 
 	g_ptr_array_add(pairs, g_strdup_printf("%s_OK=%i", slot->bootname, 1));
 	g_ptr_array_add(pairs, g_strdup_printf("%s_TRY=%i", slot->bootname, 0));
@@ -934,7 +934,7 @@ static gboolean uboot_set_primary(RaucSlot *slot, GError **error)
 		g_message("Unable to obtain BOOT_ORDER (%s), using defaults", ierror->message);
 		g_clear_error(&ierror);
 
-		order_current = bootchooser_order_primary(slot);
+		order_current = r_bootchooser_order_primary(slot);
 	}
 
 	/* Iterate over current boot order */
