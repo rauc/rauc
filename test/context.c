@@ -121,7 +121,7 @@ static void test_bootslot_custom_bootloader_no_bootslot(void)
 	r_context_conf()->mock.proc_cmdline = "quiet";
 	g_clear_pointer(&r_context_conf()->bootslot, g_free);
 
-	g_assert_cmpstr(r_context()->bootslot, ==, "");
+	g_assert_null(r_context()->bootslot);
 
 	r_context_clean();
 }

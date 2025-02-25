@@ -1616,7 +1616,7 @@ static gchar *custom_backend_get_bootname(RaucConfig *config, GError **error)
 				config->custom_bootloader_backend);
 		return NULL;
 	}
-	if (!outline) {
+	if (!outline || *outline == 0) {
 		g_set_error(
 				error,
 				R_BOOTCHOOSER_ERROR,
