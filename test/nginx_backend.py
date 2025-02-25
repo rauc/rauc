@@ -62,6 +62,7 @@ async def token_get(request):
 def reset_summary(request):
     request.app["rauc"]["summary"] = {
         "first_request_headers": {},
+        "second_request_headers": {},
         "requests": 0,
         "range_requests": [],
     }
@@ -93,6 +94,8 @@ async def get_handler(request):
 
     if not summary["first_request_headers"]:
         summary["first_request_headers"] = dict(request.headers)
+    elif not summary["second_request_headers"]:
+        summary["second_request_headers"] = dict(request.headers)
 
     if request.http_range:
         start = str(request.http_range.start) or ""
