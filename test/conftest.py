@@ -361,7 +361,7 @@ def rauc_no_service(create_system_files, tmp_path):
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_files, system):
+def rauc_dbus_service_with_system(tmp_path, create_system_files, system):
     system.prepare_minimal_config()
     system.write_config()
     with system.running_service("A"):
@@ -369,7 +369,7 @@ def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_file
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_system_files, system):
+def rauc_dbus_service_with_system_crypt(tmp_path, create_system_files, system):
     system.prepare_crypt_config()
     system.write_config()
     with system.running_service("A"):
@@ -377,7 +377,7 @@ def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_syste
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_system_files, system):
+def rauc_dbus_service_with_system_external(tmp_path, create_system_files, system):
     system.prepare_minimal_config()
     system.write_config()
     with system.running_service("_external_"):
@@ -385,7 +385,7 @@ def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_sy
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_system_files, system):
+def rauc_dbus_service_with_system_adaptive(tmp_path, create_system_files, system):
     system.prepare_adaptive_config()
     system.write_config()
     with system.running_service("A"):
@@ -393,7 +393,7 @@ def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_sy
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system_abc(tmp_path, dbus_session_bus, create_system_files, system):
+def rauc_dbus_service_with_system_abc(tmp_path, create_system_files, system):
     system.prepare_abc_config()
     system.write_config()
     with system.running_service("A"):
@@ -401,7 +401,7 @@ def rauc_dbus_service_with_system_abc(tmp_path, dbus_session_bus, create_system_
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system_composefs(tmp_path, dbus_session_bus, create_system_files, system):
+def rauc_dbus_service_with_system_composefs(tmp_path, create_system_files, system):
     system.prepare_composefs_config()
     system.write_config()
     with system.running_service("A"):
@@ -625,7 +625,7 @@ class System:
 
 
 @pytest.fixture
-def system(tmp_path):
+def system(tmp_path, dbus_session_bus):
     system = System(tmp_path)
 
     yield system
