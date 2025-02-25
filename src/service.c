@@ -163,7 +163,7 @@ static gboolean r_on_handle_inspect_bundle(RInstaller *interface,
 		GDBusMethodInvocation  *invocation,
 		const gchar *arg_bundle, GVariant *arg_args)
 {
-	RaucBundleAccessArgs access_args = {0};
+	g_auto(RaucBundleAccessArgs) access_args = {0};
 	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(arg_args);
 	g_autoptr(GVariant) remaining = NULL;
 	GVariantIter iter;
