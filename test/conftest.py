@@ -300,9 +300,6 @@ def pkcs11(tmp_path_factory):
 
 @pytest.fixture(scope="session")
 def dbus_session_bus(tmp_path_factory):
-    if not have_service():
-        pytest.skip("No service")
-
     addr_r_fd, addr_w_fd = os.pipe()
 
     try:
@@ -589,6 +586,10 @@ class System:
 
     @contextmanager
     def running_service(self, bootslot):
+        if not have_service():
+            # TODO avoid unnescesary setup by moving using a pytest mark for all service/noservice cases
+            pytest.skip("No service")
+
         assert self.service is None
         assert self.proxy is None
 
