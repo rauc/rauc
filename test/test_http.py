@@ -1,7 +1,10 @@
 import json
 import uuid
 
-from conftest import have_json
+import pytest
+from dasbus.typing import get_native, get_variant
+
+from conftest import have_json, have_service
 from helper import run
 
 
@@ -60,9 +63,13 @@ def is_uptime(value):
     return True
 
 
+@pytest.mark.parametrize("api", ["cli", "dbus"])
 @have_json
-def test_info_headers(create_system_files, system, http_server):
+def test_info_headers(create_system_files, system, http_server, api):
     """Test if the info command sends custom headers correctly."""
+    if api == "dbus" and not have_service():
+        pytest.skip("Missing service")
+
     system.prepare_minimal_config()
     system.config["handlers"] = {
         "system-info": "bin/systeminfo.sh",
@@ -75,12 +82,23 @@ def test_info_headers(create_system_files, system, http_server):
         file_path="test/good-verity-bundle.raucb",
     )
 
-    out, err, exitcode = run(
-        f"{system.prefix} info {http_server.url} --output-format=json -H 'Test-Header: Test-Value'"
-    )
-    assert exitcode == 0
-    info = json.loads(out)
-    assert info["compatible"] == "Test Config"
+    if api == "cli":
+        out, err, exitcode = run(
+            f"{system.prefix} info {http_server.url} --output-format=json -H 'Test-Header: Test-Value'"
+        )
+        assert exitcode == 0
+        info = json.loads(out)
+        assert info["compatible"] == "Test Config"
+    elif api == "dbus":
+        with system.running_service("A"):
+            info = system.proxy.InspectBundle(
+                http_server.url,
+                {
+                    "http-headers": get_variant("as", ["Test-Header: Test-Value"]),
+                },
+            )
+        info = get_native(info)
+        assert info["update"]["compatible"] == "Test Config"
 
     summary = http_server.get_summary()
     assert summary["requests"] == 3
