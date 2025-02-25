@@ -10,7 +10,8 @@ from random import Random
 from contextlib import contextmanager
 
 import pytest
-from pydbus import SessionBus
+from dasbus.connection import SessionMessageBus
+from dasbus.error import DBusError
 import requests
 
 from helper import run
@@ -601,16 +602,17 @@ class System:
             env=env,
         )
 
-        bus = SessionBus()
+        bus = SessionMessageBus()
 
         # Wait for de.pengutronix.rauc to appear on the bus
         timeout = time.monotonic() + 5.0
         while True:
             time.sleep(0.1)
             try:
-                self.proxy = bus.get("de.pengutronix.rauc", "/")
+                self.proxy = bus.get_proxy("de.pengutronix.rauc", "/")
+                self.proxy.Operation  # try to access the service
                 break
-            except Exception:
+            except DBusError:
                 if time.monotonic() > timeout:
                     raise
 
