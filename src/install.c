@@ -1526,11 +1526,9 @@ static gchar *system_info_to_header(const gchar *key, const gchar *value)
 	return g_strdup_printf("RAUC-%s: %s", header_key, value);
 }
 
-static GPtrArray *assemble_info_headers(RaucInstallArgs *args)
+static GPtrArray *assemble_info_headers(const gchar *transaction)
 {
 	g_autoptr(GPtrArray) headers = g_ptr_array_new_with_free_func(g_free);
-
-	g_return_val_if_fail(args, NULL);
 
 	if (!r_context()->config->enabled_headers)
 		goto no_std_headers;
@@ -1546,8 +1544,8 @@ static GPtrArray *assemble_info_headers(RaucInstallArgs *args)
 		if (g_strcmp0(*header, "variant") == 0)
 			g_ptr_array_add(headers, g_strdup_printf("RAUC-Variant: %s", r_context()->config->system_variant));
 		/* Add per-installation information */
-		if (g_strcmp0(*header, "transaction-id") == 0)
-			g_ptr_array_add(headers, g_strdup_printf("RAUC-Transaction-ID: %s", args->transaction));
+		if (g_strcmp0(*header, "transaction-id") == 0 && transaction != NULL)
+			g_ptr_array_add(headers, g_strdup_printf("RAUC-Transaction-ID: %s", transaction));
 		/* Add live information */
 		if (g_strcmp0(*header, "uptime") == 0) {
 			g_autofree gchar *uptime = get_uptime();
@@ -1604,7 +1602,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	// TODO: mount info in context ?
 	install_args_update(args, "Checking and mounting bundle...");
 
-	args->access_args.http_info_headers = assemble_info_headers(args);
+	args->access_args.http_info_headers = assemble_info_headers(args->transaction);
 
 	res = check_bundle(bundlefile, &bundle, CHECK_BUNDLE_DEFAULT, &args->access_args, &ierror);
 	if (!res) {
