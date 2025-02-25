@@ -4,8 +4,6 @@
 
 #include <context.h>
 
-#include "common.h"
-
 static void test_bootslot_rauc_slot(void)
 {
 	r_context_conf()->configpath = g_strdup("test/test.conf");
