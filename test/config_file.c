@@ -50,6 +50,7 @@ bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
 statusfile=/mnt/persistent-rw-fs/system.raucs\n\
 max-bundle-download-size=42\n\
+max-bundle-signature-size=32\n\
 bundle-formats=verity\n\
 \n\
 [keyring]\n\
@@ -759,6 +760,39 @@ static void config_file_typo_in_uint64_max_bundle_download_size(ConfigFileFixtur
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 max-bundle-download-size=no-uint64\n");
+}
+
+static void config_file_zero_max_bundle_signature_size(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	GError *ierror = NULL;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+max-bundle-signature-size=0\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "zero_max_bundle_signature_size.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_MAX_BUNDLE_SIGNATURE_SIZE);
+	g_assert_null(config);
+
+	g_clear_error(&ierror);
+}
+
+static void config_file_typo_in_uint64_max_bundle_signature_size(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	config_file_typo(fixture, "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+max-bundle-signature-size=no-uint64\n");
 }
 
 static void config_file_activate_installed_set_to_true(ConfigFileFixture *fixture,
@@ -1626,6 +1660,12 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-uint64-max-bundle-download-size", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_typo_in_uint64_max_bundle_download_size,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/zero-max-bundle-signature-size", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_zero_max_bundle_signature_size,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/typo-in-uint64-max-bundle-signature-size", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_typo_in_uint64_max_bundle_signature_size,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/activate-installed-key-set-to-true", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_activate_installed_set_to_true,
