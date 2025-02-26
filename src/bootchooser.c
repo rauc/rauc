@@ -1567,6 +1567,70 @@ static gboolean custom_backend_set(const gchar *cmd, const gchar *bootname, cons
 	return TRUE;
 }
 
+/* Get current bootname */
+static gchar *custom_get_current_bootname(RaucConfig *config, GError **error)
+{
+	g_autoptr(GSubprocessLauncher) launcher = NULL;
+	g_autoptr(GSubprocess) handle = NULL;
+	g_autoptr(GDataInputStream) datainstream = NULL;
+	g_autoptr(GPtrArray) args_array = NULL;
+	g_autoptr(GError) ierror = NULL;
+	g_autofree gchar *outline = NULL;
+	GInputStream *instream;
+	int res;
+
+	args_array = g_ptr_array_new();
+	g_ptr_array_add(args_array, config->custom_bootloader_backend);
+	g_ptr_array_add(args_array, (gchar *)("get-current"));
+	g_ptr_array_add(args_array, NULL);
+
+	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE);
+	handle = r_subprocess_launcher_spawnv(launcher, args_array, &ierror);
+	if (handle == NULL) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run custom backend '%s': ",
+				config->custom_bootloader_backend);
+		return NULL;
+	}
+
+	instream = g_subprocess_get_stdout_pipe(handle);
+	datainstream = g_data_input_stream_new(instream);
+	outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
+	if (ierror) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to read custom backend output '%s': ",
+				config->custom_bootloader_backend);
+		return NULL;
+	}
+
+	res = g_subprocess_wait_check(handle, NULL, &ierror);
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to get custom backend output '%s': ",
+				config->custom_bootloader_backend);
+		return NULL;
+	}
+	if (!outline || *outline == 0) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Failed to get custom backend bootname '%s': no output",
+				config->custom_bootloader_backend);
+		return NULL;
+	}
+
+	g_debug("Resolved custom backend bootname to %s", outline);
+
+	return g_steal_pointer(&outline);
+}
+
 /* Set slot status values */
 static gboolean custom_set_state(RaucSlot *slot, gboolean good, GError **error)
 {
@@ -1615,7 +1679,7 @@ static RaucSlot* custom_get_primary(GError **error)
 	return primary;
 }
 
-/* Get state of current slot */
+/* Get state of given slot */
 static gboolean custom_get_state(RaucSlot *slot, gboolean *good, GError **error)
 {
 	GError *ierror = NULL;
@@ -1654,6 +1718,31 @@ static gboolean custom_set_primary(RaucSlot *slot, GError **error)
 	return custom_backend_set("set-primary", slot->bootname, NULL, error);
 }
 
+/* Get current bootname */
+gchar *r_boot_get_current_bootname(RaucConfig *config, GError **error)
+{
+	GError *ierror = NULL;
+	gchar *res = NULL;
+
+	g_return_val_if_fail(config, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	if (g_strcmp0(config->system_bootloader, "custom") == 0) {
+		res = custom_get_current_bootname(config, &ierror);
+	}
+
+	if (ierror) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"%s backend: ", config->system_bootloader);
+		return NULL;
+	}
+
+	return res;
+}
+
+/* Get state of given slot */
 gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 {
 	gboolean res = FALSE;
@@ -1695,6 +1784,7 @@ gboolean r_boot_get_state(RaucSlot* slot, gboolean *good, GError **error)
 	return res;
 }
 
+/* Set slot status values */
 gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 {
 	gboolean res = FALSE;
@@ -1735,6 +1825,7 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 	return res;
 }
 
+/* Get slot marked as primary one */
 RaucSlot* r_boot_get_primary(GError **error)
 {
 	RaucSlot *slot = NULL;
@@ -1771,6 +1862,7 @@ RaucSlot* r_boot_get_primary(GError **error)
 	return slot;
 }
 
+/* Set slot as primary boot slot */
 gboolean r_boot_set_primary(RaucSlot *slot, GError **error)
 {
 	gboolean res = FALSE;

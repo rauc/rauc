@@ -4,8 +4,6 @@
 
 #include <context.h>
 
-#include "common.h"
-
 static void test_bootslot_rauc_slot(void)
 {
 	r_context_conf()->configpath = g_strdup("test/test.conf");
@@ -115,6 +113,19 @@ static void test_bootslot_custom_bootloader(void)
 	r_context_clean();
 }
 
+static void test_bootslot_custom_bootloader_no_bootslot(void)
+{
+	r_context_conf()->configpath = g_strdup("test/test-custom.conf");
+	r_context_conf()->configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
+	g_assert_true(g_setenv("CUSTOM_STATE_PATH", "/dev/null", TRUE));
+	r_context_conf()->mock.proc_cmdline = "quiet";
+	g_clear_pointer(&r_context_conf()->bootslot, g_free);
+
+	g_assert_null(r_context()->bootslot);
+
+	r_context_clean();
+}
+
 /* Tests that the infos provided by the configured system-info handler make it
  * into RAUC's system information.
  */
@@ -182,6 +193,8 @@ int main(int argc, char *argv[])
 	g_test_add_func("/context/bootslot/no-bootslot", test_bootslot_no_bootslot);
 
 	g_test_add_func("/context/bootslot/custom-bootslot", test_bootslot_custom_bootloader);
+
+	g_test_add_func("/context/bootslot/custom-bootslot_no_bootslot", test_bootslot_custom_bootloader_no_bootslot);
 
 	g_test_add_func("/context/system-info", test_context_system_info);
 
