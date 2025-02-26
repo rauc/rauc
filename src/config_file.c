@@ -22,6 +22,7 @@ void default_config(RaucConfig **config)
 	RaucConfig *c = g_new0(RaucConfig, 1);
 
 	c->max_bundle_download_size = DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE;
+	c->max_bundle_signature_size = DEFAULT_MAX_BUNDLE_SIGNATURE_SIZE;
 	c->mount_prefix = g_strdup("/mnt/rauc/");
 	/* When installing, we need a system.conf anyway, so this is used only
 	 * for info/convert/extract/...
