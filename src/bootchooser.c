@@ -1568,7 +1568,7 @@ static gboolean custom_backend_set(const gchar *cmd, const gchar *bootname, cons
 }
 
 /* Get current bootname */
-static gchar *custom_backend_get_bootname(RaucConfig *config, GError **error)
+static gchar *custom_get_current_bootname(RaucConfig *config, GError **error)
 {
 	g_autoptr(GSubprocessLauncher) launcher = NULL;
 	g_autoptr(GSubprocess) handle = NULL;
@@ -1728,7 +1728,7 @@ gchar *r_boot_get_current_bootname(RaucConfig *config, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	if (g_strcmp0(config->system_bootloader, "custom") == 0) {
-		res = custom_backend_get_bootname(config, &ierror);
+		res = custom_get_current_bootname(config, &ierror);
 	}
 
 	if (ierror) {
