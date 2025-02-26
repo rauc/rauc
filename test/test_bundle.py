@@ -239,3 +239,10 @@ def test_bundle_min_rauc_version(bundle):
     assert "Creating 'verity' format bundle" in out
     assert "Minimum RAUC version field in manifest is only supported since 1.14 (not '1.13')" in err
     assert not bundle.output.is_file()
+
+
+def test_rollout_options(bundle):
+    bundle.manifest["rollout"] = {
+        "foo": "bar",
+    }
+    bundle.build()
