@@ -296,3 +296,24 @@ def test_install_hook_env(rauc_dbus_service_with_system, tmp_path, bundle):
         assert "RAUC_IMAGE_SIZE=4096\n" in install_lines
         assert "RAUC_SLOT_NAME=appfs.1\n" in install_lines
         assert "RAUC_SLOT_STATE=inactive\n" in install_lines
+
+
+@have_streaming
+def test_install_require_hash(rauc_dbus_service_with_system, tmp_path):
+    GOOD_HASH = "2a7c9b2a31f11575deef280812e714fdb4542b55d308e39e85352ff996d79b8a"
+    BAD_HASH = GOOD_HASH[:-1] + "0"
+
+    assert os.path.exists(tmp_path / "images/rootfs-1")
+    assert not os.path.getsize(tmp_path / "images/rootfs-1") > 0
+
+    out, err, exitcode = run(
+        f"rauc install http://127.0.0.1/test/good-verity-bundle.raucb --require-manifest-hash={BAD_HASH}"
+    )
+    assert exitcode == 1
+    assert os.path.getsize(tmp_path / "images/rootfs-1") == 0
+
+    out, err, exitcode = run(
+        f"rauc install http://127.0.0.1/test/good-verity-bundle.raucb --require-manifest-hash={GOOD_HASH}"
+    )
+    assert exitcode == 0
+    assert os.path.getsize(tmp_path / "images/rootfs-1") > 0

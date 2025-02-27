@@ -1653,6 +1653,15 @@ IN a{sv} *args*:
         identifying the (installation) transaction.
         If not given, RAUC will generate a random one.
 
+    :STRING 'require-manifest-hash', VARIANT 's' <HASH>:
+       Check that the manifest hash of the to-be-installed bundle's matches the
+       expected value.
+       This can be used when explicit confirmation is needed before installing a
+       bundle by first reviewing the information returned by ``InspectBundle``
+       and then passing the hash here.
+       If the bundle was replaced by a different (but correctly signed) bundle,
+       this is detected by comparing the manifest hashes.
+
     :STRING 'tls-cert', VARIANT 's' <filename/pkcs11-url>: Use the provided
         certificate for TLS client authentication
 

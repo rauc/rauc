@@ -29,9 +29,11 @@ typedef struct {
 	GMutex status_mutex;
 	GQueue status_messages;
 	gint status_result;
+
 	/* install options */
 	gboolean ignore_compatible;
 	gboolean ignore_version_limit;
+	gchar *require_manifest_hash;
 	gchar *transaction;
 	RaucBundleAccessArgs access_args;
 } RaucInstallArgs;
