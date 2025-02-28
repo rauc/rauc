@@ -84,7 +84,7 @@ def test_status_mark_bad_other(rauc_dbus_service_with_system_abc):
 
 
 @have_grub
-def test_status_mark_prevent_late_fallback(tmp_path, dbus_session_bus, create_system_files, system):
+def test_status_mark_prevent_late_fallback(tmp_path, create_system_files, system):
     system.prepare_abc_config()
     system.config["system"]["prevent-late-fallback"] = "true"
     system.write_config()

@@ -10,7 +10,8 @@ from random import Random
 from contextlib import contextmanager
 
 import pytest
-from pydbus import SessionBus
+from dasbus.connection import SessionMessageBus
+from dasbus.error import DBusError
 import requests
 
 from helper import run
@@ -300,9 +301,6 @@ def pkcs11(tmp_path_factory):
 
 @pytest.fixture(scope="session")
 def dbus_session_bus(tmp_path_factory):
-    if not have_service():
-        pytest.skip("No service")
-
     addr_r_fd, addr_w_fd = os.pipe()
 
     try:
@@ -364,7 +362,7 @@ def rauc_no_service(create_system_files, tmp_path):
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_files, system):
+def rauc_dbus_service_with_system(tmp_path, create_system_files, system):
     system.prepare_minimal_config()
     system.write_config()
     with system.running_service("A"):
@@ -372,7 +370,7 @@ def rauc_dbus_service_with_system(tmp_path, dbus_session_bus, create_system_file
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_system_files, system):
+def rauc_dbus_service_with_system_crypt(tmp_path, create_system_files, system):
     system.prepare_crypt_config()
     system.write_config()
     with system.running_service("A"):
@@ -380,7 +378,7 @@ def rauc_dbus_service_with_system_crypt(tmp_path, dbus_session_bus, create_syste
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_system_files, system):
+def rauc_dbus_service_with_system_external(tmp_path, create_system_files, system):
     system.prepare_minimal_config()
     system.write_config()
     with system.running_service("_external_"):
@@ -388,7 +386,7 @@ def rauc_dbus_service_with_system_external(tmp_path, dbus_session_bus, create_sy
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_system_files, system):
+def rauc_dbus_service_with_system_adaptive(tmp_path, create_system_files, system):
     system.prepare_adaptive_config()
     system.write_config()
     with system.running_service("A"):
@@ -396,7 +394,7 @@ def rauc_dbus_service_with_system_adaptive(tmp_path, dbus_session_bus, create_sy
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system_abc(tmp_path, dbus_session_bus, create_system_files, system):
+def rauc_dbus_service_with_system_abc(tmp_path, create_system_files, system):
     system.prepare_abc_config()
     system.write_config()
     with system.running_service("A"):
@@ -404,7 +402,7 @@ def rauc_dbus_service_with_system_abc(tmp_path, dbus_session_bus, create_system_
 
 
 @pytest.fixture
-def rauc_dbus_service_with_system_composefs(tmp_path, dbus_session_bus, create_system_files, system):
+def rauc_dbus_service_with_system_composefs(tmp_path, create_system_files, system):
     system.prepare_composefs_config()
     system.write_config()
     with system.running_service("A"):
@@ -589,6 +587,10 @@ class System:
 
     @contextmanager
     def running_service(self, bootslot):
+        if not have_service():
+            # TODO avoid unnescesary setup by moving using a pytest mark for all service/noservice cases
+            pytest.skip("No service")
+
         assert self.service is None
         assert self.proxy is None
 
@@ -600,16 +602,17 @@ class System:
             env=env,
         )
 
-        bus = SessionBus()
+        bus = SessionMessageBus()
 
         # Wait for de.pengutronix.rauc to appear on the bus
         timeout = time.monotonic() + 5.0
         while True:
             time.sleep(0.1)
             try:
-                self.proxy = bus.get("de.pengutronix.rauc", "/")
+                self.proxy = bus.get_proxy("de.pengutronix.rauc", "/")
+                self.proxy.Operation  # try to access the service
                 break
-            except Exception:
+            except DBusError:
                 if time.monotonic() > timeout:
                     raise
 
@@ -625,7 +628,7 @@ class System:
 
 
 @pytest.fixture
-def system(tmp_path):
+def system(tmp_path, dbus_session_bus):
     system = System(tmp_path)
 
     yield system
