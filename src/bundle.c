@@ -3326,16 +3326,16 @@ GPtrArray *assemble_info_headers(const gchar *transaction)
 
 	for (gchar **header = r_context()->config->enabled_headers; *header; header++) {
 		/* Add static system information */
-		if (g_strcmp0(*header, "boot-id") == 0)
+		if (g_strcmp0(*header, "boot-id") == 0 && r_context()->boot_id)
 			g_ptr_array_add(headers, g_strdup_printf("RAUC-Boot-ID: %s", r_context()->boot_id));
-		if (g_strcmp0(*header, "machine-id") == 0)
+		if (g_strcmp0(*header, "machine-id") == 0 && r_context()->machine_id)
 			g_ptr_array_add(headers, g_strdup_printf("RAUC-Machine-ID: %s", r_context()->machine_id));
-		if (g_strcmp0(*header, "serial") == 0)
+		if (g_strcmp0(*header, "serial") == 0 && r_context()->system_serial)
 			g_ptr_array_add(headers, g_strdup_printf("RAUC-Serial: %s", r_context()->system_serial));
-		if (g_strcmp0(*header, "variant") == 0)
+		if (g_strcmp0(*header, "variant") == 0 && r_context()->config->system_variant)
 			g_ptr_array_add(headers, g_strdup_printf("RAUC-Variant: %s", r_context()->config->system_variant));
 		/* Add per-installation information */
-		if (g_strcmp0(*header, "transaction-id") == 0 && transaction != NULL)
+		if (g_strcmp0(*header, "transaction-id") == 0 && transaction)
 			g_ptr_array_add(headers, g_strdup_printf("RAUC-Transaction-ID: %s", transaction));
 		/* Add live information */
 		if (g_strcmp0(*header, "uptime") == 0) {
