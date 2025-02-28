@@ -3330,6 +3330,8 @@ GPtrArray *assemble_info_headers(const gchar *transaction)
 			g_ptr_array_add(headers, g_strdup_printf("RAUC-Boot-ID: %s", r_context()->boot_id));
 		if (g_strcmp0(*header, "machine-id") == 0 && r_context()->machine_id)
 			g_ptr_array_add(headers, g_strdup_printf("RAUC-Machine-ID: %s", r_context()->machine_id));
+		if (g_strcmp0(*header, "system-version") == 0 && r_context()->system_version)
+			g_ptr_array_add(headers, g_strdup_printf("RAUC-System-Version: %s", r_context()->system_version));
 		if (g_strcmp0(*header, "serial") == 0 && r_context()->system_serial)
 			g_ptr_array_add(headers, g_strdup_printf("RAUC-Serial: %s", r_context()->system_serial));
 		if (g_strcmp0(*header, "variant") == 0 && r_context()->config->system_variant)
