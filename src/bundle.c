@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #include "bundle.h"
+#include "config_file.h"
 #include "context.h"
 #include "crypt.h"
 #include "manifest.h"
@@ -856,6 +857,11 @@ static gboolean append_signature_to_bundle(const gchar *bundlename, GBytes *sig,
 	}
 
 	offset = g_seekable_tell(G_SEEKABLE(bundlestream)) - offset;
+	if (offset > DEFAULT_MAX_BUNDLE_SIGNATURE_SIZE) {
+		g_autofree gchar* formatted_sigsize = g_format_size_full(offset, G_FORMAT_SIZE_IEC_UNITS);
+		g_autofree gchar* formatted_defaultsize = g_format_size_full(DEFAULT_MAX_BUNDLE_SIGNATURE_SIZE, G_FORMAT_SIZE_IEC_UNITS);
+		g_message("Resulting signature size of %s exceeds default of %s. Make sure to set 'max-bundle-signature-size' in your target's system.conf to a sufficiently high value.", formatted_sigsize, formatted_defaultsize);
+	}
 	if (!output_stream_write_uint64_all(bundleoutstream, offset, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
