@@ -618,6 +618,7 @@ class System:
         self.service.terminate()
         try:
             self.service.wait(timeout=10)
+            assert self.service.returncode == 0
         except subprocess.TimeoutExpired:
             self.service.kill()
             self.service.wait()

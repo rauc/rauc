@@ -283,3 +283,5 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucBundle, free_bundle);
  * @param access_args RaucBundleAccessArgs to clear
  */
 void clear_bundle_access_args(RaucBundleAccessArgs *access_args);
+
+G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(RaucBundleAccessArgs, clear_bundle_access_args);
