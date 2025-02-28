@@ -75,7 +75,7 @@ def test_info_headers(create_system_files, system, http_server, api):
         "system-info": "bin/systeminfo.sh",
     }
     system.config["streaming"] = {
-        "send-headers": "boot-id;machine-id;serial;variant;transaction-id;uptime",
+        "send-headers": "boot-id;machine-id;system-version;serial;variant;transaction-id;uptime",
     }
     system.write_config()
     http_server.setup(
@@ -113,6 +113,7 @@ def test_info_headers(create_system_files, system, http_server, api):
         "Range": "bytes=0-3",
         "Test-Header": "Test-Value",
         "RAUC-Serial": "1234",
+        "RAUC-System-Version": "1.0.0",
         "RAUC-Variant": "test-variant-x",
     }
 
