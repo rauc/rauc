@@ -1722,7 +1722,16 @@ gboolean install_run(RaucInstallArgs *args)
 	return TRUE;
 }
 
-static const gchar *supported_http_headers[] = {"boot-id", "transaction-id", "machine-id", "serial", "variant", "uptime", NULL};
+static const gchar *supported_http_headers[] = {
+	"boot-id",
+	"transaction-id",
+	"machine-id",
+	"system-version",
+	"serial",
+	"variant",
+	"uptime",
+	NULL
+};
 
 gboolean r_install_is_supported_http_header(const gchar *header)
 {
