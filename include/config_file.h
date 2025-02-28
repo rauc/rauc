@@ -8,6 +8,8 @@
 
 /* Default maximum downloadable bundle size (8 MiB) */
 #define DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE 8*1024*1024
+/* Default maximum signature/CMS size (64 KiB) */
+#define DEFAULT_MAX_BUNDLE_SIGNATURE_SIZE 64*1024
 
 typedef enum {
 	R_CONFIG_ERROR_INVALID_FORMAT,
@@ -15,6 +17,7 @@ typedef enum {
 	R_CONFIG_ERROR_PARENT,
 	R_CONFIG_ERROR_PARENT_LOOP,
 	R_CONFIG_ERROR_MAX_BUNDLE_DOWNLOAD_SIZE,
+	R_CONFIG_ERROR_MAX_BUNDLE_SIGNATURE_SIZE,
 	R_CONFIG_ERROR_CHILD_HAS_BOOTNAME,
 	R_CONFIG_ERROR_DUPLICATE_BOOTNAME,
 	R_CONFIG_ERROR_DUPLICATE_CLASS,
@@ -53,6 +56,8 @@ typedef struct {
 	gboolean prevent_late_fallback;
 	/* maximum filesize to download in bytes */
 	guint64 max_bundle_download_size;
+	/* maximum signature/CMS size in bytes */
+	guint64 max_bundle_signature_size;
 	/* path prefix where rauc may create mount directories */
 	gchar *mount_prefix;
 	gchar *store_path;

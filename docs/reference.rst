@@ -212,6 +212,14 @@ Example configuration:
   If RAUC is configured with streaming support, this has no effect, as the
   bundle is not downloaded as a whole.
 
+``max-bundle-signature-size`` (optional)
+  Defines the maximum bundle signature size in bytes, and thus must be a simple
+  integer value (without unit) greater than zero.
+  It overwrites the compiled-in default value of 64 KiB.
+  As this limit also applies to the encrypted signature when using ``crypt``
+  bundles, you may need to increase it if you encrypt to a large number of
+  recipients.
+
 ``variant-name`` (optional)
   String to be used as variant name for this board.
   If set, neither ``variant-file`` nor ``variant-dtb`` must be set.
