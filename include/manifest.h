@@ -48,6 +48,7 @@ typedef struct {
 	gchar *update_version;
 	gchar *update_description;
 	gchar *update_build;
+	gchar *update_min_rauc_version;
 
 	RManifestBundleFormat bundle_format;
 	gchar *bundle_verity_salt;

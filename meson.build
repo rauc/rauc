@@ -13,6 +13,7 @@ project(
 cc = meson.get_compiler('c')
 
 conf = configuration_data()
+conf.set_quoted('RAUC_MESON_VERSION', meson.project_version())
 conf.set_quoted('PACKAGE_NAME', 'rauc')
 conf.set_quoted('STREAMING_USER', get_option('streaming_user'))
 

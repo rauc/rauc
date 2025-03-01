@@ -727,6 +727,12 @@ This section contains some high-level information about the bundle.
   information provided by the bundle creation environment. This can help to
   determine the date and origin of the built bundle.
 
+``min-rauc-version`` (optional)
+  An optional version limit which causes the manifest to be rejected if the
+  running version is older/lower than the requested minimum.
+  This was introduced with version 1.14 and will cause an error on older
+  versions.
+
 ``[bundle]`` Section
 ~~~~~~~~~~~~~~~~~~~~
 

@@ -223,6 +223,7 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	raucm->update_version = key_file_consume_string(key_file, "update", "version", NULL);
 	raucm->update_description = key_file_consume_string(key_file, "update", "description", NULL);
 	raucm->update_build = key_file_consume_string(key_file, "update", "build", NULL);
+	raucm->update_min_rauc_version = key_file_consume_string(key_file, "update", "min-rauc-version", NULL);
 	if (!check_remaining_keys(key_file, "update", &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -404,6 +405,30 @@ static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 {
 	gboolean have_hooks = FALSE;
 	gboolean res = FALSE;
+
+	if (mf->update_min_rauc_version) {
+		if (!r_semver_less_equal("0", mf->update_min_rauc_version, NULL)) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR,
+					"Failed to parse 'min-rauc-version'. Expected 'Major[.Minor[.Patch]][-pre_release]]', got '%s'",
+					mf->update_min_rauc_version
+					);
+			goto out;
+		}
+		if (!r_semver_less_equal(mf->update_min_rauc_version, RAUC_MESON_VERSION, NULL)) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR,
+					"Minimum RAUC version in manifest (%s) is newer than current version (%s)",
+					mf->update_min_rauc_version, RAUC_MESON_VERSION
+					);
+			goto out;
+		}
+		if (r_semver_less_equal(mf->update_min_rauc_version, "1.13", NULL)) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR,
+					"Minimum RAUC version field in manifest is only supported since 1.14 (not '%s')",
+					mf->update_min_rauc_version
+					);
+			goto out;
+		}
+	}
 
 	switch (mf->bundle_format) {
 		case R_MANIFEST_FORMAT_PLAIN:
@@ -1123,6 +1148,7 @@ void free_manifest(RaucManifest *manifest)
 	g_free(manifest->update_version);
 	g_free(manifest->update_description);
 	g_free(manifest->update_build);
+	g_free(manifest->update_min_rauc_version);
 	g_free(manifest->bundle_verity_hash);
 	g_free(manifest->bundle_verity_salt);
 	g_free(manifest->bundle_crypt_key);

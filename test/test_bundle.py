@@ -210,3 +210,32 @@ def test_bundle_content_checks(tmp_path, bundle):
     assert "only regular files are supported as bundle contents (fifo)"
     assert not bundle.output.is_file()
     test_fifo.unlink()
+
+
+def test_bundle_min_rauc_version(bundle):
+    bundle.manifest["update"]["min-rauc-version"] = "1.14-dev"
+    bundle.build()
+    bundle.output.unlink()
+
+    bundle.manifest["update"]["min-rauc-version"] = "1000-rc.1+21000101"
+    out, err, exitcode = bundle.build_nocheck()
+    assert exitcode == 1
+    assert "Creating 'verity' format bundle" in out
+    assert "Minimum RAUC version in manifest (1000-rc.1+21000101) is newer than current version" in err
+    assert not bundle.output.is_file()
+
+    bundle.manifest["update"]["min-rauc-version"] = "bad_version"
+    out, err, exitcode = bundle.build_nocheck()
+    assert exitcode == 1
+    assert "Creating 'verity' format bundle" in out
+    assert (
+        "Failed to parse 'min-rauc-version'. Expected 'Major[.Minor[.Patch]][-pre_release]]', got 'bad_version'" in err
+    )
+    assert not bundle.output.is_file()
+
+    bundle.manifest["update"]["min-rauc-version"] = "1.13"
+    out, err, exitcode = bundle.build_nocheck()
+    assert exitcode == 1
+    assert "Creating 'verity' format bundle" in out
+    assert "Minimum RAUC version field in manifest is only supported since 1.14 (not '1.13')" in err
+    assert not bundle.output.is_file()
