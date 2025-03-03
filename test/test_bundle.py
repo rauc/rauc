@@ -193,13 +193,12 @@ def test_bundle_content_checks(tmp_path, bundle):
     bundle.output.unlink()
     test_file.unlink()
 
-    # directories are not allowed
+    # directories are allowed
     test_dir = bundle.content / "subdir"
     test_dir.mkdir()
-    out, err, exitcode = bundle.build_nocheck()
-    assert exitcode == 1
-    assert "directories are not supported as bundle contents (subdir)" in err
-    assert not bundle.output.is_file()
+    bundle.build()
+    assert bundle.output.is_file()
+    bundle.output.unlink()
     test_dir.rmdir()
 
     # directories are not allowed
