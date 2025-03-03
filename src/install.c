@@ -1613,6 +1613,21 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		goto out;
 	}
 
+	if (args->require_manifest_hash) {
+		if (!bundle->manifest) {
+			/* only plain bundles have no manifest at this point */
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED, "Refusing to install plain bundle when using require-manifest-hash");
+			res = FALSE;
+			goto out;
+		}
+		if (g_strcmp0(args->require_manifest_hash, bundle->manifest->hash) != 0) {
+			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED, "Refusing to install bundle with unexpected hash (expected %s, got %s)",
+					args->require_manifest_hash, bundle->manifest->hash);
+			res = FALSE;
+			goto out;
+		}
+	}
+
 	if (bundle->manifest && bundle->manifest->bundle_format == R_MANIFEST_FORMAT_CRYPT && !bundle->was_encrypted) {
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED, "Refusing to install unencrypted crypt bundles");
 		res = FALSE;
@@ -1776,6 +1791,7 @@ void install_args_free(RaucInstallArgs *args)
 	g_mutex_clear(&args->status_mutex);
 	g_assert_cmpint(args->status_result, >=, 0);
 	g_assert_true(g_queue_is_empty(&args->status_messages));
+	g_free(args->require_manifest_hash);
 	clear_bundle_access_args(&args->access_args);
 	g_free(args);
 }

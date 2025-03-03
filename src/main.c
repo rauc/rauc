@@ -52,6 +52,7 @@ gchar **recipients = NULL;
 gchar *handler_args = NULL;
 gchar *bootslot = NULL;
 gchar *installation_txn = NULL;
+gchar *require_manifest_hash = NULL;
 gboolean utf8_supported = FALSE;
 RaucBundleAccessArgs access_args = {0};
 
@@ -264,6 +265,7 @@ static gboolean install_start(int argc, char **argv)
 	args->ignore_compatible = install_ignore_compatible;
 	args->ignore_version_limit = install_ignore_version_limit;
 	args->transaction = installation_txn;
+	args->require_manifest_hash = require_manifest_hash;
 	if (access_args.tls_cert)
 		args->access_args.tls_cert = g_strdup(access_args.tls_cert);
 	if (access_args.tls_key)
@@ -285,6 +287,8 @@ static gboolean install_start(int argc, char **argv)
 		g_variant_dict_insert(&dict, "ignore-version-limit", "b", args->ignore_version_limit);
 		if (args->transaction)
 			g_variant_dict_insert(&dict, "transaction-id", "s", args->transaction);
+		if (args->require_manifest_hash)
+			g_variant_dict_insert(&dict, "require-manifest-hash", "s", args->require_manifest_hash);
 		if (args->access_args.tls_cert)
 			g_variant_dict_insert(&dict, "tls-cert", "s", args->access_args.tls_cert);
 		if (args->access_args.tls_key)
@@ -2495,6 +2499,7 @@ static GOptionEntry entries_install[] = {
 	{"ignore-compatible", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_compatible, "disable compatible check", NULL},
 	{"ignore-version-limit", '\0', 0, G_OPTION_ARG_NONE, &install_ignore_version_limit, "disable version check", NULL},
 	{"transaction-id", '\0', 0, G_OPTION_ARG_STRING, &installation_txn, "custom transaction id", "UUID"},
+	{"require-manifest-hash", '\0', 0, G_OPTION_ARG_STRING, &require_manifest_hash, "require a specific manifest hash", "HASH"},
 #if ENABLE_SERVICE == 1
 	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
 #else
