@@ -1,0 +1,18 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "https://specifications.freedesktop.org/dbus/introspect-latest.dtd">
+<!-- SPDX-License-Identifier: CC0-1.0 -->
+<node>
+  <interface name="de.pengutronix.rauc.Poller">
+    <!--
+         Poll:
+
+         Schedules a poll soon.
+    -->
+    <method name="Poll"/>
+
+    <!-- NextPoll: Gives the next time the bundle location will be polled -->
+    <property name="NextPoll" type="x" access="read"/>
+
+    <!-- Status: Currently available information from the polled bundle location -->
+    <property name="Status" type="a{sv}" access="read"/>
+  </interface>
+</node>
