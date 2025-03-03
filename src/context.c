@@ -389,9 +389,11 @@ static gboolean r_context_configure_target(GError **error)
 	g_clear_pointer(&context->machine_id, g_free);
 
 	context->boot_id = get_boot_id();
-	g_debug("Obtained system boot ID: '%s'", context->boot_id);
+	if (context->boot_id)
+		g_debug("Obtained system boot ID: '%s'", context->boot_id);
 	context->machine_id = get_machine_id();
-	g_debug("Obtained system machine ID: '%s'", context->machine_id);
+	if (context->machine_id)
+		g_debug("Obtained system machine ID: '%s'", context->machine_id);
 
 	return TRUE;
 }
