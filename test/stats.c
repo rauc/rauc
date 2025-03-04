@@ -3,23 +3,6 @@
 
 #include "stats.h"
 
-/* APPROX_VALUE exists in glib >= 2.58 */
-#ifndef G_APPROX_VALUE
-#define G_APPROX_VALUE(a, b, epsilon) \
-	(((a) > (b) ? (a) - (b) : (b) - (a)) < (epsilon))
-#endif
-
-/* g_assert_cmpfloat_with_epsilon exists in glib >= 2.58 */
-#ifndef g_assert_cmpfloat_with_epsilon
-#define g_assert_cmpfloat_with_epsilon(n1, n2, epsilon) \
-	G_STMT_START { \
-		double __n1 = (n1), __n2 = (n2), __epsilon = (epsilon); \
-		if (G_APPROX_VALUE(__n1, __n2, __epsilon)); else \
-		g_assertion_message_cmpnum(G_LOG_DOMAIN, __FILE__, __LINE__, G_STRFUNC, \
-		#n1 " == " #n2 " (+/- " #epsilon ")", __n1, "==", __n2, 'f'); \
-	} G_STMT_END
-#endif
-
 static void test_basic(void)
 {
 	g_autoptr(RaucStats) stats = NULL;
