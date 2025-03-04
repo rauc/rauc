@@ -327,6 +327,10 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 		}
 	}
 
+	/* ignore [rollout] section for now, so that we can add hints/overrides
+	 * for rollout/polling behaviour later */
+	g_key_file_remove_group(key_file, "rollout", NULL);
+
 	if (!check_remaining_groups(key_file, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
