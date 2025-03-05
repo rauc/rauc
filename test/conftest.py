@@ -619,7 +619,7 @@ class System:
             self.config.write(f, space_around_delimiters=False)
 
     @contextmanager
-    def running_service(self, bootslot):
+    def running_service(self, bootslot, *, poll_speedup=None):
         if not have_service():
             # TODO avoid unnescesary setup by moving using a pytest mark for all service/noservice cases
             pytest.skip("No service")
@@ -629,6 +629,8 @@ class System:
 
         env = os.environ.copy()
         env["RAUC_PYTEST_TMP"] = str(self.tmp_path)
+        if poll_speedup:
+            env["RAUC_TEST_POLL_SPEEDUP"] = f"{poll_speedup}"
 
         self.service = subprocess.Popen(
             f"rauc service --conf={self.output} --mount={self.tmp_path}/mnt --override-boot-slot={bootslot}".split(),
