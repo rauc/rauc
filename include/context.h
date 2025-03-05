@@ -76,6 +76,7 @@ typedef struct {
 	struct {
 		/* mock contents of /proc/cmdline */
 		const gchar *proc_cmdline;
+		gint64 poll_speedup;
 	} mock;
 } RaucContext;
 
