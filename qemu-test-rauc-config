@@ -13,6 +13,9 @@ events=all
 [keyring]
 path=ca.cert.pem
 
+[streaming]
+tls-ca=/etc/rauc/ca.cert.pem
+
 [slot.rootfs.0]
 device=/dev/root
 bootname=A
