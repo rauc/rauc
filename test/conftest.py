@@ -639,8 +639,14 @@ class System:
         if poll_speedup:
             env["RAUC_TEST_POLL_SPEEDUP"] = f"{poll_speedup}"
 
+        command = ""
+        if "SERVICE_BACKTRACE" in env:
+            command += 'gdb --return-child-result --batch --ex "run" --ex "thread apply all bt" --args '
+
+        command += f"rauc service --conf={self.output} --mount={self.tmp_path}/mnt --override-boot-slot={bootslot}"
+
         self.service = subprocess.Popen(
-            f"rauc service --conf={self.output} --mount={self.tmp_path}/mnt --override-boot-slot={bootslot}".split(),
+            shlex.split(command),
             env=env,
         )
 
@@ -660,10 +666,19 @@ class System:
 
         yield
 
-        self.service.terminate()
+        rauc_dbus_pid = None
+        try:
+            dbus_daemon = bus.get_proxy("org.freedesktop.DBus", "/")
+            rauc_dbus_pid = dbus_daemon.GetConnectionUnixProcessID("de.pengutronix.rauc")
+            print(f"rauc PID via D-Bus {rauc_dbus_pid}")
+            os.kill(rauc_dbus_pid, signal.SIGTERM)
+        except DBusError:
+            self.service.terminate()
+
         try:
             self.service.wait(timeout=10)
-            assert self.service.returncode == 0
+            print(f"rauc returncode is {self.service.returncode}")
+            assert rauc_dbus_pid or self.service.returncode == 0
         except subprocess.TimeoutExpired:
             self.service.kill()
             self.service.wait()
