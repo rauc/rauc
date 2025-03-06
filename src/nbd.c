@@ -88,6 +88,7 @@ void r_nbd_free_server(RaucNBDServer *nbd_srv)
 	g_strfreev(nbd_srv->headers);
 	g_clear_pointer(&nbd_srv->info_headers, g_ptr_array_unref);
 	g_free(nbd_srv->effective_url);
+	g_free(nbd_srv->etag);
 	g_free(nbd_srv);
 }
 
@@ -318,7 +319,16 @@ struct RaucNBDTransfer {
 	guint64 content_size;
 	guint64 current_time; /* date header from server */
 	guint64 modified_time; /* last-modified header from server */
+	gchar *etag;
 };
+
+static void free_transfer(struct RaucNBDTransfer *xfer)
+{
+	g_clear_pointer(&xfer->buffer, g_free);
+	g_clear_pointer(&xfer->etag, g_free);
+
+	g_free(xfer);
+}
 
 static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
@@ -398,6 +408,10 @@ static size_t header_cb(char *buffer, size_t size, size_t nitems, void *userdata
 			xfer->modified_time = date;
 			g_message("nbd server received HTTP file date %"G_GUINT64_FORMAT, xfer->modified_time);
 		}
+	} else if (g_str_equal(h_name, "etag")) {
+		r_replace_strdup(&xfer->etag, h_pair[1]);
+		g_autofree gchar *escaped = g_strescape(h_pair[1], NULL);
+		g_message("nbd server received HTTP ETag: \"%s\"", escaped);
 	}
 
 	return nitems;
@@ -637,7 +651,7 @@ static void start_request(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xf
 		case NBD_CMD_DISC: {
 			g_message("nbd server received disconnect request");
 			ctx->done = TRUE;
-			g_free(xfer); /* not queued via curl_multi_add_handle */
+			free_transfer(xfer); /* not queued via curl_multi_add_handle */
 			break;
 		}
 		case RAUC_NBD_CMD_CONFIGURE: {
@@ -787,6 +801,8 @@ reply:
 		g_variant_dict_insert(&dict, "current-time", "t", xfer->current_time);
 	if (xfer->modified_time)
 		g_variant_dict_insert(&dict, "modified-time", "t", xfer->modified_time);
+	if (xfer->etag)
+		g_variant_dict_insert(&dict, "etag", "s", xfer->etag);
 
 	v = g_variant_dict_end(&dict);
 	reply_size = g_variant_get_size(v);
@@ -951,12 +967,12 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 						error,
 						R_NBD_ERROR, R_NBD_ERROR_SHUTDOWN,
 						"finish_request failed, shutting down");
-				g_free(xfer);
+				free_transfer(xfer);
 				goto out;
 			}
 
 			if (xfer->done) {
-				g_free(xfer);
+				free_transfer(xfer);
 			} else {
 				/* retry */
 				sleep(1);
@@ -1132,6 +1148,7 @@ static gboolean nbd_configure(RaucNBDServer *nbd_srv, GError **error)
 		g_autofree gchar *formatted_date = g_date_time_format(datetime, "%Y-%m-%d %H:%M:%S");
 		g_message("received HTTP server info: modified time %s (%"G_GUINT64_FORMAT ")", formatted_date, nbd_srv->modified_time);
 	}
+	g_variant_dict_lookup(&dict, "etag", "s", &nbd_srv->etag);
 
 	return TRUE;
 }
