@@ -171,6 +171,32 @@ static void test_extract(NBDFixture *fixture, gconstpointer user_data)
 	g_assert_false(res);
 }
 
+static void test_cache_etag(NBDFixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res = FALSE;
+
+	if (!have_http_server())
+		return;
+
+	res = check_bundle("http://127.0.0.1/test/good-verity-bundle.raucb", &bundle, CHECK_BUNDLE_DEFAULT, NULL, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(bundle);
+	g_assert_nonnull(bundle->nbd_srv->etag);
+	g_autofree gchar *etag = g_strdup(bundle->nbd_srv->etag);
+	g_clear_pointer(&bundle, free_bundle);
+
+	g_auto(RaucBundleAccessArgs) access_args = {0};
+	access_args.http_info_headers = g_ptr_array_new_with_free_func(g_free);
+	g_ptr_array_add(access_args.http_info_headers, g_strdup_printf("If-None-Match: %s", etag));
+	res = check_bundle("http://127.0.0.1/test/good-verity-bundle.raucb", &bundle, CHECK_BUNDLE_DEFAULT, &access_args, &ierror);
+	g_assert_error(ierror, R_NBD_ERROR, R_NBD_ERROR_NOT_MODIFIED);
+	g_assert_false(res);
+	g_assert_null(bundle);
+}
+
 static void test_nbd_mount(NBDFixture *fixture, gconstpointer user_data)
 {
 	NBDData *data = (NBDData*)user_data;
@@ -323,6 +349,12 @@ int main(int argc, char *argv[])
 	g_test_add("/nbd/check_extract",
 			NBDFixture, NULL,
 			nbd_fixture_set_up, test_extract,
+			nbd_fixture_tear_down);
+
+	/* bundle caching */
+	g_test_add("/nbd/cache/etag",
+			NBDFixture, NULL,
+			nbd_fixture_set_up, test_cache_etag,
 			nbd_fixture_tear_down);
 
 	/* mount via HTTP */

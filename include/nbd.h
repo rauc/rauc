@@ -46,6 +46,7 @@ typedef struct {
 	gchar *effective_url; /* url after redirects */
 	guint64 current_time; /* date header from server */
 	guint64 modified_time; /* last-modified header from server */
+	gchar *etag; /* etag received from the server */
 } RaucNBDServer;
 
 RaucNBDDevice *r_nbd_new_device(void);
