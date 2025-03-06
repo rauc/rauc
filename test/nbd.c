@@ -237,6 +237,28 @@ int main(int argc, char *argv[])
 			nbd_fixture_set_up, test_direct_read,
 			nbd_fixture_tear_down);
 
+	/* 204 handling */
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
+		.bundle_url = "http://127.0.0.1/code/204",
+		.err_domain = R_NBD_ERROR,
+		.err_code = R_NBD_ERROR_NO_CONTENT,
+	}));
+	g_test_add("/nbd/direct_read/204",
+			NBDFixture, nbd_data,
+			nbd_fixture_set_up, test_direct_read,
+			nbd_fixture_tear_down);
+
+	/* 304 handling */
+	nbd_data = dup_test_data(ptrs, (&(NBDData) {
+		.bundle_url = "http://127.0.0.1/code/304",
+		.err_domain = R_NBD_ERROR,
+		.err_code = R_NBD_ERROR_NOT_MODIFIED,
+	}));
+	g_test_add("/nbd/direct_read/304",
+			NBDFixture, nbd_data,
+			nbd_fixture_set_up, test_direct_read,
+			nbd_fixture_tear_down);
+
 	/* 404 handling */
 	nbd_data = dup_test_data(ptrs, (&(NBDData) {
 		.bundle_url = "http://127.0.0.1/error/404",

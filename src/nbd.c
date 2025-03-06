@@ -723,6 +723,12 @@ static gboolean finish_configure(struct RaucNBDContext *ctx, struct RaucNBDTrans
 			case 200:
 				error = g_strdup_printf("range requests not supported by server");
 				break;
+			case 204:
+				error = g_strdup_printf("no content");
+				break;
+			case 304:
+				error = g_strdup_printf("not modified");
+				break;
 			default:
 				error = g_strdup_printf("unexpected HTTP error code %ld", response_code);
 		}
@@ -1072,7 +1078,17 @@ static gboolean nbd_configure(RaucNBDServer *nbd_srv, GError **error)
 		guint32 http_code = 0;
 		g_variant_dict_lookup(&dict, "error-http-code", "u", &http_code);
 		g_message("received http error %"G_GUINT32_FORMAT, http_code);
-		if (http_code == 401) {
+		if (http_code == 204) {
+			g_set_error(
+					error,
+					R_NBD_ERROR, R_NBD_ERROR_NO_CONTENT,
+					"no content: %s", reply_error);
+		} else if (http_code == 304) {
+			g_set_error(
+					error,
+					R_NBD_ERROR, R_NBD_ERROR_NOT_MODIFIED,
+					"not modified: %s", reply_error);
+		} else if (http_code == 401) {
 			g_set_error(
 					error,
 					R_NBD_ERROR, R_NBD_ERROR_UNAUTHORIZED,
