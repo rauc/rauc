@@ -2253,7 +2253,18 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	/* copy */
 	g_message("Copying image to slot device partition %s",
 			part_slot->device);
-	res = copy_raw_image(image, outstream, 0, &ierror);
+	/* Handle casync index file */
+	if (g_str_has_suffix(image->filename, ".caibx")) {
+		g_message("Extracting %s to %s", image->filename, part_slot->device);
+
+		/* Extract caibx to device */
+		if (!casync_extract_image(image, part_slot->device, -1, &ierror)) {
+			res = FALSE;
+		}
+	}else{
+		res = copy_raw_image(image, outstream, 0, &ierror);
+	}
+
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -2599,6 +2610,8 @@ RaucUpdatePair updatepairs[] = {
 	{"*.squashfs-zst", "ubivol", img_to_ubivol_handler},
 #if ENABLE_EMMC_BOOT_SUPPORT == 1
 	{"*.img", "boot-emmc", img_to_boot_emmc_handler},
+	{"*.bin", "boot-emmc", img_to_boot_emmc_handler},
+	{"*.bin.caibx", "boot-emmc", img_to_boot_emmc_handler},
 #endif
 	{"*", "boot-emmc", NULL},
 	{"*.vfat", "boot-mbr-switch", img_to_boot_mbr_switch_handler},
