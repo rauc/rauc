@@ -1609,18 +1609,16 @@ IN a{sv} *args*:
     Currently supported:
 
     STRING 'ignore-compatible', VARIANT 'b' <true/false>:
-        Ignore the default compatible check for forcing
-        installation of bundles on platforms that a compatible not matching the one
-        of the bundle to be installed
+        Ignore the default compatible check for forcing installation of bundles
+        on platforms that a compatible not matching the one of the bundle to be
+        installed
 
     STRING 'ignore-version-limit', VARIANT 'b' <true/false>
-        Disables the
-        check for the minimum bundle version as configured by system.conf option
-        ``min-bundle-version`` checks.
+        Disables the check for the minimum bundle version as configured by
+        system.conf option ``min-bundle-version`` checks.
 
     STRING 'transaction-id', VARIANT 's' <UUID>:
-        Set UUID to use for
-        identifying the (installation) transaction.
+        Set UUID to use for identifying the (installation) transaction.
         If not given, RAUC will generate a random one.
 
     STRING 'require-manifest-hash', VARIANT 's' <HASH>:
@@ -1633,25 +1631,20 @@ IN a{sv} *args*:
        this is detected by comparing the manifest hashes.
 
     STRING 'tls-cert', VARIANT 's' <filename/pkcs11-url>:
-        Use the provided
-        certificate for TLS client authentication
+        Use the provided certificate for TLS client authentication
 
     STRING 'tls-key', VARIANT 's' <filename/pkcs11-url>:
-        Use the provided
-        private key for TLS client authentication
+        Use the provided private key for TLS client authentication
 
     STRING 'tls-ca', VARIANT 's' <filename/pkcs11-url>:
-        Use the provided
-        certificate to authenticate the server (instead of the system wide
-        store)
+        Use the provided certificate to authenticate the server (instead of the
+        system wide store)
 
     STRING 'http-headers', VARIANT 'as' <array of strings>:
-        Add the provided
-        headers to every request (i.e. for bearer tokens)
+        Add the provided headers to every request (i.e. for bearer tokens)
 
     STRING 'tls-no-verify', VARIANT 'b' <true/false>:
-        Ignore verification
-        errors for the server certificate
+        Ignore verification errors for the server certificate
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.Install:
 
@@ -1721,25 +1714,20 @@ IN a{sv} *args*:
     Currently supported:
 
     STRING 'tls-cert', VARIANT 's' <filename/pkcs11-url>:
-        Use the provided
-        certificate for TLS client authentication
+        Use the provided certificate for TLS client authentication
 
     STRING 'tls-key', VARIANT 's' <filename/pkcs11-url>:
-        Use the provided
-        private key for TLS client authentication
+        Use the provided private key for TLS client authentication
 
     STRING 'tls-ca', VARIANT 's' <filename/pkcs11-url>:
-        Use the provided
-        certificate to authenticate the server (instead of the system wide
-        store)
+        Use the provided certificate to authenticate the server (instead of the
+        system wide store)
 
     STRING 'http-headers', VARIANT 'as' <array of strings>:
-        Add the provided
-        headers to every request (i.e. for bearer tokens)
+        Add the provided headers to every request (i.e. for bearer tokens)
 
     STRING 'tls-no-verify', VARIANT 'b' <true/false>:
-        Ignore verification
-        errors for the server certificate
+        Ignore verification errors for the server certificate
 
 a{sv} *info*:
     Bundle info
@@ -1751,39 +1739,31 @@ a{sv} *info*:
         The bundle's ``[update]`` section content
 
         STRING 'compatible', VARIANT 's' <compatible>:
-            The compatible noted in
-            the manifest
+            The compatible noted in the manifest
 
         STRING 'version', VARIANT 's' <version>:
-            The version noted in the
-            manifest
+            The version noted in the manifest
 
         STRING 'description', VARIANT 's' <description>:
-            The description text
-            noted in the manifest
+            The description text noted in the manifest
 
         STRING 'build', VARIANT 's' <build>:
-            The build ID noted in the
-            manifest
+            The build ID noted in the manifest
 
     STRING 'bundle', VARIANT 'v' <bundle-dict>:
         The bundle's ``[bundle]`` section content
 
         STRING 'format', VARIANT 's' <format>:
-            The bundle format (i.e. plain,
-            verity or crypt)
+            The bundle format (i.e. plain, verity or crypt)
 
         STRING 'verity-size', VARIANT 't' <size>:
-            The size of the
-            verity-protected payload
+            The size of the verity-protected payload
 
         STRING 'verity-salt', VARIANT 's' <salt>:
-            The salt used by the
-            verity-protected payload
+            The salt used by the verity-protected payload
 
         STRING 'verity-hash', VARIANT 's' <hash>:
-            The root hash of the
-            verity-protected payload
+            The root hash of the verity-protected payload
 
     STRING 'hooks', VARIANT 'v' <hooks-dict>:
         The bundle's ``[hooks]`` section content
@@ -1792,8 +1772,7 @@ a{sv} *info*:
             The hook filename
 
         STRING 'hooks', VARIANT 'as' <hooks>:
-            An array of enabled hooks (i.e.
-            ``install-check``)
+            An array of enabled hooks (i.e. ``install-check``)
 
     STRING 'handler', VARIANT 'v' <handler-dict>:
         The bundle's ``[handler]`` section content
@@ -1805,12 +1784,10 @@ a{sv} *info*:
             Optional arguments to the handler
 
     STRING 'images', VARIANT 'v' <images-list>:
-        The bundle's ``[images.*]``
-        section content, as a list of dictionaries
+        The bundle's ``[images.*]`` section content, as a list of dictionaries
 
         STRING 'slot-class', VARIANT 's' <slot-class>:
-            The slot class this
-            image is intended for
+            The slot class this image is intended for
 
         STRING 'variant', VARIANT 's' <variant>:
             The variant name, if used
@@ -1819,31 +1796,26 @@ a{sv} *info*:
             The image's filename
 
         STRING 'checksum', VARIANT 's' <checksum>:
-            The original image's SHA256
-            hash
+            The original image's SHA256 hash
 
         STRING 'size', VARIANT 't' <slot-class>:
             The original image's size
 
         STRING 'hooks', VARIANT 'as' <hooks>:
-            An array of enabled hooks (i.e.
-            ``pre-install``, ``install`` or ``post-install``)
+            An array of enabled hooks (i.e. ``pre-install``, ``install`` or
+            ``post-install``)
 
         STRING 'adaptive', VARIANT 'as' <adaptive-methods>:
-            An array of
-            enabled adaptive methods (i.e. ``block-hash-index``)
+            An array of enabled adaptive methods (i.e. ``block-hash-index``)
 
     STRING 'meta', VARIANT 'v' <meta-dict>:
-        The bundle's ``[meta.*]`` section
-        content
+        The bundle's ``[meta.*]`` section content
 
         STRING '<group>', VARIANT 'v' <meta-group-dict>:
-            The
-            ``[meta.<group>]`` section content
+            The ``[meta.<group>]`` section content
 
             STRING '<key>', VARIANT 's' <value>:
-                A key-value pair from the
-                ``[meta.<group>]`` section
+                A key-value pair from the ``[meta.<group>]`` section
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.Mark:
 
