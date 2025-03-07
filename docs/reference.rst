@@ -1576,53 +1576,14 @@ D-Bus API
 RAUC provides a D-Bus API that allows other applications to easily communicate
 with RAUC for installing new firmware.
 
+Installer Interface
+~~~~~~~~~~~~~~~~~~~
 
-de.pengutronix.rauc.Installer
-
-Methods
-~~~~~~~
-:ref:`InstallBundle <gdbus-method-de-pengutronix-rauc-Installer.InstallBundle>` (IN  s source, IN a{sv} args);
-
-:ref:`Install <gdbus-method-de-pengutronix-rauc-Installer.Install>` (IN  s source); (deprecated)
-
-:ref:`Info <gdbus-method-de-pengutronix-rauc-Installer.Info>` (IN  s bundle, s compatible, s version);
-
-:ref:`InspectBundle <gdbus-method-de-pengutronix-rauc-Installer.InspectBundle>` (IN  s source, IN a{sv} args, a{sv} info);
-
-:ref:`Mark <gdbus-method-de-pengutronix-rauc-Installer.Mark>` (IN  s state, IN  s slot_identifier, s slot_name, s message);
-
-:ref:`GetSlotStatus <gdbus-method-de-pengutronix-rauc-Installer.GetSlotStatus>` (a(sa{sv}) slot_status_array);
-
-:ref:`GetPrimary <gdbus-method-de-pengutronix-rauc-Installer.GetPrimary>` s primary);
-
-Signals
-~~~~~~~
-:ref:`Completed <gdbus-signal-de-pengutronix-rauc-Installer.Completed>` (i result);
-
-Properties
-~~~~~~~~~~
-:ref:`Operation <gdbus-property-de-pengutronix-rauc-Installer.Operation>` readable   s
-
-:ref:`LastError <gdbus-property-de-pengutronix-rauc-Installer.LastError>` readable   s
-
-:ref:`Progress <gdbus-property-de-pengutronix-rauc-Installer.Progress>` readable   (isi)
-
-:ref:`Compatible <gdbus-property-de-pengutronix-rauc-Installer.Compatible>` readable   s
-
-:ref:`Variant <gdbus-property-de-pengutronix-rauc-Installer.Variant>` readable   s
-
-:ref:`BootSlot <gdbus-property-de-pengutronix-rauc-Installer.BootSlot>` readable   s
-
-Description
-~~~~~~~~~~~
-
-Method Details
-~~~~~~~~~~~~~~
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.InstallBundle:
 
-The InstallBundle() Method
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+InstallBundle() Method
+^^^^^^^^^^^^^^^^^^^^^^
 
 .. code::
 
@@ -1680,8 +1641,8 @@ IN a{sv} *args*:
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.Install:
 
-The Install() Method
-^^^^^^^^^^^^^^^^^^^^
+Install() Method
+^^^^^^^^^^^^^^^^
 
 .. note:: This method is deprecated.
 
@@ -1699,8 +1660,8 @@ IN s *source*:
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.Info:
 
-The Info() Method
-^^^^^^^^^^^^^^^^^
+Info() Method
+^^^^^^^^^^^^^
 
 .. note:: This method is deprecated. Use InspectBundle() instead.
 
@@ -1722,8 +1683,8 @@ s *version*:
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.InspectBundle:
 
-The InspectBundle() Method
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+InspectBundle() Method
+^^^^^^^^^^^^^^^^^^^^^^
 
 .. code::
 
@@ -1836,8 +1797,8 @@ a{sv} *info*:
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.Mark:
 
-The Mark() Method
-^^^^^^^^^^^^^^^^^
+Mark() Method
+^^^^^^^^^^^^^
 
 .. code::
 
@@ -1862,8 +1823,8 @@ s *message*:
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.GetSlotStatus:
 
-The GetSlotStatus() Method
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+GetSlotStatus() Method
+^^^^^^^^^^^^^^^^^^^^^^
 
 .. code::
 
@@ -1878,8 +1839,8 @@ a(sa{sv}) *slot_status_array*:
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.GetPrimary:
 
-The GetPrimary() Method
-^^^^^^^^^^^^^^^^^^^^^^^
+GetPrimary() Method
+^^^^^^^^^^^^^^^^^^^
 
 .. code::
 
@@ -1888,13 +1849,10 @@ The GetPrimary() Method
 
 Get the current primary slot.
 
-Signal Details
-~~~~~~~~~~~~~~
-
 .. _gdbus-signal-de-pengutronix-rauc-Installer.Completed:
 
-The "Completed" Signal
-^^^^^^^^^^^^^^^^^^^^^^
+"Completed" Signal
+^^^^^^^^^^^^^^^^^^
 
 .. code::
 
@@ -1907,13 +1865,10 @@ successfully or with an error.
 i *result*:
     return code (0 for success)
 
-Property Details
-~~~~~~~~~~~~~~~~
-
 .. _gdbus-property-de-pengutronix-rauc-Installer.Operation:
 
-The "Operation" Property
-^^^^^^^^^^^^^^^^^^^^^^^^
+"Operation" Property
+^^^^^^^^^^^^^^^^^^^^
 
 .. code::
 
@@ -1925,8 +1880,8 @@ Possible values are ``idle`` or ``installing``.
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.LastError:
 
-The "LastError" Property
-^^^^^^^^^^^^^^^^^^^^^^^^
+"LastError" Property
+^^^^^^^^^^^^^^^^^^^^
 
 .. code::
 
@@ -1937,8 +1892,8 @@ Holds the last message of the last error that occurred.
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.Progress:
 
-The "Progress" Property
-^^^^^^^^^^^^^^^^^^^^^^^
+"Progress" Property
+^^^^^^^^^^^^^^^^^^^
 
 .. code::
 
@@ -1953,8 +1908,8 @@ Refer :ref:`Processing Progress Data <sec_processing_progress>` section.
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.Compatible:
 
-The "Compatible" Property
-^^^^^^^^^^^^^^^^^^^^^^^^^
+"Compatible" Property
+^^^^^^^^^^^^^^^^^^^^^
 
 .. code::
 
@@ -1966,8 +1921,8 @@ Represents the system's compatible. This can be used to check for usable bundles
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.Variant:
 
-The "Variant" Property
-^^^^^^^^^^^^^^^^^^^^^^
+"Variant" Property
+^^^^^^^^^^^^^^^^^^
 
 .. code::
 
@@ -1979,8 +1934,8 @@ Represents the system's variant. This can be used to select parts of an bundle.
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.BootSlot:
 
-The "BootSlot" Property
-^^^^^^^^^^^^^^^^^^^^^^^
+"BootSlot" Property
+^^^^^^^^^^^^^^^^^^^
 
 .. code::
 
