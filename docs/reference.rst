@@ -1579,16 +1579,22 @@ with RAUC for installing new firmware.
 Installer Interface
 ~~~~~~~~~~~~~~~~~~~
 
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :caption: ``src/de.pengutronix.rauc.Installer.xml``
+   :language: xml
+   :lineno-match:
+   :end-at: <interface
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.InstallBundle:
 
 InstallBundle() Method
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer.InstallBundle()
-  InstallBundle (IN  s source, IN a{sv} args);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <method name="InstallBundle">
+   :end-at: </method>
 
 Triggers the installation of a bundle.
 This method call is non-blocking.
@@ -1646,10 +1652,11 @@ Install() Method
 
 .. note:: This method is deprecated.
 
-.. code::
-
-  de.pengutronix.rauc.Installer.Install()
-  Install (IN  s source);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <method name="Install">
+   :end-at: </method>
 
 Triggers the installation of a bundle.
 This method call is non-blocking.
@@ -1665,10 +1672,11 @@ Info() Method
 
 .. note:: This method is deprecated. Use InspectBundle() instead.
 
-.. code::
-
-  de.pengutronix.rauc.Installer.Info()
-  Info (IN  s bundle, s compatible, s version);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <method name="Info">
+   :end-at: </method>
 
 Provides bundle info.
 
@@ -1686,10 +1694,11 @@ s *version*:
 InspectBundle() Method
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer.InspectBundle()
-  InspectBundle (IN  s bundle, IN a{sv} args, a{sv} info);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <method name="InspectBundle">
+   :end-at: </method>
 
 Provides bundle info.
 It uses the same nested dictionary structure as ``rauc info
@@ -1800,10 +1809,11 @@ a{sv} *info*:
 Mark() Method
 ^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer.Mark()
-  Mark (IN  s state, IN  s slot_identifier, s slot_name, s message);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <method name="Mark">
+   :end-at: </method>
 
 Keeps a slot bootable (state == "good"), makes it unbootable (state == "bad")
 or explicitly activates it for the next boot (state == "active").
@@ -1826,10 +1836,11 @@ s *message*:
 GetSlotStatus() Method
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer.GetSlotStatus()
-  GetSlotStatus (a(sa{sv}) slot_status_array);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <method name="GetSlotStatus">
+   :end-at: </method>
 
 Access method to get all slots' status.
 
@@ -1842,10 +1853,11 @@ a(sa{sv}) *slot_status_array*:
 GetPrimary() Method
 ^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer.GetPrimary()
-  GetPrimary (s primary);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <method name="GetPrimary">
+   :end-at: </method>
 
 Get the current primary slot.
 
@@ -1854,10 +1866,11 @@ Get the current primary slot.
 "Completed" Signal
 ^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer::Completed
-  Completed (i result);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <signal name="Completed">
+   :end-at: </signal>
 
 This signal is emitted when an installation completed, either
 successfully or with an error.
@@ -1870,10 +1883,11 @@ i *result*:
 "Operation" Property
 ^^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer:Operation
-  Operation  readable   s
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <property name="Operation"
+   :end-at: <property
 
 Represents the current (global) operation RAUC performs.
 Possible values are ``idle`` or ``installing``.
@@ -1883,10 +1897,11 @@ Possible values are ``idle`` or ``installing``.
 "LastError" Property
 ^^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer:LastError
-  LastError  readable   s
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <property name="LastError"
+   :end-at: <property
 
 Holds the last message of the last error that occurred.
 
@@ -1895,10 +1910,11 @@ Holds the last message of the last error that occurred.
 "Progress" Property
 ^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer:Progress
-  Progress  readable   (isi)
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <property name="Progress"
+   :end-at: </property
 
 Provides installation progress information in the form
 
@@ -1911,36 +1927,37 @@ Refer :ref:`Processing Progress Data <sec_processing_progress>` section.
 "Compatible" Property
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer:Compatible
-  Compatible  readable   s
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <property name="Compatible"
+   :end-at: <property
 
 Represents the system's compatible. This can be used to check for usable bundles.
-
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.Variant:
 
 "Variant" Property
 ^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer:Variant
-  Variant  readable   s
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <property name="Variant"
+   :end-at: <property
 
 Represents the system's variant. This can be used to select parts of an bundle.
-
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.BootSlot:
 
 "BootSlot" Property
 ^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer:BootSlot
-  BootSlot  readable   s
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <property name="BootSlot"
+   :end-at: <property
 
 Contains the information RAUC uses to identify the booted slot. It is derived
 from the kernel command line.
