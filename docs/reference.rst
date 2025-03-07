@@ -1575,6 +1575,10 @@ D-Bus API
 
 RAUC provides a D-Bus API that allows other applications to easily communicate
 with RAUC for installing new firmware.
+The type strings used here follow the `GVariant syntax
+<https://docs.gtk.org/glib/struct.VariantType.html#gvariant-type-strings>`_.
+For nested dictionaries (e.g. ``a{sv}`` in the variant of an outer ``a{sv}``),
+the "path elements" are delimited by ``.`` in the documentation.
 
 Installer Interface
 ~~~~~~~~~~~~~~~~~~~
@@ -1600,28 +1604,28 @@ Triggers the installation of a bundle.
 This method call is non-blocking.
 After completion, the :ref:`"Completed" <gdbus-signal-de-pengutronix-rauc-Installer.Completed>` signal will be emitted.
 
-IN s *source*:
+IN *source* ``s``:
     Path or URL to the bundle that should be installed
 
-IN a{sv} *args*:
+IN *args* ``a{sv}``:
     Arguments to pass to installation
 
     Currently supported:
 
-    STRING 'ignore-compatible', VARIANT 'b' <true/false>:
+    *args.ignore-compatible* variant ``b`` <true/false>:
         Ignore the default compatible check for forcing installation of bundles
         on platforms that a compatible not matching the one of the bundle to be
         installed
 
-    STRING 'ignore-version-limit', VARIANT 'b' <true/false>
+    *args.ignore-version-limit* variant ``b`` <true/false>:
         Disables the check for the minimum bundle version as configured by
         system.conf option ``min-bundle-version`` checks.
 
-    STRING 'transaction-id', VARIANT 's' <UUID>:
+    *args.transaction-id* vartiant ``s`` <uuid>:
         Set UUID to use for identifying the (installation) transaction.
         If not given, RAUC will generate a random one.
 
-    STRING 'require-manifest-hash', VARIANT 's' <HASH>:
+    *args.require-manifest-hash* variant ``s`` <hash>:
        Check that the manifest hash of the to-be-installed bundle's matches the
        expected value.
        This can be used when explicit confirmation is needed before installing a
@@ -1630,20 +1634,20 @@ IN a{sv} *args*:
        If the bundle was replaced by a different (but correctly signed) bundle,
        this is detected by comparing the manifest hashes.
 
-    STRING 'tls-cert', VARIANT 's' <filename/pkcs11-url>:
+    *args.tls-cert* variant ``s`` <filename/pkcs11-url>:
         Use the provided certificate for TLS client authentication
 
-    STRING 'tls-key', VARIANT 's' <filename/pkcs11-url>:
+    *args.tls-key* variant ``s`` <filename/pkcs11-url>:
         Use the provided private key for TLS client authentication
 
-    STRING 'tls-ca', VARIANT 's' <filename/pkcs11-url>:
+    *args.tls-ca* variant ``s`` <filename/pkcs11-url>:
         Use the provided certificate to authenticate the server (instead of the
         system wide store)
 
-    STRING 'http-headers', VARIANT 'as' <array of strings>:
+    *args.http-headers* variant ``as`` <array of strings>:
         Add the provided headers to every request (i.e. for bearer tokens)
 
-    STRING 'tls-no-verify', VARIANT 'b' <true/false>:
+    *args.tls-no-verify* variant ``b`` <true/false>:
         Ignore verification errors for the server certificate
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.Install:
@@ -1663,7 +1667,7 @@ Triggers the installation of a bundle.
 This method call is non-blocking.
 After completion, the :ref:`"Completed" <gdbus-signal-de-pengutronix-rauc-Installer.Completed>` signal will be emitted.
 
-IN s *source*:
+IN *source* ``s``:
     Path to bundle to be installed
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.Info:
@@ -1681,13 +1685,13 @@ Info() Method
 
 Provides bundle info.
 
-IN s *bundle*:
+IN *bundle* ``s``:
     Path to bundle information should be shown
 
-s *compatible*:
+OUT *compatible* ``s``:
     Compatible of bundle
 
-s *version*:
+OUT *version* ``s``:
     Version string of bundle
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.InspectBundle:
@@ -1705,116 +1709,116 @@ Provides bundle info.
 It uses the same nested dictionary structure as ``rauc info
 --output-format=json-2``.
 
-IN s *bundle*:
+IN *bundle* ``s``:
     Path or URL to the bundle that should be queried for information
 
-IN a{sv} *args*:
+IN *args* ``a{sv}``:
     Arguments to pass to information
 
     Currently supported:
 
-    STRING 'tls-cert', VARIANT 's' <filename/pkcs11-url>:
+    *args.tls-cert* variant ``s`` <filename/pkcs11-url>:
         Use the provided certificate for TLS client authentication
 
-    STRING 'tls-key', VARIANT 's' <filename/pkcs11-url>:
+    *args.tls-key* variant ``s`` <filename/pkcs11-url>:
         Use the provided private key for TLS client authentication
 
-    STRING 'tls-ca', VARIANT 's' <filename/pkcs11-url>:
+    *args.tls-ca* variant ``s`` <filename/pkcs11-url>:
         Use the provided certificate to authenticate the server (instead of the
         system wide store)
 
-    STRING 'http-headers', VARIANT 'as' <array of strings>:
+    *args.http-headers* variant ``as`` <array of strings>:
         Add the provided headers to every request (i.e. for bearer tokens)
 
-    STRING 'tls-no-verify', VARIANT 'b' <true/false>:
+    *args.tls-no-verify* variant ``b`` <true/false>:
         Ignore verification errors for the server certificate
 
-a{sv} *info*:
+OUT *info* ``a{sv}``:
     Bundle info
 
-    STRING 'manifest-hash', VARIANT 's' <hash>:
+    *info.manifest-hash* variant ``s`` <hash>:
         A SHA256 hash sum over the manifest content
 
-    STRING 'update', VARIANT 'v' <update-dict>:
+    *info.update* variant ``a{sv}`` <update-dict>:
         The bundle's ``[update]`` section content
 
-        STRING 'compatible', VARIANT 's' <compatible>:
+        *info.update.compatible* variant ``s`` <compatible>:
             The compatible noted in the manifest
 
-        STRING 'version', VARIANT 's' <version>:
+        *info.update.version* variant ``s`` <version>:
             The version noted in the manifest
 
-        STRING 'description', VARIANT 's' <description>:
+        *info.update.description* variant ``s`` <description>:
             The description text noted in the manifest
 
-        STRING 'build', VARIANT 's' <build>:
+        *info.update.build* variant ``s`` <build>:
             The build ID noted in the manifest
 
-    STRING 'bundle', VARIANT 'v' <bundle-dict>:
+    *info.bundle* variant ``a{sv}`` <bundle-dict>:
         The bundle's ``[bundle]`` section content
 
-        STRING 'format', VARIANT 's' <format>:
+        *info.bundle.format* variant ``s`` <format>:
             The bundle format (i.e. plain, verity or crypt)
 
-        STRING 'verity-size', VARIANT 't' <size>:
+        *info.bundle.verity-size* variant ``t`` <size>:
             The size of the verity-protected payload
 
-        STRING 'verity-salt', VARIANT 's' <salt>:
+        *info.bundle.verity-salt* variant ``s`` <salt>:
             The salt used by the verity-protected payload
 
-        STRING 'verity-hash', VARIANT 's' <hash>:
+        *info.bundle.verity-hash* variant ``s`` <hash>:
             The root hash of the verity-protected payload
 
-    STRING 'hooks', VARIANT 'v' <hooks-dict>:
+    *info.hooks* variant ``a{sv}`` <hooks-dict>:
         The bundle's ``[hooks]`` section content
 
-        STRING 'filename', VARIANT 's' <filename>:
+        *info.hooks.filename* variant ``s`` <filename>:
             The hook filename
 
-        STRING 'hooks', VARIANT 'as' <hooks>:
+        *info.hooks.hooks* variant ``as`` <hooks>:
             An array of enabled hooks (i.e. ``install-check``)
 
-    STRING 'handler', VARIANT 'v' <handler-dict>:
+    *info.handler* variant ``a{sv}`` <handler-dict>:
         The bundle's ``[handler]`` section content
 
-        STRING 'filename', VARIANT 's' <filename>:
+        *info.handler.filename* variant ``s`` <filename>:
             The handler filename
 
-        STRING 'args', VARIANT 's' <args>:
+        *info.handler.args* variant ``s`` <args>:
             Optional arguments to the handler
 
-    STRING 'images', VARIANT 'v' <images-list>:
+    *info.images* variant ``aa{sv}`` <images-list>:
         The bundle's ``[images.*]`` section content, as a list of dictionaries
 
-        STRING 'slot-class', VARIANT 's' <slot-class>:
+        *info.images.slot-class* variant ``s`` <slot-class>:
             The slot class this image is intended for
 
-        STRING 'variant', VARIANT 's' <variant>:
+        *info.images.variant* variant ``s`` <variant>:
             The variant name, if used
 
-        STRING 'filename', VARIANT 's' <filename>:
+        *info.images.filename* variant ``s`` <filename>:
             The image's filename
 
-        STRING 'checksum', VARIANT 's' <checksum>:
+        *info.images.checksum* variant ``s`` <checksum>:
             The original image's SHA256 hash
 
-        STRING 'size', VARIANT 't' <slot-class>:
+        *info.images.size* variant ``t`` <slot-class>:
             The original image's size
 
-        STRING 'hooks', VARIANT 'as' <hooks>:
+        *info.images.hooks* variant ``as`` <hooks>:
             An array of enabled hooks (i.e. ``pre-install``, ``install`` or
             ``post-install``)
 
-        STRING 'adaptive', VARIANT 'as' <adaptive-methods>:
+        *info.images.adaptive* variant ``as`` <adaptive-methods>:
             An array of enabled adaptive methods (i.e. ``block-hash-index``)
 
-    STRING 'meta', VARIANT 'v' <meta-dict>:
+    *info.meta* variant ``a{sa{ss}}`` <meta-dict>:
         The bundle's ``[meta.*]`` section content
 
-        STRING '<group>', VARIANT 'v' <meta-group-dict>:
+        *info.meta.<group>* ``a{ss}`` <meta-group-dict>:
             The ``[meta.<group>]`` section content
 
-            STRING '<key>', VARIANT 's' <value>:
+            *info.meta.<group>.<key>* ``s`` <value>:
                 A key-value pair from the ``[meta.<group>]`` section
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.Mark:
@@ -1831,16 +1835,16 @@ Mark() Method
 Keeps a slot bootable (state == "good"), makes it unbootable (state == "bad")
 or explicitly activates it for the next boot (state == "active").
 
-IN s *state*:
+IN *state* ``s``:
     Operation to perform (one out of "good", "bad" or "active")
 
-IN s *slot_identifier*:
+IN *slot_identifier* ``s``:
     Can be "booted", "other" or <SLOT_NAME> (e.g. "rootfs.1")
 
-s *slot_name*:
+OUT *slot_name* ``s``:
     Name of the slot which has ultimately been marked
 
-s *message*:
+OUT *message* ``s``:
     Message describing what has been done successfully
     (e.g. "activated slot rootfs.0")
 
@@ -1857,7 +1861,7 @@ GetSlotStatus() Method
 
 Access method to get all slots' status.
 
-a(sa{sv}) *slot_status_array*:
+OUT *slot_status_array* ``a(sa{sv})``:
     Array of (slotname, dict) tuples with each dictionary representing the
     status of the corresponding slot
 
@@ -1874,6 +1878,9 @@ GetPrimary() Method
 
 Get the current primary slot.
 
+OUT *primary* ``s``:
+    The name of the primary slot.
+
 .. _gdbus-signal-de-pengutronix-rauc-Installer.Completed:
 
 "Completed" Signal
@@ -1888,7 +1895,7 @@ Get the current primary slot.
 This signal is emitted when an installation completed, either
 successfully or with an error.
 
-i *result*:
+OUT *result* ``i``:
     return code (0 for success)
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.Operation:
