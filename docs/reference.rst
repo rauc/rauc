@@ -363,6 +363,7 @@ For more information about using the streaming support of RAUC, refer to
 
     .. note:: The machine ID should be considered "confidential" and thus not
        be used over unauthenticated connections or with untrusted servers!
+  * ``system-version``: Enables sending the *system version* as ``RAUC-System-Version`` header field.
   * ``serial``: Enables sending the *system serial* as ``RAUC-Serial`` header field.
   * ``variant``: Enables sending the *variant* as ``RAUC-Variant`` header field.
   * ``transaction-id``: Enables sending the *transaction UUID* as ``RAUC-Transaction-ID`` header field.

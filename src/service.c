@@ -197,6 +197,9 @@ static gboolean r_on_handle_inspect_bundle(RInstaller *interface,
 		goto out;
 	}
 
+	g_assert(access_args.http_info_headers == NULL);
+	access_args.http_info_headers = assemble_info_headers(NULL);
+
 	res = check_bundle(arg_bundle, &bundle, CHECK_BUNDLE_DEFAULT, &access_args, &error);
 	if (!res) {
 		message = g_strdup(error->message);
