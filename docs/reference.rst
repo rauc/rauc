@@ -1575,85 +1575,57 @@ D-Bus API
 
 RAUC provides a D-Bus API that allows other applications to easily communicate
 with RAUC for installing new firmware.
+The type strings used here follow the `GVariant syntax
+<https://docs.gtk.org/glib/struct.VariantType.html#gvariant-type-strings>`_.
+For nested dictionaries (e.g. ``a{sv}`` in the variant of an outer ``a{sv}``),
+the "path elements" are delimited by ``.`` in the documentation.
 
+Installer Interface
+~~~~~~~~~~~~~~~~~~~
 
-de.pengutronix.rauc.Installer
-
-Methods
-~~~~~~~
-:ref:`InstallBundle <gdbus-method-de-pengutronix-rauc-Installer.InstallBundle>` (IN  s source, IN a{sv} args);
-
-:ref:`Install <gdbus-method-de-pengutronix-rauc-Installer.Install>` (IN  s source); (deprecated)
-
-:ref:`Info <gdbus-method-de-pengutronix-rauc-Installer.Info>` (IN  s bundle, s compatible, s version);
-
-:ref:`InspectBundle <gdbus-method-de-pengutronix-rauc-Installer.InspectBundle>` (IN  s source, IN a{sv} args, a{sv} info);
-
-:ref:`Mark <gdbus-method-de-pengutronix-rauc-Installer.Mark>` (IN  s state, IN  s slot_identifier, s slot_name, s message);
-
-:ref:`GetSlotStatus <gdbus-method-de-pengutronix-rauc-Installer.GetSlotStatus>` (a(sa{sv}) slot_status_array);
-
-:ref:`GetPrimary <gdbus-method-de-pengutronix-rauc-Installer.GetPrimary>` s primary);
-
-Signals
-~~~~~~~
-:ref:`Completed <gdbus-signal-de-pengutronix-rauc-Installer.Completed>` (i result);
-
-Properties
-~~~~~~~~~~
-:ref:`Operation <gdbus-property-de-pengutronix-rauc-Installer.Operation>` readable   s
-
-:ref:`LastError <gdbus-property-de-pengutronix-rauc-Installer.LastError>` readable   s
-
-:ref:`Progress <gdbus-property-de-pengutronix-rauc-Installer.Progress>` readable   (isi)
-
-:ref:`Compatible <gdbus-property-de-pengutronix-rauc-Installer.Compatible>` readable   s
-
-:ref:`Variant <gdbus-property-de-pengutronix-rauc-Installer.Variant>` readable   s
-
-:ref:`BootSlot <gdbus-property-de-pengutronix-rauc-Installer.BootSlot>` readable   s
-
-Description
-~~~~~~~~~~~
-
-Method Details
-~~~~~~~~~~~~~~
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :caption: ``src/de.pengutronix.rauc.Installer.xml``
+   :language: xml
+   :lineno-match:
+   :end-at: <interface
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.InstallBundle:
 
-The InstallBundle() Method
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+InstallBundle() Method
+^^^^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer.InstallBundle()
-  InstallBundle (IN  s source, IN a{sv} args);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <method name="InstallBundle">
+   :end-at: </method>
 
 Triggers the installation of a bundle.
 This method call is non-blocking.
 After completion, the :ref:`"Completed" <gdbus-signal-de-pengutronix-rauc-Installer.Completed>` signal will be emitted.
 
-IN s *source*:
+IN *source* ``s``:
     Path or URL to the bundle that should be installed
 
-IN a{sv} *args*:
+IN *args* ``a{sv}``:
     Arguments to pass to installation
 
     Currently supported:
 
-    :STRING 'ignore-compatible', VARIANT 'b' <true/false>: Ignore the default compatible check for forcing
-        installation of bundles on platforms that a compatible not matching the one
-        of the bundle to be installed
+    *args.ignore-compatible* variant ``b`` <true/false>:
+        Ignore the default compatible check for forcing installation of bundles
+        on platforms that a compatible not matching the one of the bundle to be
+        installed
 
-    :STRING 'ignore-version-limit', VARIANT 'b' <true/false>: Disables the
-        check for the minimum bundle version as configured by system.conf option
-        ``min-bundle-version`` checks.
+    *args.ignore-version-limit* variant ``b`` <true/false>:
+        Disables the check for the minimum bundle version as configured by
+        system.conf option ``min-bundle-version`` checks.
 
-    :STRING 'transaction-id', VARIANT 's' <UUID>: Set UUID to use for
-        identifying the (installation) transaction.
+    *args.transaction-id* vartiant ``s`` <uuid>:
+        Set UUID to use for identifying the (installation) transaction.
         If not given, RAUC will generate a random one.
 
-    :STRING 'require-manifest-hash', VARIANT 's' <HASH>:
+    *args.require-manifest-hash* variant ``s`` <hash>:
        Check that the manifest hash of the to-be-installed bundle's matches the
        expected value.
        This can be used when explicit confirmation is needed before installing a
@@ -1662,288 +1634,307 @@ IN a{sv} *args*:
        If the bundle was replaced by a different (but correctly signed) bundle,
        this is detected by comparing the manifest hashes.
 
-    :STRING 'tls-cert', VARIANT 's' <filename/pkcs11-url>: Use the provided
-        certificate for TLS client authentication
+    *args.tls-cert* variant ``s`` <filename/pkcs11-url>:
+        Use the provided certificate for TLS client authentication
 
-    :STRING 'tls-key', VARIANT 's' <filename/pkcs11-url>: Use the provided
-        private key for TLS client authentication
+    *args.tls-key* variant ``s`` <filename/pkcs11-url>:
+        Use the provided private key for TLS client authentication
 
-    :STRING 'tls-ca', VARIANT 's' <filename/pkcs11-url>: Use the provided
-        certificate to authenticate the server (instead of the system wide
-        store)
+    *args.tls-ca* variant ``s`` <filename/pkcs11-url>:
+        Use the provided certificate to authenticate the server (instead of the
+        system wide store)
 
-    :STRING 'http-headers', VARIANT 'as' <array of strings>: Add the provided
-        headers to every request (i.e. for bearer tokens)
+    *args.http-headers* variant ``as`` <array of strings>:
+        Add the provided headers to every request (i.e. for bearer tokens)
 
-    :STRING 'tls-no-verify', VARIANT 'b' <true/false>: Ignore verification
-        errors for the server certificate
+    *args.tls-no-verify* variant ``b`` <true/false>:
+        Ignore verification errors for the server certificate
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.Install:
 
-The Install() Method
-^^^^^^^^^^^^^^^^^^^^
+Install() Method
+^^^^^^^^^^^^^^^^
 
 .. note:: This method is deprecated.
 
-.. code::
-
-  de.pengutronix.rauc.Installer.Install()
-  Install (IN  s source);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <method name="Install">
+   :end-at: </method>
 
 Triggers the installation of a bundle.
 This method call is non-blocking.
 After completion, the :ref:`"Completed" <gdbus-signal-de-pengutronix-rauc-Installer.Completed>` signal will be emitted.
 
-IN s *source*:
+IN *source* ``s``:
     Path to bundle to be installed
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.Info:
 
-The Info() Method
-^^^^^^^^^^^^^^^^^
+Info() Method
+^^^^^^^^^^^^^
 
 .. note:: This method is deprecated. Use InspectBundle() instead.
 
-.. code::
-
-  de.pengutronix.rauc.Installer.Info()
-  Info (IN  s bundle, s compatible, s version);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <method name="Info">
+   :end-at: </method>
 
 Provides bundle info.
 
-IN s *bundle*:
+IN *bundle* ``s``:
     Path to bundle information should be shown
 
-s *compatible*:
+OUT *compatible* ``s``:
     Compatible of bundle
 
-s *version*:
+OUT *version* ``s``:
     Version string of bundle
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.InspectBundle:
 
-The InspectBundle() Method
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+InspectBundle() Method
+^^^^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer.InspectBundle()
-  InspectBundle (IN  s bundle, IN a{sv} args, a{sv} info);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <method name="InspectBundle">
+   :end-at: </method>
 
 Provides bundle info.
 It uses the same nested dictionary structure as ``rauc info
 --output-format=json-2``.
 
-IN s *bundle*:
+IN *bundle* ``s``:
     Path or URL to the bundle that should be queried for information
 
-IN a{sv} *args*:
+IN *args* ``a{sv}``:
     Arguments to pass to information
 
     Currently supported:
 
-    :STRING 'tls-cert', VARIANT 's' <filename/pkcs11-url>: Use the provided
-        certificate for TLS client authentication
+    *args.tls-cert* variant ``s`` <filename/pkcs11-url>:
+        Use the provided certificate for TLS client authentication
 
-    :STRING 'tls-key', VARIANT 's' <filename/pkcs11-url>: Use the provided
-        private key for TLS client authentication
+    *args.tls-key* variant ``s`` <filename/pkcs11-url>:
+        Use the provided private key for TLS client authentication
 
-    :STRING 'tls-ca', VARIANT 's' <filename/pkcs11-url>: Use the provided
-        certificate to authenticate the server (instead of the system wide
-        store)
+    *args.tls-ca* variant ``s`` <filename/pkcs11-url>:
+        Use the provided certificate to authenticate the server (instead of the
+        system wide store)
 
-    :STRING 'http-headers', VARIANT 'as' <array of strings>: Add the provided
-        headers to every request (i.e. for bearer tokens)
+    *args.http-headers* variant ``as`` <array of strings>:
+        Add the provided headers to every request (i.e. for bearer tokens)
 
-    :STRING 'tls-no-verify', VARIANT 'b' <true/false>: Ignore verification
-        errors for the server certificate
+    *args.tls-no-verify* variant ``b`` <true/false>:
+        Ignore verification errors for the server certificate
 
-a{sv} *info*:
+OUT *info* ``a{sv}``:
     Bundle info
 
-    :STRING 'manifest-hash', VARIANT 's' <hash>: A SHA256 hash sum over the manifest content
+    *info.manifest-hash* variant ``s`` <hash>:
+        A SHA256 hash sum over the manifest content
 
-    :STRING 'update', VARIANT 'v' <update-dict>: The bundle's ``[update]`` section content
+    *info.update* variant ``a{sv}`` <update-dict>:
+        The bundle's ``[update]`` section content
 
-        :STRING 'compatible', VARIANT 's' <compatible>: The compatible noted in
-            the manifest
+        *info.update.compatible* variant ``s`` <compatible>:
+            The compatible noted in the manifest
 
-        :STRING 'version', VARIANT 's' <version>: The version noted in the
-            manifest
+        *info.update.version* variant ``s`` <version>:
+            The version noted in the manifest
 
-        :STRING 'description', VARIANT 's' <description>: The description text
-            noted in the manifest
+        *info.update.description* variant ``s`` <description>:
+            The description text noted in the manifest
 
-        :STRING 'build', VARIANT 's' <build>: The build ID noted in the
-            manifest
+        *info.update.build* variant ``s`` <build>:
+            The build ID noted in the manifest
 
-    :STRING 'bundle', VARIANT 'v' <bundle-dict>: The bundle's ``[bundle]`` section content
+    *info.bundle* variant ``a{sv}`` <bundle-dict>:
+        The bundle's ``[bundle]`` section content
 
-        :STRING 'format', VARIANT 's' <format>: The bundle format (i.e. plain,
-            verity or crypt)
+        *info.bundle.format* variant ``s`` <format>:
+            The bundle format (i.e. plain, verity or crypt)
 
-        :STRING 'verity-size', VARIANT 't' <size>: The size of the
-            verity-protected payload
+        *info.bundle.verity-size* variant ``t`` <size>:
+            The size of the verity-protected payload
 
-        :STRING 'verity-salt', VARIANT 's' <salt>: The salt used by the
-            verity-protected payload
+        *info.bundle.verity-salt* variant ``s`` <salt>:
+            The salt used by the verity-protected payload
 
-        :STRING 'verity-hash', VARIANT 's' <hash>: The root hash of the
-            verity-protected payload
+        *info.bundle.verity-hash* variant ``s`` <hash>:
+            The root hash of the verity-protected payload
 
-    :STRING 'hooks', VARIANT 'v' <hooks-dict>: The bundle's ``[hooks]`` section content
+    *info.hooks* variant ``a{sv}`` <hooks-dict>:
+        The bundle's ``[hooks]`` section content
 
-        :STRING 'filename', VARIANT 's' <filename>: The hook filename
+        *info.hooks.filename* variant ``s`` <filename>:
+            The hook filename
 
-        :STRING 'hooks', VARIANT 'as' <hooks>: An array of enabled hooks (i.e.
-            ``install-check``)
+        *info.hooks.hooks* variant ``as`` <hooks>:
+            An array of enabled hooks (i.e. ``install-check``)
 
-    :STRING 'handler', VARIANT 'v' <handler-dict>: The bundle's ``[handler]`` section content
+    *info.handler* variant ``a{sv}`` <handler-dict>:
+        The bundle's ``[handler]`` section content
 
-        :STRING 'filename', VARIANT 's' <filename>: The handler filename
+        *info.handler.filename* variant ``s`` <filename>:
+            The handler filename
 
-        :STRING 'args', VARIANT 's' <args>: Optional arguments to the handler
+        *info.handler.args* variant ``s`` <args>:
+            Optional arguments to the handler
 
-    :STRING 'images', VARIANT 'v' <images-list>: The bundle's ``[images.*]``
-        section content, as a list of dictionaries
+    *info.images* variant ``aa{sv}`` <images-list>:
+        The bundle's ``[images.*]`` section content, as a list of dictionaries
 
-        :STRING 'slot-class', VARIANT 's' <slot-class>: The slot class this
-            image is intended for
+        *info.images.slot-class* variant ``s`` <slot-class>:
+            The slot class this image is intended for
 
-        :STRING 'variant', VARIANT 's' <variant>: The variant name, if used
+        *info.images.variant* variant ``s`` <variant>:
+            The variant name, if used
 
-        :STRING 'filename', VARIANT 's' <filename>: The image's filename
+        *info.images.filename* variant ``s`` <filename>:
+            The image's filename
 
-        :STRING 'checksum', VARIANT 's' <checksum>: The original image's SHA256
-            hash
+        *info.images.checksum* variant ``s`` <checksum>:
+            The original image's SHA256 hash
 
-        :STRING 'size', VARIANT 't' <slot-class>: The original image's size
+        *info.images.size* variant ``t`` <slot-class>:
+            The original image's size
 
-        :STRING 'hooks', VARIANT 'as' <hooks>: An array of enabled hooks (i.e.
-            ``pre-install``, ``install`` or ``post-install``)
+        *info.images.hooks* variant ``as`` <hooks>:
+            An array of enabled hooks (i.e. ``pre-install``, ``install`` or
+            ``post-install``)
 
-        :STRING 'adaptive', VARIANT 'as' <adaptive-methods>: An array of
-            enabled adaptive methods (i.e. ``block-hash-index``)
+        *info.images.adaptive* variant ``as`` <adaptive-methods>:
+            An array of enabled adaptive methods (i.e. ``block-hash-index``)
 
-    :STRING 'meta', VARIANT 'v' <meta-dict>: The bundle's ``[meta.*]`` section
-        content
+    *info.meta* variant ``a{sa{ss}}`` <meta-dict>:
+        The bundle's ``[meta.*]`` section content
 
-        :STRING '<group>', VARIANT 'v' <meta-group-dict>: The
-            ``[meta.<group>]`` section content
+        *info.meta.<group>* ``a{ss}`` <meta-group-dict>:
+            The ``[meta.<group>]`` section content
 
-            :STRING '<key>', VARIANT 's' <value>: A key-value pair from the
-                ``[meta.<group>]`` section
+            *info.meta.<group>.<key>* ``s`` <value>:
+                A key-value pair from the ``[meta.<group>]`` section
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.Mark:
 
-The Mark() Method
-^^^^^^^^^^^^^^^^^
+Mark() Method
+^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer.Mark()
-  Mark (IN  s state, IN  s slot_identifier, s slot_name, s message);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <method name="Mark">
+   :end-at: </method>
 
 Keeps a slot bootable (state == "good"), makes it unbootable (state == "bad")
 or explicitly activates it for the next boot (state == "active").
 
-IN s *state*:
+IN *state* ``s``:
     Operation to perform (one out of "good", "bad" or "active")
 
-IN s *slot_identifier*:
+IN *slot_identifier* ``s``:
     Can be "booted", "other" or <SLOT_NAME> (e.g. "rootfs.1")
 
-s *slot_name*:
+OUT *slot_name* ``s``:
     Name of the slot which has ultimately been marked
 
-s *message*:
+OUT *message* ``s``:
     Message describing what has been done successfully
     (e.g. "activated slot rootfs.0")
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.GetSlotStatus:
 
-The GetSlotStatus() Method
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+GetSlotStatus() Method
+^^^^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer.GetSlotStatus()
-  GetSlotStatus (a(sa{sv}) slot_status_array);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <method name="GetSlotStatus">
+   :end-at: </method>
 
 Access method to get all slots' status.
 
-a(sa{sv}) *slot_status_array*:
+OUT *slot_status_array* ``a(sa{sv})``:
     Array of (slotname, dict) tuples with each dictionary representing the
     status of the corresponding slot
 
 .. _gdbus-method-de-pengutronix-rauc-Installer.GetPrimary:
 
-The GetPrimary() Method
-^^^^^^^^^^^^^^^^^^^^^^^
+GetPrimary() Method
+^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer.GetPrimary()
-  GetPrimary (s primary);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <method name="GetPrimary">
+   :end-at: </method>
 
 Get the current primary slot.
 
-Signal Details
-~~~~~~~~~~~~~~
+OUT *primary* ``s``:
+    The name of the primary slot.
 
 .. _gdbus-signal-de-pengutronix-rauc-Installer.Completed:
 
-The "Completed" Signal
-^^^^^^^^^^^^^^^^^^^^^^
+"Completed" Signal
+^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer::Completed
-  Completed (i result);
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <signal name="Completed">
+   :end-at: </signal>
 
 This signal is emitted when an installation completed, either
 successfully or with an error.
 
-i *result*:
+OUT *result* ``i``:
     return code (0 for success)
-
-Property Details
-~~~~~~~~~~~~~~~~
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.Operation:
 
-The "Operation" Property
-^^^^^^^^^^^^^^^^^^^^^^^^
+"Operation" Property
+^^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer:Operation
-  Operation  readable   s
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <property name="Operation"
+   :end-at: <property
 
 Represents the current (global) operation RAUC performs.
 Possible values are ``idle`` or ``installing``.
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.LastError:
 
-The "LastError" Property
-^^^^^^^^^^^^^^^^^^^^^^^^
+"LastError" Property
+^^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer:LastError
-  LastError  readable   s
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <property name="LastError"
+   :end-at: <property
 
 Holds the last message of the last error that occurred.
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.Progress:
 
-The "Progress" Property
-^^^^^^^^^^^^^^^^^^^^^^^
+"Progress" Property
+^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer:Progress
-  Progress  readable   (isi)
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <property name="Progress"
+   :end-at: </property
 
 Provides installation progress information in the form
 
@@ -1953,39 +1944,40 @@ Refer :ref:`Processing Progress Data <sec_processing_progress>` section.
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.Compatible:
 
-The "Compatible" Property
-^^^^^^^^^^^^^^^^^^^^^^^^^
+"Compatible" Property
+^^^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer:Compatible
-  Compatible  readable   s
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <property name="Compatible"
+   :end-at: <property
 
 Represents the system's compatible. This can be used to check for usable bundles.
 
-
 .. _gdbus-property-de-pengutronix-rauc-Installer.Variant:
 
-The "Variant" Property
-^^^^^^^^^^^^^^^^^^^^^^
+"Variant" Property
+^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer:Variant
-  Variant  readable   s
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <property name="Variant"
+   :end-at: <property
 
 Represents the system's variant. This can be used to select parts of an bundle.
 
-
 .. _gdbus-property-de-pengutronix-rauc-Installer.BootSlot:
 
-The "BootSlot" Property
-^^^^^^^^^^^^^^^^^^^^^^^
+"BootSlot" Property
+^^^^^^^^^^^^^^^^^^^
 
-.. code::
-
-  de.pengutronix.rauc.Installer:BootSlot
-  BootSlot  readable   s
+.. literalinclude:: ../src/de.pengutronix.rauc.Installer.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <property name="BootSlot"
+   :end-at: <property
 
 Contains the information RAUC uses to identify the booted slot. It is derived
 from the kernel command line.
