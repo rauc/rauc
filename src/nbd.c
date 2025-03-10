@@ -340,19 +340,18 @@ static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata)
 static size_t header_cb(char *buffer, size_t size, size_t nitems, void *userdata)
 {
 	struct RaucNBDTransfer *xfer = userdata;
-	g_autofree gchar *header = NULL;
-	g_auto(GStrv) h_pair = NULL;
 
 	g_assert_cmpint(size, ==, 1); /* according to the docs, size is always 1 */
 
-	/* make sure we have a 0-terminated lowercase string */
-	header = g_strchomp(g_ascii_strdown(buffer, nitems));
+	/* make sure we have our own 0-terminated string */
+	g_autofree gchar *header = g_strchomp(g_strndup(buffer, nitems));
 
-	h_pair = g_strsplit(header, ": ", 2);
+	g_auto(GStrv) h_pair = g_strsplit(header, ": ", 2);
 	if (g_strv_length(h_pair) < 2)
 		return nitems;
 
-	if (g_str_equal(h_pair[0], "content-range")) {
+	g_autofree gchar *h_name = g_ascii_strdown(h_pair[0], -1);
+	if (g_str_equal(h_name, "content-range")) {
 		g_auto(GStrv) h_elements = NULL;
 		g_auto(GStrv) h_range = NULL;
 		gchar *endptr = NULL;
@@ -385,13 +384,13 @@ static size_t header_cb(char *buffer, size_t size, size_t nitems, void *userdata
 		xfer->content_size = range_size;
 
 		g_message("nbd server received total size %"G_GUINT64_FORMAT, range_size);
-	} else if (g_str_equal(h_pair[0], "date")) {
+	} else if (g_str_equal(h_name, "date")) {
 		time_t date = curl_getdate(h_pair[1], NULL);
 		if (date >= 0) {
 			xfer->current_time = date;
 			g_message("nbd server received HTTP server date %"G_GUINT64_FORMAT, xfer->current_time);
 		}
-	} else if (g_str_equal(h_pair[0], "last-modified")) {
+	} else if (g_str_equal(h_name, "last-modified")) {
 		time_t date = curl_getdate(h_pair[1], NULL);
 		if (date >= 0) {
 			xfer->modified_time = date;
@@ -723,6 +722,12 @@ static gboolean finish_configure(struct RaucNBDContext *ctx, struct RaucNBDTrans
 				break;
 			case 200:
 				error = g_strdup_printf("range requests not supported by server");
+				break;
+			case 204:
+				error = g_strdup_printf("no content");
+				break;
+			case 304:
+				error = g_strdup_printf("not modified");
 				break;
 			default:
 				error = g_strdup_printf("unexpected HTTP error code %ld", response_code);
@@ -1073,7 +1078,17 @@ static gboolean nbd_configure(RaucNBDServer *nbd_srv, GError **error)
 		guint32 http_code = 0;
 		g_variant_dict_lookup(&dict, "error-http-code", "u", &http_code);
 		g_message("received http error %"G_GUINT32_FORMAT, http_code);
-		if (http_code == 401) {
+		if (http_code == 204) {
+			g_set_error(
+					error,
+					R_NBD_ERROR, R_NBD_ERROR_NO_CONTENT,
+					"no content: %s", reply_error);
+		} else if (http_code == 304) {
+			g_set_error(
+					error,
+					R_NBD_ERROR, R_NBD_ERROR_NOT_MODIFIED,
+					"not modified: %s", reply_error);
+		} else if (http_code == 401) {
 			g_set_error(
 					error,
 					R_NBD_ERROR, R_NBD_ERROR_UNAUTHORIZED,
