@@ -1605,6 +1605,8 @@ Properties
 
 :ref:`LastError <gdbus-property-de-pengutronix-rauc-Installer.LastError>` readable   s
 
+:ref:`LastErrorCode <gdbus-property-de-pengutronix-rauc-Installer.LastErrorCode>` readable   i
+
 :ref:`Progress <gdbus-property-de-pengutronix-rauc-Installer.Progress>` readable   (isi)
 
 :ref:`Compatible <gdbus-property-de-pengutronix-rauc-Installer.Compatible>` readable   s
@@ -1934,6 +1936,28 @@ The "LastError" Property
   LastError  readable   s
 
 Holds the last message of the last error that occurred.
+
+.. _gdbus-property-de-pengutronix-rauc-Installer.LastErrorCode:
+
+The "LastErrorCode" Property
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code::
+
+  de.pengutronix.rauc.Installer:LastErrorCode
+  LastError  readable   i
+
+Returns the error code of the last error.
+The codes are defined in the enum RInstallError in include/install.h and are as follows:
+R_INSTALL_ERROR_NOERROR = -1
+R_INSTALL_ERROR_FAILED = 0
+R_INSTALL_ERROR_COMPAT_MISMATCH = 1
+R_INSTALL_ERROR_VERSION_MISMATCH = 2
+R_INSTALL_ERROR_REJECTED = 3
+R_INSTALL_ERROR_MARK_BOOTABLE = 4
+R_INSTALL_ERROR_MARK_NONBOOTABLE = 5
+R_INSTALL_ERROR_TARGET_GROUP = 6
+R_INSTALL_ERROR_MOUNTED = 7
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.Progress:
 

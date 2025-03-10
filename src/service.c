@@ -527,10 +527,16 @@ out:
 	return res;
 }
 
-void set_last_error(const gchar *message)
+void set_last_error(const GError *gerror)
 {
 	if (r_installer)
-		r_installer_set_last_error(r_installer, message);
+		if (gerror == NULL) {
+			r_installer_set_last_error(r_installer, "");
+			r_installer_set_last_error_code(r_installer, R_INSTALL_ERROR_NOERROR);
+		} else {
+			r_installer_set_last_error(r_installer, gerror->message);
+			r_installer_set_last_error_code(r_installer, gerror->code);
+		}
 }
 
 static void send_progress_callback(gint percentage,
