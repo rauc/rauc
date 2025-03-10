@@ -449,3 +449,22 @@ gboolean r_semver_parse(const gchar *version_string, guint64 version_core[3], gc
  * @return TRUE if A<=B, FALSE otherwise
  */
 gboolean r_semver_less_equal(const gchar *version_string_a, const gchar *version_string_b, GError **error);
+
+/**
+ * Converts a duration given in seconds into a short human-readable string.
+ * The format is compact and space-separated, for example: "2h 15m 30s".
+ *
+ * Units are:
+ * - Days: "d"
+ * - Hours: "h"
+ * - Minutes: "m"
+ * - Seconds: "s"
+ *
+ * Units with zero values are omitted (except when the entire duration is zero,
+ * in which case "0s" is returned).
+ *
+ * @param total_seconds duration in seconds
+ *
+ * @return newly-allocated string representing the formatted duration
+ */
+gchar *r_format_duration(gint64 total_seconds);

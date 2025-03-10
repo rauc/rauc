@@ -481,6 +481,31 @@ static void semver_less_equal_test(void)
 	g_assert_no_error(error);
 }
 
+static void format_duration_test(void)
+{
+	gchar *tmp = NULL;
+
+	tmp = r_format_duration(0);
+	g_assert_cmpstr(tmp, ==, "0s");
+	g_free(tmp);
+
+	tmp = r_format_duration(1);
+	g_assert_cmpstr(tmp, ==, "1s");
+	g_free(tmp);
+
+	tmp = r_format_duration(61);
+	g_assert_cmpstr(tmp, ==, "1m 1s");
+	g_free(tmp);
+
+	tmp = r_format_duration(3601);
+	g_assert_cmpstr(tmp, ==, "1h 1s");
+	g_free(tmp);
+
+	tmp = r_format_duration(86400);
+	g_assert_cmpstr(tmp, ==, "1d");
+	g_free(tmp);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -498,6 +523,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/utils/environ", environ_test);
 	g_test_add_func("/utils/semver_parse_test", semver_parse_test);
 	g_test_add_func("/utils/semver_less_equal_test", semver_less_equal_test);
+	g_test_add_func("/utils/format_duration", format_duration_test);
 
 	return g_test_run();
 }

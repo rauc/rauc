@@ -1077,3 +1077,24 @@ gboolean r_semver_less_equal(const gchar *version_string_a, const gchar *version
 	else
 		return (pre_fields_a[i] == NULL) && (pre_fields_b[i] != NULL);
 }
+
+gchar *r_format_duration(gint64 total_seconds)
+{
+	gint64 seconds = total_seconds % 60;
+	gint64 minutes = (total_seconds / 60) % 60;
+	gint64 hours = (total_seconds / 3600) % 24;
+	gint64 days = total_seconds / (3600 * 24);
+
+	GString *result = g_string_new(NULL);
+
+	if (days)
+		g_string_append_printf(result, "%"G_GINT64_FORMAT "d ", days);
+	if (hours)
+		g_string_append_printf(result, "%"G_GINT64_FORMAT "h ", hours);
+	if (minutes)
+		g_string_append_printf(result, "%"G_GINT64_FORMAT "m ", minutes);
+	if (seconds || !total_seconds)
+		g_string_append_printf(result, "%"G_GINT64_FORMAT "s", seconds);
+
+	return g_strchomp(g_string_free(result, FALSE));
+}
