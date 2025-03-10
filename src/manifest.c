@@ -349,6 +349,10 @@ gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)
 	gsize length;
 	g_autofree gchar *manifest_checksum = NULL;
 
+	g_return_val_if_fail(mem, FALSE);
+	g_return_val_if_fail(manifest != NULL && *manifest == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	data = g_bytes_get_data(mem, &length);
 	if (data == NULL) {
 		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_NO_DATA, "No data available");
@@ -382,6 +386,10 @@ gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GErr
 	g_autoptr(GKeyFile) key_file = NULL;
 	g_autofree gchar *manifest_checksum = NULL;
 
+	g_return_val_if_fail(filename, FALSE);
+	g_return_val_if_fail(manifest != NULL && *manifest == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	if (!g_file_get_contents(filename, &data, &length, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -409,6 +417,9 @@ static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 {
 	gboolean have_hooks = FALSE;
 	gboolean res = FALSE;
+
+	g_return_val_if_fail(mf, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (mf->update_min_rauc_version) {
 		if (!r_semver_less_equal("0", mf->update_min_rauc_version, NULL)) {
@@ -509,6 +520,9 @@ static gboolean check_manifest_plain(const RaucManifest *mf, GError **error)
  */
 static gboolean check_manifest_bundled(const RaucManifest *mf, GError **error)
 {
+	g_return_val_if_fail(mf, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	for (GList *l = mf->images; l != NULL; l = l->next) {
 		RaucImage *image = l->data;
 
@@ -564,6 +578,9 @@ static gboolean check_manifest_bundled(const RaucManifest *mf, GError **error)
 gboolean check_manifest_input(const RaucManifest *mf, GError **error)
 {
 	GError *ierror = NULL;
+
+	g_return_val_if_fail(mf, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (!check_manifest_common(mf, &ierror)) {
 		g_propagate_error(error, ierror);
@@ -623,6 +640,9 @@ gboolean check_manifest_internal(const RaucManifest *mf, GError **error)
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 
+	g_return_val_if_fail(mf, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	r_context_begin_step("check_manifest", "Checking manifest contents", 0);
 
 	if (!check_manifest_common(mf, &ierror)) {
@@ -679,6 +699,9 @@ gboolean check_manifest_external(const RaucManifest *mf, GError **error)
 	GError *ierror = NULL;
 	gboolean res = FALSE;
 	const gchar *format = NULL;
+
+	g_return_val_if_fail(mf, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	r_context_begin_step("check_manifest", "Checking manifest contents", 0);
 
@@ -770,6 +793,9 @@ out:
 
 gboolean check_manifest_create(const RaucManifest *mf, GError **error)
 {
+	g_return_val_if_fail(mf, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	for (GList *l = mf->images; l != NULL; l = l->next) {
 		RaucImage *image = l->data;
 
@@ -792,6 +818,8 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 	GHashTableIter iter;
 	GHashTable *meta_kvs;
 	const gchar *meta_group;
+
+	g_return_val_if_fail(mf, FALSE);
 
 	key_file = g_key_file_new();
 
@@ -953,6 +981,10 @@ gboolean save_manifest_file(const gchar *filename, const RaucManifest *mf, GErro
 	g_autoptr(GKeyFile) key_file = NULL;
 	gboolean res = FALSE;
 
+	g_return_val_if_fail(filename, FALSE);
+	g_return_val_if_fail(mf, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	key_file = prepare_manifest(mf);
 
 	res = g_key_file_save_to_file(key_file, filename, &ierror);
@@ -970,6 +1002,8 @@ GVariant* r_manifest_to_dict(const RaucManifest *manifest)
 	GHashTableIter iter;
 	GHashTable *kvs;
 	const gchar *group;
+
+	g_return_val_if_fail(manifest, NULL);
 
 	g_variant_dict_init(&root_dict, NULL);
 
@@ -1181,6 +1215,10 @@ static gboolean update_manifest_checksums(RaucManifest *manifest, const gchar *d
 	GError *ierror = NULL;
 	gboolean res = TRUE;
 	gboolean had_errors = FALSE;
+
+	g_return_val_if_fail(manifest, FALSE);
+	g_return_val_if_fail(dir, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
 		RaucImage *image = elem->data;
