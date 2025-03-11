@@ -374,15 +374,15 @@ static gboolean r_context_configure_target(GError **error)
 		g_warning("Ignoring surrounding whitespace in system variant: %s", context->config->system_variant);
 
 	if (context->bootslot == NULL) {
-		context->bootslot = get_cmdline_bootname();
-	}
-
-	if (context->bootslot == NULL) {
 		context->bootslot = r_boot_get_current_bootname(context->config, &ierror);
 		if (ierror) {
 			g_message("Failed to get bootname: %s", ierror->message);
 			g_clear_error(&ierror);
 		}
+	}
+
+	if (context->bootslot == NULL) {
+		context->bootslot = get_cmdline_bootname();
 	}
 
 	g_clear_pointer(&context->boot_id, g_free);
