@@ -344,7 +344,9 @@ static size_t header_cb(char *buffer, size_t size, size_t nitems, void *userdata
 	g_assert_cmpint(size, ==, 1); /* according to the docs, size is always 1 */
 
 	/* make sure we have our own 0-terminated string */
-	g_autofree gchar *header = g_strchomp(g_strndup(buffer, nitems));
+	g_autofree gchar *header = g_strndup(buffer, nitems);
+	/* remove trailing whitespace */
+	g_strchomp(header);
 
 	g_auto(GStrv) h_pair = g_strsplit(header, ": ", 2);
 	if (g_strv_length(h_pair) < 2)
