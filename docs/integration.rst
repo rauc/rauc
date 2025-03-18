@@ -1555,13 +1555,13 @@ Add the `meta-rauc` layer to your setup:
 
 Add the RAUC tool to your image recipe (or package group)::
 
-  IMAGE_INSTALL_append = "rauc"
+  IMAGE_INSTALL:append = " rauc"
 
 Append the RAUC recipe from your BSP layer (referred to as `meta-your-bsp` in the
 following) by creating a ``meta-your-bsp/recipes-core/rauc/rauc_%.bbappend``
 with the following content::
 
-  FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+  FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 Write a ``system.conf`` for your board and place it in the folder you mentioned
 in the recipe (`meta-your-bsp/recipes-core/rauc/files`). This file must provide
