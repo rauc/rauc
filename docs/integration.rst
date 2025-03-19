@@ -1558,7 +1558,7 @@ Add the RAUC tool to your image recipe (or package group)::
   IMAGE_INSTALL:append = " rauc"
 
 Append the RAUC recipe from your BSP layer (referred to as `meta-your-bsp` in the
-following) by creating a ``meta-your-bsp/recipes-core/rauc/rauc_%.bbappend``
+following) by creating a ``meta-your-bsp/recipes-core/rauc/rauc-conf.bbappend``
 with the following content::
 
   FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
