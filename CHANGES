@@ -3,6 +3,14 @@ Release 1.15 (development)
 
 .. rubric:: Enhancements
 
+* Add support for polling based on the existing HTTP(S) streaming (see
+  :ref:`sec-polling`).
+  The polling functionality in RAUC allows a device to periodically check for
+  updates from a specified source.
+  It fetches bundle manifests, checks for available updates, and initiates
+  installations if necessary.
+  This functionality is intended to automate the update process and ensure that
+  the system remains up-to-date with minimal manual intervention.
 * The HTTP headers enabled by the ``send-headers`` option in the
   ``[streaming]`` section are now also sent for ``rauc info``/
   ``InspectBundle()`` as well.
