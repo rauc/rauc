@@ -994,7 +994,7 @@ static gboolean pre_install_checks(gchar* bundledir, GPtrArray *install_plans, G
 		}
 
 		if (!g_file_test(plan->image->filename, G_FILE_TEST_EXISTS)) {
-			if (plan->image->converted->len == 0) {
+			if (!plan->image->converted || plan->image->converted->len == 0) {
 				g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT,
 						"Source image '%s' not found in bundle", plan->image->filename);
 				return FALSE;
