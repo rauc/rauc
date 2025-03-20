@@ -48,6 +48,10 @@ static void install_args_update(RaucInstallArgs *args, const gchar *msg, ...)
 	g_return_if_fail(args);
 	g_return_if_fail(msg);
 
+	/* without a notify function, there is nothing to do */
+	if (!args->notify)
+		return;
+
 	va_start(list, msg);
 	formatted = g_strdup_vprintf(msg, list);
 	va_end(list);
