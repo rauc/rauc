@@ -162,6 +162,9 @@ needs_emmc = pytest.mark.skipif("RAUC_TEST_EMMC" not in os.environ, reason="Miss
 needs_composefs = pytest.mark.skipif(not string_in_config_h("ENABLE_COMPOSEFS 1"), reason="Missing composefs support")
 
 
+needs_nbd = pytest.mark.skipif("RAUC_TEST_NBD_SERVER" not in os.environ, reason="Missing NBD")
+
+
 def softhsm2_load_key_pair(cert, privkey, label, id_, softhsm2_mod):
     proc = subprocess.run(
         f"openssl x509 -in {cert} -inform pem -outform der "
@@ -626,7 +629,7 @@ class System:
         return events
 
     @contextmanager
-    def running_service(self, bootslot, *, poll_speedup=None):
+    def running_service(self, bootslot, *, poll_speedup=None, extra_env=None):
         if not have_service():
             # TODO avoid unnescesary setup by moving using a pytest mark for all service/noservice cases
             pytest.skip("No service")
@@ -638,6 +641,8 @@ class System:
         env["RAUC_PYTEST_TMP"] = str(self.tmp_path)
         if poll_speedup:
             env["RAUC_TEST_POLL_SPEEDUP"] = f"{poll_speedup}"
+        if extra_env:
+            env.update(extra_env)
 
         command = ""
         if "SERVICE_BACKTRACE" in env:

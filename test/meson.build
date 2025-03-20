@@ -90,6 +90,7 @@ if pytest.found()
     'mount',
     'replace_signature',
     'resign',
+    'polling',
     'service',
     'sign',
     'status',
