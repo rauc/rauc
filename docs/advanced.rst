@@ -1634,14 +1634,14 @@ For more information visit the documentation:
 
 https://qbee.io/docs/update-ota-image.html
 
-.. _sec-advanced-event-log:
-
 AWS IoT Greengrass
 ^^^^^^^^^^^^^^^^^^
 
 AWS `IoT Greengrass <https://docs.aws.amazon.com/greengrass/v2/developerguide/greengrass-nucleus-lite-component.html>`_ is an edge runtime, that allows customers to develop and deploy their own components.
 
 One component could also be a rauc updater component as shown `here <https://github.com/aws4embeddedlinux/meta-aws-demos/blob/master/meta-aws-demos/recipes-core/images/aws-iot-greengrass-lite-demo-image/README.md#demo-ab-update-greengrass-component>`_
+
+.. _sec-advanced-event-log:
 
 Installation History and Event Logging
 --------------------------------------
