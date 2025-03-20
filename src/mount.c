@@ -63,7 +63,6 @@ gboolean r_umount_bundle(const gchar *mountpoint, GError **error)
 gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar* type, const gchar* extra_options, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(10, g_free);
 
 	g_return_val_if_fail(source != NULL, FALSE);
@@ -93,18 +92,15 @@ gboolean r_mount_full(const gchar *source, const gchar *mountpoint, const gchar*
 	g_ptr_array_add(args, g_strdup(mountpoint));
 	g_ptr_array_add(args, NULL);
 
-	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
-	if (!res) {
+	if (!r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
 				"failed to run mount: ");
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
-out:
-	return res;
+	return TRUE;
 }
 
 gboolean r_setup_loop(gint fd, gint *loopfd_out, gchar **loopname_out, goffset size, GError **error)
