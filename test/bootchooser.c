@@ -944,17 +944,13 @@ static void test_raspberrypi_initialize_bootloader_property(const gchar *propert
 	g_autofree gchar *filename = NULL;
 	const gchar *dirname;
 	guint32 val;
-	int fd;
 
 	g_assert_nonnull(property);
 	dirname = "/sys/firmware/devicetree/base/chosen/bootloader";
 	filename = g_build_filename(dirname, property, NULL);
 	g_assert_nonnull(filename);
 	val = g_htonl(value);
-	fd = g_open(filename, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR);
-	g_assert(fd > 0);
-	g_assert(write(fd, &val, sizeof(val)) == sizeof(val));
-	g_assert(g_close(fd, NULL) == TRUE);
+	g_assert_true(g_file_set_contents(filename, (const gchar *)&val, sizeof(val), NULL));
 }
 
 /* Content written should identical to format described for
