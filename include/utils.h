@@ -45,6 +45,8 @@ G_DEFINE_AUTO_CLEANUP_FREE_FUNC(filedesc, close_preserve_errno, -1)
 
 static inline GSubprocess* r_subprocess_newv(GPtrArray *args, GSubprocessFlags flags, GError **error)
 {
+	g_assert(args->len);
+	g_assert(args->pdata[args->len-1] == NULL);
 	g_autofree gchar *call = g_strjoinv(" ", (gchar**) args->pdata);
 	g_log(R_LOG_DOMAIN_SUBPROCESS, G_LOG_LEVEL_DEBUG, "launching subprocess: %s", call);
 
@@ -53,6 +55,8 @@ static inline GSubprocess* r_subprocess_newv(GPtrArray *args, GSubprocessFlags f
 
 static inline GSubprocess * r_subprocess_launcher_spawnv(GSubprocessLauncher *launcher, GPtrArray *args, GError **error)
 {
+	g_assert(args->len);
+	g_assert(args->pdata[args->len-1] == NULL);
 	g_autofree gchar *call = g_strjoinv(" ", (gchar**) args->pdata);
 	g_log(R_LOG_DOMAIN_SUBPROCESS, G_LOG_LEVEL_DEBUG, "launching subprocess: %s", call);
 
