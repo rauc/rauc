@@ -26,6 +26,7 @@ typedef struct {
 	gchar *name;
 	GSourceFunc notify;
 	GSourceFunc cleanup;
+	gpointer data; /* private pointer for notify and cleanup callbacks */
 	GMutex status_mutex;
 	GQueue status_messages;
 	gint status_result;
