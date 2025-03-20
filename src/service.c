@@ -9,11 +9,14 @@
 #include "config_file.h"
 #include "context.h"
 #include "install.h"
+#include "manifest.h"
 #include "mark.h"
+#include "nbd.h"
 #include "rauc-installer-generated.h"
 #include "service.h"
 #include "status_file.h"
 #include "utils.h"
+#include "polling.h"
 
 G_DEFINE_QUARK(r-service-error-quark, r_service_error)
 
@@ -546,6 +549,10 @@ static void send_progress_callback(gint percentage,
 {
 	GVariant *progress_update_tuple;
 
+	/* Don't report progress when idle. This can happen when polling. */
+	if (g_strcmp0(r_installer_get_operation(r_installer), "idle") == 0)
+		return;
+
 	progress_update_tuple = g_variant_new("(isi)", percentage, message, nesting_depth);
 
 	r_installer_set_progress(r_installer, progress_update_tuple);
@@ -606,6 +613,8 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 	r_installer_set_compatible(r_installer, r_context()->config->system_compatible);
 	r_installer_set_variant(r_installer, r_context()->config->system_variant);
 	r_installer_set_boot_slot(r_installer, r_context()->bootslot);
+
+	r_polling_on_bus_acquired(connection);
 }
 
 static void r_on_name_acquired(GDBusConnection *connection,
@@ -654,6 +663,7 @@ static gboolean r_on_signal(gpointer user_data)
 
 gboolean r_service_run(GError **error)
 {
+	GError *ierror = NULL;
 	gboolean service_return = TRUE;
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
@@ -664,6 +674,17 @@ gboolean r_service_run(GError **error)
 	g_unix_signal_add(SIGTERM, r_on_signal, NULL);
 
 	r_installer = r_installer_skeleton_new();
+
+	if (!r_polling_setup(&ierror)) {
+		/* disabled polling is fine */
+		if (!g_error_matches(ierror, R_POLLING_ERROR, R_POLLING_ERROR_DISABLED)) {
+			g_propagate_prefixed_error(error, ierror, "failed to set up polling: ");
+			service_return = FALSE;
+			goto out;
+		} else {
+			g_clear_error(&ierror);
+		}
+	}
 
 	r_bus_name_id = g_bus_own_name(bus_type,
 			"de.pengutronix.rauc",
@@ -682,6 +703,7 @@ gboolean r_service_run(GError **error)
 				"generic failure (check logs)");
 	}
 
+out:
 	if (r_bus_name_id)
 		g_bus_unown_name(r_bus_name_id);
 
