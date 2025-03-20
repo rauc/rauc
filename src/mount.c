@@ -340,25 +340,21 @@ out:
 gboolean r_umount_slot(RaucSlot *slot, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 
 	g_return_val_if_fail(slot != NULL, FALSE);
 	g_return_val_if_fail(slot->mount_point != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	res = r_umount(slot->mount_point, &ierror);
-	if (!res) {
-		res = FALSE;
+	if (!r_umount(slot->mount_point, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
 				"failed to unmount slot: ");
-		goto out;
+		return FALSE;
 	}
 
 	g_rmdir(slot->mount_point);
 	g_clear_pointer(&slot->mount_point, g_free);
 
-out:
-	return res;
+	return TRUE;
 }
