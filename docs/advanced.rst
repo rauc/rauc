@@ -508,6 +508,143 @@ Beside some standard information, like the *boot ID*, the system's *uptime* or
 the *installation transaction ID*, one can also expose custom information
 provided by the ``system-info`` :ref:`handler <sec_ref_handlers>`.
 
+.. _sec-polling:
+
+Update Polling
+--------------
+
+The polling functionality in RAUC allows a device to periodically check for
+updates from a specified source.
+It fetches bundle manifests, checks for available updates, and initiates
+installations if necessary.
+This functionality is intended to automate the update process and ensure that
+the system remains up-to-date with minimal manual intervention.
+
+The polling functionality is designed so that it can be used and extended for
+different scenarios:
+
+simple HTTP(S) server with fixed URL
+  New versions are deployed by simply replacing the bundle on the server with
+  the new one.
+
+simple server-side script with HTTP redirect
+  The script evaluates the HTTP headers sent by RAUC and information about the
+  available update bundles to select one for installation.
+  It replies with a HTTP 3xx redirect to the actual bundle URL, which might be
+  on a different server or CDN.
+  If no update should be installed, a HTTP 204 (no content) code can be sent.
+
+device management server
+  This is similar to the previous case, but uses a database of devices indexed
+  by the device identity (e.g. system serial or TLS client certificate).
+  This way, updates can be targeted at the level of individual devices.
+  By collecting the information sent in the HTTP request headers, the database
+  can keep track of which version is running on which device and if the devices
+  are polling regularly.
+
+While the server-side software is (currently) out-of-scope for the RAUC project,
+we're open to linking to compatible implementations from this documentation.
+More complex scenarios can be supported in the future by using the
+:ref:`[rollout] manifest section <rollout-section>` (for example: update time
+windows, phased rollouts, freshness checks, ...).
+Please contact us if this is relevant to your use-case.
+
+To use polling, bundles in the ``verity`` or ``crypt`` :ref:`formats
+<sec_ref_formats>` must be used.
+The configuration is done via the :ref:`[poll] section <poll-section>` of
+``system.conf``.
+The :ref:`Poller D-Bus interface <gdbus-interface-de-pengutronix-rauc-Poller>`
+can be used to trigger a poll and also exposes the results.
+
+If there are times where RAUC should *not* poll for updates, other parts of the
+system can signal this by creating inhibit files.
+As long as any of the file listed in ``inhibit-files`` exist, no polling or
+installation is started.
+Note that a running poll or installation is not aborted.
+
+To support different use-cases, the polling functionality can be used with or
+without automatic installation.
+
+Automatic Installation
+~~~~~~~~~~~~~~~~~~~~~~
+
+The criteria which a bundle needs to fulfill to be considered a valid update can
+be configured in via ``candidate-criteria`` in the ``[poll]`` section.
+For any valid candidate, the ``install-criteria`` option can be used to trigger
+an automatic installation (see the :ref:`reference <poll-candidate-criteria>`
+for supported criteria).
+If no automatic installation is triggered, it can be confirmed explicitly (see
+below).
+
+After an automatic installation completes, the ``reboot-criteria`` are checked
+to determine if the system should be rebooted.
+If the installation of a bundle fails, it is not attempted again until the RAUC
+service is restarted or a new manifest is found.
+
+Example usage:
+
+.. code-block:: cfg
+   :emphasize-lines: 3-5
+
+   [poll]
+   source=https://example.com/stable/my_product.raucb
+   candidate-criteria=different-version
+   install-criteria=higher-semver
+   reboot-criteria=updated-slots;updated-artifacts
+
+In this example:
+
+1. A new bundle is considered a valid update candidate if it's declared version
+   is different from the current system version.
+2. It is automatically installed only if its semantic version is higher.
+3. A reboot occurs automatically after installation **only** if a slot or
+   artifact was actually installed.
+
+For valid candidates which don't have a higher version, the update is only
+offered for confirmation.
+
+Confirmed Installation
+~~~~~~~~~~~~~~~~~~~~~~
+
+For more complex cases, RAUC can handle the polling and inform a separate
+application or the user if an update is available.
+If and when an update should be installed, the :ref:`InstallBundle D-Bus method
+<gdbus-method-de-pengutronix-rauc-Installer.InstallBundle>` is used to trigger
+the actual installation (see below).
+
+To ensure that the correct bundle is installed after evaluating the manifest
+information, RAUC uses the "manifest hash".
+This hash is computed over the signed manifest and fully identifies the contents
+of the bundle.
+Note that the signature itself is *not* included in the manifest hash.
+
+Backoff
+~~~~~~~
+
+If RAUC is unable to fetch a valid bundle manifest from the URL, it will
+increase the polling interval to avoid an overload scenario.
+Each consecutive failure extends the base interval (``interval-sec``) by the
+length of the base interval.
+The interval is not extended beyond the maximum set by ``max-interval-sec``,
+which defaults to four times the base interval.
+
+Example usage:
+
+.. code-block:: cfg
+   :emphasize-lines: 3-4
+
+   [poll]
+   source=https://example.com/stable/my_product.raucb
+   interval-sec=300
+   max-interval-sec=3600
+
+In this example:
+
+* RAUC polls the source every 5 minutes as long as no error occurs.
+* Every time a poll attempt fails, the interval is increased by 5 minutes, until
+  it reaches 1 hour.
+* If an attempt is successful again, the interval is reduced to 5 minutes.
+
 .. _sec-encryption:
 
 Bundle Encryption
