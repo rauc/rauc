@@ -36,6 +36,10 @@ typedef struct {
 	gchar *require_manifest_hash;
 	gchar *transaction;
 	RaucBundleAccessArgs access_args;
+
+	/* install result flags */
+	gboolean updated_slots;
+	gboolean updated_artifacts;
 } RaucInstallArgs;
 
 /**
