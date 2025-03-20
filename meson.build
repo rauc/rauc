@@ -132,6 +132,7 @@ sources_rauc = files([
   'src/mark.c',
   'src/mbr.c',
   'src/mount.c',
+  'src/poll.c',
   'src/service.c',
   'src/shell.c',
   'src/signature.c',
