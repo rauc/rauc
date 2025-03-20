@@ -234,7 +234,6 @@ out:
 gboolean r_umount(const gchar *filename, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(10, g_free);
 
 	g_return_val_if_fail(filename != NULL, FALSE);
@@ -244,18 +243,15 @@ gboolean r_umount(const gchar *filename, GError **error)
 	g_ptr_array_add(args, g_strdup(filename));
 	g_ptr_array_add(args, NULL);
 
-	res = r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
-	if (!res) {
+	if (!r_subprocess_runv(args, G_SUBPROCESS_FLAGS_NONE, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
 				"failed to run umount: ");
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
-out:
-	return res;
+	return TRUE;
 }
 
 /* Creates a mount subdir in mount path prefix */
