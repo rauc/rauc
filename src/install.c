@@ -1498,12 +1498,14 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 				r_context_end_step("update_slots", FALSE);
 				return FALSE;
 			}
+			args->updated_slots = TRUE;
 		} else if (plan->target_repo) {
 			if (!handle_artifact_install_plan(manifest, plan, args, hook_name, &ierror)) {
 				g_propagate_error(error, ierror);
 				r_context_end_step("update_slots", FALSE);
 				return FALSE;
 			}
+			args->updated_artifacts = TRUE;
 		}
 	}
 
