@@ -154,6 +154,7 @@ def _have_qemu():
 have_qemu = pytest.mark.skipif(not _have_qemu(), reason="Not in qemu-test")
 
 no_service = pytest.mark.skipif(string_in_config_h("ENABLE_SERVICE 1"), reason="Have service")
+needs_service = pytest.mark.skipif(not string_in_config_h("ENABLE_SERVICE 1"), reason="Missing service")
 
 
 def have_service():
@@ -164,6 +165,9 @@ needs_emmc = pytest.mark.skipif("RAUC_TEST_EMMC" not in os.environ, reason="Miss
 
 
 needs_composefs = pytest.mark.skipif(not string_in_config_h("ENABLE_COMPOSEFS 1"), reason="Missing composefs support")
+
+
+needs_nbd = pytest.mark.skipif("RAUC_TEST_NBD_SERVER" not in os.environ, reason="Missing NBD")
 
 
 def softhsm2_load_key_pair(cert, privkey, label, id_, softhsm2_mod, tmp_path):
@@ -619,7 +623,7 @@ class System:
             self.config.write(f, space_around_delimiters=False)
 
     @contextmanager
-    def running_service(self, bootslot, *, poll_speedup=None):
+    def running_service(self, bootslot, *, polling_speedup=None, extra_env=None):
         if not have_service():
             # TODO avoid unnescesary setup by moving using a pytest mark for all service/noservice cases
             pytest.skip("No service")
@@ -629,8 +633,10 @@ class System:
 
         env = os.environ.copy()
         env["RAUC_PYTEST_TMP"] = str(self.tmp_path)
-        if poll_speedup:
-            env["RAUC_TEST_POLL_SPEEDUP"] = f"{poll_speedup}"
+        if polling_speedup:
+            env["RAUC_TEST_POLLING_SPEEDUP"] = f"{polling_speedup}"
+        if extra_env:
+            env.update(extra_env)
 
         self.service = subprocess.Popen(
             f"rauc service --conf={self.output} --mount={self.tmp_path}/mnt --override-boot-slot={bootslot}".split(),
