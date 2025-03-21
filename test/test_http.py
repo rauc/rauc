@@ -11,7 +11,7 @@ from helper import run
 def test_backend_range(http_server):
     """Test if the backend returns the range parameters correctly."""
     http_server.setup(
-        file_path="test/good-verity-bundle.raucb",
+        file_path="good-verity-bundle.raucb",
     )
 
     resp = http_server.get(headers={"Range": "bytes=0-3"})
@@ -27,7 +27,7 @@ def test_backend_range(http_server):
 def test_backend_headers(http_server):
     """Test if the backend returns the request headers correctly."""
     http_server.setup(
-        file_path="test/good-verity-bundle.raucb",
+        file_path="good-verity-bundle.raucb",
     )
 
     resp = http_server.head(headers={"RAUC-Test": "value"})
@@ -79,7 +79,7 @@ def test_info_headers(create_system_files, system, http_server, api):
     }
     system.write_config()
     http_server.setup(
-        file_path="test/good-verity-bundle.raucb",
+        file_path="good-verity-bundle.raucb",
     )
 
     if api == "cli":

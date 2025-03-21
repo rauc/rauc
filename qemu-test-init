@@ -226,7 +226,7 @@ if type nginx; then
   export RAUC_TEST_HTTP_SERVER=1
 fi
 
-if python3 test/nginx_backend.py; then
+if python3 test/nginx_backend.py -s /tmp/backend.sock -d; then
   export RAUC_TEST_HTTP_BACKEND=1
 fi
 

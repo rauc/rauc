@@ -18,7 +18,7 @@ def wait_one_poll(system, *, timeout=15.0):
 def test_poll_only(create_system_files, system, http_server):
     """Test if the info command sends custom headers correctly."""
     http_server.setup(
-        file_path="test/good-verity-bundle.raucb",
+        file_path="good-verity-bundle.raucb",
     )
 
     system.prepare_minimal_config()
@@ -77,7 +77,7 @@ def test_poll_only(create_system_files, system, http_server):
 def test_poll_candidate_criteria(create_system_files, system, http_server, sys_ver, criteria, result):
     """Test if the info command sends custom headers correctly."""
     http_server.setup(
-        file_path="test/good-verity-bundle.raucb",
+        file_path="good-verity-bundle.raucb",
     )
 
     system.prepare_minimal_config()
@@ -143,7 +143,7 @@ def test_poll_candidate_criteria(create_system_files, system, http_server, sys_v
 def test_poll_install_criteria(create_system_files, system, http_server, sys_ver, criteria, result):
     """Test if the info command sends custom headers correctly."""
     http_server.setup(
-        file_path="test/good-verity-bundle.raucb",
+        file_path="good-verity-bundle.raucb",
     )
 
     system.prepare_minimal_config()
@@ -199,7 +199,7 @@ def test_poll_reboot_criteria(create_system_files, system, http_server, tmp_path
     assert not reboot_flag.exists()
 
     http_server.setup(
-        file_path="test/good-verity-bundle.raucb",
+        file_path="good-verity-bundle.raucb",
     )
 
     system.prepare_minimal_config()
