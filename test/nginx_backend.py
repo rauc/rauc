@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import argparse
 import json
 import os
 import socket
@@ -112,13 +113,27 @@ async def summary_handler(request):
     return web.json_response(summary)
 
 
-s = open_socket("/tmp/backend.sock")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run aiohttp server with optional socket and daemon mode.")
+    parser.add_argument("-s", "--socket", help="Path to Unix domain socket")
+    parser.add_argument("-d", "--daemon", action="store_true", help="Run as daemon")
 
-daemonize()
+    args = parser.parse_args()
 
-app = web.Application()
-app["rauc"] = {
-    "sporadic_counter": -1,
-}
-app.add_routes(routes)
-web.run_app(app, sock=s)
+    app_args = {}
+
+    if args.socket:
+        app_args["sock"] = open_socket(args.socket)
+    else:
+        app_args["host"] = "127.0.0.1"
+        app_args["port"] = 8080
+
+    if args.daemon:
+        daemonize()
+
+    app = web.Application()
+    app["rauc"] = {
+        "sporadic_counter": -1,
+    }
+    app.add_routes(routes)
+    web.run_app(app, **app_args)
