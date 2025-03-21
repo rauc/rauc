@@ -29,7 +29,7 @@ typedef struct {
 	gchar *tls_ca;
 	gboolean tls_no_verify;
 	GStrv http_headers;
-	GStrv http_info_headers;
+	GPtrArray *http_info_headers;
 } RaucBundleAccessArgs;
 
 typedef struct {
@@ -275,6 +275,18 @@ gboolean umount_bundle(RaucBundle *bundle, GError **error);
 void free_bundle(RaucBundle *bundle);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucBundle, free_bundle);
+
+/**
+ * Assembles HTTP Headers for use in the initial streaming request, based on the
+ * selection in the system config. Additional headers can be added to the
+ * GPtrArray later.
+ *
+ * @param transaction currently running installation transaction or NULL
+ *
+ * @return newly allocated GPtrArray with HTTP Header strings
+ */
+GPtrArray *assemble_info_headers(const gchar *transaction)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Frees the memory pointed to by the RaucBundleAccessArgs, but not the

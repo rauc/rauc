@@ -1307,6 +1307,9 @@ static gboolean info_start(int argc, char **argv)
 	if (no_check_time)
 		check_bundle_params |= CHECK_BUNDLE_NO_CHECK_TIME;
 
+	g_assert(access_args.http_info_headers == NULL);
+	access_args.http_info_headers = assemble_info_headers(NULL);
+
 	res = check_bundle(bundlelocation, &bundle, check_bundle_params, &access_args, &error);
 	if (!res) {
 		g_printerr("%s\n", error->message);
