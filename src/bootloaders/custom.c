@@ -124,7 +124,7 @@ gchar *r_custom_get_current_bootname(RaucConfig *config, GError **error)
 	g_autoptr(GSubprocess) handle = NULL;
 	g_autoptr(GDataInputStream) datainstream = NULL;
 	g_autoptr(GPtrArray) args_array = NULL;
-	g_autoptr(GError) ierror = NULL;
+	GError *ierror = NULL;
 	g_autofree gchar *outline = NULL;
 	GInputStream *instream;
 	int res;
