@@ -77,6 +77,8 @@ typedef struct {
 	guint bundle_formats_mask;
 	/* enable complete read before mount */
 	gboolean perform_pre_check;
+	/* Fallback to download if streaming failed */
+	gboolean bundle_fallback_download;
 
 	gchar *autoinstall_path;
 	gchar *preinstall_handler;

@@ -2331,6 +2331,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 	/* Download Bundle to temporary location if remote URI is given */
 	bundlescheme = g_uri_parse_scheme(bundlename);
 	if (is_remote_scheme(bundlescheme)) {
+#if ENABLE_NETWORK
 #if ENABLE_STREAMING
 		ibundle->path = g_strdup(bundlename);
 
@@ -2353,27 +2354,37 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 			ibundle->nbd_srv->tls_ca = g_strdup(r_context()->config->streaming_tls_ca);
 		res = r_nbd_start_server(ibundle->nbd_srv, &ierror);
 		if (!res) {
-			g_propagate_prefixed_error(error, ierror, "Failed to stream bundle %s: ", ibundle->path);
-			goto out;
+			if (!r_context()->config->bundle_fallback_download) {
+				g_propagate_prefixed_error(error, ierror, "Failed to stream bundle %s: ", ibundle->path);
+				goto out;
+			} else {
+				g_clear_error(&ierror);
+				ibundle->nbd_srv = NULL;
+				g_message("Fallback to bundle download");
+			}
 		}
-#elif ENABLE_NETWORK
-		g_autofree gchar *tmpdir = g_dir_make_tmp("rauc-XXXXXX", &ierror);
-		if (tmpdir == NULL) {
-			g_propagate_prefixed_error(error, ierror, "Failed to create tmp dir: ");
-			res = FALSE;
-			goto out;
-		}
-
-		ibundle->origpath = g_strdup(bundlename);
-		ibundle->path = g_build_filename(tmpdir, "download.raucb", NULL);
-
-		g_message("Remote URI detected, downloading bundle to %s...", ibundle->path);
-		res = download_file(ibundle->path, ibundle->origpath, r_context()->config->max_bundle_download_size, &ierror);
+#else
+		res = FALSE;
+#endif
 		if (!res) {
-			g_propagate_prefixed_error(error, ierror, "Failed to download bundle %s: ", ibundle->origpath);
-			goto out;
+			g_autofree gchar *tmpdir = g_dir_make_tmp("rauc-XXXXXX", &ierror);
+			if (tmpdir == NULL) {
+				g_propagate_prefixed_error(error, ierror, "Failed to create tmp dir: ");
+				res = FALSE;
+				goto out;
+			}
+
+			ibundle->origpath = g_strdup(bundlename);
+			ibundle->path = g_build_filename(tmpdir, "download.raucb", NULL);
+
+			g_message("Remote URI detected, downloading bundle to %s...", ibundle->path);
+			res = download_file(ibundle->path, ibundle->origpath, r_context()->config->max_bundle_download_size, &ierror);
+			if (!res) {
+				g_propagate_prefixed_error(error, ierror, "Failed to download bundle %s: ", ibundle->origpath);
+				goto out;
+			}
+			g_debug("Downloaded temp bundle to %s", ibundle->path);
 		}
-		g_debug("Downloaded temp bundle to %s", ibundle->path);
 #else
 		g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_UNSUPPORTED,
 				"Remote bundle access not supported, recompile with -Dstreaming=true");
