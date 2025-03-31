@@ -369,6 +369,18 @@ For more information about using the streaming support of RAUC, refer to
   * ``transaction-id``: Enables sending the *transaction UUID* as ``RAUC-Transaction-ID`` header field.
   * ``uptime``: Enables sending the system's current uptime as ``RAUC-Uptime`` header field.
 
+  These headers are sent on the initial HTTP request when streaming a bundle,
+  e.g. when using `rauc install` or `rauc info` (or their corresponding D-Bus
+  calls).
+  They are *not* sent for the subsequent requests which fetch the actual bundle
+  data.
+
+  .. note::
+    Currently, when using ``rauc info`` without the service or without an
+    explicit config file, most headers are not sent, because the
+    ``system-info`` handler is not used and the status information is not
+    loaded.
+
 ``[encryption]`` Section
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
