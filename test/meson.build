@@ -84,6 +84,7 @@ if pytest.found()
     'convert',
     'encrypt',
     'extract',
+    'http',
     'info',
     'install',
     'mark',
