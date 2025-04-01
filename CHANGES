@@ -38,6 +38,8 @@ Release 1.14 (development)
 * Fix installation of plain bundles on kernels configured without
   ``CONFIG_BLK_DEV_WRITE_MOUNTED`` by opening the loop device read-only. (by Sascha
   Hauer)
+* Fix a null pointer dereference if the mounted bundle is inaccessible. (by
+  Aly Ammar)
 
 .. rubric:: Testing
 
@@ -55,11 +57,16 @@ Release 1.14 (development)
 * Simplify internal handling of incremental progress updates.
 * Ignore a ``rollout`` section in the manifest to improve compatibility of
   future bundles.
+* Remove unnecessary gotos. (by Gaël PORTAY)
 
 .. rubric:: Documentation
 
 * Warn against creating production PKIs by using ``test/openssl-ca-create.sh``,
   as it's intended to exercise many different code paths in the test suite.
+* Clean up the D-Bus API reference (see :ref:`sec_ref_dbus-api`).
+* Fix override syntax and recipe names in the Yocto integration example. (by
+  Antonin Godard)
+* Mention the AWS IoT Greengrass Lite as a deployment server. (by Thomas Roos)
 
 Contributions from:
 
