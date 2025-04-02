@@ -1,6 +1,9 @@
 import json
+import fcntl
 import os
+import shlex
 import shutil
+import signal
 import subprocess
 import time
 from functools import cache
@@ -157,6 +160,9 @@ needs_emmc = pytest.mark.skipif("RAUC_TEST_EMMC" not in os.environ, reason="Miss
 
 
 needs_composefs = pytest.mark.skipif(not string_in_config_h("ENABLE_COMPOSEFS 1"), reason="Missing composefs support")
+
+
+needs_nbd = pytest.mark.skipif("RAUC_TEST_NBD_SERVER" not in os.environ, reason="Missing NBD")
 
 
 def softhsm2_load_key_pair(cert, privkey, label, id_, softhsm2_mod):
@@ -497,6 +503,9 @@ class System:
         self.service = None
         self.proxy = None
 
+        self.dbus_monitor = None
+        self.dbus_rest = b""
+
     def prepare_minimal_config(self):
         self.config["system"] = {
             "compatible": "Test Config",
@@ -585,8 +594,42 @@ class System:
         with open(self.output, "w") as f:
             self.config.write(f, space_around_delimiters=False)
 
+    def start_dbus_monitor(self):
+        assert self.dbus_monitor is None
+
+        addr = os.environ["DBUS_SESSION_BUS_ADDRESS"].split(",")[0]
+
+        self.dbus_monitor = subprocess.Popen(
+            ["busctl", "--json=short", f"--address={addr}", "monitor", "de.pengutronix.rauc"],
+            stdout=subprocess.PIPE,
+        )
+        fcntl.fcntl(self.dbus_monitor.stdout, fcntl.F_SETFL, os.O_NONBLOCK)
+        fcntl.fcntl(self.dbus_monitor.stdout, fcntl.F_SETPIPE_SZ, 10 * 1024 * 1024)
+
+    def get_dbus_events(self):
+        lines = []
+        while True:
+            new_bytes = self.dbus_monitor.stdout.read()
+            if new_bytes is None:
+                break
+            # TODO wait until idle?
+            # with open("buslog", "ab") as f:
+            #    f.write(new_bytes)
+            #    f.write(b"\nMARKER\n")
+            # print(f"before: {self.dbus_rest} | {new_bytes}")
+            [*new_lines, self.dbus_rest] = (self.dbus_rest + new_bytes).split(b"\n")
+            # print(f"after: {new_lines} | {self.dbus_rest}")
+            lines += new_lines
+        events = []
+        for line in lines:
+            try:
+                events.append(json.loads(line))
+            except json.decoder.JSONDecodeError:
+                print(f"failed to decode {repr(line)}")
+        return events
+
     @contextmanager
-    def running_service(self, bootslot):
+    def running_service(self, bootslot, *, poll_speedup=None, extra_env=None):
         if not have_service():
             # TODO avoid unnescesary setup by moving using a pytest mark for all service/noservice cases
             pytest.skip("No service")
@@ -596,9 +639,19 @@ class System:
 
         env = os.environ.copy()
         env["RAUC_PYTEST_TMP"] = str(self.tmp_path)
+        if poll_speedup:
+            env["RAUC_TEST_POLL_SPEEDUP"] = f"{poll_speedup}"
+        if extra_env:
+            env.update(extra_env)
+
+        command = ""
+        if "SERVICE_BACKTRACE" in env:
+            command += 'gdb --return-child-result --batch --ex "run" --ex "thread apply all bt" --args '
+
+        command += f"rauc service --conf={self.output} --mount={self.tmp_path}/mnt --override-boot-slot={bootslot}"
 
         self.service = subprocess.Popen(
-            f"rauc service --conf={self.output} --mount={self.tmp_path}/mnt --override-boot-slot={bootslot}".split(),
+            shlex.split(command),
             env=env,
         )
 
@@ -618,10 +671,19 @@ class System:
 
         yield
 
-        self.service.terminate()
+        rauc_dbus_pid = None
+        try:
+            dbus_daemon = bus.get_proxy("org.freedesktop.DBus", "/")
+            rauc_dbus_pid = dbus_daemon.GetConnectionUnixProcessID("de.pengutronix.rauc")
+            print(f"rauc PID via D-Bus {rauc_dbus_pid}")
+            os.kill(rauc_dbus_pid, signal.SIGTERM)
+        except DBusError:
+            self.service.terminate()
+
         try:
             self.service.wait(timeout=10)
-            assert self.service.returncode == 0
+            print(f"rauc returncode is {self.service.returncode}")
+            assert rauc_dbus_pid or self.service.returncode == 0
         except subprocess.TimeoutExpired:
             self.service.kill()
             self.service.wait()
@@ -635,17 +697,51 @@ def system(tmp_path, dbus_session_bus):
 
 
 class HTTPServer:
-    BASE = "http://127.0.0.1/backend"
-
     def __init__(self):
-        self.url = f"{self.BASE}/get"
+        self.server = None
+        # in the qemu test environment, the server is already running
+        if "RAUC_TEST_HTTP_BACKEND" in os.environ:
+            self.base = "http://127.0.0.1/backend"
+        else:
+            self.base = "http://127.0.0.1:8080"
+            self.start()
+        self.url = f"{self.base}/get"
+
+    def start(self):
+        if "RAUC_TEST_HTTP_BACKEND" in os.environ:
+            return
+        assert self.server is None
+
+        self.server = subprocess.Popen(["python3", "nginx_backend.py"])
+        timeout = time.monotonic() + 5.0
+        while True:
+            time.sleep(0.1)
+            try:
+                resp = requests.get(f"{self.base}/")
+                resp.raise_for_status()
+                break
+            except requests.exceptions.ConnectionError:
+                if time.monotonic() > timeout:
+                    raise
+
+    def stop(self):
+        if "RAUC_TEST_HTTP_SERVER" in os.environ:
+            return
+        assert self.server is not None
+
+        self.server.terminate()
+        try:
+            self.server.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            self.server.kill()
+            self.server.wait()
 
     def setup(self, *, file_path):
         resp = requests.post(
-            f"{self.BASE}/setup",
+            f"{self.base}/setup",
             timeout=5,
             json={
-                "file_path": file_path,
+                "file_path": os.path.abspath(file_path),
             },
         )
         resp.raise_for_status()
@@ -659,11 +755,13 @@ class HTTPServer:
         return requests.head(self.url, **kwargs)
 
     def get_summary(self):
-        resp = requests.get(f"{self.BASE}/summary", timeout=15)
+        resp = requests.get(f"{self.base}/summary", timeout=15)
         resp.raise_for_status()
         return resp.json()
 
 
-@pytest.fixture
-def http_server():
-    return HTTPServer()
+@pytest.fixture(scope="session")
+def http_server(env_setup):
+    server = HTTPServer()
+    yield server
+    server.stop()

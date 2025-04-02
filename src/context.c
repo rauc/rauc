@@ -501,6 +501,17 @@ gboolean r_context_configure(GError **error)
 		return FALSE;
 	}
 
+	/* configure mocks */
+	const gchar *poll_speedup = g_getenv("RAUC_TEST_POLL_SPEEDUP");
+	if (poll_speedup) {
+		gint64 result = g_ascii_strtoll(poll_speedup, NULL, 10);
+		if ((result < 1) || (result > 1000)) {
+			g_error("Invalid RAUC_TEST_POLL_SPEEDUP value '%s'", poll_speedup);
+			return FALSE;
+		}
+		context->mock.poll_speedup = result;
+	}
+
 	context->pending = FALSE;
 
 	return TRUE;

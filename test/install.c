@@ -1041,14 +1041,6 @@ device=/dev/null\n\
 	g_assert_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_FAILED);
 }
 
-static gboolean r_quit(gpointer data)
-{
-	g_assert_nonnull(r_loop);
-	g_main_loop_quit(r_loop);
-
-	return G_SOURCE_REMOVE;
-}
-
 static gboolean install_notify(gpointer data)
 {
 	RaucInstallArgs *args = data;
@@ -1073,7 +1065,7 @@ static gboolean install_cleanup(gpointer data)
 	install_args_free(args);
 
 	if (r_loop)
-		r_quit(data);
+		g_main_loop_quit(r_loop);
 
 	return G_SOURCE_REMOVE;
 }

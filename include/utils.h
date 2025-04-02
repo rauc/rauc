@@ -45,6 +45,8 @@ G_DEFINE_AUTO_CLEANUP_FREE_FUNC(filedesc, close_preserve_errno, -1)
 
 static inline GSubprocess* r_subprocess_newv(GPtrArray *args, GSubprocessFlags flags, GError **error)
 {
+	g_assert(args->len);
+	g_assert(args->pdata[args->len-1] == NULL);
 	g_autofree gchar *call = g_strjoinv(" ", (gchar**) args->pdata);
 	g_log(R_LOG_DOMAIN_SUBPROCESS, G_LOG_LEVEL_DEBUG, "launching subprocess: %s", call);
 
@@ -53,6 +55,8 @@ static inline GSubprocess* r_subprocess_newv(GPtrArray *args, GSubprocessFlags f
 
 static inline GSubprocess * r_subprocess_launcher_spawnv(GSubprocessLauncher *launcher, GPtrArray *args, GError **error)
 {
+	g_assert(args->len);
+	g_assert(args->pdata[args->len-1] == NULL);
 	g_autofree gchar *call = g_strjoinv(" ", (gchar**) args->pdata);
 	g_log(R_LOG_DOMAIN_SUBPROCESS, G_LOG_LEVEL_DEBUG, "launching subprocess: %s", call);
 
@@ -291,6 +295,27 @@ G_GNUC_WARN_UNUSED_RESULT;
 guint64 key_file_consume_binary_suffixed_string(GKeyFile *key_file,
 		const gchar *group_name,
 		const gchar *key,
+		GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Get list of string arguments from key and remove key from key_file.
+ *
+ * Optionally filter
+ *
+ * @param key_file g GKeyFile
+ * @param group_name the group name
+ * @param key the key name
+ * @param allowed a list of allowed strings, or NULL
+ * @param error return location for a GError, or NULL
+ *
+ * @return a GStrv or NULL if the key was not found or an error occurred
+ */
+gchar **key_file_consume_string_list(
+		GKeyFile *key_file,
+		const gchar *group_name,
+		const gchar *key,
+		const gchar **allowed,
 		GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
