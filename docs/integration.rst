@@ -370,6 +370,12 @@ manages artifacts.
      In the future, this could be combined with adaptive updates using new
      methods which could detect unmodified files.
 
+  .. note::
+     The on-target tar extraction (for unconverted artifacts) requires a full
+     tar implementation that supports ``--acl``, ``--selinux``, and
+     ``--xattrs``.
+     The ``busybox`` tar command is not sufficient here.
+
 ``composefs``
   Each artifact is a directory containing a `composefs
   <https://github.com/containers/composefs>`_ metadata image (``image.cfs``).
