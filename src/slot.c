@@ -43,8 +43,8 @@ void r_slot_clear_status(RaucSlotStatus *slotstatus)
 	g_clear_pointer(&slotstatus->checksum.digest, g_free);
 	slotstatus->checksum.size = 0;
 	g_clear_pointer(&slotstatus->installed_txn, g_free);
-	g_clear_pointer(&slotstatus->installed_timestamp, g_free);
-	g_clear_pointer(&slotstatus->activated_timestamp, g_free);
+	g_clear_pointer(&slotstatus->installed_timestamp, g_date_time_unref);
+	g_clear_pointer(&slotstatus->activated_timestamp, g_date_time_unref);
 }
 
 void r_slot_free_status(RaucSlotStatus *slotstatus)
