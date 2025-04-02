@@ -1,5 +1,5 @@
-Release 1.14 (development)
---------------------------
+Release 1.14 (released Apr 2, 2025)
+-----------------------------------
 
 .. rubric:: Enhancements
 
@@ -67,8 +67,11 @@ Release 1.14 (development)
 * Fix override syntax and recipe names in the Yocto integration example. (by
   Antonin Godard)
 * Mention the AWS IoT Greengrass Lite as a deployment server. (by Thomas Roos)
+* Remove custom sphinx/pygments Devicetree lexer and use the built-in one.
 
-Contributions from:
+Contributions from: Aly Ammar, Antonin Godard, Enrico Jörns, Fabian Pfitzner,
+Gaël PORTAY, Jan Lübbe, Marcus Hoffmann, Peter Korsgaard, Sascha Hauer, Thomas
+Roos
 
 Release 1.13 (released Jan 22, 2025)
 ------------------------------------
