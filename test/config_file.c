@@ -682,6 +682,17 @@ mountprefix=/mnt/myrauc/\n\
 activate-installed=typo\n");
 }
 
+static void config_file_typo_in_boolean_bundle_fallback_download_key(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	config_file_typo(fixture, "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+bundle-fallback-download=typo\n");
+}
+
 static void config_file_bootname_tab(ConfigFileFixture *fixture, gconstpointer user_data)
 {
 	g_autoptr(RaucConfig) config = NULL;
@@ -844,6 +855,57 @@ activate-installed=false\n";
 	g_assert_nonnull(config);
 	g_assert_false(config->activate_installed);
 }
+
+static void config_file_bundle_fallback_download_set_to_true(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	GError *ierror = NULL;
+	gboolean res;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+bundle-fallback-download=true\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(config);
+	g_assert_true(config->bundle_fallback_download);
+}
+
+static void config_file_bundle_fallback_download_set_to_false(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	GError *ierror = NULL;
+	gboolean res;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+bundle-fallback-download=false\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(config);
+	g_assert_false(config->bundle_fallback_download);
+}
+
 
 static void config_file_system_variant(ConfigFileFixture *fixture,
 		gconstpointer user_data)
@@ -1649,6 +1711,9 @@ int main(int argc, char *argv[])
 	g_test_add("/config-file/typo-in-boolean-activate-installed-key", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_typo_in_boolean_activate_installed_key,
 			config_file_fixture_tear_down);
+	g_test_add("/config-file/typo-in-boolean-bundle-fallback-download-key", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_typo_in_boolean_bundle_fallback_download_key,
+			config_file_fixture_tear_down);
 	g_test_add("/config-file/bootname-tab", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_bootname_tab,
 			config_file_fixture_tear_down);
@@ -1672,6 +1737,12 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/activate-installed-key-set-to-false", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_activate_installed_set_to_false,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/bundle-fallback-download-key-set-to-true", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_bundle_fallback_download_set_to_true,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/bundle-fallback-download-key-set-to-false", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_bundle_fallback_download_set_to_false,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/system-variant", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_system_variant,
