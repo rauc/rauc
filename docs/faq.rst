@@ -221,13 +221,17 @@ Since version 1.12, RAUC hard-links all files from the input directory to a
 This way, we don't actually need to copy any data and can perform any
 preparation of the contents without affecting the input directory.
 
-If the input directory contains subdirectories, the subdirectory hierarchy will
-be mirrored into the bundle. For simplicity, we abort if a directory contains
-anything which is not a regular file or a simple local symlink (containing no
-slashes). In that case, one of the following errors will be shown:
+If the input directory contains regular (non-hidden) subdirectories, the
+subdirectory hierarchy will be mirrored into the bundle. Hidden directories
+(i.e., directories whose name starts with a '.') are reserved vor RAUC's
+internal use and we abort if any such directory is found. For simplicity, we
+also abort if a directory contains anything which is not a regular file or a
+simple local symlink (containing no slashes). In that case, one of the following
+errors will be shown:
 
   * ``Failed to create bundle: absolute symlinks are not supported as bundle contents (a_symlink)``
   * ``Failed to create bundle: symlinks containing slashes are not supported as bundle contents (a_symlink)``
+  * ``Failed to create bundle: hidden directories are not supported as bundle contents (.a_hidden_directory)``
   * ``Failed to create bundle: only regular files are supported as bundle contents (a_fifo)``
 
 If someone relies on the old undocumented behavior of including directories and

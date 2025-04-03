@@ -1173,6 +1173,13 @@ static gboolean link_contentdir_to_workdir(const gchar *contentdir, const gchar 
 		newpath = g_build_filename(workdir, name, NULL);
 
 		if (g_file_test(oldpath, G_FILE_TEST_IS_DIR)) {
+			if (name[0] == '.') {
+				g_set_error(error, R_BUNDLE_ERROR, R_BUNDLE_ERROR_PAYLOAD,
+						"hidden directories are not supported as bundle contents (%s)",
+						name);
+				return FALSE;
+			}
+
 			g_stat(oldpath, &stat_data);
 			if (g_mkdir(newpath, stat_data.st_mode & ~S_IFMT) != 0) {
 				int err = errno;

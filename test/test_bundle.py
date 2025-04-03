@@ -201,6 +201,15 @@ def test_bundle_content_checks(tmp_path, bundle):
     bundle.output.unlink()
     test_dir.rmdir()
 
+    # hidden directories are not allowed
+    test_dir = bundle.content / ".hidden_subdir"
+    test_dir.mkdir()
+    out, err, exitcode = bundle.build_nocheck()
+    assert exitcode == 1
+    assert "hidden directories are not supported as bundle contents (.hidden_subdir)"
+    assert not bundle.output.is_file()
+    test_dir.rmdir()
+
     # directories are not allowed
     test_fifo = bundle.content / "fifo"
     os.mkfifo(test_fifo)
