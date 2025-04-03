@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import argparse
 import json
 import os
 import socket
@@ -62,6 +63,7 @@ async def token_get(request):
 def reset_summary(request):
     request.app["rauc"]["summary"] = {
         "first_request_headers": {},
+        "second_request_headers": {},
         "requests": 0,
         "range_requests": [],
     }
@@ -93,6 +95,8 @@ async def get_handler(request):
 
     if not summary["first_request_headers"]:
         summary["first_request_headers"] = dict(request.headers)
+    elif not summary["second_request_headers"]:
+        summary["second_request_headers"] = dict(request.headers)
 
     if request.http_range:
         start = str(request.http_range.start) or ""
@@ -109,13 +113,27 @@ async def summary_handler(request):
     return web.json_response(summary)
 
 
-s = open_socket("/tmp/backend.sock")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run aiohttp server with optional socket and daemon mode.")
+    parser.add_argument("-s", "--socket", help="Path to Unix domain socket")
+    parser.add_argument("-d", "--daemon", action="store_true", help="Run as daemon")
 
-daemonize()
+    args = parser.parse_args()
 
-app = web.Application()
-app["rauc"] = {
-    "sporadic_counter": -1,
-}
-app.add_routes(routes)
-web.run_app(app, sock=s)
+    app_args = {}
+
+    if args.socket:
+        app_args["sock"] = open_socket(args.socket)
+    else:
+        app_args["host"] = "127.0.0.1"
+        app_args["port"] = 8080
+
+    if args.daemon:
+        daemonize()
+
+    app = web.Application()
+    app["rauc"] = {
+        "sporadic_counter": -1,
+    }
+    app.add_routes(routes)
+    web.run_app(app, **app_args)

@@ -635,17 +635,51 @@ def system(tmp_path, dbus_session_bus):
 
 
 class HTTPServer:
-    BASE = "http://127.0.0.1/backend"
-
     def __init__(self):
-        self.url = f"{self.BASE}/get"
+        self.server = None
+        # in the qemu test environment, the server is already running
+        if "RAUC_TEST_HTTP_BACKEND" in os.environ:
+            self.base = "http://127.0.0.1/backend"
+        else:
+            self.base = "http://127.0.0.1:8080"
+            self.start()
+        self.url = f"{self.base}/get"
+
+    def start(self):
+        if "RAUC_TEST_HTTP_BACKEND" in os.environ:
+            return
+        assert self.server is None
+
+        self.server = subprocess.Popen(["python3", "nginx_backend.py"])
+        timeout = time.monotonic() + 5.0
+        while True:
+            time.sleep(0.1)
+            try:
+                resp = requests.get(f"{self.base}/")
+                resp.raise_for_status()
+                break
+            except requests.exceptions.ConnectionError:
+                if time.monotonic() > timeout:
+                    raise
+
+    def stop(self):
+        if "RAUC_TEST_HTTP_SERVER" in os.environ:
+            return
+        assert self.server is not None
+
+        self.server.terminate()
+        try:
+            self.server.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            self.server.kill()
+            self.server.wait()
 
     def setup(self, *, file_path):
         resp = requests.post(
-            f"{self.BASE}/setup",
+            f"{self.base}/setup",
             timeout=5,
             json={
-                "file_path": file_path,
+                "file_path": os.path.abspath(file_path),
             },
         )
         resp.raise_for_status()
@@ -659,11 +693,13 @@ class HTTPServer:
         return requests.head(self.url, **kwargs)
 
     def get_summary(self):
-        resp = requests.get(f"{self.BASE}/summary", timeout=15)
+        resp = requests.get(f"{self.base}/summary", timeout=15)
         resp.raise_for_status()
         return resp.json()
 
 
-@pytest.fixture
-def http_server():
-    return HTTPServer()
+@pytest.fixture(scope="session")
+def http_server(env_setup):
+    server = HTTPServer()
+    yield server
+    server.stop()

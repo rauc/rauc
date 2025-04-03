@@ -39,7 +39,7 @@ typedef struct {
 	gchar *tls_ca; /* local file */
 	gboolean tls_no_verify;
 	GStrv headers; /* array of strings such as 'Foo: bar' */
-	GStrv info_headers; /* array of strings such as 'Foo: bar' */
+	GPtrArray *info_headers; /* array of strings such as 'Foo: bar' */
 
 	/* discovered information */
 	guint64 data_size; /* bundle size */
