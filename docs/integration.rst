@@ -1645,7 +1645,8 @@ For using the built-in bundle generation, you need to specify some variables:
 
 ``RAUC_BUNDLE_FORMAT``
   Use this to choose the :ref:`sec_ref_formats` for the generated bundle.
-  It currently defaults to ``plain``, but you should use ``verity`` if possible.
+  It currently defaults to ``""`` which will result in a 'plain' bundle, but
+  you should use ``"verity"`` if possible.
 
 ``RAUC_SLOT_<slotclass>``
   For each slot class, set this to the recipe name which builds the
