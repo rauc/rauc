@@ -1633,6 +1633,11 @@ or provide a custom manifest.
 
 For using the built-in bundle generation, you need to specify some variables:
 
+.. note::
+  For a more comprehensive listing of available variables and classes, see
+  the bundle.bbclass `inline documentation
+  <https://github.com/rauc/meta-rauc/blob/master/classes-recipe/bundle.bbclass>`__.
+
 ``RAUC_BUNDLE_COMPATIBLE``
   Sets the compatible string for the bundle. This should match the compatible
   you specified in your ``system.conf`` or, more generally, the compatible of the
