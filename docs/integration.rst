@@ -1633,6 +1633,11 @@ or provide a custom manifest.
 
 For using the built-in bundle generation, you need to specify some variables:
 
+.. note::
+  For a more comprehensive listing of available variables and classes, see
+  the bundle.bbclass `inline documentation
+  <https://github.com/rauc/meta-rauc/blob/master/classes-recipe/bundle.bbclass>`__.
+
 ``RAUC_BUNDLE_COMPATIBLE``
   Sets the compatible string for the bundle. This should match the compatible
   you specified in your ``system.conf`` or, more generally, the compatible of the
@@ -1645,7 +1650,8 @@ For using the built-in bundle generation, you need to specify some variables:
 
 ``RAUC_BUNDLE_FORMAT``
   Use this to choose the :ref:`sec_ref_formats` for the generated bundle.
-  It currently defaults to ``plain``, but you should use ``verity`` if possible.
+  It currently defaults to ``""`` which will result in a 'plain' bundle, but
+  you should use ``"verity"`` if possible.
 
 ``RAUC_SLOT_<slotclass>``
   For each slot class, set this to the recipe name which builds the
