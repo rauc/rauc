@@ -107,6 +107,9 @@ add_project_link_arguments(ld_flags, language : 'c')
 add_project_arguments('-DG_LOG_DOMAIN="rauc"', language : 'c')
 # enable GNU extensions (required!)
 add_project_arguments('-D_GNU_SOURCE', language : 'c')
+# To allow building against OpenSSL 3.0 and 4.0 without engine support
+# as they are deprecated in favor of providers API
+add_project_arguments('-DDISABLE_OPENSSL_ENGINE', language : 'c')
 
 incdir = include_directories('include')
 
