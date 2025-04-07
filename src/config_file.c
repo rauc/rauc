@@ -1011,6 +1011,17 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		c->system_variant = g_steal_pointer(&variant_data);
 	}
 
+	/* parse 'bundle-fallback-download' key */
+	c->bundle_fallback_download = g_key_file_get_boolean(key_file, "system", "bundle-fallback-download", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		c->bundle_fallback_download = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "system", "bundle-fallback-download", NULL);
+
 	/* parse data/status location
 	 *
 	 * We have multiple levels of backwards compatibility:
