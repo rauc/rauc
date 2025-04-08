@@ -277,12 +277,40 @@ Install a bundle.
 disable compatible check
 
 .TP
+\fB\-\-ignore\-version\-limit=\fR
+disable version check
+
+.TP
 \fB\-\-transaction\-id=\fR\fIUUID\fR
 custom transaction ID
 
 .TP
+\fB\-\-require\-manifest\-hash=\fR\fIHASH\fR
+require a specific manifest hash
+
+.TP
 \fB\-\-progress\fR
 show progress bar
+
+.TP
+\fB\-\-tls\-cert=\fR\fIPEMFILE|PKCS11-URL\fR
+TLS client certificate file or PKCS#11 URL
+
+.TP
+\fB\-\-tls\-key=\fR\fIPEMFILE|PKCS11-URL\fR
+TLS client key file or PKCS#11 URL
+
+.TP
+\fB\-\-tls\-ca=\fR\fIPEMFILE\fR
+TLS CA file
+
+.TP
+\fB\-\-tls\-no-verify\fR
+do not verify TLS server certificate
+
+.TP
+\fB\-H\fR, \fB\-\-http-header\fR=\fR\fI'HEADER: VALUE'\fR
+HTTP request header (multiple uses supported)
 
 .TP
 \fB\-\-handler\-args=\fR\fIARGS\fR
