@@ -172,6 +172,10 @@ if composefsdep.found()
   sources_rauc += files('src/artifacts_composefs.c')
 endif
 
+# To allow building against OpenSSL 3.0 and 4.0 without engine support
+# as they are deprecated in favor of providers API
+conf.set10('ENABLE_OPENSSL_PKCS11_ENGINE', get_option('pkcs11_engine'))
+
 gnome = import('gnome')
 dbus_ifaces = files('src/de.pengutronix.rauc.Installer.xml')
 dbus_sources = gnome.gdbus_codegen(
