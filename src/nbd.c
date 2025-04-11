@@ -2,6 +2,7 @@
 #define G_LOG_DOMAIN "rauc-nbd"
 
 #include <unistd.h>
+#include <grp.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
@@ -1139,6 +1140,8 @@ static gboolean nbd_configure(RaucNBDServer *nbd_srv, GError **error)
 struct child_setup_args {
 	uid_t uid;
 	gid_t gid;
+	gid_t *groups;
+	int ngroups;
 };
 
 static void nbd_server_child_setup(gpointer user_data)
@@ -1146,6 +1149,13 @@ static void nbd_server_child_setup(gpointer user_data)
 	/* see signal-safety(7) for functions which can be used here */
 	struct child_setup_args *args = user_data;
 
+	if (args->groups) {
+		if (setgroups(args->ngroups, args->groups) == -1) {
+			const char *msg = "setgroups failed\n";
+			write(STDOUT_FILENO, msg, strlen(msg));
+			exit(1);
+		}
+	}
 	if (args->gid) {
 		if (setgid(args->gid) == -1) {
 			const char *msg = "setgid failed\n";
@@ -1168,8 +1178,10 @@ static gboolean nbd_server_child_prepare(struct child_setup_args *args, GError *
 	struct passwd passwd = {0};
 	struct passwd *result = NULL;
 	g_autofree gchar *buf = NULL;
+	g_autofree pid_t *groups = NULL;
 	long bufsize;
 	int err;
+	int ngroups;
 
 	g_return_val_if_fail(args != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -1205,8 +1217,29 @@ static gboolean nbd_server_child_prepare(struct child_setup_args *args, GError *
 		}
 	}
 
+	ngroups = 0;
+	/* getgrouplist always fail (returns -1), but still sets ngroups to the
+	 * number of wanted groups. */
+	getgrouplist(user, result->pw_gid, NULL, &ngroups);
+	groups = g_malloc0(ngroups * sizeof(*groups));
+	args->ngroups = ngroups;
+
+	err = getgrouplist(user, result->pw_gid, groups, &args->ngroups);
+	/* Something very weird happened if the number of groups now is different
+	 * than the expected number from before. */
+	if (err < 0 || args->ngroups != ngroups) {
+		g_set_error(
+			error,
+			R_NBD_ERROR, R_NBD_ERROR_STARTUP,
+			"cannot get groups for user %s", user);
+		return FALSE;
+	}
+
 	args->uid = result->pw_uid;
 	args->gid = result->pw_gid;
+	/* Transfer ownership, nullified the internal var, to avoid auto-free. */
+	args->groups = groups;
+	groups = NULL;
 
 	return TRUE;
 }
@@ -1260,6 +1293,10 @@ gboolean r_nbd_start_server(RaucNBDServer *nbd_srv, GError **error)
 		g_subprocess_launcher_take_fd(launcher, sockets[0], RAUC_SOCKET_FD);
 
 		nbd_srv->sproc = r_subprocess_launcher_spawnv(launcher, args, &ierror);
+		/* Free the groups pointer, it is consumed by child process. Do it
+		 * before error validation, to avoid missing the free before the
+		 * variable is lost. */
+		g_clear_pointer(&child_args.groups, g_free);
 		if (nbd_srv->sproc == NULL) {
 			g_propagate_prefixed_error(
 					error,
