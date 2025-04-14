@@ -144,19 +144,19 @@ Host (Build) Prerequisites
 -  libcurl3-dev
 -  libssl-dev
 
-::
+.. code-block:: sh
 
    sudo apt-get install build-essential meson libtool libdbus-1-dev libglib2.0-dev libcurl3-dev libssl-dev
 
 For HTTP(S) streaming support, you also need netlink protocol headers:
 
-::
+.. code-block:: sh
 
     sudo apt-get install libnl-genl-3-dev
 
 If you intend to use json-support you also need
 
-::
+.. code-block:: sh
 
     sudo apt-get install libjson-glib-dev
 
@@ -193,7 +193,7 @@ Building from Sources
 .. note:: RAUC is intended to be built both as a host tool as well as a target
    tool (service). Therefore it is fully prepared for cross-compilation with meson.
 
-::
+.. code-block:: sh
 
     git clone https://github.com/rauc/rauc
     cd rauc
@@ -210,14 +210,16 @@ Manual Installation
 On the host system RAUC can be used directly from the build dir, or optionally
 be installed. On the target instead, installing is highly recommended as it
 also unpacks service and D-Bus configuration files required to run RAUC
-properly::
+properly:
+
+.. code-block:: sh
 
     meson install
 
 Running the Test Suite
 ----------------------
 
-::
+.. code-block:: sh
 
     sudo apt-get install qemu-system-x86 time squashfs-tools python3-pytest python3-dasbus
     # Optional to run all tests:
@@ -227,13 +229,17 @@ Running the Test Suite
 Creating a Bundle (Host)
 ------------------------
 
-Create a directory with the content that should be installed::
+Create a directory with the content that should be installed:
+
+.. code-block:: sh
 
     mkdir content-dir/
     cp $SOURCE/rootfs.ext4 content-dir/
 
 Create a manifest describing which image to install where together with some
-meta info::
+meta info:
+
+.. code-block:: sh
 
     cat >> content-dir/manifest.raucm << EOF
     [update]
@@ -243,7 +249,9 @@ meta info::
     filename=rootfs.ext4
     EOF
 
-Let RAUC create a bundle from this::
+Let RAUC create a bundle from this:
+
+.. code-block:: sh
 
     rauc --cert autobuilder.cert.pem --key autobuilder.key.pem bundle content-dir/ update-2019.01-1.raucb
 
@@ -251,18 +259,24 @@ Starting the RAUC Service (Target)
 ----------------------------------
 
 Create a system configuration file in ``/etc/rauc/system.conf`` and start the
-service process in background::
+service process in background:
+
+.. code-block:: sh
 
     rauc service &
 
 Installing a Bundle (Target)
 ----------------------------
 
-To install the bundle (from local storage) on your target device, run::
+To install the bundle (from local storage) on your target device, run:
+
+.. code-block:: sh
 
     rauc install update-2023.02-1.raucb
 
-To install a bundle from a webserver (using RAUC's built-in HTTP(S) streaming), run::
+To install a bundle from a webserver (using RAUC's built-in HTTP(S) streaming), run:
+
+.. code-block:: sh
 
     rauc install https://example.com/update-2023.02-1.raucb
 
