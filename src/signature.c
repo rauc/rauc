@@ -93,14 +93,12 @@ gboolean signature_init(GError **error)
 		return FALSE;
 	}
 
-	id = X509_PURPOSE_get_count() + 1;
-	if (X509_PURPOSE_get_by_id(id) >= 0) {
-		g_set_error_literal(
-				error,
-				R_SIGNATURE_ERROR,
-				R_SIGNATURE_ERROR_CRYPTOINIT_FAILED,
-				"Failed to calculate free OpenSSL X509 purpose id");
-		return FALSE;
+	/* OpenSSL 3.5 warns that there may be gaps, so we need to search.
+	 * When we have 3.5 as the minimum version, we can use
+	 * X509_PURPOSE_get_unused_id instead. */
+	id = X509_PURPOSE_MAX + 1;
+	while (X509_PURPOSE_get_by_id(id) != -1) {
+		id++;
 	}
 
 	/* X509_TRUST_OBJECT_SIGN maps to the Code Signing ID (via OpenSSL's NID_code_sign) */
