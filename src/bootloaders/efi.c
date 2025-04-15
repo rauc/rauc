@@ -115,7 +115,7 @@ static efi_bootentry *get_efi_entry_by_bootnum(GList *entries, const gchar *boot
  *        'BootNext' (if any)
  * @param error Return location for a GError
  */
-static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries, efi_bootentry **bootnext, GError **error)
+static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries, efi_bootentry **bootnext, efi_bootentry **bootcurrent, GError **error)
 {
 	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
@@ -133,6 +133,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	g_return_val_if_fail(bootorder_entries == NULL || *bootorder_entries == NULL, FALSE);
 	g_return_val_if_fail(all_entries != NULL && *all_entries == NULL, FALSE);
 	g_return_val_if_fail(bootnext == NULL || *bootnext == NULL, FALSE);
+	g_return_val_if_fail(bootcurrent == NULL || *bootcurrent == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror,
@@ -245,6 +246,19 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 			returnorder = g_list_append(returnorder, bentry);
 	}
 
+	g_clear_pointer(&regex, g_regex_unref);
+	g_clear_pointer(&match, g_match_info_free);
+
+	/* Obtain boot current */
+	regex = g_regex_new("^BootCurrent: ([0-9a-fA-F]{4})$", G_REGEX_MULTILINE, 0, NULL);
+	if (g_regex_match(regex, stdout_str, 0, &match)) {
+		if (bootcurrent) {
+			g_clear_pointer(&matched, g_free);
+			matched = g_match_info_fetch(match, 1);
+			*bootcurrent = get_efi_entry_by_bootnum(entries, matched);
+		}
+	}
+
 	if (bootorder_entries)
 		*bootorder_entries = g_steal_pointer(&returnorder);
 	*all_entries = g_steal_pointer(&entries);
@@ -262,7 +276,7 @@ static gboolean efi_set_temp_primary(RaucSlot *slot, GError **error)
 	GError *ierror = NULL;
 	efi_bootentry *efi_slot_entry = NULL;
 
-	if (!efi_bootorder_get(NULL, &entries, NULL, &ierror)) {
+	if (!efi_bootorder_get(NULL, &entries, NULL, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
@@ -307,7 +321,7 @@ static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (!efi_bootorder_get(&entries, &all_entries, NULL, &ierror)) {
+	if (!efi_bootorder_get(&entries, &all_entries, NULL, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
@@ -388,7 +402,7 @@ RaucSlot *r_efi_get_primary(GError **error)
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (!efi_bootorder_get(&bootorder_entries, &all_entries, &bootnext, &ierror)) {
+	if (!efi_bootorder_get(&bootorder_entries, &all_entries, &bootnext, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
 		return NULL;
 	}
@@ -464,7 +478,7 @@ gboolean r_efi_get_state(RaucSlot *slot, gboolean *good, GError **error)
 	g_return_val_if_fail(good, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (!efi_bootorder_get(&bootorder_entries, &all_entries, NULL, &ierror)) {
+	if (!efi_bootorder_get(&bootorder_entries, &all_entries, NULL, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
@@ -481,4 +495,32 @@ gboolean r_efi_get_state(RaucSlot *slot, gboolean *good, GError **error)
 	*good = found_entry ? TRUE : FALSE;
 
 	return TRUE;
+}
+
+gchar *r_efi_get_current_bootname(RaucConfig *config, GError **error)
+{
+	g_autolist(efi_bootentry) all_entries = NULL;
+	GError *ierror = NULL;
+	efi_bootentry *bootcurrent = NULL;
+	RaucSlot *slot = NULL;
+	GHashTableIter iter;
+
+	if (!efi_bootorder_get(NULL, &all_entries, NULL, &bootcurrent, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	g_hash_table_iter_init(&iter, config->slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+		if (g_strcmp0(slot->bootname, bootcurrent->name) == 0) {
+			return slot->bootname;
+		}
+	}
+
+	g_set_error(error,
+			R_BOOTCHOOSER_ERROR,
+			R_BOOTCHOOSER_ERROR_FAILED,
+			"Current EFI bootentry not known to rauc!");
+
+	return NULL;
 }
