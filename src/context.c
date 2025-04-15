@@ -59,44 +59,41 @@ static gchar* get_boot_id(void)
 	return g_strchomp(contents);
 }
 
-static gchar* get_cmdline_bootname(void)
+static gchar *get_cmdline(void)
 {
-	g_autofree gchar *contents = NULL;
+	gchar *contents = NULL;
+	g_autoptr(GError) ierror = NULL;
+
+	if (context->mock.proc_cmdline)
+		return g_strdup(context->mock.proc_cmdline);
+
+	if (!g_file_get_contents("/proc/cmdline", &contents, NULL, &ierror)) {
+		g_warning("Failed to get cmdline: %s", ierror->message);
+		return NULL;
+	}
+
+	return NULL;
+}
+
+static gchar *get_cmdline_bootname(const gchar *cmdline)
+{
 	g_autofree gchar *realdev = NULL;
 	gchar *bootname = NULL;
 
-	if (context->mock.proc_cmdline)
-		contents = g_strdup(context->mock.proc_cmdline);
-	else if (!g_file_get_contents("/proc/cmdline", &contents, NULL, NULL))
-		return NULL;
-
-	if (strstr(contents, "rauc.external") != NULL) {
-		g_message("Detected explicit external boot, ignoring missing active slot");
-		return g_strdup("_external_");
-	}
-
-	bootname = regex_match("rauc\\.slot=(\\S+)", contents);
-	if (bootname)
-		return bootname;
-
+	/* TODO: r_barebox_get_current_bootname(context->config, cmdline, &ierror)? */
 	/* For barebox, we check if the bootstate code set the active slot name
 	 * in the command line */
 	if (g_strcmp0(context->config->system_bootloader, "barebox") == 0) {
 		bootname = regex_match(
 				"(?:bootstate|bootchooser)\\.active=(\\S+)",
-				contents);
+				cmdline);
 		if (bootname)
 			return bootname;
 	}
 
-	bootname = regex_match("root=(\\S+)", contents);
-	if (g_strcmp0(bootname, "/dev/nfs") == 0) {
-		g_message("Detected nfs boot, ignoring missing active slot");
-		g_free(bootname);
-		return g_strdup("_external_");
-	}
+	bootname = regex_match("root=(\\S+)", cmdline);
 	if (!bootname)
-		bootname = regex_match("systemd\\.verity_root_data=(\\S+)", contents);
+		bootname = regex_match("systemd\\.verity_root_data=(\\S+)", cmdline);
 
 	if (!bootname)
 		return NULL;
@@ -306,6 +303,7 @@ static GHashTable *get_system_info_from_handler(GError **error)
 static gboolean r_context_configure_target(GError **error)
 {
 	GError *ierror = NULL;
+	g_autofree gchar *cmdline = NULL;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
@@ -373,8 +371,29 @@ static gboolean r_context_configure_target(GError **error)
 	if (r_whitespace_removed(context->config->system_variant))
 		g_warning("Ignoring surrounding whitespace in system variant: %s", context->config->system_variant);
 
+	/* Detect the */
+	cmdline = get_cmdline();
+	if (!cmdline)
+		return FALSE;
+
+	if (strstr(cmdline, "rauc.external") != NULL) {
+		g_message("Detected explicit external boot, ignoring missing active slot");
+		context->bootslot = g_strdup("_external_");
+		return TRUE;
+	}
+
+	if (strstr(cmdline, "root=/dev/nfs") != NULL) {
+		g_message("Detected nfs boot, ignoring missing active slot");
+		context->bootslot = g_strdup("_external_");
+		return TRUE;
+	}
+
+	context->bootslot = regex_match("rauc\\.slot=(\\S+)", cmdline);
+	if (context->bootslot)
+		g_message("Detected explicit active slot");
+
 	if (context->bootslot == NULL) {
-		context->bootslot = r_boot_get_current_bootname(context->config, &ierror);
+		context->bootslot = r_boot_get_current_bootname(context->config, /* TODO: cmdline,? */ &ierror);
 		if (ierror) {
 			g_message("Failed to get bootname: %s", ierror->message);
 			g_clear_error(&ierror);
@@ -382,7 +401,7 @@ static gboolean r_context_configure_target(GError **error)
 	}
 
 	if (context->bootslot == NULL) {
-		context->bootslot = get_cmdline_bootname();
+		context->bootslot = get_cmdline_bootname(cmdline);
 	}
 
 	g_clear_pointer(&context->boot_id, g_free);
