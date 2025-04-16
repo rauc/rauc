@@ -1136,15 +1136,15 @@ static gboolean nbd_configure(RaucNBDServer *nbd_srv, GError **error)
 	return TRUE;
 }
 
-struct child_setup_args {
+typedef struct {
 	uid_t uid;
 	gid_t gid;
-};
+} child_setup_args;
 
 static void nbd_server_child_setup(gpointer user_data)
 {
 	/* see signal-safety(7) for functions which can be used here */
-	struct child_setup_args *args = user_data;
+	child_setup_args *args = user_data;
 
 	if (args->gid) {
 		if (setgid(args->gid) == -1) {
@@ -1162,7 +1162,7 @@ static void nbd_server_child_setup(gpointer user_data)
 	}
 }
 
-static gboolean nbd_server_child_prepare(struct child_setup_args *args, GError **error)
+static gboolean nbd_server_child_prepare(child_setup_args *args, GError **error)
 {
 	const gchar *user = NULL;
 	struct passwd passwd = {0};
@@ -1233,7 +1233,7 @@ gboolean r_nbd_start_server(RaucNBDServer *nbd_srv, GError **error)
 	}
 
 	if (1) { /* subprocess */
-		struct child_setup_args child_args = {0};
+		child_setup_args child_args = {0};
 		g_autofree gchar *executable = NULL;
 		g_autoptr(GSubprocessLauncher) launcher = NULL;
 		g_autoptr(GPtrArray) args = g_ptr_array_new_full(3, g_free);
