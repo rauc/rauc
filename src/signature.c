@@ -5,7 +5,9 @@
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/crypto.h>
+#if ENABLE_OPENSSL_PKCS11_ENGINE
 #include <openssl/engine.h>
+#endif
 #include <openssl/x509.h>
 #include <string.h>
 
@@ -115,6 +117,7 @@ gboolean signature_init(GError **error)
 	return TRUE;
 }
 
+#if ENABLE_OPENSSL_PKCS11_ENGINE
 static ENGINE *get_pkcs11_engine(GError **error)
 {
 	static ENGINE *e = NULL;
@@ -179,6 +182,7 @@ free:
 out:
 	return e;
 }
+#endif
 
 static EVP_PKEY *load_key_file(const gchar *keyfile, GError **error)
 {
@@ -219,6 +223,7 @@ out:
 static EVP_PKEY *load_key_pkcs11(const gchar *url, GError **error)
 {
 	EVP_PKEY *res = NULL;
+#if ENABLE_OPENSSL_PKCS11_ENGINE
 	GError *ierror = NULL;
 	ENGINE *e;
 
@@ -240,6 +245,14 @@ static EVP_PKEY *load_key_pkcs11(const gchar *url, GError **error)
 				"failed to load PKCS11 private key for '%s': %s", url, get_openssl_err_string());
 		goto out;
 	}
+#else
+	g_set_error(
+			error,
+			R_SIGNATURE_ERROR,
+			R_SIGNATURE_ERROR_LOAD_FAILED,
+			"failed to load PKCS11 private key for '%s': OpenSSL engine support disabled", url);
+#endif
+
 out:
 	return res;
 }
@@ -343,6 +356,7 @@ out:
 static X509 *load_cert_pkcs11(const gchar *url, GError **error)
 {
 	X509 *res = NULL;
+#if ENABLE_OPENSSL_PKCS11_ENGINE
 	GError *ierror = NULL;
 	ENGINE *e;
 
@@ -372,6 +386,13 @@ static X509 *load_cert_pkcs11(const gchar *url, GError **error)
 		goto out;
 	}
 	res = parms.cert;
+#else
+	g_set_error(
+			error,
+			R_SIGNATURE_ERROR,
+			R_SIGNATURE_ERROR_PARSE_ERROR,
+			"failed to load PKCS11 certificate for '%s': OpenSSL engine support disabled", url);
+#endif
 
 out:
 	return res;
