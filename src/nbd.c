@@ -2,6 +2,7 @@
 #define G_LOG_DOMAIN "rauc-nbd"
 
 #include <unistd.h>
+#include <grp.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
@@ -1136,16 +1137,31 @@ static gboolean nbd_configure(RaucNBDServer *nbd_srv, GError **error)
 	return TRUE;
 }
 
-struct child_setup_args {
+typedef struct {
 	uid_t uid;
 	gid_t gid;
-};
+	gid_t *groups;
+	int ngroups;
+} child_setup_args;
+
+static void clear_child_setup_args(child_setup_args *child_args)
+{
+	g_clear_pointer(&child_args->groups, g_free);
+}
+G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(child_setup_args, clear_child_setup_args);
 
 static void nbd_server_child_setup(gpointer user_data)
 {
 	/* see signal-safety(7) for functions which can be used here */
-	struct child_setup_args *args = user_data;
+	child_setup_args *args = user_data;
 
+	if (args->groups) {
+		if (setgroups(args->ngroups, args->groups) == -1) {
+			const char *msg = "setgroups failed\n";
+			write(STDOUT_FILENO, msg, strlen(msg));
+			exit(1);
+		}
+	}
 	if (args->gid) {
 		if (setgid(args->gid) == -1) {
 			const char *msg = "setgid failed\n";
@@ -1162,14 +1178,16 @@ static void nbd_server_child_setup(gpointer user_data)
 	}
 }
 
-static gboolean nbd_server_child_prepare(struct child_setup_args *args, GError **error)
+static gboolean nbd_server_child_prepare(child_setup_args *args, GError **error)
 {
 	const gchar *user = NULL;
 	struct passwd passwd = {0};
 	struct passwd *result = NULL;
 	g_autofree gchar *buf = NULL;
+	g_autofree gid_t *groups = NULL;
 	long bufsize;
 	int err;
+	int ngroups;
 
 	g_return_val_if_fail(args != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -1205,8 +1223,27 @@ static gboolean nbd_server_child_prepare(struct child_setup_args *args, GError *
 		}
 	}
 
+	ngroups = 0;
+	/* getgrouplist always fail (returns -1), but still sets ngroups to the
+	 * number of wanted groups. */
+	getgrouplist(user, result->pw_gid, NULL, &ngroups);
+	groups = g_malloc0(ngroups * sizeof(*groups));
+	args->ngroups = ngroups;
+
+	err = getgrouplist(user, result->pw_gid, groups, &args->ngroups);
+	/* Something very weird happened if the number of groups now is different
+	 * than the expected number from before. */
+	if (err < 0 || args->ngroups != ngroups) {
+		g_set_error(
+				error,
+				R_NBD_ERROR, R_NBD_ERROR_STARTUP,
+				"cannot get groups for user %s", user);
+		return FALSE;
+	}
+
 	args->uid = result->pw_uid;
 	args->gid = result->pw_gid;
+	args->groups = g_steal_pointer(&groups);
 
 	return TRUE;
 }
@@ -1233,7 +1270,7 @@ gboolean r_nbd_start_server(RaucNBDServer *nbd_srv, GError **error)
 	}
 
 	if (1) { /* subprocess */
-		struct child_setup_args child_args = {0};
+		g_auto(child_setup_args) child_args = {0};
 		g_autofree gchar *executable = NULL;
 		g_autoptr(GSubprocessLauncher) launcher = NULL;
 		g_autoptr(GPtrArray) args = g_ptr_array_new_full(3, g_free);
