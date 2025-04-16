@@ -917,6 +917,8 @@ static void bootchooser_efi(BootchooserFixture *fixture,
 	RaucSlot *slot;
 	gboolean good;
 	RaucSlot *primary = NULL;
+	gchar *bootname;
+	GError *error = NULL;
 
 	const gchar *cfg_file = "\
 [system]\n\
@@ -965,6 +967,9 @@ bootname=system1\n";
 	g_assert_nonnull(slot);
 
 	g_assert_true(r_boot_set_primary(slot, NULL));
+
+	bootname = r_boot_get_current_bootname(r_context()->config, &error);
+	g_assert_nonnull(bootname);
 }
 
 /* Write content to state storage for custom-backend RAUC mock
