@@ -780,7 +780,9 @@ void r_context_register_progress_callback(progress_callback progress_cb)
 
 RaucContext *r_context_conf(void)
 {
-	if (context == NULL) {
+	static gboolean initialized = FALSE;
+
+	if (!initialized) {
 		GError *ierror = NULL;
 
 		// let us handle broken pipes explicitly
@@ -797,6 +799,10 @@ RaucContext *r_context_conf(void)
 			return NULL;
 		}
 
+		initialized = TRUE;
+	}
+
+	if (context == NULL) {
 		context = g_new0(RaucContext, 1);
 		context->progress = NULL;
 		context->install_info = g_new0(RContextInstallationInfo, 1);
