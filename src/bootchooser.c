@@ -55,6 +55,8 @@ gchar *r_boot_get_current_bootname(RaucConfig *config, GError **error)
 
 	if (g_strcmp0(config->system_bootloader, "custom") == 0) {
 		res = r_custom_get_current_bootname(config, &ierror);
+	} else if (g_strcmp0(config->system_bootloader, "efi") == 0) {
+		res = r_efi_get_current_bootname(config, &ierror);
 	}
 
 	if (ierror) {
