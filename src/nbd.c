@@ -733,7 +733,7 @@ static gboolean finish_configure(struct RaucNBDContext *ctx, struct RaucNBDTrans
 				error = g_strdup_printf("not modified");
 				break;
 			default:
-				error = g_strdup_printf("unexpected HTTP error code %ld", response_code);
+				error = g_strdup_printf("unexpected HTTP response code %ld", response_code);
 		}
 		g_variant_dict_insert(&dict, "error", "s", error);
 		g_variant_dict_insert(&dict, "error-http-code", "u", (guint32)response_code);
@@ -1081,7 +1081,7 @@ static gboolean nbd_configure(RaucNBDServer *nbd_srv, GError **error)
 	if (reply_error) {
 		guint32 http_code = 0;
 		g_variant_dict_lookup(&dict, "error-http-code", "u", &http_code);
-		g_message("received http error %"G_GUINT32_FORMAT, http_code);
+		g_message("received HTTP response code %"G_GUINT32_FORMAT, http_code);
 		if (http_code == 204) {
 			g_set_error(
 					error,

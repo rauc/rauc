@@ -604,8 +604,6 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 	r_installer_set_compatible(r_installer, r_context()->config->system_compatible);
 	r_installer_set_variant(r_installer, r_context()->config->system_variant);
 	r_installer_set_boot_slot(r_installer, r_context()->bootslot);
-
-	return;
 }
 
 static void r_on_name_acquired(GDBusConnection *connection,
@@ -616,8 +614,6 @@ static void r_on_name_acquired(GDBusConnection *connection,
 
 	if (r_context()->config->autoinstall_path)
 		auto_install(r_context()->config->autoinstall_path);
-
-	return;
 }
 
 static void r_on_name_lost(GDBusConnection *connection,
@@ -643,8 +639,6 @@ static void r_on_name_lost(GDBusConnection *connection,
 	if (service_loop) {
 		g_main_loop_quit(service_loop);
 	}
-
-	return;
 }
 
 static gboolean r_on_signal(gpointer user_data)
