@@ -707,13 +707,16 @@ class HTTPServer:
             self.server.kill()
             self.server.wait()
 
-    def setup(self, *, file_path):
+    def setup(self, *, file_path=None, http_code=None):
+        json = {}
+        if file_path is not None:
+            json["file_path"] = os.path.abspath(file_path)
+        if http_code is not None:
+            json["http_code"] = http_code
         resp = requests.post(
             f"{self.base}/setup",
             timeout=5,
-            json={
-                "file_path": os.path.abspath(file_path),
-            },
+            json=json,
         )
         resp.raise_for_status()
 
