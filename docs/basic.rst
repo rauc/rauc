@@ -175,12 +175,27 @@ of a rootfs and application slot each that will be used together.
    :width: 500
    :align: center
 
-To detect the active slots, RAUC attempts to detect the currently booted slot.
+To detect the *active* slots, RAUC attempts to detect the currently booted slot.
 For this, it relies on explicit mapping information provided via the kernel command
 line, or attempts to find it out using mount information.
+For more details on this, see :ref:`sec-integration-boot-slot-detection`.
 
-All slots of the group containing the active slot will be considered active,
-too.
+All other slots of the same class will be considered *inactive*.
+
+All slots of the group containing the *active* slot will be considered
+*active*, too.
+Likewise, all slots of a group containing an *inactive* slot will be considered
+*inactive*.
+
+The slot selection algorithm selects an *inactive* slot group for the images
+contained in the update bundle.
+In case multiple equivalent *inactive* slot groups are available, the default
+algorithm will select the one with the *oldest installation time stamp*
+(requires having a data directory or central status file configured.).
+A slot with no timestamp is always considered the oldest.
+
+This allows to have setups with three redundant slots (A/B/C update) or
+to bootstrap an A/B system from an external or factory system.
 
 Slot Status and Skipping Slot Updates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
