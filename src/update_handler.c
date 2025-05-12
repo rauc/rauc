@@ -82,11 +82,15 @@ static gboolean clear_slot(RaucSlot *slot, GError **error)
 		 * G_IO_ERROR_NO_SPACE is expected here, because the block
 		 * device is cleared completely
 		 */
-		if (write_count == -1 &&
-		    !g_error_matches(ierror, G_IO_ERROR, G_IO_ERROR_NO_SPACE)) {
-			g_propagate_prefixed_error(error, ierror,
-					"failed clearing block device: ");
-			return FALSE;
+		if (write_count == -1) {
+			if (g_error_matches(ierror, G_IO_ERROR, G_IO_ERROR_NO_SPACE)) {
+				g_clear_error(&ierror);
+				break;
+			} else {
+				g_propagate_prefixed_error(error, ierror,
+						"failed clearing block device: ");
+				return FALSE;
+			}
 		}
 	}
 
