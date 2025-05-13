@@ -1,6 +1,7 @@
 #pragma once
 
 #include <openssl/cms.h>
+#include <openssl/safestack.h>
 #include <glib.h>
 
 #include "manifest.h"
@@ -9,6 +10,24 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(CMS_ContentInfo, CMS_ContentInfo_free)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(X509_STORE, X509_STORE_free)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(X509, X509_free)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(EVP_PKEY, EVP_PKEY_free)
+
+/**
+ * Use 'g_autoptr(R_X509_STACK) stack = NULL' to declare an X509 stack whose
+ * structure (but not its elements) will be freed when 'stack' goes out of
+ * scope.
+ */
+typedef STACK_OF(X509) R_X509_STACK;
+void r_signature_free_x509_stack(R_X509_STACK *stack);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(R_X509_STACK, r_signature_free_x509_stack);
+
+/**
+ * Use 'g_autoptr(R_X509_STACK_POP) stack = NULL' to declare an X509 stack
+ * whose elements (and the structure itself) will be freed when 'stack' goes
+ * out of scope.
+ */
+typedef STACK_OF(X509) R_X509_STACK_POP;
+void r_signature_free_x509_stack_pop(R_X509_STACK_POP *stack);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(R_X509_STACK_POP, r_signature_free_x509_stack_pop);
 
 #define R_SIGNATURE_ERROR r_signature_error_quark()
 GQuark r_signature_error_quark(void);

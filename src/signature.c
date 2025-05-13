@@ -14,6 +14,16 @@
 #include "context.h"
 #include "signature.h"
 
+void r_signature_free_x509_stack(R_X509_STACK *stack)
+{
+	sk_X509_free(stack);
+}
+
+void r_signature_free_x509_stack_pop(R_X509_STACK_POP *stack)
+{
+	sk_X509_pop_free(stack, X509_free);
+}
+
 GQuark r_signature_error_quark(void)
 {
 	return g_quark_from_static_string("r_signature_error_quark");
@@ -304,7 +314,7 @@ static STACK_OF(X509) *load_certs_from_file(const gchar *certfile, GError **erro
 {
 	BIO *cert_bio = NULL;
 	X509 *cert_x509 = NULL;
-	STACK_OF(X509) *certs = NULL;
+	g_autoptr(R_X509_STACK_POP) certs = NULL;
 	unsigned long err;
 
 	g_return_val_if_fail(certfile != NULL, NULL);
@@ -340,8 +350,7 @@ static STACK_OF(X509) *load_certs_from_file(const gchar *certfile, GError **erro
 					R_SIGNATURE_ERROR_PARSE_ERROR,
 					"Failed to parse cert file '%s': %s", certfile, get_openssl_err_string());
 			/* other certs loaded so far are not required anymore and must be freed */
-			sk_X509_pop_free(certs, X509_free);
-			certs = NULL;
+			g_clear_pointer(&certs, r_signature_free_x509_stack_pop);
 			goto out;
 		}
 
@@ -350,7 +359,7 @@ static STACK_OF(X509) *load_certs_from_file(const gchar *certfile, GError **erro
 
 out:
 	BIO_free_all(cert_bio);
-	return certs;
+	return g_steal_pointer(&certs);
 }
 
 static X509 *load_cert_pkcs11(const gchar *url, GError **error)
@@ -543,7 +552,7 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 	BIO *outsig = BIO_new(BIO_s_mem());
 	g_autoptr(X509) signcert = NULL;
 	g_autoptr(EVP_PKEY) pkey = NULL;
-	STACK_OF(X509) *intercerts = NULL;
+	g_autoptr(R_X509_STACK_POP) intercerts = NULL;
 	g_autoptr(CMS_ContentInfo) cms = NULL;
 	GBytes *res = NULL;
 	int flags = CMS_BINARY | CMS_NOSMIMECAP;
@@ -622,7 +631,7 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 	if (keyring_path || keyring_dir) {
 		g_autoptr(CMS_ContentInfo) vcms = NULL;
 		g_autoptr(X509_STORE) store = NULL;
-		STACK_OF(X509) *verified_chain = NULL;
+		g_autoptr(R_X509_STACK_POP) verified_chain = NULL;
 		g_autoptr(GBytes) manifest = NULL;
 
 		if (!(store = setup_x509_store(keyring_path, keyring_dir, &ierror))) {
@@ -666,15 +675,11 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 				g_warning("Certificate %d (%s) will expire in less than a month!", i + 1, buf);
 			}
 		}
-
-		sk_X509_pop_free(verified_chain, X509_free);
 	} else {
 		g_message("No keyring given, skipping signature verification");
 	}
 out:
 	ERR_print_errors_fp(stdout);
-	if (intercerts)
-		sk_X509_pop_free(intercerts, X509_free);
 	BIO_free_all(incontent);
 	BIO_free_all(outsig);
 	return res;
@@ -781,7 +786,7 @@ static gchar* dump_cms(STACK_OF(X509) *x509_certs)
 gchar* sigdata_to_string(GBytes *sig, GError **error)
 {
 	g_autoptr(CMS_ContentInfo) cms = NULL;
-	STACK_OF(X509) *signers = NULL;
+	g_autoptr(R_X509_STACK_POP) signers = NULL;
 	gchar *ret;
 	BIO *insig = bytes_as_bio(sig);
 
@@ -809,7 +814,6 @@ gchar* sigdata_to_string(GBytes *sig, GError **error)
 
 	ret = dump_cms(signers);
 
-	sk_X509_pop_free(signers, X509_free);
 	BIO_free(insig);
 
 	return ret;
@@ -997,7 +1001,7 @@ gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
 
 static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
 {
-	STACK_OF(X509) *signers = NULL;
+	g_autoptr(R_X509_STACK) signers = NULL;
 	BIO *text = NULL;
 
 	g_return_val_if_fail(cms != NULL, NULL);
@@ -1023,8 +1027,6 @@ static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
 	BIO_printf(text, "'");
 
 out:
-	if (signers)
-		sk_X509_free(signers);
 	if (text)
 		return bio_mem_unwrap(text);
 	else
@@ -1033,8 +1035,8 @@ out:
 
 gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error)
 {
-	STACK_OF(X509) *signers = NULL;
-	STACK_OF(X509) *intercerts = NULL;
+	g_autoptr(R_X509_STACK) signers = NULL;
+	g_autoptr(R_X509_STACK_POP) intercerts = NULL;
 	X509_STORE_CTX *cert_ctx = NULL;
 	gint signer_cnt;
 	gboolean res = FALSE;
@@ -1106,10 +1108,6 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 out:
 	if (cert_ctx)
 		X509_STORE_CTX_free(cert_ctx);
-	if (intercerts)
-		sk_X509_pop_free(intercerts, X509_free);
-	if (signers)
-		sk_X509_free(signers);
 
 	return res;
 }
@@ -1569,7 +1567,7 @@ GBytes *cms_encrypt(GBytes *content, gchar **recipients, GError **error)
 	GError *ierror = NULL;
 	BIO *incontent = NULL;
 	BIO *outsig = BIO_new(BIO_s_mem());
-	STACK_OF(X509) *recipcerts = NULL;
+	g_autoptr(R_X509_STACK_POP) recipcerts = NULL;
 	g_autoptr(CMS_ContentInfo) cms = NULL;
 	GBytes *res = NULL;
 
@@ -1583,7 +1581,7 @@ GBytes *cms_encrypt(GBytes *content, gchar **recipients, GError **error)
 
 	/* load all recipient certificates from all provided PEM files */
 	for (gchar **recipcertpath = recipients; recipcertpath && *recipcertpath != NULL; recipcertpath++) {
-		STACK_OF(X509) *filecerts = load_certs_from_file(*recipcertpath, &ierror);
+		g_autoptr(R_X509_STACK) filecerts = load_certs_from_file(*recipcertpath, &ierror);
 		if (filecerts == NULL) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -1593,8 +1591,6 @@ GBytes *cms_encrypt(GBytes *content, gchar **recipients, GError **error)
 		for (gint i = 0; i < sk_X509_num(filecerts); i++) {
 			sk_X509_push(recipcerts, sk_X509_value(filecerts, i));
 		}
-
-		sk_X509_free(filecerts);
 	}
 
 	cms = CMS_encrypt(recipcerts, incontent, EVP_aes_256_cbc(), CMS_BINARY);
@@ -1629,7 +1625,6 @@ GBytes *cms_encrypt(GBytes *content, gchar **recipients, GError **error)
 
 out:
 	ERR_print_errors_fp(stdout);
-	sk_X509_pop_free(recipcerts, X509_free);
 	BIO_free_all(incontent);
 	BIO_free_all(outsig);
 	return res;
