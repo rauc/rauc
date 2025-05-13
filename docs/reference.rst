@@ -1399,8 +1399,8 @@ Command Line Tool
     RAUC_PKCS11_MODULE  Library filename for PKCS#11 module (signing only)
     RAUC_PKCS11_PIN     PIN to use for accessing PKCS#11 keys (signing only)
 
-.. note:: 
-  Using -C / --confopt can not only override settings of the config file but also 
+.. note::
+  Using -C / --confopt can not only override settings of the config file but also
   set new values that haven't been present before.
 
 .. _sec-handler-interface:
