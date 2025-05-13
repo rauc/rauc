@@ -1033,6 +1033,53 @@ out:
 		return NULL;
 }
 
+static gboolean cms_check_signer_cns(CMS_ContentInfo *cms, GError **error)
+{
+	g_autoptr(R_X509_STACK) signers = NULL;
+
+	g_return_val_if_fail(cms != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	const GStrv allowed_cns = r_context()->config->keyring_allowed_signer_cns;
+
+	// config option not used, so the cert is valid for all devices and we can skip everything
+	if (!allowed_cns) {
+		return TRUE;
+	}
+
+	signers = CMS_get0_signers(cms);
+	if (signers == NULL) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_GET_SIGNER,
+				"Failed to obtain signer info");
+		return FALSE;
+	}
+
+	for (int i = 0; i < sk_X509_num(signers); i++) {
+		X509_NAME *current_signer = X509_get_subject_name(sk_X509_value(signers, i));
+		int index = X509_NAME_get_index_by_NID(current_signer, NID_commonName, -1);
+		// no matching CN entry in the current signer found, so check next signer
+		if (index == -1)
+			continue;
+
+		const X509_NAME_ENTRY *cn = X509_NAME_get_entry(current_signer, index);
+		// as soon as one matching entry is found, device is eligible to use this update
+		const unsigned char* cn_value = ASN1_STRING_get0_data(X509_NAME_ENTRY_get_data(cn));
+		if (g_strv_contains((const gchar *const *)allowed_cns, (gchar*)cn_value)) {
+			return TRUE;
+		}
+	}
+
+	g_set_error_literal(
+			error,
+			R_SIGNATURE_ERROR,
+			R_SIGNATURE_ERROR_SIGNER_CN_FORBIDDEN,
+			"No signature CN matching allowed-signer-cns found");
+	return FALSE;
+}
+
 gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error)
 {
 	g_autoptr(R_X509_STACK) signers = NULL;
@@ -1396,6 +1443,11 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_INVALID,
 				"signature verification failed: %s", get_openssl_err_string());
+		goto out;
+	}
+
+	if (!cms_check_signer_cns(icms, &ierror)) {
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 

@@ -1100,7 +1100,8 @@ bootloader=barebox\n\
 path=/dev/null\n\
 allow-partial-chain=true\n\
 check-crl=true\n\
-check-purpose=codesign\n";
+check-purpose=codesign\n\
+allowed-signer-cns=SomeAllowedCN;OtherAllowedCN\n";
 
 	pathname = write_tmp_file(fixture->tmpdir, "simple.conf", simple_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -1126,6 +1127,9 @@ check-purpose=codesign\n";
 	g_assert_true(config->keyring_allow_partial_chain);
 	g_assert_true(config->keyring_check_crl);
 	g_assert_cmpstr(config->keyring_check_purpose, ==, "codesign-rauc");
+	g_assert_cmpint(g_strv_length(config->keyring_allowed_signer_cns), ==, 2);
+	g_assert_cmpstr(config->keyring_allowed_signer_cns[0], ==, "SomeAllowedCN");
+	g_assert_cmpstr(config->keyring_allowed_signer_cns[1], ==, "OtherAllowedCN");
 }
 
 static void config_file_bundle_formats(ConfigFileFixture *fixture,
