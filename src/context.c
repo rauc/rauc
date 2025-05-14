@@ -60,13 +60,11 @@ static gchar *get_cmdline(void)
 	return contents;
 }
 
-static gchar* get_cmdline_bootname(void)
+static gchar* get_cmdline_bootname_explicit(const gchar *cmdline)
 {
-	g_autofree gchar *cmdline = get_cmdline();
 	if (!cmdline)
 		return NULL;
 
-	g_autofree gchar *realdev = NULL;
 	gchar *bootname = NULL;
 
 	if (strstr(cmdline, "rauc.external") != NULL) {
@@ -87,6 +85,17 @@ static gchar* get_cmdline_bootname(void)
 		if (bootname)
 			return bootname;
 	}
+
+	return NULL;
+}
+
+static gchar* get_cmdline_bootname_root(const gchar *cmdline)
+{
+	if (!cmdline)
+		return NULL;
+
+	g_autofree gchar *realdev = NULL;
+	gchar *bootname = NULL;
 
 	bootname = r_regex_match_simple("root=(\\S+)", cmdline);
 	if (g_strcmp0(bootname, "/dev/nfs") == 0) {
@@ -149,10 +158,15 @@ static gchar* get_cmdline_bootname(void)
 
 static gchar* get_bootname(void)
 {
+	g_autofree gchar *cmdline = get_cmdline();
 	gchar *bootname = NULL;
 	GError *ierror = NULL;
 
-	bootname = get_cmdline_bootname();
+	bootname = get_cmdline_bootname_explicit(cmdline);
+	if (bootname)
+		return bootname;
+
+	bootname = get_cmdline_bootname_root(cmdline);
 	if (bootname)
 		return bootname;
 
