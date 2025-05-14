@@ -44,16 +44,30 @@ static gchar* get_boot_id(void)
 	return g_strchomp(contents);
 }
 
-static gchar* get_cmdline_bootname(void)
+static gchar *get_cmdline(void)
 {
-	g_autofree gchar *contents = NULL;
-	g_autofree gchar *realdev = NULL;
-	gchar *bootname = NULL;
+	gchar *contents = NULL;
+	g_autoptr(GError) ierror = NULL;
 
 	if (context->mock.proc_cmdline)
-		contents = g_strdup(context->mock.proc_cmdline);
-	else if (!g_file_get_contents("/proc/cmdline", &contents, NULL, NULL))
+		return g_strdup(context->mock.proc_cmdline);
+
+	if (!g_file_get_contents("/proc/cmdline", &contents, NULL, &ierror)) {
+		g_warning("Failed to get kernel cmdline: %s", ierror->message);
 		return NULL;
+	}
+
+	return contents;
+}
+
+static gchar* get_cmdline_bootname(void)
+{
+	g_autofree gchar *contents = get_cmdline();
+	if (!contents)
+		return NULL;
+
+	g_autofree gchar *realdev = NULL;
+	gchar *bootname = NULL;
 
 	if (strstr(contents, "rauc.external") != NULL) {
 		g_message("Detected explicit external boot, ignoring missing active slot");
