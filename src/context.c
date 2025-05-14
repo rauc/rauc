@@ -166,15 +166,15 @@ static gchar* get_bootname(void)
 	if (bootname)
 		return bootname;
 
-	bootname = get_cmdline_bootname_root(cmdline);
-	if (bootname)
-		return bootname;
-
 	bootname = r_boot_get_current_bootname(context->config, &ierror);
 	if (ierror) {
 		g_message("Failed to get bootname: %s", ierror->message);
 		g_clear_error(&ierror);
 	}
+	if (bootname)
+		return bootname;
+
+	bootname = get_cmdline_bootname_root(cmdline);
 
 	return bootname;
 }
