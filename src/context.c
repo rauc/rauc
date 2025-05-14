@@ -147,6 +147,24 @@ static gchar* get_cmdline_bootname(void)
 	return bootname;
 }
 
+static gchar* get_bootname(void)
+{
+	gchar *bootname = NULL;
+	GError *ierror = NULL;
+
+	bootname = get_cmdline_bootname();
+	if (bootname)
+		return bootname;
+
+	bootname = r_boot_get_current_bootname(context->config, &ierror);
+	if (ierror) {
+		g_message("Failed to get bootname: %s", ierror->message);
+		g_clear_error(&ierror);
+	}
+
+	return bootname;
+}
+
 /**
  * Launches a handler and obtains variables from output by looking for
  * 'RAUC_<SOMETHING>=value' lines to put them into a key/value store (GHashTable).
@@ -373,15 +391,7 @@ static gboolean r_context_configure_target(GError **error)
 		g_warning("Ignoring surrounding whitespace in system variant: %s", context->config->system_variant);
 
 	if (context->bootslot == NULL) {
-		context->bootslot = get_cmdline_bootname();
-	}
-
-	if (context->bootslot == NULL) {
-		context->bootslot = r_boot_get_current_bootname(context->config, &ierror);
-		if (ierror) {
-			g_message("Failed to get bootname: %s", ierror->message);
-			g_clear_error(&ierror);
-		}
+		context->bootslot = get_bootname();
 	}
 
 	g_clear_pointer(&context->boot_id, g_free);
