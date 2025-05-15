@@ -62,19 +62,19 @@ static gchar *get_cmdline(void)
 
 static gchar* get_cmdline_bootname(void)
 {
-	g_autofree gchar *contents = get_cmdline();
-	if (!contents)
+	g_autofree gchar *cmdline = get_cmdline();
+	if (!cmdline)
 		return NULL;
 
 	g_autofree gchar *realdev = NULL;
 	gchar *bootname = NULL;
 
-	if (strstr(contents, "rauc.external") != NULL) {
+	if (strstr(cmdline, "rauc.external") != NULL) {
 		g_message("Detected explicit external boot, ignoring missing active slot");
 		return g_strdup("_external_");
 	}
 
-	bootname = r_regex_match_simple("rauc\\.slot=(\\S+)", contents);
+	bootname = r_regex_match_simple("rauc\\.slot=(\\S+)", cmdline);
 	if (bootname)
 		return bootname;
 
@@ -83,19 +83,19 @@ static gchar* get_cmdline_bootname(void)
 	if (g_strcmp0(context->config->system_bootloader, "barebox") == 0) {
 		bootname = r_regex_match_simple(
 				"(?:bootstate|bootchooser)\\.active=(\\S+)",
-				contents);
+				cmdline);
 		if (bootname)
 			return bootname;
 	}
 
-	bootname = r_regex_match_simple("root=(\\S+)", contents);
+	bootname = r_regex_match_simple("root=(\\S+)", cmdline);
 	if (g_strcmp0(bootname, "/dev/nfs") == 0) {
 		g_message("Detected nfs boot, ignoring missing active slot");
 		g_free(bootname);
 		return g_strdup("_external_");
 	}
 	if (!bootname)
-		bootname = r_regex_match_simple("systemd\\.verity_root_data=(\\S+)", contents);
+		bootname = r_regex_match_simple("systemd\\.verity_root_data=(\\S+)", cmdline);
 
 	if (!bootname)
 		return NULL;
