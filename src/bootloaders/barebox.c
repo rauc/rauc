@@ -18,6 +18,16 @@ typedef struct {
 
 #define BOOTSTATE_PREFIX "bootstate"
 
+gchar *r_barebox_get_current_bootname(const gchar *cmdline, GError **error)
+{
+	g_return_val_if_fail(cmdline, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	return r_regex_match_simple(
+			"(?:bootstate|bootchooser)\\.active=(\\S+)",
+			cmdline);
+}
+
 static gboolean barebox_state_get(const gchar *bootname, BareboxSlotState *bb_state, GError **error)
 {
 	g_autoptr(GSubprocess) sub = NULL;

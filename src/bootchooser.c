@@ -45,7 +45,7 @@ GString *r_bootchooser_order_primary(RaucSlot *slot)
 }
 
 /* Get current bootname */
-gchar *r_boot_get_current_bootname(RaucConfig *config, GError **error)
+gchar *r_boot_get_current_bootname(RaucConfig *config, const gchar *cmdline, GError **error)
 {
 	GError *ierror = NULL;
 	gchar *res = NULL;
@@ -57,6 +57,8 @@ gchar *r_boot_get_current_bootname(RaucConfig *config, GError **error)
 		res = r_custom_get_current_bootname(config, &ierror);
 	} else if (g_strcmp0(config->system_bootloader, "efi") == 0) {
 		res = r_efi_get_current_bootname(config, &ierror);
+	} else if (g_strcmp0(config->system_bootloader, "barebox") == 0) {
+		res = r_barebox_get_current_bootname(cmdline, &ierror);
 	}
 
 	if (ierror) {

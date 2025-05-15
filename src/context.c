@@ -81,16 +81,6 @@ static gchar* get_cmdline_bootname_explicit(const gchar *cmdline)
 	if (bootname)
 		return bootname;
 
-	/* For barebox, we check if the bootstate code set the active slot name
-	 * in the command line */
-	if (g_strcmp0(context->config->system_bootloader, "barebox") == 0) {
-		bootname = r_regex_match_simple(
-				"(?:bootstate|bootchooser)\\.active=(\\S+)",
-				cmdline);
-		if (bootname)
-			return bootname;
-	}
-
 	return NULL;
 }
 
@@ -166,7 +156,7 @@ static gchar* get_bootname(void)
 	if (bootname)
 		return bootname;
 
-	bootname = r_boot_get_current_bootname(context->config, &ierror);
+	bootname = r_boot_get_current_bootname(context->config, cmdline, &ierror);
 	if (ierror) {
 		g_message("Failed to get bootname: %s", ierror->message);
 		g_clear_error(&ierror);
