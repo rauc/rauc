@@ -16,21 +16,6 @@
 RaucContext *context = NULL;
 gboolean context_configuring = FALSE;
 
-static gchar *regex_match(const gchar *pattern, const gchar *string)
-{
-	g_autoptr(GRegex) regex = NULL;
-	g_autoptr(GMatchInfo) match = NULL;
-
-	g_return_val_if_fail(pattern, NULL);
-	g_return_val_if_fail(string, NULL);
-
-	regex = g_regex_new(pattern, 0, 0, NULL);
-	if (g_regex_match(regex, string, 0, &match))
-		return g_match_info_fetch(match, 1);
-
-	return NULL;
-}
-
 static gchar* get_machine_id(void)
 {
 	gchar *contents = NULL;
@@ -75,28 +60,28 @@ static gchar* get_cmdline_bootname(void)
 		return g_strdup("_external_");
 	}
 
-	bootname = regex_match("rauc\\.slot=(\\S+)", contents);
+	bootname = r_regex_match_simple("rauc\\.slot=(\\S+)", contents);
 	if (bootname)
 		return bootname;
 
 	/* For barebox, we check if the bootstate code set the active slot name
 	 * in the command line */
 	if (g_strcmp0(context->config->system_bootloader, "barebox") == 0) {
-		bootname = regex_match(
+		bootname = r_regex_match_simple(
 				"(?:bootstate|bootchooser)\\.active=(\\S+)",
 				contents);
 		if (bootname)
 			return bootname;
 	}
 
-	bootname = regex_match("root=(\\S+)", contents);
+	bootname = r_regex_match_simple("root=(\\S+)", contents);
 	if (g_strcmp0(bootname, "/dev/nfs") == 0) {
 		g_message("Detected nfs boot, ignoring missing active slot");
 		g_free(bootname);
 		return g_strdup("_external_");
 	}
 	if (!bootname)
-		bootname = regex_match("systemd\\.verity_root_data=(\\S+)", contents);
+		bootname = r_regex_match_simple("systemd\\.verity_root_data=(\\S+)", contents);
 
 	if (!bootname)
 		return NULL;
