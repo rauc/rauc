@@ -506,6 +506,18 @@ static void format_duration_test(void)
 	g_free(tmp);
 }
 
+static void regex_match_test(void)
+{
+	gchar *tmp = NULL;
+
+	tmp = r_regex_match_simple("rauc\\.slot=(\\S+)", "root=foo quiet rauc.slot=system0 dummy");
+	g_assert_cmpstr(tmp, ==, "system0");
+	g_free(tmp);
+
+	tmp = r_regex_match_simple("rauc\\.slot=(\\S+)", " root=/dev/null ");
+	g_assert_null(tmp);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -524,6 +536,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/utils/semver_parse_test", semver_parse_test);
 	g_test_add_func("/utils/semver_less_equal_test", semver_less_equal_test);
 	g_test_add_func("/utils/format_duration", format_duration_test);
+	g_test_add_func("/utils/regex_match", regex_match_test);
 
 	return g_test_run();
 }

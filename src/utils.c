@@ -1098,3 +1098,18 @@ gchar *r_format_duration(gint64 total_seconds)
 
 	return g_strchomp(g_string_free(result, FALSE));
 }
+
+gchar *r_regex_match_simple(const gchar *pattern, const gchar *string)
+{
+	g_autoptr(GRegex) regex = NULL;
+	g_autoptr(GMatchInfo) match = NULL;
+
+	g_return_val_if_fail(pattern, NULL);
+	g_return_val_if_fail(string, NULL);
+
+	regex = g_regex_new(pattern, 0, 0, NULL);
+	if (g_regex_match(regex, string, 0, &match))
+		return g_match_info_fetch(match, 1);
+
+	return NULL;
+}

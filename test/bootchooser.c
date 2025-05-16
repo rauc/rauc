@@ -968,7 +968,7 @@ bootname=system1\n";
 
 	g_assert_true(r_boot_set_primary(slot, NULL));
 
-	bootname = r_boot_get_current_bootname(r_context()->config, &error);
+	bootname = r_boot_get_current_bootname(r_context()->config, "", &error);
 	g_assert_nonnull(bootname);
 }
 

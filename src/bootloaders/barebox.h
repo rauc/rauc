@@ -4,6 +4,9 @@
 
 #include <slot.h>
 
+gchar *r_barebox_get_current_bootname(const gchar *cmdline, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
 gboolean r_barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
