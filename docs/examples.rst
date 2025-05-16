@@ -77,8 +77,11 @@ out of the box. Instead we use a script to implement it
 
 .. code-block:: sh
 
+  # set default menuentry (Slot A) and timeout (3s)
   default=0
   timeout=3
+
+  any_ok=0
 
   set ORDER="A B"
   set A_OK=0
@@ -103,12 +106,13 @@ out of the box. Instead we use a script to implement it
       fi
       if [ "$OK" -eq 1 -a "$TRY" -eq 0 ]; then
           default=$INDEX
+          any_ok=1
           break
       fi
   done
 
-  # reset booted flags
-  if [ "$default" -eq 0 ]; then
+  # reset booted flags in case both sides have failed to boot
+  if [ "$any_ok" -eq 0 ]; then
       if [ "$A_OK" -eq 1 -a "$A_TRY" -eq 1 ]; then
           A_TRY=0
       fi
