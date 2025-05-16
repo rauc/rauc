@@ -302,6 +302,23 @@ signature.
   can not be authenticated.
   If CRL checking is needed, the PKI needs to be structured with this in mind.
 
+``allowed-signer-cns=Name 1;Other Name`` (optional)
+  If this config parameter is set, RAUC will check the ``CommonName`` field
+  of the bundle's signer certificates against this semicolon-separated list.
+  If no signature from a certificate with a matching ``CommonName`` is found,
+  the target device is not eligible for the update bundle and the update process
+  is aborted.
+
+  This parameter can be used instead of relying on the RAUC system compatible check
+  if only specific certificates in a shared PKI are trusted
+  for specific target devices.
+  If the `allowed-signer-cns` check fails, no code from the bundle is executed,
+  so unlike the system compatible check, it cannot be overridden by an
+  `install-check` hook.
+
+  This parameter can contain multiple values, separated by semicolons.
+  Values can contain whitespace.
+
 ``check-crl=<true/false>`` (optional)
   If this boolean value is set to ``true``, RAUC will enable checking of CRLs
   (Certificate Revocation Lists) stored in the keyring together with the CA
@@ -1382,8 +1399,8 @@ Command Line Tool
     RAUC_PKCS11_MODULE  Library filename for PKCS#11 module (signing only)
     RAUC_PKCS11_PIN     PIN to use for accessing PKCS#11 keys (signing only)
 
-.. note:: 
-  Using -C / --confopt can not only override settings of the config file but also 
+.. note::
+  Using -C / --confopt can not only override settings of the config file but also
   set new values that haven't been present before.
 
 .. _sec-handler-interface:

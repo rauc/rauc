@@ -185,6 +185,66 @@ static void signature_sign_file(SignatureFixture *fixture,
 	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE_ERROR);
 }
 
+static void signature_verify_common_names_valid(SignatureFixture *fixture,
+		gconstpointer user_data)
+{
+	gboolean res;
+	fixture->sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
+	g_assert_nonnull(fixture->sig);
+	r_context()->config->keyring_allowed_signer_cns = g_strsplit("Test Org Release-1;Test Org NonExisting", ";", 0);
+
+	res = cms_verify_bytes(fixture->content,
+			fixture->sig,
+			fixture->store,
+			&fixture->cms,
+			NULL,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+
+	g_clear_pointer(&r_context()->config->keyring_allowed_signer_cns, g_strfreev);
+}
+
+static void signature_verify_common_names_invalid(SignatureFixture *fixture,
+		gconstpointer user_data)
+{
+	gboolean res;
+	fixture->sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
+	g_assert_nonnull(fixture->sig);
+	r_context()->config->keyring_allowed_signer_cns = g_strsplit("Test This one does not exist;This one also doesn't", ";", 0);
+
+	res = cms_verify_bytes(fixture->content,
+			fixture->sig,
+			fixture->store,
+			&fixture->cms,
+			NULL,
+			&fixture->error);
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_SIGNER_CN_FORBIDDEN);
+	g_assert_false(res);
+
+	g_clear_pointer(&r_context()->config->keyring_allowed_signer_cns, g_strfreev);
+}
+
+static void signature_verify_common_names_2nd_value(SignatureFixture *fixture,
+		gconstpointer user_data)
+{
+	gboolean res;
+	fixture->sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
+	g_assert_nonnull(fixture->sig);
+
+	r_context()->config->keyring_allowed_signer_cns = g_strsplit("Test This one does not exist;Test Org Release-1", ";", 0);
+	res = cms_verify_bytes(fixture->content,
+			fixture->sig,
+			fixture->store,
+			&fixture->cms,
+			NULL,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+
+	g_clear_pointer(&r_context()->config->keyring_allowed_signer_cns, g_strfreev);
+}
+
 static void signature_verify_valid(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
@@ -833,6 +893,9 @@ int main(int argc, char *argv[])
 	g_test_add("/signature/get_cert_chain", SignatureFixture, NULL, signature_set_up, signature_get_cert_chain, signature_tear_down);
 	g_test_add("/signature/selfsigned", SignatureFixture, NULL, signature_set_up, signature_selfsigned, signature_tear_down);
 	g_test_add("/signature/intermediate", SignatureFixture, NULL, signature_set_up, signature_intermediate, signature_tear_down);
+	g_test_add("/signature/common_names_valid", SignatureFixture, NULL, signature_set_up, signature_verify_common_names_valid, signature_tear_down);
+	g_test_add("/signature/common_names_invalid", SignatureFixture, NULL, signature_set_up, signature_verify_common_names_invalid, signature_tear_down);
+	g_test_add("/signature/common_names_2nd_value", SignatureFixture, NULL, signature_set_up, signature_verify_common_names_2nd_value, signature_tear_down);
 	g_test_add("/signature/intermediate_file", SignatureFixture, NULL, signature_set_up, signature_intermediate_file, signature_tear_down);
 	g_test_add("/signature/partial", SignatureFixture, NULL, signature_set_up, signature_partial, signature_tear_down);
 	g_test_add("/signature/cmsverify_path", SignatureFixture, NULL, signature_set_up, signature_cmsverify_path, signature_tear_down);

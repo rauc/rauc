@@ -1154,6 +1154,16 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		c->keyring_check_purpose = g_strdup("codesign-rauc");
 	}
 
+	c->keyring_allowed_signer_cns = g_key_file_get_string_list(key_file, "keyring", "allowed-signer-cns", &entries, &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "keyring", "allowed-signer-cns", NULL);
+
 	if (!check_remaining_keys(key_file, "keyring", &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -1315,6 +1325,7 @@ void free_config(RaucConfig *config)
 	g_free(config->keyring_path);
 	g_free(config->keyring_directory);
 	g_free(config->keyring_check_purpose);
+	g_strfreev(config->keyring_allowed_signer_cns);
 	g_free(config->autoinstall_path);
 	g_free(config->systeminfo_handler);
 	g_free(config->preinstall_handler);
