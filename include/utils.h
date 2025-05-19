@@ -477,3 +477,16 @@ gboolean r_semver_less_equal(const gchar *version_string_a, const gchar *version
  * @return newly-allocated string representing the formatted duration
  */
 gchar *r_format_duration(gint64 total_seconds);
+
+/**
+ * Compiles, matches and fetches the match in one call.
+ *
+ * This should only be used to simplify code in non-performance-critical places.
+ *
+ * @param pattern the regular expression
+ * @param string the string to search
+ *
+ * @return newly-allocated string with the matched substring or NULL
+ */
+gchar *r_regex_match_simple(const gchar *pattern, const gchar *string)
+G_GNUC_WARN_UNUSED_RESULT;

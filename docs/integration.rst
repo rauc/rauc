@@ -576,106 +576,102 @@ are implemented in RAUC.
 
 A detailed list of detection mechanism follows.
 
-Identification via Kernel Commandline
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Explicit Identification via Kernel Commandline
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 RAUC evaluates different kernel commandline parameters in the order they are
 listed below.
 
-.. rubric:: ``rauc.slot=`` and ``rauc.external``
+``rauc.slot=<bootname/slotname>``
+  This is the generic way to explicitly set information about which slot was
+  booted by the bootloader.
+  For slots that are handled by a bootloader slot selection mechanism (such as
+  A+B slots) you should specify the slot's configured ``bootname``::
 
-This is the generic way to explicitly set information about which slot was
-booted by the bootloader.
-For slots that are handled by a bootloader slot selection mechanism (such as
-A+B slots) you should specify the slot's configured ``bootname``::
+    rauc.slot=system0
 
-  rauc.slot=system0
+  For special cases where some slots are not handled by the slot selection
+  mechanism (such as a 'last-resort' recovery fallback that never gets
+  explicitly selected) you can also give the name of the slot::
 
-For special cases where some slots are not handled by the slot selection
-mechanism (such as a 'last-resort' recovery fallback that never gets explicitly
-selected) you can also give the name of the slot::
+    rauc.slot=recovery.0
 
-  rauc.slot=recovery.0
+``rauc.external``
+  When booting from a source not configured in your ``system.conf`` (for
+  example from a USB memory stick), you can tell rauc explicitly with this
+  flag.
+  This means that all slots are known to be inactive and will be valid
+  installation targets.
+  A possible use case for this is to use RAUC during a bootstrapping procedure
+  to perform an initial installation.
 
-When booting from a source not configured in your system.conf (for example from
-a USB memory stick), you can tell rauc explicitly with the flag
-``rauc.external``.
-This means that all slots are known to be inactive and will be valid
-installation targets.
-A possible use case for this is to use RAUC during a bootstrapping procedure to
-perform an initial installation.
+``root=/dev/nfs``
+  RAUC automatically detects NFS boots (by checking if this parameter is set in
+  the kernel command line) and handles this identically to passing
+  ``rauc.external``.
 
-.. rubric:: ``bootchooser.active=``
+Explicit Identification by Bootloader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is the command-line parameter used by barebox's *bootchooser* mechanism.
-It will be set automatically by the bootchooser framework and does not need any
-manual configuration.
-RAUC compares this against each slot's bootname (not the slot's name as above)::
+If the booted slot was not explicitly detected from the kernel commandline, the
+configured bootloader backend can provide this information.
 
-  bootchooser.active=system0
+barebox (``bootchooser.active=<bootname>``)
+  This is the command-line parameter used by barebox's *bootchooser* mechanism.
+  It will be set automatically by the bootchooser framework and does not need
+  any manual configuration.
+  RAUC compares this against each slot's ``bootname`` (not the slot's name as
+  above)::
 
-.. rubric:: ``root=``
+    bootchooser.active=system0
 
-If none of the above parameters is given, the ``root=`` parameter is evaluated
-by RAUC to gain information on the currently booted system.
-The ``root=`` entry contains the device from which device the kernel (or
-initramfs) should load the rootfs.
+EFI
+  This backend uses the ``BootCurrent`` EFI variable to find the EFI boot entry
+  that was selected for booting (as also shown by the ``efibootmgr`` CLI tool).
+  That EFI boot entry is then used to find the corresponding RAUC slot that was
+  booted.
+
+Custom Bootloader Backend
+  When using the custom bootloader backend, RAUC will try to query the custom
+  bootloader backend to get this information.
+
+  See the :ref:`sec-custom-bootloader-backend` bootloader section on how
+  to implement a custom bootloader handler.
+
+Automatic Identification via Kernel Commandline
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If none of the approaches above are able to find the booted slot, the generic
+parameters in the commandline are evaluated by RAUC.
+
+The ``root=`` entry contains the device from which the kernel (or initramfs)
+should load the rootfs.
 RAUC supports parsing different variants for giving these device as listed below.
 
-::
+``root=/dev/sda1`` or ``root=/dev/ubi0_1``
+  Giving the plain device name is supported, of course.
+  In this case, RAUC compares the root device with the devices of configured
+  slots.
 
-  root=/dev/sda1
-  root=/dev/ubi0_1
-
-Giving the plain device name is supported, of course.
-
-.. note::
-
-  The alternative ubi rootfs format with ``root=ubi0:volname`` is currently
+  The alternative UBI rootfs format with ``root=ubi0:volname`` is currently
   unsupported.
   If you want to refer to UBI volumes via name in your ``system.conf``, check
   the FAQ entry :ref:`faq-udev-symlinks`.
 
-::
+``root=PARTLABEL=abcde``, ``root=PARTUUID=01234`` or ``root=UUID=01234``
+  Parsing the ``PARTLABEL``, ``PARTUUID`` and ``UUID`` is supported, which
+  allows referring to a special partition / file system without having to know
+  the enumeration-dependent `sdX` name.
 
-  root=PARTLABEL=abcde
-  root=PARTUUID=01234
-  root=UUID=01234
+  RAUC converts the value to the corresponding ``/dev/disk/by-*`` symlink name
+  and then to the actual device name.
 
-Parsing the ``PARTLABEL``, ``PARTUUID`` and ``UUID`` is supported, which allows
-referring to a special partition / file system without having to know the
-enumeration-dependent `sdX` name.
-
-RAUC converts the value to the corresponding ``/dev/disk/by-*`` symlink name
-and then to the actual device name.
-
-::
-
-  root=/dev/nfs
-
-RAUC automatically detects NFS boots (by checking if this parameter is set in
-the kernel command line).
-There is no extra slot configuration needed for this as RAUC assumes it is safe
-to update all available slots in case the currently running system comes from
-NFS.
-
-.. rubric:: ``systemd.verity_root_data=``
-
-RAUC handles the ``systemd.verity_root_data=`` parameter the same as ``root=``
-above.
-See the `systemd-veritysetup-generator documentation
-<https://www.freedesktop.org/software/systemd/man/systemd-veritysetup-generator.html#systemd.verity_root_data=>`_
-for details.
-
-Identification via custom backend
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-When using the custom bootloader backend and the information about the
-currently booted slot cannot be derived from the kernel command line,
-RAUC will try to query the custom bootloader backend to get this information.
-
-See the :ref:`sec-custom-bootloader-backend` bootloader section on how
-to implement a custom bootloader handler.
+``systemd.verity_root_data=``
+  RAUC handles the ``systemd.verity_root_data=`` parameter the same as
+  ``root=`` above.
+  See the `systemd-veritysetup-generator documentation
+  <https://www.freedesktop.org/software/systemd/man/systemd-veritysetup-generator.html#systemd.verity_root_data=>`_
+  for details.
 
 Barebox
 ~~~~~~~
