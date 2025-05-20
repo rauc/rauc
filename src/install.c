@@ -48,6 +48,10 @@ static void install_args_update(RaucInstallArgs *args, const gchar *msg, ...)
 	g_return_if_fail(args);
 	g_return_if_fail(msg);
 
+	/* without a notify function, there is nothing to do */
+	if (!args->notify)
+		return;
+
 	va_start(list, msg);
 	formatted = g_strdup_vprintf(msg, list);
 	va_end(list);
@@ -1451,12 +1455,14 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 				r_context_end_step("update_slots", FALSE);
 				return FALSE;
 			}
+			args->updated_slots = TRUE;
 		} else if (plan->target_repo) {
 			if (!handle_artifact_install_plan(manifest, plan, args, hook_name, &ierror)) {
 				g_propagate_error(error, ierror);
 				r_context_end_step("update_slots", FALSE);
 				return FALSE;
 			}
+			args->updated_artifacts = TRUE;
 		}
 	}
 

@@ -1,6 +1,5 @@
-#include <gio/gio.h>
-#include <glib-unix.h>
 #include <glib.h>
+#include <glib-unix.h>
 #include <stdio.h>
 
 #include "artifacts.h"
@@ -9,11 +8,14 @@
 #include "config_file.h"
 #include "context.h"
 #include "install.h"
+#include "manifest.h"
 #include "mark.h"
+#include "nbd.h"
 #include "rauc-installer-generated.h"
 #include "service.h"
 #include "status_file.h"
 #include "utils.h"
+#include "polling.h"
 
 GMainLoop *service_loop = NULL;
 RInstaller *r_installer = NULL;
@@ -542,6 +544,10 @@ static void send_progress_callback(gint percentage,
 {
 	GVariant *progress_update_tuple;
 
+	/* Don't report progress when idle. */
+	if (g_strcmp0(r_installer_get_operation(r_installer), "idle") == 0)
+		return;
+
 	progress_update_tuple = g_variant_new("(isi)", percentage, message, nesting_depth);
 
 	r_installer_set_progress(r_installer, progress_update_tuple);
@@ -553,8 +559,6 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 		gpointer user_data)
 {
 	GError *ierror = NULL;
-
-	r_installer = r_installer_skeleton_new();
 
 	g_signal_connect(r_installer, "handle-install",
 			G_CALLBACK(r_on_handle_install),
@@ -604,6 +608,8 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 	r_installer_set_compatible(r_installer, r_context()->config->system_compatible);
 	r_installer_set_variant(r_installer, r_context()->config->system_variant);
 	r_installer_set_boot_slot(r_installer, r_context()->bootslot);
+
+	r_polling_on_bus_acquired(connection);
 }
 
 static void r_on_name_acquired(GDBusConnection *connection,
@@ -655,9 +661,14 @@ gboolean r_service_run(void)
 	gboolean service_return = TRUE;
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
+	GSource *polling_source = NULL;
 
 	service_loop = g_main_loop_new(NULL, FALSE);
 	g_unix_signal_add(SIGTERM, r_on_signal, NULL);
+
+	r_installer = r_installer_skeleton_new();
+
+	polling_source = r_polling_setup();
 
 	r_bus_name_id = g_bus_own_name(bus_type,
 			"de.pengutronix.rauc",
@@ -676,6 +687,8 @@ gboolean r_service_run(void)
 	service_loop = NULL;
 
 	g_clear_pointer(&r_installer, g_object_unref);
+	if (polling_source)
+		g_source_unref(polling_source);
 
 	return service_return;
 }

@@ -91,6 +91,7 @@ if pytest.found()
     'mount',
     'replace_signature',
     'resign',
+    'polling',
     'service',
     'sign',
     'status',
@@ -105,7 +106,7 @@ if pytest.found()
       env: test_env,
       depends : rauc_binary,
       is_parallel : false,
-      timeout : 120,
+      timeout : 180,
       workdir : meson.current_source_dir(),
       )
   endforeach
