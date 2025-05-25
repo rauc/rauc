@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <locale.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 
 #include <context.h>
 
@@ -91,6 +92,40 @@ static void test_bootslot_uuid(void)
 static void test_bootslot_no_bootslot(void)
 {
 	r_context_conf()->configpath = g_strdup("test/test.conf");
+	r_context_conf()->configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
+	r_context_conf()->mock.proc_cmdline = "quiet";
+	g_clear_pointer(&r_context_conf()->bootslot, g_free);
+
+	g_assert_null(r_context()->bootslot);
+
+	r_context_clean();
+}
+
+static void test_bootslot_raspberrypi_bootloader(void)
+{
+	if (g_access("/sys/firmware/devicetree/base/chosen/bootloader", R_OK) != 0) {
+		g_test_skip("Test requires file /sys/firmware/devicetree/base/chosen/bootloader to be readable");
+		return;
+	}
+
+	r_context_conf()->configpath = g_strdup("test/test-raspberrypi.conf");
+	r_context_conf()->configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
+	r_context_conf()->mock.proc_cmdline = "quiet";
+	g_clear_pointer(&r_context_conf()->bootslot, g_free);
+
+	g_assert_cmpstr(r_context()->bootslot, ==, "2");
+
+	r_context_clean();
+}
+
+static void test_bootslot_raspberrypi_bootloader_no_bootslot(void)
+{
+	if (g_access("/sys/firmware/devicetree/base/chosen/bootloader", F_OK) == 0) {
+		g_test_skip("Test requires file /sys/firmware/devicetree/base/chosen/bootloader to be inexistent");
+		return;
+	}
+
+	r_context_conf()->configpath = g_strdup("test/test-raspberrypi.conf");
 	r_context_conf()->configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
 	r_context_conf()->mock.proc_cmdline = "quiet";
 	g_clear_pointer(&r_context_conf()->bootslot, g_free);
@@ -191,6 +226,10 @@ int main(int argc, char *argv[])
 	g_test_add_func("/context/bootslot/uuid", test_bootslot_uuid);
 
 	g_test_add_func("/context/bootslot/no-bootslot", test_bootslot_no_bootslot);
+
+	g_test_add_func("/context/bootslot/raspberrypi-bootslot", test_bootslot_raspberrypi_bootloader);
+
+	g_test_add_func("/context/bootslot/raspberrypi-bootslot_no_bootslot", test_bootslot_raspberrypi_bootloader_no_bootslot);
 
 	g_test_add_func("/context/bootslot/custom-bootslot", test_bootslot_custom_bootloader);
 
