@@ -2749,7 +2749,8 @@ static void cmdline_handler(int argc, char **argv)
 		 "  mark-active [booted | other | <SLOT_NAME>]  Mark the slot as active",
 		 status_start, status_group, R_CONTEXT_CONFIG_MODE_REQUIRED, TRUE},
 		{WRITE_SLOT, "write-slot", "write-slot <SLOTNAME> <IMAGE>",
-		 "Write image to slot and bypass all update logic",
+		 "Manually write image to slot (using slot update handler).\n"
+		 "This bypasses all other update logic and is for development or special use only!",
 		 write_slot_start, NULL, R_CONTEXT_CONFIG_MODE_REQUIRED, FALSE},
 #if ENABLE_SERVICE == 1
 		{SERVICE, "service", "service",
