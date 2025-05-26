@@ -40,6 +40,7 @@ gboolean no_check_time = FALSE;
 gboolean info_dumpcert = FALSE;
 gboolean info_dumprecipients = FALSE;
 gboolean status_detailed = FALSE;
+gboolean write_slot_list = FALSE;
 gchar *output_format = NULL;
 gchar *keypath = NULL;
 gchar *certpath = NULL;
@@ -457,22 +458,35 @@ static gboolean write_slot_start(int argc, char **argv)
 
 	g_debug("write_slot_start");
 
+	if (write_slot_list) {
+		g_print("Available slots:\n");
+		GHashTableIter iter;
+		g_hash_table_iter_init(&iter, r_context()->config->slots);
+		gpointer value;
+		while (g_hash_table_iter_next(&iter, NULL, &value)) {
+			RaucSlot *islot = value;
+			g_print("  %s (%s)\n", (gchar*) islot->name, islot->type);
+		}
+		r_exit_status = 0;
+		return TRUE;
+	}
+
 	if (argc < 3) {
 		g_printerr("A target slot name must be provided\n");
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	if (argc < 4) {
 		g_printerr("An image must be provided\n");
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	if (argc > 4) {
 		g_printerr("Excess argument: %s\n", argv[4]);
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	/* construct RaucImage with required attributes */
@@ -482,7 +496,7 @@ static gboolean write_slot_start(int argc, char **argv)
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	info = g_file_input_stream_query_info(G_FILE_INPUT_STREAM(instream),
@@ -491,7 +505,7 @@ static gboolean write_slot_start(int argc, char **argv)
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	image->checksum.size = g_file_info_get_size(info);
@@ -502,13 +516,13 @@ static gboolean write_slot_start(int argc, char **argv)
 	if (slot == NULL) {
 		g_printerr("No matching slot found for given slot name\n");
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	if (slot->readonly) {
 		g_printerr("Reject writing to readonly slot\n");
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	/* retrieve update handler */
@@ -517,7 +531,7 @@ static gboolean write_slot_start(int argc, char **argv)
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	/* call update handler */
@@ -525,12 +539,11 @@ static gboolean write_slot_start(int argc, char **argv)
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	g_print("Slot written successfully\n");
 
-out:
 	return TRUE;
 }
 
@@ -2573,6 +2586,11 @@ static GOptionEntry entries_status[] = {
 	{0}
 };
 
+static GOptionEntry entries_write_slot[] = {
+	{"list", 'l', 0, G_OPTION_ARG_NONE, &write_slot_list, "list available slots and exit.", NULL},
+	{0}
+};
+
 static GOptionEntry entries_service[] = {
 	{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handler_args, "extra arguments for full custom handler", "ARGS"},
 	{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "BOOTNAME"},
@@ -2610,6 +2628,7 @@ static GOptionGroup *extract_signature_group;
 static GOptionGroup *extract_group;
 static GOptionGroup *info_group;
 static GOptionGroup *status_group;
+static GOptionGroup *write_slot_group;
 static GOptionGroup *service_group;
 
 static void create_option_groups(void)
@@ -2652,6 +2671,9 @@ static void create_option_groups(void)
 
 	status_group = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(status_group, entries_status);
+
+	write_slot_group = g_option_group_new("write-slot", "Write-Slot options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(write_slot_group, entries_write_slot);
 
 	service_group = g_option_group_new("service", "Service options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(service_group, entries_service);
@@ -2749,8 +2771,9 @@ static void cmdline_handler(int argc, char **argv)
 		 "  mark-active [booted | other | <SLOT_NAME>]  Mark the slot as active",
 		 status_start, status_group, R_CONTEXT_CONFIG_MODE_REQUIRED, TRUE},
 		{WRITE_SLOT, "write-slot", "write-slot <SLOTNAME> <IMAGE>",
-		 "Write image to slot and bypass all update logic",
-		 write_slot_start, NULL, R_CONTEXT_CONFIG_MODE_REQUIRED, FALSE},
+		 "Manually write image to slot (using slot update handler).\n"
+		 "This bypasses all other update logic and is for development or special use only!",
+		 write_slot_start, write_slot_group, R_CONTEXT_CONFIG_MODE_REQUIRED, FALSE},
 #if ENABLE_SERVICE == 1
 		{SERVICE, "service", "service",
 		 "Start RAUC service",
