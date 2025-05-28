@@ -460,19 +460,19 @@ static gboolean write_slot_start(int argc, char **argv)
 	if (argc < 3) {
 		g_printerr("A target slot name must be provided\n");
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	if (argc < 4) {
 		g_printerr("An image must be provided\n");
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	if (argc > 4) {
 		g_printerr("Excess argument: %s\n", argv[4]);
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	/* construct RaucImage with required attributes */
@@ -482,7 +482,7 @@ static gboolean write_slot_start(int argc, char **argv)
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	info = g_file_input_stream_query_info(G_FILE_INPUT_STREAM(instream),
@@ -491,7 +491,7 @@ static gboolean write_slot_start(int argc, char **argv)
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	image->checksum.size = g_file_info_get_size(info);
@@ -502,13 +502,13 @@ static gboolean write_slot_start(int argc, char **argv)
 	if (slot == NULL) {
 		g_printerr("No matching slot found for given slot name\n");
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	if (slot->readonly) {
 		g_printerr("Reject writing to readonly slot\n");
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	/* retrieve update handler */
@@ -517,7 +517,7 @@ static gboolean write_slot_start(int argc, char **argv)
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	/* call update handler */
@@ -525,12 +525,11 @@ static gboolean write_slot_start(int argc, char **argv)
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	g_print("Slot written successfully\n");
 
-out:
 	return TRUE;
 }
 
@@ -2749,7 +2748,8 @@ static void cmdline_handler(int argc, char **argv)
 		 "  mark-active [booted | other | <SLOT_NAME>]  Mark the slot as active",
 		 status_start, status_group, R_CONTEXT_CONFIG_MODE_REQUIRED, TRUE},
 		{WRITE_SLOT, "write-slot", "write-slot <SLOTNAME> <IMAGE>",
-		 "Write image to slot and bypass all update logic",
+		 "Manually write image to slot (using slot update handler).\n"
+		 "This bypasses all other update logic and is for development or special use only!",
 		 write_slot_start, NULL, R_CONTEXT_CONFIG_MODE_REQUIRED, FALSE},
 #if ENABLE_SERVICE == 1
 		{SERVICE, "service", "service",
