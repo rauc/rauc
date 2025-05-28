@@ -210,7 +210,7 @@ def test_bundle_content_checks(tmp_path, bundle):
     assert not bundle.output.is_file()
     test_dir.rmdir()
 
-    # directories are not allowed
+    # fifos are not allowed
     test_fifo = bundle.content / "fifo"
     os.mkfifo(test_fifo)
     out, err, exitcode = bundle.build_nocheck()
