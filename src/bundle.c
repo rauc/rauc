@@ -1404,8 +1404,7 @@ static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffs
 				error,
 				ierror,
 				"failed to open bundle for reading: ");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 	outstream = g_file_create(outfile, G_FILE_CREATE_NONE, NULL,
 			&ierror);
@@ -1414,8 +1413,7 @@ static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffs
 				error,
 				ierror,
 				"failed to open bundle for writing: ");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	ssize = g_output_stream_splice(
@@ -1425,19 +1423,16 @@ static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffs
 			NULL, &ierror);
 	if (ssize == -1) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	res = g_seekable_truncate(G_SEEKABLE(outstream), size, NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
-out:
-	return res;
+	return TRUE;
 }
 
 gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
