@@ -356,7 +356,6 @@ static gboolean save_slot_status_globally(GError **error)
 	GError *ierror = NULL;
 	GHashTableIter iter;
 	RaucSlot *slot;
-	gboolean res;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 	g_return_val_if_fail(r_context()->config->statusfile_path, FALSE);
@@ -381,11 +380,12 @@ static gboolean save_slot_status_globally(GError **error)
 		status_file_set_slot_status(key_file, group, slot->status);
 	}
 
-	res = g_key_file_save_to_file(key_file, r_context()->config->statusfile_path, &ierror);
-	if (!res)
+	if (!g_key_file_save_to_file(key_file, r_context()->config->statusfile_path, &ierror)) {
 		g_propagate_error(error, ierror);
+		return FALSE;
+	}
 
-	return res;
+	return TRUE;
 }
 
 gboolean r_slot_status_save(RaucSlot *dest_slot, GError **error)
