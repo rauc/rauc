@@ -2862,7 +2862,6 @@ out:
 
 static gboolean read_complete_dm_device(gchar *dev, GError **error)
 {
-	int fd = -1;
 	const goffset chunk_size = 65536;
 	g_autofree void* buf = NULL;
 	ssize_t r;
@@ -2871,7 +2870,7 @@ static gboolean read_complete_dm_device(gchar *dev, GError **error)
 	g_return_val_if_fail(dev != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	fd = g_open(dev, O_RDONLY | O_CLOEXEC, 0);
+	g_auto(filedesc) fd = g_open(dev, O_RDONLY | O_CLOEXEC, 0);
 	if (fd < 0) {
 		int err = errno;
 		g_set_error(error,
@@ -2897,8 +2896,6 @@ static gboolean read_complete_dm_device(gchar *dev, GError **error)
 			break;
 		}
 	}
-
-	g_close(fd, NULL);
 
 	return ret;
 }
