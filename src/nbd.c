@@ -1401,7 +1401,6 @@ gboolean r_nbd_read(gint sock, guint8 *data, size_t size, off_t offset, GError *
 {
 	struct nbd_request request = {0};
 	struct nbd_reply reply = {0};
-	gboolean res = FALSE;
 
 	g_return_val_if_fail(sock >= 0, FALSE);
 	g_return_val_if_fail(data, FALSE);
@@ -1428,14 +1427,11 @@ gboolean r_nbd_read(gint sock, guint8 *data, size_t size, off_t offset, GError *
 				error,
 				R_NBD_ERROR, R_NBD_ERROR_READ,
 				"failed to read data from remote server");
-		goto out;
+		return FALSE;
 	}
 
 	if (!r_read_exact(sock, data, size, NULL))
 		g_error("failed to receive nbd read reply body");
 
-	res = TRUE;
-
-out:
-	return res;
+	return TRUE;
 }
