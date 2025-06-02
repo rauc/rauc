@@ -145,14 +145,12 @@ gboolean r_slot_status_write(const gchar *filename, RaucSlotStatus *ss, GError *
 {
 	GError *ierror = NULL;
 	g_autoptr(GKeyFile) key_file = NULL;
-	gboolean res = FALSE;
 
 	key_file = g_key_file_new();
 
 	status_file_set_slot_status(key_file, "slot", ss);
 
-	res = g_key_file_save_to_file(key_file, filename, &ierror);
-	if (!res) {
+	if (!g_key_file_save_to_file(key_file, filename, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
