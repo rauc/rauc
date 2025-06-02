@@ -158,11 +158,10 @@ gboolean r_slot_status_write(const gchar *filename, RaucSlotStatus *ss, GError *
 	res = g_key_file_save_to_file(key_file, filename, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto free;
+		return FALSE;
 	}
 
-free:
-	return res;
+	return TRUE;
 }
 
 static void load_slot_status_locally(RaucSlot *dest_slot)
