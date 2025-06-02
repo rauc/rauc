@@ -123,7 +123,6 @@ static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group, 
 gboolean r_slot_status_read(const gchar *filename, RaucSlotStatus *slotstatus, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 	g_autoptr(GKeyFile) key_file = NULL;
 
 	g_return_val_if_fail(filename, FALSE);
@@ -132,17 +131,14 @@ gboolean r_slot_status_read(const gchar *filename, RaucSlotStatus *slotstatus, G
 
 	key_file = g_key_file_new();
 
-	res = g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror);
-	if (!res) {
+	if (!g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto free;
+		return FALSE;
 	}
 
 	status_file_get_slot_status(key_file, "slot", slotstatus);
 
-	res = TRUE;
-free:
-	return res;
+	return TRUE;
 }
 
 gboolean r_slot_status_write(const gchar *filename, RaucSlotStatus *ss, GError **error)
