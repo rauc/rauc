@@ -377,7 +377,7 @@ static gboolean write_boot_switch_partition(RaucImage *image, const gchar *devic
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	int out_fd = -1;
+	g_auto(filedesc) out_fd = -1;
 	g_autoptr(GUnixOutputStream) outstream = NULL;
 
 	g_return_val_if_fail(image, FALSE);
@@ -424,9 +424,6 @@ static gboolean write_boot_switch_partition(RaucImage *image, const gchar *devic
 	}
 
 out:
-	if (out_fd >= 0)
-		close(out_fd);
-
 	return res;
 }
 
