@@ -268,7 +268,6 @@ void r_slot_status_load(RaucSlot *dest_slot)
 static gboolean save_slot_status_locally(RaucSlot *dest_slot, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 	g_autofree gchar *slotstatuspath = NULL;
 
 	g_return_val_if_fail(dest_slot, FALSE);
@@ -276,36 +275,30 @@ static gboolean save_slot_status_locally(RaucSlot *dest_slot, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (!r_slot_is_mountable(dest_slot)) {
-		res = TRUE;
-		goto free;
+		return TRUE;
 	}
 
 	g_debug("mounting slot %s", dest_slot->device);
-	res = r_mount_slot(dest_slot, &ierror);
-	if (!res) {
+	if (!r_mount_slot(dest_slot, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto free;
+		return FALSE;
 	}
 
 	slotstatuspath = g_build_filename(dest_slot->mount_point, "slot.raucs", NULL);
 	g_message("Updating slot file %s", slotstatuspath);
 
-	res = r_slot_status_write(slotstatuspath, dest_slot->status, &ierror);
-	if (!res) {
+	if (!r_slot_status_write(slotstatuspath, dest_slot->status, &ierror)) {
 		g_propagate_error(error, ierror);
 		r_umount_slot(dest_slot, NULL);
-
-		goto free;
+		return FALSE;
 	}
 
-	res = r_umount_slot(dest_slot, &ierror);
-	if (!res) {
+	if (!r_umount_slot(dest_slot, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto free;
+		return FALSE;
 	}
 
-free:
-	return res;
+	return TRUE;
 }
 
 /**
