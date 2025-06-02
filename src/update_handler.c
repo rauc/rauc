@@ -376,7 +376,6 @@ static gboolean write_boot_switch_partition(RaucImage *image, const gchar *devic
 		GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 	g_auto(filedesc) out_fd = -1;
 	g_autoptr(GUnixOutputStream) outstream = NULL;
 
@@ -390,8 +389,7 @@ static gboolean write_boot_switch_partition(RaucImage *image, const gchar *devic
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Opening output device failed: %s",
 				strerror(errno));
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	if (lseek(out_fd, dest_partition->start, SEEK_SET) !=
@@ -399,32 +397,27 @@ static gboolean write_boot_switch_partition(RaucImage *image, const gchar *devic
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Failed to set file to position %"G_GUINT64_FORMAT,
 				dest_partition->start);
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	outstream = G_UNIX_OUTPUT_STREAM(g_unix_output_stream_new(out_fd, FALSE));
 	if (outstream == NULL) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Failed to create output stream");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
-	res = copy_raw_image(image, outstream, len_header_last, &ierror);
-	if (!res) {
+	if (!copy_raw_image(image, outstream, len_header_last, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
-	if (!res) {
+	if (!g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-out:
-	return res;
+	return TRUE;
 }
 
 static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const gchar *seed, const gchar *store, const gchar *tmpdir, GError **error)
