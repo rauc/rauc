@@ -3186,41 +3186,35 @@ out:
 gboolean umount_bundle(RaucBundle *bundle, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_assert_nonnull(bundle->mount_point);
 
-	res = r_umount_bundle(bundle->mount_point, &ierror);
-	if (!res) {
+	if (!r_umount_bundle(bundle->mount_point, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	g_rmdir(bundle->mount_point);
 	g_clear_pointer(&bundle->mount_point, g_free);
 
 	if (ENABLE_STREAMING && bundle->nbd_dev) {
-		res = r_nbd_remove_device(bundle->nbd_dev, &ierror);
-		if (!res) {
+		if (!r_nbd_remove_device(bundle->nbd_dev, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
 	if (ENABLE_STREAMING && bundle->nbd_srv) {
-		res = r_nbd_stop_server(bundle->nbd_srv, &ierror);
-		if (!res) {
+		if (!r_nbd_stop_server(bundle->nbd_srv, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
-	res = TRUE;
-out:
-	return res;
+	return TRUE;
 }
 
 void free_bundle(RaucBundle *bundle)
