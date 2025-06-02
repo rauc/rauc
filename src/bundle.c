@@ -1748,7 +1748,6 @@ static gboolean take_bundle_ownership(int bundle_fd, GError **error)
 {
 	struct stat stat = {};
 	mode_t perm_orig = 0, perm_new = 0;
-	gboolean res = FALSE;
 	uid_t euid;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -1761,8 +1760,7 @@ static gboolean take_bundle_ownership(int bundle_fd, GError **error)
 				G_FILE_ERROR,
 				g_file_error_from_errno(err),
 				"failed to fstat bundle: %s", g_strerror(err));
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	/* if it belongs to someone else, try to fchown if we are root */
@@ -1772,8 +1770,7 @@ static gboolean take_bundle_ownership(int bundle_fd, GError **error)
 					G_FILE_ERROR,
 					G_FILE_ERROR_PERM,
 					"cannot take file ownership of bundle when running as user (%d)", euid);
-			res = FALSE;
-			goto out;
+			return FALSE;
 		}
 
 		if (fchown(bundle_fd, 0, -1)) {
@@ -1782,8 +1779,7 @@ static gboolean take_bundle_ownership(int bundle_fd, GError **error)
 					G_FILE_ERROR,
 					g_file_error_from_errno(err),
 					"failed to chown bundle to root: %s", g_strerror(err));
-			res = FALSE;
-			goto out;
+			return FALSE;
 		}
 	}
 
@@ -1797,15 +1793,11 @@ static gboolean take_bundle_ownership(int bundle_fd, GError **error)
 					G_FILE_ERROR,
 					g_file_error_from_errno(err),
 					"failed to chmod bundle: %s", g_strerror(err));
-			res = FALSE;
-			goto out;
+			return FALSE;
 		}
 	}
 
-	res = TRUE;
-
-out:
-	return res;
+	return TRUE;
 }
 
 static gboolean check_bundle_access(int bundle_fd, GError **error)
