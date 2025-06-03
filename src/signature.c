@@ -1001,7 +1001,7 @@ gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
 	return bio_mem_unwrap(text);
 }
 
-static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
+static STACK_OF(X509) *cms_get_signer_certs(CMS_ContentInfo *cms, GError **error)
 {
 	g_return_val_if_fail(cms != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
@@ -1013,6 +1013,22 @@ static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_GET_SIGNER,
 				"Failed to obtain signer info");
+		return NULL;
+	}
+
+	return g_steal_pointer(&signers);
+}
+
+static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(cms != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	g_autoptr(R_X509_STACK) signers = cms_get_signer_certs(cms, &ierror);
+	if (signers == NULL) {
+		g_propagate_error(error, ierror);
 		return NULL;
 	}
 
@@ -1030,6 +1046,8 @@ static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
 
 static gboolean cms_check_signer_cns(CMS_ContentInfo *cms, GError **error)
 {
+	GError *ierror = NULL;
+
 	g_return_val_if_fail(cms != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
@@ -1040,13 +1058,9 @@ static gboolean cms_check_signer_cns(CMS_ContentInfo *cms, GError **error)
 		return TRUE;
 	}
 
-	g_autoptr(R_X509_STACK) signers = CMS_get0_signers(cms);
+	g_autoptr(R_X509_STACK) signers = cms_get_signer_certs(cms, &ierror);
 	if (signers == NULL) {
-		g_set_error_literal(
-				error,
-				R_SIGNATURE_ERROR,
-				R_SIGNATURE_ERROR_GET_SIGNER,
-				"Failed to obtain signer info");
+		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
@@ -1075,18 +1089,16 @@ static gboolean cms_check_signer_cns(CMS_ContentInfo *cms, GError **error)
 
 gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error)
 {
+	GError *ierror = NULL;
+
 	g_return_val_if_fail(cms != NULL, FALSE);
 	g_return_val_if_fail(store != NULL, FALSE);
 	g_return_val_if_fail(verified_chain == NULL || *verified_chain == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	g_autoptr(R_X509_STACK) signers = CMS_get0_signers(cms);
+	g_autoptr(R_X509_STACK) signers = cms_get_signer_certs(cms, &ierror);
 	if (signers == NULL) {
-		g_set_error_literal(
-				error,
-				R_SIGNATURE_ERROR,
-				R_SIGNATURE_ERROR_GET_SIGNER,
-				"Failed to obtain signer info");
+		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
