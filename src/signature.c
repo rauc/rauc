@@ -959,7 +959,7 @@ static gchar* get_cert_time(const ASN1_TIME *time)
 	size = BIO_get_mem_data(mem, &data);
 	ret = g_strndup(data, size);
 
-	BIO_set_close(mem, BIO_CLOSE);
+	g_assert(BIO_set_close(mem, BIO_CLOSE));
 	BIO_free(mem);
 
 	return ret;
@@ -1184,7 +1184,7 @@ static gboolean asn1_time_to_tm(const ASN1_TIME *intime, struct tm *tm)
 	if (!strptime(ret, "%b %d %H:%M:%S %Y GMT", tm))
 		return FALSE;
 
-	BIO_set_close(mem, BIO_CLOSE);
+	g_assert(BIO_set_close(mem, BIO_CLOSE));
 	BIO_free(mem);
 
 	return TRUE;
