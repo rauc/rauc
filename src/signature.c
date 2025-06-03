@@ -1334,6 +1334,7 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 	gboolean res = FALSE;
 	gboolean verified = FALSE;
 	gboolean detached;
+	unsigned int verify_flags = CMS_BINARY;
 
 	g_return_val_if_fail(sig != NULL, FALSE);
 	g_return_val_if_fail(store != NULL, FALSE);
@@ -1428,9 +1429,9 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 	}
 
 	if (detached)
-		verified = CMS_verify(icms, NULL, store, incontent, NULL, CMS_DETACHED | CMS_BINARY);
+		verified = CMS_verify(icms, NULL, store, incontent, NULL, verify_flags | CMS_DETACHED);
 	else
-		verified = CMS_verify(icms, NULL, store, NULL, outcontent, CMS_BINARY);
+		verified = CMS_verify(icms, NULL, store, NULL, outcontent, verify_flags);
 	if (!verified) {
 		g_set_error(
 				error,
