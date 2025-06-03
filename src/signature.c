@@ -1075,47 +1075,41 @@ static gboolean cms_check_signer_cns(CMS_ContentInfo *cms, GError **error)
 
 gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error)
 {
-	g_autoptr(R_X509_STACK) signers = NULL;
-	g_autoptr(R_X509_STACK_POP) intercerts = NULL;
-	g_autoptr(X509_STORE_CTX) cert_ctx = NULL;
-	gint signer_cnt;
-	gboolean res = FALSE;
-
 	g_return_val_if_fail(cms != NULL, FALSE);
 	g_return_val_if_fail(store != NULL, FALSE);
 	g_return_val_if_fail(verified_chain == NULL || *verified_chain == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	signers = CMS_get0_signers(cms);
+	g_autoptr(R_X509_STACK) signers = CMS_get0_signers(cms);
 	if (signers == NULL) {
 		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_GET_SIGNER,
 				"Failed to obtain signer info");
-		goto out;
+		return FALSE;
 	}
 
-	signer_cnt = sk_X509_num(signers);
+	gint signer_cnt = sk_X509_num(signers);
 	if (signer_cnt != 1) {
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_NUM_SIGNER,
 				"Unsupported number of signers: %d", signer_cnt);
-		goto out;
+		return FALSE;
 	}
 
-	intercerts = CMS_get1_certs(cms);
+	g_autoptr(R_X509_STACK_POP) intercerts = CMS_get1_certs(cms);
 
-	cert_ctx = X509_STORE_CTX_new();
+	g_autoptr(X509_STORE_CTX) cert_ctx = X509_STORE_CTX_new();
 	if (cert_ctx == NULL) {
 		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_X509_CTX_NEW,
 				"Failed to allocate new X509 CTX store");
-		goto out;
+		return FALSE;
 	}
 
 	if (!X509_STORE_CTX_init(cert_ctx, store, sk_X509_value(signers, 0), intercerts)) {
@@ -1124,7 +1118,7 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_X509_CTX_INIT,
 				"Failed to init new X509 CTX store");
-		goto out;
+		return FALSE;
 	}
 
 	if (X509_verify_cert(cert_ctx) != 1) {
@@ -1134,7 +1128,7 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 				R_SIGNATURE_ERROR_VERIFY_CERT,
 				"Failed to verify X509 cert: %s",
 				X509_verify_cert_error_string(X509_STORE_CTX_get_error(cert_ctx)));
-		goto out;
+		return FALSE;
 	}
 
 	*verified_chain = X509_STORE_CTX_get1_chain(cert_ctx);
@@ -1144,9 +1138,7 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 
 	g_debug("Got %d elements for trust chain", sk_X509_num(*verified_chain));
 
-	res = TRUE;
-out:
-	return res;
+	return TRUE;
 }
 
 /* while OpenSSL 1.1.x provides a function for converting ASN1_TIME to tm,
