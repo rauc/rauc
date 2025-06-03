@@ -2865,7 +2865,6 @@ static gboolean read_complete_dm_device(gchar *dev, GError **error)
 	const goffset chunk_size = 65536;
 	g_autofree void* buf = NULL;
 	ssize_t r;
-	gboolean ret = TRUE;
 
 	g_return_val_if_fail(dev != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -2892,12 +2891,11 @@ static gboolean read_complete_dm_device(gchar *dev, GError **error)
 					G_FILE_ERROR,
 					g_file_error_from_errno(err),
 					"Check %s device failed between %"G_GOFFSET_FORMAT " and %"G_GOFFSET_FORMAT " bytes with error: %s", dev, chunk*chunk_size, (chunk+1)*chunk_size, g_strerror(err));
-			ret = FALSE;
-			break;
+			return FALSE;
 		}
 	}
 
-	return ret;
+	return TRUE;
 }
 
 /*
