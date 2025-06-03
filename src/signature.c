@@ -1003,23 +1003,20 @@ gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
 
 static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
 {
-	g_autoptr(R_X509_STACK) signers = NULL;
-	BIO *text = NULL;
-
 	g_return_val_if_fail(cms != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	signers = CMS_get0_signers(cms);
+	g_autoptr(R_X509_STACK) signers = CMS_get0_signers(cms);
 	if (signers == NULL) {
 		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_GET_SIGNER,
 				"Failed to obtain signer info");
-		goto out;
+		return NULL;
 	}
 
-	text = BIO_new(BIO_s_mem());
+	BIO *text = BIO_new(BIO_s_mem());
 	BIO_printf(text, "'");
 	for (int i = 0; i < sk_X509_num(signers); i++) {
 		if (i)
@@ -1028,11 +1025,7 @@ static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
 	}
 	BIO_printf(text, "'");
 
-out:
-	if (text)
-		return bio_mem_unwrap(text);
-	else
-		return NULL;
+	return bio_mem_unwrap(text);
 }
 
 static gboolean cms_check_signer_cns(CMS_ContentInfo *cms, GError **error)
