@@ -1030,8 +1030,6 @@ static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
 
 static gboolean cms_check_signer_cns(CMS_ContentInfo *cms, GError **error)
 {
-	g_autoptr(R_X509_STACK) signers = NULL;
-
 	g_return_val_if_fail(cms != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
@@ -1042,7 +1040,7 @@ static gboolean cms_check_signer_cns(CMS_ContentInfo *cms, GError **error)
 		return TRUE;
 	}
 
-	signers = CMS_get0_signers(cms);
+	g_autoptr(R_X509_STACK) signers = CMS_get0_signers(cms);
 	if (signers == NULL) {
 		g_set_error_literal(
 				error,
