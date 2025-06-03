@@ -1404,8 +1404,7 @@ static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffs
 				error,
 				ierror,
 				"failed to open bundle for reading: ");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 	outstream = g_file_create(outfile, G_FILE_CREATE_NONE, NULL,
 			&ierror);
@@ -1414,8 +1413,7 @@ static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffs
 				error,
 				ierror,
 				"failed to open bundle for writing: ");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	ssize = g_output_stream_splice(
@@ -1425,19 +1423,16 @@ static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffs
 			NULL, &ierror);
 	if (ssize == -1) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	res = g_seekable_truncate(G_SEEKABLE(outstream), size, NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
-out:
-	return res;
+	return TRUE;
 }
 
 gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
@@ -1753,7 +1748,6 @@ static gboolean take_bundle_ownership(int bundle_fd, GError **error)
 {
 	struct stat stat = {};
 	mode_t perm_orig = 0, perm_new = 0;
-	gboolean res = FALSE;
 	uid_t euid;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -1766,8 +1760,7 @@ static gboolean take_bundle_ownership(int bundle_fd, GError **error)
 				G_FILE_ERROR,
 				g_file_error_from_errno(err),
 				"failed to fstat bundle: %s", g_strerror(err));
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	/* if it belongs to someone else, try to fchown if we are root */
@@ -1777,8 +1770,7 @@ static gboolean take_bundle_ownership(int bundle_fd, GError **error)
 					G_FILE_ERROR,
 					G_FILE_ERROR_PERM,
 					"cannot take file ownership of bundle when running as user (%d)", euid);
-			res = FALSE;
-			goto out;
+			return FALSE;
 		}
 
 		if (fchown(bundle_fd, 0, -1)) {
@@ -1787,8 +1779,7 @@ static gboolean take_bundle_ownership(int bundle_fd, GError **error)
 					G_FILE_ERROR,
 					g_file_error_from_errno(err),
 					"failed to chown bundle to root: %s", g_strerror(err));
-			res = FALSE;
-			goto out;
+			return FALSE;
 		}
 	}
 
@@ -1802,15 +1793,11 @@ static gboolean take_bundle_ownership(int bundle_fd, GError **error)
 					G_FILE_ERROR,
 					g_file_error_from_errno(err),
 					"failed to chmod bundle: %s", g_strerror(err));
-			res = FALSE;
-			goto out;
+			return FALSE;
 		}
 	}
 
-	res = TRUE;
-
-out:
-	return res;
+	return TRUE;
 }
 
 static gboolean check_bundle_access(int bundle_fd, GError **error)
@@ -2875,16 +2862,14 @@ out:
 
 static gboolean read_complete_dm_device(gchar *dev, GError **error)
 {
-	int fd = -1;
 	const goffset chunk_size = 65536;
 	g_autofree void* buf = NULL;
 	ssize_t r;
-	gboolean ret = TRUE;
 
 	g_return_val_if_fail(dev != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	fd = g_open(dev, O_RDONLY | O_CLOEXEC, 0);
+	g_auto(filedesc) fd = g_open(dev, O_RDONLY | O_CLOEXEC, 0);
 	if (fd < 0) {
 		int err = errno;
 		g_set_error(error,
@@ -2906,14 +2891,11 @@ static gboolean read_complete_dm_device(gchar *dev, GError **error)
 					G_FILE_ERROR,
 					g_file_error_from_errno(err),
 					"Check %s device failed between %"G_GOFFSET_FORMAT " and %"G_GOFFSET_FORMAT " bytes with error: %s", dev, chunk*chunk_size, (chunk+1)*chunk_size, g_strerror(err));
-			ret = FALSE;
-			break;
+			return FALSE;
 		}
 	}
 
-	g_close(fd, NULL);
-
-	return ret;
+	return TRUE;
 }
 
 /*
@@ -3202,41 +3184,35 @@ out:
 gboolean umount_bundle(RaucBundle *bundle, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_assert_nonnull(bundle->mount_point);
 
-	res = r_umount_bundle(bundle->mount_point, &ierror);
-	if (!res) {
+	if (!r_umount_bundle(bundle->mount_point, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	g_rmdir(bundle->mount_point);
 	g_clear_pointer(&bundle->mount_point, g_free);
 
 	if (ENABLE_STREAMING && bundle->nbd_dev) {
-		res = r_nbd_remove_device(bundle->nbd_dev, &ierror);
-		if (!res) {
+		if (!r_nbd_remove_device(bundle->nbd_dev, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
 	if (ENABLE_STREAMING && bundle->nbd_srv) {
-		res = r_nbd_stop_server(bundle->nbd_srv, &ierror);
-		if (!res) {
+		if (!r_nbd_stop_server(bundle->nbd_srv, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
-	res = TRUE;
-out:
-	return res;
+	return TRUE;
 }
 
 void free_bundle(RaucBundle *bundle)

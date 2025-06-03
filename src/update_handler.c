@@ -376,8 +376,7 @@ static gboolean write_boot_switch_partition(RaucImage *image, const gchar *devic
 		GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
-	int out_fd = -1;
+	g_auto(filedesc) out_fd = -1;
 	g_autoptr(GUnixOutputStream) outstream = NULL;
 
 	g_return_val_if_fail(image, FALSE);
@@ -390,8 +389,7 @@ static gboolean write_boot_switch_partition(RaucImage *image, const gchar *devic
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Opening output device failed: %s",
 				strerror(errno));
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	if (lseek(out_fd, dest_partition->start, SEEK_SET) !=
@@ -399,35 +397,27 @@ static gboolean write_boot_switch_partition(RaucImage *image, const gchar *devic
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Failed to set file to position %"G_GUINT64_FORMAT,
 				dest_partition->start);
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	outstream = G_UNIX_OUTPUT_STREAM(g_unix_output_stream_new(out_fd, FALSE));
 	if (outstream == NULL) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Failed to create output stream");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
-	res = copy_raw_image(image, outstream, len_header_last, &ierror);
-	if (!res) {
+	if (!copy_raw_image(image, outstream, len_header_last, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
-	if (!res) {
+	if (!g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-out:
-	if (out_fd >= 0)
-		close(out_fd);
-
-	return res;
+	return TRUE;
 }
 
 static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const gchar *seed, const gchar *store, const gchar *tmpdir, GError **error)
@@ -436,7 +426,6 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const 
 	g_autoptr(GSubprocess) sproc = NULL;
 	g_auto(GStrv) casync_argvp = NULL;
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(5, g_free);
 
 	if (r_context()->config->use_desync)
@@ -458,15 +447,12 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const 
 		g_ptr_array_add(args, g_strdup("--seed-output=no"));
 
 	if (r_context()->config->casync_install_args != NULL) {
-		gboolean parse_res = FALSE;
-		parse_res = g_shell_parse_argv(r_context()->config->casync_install_args, NULL, &casync_argvp, &ierror);
-		if (!parse_res) {
-			res = parse_res;
+		if (!g_shell_parse_argv(r_context()->config->casync_install_args, NULL, &casync_argvp, &ierror)) {
 			g_propagate_prefixed_error(
 					error,
 					ierror,
 					"Failed to parse casync extra args: ");
-			goto out;
+			return FALSE;
 		}
 		r_ptr_array_addv(args, casync_argvp, TRUE);
 	}
@@ -483,8 +469,7 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const 
 			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 					"Failed to dup() output file descriptor: %s",
 					strerror(errno));
-			res = FALSE;
-			goto out;
+			return FALSE;
 		}
 		g_subprocess_launcher_take_stdout_fd(launcher, out_fd_copy);
 	}
@@ -502,20 +487,18 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const 
 				error,
 				ierror,
 				"failed to start casync extract: ");
-		goto out;
+		return FALSE;
 	}
 
-	res = g_subprocess_wait_check(sproc, NULL, &ierror);
-	if (!res) {
+	if (!g_subprocess_wait_check(sproc, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
 				"failed to run casync extract: ");
-		goto out;
+		return FALSE;
 	}
 
-out:
-	return res;
+	return TRUE;
 }
 
 static RaucSlot *get_active_slot_class_member(gchar *slotclass)

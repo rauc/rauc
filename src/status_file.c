@@ -123,7 +123,6 @@ static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group, 
 gboolean r_slot_status_read(const gchar *filename, RaucSlotStatus *slotstatus, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 	g_autoptr(GKeyFile) key_file = NULL;
 
 	g_return_val_if_fail(filename, FALSE);
@@ -132,37 +131,31 @@ gboolean r_slot_status_read(const gchar *filename, RaucSlotStatus *slotstatus, G
 
 	key_file = g_key_file_new();
 
-	res = g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror);
-	if (!res) {
+	if (!g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto free;
+		return FALSE;
 	}
 
 	status_file_get_slot_status(key_file, "slot", slotstatus);
 
-	res = TRUE;
-free:
-	return res;
+	return TRUE;
 }
 
 gboolean r_slot_status_write(const gchar *filename, RaucSlotStatus *ss, GError **error)
 {
 	GError *ierror = NULL;
 	g_autoptr(GKeyFile) key_file = NULL;
-	gboolean res = FALSE;
 
 	key_file = g_key_file_new();
 
 	status_file_set_slot_status(key_file, "slot", ss);
 
-	res = g_key_file_save_to_file(key_file, filename, &ierror);
-	if (!res) {
+	if (!g_key_file_save_to_file(key_file, filename, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto free;
+		return FALSE;
 	}
 
-free:
-	return res;
+	return TRUE;
 }
 
 static void load_slot_status_locally(RaucSlot *dest_slot)
@@ -269,7 +262,6 @@ void r_slot_status_load(RaucSlot *dest_slot)
 static gboolean save_slot_status_locally(RaucSlot *dest_slot, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 	g_autofree gchar *slotstatuspath = NULL;
 
 	g_return_val_if_fail(dest_slot, FALSE);
@@ -277,36 +269,30 @@ static gboolean save_slot_status_locally(RaucSlot *dest_slot, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	if (!r_slot_is_mountable(dest_slot)) {
-		res = TRUE;
-		goto free;
+		return TRUE;
 	}
 
 	g_debug("mounting slot %s", dest_slot->device);
-	res = r_mount_slot(dest_slot, &ierror);
-	if (!res) {
+	if (!r_mount_slot(dest_slot, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto free;
+		return FALSE;
 	}
 
 	slotstatuspath = g_build_filename(dest_slot->mount_point, "slot.raucs", NULL);
 	g_message("Updating slot file %s", slotstatuspath);
 
-	res = r_slot_status_write(slotstatuspath, dest_slot->status, &ierror);
-	if (!res) {
+	if (!r_slot_status_write(slotstatuspath, dest_slot->status, &ierror)) {
 		g_propagate_error(error, ierror);
 		r_umount_slot(dest_slot, NULL);
-
-		goto free;
+		return FALSE;
 	}
 
-	res = r_umount_slot(dest_slot, &ierror);
-	if (!res) {
+	if (!r_umount_slot(dest_slot, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto free;
+		return FALSE;
 	}
 
-free:
-	return res;
+	return TRUE;
 }
 
 /**
@@ -370,7 +356,6 @@ static gboolean save_slot_status_globally(GError **error)
 	GError *ierror = NULL;
 	GHashTableIter iter;
 	RaucSlot *slot;
-	gboolean res;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 	g_return_val_if_fail(r_context()->config->statusfile_path, FALSE);
@@ -395,11 +380,12 @@ static gboolean save_slot_status_globally(GError **error)
 		status_file_set_slot_status(key_file, group, slot->status);
 	}
 
-	res = g_key_file_save_to_file(key_file, r_context()->config->statusfile_path, &ierror);
-	if (!res)
+	if (!g_key_file_save_to_file(key_file, r_context()->config->statusfile_path, &ierror)) {
 		g_propagate_error(error, ierror);
+		return FALSE;
+	}
 
-	return res;
+	return TRUE;
 }
 
 gboolean r_slot_status_save(RaucSlot *dest_slot, GError **error)
