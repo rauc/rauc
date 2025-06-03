@@ -14,6 +14,8 @@
 #include "context.h"
 #include "signature.h"
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(X509_STORE_CTX, X509_STORE_CTX_free);
+
 void r_signature_free_x509_stack(R_X509_STACK *stack)
 {
 	sk_X509_free(stack);
@@ -1084,7 +1086,7 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 {
 	g_autoptr(R_X509_STACK) signers = NULL;
 	g_autoptr(R_X509_STACK_POP) intercerts = NULL;
-	X509_STORE_CTX *cert_ctx = NULL;
+	g_autoptr(X509_STORE_CTX) cert_ctx = NULL;
 	gint signer_cnt;
 	gboolean res = FALSE;
 
@@ -1153,9 +1155,6 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 
 	res = TRUE;
 out:
-	if (cert_ctx)
-		X509_STORE_CTX_free(cert_ctx);
-
 	return res;
 }
 
