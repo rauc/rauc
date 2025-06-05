@@ -232,7 +232,7 @@ gboolean mark_run(const gchar *state,
 			return FALSE;
 		}
 
-		if (r_context()->config->prevent_late_fallback
+		if (r_context()->config->prevent_late_fallback == R_CONFIG_FALLBACK_MARK_BAD
 		    && g_strcmp0(slot_identifier, "booted") == 0) {
 			g_autofree gchar *mark_bad_message = NULL;
 
