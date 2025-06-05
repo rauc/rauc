@@ -99,8 +99,19 @@ gboolean r_dm_setup(RaucDM *dm, GError **error)
 	g_return_val_if_fail(dm->uuid != NULL, FALSE);
 	g_return_val_if_fail(dm->lower_dev != NULL, FALSE);
 	g_return_val_if_fail(dm->upper_dev == NULL, FALSE);
-	g_return_val_if_fail(dm->data_size > 0 && dm->data_size % 4096 == 0, FALSE);
+	g_return_val_if_fail(dm->data_size > 0, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (dm->data_size % 4096 != 0) {
+		g_set_error(error,
+				G_FILE_ERROR,
+				G_FILE_ERROR_FAILED,
+				"Payload size (%"G_GUINT64_FORMAT ") is not a multiple of 4KiB. "
+				"See https://rauc.readthedocs.io/en/latest/faq.html#what-causes-a-payload-size-that-is-not-a-multiple-of-4kib",
+				dm->data_size);
+		res = FALSE;
+		goto out;
+	}
 
 	dmfd = open("/dev/mapper/control", O_RDWR|O_CLOEXEC);
 	if (dmfd < 0) {
