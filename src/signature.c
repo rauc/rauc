@@ -14,6 +14,8 @@
 #include "context.h"
 #include "signature.h"
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(X509_STORE_CTX, X509_STORE_CTX_free);
+
 void r_signature_free_x509_stack(R_X509_STACK *stack)
 {
 	sk_X509_free(stack);
@@ -959,7 +961,7 @@ static gchar* get_cert_time(const ASN1_TIME *time)
 	size = BIO_get_mem_data(mem, &data);
 	ret = g_strndup(data, size);
 
-	BIO_set_close(mem, BIO_CLOSE);
+	g_assert(BIO_set_close(mem, BIO_CLOSE));
 	BIO_free(mem);
 
 	return ret;
@@ -999,25 +1001,38 @@ gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
 	return bio_mem_unwrap(text);
 }
 
-static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
+static STACK_OF(X509) *cms_get_signer_certs(CMS_ContentInfo *cms, GError **error)
 {
-	g_autoptr(R_X509_STACK) signers = NULL;
-	BIO *text = NULL;
-
 	g_return_val_if_fail(cms != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	signers = CMS_get0_signers(cms);
+	g_autoptr(R_X509_STACK) signers = CMS_get0_signers(cms);
 	if (signers == NULL) {
 		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_GET_SIGNER,
 				"Failed to obtain signer info");
-		goto out;
+		return NULL;
 	}
 
-	text = BIO_new(BIO_s_mem());
+	return g_steal_pointer(&signers);
+}
+
+static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(cms != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	g_autoptr(R_X509_STACK) signers = cms_get_signer_certs(cms, &ierror);
+	if (signers == NULL) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	BIO *text = BIO_new(BIO_s_mem());
 	BIO_printf(text, "'");
 	for (int i = 0; i < sk_X509_num(signers); i++) {
 		if (i)
@@ -1026,16 +1041,12 @@ static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
 	}
 	BIO_printf(text, "'");
 
-out:
-	if (text)
-		return bio_mem_unwrap(text);
-	else
-		return NULL;
+	return bio_mem_unwrap(text);
 }
 
 static gboolean cms_check_signer_cns(CMS_ContentInfo *cms, GError **error)
 {
-	g_autoptr(R_X509_STACK) signers = NULL;
+	GError *ierror = NULL;
 
 	g_return_val_if_fail(cms != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -1047,13 +1058,9 @@ static gboolean cms_check_signer_cns(CMS_ContentInfo *cms, GError **error)
 		return TRUE;
 	}
 
-	signers = CMS_get0_signers(cms);
+	g_autoptr(R_X509_STACK) signers = cms_get_signer_certs(cms, &ierror);
 	if (signers == NULL) {
-		g_set_error_literal(
-				error,
-				R_SIGNATURE_ERROR,
-				R_SIGNATURE_ERROR_GET_SIGNER,
-				"Failed to obtain signer info");
+		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
@@ -1082,47 +1089,39 @@ static gboolean cms_check_signer_cns(CMS_ContentInfo *cms, GError **error)
 
 gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X509) **verified_chain, GError **error)
 {
-	g_autoptr(R_X509_STACK) signers = NULL;
-	g_autoptr(R_X509_STACK_POP) intercerts = NULL;
-	X509_STORE_CTX *cert_ctx = NULL;
-	gint signer_cnt;
-	gboolean res = FALSE;
+	GError *ierror = NULL;
 
 	g_return_val_if_fail(cms != NULL, FALSE);
 	g_return_val_if_fail(store != NULL, FALSE);
 	g_return_val_if_fail(verified_chain == NULL || *verified_chain == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	signers = CMS_get0_signers(cms);
+	g_autoptr(R_X509_STACK) signers = cms_get_signer_certs(cms, &ierror);
 	if (signers == NULL) {
-		g_set_error_literal(
-				error,
-				R_SIGNATURE_ERROR,
-				R_SIGNATURE_ERROR_GET_SIGNER,
-				"Failed to obtain signer info");
-		goto out;
+		g_propagate_error(error, ierror);
+		return FALSE;
 	}
 
-	signer_cnt = sk_X509_num(signers);
+	gint signer_cnt = sk_X509_num(signers);
 	if (signer_cnt != 1) {
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_NUM_SIGNER,
 				"Unsupported number of signers: %d", signer_cnt);
-		goto out;
+		return FALSE;
 	}
 
-	intercerts = CMS_get1_certs(cms);
+	g_autoptr(R_X509_STACK_POP) intercerts = CMS_get1_certs(cms);
 
-	cert_ctx = X509_STORE_CTX_new();
+	g_autoptr(X509_STORE_CTX) cert_ctx = X509_STORE_CTX_new();
 	if (cert_ctx == NULL) {
 		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_X509_CTX_NEW,
 				"Failed to allocate new X509 CTX store");
-		goto out;
+		return FALSE;
 	}
 
 	if (!X509_STORE_CTX_init(cert_ctx, store, sk_X509_value(signers, 0), intercerts)) {
@@ -1131,7 +1130,7 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_X509_CTX_INIT,
 				"Failed to init new X509 CTX store");
-		goto out;
+		return FALSE;
 	}
 
 	if (X509_verify_cert(cert_ctx) != 1) {
@@ -1141,7 +1140,7 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 				R_SIGNATURE_ERROR_VERIFY_CERT,
 				"Failed to verify X509 cert: %s",
 				X509_verify_cert_error_string(X509_STORE_CTX_get_error(cert_ctx)));
-		goto out;
+		return FALSE;
 	}
 
 	*verified_chain = X509_STORE_CTX_get1_chain(cert_ctx);
@@ -1151,12 +1150,7 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 
 	g_debug("Got %d elements for trust chain", sk_X509_num(*verified_chain));
 
-	res = TRUE;
-out:
-	if (cert_ctx)
-		X509_STORE_CTX_free(cert_ctx);
-
-	return res;
+	return TRUE;
 }
 
 /* while OpenSSL 1.1.x provides a function for converting ASN1_TIME to tm,
@@ -1184,7 +1178,7 @@ static gboolean asn1_time_to_tm(const ASN1_TIME *intime, struct tm *tm)
 	if (!strptime(ret, "%b %d %H:%M:%S %Y GMT", tm))
 		return FALSE;
 
-	BIO_set_close(mem, BIO_CLOSE);
+	g_assert(BIO_set_close(mem, BIO_CLOSE));
 	BIO_free(mem);
 
 	return TRUE;
