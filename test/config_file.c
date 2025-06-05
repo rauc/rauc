@@ -52,6 +52,7 @@ statusfile=/mnt/persistent-rw-fs/system.raucs\n\
 max-bundle-download-size=42\n\
 max-bundle-signature-size=32\n\
 bundle-formats=verity\n\
+slots-locking=true\n\
 \n\
 [keyring]\n\
 path=/etc/rauc/keyring/\n\
@@ -124,6 +125,7 @@ type=trees\n\
 	g_assert_cmpstr(config->tmp_path, ==, "/tmp/");
 	g_assert_cmpstr(config->casync_install_args, ==, "--verbose");
 	g_assert_false(config->use_desync);
+	g_assert_true(config->slots_locking);
 
 	g_assert_nonnull(config->slots);
 	slotlist = g_hash_table_get_keys(config->slots);
@@ -680,6 +682,49 @@ compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
 activate-installed=typo\n");
+}
+
+static void config_file_typo_in_boolean_slots_locking_key(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	config_file_typo(fixture, "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+slots-locking=typo\n\
+\n\
+[slot.rescue.0]\n\
+description=Rescue partition\n\
+device=/dev/mtd4\n\
+type=raw\n\
+bootname=factory0\n");
+}
+
+static void config_file_default_value_false_when_not_set_for_boolean_slots_locking_key(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	GError *ierror = NULL;
+	gboolean res;
+	g_autoptr(RaucConfig) config = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+min-bundle-version=2024.05-downgrade+barrier\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+statusfile=/mnt/persistent-rw-fs/system.raucs\n\
+bundle-formats=verity\n";
+
+	g_autofree gchar* pathname = write_tmp_file(fixture->tmpdir, "full_config.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(config);
+	g_assert_false(config->slots_locking);
 }
 
 static void config_file_bootname_tab(ConfigFileFixture *fixture, gconstpointer user_data)
@@ -1652,6 +1697,12 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/typo-in-boolean-activate-installed-key", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_typo_in_boolean_activate_installed_key,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/typo-in-boolean-slots-locking-key", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_typo_in_boolean_slots_locking_key,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/config-file-default-value-false-when-not-set-for-boolean-slots-locking-key", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_default_value_false_when_not_set_for_boolean_slots_locking_key,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/bootname-tab", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_bootname_tab,
