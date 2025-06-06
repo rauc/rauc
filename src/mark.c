@@ -1,6 +1,7 @@
 #include "bootchooser.h"
 #include "event_log.h"
 #include "context.h"
+#include "glib.h"
 #include "install.h"
 #include "mark.h"
 #include "slot.h"
@@ -153,8 +154,15 @@ gboolean r_mark_active(RaucSlot *slot, GError **error)
 	g_free(slot_state->activated_timestamp);
 	now = g_date_time_new_now_utc();
 	slot_state->activated_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
-	slot_state->activated_count++;
 
+	if (r_context()->config->slots_locking) {
+		if (!r_boot_set_global_slot_locking(FALSE, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+	}
+
+	slot_state->activated_count++;
 	if (!r_slot_status_save(slot, &ierror)) {
 		g_message("Error while writing status file: %s", ierror->message);
 		g_error_free(ierror);
@@ -175,6 +183,13 @@ gboolean r_mark_good(RaucSlot *slot, GError **error)
 				"Failed marking slot %s as good:  %s", slot->name, ierror->message);
 		g_error_free(ierror);
 		return FALSE;
+	}
+
+	if (r_context()->config->slots_locking) {
+		if (!r_boot_set_global_slot_locking(TRUE, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
 	}
 
 	r_event_log_mark_good(slot);
