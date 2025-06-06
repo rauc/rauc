@@ -6,6 +6,7 @@
 #include "bootloaders/uboot.h"
 #include "config_file.h"
 #include "context.h"
+#include "glib.h"
 
 GQuark r_bootchooser_error_quark(void)
 {
@@ -153,6 +154,47 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 	}
 
 	return res;
+}
+
+gboolean r_boot_set_global_slot_locking(gboolean locked, GError **error)
+{
+	gboolean res = FALSE;
+	GError *ierror = NULL;
+	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
+		res = r_barebox_set_global_slot_locking(locked, &ierror);
+	} else {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+				"Using boot slots locking for bootloader '%s' not supported yet", r_context()->config->system_bootloader);
+		return FALSE;
+	}
+
+	return res;
+}
+
+gboolean r_boot_get_global_slot_locking(gboolean *slots_locked, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
+		if (!r_barebox_get_global_slot_locking(slots_locked, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+	} else {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+				"Using boot slots locking for bootloader '%s' not supported yet", r_context()->config->system_bootloader);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 /* Get slot marked as primary one */
