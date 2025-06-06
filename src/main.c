@@ -1429,6 +1429,7 @@ typedef struct {
 	gchar *bootslot;
 	GHashTable *slots;
 	GVariant *artifacts;
+	gboolean lock_counter;
 } RaucStatusPrint;
 
 static void free_status_print(RaucStatusPrint *status)
@@ -1600,7 +1601,9 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 	g_string_append(text, "=== System Info ===\n");
 	g_string_append_printf(text, "Compatible:  %s\n", status->compatible);
 	g_string_append_printf(text, "Variant:     %s\n", status->variant);
-	g_string_append_printf(text, "Booted from: %s (%s)\n\n", bootedfrom ? bootedfrom->name : NULL, status->bootslot);
+	g_string_append_printf(text, "Booted from: %s (%s)\n", bootedfrom ? bootedfrom->name : NULL, status->bootslot);
+	if (!ENABLE_SERVICE && status->lock_counter)
+		g_string_append_printf(text, "Counter lock: enabled");
 
 	g_string_append(text, "=== Bootloader ===\n");
 	if (!status->primary)
@@ -1679,6 +1682,9 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 	slotstring = g_strjoinv(" ", (gchar**) slotnames->pdata);
 	r_ptr_array_add_printf(entries, "RAUC_SYSTEM_SLOTS=%s", slotstring);
 	g_free(slotstring);
+
+	r_ptr_array_add_printf(entries, "RAUC_LOCK_COUNTER=%s", status->lock_counter ? "enable" : "disabled");
+
 	slotstring = g_strjoinv(" ", (gchar**) slotnumbers->pdata);
 	r_ptr_array_add_printf(entries, "RAUC_SLOTS=%s", slotstring);
 	g_free(slotstring);
@@ -1826,6 +1832,9 @@ static gchar* r_status_formatter_json(RaucStatusPrint *status, gboolean pretty)
 
 	json_builder_set_member_name(builder, "boot_primary");
 	json_builder_add_string_value(builder, status->primary ? status->primary->name : NULL);
+
+	json_builder_set_member_name(builder, "lock-counter");
+	json_builder_add_string_value(builder, status->lock_counter ? "enable" : "disabled");
 
 	json_builder_set_member_name(builder, "slots");
 	json_builder_begin_array(builder);
@@ -2239,6 +2248,19 @@ static gboolean status_start(int argc, char **argv)
 			g_printerr("Failed getting primary slot: %s\n", ierror->message);
 			g_clear_error(&ierror);
 		}
+
+		/* This checks for inconsistency between configured option in rauc config
+		 * and the current state of the required barebox variable.
+		 * So users get notified about it early */
+		gboolean locked = FALSE;
+		if (r_context()->config->prevent_late_fallback == R_CONFIG_FALLBACK_LOCK_COUNTER) {
+			if (!r_boot_get_counters_lock(&locked, &ierror)) {
+				g_printerr("Failed to determine boot counter lock state: %s\n", ierror->message);
+				g_clear_error(&ierror);
+				g_printerr("Inconsistency in 'lock-counter' handling: enabled, but not supported by the bootloader\n");
+			}
+		}
+		status_print->lock_counter = locked;
 
 		status_print->compatible = g_strdup(r_context()->config->system_compatible);
 		status_print->variant = g_strdup(r_context()->config->system_variant);
