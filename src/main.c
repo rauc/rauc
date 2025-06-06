@@ -1371,6 +1371,7 @@ typedef struct {
 	gchar *bootslot;
 	GHashTable *slots;
 	GVariant *artifacts;
+	gboolean is_locked;
 } RaucStatusPrint;
 
 static void free_status_print(RaucStatusPrint *status)
@@ -1549,6 +1550,7 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 		g_string_append_printf(text, "Activated: %s (%s)\n\n", status->primary->name, status->primary->bootname);
 
 	g_string_append(text, "=== Slot States ===\n");
+	g_string_append_printf(text, "Slots locking: %s\n", status->is_locked ? "active" : "inactive");
 	slotclasses = r_slot_get_root_classes(status->slots);
 
 	for (gchar **cls = slotclasses; *cls != NULL; cls++) {
@@ -1619,6 +1621,9 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 	slotstring = g_strjoinv(" ", (gchar**) slotnames->pdata);
 	r_ptr_array_add_printf(entries, "RAUC_SYSTEM_SLOTS=%s", slotstring);
 	g_free(slotstring);
+
+	r_ptr_array_add_printf(entries, "RAUC_SLOTS_LOCKING=%s", status->is_locked ? "active" : "inactive");
+
 	slotstring = g_strjoinv(" ", (gchar**) slotnumbers->pdata);
 	r_ptr_array_add_printf(entries, "RAUC_SLOTS=%s", slotstring);
 	g_free(slotstring);
@@ -1760,6 +1765,9 @@ static gchar* r_status_formatter_json(RaucStatusPrint *status, gboolean pretty)
 
 	json_builder_set_member_name(builder, "boot_primary");
 	json_builder_add_string_value(builder, status->primary ? status->primary->name : NULL);
+
+	json_builder_set_member_name(builder, "slots_locking");
+	json_builder_add_string_value(builder, status->is_locked ? "active" : "inactive");
 
 	json_builder_set_member_name(builder, "slots");
 	json_builder_begin_array(builder);
@@ -2163,6 +2171,11 @@ static gboolean status_start(int argc, char **argv)
 		status_print->primary = r_boot_get_primary(&ierror);
 		if (!status_print->primary) {
 			g_printerr("Failed getting primary slot: %s\n", ierror->message);
+			g_clear_error(&ierror);
+		}
+
+		if (!r_boot_get_global_slot_locking(&status_print->is_locked, &ierror)) {
+			g_printerr("Failed getting state of locked slots: %s\n", ierror->message);
 			g_clear_error(&ierror);
 		}
 
