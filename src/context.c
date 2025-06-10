@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "bootchooser.h"
+#include "bootloaders/barebox.h"
 #include "config_file.h"
 #include "context.h"
 #include "event_log.h"
@@ -396,6 +397,21 @@ static gboolean r_context_configure_target(GError **error)
 
 	if (context->bootslot == NULL) {
 		context->bootslot = get_bootname();
+	}
+
+	/* If slots-locking is set, it needs a variable available in barebox-state.
+	 * We can not use r_boot_get_global_slot_locking here, as it uses r_context() to get the variable
+	 * and would cause a recursion. But we can access context directly here. */
+	if (context->config->slots_locking) {
+		if (g_strcmp0(context->config->system_bootloader, "barebox") == 0) {
+			gboolean slots_locked = FALSE;
+			if (!r_barebox_get_global_slot_locking(&slots_locked, &ierror)) {
+				g_propagate_error(error, ierror);
+			}
+		} else {
+			g_error("Slots locking is enabled, but not supported by bootloader");
+			return FALSE;
+		}
 	}
 
 	g_clear_pointer(&context->boot_id, g_free);
