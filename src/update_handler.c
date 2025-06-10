@@ -1415,12 +1415,12 @@ static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hoo
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	/* mount slot */
+	/* try mount slot */
 	g_message("Mounting slot %s", slot->device);
 	res = r_mount_slot(slot, &ierror);
 	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
+		g_warning("Ignoring mount error before slot hook error: %s", ierror->message);
+		g_clear_error(&ierror);
 	}
 
 	/* run slot install hook */
@@ -1429,6 +1429,10 @@ static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hoo
 	if (!res) {
 		g_propagate_error(error, ierror);
 	}
+
+	/* slot not mounted */
+	if (slot->mount_point == NULL)
+		return res;
 
 	/* finally umount slot */
 	g_message("Unmounting slot %s", slot->device);
@@ -1444,7 +1448,6 @@ static gboolean mount_and_run_slot_hook(const gchar *hook_name, const gchar *hoo
 		}
 	}
 
-out:
 	return res;
 }
 
