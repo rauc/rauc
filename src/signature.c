@@ -1019,7 +1019,7 @@ static STACK_OF(X509) *cms_get_signer_certs(CMS_ContentInfo *cms, GError **error
 	return g_steal_pointer(&signers);
 }
 
-static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
+static gchar *cms_get_signers_string(CMS_ContentInfo *cms, GError **error)
 {
 	GError *ierror = NULL;
 
@@ -1330,7 +1330,7 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 	BIO *incontent = NULL;
 	BIO *insig = bytes_as_bio(sig);
 	BIO *outcontent = BIO_new(BIO_s_mem());
-	g_autofree gchar *signers = NULL;
+	g_autofree gchar *signers_string = NULL;
 	gboolean res = FALSE;
 	gboolean verified = FALSE;
 	gboolean detached;
@@ -1446,12 +1446,12 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 		goto out;
 	}
 
-	signers = cms_get_signers(icms, &ierror);
-	if (!signers) {
+	signers_string = cms_get_signers_string(icms, &ierror);
+	if (!signers_string) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
-	g_message("Verified %s signature by %s", detached ? "detached" : "inline", signers);
+	g_message("Verified %s signature by %s", detached ? "detached" : "inline", signers_string);
 
 	if (!detached) {
 		GBytes *tmp = bytes_from_bio(outcontent);
