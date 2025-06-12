@@ -700,6 +700,12 @@ static gboolean copy_block_hash_index_image_to_dev(RaucImage *image, RaucSlot *s
 		goto out;
 	}
 
+	/* emit progress info (when in progress context) since a new
+	 * target_slot hash index might have been generated and that could
+	 * have taken some time. */
+	if (r_context()->progress)
+		r_context_set_step_percentage("copy_image", R_HASH_INDEX_GEN_PROGRESS_SPAN);
+
 	g_ptr_array_add(sources, g_steal_pointer(&tmp));
 
 	/* Open and append seed slot. */
@@ -715,6 +721,12 @@ static gboolean copy_block_hash_index_image_to_dev(RaucImage *image, RaucSlot *s
 	} else {
 		g_message("No active slot available to use as seed for %s", image->slotclass);
 	}
+
+	/* emit progress info (when in progress context) since a new
+	 * active_slot hash index might have been generated and that could
+	 * have taken some time. */
+	if (r_context()->progress)
+		r_context_set_step_percentage("copy_image", R_HASH_INDEX_GEN_PROGRESS_SPAN * 2);
 
 	/* Open and append source image. */
 	tmp = r_hash_index_open_image("source_image", image, &ierror);
@@ -829,9 +841,11 @@ static gboolean copy_block_hash_index_image_to_dev(RaucImage *image, RaucSlot *s
 			target_old->invalid_below = c;
 		}
 
-		/* emit progress info (but only when in progress context) */
+		/* emit progress info (but only when in progress context).
+		 * Since the first 10 percent are reserved for the hash index
+		 * generation, we just set the last 90 percent here. */
 		if (r_context()->progress)
-			r_context_set_step_percentage("copy_image", (c + 1) * 100 / chunk_count);
+			r_context_set_step_percentage("copy_image", (R_HASH_INDEX_GEN_PROGRESS_SPAN * 2) + (c + 1) * (100 - (R_HASH_INDEX_GEN_PROGRESS_SPAN * 2)) / chunk_count);
 	}
 
 	/* Seek after the written data so this behaves similar to the simpler write helpers */
