@@ -42,7 +42,7 @@ typedef struct {
 	/* system status (not available when using per-slot status file) */
 	RSystemStatus *system_status;
 
-	GList *progress;
+	GList *progress; /* List of RaucProgressStep used as sub step stack (most recent first) */
 	progress_callback progress_callback;
 
 	/* signing data */
