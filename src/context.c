@@ -832,7 +832,8 @@ const RaucContext *r_context(void)
 {
 	GError *ierror = NULL;
 
-	g_assert_nonnull(context);
+	if (!context)
+		g_error("Context not initialized. Call r_context_conf() first");
 
 	if (context_configuring)
 		g_error("Detected call of r_context() while still setting up context! Aborted to avoid infinite recursion!");
