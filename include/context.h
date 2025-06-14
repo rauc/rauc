@@ -157,6 +157,13 @@ void r_context_end_step(const gchar *name, gboolean success);
 void r_context_set_step_percentage(const gchar *name, gint percentage);
 
 /**
+ * Increases step percentage by one.
+ *
+ * @param name identifying the step. Must be a step with no explicit substeps.
+ */
+void r_context_inc_step_percentage(const gchar *name);
+
+/**
  * Frees the memory allocated by the RaucProgressStep.
  *
  * @param step a RaucProgressStep to free

@@ -772,6 +772,12 @@ void r_context_set_step_percentage(const gchar *name, gint custom_percent)
 		r_context_send_progress(FALSE, FALSE);
 }
 
+void r_context_inc_step_percentage(const gchar *name)
+{
+	RaucProgressStep *step = context->progress->data;
+	r_context_set_step_percentage(name, step->last_explicit_percent + 1);
+}
+
 void r_context_free_progress_step(RaucProgressStep *step)
 {
 	if (!step)
