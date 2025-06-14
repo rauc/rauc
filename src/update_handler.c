@@ -937,6 +937,10 @@ static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **er
 				g_info("%s", ierror->message);
 			} else {
 				g_warning("Continuing after adaptive mode error: %s", ierror->message);
+				/* Note that step progress can already be at a certain percentage at this point
+				 * and will be reset to 0 when normal copying runs instead.
+				 * This isn't propagated but high level progress may stall until step progress
+				 * exceeds the current value again. */
 			}
 			g_clear_error(&ierror);
 			/* Continue with full copy */
