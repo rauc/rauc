@@ -744,6 +744,8 @@ void r_context_set_step_percentage(const gchar *name, gint custom_percent)
 	g_assert_nonnull(context->progress);
 
 	step = context->progress->data;
+	if (!g_list_next(context->progress))
+		g_error("Root step does not support setting percentage");
 	parent = g_list_next(context->progress)->data;
 
 	/* ensure that progress step nesting is done correctly */
