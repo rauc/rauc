@@ -2,22 +2,22 @@
 option(
   'service',
   type : 'boolean',
-  value : 'true',
+  value : true,
   description : 'Enable/Disable background service')
 option(
   'create',
   type : 'boolean',
-  value : 'true',
+  value : true,
   description : 'Enable/Disable bundle creation and modification commands')
 option(
   'network',
   type : 'boolean',
-  value : 'true',
+  value : true,
   description : 'Enable/Disable network update mode')
 option(
   'streaming',
   type : 'boolean',
-  value : 'true',
+  value : true,
   description : 'Enable/Disable streaming update mode')
 option(
   'json',
@@ -37,7 +37,7 @@ option(
 option(
   'pkcs11_engine',
   type : 'boolean',
-  value : 'true',
+  value : true,
   description : 'Enable/Disable OpenSSL PKCS11 engine support')
 
 # other options
@@ -78,15 +78,15 @@ option(
 option(
   'htmldocs',
   type : 'boolean',
-  value : 'false',
+  value : false,
   description : 'Enable/Disable HTML documentation')
 option(
   'tests',
   type : 'boolean',
-  value : 'true',
+  value : true,
   description : 'Enable/Disable test suite')
 option(
   'fuzzing',
   type : 'boolean',
-  value : 'false',
+  value : false,
   description : 'Enable/Disable fuzz tests')
