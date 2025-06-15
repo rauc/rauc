@@ -56,6 +56,28 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Enable or disable locking of slots.
+ * This variable is not set per slot, but is valid for all slots.
+ *
+ * @param locked value to set for slots locking in bootloader
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if successful, FALSE if failed
+ */
+gboolean r_boot_set_global_slot_locking(gboolean locked, GError **error);
+
+/**
+ * Check current status of slots locking in bootloader
+ * This variable is not set per slot, but is valid for all slots.
+ *
+ * @param slots_locked return location for slots locking
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if successful, FALSE if failed
+ */
+gint r_boot_get_global_slot_locking(gboolean *slots_locked, GError **error);
+
+/**
  * Mark slot as primary boot option of its slot class.
  *
  * @param slot Slot to mark

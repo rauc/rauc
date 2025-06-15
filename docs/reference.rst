@@ -260,6 +260,43 @@ Example configuration:
   mark-bad other' after marking the currently booted slot as good.
   This means that the other slot(s) is/are no longer eligible for fallback.
 
+``slots-locking=<true/false>`` (optional)
+  This setting works similar to ``prevent-late-fallback``, it also prevents a
+  fallback to an older version.
+  However, unlike ``prevent-late-fallback``, this is a global setting
+  that preserves the status of individual slots, allowing RAUC to maintain
+  awareness of their respective states.
+  The ``slots-locking`` state is stored in a separate variable that must be
+  recognized by the ``bootloader``.
+  Currently, this feature is only supported when ``bootloader``
+  is set to ``barebox``, and the ``&bootstate`` in the devicetree must include
+  a new variable, for example:
+
+.. code-block:: Devicetree
+
+    &bootstate {
+        #address-cells = <1>;
+        #size-cells = <1>;
+
+        [...]
+
+        slots_locked@14 {
+            reg = <0x14 0x4>;
+            type = "uint32";
+            default = <0>;
+        };
+    };
+
+  With this configuration, the bootloader is aware of the locking state and can
+  stop decrementing the ``remaining_attempts`` counter, which helps save write cycles
+  on your storage device.
+  Slots locking is activated when 'rauc status mark-good' is executed
+  and deactivated when 'rauc status mark-active' is executed. This can happen either
+  implicitly during a RAUC update or explicitly through manual commands.
+  The current value of the ``slots_locked`` variable can be read via the commands
+  ``barebox-state -d`` or and ``rauc status``.
+  It is not yet available via die D-Bus interface.
+
 .. _keyring-section:
 
 ``[keyring]`` Section
