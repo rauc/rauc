@@ -706,6 +706,30 @@ bootname=the\tslot\n";
 	g_clear_error(&ierror);
 }
 
+static void config_file_boot_emmc_with_bootpart(ConfigFileFixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	GError *ierror = NULL;
+	g_autofree gchar* pathname = NULL;
+
+	const gchar *contents = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/mmcblk0boot0\n\
+type=boot-emmc\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "boot-emmc-bootpart.conf", contents, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_DEVICE);
+	g_assert_cmpstr(ierror->message, ==, "slot.rootfs.0: 'device' must refer to the eMMC base device, not the boot partition");
+	g_clear_error(&ierror);
+}
+
 static void config_file_no_max_bundle_download_size(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1655,6 +1679,9 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/bootname-tab", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_bootname_tab,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/boot-emmc-with-bootpart", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_boot_emmc_with_bootpart,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/no-max-bundle-download-size", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_no_max_bundle_download_size,
