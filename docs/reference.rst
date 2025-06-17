@@ -604,6 +604,18 @@ hierarchical separator.
   Allows to specify custom mount options that will be passed to the slot's
   ``mount`` call as ``-o`` argument value.
 
+``region-start`` (mandatory for specific types, invalid for others)
+  Defines the start of the disk region used for atomic bootloader updates.
+  Valid for slot types ``boot-mbr-switch``, ``boot-gpt-switch``,
+  ``boot-raw-fallback`` only!
+  See :ref:`sec-mbr-partition` and the following for more details.
+
+``region-size`` (mandatory for specific types, invalid for others)
+  Defines the size of the disk region used for atomic bootloader updates.
+  Valid for slot types ``boot-mbr-switch``, ``boot-gpt-switch``,
+  ``boot-raw-fallback`` only!
+  See :ref:`sec-mbr-partition` and the following for more details.
+
 .. _sec_ref_artifacts:
 
 ``[artifacts.<repo-name>]`` Sections
