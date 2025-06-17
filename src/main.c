@@ -522,7 +522,7 @@ static gboolean write_slot_start(int argc, char **argv)
 
 	/* call update handler */
 	if (!update_handler(image, slot, NULL, &ierror)) {
-		g_printerr("%s\n", ierror->message);
+		g_printerr("Failed to write slot: %s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
 		return TRUE;
