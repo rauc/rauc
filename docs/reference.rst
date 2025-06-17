@@ -1644,6 +1644,10 @@ The following environment variables will be passed to the hook executable:
   Both halves in the region will be written by RAUC.
   ``boot-raw-fallback`` slot type only.
 
+``RAUC_BOOT_SIZE_LIMIT``
+  This maximum size of the boot partition to use.
+  ``boot-emmc`` slot type only.
+
 .. _sec_ref_dbus-api:
 
 D-Bus API

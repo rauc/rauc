@@ -2259,6 +2259,8 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 
 	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_ACTIVATING"),
 			g_strdup_printf("%d", INACTIVE_BOOT_PARTITION(part_active)));
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_SIZE_LIMIT"),
+			g_strdup_printf("%"G_GUINT64_FORMAT, dest_slot->size_limit));
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
