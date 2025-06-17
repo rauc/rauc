@@ -2243,6 +2243,13 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		goto out;
 	}
 
+	/* check size */
+	if (!check_image_size(g_unix_output_stream_get_fd(outstream), image, &ierror)) {
+		res = FALSE;
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
 	/* copy */
 	g_message("Copying image to slot device partition %s",
 			part_slot->device);
