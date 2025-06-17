@@ -545,7 +545,9 @@ hierarchical separator.
 
 ``type=<type>`` (optional, recommended)
   The type describing the slot. Currently supported ``<type>`` values are ``raw``,
-  ``nand``, ``nor``, ``ubivol``, ``ubifs``, ``ext4``, ``vfat``.
+  ``nand``, ``nor``, ``ubivol``, ``ubifs``, ``ext4``, ``vfat`` for normal slots
+  and ``boot-emmc``, ``boot-mbr-switch``, ``boot-gpt-switch``, and ``boot-raw-fallback``
+  for atomically updatable bootloader slots.
   See table :ref:`sec-slot-type` for a more detailed list of these different types.
   Defaults to ``raw`` if none given.
 
