@@ -2172,14 +2172,14 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 				R_UPDATE_ERROR,
 				R_UPDATE_ERROR_FAILED,
 				"Can't resolve eMMC device %s", dest_slot->device);
-		goto out;
+		return FALSE;
 	}
 
 	/* read active boot partition from ext_csd */
 	res = r_emmc_read_bootpart(realdev, &part_active, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	if (part_active == -1) {
@@ -2240,6 +2240,13 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	if (outstream == NULL) {
 		g_propagate_error(error, ierror);
 		res = FALSE;
+		goto out;
+	}
+
+	/* check size */
+	if (!check_image_size(g_unix_output_stream_get_fd(outstream), image, &ierror)) {
+		res = FALSE;
+		g_propagate_error(error, ierror);
 		goto out;
 	}
 

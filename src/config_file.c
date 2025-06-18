@@ -413,6 +413,14 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 						"%s: device must be located in /dev/ for jffs2", groups[i]);
 				return NULL;
 			}
+			if (g_str_equal(slot->type, "boot-emmc") &&
+			    (g_str_has_suffix(slot->device, "boot0") || g_str_has_suffix(slot->device, "boot1"))) {
+				g_set_error(error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_INVALID_DEVICE,
+						"%s: 'device' must refer to the eMMC base device, not the boot partition", groups[i]);
+				return NULL;
+			}
 
 			value = key_file_consume_string(key_file, groups[i], "extra-mkfs-opts", NULL);
 			if (value != NULL) {
