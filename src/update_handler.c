@@ -32,6 +32,19 @@ GQuark r_update_error_quark(void)
 	return g_quark_from_static_string("r_update_error_quark");
 }
 
+/**
+ * Checks if given image fits into the (block) device.
+ *
+ * Checks if the image size fits into the block device referred to by the
+ * provided file descriptor.
+ * If the size cannot be determined, the image is assumed to fit.
+ *
+ * @param fd file descriptor of device to check
+ * @param image image to check
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if image fits into device or if no size can be determined. FALSE otherwise.
+ */
 static gboolean check_image_size(int fd, const RaucImage *image, GError **error)
 {
 	GError *ierror = NULL;
