@@ -3059,7 +3059,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 	GError *ierror = NULL;
 	g_autofree gchar *mount_point = NULL;
 	g_autofree gchar *loopname = NULL;
-	gint loopfd = -1;
+	gint devicefd = -1;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
@@ -3084,7 +3084,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 
 	if (bundle->stream) { /* local or downloaded bundle */
 		gint bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream));
-		res = r_setup_loop(bundlefd, &loopfd, &loopname, bundle->size, &ierror);
+		res = r_setup_loop(bundlefd, &devicefd, &loopname, bundle->size, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -3176,8 +3176,8 @@ out:
 	if (mount_point) {
 		g_rmdir(mount_point);
 	}
-	if (loopfd >= 0)
-		g_close(loopfd, NULL);
+	if (devicefd >= 0)
+		g_close(devicefd, NULL);
 	return res;
 }
 
