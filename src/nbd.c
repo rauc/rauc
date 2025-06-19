@@ -142,7 +142,7 @@ out:
 	return nl;
 }
 
-gboolean r_nbd_setup_device(RaucNBDDevice *nbd_dev, GError **error)
+gboolean r_nbd_setup_device(RaucNBDDevice *nbd_dev, int *devicefd, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -151,8 +151,11 @@ gboolean r_nbd_setup_device(RaucNBDDevice *nbd_dev, GError **error)
 	struct nl_msg *msg = NULL;
 	struct nlattr *attr_sockets = NULL;
 	struct nlattr *attr_item = NULL;
+	g_autofree gchar *device_path = NULL;
+	g_auto(filedesc) idevicefd = -1;
 
 	g_return_val_if_fail(nbd_dev != NULL, FALSE);
+	g_return_val_if_fail(devicefd != NULL && *devicefd == -1, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_assert(nbd_dev->data_size % 4096 == 0);
@@ -177,9 +180,6 @@ gboolean r_nbd_setup_device(RaucNBDDevice *nbd_dev, GError **error)
 	NLA_PUT_U64(msg, NBD_ATTR_SIZE_BYTES, nbd_dev->data_size);
 	NLA_PUT_U64(msg, NBD_ATTR_BLOCK_SIZE_BYTES, 4096);
 	NLA_PUT_U64(msg, NBD_ATTR_SERVER_FLAGS, 0);
-	NLA_PUT_U64(msg, NBD_ATTR_CLIENT_FLAGS,
-			NBD_CFLAG_DISCONNECT_ON_CLOSE
-			);
 	NLA_PUT_U64(msg, NBD_ATTR_TIMEOUT, 300);
 
 	attr_sockets = nla_nest_start(msg, NBD_ATTR_SOCKETS);
@@ -201,11 +201,40 @@ gboolean r_nbd_setup_device(RaucNBDDevice *nbd_dev, GError **error)
 	if (!nbd_dev->index_valid)
 		g_error("failed to create nbd device");
 
-	nbd_dev->dev = g_strdup_printf("/dev/nbd%"G_GUINT32_FORMAT, nbd_dev->index);
+	device_path = g_strdup_printf("/dev/nbd%"G_GUINT32_FORMAT, nbd_dev->index);
+
+	idevicefd = g_open(device_path, O_RDONLY | O_CLOEXEC);
+	if (idevicefd < 0) {
+		int err = errno;
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err), "failed to open %s: %s", device_path, g_strerror(err));
+		res = FALSE;
+		goto out;
+	}
+
+	msg = nlmsg_alloc();
+	if (!msg)
+		g_error("failed to allocate netlink message");
+
+	if (!genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, driver_id, 0, 0, NBD_CMD_RECONFIGURE, 0))
+		g_error("failed to add generic netlink headers to message");
+
+	NLA_PUT_U32(msg, NBD_ATTR_INDEX, nbd_dev->index);
+	NLA_PUT_U64(msg, NBD_ATTR_CLIENT_FLAGS, NBD_CFLAG_DISCONNECT_ON_CLOSE);
+
+	nl_socket_modify_cb(nl, NL_CB_VALID, NL_CB_CUSTOM, NULL, NULL);
+	if (nl_send_sync(nl, msg) < 0) {
+		res = FALSE;
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "netlink send_sync failed");
+		goto out;
+	}
 
 	g_message("setup done for %s", nbd_dev->dev);
 
 	res = TRUE;
+	nbd_dev->dev = g_steal_pointer(&device_path);
+	*devicefd = idevicefd;
+	idevicefd = -1;
+	(void)idevicefd; /* ignore dead store, replace with g_steal_fd when we have glib 2.70 */
 	goto out;
 
 	/* This label is used by the NLA_PUT macros. */

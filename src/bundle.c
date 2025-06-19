@@ -3094,7 +3094,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 		bundle->nbd_dev->data_size = bundle->size;
 		bundle->nbd_dev->sock = bundle->nbd_srv->sock;
 		bundle->nbd_srv->sock = -1;
-		res = r_nbd_setup_device(bundle->nbd_dev, &ierror);
+		res = r_nbd_setup_device(bundle->nbd_dev, &devicefd, &ierror);
 		if (!res) {
 			/* The setup failed, so the socket still belongs to the nbd_srv. */
 			bundle->nbd_srv->sock = bundle->nbd_dev->sock;
