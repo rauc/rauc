@@ -294,3 +294,23 @@ need to split the payload and CMS data and then use `openssl cms -verify` with
 the `-content` option.
 As this is more involved, we recommend using either `rauc extract` or switching
 to verity bundles.
+
+How can I protect manufacturer data at the end of the boot partition when using ``boot-emmc``?
+----------------------------------------------------------------------------------------------
+
+When using RAUC's boot-emmc slot type for bootloader updates, the entire eMMC
+boot partition is cleared before the new image is written.
+If this partition contains manufacturer-specific data (e.g., calibration data
+at the end), that data will be lost unless special precautions are taken.
+
+The recommended solution is to migrate this data to a safe location during the
+first boot of the device. This ensures future bootloader updates can proceed
+safely.
+
+If migration is not feasible (for example, on already deployed devices) RAUC
+provides a ``size-limit`` :ref:`slot option <_slot.slot-class.idx-section>` for
+the ``boot-emmc`` slot.
+This restricts the writable area to avoid overwriting critical data.
+
+.. warning:: The ``size-limit`` option is intended only for backwards
+   compatibility and should not be used in new designs!

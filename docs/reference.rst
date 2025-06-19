@@ -624,6 +624,19 @@ hierarchical separator.
 
   See :ref:`sec-mbr-partition` and the following for more details.
 
+``size-limit=<value>`` (type-specific, optional)
+  .. warning:: The ``size-limit`` option is intended only for backwards
+     compatibility and should not be used in new designs!
+
+  Valid for slot type ``boot-emmc`` only.
+  Allows defining the maximum size of an eMMC boot partition to write.
+  This is only useful if the eMMC boot partitions contain e.g. manufacturer
+  at the end and, for certain reason, this cannot be migrated to a more
+  appropriate location anymore.
+
+  Accepts integer values in bytes.
+  Supports optional size suffixes: ``K``, ``M``, ``G``, ``T`` (powers of 1024).
+
 .. _sec_ref_artifacts:
 
 ``[artifacts.<repo-name>]`` Sections

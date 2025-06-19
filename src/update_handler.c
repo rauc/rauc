@@ -2246,6 +2246,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 			"%sboot%d",
 			realdev,
 			INACTIVE_BOOT_PARTITION(part_active));
+	part_slot->size_limit = dest_slot->size_limit;
 
 	/* disable read-only on determined eMMC boot partition */
 	g_debug("Disabling read-only mode of slot device partition %s",
@@ -2292,7 +2293,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	}
 
 	/* check size */
-	if (!check_image_size(g_unix_output_stream_get_fd(outstream), NULL, image, &ierror)) {
+	if (!check_image_size(g_unix_output_stream_get_fd(outstream), part_slot, image, &ierror)) {
 		res = FALSE;
 		g_propagate_error(error, ierror);
 		goto out;
