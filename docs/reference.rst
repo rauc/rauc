@@ -604,16 +604,24 @@ hierarchical separator.
   Allows to specify custom mount options that will be passed to the slot's
   ``mount`` call as ``-o`` argument value.
 
-``region-start`` (mandatory for specific types, invalid for others)
+``region-start=`` (mandatory for specific types, invalid for others)
   Defines the start of the disk region used for atomic bootloader updates.
   Valid for slot types ``boot-mbr-switch``, ``boot-gpt-switch``,
   ``boot-raw-fallback`` only!
+
+  Accepts integer values in bytes.
+  Supports optional size suffixes: ``K``, ``M``, ``G``, ``T`` (powers of 1024).
+
   See :ref:`sec-mbr-partition` and the following for more details.
 
 ``region-size`` (mandatory for specific types, invalid for others)
   Defines the size of the disk region used for atomic bootloader updates.
   Valid for slot types ``boot-mbr-switch``, ``boot-gpt-switch``,
   ``boot-raw-fallback`` only!
+
+  Accepts integer values in bytes.
+  Supports optional size suffixes: ``K``, ``M``, ``G``, ``T`` (powers of 1024).
+
   See :ref:`sec-mbr-partition` and the following for more details.
 
 .. _sec_ref_artifacts:
@@ -694,14 +702,16 @@ a look at :ref:`sec-advanced-event-log`.
   * ``json``: single-line JSON output
   * ``json-pretty``: formatted JSON output
 
-``max-size`` (optional)
+``max-size=<value>`` (optional)
   Allows to configure a basic log rotation.
   When given, the logger's log file will be rotated before reaching
   the size configured with ``max-size`` and renamed to ``<filename>.1``.
   Existing rotation file names will be incremented by one.
   The oldest file is removed.
   To configure a maximum number of files to keep, see ``max-files``.
-  Values support common suffixes like ``K``, ``M``, ``G``, to ``T``.
+
+  Accepts integer values in bytes.
+  Supports optional size suffixes: ``K``, ``M``, ``G``, ``T`` (powers of 1024).
 
 ``max-files`` (optional)
   Configures the maximum number of files to keep per logger.
