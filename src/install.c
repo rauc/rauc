@@ -1427,10 +1427,10 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 
 	if (boot_mark_slot) {
 		/* Mark boot slot non-bootable */
-		g_message("Marking target slot %s as non-bootable...", boot_mark_slot->name);
+		g_message("Marking target slot %s as non-bootable (bad)...", boot_mark_slot->name);
 		if (!r_mark_bad(boot_mark_slot, &ierror)) {
 			g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_NONBOOTABLE,
-					"Failed marking slot %s non-bootable: %s", boot_mark_slot->name, ierror->message);
+					"Failed marking slot %s non-bootable (bad): %s", boot_mark_slot->name, ierror->message);
 			g_clear_error(&ierror);
 			return FALSE;
 		}
@@ -1472,10 +1472,10 @@ static gboolean launch_and_wait_default_handler(RaucInstallArgs *args, gchar* bu
 	if (boot_mark_slot) {
 		if (r_context()->config->activate_installed) {
 			/* Mark boot slot bootable */
-			g_message("Marking target slot %s as bootable...", boot_mark_slot->name);
+			g_message("Marking target slot %s as bootable (active/primary)...", boot_mark_slot->name);
 			if (!r_mark_active(boot_mark_slot, &ierror)) {
 				g_propagate_prefixed_error(error, ierror,
-						"Failed marking slot %s bootable: ", boot_mark_slot->name);
+						"Failed marking slot %s bootable (active/primary): ", boot_mark_slot->name);
 				return FALSE;
 			}
 		} else {
