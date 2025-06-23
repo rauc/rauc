@@ -2327,7 +2327,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 
 out:
 	/* ensure that the eMMC boot partition is read-only afterwards */
-	if (!res && part_slot)
+	if (!res)
 		r_emmc_force_part_ro(part_slot->device, NULL);
 
 	return res;
