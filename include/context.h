@@ -42,7 +42,7 @@ typedef struct {
 	/* system status (not available when using per-slot status file) */
 	RSystemStatus *system_status;
 
-	GList *progress;
+	GList *progress; /* List of RaucProgressStep used as sub step stack (most recent first) */
 	progress_callback progress_callback;
 
 	/* signing data */
@@ -94,12 +94,18 @@ typedef struct {
 } RaucProgressStep;
 
 /**
- * Call at the beginning of a relevant code block. Provides progress
- * information via DBus when rauc service is running.
+ * Starts a new progress step at the current nesting level.
  *
- * @param name identifying the step
+ * The progress step needs to be completed by r_context_end_step() called at
+ * the same level.
+ *
+ * Should be called at the beginning of a code block relevant for progress
+ * information.
+ * Provides progress information via DBus when rauc service is running.
+ *
+ * @param name Internal identifier for the step.
  * @param description that is emitted via DBus on begin/end
- * @param sub_steps number of direct sub steps contained in this step
+ * @param sub_steps number of direct sub steps contained in this step, or 0 for no sub step.
  */
 void r_context_begin_step(const gchar *name, const gchar *description,
 		gint sub_steps);
@@ -148,10 +154,11 @@ __attribute__((__format__(__printf__, 4, 5)));
 void r_context_end_step(const gchar *name, gboolean success);
 
 /**
- * Sets explicit percentage for the given step. This is useful for long lasting
- * operations, e.g. file copying.
+ * Sets explicit percentage for the given step.
  *
- * @param name identifying the step
+ * This is useful for longer operations, e.g. file copying.
+ *
+ * @param name identifying the step. Must be a step with no explicit substeps.
  * @param percentage explicit step percentage
  */
 void r_context_set_step_percentage(const gchar *name, gint percentage);
@@ -165,6 +172,11 @@ void r_context_free_progress_step(RaucProgressStep *step);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucProgressStep, r_context_free_progress_step);
 
+/**
+ * Callback to register for progress updates.
+ *
+ * @param progress_cb Callback method of type 'progress_callback'
+ */
 void r_context_register_progress_callback(progress_callback progress_cb);
 
 /**

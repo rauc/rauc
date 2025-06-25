@@ -616,7 +616,8 @@ void r_context_begin_step_weighted(const gchar *name, const gchar *description,
 	/* calculate percentage */
 	if (context->progress) {
 		parent = context->progress->data;
-		g_assert_cmpint(parent->substeps_total, >, 0);
+		if (parent->substeps_total == 0)
+			g_error("Cannot add substep '%s': Parent step '%s' has no substeps.", name, parent->name);
 
 		/* nesting check */
 		if (parent->substeps_total == parent->substeps_done)
@@ -743,13 +744,17 @@ void r_context_set_step_percentage(const gchar *name, gint custom_percent)
 	g_assert_nonnull(context->progress);
 
 	step = context->progress->data;
+	if (!g_list_next(context->progress))
+		g_error("Root step does not support setting percentage");
 	parent = g_list_next(context->progress)->data;
 
 	/* ensure that progress step nesting is done correctly */
-	g_assert_cmpstr(step->name, ==, name);
+	if (g_strcmp0(step->name, name) != 0)
+		g_error("Wrong step context '%s'. Current step is '%s'.", name, step->name);
 
 	/* substeps and setting explicit percentage does not make sense */
-	g_assert_cmpint(step->substeps_total, ==, 0);
+	if (step->substeps_total < 0)
+		g_error("Setting percentage on substeps > 0 is not supported");
 
 	percent_difference = custom_percent - step->last_explicit_percent;
 
@@ -832,7 +837,8 @@ const RaucContext *r_context(void)
 {
 	GError *ierror = NULL;
 
-	g_assert_nonnull(context);
+	if (!context)
+		g_error("Context not initialized. Call r_context_conf() first");
 
 	if (context_configuring)
 		g_error("Detected call of r_context() while still setting up context! Aborted to avoid infinite recursion!");
