@@ -1057,6 +1057,74 @@ static void signature_append_partial(SignatureFixture *fixture, gconstpointer us
 	g_assert_false(res);
 	g_assert_null(manifest_null);
 	g_clear_error(&fixture->error);
+
+#if ENABLE_OPENSSL_VERIFY_PARTIAL
+	r_context()->config->keyring_allow_single_signature = TRUE;
+
+	/* verify against dev CA */
+	g_autoptr(CMS_ContentInfo) cms2 = NULL;
+	g_autoptr(GBytes) manifest2 = NULL;
+	res = cms_verify_bytes(NULL,
+			sig2,
+			dev_partial_allowed_store,
+			&cms2,
+			&manifest2,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+
+	STACK_OF(CMS_SignerInfo) *sinfos2 = CMS_get0_SignerInfos(cms2);
+	g_assert_cmpint(sk_CMS_SignerInfo_num(sinfos2), ==, 2);
+
+	/* TODO check that only one is valid */
+
+	g_autoptr(R_X509_STACK_POP) verified_chain2 = NULL;
+	res = cms_get_cert_chain(cms2,
+			dev_partial_allowed_store,
+			&verified_chain2,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+	g_assert_nonnull(verified_chain2);
+
+	/* Chain length must be 2 (autobuilder-1 -> dev) */
+	g_assert_cmpint(sk_X509_num(verified_chain2), ==, 2);
+	assert_X509_subject_cn(sk_X509_value(verified_chain2, 0), "Test Org Autobuilder-1");
+	assert_X509_subject_cn(sk_X509_value(verified_chain2, 1), "Test Org Provisioning CA Development");
+
+	/* verify against rel CA */
+	g_autoptr(CMS_ContentInfo) cms3 = NULL;
+	g_autoptr(GBytes) manifest3 = NULL;
+	res = cms_verify_bytes(NULL,
+			sig2,
+			rel_partial_allowed_store,
+			&cms3,
+			&manifest3,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+
+	STACK_OF(CMS_SignerInfo) *sinfos3 = CMS_get0_SignerInfos(cms3);
+	g_assert_cmpint(sk_CMS_SignerInfo_num(sinfos3), ==, 2);
+
+	/* TODO check that only one is valid */
+
+	g_autoptr(R_X509_STACK_POP) verified_chain3 = NULL;
+	res = cms_get_cert_chain(cms3,
+			rel_partial_allowed_store,
+			&verified_chain3,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+	g_assert_nonnull(verified_chain2);
+
+	/* Chain length must be 2 (release-1 -> rel) */
+	g_assert_cmpint(sk_X509_num(verified_chain3), ==, 2);
+	assert_X509_subject_cn(sk_X509_value(verified_chain3, 0), "Test Org Release-1");
+	assert_X509_subject_cn(sk_X509_value(verified_chain3, 1), "Test Org Provisioning CA Release");
+
+	r_context()->config->keyring_allow_single_signature = FALSE;
+#endif
 }
 
 int main(int argc, char *argv[])

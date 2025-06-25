@@ -1107,7 +1107,9 @@ static STACK_OF(X509) *cms_get_signer_certs(CMS_ContentInfo *cms, GError **error
 	g_return_val_if_fail(cms != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	g_autoptr(R_X509_STACK) signers = CMS_get0_signers(cms);
+	g_autoptr(R_X509_STACK) signers = NULL;
+#if !ENABLE_OPENSSL_VERIFY_PARTIAL
+	signers = CMS_get0_signers(cms);
 	if (signers == NULL) {
 		g_set_error_literal(
 				error,
@@ -1116,6 +1118,31 @@ static STACK_OF(X509) *cms_get_signer_certs(CMS_ContentInfo *cms, GError **error
 				"Failed to obtain signer info");
 		return NULL;
 	}
+#else
+	signers = sk_X509_new_null();
+	STACK_OF(CMS_SignerInfo) *sinfos = CMS_get0_SignerInfos(cms);
+	for (int i = 0; i < sk_CMS_SignerInfo_num(sinfos); i++) {
+		CMS_SignerInfo *si = sk_CMS_SignerInfo_value(sinfos, i);
+
+		/* We only want to consider signatures that passed OpenSSL's
+		 * verification. */
+		if (!CMS_SignerInfo_get_verification_result(si, CMS_VERIFY_RESULT))
+			continue;
+
+		X509 *si_signer = CMS_SignerInfo_get0_signer_cert(si);
+		if (si_signer == NULL) {
+			g_set_error_literal(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_GET_SIGNER,
+					"Failed to obtain signer certificate from signer info");
+			return NULL;
+		}
+
+		if (!sk_X509_push(signers, si_signer))
+			g_error("cms_get_signer_cert: sk_X509_push failed");
+	}
+#endif
 
 	/* provide a stable order of signers */
 	sk_X509_set_cmp_func(signers, cmp_x509);
@@ -1538,6 +1565,11 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 		/* use signing time for verification */
 		X509_VERIFY_PARAM_set_time(param, signingtime);
 	}
+
+#if ENABLE_OPENSSL_VERIFY_PARTIAL
+	if (r_context()->config->keyring_allow_single_signature)
+		verify_flags |= CMS_VERIFY_PARTIAL;
+#endif
 
 	if (detached)
 		verified = CMS_verify(icms, NULL, store, incontent, NULL, verify_flags | CMS_DETACHED);
