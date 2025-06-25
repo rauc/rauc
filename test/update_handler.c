@@ -26,7 +26,7 @@ typedef enum {
 	TEST_UPDATE_HANDLER_INSTALL_HOOK                                  = BIT(6),
 	TEST_UPDATE_HANDLER_NO_HOOK_FILE                                  = BIT(7),
 	TEST_UPDATE_HANDLER_HOOK_FAIL                                     = BIT(8),
-	TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX                           = BIT(9),
+	TEST_UPDATE_HANDLER_ADAPTIVE_BLOCK_HASH_IDX                       = BIT(9),
 	TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE                               = BIT(10),
 } TestUpdateHandlerParams;
 
@@ -123,7 +123,7 @@ static void update_handler_fixture_set_up(UpdateHandlerFixture *fixture,
 	}
 
 	if ((test_pair->params & TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE) &&
-	    (test_pair->params & TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX)) {
+	    (test_pair->params & TEST_UPDATE_HANDLER_ADAPTIVE_BLOCK_HASH_IDX)) {
 		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
 				"Checking image type for slot type: *");
 		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
@@ -147,7 +147,7 @@ static void update_handler_fixture_tear_down(UpdateHandlerFixture *fixture,
 	if (!(test_pair->params & TEST_UPDATE_HANDLER_NO_TARGET_DEV)) {
 		g_assert(test_remove(fixture->tmpdir, "rootfs-0") == 0);
 	}
-	if (test_pair->params & TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX) {
+	if (test_pair->params & TEST_UPDATE_HANDLER_ADAPTIVE_BLOCK_HASH_IDX) {
 		test_rm_tree(fixture->tmpdir, "rootfs-0-datadir");
 	}
 	g_assert(test_rmdir(fixture->tmpdir, "") == 0);
@@ -413,7 +413,7 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 			test_do_chmod(tmp_filename);
 		}
 	}
-	if (test_pair->params & TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX) {
+	if (test_pair->params & TEST_UPDATE_HANDLER_ADAPTIVE_BLOCK_HASH_IDX) {
 		image->adaptive = g_strsplit("block-hash-index", " ", 0);
 	}
 
@@ -453,7 +453,7 @@ no_image:
 	targetslot->device = g_strdup(slotpath);
 	targetslot->type = g_strdup(test_pair->slottype);
 	targetslot->state = ST_INACTIVE;
-	if (test_pair->params & TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX) {
+	if (test_pair->params & TEST_UPDATE_HANDLER_ADAPTIVE_BLOCK_HASH_IDX) {
 		targetslot->data_directory = g_build_filename(fixture->tmpdir, "rootfs-0-datadir", NULL);
 	}
 
@@ -504,7 +504,7 @@ no_image:
 	}
 
 	/* check statistics */
-	if (test_pair->params & TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX) {
+	if (test_pair->params & TEST_UPDATE_HANDLER_ADAPTIVE_BLOCK_HASH_IDX) {
 		RaucStats *stats;
 		guint64 count_zero = 0;
 		guint64 sum_zero = 0;
@@ -686,9 +686,9 @@ int main(int argc, char *argv[])
 		{"nor", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 
 		/* adaptive tests */
-		{"raw", "img", TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX, 0, 0},
-		{"ext4", "img", TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX, 0, 0},
-		{"raw", "ext4", TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX, 0, 0},
+		{"raw", "img", TEST_UPDATE_HANDLER_ADAPTIVE_BLOCK_HASH_IDX, 0, 0},
+		{"ext4", "img", TEST_UPDATE_HANDLER_ADAPTIVE_BLOCK_HASH_IDX, 0, 0},
+		{"raw", "ext4", TEST_UPDATE_HANDLER_ADAPTIVE_BLOCK_HASH_IDX, 0, 0},
 
 		/* casync blob index tests */
 		{"ext4", "img.caibx", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
@@ -699,7 +699,7 @@ int main(int argc, char *argv[])
 
 		/* image too large */
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
-		{"ext4", "ext4", TEST_UPDATE_HANDLER_INCR_BLOCK_HASH_IDX | TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
+		{"ext4", "ext4", TEST_UPDATE_HANDLER_ADAPTIVE_BLOCK_HASH_IDX | TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
 
 		{0}
 	};
