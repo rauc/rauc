@@ -1646,7 +1646,7 @@ The following environment variables will be passed to the hook executable:
 
 ``RAUC_BOOT_SIZE_LIMIT``
   This maximum size of the boot partition to use.
-  ``boot-emmc`` slot type only.
+  ``boot-emmc`` and ``emmc-boot-linked`` slot type only.
 
 .. _sec_ref_dbus-api:
 
