@@ -32,19 +32,51 @@ GQuark r_update_error_quark(void)
 	return g_quark_from_static_string("r_update_error_quark");
 }
 
-static gboolean check_image_size(int fd, const RaucImage *image, GError **error)
+/**
+ * Checks if given image fits into the (block) device.
+ *
+ * Checks if the image size fits into the block device referred to by the
+ * provided file descriptor.
+ * If the size cannot be determined, the image is assumed to fit.
+ *
+ * Additionally, if a slot is given and the slot has a 'size-limit' set, the
+ * image is checked against this limit first.
+ *
+ * @param fd file descriptor of device to check
+ * @param slot slot (e.g. for optional size-limit check)
+ * @param image image to check
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if image fits into device (or size-limit) or if no size can be determined. FALSE otherwise.
+ */
+static gboolean check_image_size(int fd, const RaucSlot *slot, const RaucImage *image, GError **error)
 {
 	GError *ierror = NULL;
 	goffset dev_size;
 
+	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(image, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (slot->size_limit > 0 && (guint64)image->checksum.size > slot->size_limit) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Image size (%"G_GOFFSET_FORMAT " bytes) is larger than size-limit (%"G_GUINT64_FORMAT " bytes).",
+				image->checksum.size, slot->size_limit);
+		return FALSE;
+	}
 
 	dev_size = get_device_size(fd, &ierror);
 	if (g_error_matches(ierror, R_UTILS_ERROR, R_UTILS_ERROR_INAPPROPRIATE_IOCTL)) {
 		g_clear_error(&ierror);
 		g_info("Slot is not a block device, skipping size check");
 		return TRUE;
+	}
+
+	/* Sanity check for size limit being < device size.
+	 * Should be moved to a proper location for configuration vs. target checks (maybe context setup) and become an error later. */
+	if (slot->size_limit > 0 && slot->size_limit > (guint64)dev_size) {
+		g_warning("The size-limit (%"G_GUINT64_FORMAT " bytes) exceeds actual device size (%"G_GOFFSET_FORMAT " bytes).",
+				slot->size_limit, dev_size);
 	}
 
 	if (dev_size < image->checksum.size) {
@@ -68,6 +100,7 @@ static gboolean clear_slot(RaucSlot *slot, GError **error)
 	static gchar zerobuf[CLEAR_BLOCK_SIZE] = {};
 	g_autoptr(GOutputStream) outstream = NULL;
 	gint write_count = 0;
+	guint64 total_written = 0;
 
 	outstream = G_OUTPUT_STREAM(r_unix_output_stream_open_device(slot->device, NULL, &ierror));
 	if (outstream == NULL) {
@@ -76,7 +109,13 @@ static gboolean clear_slot(RaucSlot *slot, GError **error)
 	}
 
 	while (write_count != -1) {
-		write_count = g_output_stream_write(outstream, zerobuf, CLEAR_BLOCK_SIZE, NULL,
+		/* cap writes to slot->size_limit if set */
+		gsize write_size = CLEAR_BLOCK_SIZE;
+		if (slot->size_limit > 0 &&
+		    total_written + write_size > slot->size_limit)
+			write_size = slot->size_limit - total_written;
+
+		write_count = g_output_stream_write(outstream, zerobuf, write_size, NULL,
 				&ierror);
 		/*
 		 * G_IO_ERROR_NO_SPACE is expected here, because the block
@@ -92,7 +131,16 @@ static gboolean clear_slot(RaucSlot *slot, GError **error)
 				return FALSE;
 			}
 		}
+
+		total_written += write_count;
+		if (slot->size_limit > 0 && total_written >= slot->size_limit)
+			break;
 	}
+
+	if (slot->size_limit > 0)
+		g_message("Cleared first %"G_GOFFSET_FORMAT " bytes on %s", total_written, slot->device);
+	else
+		g_debug("Cleared %"G_GOFFSET_FORMAT " bytes on %s", total_written, slot->device);
 
 	if (!g_output_stream_close(outstream, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
@@ -640,7 +688,7 @@ static gboolean copy_raw_image_to_dev(RaucImage *image, RaucSlot *slot, GError *
 	}
 
 	/* check size */
-	if (!check_image_size(g_unix_output_stream_get_fd(outstream), image, &ierror)) {
+	if (!check_image_size(g_unix_output_stream_get_fd(outstream), slot, image, &ierror)) {
 		res = FALSE;
 		g_propagate_error(error, ierror);
 		goto out;
@@ -694,7 +742,7 @@ static gboolean copy_block_hash_index_image_to_dev(RaucImage *image, RaucSlot *s
 		res = FALSE;
 		goto out;
 	}
-	if (!check_image_size(tmp->data_fd, image, &ierror)) {
+	if (!check_image_size(tmp->data_fd, slot, image, &ierror)) {
 		g_propagate_error(error, ierror);
 		res = FALSE;
 		goto out;
@@ -2198,6 +2246,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 			"%sboot%d",
 			realdev,
 			INACTIVE_BOOT_PARTITION(part_active));
+	part_slot->size_limit = dest_slot->size_limit;
 
 	/* disable read-only on determined eMMC boot partition */
 	g_debug("Disabling read-only mode of slot device partition %s",
@@ -2210,6 +2259,8 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 
 	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_ACTIVATING"),
 			g_strdup_printf("%d", INACTIVE_BOOT_PARTITION(part_active)));
+	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_SIZE_LIMIT"),
+			g_strdup_printf("%"G_GUINT64_FORMAT, dest_slot->size_limit));
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
@@ -2244,7 +2295,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	}
 
 	/* check size */
-	if (!check_image_size(g_unix_output_stream_get_fd(outstream), image, &ierror)) {
+	if (!check_image_size(g_unix_output_stream_get_fd(outstream), part_slot, image, &ierror)) {
 		res = FALSE;
 		g_propagate_error(error, ierror);
 		goto out;

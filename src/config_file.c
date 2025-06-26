@@ -538,6 +538,18 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 				}
 			}
 
+			if (g_strcmp0(slot->type, "boot-emmc") == 0) {
+				slot->size_limit = key_file_consume_binary_suffixed_string(key_file, groups[i],
+						"size-limit", &ierror);
+				if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+					slot->size_limit = 0;
+					g_clear_error(&ierror);
+				} else if (ierror) {
+					g_propagate_error(error, ierror);
+					return NULL;
+				}
+			}
+
 			if (!check_remaining_keys(key_file, groups[i], &ierror)) {
 				g_propagate_error(error, ierror);
 				return NULL;
