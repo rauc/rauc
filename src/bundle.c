@@ -984,12 +984,11 @@ static gchar* get_random_file_name(void)
 
 static gboolean encrypt_bundle_payload(const gchar *bundlepath, RaucManifest *manifest, GError **error)
 {
-	gboolean res = FALSE;
 	guint8 key[32] = {0};
 	GError *ierror = NULL;
 	g_autofree gchar* dirname = NULL;
 	g_autofree gchar* tmpfilename = NULL;
-	g_autofree gchar* encpath = NULL;
+	g_auto(RTempFile) encpath = NULL; /* remove on early return */
 
 	g_return_val_if_fail(bundlepath, FALSE);
 	g_return_val_if_fail(manifest, FALSE);
@@ -1009,14 +1008,12 @@ static gboolean encrypt_bundle_payload(const gchar *bundlepath, RaucManifest *ma
 				R_BUNDLE_ERROR,
 				R_BUNDLE_ERROR_CRYPT,
 				"Failed to generate crypt key");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
-	res = r_crypt_encrypt(bundlepath, encpath, key, &ierror);
-	if (!res) {
+	if (!r_crypt_encrypt(bundlepath, encpath, key, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	manifest->bundle_crypt_key = r_hex_encode(key, sizeof(key));
@@ -1030,18 +1027,11 @@ static gboolean encrypt_bundle_payload(const gchar *bundlepath, RaucManifest *ma
 				G_FILE_ERROR,
 				g_file_error_from_errno(err),
 				"Renaming %s to %s failed, aborting encryption: %s", encpath, bundlepath, g_strerror(err));
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 	g_clear_pointer(&encpath, g_free); /* prevent removal */
 
-out:
-	/* Remove temporary bundle creation directory */
-	if (encpath)
-		if (g_remove(encpath) != 0)
-			g_warning("Failed to remove temporary encryption file %s", encpath);
-
-	return res;
+	return TRUE;
 }
 
 static gboolean decrypt_bundle_payload(RaucBundle *bundle, GError **error)
@@ -1301,6 +1291,8 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		return FALSE;
 	}
 
+	g_auto(RTempFile) bundletmp = g_strdup(bundlename); /* remove on early return */
+
 	workdir = prepare_workdir(contentdir, &ierror);
 	if (!workdir) {
 		g_propagate_error(error, ierror);
@@ -1391,6 +1383,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		goto out;
 	}
 
+	g_clear_pointer(&bundletmp, g_free); /* prevent removal */
 	res = TRUE;
 
 out:
@@ -1401,11 +1394,6 @@ out:
 			g_warning("failed to clean up fakeroot environment: %s", cleanup_error->message);
 		}
 	}
-	/* Remove output file on error */
-	if (!res &&
-	    g_file_test(bundlename, G_FILE_TEST_IS_REGULAR))
-		if (g_remove(bundlename) != 0)
-			g_warning("failed to remove %s", bundlename);
 	return res;
 }
 
@@ -1468,7 +1456,6 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 	g_autoptr(RaucManifest) loaded_manifest = NULL;
 	RaucManifest *manifest = NULL; /* alias pointer, not to be freed */
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 	g_autoptr(GBytes) sig = NULL;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
@@ -1480,51 +1467,43 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 		return FALSE;
 	}
 
-	res = check_bundle_payload(bundle, &ierror);
-	if (!res) {
+	g_auto(RTempFile) outtmp = g_strdup(outpath); /* remove on early return */
+
+	if (!check_bundle_payload(bundle, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	if (bundle->manifest) {
 		manifest = bundle->manifest;
 	} else {
-		res = load_manifest_from_bundle(bundle, &loaded_manifest, &ierror);
-		if (!res) {
+		if (!load_manifest_from_bundle(bundle, &loaded_manifest, &ierror)) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 		manifest = loaded_manifest;
 	}
 
 	g_print("Resigning '%s' format bundle\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
 
-	res = truncate_bundle(bundle->path, outpath, bundle->size, &ierror);
-	if (!res) {
+	if (!truncate_bundle(bundle->path, outpath, bundle->size, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	sig = generate_bundle_signature(outpath, manifest, &ierror);
 	if (!sig) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
-	res = append_signature_to_bundle(outpath, sig, &ierror);
-	if (!res) {
+	if (!append_signature_to_bundle(outpath, sig, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-out:
-	/* Remove output file on error */
-	if (!res &&
-	    g_file_test(outpath, G_FILE_TEST_IS_REGULAR))
-		if (g_remove(outpath) != 0)
-			g_warning("failed to remove %s", outpath);
-	return res;
+	g_clear_pointer(&outtmp, g_free); /* prevent removal */
+	return TRUE;
 }
 
 static gboolean convert_to_casync_bundle(RaucBundle *bundle, const gchar *outbundle, const gchar **ignore_images, GError **error)
@@ -1669,7 +1648,6 @@ out:
 gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, const gchar **ignore_images, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(outbundle != NULL, FALSE);
@@ -1680,33 +1658,26 @@ gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, const 
 		return FALSE;
 	}
 
-	res = check_bundle_payload(bundle, &ierror);
-	if (!res) {
+	g_auto(RTempFile) outtmp = g_strdup(outbundle); /* remove on early return */
+
+	if (!check_bundle_payload(bundle, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	res = convert_to_casync_bundle(bundle, outbundle, ignore_images, &ierror);
-	if (!res) {
+	if (!convert_to_casync_bundle(bundle, outbundle, ignore_images, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
-out:
-	/* Remove output file on error */
-	if (!res &&
-	    g_file_test(outbundle, G_FILE_TEST_IS_REGULAR))
-		if (g_remove(outbundle) != 0)
-			g_warning("failed to remove %s", outbundle);
-	return res;
+	g_clear_pointer(&outtmp, g_free); /* prevent removal */
+	return TRUE;
 }
 
 gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error)
 {
 	GError *ierror = NULL;
 	g_autoptr(GBytes) encdata = NULL;
-	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(outbundle != NULL, FALSE);
@@ -1727,10 +1698,11 @@ gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **err
 		return FALSE;
 	}
 
-	res = truncate_bundle(bundle->path, outbundle, bundle->size, &ierror);
-	if (!res) {
+	g_auto(RTempFile) outtmp = g_strdup(outbundle); /* remove on early return */
+
+	if (!truncate_bundle(bundle->path, outbundle, bundle->size, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	/* encrypt sigdata CMS */
@@ -1740,26 +1712,16 @@ gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **err
 				error,
 				ierror,
 				"Failed to encrypt bundle: ");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
-	res = append_signature_to_bundle(outbundle, encdata, &ierror);
-	if (!res) {
+	if (!append_signature_to_bundle(outbundle, encdata, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-out:
-	/* clean encrypted bundle on failure */
-	if (!res) {
-		if (g_file_test(outbundle, G_FILE_TEST_IS_REGULAR)) {
-			if (g_remove(outbundle) != 0)
-				g_warning("Failed to remove %s", outbundle);
-		}
-	}
-
-	return res;
+	g_clear_pointer(&outtmp, g_free); /* prevent removal */
+	return TRUE;
 }
 
 static gboolean is_remote_scheme(const gchar *scheme)
@@ -2667,6 +2629,8 @@ gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *
 		return FALSE;
 	}
 
+	g_auto(RTempFile) outtmp = g_strdup(outpath); /* remove on early return */
+
 	if (bundle->manifest) {
 		manifest = bundle->manifest;
 	} else {
@@ -2732,14 +2696,10 @@ gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *
 		goto out;
 	}
 
+	g_clear_pointer(&outtmp, g_free); /* prevent removal */
 	res = TRUE;
-out:
-	/* Remove output file on error */
-	if (!res &&
-	    g_file_test(outpath, G_FILE_TEST_IS_REGULAR))
-		if (g_remove(outpath) != 0)
-			g_warning("failed to remove %s", outpath);
 
+out:
 	/* Restore saved paths if necessary */
 	if (keyringpath || keyringdirectory) {
 		r_context()->config->keyring_path = keyringpath;
