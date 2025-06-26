@@ -1360,7 +1360,6 @@ out:
 static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffset size, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 
 	g_return_val_if_fail(inpath != NULL, FALSE);
 	g_return_val_if_fail(outpath != NULL, FALSE);
@@ -1397,8 +1396,7 @@ static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffs
 		return FALSE;
 	}
 
-	res = g_seekable_truncate(G_SEEKABLE(outstream), size, NULL, &ierror);
-	if (!res) {
+	if (!g_seekable_truncate(G_SEEKABLE(outstream), size, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
