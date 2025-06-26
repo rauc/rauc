@@ -422,6 +422,32 @@ gboolean r_fakeroot_cleanup(const gchar *envpath, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Removes a temporary file and frees the filename string.
+ *
+ * Does nothing if the path is NULL. If the filename does not refer to a
+ * regular file, it only frees the string.
+ *
+ * @param filename path to the temporary file
+ */
+void r_tempfile_cleanup(gchar *filename);
+
+/* Use
+ *
+ *   g_auto(RTempFile) filename = g_build_filename(...);
+ *
+ * to declare a file that will be automatically removed when
+ * filename goes out of scope.
+ *
+ * If the file should become permanent on success, simply use
+ *
+ *   g_clear_pointer(&filename, g_free);
+ *
+ * to avoid the automatic cleanup.
+ */
+typedef gchar* RTempFile;
+G_DEFINE_AUTO_CLEANUP_FREE_FUNC(RTempFile, r_tempfile_cleanup, NULL)
+
+/**
  * Returns the contents of the GBytes as a '\0'-terminated string.
  *
  * The provided GBytes pointer is freed and nulled.
