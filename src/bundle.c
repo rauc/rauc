@@ -511,7 +511,6 @@ static gchar *convert_tar_extract(RaucImage *image, const gchar *dir, const gcha
 static gchar *convert_composefs(RaucImage *image, const gchar *dir, const gchar *tar_extracted_path, const gchar *fakeroot, GError **error)
 {
 	GError *ierror = NULL;
-	g_autoptr(GPtrArray) args = g_ptr_array_new_full(10, g_free);
 
 	g_return_val_if_fail(image, NULL);
 	g_return_val_if_fail(dir, NULL);
@@ -540,6 +539,7 @@ static gchar *convert_composefs(RaucImage *image, const gchar *dir, const gchar 
 		return NULL;
 	}
 
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(10, g_free);
 	r_fakeroot_add_args(args, fakeroot);
 
 	g_ptr_array_add(args, g_strdup("mkcomposefs"));
@@ -710,12 +710,11 @@ static gboolean input_stream_read_bytes_all(GInputStream *stream,
 		GCancellable *cancellable,
 		GError **error)
 {
-	g_autofree void *buffer = NULL;
 	gsize bytes_read;
 
 	g_assert_cmpint(count, !=, 0);
 
-	buffer = g_malloc0(count);
+	g_autofree void *buffer = g_malloc0(count);
 
 	if (!g_input_stream_read_all(stream, buffer, count, &bytes_read,
 			cancellable, error)) {
@@ -729,23 +728,14 @@ static gboolean input_stream_read_bytes_all(GInputStream *stream,
 
 static gboolean create_verity(const gchar *bundlename, RaucManifest *manifest, GError **error)
 {
-	g_autoptr(GFile) bundlefile = NULL;
-	g_autoptr(GFileIOStream) bundlestream = NULL;
-	GOutputStream *bundleoutstream = NULL; /* owned by the bundle stream */
 	GError *ierror = NULL;
-	guint64 offset;
-	int bundlefd = -1;
-	guint8 salt[32] = {0};
-	guint8 hash[32] = {0};
-	uint64_t combined_size = 0;
-	guint64 verity_size = 0;
 
 	g_return_val_if_fail(bundlename != NULL, FALSE);
 	g_return_val_if_fail(manifest != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	bundlefile = g_file_new_for_path(bundlename);
-	bundlestream = g_file_open_readwrite(bundlefile, NULL, &ierror);
+	g_autoptr(GFile) bundlefile = g_file_new_for_path(bundlename);
+	g_autoptr(GFileIOStream) bundlestream = g_file_open_readwrite(bundlefile, NULL, &ierror);
 	if (bundlestream == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -754,8 +744,9 @@ static gboolean create_verity(const gchar *bundlename, RaucManifest *manifest, G
 		return FALSE;
 	}
 
+	GOutputStream *bundleoutstream = NULL; /* owned by the bundle stream */
 	bundleoutstream = g_io_stream_get_output_stream(G_IO_STREAM(bundlestream));
-	bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundleoutstream));
+	int bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundleoutstream));
 
 	/* check we have a clean manifest */
 	g_assert(manifest->bundle_verity_salt == NULL);
@@ -771,9 +762,10 @@ static gboolean create_verity(const gchar *bundlename, RaucManifest *manifest, G
 		return FALSE;
 	}
 
-	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
+	guint64 offset = g_seekable_tell(G_SEEKABLE(bundlestream));
 	g_debug("Payload size: %" G_GUINT64_FORMAT " bytes.", offset);
 	/* dm-verity hash table generation */
+	guint8 salt[32] = {0};
 	if (RAND_bytes((unsigned char *)&salt, sizeof(salt)) != 1) {
 		g_set_error(error,
 				R_BUNDLE_ERROR,
@@ -795,6 +787,9 @@ static gboolean create_verity(const gchar *bundlename, RaucManifest *manifest, G
 				"squashfs size (%"G_GUINT64_FORMAT ") must be larger than 4096 bytes", offset);
 		return FALSE;
 	}
+
+	guint8 hash[32] = {0};
+	uint64_t combined_size = 0;
 	if (r_verity_hash_create(bundlefd, offset/4096, &combined_size, hash, salt) != 0) {
 		g_set_error(error,
 				R_BUNDLE_ERROR,
@@ -804,7 +799,7 @@ static gboolean create_verity(const gchar *bundlename, RaucManifest *manifest, G
 	}
 	/* for a squashfs <= 4096 bytes, we don't have a hash table */
 	g_assert(combined_size*4096 > (uint64_t)offset);
-	verity_size = combined_size*4096 - offset;
+	guint64 verity_size = combined_size*4096 - offset;
 	g_assert(verity_size % 4096 == 0);
 
 	manifest->bundle_verity_salt = r_hex_encode(salt, sizeof(salt));
@@ -816,18 +811,14 @@ static gboolean create_verity(const gchar *bundlename, RaucManifest *manifest, G
 
 static gboolean append_signature_to_bundle(const gchar *bundlename, GBytes *sig, GError **error)
 {
-	g_autoptr(GFile) bundlefile = NULL;
-	g_autoptr(GFileIOStream) bundlestream = NULL;
-	GOutputStream *bundleoutstream = NULL; /* owned by the bundle stream */
 	GError *ierror = NULL;
-	guint64 offset;
 
 	g_return_val_if_fail(bundlename, FALSE);
 	g_return_val_if_fail(sig, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	bundlefile = g_file_new_for_path(bundlename);
-	bundlestream = g_file_open_readwrite(bundlefile, NULL, &ierror);
+	g_autoptr(GFile) bundlefile = g_file_new_for_path(bundlename);
+	g_autoptr(GFileIOStream) bundlestream = g_file_open_readwrite(bundlefile, NULL, &ierror);
 	if (bundlestream == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -836,6 +827,7 @@ static gboolean append_signature_to_bundle(const gchar *bundlename, GBytes *sig,
 		return FALSE;
 	}
 
+	GOutputStream *bundleoutstream = NULL; /* owned by the bundle stream */
 	bundleoutstream = g_io_stream_get_output_stream(G_IO_STREAM(bundlestream));
 
 	if (!g_seekable_seek(G_SEEKABLE(bundlestream),
@@ -847,7 +839,7 @@ static gboolean append_signature_to_bundle(const gchar *bundlename, GBytes *sig,
 		return FALSE;
 	}
 
-	offset = g_seekable_tell(G_SEEKABLE(bundlestream));
+	guint64 offset = g_seekable_tell(G_SEEKABLE(bundlestream));
 	g_debug("Signature offset: %" G_GUINT64_FORMAT " bytes.", offset);
 	if (!output_stream_write_bytes_all(bundleoutstream, sig, NULL, &ierror)) {
 		g_propagate_prefixed_error(
@@ -880,7 +872,6 @@ static gboolean append_signature_to_bundle(const gchar *bundlename, GBytes *sig,
 static GBytes *generate_bundle_signature(const gchar *bundlename, RaucManifest *manifest, GError **error)
 {
 	GError *ierror = NULL;
-	g_autoptr(GBytes) sig = NULL;
 
 	g_return_val_if_fail(bundlename, FALSE);
 	g_return_val_if_fail(manifest, FALSE);
@@ -889,6 +880,7 @@ static GBytes *generate_bundle_signature(const gchar *bundlename, RaucManifest *
 	g_assert_nonnull(r_context()->certpath);
 	g_assert_nonnull(r_context()->keypath);
 
+	g_autoptr(GBytes) sig = NULL;
 	if (manifest->bundle_format == R_MANIFEST_FORMAT_PLAIN) {
 		if (!check_manifest_internal(manifest, &ierror)) {
 			g_propagate_prefixed_error(
@@ -942,7 +934,6 @@ static GBytes *generate_bundle_signature(const gchar *bundlename, RaucManifest *
 static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GError **error)
 {
 	GError *ierror = NULL;
-	g_autoptr(GBytes) sig = NULL;
 
 	g_return_val_if_fail(bundlename, FALSE);
 	g_return_val_if_fail(manifest, FALSE);
@@ -958,7 +949,7 @@ static gboolean sign_bundle(const gchar *bundlename, RaucManifest *manifest, GEr
 		}
 	}
 
-	sig = generate_bundle_signature(bundlename, manifest, &ierror);
+	g_autoptr(GBytes) sig = generate_bundle_signature(bundlename, manifest, &ierror);
 	if (!sig) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -984,11 +975,7 @@ static gchar* get_random_file_name(void)
 
 static gboolean encrypt_bundle_payload(const gchar *bundlepath, RaucManifest *manifest, GError **error)
 {
-	guint8 key[32] = {0};
 	GError *ierror = NULL;
-	g_autofree gchar* dirname = NULL;
-	g_autofree gchar* tmpfilename = NULL;
-	g_auto(RTempFile) encpath = NULL; /* remove on early return */
 
 	g_return_val_if_fail(bundlepath, FALSE);
 	g_return_val_if_fail(manifest, FALSE);
@@ -996,13 +983,14 @@ static gboolean encrypt_bundle_payload(const gchar *bundlepath, RaucManifest *ma
 
 	g_message("Encrypting bundle payload in aes-cbc-plain64 mode");
 
-	dirname = g_path_get_dirname(bundlepath);
-	tmpfilename = get_random_file_name();
-	encpath = g_build_filename(dirname, tmpfilename, NULL);
+	g_autofree gchar* dirname = g_path_get_dirname(bundlepath);
+	g_autofree gchar* tmpfilename = get_random_file_name();
+	g_auto(RTempFile) encpath = g_build_filename(dirname, tmpfilename, NULL); /* remove on early return */
 
 	/* check we have a clean manifest */
 	g_assert(manifest->bundle_crypt_key == NULL);
 
+	guint8 key[32] = {0};
 	if (RAND_bytes((unsigned char *)&key, sizeof(key)) != 1) {
 		g_set_error(error,
 				R_BUNDLE_ERROR,
@@ -1399,22 +1387,17 @@ out:
 
 static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffset size, GError **error)
 {
-	g_autoptr(GFile) infile = NULL;
-	g_autoptr(GFile) outfile = NULL;
-	g_autoptr(GFileInputStream) instream = NULL;
-	g_autoptr(GFileOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	gssize ssize;
 
 	g_return_val_if_fail(inpath != NULL, FALSE);
 	g_return_val_if_fail(outpath != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	infile = g_file_new_for_path(inpath);
-	outfile = g_file_new_for_path(outpath);
+	g_autoptr(GFile) infile = g_file_new_for_path(inpath);
+	g_autoptr(GFile) outfile = g_file_new_for_path(outpath);
 
-	instream = g_file_read(infile, NULL, &ierror);
+	g_autoptr(GFileInputStream) instream = g_file_read(infile, NULL, &ierror);
 	if (instream == NULL) {
 		g_propagate_prefixed_error(
 				error,
@@ -1422,7 +1405,7 @@ static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffs
 				"failed to open bundle for reading: ");
 		return FALSE;
 	}
-	outstream = g_file_create(outfile, G_FILE_CREATE_NONE, NULL,
+	g_autoptr(GFileOutputStream) outstream = g_file_create(outfile, G_FILE_CREATE_NONE, NULL,
 			&ierror);
 	if (outstream == NULL) {
 		g_propagate_prefixed_error(
@@ -1432,7 +1415,7 @@ static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffs
 		return FALSE;
 	}
 
-	ssize = g_output_stream_splice(
+	gssize ssize = g_output_stream_splice(
 			(GOutputStream*)outstream,
 			(GInputStream*)instream,
 			G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE,
@@ -1453,10 +1436,7 @@ static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffs
 
 gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 {
-	g_autoptr(RaucManifest) loaded_manifest = NULL;
-	RaucManifest *manifest = NULL; /* alias pointer, not to be freed */
 	GError *ierror = NULL;
-	g_autoptr(GBytes) sig = NULL;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(outpath != NULL, FALSE);
@@ -1474,6 +1454,8 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 		return FALSE;
 	}
 
+	g_autoptr(RaucManifest) loaded_manifest = NULL;
+	RaucManifest *manifest = NULL; /* alias pointer, not to be freed */
 	if (bundle->manifest) {
 		manifest = bundle->manifest;
 	} else {
@@ -1491,7 +1473,7 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 		return FALSE;
 	}
 
-	sig = generate_bundle_signature(outpath, manifest, &ierror);
+	g_autoptr(GBytes) sig = generate_bundle_signature(outpath, manifest, &ierror);
 	if (!sig) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -1677,7 +1659,6 @@ gboolean create_casync_bundle(RaucBundle *bundle, const gchar *outbundle, const 
 gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **error)
 {
 	GError *ierror = NULL;
-	g_autoptr(GBytes) encdata = NULL;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
 	g_return_val_if_fail(outbundle != NULL, FALSE);
@@ -1706,7 +1687,7 @@ gboolean encrypt_bundle(RaucBundle *bundle, const gchar *outbundle, GError **err
 	}
 
 	/* encrypt sigdata CMS */
-	encdata = cms_encrypt(bundle->sigdata, r_context()->recipients, &ierror);
+	g_autoptr(GBytes) encdata = cms_encrypt(bundle->sigdata, r_context()->recipients, &ierror);
 	if (encdata == NULL) {
 		g_propagate_prefixed_error(
 				error,
