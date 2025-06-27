@@ -31,6 +31,17 @@ def test_write_slot_readonly():
     assert "Reject writing to readonly slot" in err
 
 
+def test_write_slot_list(rauc_no_service):
+    out, err, exitcode = run("rauc -c test.conf write-slot --list")
+    assert exitcode == 0
+    assert "rootfs.1 (ext4)" in out
+    assert "appfs.1 (ext4)" in out
+    assert "bootloader.0 (ext4)" in out
+    assert "rescue.0 (ext4)" in out
+    assert "rootfs.0 (ext4)" in out
+    assert "appfs.0 (ext4)" in out
+
+
 def test_write_slot(rauc_no_service):
     out, err, exitcode = run(f"{rauc_no_service} write-slot rootfs.0 install-content/appfs.img")
     assert exitcode == 0
