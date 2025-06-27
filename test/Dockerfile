@@ -28,6 +28,8 @@ RUN apt-get install -q -y --no-install-recommends \
   dosfstools \
   lcov \
   slirp \
+  python3-pyasn1 \
+  python3-pyasn1-modules \
   python3-pytest \
   python3-pydbus \
   python3-dasbus \
