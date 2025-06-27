@@ -633,15 +633,13 @@ static void signature_intermediate_file(SignatureFixture *fixture,
 static void signature_partial(SignatureFixture *fixture, gconstpointer user_data)
 {
 	gboolean res;
-	g_autoptr(X509_STORE) dev_partial_store = NULL;
-	g_autoptr(X509_STORE) rel_partial_store = NULL;
-	g_autoptr(X509_STORE) rel_partial_allowed_store = NULL;
 
-	dev_partial_store = setup_x509_store("test/openssl-ca/dev-partial-ca.pem", NULL, NULL);
-	rel_partial_store = setup_x509_store("test/openssl-ca/rel-partial-ca.pem", NULL, NULL);
+	g_autoptr(X509_STORE) dev_partial_store = setup_x509_store("test/openssl-ca/dev-partial-ca.pem", NULL, NULL);
+	g_autoptr(X509_STORE) rel_partial_store = setup_x509_store("test/openssl-ca/rel-partial-ca.pem", NULL, NULL);
 	/* Allow a partial chain. */
 	r_context()->config->keyring_allow_partial_chain = TRUE;
-	rel_partial_allowed_store = setup_x509_store("test/openssl-ca/rel-partial-ca.pem", NULL, NULL);
+	g_autoptr(X509_STORE) rel_partial_allowed_store = setup_x509_store("test/openssl-ca/rel-partial-ca.pem", NULL, NULL);
+	r_context()->config->keyring_allow_partial_chain = FALSE;
 
 	fixture->sig = cms_sign(fixture->content,
 			TRUE,

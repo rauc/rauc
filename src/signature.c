@@ -1019,7 +1019,7 @@ static STACK_OF(X509) *cms_get_signer_certs(CMS_ContentInfo *cms, GError **error
 	return g_steal_pointer(&signers);
 }
 
-static gchar *cms_get_signers(CMS_ContentInfo *cms, GError **error)
+static gchar *cms_get_signers_string(CMS_ContentInfo *cms, GError **error)
 {
 	GError *ierror = NULL;
 
@@ -1330,10 +1330,11 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 	BIO *incontent = NULL;
 	BIO *insig = bytes_as_bio(sig);
 	BIO *outcontent = BIO_new(BIO_s_mem());
-	g_autofree gchar *signers = NULL;
+	g_autofree gchar *signers_string = NULL;
 	gboolean res = FALSE;
 	gboolean verified = FALSE;
 	gboolean detached;
+	unsigned int verify_flags = CMS_BINARY;
 
 	g_return_val_if_fail(sig != NULL, FALSE);
 	g_return_val_if_fail(store != NULL, FALSE);
@@ -1428,9 +1429,9 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 	}
 
 	if (detached)
-		verified = CMS_verify(icms, NULL, store, incontent, NULL, CMS_DETACHED | CMS_BINARY);
+		verified = CMS_verify(icms, NULL, store, incontent, NULL, verify_flags | CMS_DETACHED);
 	else
-		verified = CMS_verify(icms, NULL, store, NULL, outcontent, CMS_BINARY);
+		verified = CMS_verify(icms, NULL, store, NULL, outcontent, verify_flags);
 	if (!verified) {
 		g_set_error(
 				error,
@@ -1445,12 +1446,12 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 		goto out;
 	}
 
-	signers = cms_get_signers(icms, &ierror);
-	if (!signers) {
+	signers_string = cms_get_signers_string(icms, &ierror);
+	if (!signers_string) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
-	g_message("Verified %s signature by %s", detached ? "detached" : "inline", signers);
+	g_message("Verified %s signature by %s", detached ? "detached" : "inline", signers_string);
 
 	if (!detached) {
 		GBytes *tmp = bytes_from_bio(outcontent);
