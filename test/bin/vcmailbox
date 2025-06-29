@@ -1,0 +1,21 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]; then
+	echo "Usage vcmailbox [word0] [word1] ..."
+	exit 1
+fi
+
+if [ $# -ne 4 ]; then
+	echo "ioctl_set_msg failed:-1"
+	exit 1
+fi
+
+# vcmailbox 0x00030064 4 0 0
+# 0x0000001c 0x80000000 0x00030064 0x00000004 0x80000004 0x00000000 0x00000000
+echo 0x0000001c 0x80000000 0x00038064 0x00000004 0x80000004 0x00000000 0x00000000
+
+if [ $# -eq 4 ]; then
+	printf "$4" >"$RASPBERRYPI_TMPDIR/00038064"
+fi
+
+exit 0
