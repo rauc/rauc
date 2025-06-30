@@ -46,6 +46,7 @@ static void bootchooser_barebox(BootchooserFixture *fixture,
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 mountprefix=/mnt/myrauc/\n\
+prevent-late-fallback=lock-counter\n\
 \n\
 [keyring]\n\
 path=/etc/rauc/keyring/\n\
@@ -70,6 +71,10 @@ bootname=system1\n";
 
 	g_clear_pointer(&r_context_conf()->configpath, g_free);
 	r_context_conf()->configpath = pathname;
+	/* consistency check needs this variable set early */
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \
+bootstate.attempts_locked=1\n\
+\t", TRUE));
 	r_context();
 
 	rootfs0 = find_config_slot_by_name(r_context()->config, "rootfs.0");
@@ -83,6 +88,7 @@ bootstate.system0.remaining_attempts=3\n\
 bootstate.system0.priority=20\n\
 bootstate.system1.remaining_attempts=3\n\
 bootstate.system1.priority=10\n\
+bootstate.attempts_locked=1\n\
 ", TRUE));
 	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
 	g_assert_true(good);
@@ -93,7 +99,11 @@ bootstate.system1.priority=10\n\
 	g_assert_nonnull(primary);
 	g_assert(primary == rootfs0);
 	g_assert(primary != rootfs1);
-
+	/* check boot lock-counter */
+	gboolean lock_counter = FALSE;
+	g_assert_true(r_boot_get_counters_lock(&lock_counter, NULL));
+	g_assert_true(lock_counter);
+	g_assert_true(r_boot_set_counters_lock(TRUE, NULL));
 	/* check rootfs.0 is considered bad (remaining_attempts = 0) */
 	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE", " \
 bootstate.system0.remaining_attempts=0\n\
@@ -274,7 +284,7 @@ static void bootchooser_barebox_conf_attempts(BootchooserFixture *fixture,
 	RaucSlot *rootfs0 = NULL;
 	GError *error = NULL;
 	gboolean res;
-
+	// TODO[lsc]: add test here
 	const gchar *cfg_file = "\
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
@@ -716,6 +726,11 @@ BOOT_B_LEFT=3\n\
 	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
 	g_assert_true(good);
 
+	/* check boot lock counter (currently only implemented for barebox)*/
+	gboolean lock_counter;
+	g_assert_false(r_boot_set_counters_lock(TRUE, NULL));
+	g_assert_false(r_boot_get_counters_lock(&lock_counter, NULL));
+
 	/* check rootfs.0 is marked bad (BOOT_A_LEFT set to 0) */
 	g_assert_true(r_boot_set_state(rootfs0, FALSE, NULL));
 	g_assert_true(test_uboot_post_state(fixture, "\
@@ -919,6 +934,7 @@ static void bootchooser_efi(BootchooserFixture *fixture,
 	RaucSlot *primary = NULL;
 	gchar *bootname;
 	GError *error = NULL;
+	gboolean lock_counter;
 
 	const gchar *cfg_file = "\
 [system]\n\
@@ -962,6 +978,10 @@ bootname=system1\n";
 
 	g_assert_true(r_boot_set_state(slot, FALSE, NULL));
 	g_assert_true(r_boot_set_state(slot, TRUE, NULL));
+
+	/* check boot lock counter */
+	g_assert_false(r_boot_set_counters_lock(TRUE, NULL));
+	g_assert_false(r_boot_get_counters_lock(&lock_counter, NULL));
 
 	slot = find_config_slot_by_name(r_context()->config, "rootfs.1");
 	g_assert_nonnull(slot);
@@ -1017,6 +1037,7 @@ static void bootchooser_custom(BootchooserFixture *fixture,
 	gboolean good;
 	GError *error = NULL;
 	gboolean res;
+	gboolean lock_counter;
 
 	const gchar *cfg_file = "\
 [system]\n\
@@ -1179,6 +1200,9 @@ STATE_A=good\n\
 STATE_B=good\n\
 "));
 
+	/* check boot lock counter */
+	g_assert_false(r_boot_set_counters_lock(TRUE, NULL));
+	g_assert_false(r_boot_get_counters_lock(&lock_counter, NULL));
 	/* check none is considered primary if both are bad */
 	test_custom_initialize_state(fixture, "\
 PRIMARY=A\n\
