@@ -2201,66 +2201,108 @@ out:
 #endif
 
 #if ENABLE_EMMC_BOOT_SUPPORT == 1
-static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+/**
+ * Prepare the eMMC boot partition for writing.
+ *
+ * @param device eMMC device path
+ * @param part_active pointer to store active partition number
+ * @param part_slot pointer to store created inactive slot
+ * @param size_limit size limit for the slot
+ * @param vars pointer to store created environment variables
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+static gboolean prepare_emmc_boot_partition(const gchar *device, gint *part_active,
+		RaucSlot **part_slot, guint64 size_limit,
+		GHashTable **vars, GError **error)
 {
 	gboolean res = FALSE;
-	int out_fd;
-	gint part_active;
-	g_autofree gchar *part_active_str = NULL;
 	g_autofree gchar *realdev = NULL;
-	gint part_active_after;
-	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
-	g_autoptr(RaucSlot) part_slot = NULL;
-	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
-	realdev = r_realpath(dest_slot->device);
+	g_return_val_if_fail(device, FALSE);
+	g_return_val_if_fail(part_active, FALSE);
+	g_return_val_if_fail(part_slot, FALSE);
+	g_return_val_if_fail(vars, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	realdev = r_realpath(device);
 	if (!realdev) {
 		g_set_error(error,
 				R_UPDATE_ERROR,
 				R_UPDATE_ERROR_FAILED,
-				"Can't resolve eMMC device %s", dest_slot->device);
+				"Can't resolve eMMC device %s", device);
 		return FALSE;
 	}
 
 	/* read active boot partition from ext_csd */
-	res = r_emmc_read_bootpart(realdev, &part_active, &ierror);
+	res = r_emmc_read_bootpart(realdev, part_active, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
-	if (part_active == -1) {
+	if (*part_active == -1) {
 		g_warning("eMMC device was not enabled for booting, yet. Ignoring.");
 		/* For simplicity: Consider boot1 to be active */
-		part_active = 1;
+		*part_active = 1;
 	} else {
-		g_message("Found active eMMC boot partition %sboot%d", realdev, part_active);
+		g_message("Found active eMMC boot partition %sboot%d", realdev, *part_active);
 	}
 
 	/* create a temporary RaucSlot with the actual (currently inactive) boot
 	 * partition as device.
 	 */
-	part_slot = g_new0(RaucSlot, 1);
-	part_slot->device = g_strdup_printf(
+	*part_slot = g_new0(RaucSlot, 1);
+	(*part_slot)->device = g_strdup_printf(
 			"%sboot%d",
 			realdev,
-			INACTIVE_BOOT_PARTITION(part_active));
-	part_slot->size_limit = dest_slot->size_limit;
+			INACTIVE_BOOT_PARTITION(*part_active));
+	(*part_slot)->size_limit = size_limit;
 
 	/* disable read-only on determined eMMC boot partition */
 	g_debug("Disabling read-only mode of slot device partition %s",
-			part_slot->device);
-	res = r_emmc_force_part_rw(part_slot->device, &ierror);
+			(*part_slot)->device);
+	res = r_emmc_force_part_rw((*part_slot)->device, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_ACTIVATING"),
-			g_strdup_printf("%d", INACTIVE_BOOT_PARTITION(part_active)));
-	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_SIZE_LIMIT"),
-			g_strdup_printf("%"G_GUINT64_FORMAT, dest_slot->size_limit));
+	/* Setup environment variables for hooks */
+	*vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+	g_hash_table_insert(*vars, g_strdup("RAUC_BOOT_PARTITION_ACTIVATING"),
+			g_strdup_printf("%d", INACTIVE_BOOT_PARTITION(*part_active)));
+	g_hash_table_insert(*vars, g_strdup("RAUC_BOOT_SIZE_LIMIT"),
+			g_strdup_printf("%"G_GUINT64_FORMAT, size_limit));
+
+	return TRUE;
+}
+
+/**
+ * Write image to the eMMC boot partition.
+ *
+ * @param image image to write
+ * @param part_slot slot for the inactive boot partition
+ * @param hook_name name of the hook to run
+ * @param vars environment variables for hooks
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+static gboolean write_emmc_boot_partition(RaucImage *image, RaucSlot *part_slot,
+		const gchar *hook_name, GHashTable *vars,
+		GError **error)
+{
+	gboolean res = FALSE;
+	int out_fd;
+	g_autoptr(GUnixOutputStream) outstream = NULL;
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(part_slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* run slot pre install hook if enabled */
 	if (hook_name && image->hooks.pre_install) {
@@ -2268,12 +2310,12 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 				hook_name,
 				R_SLOT_HOOK_PRE_INSTALL,
 				image,
-				dest_slot,
+				part_slot,
 				vars,
 				&ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
 
@@ -2282,7 +2324,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	res = clear_slot(part_slot, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	/* open */
@@ -2290,15 +2332,13 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	outstream = r_unix_output_stream_open_device(part_slot->device, &out_fd, &ierror);
 	if (outstream == NULL) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	/* check size */
 	if (!check_image_size(g_unix_output_stream_get_fd(outstream), part_slot, image, &ierror)) {
-		res = FALSE;
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	/* copy */
@@ -2307,13 +2347,13 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	res = copy_raw_image(image, outstream, 0, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	/* run slot post install hook if enabled */
@@ -2322,14 +2362,39 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 				hook_name,
 				R_SLOT_HOOK_POST_INSTALL,
 				image,
-				dest_slot,
+				part_slot,
 				vars,
 				&ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		}
 	}
+
+	return TRUE;
+}
+
+/**
+ * Finalize the boot partition update by re-enabling read-only mode and toggling the active partition.
+ *
+ * @param part_slot slot for the inactive boot partition
+ * @param part_active active partition number
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+static gboolean finalize_emmc_boot_partition(RaucSlot *part_slot, gint part_active, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+	gint part_active_after;
+	g_autofree gchar *realdev = NULL;
+
+	g_return_val_if_fail(part_slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* Get the real device path from the partition path by removing the "bootX" suffix */
+	realdev = g_strndup(part_slot->device, strlen(part_slot->device) - 5);
 
 	/* re-enable read-only on determined eMMC boot partition */
 	g_debug("Reenabling read-only mode of slot device partition %s",
@@ -2337,52 +2402,79 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	res = r_emmc_force_part_ro(part_slot->device, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	/* toggle active boot partition in ext_csd register; do this explicitly on
-	 * determined boot partition to force the kernel to switch to the partition;
-	 * for simplicity reasons: in case the user partition is active use
-	 * mmcblkXboot1, in case no partition is active use mmcblkXboot0
-	 */
-	g_debug("Toggling active eMMC boot partition %s -> %s", part_active_str,
-			part_slot->device);
+	/* toggle active boot partition in ext_csd register */
+	g_debug("Toggling active eMMC boot partition to %s", part_slot->device);
 	res = r_emmc_write_bootpart(
 			part_slot->device,
 			INACTIVE_BOOT_PARTITION(part_active),
 			&ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	/* sanity check: read active boot partition from ext_csd
-	 *
-	 * Read explicitly from root device (this forces another kernel
-	 * partition switch and should trigger the ext_csd bug more reliably).
-	 */
+	/* sanity check: read active boot partition from ext_csd */
 	res = r_emmc_read_bootpart(realdev, &part_active_after, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	if (part_active == part_active_after) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Toggling the boot partition failed! Your kernel is most-likely affected by the ioctl ext_csd bug: see https://rauc.readthedocs.io/en/latest/advanced.html#update-bootloader-in-emmc-boot-partitions");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	g_message("Boot partition %s is now active", part_slot->device);
+	return TRUE;
+}
+
+static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
+	gboolean res = FALSE;
+	gint part_active;
+	g_autoptr(RaucSlot) part_slot = NULL;
+	g_autoptr(GHashTable) vars = NULL;
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(dest_slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* Prepare the eMMC boot partition */
+	res = prepare_emmc_boot_partition(dest_slot->device, &part_active, &part_slot,
+			dest_slot->size_limit, &vars, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* Write the image to the inactive boot partition */
+	res = write_emmc_boot_partition(image, part_slot, hook_name, vars, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* Finalize the update by toggling the active partition */
+	res = finalize_emmc_boot_partition(part_slot, part_active, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
 
 out:
 	/* ensure that the eMMC boot partition is read-only afterwards */
-	if (!res)
+	if (!res && part_slot)
 		r_emmc_force_part_ro(part_slot->device, NULL);
 
 	return res;
 }
+
 #endif
 
 static gboolean check_if_area_is_clear(const gchar *device, guint64 start, gsize size, gboolean *clear, GError **error)
