@@ -2204,11 +2204,9 @@ out:
 static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	gboolean res = FALSE;
-	int out_fd;
 	gint part_active;
 	g_autofree gchar *realdev = NULL;
 	gint part_active_after;
-	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	g_autoptr(RaucSlot) part_slot = NULL;
 	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
@@ -2284,34 +2282,9 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		goto out;
 	}
 
-	/* open */
-	g_message("Opening slot device partition %s", part_slot->device);
-	outstream = r_unix_output_stream_open_device(part_slot->device, &out_fd, &ierror);
-	if (outstream == NULL) {
+	if (!copy_raw_image_to_dev(image, part_slot, &ierror)) {
 		g_propagate_error(error, ierror);
 		res = FALSE;
-		goto out;
-	}
-
-	/* check size */
-	if (!check_image_size(g_unix_output_stream_get_fd(outstream), part_slot, image, &ierror)) {
-		res = FALSE;
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	/* copy */
-	g_message("Copying image to slot device partition %s",
-			part_slot->device);
-	res = copy_raw_image(image, outstream, 0, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
 		goto out;
 	}
 
