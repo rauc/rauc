@@ -2382,7 +2382,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 			&ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	/* sanity check: read active boot partition from ext_csd
@@ -2393,20 +2393,18 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	res = r_emmc_read_bootpart(realdev, &part_active_after, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	if (part_active == part_active_after) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Toggling the boot partition failed! Your kernel is most-likely affected by the ioctl ext_csd bug: see https://rauc.readthedocs.io/en/latest/advanced.html#update-bootloader-in-emmc-boot-partitions");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	g_message("Boot partition %s is now active", part_slot->device);
 
-out:
-	return res;
+	return TRUE;
 }
 #endif
 
