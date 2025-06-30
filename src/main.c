@@ -500,7 +500,7 @@ static gboolean write_slot_start(int argc, char **argv)
 	/* retrieve RaucSlot */
 	slot = g_hash_table_lookup(r_context()->config->slots, argv[2]);
 	if (slot == NULL) {
-		g_printerr("No matching slot found for given slot name\n");
+		g_printerr("No matching slot found for given slot name '%s'.\n", argv[2]);
 		r_exit_status = 1;
 		return TRUE;
 	}
