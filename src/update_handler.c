@@ -672,6 +672,20 @@ unmount_out:
 	return res;
 }
 
+/**
+ * Writes given RaucImage to the device referred to by the given RaucSlot.
+ *
+ * Checks if the provided RaucImage fits into the target device before the copy
+ * process starts.
+ *
+ * Copying is done using simple dd-like raw data copying.
+ *
+ * @param image RaucImage to write
+ * @param slot RaucSlot to copy to
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success. FALSE on error.
+ */
 static gboolean copy_raw_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error)
 {
 	g_autoptr(GUnixOutputStream) outstream = NULL;
@@ -943,6 +957,18 @@ static gboolean copy_adaptive_image_to_dev(RaucImage *image, RaucSlot *slot, GEr
 	return FALSE;
 }
 
+/**
+ * Writes given RaucImage to the device referred to by the given RaucSlot.
+ *
+ * Handles both casync .caibx images and adaptive methods, if present.
+ * Otherwise (or on adaptive errors), it performs a raw copy.
+ *
+ * @param image RaucImage to write
+ * @param slot RaucSlot to copy to
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success. FALSE on error.
+ */
 static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error)
 {
 	GError *ierror = NULL;
