@@ -2206,7 +2206,6 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	gboolean res = FALSE;
 	int out_fd;
 	gint part_active;
-	g_autofree gchar *part_active_str = NULL;
 	g_autofree gchar *realdev = NULL;
 	gint part_active_after;
 	g_autoptr(GUnixOutputStream) outstream = NULL;
@@ -2345,7 +2344,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	 * for simplicity reasons: in case the user partition is active use
 	 * mmcblkXboot1, in case no partition is active use mmcblkXboot0
 	 */
-	g_debug("Toggling active eMMC boot partition %s -> %s", part_active_str,
+	g_debug("Toggling active eMMC boot partition %sboot%d -> %s", realdev, part_active,
 			part_slot->device);
 	res = r_emmc_write_bootpart(
 			part_slot->device,
