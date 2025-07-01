@@ -247,6 +247,8 @@ if [ -n "$INTERACTIVE_SHELL" ]; then
   sleep 1
 fi
 
+# Ensure previous testlog is wiped
+rm -f $BUILD_DIR/meson-logs/testlog.txt
 if meson test -C $BUILD_DIR --suite rauc $test -v; then
   touch qemu-test-ok
   echo "RESULT: PASSED"
