@@ -469,6 +469,15 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 							"%s: 'device' must refer to the specific eMMC boot partitions, not the base device", groups[i]);
 					return NULL;
 				}
+				slot->size_limit = key_file_consume_binary_suffixed_string(key_file, groups[i],
+						"size-limit", &ierror);
+				if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+					slot->size_limit = 0;
+					g_clear_error(&ierror);
+				} else if (ierror) {
+					g_propagate_error(error, ierror);
+					return NULL;
+				}
 			}
 
 			slot->allow_mounted = g_key_file_get_boolean(key_file, groups[i], "allow-mounted", &ierror);
