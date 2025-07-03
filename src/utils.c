@@ -711,6 +711,29 @@ goffset get_device_size(gint fd, GError **error)
 	return size;
 }
 
+goffset get_device_size_from_dev(const gchar *device, GError **error)
+{
+	g_return_val_if_fail(device != NULL, 0);
+	g_return_val_if_fail(error == NULL || *error == NULL, 0);
+
+	g_auto(filedesc) fd = g_open(device, O_RDONLY);
+	if (fd == -1) {
+		int err = errno;
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
+				"Failed to open device %s: %s", device, g_strerror(err));
+		return 0;
+	}
+
+	GError *ierror = NULL;
+	guint64 size = get_device_size(fd, &ierror);
+	if (ierror != NULL) {
+		g_propagate_error(error, ierror);
+		return 0;
+	}
+
+	return size;
+}
+
 void r_replace_strdup(gchar **dst, const gchar *src)
 {
 	g_free(*dst);
