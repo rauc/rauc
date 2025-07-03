@@ -1188,10 +1188,15 @@ SoC/firmware and storage medium.
   be written separately (such as bootloader env, kernel or
   initramfs).
 
-.. _sec-emmc-boot:
+
 
 Update Bootloader in eMMC Boot Partitions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _sec-emmc-boot:
+
+Default Mechanism without Fallback
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 RAUC supports updating a bootloader in eMMC boot partitions (see the section `6.3.2 boot
 partition` in JEDEC standard JESD84-B51_ for details), one of which can be
@@ -1228,6 +1233,70 @@ A ``system.conf`` could look like this:
   * do not use kernels <v4.16, <v4.15.14 or <v4.14.31, as these don't contain an
     `important register cache fix
     <https://lore.kernel.org/all/20180308140811.6966-1-bst@pengutronix.de/>`_.
+
+.. _sec-emmc-boot-linked:
+
+eMMC Boot Linked
+^^^^^^^^^^^^^^^^
+
+.. note:: This feature does need to be supported by the bootloader. Currently this is the case for `barebox`.
+
+For eMMCs there is an option with fallback support to make the update of
+the bootloader more consistent.
+This method can be used, if it is not possible to avoid incompatibilities between
+the bootloader (and it's components) and the operating system
+During each update RAUC will ensure that the active boot partition
+matches the active unsuccessful slots.
+
+This feature requires two boot slots, each one of type ``emmc-boot-linked``.
+The boot slots need to be :ref:`grouped <sec-grouping-slots>` with their
+corresponding system slots.
+They need to be uniquely linked and on the same eMMC.
+
+When this mechanism is used, RAUC will not write the *ext_csd registers*
+itself as in the :ref:`default mechanism <sec-emmc-boot>`,
+but will hand that over to the bootloader.
+Instead RAUC just maintains the boot state, which is then used by
+the bootloader to activate the correct boot partition from the eMMC,
+reset and start the OS with its matching bootloader.
+
+During migration from any mechanism not maintaining compatibility between
+bootloader and OS to the *eMMC Fallback Mechanism* the current state of
+the bootloader slot and the system slot can differ from what is expected of
+the grouped slots in the update.
+In order to avoid inconsistent results and unbootable systems due to problems
+during the update process, RAUC compares the bootloader update
+target destination with the currently activated bootloader before
+the migration update is started.
+In case the currently activated bootloader is also the new target slot
+for the bootloader, the currently activated bootloader will be copied to
+the inactive slot, which is then activated by RAUC.
+Afterwards the update procedure will continue.
+This way there is still a working fallback in case of an unsuccessful update.
+
+.. code-block:: cfg
+
+  [...]
+
+  [slot.bootloader.0]
+  device=/dev/mmcblk0boot0
+  type=emmc-boot-linked
+  parent=rootfs.0
+
+  [slot.rootfs.0]
+  device=/dev/mmcblk0p1
+  type=ext4
+  bootname=A
+
+  [slot.bootloader.1]
+  device=/dev/mmcblk0boot1
+  type=emmc-boot-linked
+  parent=rootfs.1
+
+  [slot.rootfs.1]
+  device=/dev/mmcblk0p2
+  type=ext4
+  bootname=B
 
 .. _sec-mbr-partition:
 

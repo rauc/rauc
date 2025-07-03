@@ -672,6 +672,20 @@ unmount_out:
 	return res;
 }
 
+/**
+ * Writes given RaucImage to the device referred to by the given RaucSlot.
+ *
+ * Performs a check if the provided image matches the device size before
+ * starting to actually copy data.
+ *
+ * Copying is done using simple dd-like raw data copying.
+ *
+ * @param image RaucImage to write
+ * @param slot RaucSlot to copy to
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success. FALSE on error.
+ */
 static gboolean copy_raw_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error)
 {
 	g_autoptr(GUnixOutputStream) outstream = NULL;
@@ -943,6 +957,18 @@ static gboolean copy_adaptive_image_to_dev(RaucImage *image, RaucSlot *slot, GEr
 	return FALSE;
 }
 
+/**
+ * Writes given RaucImage to the device referred to by the given RaucSlot.
+ *
+ * Handles both casync .caibx images and adaptive methods, if present.
+ * Otherwise (or on adaptive errors), it performs a raw copy.
+ *
+ * @param image RaucImage to write
+ * @param slot RaucSlot to copy to
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success. FALSE on error.
+ */
 static gboolean write_image_to_dev(RaucImage *image, RaucSlot *slot, GError **error)
 {
 	GError *ierror = NULL;
@@ -2200,16 +2226,123 @@ out:
 }
 #endif
 
+static gboolean copy_img_to_emmc_bootpart(RaucImage *image, RaucSlot *part_slot, const gchar *hook_name, GError **error)
+{
+	gboolean res = FALSE;
+	GError *ierror = NULL;
+	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+
+	/* disable read-only on determined eMMC boot partition */
+	g_debug("Disabling read-only mode of slot device partition %s",
+			part_slot->device);
+	res = r_emmc_force_part_rw(part_slot->device, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	/* run slot pre install hook if enabled */
+	if (hook_name && image->hooks.pre_install) {
+		res = run_slot_hook_extra_env(
+				hook_name,
+				R_SLOT_HOOK_PRE_INSTALL,
+				image,
+				part_slot,
+				vars,
+				&ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	/* clear block device partition */
+	g_message("Clearing slot device %s", part_slot->device);
+	res = clear_slot(part_slot, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	if (!copy_raw_image_to_dev(image, part_slot, &ierror)) {
+		g_propagate_error(error, ierror);
+		res = FALSE;
+		goto out;
+	}
+
+	/* run slot post install hook if enabled */
+	if (hook_name && image->hooks.post_install) {
+		res = run_slot_hook_extra_env(
+				hook_name,
+				R_SLOT_HOOK_POST_INSTALL,
+				image,
+				part_slot,
+				vars,
+				&ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+	}
+
+	/* re-enable read-only on determined eMMC boot partition */
+	g_debug("Reenabling read-only mode of slot device partition %s",
+			part_slot->device);
+	res = r_emmc_force_part_ro(part_slot->device, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+out:
+	if (!res)
+		r_emmc_force_part_ro(part_slot->device, NULL);
+
+	return res;
+}
+
 #if ENABLE_EMMC_BOOT_SUPPORT == 1
+static gboolean toggle_and_verify_active_bootpart(RaucSlot *partition_slot, gint active_partition, gchar *realdev, GError **error)
+{
+	GError *ierror = NULL;
+	/* toggle active boot partition in ext_csd register; do this explicitly on
+	 * determined boot partition to force the kernel to switch to the partition;
+	 * for simplicity reasons: in case the user partition is active use
+	 * mmcblkXboot1, in case no partition is active use mmcblkXboot0
+	 */
+	g_debug("Toggling active eMMC boot partition %sboot%d -> %s", realdev, active_partition,
+			partition_slot->device);
+	if (!r_emmc_write_bootpart(partition_slot->device, INACTIVE_BOOT_PARTITION(active_partition), &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	/* sanity check: read active boot partition from ext_csd
+	 *
+	 * Read explicitly from root device (this forces another kernel
+	 * partition switch and should trigger the ext_csd bug more reliably).
+	 */
+	gint part_active_after;
+	if (!r_emmc_read_bootpart(realdev, &part_active_after, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (active_partition == part_active_after) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Toggling the boot partition failed! Your kernel is most-likely affected by the ioctl ext_csd bug: see https://rauc.readthedocs.io/en/latest/advanced.html#update-bootloader-in-emmc-boot-partitions");
+		return FALSE;
+	}
+
+	g_message("Boot partition %s is now active", partition_slot->device);
+	return TRUE;
+}
+
 static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	gboolean res = FALSE;
-	int out_fd;
 	gint part_active;
-	g_autofree gchar *part_active_str = NULL;
 	g_autofree gchar *realdev = NULL;
-	gint part_active_after;
-	g_autoptr(GUnixOutputStream) outstream = NULL;
 	GError *ierror = NULL;
 	g_autoptr(RaucSlot) part_slot = NULL;
 	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
@@ -2248,140 +2381,154 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 			INACTIVE_BOOT_PARTITION(part_active));
 	part_slot->size_limit = dest_slot->size_limit;
 
-	/* disable read-only on determined eMMC boot partition */
-	g_debug("Disabling read-only mode of slot device partition %s",
-			part_slot->device);
-	res = r_emmc_force_part_rw(part_slot->device, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
 	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_PARTITION_ACTIVATING"),
 			g_strdup_printf("%d", INACTIVE_BOOT_PARTITION(part_active)));
 	g_hash_table_insert(vars, g_strdup("RAUC_BOOT_SIZE_LIMIT"),
 			g_strdup_printf("%"G_GUINT64_FORMAT, dest_slot->size_limit));
 
-	/* run slot pre install hook if enabled */
-	if (hook_name && image->hooks.pre_install) {
-		res = run_slot_hook_extra_env(
-				hook_name,
-				R_SLOT_HOOK_PRE_INSTALL,
-				image,
-				dest_slot,
-				vars,
-				&ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-	}
-
-	/* clear block device partition */
-	g_message("Clearing slot device %s", part_slot->device);
-	res = clear_slot(part_slot, &ierror);
+	res = copy_img_to_emmc_bootpart(image, part_slot, hook_name, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	/* open */
-	g_message("Opening slot device partition %s", part_slot->device);
-	outstream = r_unix_output_stream_open_device(part_slot->device, &out_fd, &ierror);
-	if (outstream == NULL) {
+	if (!toggle_and_verify_active_bootpart(part_slot, part_active, realdev, error))
+		return FALSE;
+
+	return TRUE;
+}
+
+static gboolean migrate_to_emmc_boot_linked_handler(RaucImage *image, RaucSlot *dest_slot, gint *active_partition, const gchar *hook_name, GError **error)
+{
+	gboolean res = FALSE;
+	g_autofree gchar *real_dest = NULL;
+	g_autofree gchar *boot_suffix = NULL;
+	g_autofree gchar *base_device = NULL;
+	GError *ierror = NULL;
+	g_autoptr(RaucSlot) inactive_slot = NULL;
+	g_autoptr(RaucImage) source_image = NULL;
+
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(dest_slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_message("Checking if the current layout needs to be migrated");
+	real_dest = r_realpath(dest_slot->device);
+	if (!real_dest) {
+		g_set_error(error,
+				R_UPDATE_ERROR,
+				R_UPDATE_ERROR_FAILED,
+				"Can't resolve eMMC device %s", dest_slot->device);
+		return FALSE;
+	}
+
+	if (!r_emmc_extract_base_dev(real_dest, &base_device, &ierror)) {
 		g_propagate_error(error, ierror);
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
-	/* check size */
-	if (!check_image_size(g_unix_output_stream_get_fd(outstream), part_slot, image, &ierror)) {
-		res = FALSE;
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
-	/* copy */
-	g_message("Copying image to slot device partition %s",
-			part_slot->device);
-	res = copy_raw_image(image, outstream, 0, &ierror);
+	/* read active boot partition from ext_csd, will be returned to calling function for
+	 * future usage */
+	res = r_emmc_read_bootpart(base_device, active_partition, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	res = g_output_stream_close(G_OUTPUT_STREAM(outstream), NULL, &ierror);
+	if (*active_partition == -1) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_EMMC_MIGRATION,
+				"Could not find active boot partition during migration");
+		return FALSE;
+	}
+
+	/* Check if the currently active boot partition is the same as the target boot partition */
+	g_message("Active eMMC boot partition for %s: boot%d", real_dest, *active_partition);
+	boot_suffix = g_strdup_printf("boot%d", *active_partition);
+	if (!g_str_has_suffix(dest_slot->device, boot_suffix)) {
+		return TRUE;
+	}
+
+	/* Create a temporary RaucSlot for the inactive boot partition */
+	inactive_slot = g_new0(RaucSlot, 1);
+	inactive_slot->device = g_strdup_printf("%sboot%d", base_device, INACTIVE_BOOT_PARTITION(*active_partition));
+	/* We need to deactivate the size limit for migration, as we're just copying the image
+	 * to set everything right for the new layour. So we just need to know
+	 * if source device fits into target device */
+	inactive_slot->size_limit = get_device_size_from_dev(inactive_slot->device, &ierror);
+
+	/* Create a temporary RaucImage using the active boot partition device as filename */
+	source_image = g_new0(RaucImage, 1);
+	source_image->filename = g_strdup_printf("%sboot%d", base_device, *active_partition);
+	source_image->checksum.size = get_device_size_from_dev(source_image->filename, &ierror);
+
+	if (source_image->checksum.size == 0) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	g_message("Copying from %s to %s", source_image->filename, inactive_slot->device);
+	res = copy_img_to_emmc_bootpart(source_image, inactive_slot, NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	/* run slot post install hook if enabled */
-	if (hook_name && image->hooks.post_install) {
-		res = run_slot_hook_extra_env(
-				hook_name,
-				R_SLOT_HOOK_POST_INSTALL,
-				image,
-				dest_slot,
-				vars,
-				&ierror);
-		if (!res) {
-			g_propagate_error(error, ierror);
-			goto out;
-		}
-	}
-
-	/* re-enable read-only on determined eMMC boot partition */
-	g_debug("Reenabling read-only mode of slot device partition %s",
-			part_slot->device);
-	res = r_emmc_force_part_ro(part_slot->device, &ierror);
+	res = toggle_and_verify_active_bootpart(inactive_slot, *active_partition, base_device, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	/* toggle active boot partition in ext_csd register; do this explicitly on
-	 * determined boot partition to force the kernel to switch to the partition;
-	 * for simplicity reasons: in case the user partition is active use
-	 * mmcblkXboot1, in case no partition is active use mmcblkXboot0
-	 */
-	g_debug("Toggling active eMMC boot partition %s -> %s", part_active_str,
-			part_slot->device);
-	res = r_emmc_write_bootpart(
-			part_slot->device,
-			INACTIVE_BOOT_PARTITION(part_active),
-			&ierror);
+	return TRUE;
+}
+
+static gboolean img_to_emmc_boot_linked_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
+	gint active_part = -1;
+	g_autofree gchar *real_dest = NULL;
+	GError *ierror = NULL;
+	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(dest_slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* Migration ensures the target boot partition is not the currently activated one */
+	gboolean res = migrate_to_emmc_boot_linked_handler(image, dest_slot, &active_part, hook_name, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	/* sanity check: read active boot partition from ext_csd
-	 *
-	 * Read explicitly from root device (this forces another kernel
-	 * partition switch and should trigger the ext_csd bug more reliably).
-	 */
-	res = r_emmc_read_bootpart(realdev, &part_active_after, &ierror);
+	real_dest = r_realpath(dest_slot->device);
+	if (!real_dest) {
+		g_set_error(error,
+				R_UPDATE_ERROR,
+				R_UPDATE_ERROR_FAILED,
+				"Can't resolve eMMC device %s", dest_slot->device);
+		return FALSE;
+	}
+
+	if (dest_slot->size_limit > 0) {
+		g_hash_table_insert(vars, g_strdup("RAUC_BOOT_SIZE_LIMIT"),
+				g_strdup_printf("%"G_GUINT64_FORMAT, dest_slot->size_limit));
+	}
+	/* Create a slot for the inactive boot partition */
+	g_autofree gchar *base_device = NULL;
+	if (!r_emmc_extract_base_dev(real_dest, &base_device, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	/* We've check if boot partitions are properly setup during migration,
+	 * so write the image to the planned destination slot */
+	res = copy_img_to_emmc_bootpart(image, dest_slot, hook_name, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	if (part_active == part_active_after) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Toggling the boot partition failed! Your kernel is most-likely affected by the ioctl ext_csd bug: see https://rauc.readthedocs.io/en/latest/advanced.html#update-bootloader-in-emmc-boot-partitions");
-		res = FALSE;
-		goto out;
-	}
-
-	g_message("Boot partition %s is now active", part_slot->device);
-
-out:
-	/* ensure that the eMMC boot partition is read-only afterwards */
-	if (!res)
-		r_emmc_force_part_ro(part_slot->device, NULL);
-
-	return res;
+	return TRUE;
 }
 #endif
 
@@ -2650,6 +2797,7 @@ RaucUpdatePair updatepairs[] = {
 	{"*.squashfs-zst", "ubivol", img_to_ubivol_handler},
 #if ENABLE_EMMC_BOOT_SUPPORT == 1
 	{"*.img", "boot-emmc", img_to_boot_emmc_handler},
+	{"*.img", "emmc-boot-linked", img_to_emmc_boot_linked_handler},
 #endif
 	{"*", "boot-emmc", NULL},
 	{"*.vfat", "boot-mbr-switch", img_to_boot_mbr_switch_handler},

@@ -6,9 +6,10 @@
 #include "config_file.h"
 #include "context.h"
 #include "event_log.h"
+#include "glibconfig.h"
 #include "install.h"
 #include "manifest.h"
-#include "mount.h"
+#include "emmc.h"
 #include "slot.h"
 #include "utils.h"
 
@@ -460,6 +461,25 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 			 * Will be resolved to slot->parent pointer after config parsing loop. */
 			slot->parent_name = key_file_consume_string(key_file, groups[i], "parent", NULL);
 
+			if (g_str_equal(slot->type, "emmc-boot-linked")) {
+				if (!(g_str_has_suffix(slot->device, "boot0") || g_str_has_suffix(slot->device, "boot1"))) {
+					g_set_error(error,
+							R_CONFIG_ERROR,
+							R_CONFIG_ERROR_INVALID_DEVICE,
+							"%s: 'device' must refer to the specific eMMC boot partitions, not the base device", groups[i]);
+					return NULL;
+				}
+				slot->size_limit = key_file_consume_binary_suffixed_string(key_file, groups[i],
+						"size-limit", &ierror);
+				if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+					slot->size_limit = 0;
+					g_clear_error(&ierror);
+				} else if (ierror) {
+					g_propagate_error(error, ierror);
+					return NULL;
+				}
+			}
+
 			slot->allow_mounted = g_key_file_get_boolean(key_file, groups[i], "allow-mounted", &ierror);
 			if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 				slot->allow_mounted = FALSE;
@@ -686,6 +706,92 @@ static GHashTable *parse_artifact_repos(const char *filename, const char *data_d
 	}
 
 	return g_steal_pointer(&repos);
+}
+
+/*
+ * Checks if the emmc-boot-linked slots are configured correctly.
+ * Criteria: - All emmc-boot-linked slots refer to unique boot devices
+ *			 - All emmc-boot-linked have a unique parent
+ *			 - All emmc-boot-linked slots are on the same device
+ *
+ * @param config RaucConfig object
+ * Returns: TRUE if all checks pass, FALSE otherwise
+ */
+static gboolean check_emmc_linked_slots(RaucConfig *config, GError **error)
+{
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	GError *ierror = NULL;
+
+	GHashTableIter iter;
+	int valid_slots = 0;
+	int total_linked_slots = 0;
+	g_autoptr(GHashTable) boot_devices = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+
+	g_hash_table_iter_init(&iter, config->slots);
+	gpointer value;
+	while (g_hash_table_iter_next(&iter, NULL, &value)) {
+		RaucSlot *slot = value;
+		g_debug("currently processing slot '%s', type: '%s'", slot->name, slot->type);
+		if (g_strcmp0(slot->type, "emmc-boot-linked") == 0) {
+			g_debug("found emmc boot-linked slot '%s'", slot->name);
+			total_linked_slots++;
+
+			// Check if this boot device is already used by another slot
+			if (g_hash_table_contains(boot_devices, slot->device)) {
+				gchar *existing_slot = g_hash_table_lookup(boot_devices, slot->device);
+				g_set_error(error, R_CONFIG_ERROR,
+						R_CONFIG_ERROR_INVALID_DEVICE,
+						"emmc-boot-linked slots '%s' and '%s' cannot use the same boot device '%s'",
+						existing_slot, slot->name, slot->device);
+				return FALSE;
+			}
+			g_hash_table_insert(boot_devices, g_strdup(slot->device), g_strdup(slot->name));
+
+			if (slot->parent != NULL) {
+				g_debug("found emmc boot-linked slot '%s' has parent: '%s'", slot->name, slot->parent_name);
+				g_autofree gchar *slot_base_device = NULL;
+				g_autofree gchar *parent_base_device = NULL;
+				if (!r_emmc_extract_base_dev(slot->device, &slot_base_device, &ierror)) {
+					g_propagate_error(error, ierror);
+					return FALSE;
+				}
+				if (!r_emmc_extract_base_dev(slot->parent->device, &parent_base_device, &ierror)) {
+					g_propagate_error(error, ierror);
+					return FALSE;
+				}
+				/* Must be on same device */
+				if (g_strcmp0(slot_base_device, parent_base_device) == 0) {
+					valid_slots++;
+				} else {
+					g_set_error(error, R_CONFIG_ERROR,
+							R_CONFIG_ERROR_INVALID_DEVICE,
+							"bootloader slot '%s' and associated parent '%s' are on differring devices",
+							slot->name, slot->parent_name);
+					return FALSE;
+				}
+			} else {
+				g_set_error(error,
+						R_CONFIG_ERROR,
+						R_CONFIG_ERROR_PARENT,
+						"emmc-boot-linked slot '%s' must have a parent",
+						slot->name);
+				return FALSE;
+			}
+		}
+	}
+
+	// If there are any emmc-boot-linked slots, we need at least 2 valid ones
+	if (total_linked_slots > 0 && valid_slots < 2) {
+		g_set_error(
+				error,
+				R_CONFIG_ERROR,
+				R_CONFIG_ERROR_INVALID_FORMAT,
+				"Need at least 2 valid emmc-boot-linked group slots, but only found %d", valid_slots);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 static gboolean check_unique_slotclasses(RaucConfig *config, GError **error)
@@ -1298,6 +1404,11 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 
 	if (!check_remaining_groups(key_file, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (!check_emmc_linked_slots(c, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
