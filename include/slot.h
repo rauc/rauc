@@ -256,3 +256,15 @@ G_GNUC_WARN_UNUSED_RESULT;
  */
 GList* r_slot_get_all_children(GHashTable *slots, RaucSlot *parent)
 G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Returns list of slots that match the given slot type.
+ *
+ * @param slots GHashTable of system slots
+ * @param type Type of slots to find
+ *
+ * @return list of pointers to all members of slots hash table that match the
+ *         given type of slot, or NULL if no such slots exist.
+ */
+GList* r_slot_get_all_of_type(GHashTable *slots, const gchar* type)
+G_GNUC_WARN_UNUSED_RESULT;
