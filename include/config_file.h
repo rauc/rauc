@@ -26,6 +26,7 @@ typedef enum {
 	R_CONFIG_ERROR_DATA_DIRECTORY,
 	R_CONFIG_ERROR_ARTIFACT_REPO_TYPE,
 	R_CONFIG_ERROR_EMPTY_FILE,
+	R_CONFIG_ERROR_POLLING,
 } RConfigError;
 
 #define R_CONFIG_ERROR r_config_error_quark()
@@ -99,6 +100,16 @@ typedef struct {
 
 	/* logging */
 	GList *loggers;
+
+	/* polling */
+	gchar *polling_source;
+	gchar **polling_inhibit_files;
+	gchar **polling_candidate_criteria;
+	gchar **polling_install_criteria;
+	gchar **polling_reboot_criteria;
+	gint64 polling_interval_ms;
+	gint64 polling_max_interval_ms;
+	gchar *polling_reboot_cmd;
 
 	GHashTable *slots;
 	/* flag to ensure slot states were determined */
