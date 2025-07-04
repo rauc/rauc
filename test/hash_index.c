@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include "context.h"
 #include "hash_index.h"
 #include "stats.h"
 #include "utils.h"
@@ -307,6 +308,9 @@ int main(int argc, char *argv[])
 	setlocale(LC_ALL, "C");
 
 	g_test_init(&argc, &argv, NULL);
+
+	r_context_conf();
+	r_context();
 
 	g_test_add("/hash_index/basic", Fixture, NULL, fixture_set_up, test_basic, fixture_tear_down);
 	g_test_add("/hash_index/ranges", Fixture, NULL, fixture_set_up, test_ranges, fixture_tear_down);

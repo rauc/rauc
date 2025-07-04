@@ -167,8 +167,10 @@ if [ -n "$SERVICE" ]; then
   # fake slot devices
   truncate --size=64M /tmp/rootdev
   mkfs.ext4 /tmp/rootdev
-  truncate --size=64M /tmp/appdev
-  mkfs.ext4 /tmp/appdev
+  truncate --size=64M /tmp/appdev0
+  mkfs.ext4 /tmp/appdev0
+  truncate --size=64M /tmp/appdev1
+  mkfs.ext4 /tmp/appdev1
 
   # fake artifact repos
   mkdir /tmp/file-artifacts-single
