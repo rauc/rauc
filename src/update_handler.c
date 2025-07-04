@@ -2234,7 +2234,6 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	g_autofree gchar *realdev = NULL;
 	gint part_active_after;
 	GError *ierror = NULL;
-	g_autoptr(RaucSlot) part_slot = NULL;
 	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
 	realdev = r_realpath(dest_slot->device);
@@ -2261,20 +2260,22 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		g_message("Found active eMMC boot partition %sboot%d", realdev, part_active);
 	}
 
-	/* create a temporary RaucSlot with the actual (currently inactive) boot
-	 * partition as device.
-	 */
-	part_slot = g_new0(RaucSlot, 1);
-	part_slot->device = g_strdup_printf(
+	g_autofree gchar *bootpart_device = g_strdup_printf(
 			"%sboot%d",
 			realdev,
 			INACTIVE_BOOT_PARTITION(part_active));
-	part_slot->size_limit = dest_slot->size_limit;
+
+	/* temporarily replace actual device by target bootpart device.
+	 * To keep RAUC_SLOT_DEVICE consistent, override with the original
+	 * device here. */
+	gchar *orig_device = dest_slot->device;
+	dest_slot->device = bootpart_device;
+	g_hash_table_insert(vars, g_strdup("RAUC_SLOT_DEVICE"), g_strdup(orig_device));
 
 	/* disable read-only on determined eMMC boot partition */
 	g_debug("Disabling read-only mode of slot device partition %s",
-			part_slot->device);
-	res = r_emmc_force_part_rw(part_slot->device, &ierror);
+			dest_slot->device);
+	res = r_emmc_force_part_rw(dest_slot->device, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -2301,14 +2302,14 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	}
 
 	/* clear block device partition */
-	g_message("Clearing slot device %s", part_slot->device);
-	res = clear_slot(part_slot, &ierror);
+	g_message("Clearing slot device %s", dest_slot->device);
+	res = clear_slot(dest_slot, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
 
-	if (!copy_raw_image_to_dev(image, part_slot, &ierror)) {
+	if (!copy_raw_image_to_dev(image, dest_slot, &ierror)) {
 		g_propagate_error(error, ierror);
 		res = FALSE;
 		goto out;
@@ -2331,8 +2332,8 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 
 	/* re-enable read-only on determined eMMC boot partition */
 	g_debug("Reenabling read-only mode of slot device partition %s",
-			part_slot->device);
-	res = r_emmc_force_part_ro(part_slot->device, &ierror);
+			dest_slot->device);
+	res = r_emmc_force_part_ro(dest_slot->device, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		goto out;
@@ -2344,9 +2345,9 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	 * mmcblkXboot1, in case no partition is active use mmcblkXboot0
 	 */
 	g_debug("Toggling active eMMC boot partition %sboot%d -> %s", realdev, part_active,
-			part_slot->device);
+			dest_slot->device);
 	res = r_emmc_write_bootpart(
-			part_slot->device,
+			dest_slot->device,
 			INACTIVE_BOOT_PARTITION(part_active),
 			&ierror);
 	if (!res) {
@@ -2372,12 +2373,14 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		goto out;
 	}
 
-	g_message("Boot partition %s is now active", part_slot->device);
+	g_message("Boot partition %s is now active", dest_slot->device);
 
 out:
 	/* ensure that the eMMC boot partition is read-only afterwards */
 	if (!res)
-		r_emmc_force_part_ro(part_slot->device, NULL);
+		r_emmc_force_part_ro(dest_slot->device, NULL);
+
+	dest_slot->device = orig_device;
 
 	return res;
 }
