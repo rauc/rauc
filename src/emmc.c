@@ -206,3 +206,21 @@ gboolean r_emmc_force_part_rw(const gchar *device, GError **error)
 
 	return ret;
 }
+
+gboolean r_emmc_extract_base_dev(const gchar *device_path, gchar **base_device, GError **error)
+{
+	g_return_val_if_fail(device_path != NULL, FALSE);
+	g_return_val_if_fail(base_device != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* Pattern to find valid MMC/eMMC base device */
+	*base_device = r_regex_match_simple("(/dev/mmcblk[0-9]+)", device_path);
+
+	if (*base_device == NULL) {
+		g_set_error(error, R_EMMC_ERROR, R_EMMC_ERROR_FAILED,
+				"Device path '%s' does not contain valid MMC device pattern", device_path);
+		return FALSE;
+	}
+
+	return TRUE;
+}
