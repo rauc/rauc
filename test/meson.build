@@ -92,6 +92,7 @@ if pytest.found()
     'replace_signature',
     'resign',
     'service',
+    'syslog',
     'sign',
     'status',
     'verify',
