@@ -5,11 +5,30 @@
 #include "context.h"
 #include "manifest.h"
 #include "signature.h"
+#include "update_handler.h"
 #include "utils.h"
 
 #define RAUC_IMAGE_PREFIX	"image"
 
 #define R_MANIFEST_ERROR r_manifest_error_quark()
+
+static gboolean validate_image_type(const gchar *type, GError **error)
+{
+	/* allow fall back to filename detection, as type might not
+	 * be in use yet */
+	if (!type) {
+		return TRUE;
+	}
+
+	if (is_image_type_supported(type)) {
+		return TRUE;
+	}
+
+	g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_INVALID_TYPE,
+			"Unsupported image type '%s'", type);
+	return FALSE;
+}
+
 GQuark r_manifest_error_quark(void)
 {
 	return g_quark_from_static_string("r_manifest_error_quark");
