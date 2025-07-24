@@ -2710,6 +2710,79 @@ RaucUpdatePair updatepairs[] = {
 };
 
 typedef struct {
+	const gchar *type;
+	const gchar *slottype;
+	img_to_slot_handler handler;
+} RaucImageTypeMap;
+
+/* New image type to handler mapping */
+static RaucImageTypeMap image_type_map[] = {
+	/* caibx */
+	{"ext4-caibx", "ext4", img_to_fs_handler},
+	{"vfat-caibx", "ext4", img_to_fs_handler},
+	{"img-caibx", "ext4", img_to_fs_handler},
+
+	{"ext4-caibx", "raw", img_to_raw_handler},
+	{"vfat-caibx", "raw", img_to_raw_handler},
+	{"img-caibx", "raw", img_to_raw_handler},
+	{"squashfs-caibx", "raw", img_to_raw_handler},
+	{"squashfs-caibx", "ubivol", img_to_ubivol_handler},
+	{"ubifs-caibx", "ubivol", img_to_ubivol_handler},
+	{"img-caibx", "ubivol", img_to_ubivol_handler},
+	{"ubifs-caibx", "ubifs", img_to_ubifs_handler},
+	{"img-caibx", "ubifs", img_to_ubifs_handler},
+
+	/* caidx */
+	{"caidx", "ext4", archive_to_ext4_handler},
+	{"caidx", "ubifs", archive_to_ubifs_handler},
+	{"caidx", "vfat", archive_to_vfat_handler},
+	/* catar */
+	{"catar", "ext4", archive_to_ext4_handler},
+	/* ext4 */
+	{"ext4", "ext4", img_to_fs_handler},
+	{"ext4", "raw", img_to_raw_handler},
+	/* vfat */
+	{"vfat", "raw", img_to_raw_handler},
+	{"vfat", "vfat", img_to_fs_handler},
+	/* squashfs */
+	{"squashfs", "raw", img_to_raw_handler},
+	{"squashfs", "ubivol", img_to_ubivol_handler},
+	/* archive */
+	{"archive", "ext4", archive_to_ext4_handler},
+	{"archive", "ubifs", archive_to_ubifs_handler},
+	{"archive", "jffs2", archive_to_jffs2_handler},
+	{"archive", "vfat", archive_to_vfat_handler},
+	/* ubifs */
+	{"ubifs", "ubivol", img_to_ubivol_handler},
+	{"ubifs", "ubifs", img_to_ubifs_handler},
+	/* image */
+	{"image", "ext4", img_to_fs_handler},
+	{"image", "nor", img_to_nor_handler},
+	{"image", "nand", img_to_nand_handler},
+	{"image", "ubifs", img_to_ubifs_handler},
+	{"image", "ubivol", img_to_ubivol_handler},
+	{"image", "vfat", img_to_fs_handler},
+	{"image", "raw", img_to_raw_handler},
+	/* archive */
+	{"tar", "ext4", archive_to_ext4_handler},
+	{"tar", "ubifs", archive_to_ubifs_handler},
+	{"tar", "vfat", archive_to_vfat_handler},
+	/* casync mappings from test matrix */
+#if ENABLE_EMMC_BOOT_SUPPORT == 1
+	{"image", "boot-emmc", img_to_boot_emmc_handler},
+#endif
+	{"vfat", "boot-mbr-switch", img_to_boot_mbr_switch_handler},
+	{"image", "boot-mbr-switch", img_to_boot_mbr_switch_handler},
+#if ENABLE_GPT == 1
+	{"vfat", "boot-gpt-switch", img_to_boot_gpt_switch_handler},
+	{"ext4", "boot-gpt-switch", img_to_boot_gpt_switch_handler},
+	{"image", "boot-gpt-switch", img_to_boot_gpt_switch_handler},
+#endif
+	{"image", "boot-raw-fallback", img_to_boot_raw_fallback_handler},
+	{NULL, NULL, NULL}
+};
+
+typedef struct {
 	const gchar *fileext;
 	const gchar *type;
 } RaucFileExtTypeMap;
