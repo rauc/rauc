@@ -116,6 +116,12 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 		}
 	}
 
+	iimage->type = key_file_consume_string(key_file, group, "type", NULL);
+	if (iimage->type && !validate_image_type(iimage->type, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
 	g_key_file_remove_key(key_file, group, "version", NULL);
 	g_key_file_remove_key(key_file, group, "description", NULL);
 	g_key_file_remove_key(key_file, group, "build", NULL);
@@ -922,6 +928,9 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 		if (image->filename)
 			g_key_file_set_string(key_file, group, "filename", image->filename);
 
+		if (image->type)
+			g_key_file_set_string(key_file, group, "type", image->type);
+
 		if (image->hooks.pre_install == TRUE) {
 			g_ptr_array_add(hooklist, g_strdup("pre-install"));
 		}
@@ -1184,6 +1193,7 @@ void r_free_image(gpointer data)
 	g_free(image->variant);
 	g_free(image->checksum.digest);
 	g_free(image->filename);
+	g_free(image->type);
 	g_strfreev(image->adaptive);
 	g_strfreev(image->convert);
 	g_clear_pointer(&image->converted, g_ptr_array_unref);

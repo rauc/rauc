@@ -31,6 +31,7 @@ typedef struct {
 	gchar* variant;
 	RaucChecksum checksum;
 	gchar* filename;
+	gchar* type;
 	SlotHooks hooks;
 	GStrv adaptive;
 	GStrv convert;
