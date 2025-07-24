@@ -2763,6 +2763,19 @@ static img_to_slot_handler get_handler_from_type(const gchar *image_type, const 
 	return NULL;
 }
 
+gboolean is_image_type_supported(const gchar *type)
+{
+	g_return_val_if_fail(type, FALSE);
+
+	for (RaucImageTypeMap *map = image_type_map; map->type != NULL; map++) {
+		if (g_strcmp0(map->type, type) == 0) {
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
 img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, GError **error)
 {
 	const gchar *src = mfimage->filename;
