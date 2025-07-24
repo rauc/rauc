@@ -2633,82 +2633,6 @@ static gboolean hook_install_handler(RaucImage *image, RaucSlot *dest_slot, cons
 
 	return TRUE;
 }
-
-typedef struct {
-	const gchar *src;
-	const gchar *dest;
-	img_to_slot_handler handler;
-} RaucUpdatePair;
-
-RaucUpdatePair updatepairs[] = {
-	{"*.ext4.caibx", "ext4", img_to_fs_handler},
-	{"*.ext4.caibx", "raw", img_to_raw_handler},
-	{"*.vfat.caibx", "raw", img_to_raw_handler},
-	{"*.ubifs.caibx", "ubivol", img_to_ubivol_handler},
-	{"*.ubifs.caibx", "ubifs", img_to_ubifs_handler},
-	//{"*.img.caibx", "nand", img_to_nand_handler}, /* unsupported */
-	{"*.img.caibx", "ubivol", img_to_ubivol_handler},
-	{"*.img.caibx", "ubifs", img_to_ubifs_handler},
-	{"*.squashfs.caibx", "ubivol", img_to_ubivol_handler},
-	{"*.squashfs-lz4.caibx", "ubivol", img_to_ubivol_handler},
-	{"*.squashfs-lzo.caibx", "ubivol", img_to_ubivol_handler},
-	{"*.squashfs-xz.caibx", "ubivol", img_to_ubivol_handler},
-	{"*.squashfs-zst.caibx", "ubivol", img_to_ubivol_handler},
-	{"*.squashfs.caibx", "raw", img_to_raw_handler},
-	{"*.squashfs-lz4.caibx", "raw", img_to_raw_handler},
-	{"*.squashfs-lzo.caibx", "raw", img_to_raw_handler},
-	{"*.squashfs-xz.caibx", "raw", img_to_raw_handler},
-	{"*.squashfs-zst.caibx", "raw", img_to_raw_handler},
-	{"*.caidx", "ext4", archive_to_ext4_handler},
-	{"*.caidx", "ubifs", archive_to_ubifs_handler},
-	{"*.caidx", "vfat", archive_to_vfat_handler},
-	{"*.ext4", "ext4", img_to_fs_handler},
-	{"*.ext4", "raw", img_to_raw_handler},
-	{"*.vfat", "raw", img_to_raw_handler},
-	{"*.squashfs", "raw", img_to_raw_handler},
-	{"*.squashfs-lz4", "raw", img_to_raw_handler},
-	{"*.squashfs-lzo", "raw", img_to_raw_handler},
-	{"*.squashfs-xz", "raw", img_to_raw_handler},
-	{"*.squashfs-zst", "raw", img_to_raw_handler},
-	{"*.vfat", "vfat", img_to_fs_handler},
-	{"*.tar*", "ext4", archive_to_ext4_handler},
-	{"*.catar", "ext4", archive_to_ext4_handler},
-	{"*.tar*", "ubifs", archive_to_ubifs_handler},
-	{"*.tar*", "jffs2", archive_to_jffs2_handler},
-	{"*.tar*", "vfat", archive_to_vfat_handler},
-	{"*.ubifs", "ubivol", img_to_ubivol_handler},
-	{"*.ubifs", "ubifs", img_to_ubifs_handler},
-	{"*.img", "ext4", img_to_fs_handler},
-	{"*.img", "nor", img_to_nor_handler},
-	{"*.img", "nand", img_to_nand_handler},
-	{"*.img", "ubifs", img_to_ubifs_handler},
-	{"*.img", "ubivol", img_to_ubivol_handler},
-	{"*.img", "vfat", img_to_fs_handler},
-	{"*.squashfs", "ubivol", img_to_ubivol_handler},
-	{"*.squashfs-lz4", "ubivol", img_to_ubivol_handler},
-	{"*.squashfs-lzo", "ubivol", img_to_ubivol_handler},
-	{"*.squashfs-xz", "ubivol", img_to_ubivol_handler},
-	{"*.squashfs-zst", "ubivol", img_to_ubivol_handler},
-#if ENABLE_EMMC_BOOT_SUPPORT == 1
-	{"*.img", "boot-emmc", img_to_boot_emmc_handler},
-#endif
-	{"*", "boot-emmc", NULL},
-	{"*.vfat", "boot-mbr-switch", img_to_boot_mbr_switch_handler},
-	{"*.img", "boot-mbr-switch", img_to_boot_mbr_switch_handler},
-	{"*", "boot-mbr-switch", NULL},
-#if ENABLE_GPT == 1
-	{"*.vfat", "boot-gpt-switch", img_to_boot_gpt_switch_handler},
-	{"*.ext4", "boot-gpt-switch", img_to_boot_gpt_switch_handler},
-	{"*.img", "boot-gpt-switch", img_to_boot_gpt_switch_handler},
-#endif
-	{"*", "boot-gpt-switch", NULL},
-	{"*.img", "boot-raw-fallback", img_to_boot_raw_fallback_handler},
-	{"*", "boot-raw-fallback", NULL},
-	{"*.img.caibx", "*", img_to_raw_handler}, /* fallback */
-	{"*.img", "*", img_to_raw_handler}, /* fallback */
-	{0}
-};
-
 typedef struct {
 	const gchar *type;
 	const gchar *slottype;
@@ -2852,21 +2776,24 @@ img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, 
 
 	g_message("Checking image type for slot type: %s", dest);
 
-	for (RaucUpdatePair *updatepair = updatepairs; updatepair->src != NULL; updatepair++) {
-		if (g_pattern_match_simple(updatepair->src, src) &&
-		    g_pattern_match_simple(updatepair->dest, dest)) {
-			g_message("Image detected as type: %s", updatepair->src);
-			handler = updatepair->handler;
-			break;
+	/* If no type is set, derive it from filename extension to support older version / migration case */
+	if (!mfimage->type) {
+		const gchar *derived_type = NULL;
+		if (derive_image_type_from_filename_pattern(src, &derived_type)) {
+			mfimage->type = g_strdup(derived_type);
+			g_message("Image detected as type: %s", mfimage->type);
 		}
 	}
 
-	if (handler == NULL) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_NO_HANDLER, "Unsupported image %s for slot type %s",
-				mfimage->filename, dest);
-		goto out;
+	if (mfimage->type) {
+		handler = get_handler_from_type(mfimage->type, dest);
+		if (handler) {
+			g_message("Found handler for image type '%s' and slot type '%s'", mfimage->type, dest);
+			return handler;
+		}
 	}
 
-out:
-	return handler;
+	g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_NO_HANDLER,
+			"Unsupported image %s for slot type %s", src, dest);
+	return NULL;
 }
