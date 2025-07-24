@@ -2709,6 +2709,47 @@ RaucUpdatePair updatepairs[] = {
 	{0}
 };
 
+typedef struct {
+	const gchar *fileext;
+	const gchar *type;
+} RaucFileExtTypeMap;
+
+/* For compatibility reasons, this mapping is needed to map the former file extension based approach to the
+ * image types.*/
+static RaucFileExtTypeMap ext_type_map[] = {
+	{"*.catar", "catar"},
+	{"*.ext4.caibx", "ext4-caibx"},
+	{"*.vfat.caibx", "vfat-caibx"},
+	{"*.ubifs.caibx", "ubifs-caibx"},
+	{"*.img.caibx", "img-caibx"},
+	{"*.squashfs.caibx", "squashfs-caibx"},
+	{"*.squashfs-*.caibx", "squashfs-caibx"},
+	{"*.caidx", "caidx"},
+	{"*.tar*", "tar"},
+	{"*.tgz", "tar"},
+	{"*.ext4", "ext4"},
+	{"*.vfat", "vfat"},
+	{"*.img", "image"},
+	{"*.squashfs", "squashfs"},
+	{"*.squashfs-*", "squashfs"},
+	{"*.ubifs", "ubifs"},
+};
+
+static gboolean derive_image_type_from_filename_pattern(const gchar *filename, const gchar **type)
+{
+	g_return_val_if_fail(filename, FALSE);
+	g_return_val_if_fail(type, FALSE);
+
+	for (unsigned long i = 0; i < G_N_ELEMENTS(ext_type_map); i++) {
+		if (g_pattern_match_simple(ext_type_map[i].fileext, filename)) {
+			*type = ext_type_map[i].type;
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
 img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, GError **error)
 {
 	const gchar *src = mfimage->filename;
