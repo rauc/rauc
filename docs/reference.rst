@@ -1061,6 +1061,7 @@ Supported file system image types are:
   * ``vfat``: vfat/EFI file system image
   * ``ubifs``: UBIFS file system image
   * ``squashfs``: SquashFS image (uncompressed, or compressed with one of ``lz4``, ``lzo``, ``xz``, ``xst``)
+  * ``emptyfs``: Creates an empty ext4 target partition
 
 Supported binary image types are:
 

@@ -397,10 +397,16 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	/* create source image */
 	image = r_new_image();
 	image->slotclass = g_strdup("rootfs");
-	image->filename = g_strdup(imagepath);
+	if (g_strcmp0(test_pair->imagetype, "emptyfs") == 0) {
+		/* For emptyfs, don't set a filename since no file exists */
+		image->filename = NULL;
+		image->type = g_strdup("emptyfs");
+	} else {
+		image->filename = g_strdup(imagepath);
+		image->type = g_strdup(derive_image_type_from_filename_pattern(image->filename));
+	}
 	image->checksum.size = image_size;
 	image->checksum.digest = g_strdup("0xdeadbeef");
-	image->type = g_strdup(derive_image_type_from_filename_pattern(image->filename));
 	if (test_pair->params & TEST_UPDATE_HANDLER_HOOKS) {
 		const gchar *hook_content_success = "#!/bin/sh\nexit 0";
 		const gchar *hook_content_fail = "#!/bin/sh\nexit 1";
@@ -444,6 +450,8 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 
 		r_context_conf()->install_info->mounted_bundle = g_new0(RaucBundle, 1);
 		r_context_conf()->install_info->mounted_bundle->storepath = storepath;
+	} else if (g_strcmp0(test_pair->imagetype, "emptyfs") == 0) {
+		/* For emptyfs, no image file is needed - the handler creates just the filesystem */
 	} else {
 		g_assert_not_reached();
 	}
@@ -499,13 +507,50 @@ no_image:
 		g_assert_cmpint(get_file_size(imagepath, NULL), ==, image_size);
 		g_assert(test_mount(slotpath, mountprefix));
 		g_assert(r_umount(slotpath, NULL));
+	} else if (g_strcmp0(test_pair->imagetype, "emptyfs") == 0) {
+		/* Verify emptyfs created an empty ext4 filesystem */
+		g_assert(test_mount(slotpath, mountprefix));
+
+		/* Check that only lost+found directory exists (standard for empty ext4) */
+		g_autoptr(GDir) dir = NULL;
+		GError *dir_error = NULL;
+		const gchar *entry;
+		gint entry_count = 0;
+		gboolean found_lost_found = FALSE;
+
+		dir = g_dir_open(mountprefix, 0, &dir_error);
+		g_assert_no_error(dir_error);
+		g_assert_nonnull(dir);
+
+		while ((entry = g_dir_read_name(dir)) != NULL) {
+			entry_count++;
+			if (g_strcmp0(entry, "lost+found") == 0) {
+				found_lost_found = TRUE;
+			}
+		}
+
+		/* Empty ext4 should only contain lost+found directory */
+		g_assert_cmpint(entry_count, ==, 1);
+		g_assert_true(found_lost_found);
+
+		/* Verify lost+found is empty */
+		g_autofree gchar *lost_found_path = g_build_filename(mountprefix, "lost+found", NULL);
+		g_autoptr(GDir) lost_found_dir = g_dir_open(lost_found_path, 0, &dir_error);
+		g_assert_no_error(dir_error);
+		g_assert_nonnull(lost_found_dir);
+		g_assert_null(g_dir_read_name(lost_found_dir));
+
+		/* Close directory handles before unmounting */
+		g_clear_pointer(&lost_found_dir, g_dir_close);
+		g_clear_pointer(&dir, g_dir_close);
+
+		g_assert(r_umount(slotpath, NULL));
 	} else if ((g_strcmp0(test_pair->imagetype, "tar") == 0) || ((g_strcmp0(test_pair->imagetype, "caidx") == 0))) {
 		g_autofree gchar *testpath = g_build_filename(mountprefix, "testfile.txt", NULL);
 		g_assert(test_mount(slotpath, mountprefix));
 		g_assert_true(g_file_test(testpath, G_FILE_TEST_IS_REGULAR));
 		g_assert(r_umount(slotpath, NULL));
 	}
-
 	/* check statistics */
 	if (test_pair->params & TEST_UPDATE_HANDLER_ADAPTIVE_BLOCK_HASH_IDX) {
 		RaucStats *stats;
@@ -703,6 +748,15 @@ int main(int argc, char *argv[])
 		/* image too large */
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_ADAPTIVE_BLOCK_HASH_IDX | TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
+		/* empty filesystem test (no image included) */
+		{"ext4", "emptyfs", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"ext4", "emptyfs", TEST_UPDATE_HANDLER_NO_TARGET_DEV | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+		{"ext4", "emptyfs", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK, 0, 0},
+		{"ext4", "emptyfs", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK, 0, 0},
+		{"ext4", "emptyfs", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK, 0, 0},
+		{"ext4", "emptyfs", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+		{"ext4", "emptyfs", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+		{"ext4", "emptyfs", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 
 		{0}
 	};
@@ -763,7 +817,7 @@ int main(int argc, char *argv[])
 			test_update_handler,
 			update_handler_fixture_tear_down);
 	g_test_add("/update_handler/update_handler/ext4_to_raw",
-			UpdateHandlerFixture,
+			UpdateHandlerFixture,                   /* emptyfs tests */
 			&testpair_matrix[7],
 			update_handler_fixture_set_up,
 			test_update_handler,
@@ -1132,6 +1186,55 @@ int main(int argc, char *argv[])
 	g_test_add("/update_handler/too_large/adaptive",
 			UpdateHandlerFixture,
 			&testpair_matrix[64],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	/* emptyfs tests */
+	g_test_add("/update_handler/update_handler/emptyfs_to_ext4/default",
+			UpdateHandlerFixture,
+			&testpair_matrix[65],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/emptyfs_to_ext4/no-slot",
+			UpdateHandlerFixture,
+			&testpair_matrix[66],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/emptyfs_to_ext4/pre-hook",
+			UpdateHandlerFixture,
+			&testpair_matrix[67],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/emptyfs_to_ext4/post-hook",
+			UpdateHandlerFixture,
+			&testpair_matrix[68],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/emptyfs_to_ext4/install-hook",
+			UpdateHandlerFixture,
+			&testpair_matrix[69],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/emptyfs_to_ext4/pre-hook/fail",
+			UpdateHandlerFixture,
+			&testpair_matrix[70],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/emptyfs_to_ext4/post-hook/fail",
+			UpdateHandlerFixture,
+			&testpair_matrix[71],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	g_test_add("/update_handler/update_handler/emptyfs_to_ext4/install-hook/fail",
+			UpdateHandlerFixture,
+			&testpair_matrix[72],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
