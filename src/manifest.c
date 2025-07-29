@@ -24,7 +24,6 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 	gsize entries;
 	g_auto(GStrv) converted = NULL;
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 
 	g_return_val_if_fail(key_file != NULL, FALSE);
 	g_return_val_if_fail(group != NULL, FALSE);
@@ -67,7 +66,7 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 	g_key_file_remove_key(key_file, group, "size", NULL);
 
@@ -82,7 +81,7 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 		} else {
 			g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
 					"slot hook type '%s' not supported", hooks[j]);
-			goto out;
+			return FALSE;
 		}
 	}
 	g_key_file_remove_key(key_file, group, "hooks", NULL);
@@ -92,7 +91,7 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 	if (iimage->filename == NULL) {
 		if (!iimage->hooks.install) {
 			g_propagate_error(error, ierror);
-			goto out;
+			return FALSE;
 		} else {
 			g_clear_error(&ierror);
 		}
@@ -117,15 +116,13 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 
 	if (!check_remaining_keys(key_file, group, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 	g_key_file_remove_group(key_file, group, NULL);
 
-	res = TRUE;
 	*image = g_steal_pointer(&iimage);
 
-out:
-	return res;
+	return TRUE;
 }
 
 static gboolean parse_meta(GKeyFile *key_file, const gchar *group, RaucManifest *raucm, GError **error)
@@ -416,7 +413,6 @@ gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GErr
 static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 {
 	gboolean have_hooks = FALSE;
-	gboolean res = FALSE;
 
 	g_return_val_if_fail(mf, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -427,21 +423,21 @@ static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 					"Failed to parse 'min-rauc-version'. Expected 'Major[.Minor[.Patch]][-pre_release]]', got '%s'",
 					mf->update_min_rauc_version
 					);
-			goto out;
+			return FALSE;
 		}
 		if (!r_semver_less_equal(mf->update_min_rauc_version, RAUC_MESON_VERSION, NULL)) {
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR,
 					"Minimum RAUC version in manifest (%s) is newer than current version (%s)",
 					mf->update_min_rauc_version, RAUC_MESON_VERSION
 					);
-			goto out;
+			return FALSE;
 		}
 		if (r_semver_less_equal(mf->update_min_rauc_version, "1.13", NULL)) {
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR,
 					"Minimum RAUC version field in manifest is only supported since 1.14 (not '%s')",
 					mf->update_min_rauc_version
 					);
-			goto out;
+			return FALSE;
 		}
 	}
 
@@ -453,7 +449,7 @@ static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 			break; /* data checked in _detached/_inline */
 		default: {
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported bundle format");
-			goto out;
+			return FALSE;
 		}
 	}
 
@@ -480,12 +476,10 @@ static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 
 	if (have_hooks && !mf->hook_name) {
 		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Hooks used, but no hook 'filename' defined in [hooks] section");
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
-out:
-	return res;
+	return TRUE;
 }
 
 static gboolean check_manifest_plain(const RaucManifest *mf, GError **error)
