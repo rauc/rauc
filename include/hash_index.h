@@ -149,3 +149,6 @@ void r_hash_index_free(RaucHashIndex *idx);
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucHashIndex, r_hash_index_free);
 
 #define R_HASH_INDEX_ZERO_CHUNK "\xad\x7f\xac\xb2\x58\x6f\xc6\xe9\x66\xc0\x4\xd7\xd1\xd1\x6b\x2\x4f\x58\x5\xff\x7c\xb4\x7c\x7a\x85\xda\xbd\x8b\x48\x89\x2c\xa7"
+
+/** Percentage steps reserved for hash index generation */
+#define R_HASH_INDEX_GEN_PROGRESS_SPAN 10

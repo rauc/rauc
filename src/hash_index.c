@@ -6,6 +6,7 @@
 
 #include <openssl/evp.h>
 
+#include "context.h"
 #include "hash_index.h"
 #include "utils.h"
 
@@ -83,6 +84,12 @@ static GBytes *hash_file(int data_fd, guint32 count, GError **error)
 		}
 		hash_chunk(chunk);
 		memcpy(&hashes->data[i*SHA256_LEN], chunk->hash, SHA256_LEN);
+
+		/* Split the overall hash index calculation into (R_HASH_INDEX_GEN_PROGRESS_SPAN - 1)
+		 * segments and increment the progress by one for each. */
+		if (r_context()->progress)
+			if (i % (count / (R_HASH_INDEX_GEN_PROGRESS_SPAN - 1)) == 0)
+				r_context_inc_step_percentage("copy_image");
 	}
 
 	return g_byte_array_free_to_bytes(g_steal_pointer(&hashes));

@@ -122,6 +122,47 @@ static void progress_test_explicit_percentage(void)
 	g_assert_cmpint(callback_counter, ==, 9);
 }
 
+/* Tests that going back and forth in step percentage does not break the
+ * progress.
+ * At the moment, this behavior is required for proper adaptive mode fallback.
+ */
+static void progress_test_explicit_percentage_backwards(void)
+{
+	/* reset global state */
+	callback_counter = 0;
+	last_percentage = 0;
+
+	r_context_begin_step("test_1", "testing step 1", 1);
+	r_context_begin_step("test_1.1", "testing step 1.1", 0);
+	g_assert_cmpint(last_percentage, ==, 0);
+
+	r_context_set_step_percentage("test_1.1", 50);
+	g_assert_cmpint(last_percentage, ==, 50);
+	g_assert_cmpint(callback_counter, ==, 3);
+
+	/* When jumping back, callback must not be called */
+	r_context_set_step_percentage("test_1.1", 25);
+	g_assert_cmpint(last_percentage, ==, 50);
+	g_assert_cmpint(callback_counter, ==, 3);
+
+	/* When increasing, but being below the so-far maximum,
+	 * callback still must not be called */
+	r_context_set_step_percentage("test_1.1", 30);
+	g_assert_cmpint(last_percentage, ==, 50);
+	g_assert_cmpint(callback_counter, ==, 3);
+
+	/* When exceedeing the so-far maximum, callback be called and progress
+	 * must proceed */
+	r_context_set_step_percentage("test_1.1", 75);
+	g_assert_cmpint(last_percentage, ==, 75);
+	g_assert_cmpint(callback_counter, ==, 4);
+
+	r_context_end_step("test_1.1", TRUE);
+	r_context_end_step("test_1", TRUE);
+	g_assert_cmpint(last_percentage, ==, 100);
+	g_assert_cmpint(callback_counter, ==, 6);
+}
+
 static void progress_test_weighted_steps(void)
 {
 	/* reset global state */
@@ -179,6 +220,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/progress/test_nesting", progress_test_nesting);
 	g_test_add_func("/progress/test_unsuccessful_substep", progress_test_unsuccessful_substep);
 	g_test_add_func("/progress/test_explicit_percentage", progress_test_explicit_percentage);
+	g_test_add_func("/progress/test_explicit_percentage_backwards", progress_test_explicit_percentage_backwards);
 	g_test_add_func("/progress/test_weighted_steps", progress_test_weighted_steps);
 
 	return g_test_run();

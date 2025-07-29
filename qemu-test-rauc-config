@@ -22,11 +22,11 @@ device=/tmp/rootdev
 bootname=B
 
 [slot.appfs.0]
-device=/dev/null
+device=/tmp/appdev0
 parent=rootfs.0
 
 [slot.appfs.1]
-device=/tmp/appdev
+device=/tmp/appdev1
 parent=rootfs.1
 
 [artifacts.files-single]
