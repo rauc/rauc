@@ -548,6 +548,9 @@ hierarchical separator.
   ``nand``, ``nor``, ``ubivol``, ``ubifs``, ``ext4``, ``vfat`` for normal slots
   and ``boot-emmc``, ``boot-mbr-switch``, ``boot-gpt-switch``, and ``boot-raw-fallback``
   for atomically updatable bootloader slots.
+  The type ``emmc-boot-linked`` can be used to group two eMMC boot slots
+  on the same device with other partitions, when incompatibilities
+  during updates can not be resolved differently.
   See table :ref:`sec-slot-type` for a more detailed list of these different types.
   Defaults to ``raw`` if none given.
 
@@ -628,7 +631,7 @@ hierarchical separator.
   .. warning:: The ``size-limit`` option is intended only for backwards
      compatibility and should not be used in new designs!
 
-  Valid for slot type ``boot-emmc`` only.
+  Valid for slot types ``boot-emmc`` and ``emmc-boot-linked`` only.
   Allows defining the maximum size of an eMMC boot partition to write.
   This is only useful if the eMMC boot partitions contain e.g. manufacturer
   at the end and, for certain reason, this cannot be migrated to a more
@@ -1646,7 +1649,7 @@ The following environment variables will be passed to the hook executable:
 
 ``RAUC_BOOT_SIZE_LIMIT``
   This maximum size of the boot partition to use.
-  ``boot-emmc`` slot type only.
+  ``boot-emmc`` and ``emmc-boot-linked`` slot type only.
 
 .. _sec_ref_dbus-api:
 
