@@ -13,6 +13,7 @@ GQuark r_manifest_error_quark(void);
 #define R_MANIFEST_PARSE_ERROR		3
 #define R_MANIFEST_EMPTY_STRING		4
 #define R_MANIFEST_CHECK_ERROR		5
+#define R_MANIFEST_ERROR_INVALID_TYPE 6
 
 typedef struct {
 	gboolean install_check;
@@ -30,6 +31,7 @@ typedef struct {
 	gchar* variant;
 	RaucChecksum checksum;
 	gchar* filename;
+	gchar* type;
 	SlotHooks hooks;
 	GStrv adaptive;
 	GStrv convert;
