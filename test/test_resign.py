@@ -189,6 +189,11 @@ def test_resign_extend_expired_no_verify(tmp_path):
     assert len(cms["signerInfos"]) == 1
     assert cms["signerInfos"][0]["issuer"] == SIGNERS["release-2018"][0]
     assert cms["signerInfos"][0]["serial"] == SIGNERS["release-2018"][1]
+    signing_time = cms["signerInfos"][0]["signedAttrs"]["signingTime"]
+    assert signing_time[0] == "utcTime"
+    assert signing_time[1].year == 2018
+    assert signing_time[1].month == 1
+    assert signing_time[1].day == 1
 
     out2_bundle = tmp_path / "out2.raucb"
 
@@ -208,3 +213,8 @@ def test_resign_extend_expired_no_verify(tmp_path):
     assert len(cms["signerInfos"]) == 1
     assert cms["signerInfos"][0]["issuer"] == SIGNERS["release-1"][0]
     assert cms["signerInfos"][0]["serial"] == SIGNERS["release-1"][1]
+    signing_time = cms["signerInfos"][0]["signedAttrs"]["signingTime"]
+    assert signing_time[0] == "utcTime"
+    assert signing_time[1].year == 2020
+    assert signing_time[1].month == 10
+    assert signing_time[1].day == 1
