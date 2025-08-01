@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
 import inspect
+from datetime import datetime
+
 from pyasn1.codec.der import decoder
 from pyasn1.type import univ, char
-from pyasn1_modules import rfc2315, rfc5280, rfc5480, rfc5652
+from pyasn1_modules import rfc2315, rfc5280, rfc5480, rfc5652, rfc5751
 
 
 def build_oid_map(modules):
@@ -17,7 +19,7 @@ def build_oid_map(modules):
     return oid_map
 
 
-OID_MAP = build_oid_map([rfc2315, rfc5280, rfc5480, rfc5652])
+OID_MAP = build_oid_map([rfc2315, rfc5280, rfc5480, rfc5652, rfc5751])
 
 
 def resolve_oid(oid):
@@ -57,6 +59,54 @@ def name_to_string(name):
             parts.append(f"{name}={value_str}")
 
     return ", ".join(parts)
+
+
+def utctime_to_datetime(utctime):
+    """
+    Decode an ASN.1 UTCTime string in YYMMDDHHMMSSZ format to a datetime object.
+    Assumes:
+      - YY in [00,49] => 2000..2049
+      - YY in [50,99] => 1950..1999 (ASN.1 UTCTime rule)
+    """
+
+    assert isinstance(utctime, str)
+    assert len(utctime) == 13
+    assert utctime[-1] == "Z"
+
+    year = int(utctime[0:2])
+    if year < 50:
+        year += 2000
+    else:
+        year += 1900
+    month = int(utctime[2:4])
+    day = int(utctime[4:6])
+    hour = int(utctime[6:8])
+    minute = int(utctime[8:10])
+    second = int(utctime[10:12])
+
+    return datetime(year, month, day, hour, minute, second)
+
+
+def attribute_to_string(typ, attr):
+    if typ == rfc5652.id_contentType:
+        contentType, _ = decoder.decode(attr, asn1Spec=rfc5652.ContentType())
+        return resolve_oid(str(contentType))
+    elif typ == rfc5652.id_signingTime:
+        signingTime, _ = decoder.decode(attr, asn1Spec=rfc5652.SigningTime())
+        if signingTime.getName() == "utcTime":
+            utcTime = str(signingTime.getComponent())
+            return ("utcTime", utctime_to_datetime(utcTime))
+        elif signingTime.getName() == "generalTime":
+            return ("generalTime", str(signingTime.getComponent()))
+        else:
+            raise ValueError(f"unknown signingTime type {signingTime.getName()}")
+    elif typ == rfc5652.id_messageDigest:
+        messageDigest, _ = decoder.decode(attr, asn1Spec=rfc5652.MessageDigest())
+        return bytes(messageDigest).hex()
+    elif typ == rfc5751.smimeCapabilities:
+        return ("smimeCapabilities", "(not decoded)")
+    else:
+        raise ValueError(f"unknown attribute type {resolve_oid(typ)}")
 
 
 def decode_cms_signed_data(content_info):
@@ -108,6 +158,13 @@ def decode_cms_signed_data(content_info):
         else:
             issuer = None
             serial = None
+        result_attrs = {}
+        attrs = signer_info.getComponentByName("signedAttrs")
+        for attr in attrs:
+            attr_type = attr.getComponentByName("attrType")
+            attr_values = attr.getComponentByName("attrValues")
+            assert len(attr_values) == 1
+            result_attrs[resolve_oid(attr_type)] = attribute_to_string(attr_type, attr_values[0])
         digest_algorithm = signer_info.getComponentByName("digestAlgorithm")
         sig_algorithm = signer_info.getComponentByName("signatureAlgorithm")
         signature = signer_info.getComponentByName("signature")
@@ -117,6 +174,7 @@ def decode_cms_signed_data(content_info):
                 "serial": int(serial),
                 "digestAlgorithm": resolve_oid(digest_algorithm.getComponentByName("algorithm")),
                 "signatureAlgorithm": resolve_oid(sig_algorithm.getComponentByName("algorithm")),
+                "signedAttrs": result_attrs,
                 "signature": bytes(signature),
             }
         )
