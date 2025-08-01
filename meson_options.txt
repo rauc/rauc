@@ -81,6 +81,11 @@ option(
   value : false,
   description : 'Enable/Disable HTML documentation')
 option(
+  'manpages',
+  type : 'boolean',
+  value : false,
+  description : 'Enable/Disable building and installing manual pages')
+option(
   'tests',
   type : 'boolean',
   value : true,
