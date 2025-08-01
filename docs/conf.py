@@ -88,3 +88,9 @@ latex_documents = [
   ('index', 'rauc.tex', u'RAUC Documentation',
    author, 'manual'),
 ]
+
+# -- Options for manual page output ---------------------------------------
+
+man_pages = [
+  ('man', 'rauc', 'safe and secure updating', '', 1),
+]

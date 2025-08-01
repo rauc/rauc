@@ -264,8 +264,6 @@ dbuswrapperdir = get_option('libexecdir')
 
 install_data('src/de.pengutronix.rauc.Installer.xml', install_dir : dbusinterfacesdir)
 
-install_man('rauc.1')
-
 rauc_build_root = meson.current_build_dir()
 
 subdir('data')

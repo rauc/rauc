@@ -1,4 +1,4 @@
-sphinx = find_program('sphinx-build', required: get_option('htmldocs'))
+sphinx = find_program('sphinx-build', required: get_option('htmldocs') or get_option('manpages'))
 
 if not sphinx.found()
   subdir_done()
@@ -15,6 +15,7 @@ sources_doc = files([
   'faq.rst',
   'index.rst',
   'integration.rst',
+  'man.rst',
   'reference.rst',
   'scenarios.rst',
   'terminology.rst',
@@ -30,4 +31,14 @@ custom_target(
   build_by_default: get_option('htmldocs'),
   install_dir: join_paths(datadir, 'doc', 'rauc'),
   install: get_option('htmldocs'),
+)
+
+custom_target(
+  'manpages',
+  output: ['rauc.1'],
+  depend_files: sources_doc,
+  command: [sphinx, '-b', 'man', meson.current_source_dir(), '@OUTDIR@'],
+  build_by_default: get_option('manpages'),
+  install: get_option('manpages'),
+  install_dir: join_paths(get_option('mandir'), 'man1'),
 )
