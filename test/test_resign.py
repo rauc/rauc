@@ -2,12 +2,44 @@ import shutil
 
 from conftest import have_faketime
 from helper import run
+from decode_cms import decode_cms
+
+
+# each signer cert's issuer + serial
+SIGNERS = {
+    "release-1": ("O=Test Org, CN=Test Org Provisioning CA Release", 1),
+    "release-2018": ("O=Test Org, CN=Test Org Provisioning CA Release", 2),
+    "autobuilder-1": ("O=Test Org, CN=Test Org Provisioning CA Development", 1),
+    "autobuilder-2": ("O=Test Org, CN=Test Org Provisioning CA Development", 2),
+}
+
+
+def get_cms(bundle_path):
+    with open(bundle_path, "rb") as bundle_file:
+        bundle_file.seek(-8, 2)
+        cms_length_bytes = bundle_file.read(8)
+        cms_length = int.from_bytes(cms_length_bytes, "big")
+        cms_start = bundle_file.tell() - cms_length - 8
+        bundle_file.seek(cms_start)
+        cms_data = bundle_file.read(cms_length)
+
+    return decode_cms(cms_data)
+
+
+def get_signers(bundle_path):
+    cms = get_cms(bundle_path)
+    assert cms["contentType"] == "signedData"
+
+    cms_signers = {(si["issuer"], si["serial"]) for si in cms["signerInfos"]}
+
+    return cms_signers
 
 
 def test_resign(tmp_path):
     # copy to tmp path for safe ownership check
     in_bundle = tmp_path / "in.raucb"
     shutil.copyfile("good-bundle.raucb", in_bundle)
+    assert get_signers(in_bundle) == {SIGNERS["release-1"]}
 
     out_bundle = tmp_path / "out.raucb"
     out, err, exitcode = run(
@@ -20,6 +52,7 @@ def test_resign(tmp_path):
     )
     assert exitcode == 0
     assert out_bundle.exists()
+    assert get_signers(out_bundle) == {SIGNERS["autobuilder-1"]}
 
     out, err, exitcode = run(f"rauc --keyring openssl-ca/rel-ca.pem info {out_bundle}")
     assert exitcode == 1
@@ -32,6 +65,7 @@ def test_resign_verity(tmp_path):
     # copy to tmp path for safe ownership check
     in_bundle = tmp_path / "in.raucb"
     shutil.copyfile("good-verity-bundle.raucb", in_bundle)
+    assert get_signers(in_bundle) == {SIGNERS["release-1"]}
 
     out_bundle = tmp_path / "out.raucb"
     out, err, exitcode = run(
@@ -44,6 +78,7 @@ def test_resign_verity(tmp_path):
     )
     assert exitcode == 0
     assert out_bundle.exists()
+    assert get_signers(out_bundle) == {SIGNERS["autobuilder-1"]}
 
     out, err, exitcode = run(f"rauc --keyring openssl-ca/rel-ca.pem info {out_bundle}")
     assert exitcode == 1
@@ -56,6 +91,7 @@ def test_resign_crypt(tmp_path):
     # copy to tmp path for safe ownership check
     in_bundle = tmp_path / "in.raucb"
     shutil.copyfile("good-crypt-bundle-unencrypted.raucb", in_bundle)
+    assert get_signers(in_bundle) == {SIGNERS["autobuilder-1"]}
 
     out_bundle = tmp_path / "out.raucb"
     out, err, exitcode = run(
@@ -66,10 +102,9 @@ def test_resign_crypt(tmp_path):
         f" resign {in_bundle} {out_bundle}"
         " --signing-keyring openssl-ca/rel-ca.pem"
     )
-
     assert exitcode == 0
-
     assert out_bundle.exists()
+    assert get_signers(out_bundle) == {SIGNERS["release-1"]}
 
     out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-only-ca.pem info {out_bundle}")
     assert exitcode == 1
@@ -146,8 +181,12 @@ def test_resign_extend_expired_no_verify(tmp_path):
         f" bundle install-content {out1_bundle}"
     )
     assert exitcode == 0
-
     assert out1_bundle.exists()
+
+    cms = get_cms(out1_bundle)
+    assert len(cms["signerInfos"]) == 1
+    assert cms["signerInfos"][0]["issuer"] == SIGNERS["release-2018"][0]
+    assert cms["signerInfos"][0]["serial"] == SIGNERS["release-2018"][1]
 
     out2_bundle = tmp_path / "out2.raucb"
 
@@ -162,3 +201,8 @@ def test_resign_extend_expired_no_verify(tmp_path):
     assert exitcode == 0
 
     assert out2_bundle.exists()
+
+    cms = get_cms(out2_bundle)
+    assert len(cms["signerInfos"]) == 1
+    assert cms["signerInfos"][0]["issuer"] == SIGNERS["release-1"][0]
+    assert cms["signerInfos"][0]["serial"] == SIGNERS["release-1"][1]
