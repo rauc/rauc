@@ -687,6 +687,102 @@ out:
 	return res;
 }
 
+static void debug_cms_ci(CMS_ContentInfo *cms);
+
+GBytes *cms_append_signature(GBytes *input_sig, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(CMS_ContentInfo) cms = NULL;
+	BIO *insig = bytes_as_bio(input_sig);
+	BIO *outsig = BIO_new(BIO_s_mem());
+	g_autoptr(X509) signcert = NULL;
+	g_autoptr(EVP_PKEY) pkey = NULL;
+	GBytes *output_sig = NULL;
+	int flags = CMS_BINARY | CMS_NOSMIMECAP | CMS_REUSE_DIGEST;
+
+	g_return_val_if_fail(input_sig != NULL, NULL);
+	g_return_val_if_fail(certfile != NULL, NULL);
+	g_return_val_if_fail(keyfile != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	if (!(cms = d2i_CMS_bio(insig, NULL))) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE,
+				"failed to parse signature");
+		goto out;
+	}
+
+	debug_cms_ci(cms);
+
+	signcert = load_cert(certfile, &ierror);
+	if (signcert == NULL) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	pkey = load_key(keyfile, &ierror);
+	if (pkey == NULL) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	for (gchar **intercertpath = interfiles; intercertpath && *intercertpath != NULL; intercertpath++) {
+		X509 *intercert = load_cert(*intercertpath, &ierror);
+		if (intercert == NULL) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+		if (!CMS_add0_cert(cms, intercert)) {
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_CREATE_SIG,
+					"failed to add intermediate certificate: %s", get_openssl_err_string());
+			goto out;
+		}
+	}
+
+	if (!CMS_add1_signer(cms, signcert, pkey, NULL, flags)) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_CREATE_SIG,
+				"failed to create signature: %s", get_openssl_err_string());
+		goto out;
+	}
+
+	debug_cms_ci(cms);
+
+	if (!i2d_CMS_bio(outsig, cms)) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_SERIALIZE_SIG,
+				"failed to serialize signature");
+		goto out;
+	}
+
+	output_sig = bytes_from_bio(outsig);
+
+	if (!output_sig) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_UNKNOWN,
+				"Read zero bytes");
+		goto out;
+	}
+
+out:
+	ERR_print_errors_fp(stdout);
+	BIO_free_all(insig);
+	BIO_free_all(outsig);
+	return output_sig;
+}
+
 gchar* get_pubkey_hash(X509 *cert)
 {
 	g_autoptr(GString) string = NULL;

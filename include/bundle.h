@@ -133,16 +133,18 @@ G_GNUC_WARN_UNUSED_RESULT;
  * This will create a copy of a bundle with a new signature but unmodified
  * content.
  *
+ * If append is true, the signature is not replaced but appended to.
  * Note that check_bundle() must be called prior to this, to obtain a
  * RaucBundle struct.
  *
  * @param bundle RaucBundle struct as returned by check_bundle()
  * @param outpath filename of the resigned output bundle
+ * @param append whether the signature should be appended
  * @param error Return location for a GError
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
+gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, gboolean append, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**

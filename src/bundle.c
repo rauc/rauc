@@ -869,13 +869,36 @@ static gboolean append_signature_to_bundle(const gchar *bundlename, GBytes *sig,
 	return TRUE;
 }
 
+static GBytes *append_signature(GBytes *input_sig, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(input_sig, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_assert_nonnull(r_context()->certpath);
+	g_assert_nonnull(r_context()->keypath);
+
+	g_autoptr(GBytes) output_sig = cms_append_signature(input_sig,
+			r_context()->certpath,
+			r_context()->keypath,
+			r_context()->intermediatepaths,
+			&ierror);
+	if (output_sig == NULL) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	return g_steal_pointer(&output_sig);
+}
+
 static GBytes *generate_bundle_signature(const gchar *bundlename, RaucManifest *manifest, GError **error)
 {
 	GError *ierror = NULL;
 
-	g_return_val_if_fail(bundlename, FALSE);
-	g_return_val_if_fail(manifest, FALSE);
-	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+	g_return_val_if_fail(bundlename, NULL);
+	g_return_val_if_fail(manifest, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	g_assert_nonnull(r_context()->certpath);
 	g_assert_nonnull(r_context()->keypath);
@@ -1437,7 +1460,7 @@ static gboolean truncate_bundle(const gchar *inpath, const gchar *outpath, goffs
 	return TRUE;
 }
 
-gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
+gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, gboolean append, GError **error)
 {
 	GError *ierror = NULL;
 
@@ -1476,7 +1499,12 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, GError **error)
 		return FALSE;
 	}
 
-	g_autoptr(GBytes) sig = generate_bundle_signature(outpath, manifest, &ierror);
+	g_autoptr(GBytes) sig = NULL;
+	if (append) {
+		sig = append_signature(bundle->sigdata, &ierror);
+	} else {
+		sig = generate_bundle_signature(outpath, manifest, &ierror);
+	}
 	if (!sig) {
 		g_propagate_error(error, ierror);
 		return FALSE;
