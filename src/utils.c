@@ -881,6 +881,19 @@ gboolean r_fakeroot_cleanup(const gchar *envpath, GError **error)
 	return rm_tree(tmpdir, error);
 }
 
+void r_tempfile_cleanup(gchar *filename)
+{
+	if (!filename)
+		return;
+
+	if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
+		if (g_unlink(filename) != 0)
+			g_warning("failed to remove %s", filename);
+	}
+
+	g_free(filename);
+}
+
 gchar *r_bytes_unref_to_string(GBytes **bytes)
 {
 	g_return_val_if_fail(bytes != NULL && *bytes != NULL, NULL);
