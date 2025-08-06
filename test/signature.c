@@ -967,6 +967,30 @@ static void signature_append_inline(SignatureFixture *fixture, gconstpointer use
 	g_assert_null(manifest);
 }
 
+/* assert that the cert has the expected common name */
+static G_GNUC_UNUSED void assert_X509_subject_cn(const X509 *cert, const gchar *expected)
+{
+	g_assert_nonnull(cert);
+
+	X509_NAME *name = X509_get_subject_name(cert);
+	g_assert_nonnull(name);
+
+	int index = X509_NAME_get_index_by_NID(name, NID_commonName, -1);
+	g_assert_cmpint(index, >=, 0);
+
+	const X509_NAME_ENTRY *cn = X509_NAME_get_entry(name, index);
+	g_assert_nonnull(cn);
+
+	const unsigned char* cn_value = ASN1_STRING_get0_data(X509_NAME_ENTRY_get_data(cn));
+	g_assert_nonnull(cn_value);
+
+	/* the should be no more common names */
+	index = X509_NAME_get_index_by_NID(name, NID_commonName, index);
+	g_assert_cmpint(index, ==, -1);
+
+	g_assert_cmpstr(expected, ==, (gchar*)cn_value);
+}
+
 static void signature_append_partial(SignatureFixture *fixture, gconstpointer user_data)
 {
 	gboolean res;
