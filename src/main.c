@@ -497,6 +497,14 @@ static gboolean write_slot_start(int argc, char **argv)
 	image->checksum.size = g_file_info_get_size(info);
 	image->filename = g_strdup(argv[3]);
 
+	const gchar *derived_type = derive_image_type_from_filename_pattern(image->filename);
+	if (derived_type == NULL) {
+		g_printerr("Unable to map extension of file '%s' to known image type\n", image->filename);
+		r_exit_status = 1;
+		return TRUE;
+	}
+	image->type = g_strdup(derived_type);
+
 	/* retrieve RaucSlot */
 	slot = g_hash_table_lookup(r_context()->config->slots, argv[2]);
 	if (slot == NULL) {
