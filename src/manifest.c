@@ -4,12 +4,15 @@
 #include "config_file.h"
 #include "context.h"
 #include "manifest.h"
+#include "glib.h"
 #include "signature.h"
+#include "update_handler.h"
 #include "utils.h"
 
 #define RAUC_IMAGE_PREFIX	"image"
 
 #define R_MANIFEST_ERROR r_manifest_error_quark()
+
 GQuark r_manifest_error_quark(void)
 {
 	return g_quark_from_static_string("r_manifest_error_quark");
@@ -94,6 +97,35 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 			return FALSE;
 		} else {
 			g_clear_error(&ierror);
+		}
+	}
+
+	/* Setting the 'type' option for artifacts is not supported */
+	if (!iimage->artifact) {
+		iimage->type_from_fileext = FALSE;
+		iimage->type = key_file_consume_string(key_file, group, "type", &ierror);
+		if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+			/* If no type is set, derive it from filename extension to support manifests without type */
+			g_clear_error(&ierror);
+			if (!iimage->hooks.install) {
+				const gchar *derived_type = derive_image_type_from_filename_pattern(iimage->filename);
+				if (derived_type == NULL) {
+					g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE,
+							"No 'type=' set and unable to map extension of file '%s' to known image type", iimage->filename);
+					return FALSE;
+				}
+				iimage->type_from_fileext = TRUE;
+				iimage->type = g_strdup(derived_type);
+			}
+		} else if (ierror) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+
+		if (!iimage->hooks.install && !is_image_type_supported(iimage->type)) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_INVALID_IMAGE_TYPE,
+					"Unsupported image type '%s'", iimage->type);
+			return FALSE;
 		}
 	}
 
@@ -903,6 +935,9 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 		if (image->filename)
 			g_key_file_set_string(key_file, group, "filename", image->filename);
 
+		if (image->type && !image->type_from_fileext)
+			g_key_file_set_string(key_file, group, "type", image->type);
+
 		if (image->hooks.pre_install == TRUE) {
 			g_ptr_array_add(hooklist, g_strdup("pre-install"));
 		}
@@ -1165,6 +1200,7 @@ void r_free_image(gpointer data)
 	g_free(image->variant);
 	g_free(image->checksum.digest);
 	g_free(image->filename);
+	g_free(image->type);
 	g_strfreev(image->adaptive);
 	g_strfreev(image->convert);
 	g_clear_pointer(&image->converted, g_ptr_array_unref);
