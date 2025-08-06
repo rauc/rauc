@@ -1097,6 +1097,11 @@ gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
 	return bio_mem_unwrap(text);
 }
 
+static int cmp_x509(const X509 * const *a, const X509 * const *b)
+{
+	return X509_cmp(*a, *b);
+}
+
 static STACK_OF(X509) *cms_get_signer_certs(CMS_ContentInfo *cms, GError **error)
 {
 	g_return_val_if_fail(cms != NULL, NULL);
@@ -1111,6 +1116,10 @@ static STACK_OF(X509) *cms_get_signer_certs(CMS_ContentInfo *cms, GError **error
 				"Failed to obtain signer info");
 		return NULL;
 	}
+
+	/* provide a stable order of signers */
+	sk_X509_set_cmp_func(signers, cmp_x509);
+	sk_X509_sort(signers);
 
 	return g_steal_pointer(&signers);
 }
@@ -1198,8 +1207,14 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 		return FALSE;
 	}
 
+	/* Allow one or more signers.
+	 * If we have multiple signers, build the chain for the first, as there is
+	 * currently no way in RAUC to require more than one and so the additional
+	 * ones can be ignored.
+	 * When we support requiring multiple signers, we'll need to extend this
+	 * and the bundle info output to support multiple chains. */
 	gint signer_cnt = sk_X509_num(signers);
-	if (signer_cnt != 1) {
+	if (signer_cnt < 1) {
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
