@@ -779,7 +779,10 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 	/* parse [system] section */
 	c->system_compatible = key_file_consume_string(key_file, "system", "compatible", &ierror);
-	if (!c->system_compatible) {
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_clear_pointer(&c->system_compatible, g_free);
+		g_clear_error(&ierror);
+	} else if (ierror) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
@@ -1315,6 +1318,12 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 gboolean check_config_target(const RaucConfig *config, GError **error)
 {
+	if (!config->system_compatible) {
+		g_set_error_literal(error, R_CONFIG_ERROR, R_CONFIG_ERROR_MISSING_OPTION,
+				"System compatible string is not set");
+		return FALSE;
+	}
+
 	return TRUE;
 }
 
