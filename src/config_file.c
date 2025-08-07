@@ -772,6 +772,39 @@ static gboolean parse_keyring_section(const gchar *filename, GKeyFile *key_file,
 	return TRUE;
 }
 
+static gboolean parse_casync_section(GKeyFile *key_file, RaucConfig *c, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(key_file, FALSE);
+	g_return_val_if_fail(c, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!g_key_file_has_group(key_file, "casync"))
+		return TRUE;
+
+	c->store_path = key_file_consume_string(key_file, "casync", "storepath", NULL);
+	c->tmp_path = key_file_consume_string(key_file, "casync", "tmppath", NULL);
+	c->casync_install_args = key_file_consume_string(key_file, "casync", "install-args", NULL);
+	c->use_desync = g_key_file_get_boolean(key_file, "casync", "use-desync", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		c->use_desync = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "casync", "use-desync", NULL);
+	if (!check_remaining_keys(key_file, "casync", &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_group(key_file, "casync", NULL);
+
+	return TRUE;
+}
+
 static GHashTable *parse_slots(const char *filename, const char *data_directory, GKeyFile *key_file, GError **error)
 {
 	GError *ierror = NULL;
@@ -1220,24 +1253,10 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 
 	/* parse [casync] section */
-	c->store_path = key_file_consume_string(key_file, "casync", "storepath", NULL);
-	c->tmp_path = key_file_consume_string(key_file, "casync", "tmppath", NULL);
-	c->casync_install_args = key_file_consume_string(key_file, "casync", "install-args", NULL);
-	c->use_desync = g_key_file_get_boolean(key_file, "casync", "use-desync", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
-	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
-		c->use_desync = FALSE;
-		g_clear_error(&ierror);
-	} else if (ierror) {
+	if (!parse_casync_section(key_file, c, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
-	g_key_file_remove_key(key_file, "casync", "use-desync", NULL);
-	if (!check_remaining_keys(key_file, "casync", &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_group(key_file, "casync", NULL);
 
 	/* parse [streaming] section */
 	c->streaming_sandbox_user = key_file_consume_string(key_file, "streaming", "sandbox-user", NULL);
