@@ -847,6 +847,30 @@ static gboolean parse_streaming_section(GKeyFile *key_file, RaucConfig *c, GErro
 	return TRUE;
 }
 
+static gboolean parse_encryption_section(const gchar *filename, GKeyFile *key_file, RaucConfig *c, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(key_file, FALSE);
+	g_return_val_if_fail(c, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!g_key_file_has_group(key_file, "encryption"))
+		return TRUE;
+
+	c->encryption_key = resolve_path_take(filename,
+			key_file_consume_string(key_file, "encryption", "key", NULL));
+	c->encryption_cert = resolve_path_take(filename,
+			key_file_consume_string(key_file, "encryption", "cert", NULL));
+	if (!check_remaining_keys(key_file, "encryption", &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_group(key_file, "encryption", NULL);
+
+	return TRUE;
+}
+
 static GHashTable *parse_slots(const char *filename, const char *data_directory, GKeyFile *key_file, GError **error)
 {
 	GError *ierror = NULL;
@@ -1306,15 +1330,10 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 
 	/* parse [encryption] section */
-	c->encryption_key = resolve_path_take(filename,
-			key_file_consume_string(key_file, "encryption", "key", NULL));
-	c->encryption_cert = resolve_path_take(filename,
-			key_file_consume_string(key_file, "encryption", "cert", NULL));
-	if (!check_remaining_keys(key_file, "encryption", &ierror)) {
+	if (!parse_encryption_section(filename, key_file, c, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
-	g_key_file_remove_group(key_file, "encryption", NULL);
 
 	/* parse [autoinstall] section */
 	c->autoinstall_path = resolve_path_take(filename,
