@@ -687,6 +687,91 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 	return TRUE;
 }
 
+static gboolean parse_keyring_section(const gchar *filename, GKeyFile *key_file, RaucConfig *c, GError **error)
+{
+	GError *ierror = NULL;
+	gsize entries;
+
+	g_return_val_if_fail(key_file, FALSE);
+	g_return_val_if_fail(c, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!g_key_file_has_group(key_file, "keyring"))
+		return TRUE;
+
+	c->keyring_path = resolve_path_take(filename,
+			key_file_consume_string(key_file, "keyring", "path", NULL));
+	c->keyring_directory = resolve_path_take(filename,
+			key_file_consume_string(key_file, "keyring", "directory", NULL));
+
+	c->keyring_check_crl = g_key_file_get_boolean(key_file, "keyring", "check-crl", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		c->keyring_check_crl = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "keyring", "check-crl", NULL);
+
+	c->keyring_allow_partial_chain = g_key_file_get_boolean(key_file, "keyring", "allow-partial-chain", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		c->keyring_allow_partial_chain = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "keyring", "allow-partial-chain", NULL);
+
+	c->use_bundle_signing_time = g_key_file_get_boolean(key_file, "keyring", "use-bundle-signing-time", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		c->use_bundle_signing_time = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "keyring", "use-bundle-signing-time", NULL);
+
+	c->keyring_check_purpose = key_file_consume_string(key_file, "keyring", "check-purpose", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		g_assert_null(c->keyring_check_purpose);
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	/* Rewrite 'codesign' check-purpose to RAUC's internal 'codesign-rauc' check-purpose
+	 * to avoid conflicts with purpose definition from OpenSSL 3.2.0. */
+	if (g_strcmp0(c->keyring_check_purpose, "codesign") == 0) {
+		g_free(c->keyring_check_purpose);
+		c->keyring_check_purpose = g_strdup("codesign-rauc");
+	}
+
+	c->keyring_allowed_signer_cns = g_key_file_get_string_list(key_file, "keyring", "allowed-signer-cns", &entries, &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "keyring", "allowed-signer-cns", NULL);
+
+	if (!check_remaining_keys(key_file, "keyring", &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_group(key_file, "keyring", NULL);
+
+	return TRUE;
+}
+
 static GHashTable *parse_slots(const char *filename, const char *data_directory, GKeyFile *key_file, GError **error)
 {
 	GError *ierror = NULL;
@@ -1129,75 +1214,10 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 
 	/* parse [keyring] section */
-	c->keyring_path = resolve_path_take(filename,
-			key_file_consume_string(key_file, "keyring", "path", NULL));
-	c->keyring_directory = resolve_path_take(filename,
-			key_file_consume_string(key_file, "keyring", "directory", NULL));
-
-	c->keyring_check_crl = g_key_file_get_boolean(key_file, "keyring", "check-crl", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
-	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
-		c->keyring_check_crl = FALSE;
-		g_clear_error(&ierror);
-	} else if (ierror) {
+	if (!parse_keyring_section(filename, key_file, c, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
-	g_key_file_remove_key(key_file, "keyring", "check-crl", NULL);
-
-	c->keyring_allow_partial_chain = g_key_file_get_boolean(key_file, "keyring", "allow-partial-chain", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
-	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
-		c->keyring_allow_partial_chain = FALSE;
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_key(key_file, "keyring", "allow-partial-chain", NULL);
-
-	c->use_bundle_signing_time = g_key_file_get_boolean(key_file, "keyring", "use-bundle-signing-time", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
-	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
-		c->use_bundle_signing_time = FALSE;
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_key(key_file, "keyring", "use-bundle-signing-time", NULL);
-
-	c->keyring_check_purpose = key_file_consume_string(key_file, "keyring", "check-purpose", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
-	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
-		g_assert_null(c->keyring_check_purpose);
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	/* Rewrite 'codesign' check-purpose to RAUC's internal 'codesign-rauc' check-purpose
-	 * to avoid conflicts with purpose definition from OpenSSL 3.2.0. */
-	if (g_strcmp0(c->keyring_check_purpose, "codesign") == 0) {
-		g_free(c->keyring_check_purpose);
-		c->keyring_check_purpose = g_strdup("codesign-rauc");
-	}
-
-	c->keyring_allowed_signer_cns = g_key_file_get_string_list(key_file, "keyring", "allowed-signer-cns", &entries, &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
-	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_key(key_file, "keyring", "allowed-signer-cns", NULL);
-
-	if (!check_remaining_keys(key_file, "keyring", &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_group(key_file, "keyring", NULL);
 
 	/* parse [casync] section */
 	c->store_path = key_file_consume_string(key_file, "casync", "storepath", NULL);
