@@ -1302,9 +1302,19 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		return FALSE;
 	}
 
+	if (!check_config_target(c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
 	/* on success, return config struct */
 	*config = g_steal_pointer(&c);
 
+	return TRUE;
+}
+
+gboolean check_config_target(const RaucConfig *config, GError **error)
+{
 	return TRUE;
 }
 
