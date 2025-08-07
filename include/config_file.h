@@ -150,6 +150,17 @@ G_GNUC_WARN_UNUSED_RESULT;
 void default_config(RaucConfig **config);
 
 /**
+ * Check if a configuration satisfies the requirements for on-target use.
+ *
+ * @param config pointer to the config to check
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE on success, FALSE if an error occurred
+ */
+gboolean check_config_target(const RaucConfig *config, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Finds a config slot given the device path.
  *
  * @param config a RaucConfig
