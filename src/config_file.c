@@ -805,6 +805,48 @@ static gboolean parse_casync_section(GKeyFile *key_file, RaucConfig *c, GError *
 	return TRUE;
 }
 
+static gboolean parse_streaming_section(GKeyFile *key_file, RaucConfig *c, GError **error)
+{
+	GError *ierror = NULL;
+	gsize entries;
+
+	g_return_val_if_fail(key_file, FALSE);
+	g_return_val_if_fail(c, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!g_key_file_has_group(key_file, "streaming"))
+		return TRUE;
+
+	c->streaming_sandbox_user = key_file_consume_string(key_file, "streaming", "sandbox-user", NULL);
+	c->streaming_tls_cert = key_file_consume_string(key_file, "streaming", "tls-cert", NULL);
+	c->streaming_tls_key = key_file_consume_string(key_file, "streaming", "tls-key", NULL);
+	c->streaming_tls_ca = key_file_consume_string(key_file, "streaming", "tls-ca", NULL);
+	c->enabled_headers = g_key_file_get_string_list(key_file, "streaming", "send-headers", &entries, &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	} else {
+		for (gsize j = 0; j < entries; j++) {
+			if (!r_install_is_supported_http_header(c->enabled_headers[j])) {
+				g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+						"Automatic HTTP header '%s' not supported", c->enabled_headers[j]);
+				return FALSE;
+			}
+		}
+	}
+	g_key_file_remove_key(key_file, "streaming", "send-headers", NULL);
+	if (!check_remaining_keys(key_file, "streaming", &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_group(key_file, "streaming", NULL);
+
+	return TRUE;
+}
+
 static GHashTable *parse_slots(const char *filename, const char *data_directory, GKeyFile *key_file, GError **error)
 {
 	GError *ierror = NULL;
@@ -1208,7 +1250,6 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	gsize length;
 	g_autoptr(RaucConfig) c = g_new0(RaucConfig, 1);
 	g_autoptr(GKeyFile) key_file = NULL;
-	gsize entries;
 
 	g_return_val_if_fail(filename, FALSE);
 	g_return_val_if_fail(config && *config == NULL, FALSE);
@@ -1259,32 +1300,10 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 
 	/* parse [streaming] section */
-	c->streaming_sandbox_user = key_file_consume_string(key_file, "streaming", "sandbox-user", NULL);
-	c->streaming_tls_cert = key_file_consume_string(key_file, "streaming", "tls-cert", NULL);
-	c->streaming_tls_key = key_file_consume_string(key_file, "streaming", "tls-key", NULL);
-	c->streaming_tls_ca = key_file_consume_string(key_file, "streaming", "tls-ca", NULL);
-	c->enabled_headers = g_key_file_get_string_list(key_file, "streaming", "send-headers", &entries, &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
-	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	} else {
-		for (gsize j = 0; j < entries; j++) {
-			if (!r_install_is_supported_http_header(c->enabled_headers[j])) {
-				g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
-						"Automatic HTTP header '%s' not supported", c->enabled_headers[j]);
-				return FALSE;
-			}
-		}
-	}
-	g_key_file_remove_key(key_file, "streaming", "send-headers", NULL);
-	if (!check_remaining_keys(key_file, "streaming", &ierror)) {
+	if (!parse_streaming_section(key_file, c, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
-	g_key_file_remove_group(key_file, "streaming", NULL);
 
 	/* parse [encryption] section */
 	c->encryption_key = resolve_path_take(filename,
