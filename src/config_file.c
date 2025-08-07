@@ -1317,13 +1317,115 @@ void r_config_file_modified_check(void)
 	}
 }
 
+/**
+ * Parse a configuration, supplied as text in GKeyFile format.
+ *
+ * @param filename filename to resolve relative path names, or NULL
+ * @param data the text to parse
+ * @param length the length of data in bytes
+ * @param error return location for a GError, or NULL
+ *
+ * @return a RaucConfig on success, NULL if there were errors
+ */
+static RaucConfig *parse_config(const gchar *filename, const gchar *data, gsize length, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(RaucConfig) c = g_new0(RaucConfig, 1);
+	g_autoptr(GKeyFile) key_file = NULL;
+
+	g_return_val_if_fail(data, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	c->file_checksum = g_compute_checksum_for_data(G_CHECKSUM_SHA256, (guchar*) data, length);
+
+	key_file = g_key_file_new();
+
+	if (!g_key_file_load_from_data(key_file, data, length, G_KEY_FILE_NONE, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* process overrides */
+	for (GList *l = r_context_conf()->configoverride; l != NULL; l = l->next) {
+		ConfigFileOverride *override = (ConfigFileOverride *)l->data;
+		g_key_file_set_value(key_file, override->section, override->name, override->value);
+	}
+
+	/* parse [system] section */
+	if (!parse_system_section(filename, key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [keyring] section */
+	if (!parse_keyring_section(filename, key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [casync] section */
+	if (!parse_casync_section(key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [streaming] section */
+	if (!parse_streaming_section(key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [encryption] section */
+	if (!parse_encryption_section(filename, key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [autoinstall] section */
+	if (!parse_autoinstall_section(filename, key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [handlers] section */
+	if (!parse_handlers_section(filename, key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	if (!r_event_log_parse_config_sections(key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [slot.*.#] sections */
+	c->slots = parse_slots(filename, c->data_directory, key_file, &ierror);
+	if (!c->slots) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [artifacts.*] sections */
+	c->artifact_repos = parse_artifact_repos(filename, c->data_directory, key_file, &ierror);
+	if (!c->artifact_repos) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	if (!check_remaining_groups(key_file, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	return g_steal_pointer(&c);
+}
+
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 {
 	GError *ierror = NULL;
 	g_autofree gchar *data = NULL;
 	gsize length;
-	g_autoptr(RaucConfig) c = g_new0(RaucConfig, 1);
-	g_autoptr(GKeyFile) key_file = NULL;
+	g_autoptr(RaucConfig) c = NULL;
 
 	g_return_val_if_fail(filename, FALSE);
 	g_return_val_if_fail(config && *config == NULL, FALSE);
@@ -1340,88 +1442,13 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		return FALSE;
 	}
 
-	c->file_checksum = g_compute_checksum_for_data(G_CHECKSUM_SHA256, (guchar*) data, length);
-
-	key_file = g_key_file_new();
-
-	if (!g_key_file_load_from_data(key_file, data, length, G_KEY_FILE_NONE, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	/* process overrides */
-	for (GList *l = r_context_conf()->configoverride; l != NULL; l = l->next) {
-		ConfigFileOverride *override = (ConfigFileOverride *)l->data;
-		g_key_file_set_value(key_file, override->section, override->name, override->value);
-	}
-
-	/* parse [system] section */
-	if (!parse_system_section(filename, key_file, c, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	/* parse [keyring] section */
-	if (!parse_keyring_section(filename, key_file, c, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	/* parse [casync] section */
-	if (!parse_casync_section(key_file, c, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	/* parse [streaming] section */
-	if (!parse_streaming_section(key_file, c, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	/* parse [encryption] section */
-	if (!parse_encryption_section(filename, key_file, c, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	/* parse [autoinstall] section */
-	if (!parse_autoinstall_section(filename, key_file, c, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	/* parse [handlers] section */
-	if (!parse_handlers_section(filename, key_file, c, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	if (!r_event_log_parse_config_sections(key_file, c, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	/* parse [slot.*.#] sections */
-	c->slots = parse_slots(filename, c->data_directory, key_file, &ierror);
-	if (!c->slots) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	/* parse [artifacts.*] sections */
-	c->artifact_repos = parse_artifact_repos(filename, c->data_directory, key_file, &ierror);
-	if (!c->artifact_repos) {
+	c = parse_config(filename, data, length, &ierror);
+	if (!c) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
 	if (!check_unique_slotclasses(c, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	if (!check_remaining_groups(key_file, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
