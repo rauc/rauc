@@ -810,21 +810,11 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 
 	c->system_bootloader = key_file_consume_string(key_file, "system", "bootloader", NULL);
-	if (!c->system_bootloader) {
-		g_set_error_literal(
-				error,
-				R_CONFIG_ERROR,
-				R_CONFIG_ERROR_BOOTLOADER,
-				"No bootloader selected in system config");
-		return FALSE;
-	}
-
-	if (!r_boot_is_supported_bootloader(c->system_bootloader)) {
-		g_set_error(
-				error,
-				R_CONFIG_ERROR,
-				R_CONFIG_ERROR_BOOTLOADER,
-				"Unsupported bootloader '%s' selected in system config", c->system_bootloader);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_clear_pointer(&c->system_bootloader, g_free);
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
@@ -1321,6 +1311,18 @@ gboolean check_config_target(const RaucConfig *config, GError **error)
 	if (!config->system_compatible) {
 		g_set_error_literal(error, R_CONFIG_ERROR, R_CONFIG_ERROR_MISSING_OPTION,
 				"System compatible string is not set");
+		return FALSE;
+	}
+
+	if (!config->system_bootloader) {
+		g_set_error_literal(error, R_CONFIG_ERROR, R_CONFIG_ERROR_BOOTLOADER,
+				"No bootloader selected in system config");
+		return FALSE;
+	}
+	if (!r_boot_is_supported_bootloader(config->system_bootloader)) {
+		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_BOOTLOADER,
+				"Unsupported bootloader '%s' selected in system config",
+				config->system_bootloader);
 		return FALSE;
 	}
 
