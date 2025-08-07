@@ -17,24 +17,6 @@ G_DEFINE_QUARK(r-slot-error-quark, r_slot_error)
 
 #define RAUC_SLOT_PREFIX	"slot"
 
-void default_config(RaucConfig **config)
-{
-	RaucConfig *c = g_new0(RaucConfig, 1);
-
-	c->max_bundle_download_size = DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE;
-	c->max_bundle_signature_size = DEFAULT_MAX_BUNDLE_SIGNATURE_SIZE;
-	c->mount_prefix = g_strdup("/mnt/rauc/");
-	/* When installing, we need a system.conf anyway, so this is used only
-	 * for info/convert/extract/...
-	 */
-	c->bundle_formats_mask =
-		1 << R_MANIFEST_FORMAT_PLAIN |
-		        1 << R_MANIFEST_FORMAT_VERITY |
-		        1 << R_MANIFEST_FORMAT_CRYPT;
-
-	*config = c;
-}
-
 static gboolean fix_grandparent_links(GHashTable *slots, GError **error)
 {
 	/* Every child slot in a group must refer to the same parent.
@@ -623,8 +605,9 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 		if (c->data_directory) {
 			c->statusfile_path = g_build_filename(c->data_directory, "central.raucs", NULL);
 		} else {
-			g_message("No data directory or status file set, falling back to per-slot status.\n"
-					"Consider setting 'data-directory=<path>' or 'statusfile=<path>/per-slot' explicitly.");
+			if (filename)
+				g_message("No data directory or status file set, falling back to per-slot status.\n"
+						"Consider setting 'data-directory=<path>' or 'statusfile=<path>/per-slot' explicitly.");
 			c->statusfile_path = g_strdup("per-slot");
 		}
 		g_clear_error(&ierror);
@@ -642,7 +625,8 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 					"Using data-directory= with statusfile=per-slot is not supported.");
 			return FALSE;
 		}
-		g_message("Using per-slot statusfile. System status information not supported!");
+		if (filename)
+			g_message("Using per-slot statusfile. System status information not supported!");
 	} else {
 		gchar *resolved = resolve_path(filename, c->statusfile_path);
 		g_free(c->statusfile_path);
@@ -1418,6 +1402,24 @@ static RaucConfig *parse_config(const gchar *filename, const gchar *data, gsize 
 	}
 
 	return g_steal_pointer(&c);
+}
+
+void default_config(RaucConfig **config)
+{
+	GError *ierror = NULL;
+
+	g_return_if_fail(config && *config == NULL);
+
+	/* Use an empty system section to honor defaults from parse_system_section.
+	 * After we have implemented explicit defaults there, we can use an empty
+	 * string here. */
+	const gchar *data = "[system]";
+	RaucConfig *c = parse_config(NULL, data, strlen(data), &ierror);
+	if (!c) {
+		g_error("Failed to initialize default config: %s", ierror->message);
+	}
+
+	*config = c;
 }
 
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
