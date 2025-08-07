@@ -871,6 +871,28 @@ static gboolean parse_encryption_section(const gchar *filename, GKeyFile *key_fi
 	return TRUE;
 }
 
+static gboolean parse_autoinstall_section(const gchar *filename, GKeyFile *key_file, RaucConfig *c, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(key_file, FALSE);
+	g_return_val_if_fail(c, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!g_key_file_has_group(key_file, "autoinstall"))
+		return TRUE;
+
+	c->autoinstall_path = resolve_path_take(filename,
+			key_file_consume_string(key_file, "autoinstall", "path", NULL));
+	if (!check_remaining_keys(key_file, "autoinstall", &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_group(key_file, "autoinstall", NULL);
+
+	return TRUE;
+}
+
 static GHashTable *parse_slots(const char *filename, const char *data_directory, GKeyFile *key_file, GError **error)
 {
 	GError *ierror = NULL;
@@ -1336,13 +1358,10 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 
 	/* parse [autoinstall] section */
-	c->autoinstall_path = resolve_path_take(filename,
-			key_file_consume_string(key_file, "autoinstall", "path", NULL));
-	if (!check_remaining_keys(key_file, "autoinstall", &ierror)) {
+	if (!parse_autoinstall_section(filename, key_file, c, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
-	g_key_file_remove_group(key_file, "autoinstall", NULL);
 
 	/* parse [handlers] section */
 	c->systeminfo_handler = resolve_path_take(filename,
