@@ -518,6 +518,40 @@ static void regex_match_test(void)
 	g_assert_null(tmp);
 }
 
+static void tempfile_cleanup_test(void)
+{
+	g_autofree gchar *tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	g_auto(RTempFile) filename = g_build_filename(tmpdir, "file", NULL);
+	g_assert_false(g_file_test(filename, G_FILE_TEST_EXISTS));
+
+	/* test missing file */
+	{
+		g_auto(RTempFile) temp_filename = g_strdup(filename);
+		(void)temp_filename;
+	}
+	g_assert_false(g_file_test(filename, G_FILE_TEST_EXISTS));
+
+	/* test normal file */
+	{
+		g_auto(RTempFile) temp_filename = g_strdup(filename);
+		g_auto(filedesc) temp_fd = g_open(temp_filename, O_RDWR|O_CLOEXEC|O_CREAT, 0);
+		(void)temp_fd;
+		g_assert_true(g_file_test(temp_filename, G_FILE_TEST_EXISTS));
+	}
+	g_assert_false(g_file_test(filename, G_FILE_TEST_EXISTS));
+
+	/* test directory instead of file (should warn) */
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "failed to remove */file");
+	{
+		g_auto(RTempFile) temp_filename = g_strdup(filename);
+		g_mkdir(temp_filename, 0777);
+		g_assert_true(g_file_test(temp_filename, G_FILE_TEST_EXISTS));
+	}
+	g_assert_cmpint(g_rmdir(filename), ==, 0);
+	g_test_assert_expected_messages();
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -537,6 +571,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/utils/semver_less_equal_test", semver_less_equal_test);
 	g_test_add_func("/utils/format_duration", format_duration_test);
 	g_test_add_func("/utils/regex_match", regex_match_test);
+	g_test_add_func("/utils/tempfile_cleanup", tempfile_cleanup_test);
 
 	return g_test_run();
 }
