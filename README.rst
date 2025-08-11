@@ -221,7 +221,7 @@ Running the Test Suite
 
 .. code-block:: sh
 
-    sudo apt-get install qemu-system-x86 time squashfs-tools python3-pytest python3-dasbus
+    sudo apt-get install qemu-system-x86 time squashfs-tools e2fsprogs python3-pytest python3-dasbus python3-aiohttp python3-requests python3-pyasn1 python3-pyasn1-modules
     # Optional to run all tests:
     # sudo apt-get install faketime casync grub-common openssl softhsm2 opensc opensc-pkcs11 libengine-pkcs11-openssl mtd-utils
     ./qemu-test
