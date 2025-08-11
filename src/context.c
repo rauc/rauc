@@ -27,7 +27,13 @@ static gchar* get_machine_id(void)
 	}
 
 	/* file contains newline, modify in-place */
-	return g_strchomp(contents);
+	g_strchomp(contents);
+	if (!contents[0]) {
+		g_info("Failed to get machine-id: empty file");
+		return NULL;
+	}
+
+	return contents;
 }
 
 static gchar* get_boot_id(void)
