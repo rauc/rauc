@@ -140,6 +140,7 @@ jobs:
         - "ubuntu:22.04"
         - "ubuntu:24.04"
         - "debian:bullseye"
+        - "debian:trixie"
         - "debian:testing"
     steps:
     - uses: actions/checkout@v4
