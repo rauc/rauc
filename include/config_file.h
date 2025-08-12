@@ -144,11 +144,17 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
- * Creates a default rauc system configuration.
+ * Creates a default RAUC system configuration for usage on the host.
+ *
+ * As this processes config overrides from the command line, errors can be
+ * returned.
  *
  * @param config a location to place the new config
+ * @param error a GError, or NULL
+ *
+ * @return TRUE if the configuration was successfully initialized. FALSE if there were errors.
  */
-void default_config(RaucConfig **config);
+gboolean default_config(RaucConfig **config, GError **error);
 
 /**
  * Check if a configuration satisfies the requirements for on-target use.
