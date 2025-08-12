@@ -3,13 +3,63 @@ Release 1.15 (development)
 
 .. rubric:: Enhancements
 
+* Support sending a ``RAUC-System-Version`` HTTP header in the initial
+  streaming/inspect request.
+* When using the service, send `custom HTTP headers
+  <https://rauc.readthedocs.io/en/latest/reference.html#handlers-section>`_ set
+  by the ``system-info`` handler for ``rauc info``/``InspectBundle()`` as well.
+* Set up groups of the streaming helper process to allow access to required
+  resources (such as a mTLS private key). (by Omri Sarig)
+* Improve booted slot detection on UEFI systems by reading the ``BootCurrent``
+  variable. (by Pavel Löbl)
+* Refactor boot slot detection to prioritize explicit information from the
+  bootloader backend above the ``root=`` kernel commandline parameter.
+* Introduce the ``allowed-signer-cns`` configuration option to restrict which
+  certificates are accepted when verifying bundle signatures using a list of
+  CommonNames. (by Lars Schmidt)
+* Allow (non-hidden) directories in bundles.
+  Hidden directories are reserved for internal use by RAUC. (by Jens Kehne)
+* Produce progress updates for adaptive updates during block-hash-index
+  generation.
+* Support a ``size-limit`` configuration option for the ``boot-emmc`` slot
+  type.
+  This can be used in cases where unrelated data on the eMMC boot partitions
+  must be preserved and migrating it to a dedicated location is not feasible.
+
 .. rubric:: Bug fixes
+
+* Fix memory leak on G_IO_ERROR_NO_SPACE in ``clear_slot()``. (by Jialu Zhou)
+* Improve error handling for manually modified bundles with unaligned payload.
+  (by Janek Filus)
 
 .. rubric:: Testing
 
+* Fix test failures with OpenSSL 3.5, which were caused by repeated
+  initialization.
+
 .. rubric:: Code
 
+* Support building without OpenSSL PKCS11 engine support. (by Bruno Thomsen)
+* Improve log messages when marking slots as (non-)bootable. (by Leon Anavi)
+* Use explicit boolean default values in ``meson_options.txt``. (by Lars Schmidt)
+* Simplify the ``boot-emmc`` update handler to use ``copy_raw_image_to_dev()``.
+* Some preparations for native polling in the service (ETag based caching).
+* Some preparations for multiple signature support.
+* Check the eMMC boot partition size before attempting to write to it.
+* Explicitly license the D-Bus introspection data as CC0-1.0 to avoid some
+  friction when packaging RAUC.
+* Minor code cleanups (return handling, g_auto).
+
 .. rubric:: Documentation
+
+* Convert manual page source to rst and build it using sphinx.
+  This also allows us to show it in the `HTML documentation
+  <https://rauc.readthedocs.io/en/latest/man.html>`_.
+  Due to the additional dependency, it is no longer build and installed by
+  default, though.
+  Pass ``-Dmanpages=true`` to meson to re-enable this.
+* Fix the selection logic in the ``grub.cfg`` example code. (by Linus Wallgren)
+* Document which options support binary size suffixes.
 
 Contributions from:
 
