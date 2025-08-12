@@ -1404,11 +1404,12 @@ static RaucConfig *parse_config(const gchar *filename, const gchar *data, gsize 
 	return g_steal_pointer(&c);
 }
 
-void default_config(RaucConfig **config)
+gboolean default_config(RaucConfig **config, GError **error)
 {
 	GError *ierror = NULL;
 
-	g_return_if_fail(config && *config == NULL);
+	g_return_val_if_fail(config && *config == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* Use an empty system section to honor defaults from parse_system_section.
 	 * After we have implemented explicit defaults there, we can use an empty
@@ -1416,10 +1417,13 @@ void default_config(RaucConfig **config)
 	const gchar *data = "[system]";
 	RaucConfig *c = parse_config(NULL, data, strlen(data), &ierror);
 	if (!c) {
-		g_error("Failed to initialize default config: %s", ierror->message);
+		g_propagate_prefixed_error(error, ierror, "Failed to initialize default config: ");
+		return FALSE;
 	}
 
 	*config = c;
+
+	return TRUE;
 }
 
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)

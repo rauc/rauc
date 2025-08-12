@@ -483,7 +483,10 @@ gboolean r_context_configure(GError **error)
 		/* This is a hack as we cannot get rid of config easily */
 		/* Fallthrough */
 		case R_CONTEXT_CONFIG_MODE_NONE:
-			default_config(&context->config);
+			if (!default_config(&context->config, &ierror)) {
+				g_propagate_error(error, ierror);
+				return FALSE;
+			}
 			break;
 		default:
 			g_error("invalid context config mode %d", configmode);
