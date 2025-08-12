@@ -22,6 +22,7 @@ Contents:
    checklist
    faq
    reference
+   man
    terminology
    contributing
 
