@@ -140,7 +140,18 @@ jobs:
         - "ubuntu:22.04"
         - "ubuntu:24.04"
         - "debian:bullseye"
+        - "debian:bookworm"
+        - "debian:trixie"
         - "debian:testing"
+        include:
+        - release: "ubuntu:24.04"
+          test: true
+        - release: "debian:bookworm"
+          test: true
+        - release: "debian:trixie"
+          test: true
+        - release: "debian:testing"
+          test: true
     steps:
     - uses: actions/checkout@v4
 
@@ -157,6 +168,11 @@ jobs:
       run: |
         podman exec -i stable find .github/workflows/patches/${{ matrix.release }}/ -type f -name "*.patch" -print0 | sort -z | xargs -t -n 1 -r -0 patch -p1 -f -i
 
+    - name: Install test dependencies
+      if: ${{ matrix.test }}
+      run: |
+        podman exec -e DEBIAN_FRONTEND='noninteractive' -i -u root stable apt-get install -qy python3-pytest python3-dasbus python3-aiohttp python3-requests python3-pyasn1 python3-pyasn1-modules openssl e2fsprogs grub-common faketime
+
     - name: Configure
       run: |
         podman exec -i stable meson setup -Dgpt=disabled -Dwerror=true build
@@ -164,6 +180,11 @@ jobs:
     - name: Build
       run: |
         podman exec -i stable ninja -C build
+
+    - name: Test
+      if: ${{ matrix.test }}
+      run: |
+        podman exec -i stable meson test -C build --suite rauc --timeout-multiplier 3
 
     - name: Show logs
       if: ${{ failure() }}

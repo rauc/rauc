@@ -107,7 +107,8 @@ def test_info_headers(create_system_files, system, http_server, api):
     first_headers = summary["first_request_headers"]
     assert first_headers.pop("User-Agent").startswith("rauc/")
     assert is_uuid(first_headers.pop("RAUC-Boot-ID"))
-    if Path("/etc/machine-id").exists():
+    machine_id = Path("/etc/machine-id")
+    if machine_id.exists() and machine_id.stat().st_size > 0:
         assert is_uuid(first_headers.pop("RAUC-Machine-ID"))
     else:
         assert "RAUC-Machine-ID" not in first_headers
