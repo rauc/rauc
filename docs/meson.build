@@ -21,6 +21,7 @@ sources_doc = files([
   'terminology.rst',
   'updating.rst',
   'using.rst',
+  '../CHANGES',
 ])
 
 custom_target(
