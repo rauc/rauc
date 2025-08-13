@@ -1,6 +1,8 @@
 #include "bootchooser.h"
+#include "config_file.h"
 #include "event_log.h"
 #include "context.h"
+#include "glib.h"
 #include "install.h"
 #include "mark.h"
 #include "slot.h"
@@ -141,6 +143,17 @@ gboolean r_mark_active(RaucSlot *slot, GError **error)
 	r_slot_status_load(slot);
 	slot_state = slot->status;
 
+	/* It is more sensible to unlock the counter, before marking it primary. Reversing the order would create
+	 * an unintended corner case where a power cut could leave the system configured to boot from a new,
+	 * untested slot without the ability to fall back if that slot fails to boot properly, as it would
+	 * still be locked. So we prepary the safety mechanisms first and then do the potentially risky operation. */
+	if (r_context()->config->prevent_late_fallback == R_CONFIG_FALLBACK_LOCK_COUNTER) {
+		if (!r_boot_set_counters_lock(FALSE, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+	}
+
 	if (!r_boot_set_primary(slot, &ierror)) {
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
 				"failed to activate slot %s: %s", slot->name, ierror->message);
@@ -154,7 +167,6 @@ gboolean r_mark_active(RaucSlot *slot, GError **error)
 	now = g_date_time_new_now_utc();
 	slot_state->activated_timestamp = g_date_time_format(now, "%Y-%m-%dT%H:%M:%SZ");
 	slot_state->activated_count++;
-
 	if (!r_slot_status_save(slot, &ierror)) {
 		g_message("Error while writing status file: %s", ierror->message);
 		g_error_free(ierror);
@@ -170,11 +182,22 @@ gboolean r_mark_good(RaucSlot *slot, GError **error)
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	/* It is more sensible to mark the slot as good before locking the counter. As in case of a power fail between
+	 * marking and locking, the boot lock counter could be set by a mark-good on a later boot.
+	 * In case of a problem during the next boot we'd have a system with a working fallback to the old slot, so
+	 * the system would still fall back to the other slot if the current one fails, as the bootcounter has not been locked yet. */
 	if (!r_boot_set_state(slot, TRUE, &ierror)) {
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
 				"Failed marking slot %s as good:  %s", slot->name, ierror->message);
 		g_error_free(ierror);
 		return FALSE;
+	}
+
+	if (r_context()->config->prevent_late_fallback == R_CONFIG_FALLBACK_LOCK_COUNTER) {
+		if (!r_boot_set_counters_lock(TRUE, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
 	}
 
 	r_event_log_mark_good(slot);
@@ -230,7 +253,7 @@ gboolean mark_run(const gchar *state,
 			return FALSE;
 		}
 
-		if (r_context()->config->prevent_late_fallback
+		if (r_context()->config->prevent_late_fallback == R_CONFIG_FALLBACK_MARK_BAD
 		    && g_strcmp0(slot_identifier, "booted") == 0) {
 			g_autofree gchar *mark_bad_message = NULL;
 
