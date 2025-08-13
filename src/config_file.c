@@ -558,7 +558,7 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 	/* parse 'variant-name' key */
 	variant_data = key_file_consume_string(key_file, "system", "variant-name", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		variant_data = NULL;
+		g_clear_pointer(&variant_data, g_free);
 		g_clear_error(&ierror);
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
