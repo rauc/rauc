@@ -369,6 +369,8 @@ For more information about using the streaming support of RAUC, refer to
   This option can be used to set the path of the CA certificate which should be
   used instead of the system wide store of trusted TLS/HTTPS certificates.
 
+.. _send-headers:
+
 ``send-headers`` (optional)
   This option takes a ``;``-separated list of information to send as HTTP
   header fields to the server with the first request.
