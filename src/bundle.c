@@ -1156,7 +1156,12 @@ static gboolean link_contentdir_to_workdir(const gchar *contentdir, const gchar 
 
 		if (g_file_test(oldpath, G_FILE_TEST_IS_DIR)) {
 			struct stat stat_data = {};
-			g_stat(oldpath, &stat_data);
+			if (g_stat(oldpath, &stat_data) < 0) {
+				int err = errno;
+				g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
+						"failed to get file status for '%s': %s", oldpath, g_strerror(err));
+				return FALSE;
+			}
 			if (g_mkdir(newpath, stat_data.st_mode & (S_IRWXU|S_IRWXG|S_IRWXO)) != 0) {
 				int err = errno;
 				g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
