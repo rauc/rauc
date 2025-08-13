@@ -545,7 +545,7 @@ static void tempfile_cleanup_test(void)
 	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "failed to remove */file");
 	{
 		g_auto(RTempFile) temp_filename = g_strdup(filename);
-		g_mkdir(temp_filename, 0777);
+		g_assert_cmpint(g_mkdir(temp_filename, 0777), ==, 0);
 		g_assert_true(g_file_test(temp_filename, G_FILE_TEST_EXISTS));
 	}
 	g_assert_cmpint(g_rmdir(filename), ==, 0);
