@@ -17,24 +17,6 @@ G_DEFINE_QUARK(r-slot-error-quark, r_slot_error)
 
 #define RAUC_SLOT_PREFIX	"slot"
 
-void default_config(RaucConfig **config)
-{
-	RaucConfig *c = g_new0(RaucConfig, 1);
-
-	c->max_bundle_download_size = DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE;
-	c->max_bundle_signature_size = DEFAULT_MAX_BUNDLE_SIGNATURE_SIZE;
-	c->mount_prefix = g_strdup("/mnt/rauc/");
-	/* When installing, we need a system.conf anyway, so this is used only
-	 * for info/convert/extract/...
-	 */
-	c->bundle_formats_mask =
-		1 << R_MANIFEST_FORMAT_PLAIN |
-		        1 << R_MANIFEST_FORMAT_VERITY |
-		        1 << R_MANIFEST_FORMAT_CRYPT;
-
-	*config = c;
-}
-
 static gboolean fix_grandparent_links(GHashTable *slots, GError **error)
 {
 	/* Every child slot in a group must refer to the same parent.
@@ -334,6 +316,591 @@ static gboolean r_event_log_parse_config_sections(GKeyFile *key_file, RaucConfig
 		/* insert new logger in list */
 		config->loggers = g_list_append(config->loggers, g_steal_pointer(&logger));
 	}
+
+	return TRUE;
+}
+
+static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, RaucConfig *c, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean dtbvariant;
+	g_autofree gchar *variant_data = NULL;
+	g_autofree gchar *version_data = NULL;
+	g_autofree gchar *bundle_formats = NULL;
+
+	g_return_val_if_fail(key_file, FALSE);
+	g_return_val_if_fail(c, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	c->system_compatible = key_file_consume_string(key_file, "system", "compatible", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_clear_pointer(&c->system_compatible, g_free);
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	/* check optional 'min-bundle-version' key for validity */
+	version_data = key_file_consume_string(key_file, "system", "min-bundle-version", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_clear_pointer(&version_data, g_free);
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	if (version_data) {
+		if (!r_semver_less_equal("0", version_data, NULL)) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_INVALID_FORMAT,
+					"Min version format invalid, expected: Major[.Minor[.Patch]][-pre_release], got: %s",
+					version_data);
+			return FALSE;
+		}
+		c->system_min_bundle_version = g_steal_pointer(&version_data);
+	}
+
+	c->system_bootloader = key_file_consume_string(key_file, "system", "bootloader", NULL);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_clear_pointer(&c->system_bootloader, g_free);
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (g_strcmp0(c->system_bootloader, "barebox") == 0) {
+		c->system_bb_statename = key_file_consume_string(key_file, "system", "barebox-statename", NULL);
+		c->system_bb_dtbpath = key_file_consume_string(key_file, "system", "barebox-dtbpath", NULL);
+	} else if (g_strcmp0(c->system_bootloader, "grub") == 0) {
+		c->grubenv_path = resolve_path_take(filename,
+				key_file_consume_string(key_file, "system", "grubenv", NULL));
+		if (!c->grubenv_path) {
+			g_debug("No grubenv path provided, using /boot/grub/grubenv as default");
+			c->grubenv_path = g_strdup("/boot/grub/grubenv");
+		}
+	} else if (g_strcmp0(c->system_bootloader, "efi") == 0) {
+		c->efi_use_bootnext = g_key_file_get_boolean(key_file, "system", "efi-use-bootnext", &ierror);
+		if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+			c->efi_use_bootnext = TRUE;
+			g_clear_error(&ierror);
+		} else if (ierror) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+		g_key_file_remove_key(key_file, "system", "efi-use-bootnext", NULL);
+	} else if (g_strcmp0(c->system_bootloader, "custom") == 0) {
+		c->custom_bootloader_backend = resolve_path_take(filename,
+				key_file_consume_string(key_file, "handlers", "bootloader-custom-backend", NULL));
+		if (!c->custom_bootloader_backend) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_BOOTLOADER,
+					"No custom bootloader backend defined");
+			return FALSE;
+		}
+	}
+
+	c->boot_default_attempts = key_file_consume_integer(key_file, "system", "boot-attempts", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		c->boot_default_attempts = 0; /* to indicate 'unset' */
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	if (c->boot_default_attempts < 0) {
+		g_set_error(
+				error,
+				R_CONFIG_ERROR,
+				R_CONFIG_ERROR_BOOTLOADER,
+				"Value for \"boot-attempts\" must not be negative");
+		return FALSE;
+	}
+
+	c->boot_attempts_primary = key_file_consume_integer(key_file, "system", "boot-attempts-primary", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		c->boot_attempts_primary = 0; /* to indicate 'unset' */
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	if (c->boot_attempts_primary < 0) {
+		g_set_error(
+				error,
+				R_CONFIG_ERROR,
+				R_CONFIG_ERROR_BOOTLOADER,
+				"Value for \"boot-attempts-primary\" must not be negative");
+		return FALSE;
+	}
+	if (c->boot_default_attempts > 0 || c->boot_attempts_primary > 0) {
+		if ((g_strcmp0(c->system_bootloader, "uboot") != 0) && (g_strcmp0(c->system_bootloader, "barebox") != 0)) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_BOOTLOADER,
+					"Configuring boot attempts is valid for uboot or barebox only (not for %s)", c->system_bootloader);
+			return FALSE;
+		}
+	}
+
+	c->max_bundle_download_size = g_key_file_get_uint64(key_file, "system", "max-bundle-download-size", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_debug("No value for key \"max-bundle-download-size\" in [system] defined "
+				"- using default value of %d bytes.", DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE);
+		c->max_bundle_download_size = DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	} else if (ENABLE_STREAMING) {
+		g_message("Using max-bundle-download-size with streaming has no effect.");
+	}
+	if (c->max_bundle_download_size == 0) {
+		g_set_error(
+				error,
+				R_CONFIG_ERROR,
+				R_CONFIG_ERROR_MAX_BUNDLE_DOWNLOAD_SIZE,
+				"Invalid value (%" G_GUINT64_FORMAT ") for key \"max-bundle-download-size\" in system config", c->max_bundle_download_size);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "system", "max-bundle-download-size", NULL);
+
+	c->max_bundle_signature_size = g_key_file_get_uint64(key_file, "system", "max-bundle-signature-size", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_debug("No value for key \"max-bundle-signature-size\" in [system] defined "
+				"- using default value of %d bytes.", DEFAULT_MAX_BUNDLE_SIGNATURE_SIZE);
+		c->max_bundle_signature_size = DEFAULT_MAX_BUNDLE_SIGNATURE_SIZE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	if (c->max_bundle_signature_size == 0) {
+		g_set_error(
+				error,
+				R_CONFIG_ERROR,
+				R_CONFIG_ERROR_MAX_BUNDLE_SIGNATURE_SIZE,
+				"Invalid value (%" G_GUINT64_FORMAT ") for key \"max-bundle-signature-size\" in system config", c->max_bundle_signature_size);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "system", "max-bundle-signature-size", NULL);
+
+	c->mount_prefix = key_file_consume_string(key_file, "system", "mountprefix", NULL);
+	if (!c->mount_prefix) {
+		g_debug("No mount prefix provided, using /mnt/rauc/ as default");
+		c->mount_prefix = g_strdup("/mnt/rauc/");
+	}
+
+	c->activate_installed = g_key_file_get_boolean(key_file, "system", "activate-installed", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		c->activate_installed = TRUE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "system", "activate-installed", NULL);
+
+	c->system_variant_type = R_CONFIG_SYS_VARIANT_NONE;
+
+	/* parse 'variant-dtb' key */
+	dtbvariant = g_key_file_get_boolean(key_file, "system", "variant-dtb", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		dtbvariant = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "system", "variant-dtb", NULL);
+	if (dtbvariant)
+		c->system_variant_type = R_CONFIG_SYS_VARIANT_DTB;
+
+	c->prevent_late_fallback = g_key_file_get_boolean(key_file, "system", "prevent-late-fallback", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		c->prevent_late_fallback = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "system", "prevent-late-fallback", NULL);
+
+	/* parse 'variant-file' key */
+	variant_data = key_file_consume_string(key_file, "system", "variant-file", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_clear_pointer(&variant_data, g_free);
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	if (variant_data) {
+		if (c->system_variant_type != R_CONFIG_SYS_VARIANT_NONE) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_INVALID_FORMAT,
+					"Only one of the keys 'variant-file', variant-dtb','variant-name' is allowed");
+			return FALSE;
+		}
+
+		c->system_variant_type = R_CONFIG_SYS_VARIANT_FILE;
+		c->system_variant = g_steal_pointer(&variant_data);
+	}
+
+	/* parse 'variant-name' key */
+	variant_data = key_file_consume_string(key_file, "system", "variant-name", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		variant_data = NULL;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	if (variant_data) {
+		if (c->system_variant_type != R_CONFIG_SYS_VARIANT_NONE) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_INVALID_FORMAT,
+					"Only one of the keys 'variant-file', variant-dtb','variant-name' is allowed");
+			return FALSE;
+		}
+
+		c->system_variant_type = R_CONFIG_SYS_VARIANT_NAME;
+		c->system_variant = g_steal_pointer(&variant_data);
+	}
+
+	/* parse data/status location
+	 *
+	 * We have multiple levels of backwards compatibility:
+	 * - per-slot status and no shared data directory
+	 *   (by default or explicitly with ``statusfile=per-slot``)
+	 * - central status file and no shared data directory
+	 *   (``statusfile=/data/central.raucs``)
+	 * - central status file and shared data directory
+	 *   (``statusfile=/data/central.raucs`` and ``data-directory=/data/rauc``)
+	 * - central status file in shared data directory
+	 *   (``data-directory=/data/rauc``, implies ``statusfile=/data/rauc/central.raucs``)
+	 */
+	c->data_directory = resolve_path_take(filename,
+			key_file_consume_string(key_file, "system", "data-directory", &ierror));
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	c->statusfile_path = key_file_consume_string(key_file, "system", "statusfile", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_assert_null(c->statusfile_path);
+		if (c->data_directory) {
+			c->statusfile_path = g_build_filename(c->data_directory, "central.raucs", NULL);
+		} else {
+			if (filename)
+				g_message("No data directory or status file set, falling back to per-slot status.\n"
+						"Consider setting 'data-directory=<path>' or 'statusfile=<path>/per-slot' explicitly.");
+			c->statusfile_path = g_strdup("per-slot");
+		}
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (g_strcmp0(c->statusfile_path, "per-slot") == 0) {
+		if (c->data_directory) {
+			g_set_error(
+					error,
+					R_CONFIG_ERROR,
+					R_CONFIG_ERROR_DATA_DIRECTORY,
+					"Using data-directory= with statusfile=per-slot is not supported.");
+			return FALSE;
+		}
+		if (filename)
+			g_message("Using per-slot statusfile. System status information not supported!");
+	} else {
+		gchar *resolved = resolve_path(filename, c->statusfile_path);
+		g_free(c->statusfile_path);
+		c->statusfile_path = resolved;
+		g_message("Using central status file %s", c->statusfile_path);
+	}
+
+	/* parse bundle formats */
+	c->bundle_formats_mask =
+		1 << R_MANIFEST_FORMAT_PLAIN |
+		        1 << R_MANIFEST_FORMAT_VERITY |
+		        1 << R_MANIFEST_FORMAT_CRYPT;
+	bundle_formats = key_file_consume_string(key_file, "system", "bundle-formats", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	} else {
+		if (!parse_bundle_formats(&c->bundle_formats_mask, bundle_formats, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+	}
+
+	c->perform_pre_check = g_key_file_get_boolean(key_file, "system", "perform-pre-check", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		c->perform_pre_check = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "system", "perform-pre-check", NULL);
+
+	if (!check_remaining_keys(key_file, "system", &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_group(key_file, "system", NULL);
+
+	return TRUE;
+}
+
+static gboolean parse_keyring_section(const gchar *filename, GKeyFile *key_file, RaucConfig *c, GError **error)
+{
+	GError *ierror = NULL;
+	gsize entries;
+
+	g_return_val_if_fail(key_file, FALSE);
+	g_return_val_if_fail(c, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!g_key_file_has_group(key_file, "keyring"))
+		return TRUE;
+
+	c->keyring_path = resolve_path_take(filename,
+			key_file_consume_string(key_file, "keyring", "path", NULL));
+	c->keyring_directory = resolve_path_take(filename,
+			key_file_consume_string(key_file, "keyring", "directory", NULL));
+
+	c->keyring_check_crl = g_key_file_get_boolean(key_file, "keyring", "check-crl", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		c->keyring_check_crl = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "keyring", "check-crl", NULL);
+
+	c->keyring_allow_partial_chain = g_key_file_get_boolean(key_file, "keyring", "allow-partial-chain", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		c->keyring_allow_partial_chain = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "keyring", "allow-partial-chain", NULL);
+
+	c->use_bundle_signing_time = g_key_file_get_boolean(key_file, "keyring", "use-bundle-signing-time", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		c->use_bundle_signing_time = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "keyring", "use-bundle-signing-time", NULL);
+
+	c->keyring_check_purpose = key_file_consume_string(key_file, "keyring", "check-purpose", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		g_assert_null(c->keyring_check_purpose);
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	/* Rewrite 'codesign' check-purpose to RAUC's internal 'codesign-rauc' check-purpose
+	 * to avoid conflicts with purpose definition from OpenSSL 3.2.0. */
+	if (g_strcmp0(c->keyring_check_purpose, "codesign") == 0) {
+		g_free(c->keyring_check_purpose);
+		c->keyring_check_purpose = g_strdup("codesign-rauc");
+	}
+
+	c->keyring_allowed_signer_cns = g_key_file_get_string_list(key_file, "keyring", "allowed-signer-cns", &entries, &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "keyring", "allowed-signer-cns", NULL);
+
+	if (!check_remaining_keys(key_file, "keyring", &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_group(key_file, "keyring", NULL);
+
+	return TRUE;
+}
+
+static gboolean parse_casync_section(GKeyFile *key_file, RaucConfig *c, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(key_file, FALSE);
+	g_return_val_if_fail(c, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!g_key_file_has_group(key_file, "casync"))
+		return TRUE;
+
+	c->store_path = key_file_consume_string(key_file, "casync", "storepath", NULL);
+	c->tmp_path = key_file_consume_string(key_file, "casync", "tmppath", NULL);
+	c->casync_install_args = key_file_consume_string(key_file, "casync", "install-args", NULL);
+	c->use_desync = g_key_file_get_boolean(key_file, "casync", "use-desync", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		c->use_desync = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "casync", "use-desync", NULL);
+	if (!check_remaining_keys(key_file, "casync", &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_group(key_file, "casync", NULL);
+
+	return TRUE;
+}
+
+static gboolean parse_streaming_section(GKeyFile *key_file, RaucConfig *c, GError **error)
+{
+	GError *ierror = NULL;
+	gsize entries;
+
+	g_return_val_if_fail(key_file, FALSE);
+	g_return_val_if_fail(c, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!g_key_file_has_group(key_file, "streaming"))
+		return TRUE;
+
+	c->streaming_sandbox_user = key_file_consume_string(key_file, "streaming", "sandbox-user", NULL);
+	c->streaming_tls_cert = key_file_consume_string(key_file, "streaming", "tls-cert", NULL);
+	c->streaming_tls_key = key_file_consume_string(key_file, "streaming", "tls-key", NULL);
+	c->streaming_tls_ca = key_file_consume_string(key_file, "streaming", "tls-ca", NULL);
+	c->enabled_headers = g_key_file_get_string_list(key_file, "streaming", "send-headers", &entries, &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	} else {
+		for (gsize j = 0; j < entries; j++) {
+			if (!r_install_is_supported_http_header(c->enabled_headers[j])) {
+				g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+						"Automatic HTTP header '%s' not supported", c->enabled_headers[j]);
+				return FALSE;
+			}
+		}
+	}
+	g_key_file_remove_key(key_file, "streaming", "send-headers", NULL);
+	if (!check_remaining_keys(key_file, "streaming", &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_group(key_file, "streaming", NULL);
+
+	return TRUE;
+}
+
+static gboolean parse_encryption_section(const gchar *filename, GKeyFile *key_file, RaucConfig *c, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(key_file, FALSE);
+	g_return_val_if_fail(c, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!g_key_file_has_group(key_file, "encryption"))
+		return TRUE;
+
+	c->encryption_key = resolve_path_take(filename,
+			key_file_consume_string(key_file, "encryption", "key", NULL));
+	c->encryption_cert = resolve_path_take(filename,
+			key_file_consume_string(key_file, "encryption", "cert", NULL));
+	if (!check_remaining_keys(key_file, "encryption", &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_group(key_file, "encryption", NULL);
+
+	return TRUE;
+}
+
+static gboolean parse_autoinstall_section(const gchar *filename, GKeyFile *key_file, RaucConfig *c, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(key_file, FALSE);
+	g_return_val_if_fail(c, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!g_key_file_has_group(key_file, "autoinstall"))
+		return TRUE;
+
+	c->autoinstall_path = resolve_path_take(filename,
+			key_file_consume_string(key_file, "autoinstall", "path", NULL));
+	if (!check_remaining_keys(key_file, "autoinstall", &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_group(key_file, "autoinstall", NULL);
+
+	return TRUE;
+}
+
+static gboolean parse_handlers_section(const gchar *filename, GKeyFile *key_file, RaucConfig *c, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(key_file, FALSE);
+	g_return_val_if_fail(c, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!g_key_file_has_group(key_file, "handlers"))
+		return TRUE;
+
+	c->systeminfo_handler = resolve_path_take(filename,
+			key_file_consume_string(key_file, "handlers", "system-info", NULL));
+
+	c->preinstall_handler = resolve_path_take(filename,
+			key_file_consume_string(key_file, "handlers", "pre-install", NULL));
+
+	c->postinstall_handler = resolve_path_take(filename,
+			key_file_consume_string(key_file, "handlers", "post-install", NULL));
+	if (!check_remaining_keys(key_file, "handlers", &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_group(key_file, "handlers", NULL);
 
 	return TRUE;
 }
@@ -734,18 +1301,137 @@ void r_config_file_modified_check(void)
 	}
 }
 
+/**
+ * Parse a configuration, supplied as text in GKeyFile format.
+ *
+ * @param filename filename to resolve relative path names, or NULL
+ * @param data the text to parse
+ * @param length the length of data in bytes
+ * @param error return location for a GError, or NULL
+ *
+ * @return a RaucConfig on success, NULL if there were errors
+ */
+static RaucConfig *parse_config(const gchar *filename, const gchar *data, gsize length, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(RaucConfig) c = g_new0(RaucConfig, 1);
+	g_autoptr(GKeyFile) key_file = NULL;
+
+	g_return_val_if_fail(data, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	c->file_checksum = g_compute_checksum_for_data(G_CHECKSUM_SHA256, (guchar*) data, length);
+
+	key_file = g_key_file_new();
+
+	if (!g_key_file_load_from_data(key_file, data, length, G_KEY_FILE_NONE, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* process overrides */
+	for (GList *l = r_context_conf()->configoverride; l != NULL; l = l->next) {
+		ConfigFileOverride *override = (ConfigFileOverride *)l->data;
+		g_key_file_set_value(key_file, override->section, override->name, override->value);
+	}
+
+	/* parse [system] section */
+	if (!parse_system_section(filename, key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [keyring] section */
+	if (!parse_keyring_section(filename, key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [casync] section */
+	if (!parse_casync_section(key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [streaming] section */
+	if (!parse_streaming_section(key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [encryption] section */
+	if (!parse_encryption_section(filename, key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [autoinstall] section */
+	if (!parse_autoinstall_section(filename, key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [handlers] section */
+	if (!parse_handlers_section(filename, key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	if (!r_event_log_parse_config_sections(key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [slot.*.#] sections */
+	c->slots = parse_slots(filename, c->data_directory, key_file, &ierror);
+	if (!c->slots) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* parse [artifacts.*] sections */
+	c->artifact_repos = parse_artifact_repos(filename, c->data_directory, key_file, &ierror);
+	if (!c->artifact_repos) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	if (!check_remaining_groups(key_file, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	return g_steal_pointer(&c);
+}
+
+gboolean default_config(RaucConfig **config, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(config && *config == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* Use an empty system section to honor defaults from parse_system_section.
+	 * After we have implemented explicit defaults there, we can use an empty
+	 * string here. */
+	const gchar *data = "[system]";
+	RaucConfig *c = parse_config(NULL, data, strlen(data), &ierror);
+	if (!c) {
+		g_propagate_prefixed_error(error, ierror, "Failed to initialize default config: ");
+		return FALSE;
+	}
+
+	*config = c;
+
+	return TRUE;
+}
+
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 {
 	GError *ierror = NULL;
 	g_autofree gchar *data = NULL;
 	gsize length;
-	g_autoptr(RaucConfig) c = g_new0(RaucConfig, 1);
-	g_autoptr(GKeyFile) key_file = NULL;
-	gboolean dtbvariant;
-	g_autofree gchar *variant_data = NULL;
-	g_autofree gchar *version_data = NULL;
-	g_autofree gchar *bundle_formats = NULL;
-	gsize entries;
+	g_autoptr(RaucConfig) c = NULL;
 
 	g_return_val_if_fail(filename, FALSE);
 	g_return_val_if_fail(config && *config == NULL, FALSE);
@@ -762,532 +1448,8 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		return FALSE;
 	}
 
-	c->file_checksum = g_compute_checksum_for_data(G_CHECKSUM_SHA256, (guchar*) data, length);
-
-	key_file = g_key_file_new();
-
-	if (!g_key_file_load_from_data(key_file, data, length, G_KEY_FILE_NONE, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	/* process overrides */
-	for (GList *l = r_context_conf()->configoverride; l != NULL; l = l->next) {
-		ConfigFileOverride *override = (ConfigFileOverride *)l->data;
-		g_key_file_set_value(key_file, override->section, override->name, override->value);
-	}
-
-	/* parse [system] section */
-	c->system_compatible = key_file_consume_string(key_file, "system", "compatible", &ierror);
-	if (!c->system_compatible) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	/* check optional 'min-bundle-version' key for validity */
-	version_data = key_file_consume_string(key_file, "system", "min-bundle-version", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		g_clear_pointer(&version_data, g_free);
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	if (version_data) {
-		if (!r_semver_less_equal("0", version_data, NULL)) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_INVALID_FORMAT,
-					"Min version format invalid, expected: Major[.Minor[.Patch]][-pre_release], got: %s",
-					version_data);
-			return FALSE;
-		}
-		c->system_min_bundle_version = g_steal_pointer(&version_data);
-	}
-
-	c->system_bootloader = key_file_consume_string(key_file, "system", "bootloader", NULL);
-	if (!c->system_bootloader) {
-		g_set_error_literal(
-				error,
-				R_CONFIG_ERROR,
-				R_CONFIG_ERROR_BOOTLOADER,
-				"No bootloader selected in system config");
-		return FALSE;
-	}
-
-	if (!r_boot_is_supported_bootloader(c->system_bootloader)) {
-		g_set_error(
-				error,
-				R_CONFIG_ERROR,
-				R_CONFIG_ERROR_BOOTLOADER,
-				"Unsupported bootloader '%s' selected in system config", c->system_bootloader);
-		return FALSE;
-	}
-
-	if (g_strcmp0(c->system_bootloader, "barebox") == 0) {
-		c->system_bb_statename = key_file_consume_string(key_file, "system", "barebox-statename", NULL);
-		c->system_bb_dtbpath = key_file_consume_string(key_file, "system", "barebox-dtbpath", NULL);
-	} else if (g_strcmp0(c->system_bootloader, "grub") == 0) {
-		c->grubenv_path = resolve_path_take(filename,
-				key_file_consume_string(key_file, "system", "grubenv", NULL));
-		if (!c->grubenv_path) {
-			g_debug("No grubenv path provided, using /boot/grub/grubenv as default");
-			c->grubenv_path = g_strdup("/boot/grub/grubenv");
-		}
-	} else if (g_strcmp0(c->system_bootloader, "efi") == 0) {
-		c->efi_use_bootnext = g_key_file_get_boolean(key_file, "system", "efi-use-bootnext", &ierror);
-		if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-			c->efi_use_bootnext = TRUE;
-			g_clear_error(&ierror);
-		} else if (ierror) {
-			g_propagate_error(error, ierror);
-			return FALSE;
-		}
-		g_key_file_remove_key(key_file, "system", "efi-use-bootnext", NULL);
-	} else if (g_strcmp0(c->system_bootloader, "custom") == 0) {
-		c->custom_bootloader_backend = resolve_path_take(filename,
-				key_file_consume_string(key_file, "handlers", "bootloader-custom-backend", NULL));
-		if (!c->custom_bootloader_backend) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_BOOTLOADER,
-					"No custom bootloader backend defined");
-			return FALSE;
-		}
-	}
-
-	c->boot_default_attempts = key_file_consume_integer(key_file, "system", "boot-attempts", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		c->boot_default_attempts = 0; /* to indicate 'unset' */
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	if (c->boot_default_attempts < 0) {
-		g_set_error(
-				error,
-				R_CONFIG_ERROR,
-				R_CONFIG_ERROR_BOOTLOADER,
-				"Value for \"boot-attempts\" must not be negative");
-		return FALSE;
-	}
-
-	c->boot_attempts_primary = key_file_consume_integer(key_file, "system", "boot-attempts-primary", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		c->boot_attempts_primary = 0; /* to indicate 'unset' */
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	if (c->boot_attempts_primary < 0) {
-		g_set_error(
-				error,
-				R_CONFIG_ERROR,
-				R_CONFIG_ERROR_BOOTLOADER,
-				"Value for \"boot-attempts-primary\" must not be negative");
-		return FALSE;
-	}
-	if (c->boot_default_attempts > 0 || c->boot_attempts_primary > 0) {
-		if ((g_strcmp0(c->system_bootloader, "uboot") != 0) && (g_strcmp0(c->system_bootloader, "barebox") != 0)) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_BOOTLOADER,
-					"Configuring boot attempts is valid for uboot or barebox only (not for %s)", c->system_bootloader);
-			return FALSE;
-		}
-	}
-
-	c->max_bundle_download_size = g_key_file_get_uint64(key_file, "system", "max-bundle-download-size", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		g_debug("No value for key \"max-bundle-download-size\" in [system] defined "
-				"- using default value of %d bytes.", DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE);
-		c->max_bundle_download_size = DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE;
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	} else if (ENABLE_STREAMING) {
-		g_message("Using max-bundle-download-size with streaming has no effect.");
-	}
-	if (c->max_bundle_download_size == 0) {
-		g_set_error(
-				error,
-				R_CONFIG_ERROR,
-				R_CONFIG_ERROR_MAX_BUNDLE_DOWNLOAD_SIZE,
-				"Invalid value (%" G_GUINT64_FORMAT ") for key \"max-bundle-download-size\" in system config", c->max_bundle_download_size);
-		return FALSE;
-	}
-	g_key_file_remove_key(key_file, "system", "max-bundle-download-size", NULL);
-
-	c->max_bundle_signature_size = g_key_file_get_uint64(key_file, "system", "max-bundle-signature-size", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		g_debug("No value for key \"max-bundle-signature-size\" in [system] defined "
-				"- using default value of %d bytes.", DEFAULT_MAX_BUNDLE_SIGNATURE_SIZE);
-		c->max_bundle_signature_size = DEFAULT_MAX_BUNDLE_SIGNATURE_SIZE;
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	if (c->max_bundle_signature_size == 0) {
-		g_set_error(
-				error,
-				R_CONFIG_ERROR,
-				R_CONFIG_ERROR_MAX_BUNDLE_SIGNATURE_SIZE,
-				"Invalid value (%" G_GUINT64_FORMAT ") for key \"max-bundle-signature-size\" in system config", c->max_bundle_signature_size);
-		return FALSE;
-	}
-	g_key_file_remove_key(key_file, "system", "max-bundle-signature-size", NULL);
-
-	c->mount_prefix = key_file_consume_string(key_file, "system", "mountprefix", NULL);
-	if (!c->mount_prefix) {
-		g_debug("No mount prefix provided, using /mnt/rauc/ as default");
-		c->mount_prefix = g_strdup("/mnt/rauc/");
-	}
-
-	c->activate_installed = g_key_file_get_boolean(key_file, "system", "activate-installed", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		c->activate_installed = TRUE;
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_key(key_file, "system", "activate-installed", NULL);
-
-	c->system_variant_type = R_CONFIG_SYS_VARIANT_NONE;
-
-	/* parse 'variant-dtb' key */
-	dtbvariant = g_key_file_get_boolean(key_file, "system", "variant-dtb", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		dtbvariant = FALSE;
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_key(key_file, "system", "variant-dtb", NULL);
-	if (dtbvariant)
-		c->system_variant_type = R_CONFIG_SYS_VARIANT_DTB;
-
-	c->prevent_late_fallback = g_key_file_get_boolean(key_file, "system", "prevent-late-fallback", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		c->prevent_late_fallback = FALSE;
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_key(key_file, "system", "prevent-late-fallback", NULL);
-
-	/* parse 'variant-file' key */
-	variant_data = key_file_consume_string(key_file, "system", "variant-file", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		g_clear_pointer(&variant_data, g_free);
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	if (variant_data) {
-		if (c->system_variant_type != R_CONFIG_SYS_VARIANT_NONE) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_INVALID_FORMAT,
-					"Only one of the keys 'variant-file', variant-dtb','variant-name' is allowed");
-			return FALSE;
-		}
-
-		c->system_variant_type = R_CONFIG_SYS_VARIANT_FILE;
-		c->system_variant = g_steal_pointer(&variant_data);
-	}
-
-	/* parse 'variant-name' key */
-	variant_data = key_file_consume_string(key_file, "system", "variant-name", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		variant_data = NULL;
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	if (variant_data) {
-		if (c->system_variant_type != R_CONFIG_SYS_VARIANT_NONE) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_INVALID_FORMAT,
-					"Only one of the keys 'variant-file', variant-dtb','variant-name' is allowed");
-			return FALSE;
-		}
-
-		c->system_variant_type = R_CONFIG_SYS_VARIANT_NAME;
-		c->system_variant = g_steal_pointer(&variant_data);
-	}
-
-	/* parse data/status location
-	 *
-	 * We have multiple levels of backwards compatibility:
-	 * - per-slot status and no shared data directory
-	 *   (by default or explicitly with ``statusfile=per-slot``)
-	 * - central status file and no shared data directory
-	 *   (``statusfile=/data/central.raucs``)
-	 * - central status file and shared data directory
-	 *   (``statusfile=/data/central.raucs`` and ``data-directory=/data/rauc``)
-	 * - central status file in shared data directory
-	 *   (``data-directory=/data/rauc``, implies ``statusfile=/data/rauc/central.raucs``)
-	 */
-	c->data_directory = resolve_path_take(filename,
-			key_file_consume_string(key_file, "system", "data-directory", &ierror));
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	c->statusfile_path = key_file_consume_string(key_file, "system", "statusfile", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		g_assert_null(c->statusfile_path);
-		if (c->data_directory) {
-			c->statusfile_path = g_build_filename(c->data_directory, "central.raucs", NULL);
-		} else {
-			g_message("No data directory or status file set, falling back to per-slot status.\n"
-					"Consider setting 'data-directory=<path>' or 'statusfile=<path>/per-slot' explicitly.");
-			c->statusfile_path = g_strdup("per-slot");
-		}
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	if (g_strcmp0(c->statusfile_path, "per-slot") == 0) {
-		if (c->data_directory) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_DATA_DIRECTORY,
-					"Using data-directory= with statusfile=per-slot is not supported.");
-			return FALSE;
-		}
-		g_message("Using per-slot statusfile. System status information not supported!");
-	} else {
-		gchar *resolved = resolve_path(filename, c->statusfile_path);
-		g_free(c->statusfile_path);
-		c->statusfile_path = resolved;
-		g_message("Using central status file %s", c->statusfile_path);
-	}
-
-	/* parse bundle formats */
-	c->bundle_formats_mask =
-		1 << R_MANIFEST_FORMAT_PLAIN |
-		        1 << R_MANIFEST_FORMAT_VERITY |
-		        1 << R_MANIFEST_FORMAT_CRYPT;
-	bundle_formats = key_file_consume_string(key_file, "system", "bundle-formats", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	} else {
-		if (!parse_bundle_formats(&c->bundle_formats_mask, bundle_formats, &ierror)) {
-			g_propagate_error(error, ierror);
-			return FALSE;
-		}
-	}
-
-	c->perform_pre_check = g_key_file_get_boolean(key_file, "system", "perform-pre-check", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		c->perform_pre_check = FALSE;
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_key(key_file, "system", "perform-pre-check", NULL);
-
-	if (!check_remaining_keys(key_file, "system", &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_group(key_file, "system", NULL);
-
-	/* parse [keyring] section */
-	c->keyring_path = resolve_path_take(filename,
-			key_file_consume_string(key_file, "keyring", "path", NULL));
-	c->keyring_directory = resolve_path_take(filename,
-			key_file_consume_string(key_file, "keyring", "directory", NULL));
-
-	c->keyring_check_crl = g_key_file_get_boolean(key_file, "keyring", "check-crl", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
-	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
-		c->keyring_check_crl = FALSE;
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_key(key_file, "keyring", "check-crl", NULL);
-
-	c->keyring_allow_partial_chain = g_key_file_get_boolean(key_file, "keyring", "allow-partial-chain", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
-	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
-		c->keyring_allow_partial_chain = FALSE;
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_key(key_file, "keyring", "allow-partial-chain", NULL);
-
-	c->use_bundle_signing_time = g_key_file_get_boolean(key_file, "keyring", "use-bundle-signing-time", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
-	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
-		c->use_bundle_signing_time = FALSE;
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_key(key_file, "keyring", "use-bundle-signing-time", NULL);
-
-	c->keyring_check_purpose = key_file_consume_string(key_file, "keyring", "check-purpose", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
-	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
-		g_assert_null(c->keyring_check_purpose);
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	/* Rewrite 'codesign' check-purpose to RAUC's internal 'codesign-rauc' check-purpose
-	 * to avoid conflicts with purpose definition from OpenSSL 3.2.0. */
-	if (g_strcmp0(c->keyring_check_purpose, "codesign") == 0) {
-		g_free(c->keyring_check_purpose);
-		c->keyring_check_purpose = g_strdup("codesign-rauc");
-	}
-
-	c->keyring_allowed_signer_cns = g_key_file_get_string_list(key_file, "keyring", "allowed-signer-cns", &entries, &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
-	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_key(key_file, "keyring", "allowed-signer-cns", NULL);
-
-	if (!check_remaining_keys(key_file, "keyring", &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_group(key_file, "keyring", NULL);
-
-	/* parse [casync] section */
-	c->store_path = key_file_consume_string(key_file, "casync", "storepath", NULL);
-	c->tmp_path = key_file_consume_string(key_file, "casync", "tmppath", NULL);
-	c->casync_install_args = key_file_consume_string(key_file, "casync", "install-args", NULL);
-	c->use_desync = g_key_file_get_boolean(key_file, "casync", "use-desync", &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
-	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
-		c->use_desync = FALSE;
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_key(key_file, "casync", "use-desync", NULL);
-	if (!check_remaining_keys(key_file, "casync", &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_group(key_file, "casync", NULL);
-
-	/* parse [streaming] section */
-	c->streaming_sandbox_user = key_file_consume_string(key_file, "streaming", "sandbox-user", NULL);
-	c->streaming_tls_cert = key_file_consume_string(key_file, "streaming", "tls-cert", NULL);
-	c->streaming_tls_key = key_file_consume_string(key_file, "streaming", "tls-key", NULL);
-	c->streaming_tls_ca = key_file_consume_string(key_file, "streaming", "tls-ca", NULL);
-	c->enabled_headers = g_key_file_get_string_list(key_file, "streaming", "send-headers", &entries, &ierror);
-	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
-	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
-		g_clear_error(&ierror);
-	} else if (ierror) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	} else {
-		for (gsize j = 0; j < entries; j++) {
-			if (!r_install_is_supported_http_header(c->enabled_headers[j])) {
-				g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
-						"Automatic HTTP header '%s' not supported", c->enabled_headers[j]);
-				return FALSE;
-			}
-		}
-	}
-	g_key_file_remove_key(key_file, "streaming", "send-headers", NULL);
-	if (!check_remaining_keys(key_file, "streaming", &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_group(key_file, "streaming", NULL);
-
-	/* parse [encryption] section */
-	c->encryption_key = resolve_path_take(filename,
-			key_file_consume_string(key_file, "encryption", "key", NULL));
-	c->encryption_cert = resolve_path_take(filename,
-			key_file_consume_string(key_file, "encryption", "cert", NULL));
-	if (!check_remaining_keys(key_file, "encryption", &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_group(key_file, "encryption", NULL);
-
-	/* parse [autoinstall] section */
-	c->autoinstall_path = resolve_path_take(filename,
-			key_file_consume_string(key_file, "autoinstall", "path", NULL));
-	if (!check_remaining_keys(key_file, "autoinstall", &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_group(key_file, "autoinstall", NULL);
-
-	/* parse [handlers] section */
-	c->systeminfo_handler = resolve_path_take(filename,
-			key_file_consume_string(key_file, "handlers", "system-info", NULL));
-
-	c->preinstall_handler = resolve_path_take(filename,
-			key_file_consume_string(key_file, "handlers", "pre-install", NULL));
-
-	c->postinstall_handler = resolve_path_take(filename,
-			key_file_consume_string(key_file, "handlers", "post-install", NULL));
-	if (!check_remaining_keys(key_file, "handlers", &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-	g_key_file_remove_group(key_file, "handlers", NULL);
-
-	if (!r_event_log_parse_config_sections(key_file, c, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	/* parse [slot.*.#] sections */
-	c->slots = parse_slots(filename, c->data_directory, key_file, &ierror);
-	if (!c->slots) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	/* parse [artifacts.*] sections */
-	c->artifact_repos = parse_artifact_repos(filename, c->data_directory, key_file, &ierror);
-	if (!c->artifact_repos) {
+	c = parse_config(filename, data, length, &ierror);
+	if (!c) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
@@ -1297,13 +1459,36 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		return FALSE;
 	}
 
-	if (!check_remaining_groups(key_file, &ierror)) {
+	if (!check_config_target(c, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
 	/* on success, return config struct */
 	*config = g_steal_pointer(&c);
+
+	return TRUE;
+}
+
+gboolean check_config_target(const RaucConfig *config, GError **error)
+{
+	if (!config->system_compatible) {
+		g_set_error_literal(error, R_CONFIG_ERROR, R_CONFIG_ERROR_MISSING_OPTION,
+				"System compatible string is not set");
+		return FALSE;
+	}
+
+	if (!config->system_bootloader) {
+		g_set_error_literal(error, R_CONFIG_ERROR, R_CONFIG_ERROR_BOOTLOADER,
+				"No bootloader selected in system config");
+		return FALSE;
+	}
+	if (!r_boot_is_supported_bootloader(config->system_bootloader)) {
+		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_BOOTLOADER,
+				"Unsupported bootloader '%s' selected in system config",
+				config->system_bootloader);
+		return FALSE;
+	}
 
 	return TRUE;
 }
