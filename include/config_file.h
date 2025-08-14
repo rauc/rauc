@@ -50,6 +50,7 @@ typedef struct {
 	gchar *system_bb_dtbpath;
 	gint boot_default_attempts;
 	gint boot_attempts_primary;
+	gchar *raspberrypi_autoboottxt_path;
 	gchar *grubenv_path;
 	gchar *custom_bootloader_backend;
 	gboolean efi_use_bootnext;
@@ -176,6 +177,17 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return a RaucSlot pointer or NULL
  */
 RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Finds a config slot given the bootloader name.
+ *
+ * @param config a RaucConfig
+ * @param bootname the bootloader name to search for
+ *
+ * @return a RaucSlot pointer or NULL
+ */
+RaucSlot *find_config_slot_by_bootname(RaucConfig *config, const gchar *bootname)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
