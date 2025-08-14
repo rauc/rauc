@@ -21,6 +21,9 @@ G_GNUC_WARN_UNUSED_RESULT;
 img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot  *dest_slot, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
+gboolean is_image_type_supported(const gchar *type)
+G_GNUC_WARN_UNUSED_RESULT;
+
 struct boot_switch_partition {
 	guint64 start;          /* address in bytes */
 	guint64 size;           /* size in bytes */

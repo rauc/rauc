@@ -923,11 +923,39 @@ The following fields are supported for image sections:
 ``filename`` (required)
   Name of the image file (relative to bundle content).
 
+  .. note::
+    While RAUC can automatically detect the image type from filename extensions
+    for backward compatibility, it is recommended to explicitly specify the
+    ``type`` field for new configurations. The filename extension-based detection
+    is considered deprecated and may be removed in future versions.
+
   .. important::
     RAUC uses the file name extension and the slot type to decide how to
     extract the image file content to the slot.
     Make sure to only use :ref:`supported file name extensions
     <sec-ref-supported-image-types>`!
+
+``type`` (required)
+  Specifies the type of the image content. This determines how RAUC will process
+  the image during installation. If not specified, the type is automatically
+  detected based on the filename extension and target slot type.
+
+  Supported values are:
+
+  * ``caidx`` - Casync directory tree index format
+  * ``catar`` - Casync directory tree archive format
+  * ``ext4`` - ext[234] file system image
+  * ``ext4-caibx`` - ext4 file system image in casync blob index format
+  * ``vfat`` - vfat/EFI file system image
+  * ``vfat-caibx`` - vfat file system image in casync blob index format
+  * ``tar`` - TAR archive (compressed or uncompressed)
+  * ``archive`` - Generic archive format (TAR-based)
+  * ``image`` - Generic image format (raw binary data)
+  * ``squashfs`` - SquashFS image (compressed or uncompressed)
+  * ``squashfs-caibx`` - SquashFS image in casync blob index format
+  * ``ubifs`` - UBIFS file system image
+  * ``ubifs-caibx`` - UBIFS file system image in casync blob index format
+  * ``img-caibx`` - Generic image in casync blob index format
 
 ``sha256`` (generated)
   sha256 of image file. RAUC determines this value automatically when creating
@@ -1027,36 +1055,40 @@ In future releases, they will be accessible in other hooks, as well.
 
 .. _sec-ref-supported-image-types:
 
-Supported Image Types (Extensions)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Supported Image Types 
+~~~~~~~~~~~~~~~~~~~~~
 
-RAUC uses the file name extension of images in combination with the target
-slot's type to select the *update handler*.
-To keep the number of combinations manageable, only a limited amount of file
-name extensions is supported by RAUC.
+.. note::
+  The former approach Using filename extensions to determine image types is deprecated.
+  Use the explicit ``type`` field instead. For backward compatibility, RAUC can still
+  derive the image type from file name extensions, but this could get removed in a future version
 
-The ``*.img`` extension is valid for all slot types.
-It should be used when no specific file name extension (and handler) is
-supported.
+RAUC primarily uses the explicitly configured ``type`` field to determine how to
+process images during installation. When the ``type`` parameter is set, the extension of 
+the filename is not taken into account. 
 
-Supported file system image types/extensions are:
+The ``image`` type is valid for all slot types and should be used for raw binary data
 
-  * ``*.ext4``: ext[234] file system image
-  * ``*.vfat``: vfat/EFI file system image
-  * ``*.ubifs``: UBIFS file system image
-  * ``*.squashfs``: SquashFS image (compressed or uncompressed)
-  * ``*.squashfs-<comp>``:  SquashFS image (compressed, with ``<comp>`` being one of ``lz4``, ``lzo``, ``xz``, ``xst``)
+Supported file system image types are:
 
-Supported TAR archive types/extensions are:
+  * ``ext4``: ext[234] file system image
+  * ``vfat``: vfat/EFI file system image
+  * ``ubifs``: UBIFS file system image
+  * ``squashfs``: SquashFS image (uncompressed, or compressed with one of ``lz4``, ``lzo``, ``xz``, ``xst``)
+ 
+Supported archive types are:
 
-  * ``*.tar*``: Compressed or uncompressed TAR archive
+  * ``archive``: Generic TAR-based archive format
 
-For casync support, some specific file name extensions are supported (and used
-for casync-mode detection):
+For casync support, specific image types are available:
 
-  * ``.caidx``: casync directory tree index
-  * ``<extension>.caibx``: casync blob index (where ``<extension>`` is a valid 'standard' extension)
-  * ``.catar``: casync directory tree archive
+  * ``caidx``: casync directory tree index
+  * ``ext4-caibx``: ext4 file system image in casync blob index format
+  * ``vfat-caibx``: vfat file system image in casync blob index format
+  * ``ubifs-caibx``: UBIFS file system image in casync blob index format
+  * ``squashfs-caibx``: SquashFS image in casync blob index format
+  * ``img-caibx``: Generic image in casync blob index format
+  * ``catar``: casync directory tree archive
 
 .. _sec_ref_formats:
 
