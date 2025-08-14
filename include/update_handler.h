@@ -13,6 +13,7 @@ typedef enum {
 	R_UPDATE_ERROR_FAILED,
 	R_UPDATE_ERROR_NO_HANDLER,
 	R_UPDATE_ERROR_UNSUPPORTED_ADAPTIVE_MODE,
+	R_UPDATE_ERROR_EMMC_MIGRATION,
 } RUpdateError;
 
 typedef gboolean (*img_to_slot_handler)(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
