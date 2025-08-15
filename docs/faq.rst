@@ -319,3 +319,30 @@ This restricts the writable area to avoid overwriting critical data.
 
 .. warning:: The ``size-limit`` option is intended only for backwards
    compatibility and should not be used in new designs!
+
+How do I handle images with unrecognized file extensions?
+---------------------------------------------------------
+
+The classic file extension–based image type matching in RAUC often led to
+confusion when using binary artifacts or images without one of the file
+extensions RAUC expects (such as ``.img``, ``.ext4``, ``.tar.gz``, etc.).
+
+Common examples include ``.bin`` for bootloader images, ``.ext4.verity`` for
+ext4 images with verity information, or other variants emitted by build
+systems.
+
+Adding a new image type mapping to RAUC for every such variant is not
+practical.
+
+Since v1.15, RAUC supports setting an explicit :ref:`image type
+<sec-ref-supported-image-types>` using the ``type`` manifest option.
+With this set, you can freely choose the file extension, e.g.
+
+.. code-block:: cfg
+
+   [image.bootloader]
+   filename=boot.bin
+   type=image
+
+.. note:: Ensure all devices in the field run a RAUC version that supports
+   this feature before making use of it.
