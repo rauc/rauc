@@ -142,7 +142,7 @@ out:
 	return nl;
 }
 
-gboolean r_nbd_setup_device(RaucNBDDevice *nbd_dev, GError **error)
+gboolean r_nbd_setup_device(RaucNBDDevice *nbd_dev, int *devicefd, GError **error)
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
@@ -177,9 +177,6 @@ gboolean r_nbd_setup_device(RaucNBDDevice *nbd_dev, GError **error)
 	NLA_PUT_U64(msg, NBD_ATTR_SIZE_BYTES, nbd_dev->data_size);
 	NLA_PUT_U64(msg, NBD_ATTR_BLOCK_SIZE_BYTES, 4096);
 	NLA_PUT_U64(msg, NBD_ATTR_SERVER_FLAGS, 0);
-	NLA_PUT_U64(msg, NBD_ATTR_CLIENT_FLAGS,
-			NBD_CFLAG_DISCONNECT_ON_CLOSE
-			);
 	NLA_PUT_U64(msg, NBD_ATTR_TIMEOUT, 300);
 
 	attr_sockets = nla_nest_start(msg, NBD_ATTR_SOCKETS);
@@ -202,6 +199,27 @@ gboolean r_nbd_setup_device(RaucNBDDevice *nbd_dev, GError **error)
 		g_error("failed to create nbd device");
 
 	nbd_dev->dev = g_strdup_printf("/dev/nbd%"G_GUINT32_FORMAT, nbd_dev->index);
+
+	*devicefd = open(nbd_dev->dev, O_RDWR|O_CLOEXEC);
+
+	msg = nlmsg_alloc();
+	if (!msg)
+		g_error("failed to allocate netlink message");
+
+	if (!genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, driver_id, 0, 0, NBD_CMD_RECONFIGURE, 0))
+		g_error("failed to add generic netlink headers to message");
+
+	NLA_PUT_U32(msg, NBD_ATTR_INDEX, nbd_dev->index);
+	NLA_PUT_U64(msg, NBD_ATTR_CLIENT_FLAGS,
+			NBD_CFLAG_DISCONNECT_ON_CLOSE
+			);
+
+	nl_socket_modify_cb(nl, NL_CB_VALID, NL_CB_CUSTOM, NULL, NULL);
+	if (nl_send_sync(nl, msg) < 0) {
+		res = FALSE;
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "netlink send_sync failed");
+		goto out;
+	}
 
 	g_message("setup done for %s", nbd_dev->dev);
 

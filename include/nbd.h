@@ -66,7 +66,7 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucNBDServer, r_nbd_free_server);
  *
  * @return TRUE on success, FALSE if an error occurred
  */
-gboolean r_nbd_setup_device(RaucNBDDevice *nbd_dev, GError **error);
+gboolean r_nbd_setup_device(RaucNBDDevice *nbd_dev, int *devicefd, GError **error);
 
 /**
  * Remove a previously configured NBD device from the kernel.
