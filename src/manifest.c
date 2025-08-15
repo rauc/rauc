@@ -347,7 +347,7 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 			RaucImage *image = NULL;
 
 			if (!parse_image(key_file, groups[i], &image, &ierror)) {
-				g_propagate_error(error, ierror);
+				g_propagate_prefixed_error(error, ierror, "Cannot parse [%s]: ", groups[i]);
 				return FALSE;
 			}
 
