@@ -880,6 +880,7 @@ out:
 #define KCYN  "\x1B[36m"
 #define KWHT  "\x1B[37m"
 #define KBLD  "\x1B[1m"
+#define KITL  "\x1B[3m"
 
 static void formatter_shell_append_idx_str(GPtrArray *entries, const gchar* varname, gint outer_idx, gint middle_idx, guint cnt)
 {
@@ -1067,6 +1068,7 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		if (img->filename) {
 			g_autofree gchar* formatted_size = g_format_size_full(img->checksum.size, G_FORMAT_SIZE_LONG_FORMAT);
 			g_string_append_printf(text, "    Filename:  %s\n", img->filename);
+			g_string_append_printf(text, "    Type:      %s%s\n", img->type, img->type_from_fileext ? KITL " (detected)"KNRM : "");
 			g_string_append_printf(text, "    Checksum:  %s\n", img->checksum.digest);
 			g_string_append_printf(text, "    Size:      %s\n", formatted_size);
 		} else {
@@ -1195,6 +1197,8 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 		json_builder_add_string_value(builder, img->variant);
 		json_builder_set_member_name(builder, "filename");
 		json_builder_add_string_value(builder, img->filename);
+		json_builder_set_member_name(builder, "type");
+		json_builder_add_string_value(builder, img->type);
 		json_builder_set_member_name(builder, "checksum");
 		json_builder_add_string_value(builder, img->checksum.digest);
 		json_builder_set_member_name(builder, "size");
