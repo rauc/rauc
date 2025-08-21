@@ -1312,7 +1312,7 @@ static gboolean info_start(int argc, char **argv)
 	} else if (ENABLE_JSON && g_strcmp0(output_format, "json-2") == 0) {
 		formatter = info_formatter_json_2;
 	} else {
-		g_printerr("Unknown output format: '%s'\n", output_format);
+		g_printerr("Unknown output format: '%s'.\nSupported formats are: readable, json, json-pretty, json-2.\n", output_format);
 		goto out;
 	}
 
