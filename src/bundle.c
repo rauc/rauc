@@ -3031,7 +3031,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 	GError *ierror = NULL;
 	g_autofree gchar *mount_point = NULL;
 	g_autofree gchar *loopname = NULL;
-	gint loopfd = -1;
+	gint devicefd = -1;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(bundle != NULL, FALSE);
@@ -3056,7 +3056,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 
 	if (bundle->stream) { /* local or downloaded bundle */
 		gint bundlefd = g_file_descriptor_based_get_fd(G_FILE_DESCRIPTOR_BASED(bundle->stream));
-		res = r_setup_loop(bundlefd, &loopfd, &loopname, bundle->size, &ierror);
+		res = r_setup_loop(bundlefd, &devicefd, &loopname, bundle->size, &ierror);
 		if (!res) {
 			g_propagate_error(error, ierror);
 			goto out;
@@ -3066,7 +3066,7 @@ gboolean mount_bundle(RaucBundle *bundle, GError **error)
 		bundle->nbd_dev->data_size = bundle->size;
 		bundle->nbd_dev->sock = bundle->nbd_srv->sock;
 		bundle->nbd_srv->sock = -1;
-		res = r_nbd_setup_device(bundle->nbd_dev, &ierror);
+		res = r_nbd_setup_device(bundle->nbd_dev, &devicefd, &ierror);
 		if (!res) {
 			/* The setup failed, so the socket still belongs to the nbd_srv. */
 			bundle->nbd_srv->sock = bundle->nbd_dev->sock;
@@ -3148,8 +3148,8 @@ out:
 	if (mount_point) {
 		g_rmdir(mount_point);
 	}
-	if (loopfd >= 0)
-		g_close(loopfd, NULL);
+	if (devicefd >= 0)
+		g_close(devicefd, NULL);
 	return res;
 }
 
