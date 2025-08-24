@@ -147,6 +147,7 @@ static RaucImage* create_source_image(const gchar *dirname,
 	image->filename = g_strdup(imagepath);
 	image->checksum.size = size;
 	image->checksum.digest = g_strdup("0xdeadbeef");
+	image->type = g_strdup("image");
 
 	g_assert(test_prepare_dummy_file(dirname, imagename, size, "/dev/zero") == 0);
 

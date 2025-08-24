@@ -180,6 +180,7 @@ static void test_save_load_manifest(void)
 	new_image->checksum.type = G_CHECKSUM_SHA256;
 	new_image->checksum.digest = g_strdup("c8af04e62bad4ab75dafd22119026e5e3943f385bdcbe7731a4938102453754c");
 	new_image->filename = g_strdup("myrootimg.ext4");
+	new_image->type = g_strdup("ext4");
 	new_image->hooks.pre_install = TRUE;
 	new_image->hooks.post_install = TRUE;
 	rm->images = g_list_append(rm->images, new_image);
@@ -190,6 +191,7 @@ static void test_save_load_manifest(void)
 	new_image->checksum.type = G_CHECKSUM_SHA256;
 	new_image->checksum.digest = g_strdup("768c36e72bedd35dac67c39b6145f97ef174179f5903a31c4c03abc0eb5d954c");
 	new_image->filename = g_strdup("myrootimg_variant1.ext4");
+	new_image->type = g_strdup("ext4");
 	new_image->hooks.pre_install = TRUE;
 	new_image->hooks.post_install = TRUE;
 	new_image->adaptive = g_strsplit("invalid-method;another-invalid-method", ";", 0);
@@ -359,6 +361,89 @@ filename=rootfs-var2.ext4\n\
 	free_manifest(rm);
 }
 
+static void test_manifest_load_types(void)
+{
+	gchar *tmpdir;
+	RaucManifest *rm = NULL;
+	gchar* manifestpath = NULL;
+	gboolean res;
+	GError *error = NULL;
+	RaucImage *test_img = NULL;
+	const gchar *mffile = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[image.rootfs]\n\
+type=ext4\n\
+filename=rootfs-default.something\n\
+\n\
+[image.appfs]\n\
+type=vfat\n\
+filename=appfs.vfat\n\
+";
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
+	g_assert_nonnull(manifestpath);
+
+	g_free(tmpdir);
+
+	res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	g_clear_error(&error);
+	g_free(manifestpath);
+
+	test_img = (RaucImage*)g_list_nth_data(rm->images, 0);
+	g_assert_nonnull(test_img);
+	g_assert_cmpstr(test_img->type, ==, "ext4");
+
+	test_img = (RaucImage*)g_list_nth_data(rm->images, 1);
+	g_assert_nonnull(test_img);
+	g_assert_cmpstr(test_img->type, ==, "vfat");
+
+	free_manifest(rm);
+}
+
+static void test_manifest_load_types_invalid(void)
+{
+	gchar *tmpdir;
+	RaucManifest *rm = NULL;
+	gchar* manifestpath = NULL;
+	gboolean res;
+	GError *error = NULL;
+	const gchar *mffile = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[image.rootfs]\n\
+type=invalid\n\
+filename=rootfs-default.ext4\n\
+";
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
+	g_assert_nonnull(manifestpath);
+
+	g_free(tmpdir);
+
+	res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_INVALID_IMAGE_TYPE);
+	g_assert_false(res);
+
+	g_clear_error(&error);
+	g_free(manifestpath);
+
+	free_manifest(rm);
+}
+
 static void test_manifest_load_adaptive(void)
 {
 	gchar *tmpdir;
@@ -474,6 +559,7 @@ version=2015.04-1\n\
 \n\
 [image.rootfs]\n\
 filename=rootfs-default.ext4\n\
+type=ext4\n\
 version=2015.04.1\n\
 description=image description\n\
 build=123456789\n\
@@ -801,6 +887,8 @@ int main(int argc, char *argv[])
 	g_test_add_func("/manifest/save/writefail", test_save_manifest_writefail);
 	g_test_add_func("/manifest/load_mem", test_load_manifest_mem);
 	g_test_add_func("/manifest/load_variants", test_manifest_load_variants);
+	g_test_add_func("/manifest/load_types", test_manifest_load_types);
+	g_test_add_func("/manifest/load_types_invalid", test_manifest_load_types_invalid);
 	g_test_add_func("/manifest/load_adaptive", test_manifest_load_adaptive);
 	g_test_add_func("/manifest/load_meta", test_manifest_load_meta);
 	g_test_add_func("/manifest/load_details", test_manifest_load_details);

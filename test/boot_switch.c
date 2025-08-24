@@ -315,6 +315,7 @@ static void test_boot_switch(BootSwitchFixture *fixture,
 	image->filename = g_strdup(imagepath);
 	image->checksum.size = IMAGE_SIZE;
 	image->checksum.digest = g_strdup("0xdeadbeef");
+	image->type = g_strdup("image");
 
 	g_assert(test_prepare_dummy_file(fixture->tmpdir, imagename,
 			IMAGE_SIZE, "/dev/zero") == 0);
