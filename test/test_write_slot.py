@@ -186,7 +186,7 @@ def test_write_emmc_boot_linked_no_active_boot(system):
 
     out, err, exitcode = run(f"{system.prefix} write-slot bootloader.0 install-content/rootfs.img")
     assert exitcode == 1
-    assert "Could not find active boot partition during migration" in err
+    assert f"Device '{device}' is not boot enabled" in err
 
 
 @needs_emmc

@@ -2392,7 +2392,7 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	return TRUE;
 }
 
-static gboolean migrate_to_emmc_boot_linked_handler(RaucImage *image, RaucSlot *dest_slot, gint *active_partition, const gchar *hook_name, GError **error)
+static gboolean emmc_boot_linked_migration_helper(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
 	gboolean res = FALSE;
 	g_autofree gchar *real_dest = NULL;
@@ -2406,6 +2406,8 @@ static gboolean migrate_to_emmc_boot_linked_handler(RaucImage *image, RaucSlot *
 	g_return_val_if_fail(dest_slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	gint active_partition = -1;
+
 	g_message("Checking if the current layout needs to be migrated");
 	real_dest = r_realpath(dest_slot->device);
 	if (!real_dest) {
@@ -2416,37 +2418,42 @@ static gboolean migrate_to_emmc_boot_linked_handler(RaucImage *image, RaucSlot *
 		return FALSE;
 	}
 
+	/* Get the base device for out destination partition so we can check which boot partition
+	 * is actually activated */
 	if (!r_emmc_extract_base_dev(real_dest, &base_device, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
-	/* read active boot partition from ext_csd, will be returned to calling function for
-	 * future usage */
-	res = r_emmc_read_bootpart(base_device, active_partition, &ierror);
+	/* read active boot partition from ext_csd. The active partition will be returned
+	 * to calling function for future usage */
+	res = r_emmc_read_bootpart(base_device, &active_partition, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
-	if (*active_partition == -1) {
+	/* Device is not boot enabled at all, so there is nothing to switch */
+	if (active_partition == -1) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_EMMC_MIGRATION,
-				"Could not find active boot partition during migration");
+				"Device '%s' is not boot enabled", base_device);
 		return FALSE;
 	}
 
-	/* Check if the currently active boot partition is the same as the target boot partition */
-	g_message("Active eMMC boot partition for %s: boot%d", real_dest, *active_partition);
-	boot_suffix = g_strdup_printf("boot%d", *active_partition);
+	/* Check if the currently active boot partition is the same as the target boot partition.
+	 * Overwriting the active boot partition has to be avoided so there's still a fallback in
+	 * case anything anything goes wrong */
+	g_message("Active eMMC boot partition for %s: boot%d", real_dest, active_partition);
+	boot_suffix = g_strdup_printf("boot%d", active_partition);
 	if (!g_str_has_suffix(dest_slot->device, boot_suffix)) {
 		return TRUE;
 	}
 
 	/* Create a temporary RaucSlot for the inactive boot partition */
 	inactive_slot = g_new0(RaucSlot, 1);
-	inactive_slot->device = g_strdup_printf("%sboot%d", base_device, INACTIVE_BOOT_PARTITION(*active_partition));
+	inactive_slot->device = g_strdup_printf("%sboot%d", base_device, INACTIVE_BOOT_PARTITION(active_partition));
 	/* We need to deactivate the size limit for migration, as we're just copying the image
-	 * to set everything right for the new layour. So we just need to know
+	 * to set everything right for the new layout. So we just need to know
 	 * if source device fits into target device */
 	inactive_slot->size_limit = get_device_size_from_dev(inactive_slot->device, &ierror);
 	if (ierror != NULL) {
@@ -2456,7 +2463,7 @@ static gboolean migrate_to_emmc_boot_linked_handler(RaucImage *image, RaucSlot *
 
 	/* Create a temporary RaucImage using the active boot partition device as filename */
 	source_image = g_new0(RaucImage, 1);
-	source_image->filename = g_strdup_printf("%sboot%d", base_device, *active_partition);
+	source_image->filename = g_strdup_printf("%sboot%d", base_device, active_partition);
 	source_image->checksum.size = get_device_size_from_dev(source_image->filename, &ierror);
 	if (ierror != NULL) {
 		g_propagate_error(error, ierror);
@@ -2470,7 +2477,7 @@ static gboolean migrate_to_emmc_boot_linked_handler(RaucImage *image, RaucSlot *
 		return FALSE;
 	}
 
-	res = r_emmc_toggle_active_bootpart(base_device, *active_partition, &ierror);
+	res = r_emmc_toggle_active_bootpart(base_device, active_partition, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -2481,7 +2488,6 @@ static gboolean migrate_to_emmc_boot_linked_handler(RaucImage *image, RaucSlot *
 
 static gboolean img_to_emmc_boot_linked_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
 {
-	gint active_part = -1;
 	g_autofree gchar *real_dest = NULL;
 	GError *ierror = NULL;
 	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
@@ -2490,19 +2496,12 @@ static gboolean img_to_emmc_boot_linked_handler(RaucImage *image, RaucSlot *dest
 	g_return_val_if_fail(dest_slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	/* Migration ensures the target boot partition is not the currently activated one */
-	gboolean res = migrate_to_emmc_boot_linked_handler(image, dest_slot, &active_part, hook_name, &ierror);
+	/* When coming from an older version the boot partitions might not be aligned as expected
+	 * from the new linked config. So we have to check how they are aligned and ensure the target boot
+	 * partition is not the currently activated one. */
+	gboolean res = emmc_boot_linked_migration_helper(image, dest_slot, hook_name, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	real_dest = r_realpath(dest_slot->device);
-	if (!real_dest) {
-		g_set_error(error,
-				R_UPDATE_ERROR,
-				R_UPDATE_ERROR_FAILED,
-				"Can't resolve eMMC device %s", dest_slot->device);
 		return FALSE;
 	}
 
@@ -2510,15 +2509,9 @@ static gboolean img_to_emmc_boot_linked_handler(RaucImage *image, RaucSlot *dest
 		g_hash_table_insert(vars, g_strdup("RAUC_BOOT_SIZE_LIMIT"),
 				g_strdup_printf("%"G_GUINT64_FORMAT, dest_slot->size_limit));
 	}
-	/* Create a slot for the inactive boot partition */
-	g_autofree gchar *base_device = NULL;
-	if (!r_emmc_extract_base_dev(real_dest, &base_device, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
 
-	/* We've check if boot partitions are properly setup during migration,
-	 * so write the image to the planned destination slot */
+	/* We've made sure that the boot partitions are properly set up during migration,
+	 * so the image can now be written to the planned destination slot */
 	res = copy_img_to_emmc_bootpart(image, dest_slot, hook_name, vars, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
