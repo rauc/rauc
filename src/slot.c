@@ -94,6 +94,24 @@ RaucSlot *r_slot_get_booted(GHashTable *slots)
 }
 
 /* returns string representation of slot state */
+const gchar* r_slot_bootstate_to_str(SlotBootState bootstate)
+{
+	switch (bootstate) {
+		case ST_BOOT_UNKNOWN:
+			return "unknown";
+		case ST_BOOT_GOOD:
+			return "good";
+		case ST_BOOT_BAD:
+			return "bad";
+		default:
+			g_error("invalid boot status %d", bootstate);
+			return NULL;
+	}
+
+	g_assert_not_reached();
+}
+
+/* returns string representation of slot state */
 const gchar* r_slot_slotstate_to_str(SlotState slotstate)
 {
 	switch (slotstate) {
