@@ -315,7 +315,7 @@ static GVariant* convert_slot_status_to_dict(RaucSlot *slot)
 	if (slot->mount_point || slot->ext_mount_point)
 		g_variant_dict_insert(&dict, "mountpoint", "s", slot->mount_point ? slot->mount_point : slot->ext_mount_point);
 	if (slot->bootname)
-		g_variant_dict_insert(&dict, "boot-status", "s", slot->boot_good ? "good" : "bad");
+		g_variant_dict_insert(&dict, "boot-status", "s", r_slot_bootstate_to_str(slot->boot_state));
 
 	if (slot_state->bundle_compatible)
 		g_variant_dict_insert(&dict, "bundle.compatible", "s", slot_state->bundle_compatible);

@@ -1470,7 +1470,7 @@ static void r_string_append_slot(GString *text, RaucSlot *slot, RaucStatusPrint 
 	if (slot->mount_point)
 		g_string_append_printf(text, "\n      mounted: %s", slot->mount_point);
 	if (slot->bootname)
-		g_string_append_printf(text, "\n      boot status: %s", slot->boot_good ? KGRN "good"KNRM : KRED "bad"KNRM);
+		g_string_append_printf(text, "\n      boot status: %s%s%s", (slot->boot_state == ST_BOOT_GOOD) ? KGRN : KRED, r_slot_bootstate_to_str(slot->boot_state), KNRM);
 	if (status_detailed && slot_state) {
 		g_string_append_printf(text, "\n      slot status:");
 		g_string_append_printf(text, "\n          bundle:");
@@ -1692,7 +1692,7 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 		r_ptr_array_add_printf(entries, "RAUC_SLOT_PARENT_%d=%s", slotcnt, slot->parent ? slot->parent->name : "");
 		r_ptr_array_add_printf(entries, "RAUC_SLOT_MOUNTPOINT_%d=%s", slotcnt, slot->mount_point ?: "");
 		if (slot->bootname)
-			r_ptr_array_add_printf(entries, "RAUC_SLOT_BOOT_STATUS_%d=%s", slotcnt, slot->boot_good ? "good" : "bad");
+			r_ptr_array_add_printf(entries, "RAUC_SLOT_BOOT_STATUS_%d=%s", slotcnt, r_slot_bootstate_to_str(slot->boot_state));
 		else
 			r_ptr_array_add_printf(entries, "RAUC_SLOT_BOOT_STATUS_%d=", slotcnt);
 		if (status_detailed && slot_state) {
@@ -1844,7 +1844,7 @@ static gchar* r_status_formatter_json(RaucStatusPrint *status, gboolean pretty)
 		json_builder_add_string_value(builder, slot->mount_point);
 		json_builder_set_member_name(builder, "boot_status");
 		if (slot->bootname)
-			json_builder_add_string_value(builder, slot->boot_good ? "good" : "bad");
+			json_builder_add_string_value(builder, r_slot_bootstate_to_str(slot->boot_state));
 		else
 			json_builder_add_string_value(builder, NULL);
 		if (status_detailed && slot_state) {
@@ -2050,9 +2050,11 @@ static gboolean retrieve_slot_states_via_dbus(GHashTable **slots, GError **error
 		g_variant_dict_lookup(&dict, "mountpoint", "s", &slot->mount_point);
 		g_variant_dict_lookup(&dict, "boot-status", "s", &boot_good);
 		if (g_strcmp0(boot_good, "good") == 0) {
-			slot->boot_good = TRUE;
+			slot->boot_state = ST_BOOT_GOOD;
+		} else if (g_strcmp0(boot_good, "bad") == 0) {
+			slot->boot_state = ST_BOOT_BAD;
 		} else {
-			slot->boot_good = FALSE;
+			slot->boot_state = ST_BOOT_UNKNOWN;
 		}
 
 		if (status_detailed) {
