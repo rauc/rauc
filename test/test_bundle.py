@@ -53,7 +53,7 @@ def test_bundle_mksquashfs_extra_args(tmp_path):
             --cert openssl-ca/dev/autobuilder-1.cert.pem \
             --key openssl-ca/dev/private/autobuilder-1.pem \
             bundle \
-            --mksquashfs-args="-comp xz -info -progress" \
+            --mksquashfs-args="-comp xz -info" \
             {tmp_path}/install-content {tmp_path}/out.raucb'
     )
 
