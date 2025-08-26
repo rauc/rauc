@@ -1,5 +1,9 @@
 FROM debian:bookworm
 
+# Add backports for pkcs11-provider
+RUN echo "deb http://deb.debian.org/debian bookworm-backports main" \
+  > /etc/apt/sources.list.d/backports.list
+
 # Required for building
 RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
   gcc \
@@ -12,7 +16,10 @@ RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
   libdbus-1-dev \
   libjson-glib-dev \
   libfdisk-dev \
-  libnl-genl-3-dev
+  libnl-genl-3-dev \
+  pkcs11-provider \
+  wget \
+  dpkg-dev
 
 # Required for building the cgi example
 RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
@@ -81,6 +88,16 @@ RUN test "$(uname -m)" != "x86_64" && exit 0; \
     go install && \
     cp /go/bin/desync /usr/bin/desync && \
     rm -rf /tmp/desync /go
+
+# Install the same libsofthsm2 version with important segfault fixes (Ubuntu repo)
+WORKDIR /tmp
+RUN test "$(uname -m)" = "armv7l" && exit 0; \
+    wget https://archive.ubuntu.com/ubuntu/project/ubuntu-archive-keyring.gpg -O /etc/apt/trusted.gpg.d/ubuntu.gpg && \
+    echo "deb-src http://archive.ubuntu.com/ubuntu noble universe" > /etc/apt/sources.list.d/ubuntu-src.list && \
+    apt-get update -q && apt-get source libsofthsm2 -q && apt-get build-dep libsofthsm2 -y && \
+    chown -R _apt:root softhsm2-2* && cd softhsm2-2* && dpkg-buildpackage -us -uc && cd - && \
+    dpkg -i libsofthsm2_*deb
+WORKDIR /
 
 # Create required directories for bind mounts
 RUN mkdir -p /lib/modules /var/run/dbus
