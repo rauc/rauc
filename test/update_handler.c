@@ -57,6 +57,7 @@ static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer
 	image = r_new_image();
 	image->slotclass = g_strdup("rootfs");
 	image->filename = g_strconcat("rootfs.", test_pair->imagetype, NULL);
+	image->type = g_strdup(derive_image_type_from_filename_pattern(image->filename));
 
 	targetslot = g_new0(RaucSlot, 1);
 	targetslot->name = g_intern_string("rootfs.0");
@@ -91,6 +92,7 @@ static void test_get_custom_update_handler(UpdateHandlerFixture *fixture, gconst
 	image->slotclass = g_strdup("rootfs");
 	image->filename = g_strdup("rootfs.custom");
 	image->hooks.install = TRUE;
+	image->type = g_strdup(derive_image_type_from_filename_pattern(image->filename));
 
 	targetslot = g_new0(RaucSlot, 1);
 	targetslot->name = g_intern_string("rootfs.0");
@@ -127,7 +129,7 @@ static void update_handler_fixture_set_up(UpdateHandlerFixture *fixture,
 		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
 				"Checking image type for slot type: *");
 		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
-				"Image detected as type: *");
+				"Found handler for image type * and slot type *");
 		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_INFO,
 				"Selected adaptive update method *");
 		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
@@ -398,6 +400,7 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	image->filename = g_strdup(imagepath);
 	image->checksum.size = image_size;
 	image->checksum.digest = g_strdup("0xdeadbeef");
+	image->type = g_strdup(derive_image_type_from_filename_pattern(image->filename));
 	if (test_pair->params & TEST_UPDATE_HANDLER_HOOKS) {
 		const gchar *hook_content_success = "#!/bin/sh\nexit 0";
 		const gchar *hook_content_fail = "#!/bin/sh\nexit 1";
