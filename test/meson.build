@@ -44,6 +44,7 @@ extra_test_sources = files([
 
 test_env = environment()
 test_env.set('MESON_BUILD_DIR', meson.build_root())
+test_env.set('OPENSSL_CONF', join_paths(meson.build_root(), '..', 'test', 'openssl-pkcs11.cnf'))
 if composefsdep.found()
   test_env.prepend('PATH', meson.build_root() + '/subprojects/composefs/tools')
 endif
