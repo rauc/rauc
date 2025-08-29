@@ -337,6 +337,84 @@ bootstate.system1.priority=10\n\
 	g_assert_true(res);
 }
 
+static void bootchooser_barebox_fallback_lock_counter(BootchooserFixture *fixture,
+		gconstpointer user_data)
+{
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+prevent-late-fallback=lock-counter\n\
+\n\
+[keyring]\n\
+path=/etc/rauc/keyring/\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/rootfs-0\n\
+type=ext4\n\
+bootname=system0\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/rootfs-1\n\
+type=ext4\n\
+bootname=system1\n";
+
+	gchar *pathname = write_tmp_file(fixture->tmpdir, "barebox.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_clear_pointer(&r_context_conf()->configpath, g_free);
+	r_context_conf()->configpath = pathname;
+
+	// Test if lock counter is enabled
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE",
+			"bootstate.system0.remaining_attempts=3\n"
+			"bootstate.system0.priority=20\n"
+			"bootstate.system1.remaining_attempts=3\n"
+			"bootstate.system1.priority=10\n"
+			"bootstate.attempts_locked=1\n",
+			TRUE));
+
+	r_context();
+	g_assert_nonnull(r_context()->config);
+	g_assert_cmpint(r_context()->config->prevent_late_fallback, ==, R_CONFIG_FALLBACK_LOCK_COUNTER);
+
+	gboolean lock_counter = FALSE;
+	g_assert_true(r_boot_get_counters_lock(&lock_counter, NULL));
+	g_assert_true(lock_counter);
+
+	// Disable lock counter
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE",
+			"bootstate.system0.remaining_attempts=3\n"
+			"bootstate.system0.priority=20\n"
+			"bootstate.system1.remaining_attempts=3\n"
+			"bootstate.system1.priority=10\n"
+			"bootstate.attempts_locked=1\n",
+			TRUE));
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_POST",
+			"bootstate.system0.remaining_attempts=3\n"
+			"bootstate.system0.priority=20\n"
+			"bootstate.system1.remaining_attempts=3\n"
+			"bootstate.system1.priority=10\n"
+			"bootstate.attempts_locked=0\n",
+			TRUE));
+
+	g_assert_true(r_boot_set_counters_lock(FALSE, NULL));
+
+	// Verify lock counter is disabled
+	g_assert_true(g_setenv("BAREBOX_STATE_VARS_PRE",
+			"bootstate.system0.remaining_attempts=3\n"
+			"bootstate.system0.priority=20\n"
+			"bootstate.system1.remaining_attempts=3\n"
+			"bootstate.system1.priority=10\n"
+			"bootstate.attempts_locked=0\n",
+			TRUE));
+
+	lock_counter = FALSE;
+	g_assert_true(r_boot_get_counters_lock(&lock_counter, NULL));
+	g_assert_false(lock_counter);
+}
+
 /* Write content to state storage for grub-editenv RAUC mock tool.
  * Content should be similar to:
  * "\
@@ -715,6 +793,12 @@ BOOT_B_LEFT=3\n\
 	g_assert_true(good);
 	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
 	g_assert_true(good);
+
+	/* check boot lock counter which is currently only implemented for barebox.
+	 * So test if it fails as expected */
+	gboolean lock_counter;
+	g_assert_false(r_boot_set_counters_lock(TRUE, NULL));
+	g_assert_false(r_boot_get_counters_lock(&lock_counter, NULL));
 
 	/* check rootfs.0 is marked bad (BOOT_A_LEFT set to 0) */
 	g_assert_true(r_boot_set_state(rootfs0, FALSE, NULL));
@@ -1214,6 +1298,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bootchooser/barebox-conf-attempts", BootchooserFixture, NULL,
 			bootchooser_fixture_set_up, bootchooser_barebox_conf_attempts,
+			bootchooser_fixture_tear_down);
+
+	g_test_add("/bootchooser/barebox-conf-fallback-lock-counter", BootchooserFixture, NULL,
+			bootchooser_fixture_set_up, bootchooser_barebox_fallback_lock_counter,
 			bootchooser_fixture_tear_down);
 
 	g_test_add("/bootchooser/grub", BootchooserFixture, NULL,
