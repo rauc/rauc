@@ -216,6 +216,105 @@ gboolean r_barebox_set_state(RaucSlot *slot, gboolean good, GError **error)
 	return TRUE;
 }
 
+/* This freezes the remaining attempts counters in barebox by setting the attempts_locked variable */
+gboolean r_barebox_set_lock_counter(gboolean locked, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(1, g_free);
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_ptr_array_add(pairs, g_strdup_printf(BOOTSTATE_PREFIX ".attempts_locked=%i",
+			locked ? 1 : 0));
+
+	if (!barebox_state_set(pairs, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/* This returns the value of the attempts_locked variable in barebox which
+ * controls the locking of the remaining_attempts counter */
+gboolean r_barebox_get_lock_counter(gboolean *locked, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(GSubprocess) sub = NULL;
+	GInputStream *instream = NULL;
+	g_autoptr(GDataInputStream) datainstream = NULL;
+	g_autofree gchar *outline = NULL;
+	gchar *endptr = NULL;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(4, g_free);
+	g_ptr_array_add(args, g_strdup(BAREBOX_STATE_NAME));
+	/* does not support -n here as it is also called during context setup and will cause recursion */
+	g_ptr_array_add(args, g_strdup("-g"));
+	g_ptr_array_add(args, g_strdup_printf(BOOTSTATE_PREFIX ".attempts_locked"));
+	g_ptr_array_add(args, NULL);
+
+	sub = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror);
+	if (!sub) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start " BAREBOX_STATE_NAME ": ");
+		return FALSE;
+	}
+
+	instream = g_subprocess_get_stdout_pipe(sub);
+	datainstream = g_data_input_stream_new(instream);
+
+	outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
+	if (!outline) {
+		/* Having no error set means no content to read */
+		if (ierror == NULL)
+			g_set_error(
+					error,
+					R_BOOTCHOOSER_ERROR,
+					R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+					"No content to read");
+		else
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Failed parsing " BAREBOX_STATE_NAME " output: ");
+		return FALSE;
+	}
+
+	guint64 lock_value = g_ascii_strtoull(outline, &endptr, 10);
+	if (lock_value == 0 && outline == endptr) {
+			g_set_error(
+					error,
+					R_BOOTCHOOSER_ERROR,
+					R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+					"Failed to parse value: '%s'", outline);
+		return FALSE;
+	} else if (lock_value == G_MAXUINT64 && errno != 0) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Return value overflow: '%s', error: %d", outline, errno);
+		return FALSE;
+	}
+
+	if (!g_subprocess_wait_check(sub, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run " BAREBOX_STATE_NAME ": ");
+		return FALSE;
+	}
+
+	if (lock_value > 0)
+		*locked = TRUE;
+
+	return TRUE;
+}
+
 /* Get slot marked as primary one */
 RaucSlot *r_barebox_get_primary(GError **error)
 {
