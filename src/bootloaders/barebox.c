@@ -32,8 +32,6 @@ static gboolean barebox_state_get(const gchar *bootname, BareboxSlotState *bb_st
 {
 	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
-	GInputStream *instream;
-	g_autoptr(GDataInputStream) datainstream = NULL;
 	guint64 result[2] = {};
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(6, g_free);
 
@@ -65,12 +63,39 @@ static gboolean barebox_state_get(const gchar *bootname, BareboxSlotState *bb_st
 		return FALSE;
 	}
 
-	instream = g_subprocess_get_stdout_pipe(sub);
-	datainstream = g_data_input_stream_new(instream);
+	g_autoptr(GBytes) stdout_bytes = NULL;
+	if (!g_subprocess_communicate(sub, NULL, NULL, &stdout_bytes, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run " BAREBOX_STATE_NAME ": ");
+		return FALSE;
+	}
 
+	if (!g_subprocess_get_if_exited(sub)) {
+		g_set_error_literal(
+				error,
+				G_SPAWN_ERROR,
+				G_SPAWN_ERROR_FAILED,
+				BAREBOX_STATE_NAME " did not exit normally");
+		return FALSE;
+	}
+
+	gint ret = g_subprocess_get_exit_status(sub);
+	if (ret != 0) {
+		g_set_error(
+				error,
+				G_SPAWN_EXIT_ERROR,
+				ret,
+				BAREBOX_STATE_NAME " failed with exit code: %i", ret);
+		return FALSE;
+	}
+
+	g_autofree gchar *stdout_str = r_bytes_unref_to_string(&stdout_bytes);
+	g_auto(GStrv) outlines = g_strsplit (stdout_str, "\n", -1);
 	for (int i = 0; i < 2; i++) {
 		gchar *endptr = NULL;
-		g_autofree gchar *outline = g_data_input_stream_read_line(datainstream, NULL, NULL, &ierror);
+		const gchar *outline = outlines[i];
 		if (!outline) {
 			/* Having no error set there was means no content to read */
 			if (ierror == NULL) {
@@ -104,14 +129,6 @@ static gboolean barebox_state_get(const gchar *bootname, BareboxSlotState *bb_st
 					"Return value overflow: '%s', error: %d", outline, errno);
 			return FALSE;
 		}
-	}
-
-	if (!g_subprocess_wait_check(sub, NULL, &ierror)) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"Failed to run " BAREBOX_STATE_NAME ": ");
-		return FALSE;
 	}
 
 	bb_state->prio = result[0];
