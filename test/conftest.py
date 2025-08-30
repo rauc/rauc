@@ -81,6 +81,14 @@ def _have_grub():
 have_grub = pytest.mark.skipif(not _have_grub(), reason="Have no grub-editenv")
 
 
+def _have_barebox():
+    out, err, exitcode = run("which barebox-state")
+    return exitcode == 0
+
+
+have_barebox = pytest.mark.skipif(not _have_barebox(), reason="Have no barebox-state")
+
+
 def _have_openssl():
     out, err, exitcode = run("openssl version")
     return exitcode == 0

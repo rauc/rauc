@@ -78,6 +78,9 @@ fi
 mkdir /tmp/bin
 export PATH=/tmp/bin:$PATH
 
+cp test/bin/barebox-state /tmp/bin/barebox-state
+chmod +x /tmp/bin/barebox-state
+
 # create helper scripts to manage coverage data
 if [ -n "$GCOV_PREFIX" ]; then
   cat > /tmp/bin/save_gcov_data <<EOF
