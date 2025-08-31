@@ -30,6 +30,20 @@ gboolean r_slot_status_write(const gchar *filename, RaucSlotStatus *ss, GError *
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Loads the status of all slots.
+ *
+ * Leaves all slots with an initialized status.
+ * For slots that cannot be loaded or if status file is not loadable at all,
+ * defaults will be applied for the respective slots.
+ *
+ * Note: Callable from context setup.
+ *
+ * @param filename Status file to load from
+ * @param slots Hash table of slots to set status for
+ */
+void r_slot_status_load_globally(const gchar *filename, GHashTable *slots);
+
+/**
  * Load slot status.
  *
  * Takes care to fill in slot status information into the designated component

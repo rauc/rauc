@@ -340,14 +340,12 @@ boot-id=e02a2afe-cf45-4d50-a3f3-c223ca0f480a\n\
 	pathname = write_tmp_file(fixture->tmpdir, "existing_system_status.raucs", status_file, NULL);
 	g_assert_nonnull(pathname);
 
+	/* context setup will load/init status of all configured slots */
+
 	replace_strdup(&r_context()->config->statusfile_path, pathname);
 
+	/* pick any slot for saving */
 	slot = g_hash_table_lookup(r_context()->config->slots, "rootfs.0");
-
-	slot->status = g_new0(RaucSlotStatus, 1);
-	slot->status->status = g_strdup("ok");
-	slot->status->checksum.type = G_CHECKSUM_SHA256;
-	slot->status->checksum.digest = g_strdup("dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551");
 
 	/* assert error-free saving*/
 	res = r_slot_status_save(slot, &ierror);
@@ -360,9 +358,9 @@ boot-id=e02a2afe-cf45-4d50-a3f3-c223ca0f480a\n\
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 
-	/* assert loaded key file contains both existing [system] group and added slot status group*/
+	/* assert loaded key file contains both existing [system] group and added slot status groups */
 	groups = g_key_file_get_groups(keyfile, &num_groups);
-	g_assert_cmpint(num_groups, ==, 2);
+	g_assert_cmpint(num_groups, ==, 6);
 	g_assert_true(g_strv_contains((const gchar * const *)groups, "system"));
 	g_assert_true(g_strv_contains((const gchar * const *)groups, "slot.rootfs.0"));
 }
