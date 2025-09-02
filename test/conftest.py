@@ -159,25 +159,29 @@ needs_emmc = pytest.mark.skipif("RAUC_TEST_EMMC" not in os.environ, reason="Miss
 needs_composefs = pytest.mark.skipif(not string_in_config_h("ENABLE_COMPOSEFS 1"), reason="Missing composefs support")
 
 
-def softhsm2_load_key_pair(cert, privkey, label, id_, softhsm2_mod):
+def softhsm2_load_key_pair(cert, privkey, label, id_, softhsm2_mod, tmp_path):
     proc = subprocess.run(
-        f"openssl x509 -in {cert} -inform pem -outform der "
-        f"| pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y cert -w /proc/self/fd/0 "
-        f"--label {label} --id {id_}",
+        f"pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y cert -w {cert} --label {label} --id {id_}",
         shell=True,
     )
     assert proc.returncode == 0
+
+    pubkey_file = tmp_path / f"pubkey_{label}.pem"
+
     proc = subprocess.run(
-        f"openssl rsa -in {privkey} -inform pem -pubout -outform der "
-        f"| pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y pubkey -w /proc/self/fd/0 "
-        f"--label {label} --id {id_}",
+        f"openssl rsa -in {privkey} -inform pem -pubout -outform pem -out {pubkey_file}",
         shell=True,
     )
     assert proc.returncode == 0
+
     proc = subprocess.run(
-        f"openssl rsa -in {privkey} -inform pem -outform der "
-        f"| pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y privkey -w /proc/self/fd/0 "
-        f"--label {label} --id {id_}",
+        f"pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y pubkey -w {pubkey_file} --label {label} --id {id_}",
+        shell=True,
+    )
+    assert proc.returncode == 0
+
+    proc = subprocess.run(
+        f"pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y privkey -w {privkey} --label {label} --id {id_}",
         shell=True,
     )
     assert proc.returncode == 0
@@ -251,10 +255,20 @@ def prepare_softhsm2(tmp_path, softhsm2_mod):
 
     # load signing key pairs
     softhsm2_load_key_pair(
-        ca_dev / "autobuilder-1.cert.pem", ca_dev / "private/autobuilder-1.pem", "autobuilder-1", "01", softhsm2_mod
+        ca_dev / "autobuilder-1.cert.pem",
+        ca_dev / "private/autobuilder-1.pem",
+        "autobuilder-1",
+        "01",
+        softhsm2_mod,
+        tmp_path,
     )
     softhsm2_load_key_pair(
-        ca_dev / "autobuilder-2.cert.pem", ca_dev / "private/autobuilder-2.pem", "autobuilder-2", "02", softhsm2_mod
+        ca_dev / "autobuilder-2.cert.pem",
+        ca_dev / "private/autobuilder-2.pem",
+        "autobuilder-2",
+        "02",
+        softhsm2_mod,
+        tmp_path,
     )
 
     subprocess.check_call(
@@ -276,6 +290,7 @@ def prepare_softhsm2(tmp_path, softhsm2_mod):
         "enc-rsa-000",
         "11",
         softhsm2_mod,
+        tmp_path,
     )
 
     softhsm2_test_encryption(tmp_path, enc_keys / "rsa-4096/cert-000.pem", "enc-rsa-000")
