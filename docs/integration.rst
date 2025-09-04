@@ -462,7 +462,7 @@ For encryption support, you have to add ``CONFIG_DM_CRYPT``, ``CONFIG_CRYPTO_AES
 .. note::
    On ARM SoCs, there are optimized alternative SHA256 implementations
    available (for example ``CONFIG_CRYPTO_SHA2_ARM_CE``, ``CRYPTO_SHA256_ARM``
-   or hardware accellerators such as ``CONFIG_CRYPTO_DEV_FSL_CAAM_AHASH_API``).
+   or hardware accelerators such as ``CONFIG_CRYPTO_DEV_FSL_CAAM_AHASH_API``).
 
 .. _sec_ref_host_tools:
 
