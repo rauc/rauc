@@ -635,7 +635,7 @@ gboolean r_artifacts_prune(GError **error)
  *         [
  *             {
  *                 "name": s,           // string: Name of the artifact
- *                 "checksums:" aa{sv}  // array of aritfact instance dictionaries
+ *                 "checksums:" aa{sv}  // array of artifact instance dictionaries
  *                 [
  *                     {
  *                         "checksum": s,   // string: Checksum of the artifact

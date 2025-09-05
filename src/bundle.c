@@ -273,7 +273,7 @@ static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath,
 	}
 	g_ptr_array_add(iargs, NULL);
 
-	/* Outer process calll */
+	/* Outer process call */
 	if (!check_pseudo_active()) {
 		g_ptr_array_add(args, g_strdup("fakeroot"));
 	}
@@ -634,7 +634,7 @@ static gboolean convert_images(RaucManifest *manifest, const gchar *dir, const g
 
 		if (tar_extracted_path && !g_strv_contains((const gchar * const *)image->convert, "tar-extract")) {
 			if (!rm_tree(tar_extracted_path, &ierror)) {
-				g_propagate_prefixed_error(error, ierror, "Failed to remove files extacted from tar: ");
+				g_propagate_prefixed_error(error, ierror, "Failed to remove files extracted from tar: ");
 				return FALSE;
 			}
 		}
