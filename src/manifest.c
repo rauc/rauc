@@ -18,6 +18,25 @@ GQuark r_manifest_error_quark(void)
 	return g_quark_from_static_string("r_manifest_error_quark");
 }
 
+static gboolean handle_missing_type(RaucImage *image, GError **error)
+{
+	/* When using custom install hooks, having no type is okay */
+	if (image->hooks.install)
+		return TRUE;
+
+	const gchar *derived_type = derive_image_type_from_filename_pattern(image->filename);
+	if (!derived_type) {
+		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE,
+				"No 'type=' set and unable to map extension of file '%s' to known image type",
+				image->filename);
+		return FALSE;
+	}
+
+	image->type_from_fileext = TRUE;
+	image->type = g_strdup(derived_type);
+	return TRUE;
+}
+
 static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **image, GError **error)
 {
 	g_autoptr(RaucImage) iimage = r_new_image();
@@ -108,18 +127,11 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 		iimage->type_from_fileext = FALSE;
 		iimage->type = key_file_consume_string(key_file, group, "type", &ierror);
 		if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-			/* If no type is set, derive it from filename extension to support manifests without type */
 			g_clear_error(&ierror);
 			g_clear_pointer(&iimage->type, g_free);
-			if (!iimage->hooks.install) {
-				const gchar *derived_type = derive_image_type_from_filename_pattern(iimage->filename);
-				if (derived_type == NULL) {
-					g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE,
-							"No 'type=' set and unable to map extension of file '%s' to known image type", iimage->filename);
-					return FALSE;
-				}
-				iimage->type_from_fileext = TRUE;
-				iimage->type = g_strdup(derived_type);
+			if (!handle_missing_type(iimage, &ierror)) {
+				g_propagate_error(error, ierror);
+				return FALSE;
 			}
 		} else if (ierror) {
 			g_propagate_error(error, ierror);
