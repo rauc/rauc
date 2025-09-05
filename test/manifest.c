@@ -478,6 +478,83 @@ filename=rootfs-default.invalid\n\
 	free_manifest(rm);
 }
 
+static void test_manifest_load_types_emptyfs_with_imagename_invalid(void)
+{
+	gchar *tmpdir;
+	RaucManifest *rm = NULL;
+	gchar* manifestpath = NULL;
+	gboolean res;
+	GError *error = NULL;
+	const gchar *mffile = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[image.rootfs]\n\
+type=ext4\n\
+filename=rootfs-default.something\n\
+\n\
+[image.appfs]\n\
+type=emptyfs\n\
+filename=appfs.vfat\n\
+";
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
+	g_assert_nonnull(manifestpath);
+
+	g_free(tmpdir);
+
+	res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_error(error, R_MANIFEST_ERROR, R_MANIFEST_PARSE_ERROR);
+	g_assert_false(res);
+
+	g_clear_error(&error);
+	g_free(manifestpath);
+
+	free_manifest(rm);
+}
+
+static void test_manifest_load_types_emptyfs_valid(void)
+{
+	gchar *tmpdir;
+	RaucManifest *rm = NULL;
+	gchar* manifestpath = NULL;
+	gboolean res;
+	GError *error = NULL;
+	const gchar *mffile = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[image.rootfs]\n\
+type=ext4\n\
+filename=rootfs-default.something\n\
+\n\
+[image.appfs]\n\
+type=emptyfs\n\
+";
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
+	g_assert_nonnull(manifestpath);
+
+	g_free(tmpdir);
+
+	res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	g_clear_error(&error);
+	g_free(manifestpath);
+
+	free_manifest(rm);
+}
+
 static void test_manifest_load_adaptive(void)
 {
 	gchar *tmpdir;
@@ -924,6 +1001,8 @@ int main(int argc, char *argv[])
 	g_test_add_func("/manifest/load_types", test_manifest_load_types);
 	g_test_add_func("/manifest/load_types_invalid", test_manifest_load_types_invalid);
 	g_test_add_func("/manifest/load_types_filenext_not_mapped", test_manifest_load_types_fileext_not_mapped);
+	g_test_add_func("/manifest/load_types_emptyfs_valid", test_manifest_load_types_emptyfs_valid);
+	g_test_add_func("/manifest/load_types_emptyfs_with_filename_invalid", test_manifest_load_types_emptyfs_with_imagename_invalid);
 	g_test_add_func("/manifest/load_adaptive", test_manifest_load_adaptive);
 	g_test_add_func("/manifest/load_meta", test_manifest_load_meta);
 	g_test_add_func("/manifest/load_details", test_manifest_load_details);
