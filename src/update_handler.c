@@ -1846,12 +1846,15 @@ static gboolean archive_to_ext4_handler(RaucImage *image, RaucSlot *dest_slot, c
 		goto out;
 	}
 
-	/* extract tar into mounted ext4 volume */
-	g_message("Extracting %s to %s", image->filename, dest_slot->mount_point);
-	res = unpack_archive(image, dest_slot->mount_point, &ierror);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto unmount_out;
+	/* emptyfs does not have an image included. So there's nothing to extract */
+	if (g_strcmp0(image->type, "emptyfs") != 0) {
+		/* extract tar into mounted ext4 volume */
+		g_message("Extracting %s to %s", image->filename, dest_slot->mount_point);
+		res = unpack_archive(image, dest_slot->mount_point, &ierror);
+		if (!res) {
+			g_propagate_error(error, ierror);
+			goto unmount_out;
+		}
 	}
 
 	/* run slot post install hook if enabled */
@@ -2696,6 +2699,7 @@ static RaucImageTypeMap image_type_map[] = {
 	{"image", "boot-gpt-switch", img_to_boot_gpt_switch_handler},
 #endif
 	{"image", "boot-raw-fallback", img_to_boot_raw_fallback_handler},
+	{"emptyfs", "ext4", archive_to_ext4_handler},
 	{NULL, NULL, NULL}
 };
 
