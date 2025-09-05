@@ -928,6 +928,10 @@ The following fields are supported for image sections:
     for backward compatibility, it is recommended to explicitly specify the
     ``type`` field for new configurations.
 
+  .. note::
+    This field is not required and not supported for images with ``type=emptyfs``,
+    as these create empty filesystems without source data.
+
   .. important::
     RAUC uses the file name extension and the slot type to decide how to
     extract the image file content to the slot.
@@ -1061,6 +1065,8 @@ Supported file system image types are:
   * ``vfat``: vfat/EFI file system image
   * ``ubifs``: UBIFS file system image
   * ``squashfs``: SquashFS image (uncompressed, or compressed with one of ``lz4``, ``lzo``, ``xz``, ``xst``)
+  * ``emptyfs``: Creates an empty ext4 target partition. This type does not support setting a ``filename`` as no source data is needed.
+
 
 Supported binary image types are:
 
