@@ -146,6 +146,13 @@ have_streaming = pytest.mark.skipif(
 )
 
 
+def _have_qemu():
+    out, err, exitcode = run("grep -q qemu-test-init /proc/cmdline")
+    return exitcode == 0
+
+
+have_qemu = pytest.mark.skipif(not _have_qemu(), reason="Not in qemu-test")
+
 no_service = pytest.mark.skipif(string_in_config_h("ENABLE_SERVICE 1"), reason="Have service")
 
 

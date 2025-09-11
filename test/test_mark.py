@@ -1,6 +1,7 @@
 import json
+import os
 
-from conftest import have_grub, no_service
+from conftest import have_grub, have_qemu, no_service
 from helper import run
 from helper import slot_data_from_json
 
@@ -181,3 +182,67 @@ def test_status_mark_active_dbus(rauc_dbus_service_with_system):
     assert slot_data_from_json(status_data, "rootfs.0")["boot_status"] == "good"
     assert slot_data_from_json(status_data, "rootfs.1")["boot_status"] == "good"
     assert status_data["boot_primary"] == "rootfs.1"
+
+
+@have_qemu
+def test_status_mark_bad_barebox(tmp_path, create_system_files, system):
+    """
+    Tests that 'mark-bad' call for barebox alters the barebox state
+    variables appropriately.
+
+    Leverages the 'barebox-state' dummy with variables pre-set from env.
+    """
+
+    system.prepare_minimal_config()
+    system.config["system"]["bootloader"] = "barebox"
+    del system.config["system"]["grubenv"]
+    system.write_config()
+    os.environ["BAREBOX_STATE_VARS_PRE"] = """
+bootstate.A.priority=20
+bootstate.B.priority=21
+bootstate.A.remaining_attempts=3
+bootstate.B.remaining_attempts=3
+"""
+    os.environ["BAREBOX_STATE_VARS_POST"] = """
+bootstate.A.priority=20
+bootstate.B.priority=0
+bootstate.A.remaining_attempts=3
+bootstate.B.remaining_attempts=0
+"""
+    with system.running_service("A"):
+        # mark rootfs.1 (B) bad
+        out, err, exitcode = run("rauc status mark-bad rootfs.1")
+        assert not err
+        assert exitcode == 0
+
+
+@have_qemu
+def test_status_mark_active_barebox(tmp_path, create_system_files, system):
+    """
+    Tests that 'mark-primary' call for barebox alters the barebox state
+    variables appropriately.
+
+    Leverages the 'barebox-state' dummy with variables pre-set from env.
+    """
+
+    system.prepare_minimal_config()
+    system.config["system"]["bootloader"] = "barebox"
+    del system.config["system"]["grubenv"]
+    system.write_config()
+    os.environ["BAREBOX_STATE_VARS_PRE"] = """
+bootstate.A.priority=21
+bootstate.B.priority=20
+bootstate.A.remaining_attempts=3
+bootstate.B.remaining_attempts=0
+"""
+    os.environ["BAREBOX_STATE_VARS_POST"] = """
+bootstate.A.priority=10
+bootstate.B.priority=20
+bootstate.A.remaining_attempts=3
+bootstate.B.remaining_attempts=3
+"""
+    with system.running_service("A"):
+        # mark rootfs.1 (B) active/primary
+        out, err, exitcode = run("rauc status mark-active rootfs.1")
+        assert not err
+        assert exitcode == 0
