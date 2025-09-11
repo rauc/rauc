@@ -416,7 +416,7 @@ gboolean load_manifest_mem(GBytes *mem, RaucManifest **manifest, GError **error)
 gboolean load_manifest_file(const gchar *filename, RaucManifest **manifest, GError **error)
 {
 	GError *ierror = NULL;
-	g_autofree gchar *data;
+	g_autofree gchar *data = NULL;
 	gsize length;
 	g_autoptr(GKeyFile) key_file = NULL;
 	g_autofree gchar *manifest_checksum = NULL;
