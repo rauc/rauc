@@ -283,6 +283,7 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, cons
 		img = r_new_image();
 		img->slotclass = g_strdup("rootfs");
 		img->filename = g_strdup("rootfs.ext4");
+		img->type = g_strdup("ext4");
 		if (options->hooks)
 			img->hooks.post_install = TRUE;
 		rm->images = g_list_append(rm->images, img);
@@ -290,6 +291,7 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, cons
 		img = r_new_image();
 		img->slotclass = g_strdup("appfs");
 		img->filename = g_strdup("appfs.ext4");
+		img->type = g_strdup("ext4");
 		rm->images = g_list_append(rm->images, img);
 	}
 
