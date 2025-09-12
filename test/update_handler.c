@@ -57,6 +57,7 @@ static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer
 	image = r_new_image();
 	image->slotclass = g_strdup("rootfs");
 	image->filename = g_strconcat("rootfs.", test_pair->imagetype, NULL);
+	image->type = g_strdup(derive_image_type_from_filename_pattern(image->filename));
 
 	targetslot = g_new0(RaucSlot, 1);
 	targetslot->name = g_intern_string("rootfs.0");
@@ -91,6 +92,7 @@ static void test_get_custom_update_handler(UpdateHandlerFixture *fixture, gconst
 	image->slotclass = g_strdup("rootfs");
 	image->filename = g_strdup("rootfs.custom");
 	image->hooks.install = TRUE;
+	image->type = g_strdup(derive_image_type_from_filename_pattern(image->filename));
 
 	targetslot = g_new0(RaucSlot, 1);
 	targetslot->name = g_intern_string("rootfs.0");
@@ -127,7 +129,7 @@ static void update_handler_fixture_set_up(UpdateHandlerFixture *fixture,
 		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
 				"Checking image type for slot type: *");
 		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
-				"Image detected as type: *");
+				"Found handler for image type * and slot type *");
 		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_INFO,
 				"Selected adaptive update method *");
 		g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE,
@@ -398,6 +400,7 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	image->filename = g_strdup(imagepath);
 	image->checksum.size = image_size;
 	image->checksum.digest = g_strdup("0xdeadbeef");
+	image->type = g_strdup(derive_image_type_from_filename_pattern(image->filename));
 	if (test_pair->params & TEST_UPDATE_HANDLER_HOOKS) {
 		const gchar *hook_content_success = "#!/bin/sh\nexit 0";
 		const gchar *hook_content_fail = "#!/bin/sh\nexit 1";
@@ -700,6 +703,12 @@ int main(int argc, char *argv[])
 		/* image too large */
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_ADAPTIVE_BLOCK_HASH_IDX | TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
+
+		{"nor", "img.caibx", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"nand", "img.caibx", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"vfat", "img.caibx", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"jffs2", "img.caibx", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"jffs2", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
 
 		{0}
 	};
@@ -1132,6 +1141,37 @@ int main(int argc, char *argv[])
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
+
+	g_test_add("/update_handler/get_handler/img.caibx_to_nor",
+			UpdateHandlerFixture,
+			&testpair_matrix[65],
+			NULL,
+			test_get_update_handler,
+			NULL);
+	g_test_add("/update_handler/get_handler/img.caibx_to_nand",
+			UpdateHandlerFixture,
+			&testpair_matrix[66],
+			NULL,
+			test_get_update_handler,
+			NULL);
+	g_test_add("/update_handler/get_handler/img.caibx_to_vfat",
+			UpdateHandlerFixture,
+			&testpair_matrix[67],
+			NULL,
+			test_get_update_handler,
+			NULL);
+	g_test_add("/update_handler/get_handler/img.caibx_to_jffs2",
+			UpdateHandlerFixture,
+			&testpair_matrix[68],
+			NULL,
+			test_get_update_handler,
+			NULL);
+	g_test_add("/update_handler/get_handler/img_to_jffs2",
+			UpdateHandlerFixture,
+			&testpair_matrix[69],
+			NULL,
+			test_get_update_handler,
+			NULL);
 
 	return g_test_run();
 }
