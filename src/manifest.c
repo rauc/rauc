@@ -4,15 +4,62 @@
 #include "config_file.h"
 #include "context.h"
 #include "manifest.h"
+#include "glib.h"
 #include "signature.h"
+#include "update_handler.h"
 #include "utils.h"
 
 #define RAUC_IMAGE_PREFIX	"image"
 
 #define R_MANIFEST_ERROR r_manifest_error_quark()
+
 GQuark r_manifest_error_quark(void)
 {
 	return g_quark_from_static_string("r_manifest_error_quark");
+}
+
+static gboolean handle_missing_type(RaucImage *image, GError **error)
+{
+	/* When using custom install hooks, having no type is okay */
+	if (image->hooks.install)
+		return TRUE;
+
+	const gchar *derived_type = derive_image_type_from_filename_pattern(image->filename);
+	if (!derived_type) {
+		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE,
+				"No 'type=' set and unable to map extension of file '%s' to known image type",
+				image->filename);
+		return FALSE;
+	}
+
+	image->type_from_fileext = TRUE;
+	image->type = g_strdup(derived_type);
+	return TRUE;
+}
+
+static gboolean validate_filename_requirements(RaucImage *image, GError **error)
+{
+	gboolean has_filename = (image->filename != NULL);
+	gboolean has_install_hook = image->hooks.install;
+
+	/* Combining 'type=emptyfs' it with an image filename would be contradictory */
+	if (g_strcmp0(image->type, "emptyfs") == 0) {
+		if (has_filename) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_PARSE_ERROR,
+					"It is not supported setting 'filename' when 'type=emptyfs' is set");
+			return FALSE;
+		}
+	} else {
+		/* All other image types require either a source file
+		 * or custom install hooks to generate content */
+		if (!has_filename && !has_install_hook) {
+			g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND,
+					"Missing required 'filename'");
+			return FALSE;
+		}
+	}
+
+	return TRUE;
 }
 
 static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **image, GError **error)
@@ -86,15 +133,48 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 	}
 	g_key_file_remove_key(key_file, group, "hooks", NULL);
 
+	/* A missing 'filename' can be correct, as it is optional for 'install-hooks' and 'type=emptyfs'.
+	 * So we collect all requirements first and check their validity afterwards */
 	iimage->filename = key_file_consume_string(key_file, group, "filename", &ierror);
-	/* 'filename' is optional only for 'install' hooks */
-	if (iimage->filename == NULL) {
-		if (!iimage->hooks.install) {
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (!iimage->artifact) {
+		/* Setting the 'type' option for artifacts is not supported.
+		 * For regular images (non-artifacts), we need to determine the image 'type'
+		 * to select the appropriate update handler. The image 'type' can either determined
+		 * by the corresponding variable in the manifest, or derived from the filename extension. */
+		iimage->type_from_fileext = FALSE;
+		iimage->type = key_file_consume_string(key_file, group, "type", &ierror);
+		if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+			g_clear_error(&ierror);
+			/* If no type is set, derive it from filename extension to support manifests without type */
+			if (!handle_missing_type(iimage, &ierror)) {
+				g_propagate_error(error, ierror);
+				return FALSE;
+			}
+		} else if (ierror) {
 			g_propagate_error(error, ierror);
 			return FALSE;
-		} else {
-			g_clear_error(&ierror);
 		}
+		/* Custom install hooks can skip validation of supported image types
+		 * since they implement their own logic */
+		if (!iimage->hooks.install && !is_image_type_supported(iimage->type)) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_INVALID_IMAGE_TYPE,
+					"Unsupported image type '%s'", iimage->type);
+			return FALSE;
+		}
+	}
+
+	/* All requirements to check if a filename is necessary have been collected,
+	 * so we can now check if the current state is valid */
+	if (!validate_filename_requirements(iimage, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
 	}
 
 	g_key_file_remove_key(key_file, group, "version", NULL);
@@ -903,6 +983,9 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 		if (image->filename)
 			g_key_file_set_string(key_file, group, "filename", image->filename);
 
+		if (image->type && !image->type_from_fileext)
+			g_key_file_set_string(key_file, group, "type", image->type);
+
 		if (image->hooks.pre_install == TRUE) {
 			g_ptr_array_add(hooklist, g_strdup("pre-install"));
 		}
@@ -1165,6 +1248,7 @@ void r_free_image(gpointer data)
 	g_free(image->variant);
 	g_free(image->checksum.digest);
 	g_free(image->filename);
+	g_free(image->type);
 	g_strfreev(image->adaptive);
 	g_strfreev(image->convert);
 	g_clear_pointer(&image->converted, g_ptr_array_unref);
