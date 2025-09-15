@@ -231,8 +231,8 @@ Additionally, there are specific slot types for :ref:`atomic bootloader updates
 <sec-advanced-updating-bootloader>`: ``boot-emmc``, ``boot-mbr-switch``,
 ``boot-gpt-switch``, ``boot-raw-fallback``.
 
-Depending on this slot storage type and the slot's :ref:`image filename <image-filename>`
-extension, RAUC determines how to extract the image content to the target slot.
+Depending on this slot storage type and the slot's :ref:`image type <image-type>`,
+RAUC determines how to extract the image content to the target slot.
 
 While the generic filename extension ``.img`` is supported for all filesystems,
 it is strongly recommended to use explicit extensions (e.g. ``.vfat`` or ``.ext4``)
