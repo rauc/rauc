@@ -1341,6 +1341,7 @@ gboolean r_nbd_start_server(RaucNBDServer *nbd_srv, GError **error)
 		g_subprocess_launcher_set_child_setup(launcher, nbd_server_child_setup, &child_args, NULL);
 		g_subprocess_launcher_setenv(launcher, "RAUC_NBD_SERVER", "", TRUE);
 		g_subprocess_launcher_take_fd(launcher, sockets[0], RAUC_SOCKET_FD);
+		sockets[0] = -1; /* GSubprocessLauncher takes ownership */
 
 		nbd_srv->sproc = r_subprocess_launcher_spawnv(launcher, args, &ierror);
 		if (nbd_srv->sproc == NULL) {
@@ -1356,8 +1357,6 @@ gboolean r_nbd_start_server(RaucNBDServer *nbd_srv, GError **error)
 		*sockp = sockets[0];
 		g_thread_new("nbd", nbd_server_thread, sockp);
 	}
-
-	sockets[0] = -1; /* GSubprocess takes ownership */
 
 	nbd_srv->sock = sockets[1];
 	sockets[1] = -1; /* RaucNBDServer takes ownership */
