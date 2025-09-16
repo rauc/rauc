@@ -245,7 +245,9 @@ if [ -n "$INTERACTIVE_SHELL" ]; then
   fi
   HISTFILE="$(pwd)/.qemu_bash_history" \
   setsid bash -c "$BASH_CMD" </dev/ttyS0 >/dev/ttyS0 2>&1 || echo exit-code=$?
-  save_gcov_data
+  if [ -n "$GCOV_PREFIX" ]; then
+    save_gcov_data
+  fi
   echo o > /proc/sysrq-trigger
   sleep 1
 fi
@@ -263,7 +265,9 @@ else
   free || true
   echo "RESULT: FAILED"
 fi
-save_gcov_data
+if [ -n "$GCOV_PREFIX" ]; then
+  save_gcov_data
+fi
 sleep 1
 echo o > /proc/sysrq-trigger
 sleep 1
