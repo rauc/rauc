@@ -1684,14 +1684,14 @@ happened on the system, use::
   [log.install-log]
   filename=install.log
   events=install
-  output-format=short
+  format=short
 
 Or, if you want a json-based log of all events, limited to 1M per log file and
 5 rotation files to keep, use::
 
   [log.all-json-log]
   filename=all-json.log
-  output-format=json
+  format=json
   max-size=1M
   max-files=5
 
