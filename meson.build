@@ -160,6 +160,13 @@ if get_option('streaming')
   sources_rauc += files('src/nbd.c')
 endif
 
+openssl_engine = get_option('pkcs11_engine')
+openssl_providers = get_option('pkcs11_providers')
+
+if openssl_engine and openssl_providers
+  error('Openssl engine support (legacy) and Openssl providers support cannot be enabled at the same time')
+endif
+
 conf.set10('ENABLE_EMMC_BOOT_SUPPORT', cc.has_header('linux/mmc/ioctl.h'))
 
 conf.set10('ENABLE_GPT', fdiskdep.found())
@@ -175,6 +182,7 @@ endif
 # To allow building against OpenSSL 3.0 and 4.0 without engine support
 # as they are deprecated in favor of providers API
 conf.set10('ENABLE_OPENSSL_PKCS11_ENGINE', get_option('pkcs11_engine'))
+conf.set10('ENABLE_OPENSSL_PKCS11_PROVIDERS', get_option('pkcs11_providers'))
 
 gnome = import('gnome')
 dbus_ifaces = files('src/de.pengutronix.rauc.Installer.xml')
