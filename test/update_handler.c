@@ -701,6 +701,12 @@ int main(int argc, char *argv[])
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
 		{"ext4", "ext4", TEST_UPDATE_HANDLER_ADAPTIVE_BLOCK_HASH_IDX | TEST_UPDATE_HANDLER_IMAGE_TOO_LARGE | TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
 
+		{"nor", "img.caibx", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"nand", "img.caibx", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"vfat", "img.caibx", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"jffs2", "img.caibx", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+		{"jffs2", "img", TEST_UPDATE_HANDLER_DEFAULT, 0, 0},
+
 		{0}
 	};
 	setlocale(LC_ALL, "C");
@@ -1132,6 +1138,37 @@ int main(int argc, char *argv[])
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
+
+	g_test_add("/update_handler/get_handler/img.caibx_to_nor",
+			UpdateHandlerFixture,
+			&testpair_matrix[65],
+			NULL,
+			test_get_update_handler,
+			NULL);
+	g_test_add("/update_handler/get_handler/img.caibx_to_nand",
+			UpdateHandlerFixture,
+			&testpair_matrix[66],
+			NULL,
+			test_get_update_handler,
+			NULL);
+	g_test_add("/update_handler/get_handler/img.caibx_to_vfat",
+			UpdateHandlerFixture,
+			&testpair_matrix[67],
+			NULL,
+			test_get_update_handler,
+			NULL);
+	g_test_add("/update_handler/get_handler/img.caibx_to_jffs2",
+			UpdateHandlerFixture,
+			&testpair_matrix[68],
+			NULL,
+			test_get_update_handler,
+			NULL);
+	g_test_add("/update_handler/get_handler/img_to_jffs2",
+			UpdateHandlerFixture,
+			&testpair_matrix[69],
+			NULL,
+			test_get_update_handler,
+			NULL);
 
 	return g_test_run();
 }
