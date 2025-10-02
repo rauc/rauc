@@ -37,12 +37,29 @@ def test_write_slot(rauc_no_service):
     assert "Slot written successfully" in out
 
 
-def test_write_slot_no_handler(tmp_path, rauc_no_service):
-    open(tmp_path / "image.xyz", mode="w").close()
+def test_write_slot_image_type(tmp_path, rauc_no_service):
+    """
+    Tests writing image with non-standard '.bin' extension to an 'ext4' slot:
+    - First run without explicit '--image-type' option set (should fail).
+    - Second run *with* this option set (should succeed).
+    """
+    open(tmp_path / "image.bin", mode="w").close()
 
-    out, err, exitcode = run(f"{rauc_no_service} write-slot rootfs.0 {tmp_path}/image.xyz")
+    out, err, exitcode = run(f"{rauc_no_service} write-slot rootfs.0 {tmp_path}/image.bin")
     assert exitcode == 1
-    assert f"Unsupported image {tmp_path}/image.xyz for slot type ext4" in err
+    assert f"Unable to map extension of file '{tmp_path}/image.bin' to known image type" in err
+
+    out, err, exitcode = run(f"{rauc_no_service} write-slot --image-type=image rootfs.0 install-content/appfs.img")
+    assert exitcode == 0
+    assert "Slot written successfully" in out
+
+
+def test_write_slot_no_handler(tmp_path, rauc_no_service):
+    open(tmp_path / "image.vfat", mode="w").close()
+
+    out, err, exitcode = run(f"{rauc_no_service} write-slot rootfs.0 {tmp_path}/image.vfat")
+    assert exitcode == 1
+    assert "Unsupported image type 'vfat' for slot type 'ext4'" in err
 
 
 @needs_emmc
