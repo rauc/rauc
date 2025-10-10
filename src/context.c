@@ -350,7 +350,7 @@ static gboolean r_context_configure_target(GError **error)
 		}
 	}
 
-	/* load system status if central status file is available */
+	/* load system status and slot status if central status file is available */
 	if (g_strcmp0(context->config->statusfile_path, "per-slot") != 0) {
 		g_clear_pointer(&context->system_status, r_system_status_free);
 		context->system_status = g_new0(RSystemStatus, 1);
@@ -358,6 +358,8 @@ static gboolean r_context_configure_target(GError **error)
 			g_message("Failed to load system status: %s", ierror->message);
 			g_clear_error(&ierror);
 		}
+
+		r_slot_status_load_globally(context->config->statusfile_path, context->config->slots);
 	}
 
 	/* set up logging */

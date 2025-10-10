@@ -347,12 +347,14 @@ static GVariant* convert_slot_status_to_dict(RaucSlot *slot)
 		g_variant_dict_insert(&dict, "installed.transaction", "s", slot_state->installed_txn);
 
 	if (slot_state->installed_timestamp) {
-		g_variant_dict_insert(&dict, "installed.timestamp", "s", slot_state->installed_timestamp);
+		g_autofree gchar *stamp = g_date_time_format(slot_state->installed_timestamp, RAUC_FORMAT_ISO_8601);
+		g_variant_dict_insert(&dict, "installed.timestamp", "s", stamp);
 		g_variant_dict_insert(&dict, "installed.count", "u", slot_state->installed_count);
 	}
 
 	if (slot_state->activated_timestamp) {
-		g_variant_dict_insert(&dict, "activated.timestamp", "s", slot_state->activated_timestamp);
+		g_autofree gchar *stamp = g_date_time_format(slot_state->activated_timestamp, RAUC_FORMAT_ISO_8601);
+		g_variant_dict_insert(&dict, "activated.timestamp", "s", stamp);
 		g_variant_dict_insert(&dict, "activated.count", "u", slot_state->activated_count);
 	}
 

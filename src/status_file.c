@@ -12,6 +12,7 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 	GError *ierror = NULL;
 	gchar *digest;
 	guint64 count;
+	gchar *timestamp;
 
 	if (!g_key_file_has_group(key_file, group))
 		g_debug("Group %s not found in key file.", group);
@@ -32,8 +33,13 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 		slotstatus->checksum.size = g_key_file_get_uint64(key_file, group, "size", NULL);
 	}
 
-	slotstatus->installed_txn = key_file_consume_string(key_file, group, "installed.transaction", NULL);
-	slotstatus->installed_timestamp = key_file_consume_string(key_file, group, "installed.timestamp", NULL);
+	timestamp = key_file_consume_string(key_file, group, "installed.timestamp", NULL);
+	if (timestamp) {
+		slotstatus->installed_timestamp = g_date_time_new_from_iso8601(timestamp, NULL);
+		if (!slotstatus->installed_timestamp)
+			g_warning("Cannot parse slot 'installed' timestamp '%s'", timestamp);
+		g_free(timestamp);
+	}
 	count = g_key_file_get_uint64(key_file, group, "installed.count", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE))
 		g_message("Value of key \"installed.count\" in group [%s] "
@@ -49,7 +55,13 @@ static void status_file_get_slot_status(GKeyFile *key_file, const gchar *group, 
 	}
 	slotstatus->installed_count = count;
 
-	slotstatus->activated_timestamp = key_file_consume_string(key_file, group, "activated.timestamp", NULL);
+	timestamp = key_file_consume_string(key_file, group, "activated.timestamp", NULL);
+	if (timestamp) {
+		slotstatus->activated_timestamp = g_date_time_new_from_iso8601(timestamp, NULL);
+		if (!slotstatus->activated_timestamp)
+			g_warning("Cannot parse slot 'activated' timestamp '%s'", timestamp);
+		g_free(timestamp);
+	}
 	count = g_key_file_get_uint64(key_file, group, "activated.count", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE))
 		g_message("Value of key \"activated.count\" in group [%s] "
@@ -94,7 +106,8 @@ static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group, 
 	status_file_set_string_or_remove_key(key_file, group, "installed.transaction", slotstatus->installed_txn);
 
 	if (slotstatus->installed_timestamp) {
-		g_key_file_set_string(key_file, group, "installed.timestamp", slotstatus->installed_timestamp);
+		g_autofree gchar *stamp = g_date_time_format(slotstatus->installed_timestamp, RAUC_FORMAT_ISO_8601);
+		g_key_file_set_string(key_file, group, "installed.timestamp", stamp);
 	} else {
 		g_key_file_remove_key(key_file, group, "installed.timestamp", NULL);
 	}
@@ -106,7 +119,8 @@ static void status_file_set_slot_status(GKeyFile *key_file, const gchar *group, 
 	}
 
 	if (slotstatus->activated_timestamp) {
-		g_key_file_set_string(key_file, group, "activated.timestamp", slotstatus->activated_timestamp);
+		g_autofree gchar *stamp = g_date_time_format(slotstatus->activated_timestamp, RAUC_FORMAT_ISO_8601);
+		g_key_file_set_string(key_file, group, "activated.timestamp", stamp);
 	} else {
 		g_key_file_remove_key(key_file, group, "activated.timestamp", NULL);
 	}
@@ -201,19 +215,19 @@ static void load_slot_status_locally(RaucSlot *dest_slot)
 	}
 }
 
-static void load_slot_status_globally(void)
+void r_slot_status_load_globally(const gchar *filename, GHashTable *slots)
 {
 	GError *ierror = NULL;
-	GHashTable *slots = r_context()->config->slots;
 	g_autoptr(GKeyFile) key_file = g_key_file_new();
 	g_auto(GStrv) groups = NULL;
 	gchar **group, *slotname;
 	GHashTableIter iter;
 	RaucSlot *slot;
 
-	g_return_if_fail(r_context()->config->statusfile_path);
+	g_return_if_fail(filename);
+	g_return_if_fail(slots);
 
-	g_key_file_load_from_file(key_file, r_context()->config->statusfile_path, G_KEY_FILE_NONE, &ierror);
+	g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror);
 	if (ierror && !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_NOENT))
 		g_message("Failed to load global slot status file: %s", ierror->message);
 	g_clear_error(&ierror);
@@ -253,7 +267,7 @@ void r_slot_status_load(RaucSlot *dest_slot)
 		if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") == 0)
 			load_slot_status_locally(dest_slot);
 		else
-			load_slot_status_globally();
+			r_slot_status_load_globally(r_context()->config->statusfile_path, r_context()->config->slots);
 	}
 
 	r_slot_clean_data_directory(dest_slot);
