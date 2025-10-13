@@ -217,14 +217,6 @@ mountprefix=/mnt/myrauc/\n\
 [unknown]\n\
 foo=bar\n\
 ";
-	const gchar *unknown_key_cfg_file = "\
-[system]\n\
-compatible=FooCorp Super BarBazzer\n\
-bootloader=barebox\n\
-mountprefix=/mnt/myrauc/\n\
-foo=bar\n\
-";
-
 	pathname = write_tmp_file(fixture->tmpdir, "unknown_group.conf", unknown_group_cfg_file, NULL);
 	g_assert_nonnull(pathname);
 
@@ -233,9 +225,16 @@ foo=bar\n\
 	g_assert_cmpstr(ierror->message, ==, "Invalid group '[unknown]'");
 	g_clear_error(&ierror);
 
-	g_free(pathname);
+	g_clear_pointer(&pathname, g_free);
 	g_clear_pointer(&config, free_config);
 
+	const gchar *unknown_key_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+mountprefix=/mnt/myrauc/\n\
+foo=bar\n\
+";
 	pathname = write_tmp_file(fixture->tmpdir, "unknown_key.conf", unknown_key_cfg_file, NULL);
 	g_assert_nonnull(pathname);
 
