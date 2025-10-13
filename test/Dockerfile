@@ -15,7 +15,7 @@ RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
   libnl-genl-3-dev
 
 # Required for building the cgi example
-RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
+RUN apt-get install -q -y --no-install-recommends \
   autoconf \
   automake \
   make \
