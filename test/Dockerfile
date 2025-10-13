@@ -1,5 +1,9 @@
 FROM debian:bookworm
 
+# Add backports for pkcs11-provider
+RUN echo "deb http://deb.debian.org/debian bookworm-backports main" \
+  > /etc/apt/sources.list.d/backports.list
+
 # Required for building
 RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
   gcc \
@@ -15,7 +19,7 @@ RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
   libnl-genl-3-dev
 
 # Required for building the cgi example
-RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
+RUN apt-get install -q -y --no-install-recommends \
   autoconf \
   automake \
   make \
@@ -41,6 +45,7 @@ RUN apt-get install -q -y --no-install-recommends \
   opensc \
   opensc-pkcs11 \
   libengine-pkcs11-openssl \
+  pkcs11-provider \
   fakeroot \
   faketime \
   pseudo \
