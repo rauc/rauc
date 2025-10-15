@@ -1843,7 +1843,7 @@ Provides bundle info.
 It uses the same nested dictionary structure as ``rauc info
 --output-format=json-2``.
 
-IN *bundle* ``s``:
+IN *source* ``s``:
     Path or URL to the bundle that should be queried for information
 
 IN *args* ``a{sv}``:
