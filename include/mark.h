@@ -43,6 +43,19 @@ G_GNUC_WARN_UNUSED_RESULT;
 gboolean r_mark_bad(RaucSlot *slot, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
+/**
+ * Mark a bootname slot.
+ *
+ * @param state String representation of slot state
+ *              (e.g. "good", "bad", or "active")
+ * @param slot_identifier String representation of slot identifier
+ *                        (e.g. "booted", "other", or the slot name)
+ * @param slot_name Return location for the resulting slot name
+ * @param message Return location for message describing what has been done
+ *                (e.g. "marked slot(s) rootfs.0 as good")
+ *
+ * @return Return TRUE on success and FALSE on error
+ */
 gboolean mark_run(const gchar *state,
 		const gchar *slot_identifier,
 		gchar **slot_name,
