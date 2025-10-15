@@ -1933,6 +1933,9 @@ OUT *info* ``a{sv}``:
         *info.images.filename* variant ``s`` <filename>:
             The image's filename
 
+        *info.images.type* variant ``s`` <type>:
+            The image's type
+
         *info.images.checksum* variant ``s`` <checksum>:
             The original image's SHA256 hash
 
