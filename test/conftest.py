@@ -525,6 +525,7 @@ class System:
             "bootloader": "grub",
             "grubenv": "grubenv.test",
             "variant-name": "Default Variant",
+            "data-directory": "data-dir",
         }
         self.config["keyring"] = {
             "path": "openssl-ca/dev-ca.pem",
@@ -568,7 +569,6 @@ class System:
 
     def prepare_adaptive_config(self):
         self.prepare_minimal_config()
-        self.config["system"]["data-directory"] = "data-dir"
         self.config["handlers"] = {
             "system-info": "bin/systeminfo.sh",
             "pre-install": "bin/preinstall.sh",

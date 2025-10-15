@@ -559,6 +559,8 @@ currently booted (running).
 In the following, the different options for letting RAUC detect the currently
 booted slot are described.
 
+.. _sec-integration-boot-slot-detection:
+
 Booted Slot Detection
 ~~~~~~~~~~~~~~~~~~~~~
 

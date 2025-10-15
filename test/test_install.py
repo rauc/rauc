@@ -169,6 +169,60 @@ def test_install_rauc_external(rauc_dbus_service_with_system_external, tmp_path)
 
     assert exitcode == 0
     assert os.path.getsize(tmp_path / "images/rootfs-1") > 0
+    assert os.path.getsize(tmp_path / "images/rootfs-0") == 0
+
+    out, err, exitcode = run(f"rauc install {tmp_path}/good-bundle.raucb")
+
+    assert exitcode == 0
+    assert os.path.getsize(tmp_path / "images/rootfs-1") > 0
+    assert os.path.getsize(tmp_path / "images/rootfs-0") > 0
+
+
+def test_install_per_slot_status(tmp_path, create_system_files, system):
+    """Tests that installation works with 'per-slot' status file"""
+    system.prepare_minimal_config()
+    del system.config["system"]["data-directory"]
+    system.config["system"]["statusfile"] = "per-slot"
+    system.write_config()
+
+    assert os.path.exists(tmp_path / "images/rootfs-1")
+    assert not os.path.getsize(tmp_path / "images/rootfs-1") > 0
+
+    # copy to tmp path for safe ownership check
+    shutil.copyfile("good-verity-bundle.raucb", tmp_path / "good-verity-bundle.raucb")
+
+    with system.running_service("A"):
+        out, err, exitcode = run(f"rauc install {tmp_path}/good-verity-bundle.raucb")
+
+        assert exitcode == 0
+        assert os.path.getsize(tmp_path / "images/rootfs-1") > 0
+
+
+def test_install_abc(rauc_dbus_service_with_system_abc, tmp_path):
+    """Tests that two consecutive calls of 'rauc install' update different slot groups"""
+    assert os.path.exists(tmp_path / "images/rootfs-1")
+    assert not os.path.getsize(tmp_path / "images/rootfs-1") > 0
+    assert os.path.exists(tmp_path / "images/rootfs-2")
+    assert not os.path.getsize(tmp_path / "images/rootfs-2") > 0
+
+    # copy to tmp path for safe ownership check
+    shutil.copyfile("good-verity-bundle.raucb", tmp_path / "good-verity-bundle.raucb")
+
+    # First installation should update rootfs-1 (implementation-defined)
+    out, err, exitcode = run(f"rauc install {tmp_path}/good-verity-bundle.raucb")
+
+    assert exitcode == 0
+    assert os.path.getsize(tmp_path / "images/rootfs-0") == 0
+    assert os.path.getsize(tmp_path / "images/rootfs-1") > 0
+    assert os.path.getsize(tmp_path / "images/rootfs-2") == 0
+
+    # Second installation should update rootfs-2 (implementation-defined)
+    out, err, exitcode = run(f"rauc install {tmp_path}/good-verity-bundle.raucb")
+
+    assert exitcode == 0
+    assert os.path.getsize(tmp_path / "images/rootfs-0") == 0
+    assert os.path.getsize(tmp_path / "images/rootfs-1") > 0
+    assert os.path.getsize(tmp_path / "images/rootfs-2") > 0
 
 
 @no_service
