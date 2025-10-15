@@ -82,6 +82,7 @@ if pytest.found()
     'bundle',
     'cmdline',
     'convert',
+    'emmc',
     'encrypt',
     'extract',
     'http',
