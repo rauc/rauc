@@ -645,7 +645,7 @@ static void bundle_test_replace_signature(BundleFixture *fixture,
 	replace_strdup(&context->signing_keyringpath, "test/openssl-ca/rel-ca.pem");
 
 	/* Resign bundle with 'rel' key to extract the signature below */
-	res = resign_bundle(bundle, resignbundle, &ierror);
+	res = resign_bundle(bundle, resignbundle, FALSE, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_clear_pointer(&bundle, free_bundle);
@@ -762,7 +762,7 @@ static void bundle_test_resign(BundleFixture *fixture,
 	replace_strdup(&context->keypath, "test/openssl-ca/rel/private/release-1.pem");
 	replace_strdup(&context->signing_keyringpath, "test/openssl-ca/rel-ca.pem");
 
-	res = resign_bundle(bundle, resignbundle, &ierror);
+	res = resign_bundle(bundle, resignbundle, FALSE, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 

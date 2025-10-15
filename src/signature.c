@@ -687,6 +687,102 @@ out:
 	return res;
 }
 
+static void debug_cms_ci(CMS_ContentInfo *cms);
+
+GBytes *cms_append_signature(GBytes *input_sig, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(CMS_ContentInfo) cms = NULL;
+	BIO *insig = bytes_as_bio(input_sig);
+	BIO *outsig = BIO_new(BIO_s_mem());
+	g_autoptr(X509) signcert = NULL;
+	g_autoptr(EVP_PKEY) pkey = NULL;
+	GBytes *output_sig = NULL;
+	int flags = CMS_BINARY | CMS_NOSMIMECAP | CMS_REUSE_DIGEST;
+
+	g_return_val_if_fail(input_sig != NULL, NULL);
+	g_return_val_if_fail(certfile != NULL, NULL);
+	g_return_val_if_fail(keyfile != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	if (!(cms = d2i_CMS_bio(insig, NULL))) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_PARSE,
+				"failed to parse signature");
+		goto out;
+	}
+
+	debug_cms_ci(cms);
+
+	signcert = load_cert(certfile, &ierror);
+	if (signcert == NULL) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	pkey = load_key(keyfile, &ierror);
+	if (pkey == NULL) {
+		g_propagate_error(error, ierror);
+		goto out;
+	}
+
+	for (gchar **intercertpath = interfiles; intercertpath && *intercertpath != NULL; intercertpath++) {
+		X509 *intercert = load_cert(*intercertpath, &ierror);
+		if (intercert == NULL) {
+			g_propagate_error(error, ierror);
+			goto out;
+		}
+
+		if (!CMS_add0_cert(cms, intercert)) {
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_CREATE_SIG,
+					"failed to add intermediate certificate: %s", get_openssl_err_string());
+			goto out;
+		}
+	}
+
+	if (!CMS_add1_signer(cms, signcert, pkey, NULL, flags)) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_CREATE_SIG,
+				"failed to create signature: %s", get_openssl_err_string());
+		goto out;
+	}
+
+	debug_cms_ci(cms);
+
+	if (!i2d_CMS_bio(outsig, cms)) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_SERIALIZE_SIG,
+				"failed to serialize signature");
+		goto out;
+	}
+
+	output_sig = bytes_from_bio(outsig);
+
+	if (!output_sig) {
+		g_set_error_literal(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_UNKNOWN,
+				"Read zero bytes");
+		goto out;
+	}
+
+out:
+	ERR_print_errors_fp(stdout);
+	BIO_free_all(insig);
+	BIO_free_all(outsig);
+	return output_sig;
+}
+
 gchar* get_pubkey_hash(X509 *cert)
 {
 	g_autoptr(GString) string = NULL;
@@ -1001,12 +1097,19 @@ gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
 	return bio_mem_unwrap(text);
 }
 
+static int cmp_x509(const X509 * const *a, const X509 * const *b)
+{
+	return X509_cmp(*a, *b);
+}
+
 static STACK_OF(X509) *cms_get_signer_certs(CMS_ContentInfo *cms, GError **error)
 {
 	g_return_val_if_fail(cms != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	g_autoptr(R_X509_STACK) signers = CMS_get0_signers(cms);
+	g_autoptr(R_X509_STACK) signers = NULL;
+#if !ENABLE_OPENSSL_VERIFY_PARTIAL
+	signers = CMS_get0_signers(cms);
 	if (signers == NULL) {
 		g_set_error_literal(
 				error,
@@ -1015,6 +1118,35 @@ static STACK_OF(X509) *cms_get_signer_certs(CMS_ContentInfo *cms, GError **error
 				"Failed to obtain signer info");
 		return NULL;
 	}
+#else
+	signers = sk_X509_new_null();
+	STACK_OF(CMS_SignerInfo) *sinfos = CMS_get0_SignerInfos(cms);
+	for (int i = 0; i < sk_CMS_SignerInfo_num(sinfos); i++) {
+		CMS_SignerInfo *si = sk_CMS_SignerInfo_value(sinfos, i);
+
+		/* We only want to consider signatures that passed OpenSSL's
+		 * verification. */
+		if (!CMS_SignerInfo_get_verification_result(si, CMS_VERIFY_RESULT))
+			continue;
+
+		X509 *si_signer = CMS_SignerInfo_get0_signer_cert(si);
+		if (si_signer == NULL) {
+			g_set_error_literal(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_GET_SIGNER,
+					"Failed to obtain signer certificate from signer info");
+			return NULL;
+		}
+
+		if (!sk_X509_push(signers, si_signer))
+			g_error("cms_get_signer_cert: sk_X509_push failed");
+	}
+#endif
+
+	/* provide a stable order of signers */
+	sk_X509_set_cmp_func(signers, cmp_x509);
+	sk_X509_sort(signers);
 
 	return g_steal_pointer(&signers);
 }
@@ -1102,8 +1234,14 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 		return FALSE;
 	}
 
+	/* Allow one or more signers.
+	 * If we have multiple signers, build the chain for the first, as there is
+	 * currently no way in RAUC to require more than one and so the additional
+	 * ones can be ignored.
+	 * When we support requiring multiple signers, we'll need to extend this
+	 * and the bundle info output to support multiple chains. */
 	gint signer_cnt = sk_X509_num(signers);
-	if (signer_cnt != 1) {
+	if (signer_cnt < 1) {
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
@@ -1427,6 +1565,11 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 		/* use signing time for verification */
 		X509_VERIFY_PARAM_set_time(param, signingtime);
 	}
+
+#if ENABLE_OPENSSL_VERIFY_PARTIAL
+	if (r_context()->config->keyring_allow_single_signature)
+		verify_flags |= CMS_VERIFY_PARTIAL;
+#endif
 
 	if (detached)
 		verified = CMS_verify(icms, NULL, store, incontent, NULL, verify_flags | CMS_DETACHED);

@@ -127,6 +127,21 @@ GBytes *cms_sign_manifest(RaucManifest *manifest, const gchar *certfile, const g
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Append signature generated with provided certificate and private key
+ *
+ * @param input_sig existing CMS that should be appended to
+ * @param certfile certificate file name
+ * @param keyfile private key file name
+ * @param interfiles NULL-terminated array of intermediate certificate file
+ *                   name strings to include in the bundle signature
+ * @param error return location for a GError, or NULL
+ *
+ * @return signature bytes, NULL if failed
+ */
+GBytes *cms_append_signature(GBytes *input_sig, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Check whether the CMS signature is detached or not
  *
  * @param sig signature to be checked
