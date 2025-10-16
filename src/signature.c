@@ -98,6 +98,15 @@ gboolean signature_init(GError **error)
 {
 	int ret, id;
 
+#if ENABLE_OPENSSL_PKCS11_PROVIDERS
+	const gchar *env;
+
+	env = g_getenv("RAUC_PKCS11_MODULE");
+	if (env != NULL && env[0] != '\0') {
+		g_setenv("PKCS11_PROVIDER_MODULE", env, TRUE);
+	}
+#endif
+
 	g_return_val_if_fail(error == FALSE || *error == NULL, FALSE);
 
 	ret = OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG | OPENSSL_INIT_LOAD_CRYPTO_STRINGS, NULL);
@@ -235,6 +244,26 @@ out:
 	return res;
 }
 
+#if ENABLE_OPENSSL_PKCS11_PROVIDERS
+static gchar* apply_env_rauc_pkcs11_pin(const gchar *url)
+{
+	const gchar *env;
+
+	env = g_getenv("RAUC_PKCS11_PIN");
+	if (env != NULL && env[0] != '\0' && strstr(url, "pin-value") == NULL) {
+		const gchar* pin_value = ";pin-value=";
+		int expand_length = strlen(pin_value) + strlen(env);
+		gchar* url_with_pin = g_strdup(url);
+		url_with_pin = g_realloc(url_with_pin, strlen(url_with_pin) + expand_length);
+		url_with_pin = strcat(url_with_pin, pin_value);
+		url_with_pin = strcat(url_with_pin, env);
+		return url_with_pin;
+	}
+	return g_strdup(url);
+}
+
+#endif
+
 static EVP_PKEY *load_key_pkcs11(const gchar *url, GError **error)
 {
 	EVP_PKEY *res = NULL;
@@ -266,7 +295,9 @@ static EVP_PKEY *load_key_pkcs11(const gchar *url, GError **error)
 	OSSL_STORE_CTX *store_ctx = NULL;
 	OSSL_STORE_INFO *info = NULL;
 
-	store_ctx = OSSL_STORE_open(url, NULL, NULL, NULL, NULL);
+	const gchar* url_with_pin = apply_env_rauc_pkcs11_pin(url);
+
+	store_ctx = OSSL_STORE_open(url_with_pin, NULL, NULL, NULL, NULL);
 	if (store_ctx == NULL) {
 		g_set_error(
 				error,
@@ -309,6 +340,10 @@ static EVP_PKEY *load_key_pkcs11(const gchar *url, GError **error)
 				R_SIGNATURE_ERROR_LOAD_FAILED,
 				"No private key found at PKCS#11 URI '%s'", url);
 	}
+out:
+	g_free(url_with_pin);
+#else
+out:
 #endif
 
 #if !ENABLE_OPENSSL_PKCS11_ENGINE && !ENABLE_OPENSSL_PKCS11_PROVIDERS
@@ -319,7 +354,6 @@ static EVP_PKEY *load_key_pkcs11(const gchar *url, GError **error)
 			"failed to load PKCS11 private key for '%s': OpenSSL engine/providers support disabled", url);
 #endif
 
-out:
 	return res;
 }
 
@@ -457,13 +491,15 @@ static X509 *load_cert_pkcs11(const gchar *url, GError **error)
 	OSSL_STORE_CTX *store_ctx = NULL;
 	OSSL_STORE_INFO *info = NULL;
 
-	store_ctx = OSSL_STORE_open(url, NULL, NULL, NULL, NULL);
+	const gchar* url_with_pin = apply_env_rauc_pkcs11_pin(url);
+	store_ctx = OSSL_STORE_open(url_with_pin, NULL, NULL, NULL, NULL);
 	if (store_ctx == NULL) {
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE_ERROR,
 				"Failed to open PKCS#11 store for URI '%s': %s", url, get_openssl_err_string());
+		g_free(url_with_pin);
 		return NULL;
 	}
 
@@ -506,6 +542,7 @@ static X509 *load_cert_pkcs11(const gchar *url, GError **error)
 
 out:
 	OSSL_STORE_close(store_ctx);
+	g_free(url_with_pin);
 #endif
 #if ENABLE_OPENSSL_PKCS11_ENGINE
 out:
