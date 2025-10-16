@@ -15,6 +15,8 @@
 #include "status_file.h"
 #include "utils.h"
 
+G_DEFINE_QUARK(r-service-error-quark, r_service_error)
+
 GMainLoop *service_loop = NULL;
 RInstaller *r_installer = NULL;
 guint r_bus_name_id = 0;
@@ -652,11 +654,13 @@ static gboolean r_on_signal(gpointer user_data)
 	return G_SOURCE_REMOVE;
 }
 
-gboolean r_service_run(void)
+gboolean r_service_run(GError **error)
 {
 	gboolean service_return = TRUE;
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
+
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	service_loop = g_main_loop_new(NULL, FALSE);
 	g_unix_signal_add(SIGTERM, r_on_signal, NULL);
@@ -670,6 +674,13 @@ gboolean r_service_run(void)
 			&service_return, NULL);
 
 	g_main_loop_run(service_loop);
+
+	if (!service_return) {
+		g_set_error_literal(
+				error,
+				R_SERVICE_ERROR, R_SERVICE_ERROR_FAILED,
+				"generic failure (check logs)");
+	}
 
 	if (r_bus_name_id)
 		g_bus_unown_name(r_bus_name_id);

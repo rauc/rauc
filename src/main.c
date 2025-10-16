@@ -2436,7 +2436,13 @@ static gboolean service_start(int argc, char **argv)
 		r_event_log_message(R_EVENT_LOG_TYPE_SERVICE, "Service started");
 	}
 
-	r_exit_status = r_service_run() ? 0 : 1;
+	if (!r_service_run(&ierror)) {
+		g_printerr("Failed to execute service: %s\n", ierror->message);
+		g_clear_error(&ierror);
+		r_exit_status = 1;
+	} else {
+		r_exit_status = 0;
+	}
 
 	return TRUE;
 }
