@@ -1755,18 +1755,16 @@ void install_args_free(RaucInstallArgs *args)
 	g_free(args);
 }
 
-gboolean install_run(RaucInstallArgs *args)
+void install_run(RaucInstallArgs *args)
 {
-	g_autoptr(GThread) thread = NULL;
 	r_context_set_busy(TRUE);
 
 	g_message("Active slot bootname: '%s'", r_context()->bootslot);
 
-	thread = g_thread_new("installer", install_thread, args);
-	if (thread == NULL)
-		return FALSE;
-
-	return TRUE;
+	/* g_thread_new aborts if the thread cannot be created. */
+	GThread *thread = g_thread_new("installer", install_thread, args);
+	/* we don't need to keep a reference to this thread */
+	g_thread_unref(thread);
 }
 
 static const gchar *supported_http_headers[] = {

@@ -133,12 +133,7 @@ static gboolean r_on_handle_install_bundle(
 
 	r_installer_set_operation(r_installer, "installing");
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
-	res = install_run(args);
-	if (!res) {
-		message = g_strdup("Failed to launch install thread");
-		args->status_result = 1;
-		goto out;
-	}
+	install_run(args);
 	args = NULL;
 
 out:
@@ -522,10 +517,7 @@ static gboolean auto_install(const gchar *source)
 	args->notify = service_install_notify;
 	args->cleanup = service_install_cleanup;
 
-	res = install_run(args);
-	if (!res) {
-		goto out;
-	}
+	install_run(args);
 	args = NULL;
 
 out:
