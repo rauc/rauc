@@ -529,7 +529,7 @@ static gboolean auto_install(const gchar *source)
 	args = NULL;
 
 out:
-	g_clear_pointer(&args, g_free);
+	g_clear_pointer(&args, install_args_free);
 
 	return res;
 }
