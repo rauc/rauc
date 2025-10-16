@@ -132,6 +132,7 @@ sources_rauc = files([
   'src/mark.c',
   'src/mbr.c',
   'src/mount.c',
+  'src/polling.c',
   'src/service.c',
   'src/shell.c',
   'src/signature.c',
@@ -177,7 +178,10 @@ endif
 conf.set10('ENABLE_OPENSSL_PKCS11_ENGINE', get_option('pkcs11_engine'))
 
 gnome = import('gnome')
-dbus_ifaces = files('src/de.pengutronix.rauc.Installer.xml')
+dbus_ifaces = files([
+  'src/de.pengutronix.rauc.Installer.xml',
+  'src/de.pengutronix.rauc.Poller.xml',
+])
 dbus_sources = gnome.gdbus_codegen(
   'rauc-installer-generated',
   sources : dbus_ifaces,
