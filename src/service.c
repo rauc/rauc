@@ -685,8 +685,7 @@ gboolean r_service_run(GError **error)
 	if (r_bus_name_id)
 		g_bus_unown_name(r_bus_name_id);
 
-	g_main_loop_unref(service_loop);
-	service_loop = NULL;
+	g_clear_pointer(&service_loop, g_main_loop_unref);
 
 	g_clear_pointer(&r_installer, g_object_unref);
 
