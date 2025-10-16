@@ -558,8 +558,6 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 {
 	GError *ierror = NULL;
 
-	r_installer = r_installer_skeleton_new();
-
 	g_signal_connect(r_installer, "handle-install",
 			G_CALLBACK(r_on_handle_install),
 			NULL);
@@ -664,6 +662,8 @@ gboolean r_service_run(GError **error)
 
 	service_loop = g_main_loop_new(NULL, FALSE);
 	g_unix_signal_add(SIGTERM, r_on_signal, NULL);
+
+	r_installer = r_installer_skeleton_new();
 
 	r_bus_name_id = g_bus_own_name(bus_type,
 			"de.pengutronix.rauc",
