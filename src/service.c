@@ -15,6 +15,8 @@
 #include "status_file.h"
 #include "utils.h"
 
+G_DEFINE_QUARK(r-service-error-quark, r_service_error)
+
 GMainLoop *service_loop = NULL;
 RInstaller *r_installer = NULL;
 guint r_bus_name_id = 0;
@@ -131,12 +133,7 @@ static gboolean r_on_handle_install_bundle(
 
 	r_installer_set_operation(r_installer, "installing");
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
-	res = install_run(args);
-	if (!res) {
-		message = g_strdup("Failed to launch install thread");
-		args->status_result = 1;
-		goto out;
-	}
+	install_run(args);
 	args = NULL;
 
 out:
@@ -520,14 +517,11 @@ static gboolean auto_install(const gchar *source)
 	args->notify = service_install_notify;
 	args->cleanup = service_install_cleanup;
 
-	res = install_run(args);
-	if (!res) {
-		goto out;
-	}
+	install_run(args);
 	args = NULL;
 
 out:
-	g_clear_pointer(&args, g_free);
+	g_clear_pointer(&args, install_args_free);
 
 	return res;
 }
@@ -555,8 +549,6 @@ static void r_on_bus_acquired(GDBusConnection *connection,
 		gpointer user_data)
 {
 	GError *ierror = NULL;
-
-	r_installer = r_installer_skeleton_new();
 
 	g_signal_connect(r_installer, "handle-install",
 			G_CALLBACK(r_on_handle_install),
@@ -652,14 +644,18 @@ static gboolean r_on_signal(gpointer user_data)
 	return G_SOURCE_REMOVE;
 }
 
-gboolean r_service_run(void)
+gboolean r_service_run(GError **error)
 {
 	gboolean service_return = TRUE;
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
 	                    ? G_BUS_TYPE_SESSION : G_BUS_TYPE_SYSTEM;
 
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	service_loop = g_main_loop_new(NULL, FALSE);
 	g_unix_signal_add(SIGTERM, r_on_signal, NULL);
+
+	r_installer = r_installer_skeleton_new();
 
 	r_bus_name_id = g_bus_own_name(bus_type,
 			"de.pengutronix.rauc",
@@ -671,11 +667,17 @@ gboolean r_service_run(void)
 
 	g_main_loop_run(service_loop);
 
+	if (!service_return) {
+		g_set_error_literal(
+				error,
+				R_SERVICE_ERROR, R_SERVICE_ERROR_FAILED,
+				"generic failure (check logs)");
+	}
+
 	if (r_bus_name_id)
 		g_bus_unown_name(r_bus_name_id);
 
-	g_main_loop_unref(service_loop);
-	service_loop = NULL;
+	g_clear_pointer(&service_loop, g_main_loop_unref);
 
 	g_clear_pointer(&r_installer, g_object_unref);
 

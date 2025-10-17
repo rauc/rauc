@@ -110,11 +110,12 @@ void install_args_free(RaucInstallArgs *args);
 /**
  * Start a new installer thread.
  *
- * @param args RaucInstallArgs instance
+ * Internally, this uses g_thread_new(), which aborts on error. If we can't
+ * start threads, we can't recover anyway.
  *
- * @return TRUE if starting thread succeeded, otherwise FALSE
+ * @param args RaucInstallArgs instance
  */
-gboolean install_run(RaucInstallArgs *args);
+void install_run(RaucInstallArgs *args);
 
 typedef struct {
 	RaucImage *image;
