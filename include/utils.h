@@ -516,3 +516,11 @@ gchar *r_format_duration(gint64 total_seconds);
  */
 gchar *r_regex_match_simple(const gchar *pattern, const gchar *string)
 G_GNUC_WARN_UNUSED_RESULT;
+
+/**
+ * Reads CLOCK_BOOTTIME via clock_gettime().
+ *
+ * @return the time value in microseconds
+ */
+gint64 r_get_boottime(void)
+G_GNUC_WARN_UNUSED_RESULT;

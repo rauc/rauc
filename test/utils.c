@@ -552,6 +552,19 @@ static void tempfile_cleanup_test(void)
 	g_test_assert_expected_messages();
 }
 
+static void boottime_test(void)
+{
+	gint64 a = r_get_boottime();
+	g_usleep(100000);
+	gint64 b = r_get_boottime();
+
+	g_assert_cmpint(b, >, a);
+	gint64 diff = b - a;
+
+	g_assert_cmpint(diff, >=, 100000);
+	g_assert_cmpint(diff, <=, 110000);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -572,6 +585,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/utils/format_duration", format_duration_test);
 	g_test_add_func("/utils/regex_match", regex_match_test);
 	g_test_add_func("/utils/tempfile_cleanup", tempfile_cleanup_test);
+	g_test_add_func("/utils/boottime", boottime_test);
 
 	return g_test_run();
 }
