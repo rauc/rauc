@@ -823,12 +823,12 @@ RaucContext *r_context_conf(void)
 		// let us handle broken pipes explicitly
 		signal(SIGPIPE, SIG_IGN);
 
-		if (!network_init(&ierror)) {
+		if (!signature_init(&ierror)) {
 			g_warning("%s", ierror->message);
 			g_error_free(ierror);
 			return NULL;
 		}
-		if (!signature_init(&ierror)) {
+		if (!network_init(&ierror)) {
 			g_warning("%s", ierror->message);
 			g_error_free(ierror);
 			return NULL;
