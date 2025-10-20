@@ -12,6 +12,7 @@ static GList* get_slots_by_identifier(const gchar *identifier, GError **error)
 	GList *slots = NULL;
 	RaucSlot *booted = NULL;
 
+	g_return_val_if_fail(identifier != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
@@ -208,8 +209,10 @@ gboolean mark_run(const gchar *state,
 	g_autoptr(GList) slots = NULL;
 	g_autoptr(GError) ierror = NULL;
 
-	g_assert(slot_name == NULL || *slot_name == NULL);
-	g_assert(message != NULL && *message == NULL);
+	g_return_val_if_fail(state != NULL, FALSE);
+	g_return_val_if_fail(slot_identifier != NULL, FALSE);
+	g_return_val_if_fail(slot_name == NULL || *slot_name == NULL, FALSE);
+	g_return_val_if_fail(message != NULL && *message == NULL, FALSE);
 
 	slots = get_slots_by_identifier(slot_identifier, &ierror);
 	if (ierror) {
