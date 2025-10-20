@@ -19,6 +19,7 @@ G_DEFINE_QUARK(r-service-error-quark, r_service_error)
 
 GMainLoop *service_loop = NULL;
 RInstaller *r_installer = NULL;
+gboolean r_service_booted_slot_is_good = FALSE;
 guint r_bus_name_id = 0;
 
 static gboolean service_install_notify(gpointer data)
@@ -269,6 +270,13 @@ static gboolean r_on_handle_mark(RInstaller *interface,
 	}
 
 	res = mark_run(arg_state, arg_slot_identifier, &slot_name, &message);
+	if (res && g_strcmp0(arg_slot_identifier, "booted") == 0) {
+		if (g_strcmp0(arg_state, "good") == 0) {
+			r_service_booted_slot_is_good = TRUE;
+		} else if (g_strcmp0(arg_state, "bad") == 0) {
+			r_service_booted_slot_is_good = FALSE;
+		}
+	}
 
 out:
 	if (res) {
