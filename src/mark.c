@@ -208,8 +208,8 @@ gboolean mark_run(const gchar *state,
 	g_autoptr(GList) slots = NULL;
 	g_autoptr(GError) ierror = NULL;
 
-	g_assert(slot_name == NULL || *slot_name == NULL);
-	g_assert(message != NULL && *message == NULL);
+	g_return_val_if_fail(slot_name == NULL || *slot_name == NULL, FALSE);
+	g_return_val_if_fail(message != NULL && *message == NULL, FALSE);
 
 	slots = get_slots_by_identifier(slot_identifier, &ierror);
 	if (ierror) {
