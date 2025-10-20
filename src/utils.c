@@ -10,6 +10,7 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "utils.h"
 
@@ -1125,4 +1126,14 @@ gchar *r_regex_match_simple(const gchar *pattern, const gchar *string)
 		return g_match_info_fetch(match, 1);
 
 	return NULL;
+}
+
+gint64 r_get_boottime(void)
+{
+	struct timespec ts;
+
+	if (clock_gettime(CLOCK_BOOTTIME, &ts) != 0)
+		g_error("RAUC needs CLOCK_BOOTTIME (failed with %s)", g_strerror(errno));
+
+	return (((gint64) ts.tv_sec) * 1000000) + (ts.tv_nsec / 1000);
 }
