@@ -107,6 +107,7 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 		if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 			/* If no type is set, derive it from filename extension to support manifests without type */
 			g_clear_error(&ierror);
+			g_clear_pointer(&iimage->type, g_free);
 			if (!iimage->hooks.install) {
 				const gchar *derived_type = derive_image_type_from_filename_pattern(iimage->filename);
 				if (derived_type == NULL) {

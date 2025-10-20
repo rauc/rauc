@@ -227,10 +227,11 @@ void r_slot_status_load_globally(const gchar *filename, GHashTable *slots)
 	g_return_if_fail(filename);
 	g_return_if_fail(slots);
 
-	g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror);
-	if (ierror && !g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_NOENT))
-		g_message("Failed to load global slot status file: %s", ierror->message);
-	g_clear_error(&ierror);
+	if (!g_key_file_load_from_file(key_file, filename, G_KEY_FILE_NONE, &ierror)) {
+		if (!g_error_matches(ierror, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+			g_message("Failed to load global slot status file: %s", ierror->message);
+		g_clear_error(&ierror);
+	}
 
 	/* Load all slot states included in the statusfile */
 	groups = g_key_file_get_groups(key_file, NULL);
