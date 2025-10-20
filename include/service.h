@@ -21,3 +21,11 @@ gboolean r_service_run(GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 void set_last_error(const gchar *message);
+
+/* Track whether the running slot has been marked as good.
+ * This is used to inhibit polling until we have something to fall back to.
+ * Currently, this information is lost when restarting the service, so this
+ * approach should be reworked when we have explicit tracking of
+ * installation cycles.
+ **/
+extern gboolean r_service_booted_slot_is_good;
