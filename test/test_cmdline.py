@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from helper import run
@@ -7,7 +9,7 @@ def test_noargs():
     out, err, exitcode = run("rauc")
 
     assert exitcode == 1
-    assert out.startswith("Usage:\n  rauc [OPTION?] <COMMAND>\n\nOptions:")
+    assert re.match(r"Usage:\s+rauc \[OPTION.\] <COMMAND>\s+Options:", out)
     assert err == ""
 
 
@@ -15,7 +17,7 @@ def test_invalid_arg():
     out, err, exitcode = run("rauc info --foobar")
 
     assert exitcode == 1
-    assert out.startswith("Usage:\n  rauc [OPTION?] info <BUNDLE>\n\nPrint bundle info\n\nInfo options:")
+    assert re.match(r"Usage:\s+rauc \[OPTION.\] info <BUNDLE>\s+Print bundle info\s+Info options:", out)
     assert err == "Unknown option --foobar\n"
 
 
