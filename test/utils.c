@@ -317,7 +317,7 @@ static void environ_test(void)
 
 static void semver_parse_test(void)
 {
-	g_autofree gchar *version_string;
+	g_autofree gchar *version_string = NULL;
 	g_autofree guint64 version[3] = {0};
 	g_autofree gchar *pre_release = NULL;
 	g_autofree gchar *build = NULL;
