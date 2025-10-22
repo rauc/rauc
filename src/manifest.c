@@ -100,7 +100,10 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 		}
 	}
 
-	/* Setting the 'type' option for artifacts is not supported */
+	/* Setting the 'type' option for artifacts is not supported.
+	 * For regular images (non-artifacts), we need to determine the image 'type'
+	 * to select the appropriate update handler. The image 'type' can be determined either
+	 * by the corresponding variable in the manifest, or derived by the file name extension. */
 	if (!iimage->artifact) {
 		iimage->type_from_fileext = FALSE;
 		iimage->type = key_file_consume_string(key_file, group, "type", &ierror);
@@ -123,6 +126,8 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 			return FALSE;
 		}
 
+		/* Custom install hooks can skip validation of supported image types
+		 * since they implement their own logic */
 		if (!iimage->hooks.install && !is_image_type_supported(iimage->type)) {
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_INVALID_IMAGE_TYPE,
 					"Unsupported image type '%s'", iimage->type);
