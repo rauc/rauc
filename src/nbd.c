@@ -571,7 +571,7 @@ static void start_read(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xfer)
 		g_error("unexpected error from curl_multi_add_handle in %s", G_STRFUNC);
 }
 
-/* Appends Gstrv elements to curl_slist (strings are copied).
+/* Appends GStrv elements to curl_slist (strings are copied).
  * If curl_slist does not exist yet (NULL passed), it will be created.
  * The created list needs to be freed (after usage) by the caller with
  * curl_slist_free_all(). */
