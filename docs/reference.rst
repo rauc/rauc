@@ -931,7 +931,7 @@ The following fields are supported for image sections:
 
   .. important::
     RAUC uses the file name extension and the slot type to decide how to
-    extract the image file content to the slot.
+    install the image file content to the slot.
     Make sure to only use :ref:`supported file name extensions
     <sec-ref-image-types-to-fileext-map>`!
 
