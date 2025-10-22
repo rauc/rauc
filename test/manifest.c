@@ -298,7 +298,7 @@ static void test_load_manifest_mem(void)
 
 static void test_manifest_load_variants(void)
 {
-	gchar *tmpdir;
+	g_autofree gchar *tmpdir = NULL;
 	RaucManifest *rm = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
@@ -331,8 +331,6 @@ filename=rootfs-var2.ext4\n\
 	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
 	g_assert_nonnull(manifestpath);
 
-	g_free(tmpdir);
-
 	res = load_manifest_file(manifestpath, &rm, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
@@ -362,7 +360,7 @@ filename=rootfs-var2.ext4\n\
 
 static void test_manifest_load_types(void)
 {
-	gchar *tmpdir;
+	g_autofree gchar *tmpdir = NULL;
 	RaucManifest *rm = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
@@ -388,8 +386,6 @@ filename=appfs.vfat\n\
 	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
 	g_assert_nonnull(manifestpath);
 
-	g_free(tmpdir);
-
 	res = load_manifest_file(manifestpath, &rm, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
@@ -409,7 +405,7 @@ filename=appfs.vfat\n\
 
 static void test_manifest_load_types_invalid(void)
 {
-	gchar *tmpdir;
+	g_autofree gchar *tmpdir = NULL;
 	RaucManifest *rm = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
@@ -430,8 +426,6 @@ filename=rootfs-default.ext4\n\
 	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
 	g_assert_nonnull(manifestpath);
 
-	g_free(tmpdir);
-
 	res = load_manifest_file(manifestpath, &rm, &error);
 	g_assert_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_INVALID_IMAGE_TYPE);
 	g_assert_false(res);
@@ -443,7 +437,7 @@ filename=rootfs-default.ext4\n\
 
 static void test_manifest_load_types_fileext_not_mapped(void)
 {
-	gchar *tmpdir;
+	g_autofree gchar *tmpdir = NULL;
 	RaucManifest *rm = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
@@ -463,8 +457,6 @@ filename=rootfs-default.invalid\n\
 	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
 	g_assert_nonnull(manifestpath);
 
-	g_free(tmpdir);
-
 	res = load_manifest_file(manifestpath, &rm, &error);
 	g_assert_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
 	g_assert_false(res);
@@ -476,7 +468,7 @@ filename=rootfs-default.invalid\n\
 
 static void test_manifest_load_adaptive(void)
 {
-	gchar *tmpdir;
+	g_autofree gchar *tmpdir = NULL;
 	RaucManifest *rm = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
@@ -498,8 +490,6 @@ adaptive=invalid-method;another-invalid-method\n\
 	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
 	g_assert_nonnull(manifestpath);
 
-	g_free(tmpdir);
-
 	res = load_manifest_file(manifestpath, &rm, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
@@ -518,7 +508,7 @@ adaptive=invalid-method;another-invalid-method\n\
 
 static void test_manifest_load_meta(void)
 {
-	gchar *tmpdir;
+	g_autofree gchar *tmpdir = NULL;
 	RaucManifest *rm = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
@@ -547,8 +537,6 @@ counter=42\n\
 	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
 	g_assert_nonnull(manifestpath);
 
-	g_free(tmpdir);
-
 	res = load_manifest_file(manifestpath, &rm, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
@@ -574,7 +562,7 @@ counter=42\n\
 
 static void test_manifest_load_details(void)
 {
-	gchar *tmpdir;
+	g_autofree gchar *tmpdir = NULL;
 	RaucManifest *rm = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
@@ -598,8 +586,6 @@ build=123456789\n\
 
 	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
 	g_assert_nonnull(manifestpath);
-
-	g_free(tmpdir);
 
 	res = load_manifest_file(manifestpath, &rm, &error);
 	g_assert_no_error(error);
