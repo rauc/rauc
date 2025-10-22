@@ -1260,7 +1260,7 @@ static gboolean asn1_time_to_tm(const ASN1_TIME *intime, struct tm *tm)
 	BIO *mem;
 	long size;
 	gchar *data;
-	g_autofree gchar *ret;
+	g_autofree gchar *ret = NULL;
 
 	mem = BIO_new(BIO_s_mem());
 
