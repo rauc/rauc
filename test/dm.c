@@ -71,8 +71,8 @@ static guint readable_sectors(int fd, GBytes *original)
 
 static guint num_diff_sectors(int fd_a, int fd_b, guint sectors)
 {
-	g_autofree guint8 *buf_a;
-	g_autofree guint8 *buf_b;
+	g_autofree guint8 *buf_a = NULL;
+	g_autofree guint8 *buf_b = NULL;
 	guint diff_sectors = 0;
 
 	/* O_DIRECT needs paged-aligned memory */
