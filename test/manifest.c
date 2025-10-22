@@ -602,7 +602,7 @@ build=123456789\n\
 
 static void test_manifest_invalid_hook_name(void)
 {
-	g_autofree gchar *tmpdir;
+	g_autofree gchar *tmpdir = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	g_autoptr(RaucManifest) rm = NULL;
 	gboolean res = FALSE;
@@ -663,7 +663,7 @@ hooks=install;pre-install\n\
 
 static void test_manifest_missing_hook_name(void)
 {
-	g_autofree gchar *tmpdir;
+	g_autofree gchar *tmpdir = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	g_autoptr(RaucManifest) rm = NULL;
 	gboolean res = FALSE;
@@ -702,7 +702,7 @@ hooks=install\n\
  */
 static void test_manifest_missing_image_size(void)
 {
-	g_autofree gchar *tmpdir;
+	g_autofree gchar *tmpdir = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	g_autoptr(RaucManifest) rm = NULL;
 	gboolean res = FALSE;
