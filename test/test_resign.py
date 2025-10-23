@@ -29,14 +29,30 @@ def get_cms(bundle_path):
     return decode_cms(cms_data)
 
 
-def get_signers(bundle_path):
-    cms = get_cms(bundle_path)
+# for convenience, support both a bytes object or a file path
+def get_signers(cms_or_path):
+    if isinstance(cms_or_path, dict):
+        cms = cms_or_path
+    else:
+        cms = get_cms(cms_or_path)
     assert cms["contentType"] == "signedData"
 
     # support multiple signers by collecting into a set
     cms_signers = {(si["issuer"], si["serial"]) for si in cms["signerInfos"]}
 
     return cms_signers
+
+
+def get_cert_subjects(cms_or_path):
+    if isinstance(cms_or_path, dict):
+        cms = cms_or_path
+    else:
+        cms = get_cms(cms_or_path)
+    assert cms["contentType"] == "signedData"
+
+    cms_subjects = {cert["subject"] for cert in cms["certs"]}
+
+    return cms_subjects
 
 
 def test_resign(tmp_path):
@@ -89,6 +105,74 @@ def test_resign_verity(tmp_path):
 
     out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-only-ca.pem info {out_bundle}")
     assert exitcode == 0
+
+
+def test_resign_append(tmp_path):
+    # copy to tmp path for safe ownership check
+    in_bundle = tmp_path / "in.raucb"
+    shutil.copyfile("good-bundle.raucb", in_bundle)
+    assert get_signers(in_bundle) == {SIGNERS["release-1"]}
+
+    out_bundle = tmp_path / "out.raucb"
+    out, err, exitcode = run(
+        "rauc"
+        " --cert openssl-ca/dev/autobuilder-1.cert.pem"
+        " --key openssl-ca/dev/private/autobuilder-1.pem"
+        " --keyring openssl-ca/rel-ca.pem"
+        f" resign {in_bundle} {out_bundle}"
+        " --append"
+        " --signing-keyring openssl-ca/dev-only-ca.pem"
+    )
+    assert exitcode == 0
+    assert out_bundle.exists()
+    assert get_signers(out_bundle) == {SIGNERS["release-1"], SIGNERS["autobuilder-1"]}
+
+    out, err, exitcode = run(f"rauc --keyring openssl-ca/rel-ca.pem info {out_bundle}")
+    assert exitcode == 1
+    assert "unable to get local issuer certificate" in err
+
+    out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-only-ca.pem info {out_bundle}")
+    assert exitcode == 1
+    assert "unable to get local issuer certificate" in err
+
+    # verification with multiple signatures is not supported yet
+    out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-ca.pem info {out_bundle}")
+    assert exitcode == 1
+    assert "Unsupported number of signers: 2" in err
+
+
+def test_resign_verity_append(tmp_path):
+    # copy to tmp path for safe ownership check
+    in_bundle = tmp_path / "in.raucb"
+    shutil.copyfile("good-verity-bundle.raucb", in_bundle)
+    assert get_signers(in_bundle) == {SIGNERS["release-1"]}
+
+    out_bundle = tmp_path / "out.raucb"
+    out, err, exitcode = run(
+        "rauc"
+        " --cert openssl-ca/dev/autobuilder-1.cert.pem"
+        " --key openssl-ca/dev/private/autobuilder-1.pem"
+        " --keyring openssl-ca/rel-ca.pem"
+        f" resign {in_bundle} {out_bundle}"
+        " --append"
+        " --signing-keyring openssl-ca/dev-only-ca.pem"
+    )
+    assert exitcode == 0
+    assert out_bundle.exists()
+    assert get_signers(out_bundle) == {SIGNERS["release-1"], SIGNERS["autobuilder-1"]}
+
+    out, err, exitcode = run(f"rauc --keyring openssl-ca/rel-ca.pem info {out_bundle}")
+    assert exitcode == 1
+    assert "unable to get local issuer certificate" in err
+
+    out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-only-ca.pem info {out_bundle}")
+    assert exitcode == 1
+    assert "unable to get local issuer certificate" in err
+
+    # verification with multiple signatures is not supported yet
+    out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-ca.pem info {out_bundle}")
+    assert exitcode == 1
+    assert "Unsupported number of signers: 2" in err
 
 
 def test_resign_crypt(tmp_path):
@@ -218,3 +302,38 @@ def test_resign_extend_expired_no_verify(tmp_path):
     assert signing_time[1].year == 2020
     assert signing_time[1].month == 10
     assert signing_time[1].day == 1
+
+
+def test_resign_append_intermediate(tmp_path):
+    # copy to tmp path for safe ownership check
+    in_bundle = tmp_path / "in.raucb"
+    shutil.copyfile("good-verity-bundle.raucb", in_bundle)
+    cms = get_cms(in_bundle)
+    assert get_signers(cms) == {SIGNERS["release-1"]}
+    assert get_cert_subjects(cms) == {"O=Test Org, CN=Test Org Release-1"}
+
+    out_bundle = tmp_path / "out.raucb"
+    out, err, exitcode = run(
+        "rauc"
+        " --cert openssl-ca/dev/autobuilder-1.cert.pem"
+        " --key openssl-ca/dev/private/autobuilder-1.pem"
+        " --keyring openssl-ca/rel-ca.pem"
+        f" resign {in_bundle} {out_bundle}"
+        " --intermediate openssl-ca/dev/ca.cert.pem"
+        " --append"
+        " --signing-keyring openssl-ca/dev-only-ca.pem"
+    )
+    assert exitcode == 0
+    assert out_bundle.exists()
+    cms = get_cms(out_bundle)
+    assert get_signers(cms) == {SIGNERS["release-1"], SIGNERS["autobuilder-1"]}
+    assert get_cert_subjects(cms) == {
+        "O=Test Org, CN=Test Org Release-1",
+        "O=Test Org, CN=Test Org Autobuilder-1",
+        "O=Test Org, CN=Test Org Provisioning CA Development",
+    }
+
+    # no path for the signature by Release-1
+    out, err, exitcode = run(f"rauc --keyring openssl-ca/root-ca.pem info {out_bundle}")
+    assert exitcode == 1
+    assert "unable to get local issuer certificate" in err

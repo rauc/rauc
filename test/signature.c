@@ -3,6 +3,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <fcntl.h>
+#include <openssl/x509.h>
 
 #include <context.h>
 #include <utils.h>
@@ -866,6 +867,174 @@ static void signature_cmsverify_pathdir_path(SignatureFixture *fixture,
 	g_assert_nonnull(fixture->cms);
 }
 
+static void signature_append_detached(SignatureFixture *fixture, gconstpointer user_data)
+{
+	gboolean res;
+
+	g_autoptr(GBytes) sig1 = cms_sign(fixture->content,
+			TRUE,
+			"test/openssl-ca/dev/autobuilder-1.cert.pem",
+			"test/openssl-ca/dev/private/autobuilder-1.pem",
+			NULL,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(sig1);
+
+	g_autoptr(GBytes) sig2 = cms_append_signature(sig1,
+			"test/openssl-ca/rel/release-1.cert.pem",
+			"test/openssl-ca/rel/private/release-1.pem",
+			NULL,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(sig2);
+
+	/* dev-ca allows release CA -> OK */
+	g_autoptr(CMS_ContentInfo) cms = NULL;
+	res = cms_verify_bytes(fixture->content,
+			sig2,
+			fixture->store,
+			&cms,
+			NULL,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+
+	STACK_OF(CMS_SignerInfo) *sinfos = CMS_get0_SignerInfos(cms);
+	g_assert_cmpint(sk_CMS_SignerInfo_num(sinfos), ==, 2);
+
+	/* modified CMS must fail verification */
+	((char *)g_bytes_get_data(sig2, NULL))[0x10] = 0x00;
+	res = cms_verify_bytes(fixture->content,
+			sig2,
+			fixture->store,
+			NULL,
+			NULL,
+			&fixture->error);
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE);
+	g_assert_false(res);
+}
+
+static void signature_append_inline(SignatureFixture *fixture, gconstpointer user_data)
+{
+	gboolean res;
+	GBytes *manifest = NULL;
+
+	g_autoptr(GBytes) sig1 = cms_sign(fixture->content,
+			FALSE,
+			"test/openssl-ca/dev/autobuilder-1.cert.pem",
+			"test/openssl-ca/dev/private/autobuilder-1.pem",
+			NULL,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(sig1);
+
+	g_autoptr(GBytes) sig2 = cms_append_signature(sig1,
+			"test/openssl-ca/rel/release-1.cert.pem",
+			"test/openssl-ca/rel/private/release-1.pem",
+			NULL,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(sig2);
+
+	/* dev-ca allows release CA -> OK */
+	g_autoptr(CMS_ContentInfo) cms = NULL;
+	res = cms_verify_bytes(NULL,
+			sig2,
+			fixture->store,
+			&cms,
+			&manifest,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+	g_assert_nonnull(manifest);
+	g_assert_true(g_bytes_equal(fixture->content, manifest));
+
+	STACK_OF(CMS_SignerInfo) *sinfos = CMS_get0_SignerInfos(cms);
+	g_assert_cmpint(sk_CMS_SignerInfo_num(sinfos), ==, 2);
+
+	g_clear_pointer(&manifest, g_bytes_unref);
+
+	/* modified CMS must fail verification */
+	((char *)g_bytes_get_data(sig2, NULL))[0x10] = 0x00;
+	res = cms_verify_bytes(NULL,
+			sig2,
+			fixture->store,
+			NULL,
+			&manifest,
+			&fixture->error);
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_PARSE);
+	g_assert_false(res);
+	g_assert_null(manifest);
+}
+
+static void signature_append_partial(SignatureFixture *fixture, gconstpointer user_data)
+{
+	gboolean res;
+	GBytes *manifest_null = NULL;
+
+	/* we want to allow dev and rel CAs separately, so allow partial chains */
+	r_context()->config->keyring_allow_partial_chain = TRUE;
+	g_autoptr(X509_STORE) dev_partial_allowed_store = setup_x509_store("test/openssl-ca/dev-partial-ca.pem", NULL, NULL);
+	g_autoptr(X509_STORE) rel_partial_allowed_store = setup_x509_store("test/openssl-ca/rel-partial-ca.pem", NULL, NULL);
+	r_context()->config->keyring_allow_partial_chain = FALSE;
+
+	g_autoptr(GBytes) sig1 = cms_sign(fixture->content,
+			FALSE,
+			"test/openssl-ca/dev/autobuilder-1.cert.pem",
+			"test/openssl-ca/dev/private/autobuilder-1.pem",
+			NULL,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(sig1);
+
+	g_autoptr(GBytes) sig2 = cms_append_signature(sig1,
+			"test/openssl-ca/rel/release-1.cert.pem",
+			"test/openssl-ca/rel/private/release-1.pem",
+			NULL,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_nonnull(sig2);
+
+	/* full dev CA -> both autobuilder and release sigs are OK */
+	g_autoptr(CMS_ContentInfo) cms1 = NULL;
+	g_autoptr(GBytes) manifest1 = NULL;
+	res = cms_verify_bytes(NULL,
+			sig2,
+			fixture->store,
+			&cms1,
+			&manifest1,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+
+	STACK_OF(CMS_SignerInfo) *sinfos1 = CMS_get0_SignerInfos(cms1);
+	g_assert_cmpint(sk_CMS_SignerInfo_num(sinfos1), ==, 2);
+
+	/* partial dev CA -> release is not valid, overall verification fails */
+	res = cms_verify_bytes(NULL,
+			sig2,
+			dev_partial_allowed_store,
+			NULL,
+			&manifest_null,
+			&fixture->error);
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
+	g_assert_false(res);
+	g_assert_null(manifest_null);
+	g_clear_error(&fixture->error);
+
+	/* partial release CA -> autobuilder is not valid, overall verification fails */
+	res = cms_verify_bytes(NULL,
+			sig2,
+			rel_partial_allowed_store,
+			NULL,
+			&manifest_null,
+			&fixture->error);
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID);
+	g_assert_false(res);
+	g_assert_null(manifest_null);
+	g_clear_error(&fixture->error);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -901,6 +1070,9 @@ int main(int argc, char *argv[])
 	g_test_add("/signature/cmsverify_dir_single_fail", SignatureFixture, NULL, signature_set_up, signature_cmsverify_dir_single_fail, signature_tear_down);
 	g_test_add("/signature/cmsverify_pathdir_dir", SignatureFixture, NULL, signature_set_up, signature_cmsverify_pathdir_dir, signature_tear_down);
 	g_test_add("/signature/cmsverify_pathdir_path", SignatureFixture, NULL, signature_set_up, signature_cmsverify_pathdir_path, signature_tear_down);
+	g_test_add("/signature/append_detached", SignatureFixture, NULL, signature_set_up, signature_append_detached, signature_tear_down);
+	g_test_add("/signature/append_inline", SignatureFixture, NULL, signature_set_up, signature_append_inline, signature_tear_down);
+	g_test_add("/signature/append_partial", SignatureFixture, NULL, signature_set_up, signature_append_partial, signature_tear_down);
 
 	return g_test_run();
 }

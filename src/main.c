@@ -37,6 +37,7 @@ gboolean install_ignore_compatible, install_ignore_version_limit, install_progre
 gboolean trust_environment = FALSE;
 gboolean verification_disabled = FALSE;
 gboolean no_check_time = FALSE;
+gboolean resign_append = FALSE;
 gboolean info_dumpcert = FALSE;
 gboolean info_dumprecipients = FALSE;
 gboolean status_detailed = FALSE;
@@ -594,7 +595,7 @@ static gboolean resign_start(int argc, char **argv)
 		goto out;
 	}
 
-	if (!resign_bundle(bundle, argv[3], &ierror)) {
+	if (!resign_bundle(bundle, argv[3], resign_append, &ierror)) {
 		g_printerr("Failed to resign bundle: %s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
@@ -2556,6 +2557,7 @@ static GOptionEntry entries_bundle[] = {
 };
 
 static GOptionEntry entries_resign[] = {
+	{"append", '\0', 0, G_OPTION_ARG_NONE, &resign_append, "append instead of replace signature", NULL},
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
 	{"no-check-time", '\0', 0, G_OPTION_ARG_NONE, &no_check_time, "don't check validity period of certificates against current time", NULL},
 	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
