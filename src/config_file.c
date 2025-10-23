@@ -143,6 +143,29 @@ out:
 	return res;
 }
 
+static gboolean parse_late_fallback_mode(const gchar *mode_str, RConfigLateFallback *mode, GError **error)
+{
+	g_return_val_if_fail(mode != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (g_strcmp0(mode_str, "disable") == 0) {
+		*mode = R_CONFIG_FALLBACK_DISABLE;
+		return TRUE;
+	} else if (g_strcmp0(mode_str, "mark-bad") == 0) {
+		*mode = R_CONFIG_FALLBACK_MARK_BAD;
+		return TRUE;
+	} else if (g_strcmp0(mode_str, "lock-counter") == 0) {
+		*mode = R_CONFIG_FALLBACK_LOCK_COUNTER;
+		return TRUE;
+	}
+	g_set_error(error,
+			G_KEY_FILE_ERROR,
+			G_KEY_FILE_ERROR_INVALID_VALUE,
+			"Invalid prevent-late-fallback value '%s'. Must be one of: disable, mark-bad, lock-counter, true, false",
+			mode_str);
+	return FALSE;
+}
+
 #define RAUC_LOG_EVENT_CONF_PREFIX "log"
 
 static gboolean r_event_log_parse_config_sections(GKeyFile *key_file, RaucConfig *config, GError **error)
@@ -522,13 +545,33 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 	if (dtbvariant)
 		c->system_variant_type = R_CONFIG_SYS_VARIANT_DTB;
 
+	/* Boolean value is deprecated. To keep it simple and easy to remove in the future,
+	 * we assign the old boolean value to their respective new enum values.
+	 * Both are internally mapped to integers so:
+	 * FALSE=R_CONFIG_FALLBACK_DISABLE=0
+	 * TRUE=R_CONFIG_FALLBACK_MARK_BAD=1
+	 */
 	c->prevent_late_fallback = g_key_file_get_boolean(key_file, "system", "prevent-late-fallback", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
-		c->prevent_late_fallback = FALSE;
+		c->prevent_late_fallback = R_CONFIG_FALLBACK_DISABLE;
 		g_clear_error(&ierror);
+	} else if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE)) {
+		/* Boolean is deprecated, so it's probably the new string format */
+		g_clear_error(&ierror);
+		g_autofree gchar *mode_str = g_key_file_get_string(key_file, "system", "prevent-late-fallback", &ierror);
+		if (ierror) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+		if (!parse_late_fallback_mode(mode_str, &c->prevent_late_fallback, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
 	} else if (ierror) {
 		g_propagate_error(error, ierror);
 		return FALSE;
+	} else {
+		g_info("Using bool for 'prevent-late-fallback' is deprecated. Use one of 'disable', 'mark-bad' or 'lock-counter' instead.");
 	}
 	g_key_file_remove_key(key_file, "system", "prevent-late-fallback", NULL);
 
