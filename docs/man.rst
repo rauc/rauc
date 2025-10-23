@@ -108,6 +108,9 @@ COMMANDS
 
    **Options:**
 
+      **--append**
+         append instead of replace signature
+
       **--cert=**\ *PEMFILE*\ \|\ *PKCS11-URL*
          use given certificate file or the certificate referenced by the
          given PKCS#11 URL
