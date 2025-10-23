@@ -37,6 +37,31 @@ static gboolean handle_missing_type(RaucImage *image, GError **error)
 	return TRUE;
 }
 
+static gboolean validate_filename_requirements(RaucImage *image, GError **error)
+{
+	gboolean has_filename = (image->filename != NULL);
+	gboolean has_install_hook = image->hooks.install;
+
+	/* Combining 'type=emptyfs' with an image filename would be contradictory */
+	if (g_strcmp0(image->type, "emptyfs") == 0) {
+		if (has_filename) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_PARSE_ERROR,
+					"It is not supported setting 'filename' when 'type=emptyfs' is set");
+			return FALSE;
+		}
+	} else {
+		/* All other image types require either a source file
+		 * or custom install hooks. */
+		if (!has_filename && !has_install_hook) {
+			g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND,
+					"Missing required 'filename'");
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
 static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **image, GError **error)
 {
 	g_autoptr(RaucImage) iimage = r_new_image();
@@ -109,14 +134,13 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 	g_key_file_remove_key(key_file, group, "hooks", NULL);
 
 	iimage->filename = key_file_consume_string(key_file, group, "filename", &ierror);
-	/* 'filename' is optional only for 'install' hooks */
-	if (iimage->filename == NULL) {
-		if (!iimage->hooks.install) {
-			g_propagate_error(error, ierror);
-			return FALSE;
-		} else {
-			g_clear_error(&ierror);
-		}
+	/* A missing 'filename' can be correct, as it is optional for 'install' hooks and 'type=emptyfs'.
+	 * So we collect all requirements first and check their validity afterwards */
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
 	}
 
 	/* Setting the 'type' option for artifacts is not supported.
@@ -145,6 +169,13 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 					"Unsupported image type '%s'", iimage->type);
 			return FALSE;
 		}
+	}
+
+	/* All requirements to check if a filename is necessary have been collected,
+	 * so we can now check if the current state is valid */
+	if (!validate_filename_requirements(iimage, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
 	}
 
 	g_key_file_remove_key(key_file, group, "version", NULL);
