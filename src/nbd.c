@@ -465,8 +465,16 @@ static void prepare_curl(struct RaucNBDTransfer *xfer)
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_URL, xfer->ctx->url);
 	if (xfer->ctx->tls_cert)
 		code |= curl_easy_setopt(xfer->easy, CURLOPT_SSLCERT, xfer->ctx->tls_cert);
-	if (xfer->ctx->tls_key)
+	if (xfer->ctx->tls_key) {
+		if (g_str_has_prefix(xfer->ctx->tls_key, "pkcs11:")) {
+#if ENABLE_OPENSSL_PKCS11_ENGINE
+			code |= curl_easy_setopt(xfer->easy, CURLOPT_SSLKEYTYPE, "ENG");
+#else
+			code |= curl_easy_setopt(xfer->easy, CURLOPT_SSLKEYTYPE, "PROV");
+#endif
+		}
 		code |= curl_easy_setopt(xfer->easy, CURLOPT_SSLKEY, xfer->ctx->tls_key);
+	}
 	if (xfer->ctx->tls_ca) {
 		code |= curl_easy_setopt(xfer->easy, CURLOPT_CAINFO, xfer->ctx->tls_ca);
 		code |= curl_easy_setopt(xfer->easy, CURLOPT_CAPATH, NULL);
