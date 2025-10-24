@@ -42,6 +42,35 @@ def test_info_streaming():
     assert out.startswith("Compatible:     'Test Config'")
 
 
+@have_streaming
+def test_info_streaming_key_file():
+    out, err, exitcode = run(
+        "rauc --keyring openssl-ca/dev-ca.pem "
+        "info https://127.0.0.3/test/good-verity-bundle.raucb "
+        "--tls-cert openssl-ca/web/client-1.cert.pem "
+        "--tls-key openssl-ca/web/private/client-1.pem "
+        "--tls-ca openssl-ca/web/ca.cert.pem"
+    )
+
+    assert exitcode == 0
+    assert out.startswith("Compatible:     'Test Config'")
+
+
+@have_streaming
+def test_info_streaming_key_pkcs11(pkcs11):
+    out, err, exitcode = run(
+        "rauc --keyring openssl-ca/dev-ca.pem "
+        "-C streaming:sandbox-user=root "  # softhsm DB is currently in /tmp/pytest-of-root, which is root-only
+        "info https://127.0.0.3/test/good-verity-bundle.raucb "
+        "--tls-cert openssl-ca/web/client-1.cert.pem "
+        "--tls-key 'pkcs11:token=rauc;object=client-1?pin-value=1111' "
+        "--tls-ca openssl-ca/web/ca.cert.pem"
+    )
+
+    assert exitcode == 0
+    assert out.startswith("Compatible:     'Test Config'")
+
+
 def test_info_casync_plain(tmp_path):
     # copy to tmp path for safe ownership check
     shutil.copyfile("good-casync-bundle-1.5.1.raucb", tmp_path / "good-casync-bundle-1.5.1.raucb")
