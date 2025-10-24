@@ -164,6 +164,52 @@ static void test_slot_get_root_classes(void)
 	g_assert_false(string_array_contains(root_classes, "appfs"));
 }
 
+static void test_slot_get_all_of_type(void)
+{
+	g_autoptr(GHashTable) slots = NULL;
+	RaucSlot *rootfs_0 = NULL;
+	RaucSlot *datafs_0 = NULL;
+	RaucSlot *datafs_1 = NULL;
+	RaucSlot *boot_0 = NULL;
+	g_autoptr(GList) type_slots = NULL;
+
+	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
+
+	rootfs_0 = g_new0(RaucSlot, 1);
+	rootfs_0->name = g_intern_string("rootfs.0");
+	rootfs_0->type = g_strdup("ext4");
+	g_hash_table_insert(slots, (gchar*)rootfs_0->name, rootfs_0);
+
+	datafs_0 = g_new0(RaucSlot, 1);
+	datafs_0->name = g_intern_string("datafs.0");
+	datafs_0->type = g_strdup("vfat");
+	g_hash_table_insert(slots, (gchar*)datafs_0->name, datafs_0);
+
+	datafs_1 = g_new0(RaucSlot, 1);
+	datafs_1->name = g_intern_string("datafs.1");
+	datafs_1->type = g_strdup("vfat");
+	g_hash_table_insert(slots, (gchar*)datafs_1->name, datafs_1);
+
+	boot_0 = g_new0(RaucSlot, 1);
+	boot_0->name = g_intern_string("boot.0");
+	boot_0->type = g_strdup("raw");
+	g_hash_table_insert(slots, (gchar*)boot_0->name, boot_0);
+
+	// Test retrieving all slots of type "vfat"
+	type_slots = r_slot_get_all_of_type(slots, "vfat");
+
+	g_assert_nonnull(type_slots);
+	g_assert_false(r_slot_list_contains(type_slots, rootfs_0));
+	g_assert_true(r_slot_list_contains(type_slots, datafs_0));
+	g_assert_true(r_slot_list_contains(type_slots, datafs_1));
+	g_assert_false(r_slot_list_contains(type_slots, boot_0));
+	g_assert_cmpint(g_list_length(type_slots), ==, 2);
+
+	// Test with a type that does not exist
+	g_autoptr(GList) non_existent_type_slots = r_slot_get_all_of_type(slots, "non-existent");
+	g_assert_null(non_existent_type_slots);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -175,6 +221,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/slot/get-all-children", test_slot_get_all_children);
 	g_test_add_func("/slot/get-all-of-class", test_slot_get_all_of_class);
 	g_test_add_func("/slot/get-root-classes", test_slot_get_root_classes);
+	g_test_add_func("/slot/get-all-of-type", test_slot_get_all_of_type);
 
 	return g_test_run();
 }
