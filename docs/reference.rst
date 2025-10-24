@@ -929,6 +929,10 @@ The following fields are supported for image sections:
     ``type`` field for new projects or in cases where all target systems
     are running a new enough version.
 
+  .. note::
+    This field is not required and not supported for images with ``type=emptyfs``,
+    which creates an empty filesystems without source data.
+
   .. important::
     RAUC uses the file name extension and the slot type to decide how to
     install the image file content to the slot.
@@ -1065,6 +1069,9 @@ Supported file system image types are:
   * ``vfat``: vfat file system image (sometimes used for the EFI System Partition)
   * ``ubifs``: UBIFS file system image
   * ``squashfs``: SquashFS image (uncompressed, or compressed with one of ``lz4``, ``lzo``, ``xz``, ``xst``)
+  * ``emptyfs``: Creates an empty filesystem.
+    This type does not support setting a `filename` as no source data is needed.
+    Currently only supports slots with `type=ext4`, see :ref:`slot.slot-class.idx-section`
 
 Supported binary image types are:
 
