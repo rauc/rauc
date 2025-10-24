@@ -237,6 +237,7 @@ def prepare_softhsm2(tmp_path, softhsm2_mod):
     ca_dev = Path("openssl-ca/dev")
     ca_cert = Path("openssl-ca/dev-ca.pem")
     enc_keys = Path("openssl-enc/keys")
+    web_ca = Path("openssl-ca/web")
 
     softhsm2_conf = tmp_path / "softhsm2.conf"
     softhsm2_dir = tmp_path / "softhsm2.tokens"
@@ -301,6 +302,16 @@ def prepare_softhsm2(tmp_path, softhsm2_mod):
     )
 
     softhsm2_test_encryption(tmp_path, enc_keys / "rsa-4096/cert-000.pem", "enc-rsa-000")
+
+    # load web client key pair
+    softhsm2_load_key_pair(
+        web_ca / "client-1.cert.pem",
+        web_ca / "private/client-1.pem",
+        "client-1",
+        "21",
+        softhsm2_mod,
+        tmp_path,
+    )
 
     subprocess.check_call(f"pkcs11-tool --module {softhsm2_mod} -l --pin 1111 --list-objects", shell=True)
 

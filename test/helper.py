@@ -27,7 +27,8 @@ def logger_from_command(command):
 def run(command, *, timeout=30):
     """
     Runs given command as subprocess with DBUS_STARTER_BUS_TYPE=session and PATH+=./build. Blocks
-    until command terminates. Logs command and its stdout/stderr/exit code.
+    until command terminates. Logs command and its stdout/stderr/exit code (use
+    --log-cli-level=info to show them with pytest).
     Returns tuple (stdout, stderr, exit code).
     """
     logger = logger_from_command(command)
