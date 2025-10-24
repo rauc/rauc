@@ -300,7 +300,7 @@ static void test_manifest_load_variants(void)
 {
 	gchar *tmpdir;
 	RaucManifest *rm = NULL;
-	gchar* manifestpath = NULL;
+	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
 	RaucImage *test_img = NULL;
@@ -338,7 +338,6 @@ filename=rootfs-var2.ext4\n\
 	g_assert_true(res);
 
 	g_clear_error(&error);
-	g_free(manifestpath);
 
 	for (GList *l = rm->images; l != NULL; l = l->next) {
 		RaucImage *img = l->data;
@@ -365,7 +364,7 @@ static void test_manifest_load_types(void)
 {
 	gchar *tmpdir;
 	RaucManifest *rm = NULL;
-	gchar* manifestpath = NULL;
+	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
 	RaucImage *test_img = NULL;
@@ -396,7 +395,6 @@ filename=appfs.vfat\n\
 	g_assert_true(res);
 
 	g_clear_error(&error);
-	g_free(manifestpath);
 
 	test_img = (RaucImage*)g_list_nth_data(rm->images, 0);
 	g_assert_nonnull(test_img);
@@ -413,7 +411,7 @@ static void test_manifest_load_types_invalid(void)
 {
 	gchar *tmpdir;
 	RaucManifest *rm = NULL;
-	gchar* manifestpath = NULL;
+	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
 	const gchar *mffile = "\
@@ -439,7 +437,6 @@ filename=rootfs-default.ext4\n\
 	g_assert_false(res);
 
 	g_clear_error(&error);
-	g_free(manifestpath);
 
 	free_manifest(rm);
 }
@@ -448,7 +445,7 @@ static void test_manifest_load_types_fileext_not_mapped(void)
 {
 	gchar *tmpdir;
 	RaucManifest *rm = NULL;
-	gchar* manifestpath = NULL;
+	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
 	const gchar *mffile = "\
@@ -473,7 +470,6 @@ filename=rootfs-default.invalid\n\
 	g_assert_false(res);
 
 	g_clear_error(&error);
-	g_free(manifestpath);
 
 	free_manifest(rm);
 }
@@ -482,7 +478,7 @@ static void test_manifest_load_adaptive(void)
 {
 	gchar *tmpdir;
 	RaucManifest *rm = NULL;
-	gchar* manifestpath = NULL;
+	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
 	RaucImage *test_img = NULL;
@@ -509,7 +505,6 @@ adaptive=invalid-method;another-invalid-method\n\
 	g_assert_true(res);
 
 	g_clear_error(&error);
-	g_free(manifestpath);
 
 	test_img = (RaucImage*)g_list_nth_data(rm->images, 0);
 	g_assert_nonnull(test_img);
@@ -525,7 +520,7 @@ static void test_manifest_load_meta(void)
 {
 	gchar *tmpdir;
 	RaucManifest *rm = NULL;
-	gchar* manifestpath = NULL;
+	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
 	RaucImage *test_img = NULL;
@@ -559,7 +554,6 @@ counter=42\n\
 	g_assert_true(res);
 
 	g_clear_error(&error);
-	g_free(manifestpath);
 
 	test_img = (RaucImage*)g_list_nth_data(rm->images, 0);
 	g_assert_nonnull(test_img);
@@ -582,7 +576,7 @@ static void test_manifest_load_details(void)
 {
 	gchar *tmpdir;
 	RaucManifest *rm = NULL;
-	gchar* manifestpath = NULL;
+	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
 	RaucImage *test_img = NULL;
@@ -612,7 +606,6 @@ build=123456789\n\
 	g_assert_true(res);
 
 	g_clear_error(&error);
-	g_free(manifestpath);
 
 	test_img = (RaucImage*)g_list_nth_data(rm->images, 0);
 	/* image details are currently ignored during parsing */
