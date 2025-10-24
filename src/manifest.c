@@ -347,7 +347,7 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 			RaucImage *image = NULL;
 
 			if (!parse_image(key_file, groups[i], &image, &ierror)) {
-				g_propagate_error(error, ierror);
+				g_propagate_prefixed_error(error, ierror, "Cannot parse [%s]: ", groups[i]);
 				return FALSE;
 			}
 
@@ -1105,6 +1105,8 @@ GVariant* r_manifest_to_dict(const RaucManifest *manifest)
 			g_variant_builder_add(&builder, "{sv}", "variant", g_variant_new_string(img->variant));
 		if (img->filename)
 			g_variant_builder_add(&builder, "{sv}", "filename", g_variant_new_string(img->filename));
+		if (img->type)
+			g_variant_builder_add(&builder, "{sv}", "type", g_variant_new_string(img->type));
 		if (img->checksum.digest)
 			g_variant_builder_add(&builder, "{sv}", "checksum", g_variant_new_string(img->checksum.digest));
 		if (img->checksum.size)

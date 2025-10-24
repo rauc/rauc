@@ -312,6 +312,11 @@ COMMANDS
    bypasses all other update logic and is for development or special use
    only!
 
+   **Options:**
+
+      **--image-type**
+         Select explicit image type to use.
+
 ENVIRONMENT
 -----------
 

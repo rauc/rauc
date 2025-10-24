@@ -37,6 +37,23 @@ def test_write_slot(rauc_no_service):
     assert "Slot written successfully" in out
 
 
+def test_write_slot_image_type(tmp_path, rauc_no_service):
+    """
+    Tests writing image with non-standard '.bin' extension to an 'ext4' slot:
+    - First run without explicit '--image-type' option set (should fail).
+    - Second run *with* this option set (should succeed).
+    """
+    open(tmp_path / "image.bin", mode="w").close()
+
+    out, err, exitcode = run(f"{rauc_no_service} write-slot rootfs.0 {tmp_path}/image.bin")
+    assert exitcode == 1
+    assert f"Unable to map extension of file '{tmp_path}/image.bin' to known image type" in err
+
+    out, err, exitcode = run(f"{rauc_no_service} write-slot --image-type=raw rootfs.0 install-content/appfs.img")
+    assert exitcode == 0
+    assert "Slot written successfully" in out
+
+
 def test_write_slot_no_handler(tmp_path, rauc_no_service):
     open(tmp_path / "image.vfat", mode="w").close()
 

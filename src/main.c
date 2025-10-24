@@ -54,6 +54,7 @@ gchar *handler_args = NULL;
 gchar *bootslot = NULL;
 gchar *installation_txn = NULL;
 gchar *require_manifest_hash = NULL;
+gchar *write_slot_image_type = NULL;
 gboolean utf8_supported = FALSE;
 RaucBundleAccessArgs access_args = {0};
 
@@ -498,13 +499,23 @@ static gboolean write_slot_start(int argc, char **argv)
 	image->checksum.size = g_file_info_get_size(info);
 	image->filename = g_strdup(argv[3]);
 
-	const gchar *derived_type = derive_image_type_from_filename_pattern(image->filename);
-	if (derived_type == NULL) {
-		g_printerr("Unable to map extension of file '%s' to known image type\n", image->filename);
+	if (write_slot_image_type) {
+		image->type = g_strdup(write_slot_image_type);
+	} else {
+		const gchar *derived_type = derive_image_type_from_filename_pattern(image->filename);
+		if (derived_type == NULL) {
+			g_printerr("Unable to map extension of file '%s' to known image type\n", image->filename);
+			r_exit_status = 1;
+			return TRUE;
+		}
+		image->type = g_strdup(derived_type);
+	}
+
+	if (!is_image_type_supported(image->type)) {
+		g_printerr("Unsupported image type '%s'\n", write_slot_image_type);
 		r_exit_status = 1;
 		return TRUE;
 	}
-	image->type = g_strdup(derived_type);
 
 	/* retrieve RaucSlot */
 	slot = g_hash_table_lookup(r_context()->config->slots, argv[2]);
@@ -1076,6 +1087,7 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		if (img->filename) {
 			g_autofree gchar* formatted_size = g_format_size_full(img->checksum.size, G_FORMAT_SIZE_LONG_FORMAT);
 			g_string_append_printf(text, "    Filename:  %s\n", img->filename);
+			g_string_append_printf(text, "    Type:      %s%s\n", img->type, img->type_from_fileext ? " (detected)" : "");
 			g_string_append_printf(text, "    Checksum:  %s\n", img->checksum.digest);
 			g_string_append_printf(text, "    Size:      %s\n", formatted_size);
 		} else {
@@ -1204,6 +1216,8 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 		json_builder_add_string_value(builder, img->variant);
 		json_builder_set_member_name(builder, "filename");
 		json_builder_add_string_value(builder, img->filename);
+		json_builder_set_member_name(builder, "type");
+		json_builder_add_string_value(builder, img->type);
 		json_builder_set_member_name(builder, "checksum");
 		json_builder_add_string_value(builder, img->checksum.digest);
 		json_builder_set_member_name(builder, "size");
@@ -1309,7 +1323,7 @@ static gboolean info_start(int argc, char **argv)
 	} else if (ENABLE_JSON && g_strcmp0(output_format, "json-2") == 0) {
 		formatter = info_formatter_json_2;
 	} else {
-		g_printerr("Unknown output format: '%s'\n", output_format);
+		g_printerr("Unknown output format: '%s'.\nSupported formats are: readable, json, json-pretty, json-2.\n", output_format);
 		goto out;
 	}
 
@@ -2612,6 +2626,11 @@ static GOptionEntry entries_status[] = {
 	{0}
 };
 
+static GOptionEntry entries_write_slot[] = {
+	{"image-type", 'l', 0, G_OPTION_ARG_STRING, &write_slot_image_type, "Select explicit image type to use.", NULL},
+	{0}
+};
+
 static GOptionEntry entries_service[] = {
 	{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handler_args, "extra arguments for full custom handler", "ARGS"},
 	{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "BOOTNAME"},
@@ -2649,6 +2668,7 @@ static GOptionGroup *extract_signature_group;
 static GOptionGroup *extract_group;
 static GOptionGroup *info_group;
 static GOptionGroup *status_group;
+static GOptionGroup *write_slot_group;
 static GOptionGroup *service_group;
 
 static void create_option_groups(void)
@@ -2691,6 +2711,9 @@ static void create_option_groups(void)
 
 	status_group = g_option_group_new("status", "Status options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(status_group, entries_status);
+
+	write_slot_group = g_option_group_new("write-slot", "Write-Slot options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(write_slot_group, entries_write_slot);
 
 	service_group = g_option_group_new("service", "Service options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(service_group, entries_service);
@@ -2790,7 +2813,7 @@ static void cmdline_handler(int argc, char **argv)
 		{WRITE_SLOT, "write-slot", "write-slot <SLOTNAME> <IMAGE>",
 		 "Manually write image to slot (using slot update handler).\n"
 		 "This bypasses all other update logic and is for development or special use only!",
-		 write_slot_start, NULL, R_CONTEXT_CONFIG_MODE_REQUIRED, FALSE},
+		 write_slot_start, write_slot_group, R_CONTEXT_CONFIG_MODE_REQUIRED, FALSE},
 #if ENABLE_SERVICE == 1
 		{SERVICE, "service", "service",
 		 "Start RAUC service",
