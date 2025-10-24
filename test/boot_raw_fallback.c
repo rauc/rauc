@@ -138,9 +138,7 @@ static RaucImage* create_source_image(const gchar *dirname,
 		gsize size)
 {
 	RaucImage *image;
-	g_autofree gchar *imagepath;
-
-	imagepath = g_build_filename(dirname, imagename, NULL);
+	g_autofree gchar *imagepath = g_build_filename(dirname, imagename, NULL);
 
 	image = r_new_image();
 	image->slotclass = g_strdup("rootfs");
