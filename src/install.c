@@ -1614,10 +1614,20 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	handler_env = prepare_environment(bundle->mount_point, bundle->manifest, args->transaction, target_group);
 
 	if (r_context()->config->preinstall_handler) {
-		g_message("Starting pre install handler: %s", r_context()->config->preinstall_handler);
+		g_message("Starting system-defined pre-install handler: %s", r_context()->config->preinstall_handler);
 		res = launch_and_wait_handler(args, r_context()->config->preinstall_handler, NULL, handler_env, &ierror);
 		if (!res) {
-			g_propagate_prefixed_error(error, ierror, "Pre-install handler error: ");
+			g_propagate_prefixed_error(error, ierror, "System-defined pre-install handler error: ");
+			goto umount;
+		}
+	}
+
+	if (r_context()->install_info->mounted_bundle->manifest->preinstall_handler) {
+		g_autofree gchar *handler_name = g_build_filename(bundle->mount_point, r_context()->install_info->mounted_bundle->manifest->preinstall_handler, NULL);
+		g_message("Starting bundle-defined pre-install handler in the manifest: %s", handler_name);
+		res = launch_and_wait_handler(args, handler_name, NULL, handler_env, &ierror);
+		if (!res) {
+			g_propagate_prefixed_error(error, ierror, "Bundle-defined pre-install handler error: ");
 			goto umount;
 		}
 	}
@@ -1665,11 +1675,21 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		goto umount;
 	}
 
+	if (r_context()->install_info->mounted_bundle->manifest->postinstall_handler) {
+		g_autofree gchar *handler_name = g_build_filename(bundle->mount_point, r_context()->install_info->mounted_bundle->manifest->postinstall_handler, NULL);
+		g_message("Starting bundle-defined post-install handler in the manifest: %s", handler_name);
+		res = launch_and_wait_handler(args, handler_name, NULL, handler_env, &ierror);
+		if (!res) {
+			g_propagate_prefixed_error(error, ierror, "Bundle-defined post-install handler error: ");
+			goto umount;
+		}
+	}
+
 	if (r_context()->config->postinstall_handler) {
-		g_message("Starting post install handler: %s", r_context()->config->postinstall_handler);
+		g_message("Starting system-defined post-install handler: %s", r_context()->config->postinstall_handler);
 		res = launch_and_wait_handler(args, r_context()->config->postinstall_handler, NULL, handler_env, &ierror);
 		if (!res) {
-			g_propagate_prefixed_error(error, ierror, "Post-install handler error: ");
+			g_propagate_prefixed_error(error, ierror, "System-defined post-install handler error: ");
 			goto umount;
 		}
 	}
