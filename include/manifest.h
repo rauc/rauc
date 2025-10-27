@@ -67,6 +67,9 @@ typedef struct {
 	gchar *handler_name;
 	gchar *handler_args;
 
+	gchar *preinstall_handler;
+	gchar *postinstall_handler;
+
 	gchar *hook_name;
 	InstallHooks hooks;
 

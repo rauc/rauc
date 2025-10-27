@@ -350,6 +350,8 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	/* parse [handler] section */
 	raucm->handler_name = key_file_consume_string(key_file, "handler", "filename", NULL);
 	raucm->handler_args = key_file_consume_string(key_file, "handler", "args", NULL);
+	raucm->preinstall_handler = key_file_consume_string(key_file, "handler", "pre-install", NULL);
+	raucm->postinstall_handler = key_file_consume_string(key_file, "handler", "post-install", NULL);
 	if (raucm->handler_args && !raucm->handler_name) {
 		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
 				"Setting 'args' requires a full custom handler to be defined under 'filename' in group '[handler]'.");
@@ -941,6 +943,12 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 	if (mf->handler_args)
 		g_key_file_set_string(key_file, "handler", "args", mf->handler_args);
 
+	if (mf->preinstall_handler)
+		g_key_file_set_string(key_file, "handler", "pre-install", mf->preinstall_handler);
+
+	if (mf->postinstall_handler)
+		g_key_file_set_string(key_file, "handler", "post-install", mf->postinstall_handler);
+
 	if (mf->hook_name)
 		g_key_file_set_string(key_file, "hooks", "filename", mf->hook_name);
 
@@ -1131,6 +1139,10 @@ GVariant* r_manifest_to_dict(const RaucManifest *manifest)
 			g_variant_dict_insert(&grp_dict, "filename", "s", manifest->handler_name);
 		if (manifest->handler_args)
 			g_variant_dict_insert(&grp_dict, "args", "s", manifest->handler_args);
+		if (manifest->preinstall_handler)
+			g_variant_dict_insert(&grp_dict, "pre-install", "s", manifest->preinstall_handler);
+		if (manifest->postinstall_handler)
+			g_variant_dict_insert(&grp_dict, "post-install", "s", manifest->postinstall_handler);
 		g_variant_dict_insert(&root_dict, "handler", "v", g_variant_dict_end(&grp_dict));
 	}
 
