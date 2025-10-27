@@ -275,6 +275,12 @@ int test_prepare_manifest_file(const gchar *dirname, const gchar *filename, cons
 	if (options->custom_handler)
 		rm->handler_name = g_strdup("custom_handler.sh");
 
+	if (options->preinstall_handler)
+		rm->preinstall_handler = g_strdup("preinstall.sh");
+
+	if (options->postinstall_handler)
+		rm->postinstall_handler = g_strdup("postinstall.sh");
+
 	if (options->hooks) {
 		rm->hook_name = g_strdup("hook.sh");
 	}

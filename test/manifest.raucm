@@ -6,6 +6,8 @@ version=2015.04-1
 
 [handler]
 filename=custom_handler.sh
+pre-install=preinstall.sh
+post-install=postinstall.sh
 
 [hooks]
 filename=hook.sh

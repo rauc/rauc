@@ -21,6 +21,8 @@ static void manifest_check_common(RaucManifest *rm)
 	g_assert_cmpstr(rm->update_compatible, ==, "FooCorp Super BarBazzer");
 	g_assert_cmpstr(rm->update_version, ==, "2015.04-1");
 	g_assert_cmpstr(rm->handler_name, ==, "custom_handler.sh");
+	g_assert_cmpstr(rm->preinstall_handler, ==, "preinstall.sh");
+	g_assert_cmpstr(rm->postinstall_handler, ==, "postinstall.sh");
 	g_assert_cmpstr(rm->handler_args, ==, NULL);
 	g_assert_cmpstr(rm->hook_name, ==, "hook.sh");
 	g_assert_nonnull(rm->images);
@@ -311,6 +313,8 @@ version=2015.04-1\n\
 \n\
 [handler]\n\
 filename=custom_handler.sh\n\
+pre-install=preinstall.sh\n\
+post-install=postinstall.sh\n\
 \n\
 [hooks]\n\
 filename=hook.sh\n\
