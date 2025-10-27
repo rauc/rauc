@@ -2381,8 +2381,7 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 		gchar *path = ibundle->origpath ?: ibundle->path;
 
 		if (g_str_has_suffix(path, ".raucb")) {
-			g_autofree gchar *strprfx;
-			strprfx = g_strndup(path, strlen(path) - 6);
+			g_autofree gchar *strprfx = g_strndup(path, strlen(path) - 6);
 			ibundle->storepath = g_strconcat(strprfx, ".castr", NULL);
 		} else {
 			ibundle->storepath = g_strconcat(path, ".castr", NULL);

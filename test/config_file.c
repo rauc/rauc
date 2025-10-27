@@ -1107,7 +1107,7 @@ static void config_file_keyring_checks(ConfigFileFixture *fixture,
 	g_autoptr(RaucConfig) config = NULL;
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	g_autofree gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *simple_cfg_file = "\
 [system]\n\
@@ -1161,7 +1161,7 @@ static void config_file_bundle_formats(ConfigFileFixture *fixture,
 	g_autoptr(RaucConfig) config = NULL;
 	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
-	g_autofree gchar* pathname;
+	g_autofree gchar* pathname = NULL;
 
 	const gchar *default_cfg_file = "\
 [system]\n\
