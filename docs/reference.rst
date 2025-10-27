@@ -853,20 +853,28 @@ The hooks section allows to provide a user-defined executable for
 ``[handler]`` Section
 ~~~~~~~~~~~~~~~~~~~~~
 
-The ``handler`` section refers to the
+The ``handler`` section in the bundle manifest allows you to customize the update process for each bundle.  
+It can be used either to specify a 
 `full custom handler <https://rauc.readthedocs.io/en/latest/using.html#full-custom-update>`_
-that allows to fully replace the default RAUC update process.
+that completely replaces the default RAUC update process,  
+or to define 
+`bundle-defined pre/post-install handlers <https://rauc.readthedocs.io/en/latest/using.html#pre-post-install-handlers>`_
+that execute custom scripts before or after the standard slot update steps.
 
 .. note:: This is not to be confused with the ``[handlers]`` section from the
    system.conf which defines e.g. pre- and post-install handlers!
+
+.. rubric:: Full Custom Update
 
 When the full custom handler is enabled in a bundle, it will be invoked during
 the bundle installation
 
 * **after** bundle signature verification
 * **after** slot state and target slots determination logic
-* **after** the ``pre-install`` system handler
-* **before** the ``post-install`` system handler
+* **after** the system's ``pre-install`` handler
+* **after** the bundle's ``pre-install`` handler
+* **before** the system's ``post-install`` handler
+* **before** the bundle's ``post-install`` handler
 
 Also, the bundle will be mounted at this point and thus all its content is
 available to the full custom handler.
@@ -890,6 +898,33 @@ No built-in slot update will run and no hook will be executed.
 
   If additional arguments are provided via ``--handler-args`` command line
   argument, these will be appended to the ones defined in the manifest.
+
+.. rubric:: Bundle-defined Pre/Post-Install Handlers
+
+When a pre-install handler is specified in a bundle, it will be invoked:
+
+* **after** the system's ``pre-install`` handler
+* **before** the installation operations for each slot (or before the full custom handler)
+
+This allows you to perform custom checks, preparation, or migration steps before any slot updates are performed.
+
+When a post-install handler is specified in a bundle, it will be invoked:
+
+* **after** the installation operations for each slot (or after the full custom handler)
+* **before** the system's ``post-install`` handler
+
+This allows you to perform validation, cleanup, or any additional steps after all slot updates have been performed.
+
+``pre-install`` (optional)  
+  Path to the pre-install handler script or binary, relative to the bundle content.  
+  The specified script must be present in the bundle content.
+
+``post-install`` (optional)  
+  Path to the post-install handler script or binary, relative to the bundle content.  
+  The specified script must be present in the bundle content.
+
+System information is provided to both handlers via environment variables.
+This mechanism enables you to add update-specific logic to your bundle, without replacing the entire update process.
 
 .. _image-section:
 
