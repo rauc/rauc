@@ -155,6 +155,62 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 	return res;
 }
 
+gboolean r_boot_set_counters_lock(gboolean locked, GError **error)
+{
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	gboolean res = FALSE;
+	GError *ierror = NULL;
+	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
+		res = r_barebox_set_lock_counter(locked, &ierror);
+	} else {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+				"Using boot lock-counter for bootloader '%s' not supported yet", r_context()->config->system_bootloader);
+		return FALSE;
+	}
+
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"%s backend: ", r_context()->config->system_bootloader);
+	}
+
+	return res;
+}
+
+gboolean r_boot_get_counters_lock(gboolean *locked, GError **error)
+{
+	GError *ierror = NULL;
+	gboolean res = FALSE;
+
+	g_return_val_if_fail(locked != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (g_strcmp0(r_context()->config->system_bootloader, "barebox") == 0) {
+		res = r_barebox_get_lock_counter(locked, &ierror);
+	} else {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+				"Counter locking not yet supported for bootloader '%s'", r_context()->config->system_bootloader);
+		return FALSE;
+	}
+
+	if (!res) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"%s backend: ", r_context()->config->system_bootloader);
+	}
+
+	return res;
+}
+
 /* Get slot marked as primary one */
 RaucSlot *r_boot_get_primary(GError **error)
 {

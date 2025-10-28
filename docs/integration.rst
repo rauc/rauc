@@ -879,6 +879,31 @@ boot target is required:
           };
   };
 
+.. _integration-barebox-lock-counter:
+Optionally, if ``prevent-late-fallback=lock-counter`` is set,
+another single variable must be added.
+
+.. code-block:: Devicetree
+
+  bootstate {
+
+          [...]
+
+          attempts_locked@14 {
+                  reg = <0x14 0x4>;
+                  type = "uint32";
+          };
+  };
+
+This makes barebox aware of the counter locking state due to the
+the ``remaining_attempts`` counter.
+Boot counter locking is activated when 'rauc status mark-good' is executed
+implicitly during a RAUC update or explicitly through manual commands.
+The current value of the ``attempts_locked`` state variable can be read via the commands
+``barebox-state -d`` and ``rauc status``.
+It is not yet available via the D-Bus interface and thus cannot be displayed
+when calling ``rauc status`` with the service enabled.
+
 .. warning::
   This example shows only a highly condensed excerpt of setting up Barebox
   state for bootchooser.
