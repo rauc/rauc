@@ -40,10 +40,7 @@ static gboolean fix_grandparent_links(GHashTable *slots, GError **error)
 			realparent = realparent->parent;
 			steps++;
 			if (steps > 100) {
-				g_set_error(
-						error,
-						R_CONFIG_ERROR,
-						R_CONFIG_ERROR_PARENT_LOOP,
+				g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_PARENT_LOOP,
 						"Slot '%s' has a parent loop!", slot->name);
 				return FALSE;
 			}
@@ -94,10 +91,7 @@ gboolean parse_bundle_formats(guint *mask, const gchar *config, GError **error)
 		} else if (g_strcmp0(token, "crypt") == 0) {
 			format = R_MANIFEST_FORMAT_CRYPT;
 		} else {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_INVALID_FORMAT,
+			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT,
 					"Invalid bundle format '%s'", token);
 			res = FALSE;
 			goto out;
@@ -118,20 +112,14 @@ gboolean parse_bundle_formats(guint *mask, const gchar *config, GError **error)
 	}
 
 	if (set && modify) {
-		g_set_error(
-				error,
-				R_CONFIG_ERROR,
-				R_CONFIG_ERROR_INVALID_FORMAT,
+		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT,
 				"Invalid bundle format configuration '%s', cannot combine fixed value with modification (+/-)", config);
 		res = FALSE;
 		goto out;
 	}
 
 	if (!imask) {
-		g_set_error(
-				error,
-				R_CONFIG_ERROR,
-				R_CONFIG_ERROR_INVALID_FORMAT,
+		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT,
 				"Invalid bundle format configuration '%s', no remaining formats", config);
 		res = FALSE;
 		goto out;
@@ -183,10 +171,7 @@ static gboolean r_event_log_parse_config_sections(GKeyFile *key_file, RaucConfig
 		if (!g_path_is_absolute(logger->filename)) {
 			gchar *abspath;
 			if (!config->data_directory) {
-				g_set_error_literal(
-						error,
-						G_KEY_FILE_ERROR,
-						G_KEY_FILE_ERROR_INVALID_VALUE,
+				g_set_error_literal(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE,
 						"Relative filename requires data-directory to be set");
 				return FALSE;
 			}
@@ -214,10 +199,7 @@ static gboolean r_event_log_parse_config_sections(GKeyFile *key_file, RaucConfig
 #if ENABLE_JSON
 			logger->format = R_EVENT_LOGFMT_JSON;
 #else
-			g_set_error(
-					error,
-					G_KEY_FILE_ERROR,
-					G_KEY_FILE_ERROR_INVALID_VALUE,
+			g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE,
 					"Invalid log format %s. RAUC is compiled without JSON support", log_format);
 			return FALSE;
 #endif
@@ -225,18 +207,12 @@ static gboolean r_event_log_parse_config_sections(GKeyFile *key_file, RaucConfig
 #if ENABLE_JSON
 			logger->format = R_EVENT_LOGFMT_JSON_PRETTY;
 #else
-			g_set_error(
-					error,
-					G_KEY_FILE_ERROR,
-					G_KEY_FILE_ERROR_INVALID_VALUE,
+			g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE,
 					"Invalid log format %s. RAUC is compiled without JSON support", log_format);
 			return FALSE;
 #endif
 		} else {
-			g_set_error(
-					error,
-					G_KEY_FILE_ERROR,
-					G_KEY_FILE_ERROR_INVALID_VALUE,
+			g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE,
 					"Unknown log format '%s'", log_format);
 			return FALSE;
 		}
@@ -254,19 +230,13 @@ static gboolean r_event_log_parse_config_sections(GKeyFile *key_file, RaucConfig
 		}
 
 		if (g_strv_length(logger->events) > 1 && g_strv_contains((const gchar * const *) logger->events, "all")) {
-			g_set_error(
-					error,
-					G_KEY_FILE_ERROR,
-					G_KEY_FILE_ERROR_INVALID_VALUE,
+			g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE,
 					"Event type 'all' cannot be combined");
 			return FALSE;
 		}
 		for (gsize j = 0; j < entries; j++) {
 			if (!r_event_log_is_supported_type(logger->events[j])) {
-				g_set_error(
-						error,
-						G_KEY_FILE_ERROR,
-						G_KEY_FILE_ERROR_INVALID_VALUE,
+				g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE,
 						"Unsupported event log type '%s'", logger->events[j]);
 				return FALSE;
 			}
@@ -290,17 +260,11 @@ static gboolean r_event_log_parse_config_sections(GKeyFile *key_file, RaucConfig
 			return FALSE;
 		}
 		if (tmp_maxfiles < 1) {
-			g_set_error_literal(
-					error,
-					G_KEY_FILE_ERROR,
-					G_KEY_FILE_ERROR_INVALID_VALUE,
+			g_set_error_literal(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE,
 					"Value for 'max-files' must be >= 1");
 			return FALSE;
 		} else if (tmp_maxfiles > 1000) {
-			g_set_error_literal(
-					error,
-					G_KEY_FILE_ERROR,
-					G_KEY_FILE_ERROR_INVALID_VALUE,
+			g_set_error_literal(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE,
 					"Value of %d for 'max-files' looks implausible");
 			return FALSE;
 		}
@@ -352,10 +316,7 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 	}
 	if (version_data) {
 		if (!r_semver_less_equal("0", version_data, NULL)) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_INVALID_FORMAT,
+			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT,
 					"Min version format invalid, expected: Major[.Minor[.Patch]][-pre_release], got: %s",
 					version_data);
 			return FALSE;
@@ -396,10 +357,7 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 		c->custom_bootloader_backend = resolve_path_take(filename,
 				key_file_consume_string(key_file, "handlers", "bootloader-custom-backend", NULL));
 		if (!c->custom_bootloader_backend) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_BOOTLOADER,
+			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_BOOTLOADER,
 					"No custom bootloader backend defined");
 			return FALSE;
 		}
@@ -414,10 +372,7 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 		return FALSE;
 	}
 	if (c->boot_default_attempts < 0) {
-		g_set_error(
-				error,
-				R_CONFIG_ERROR,
-				R_CONFIG_ERROR_BOOTLOADER,
+		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_BOOTLOADER,
 				"Value for \"boot-attempts\" must not be negative");
 		return FALSE;
 	}
@@ -431,19 +386,13 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 		return FALSE;
 	}
 	if (c->boot_attempts_primary < 0) {
-		g_set_error(
-				error,
-				R_CONFIG_ERROR,
-				R_CONFIG_ERROR_BOOTLOADER,
+		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_BOOTLOADER,
 				"Value for \"boot-attempts-primary\" must not be negative");
 		return FALSE;
 	}
 	if (c->boot_default_attempts > 0 || c->boot_attempts_primary > 0) {
 		if ((g_strcmp0(c->system_bootloader, "uboot") != 0) && (g_strcmp0(c->system_bootloader, "barebox") != 0)) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_BOOTLOADER,
+			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_BOOTLOADER,
 					"Configuring boot attempts is valid for uboot or barebox only (not for %s)", c->system_bootloader);
 			return FALSE;
 		}
@@ -462,10 +411,7 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 		g_message("Using max-bundle-download-size with streaming has no effect.");
 	}
 	if (c->max_bundle_download_size == 0) {
-		g_set_error(
-				error,
-				R_CONFIG_ERROR,
-				R_CONFIG_ERROR_MAX_BUNDLE_DOWNLOAD_SIZE,
+		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_MAX_BUNDLE_DOWNLOAD_SIZE,
 				"Invalid value (%" G_GUINT64_FORMAT ") for key \"max-bundle-download-size\" in system config", c->max_bundle_download_size);
 		return FALSE;
 	}
@@ -482,10 +428,7 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 		return FALSE;
 	}
 	if (c->max_bundle_signature_size == 0) {
-		g_set_error(
-				error,
-				R_CONFIG_ERROR,
-				R_CONFIG_ERROR_MAX_BUNDLE_SIGNATURE_SIZE,
+		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_MAX_BUNDLE_SIGNATURE_SIZE,
 				"Invalid value (%" G_GUINT64_FORMAT ") for key \"max-bundle-signature-size\" in system config", c->max_bundle_signature_size);
 		return FALSE;
 	}
@@ -543,10 +486,7 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 	}
 	if (variant_data) {
 		if (c->system_variant_type != R_CONFIG_SYS_VARIANT_NONE) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_INVALID_FORMAT,
+			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT,
 					"Only one of the keys 'variant-file', variant-dtb','variant-name' is allowed");
 			return FALSE;
 		}
@@ -566,10 +506,7 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 	}
 	if (variant_data) {
 		if (c->system_variant_type != R_CONFIG_SYS_VARIANT_NONE) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_INVALID_FORMAT,
+			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT,
 					"Only one of the keys 'variant-file', variant-dtb','variant-name' is allowed");
 			return FALSE;
 		}
@@ -618,10 +555,7 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 
 	if (g_strcmp0(c->statusfile_path, "per-slot") == 0) {
 		if (c->data_directory) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_DATA_DIRECTORY,
+			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_DATA_DIRECTORY,
 					"Using data-directory= with statusfile=per-slot is not supported.");
 			return FALSE;
 		}
@@ -928,10 +862,7 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 
 			/* Assure slot strings consist of 3 parts, delimited by dots */
 			if (g_strv_length(groupsplit) != 3) {
-				g_set_error(
-						error,
-						R_CONFIG_ERROR,
-						R_CONFIG_ERROR_INVALID_FORMAT,
+				g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT,
 						"Invalid slot name format: %s", groups[i]);
 				return NULL;
 			}
@@ -963,28 +894,20 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 			slot->type = value;
 
 			if (!r_slot_is_valid_type(slot->type)) {
-				g_set_error(
-						error,
-						R_CONFIG_ERROR,
-						R_CONFIG_ERROR_SLOT_TYPE,
+				g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_SLOT_TYPE,
 						"Unsupported slot type '%s' for slot %s selected in system config", slot->type, slot->name);
 				return NULL;
 			}
 
 			/* check if the device has an appropriate path */
 			if (g_str_equal(slot->type, "jffs2") && !g_str_has_prefix(slot->device, "/dev/")) {
-				g_set_error(
-						error,
-						R_CONFIG_ERROR,
-						R_CONFIG_ERROR_INVALID_DEVICE,
+				g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_DEVICE,
 						"%s: device must be located in /dev/ for jffs2", groups[i]);
 				return NULL;
 			}
 			if (g_str_equal(slot->type, "boot-emmc") &&
 			    (g_str_has_suffix(slot->device, "boot0") || g_str_has_suffix(slot->device, "boot1"))) {
-				g_set_error(error,
-						R_CONFIG_ERROR,
-						R_CONFIG_ERROR_INVALID_DEVICE,
+				g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_DEVICE,
 						"%s: 'device' must refer to the eMMC base device, not the boot partition", groups[i]);
 				return NULL;
 			}
@@ -1012,10 +935,7 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 
 				/* check if we have seen this bootname on another slot */
 				if (g_hash_table_contains(bootnames, slot->bootname)) {
-					g_set_error(
-							error,
-							R_CONFIG_ERROR,
-							R_CONFIG_ERROR_DUPLICATE_BOOTNAME,
+					g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_DUPLICATE_BOOTNAME,
 							"Bootname '%s' is set on more than one slot",
 							slot->bootname);
 					return NULL;
@@ -1143,10 +1063,7 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 
 		parent = g_hash_table_lookup(slots, slot->parent_name);
 		if (!parent) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_PARENT,
+			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_PARENT,
 					"Parent slot '%s' not found!", slot->parent_name);
 			return NULL;
 		}
@@ -1155,10 +1072,7 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 		child->parent = parent;
 
 		if (child->bootname) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_CHILD_HAS_BOOTNAME,
+			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_CHILD_HAS_BOOTNAME,
 					"Child slot '%s' has bootname set",
 					child->name);
 			return NULL;
@@ -1190,10 +1104,7 @@ static GHashTable *parse_artifact_repos(const char *filename, const char *data_d
 
 			/* Assure artifact repo strings consist of 2 parts, delimited by dots */
 			if (g_strv_length(groupsplit) != 2) {
-				g_set_error(
-						error,
-						R_CONFIG_ERROR,
-						R_CONFIG_ERROR_INVALID_FORMAT,
+				g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT,
 						"Invalid artifacts repo format: %s", groups[i]);
 				return NULL;
 			}
@@ -1221,10 +1132,7 @@ static GHashTable *parse_artifact_repos(const char *filename, const char *data_d
 			repo->type = value;
 
 			if (!r_artifact_repo_is_valid_type(repo->type)) {
-				g_set_error(
-						error,
-						R_CONFIG_ERROR,
-						R_CONFIG_ERROR_ARTIFACT_REPO_TYPE,
+				g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_ARTIFACT_REPO_TYPE,
 						"Unsupported artifacts repo type '%s' for repo %s selected in system config", repo->type, repo->name);
 				return NULL;
 			}
@@ -1233,10 +1141,7 @@ static GHashTable *parse_artifact_repos(const char *filename, const char *data_d
 			repo->parent_class = g_intern_string(value);
 			g_free(value);
 			if (repo->parent_class) {
-				g_set_error(
-						error,
-						R_CONFIG_ERROR,
-						R_CONFIG_ERROR_PARENT,
+				g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_PARENT,
 						"Parent slot classes are not yet supported for artifact repos");
 				return NULL;
 			}
@@ -1266,10 +1171,7 @@ static gboolean check_unique_slotclasses(RaucConfig *config, GError **error)
 		RaucSlot *slot = value;
 
 		if (g_hash_table_contains(config->artifact_repos, slot->sclass)) {
-			g_set_error(
-					error,
-					R_CONFIG_ERROR,
-					R_CONFIG_ERROR_DUPLICATE_CLASS,
+			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_DUPLICATE_CLASS,
 					"Existing slot class '%s' cannot be used as artifact repo name!", slot->sclass);
 			return FALSE;
 		}
