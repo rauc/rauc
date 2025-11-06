@@ -3,6 +3,16 @@ Release 1.15 (development)
 
 .. rubric:: Enhancements
 
+* Add an optional ``type=`` to images in the bundle manifest.
+  This can be used to define the type explicitly, which is useful if the file
+  name extension is not known to RAUC.
+  See the :ref:`documentation for details <sec-ref-supported-image-types>`.
+  (by Lars Schmidt in :pr:`1756`)
+* Add support for an ``emptyfs`` image type, which can be used instead of an
+  emtpy ``tar`` when installing into an ``ext4`` slot.
+  The newly created filesystem can then be customised with a ``post-install``
+  hook.
+  (by Lars Schmidt in :pr:`1759`)
 * The HTTP headers enabled by the ``send-headers`` option in the
   ``[streaming]`` section are now also sent for ``rauc info``/
   ``InspectBundle()`` as well.
@@ -11,49 +21,93 @@ Release 1.15 (development)
   by the ``system-info`` handler.
   See the :ref:`documentation for details <send-headers>`.
 * Support sending a ``RAUC-System-Version`` HTTP header in the initial
-  streaming/inspect request.
+  streaming/inspect request. (in :pr:`1654`)
 * Set up group memberships of the streaming helper process to allow access to
-  required resources (such as a mTLS private key). (by Omri Sarig)
+  required resources (such as a mTLS private key). (by Omri Sarig in :pr:`1695`)
 * Improve booted slot detection on UEFI systems by reading the ``BootCurrent``
-  variable. (by Pavel Löbl)
+  variable. (by Pavel Löbl in :pr:`1696`)
 * Refactor boot slot detection to prioritize explicit information from the
-  bootloader backend above the ``root=`` kernel commandline parameter.
+  bootloader backend above the ``root=`` kernel commandline parameter. (in
+  :pr:`1712`)
 * Introduce the ``allowed-signer-cns`` configuration option to restrict which
   certificates are accepted when verifying bundle signatures using a list of
-  CommonNames. (by Lars Schmidt)
+  CommonNames. (by Lars Schmidt in :pr:`1710`)
 * Allow (non-hidden) directories as bundle contents.
-  Hidden directories are reserved for internal use by RAUC. (by Jens Kehne)
+  Hidden directories are reserved for internal use by RAUC. (by Jens Kehne in
+  :pr:`1625`)
 * Produce progress updates for adaptive updates during block-hash-index
-  generation.
+  generation. (in :pr:`1734`)
 * Support a ``size-limit`` configuration option for the ``boot-emmc`` slot
   type.
   This can be used in cases where unrelated data on the eMMC boot partitions
   must be preserved and migrating it to a dedicated location is not feasible.
   Also ensure that the image fits into the slot before attempting to write it.
+  (in :pr:`1740`)
+* Improve handling of A/B/C setups by selecting the slot group with the oldest
+  installation date. (in :pr:`1525`)
+* Handle config overrides set via ``-C``/``--confopt`` even if no config file is
+  available. (in :pr:`1763`)
+* Implement support for appending signatures to existing bundles with ``rauc
+  resign``.
+  This needs new APIs in OpenSSL to become useful.
+  (in :pr:`1810`)
 
 .. rubric:: Bug fixes
 
+* Avoid race with udev during NBD setup. (by Michael Olbrich in :pr:`1741`)
 * Fix memory leak on ``G_IO_ERROR_NO_SPACE`` in ``clear_slot()``. (by Jialu
-  Zhou)
+  Zhou in :pr:`1706`)
 * Improve error handling for manually modified bundles with unaligned payload.
-  (by Janek Filus)
+  (by Janek Filus in :pr:`1728`)
+* Check exit code of ``barebox-state``.
+  This improves the error message printed by RAUC in cases where
+  ``barebox-state`` fails.
+  (in :pr:`1781`)
+* Fix double close of socket if NBD startup fails. (by Gaël PORTAY in
+  :pr:`1790`)
+* Fix use of PKCS#11-backed keys with streaming. (by Giacomo Dal Sasso in
+  :pr:`1813`)
 
 .. rubric:: Testing
 
 * Fix test failures with OpenSSL 3.5, which were caused by repeated
   initialization.
+* Add a CI run for Debian bookworm (currently oldstable) and run the test suite
+  for some stable distributions.
+* Fix a test case incompatible with ``squashfs-tools`` >= 4.7.
+* Fix a compatibility issue with OpenSC => 0.26.0. (by Lars Schmidt in
+  :pr:`1783`)
+* Add minimal test case for barebox bootloader backend. (in :pr:`1782`)
+* Complete test cases for ``get_update_handler()``. (by Lars Schmidt in
+  :pr:`1788`)
+* Improve handling of test logs when using ``qemu-test``.
+* Fix handling of coverage data if ``setfacl`` is not available. (by Gaël PORTAY
+  in :pr:`1789`)
+* Add a Python helper to decode CMS structures and check signing time in bundle
+  signature with it. (in :pr:`1790`)
+* Add test cases for streaming with TLS client authentication using PEM files
+  and PKCS#11 keys.  (in :pr:`1816`)
 
 .. rubric:: Code
 
-* Support building without OpenSSL PKCS#11 engine support. (by Bruno Thomsen)
-* Improve log messages when marking slots as (non-)bootable. (by Leon Anavi)
-* Use explicit boolean default values in ``meson_options.txt``. (by Lars Schmidt)
+* Support building without OpenSSL PKCS#11 engine support. (by Bruno Thomsen in
+  :pr:`1690`)
+* Improve log messages when marking slots as (non-)bootable. (by Leon Anavi in
+  :pr:`1735`)
+* Use explicit boolean default values in ``meson_options.txt``. (by Lars Schmidt
+  in :pr:`1743`)
 * Simplify the ``boot-emmc`` update handler to use ``copy_raw_image_to_dev()``.
-* Some preparations for native polling in the service (ETag based caching).
+* Some preparations (ETag based caching) for native polling in the service (in
+  :pr:`1700`)
 * Some preparations for multiple signature support in the CMS handling code.
 * Explicitly license the D-Bus introspection data as CC0-1.0 to avoid some
   friction when packaging RAUC.
 * More error checking for incorrect use of the context and progress APIs.
+* Refactor ``system.conf`` parsing into one function per section.  (in
+  :pr:`1763`)
+* Refactor service startup. (in :pr:`1804` and :pr:`1818`)
+* Clean up remaining ``g_autofree`` variable initialization. (by Gaël PORTAY in
+  :pr:`1815`)
 * Minor code cleanups (return handling, g_auto).
 
 .. rubric:: Documentation
@@ -61,13 +115,16 @@ Release 1.15 (development)
 * Convert manual page source to rst and build it using sphinx.
   This also allows us to show it in the `HTML documentation
   <https://rauc.readthedocs.io/en/latest/man.html>`_.
-  Due to the additional dependency, it is no longer build and installed by
+  Due to the additional dependency, it is no longer built and installed by
   default, though.
   Pass ``-Dmanpages=true`` to meson to re-enable this.
-* Fix the selection logic in the ``grub.cfg`` example code. (by Linus Wallgren)
+* Fix the selection logic in the ``grub.cfg`` example code. (by Linus Wallgren
+  in :pr:`1702`)
 * Update the description of booted slot detection.
 * Document which options support binary size suffixes.
 * Fix some minor inconsistencies and missing details.
+* Fix name of event log ``format`` option. (by Grégoire Duvauchelle in :pr:`1793`)
+* Link (some) PRs from the changelog and disable unused Sphinx extensions.
 
 Contributions from:
 
