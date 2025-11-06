@@ -87,23 +87,26 @@ Release 1.14 (released Apr 2, 2025)
   composefs stores file data separately from metadata, every unique file content
   is stored in the repository only once and is installed from the bundle only
   once. This also reduces the amount of data downloaded when using streaming.
+  (in :pr:`1500`)
 * Add ``prevent-late-fallback=true/false`` option to control whether ``rauc
   status mark-good`` disables the old slot.
   This prevents fallback to an older version must be prevented after the update
-  is completed successfully. (by Fabian Pfitzner)
+  is completed successfully. (by Fabian Pfitzner in :pr:`1584`)
 * Show detailed installation progress for images using block hash indices. (by
-  Marcus Hoffmann)
+  Marcus Hoffmann in :pr:`1619`)
 * Add support to the ``system-info`` handler to provide a "system version".
+  (in :pr:`1621`)
 * Expose ``RAUC_TRANSACTION_ID`` to full custom and system pre/post-install
-  handlers. (by Peter Korsgaard)
+  handlers. (by Peter Korsgaard in :pr:`1626`)
 * Add a ``min-rauc-version`` property in the bundle manifest.
   This gives us an additional way to ensure that bundles are not installed by an
-  incompatible version.
+  incompatible version. (in :pr:`1643`)
 * Make the maximum signature (CMS structure) size configurable from
   ``system.conf``.
   This makes it possible to use a large number of recipients when encrypting
-  bundles.
+  bundles. (in :pr:`1642`)
 * Add support for requiring a specific manifest hash during installation.
+  (in :pr:`1645`)
 
 .. rubric:: Bug fixes
 
