@@ -18,8 +18,7 @@ import subprocess
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.coverage',
+    'sphinx.ext.extlinks',
     'sphinx.ext.ifconfig',
     'sphinx_rtd_theme',
 ]
@@ -94,3 +93,9 @@ latex_documents = [
 man_pages = [
   ('man', 'rauc', 'safe and secure updating', '', 1),
 ]
+
+# -- Options for external links -------------------------------------------
+
+extlinks = {
+  'pr': ('https://github.com/rauc/rauc/pull/%s', '#%s'),
+}
