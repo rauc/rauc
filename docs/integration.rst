@@ -509,6 +509,15 @@ cannot fully know how you intend to use your system.
     * ``CONFIG_FEATURE_TAR_LONG_OPTIONS=y``
     * select needed ``CONFIG_FEATURE_SEAMLESS_*=y`` options
 
+  It is important to note that BusyBox tar does not support all compression formats.
+  Depending on the build system in use, it may be necessary to include additional dependencies
+  to support the compression format being used.
+  GNU tar is required when working with the following formats:
+  
+    * `lzip <http://lzip.nongnu.org/lzip.html>`_: ``*.lz``
+    * `lzop <http://www.lzop.org/>`_: ``*.lzo``
+    * `zstd <http://www.zstd.net>`_: ``*.zst``, ``*.tzst``
+  
 :ext4: mkfs.ext4 (from `e2fsprogs
   <git://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git>`_)
 :vfat: mkfs.vfat (from `dosfstools
