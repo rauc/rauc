@@ -1,5 +1,5 @@
-Release 1.15 (development)
---------------------------
+Release 1.15 (released Nov 7, 2025)
+-----------------------------------
 
 .. rubric:: Enhancements
 
@@ -126,7 +126,12 @@ Release 1.15 (development)
 * Fix name of event log ``format`` option. (by Grégoire Duvauchelle in :pr:`1793`)
 * Link (some) PRs from the changelog and disable unused Sphinx extensions.
 
-Contributions from:
+Contributions from: Bruno Tomsen (@baxeno), Enrico Jörns (@ejoerns), Gaël PORTAY
+(@gportay), Giacomo Dal Sasso (@singds), Grégoire Duvauchelle (@gduvauchelle),
+Jan Lübbe (@jluebbe), Janek Filus (@jfgreenmt), Jens Kehne (@jkehne), Jialu Zhou
+(@Jo3Zhou), Lars Schmidt (@zentax-dev), Leon Anavi (@leon-anavi), Linus Wallgren
+(@ecksun), Michael Olbrich (@michaelolbrich), Omri Sarig (@omrisarig13), Pavel
+Löbl (@loblik)
 
 Release 1.14 (released Apr 2, 2025)
 -----------------------------------
