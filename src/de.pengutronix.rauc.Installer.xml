@@ -93,6 +93,8 @@
 
     <!-- Operation: Represents the current (global) operation rauc performs -->
     <property name="Operation" type="s" access="read"/>
+    <!-- LastBundle: Holds the path and filename to the last bundle rauc consumed -->
+    <property name="LastBundle" type="s" access="read"/>
     <!-- LastTransaction: the last (install) transaction Rauc performed -->
     <property name="LastTransaction" type="s" access="read"/>
     <!-- LastError: Holds a message describing the last error that occurred -->
