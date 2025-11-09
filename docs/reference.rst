@@ -1075,10 +1075,10 @@ Supported file system image types are:
 
 Supported binary image types are:
 
-  * ``image``: Generic image format (raw binary data)
+  * ``raw``: Generic image format (raw binary data)
 
     .. note::
-      The ``image`` type is valid for all slot types and should be used for raw
+      The ``raw`` type is valid for all slot types and should be used for raw
       binary data like bootloader images, firmware binaries, etc.
 
 Supported archive types are:
