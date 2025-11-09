@@ -104,6 +104,10 @@ static gboolean r_on_handle_install_bundle(
 	args->notify = service_install_notify;
 	args->cleanup = service_install_cleanup;
 
+	if (!args->transaction)
+		args->transaction = g_uuid_string_random();
+	r_installer_set_last_transaction(interface, args->transaction);
+
 	if (g_variant_dict_lookup(&dict, "ignore-compatible", "b", &args->ignore_compatible))
 		g_variant_dict_remove(&dict, "ignore-compatible");
 

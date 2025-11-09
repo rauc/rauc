@@ -1549,6 +1549,10 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	if (!args->transaction)
 		args->transaction = g_uuid_string_random();
 
+	//ToDo: shouldn't the dbus property be updated *here*?
+	//(but here, the r_installer isn't accessible)
+	//r_installer_set_last_transaction(r_installer, args->transaction);
+
 	r_context_begin_step("do_install_bundle", "Installing", 10);
 
 	log_event_installation_started(args);
