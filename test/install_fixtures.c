@@ -196,6 +196,16 @@ void fixture_helper_set_up_bundle(gchar *tmpdir,
 				tmpdir, "content/custom_handler.sh"));
 	}
 
+	/* Copy pre & post-install handlers */
+	if (options->preinstall_handler) {
+		g_assert_true(test_copy_file("test/install-content/preinstall.sh", NULL,
+				tmpdir, "content/preinstall.sh"));
+	}
+	if (options->postinstall_handler) {
+		g_assert_true(test_copy_file("test/install-content/postinstall.sh", NULL,
+				tmpdir, "content/postinstall.sh"));
+	}
+
 	/* Copy hook */
 	if (options->hooks) {
 		g_assert_true(test_copy_file("test/install-content/hook.sh", NULL,

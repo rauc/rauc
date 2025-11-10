@@ -96,6 +96,33 @@ def test_install_env(rauc_dbus_service_with_system_adaptive, tmp_path):
     assert post_lines == pre_lines
 
 
+def test_install_env_manifest(rauc_dbus_service_with_system_adaptive, tmp_path):
+    assert (tmp_path / "images/rootfs-1").is_file()
+    assert (tmp_path / "images/rootfs-1").stat().st_size == 0
+
+    bundle_name = "good-adaptive-meta-bundle.raucb"
+
+    # copy to tmp path for safe ownership check
+    shutil.copyfile(bundle_name, tmp_path / bundle_name)
+
+    out, err, exitcode = run(f"rauc install {tmp_path}/{bundle_name}")
+
+    assert exitcode == 0
+    assert (tmp_path / "images/rootfs-1").stat().st_size > 0
+
+    with open(tmp_path / "preinstall-env-manifest") as f:
+        pre_lines = f.readlines()
+        assert "RAUC_CURRENT_BOOTNAME=A\n" in pre_lines
+        assert "RAUC_TARGET_SLOTS=1 2\n" in pre_lines
+        assert "RAUC_META_UPDATE_POLL=86400\n" in pre_lines
+        assert "RAUC_META_VERSION_CHANNEL=beta\n" in pre_lines
+
+    with open(tmp_path / "postinstall-env-manifest") as f:
+        post_lines = f.readlines()
+
+    assert post_lines == pre_lines
+
+
 @have_casync
 def test_install_plain_casync_local(rauc_dbus_service_with_system, tmp_path):
     assert os.path.exists(tmp_path / "images/rootfs-1")

@@ -86,6 +86,28 @@ filename=rootfs.ext4\n\
 	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
+static void install_fixture_set_up_bundle_pre_post_install_handler(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	InstallData *data = (InstallData*) user_data;
+	const gchar *manifest_file = "\
+[update]\n\
+compatible=Test Config\n\
+\n\
+[handler]\n\
+pre-install=preinstall.sh\n\
+post-install=postinstall.sh\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.ext4\n\
+";
+
+	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	fixture_helper_set_up_system(fixture->tmpdir, NULL, NULL);
+	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
+}
+
 static void install_fixture_set_up_bundle_install_check_hook(InstallFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1554,6 +1576,8 @@ int main(int argc, char *argv[])
 			})),
 			.manifest_test_options = {
 				.custom_handler = TRUE,
+				.preinstall_handler = FALSE,
+				.postinstall_handler = FALSE,
 				.hooks = FALSE,
 				.slots = TRUE,
 			},
@@ -1567,6 +1591,23 @@ int main(int argc, char *argv[])
 			.message_needles = NULL,
 			.manifest_test_options = {
 				.custom_handler = FALSE,
+				.preinstall_handler = TRUE,
+				.postinstall_handler = TRUE,
+				.hooks = FALSE,
+				.slots = TRUE,
+			},
+		}));
+		g_test_add(dup_test_printf(ptrs, "/install/bundle-pre-post-install-handler/%s", format_name),
+				InstallFixture, install_data,
+				install_fixture_set_up_bundle_pre_post_install_handler, install_test_bundle,
+				install_fixture_tear_down);
+
+		install_data = dup_test_data(ptrs, (&(InstallData) {
+			.message_needles = NULL,
+			.manifest_test_options = {
+				.custom_handler = FALSE,
+				.preinstall_handler = FALSE,
+				.postinstall_handler = FALSE,
 				.hooks = TRUE,
 				.slots = TRUE,
 			},
@@ -1580,6 +1621,8 @@ int main(int argc, char *argv[])
 			.message_needles = NULL,
 			.manifest_test_options = {
 				.custom_handler = FALSE,
+				.preinstall_handler = FALSE,
+				.postinstall_handler = FALSE,
 				.hooks = TRUE,
 				.slots = TRUE,
 			},
@@ -1593,6 +1636,8 @@ int main(int argc, char *argv[])
 			.message_needles = NULL,
 			.manifest_test_options = {
 				.custom_handler = FALSE,
+				.preinstall_handler = FALSE,
+				.postinstall_handler = FALSE,
 				.hooks = TRUE,
 				.slots = TRUE,
 			},
@@ -1606,6 +1651,8 @@ int main(int argc, char *argv[])
 			.message_needles = NULL,
 			.manifest_test_options = {
 				.custom_handler = TRUE,
+				.preinstall_handler = TRUE,
+				.postinstall_handler = TRUE,
 				.hooks = TRUE,
 				.slots = TRUE,
 			},
