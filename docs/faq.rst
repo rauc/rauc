@@ -342,7 +342,7 @@ With this set, you can freely choose the file extension, e.g.
 
    [image.bootloader]
    filename=boot.bin
-   type=image
+   type=raw
 
 .. note:: Ensure all devices in the field run a RAUC version that supports
    this feature before making use of it.
