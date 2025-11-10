@@ -2575,7 +2575,7 @@ static GOptionEntry entries_install[] = {
 };
 
 static GOptionEntry entries_bundle[] = {
-	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
+	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "post-signing verification keyring file", "PEMFILE"},
 	{"mksquashfs-args", '\0', 0, G_OPTION_ARG_STRING, &mksquashfs_args, "mksquashfs extra args", "ARGS"},
 	{0}
 };
@@ -2585,7 +2585,7 @@ static GOptionEntry entries_resign[] = {
 	{"keyring", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keyring, "keyring file", "PEMFILE"},
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
 	{"no-check-time", '\0', 0, G_OPTION_ARG_NONE, &no_check_time, "don't check validity period of certificates against current time", NULL},
-	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
+	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "post-signing verification keyring file", "PEMFILE"},
 	{0}
 };
 
@@ -2593,7 +2593,7 @@ static GOptionEntry entries_replace[] = {
 	{"trust-environment", '\0', 0, G_OPTION_ARG_NONE, &trust_environment, "trust environment and skip bundle access checks", NULL},
 	{"keyring", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keyring, "keyring file", "PEMFILE"},
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
-	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
+	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "post-signing verification keyring file", "PEMFILE"},
 	{0}
 };
 
@@ -2601,7 +2601,7 @@ static GOptionEntry entries_convert[] = {
 	{"trust-environment", '\0', 0, G_OPTION_ARG_NONE, &trust_environment, "trust environment and skip bundle access checks", NULL},
 	{"keyring", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keyring, "keyring file", "PEMFILE"},
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
-	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "verification keyring file", "PEMFILE"},
+	{"signing-keyring", '\0', 0, G_OPTION_ARG_FILENAME, &signing_keyring, "post-signing verification keyring file", "PEMFILE"},
 	{"mksquashfs-args", '\0', 0, G_OPTION_ARG_STRING, &mksquashfs_args, "mksquashfs extra args", "ARGS"},
 	{"casync-args", '\0', 0, G_OPTION_ARG_STRING, &casync_args, "casync extra args", "ARGS"},
 	{"ignore-image", '\0', 0, G_OPTION_ARG_STRING_ARRAY, &convert_ignore_images, "ignore image during conversion", "SLOTCLASS"},
