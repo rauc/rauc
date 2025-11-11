@@ -254,6 +254,14 @@ static gboolean install_start(int argc, char **argv)
 		goto out;
 	}
 
+	if (ENABLE_SERVICE) {
+		if (keyring) {
+			g_printerr("Using the --keyring argument for 'rauc install' is not supported!\n");
+			r_exit_status = 1;
+			goto out;
+		}
+	}
+
 	bundlelocation = resolve_bundle_path(argv[2]);
 	if (bundlelocation == NULL)
 		goto out;
