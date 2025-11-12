@@ -466,6 +466,32 @@ filename=rootfs-default.invalid\n\
 	free_manifest(rm);
 }
 
+static void test_manifest_load_missing_type_and_filename(void)
+{
+	g_autofree gchar *tmpdir;
+	g_autoptr(RaucManifest) rm = NULL;
+	g_autofree gchar* manifestpath = NULL;
+	gboolean res;
+	g_autoptr(GError) error = NULL;
+	const gchar *mffile = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2025.10-1\n\
+\n\
+[image.rootfs]\n\
+";
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
+	g_assert_nonnull(manifestpath);
+
+	res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
+	g_assert_false(res);
+}
+
 static void test_manifest_load_types_emptyfs_with_imagename_invalid(void)
 {
 	gchar *tmpdir;
@@ -980,6 +1006,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/manifest/load_types", test_manifest_load_types);
 	g_test_add_func("/manifest/load_types_invalid", test_manifest_load_types_invalid);
 	g_test_add_func("/manifest/load_types_filenext_not_mapped", test_manifest_load_types_fileext_not_mapped);
+	g_test_add_func("/manifest/missing_type_and_filename", test_manifest_load_missing_type_and_filename);
 	g_test_add_func("/manifest/load_types_emptyfs_valid", test_manifest_load_types_emptyfs_valid);
 	g_test_add_func("/manifest/load_types_emptyfs_with_filename_invalid", test_manifest_load_types_emptyfs_with_imagename_invalid);
 	g_test_add_func("/manifest/load_adaptive", test_manifest_load_adaptive);
