@@ -24,11 +24,10 @@ Terminology
     It contains the **update manifest**, one or more images and optionally an
     **update handler**.
 
-  Update Manifest
+  Update :ref:`Manifest <sec_ref_manifest>`
     This contains information about update compatibility, image hashes and
     references the optional **handler**.
-    It is either contained in a **bundle** or downloaded individually over the
-    network.
+    It is contained in the signed **bundle** file.
 
   :ref:`Slot <sec-basic-slots>`
     Slots are possible targets for (parts of) updates. Usually they are
