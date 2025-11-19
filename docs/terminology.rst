@@ -48,10 +48,10 @@ Terminology
 
   .. FIXME find a better term for this
 
-  System Configuration
-    This configures the **controller** and contains compatibility information
+  :ref:`System Configuration <sec_ref_slot_config>`
+    This configures RAUC and contains compatibility information
     and slot definitions.
-    For now, this file is shipped as part of the root filesystem.
+    Usually, this file is shipped as part of the root filesystem.
 
   Boot Chooser
     The bootloader component that determines which slot to boot from.
