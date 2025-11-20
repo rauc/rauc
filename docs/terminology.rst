@@ -24,11 +24,10 @@ Terminology
     It contains the **update manifest**, one or more images and optionally an
     **update handler**.
 
-  Update Manifest
+  Update :ref:`Manifest <sec_ref_manifest>`
     This contains information about update compatibility, image hashes and
     references the optional **handler**.
-    It is either contained in a **bundle** or downloaded individually over the
-    network.
+    It is contained in the signed **bundle** file.
 
   :ref:`Slot <sec-basic-slots>`
     Slots are possible targets for (parts of) updates. Usually they are
@@ -49,10 +48,10 @@ Terminology
 
   .. FIXME find a better term for this
 
-  System Configuration
-    This configures the **controller** and contains compatibility information
+  :ref:`System Configuration <sec_ref_slot_config>`
+    This configures RAUC and contains compatibility information
     and slot definitions.
-    For now, this file is shipped as part of the root filesystem.
+    Usually, this file is shipped as part of the root filesystem.
 
   Boot Chooser
     The bootloader component that determines which slot to boot from.
