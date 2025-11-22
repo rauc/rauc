@@ -1553,14 +1553,6 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 
 	log_event_installation_started(args);
 
-	r_context_begin_step("determine_slot_states", "Determining slot states", 0);
-	res = update_external_mount_points(&ierror);
-	r_context_end_step("determine_slot_states", res);
-	if (!res) {
-		g_propagate_error(error, ierror);
-		goto out;
-	}
-
 	// TODO: mount info in context ?
 	install_args_update(args, "Checking and mounting bundle...");
 
@@ -1620,6 +1612,14 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 			g_propagate_prefixed_error(error, ierror, "Pre-install handler error: ");
 			goto umount;
 		}
+	}
+
+	r_context_begin_step("determine_slot_states", "Determining slot states", 0);
+	res = update_external_mount_points(&ierror);
+	r_context_end_step("determine_slot_states", res);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		goto umount;
 	}
 
 	/* Allow overriding compatible check by hook */
