@@ -56,6 +56,26 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Enable or disable locking of the boot counter.
+ * This variable is not set per slot, but is valid for all slots.
+ *
+ * @param locked TRUE to lock counting, FALSE to unlock it
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if successful, FALSE if failed
+ */
+gboolean r_boot_set_counters_lock(gboolean locked, GError **error);
+
+/**
+ * Check current status of boot counter locking in the bootloader.
+ *
+ * @param locked return location for the related value in the bootloader
+ * @param error return location for a GError, or NULL
+ *
+ * @return TRUE if successful, FALSE if failed
+ */
+gboolean r_boot_get_counters_lock(gboolean *locked, GError **error);
+/**
  * Mark slot as primary boot option of its slot class.
  *
  * @param slot Slot to mark

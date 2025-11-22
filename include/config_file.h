@@ -39,6 +39,12 @@ typedef enum {
 	R_CONFIG_SYS_VARIANT_NAME,
 } RConfigSysVariant;
 
+typedef enum {
+	R_CONFIG_FALLBACK_DISABLE = 0,
+	R_CONFIG_FALLBACK_MARK_BAD = 1,
+	R_CONFIG_FALLBACK_LOCK_COUNTER = 2,
+} RConfigLateFallback;
+
 /* System configuration */
 typedef struct {
 	gchar *system_compatible;
@@ -54,7 +60,7 @@ typedef struct {
 	gchar *custom_bootloader_backend;
 	gboolean efi_use_bootnext;
 	/** prevent fallback after successfully booting into primary slot */
-	gboolean prevent_late_fallback;
+	RConfigLateFallback prevent_late_fallback;
 	/* maximum filesize to download in bytes */
 	guint64 max_bundle_download_size;
 	/* maximum signature/CMS size in bytes */
