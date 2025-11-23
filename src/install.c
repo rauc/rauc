@@ -1307,6 +1307,7 @@ static void log_event_installation_done(RaucInstallArgs *args, RaucManifest *man
 		{"BUNDLE_HASH", "", -1},
 		{"BUNDLE_DESCRIPTION", "", -1},
 		{"BUNDLE_VERSION", "", -1},
+		{"BUNDLE_NAME", args->name, -1},
 		{"TRANSACTION_ID", args->transaction, -1},
 	};
 
