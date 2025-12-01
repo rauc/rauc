@@ -58,13 +58,26 @@ RaucSlot *r_slot_find_by_device(GHashTable *slots, const gchar *device)
 {
 	GHashTableIter iter;
 	RaucSlot *slot;
+	g_autofree gchar *resolved_device = NULL;
 
 	g_return_val_if_fail(slots, NULL);
 	g_return_val_if_fail(device, NULL);
 
+	/* Resolve symlinks in the search device */
+	resolved_device = r_realpath(device);
+	if (!resolved_device)
+		resolved_device = g_strdup(device);
+
 	g_hash_table_iter_init(&iter, slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
-		if (g_strcmp0(slot->device, device) == 0) {
+		g_autofree gchar *resolved_slot_device = NULL;
+
+		/* Resolve symlinks in slot device for comparison */
+		resolved_slot_device = r_realpath(slot->device);
+		if (!resolved_slot_device)
+			resolved_slot_device = g_strdup(slot->device);
+
+		if (g_strcmp0(resolved_slot_device, resolved_device) == 0) {
 			goto out;
 		}
 	}

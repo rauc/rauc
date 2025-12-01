@@ -87,6 +87,57 @@ static gchar *resolve_loop_device(const gchar *devicepath, GError **error)
 	return g_strchomp(content);
 }
 
+/*
+ * Resolve UBI volume name notation (ubi<N>:<volname>) to device path.
+ * UBI volumes are mounted with notation like "ubi0:root" but the actual
+ * device is /dev/ubi0_0. This function resolves the name by looking up
+ * the volume name in /sys/class/ubi/ubi<N>_<M>/name.
+ */
+static gchar *resolve_ubi_volume(const gchar *devicepath)
+{
+	g_autoptr(GRegex) regex = NULL;
+	g_autoptr(GMatchInfo) match_info = NULL;
+	g_autofree gchar *ubi_num = NULL;
+	g_autofree gchar *vol_name = NULL;
+	g_autofree gchar *ubi_class_path = NULL;
+	g_autoptr(GDir) dir = NULL;
+
+	regex = g_regex_new("^ubi(\\d+):(.+)$", 0, 0, NULL);
+	g_assert_nonnull(regex);
+
+	g_regex_match(regex, devicepath, 0, &match_info);
+	if (!g_match_info_matches(match_info))
+		return g_strdup(devicepath);
+
+	ubi_num = g_match_info_fetch(match_info, 1);
+	vol_name = g_match_info_fetch(match_info, 2);
+
+	/* Search through /sys/class/ubi/ubi<N>_X/name for matching volume */
+	ubi_class_path = g_strdup("/sys/class/ubi");
+	dir = g_dir_open(ubi_class_path, 0, NULL);
+	if (dir) {
+		const gchar *entry;
+		g_autofree gchar *prefix = g_strdup_printf("ubi%s_", ubi_num);
+
+		while ((entry = g_dir_read_name(dir)) != NULL) {
+			if (g_str_has_prefix(entry, prefix)) {
+				g_autofree gchar *name_path = g_build_filename(ubi_class_path, entry, "name", NULL);
+				g_autofree gchar *name_content = NULL;
+
+				if (g_file_get_contents(name_path, &name_content, NULL, NULL)) {
+					g_strchomp(name_content);
+					if (g_strcmp0(name_content, vol_name) == 0) {
+						return g_strdup_printf("/dev/%s", entry);
+					}
+				}
+			}
+		}
+	}
+
+	/* Volume not found, return original */
+	return g_strdup(devicepath);
+}
+
 gboolean update_external_mount_points(GError **error)
 {
 	g_autolist(GUnixMountEntry) mountlist = NULL;
@@ -106,14 +157,17 @@ gboolean update_external_mount_points(GError **error)
 	for (GList *l = mountlist; l != NULL; l = l->next) {
 		GUnixMountEntry *m = (GUnixMountEntry*)l->data;
 		g_autofree gchar *devicepath = NULL;
+		g_autofree gchar *resolved_devicepath = NULL;
 		RaucSlot *s;
 		devicepath = resolve_loop_device(g_unix_mount_get_device_path(m), &ierror);
 		if (!devicepath) {
 			g_propagate_error(error, ierror);
 			return FALSE;
 		}
+		/* Resolve UBI volume names like ubi0:root to /dev/ubi0_0 */
+		resolved_devicepath = resolve_ubi_volume(devicepath);
 		s = find_config_slot_by_device(r_context()->config,
-				devicepath);
+				resolved_devicepath);
 		if (s) {
 			/* We might have multiple mount entries matching the same device and thus the same slot.
 			 * To avoid leaking the string returned by g_unix_mount_get_mount_path() here, we skip all further matches
