@@ -541,6 +541,7 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 	gchar *store = NULL;
 	gchar *tmpdir = NULL;
 	gboolean seed_mounted = FALSE;
+	g_autofree gchar *seed_bind_mount = NULL;
 
 	g_assert_nonnull(r_context()->install_info);
 	g_assert_nonnull(r_context()->install_info->mounted_bundle);
@@ -560,22 +561,45 @@ static gboolean casync_extract_image(RaucImage *image, gchar *dest, int out_fd, 
 
 	if (g_str_has_suffix(image->filename, ".caidx" )) {
 		/* We need to have the seed slot (bind) mounted to a distinct
-		 * path to allow seeding. E.g. using mount path '/' for the
-		 * rootfs slot seed is inaproppriate as it contains virtual
-		 * file systems, additional mounts, etc. */
+		 * path to allow seeding. Using mount path '/' for the rootfs
+		 * slot seed is inappropriate as it contains virtual file systems,
+		 * additional mounts, etc. If the slot is already externally mounted
+		 * (ext_mount_point), we create a ro-bind mount from it.
+		 * This is especially important for UBIFS. */
 		if (!seedslot->mount_point) {
-			g_debug("Mounting %s to use as casync seed", seedslot->device);
-			res = r_mount_slot(seedslot, &ierror);
-			if (!res) {
-				g_warning("Failed mounting for seeding: %s", ierror->message);
-				g_clear_error(&ierror);
-				goto extract;
+			if (seedslot->ext_mount_point) {
+				/* Create a ro-bind mount from the external mount point */
+				g_message("Using ext_mount_point %s for casync seed", seedslot->ext_mount_point);
+				seed_bind_mount = r_create_mount_point(seedslot->name, &ierror);
+				if (!seed_bind_mount) {
+					g_warning("Failed to create mount point for seed: %s", ierror->message);
+					g_clear_error(&ierror);
+					goto extract;
+				}
+				res = r_mount_full(seedslot->ext_mount_point, seed_bind_mount, NULL, "bind,ro", &ierror);
+				if (!res) {
+					g_warning("Failed to create ro-bind mount for seeding: %s", ierror->message);
+					g_clear_error(&ierror);
+					g_rmdir(seed_bind_mount);
+					g_clear_pointer(&seed_bind_mount, g_free);
+					goto extract;
+				}
+				seed_mounted = TRUE;
+			} else {
+				g_debug("Mounting %s to use as casync seed", seedslot->device);
+				res = r_mount_slot(seedslot, &ierror);
+				if (!res) {
+					g_warning("Failed mounting for seeding: %s", ierror->message);
+					g_clear_error(&ierror);
+					goto extract;
+				}
+				seed_mounted = TRUE;
 			}
-			seed_mounted = TRUE;
 		}
 
-		g_debug("Adding as casync directory tree seed: %s", seedslot->mount_point);
-		seed = g_strdup(seedslot->mount_point);
+		g_message("Adding as casync directory tree seed: %s",
+		          seedslot->mount_point ? seedslot->mount_point : seed_bind_mount);
+		seed = g_strdup(seedslot->mount_point ? seedslot->mount_point : seed_bind_mount);
 	} else {
 		GStatBuf seedstat;
 
@@ -613,16 +637,22 @@ extract:
 unmount_out:
 	/* Cleanup seed */
 	if (seed_mounted) {
-		g_message("Unmounting seed slot %s", seedslot->device);
-		ierror = NULL; /* any previous error was propagated already */
-		if (!r_umount_slot(seedslot, &ierror)) {
-			res = FALSE;
-			if (error && *error) {
-				/* the previous error is more relevant here */
-				g_warning("Ignoring umount error after previous error: %s", ierror->message);
-				g_clear_error(&ierror);
-			} else {
-				g_propagate_error(error, ierror);
+		if (seed_bind_mount) {
+			g_debug("Unmounting seed bind mount %s", seed_bind_mount);
+			r_umount(seed_bind_mount, NULL);
+			g_rmdir(seed_bind_mount);
+		} else {
+			g_message("Unmounting seed slot %s", seedslot->device);
+			ierror = NULL; /* any previous error was propagated already */
+			if (!r_umount_slot(seedslot, &ierror)) {
+				res = FALSE;
+				if (error && *error) {
+					/* the previous error is more relevant here */
+					g_warning("Ignoring umount error after previous error: %s", ierror->message);
+					g_clear_error(&ierror);
+				} else {
+					g_propagate_error(error, ierror);
+				}
 			}
 		}
 	}
