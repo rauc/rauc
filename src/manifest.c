@@ -24,6 +24,12 @@ static gboolean handle_missing_type(RaucImage *image, GError **error)
 	if (image->hooks.install)
 		return TRUE;
 
+	if (!image->filename) {
+		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE,
+				"Failed to detect image type: Neither 'type' nor 'filename' given.");
+		return FALSE;
+	}
+
 	const gchar *derived_type = derive_image_type_from_filename_pattern(image->filename);
 	if (!derived_type) {
 		g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE,
