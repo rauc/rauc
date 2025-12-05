@@ -7,6 +7,8 @@
 
 typedef struct {
 	gboolean custom_handler;
+	gboolean preinstall_handler;
+	gboolean postinstall_handler;
 	gboolean hooks;
 	gboolean slots;
 

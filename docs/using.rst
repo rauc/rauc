@@ -513,8 +513,13 @@ or, without ``filename``:
   hooks=install
 
 
+Bundle-Based Customization: Handlers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _full-custom-update:
+
 Full Custom Update
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 For some special tasks (recovery, testing, migration), it might be required to
 completely replace the default RAUC update mechanism and to only use its
@@ -537,6 +542,41 @@ The handler script/binary must be part of the bundle.
 Refer manifest :ref:`[handler] <sec-manifest-handler>` section description
 for details about how the full custom handler can be configured and gets
 called.
+
+
+.. _pre-post-install-handlers:
+
+Pre/Post-Install Handlers
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In addition to system-based handlers defined in the system configuration file (``system.conf``),
+RAUC supports pre-install and post-install handlers defined per bundle. 
+These handlers are specified in the bundle's :ref:`sec_ref_manifest` file and
+allow update-specific actions to be executed before or after all slots are updated.
+
+This feature enables the author of a bundle to define custom actions that are executed
+in the context of the new system, rather than relying on the old system's configuration.
+This is useful for scenarios where update logic or migration steps need to be bundled
+with the update itself, and not predetermined by the old system.
+
+To use this feature, add the following fields to your bundle manifest:
+
+.. code-block:: cfg
+
+  [handler]
+  pre-install=preinstall-handler.sh
+  post-install=postinstall-handler.sh
+
+The values must match the names of the scripts or executables placed inside the content
+folder from which the bundle is generated.
+
+The pre-install handler will be executed after pre-install handlers defined in
+the system configuration file. The post-install handler will be executed before post-install
+handlers defined in the system configuration file.
+
+This allows you to, for example, copy files between slots, perform custom checks, or
+execute migration scripts as part of the update process, without modifying the old
+system's configuration.
 
 
 Using the D-Bus API
