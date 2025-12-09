@@ -238,6 +238,7 @@ static gboolean install_start(int argc, char **argv)
 	RaucInstallArgs *args = NULL;
 	GError *error = NULL;
 	g_autofree gchar *bundlelocation = NULL;
+	GThread* install_thread = NULL;
 
 	g_debug("install started");
 
@@ -351,7 +352,7 @@ static gboolean install_start(int argc, char **argv)
 		}
 
 		r_context_register_progress_callback(print_progress_callback);
-		install_run(args);
+		install_thread = install_run(args);
 	}
 
 	g_main_loop_run(r_loop);
@@ -375,6 +376,10 @@ out_loop:
 			g_printerr("Installing `%s` failed with unknown exit code: %d\n", args->name, args->status_result);
 			break;
 	}
+
+	if (install_thread)
+		g_thread_join(install_thread);
+
 	r_exit_status = args->status_result;
 	g_clear_pointer(&r_loop, g_main_loop_unref);
 
