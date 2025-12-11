@@ -1755,7 +1755,7 @@ void install_args_free(RaucInstallArgs *args)
 	g_free(args);
 }
 
-void install_run(RaucInstallArgs *args)
+GThread* install_run(RaucInstallArgs *args)
 {
 	r_context_set_busy(TRUE);
 
@@ -1763,8 +1763,8 @@ void install_run(RaucInstallArgs *args)
 
 	/* g_thread_new aborts if the thread cannot be created. */
 	GThread *thread = g_thread_new("installer", install_thread, args);
-	/* we don't need to keep a reference to this thread */
-	g_thread_unref(thread);
+
+	return thread;
 }
 
 static const gchar *supported_http_headers[] = {

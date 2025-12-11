@@ -238,6 +238,7 @@ static gboolean install_start(int argc, char **argv)
 	RaucInstallArgs *args = NULL;
 	GError *error = NULL;
 	g_autofree gchar *bundlelocation = NULL;
+	GThread* install_thread = NULL;
 
 	g_debug("install started");
 
@@ -288,11 +289,11 @@ static gboolean install_start(int argc, char **argv)
 	if (access_args.http_headers)
 		args->access_args.http_headers = g_strdupv(access_args.http_headers);
 
+	g_unix_signal_add(SIGINT, on_sigint, args);
+
 	r_loop = g_main_loop_new(NULL, FALSE);
 	if (ENABLE_SERVICE) {
 		g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(NULL);
-
-		g_unix_signal_add(SIGINT, on_sigint, args);
 
 		g_variant_dict_insert(&dict, "ignore-compatible", "b", args->ignore_compatible);
 		g_variant_dict_insert(&dict, "ignore-version-limit", "b", args->ignore_version_limit);
@@ -351,7 +352,7 @@ static gboolean install_start(int argc, char **argv)
 		}
 
 		r_context_register_progress_callback(print_progress_callback);
-		install_run(args);
+		install_thread = install_run(args);
 	}
 
 	g_main_loop_run(r_loop);
@@ -368,13 +369,21 @@ out_loop:
 			g_printerr("D-Bus error while installing `%s`\n", args->name);
 			break;
 		case 3:
+#if ENABLE_SERVICE == 1
 			g_print("\nCtrl+C pressed. Exiting rauc installation client...\n"
 					"Note that this will not abort the installation running in the rauc service!\n");
+#else
+			g_print("\nCtrl+C pressed. Waiting for install thread to terminate...\n");
+#endif
 			break;
 		default:
 			g_printerr("Installing `%s` failed with unknown exit code: %d\n", args->name, args->status_result);
 			break;
 	}
+
+	if (install_thread)
+		g_thread_join(install_thread);
+
 	r_exit_status = args->status_result;
 	g_clear_pointer(&r_loop, g_main_loop_unref);
 
