@@ -254,10 +254,10 @@ Example configuration:
 
 ``prevent-late-fallback=<true/false>`` (optional)
   In some use-cases, fallback to an older version must be prevented after the
-  update is completed successfully ('rauc status mark-good' executed from the
+  update is completed successfully (``rauc status mark-good`` executed from the
   new version).
-  If this option is enabled, RAUC will execute the equivalent of 'rauc status
-  mark-bad other' after marking the currently booted slot as good.
+  If this option is enabled, RAUC will execute the equivalent of ``rauc status
+  mark-bad other`` after marking the currently booted slot as good.
   This means that the other slot(s) is/are no longer eligible for fallback.
 
 .. _keyring-section:
@@ -312,9 +312,9 @@ signature.
   This parameter can be used instead of relying on the RAUC system compatible check
   if only specific certificates in a shared PKI are trusted
   for specific target devices.
-  If the `allowed-signer-cns` check fails, no code from the bundle is executed,
+  If the ``allowed-signer-cns`` check fails, no code from the bundle is executed,
   so unlike the system compatible check, it cannot be overridden by an
-  `install-check` hook.
+  ``install-check`` hook.
 
   This parameter can contain multiple values, separated by semicolons.
   Values can contain whitespace.
@@ -353,7 +353,7 @@ For more information about using the streaming support of RAUC, refer to
 ``sandbox-user`` (optional)
   This option can be used to set the user name which is used to run the
   streaming helper process.
-  By default, the `nobody` user is used.
+  By default, the ``nobody`` user is used.
   At compile time, the default can be defined using the
   ``-Dstreaming_user=USERNAME`` meson setup option.
 
@@ -389,7 +389,7 @@ For more information about using the streaming support of RAUC, refer to
   * ``uptime``: Enables sending the system's current uptime as ``RAUC-Uptime`` header field.
 
   These headers are sent on the initial HTTP request when streaming a bundle,
-  e.g. when using `rauc install` or `rauc info` (or their corresponding D-Bus
+  e.g. when using ``rauc install`` or ``rauc info`` (or their corresponding D-Bus
   calls).
   They are *not* sent for the subsequent requests which fetch the actual bundle
   data.
@@ -538,8 +538,8 @@ See details about using handlers in `Custom Handlers (Interface)`_.
 
 Each slot is identified by a section starting with ``slot.`` followed by
 the slot class name, and a slot number.
-The `<slot-class>` name is used in the *update manifest* to target the correct
-set of slots. It must not contain any `.` (dots) as these are used as
+The ``<slot-class>`` name is used in the *update manifest* to target the correct
+set of slots. It must not contain any ``.`` (dots) as these are used as
 hierarchical separator.
 
 ``device=</path/to/dev>`` (required)
@@ -831,7 +831,7 @@ The bundle section contains information required to process the bundle.
 
 ``crypt-key`` (generated)
   The encryption key of the dm-crypt.
-  RAUC generates the key automatically when creating a `crypt` bundle.
+  RAUC generates the key automatically when creating a ``crypt`` bundle.
 
 ``[hooks]`` Section
 ~~~~~~~~~~~~~~~~~~~
@@ -1070,7 +1070,7 @@ Supported file system image types are:
   * ``ubifs``: UBIFS file system image
   * ``squashfs``: SquashFS image (uncompressed, or compressed with one of ``lz4``, ``lzo``, ``xz``, ``xst``)
   * ``emptyfs``: Creates an empty filesystem.
-    This type does not support setting a `filename` as no source data is needed.
+    This type does not support setting a ``filename`` as no source data is needed.
     Currently only supports slots with `type=ext4`, see :ref:`slot.slot-class.idx-section`
 
 Supported binary image types are:
@@ -1191,7 +1191,7 @@ block of the squashfs filesystem.
 During installation, the kernel's verity device mapper target is used on top of
 the loopback block device to authenticate each filesystem block as needed.
 
-When using `rauc extract` (or other commands which need access to the squashfs
+When using ``rauc extract`` (or other commands which need access to the squashfs
 except `install`), the squashfs is checked before accessing it by RAUC itself
 without using the kernel's device mapper target, as they are often used by
 normal users on their development hosts.
@@ -1231,7 +1231,7 @@ Only there, access to the Public Key Infrastructure (aka PKI), is allowed.
 For this case ``rauc extract-signature`` can extract the bundle signature and
 ``rauc replace-signature`` can replace the bundle signature with a new one.
 
-As a `verity` format bundle signature is not a detached CMS, you can easily
+As a ``verity`` format bundle signature is not a detached CMS, you can easily
 resign it externally.
 
 .. code-block:: console
@@ -1242,20 +1242,20 @@ resign it externally.
   $ openssl cms -verify -CAfile ca.cert.pem -out manifest.raucm -inform DER -in extracted-signature.cms
   # Or without trust chain verification
   $ openssl cms -verify -noverify -out manifest.raucm -inform DER -in extracted-signature.cms
-  # Sign the manifest with your external PKI (for this example, it was made by an `openssl` command)
+  # Sign the manifest with your external PKI (for this example, it was made by an ``openssl`` command)
   $ openssl cms -sign -signer new-signer.cert.pem -CAfile new-ca-cert.pem -inkey new-signer.key.pem -nodetach -in manifest.raucm -outform der -out new-signature.cms
   # Finally replace the bundle signature
   $ rauc replace-signature --keyring ca-cert.pem --signing-keyring new-ca-cert.pem bundle.raucb new-signature.cms new-bundle.raucb
 
-For the `plain` format bundle signature it's slightly different, as the
+For the ``plain`` format bundle signature it's slightly different, as the
 signature is detached, it contains just the message digest.
 You can use ``openssl asn1parse`` for retrieving the message digest in the CMS.
 
 .. code-block:: console
   :emphasize-lines: 9,11
 
-  # Find the line which contains `:messageDigest` in `OBJECT` section
-  # and get offset of the next line which contains `OCTET STRING` (1125 in this case)
+  # Find the line which contains ``:messageDigest`` in ``OBJECT`` section
+  # and get offset of the next line which contains ``OCTET STRING`` (1125 in this case)
   $ openssl asn1parse -inform der -in extracted-signature.cms | grep -C 3 messageDigest
   1093:d=7  hl=2 l=  15 cons: SET
   1095:d=8  hl=2 l=  13 prim: UTCTIME           :170926142121Z
@@ -1285,20 +1285,20 @@ Another method could be to extract the original binary from the RAUC bundle.
   $ dd if=bundle.raucb of=bundle.rauci bs=1 count=$((( ${CMS_OFFSET} - 1 )))
   $ sha256sum bundle.rauci
   f3c783df3f76d658798a7232255a155bb4e5dd90b0ddffa57ee01968055161c5  bundle.rauci
-  # Sign the binary with your PKI (for this example, it was made by an `openssl` command)
+  # Sign the binary with your PKI (for this example, it was made by an ``openssl`` command)
   $ openssl cms -sign -signer new-signer.cert.pem -CAfile new-ca-cert.pem -inkey new-signer.key.pem -binary -in bundle.rauci -outform der -out new-signature.cms
   # Finally replace the bundle signature
   $ rauc replace-signature --keyring ca-cert.pem --signing-keyring new-ca-cert.pem bundle.raucb new-signature.cms new-bundle.raucb
 
 .. note::
-  The `asn1parse` method can also be used for the `verity` bundle but replacing
-  `:messageDigest` by `:pkcs7-data` as follows
+  The ``asn1parse`` method can also be used for the ``verity`` bundle but replacing
+  ``:messageDigest`` by ``:pkcs7-data`` as follows
 
   .. code-block:: console
     :emphasize-lines: 13,15
 
-    # Find the line which contains `:pkcs7-data` in `OBJECT` section
-    # and get offset of the next line which contains `OCTET STRING` (60 in this case)
+    # Find the line which contains ``:pkcs7-data`` in ``OBJECT`` section
+    # and get offset of the next line which contains ``OCTET STRING`` (60 in this case)
     $ openssl asn1parse -inform der -in extracted-signature.cms
     0:d=0  hl=4 l=1918 cons: SEQUENCE
     4:d=1  hl=2 l=   9 prim: OBJECT            :pkcs7-signedData
@@ -2142,7 +2142,7 @@ Performing an update using the default RAUC mechanism will work as follows:
 #. Parse and verify manifest
 #. Determine target install group
 
-   A. Execute `pre install handler` (optional)
+   A. Execute ``pre install handler`` (optional)
 
 #. Verify bundle compatible against system compatible (reject if not matching)
 #. Mark target slots as non-bootable for bootloader
@@ -2165,7 +2165,7 @@ Performing an update using the default RAUC mechanism will work as follows:
 
 #. Mark target slots as new primary boot source for the bootloader
 
-   A. Execute `post install` handler (optional)
+   A. Execute ``post install`` handler (optional)
 
 #. Unmount bundle
 #. Terminate successfully if no error occurred
@@ -2176,14 +2176,14 @@ Bootloader Interaction
 ----------------------
 
 RAUC comes with a generic interface for interacting with the bootloader.
-It handles *all* slots that have a `bootname` property set.
+It handles *all* slots that have a ``bootname`` property set.
 
 It provides two base functions:
 
-1) Setting state 'good' or 'bad', reflected by API routine `r_boot_set_state()`
-   and command line tool option `rauc status mark <good/bad>`
-2) Marking a slot 'primary', reflected by API routine `r_boot_set_primary()`
-   and command line tool option `rauc status mark-active`
+1) Setting state 'good' or 'bad', reflected by API routine ``r_boot_set_state()``
+   and command line tool option ``rauc status mark <good/bad>``
+2) Marking a slot 'primary', reflected by API routine ``r_boot_set_primary()``
+   and command line tool option ``rauc status mark-active``
 
 The default flow of how they will be called during the installation of a new
 bundle (on Slot 'A') looks as follows:
@@ -2210,7 +2210,7 @@ Setting the slot 'good' is relevant for the first boot but for all subsequent
 boots, too.
 In most cases, this interaction with the bootloader is required by the
 mechanism that enables fallback capability; rebooting a system one or several times
-without calling `rauc status mark-good` will
+without calling ``rauc status mark-good`` will
 let the bootloader boot an alternative system or abort boot operation
 (depending on configuration).
 Usually, bootloaders implement this fallback mechanism by some kind of counters
@@ -2240,19 +2240,19 @@ currently implemented:
 U-Boot
 ~~~~~~
 
-The U-Boot implementation assumes to have variables `BOOT_ORDER` and
-`BOOT_x_LEFT` handled by the bootloader scripting.
+The U-Boot implementation assumes to have variables ``BOOT_ORDER`` and
+``BOOT_x_LEFT`` handled by the bootloader scripting.
 
 :state bad:
-  Sets the `BOOT_x_LEFT` variable of the slot to `0` and removes it from
-  the `BOOT_ORDER` list
+  Sets the ``BOOT_x_LEFT`` variable of the slot to ``0`` and removes it from
+  the ``BOOT_ORDER`` list
 
 :state good:
-  Sets the `BOOT_x_LEFT` variable back to its default value (`3`).
+  Sets the ``BOOT_x_LEFT`` variable back to its default value (``3``).
 
 :primary:
-  Moves the slot from its current position in the list in `BOOT_ORDER` to the
-  first place and sets `BOOT_x_LEFT` to its initial value (`3`).
+  Moves the slot from its current position in the list in ``BOOT_ORDER`` to the
+  first place and sets ``BOOT_x_LEFT`` to its initial value (``3``).
   If BOOT_ORDER was unset before, it generates a new list of all slots known to
   RAUC with the one to activate at the first position.
 
@@ -2264,49 +2264,49 @@ The barebox implementation assumes using
 `barebox bootchooser <https://barebox.org/doc/latest/user/bootchooser.html>`_.
 
 :state bad:
-  Sets both the `bootstate.systemX.priority` and
-  `bootstate.systemX.remaining_attempts` to `0`.
+  Sets both the ``bootstate.systemX.priority`` and
+  ``bootstate.systemX.remaining_attempts`` to ``0``.
 
 :state good:
-  Sets the `bootstate.systemX.remaining_attempts` to its default value
-  (`3`).
+  Sets the ``bootstate.systemX.remaining_attempts`` to its default value
+  (``3``).
 
 :primary:
-  Sets `bootstate.systemX.priority` to `20` and all other priorities that were
-  non-zero before to `10`.
-  It also sets `bootstate.systemX.remaining_attempts` to its initial value (`3`).
+  Sets ``bootstate.systemX.priority`` to ``20`` and all other priorities that were
+  non-zero before to ``10``.
+  It also sets ``bootstate.systemX.remaining_attempts`` to its initial value (``3``).
 
 GRUB
 ~~~~
 
 :state bad:
-  Sets slot `x_OK` to `0` and resets `x_TRY` to `0`.
+  Sets slot ``x_OK`` to ``0`` and resets ``x_TRY`` to ``0``.
 
 :state good:
-  Sets slot `x_OK` to `1` and resets `x_TRY` to `0`.
+  Sets slot ``x_OK`` to ``1`` and resets ``x_TRY`` to ``0``.
 
 :primary:
-  Sets slot `x_OK` to `1` and resets `x_TRY` to `0`.
-  Sets `ORDER` to contain slot ``x`` as first element and all other after.
+  Sets slot ``x_OK`` to ``1`` and resets ``x_TRY`` to ``0``.
+  Sets ``ORDER`` to contain slot ``x`` as first element and all other after.
 
 EFI
 ~~~
 
 :state bad:
-  Removes the slot from `BootOrder`
+  Removes the slot from ``BootOrder``
 
 :state good:
-  Prepends the slot to the `BootOrder` list.
+  Prepends the slot to the ``BootOrder`` list.
   This behaves slightly different than the other implementations because we use
-  `BootNext` for allowing setting primary with an initial fallback option.
+  ``BootNext`` for allowing setting primary with an initial fallback option.
   Setting state good is then used to persist this.
 
 :primary:
-  Sets the slot as `BootNext` by default.
+  Sets the slot as ``BootNext`` by default.
   This will make the slot being booted upon next reboot only!
 
   The behavior is different when ``efi-use-bootnext`` is set to ``false``.
-  Then this prepends the slot to the `BootOrder` list as described for 'state
+  Then this prepends the slot to the ``BootOrder`` list as described for 'state
   good'.
 
 .. note:: EFI implementations differ in how they handle new or unbootable
