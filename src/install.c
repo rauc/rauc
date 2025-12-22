@@ -1622,6 +1622,25 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		}
 	}
 
+	if (bundle->manifest->hooks.global_pre_install) {
+		run_bundle_hook(bundle->manifest, bundle->mount_point, "global-pre-install", &ierror);
+		if (ierror) {
+			res = FALSE;
+			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED)) {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Bundle rejected: ");
+			} else {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Global-pre-install hook failed: ");
+			}
+			goto umount;
+		}
+	}
+
 	/* Allow overriding compatible check by hook */
 	if (bundle->manifest->hooks.install_check) {
 		run_bundle_hook(bundle->manifest, bundle->mount_point, "install-check", &ierror);
@@ -1663,6 +1682,25 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	if (!res) {
 		g_propagate_prefixed_error(error, ierror, "Installation error: ");
 		goto umount;
+	}
+
+	if (bundle->manifest->hooks.global_post_install) {
+		run_bundle_hook(bundle->manifest, bundle->mount_point, "global-post-install", &ierror);
+		if (ierror) {
+			res = FALSE;
+			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED)) {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Bundle rejected: ");
+			} else {
+				g_propagate_prefixed_error(
+						error,
+						ierror,
+						"Global-post-install hook failed: ");
+			}
+			goto umount;
+		}
 	}
 
 	if (r_context()->config->postinstall_handler) {
