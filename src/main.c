@@ -961,6 +961,12 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 	if (manifest->hooks.install_check == TRUE) {
 		g_ptr_array_add(hooks, (gchar*) "install-check");
 	}
+	if (manifest->hooks.global_pre_install == TRUE) {
+		g_ptr_array_add(hooks, (gchar*) "global-pre-install");
+	}
+	if (manifest->hooks.global_post_install == TRUE) {
+		g_ptr_array_add(hooks, (gchar*) "global-post-install");
+	}
 	g_ptr_array_add(hooks, NULL);
 
 	temp_string = g_strjoinv(" ", (gchar**) hooks->pdata);
@@ -1043,6 +1049,12 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	hooks = g_ptr_array_new();
 	if (manifest->hooks.install_check == TRUE) {
 		g_ptr_array_add(hooks, (gchar*) "install-check");
+	}
+	if (manifest->hooks.global_pre_install == TRUE) {
+		g_ptr_array_add(hooks, (gchar*) "global-pre-install");
+	}
+	if (manifest->hooks.global_post_install == TRUE) {
+		g_ptr_array_add(hooks, (gchar*) "global-post-install");
 	}
 	g_ptr_array_add(hooks, NULL);
 
@@ -1215,6 +1227,12 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 	json_builder_begin_array(builder);
 	if (manifest->hooks.install_check == TRUE) {
 		json_builder_add_string_value(builder, "install-check");
+	}
+	if (manifest->hooks.global_pre_install == TRUE) {
+		json_builder_add_string_value(builder, "global-pre-install");
+	}
+	if (manifest->hooks.global_post_install == TRUE) {
+		json_builder_add_string_value(builder, "global-post-install");
 	}
 	json_builder_end_array(builder);
 
