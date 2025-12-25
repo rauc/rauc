@@ -302,6 +302,22 @@ signature.
   can not be authenticated.
   If CRL checking is needed, the PKI needs to be structured with this in mind.
 
+``allow-single-signature=<true/false>`` (optional)
+  If this option is set to ``true``, RAUC will accept a bundle with multiple
+  signatures even if only one of them can be verified.
+  Otherwise, RAUC uses OpenSSL's default behavior of requiring successful
+  verification of all signatures.
+  This can be used to simplify a key rotation process: Instead of signing the
+  same bundle contents with the old and new keys separately and documenting
+  when to use each resulting bundle, a single bundle is enough.
+
+  Additional signatures can be added to a bundle by using ``rauc resign`` with
+  the ``--append`` option.
+
+  .. note::
+     Note that changes in OpenSSL are needed to support this.
+     See OpenSSL PR #27604, which might be included in OpenSSL 4.0.
+
 ``allowed-signer-cns=Name 1;Other Name`` (optional)
   If this config parameter is set, RAUC will check the ``CommonName`` field
   of the bundle's signer certificates against this semicolon-separated list.

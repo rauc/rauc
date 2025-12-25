@@ -135,23 +135,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release:
-        - "ubuntu:20.04"
-        - "ubuntu:22.04"
-        - "ubuntu:24.04"
-        - "debian:bullseye"
-        - "debian:bookworm"
-        - "debian:trixie"
-        - "debian:testing"
         include:
+        - release: "ubuntu:20.04"
+        - release: "ubuntu:22.04"
         - release: "ubuntu:24.04"
-          test: true
+          test: "base"
+        - release: "debian:bullseye"
         - release: "debian:bookworm"
-          test: true
+          test: "base"
         - release: "debian:trixie"
-          test: true
+          test: "base"
+        - release: "debian:trixie"
+          test: "multisig"
         - release: "debian:testing"
-          test: true
+          test: "base"
     steps:
     - uses: actions/checkout@v4
 
@@ -173,6 +170,15 @@ jobs:
       run: |
         podman exec -e DEBIAN_FRONTEND='noninteractive' -i -u root stable apt-get install -qy python3-pytest python3-dasbus python3-aiohttp python3-requests python3-pyasn1 python3-pyasn1-modules openssl e2fsprogs grub-common faketime
 
+    - name: Install multisig test dependencies
+      if: ${{ matrix.test == 'multisig' }}
+      run: |
+        wget https://github.com/jluebbe/openssl-deb/releases/download/verify-partial-20250808/libssl-dev_3.5.1-1.1_amd64.deb
+        wget https://github.com/jluebbe/openssl-deb/releases/download/verify-partial-20250808/libssl3t64_3.5.1-1.1_amd64.deb
+        wget https://github.com/jluebbe/openssl-deb/releases/download/verify-partial-20250808/openssl_3.5.1-1.1_amd64.deb
+        wget https://github.com/jluebbe/openssl-deb/releases/download/verify-partial-20250808/openssl-provider-legacy_3.5.1-1.1_amd64.deb
+        podman exec -e DEBIAN_FRONTEND='noninteractive' -i -u root stable dpkg -i *.deb
+
     - name: Configure
       run: |
         podman exec -i stable meson setup -Dgpt=disabled -Dwerror=true build
@@ -187,6 +193,6 @@ jobs:
         podman exec -i stable meson test -C build --suite rauc --timeout-multiplier 3
 
     - name: Show logs
-      if: ${{ failure() }}
+      if: ${{ always() }}
       run: |
         cat build/meson-logs/testlog.txt || true

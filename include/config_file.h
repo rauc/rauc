@@ -68,13 +68,17 @@ typedef struct {
 	gboolean activate_installed;
 	gchar *data_directory;
 	gchar *statusfile_path;
+
+	/* keyring */
 	gchar *keyring_path;
 	gchar *keyring_directory;
 	gboolean keyring_allow_partial_chain;
+	gboolean keyring_allow_single_signature;
 	gboolean keyring_check_crl;
 	gchar *keyring_check_purpose;
 	gchar **keyring_allowed_signer_cns;
 	gboolean use_bundle_signing_time;
+
 	/* bit mask for allowed formats */
 	guint bundle_formats_mask;
 	/* enable complete read before mount */
