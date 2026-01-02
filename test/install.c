@@ -1186,9 +1186,10 @@ static void install_test_bundle_thread(InstallFixture *fixture,
 	args->cleanup = install_cleanup;
 
 	r_loop = g_main_loop_new(NULL, FALSE);
-	install_run(args);
+	GThread *thread = install_run(args);
 	g_main_loop_run(r_loop);
 	g_clear_pointer(&r_loop, g_main_loop_unref);
+	g_clear_pointer(&thread, g_thread_unref);
 }
 
 static void install_test_bundle_hook_install_check(InstallFixture *fixture,

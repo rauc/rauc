@@ -115,7 +115,7 @@ void install_args_free(RaucInstallArgs *args);
  *
  * @param args RaucInstallArgs instance
  */
-void install_run(RaucInstallArgs *args);
+GThread* install_run(RaucInstallArgs *args);
 
 typedef struct {
 	RaucImage *image;
