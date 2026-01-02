@@ -68,20 +68,36 @@ static const gchar* dmtype_to_str(RaucDMType dmtype)
 	}
 }
 
-static const gchar* dmstatus_by_dmtype(RaucDMType dmtype)
+static gboolean check_status(RaucDMType dmtype, const char *params, GError **error)
 {
-	switch (dmtype) {
-		case RAUC_DM_VERITY:
-			return "V";
-		case RAUC_DM_CRYPT:
-			return "\0";
-		default:
-			return "unknown";
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (dmtype == RAUC_DM_VERITY) {
+		if (g_strcmp0(params, "V") != 0) {
+			g_set_error(error,
+					G_FILE_ERROR,
+					G_FILE_ERROR_FAILED,
+					"Unexpected dm-verity status '%s' (instead of 'V')", params);
+			return FALSE;
+		}
+	} else if (dmtype == RAUC_DM_CRYPT) {
+		if (g_strcmp0(params, "\0") != 0) {
+			g_set_error(error,
+					G_FILE_ERROR,
+					G_FILE_ERROR_FAILED,
+					"Unexpected dm-crypt status '%s' (instead of '\\0')", params);
+			return FALSE;
+		}
+	} else {
+		g_error("unknown dm type");
 	}
+
+	return TRUE;
 }
 
 gboolean r_dm_setup(RaucDM *dm, GError **error)
 {
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 	int dmfd = -1;
 	int checkfd = -1;
@@ -246,11 +262,8 @@ gboolean r_dm_setup(RaucDM *dm, GError **error)
 		res = FALSE;
 		goto out_remove_dm;
 	}
-	if (g_strcmp0(setup.params, dmstatus_by_dmtype(dm->type)) != 0) {
-		g_set_error(error,
-				G_FILE_ERROR,
-				G_FILE_ERROR_FAILED,
-				"Unexpected dm-%s status '%s' (instead of '\\0')", dmtype_to_str(dm->type), setup.params);
+	if (!check_status(dm->type, setup.params, &ierror)) {
+		g_propagate_error(error, ierror);
 		res = FALSE;
 		goto out_remove_dm;
 	}
