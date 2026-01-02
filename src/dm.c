@@ -70,22 +70,34 @@ static const gchar* dmtype_to_str(RaucDMType dmtype)
 
 static gboolean check_status(RaucDMType dmtype, const char *params, GError **error)
 {
+	g_return_val_if_fail(params != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	g_auto(GStrv) split = g_strsplit(params, " ", -1);
+
 	if (dmtype == RAUC_DM_VERITY) {
-		if (g_strcmp0(params, "V") != 0) {
+		/* https://docs.kernel.org/admin-guide/device-mapper/verity.html#status */
+		if (g_strv_length(split) < 1) {
 			g_set_error(error,
 					G_FILE_ERROR,
 					G_FILE_ERROR_FAILED,
-					"Unexpected dm-verity status '%s' (instead of 'V')", params);
+					"Unexpected empty dm-verity status '%s' (instead of 'V')", params);
+			return FALSE;
+		}
+		if (g_strcmp0(split[0], "V") != 0) {
+			g_set_error(error,
+					G_FILE_ERROR,
+					G_FILE_ERROR_FAILED,
+					"Unexpected dm-verity check status '%s' (instead of 'V')", split[0]);
 			return FALSE;
 		}
 	} else if (dmtype == RAUC_DM_CRYPT) {
-		if (g_strcmp0(params, "\0") != 0) {
+		/* status should be empty for dm-crypt */
+		if (g_strv_length(split) != 0) {
 			g_set_error(error,
 					G_FILE_ERROR,
 					G_FILE_ERROR_FAILED,
-					"Unexpected dm-crypt status '%s' (instead of '\\0')", params);
+					"Unexpected dm-crypt status '%s' (instead of '')", params);
 			return FALSE;
 		}
 	} else {
