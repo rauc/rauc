@@ -132,7 +132,7 @@ gboolean r_dm_setup(RaucDM *dm, GError **error)
 	else if (dm->type == RAUC_DM_CRYPT)
 		g_strlcpy(setup.header.name, "rauc-crypt-bundle", sizeof(setup.header.name));
 	else
-		g_error("unknown dmtype");
+		g_error("unknown dm type");
 
 	if (ioctl(dmfd, DM_DEV_CREATE, &setup)) {
 		int err = errno;
@@ -173,7 +173,7 @@ gboolean r_dm_setup(RaucDM *dm, GError **error)
 					dm->lower_dev) >= (gint)sizeof(setup.params);
 			break;
 		default:
-			g_error("unknown dm typ");
+			g_error("unknown dm type");
 			break;
 	}
 	if (ret) {
