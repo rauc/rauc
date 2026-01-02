@@ -161,6 +161,8 @@ if [ -n "$SERVICE" ]; then
   mkdir /etc/rauc
   cp qemu-test-rauc-config /etc/rauc/system.conf
   cp test/openssl-ca/dev-ca.pem /etc/rauc/ca.cert.pem
+  cp test/openssl-enc/keys/rsa-4096/private-key-000.pem /etc/rauc/enc-private-key.pem
+  cp test/openssl-enc/keys/rsa-4096/cert-000.pem /etc/rauc/enc-cert.pem
 
   # grub env
   mkdir -p /tmp/boot/grub
