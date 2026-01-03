@@ -16,6 +16,10 @@ path=ca.cert.pem
 [streaming]
 tls-ca=/etc/rauc/ca.cert.pem
 
+[encryption]
+key=enc-private-key.pem
+cert=enc-cert.pem
+
 [slot.rootfs.0]
 device=/dev/root
 bootname=A
