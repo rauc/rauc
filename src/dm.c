@@ -68,20 +68,48 @@ static const gchar* dmtype_to_str(RaucDMType dmtype)
 	}
 }
 
-static const gchar* dmstatus_by_dmtype(RaucDMType dmtype)
+static gboolean check_status(RaucDMType dmtype, const char *params, GError **error)
 {
-	switch (dmtype) {
-		case RAUC_DM_VERITY:
-			return "V";
-		case RAUC_DM_CRYPT:
-			return "\0";
-		default:
-			return "unknown";
+	g_return_val_if_fail(params != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_auto(GStrv) split = g_strsplit(params, " ", -1);
+
+	if (dmtype == RAUC_DM_VERITY) {
+		/* https://docs.kernel.org/admin-guide/device-mapper/verity.html#status */
+		if (g_strv_length(split) < 1) {
+			g_set_error(error,
+					G_FILE_ERROR,
+					G_FILE_ERROR_FAILED,
+					"Unexpected empty dm-verity status '%s' (instead of 'V')", params);
+			return FALSE;
+		}
+		if (g_strcmp0(split[0], "V") != 0) {
+			g_set_error(error,
+					G_FILE_ERROR,
+					G_FILE_ERROR_FAILED,
+					"Unexpected dm-verity check status '%s' (instead of 'V')", split[0]);
+			return FALSE;
+		}
+	} else if (dmtype == RAUC_DM_CRYPT) {
+		/* status should be empty for dm-crypt */
+		if (g_strv_length(split) != 0) {
+			g_set_error(error,
+					G_FILE_ERROR,
+					G_FILE_ERROR_FAILED,
+					"Unexpected dm-crypt status '%s' (instead of '')", params);
+			return FALSE;
+		}
+	} else {
+		g_error("unknown dm type");
 	}
+
+	return TRUE;
 }
 
 gboolean r_dm_setup(RaucDM *dm, GError **error)
 {
+	GError *ierror = NULL;
 	gboolean res = FALSE;
 	int dmfd = -1;
 	int checkfd = -1;
@@ -132,7 +160,7 @@ gboolean r_dm_setup(RaucDM *dm, GError **error)
 	else if (dm->type == RAUC_DM_CRYPT)
 		g_strlcpy(setup.header.name, "rauc-crypt-bundle", sizeof(setup.header.name));
 	else
-		g_error("unknown dmtype");
+		g_error("unknown dm type");
 
 	if (ioctl(dmfd, DM_DEV_CREATE, &setup)) {
 		int err = errno;
@@ -173,7 +201,7 @@ gboolean r_dm_setup(RaucDM *dm, GError **error)
 					dm->lower_dev) >= (gint)sizeof(setup.params);
 			break;
 		default:
-			g_error("unknown dm typ");
+			g_error("unknown dm type");
 			break;
 	}
 	if (ret) {
@@ -246,11 +274,8 @@ gboolean r_dm_setup(RaucDM *dm, GError **error)
 		res = FALSE;
 		goto out_remove_dm;
 	}
-	if (g_strcmp0(setup.params, dmstatus_by_dmtype(dm->type)) != 0) {
-		g_set_error(error,
-				G_FILE_ERROR,
-				G_FILE_ERROR_FAILED,
-				"Unexpected dm-%s status '%s' (instead of '\\0')", dmtype_to_str(dm->type), setup.params);
+	if (!check_status(dm->type, setup.params, &ierror)) {
+		g_propagate_error(error, ierror);
 		res = FALSE;
 		goto out_remove_dm;
 	}
