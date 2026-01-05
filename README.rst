@@ -292,7 +292,7 @@ section for more details.
 License
 -------
 
-Copyright (C) 2015–2025 RAUC project
+Copyright (C) 2015–2026 RAUC project
 
 RAUC is free software; you can redistribute it and/or modify it under the terms
 of the GNU Lesser General Public License as published by the Free Software

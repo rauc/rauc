@@ -43,7 +43,7 @@ master_doc = 'index'
 # General information about the project.
 project = u'RAUC'
 author = u'Jan Luebbe, Enrico Joerns, the RAUC contributors'
-copyright = u'2016-2025, ' + author
+copyright = u'2016-2026, ' + author
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
