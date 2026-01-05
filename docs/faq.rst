@@ -313,7 +313,7 @@ first boot of the device. This ensures future bootloader updates can proceed
 safely.
 
 If migration is not feasible (for example, on already deployed devices) RAUC
-provides a ``size-limit`` :ref:`slot option <_slot.slot-class.idx-section>` for
+provides a ``size-limit`` :ref:`slot option <slot.slot-class.idx-section>` for
 the ``boot-emmc`` slot.
 This restricts the writable area to avoid overwriting critical data.
 
