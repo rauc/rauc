@@ -230,6 +230,13 @@ static gboolean on_sigint(gpointer user_data)
 	return G_SOURCE_REMOVE;
 }
 
+static gboolean on_sigint_noop(gpointer user_data)
+{
+	g_print("\nCtrl+C is not supported.\n");
+
+	return G_SOURCE_CONTINUE;
+}
+
 static gboolean install_start(int argc, char **argv)
 {
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
@@ -343,6 +350,8 @@ static gboolean install_start(int argc, char **argv)
 			goto out_loop;
 		}
 	} else {
+		g_unix_signal_add(SIGINT, on_sigint_noop, args);
+
 		if (!determine_slot_states(&error)) {
 			g_printerr("Failed to determine slot states: %s\n", error->message);
 			g_clear_error(&error);
