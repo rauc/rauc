@@ -1,3 +1,37 @@
+Release 1.15.1 (unreleased)
+---------------------------
+
+.. rubric:: Bug fixes
+
+* Fix compatibility with new dm-verity status output since Linux v6.19-rc1.
+  (in :pr:`1846`)
+* Explicitly handle the case where images have neither a ``type`` nor a
+  ``filename`` option. (in :pr:`1829`)
+* Ignore ``SIGINT`` (Ctrl+C) during installation in the non-service case.
+  This ensures that the normal cleanup of mounts and device-mapper devices
+  happens when the installation completes.
+  When using the systemd service, the cleanup is already handled via a mount
+  namespace and device dependencies. (in :pr:`1849`)
+
+.. rubric:: Testing
+
+* Simplify interactive testing of encrypted bundles by configuring an encryption
+  key and cert for ``./qemu-test system``. (in :pr:`1845`)
+
+.. rubric:: Code
+
+* Improve handling of ``--keyring`` and ``--signing-keyring`` options.
+  (in :pr:`1828`)
+
+.. rubric:: Documentation
+
+* Update sphinx dependencies to current versions. (in :pr:`1843`)
+* Document the ``raw`` image ``type`` correctly. (in :pr:`1827`)
+* Fix some outdated information in the terminology chapter. (in :pr:`1831`)
+* Fix monospaced formatting in the reference chapter. (in :pr:`1848`)
+
+Contributions from: Enrico Jörns (@ejoerns), Jan Lübbe (@jluebbe)
+
 Release 1.15 (released Nov 7, 2025)
 -----------------------------------
 
