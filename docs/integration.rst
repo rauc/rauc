@@ -238,6 +238,8 @@ While the generic filename extension ``.img`` is supported for all filesystems,
 it is strongly recommended to use explicit extensions (e.g. ``.vfat`` or ``.ext4``)
 when possible, as this allows checking during installation that the slot type is correct.
 
+.. _sec-grouping-slots:
+
 Grouping Slots
 ^^^^^^^^^^^^^^
 
