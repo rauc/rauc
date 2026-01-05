@@ -552,7 +552,7 @@ manifest, which then contains the key needed to decrypt the (SquashFS) payload.
 
 .. code-block:: console
 
-   $ rauc encrypt --to=recipient-certs.pem unencrypted-crypt-bundle.raucb encrypted-crypt-bundle.raucb
+   $ rauc encrypt --to=recipient-certs.pem --keyring=ca-cert.pem unencrypted-crypt-bundle.raucb encrypted-crypt-bundle.raucb
 
 .. note::
    To encrypt for a larger number of recipients, the recipient certificates can be
