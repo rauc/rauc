@@ -839,7 +839,7 @@ static gboolean parse_handlers_section(const gchar *filename, GKeyFile *key_file
 	return TRUE;
 }
 
-static GHashTable *parse_slots(const char *filename, const char *data_directory, GKeyFile *key_file, GError **error)
+static GHashTable *parse_slots(const char *filename, RaucConfig *c, GKeyFile *key_file, GError **error)
 {
 	GError *ierror = NULL;
 	g_auto(GStrv) groups = NULL;
@@ -873,8 +873,8 @@ static GHashTable *parse_slots(const char *filename, const char *data_directory,
 
 			/* If we have a data_directory, use a slot.<class>.<index>
 			 * subdirectory for per-slot data. */
-			if (data_directory)
-				slot->data_directory = g_build_filename(data_directory, groups[i], NULL);
+			if (c->data_directory)
+				slot->data_directory = g_build_filename(c->data_directory, groups[i], NULL);
 
 			slot->description = key_file_consume_string(key_file, groups[i], "description", NULL);
 
@@ -1285,7 +1285,7 @@ static RaucConfig *parse_config(const gchar *filename, const gchar *data, gsize 
 	}
 
 	/* parse [slot.*.#] sections */
-	c->slots = parse_slots(filename, c->data_directory, key_file, &ierror);
+	c->slots = parse_slots(filename, c, key_file, &ierror);
 	if (!c->slots) {
 		g_propagate_error(error, ierror);
 		return NULL;
