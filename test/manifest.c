@@ -137,6 +137,8 @@ static void check_manifest_contents(const RaucManifest *rm)
 	g_assert_true(r_manifest_has_artifact_image(rm, "appfs", "app-a"));
 
 	g_assert_true(rm->hooks.install_check);
+	g_assert_true(rm->hooks.global_pre_install);
+	g_assert_true(rm->hooks.global_post_install);
 
 	g_assert_cmpuint(g_hash_table_size(rm->meta), ==, 2);
 
@@ -172,6 +174,8 @@ static void test_save_load_manifest(void)
 	rm->handler_args = g_strdup("--foo");
 	rm->hook_name = g_strdup("hook.sh");
 	rm->hooks.install_check = TRUE;
+	rm->hooks.global_pre_install = TRUE;
+	rm->hooks.global_post_install = TRUE;
 
 	new_image = r_new_image();
 	new_image->slotclass = g_strdup("rootfs");

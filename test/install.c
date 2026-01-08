@@ -110,6 +110,30 @@ filename=appfs.ext4";
 	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
 }
 
+static void install_fixture_set_up_bundle_global_post_install_hook(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	InstallData *data = (InstallData*) user_data;
+	const gchar *manifest_file = "\
+[update]\n\
+compatible=Test Config\n\
+\n\
+[hooks]\n\
+filename=hook.sh\n\
+hooks=global-post-install\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs.ext4\n\
+\n\
+[image.appfs]\n\
+filename=appfs.ext4";
+
+	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+
+	fixture_helper_set_up_system(fixture->tmpdir, NULL, NULL);
+	fixture_helper_set_up_bundle(fixture->tmpdir, manifest_file, &data->manifest_test_options);
+}
+
 /* Note: Also ensures having no image in a slot with an 'install' per-slot hook
  * is valid. */
 static void install_fixture_set_up_bundle_install_hook(InstallFixture *fixture,
@@ -1225,6 +1249,44 @@ static void install_test_bundle_hook_install_check(InstallFixture *fixture,
 	args->cleanup(args);
 }
 
+static void install_test_bundle_hook_global_post_install(InstallFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autofree gchar *bundlepath = NULL;
+	g_autofree gchar *mountdir = NULL;
+	g_autofree gchar *testfilepath = NULL;
+	g_autofree gchar *stamppath = NULL;
+	RaucInstallArgs *args;
+	g_autoptr(GError) ierror = NULL;
+
+	/* needs to run as root */
+	if (!test_running_as_root())
+		return;
+
+	/* Set mount path to current temp dir */
+	mountdir = g_build_filename(fixture->tmpdir, "mount", NULL);
+	g_assert_nonnull(mountdir);
+	replace_strdup(&r_context_conf()->mountprefix, mountdir);
+	r_context();
+
+	bundlepath = g_build_filename(fixture->tmpdir, "bundle.raucb", NULL);
+	g_assert_nonnull(bundlepath);
+
+	g_assert_true(determine_slot_states(NULL));
+
+	args = install_args_new();
+	args->name = g_steal_pointer(&bundlepath);
+	args->notify = install_notify;
+	args->cleanup = install_cleanup;
+	g_assert_true(do_install_bundle(args, &ierror));
+
+	stamppath = g_build_filename(mountdir, "global-post-install-stamp", NULL);
+	g_assert(g_file_test(stamppath, G_FILE_TEST_IS_REGULAR));
+
+	args->status_result = 0;
+	args->cleanup(args);
+}
+
 static void install_test_bundle_hook_install(InstallFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1574,6 +1636,19 @@ int main(int argc, char *argv[])
 		g_test_add(dup_test_printf(ptrs, "/install/bundle-hook/install-check/%s", format_name),
 				InstallFixture, install_data,
 				install_fixture_set_up_bundle_install_check_hook, install_test_bundle_hook_install_check,
+				install_fixture_tear_down);
+
+		install_data = dup_test_data(ptrs, (&(InstallData) {
+			.message_needles = NULL,
+			.manifest_test_options = {
+				.custom_handler = FALSE,
+				.hooks = TRUE,
+				.slots = TRUE,
+			},
+		}));
+		g_test_add(dup_test_printf(ptrs, "/install/bundle-hook/global-post-install/%s", format_name),
+				InstallFixture, install_data,
+				install_fixture_set_up_bundle_global_post_install_hook, install_test_bundle_hook_global_post_install,
 				install_fixture_tear_down);
 
 		install_data = dup_test_data(ptrs, (&(InstallData) {
