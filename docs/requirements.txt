@@ -31,9 +31,7 @@ pygments==2.19.2
 requests==2.32.5
     # via sphinx
 roman-numerals==4.1.0
-    # via
-    #   roman-numerals-py
-    #   sphinx
+    # via roman-numerals-py
 roman-numerals-py==4.1.0
     # via sphinx
 snowballstemmer==3.0.1
@@ -62,5 +60,5 @@ sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
 sphinxext-opengraph==0.13.0
     # via -r requirements.in
-urllib3==2.6.2
+urllib3==2.6.3
     # via requests
