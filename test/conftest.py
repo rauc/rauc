@@ -736,3 +736,19 @@ def http_server(env_setup):
     server = HTTPServer()
     yield server
     server.stop()
+
+
+@pytest.fixture
+def blk_dev_partitions():
+    try:
+        blkdev = os.environ["RAUC_TEST_BLOCK_LOOP"]
+    except KeyError:
+        pytest.skip("RAUC_TEST_BLOCK_LOOP undefined")
+
+    partitioning = b"""
+start=2048, size=64492
+start=66540, size=64492
+    """
+    subprocess.run(["sfdisk", "-X", "gpt", blkdev], input=partitioning, check=True)
+
+    return iter((f"{blkdev}p1", f"{blkdev}p2"))

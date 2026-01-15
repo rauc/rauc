@@ -1037,6 +1037,11 @@ static GHashTable *parse_slots(const char *filename, RaucConfig *c, GKeyFile *ke
 				}
 			}
 
+			if (g_strcmp0(c->system_bootloader, "efi") == 0) {
+				slot->efi_loader = key_file_consume_string(key_file, groups[i], "efi-loader", NULL);
+				slot->efi_cmdline = key_file_consume_string(key_file, groups[i], "efi-cmdline", NULL);
+			}
+
 			if (!check_remaining_keys(key_file, groups[i], &ierror)) {
 				g_propagate_error(error, ierror);
 				return NULL;
