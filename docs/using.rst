@@ -402,6 +402,58 @@ the hook executable as the rejection reason message and provide it to the user:
 
   exit 0
 
+.. rubric:: Global Pre-Install Hook
+
+.. code-block:: cfg
+
+  [hooks]
+  filename=hook
+  hooks=global-pre-install
+
+The global-pre-install hook will be called right before the update procedure
+for all slot installations will be started. This hook is executed after the 
+system-defined pre-install handler and before the install-check hook (if defined).
+It allows to perform preparation tasks that should run once before any slot 
+is updated.
+
+To indicate that a bundle should be rejected, the script must return with an
+exit code >= 10.
+
+.. rubric:: Global Post-Install Hook
+
+.. code-block:: cfg
+
+  [hooks]
+  filename=hook
+  hooks=global-post-install
+
+The global-post-install hook will be called right after all slot installations
+have finished successfully. This hook is executed before the system-defined
+post-install handler. It allows to perform cleanup or finalization tasks that
+should run once after all slots are updated, for example to notify external
+services or to perform cross-slot validation.
+
+To indicate that the installation should be marked as failed, the script must
+return with an exit code >= 10.
+
+.. code-block:: sh
+
+  #!/bin/sh
+
+  case "$1" in
+         global-post-install)
+                  # Log update completion
+                  echo "$(date -Iseconds) Updated to ${RAUC_MF_VERSION}" >> /data/update.log
+                  # Schedule reboot to apply update
+                  shutdown -r +1 "Rebooting to complete RAUC update" &
+                  ;;
+          *)
+                  exit 1
+                  ;;
+  esac
+
+  exit 0
+
 .. _sec-slot-hooks:
 
 Slot Hooks
