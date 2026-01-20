@@ -1,27 +1,81 @@
 #!/usr/bin/env python3
 
 import argparse
+import json
+import os
 import sys
 
+DEFAULT_VARS = {
+    "boot_current": "0002",
+    "timeout": 0,
+    "boot_order": ["0001", "0002", "0000"],
+    "boot_next": None,
+    "boot_entries": {
+        "0000": {"label": "invalid"},
+        "0001": {"label": "system0"},
+        "0002": {"label": "system1"},
+        "0003": {"label": "recovery"},
+    },
+}
 
-def main():
-    parser = argparse.ArgumentParser(description='efibootmgr mock for RAUC testing')
 
-    parser.add_argument("--bootorder", metavar="ORDER", help="Set boot order")
-    parser.add_argument("--bootnext", metavar="NEXT", help="Set next boot entry")
+def load_efi_vars(filepath):
+    """Load EFI variables from JSON file."""
+    with open(filepath, "r") as f:
+        return json.load(f)
 
-    if len(sys.argv) == 1:
-        print("BootCurrent: 0002")
-        print("Timeout: 0 seconds")
-        print("BootOrder: 0001,0002,0003,0000")
-        print("Boot0000* invalid")
-        print("Boot0001* system0")
-        print("Boot0002* system1")
-        print("Boot0003  recovery")
-        sys.exit(0)
 
-    args = parser.parse_args()
+def save_efi_vars(filepath, data):
+    """Save EFI variables to JSON file."""
+    with open(filepath, "w") as f:
+        json.dump(data, f, indent=2)
 
+
+def show_efi_vars(data):
+    """Display EFI variables in efibootmgr format."""
+    print(f"BootCurrent: {data['boot_current']}")
+    print(f"Timeout: {data['timeout']} seconds")
+    print(f"BootOrder: {','.join(data['boot_order'])}")
+
+    # Sort boot entries by key for consistent output
+    for boot_num, entry in sorted(data["boot_entries"].items()):
+        active_marker = "*" if boot_num in data["boot_order"] else " "
+        print(f"Boot{boot_num}{active_marker} {entry['label']}")
+
+
+def json_mode(args, vars_file):
+    data = load_efi_vars(vars_file)
+
+    if args.create_only:
+        if not args.label:
+            print("Error: --label is required for --create-only")
+            sys.exit(1)
+
+        # Find next available boot number
+        existing_nums = [int(num, 16) for num in data["boot_entries"].keys()]
+        next_num = max(existing_nums) + 1 if existing_nums else 0
+        boot_num = f"{next_num:04X}"
+
+        data["boot_entries"][boot_num] = {"label": args.label}
+
+        if boot_num not in data["boot_order"]:
+            data["boot_order"].append(boot_num)
+
+        save_efi_vars(vars_file, data)
+        print(f"Created Boot{boot_num}* {args.label}")
+    elif args.bootorder is not None:
+        data["boot_order"] = args.bootorder.split(",")
+        save_efi_vars(vars_file, data)
+        print(f"--bootorder: {args.bootorder}")
+    elif args.bootnext is not None:
+        data["boot_next"] = args.bootnext
+        save_efi_vars(vars_file, data)
+        print(f"--bootnext: {args.bootnext}")
+    else:
+        show_efi_vars(data)
+
+
+def static_mode(args):
     if args.bootorder is not None:
         # Test code must move system1 to primary position. Assert this!
         print(f"--bootorder: {args.bootorder}")
@@ -33,8 +87,33 @@ def main():
         if args.bootnext != "0002":
             sys.exit(1)
     else:
-        print(f"Invalid key: '{sys.argv[1]}'")
-        sys.exit(1)
+        # No arguments provided - print default output
+        show_efi_vars(DEFAULT_VARS)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="efibootmgr mock for RAUC testing (use EFIBOOTMGR_VAR_FILE for persisting data)"
+    )
+
+    parser.add_argument("--bootorder", metavar="ORDER", help="Set boot order")
+    parser.add_argument("--bootnext", metavar="NEXT", help="Set next boot entry")
+    parser.add_argument("--create-only", action="store_true", help="Create new boot entry")
+    parser.add_argument("--disk", help="Disk device")
+    parser.add_argument("--part", help="Partition number")
+    parser.add_argument("--label", help="Boot entry label")
+    parser.add_argument("--loader", help="EFI loader path")
+    parser.add_argument("--unicode", help="Kernel parameters")
+
+    # Check if JSON mode is enabled
+    vars_file = os.environ.get("EFIBOOTMGR_VAR_FILE")
+
+    args = parser.parse_args()
+
+    if vars_file:
+        json_mode(args, vars_file)
+    else:
+        static_mode(args)
 
 
 if __name__ == "__main__":
