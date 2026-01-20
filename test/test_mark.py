@@ -1,6 +1,8 @@
 import json
 import os
 
+import pytest
+
 from conftest import have_grub, have_qemu, no_service
 from helper import run
 from helper import slot_data_from_json
@@ -246,3 +248,101 @@ bootstate.B.remaining_attempts=3
         out, err, exitcode = run("rauc status mark-active rootfs.1")
         assert not err
         assert exitcode == 0
+
+
+EFI_INITIAL_STATE = {
+    "boot_current": "0001",
+    "timeout": 0,
+    "boot_order": ["0001", "0002"],
+    "boot_next": None,
+    "boot_entries": {"0001": {"label": "A"}, "0002": {"label": "B"}},
+}
+
+
+@pytest.fixture
+def efi_mock(monkeypatch):
+    monkeypatch.setenv("PATH", os.path.abspath("bin"), prepend=os.pathsep)
+
+
+@have_qemu
+def test_status_mark_good_efi(tmp_path, create_system_files, system, efi_mock):
+    """
+    Tests that 'mark-good' call for EFI does not alter boot order.
+
+    Leverages the mock efibootmgr with JSON storage mode.
+    """
+    system.prepare_minimal_config()
+    system.config["system"]["bootloader"] = "efi"
+    del system.config["system"]["grubenv"]
+    system.write_config()
+
+    # Create JSON file with initial EFI boot state
+    efi_vars_file = tmp_path / "efi_vars.json"
+    efi_vars_file.write_text(json.dumps(EFI_INITIAL_STATE))
+    os.environ["EFIBOOTMGR_VAR_FILE"] = str(efi_vars_file)
+
+    with system.running_service("A"):
+        # mark rootfs.0 (system0) good
+        _, err, exitcode = run("rauc status mark-good rootfs.0")
+        assert not err
+        assert exitcode == 0
+
+        # Verify boot order unchanged (mark-good doesn't modify boot order)
+        result_state = json.loads(efi_vars_file.read_text())
+        assert result_state["boot_order"] == ["0001", "0002"]
+
+
+@have_qemu
+def test_status_mark_bad_efi(tmp_path, create_system_files, system, efi_mock):
+    """
+    Tests that 'mark-bad' call for EFI removes slot from boot order.
+
+    Leverages the mock efibootmgr with JSON storage mode.
+    """
+    system.prepare_minimal_config()
+    system.config["system"]["bootloader"] = "efi"
+    del system.config["system"]["grubenv"]
+    system.write_config()
+
+    # Create JSON file with initial EFI boot state
+    efi_vars_file = tmp_path / "efi_vars.json"
+    efi_vars_file.write_text(json.dumps(EFI_INITIAL_STATE))
+    os.environ["EFIBOOTMGR_VAR_FILE"] = str(efi_vars_file)
+
+    with system.running_service("A"):
+        # mark rootfs.1 (system1) bad
+        _, err, exitcode = run("rauc status mark-bad rootfs.1")
+        assert not err
+        assert exitcode == 0
+
+        # Verify system1 (0002) was removed from boot order
+        result_state = json.loads(efi_vars_file.read_text())
+        assert result_state["boot_order"] == ["0001"]
+
+
+@have_qemu
+def test_status_mark_active_efi(tmp_path, create_system_files, system, efi_mock):
+    """
+    Tests that 'mark-active' call for EFI moves slot to primary position in boot order.
+
+    Leverages the mock efibootmgr with JSON storage mode.
+    """
+    system.prepare_minimal_config()
+    system.config["system"]["bootloader"] = "efi"
+    del system.config["system"]["grubenv"]
+    system.write_config()
+
+    # Create JSON file with initial EFI boot state
+    efi_vars_file = tmp_path / "efi_vars.json"
+    efi_vars_file.write_text(json.dumps(EFI_INITIAL_STATE))
+    os.environ["EFIBOOTMGR_VAR_FILE"] = str(efi_vars_file)
+
+    with system.running_service("A"):
+        # mark rootfs.1 (system1) active/primary
+        _, err, exitcode = run("rauc status mark-active rootfs.1")
+        assert not err
+        assert exitcode == 0
+
+        # Verify system1 (0002) set as BootNext
+        result_state = json.loads(efi_vars_file.read_text())
+        assert result_state["boot_next"] == "0002"
