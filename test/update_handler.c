@@ -333,7 +333,7 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	g_autofree gchar *mountprefix = NULL;
 	g_autofree gchar *hookpath = NULL;
 	goffset image_size;
-	RaucImage *image;
+	g_autoptr(RaucImage) image = NULL;
 	RaucSlot *targetslot;
 	img_to_slot_handler handler;
 	GError *ierror = NULL;
@@ -651,7 +651,6 @@ out:
 
 	g_assert(g_rmdir(mountprefix) == 0);
 
-	r_free_image(image);
 	r_slot_free(targetslot);
 }
 
