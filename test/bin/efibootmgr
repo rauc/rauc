@@ -52,9 +52,12 @@ def json_mode(args, vars_file):
             sys.exit(1)
 
         # Find next available boot number
-        existing_nums = [int(num, 16) for num in data["boot_entries"].keys()]
-        next_num = max(existing_nums) + 1 if existing_nums else 0
-        boot_num = f"{next_num:04X}"
+        existing_nums = data["boot_entries"].keys()
+        for i in range(len(existing_nums) + 2):
+            candidate = f"{i:04X}"
+            if candidate not in existing_nums:
+                boot_num = candidate
+                break
 
         data["boot_entries"][boot_num] = {"label": args.label}
 
