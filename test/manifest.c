@@ -164,7 +164,6 @@ static void test_save_load_manifest(void)
 	g_autoptr(RaucManifest) rm = g_new0(RaucManifest, 1);
 	RaucImage *new_image;
 	GHashTable *kvs = NULL;
-	GBytes *mem = NULL;
 
 	rm->update_compatible = g_strdup("BarCorp FooBazzer");
 	rm->update_version = g_strdup("2011.03-1");
@@ -235,6 +234,7 @@ static void test_save_load_manifest(void)
 	g_assert_true(rm->bundle_format_explicit);
 	check_manifest_contents(rm);
 
+	g_autoptr(GBytes) mem = NULL;
 	res = save_manifest_mem(&mem, rm);
 	g_assert_no_error(error);
 	g_assert_true(res);
@@ -248,8 +248,6 @@ static void test_save_load_manifest(void)
 	res = load_manifest_mem(mem, &rm, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
-	g_bytes_unref(mem);
-	mem = NULL;
 
 	g_assert_cmpuint(rm->bundle_format, ==, R_MANIFEST_FORMAT_PLAIN);
 	g_assert_true(rm->bundle_format_explicit);
