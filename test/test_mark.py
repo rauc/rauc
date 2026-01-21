@@ -251,11 +251,11 @@ bootstate.B.remaining_attempts=3
 
 
 EFI_INITIAL_STATE = {
-    "boot_current": "0001",
+    "boot_current": "0000",
     "timeout": 0,
-    "boot_order": ["0001", "0002"],
+    "boot_order": ["0000", "0001"],
     "boot_next": None,
-    "boot_entries": {"0001": {"label": "A"}, "0002": {"label": "B"}},
+    "boot_entries": {"0000": {"label": "A"}, "0001": {"label": "B"}},
 }
 
 
@@ -289,7 +289,7 @@ def test_status_mark_good_efi(tmp_path, create_system_files, system, efi_mock):
 
         # Verify boot order unchanged (mark-good doesn't modify boot order)
         result_state = json.loads(efi_vars_file.read_text())
-        assert result_state["boot_order"] == ["0001", "0002"]
+        assert result_state["boot_order"] == ["0000", "0001"]
 
 
 @have_qemu
@@ -315,9 +315,9 @@ def test_status_mark_bad_efi(tmp_path, create_system_files, system, efi_mock):
         assert not err
         assert exitcode == 0
 
-        # Verify system B (0002) was removed from boot order
+        # Verify system B (0001) was removed from boot order
         result_state = json.loads(efi_vars_file.read_text())
-        assert result_state["boot_order"] == ["0001"]
+        assert result_state["boot_order"] == ["0000"]
 
 
 @have_qemu
@@ -343,6 +343,6 @@ def test_status_mark_active_efi(tmp_path, create_system_files, system, efi_mock)
         assert not err
         assert exitcode == 0
 
-        # Verify system B (0002) set as BootNext
+        # Verify system B (0001) set as BootNext
         result_state = json.loads(efi_vars_file.read_text())
-        assert result_state["boot_next"] == "0002"
+        assert result_state["boot_next"] == "0001"
