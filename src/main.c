@@ -3055,6 +3055,8 @@ int main(int argc, char **argv)
 {
 	GLogLevelFlags fatal_mask;
 
+	g_set_prgname("rauc");
+
 #if GLIB_CHECK_VERSION(2, 68, 0)
 	/* To use this function, without bumping the maximum GLib allowed version,
 	 * we temporarily disable the deprecation warnings */
