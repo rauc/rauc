@@ -50,7 +50,7 @@ static void manifest_check_common(RaucManifest *rm)
  */
 static void test_load_manifest(void)
 {
-	RaucManifest *rm = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
 	GError *error = NULL;
 	gboolean res;
 
@@ -79,7 +79,6 @@ static void test_load_manifest(void)
 	g_assert_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND);
 	g_assert_false(res);
 
-	g_clear_pointer(&rm, free_manifest);
 	g_clear_error(&error);
 	g_assert_null(rm);
 }
@@ -162,7 +161,7 @@ static void test_save_load_manifest(void)
 {
 	GError *error = NULL;
 	gboolean res = FALSE;
-	RaucManifest *rm = g_new0(RaucManifest, 1);
+	g_autoptr(RaucManifest) rm = g_new0(RaucManifest, 1);
 	RaucImage *new_image;
 	GHashTable *kvs = NULL;
 	GBytes *mem = NULL;
@@ -255,8 +254,6 @@ static void test_save_load_manifest(void)
 	g_assert_cmpuint(rm->bundle_format, ==, R_MANIFEST_FORMAT_PLAIN);
 	g_assert_true(rm->bundle_format_explicit);
 	check_manifest_contents(rm);
-
-	free_manifest(rm);
 }
 
 /* Test manifest/save/writefail:
@@ -287,19 +284,17 @@ static void test_save_manifest_writefail(void)
 static void test_load_manifest_mem(void)
 {
 	g_autoptr(GBytes) data = NULL;
-	RaucManifest *rm = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
 
 	data = read_file("test/manifest.raucm", NULL);
 	g_assert_true(load_manifest_mem(data, &rm, NULL));
 	manifest_check_common(rm);
-
-	free_manifest(rm);
 }
 
 static void test_manifest_load_variants(void)
 {
 	g_autofree gchar *tmpdir = NULL;
-	RaucManifest *rm = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
@@ -354,14 +349,12 @@ filename=rootfs-var2.ext4\n\
 	test_img = (RaucImage*)g_list_nth_data(rm->images, 2);
 	g_assert_nonnull(test_img);
 	g_assert_cmpstr(test_img->variant, ==, "variant,2");
-
-	free_manifest(rm);
 }
 
 static void test_manifest_load_types(void)
 {
 	g_autofree gchar *tmpdir = NULL;
-	RaucManifest *rm = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
@@ -399,14 +392,12 @@ filename=appfs.vfat\n\
 	test_img = (RaucImage*)g_list_nth_data(rm->images, 1);
 	g_assert_nonnull(test_img);
 	g_assert_cmpstr(test_img->type, ==, "vfat");
-
-	free_manifest(rm);
 }
 
 static void test_manifest_load_types_invalid(void)
 {
 	g_autofree gchar *tmpdir = NULL;
-	RaucManifest *rm = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
@@ -431,14 +422,12 @@ filename=rootfs-default.ext4\n\
 	g_assert_false(res);
 
 	g_clear_error(&error);
-
-	free_manifest(rm);
 }
 
 static void test_manifest_load_types_fileext_not_mapped(void)
 {
 	g_autofree gchar *tmpdir = NULL;
-	RaucManifest *rm = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
@@ -462,8 +451,6 @@ filename=rootfs-default.invalid\n\
 	g_assert_false(res);
 
 	g_clear_error(&error);
-
-	free_manifest(rm);
 }
 
 static void test_manifest_load_missing_type_and_filename(void)
@@ -495,7 +482,7 @@ version=2025.10-1\n\
 static void test_manifest_load_types_emptyfs_with_imagename_invalid(void)
 {
 	gchar *tmpdir;
-	RaucManifest *rm = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
 	gchar* manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
@@ -527,14 +514,12 @@ filename=appfs.vfat\n\
 
 	g_clear_error(&error);
 	g_free(manifestpath);
-
-	free_manifest(rm);
 }
 
 static void test_manifest_load_types_emptyfs_valid(void)
 {
 	gchar *tmpdir;
-	RaucManifest *rm = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
 	gchar* manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
@@ -565,14 +550,12 @@ type=emptyfs\n\
 
 	g_clear_error(&error);
 	g_free(manifestpath);
-
-	free_manifest(rm);
 }
 
 static void test_manifest_load_adaptive(void)
 {
 	g_autofree gchar *tmpdir = NULL;
-	RaucManifest *rm = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
@@ -605,14 +588,12 @@ adaptive=invalid-method;another-invalid-method\n\
 	g_assert_cmpint(g_strv_length(test_img->adaptive), ==, 2);
 	g_assert_cmpstr(test_img->adaptive[0], ==, "invalid-method");
 	g_assert_cmpstr(test_img->adaptive[1], ==, "another-invalid-method");
-
-	free_manifest(rm);
 }
 
 static void test_manifest_load_meta(void)
 {
 	g_autofree gchar *tmpdir = NULL;
-	RaucManifest *rm = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
@@ -659,14 +640,12 @@ counter=42\n\
 	kvs = g_hash_table_lookup(rm->meta, "example");
 	g_assert_nonnull(kvs);
 	g_assert_cmpstr((g_hash_table_lookup(kvs, "counter")), ==, "42");
-
-	free_manifest(rm);
 }
 
 static void test_manifest_load_details(void)
 {
 	g_autofree gchar *tmpdir = NULL;
-	RaucManifest *rm = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
 	g_autofree gchar *manifestpath = NULL;
 	gboolean res;
 	GError *error = NULL;
@@ -699,8 +678,6 @@ build=123456789\n\
 	test_img = (RaucImage*)g_list_nth_data(rm->images, 0);
 	/* image details are currently ignored during parsing */
 	g_assert_nonnull(test_img);
-
-	free_manifest(rm);
 }
 
 static void test_manifest_invalid_hook_name(void)
@@ -881,7 +858,7 @@ static void test_invalid_data(void)
 {
 	GBytes *data = NULL;
 	GError *error = NULL;
-	RaucManifest *rm = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
 
 	// file does not start with a group
 #define MANIFEST1 "\
