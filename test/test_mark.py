@@ -282,7 +282,7 @@ def test_status_mark_good_efi(tmp_path, create_system_files, system, efi_mock):
     os.environ["EFIBOOTMGR_VAR_FILE"] = str(efi_vars_file)
 
     with system.running_service("A"):
-        # mark rootfs.0 (system0) good
+        # mark rootfs.0 (A) good
         _, err, exitcode = run("rauc status mark-good rootfs.0")
         assert not err
         assert exitcode == 0
@@ -310,12 +310,12 @@ def test_status_mark_bad_efi(tmp_path, create_system_files, system, efi_mock):
     os.environ["EFIBOOTMGR_VAR_FILE"] = str(efi_vars_file)
 
     with system.running_service("A"):
-        # mark rootfs.1 (system1) bad
+        # mark rootfs.1 (B) bad
         _, err, exitcode = run("rauc status mark-bad rootfs.1")
         assert not err
         assert exitcode == 0
 
-        # Verify system1 (0002) was removed from boot order
+        # Verify system B (0002) was removed from boot order
         result_state = json.loads(efi_vars_file.read_text())
         assert result_state["boot_order"] == ["0001"]
 
@@ -338,11 +338,11 @@ def test_status_mark_active_efi(tmp_path, create_system_files, system, efi_mock)
     os.environ["EFIBOOTMGR_VAR_FILE"] = str(efi_vars_file)
 
     with system.running_service("A"):
-        # mark rootfs.1 (system1) active/primary
+        # mark rootfs.1 (B) active/primary
         _, err, exitcode = run("rauc status mark-active rootfs.1")
         assert not err
         assert exitcode == 0
 
-        # Verify system1 (0002) set as BootNext
+        # Verify system B (0002) set as BootNext
         result_state = json.loads(efi_vars_file.read_text())
         assert result_state["boot_next"] == "0002"
