@@ -264,6 +264,14 @@ def efi_mock(monkeypatch):
     monkeypatch.setenv("PATH", os.path.abspath("bin"), prepend=os.pathsep)
 
 
+def create_efi_system_config(system):
+    system.prepare_minimal_config()
+    system.config["system"]["bootloader"] = "efi"
+    del system.config["system"]["grubenv"]
+
+    system.write_config()
+
+
 @have_qemu
 def test_status_mark_good_efi(tmp_path, create_system_files, system, efi_mock):
     """
@@ -271,10 +279,7 @@ def test_status_mark_good_efi(tmp_path, create_system_files, system, efi_mock):
 
     Leverages the mock efibootmgr with JSON storage mode.
     """
-    system.prepare_minimal_config()
-    system.config["system"]["bootloader"] = "efi"
-    del system.config["system"]["grubenv"]
-    system.write_config()
+    create_efi_system_config(system)
 
     # Create JSON file with initial EFI boot state
     efi_vars_file = tmp_path / "efi_vars.json"
@@ -299,10 +304,7 @@ def test_status_mark_bad_efi(tmp_path, create_system_files, system, efi_mock):
 
     Leverages the mock efibootmgr with JSON storage mode.
     """
-    system.prepare_minimal_config()
-    system.config["system"]["bootloader"] = "efi"
-    del system.config["system"]["grubenv"]
-    system.write_config()
+    create_efi_system_config(system)
 
     # Create JSON file with initial EFI boot state
     efi_vars_file = tmp_path / "efi_vars.json"
@@ -327,10 +329,7 @@ def test_status_mark_active_efi(tmp_path, create_system_files, system, efi_mock)
 
     Leverages the mock efibootmgr with JSON storage mode.
     """
-    system.prepare_minimal_config()
-    system.config["system"]["bootloader"] = "efi"
-    del system.config["system"]["grubenv"]
-    system.write_config()
+    create_efi_system_config(system)
 
     # Create JSON file with initial EFI boot state
     efi_vars_file = tmp_path / "efi_vars.json"
