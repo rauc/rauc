@@ -25,9 +25,6 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(efi_bootentry, efi_bootentry_free);
 
 static gboolean efi_bootentry_create(RaucSlot *slot, GError **error)
 {
-	g_autoptr(GSubprocess) sub = NULL;
-	g_autofree gchar *realdev = NULL, *realdev_basename = NULL;
-	g_autofree gchar *sysfs_part_path = NULL, *part_num = NULL;
 	GError *ierror = NULL;
 
 	g_return_val_if_fail(slot->bootname, FALSE);
@@ -35,7 +32,7 @@ static gboolean efi_bootentry_create(RaucSlot *slot, GError **error)
 	g_return_val_if_fail(slot->efi_cmdline, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	realdev = r_realpath(slot->device);
+	g_autofree gchar *realdev = r_realpath(slot->device);
 	if (realdev == NULL) {
 		g_set_error(
 				error,
@@ -46,9 +43,10 @@ static gboolean efi_bootentry_create(RaucSlot *slot, GError **error)
 		return FALSE;
 	}
 
-	realdev_basename = g_path_get_basename(realdev);
+	g_autofree gchar *realdev_basename = g_path_get_basename(realdev);
 	/* use /sys/class/block because it contains partition entries */
-	sysfs_part_path = g_build_filename("/sys/class/block", realdev_basename, "partition", NULL);
+	g_autofree gchar *sysfs_part_path = g_build_filename("/sys/class/block", realdev_basename, "partition", NULL);
+	g_autofree gchar *part_num = NULL;
 	if (!g_file_get_contents(sysfs_part_path, &part_num, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -57,7 +55,7 @@ static gboolean efi_bootentry_create(RaucSlot *slot, GError **error)
 	/* File contains newline, modify in-place */
 	g_strchomp(part_num);
 
-	sub = r_subprocess_new(
+	g_autoptr(GSubprocess) sub = r_subprocess_new(
 			G_SUBPROCESS_FLAGS_NONE,
 			&ierror,
 			EFIBOOTMGR_NAME,
@@ -92,14 +90,18 @@ static gboolean efi_bootentry_create(RaucSlot *slot, GError **error)
 
 static gboolean efi_bootorder_set(gchar *order, GError **error)
 {
-	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
 
 	g_return_val_if_fail(order, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, EFIBOOTMGR_NAME,
-			"--bootorder", order, NULL);
+	g_autoptr(GSubprocess) sub = r_subprocess_new(
+			G_SUBPROCESS_FLAGS_NONE,
+			&ierror,
+			EFIBOOTMGR_NAME,
+			"--bootorder",
+			order,
+			NULL);
 
 	if (!sub) {
 		g_propagate_prefixed_error(
@@ -122,14 +124,18 @@ static gboolean efi_bootorder_set(gchar *order, GError **error)
 
 static gboolean efi_set_bootnext(gchar *bootnumber, GError **error)
 {
-	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
 
 	g_return_val_if_fail(bootnumber, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, EFIBOOTMGR_NAME,
-			"--bootnext", bootnumber, NULL);
+	g_autoptr(GSubprocess) sub = r_subprocess_new(
+			G_SUBPROCESS_FLAGS_NONE,
+			&ierror,
+			EFIBOOTMGR_NAME,
+			"--bootnext",
+			bootnumber,
+			NULL);
 
 	if (!sub) {
 		g_propagate_prefixed_error(
@@ -152,11 +158,10 @@ static gboolean efi_set_bootnext(gchar *bootnumber, GError **error)
 
 static efi_bootentry *get_efi_entry_by_bootnum(GList *entries, const gchar *bootnum)
 {
-	efi_bootentry *found_entry = NULL;
-
 	g_return_val_if_fail(entries, NULL);
 	g_return_val_if_fail(bootnum, NULL);
 
+	efi_bootentry *found_entry = NULL;
 	for (GList *entry = entries; entry != NULL; entry = entry->next) {
 		efi_bootentry *ptr = entry->data;
 		if (g_strcmp0(bootnum, ptr->num) == 0) {
@@ -184,17 +189,8 @@ static efi_bootentry *get_efi_entry_by_bootnum(GList *entries, const gchar *boot
  */
 static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries, efi_bootentry **bootnext, efi_bootentry **bootcurrent, GError **error)
 {
-	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
-	g_autoptr(GBytes) stdout_bytes = NULL;
-	g_autofree gchar *stdout_str = NULL;
 	gint ret;
-	g_autoptr(GRegex) regex = NULL;
-	g_autoptr(GMatchInfo) match = NULL;
-	g_autofree gchar *matched = NULL;
-	g_autolist(efi_bootentry) entries = NULL;
-	g_autoptr(GList) returnorder = NULL;
-	g_auto(GStrv) bootnumorder = NULL;
 
 	g_return_val_if_fail(bootorder_entries == NULL || *bootorder_entries == NULL, FALSE);
 	g_return_val_if_fail(all_entries != NULL && *all_entries == NULL, FALSE);
@@ -202,8 +198,11 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	g_return_val_if_fail(bootcurrent == NULL || *bootcurrent == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror,
-			EFIBOOTMGR_NAME, NULL);
+	g_autoptr(GSubprocess) sub = r_subprocess_new(
+			G_SUBPROCESS_FLAGS_STDOUT_PIPE,
+			&ierror,
+			EFIBOOTMGR_NAME,
+			NULL);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,
@@ -212,6 +211,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 		return FALSE;
 	}
 
+	g_autoptr(GBytes) stdout_bytes = NULL;
 	if (!g_subprocess_communicate(sub, NULL, NULL, &stdout_bytes, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
@@ -239,10 +239,11 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 		return FALSE;
 	}
 
-	stdout_str = r_bytes_unref_to_string(&stdout_bytes);
+	g_autofree gchar *stdout_str = r_bytes_unref_to_string(&stdout_bytes);
 
 	/* Obtain mapping of efi boot numbers to bootnames */
-	regex = g_regex_new("^Boot([0-9a-fA-F]{4})[\\* ] (.+)$", G_REGEX_MULTILINE, 0, NULL);
+	g_autoptr(GRegex) regex = g_regex_new("^Boot([0-9a-fA-F]{4})[\\* ] (.+)$", G_REGEX_MULTILINE, 0, NULL);
+	g_autoptr(GMatchInfo) match = NULL;
 	if (!g_regex_match(regex, stdout_str, 0, &match)) {
 		g_set_error(
 				error,
@@ -252,6 +253,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 		return FALSE;
 	}
 
+	g_autolist(efi_bootentry) entries = NULL;
 	while (g_match_info_matches(match)) {
 		gchar *tab_point = NULL;
 		efi_bootentry *entry = g_new0(efi_bootentry, 1);
@@ -274,6 +276,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 
 	/* Obtain bootnext */
 	regex = g_regex_new("^BootNext: ([0-9a-fA-F]{4})$", G_REGEX_MULTILINE, 0, NULL);
+	g_autofree gchar *matched = NULL;
 	if (g_regex_match(regex, stdout_str, 0, &match)) {
 		if (bootnext) {
 			g_clear_pointer(&matched, g_free);
@@ -298,9 +301,10 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 
 	g_clear_pointer(&matched, g_free);
 	matched = g_match_info_fetch(match, 1);
-	bootnumorder = g_strsplit(matched, ",", 0);
+	g_auto(GStrv) bootnumorder = g_strsplit(matched, ",", 0);
 
 	/* Iterate over boot entries list in bootorder */
+	g_autoptr(GList) returnorder = NULL;
 	for (gchar **element = bootnumorder; *element; element++) {
 		efi_bootentry *bentry = get_efi_entry_by_bootnum(entries, *element);
 		if (bentry)
@@ -396,19 +400,19 @@ static gboolean efi_bootorder_prepare(RaucSlot *slot, GList **bootorder_entries,
 
 static gboolean efi_set_temp_primary(RaucSlot *slot, GError **error)
 {
-	g_autolist(efi_bootentry) entries = NULL;
 	GError *ierror = NULL;
-	efi_bootentry *efi_slot_entry = NULL;
 
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	g_autolist(efi_bootentry) entries = NULL;
 	if (!efi_bootorder_prepare(slot, NULL, &entries, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
 	/* Lookup efi boot entry matching slot */
+	efi_bootentry *efi_slot_entry = NULL;
 	for (GList *entry = entries; entry != NULL; entry = entry->next) {
 		efi_bootentry *efi = entry->data;
 		if (g_strcmp0(efi->name, slot->bootname) == 0) {
@@ -432,16 +436,13 @@ static gboolean efi_set_temp_primary(RaucSlot *slot, GError **error)
  * Prepends it to bootorder list if prepend argument is set to TRUE */
 static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend, GError **error)
 {
-	g_autoptr(GList) entries = NULL;
-	g_autolist(efi_bootentry) all_entries = NULL;
-	g_autoptr(GPtrArray) bootorder = NULL;
-	g_autofree gchar *order = NULL;
 	GError *ierror = NULL;
-	efi_bootentry *efi_slot_entry = NULL;
 
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	g_autoptr(GList) entries = NULL;
+	g_autolist(efi_bootentry) all_entries = NULL;
 	if (!efi_bootorder_prepare(slot, &entries, &all_entries, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -458,6 +459,7 @@ static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend
 
 	if (prepend) {
 		/* Iterate over full list to get entry to prepend to bootorder */
+		efi_bootentry *efi_slot_entry = NULL;
 		for (GList *entry = all_entries; entry != NULL; entry = entry->next) {
 			efi_bootentry *efi = entry->data;
 			if (g_strcmp0(efi->name, slot->bootname) == 0) {
@@ -472,15 +474,15 @@ static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend
 		entries = g_list_prepend(entries, efi_slot_entry);
 	}
 
-	bootorder = g_ptr_array_sized_new(g_list_length(entries));
 	/* Construct bootorder string out of boot entry list */
+	g_autoptr(GPtrArray) bootorder = g_ptr_array_sized_new(g_list_length(entries));
 	for (GList *entry = entries; entry != NULL; entry = entry->next) {
 		efi_bootentry *efi = entry->data;
 		g_ptr_array_add(bootorder, efi->num);
 	}
 	g_ptr_array_add(bootorder, NULL);
 
-	order = g_strjoinv(",", (gchar**)bootorder->pdata);
+	g_autofree gchar *order = g_strjoinv(",", (gchar**)bootorder->pdata);
 
 	if (!efi_bootorder_set(order, NULL)) {
 		g_propagate_prefixed_error(error, ierror, "Modifying bootorder failed: ");
@@ -507,16 +509,13 @@ gboolean r_efi_set_state(RaucSlot *slot, gboolean good, GError **error)
 
 RaucSlot *r_efi_get_primary(GError **error)
 {
-	g_autoptr(GList) bootorder_entries = NULL;
-	g_autolist(efi_bootentry) all_entries = NULL;
 	GError *ierror = NULL;
-	efi_bootentry *bootnext = NULL;
-	RaucSlot *primary = NULL;
-	RaucSlot *slot;
-	GHashTableIter iter;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	g_autoptr(GList) bootorder_entries = NULL;
+	g_autolist(efi_bootentry) all_entries = NULL;
+	efi_bootentry *bootnext = NULL;
 	if (!efi_bootorder_get(&bootorder_entries, &all_entries, &bootnext, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
 		return NULL;
@@ -528,11 +527,14 @@ RaucSlot *r_efi_get_primary(GError **error)
 		bootorder_entries = g_list_prepend(bootorder_entries, bootnext);
 	}
 
+	RaucSlot *primary = NULL;
 	for (GList *entry = bootorder_entries; entry != NULL; entry = entry->next) {
 		efi_bootentry *bootentry = entry->data;
 
 		/* Find matching slot entry */
+		GHashTableIter iter;
 		g_hash_table_iter_init(&iter, r_context()->config->slots);
+		RaucSlot *slot = NULL;
 		while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 			if (g_strcmp0(bootentry->name, slot->bootname) == 0) {
 				primary = slot;
@@ -584,21 +586,21 @@ gboolean r_efi_set_primary(RaucSlot *slot, GError **error)
  * bad */
 gboolean r_efi_get_state(RaucSlot *slot, gboolean *good, GError **error)
 {
-	efi_bootentry *found_entry = NULL;
 	GError *ierror = NULL;
-	g_autoptr(GList) bootorder_entries = NULL;
-	g_autolist(efi_bootentry) all_entries = NULL;
 
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(good, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	g_autoptr(GList) bootorder_entries = NULL;
+	g_autolist(efi_bootentry) all_entries = NULL;
 	if (!efi_bootorder_get(&bootorder_entries, &all_entries, NULL, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
 	/* Scan bootorder list for given slot */
+	efi_bootentry *found_entry = NULL;
 	for (GList *entry = bootorder_entries; entry != NULL; entry = entry->next) {
 		efi_bootentry *ptr = entry->data;
 		if (g_strcmp0(slot->bootname, ptr->name) == 0) {
@@ -614,18 +616,18 @@ gboolean r_efi_get_state(RaucSlot *slot, gboolean *good, GError **error)
 
 gchar *r_efi_get_current_bootname(RaucConfig *config, GError **error)
 {
-	g_autolist(efi_bootentry) all_entries = NULL;
 	GError *ierror = NULL;
-	efi_bootentry *bootcurrent = NULL;
-	RaucSlot *slot = NULL;
-	GHashTableIter iter;
 
+	g_autolist(efi_bootentry) all_entries = NULL;
+	efi_bootentry *bootcurrent = NULL;
 	if (!efi_bootorder_get(NULL, &all_entries, NULL, &bootcurrent, &ierror)) {
 		g_propagate_error(error, ierror);
 		return NULL;
 	}
 
+	GHashTableIter iter;
 	g_hash_table_iter_init(&iter, config->slots);
+	RaucSlot *slot = NULL;
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		if (g_strcmp0(slot->bootname, bootcurrent->name) == 0) {
 			return slot->bootname;
