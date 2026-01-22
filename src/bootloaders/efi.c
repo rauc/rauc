@@ -23,6 +23,73 @@ static void efi_bootentry_free(efi_bootentry *entry)
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(efi_bootentry, efi_bootentry_free);
 
+static gboolean efi_bootentry_create(RaucSlot *slot, GError **error)
+{
+	g_autoptr(GSubprocess) sub = NULL;
+	g_autofree gchar *realdev = NULL, *realdev_basename = NULL;
+	g_autofree gchar *sysfs_part_path = NULL, *part_num = NULL;
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(slot->bootname, FALSE);
+	g_return_val_if_fail(slot->efi_loader, FALSE);
+	g_return_val_if_fail(slot->efi_cmdline, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	realdev = r_realpath(slot->device);
+	if (realdev == NULL) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_FAILED,
+				"Can't resolve device %s for EFI boot entry",
+				slot->device);
+		return FALSE;
+	}
+
+	realdev_basename = g_path_get_basename(realdev);
+	/* use /sys/class/block because it contains partition entries */
+	sysfs_part_path = g_build_filename("/sys/class/block", realdev_basename, "partition", NULL);
+	if (!g_file_get_contents(sysfs_part_path, &part_num, NULL, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	/* File contains newline, modify in-place */
+	g_strchomp(part_num);
+
+	sub = r_subprocess_new(
+			G_SUBPROCESS_FLAGS_NONE,
+			&ierror,
+			EFIBOOTMGR_NAME,
+			"--create-only",
+			"--disk", realdev,
+			"--part", part_num,
+			"--label", slot->bootname,
+			"--loader", slot->efi_loader,
+			"--unicode", slot->efi_cmdline,
+			NULL);
+
+	if (!sub) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to start " EFIBOOTMGR_NAME ": ");
+		return FALSE;
+	}
+
+	if (!g_subprocess_wait_check(sub, NULL, &ierror)) {
+		g_propagate_prefixed_error(
+				error,
+				ierror,
+				"Failed to run " EFIBOOTMGR_NAME ": ");
+		return FALSE;
+	}
+
+	g_debug("Created missing EFI boot entry for %s", slot->bootname);
+
+	return TRUE;
+}
+
 static gboolean efi_bootorder_set(gchar *order, GError **error)
 {
 	g_autoptr(GSubprocess) sub = NULL;
@@ -270,13 +337,83 @@ out:
 	return res;
 }
 
+/* Parses output of efibootmgr and returns information obtained, creating
+ * missing EFI boot entry for slot.
+ *
+ * Wrapper around efi_bootorder_get() that creates a missing EFI boot entry for
+ * the provided RAUC slot if efi-loader and efi-cmdline are configured.
+ *
+ * @param slot The RAUC slot to create a EFI boot entry for if it's missing
+ * @param bootorder_entries See efi_bootorder_get()
+ * @param all_entries See efi_bootorder_get()
+ * @param error Return location for a GError
+ */
+static gboolean efi_bootorder_prepare(RaucSlot *slot, GList **bootorder_entries, GList **all_entries, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(bootorder_entries == NULL || *bootorder_entries == NULL, FALSE);
+	g_return_val_if_fail(all_entries != NULL && *all_entries == NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!efi_bootorder_get(bootorder_entries, all_entries, NULL, NULL, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	/* Lookup efi boot entry matching slot */
+	for (GList *entry = *all_entries; entry != NULL; entry = entry->next) {
+		efi_bootentry *efi = entry->data;
+		if (g_strcmp0(efi->name, slot->bootname) == 0) {
+			/* EFI boot entry exists, no further action needed */
+			g_debug("EFI boot entry for bootname '%s' already exists", slot->bootname);
+			return TRUE;
+		}
+	}
+
+	/* Clear previously retrieved entries */
+	if (*all_entries)
+		g_list_free_full(g_steal_pointer(all_entries), (GDestroyNotify)efi_bootentry_free);
+	if (bootorder_entries && *bootorder_entries)
+		g_list_free(g_steal_pointer(bootorder_entries));
+
+	/* No efi-loader/efi-cmdline given, bail out */
+	if (!slot->efi_loader || !slot->efi_cmdline) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_FAILED,
+				"Did not find efi entry for bootname '%s'!", slot->bootname);
+		return FALSE;
+	}
+
+
+	/* Create missing EFI entry */
+	if (!efi_bootentry_create(slot, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	/* Retrieve EFI entries one more time */
+	if (!efi_bootorder_get(bootorder_entries, all_entries, NULL, NULL, error)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 static gboolean efi_set_temp_primary(RaucSlot *slot, GError **error)
 {
 	g_autolist(efi_bootentry) entries = NULL;
 	GError *ierror = NULL;
 	efi_bootentry *efi_slot_entry = NULL;
 
-	if (!efi_bootorder_get(NULL, &entries, NULL, NULL, &ierror)) {
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!efi_bootorder_prepare(slot, NULL, &entries, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
@@ -290,14 +427,8 @@ static gboolean efi_set_temp_primary(RaucSlot *slot, GError **error)
 		}
 	}
 
-	if (!efi_slot_entry) {
-		g_set_error(
-				error,
-				R_BOOTCHOOSER_ERROR,
-				R_BOOTCHOOSER_ERROR_FAILED,
-				"Did not find efi entry for bootname '%s'!", slot->bootname);
-		return FALSE;
-	}
+	/* efi_bootorder_prepare() above made sure a proper entry exists */
+	g_assert_nonnull(efi_slot_entry);
 
 	if (!efi_set_bootnext(efi_slot_entry->num, &ierror)) {
 		g_propagate_prefixed_error(error, ierror, "Setting bootnext failed: ");
@@ -321,7 +452,7 @@ static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (!efi_bootorder_get(&entries, &all_entries, NULL, NULL, &ierror)) {
+	if (!efi_bootorder_prepare(slot, &entries, &all_entries, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
@@ -345,14 +476,8 @@ static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend
 			}
 		}
 
-		if (!efi_slot_entry) {
-			g_set_error(
-					error,
-					R_BOOTCHOOSER_ERROR,
-					R_BOOTCHOOSER_ERROR_FAILED,
-					"No entry for bootname '%s' found", slot->bootname);
-			return FALSE;
-		}
+		/* efi_bootorder_prepare() above made sure a proper entry exists */
+		g_assert_nonnull(efi_slot_entry);
 
 		entries = g_list_prepend(entries, efi_slot_entry);
 	}

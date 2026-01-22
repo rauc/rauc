@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 
@@ -251,11 +252,11 @@ bootstate.B.remaining_attempts=3
 
 
 EFI_INITIAL_STATE = {
-    "boot_current": "0001",
+    "boot_current": "0000",
     "timeout": 0,
-    "boot_order": ["0001", "0002"],
+    "boot_order": ["0000", "0001"],
     "boot_next": None,
-    "boot_entries": {"0001": {"label": "A"}, "0002": {"label": "B"}},
+    "boot_entries": {"0000": {"label": "A"}, "0001": {"label": "B"}},
 }
 
 
@@ -264,85 +265,188 @@ def efi_mock(monkeypatch):
     monkeypatch.setenv("PATH", os.path.abspath("bin"), prepend=os.pathsep)
 
 
-@have_qemu
-def test_status_mark_good_efi(tmp_path, create_system_files, system, efi_mock):
-    """
-    Tests that 'mark-good' call for EFI does not alter boot order.
-
-    Leverages the mock efibootmgr with JSON storage mode.
-    """
+def create_efi_system_config(system, blk_dev_partitions, *, configure_efi_entry=False):
     system.prepare_minimal_config()
     system.config["system"]["bootloader"] = "efi"
     del system.config["system"]["grubenv"]
+
+    system.config["slot.rootfs.0"]["device"] = next(blk_dev_partitions)
+    system.config["slot.rootfs.1"]["device"] = next(blk_dev_partitions)
+
+    if configure_efi_entry:
+        system.config["slot.rootfs.0"]["efi-loader"] = r"\\EFI\\BOOT\\BOOTX64.EFI"
+        system.config["slot.rootfs.0"]["efi-cmdline"] = "@1"
+        system.config["slot.rootfs.1"]["efi-loader"] = r"\\EFI\\BOOT\\BOOTX64.EFI"
+        system.config["slot.rootfs.1"]["efi-cmdline"] = "@2"
+
     system.write_config()
 
+
+@have_qemu
+@pytest.mark.parametrize("efi_entry_missing", [False, True], ids=["efi_entry_exists", "efi_entry_missing"])
+def test_status_mark_good_efi(tmp_path, create_system_files, system, efi_mock, blk_dev_partitions, efi_entry_missing):
+    """
+    Tests that 'mark-good' call for EFI does not alter boot order and a missing matching EFI boot
+    entry (efi-loader/efi-cmdline configured) is recreated.
+
+    Leverages the mock efibootmgr with JSON storage mode.
+    """
+    create_efi_system_config(system, blk_dev_partitions, configure_efi_entry=efi_entry_missing)
+
     # Create JSON file with initial EFI boot state
+    efi_state = copy.deepcopy(EFI_INITIAL_STATE)
+    if efi_entry_missing:
+        # Delete boot entry 0000 for system A
+        del efi_state["boot_entries"]["0000"]
+        efi_state["boot_order"].remove("0000")
+
     efi_vars_file = tmp_path / "efi_vars.json"
-    efi_vars_file.write_text(json.dumps(EFI_INITIAL_STATE))
+    efi_vars_file.write_text(json.dumps(efi_state))
     os.environ["EFIBOOTMGR_VAR_FILE"] = str(efi_vars_file)
 
     with system.running_service("A"):
-        # mark rootfs.0 (system0) good
+        # mark rootfs.0 (A) good
         _, err, exitcode = run("rauc status mark-good rootfs.0")
         assert not err
         assert exitcode == 0
 
-        # Verify boot order unchanged (mark-good doesn't modify boot order)
+        # Verify EFI state is unchanged:
+        # efi_entry_missing=False: mark-good doesn't modify boot order,
+        # efi_entry_missing=True: boot entry is created with the same number as before and
+        #                         mark-good puts it back in boot order
         result_state = json.loads(efi_vars_file.read_text())
-        assert result_state["boot_order"] == ["0001", "0002"]
+        assert result_state == EFI_INITIAL_STATE
 
 
 @have_qemu
-def test_status_mark_bad_efi(tmp_path, create_system_files, system, efi_mock):
+@pytest.mark.parametrize("efi_entry_missing", [False, True], ids=["efi_entry_exists", "efi_entry_missing"])
+def test_status_mark_bad_efi(tmp_path, create_system_files, system, efi_mock, blk_dev_partitions, efi_entry_missing):
     """
-    Tests that 'mark-bad' call for EFI removes slot from boot order.
+    Tests that 'mark-bad' call for EFI removes slot from boot order and a missing matching EFI boot
+    entry (efi-loader/efi-cmdline configured) is recreated.
 
     Leverages the mock efibootmgr with JSON storage mode.
     """
-    system.prepare_minimal_config()
-    system.config["system"]["bootloader"] = "efi"
-    del system.config["system"]["grubenv"]
-    system.write_config()
+    create_efi_system_config(system, blk_dev_partitions, configure_efi_entry=efi_entry_missing)
 
     # Create JSON file with initial EFI boot state
+    efi_state = copy.deepcopy(EFI_INITIAL_STATE)
+    if efi_entry_missing:
+        # Delete boot entry 0001 for system B
+        del efi_state["boot_entries"]["0001"]
+        efi_state["boot_order"].remove("0001")
+
     efi_vars_file = tmp_path / "efi_vars.json"
-    efi_vars_file.write_text(json.dumps(EFI_INITIAL_STATE))
+    efi_vars_file.write_text(json.dumps(efi_state))
     os.environ["EFIBOOTMGR_VAR_FILE"] = str(efi_vars_file)
 
     with system.running_service("A"):
-        # mark rootfs.1 (system1) bad
+        # mark rootfs.1 (B) bad
         _, err, exitcode = run("rauc status mark-bad rootfs.1")
         assert not err
         assert exitcode == 0
 
-        # Verify system1 (0002) was removed from boot order
         result_state = json.loads(efi_vars_file.read_text())
-        assert result_state["boot_order"] == ["0001"]
+        # Verify system B (0001) was removed from boot order
+        assert result_state["boot_order"] == ["0000"]
+        # Everything else should be unchanged
+        assert result_state["boot_entries"] == EFI_INITIAL_STATE["boot_entries"]
+        assert result_state["boot_next"] == EFI_INITIAL_STATE["boot_next"]
 
 
 @have_qemu
-def test_status_mark_active_efi(tmp_path, create_system_files, system, efi_mock):
+@pytest.mark.parametrize("efi_entry_missing", [False, True], ids=["efi_entry_exists", "efi_entry_missing"])
+def test_status_mark_active_efi(
+    tmp_path, create_system_files, system, efi_mock, blk_dev_partitions, efi_entry_missing
+):
     """
-    Tests that 'mark-active' call for EFI moves slot to primary position in boot order.
+    Tests that 'mark-active' call for EFI moves slot to primary position in boot order and a
+    missing matching EFI boot entry (efi-loader/efi-cmdline configured) is recreated.
 
     Leverages the mock efibootmgr with JSON storage mode.
     """
-    system.prepare_minimal_config()
-    system.config["system"]["bootloader"] = "efi"
-    del system.config["system"]["grubenv"]
-    system.write_config()
+    create_efi_system_config(system, blk_dev_partitions, configure_efi_entry=efi_entry_missing)
 
     # Create JSON file with initial EFI boot state
+    efi_state = copy.deepcopy(EFI_INITIAL_STATE)
+    if efi_entry_missing:
+        # Delete boot entry 0001 for system B
+        del efi_state["boot_entries"]["0001"]
+        efi_state["boot_order"].remove("0001")
+
     efi_vars_file = tmp_path / "efi_vars.json"
-    efi_vars_file.write_text(json.dumps(EFI_INITIAL_STATE))
+    efi_vars_file.write_text(json.dumps(efi_state))
     os.environ["EFIBOOTMGR_VAR_FILE"] = str(efi_vars_file)
 
     with system.running_service("A"):
-        # mark rootfs.1 (system1) active/primary
+        # mark rootfs.1 (B) active/primary
         _, err, exitcode = run("rauc status mark-active rootfs.1")
         assert not err
         assert exitcode == 0
 
-        # Verify system1 (0002) set as BootNext
         result_state = json.loads(efi_vars_file.read_text())
-        assert result_state["boot_next"] == "0002"
+        # Verify system B (0001) set as BootNext
+        assert result_state["boot_next"] == "0001"
+        # Everything else should be unchanged
+        assert result_state["boot_order"] == EFI_INITIAL_STATE["boot_order"]
+        assert result_state["boot_entries"] == EFI_INITIAL_STATE["boot_entries"]
+
+
+@have_qemu
+def test_status_mark_efi_missing_unconfigured_boot_entry(
+    tmp_path, create_system_files, system, blk_dev_partitions, efi_mock
+):
+    """
+    Tests that mark calls for a slot without corresponding EFI boot entry and without
+    efi-loader/efi-cmdline fail as expected and the EFI boot entries are untouched.
+
+    Leverages the mock efibootmgr with JSON storage mode.
+    """
+    create_efi_system_config(system, blk_dev_partitions, configure_efi_entry=False)
+
+    # create JSON file with initial EFI boot state
+    efi_state = copy.deepcopy(EFI_INITIAL_STATE)
+    # Delete boot entry 0000 for system A
+    del efi_state["boot_entries"]["0000"]
+    efi_state["boot_order"].remove("0000")
+
+    efi_vars_file = tmp_path / "efi_vars.json"
+    efi_vars_file.write_text(json.dumps(efi_state))
+    os.environ["EFIBOOTMGR_VAR_FILE"] = str(efi_vars_file)
+
+    with system.running_service("A"):
+        # mark rootfs.0 (A) good without a corresponding boot entry
+        _, err, exitcode = run("rauc status mark-good rootfs.0")
+        assert (
+            err.strip()
+            == "rauc mark: Failed marking slot rootfs.0 as good:  efi backend: Did not find efi entry for bootname 'A'!"
+        )
+        assert exitcode == 1
+
+        result_state = json.loads(efi_vars_file.read_text())
+        # EFI state should be unchanged
+        assert result_state == efi_state
+
+        # mark rootfs.0 (A) bad without a corresponding boot entry
+        _, err, exitcode = run("rauc status mark-bad rootfs.0")
+        assert (
+            err.strip()
+            == "rauc mark: Failed marking slot rootfs.0 as bad:  efi backend: Did not find efi entry for bootname 'A'!"
+        )
+        assert exitcode == 1
+
+        result_state = json.loads(efi_vars_file.read_text())
+        # EFI state should be unchanged
+        assert result_state == efi_state
+
+        # mark rootfs.0 (A) active without a corresponding boot entry
+        _, err, exitcode = run("rauc status mark-active rootfs.0")
+        assert (
+            err.strip()
+            == "rauc mark: failed to activate slot rootfs.0: efi backend: Did not find efi entry for bootname 'A'!"
+        )
+        assert exitcode == 1
+
+        result_state = json.loads(efi_vars_file.read_text())
+        # EFI state should be unchanged
+        assert result_state == efi_state
