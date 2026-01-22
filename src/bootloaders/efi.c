@@ -188,10 +188,9 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 	GError *ierror = NULL;
 	g_autoptr(GBytes) stdout_bytes = NULL;
 	g_autofree gchar *stdout_str = NULL;
-	gboolean res = FALSE;
 	gint ret;
-	GRegex *regex = NULL;
-	GMatchInfo *match = NULL;
+	g_autoptr(GRegex) regex = NULL;
+	g_autoptr(GMatchInfo) match = NULL;
 	g_autofree gchar *matched = NULL;
 	g_autolist(efi_bootentry) entries = NULL;
 	g_autoptr(GList) returnorder = NULL;
@@ -210,26 +209,24 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 				error,
 				ierror,
 				"Failed to start " EFIBOOTMGR_NAME ": ");
-		goto out;
+		return FALSE;
 	}
 
-	res = g_subprocess_communicate(sub, NULL, NULL, &stdout_bytes, NULL, &ierror);
-	if (!res) {
+	if (!g_subprocess_communicate(sub, NULL, NULL, &stdout_bytes, NULL, &ierror)) {
 		g_propagate_prefixed_error(
 				error,
 				ierror,
 				EFIBOOTMGR_NAME " communication failed: ");
-		goto out;
+		return FALSE;
 	}
 
-	res = g_subprocess_get_if_exited(sub);
-	if (!res) {
+	if (!g_subprocess_get_if_exited(sub)) {
 		g_set_error_literal(
 				error,
 				G_SPAWN_ERROR,
 				G_SPAWN_ERROR_FAILED,
 				EFIBOOTMGR_NAME " did not exit normally");
-		goto out;
+		return FALSE;
 	}
 
 	ret = g_subprocess_get_exit_status(sub);
@@ -239,8 +236,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 				G_SPAWN_EXIT_ERROR,
 				ret,
 				EFIBOOTMGR_NAME " failed with exit code: %i", ret);
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	stdout_str = r_bytes_unref_to_string(&stdout_bytes);
@@ -253,8 +249,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 				R_BOOTCHOOSER_ERROR,
 				R_BOOTCHOOSER_ERROR_FAILED,
 				"Regex matching failed!");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	while (g_match_info_matches(match)) {
@@ -298,8 +293,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 				R_BOOTCHOOSER_ERROR,
 				R_BOOTCHOOSER_ERROR_FAILED,
 				"unable to obtain boot order!");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	g_clear_pointer(&matched, g_free);
@@ -330,11 +324,7 @@ static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries
 		*bootorder_entries = g_steal_pointer(&returnorder);
 	*all_entries = g_steal_pointer(&entries);
 
-out:
-	g_clear_pointer(&regex, g_regex_unref);
-	g_clear_pointer(&match, g_match_info_free);
-
-	return res;
+	return TRUE;
 }
 
 /* Parses output of efibootmgr and returns information obtained, creating
