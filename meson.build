@@ -176,6 +176,13 @@ endif
 # as they are deprecated in favor of providers API
 conf.set10('ENABLE_OPENSSL_PKCS11_ENGINE', get_option('pkcs11_engine'))
 
+openssl_verify_partial = cc.get_define(
+  'CMS_VERIFY_PARTIAL',
+  dependencies : openssldep,
+  prefix : '#include <openssl/cms.h>',
+)
+conf.set10('ENABLE_OPENSSL_VERIFY_PARTIAL', openssl_verify_partial != '')
+
 gnome = import('gnome')
 dbus_ifaces = files('src/de.pengutronix.rauc.Installer.xml')
 dbus_sources = gnome.gdbus_codegen(

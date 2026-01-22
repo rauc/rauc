@@ -1,6 +1,6 @@
 import shutil
 
-from conftest import have_faketime
+from conftest import have_faketime, string_in_config_h
 from helper import run
 from decode_cms import decode_cms
 
@@ -127,18 +127,23 @@ def test_resign_append(tmp_path):
     assert out_bundle.exists()
     assert get_signers(out_bundle) == {SIGNERS["release-1"], SIGNERS["autobuilder-1"]}
 
+    # no path for the signature by Autobuilder-1
     out, err, exitcode = run(f"rauc --keyring openssl-ca/rel-ca.pem info {out_bundle}")
     assert exitcode == 1
     assert "unable to get local issuer certificate" in err
 
+    # no path for the signature by Release-1
     out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-only-ca.pem info {out_bundle}")
     assert exitcode == 1
     assert "unable to get local issuer certificate" in err
 
-    # verification with multiple signatures is not supported yet
+    # dev-ca also allows release signatures
     out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-ca.pem info {out_bundle}")
-    assert exitcode == 1
-    assert "Unsupported number of signers: 2" in err
+    assert exitcode == 0
+    assert (
+        "Verified detached signature by 'O = Test Org, CN = Test Org Autobuilder-1', 'O = Test Org, CN = Test Org Release-1'"
+        in err
+    )
 
 
 def test_resign_verity_append(tmp_path):
@@ -161,18 +166,43 @@ def test_resign_verity_append(tmp_path):
     assert out_bundle.exists()
     assert get_signers(out_bundle) == {SIGNERS["release-1"], SIGNERS["autobuilder-1"]}
 
+    # no path for the signautre by Autobuilder-1
     out, err, exitcode = run(f"rauc --keyring openssl-ca/rel-ca.pem info {out_bundle}")
     assert exitcode == 1
     assert "unable to get local issuer certificate" in err
 
+    # no path for the signature by Release-1
     out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-only-ca.pem info {out_bundle}")
     assert exitcode == 1
     assert "unable to get local issuer certificate" in err
 
-    # verification with multiple signatures is not supported yet
+    # dev-ca also allows release signatures
     out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-ca.pem info {out_bundle}")
-    assert exitcode == 1
-    assert "Unsupported number of signers: 2" in err
+    assert exitcode == 0
+    assert (
+        "Verified inline signature by 'O = Test Org, CN = Test Org Autobuilder-1', 'O = Test Org, CN = Test Org Release-1'"
+        in err
+    )
+
+    if string_in_config_h("ENABLE_OPENSSL_VERIFY_PARTIAL 1"):
+        out, err, exitcode = run(
+            f"rauc -C keyring:allow-single-signature=true --keyring openssl-ca/rel-ca.pem info {out_bundle}"
+        )
+        assert "Verified inline signature by 'O = Test Org, CN = Test Org Release-1'" in err
+        assert exitcode == 0
+
+        out, err, exitcode = run(
+            f"rauc -C keyring:allow-single-signature=true --keyring openssl-ca/dev-only-ca.pem info {out_bundle}"
+        )
+        assert "Verified inline signature by 'O = Test Org, CN = Test Org Autobuilder-1'" in err
+        assert exitcode == 0
+    else:
+        out, err, exitcode = run(f"rauc -C keyring:allow-single-signature=true info {out_bundle}")
+        assert (
+            "Keyring section option 'allow-single-signature' is not supported because OpenSSL does not define CMS_VERIFY_PARTIAL"
+            in err
+        )
+        assert exitcode == 1
 
 
 def test_resign_crypt(tmp_path):
@@ -337,3 +367,10 @@ def test_resign_append_intermediate(tmp_path):
     out, err, exitcode = run(f"rauc --keyring openssl-ca/root-ca.pem info {out_bundle}")
     assert exitcode == 1
     assert "unable to get local issuer certificate" in err
+
+    if string_in_config_h("ENABLE_OPENSSL_VERIFY_PARTIAL 1"):
+        out, err, exitcode = run(
+            f"rauc -C keyring:allow-single-signature=true --keyring openssl-ca/root-ca.pem info {out_bundle}"
+        )
+        assert "Verified inline signature by 'O = Test Org, CN = Test Org Autobuilder-1'" in err
+        assert exitcode == 0

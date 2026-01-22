@@ -3,6 +3,7 @@
 
 #include "artifacts.h"
 #include "bootchooser.h"
+#include "config.h"
 #include "config_file.h"
 #include "context.h"
 #include "event_log.h"
@@ -643,6 +644,26 @@ static gboolean parse_keyring_section(const gchar *filename, GKeyFile *key_file,
 		return FALSE;
 	}
 	g_key_file_remove_key(key_file, "keyring", "allow-partial-chain", NULL);
+
+	gboolean keyring_allow_single_signature = g_key_file_get_boolean(key_file, "keyring", "allow-single-signature", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
+	    g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_GROUP_NOT_FOUND)) {
+		keyring_allow_single_signature = FALSE;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_key(key_file, "keyring", "allow-single-signature", NULL);
+	if (!ENABLE_OPENSSL_VERIFY_PARTIAL && keyring_allow_single_signature) {
+		g_set_error(
+				error,
+				G_KEY_FILE_ERROR,
+				G_KEY_FILE_ERROR_INVALID_VALUE,
+				"Keyring section option 'allow-single-signature' is not supported because OpenSSL does not define CMS_VERIFY_PARTIAL");
+		return FALSE;
+	}
+	c->keyring_allow_single_signature = keyring_allow_single_signature;
 
 	c->use_bundle_signing_time = g_key_file_get_boolean(key_file, "keyring", "use-bundle-signing-time", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND) ||
