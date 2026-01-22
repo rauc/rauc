@@ -276,6 +276,9 @@ static gboolean efi_set_temp_primary(RaucSlot *slot, GError **error)
 	GError *ierror = NULL;
 	efi_bootentry *efi_slot_entry = NULL;
 
+	g_return_val_if_fail(slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
 	if (!efi_bootorder_get(NULL, &entries, NULL, NULL, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
