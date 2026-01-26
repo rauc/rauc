@@ -1103,13 +1103,15 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		if (img->artifact)
 			g_string_append_printf(text, "    Artifact:  %s\n", img->artifact);
 		if (img->filename) {
-			g_autofree gchar* formatted_size = g_format_size_full(img->checksum.size, G_FORMAT_SIZE_LONG_FORMAT);
 			g_string_append_printf(text, "    Filename:  %s\n", img->filename);
-			g_string_append_printf(text, "    Type:      %s%s\n", img->type, img->type_from_fileext ? " (detected)" : "");
-			g_string_append_printf(text, "    Checksum:  %s\n", img->checksum.digest);
-			g_string_append_printf(text, "    Size:      %s\n", formatted_size);
 		} else {
 			g_string_append_printf(text, "    (no image file)\n");
+		}
+		g_string_append_printf(text, "    Type:      %s%s\n", img->type, img->type_from_fileext ? " (detected)" : "");
+		if (img->filename) {
+			g_autofree gchar* formatted_size = g_format_size_full(img->checksum.size, G_FORMAT_SIZE_LONG_FORMAT);
+			g_string_append_printf(text, "    Checksum:  %s\n", img->checksum.digest);
+			g_string_append_printf(text, "    Size:      %s\n", formatted_size);
 		}
 
 		hooks = g_ptr_array_new();
