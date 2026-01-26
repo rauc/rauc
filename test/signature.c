@@ -374,7 +374,6 @@ static void signature_loopback_inline(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
 	gboolean res;
-	GBytes *manifest = NULL;
 
 	fixture->sig = cms_sign(fixture->content,
 			FALSE,
@@ -385,6 +384,7 @@ static void signature_loopback_inline(SignatureFixture *fixture,
 	g_assert_no_error(fixture->error);
 	g_assert_nonnull(fixture->sig);
 
+	g_autoptr(GBytes) manifest = NULL;
 	res = cms_verify_bytes(NULL,
 			fixture->sig,
 			fixture->store,
@@ -917,7 +917,6 @@ static void signature_append_detached(SignatureFixture *fixture, gconstpointer u
 static void signature_append_inline(SignatureFixture *fixture, gconstpointer user_data)
 {
 	gboolean res;
-	GBytes *manifest = NULL;
 
 	g_autoptr(GBytes) sig1 = cms_sign(fixture->content,
 			FALSE,
@@ -938,6 +937,7 @@ static void signature_append_inline(SignatureFixture *fixture, gconstpointer use
 
 	/* dev-ca allows release CA -> OK */
 	g_autoptr(CMS_ContentInfo) cms = NULL;
+	g_autoptr(GBytes) manifest = NULL;
 	res = cms_verify_bytes(NULL,
 			sig2,
 			fixture->store,

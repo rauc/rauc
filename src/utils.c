@@ -35,9 +35,7 @@ GSubprocess *r_subprocess_new(GSubprocessFlags flags, GError **error, const gcha
 	g_ptr_array_add(args, NULL);
 	va_end(ap);
 
-	GSubprocess *result = r_subprocess_newv(args, flags, error);
-
-	return result;
+	return r_subprocess_newv(args, flags, error);
 }
 
 gboolean r_subprocess_runv(GPtrArray *args, GSubprocessFlags flags, GError **error)
@@ -82,9 +80,9 @@ void r_ptr_array_add_printf(GPtrArray *ptrarray, const gchar *format, ...)
 
 gchar *r_ptr_array_env_to_shell(const GPtrArray *ptrarray)
 {
-	g_autoptr(GString) text = g_string_new(NULL);
-
 	g_return_val_if_fail(ptrarray != NULL, NULL);
+
+	g_autoptr(GString) text = g_string_new(NULL);
 
 	for (guint i = 0; i < ptrarray->len; i++) {
 		const gchar *element = g_ptr_array_index(ptrarray, i);
@@ -152,8 +150,8 @@ void r_subprocess_launcher_setenv_ptr_array(GSubprocessLauncher *launcher, const
 
 GBytes *read_file(const gchar *filename, GError **error)
 {
-	gchar *contents;
-	gsize length;
+	gchar *contents = NULL;
+	gsize length = 0;
 
 	if (!g_file_get_contents(filename, &contents, &length, error))
 		return NULL;
@@ -163,8 +161,8 @@ GBytes *read_file(const gchar *filename, GError **error)
 
 gchar *read_file_str(const gchar *filename, GError **error)
 {
-	gchar *contents;
-	gsize length;
+	gchar *contents = NULL;
+	gsize length = 0;
 
 	if (!g_file_get_contents(filename, &contents, &length, error))
 		return NULL;
@@ -190,14 +188,13 @@ gboolean write_file(const gchar *filename, GBytes *bytes, GError **error)
 gboolean copy_file(const gchar *srcprefix, const gchar *srcfile,
 		const gchar *dstprefix, const gchar *dstfile, GError **error)
 {
-	gboolean res = FALSE;
 	GError *ierror = NULL;
 	g_autofree gchar *srcpath = g_build_filename(srcprefix, srcfile, NULL);
 	g_autofree gchar *dstpath = g_build_filename(dstprefix, dstfile, NULL);
 	g_autoptr(GFile) src = g_file_new_for_path(srcpath);
 	g_autoptr(GFile) dst = g_file_new_for_path(dstpath);
 
-	res = g_file_copy(src, dst, G_FILE_COPY_NONE, NULL, NULL, NULL,
+	gboolean res = g_file_copy(src, dst, G_FILE_COPY_NONE, NULL, NULL, NULL,
 			&ierror);
 	if (!res)
 		g_propagate_error(error, ierror);
@@ -221,13 +218,12 @@ static int rm_tree_cb(const char *fpath, const struct stat *sb,
 
 gboolean rm_tree(const gchar *path, GError **error)
 {
-	int flags = FTW_DEPTH | FTW_MOUNT | FTW_PHYS;
-
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 	g_return_val_if_fail(path != NULL, FALSE);
 	g_return_val_if_fail(strlen(path) > 1, FALSE);
 	g_return_val_if_fail(path[0] == '/', FALSE);
 
+	int flags = FTW_DEPTH | FTW_MOUNT | FTW_PHYS;
 	if (nftw(path, &rm_tree_cb, 20, flags)) {
 		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED, "failed to remove tree at %s: %s", path, g_strerror(errno));
 		return FALSE;
@@ -296,14 +292,13 @@ static int tree_check_open_cb(const char *fpath, const struct stat *sb,
 
 gboolean r_tree_check_open(const gchar *path, GError **error)
 {
-	int flags = FTW_DEPTH | FTW_MOUNT | FTW_PHYS;
-
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 	g_return_val_if_fail(path != NULL, FALSE);
 	g_return_val_if_fail(strlen(path) > 1, FALSE);
 	g_return_val_if_fail(path[0] == '/', FALSE);
 	g_return_val_if_fail(g_private_get(&tree_check_open_error) == NULL, FALSE);
 
+	int flags = FTW_DEPTH | FTW_MOUNT | FTW_PHYS;
 	int ret = nftw(path, &tree_check_open_cb, 20, flags);
 	if (ret) {
 		g_autofree GError *ierror = g_private_get(&tree_check_open_error);
@@ -533,11 +528,10 @@ guint8 *r_hex_decode(const gchar *hex, size_t len)
 
 gchar *r_hex_encode(const guint8 *raw, size_t len)
 {
-	const char hex_chars[] = "0123456789abcdef";
-
 	g_assert(raw != NULL);
 	g_assert(len > 0);
 
+	const char hex_chars[] = "0123456789abcdef";
 	len *= 2;
 	gchar *hex = g_malloc0(len+1);
 	for (size_t i = 0; i < len; i += 2) {
@@ -550,10 +544,9 @@ gchar *r_hex_encode(const guint8 *raw, size_t len)
 
 gboolean r_read_exact(const int fd, guint8 *data, size_t size, GError **error)
 {
-	size_t pos = 0;
-
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	size_t pos = 0;
 	while (pos < size) {
 		size_t remaining = size - pos;
 		ssize_t ret = TEMP_FAILURE_RETRY(read(fd, data+pos, remaining));
@@ -583,10 +576,9 @@ gboolean r_read_exact(const int fd, guint8 *data, size_t size, GError **error)
 
 gboolean r_write_exact(const int fd, const guint8 *data, size_t size, GError **error)
 {
-	size_t pos = 0;
-
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	size_t pos = 0;
 	while (pos < size) {
 		size_t remaining = size - pos;
 		ssize_t ret = TEMP_FAILURE_RETRY(write(fd, data+pos, remaining));
@@ -610,10 +602,9 @@ gboolean r_write_exact(const int fd, const guint8 *data, size_t size, GError **e
 
 gboolean r_pread_exact(const int fd, guint8 *data, size_t size, off_t offset, GError **error)
 {
-	size_t pos = 0;
-
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	size_t pos = 0;
 	while (pos < size) {
 		size_t remaining = size - pos;
 		ssize_t ret = TEMP_FAILURE_RETRY(pread(fd, data+pos, remaining, offset+pos));
@@ -643,10 +634,9 @@ gboolean r_pread_exact(const int fd, guint8 *data, size_t size, off_t offset, GE
 
 gboolean r_pwrite_exact(const int fd, const guint8 *data, size_t size, off_t offset, GError **error)
 {
-	size_t pos = 0;
-
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	size_t pos = 0;
 	while (pos < size) {
 		size_t remaining = size - pos;
 		ssize_t ret = TEMP_FAILURE_RETRY(pwrite(fd, data+pos, remaining, offset+pos));
@@ -687,7 +677,7 @@ gboolean r_pwrite_lazy(const int fd, const guint8 *data, size_t size, off_t offs
 
 guint get_sectorsize(gint fd)
 {
-	guint sector_size;
+	guint sector_size = 512;
 
 	if (ioctl(fd, BLKSSZGET, &sector_size) != 0)
 		return 512;
@@ -697,10 +687,9 @@ guint get_sectorsize(gint fd)
 
 goffset get_device_size(gint fd, GError **error)
 {
-	guint64 size = 0;
-
 	g_return_val_if_fail(error == NULL || *error == NULL, 0);
 
+	guint64 size = 0;
 	if (ioctl(fd, BLKGETSIZE64, &size) != 0) {
 		int err = errno;
 		if (err == ENOTTY) {
@@ -1010,7 +999,6 @@ out:
 
 gboolean r_semver_less_equal(const gchar *version_string_a, const gchar *version_string_b, GError **error)
 {
-	int i = 0;
 	GError *ierror = NULL;
 
 	g_return_val_if_fail(version_string_a, FALSE);
@@ -1033,6 +1021,7 @@ gboolean r_semver_less_equal(const gchar *version_string_a, const gchar *version
 	}
 
 	/* compare version cores: major, minor, patch */
+	int i;
 	for (i = 0; i < 3; i++) {
 		if (version_core_a[i] < version_core_b[i]) {
 			return TRUE;
@@ -1115,13 +1104,11 @@ gchar *r_format_duration(gint64 total_seconds)
 
 gchar *r_regex_match_simple(const gchar *pattern, const gchar *string)
 {
-	g_autoptr(GRegex) regex = NULL;
-	g_autoptr(GMatchInfo) match = NULL;
-
 	g_return_val_if_fail(pattern, NULL);
 	g_return_val_if_fail(string, NULL);
 
-	regex = g_regex_new(pattern, 0, 0, NULL);
+	g_autoptr(GRegex) regex = g_regex_new(pattern, 0, 0, NULL);
+	g_autoptr(GMatchInfo) match = NULL;
 	if (g_regex_match(regex, string, 0, &match))
 		return g_match_info_fetch(match, 1);
 
@@ -1130,7 +1117,7 @@ gchar *r_regex_match_simple(const gchar *pattern, const gchar *string)
 
 gint64 r_get_boottime(void)
 {
-	struct timespec ts;
+	struct timespec ts = {0};
 
 	if (clock_gettime(CLOCK_BOOTTIME, &ts) != 0)
 		g_error("RAUC needs CLOCK_BOOTTIME (failed with %s)", g_strerror(errno));
