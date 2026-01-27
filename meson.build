@@ -1,7 +1,7 @@
 project(
   'rauc',
   'c',
-  version : '1.15.1',
+  version : '1.16-dev',
   meson_version : '>=0.51',
   default_options: [
     'c_std=gnu11',
