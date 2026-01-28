@@ -1,23 +1,21 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
 
 
 def extract_cms(bundle_path):
     with open(bundle_path, "rb") as bundle_file:
         # Move to the end of the bundle to read the last 8 bytes for the CMS length
-        bundle_file.seek(-8, 2)
+        bundle_file.seek(-8, os.SEEK_END)
         cms_length_bytes = bundle_file.read(8)
 
         # Convert the 8 bytes to an integer representing the CMS length
         cms_length = int.from_bytes(cms_length_bytes, "big")
         print(f"CMS length is {cms_length} bytes.")
 
-        # Calculate the starting position of the CMS
-        cms_start = bundle_file.tell() - cms_length - 8
-
-        # Seek to the start of the CMS
-        bundle_file.seek(cms_start)
+        # Seek to the start of the CMS (8 + length bytes from the end)
+        bundle_file.seek(-(8 + cms_length), os.SEEK_END)
 
         # Read the CMS
         cms = bundle_file.read(cms_length)
