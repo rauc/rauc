@@ -114,3 +114,12 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return True if succeeded, False if failed
  */
 gboolean r_umount_slot(RaucSlot *slot, GError **error);
+
+/**
+ * Check if a path is mount point.
+ *
+ * @param mountpoint path for mount check
+ *
+ * @return True if path is a mount point, False if not
+ */
+gboolean r_is_mount_point(const gchar *mountpoint);

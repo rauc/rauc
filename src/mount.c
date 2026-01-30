@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <sys/ioctl.h>
 #include <sys/mount.h>
+#include <sys/stat.h>
 
 #include "context.h"
 #include "mount.h"
@@ -357,4 +358,25 @@ gboolean r_umount_slot(RaucSlot *slot, GError **error)
 	g_clear_pointer(&slot->mount_point, g_free);
 
 	return TRUE;
+}
+
+gboolean r_is_mount_point(const gchar *mountpoint)
+{
+	struct stat mnt, parent;
+	g_autofree gchar *parentname = NULL;
+
+	g_return_val_if_fail(mountpoint != NULL, FALSE);
+
+	parentname = g_strdup_printf("%s/../", mountpoint);
+
+	if (stat(mountpoint, &mnt) || stat(parentname, &parent)) {
+		return FALSE;
+	}
+
+	/* When mnt is a mount point, it has a different device number than its parent directory.*/
+	if (mnt.st_dev != parent.st_dev) {
+		return TRUE;
+	}
+
+	return FALSE;
 }
