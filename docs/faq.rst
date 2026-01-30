@@ -295,9 +295,9 @@ to decrypt the CMS data before verifying it.
 See the script output for an example command line.
 
 For bundles which use the :ref:`plain format <sec_ref_format_plain>`, you would
-need to split the payload and CMS data and then use `openssl cms -verify` with
-the `-content` option.
-As this is more involved, we recommend using either `rauc extract` or switching
+need to split the payload and CMS data and then use ``openssl cms -verify`` with
+the ``-content`` option.
+As this is more involved, we recommend using either ``rauc extract`` or switching
 to verity bundles.
 
 How can I protect manufacturer data at the end of the boot partition when using ``boot-emmc``?
