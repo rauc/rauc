@@ -2336,7 +2336,6 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	gboolean res = FALSE;
 	gint part_active;
 	g_autofree gchar *realdev = NULL;
-	gint part_active_after;
 	GError *ierror = NULL;
 	g_autoptr(RaucSlot) part_slot = NULL;
 	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
@@ -2390,40 +2389,118 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 		return FALSE;
 	}
 
-	/* toggle active boot partition in ext_csd register; do this explicitly on
-	 * determined boot partition to force the kernel to switch to the partition;
-	 * for simplicity reasons: in case the user partition is active use
-	 * mmcblkXboot1, in case no partition is active use mmcblkXboot0
-	 */
-	g_debug("Toggling active eMMC boot partition %sboot%d -> %s", realdev, part_active,
-			part_slot->device);
-	res = r_emmc_write_bootpart(
-			part_slot->device,
-			INACTIVE_BOOT_PARTITION(part_active),
-			&ierror);
-	if (!res) {
+	if (!r_emmc_toggle_active_bootpart(realdev, part_active, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
-	/* sanity check: read active boot partition from ext_csd
+	return TRUE;
+}
+static gboolean emmc_boot_linked_migration_helper(RaucImage *image, RaucSlot *dest_slot, GError **error)
+{
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(dest_slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	g_autofree gchar *real_dest = r_realpath(dest_slot->device);
+	if (!real_dest) {
+		g_set_error(error,
+				R_UPDATE_ERROR,
+				R_UPDATE_ERROR_FAILED,
+				"Can't resolve eMMC device %s", dest_slot->device);
+		return FALSE;
+	}
+
+	/* Get the base device for out destination partition so we can check which boot partition
+	 * is actually activated */
+	GError *ierror = NULL;
+	g_autofree gchar *base_device = NULL;
+	if (!r_emmc_extract_base_dev(real_dest, &base_device, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	/* read active boot partition from ext_csd. */
+	gint active_partition = -1;
+	if (!r_emmc_read_bootpart(base_device, &active_partition, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	/* Device is not boot enabled at all, so there is nothing to switch */
+	if (active_partition == -1) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_EMMC_MIGRATION,
+				"Device '%s' is not boot enabled", base_device);
+		return FALSE;
+	}
+
+	/* Check if the target slot is the currently active eMMC boot partition */
+	g_message("Active eMMC boot partition for %s: boot%d", real_dest, active_partition);
+	g_autofree gchar *boot_suffix = g_strdup_printf("boot%d", active_partition);
+	if (!g_str_has_suffix(dest_slot->device, boot_suffix)) {
+		return TRUE;
+	}
+
+	/* If the target slot corresponds to the currently active eMMC boot partition,
+	 * we assume it contains the running bootloader.
 	 *
-	 * Read explicitly from root device (this forces another kernel
-	 * partition switch and should trigger the ext_csd bug more reliably).
+	 * To avoid bricking the device in case of an update failure,
+	 * first copy the contents of the active boot partition to the inactive one.
+	 * Then switch the active boot partition to the new one.
+	 *
+	 * This migration step ensures that a fallback bootloader is preserved,
+	 * providing a recovery path in case something goes wrong.
 	 */
-	res = r_emmc_read_bootpart(realdev, &part_active_after, &ierror);
-	if (!res) {
+
+	/* Create a temporary RaucSlot for the inactive boot partition */
+	g_autoptr(RaucSlot) inactive_slot = g_new0(RaucSlot, 1);
+	inactive_slot->device = g_strdup_printf("%sboot%d", base_device, INACTIVE_BOOT_PARTITION(active_partition));
+	/* Create a temporary RaucImage using the active boot partition device as filename */
+	g_autoptr(RaucImage) source_image = g_new0(RaucImage, 1);
+	source_image->filename = g_strdup_printf("%sboot%d", base_device, active_partition);
+	source_image->checksum.size = get_device_size_from_dev(source_image->filename, &ierror);
+	if (ierror != NULL) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
-	if (part_active == part_active_after) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"Toggling the boot partition failed! Your kernel is most-likely affected by the ioctl ext_csd bug: see https://rauc.readthedocs.io/en/latest/advanced.html#update-bootloader-in-emmc-boot-partitions");
+	g_message("Preserving boot partition content by copying from %s to %s", source_image->filename, inactive_slot->device);
+	if (!copy_img_to_emmc_bootpart(source_image, inactive_slot, NULL, NULL, &ierror)) {
+		g_propagate_error(error, ierror);
 		return FALSE;
 	}
 
-	g_message("Boot partition %s is now active", part_slot->device);
+	if (!r_emmc_toggle_active_bootpart(base_device, active_partition, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	g_message("The eMMC boot partition for %s has been successfully migrated", real_dest);
+	return TRUE;
+}
+
+static gboolean img_to_emmc_boot_linked_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(dest_slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	GError *ierror = NULL;
+	/* When migrating from a setup not supporting emmc-boot-linked, yet,
+	 * the boot partitions might not yet be aligned as expected from the
+	 * new linked config. So we have to check how they are aligned and
+	 * ensure the target boot partition is not the currently activated one. */
+	if (!emmc_boot_linked_migration_helper(image, dest_slot, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	/* We've made sure that the boot partitions are properly set up during migration,
+	 * so the image can now be written to the planned destination slot */
+	if (!copy_img_to_emmc_bootpart(image, dest_slot, hook_name, NULL, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -2694,6 +2771,7 @@ static RaucImageTypeMap image_type_map[] = {
 	/* boot-* slot types */
 #if ENABLE_EMMC_BOOT_SUPPORT == 1
 	{"raw", "boot-emmc", img_to_boot_emmc_handler},
+	{"raw", "emmc-boot-linked", img_to_emmc_boot_linked_handler},
 #endif
 	{"vfat", "boot-mbr-switch", img_to_boot_mbr_switch_handler},
 	{"raw", "boot-mbr-switch", img_to_boot_mbr_switch_handler},
