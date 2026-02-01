@@ -11,6 +11,12 @@ typedef enum {
 	ST_BOOTED = 4 | ST_ACTIVE,
 } SlotState;
 
+typedef enum {
+	ST_BOOT_UNKNOWN = 0,
+	ST_BOOT_BAD = 1,
+	ST_BOOT_GOOD = 2,
+} SlotBootState;
+
 typedef struct {
 	gchar *bundle_compatible;
 	gchar *bundle_version;
@@ -64,7 +70,7 @@ typedef struct _RaucSlot {
 
 	/** current state of the slot (runtime) */
 	SlotState state;
-	gboolean boot_good;
+	SlotBootState boot_state;
 	struct _RaucSlot *parent;
 	/** the name of the parent as parsed by config (parsing-internal use only) */
 	gchar *parent_name;
@@ -117,6 +123,12 @@ G_GNUC_WARN_UNUSED_RESULT;
  * @return a RaucSlot pointer or NULL
  */
 RaucSlot *r_slot_get_booted(GHashTable *slots);
+
+/**
+ * Get string representation of boot state
+ */
+const gchar* r_slot_bootstate_to_str(SlotBootState bootstate)
+G_GNUC_WARN_UNUSED_RESULT;
 
 /**
  * Get string representation of slot state
