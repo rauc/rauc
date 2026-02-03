@@ -152,18 +152,25 @@ While using signing also during development may seem unnecessary, the additional
 testing of the whole update system (RAUC, bootloader, migration code, …) allows
 finding problems much earlier.
 
+.. _sec-pki-intermediate-certificates:
+
 Intermediate Certificates
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-RAUC allows you to include intermediate certificates in the bundle signature
+RAUC supports including intermediate certificates in the bundle signature
 that can be used to close the trust chain during bundle signature verification.
 
 To do this, specify the ``--intermediate`` argument during bundle creation::
 
   rauc bundle --intermediate=/path/to/intermediate.ca.pem [...]
 
-Note that you can specify the ``--intermediate`` argument multiple times to
-include multiple intermediate certificates to your bundle signature.
+You can specify the ``--intermediate`` argument multiple times to include
+multiple intermediate certificates in your bundle signature.
+
+.. important::
+   Intermediate certificates needed to build a chain to trust anchors (CAs) in
+   the keyring should **not** be added to the keyring.
+   The keyring is **only** for certificates used as trust anchors.
 
 Passphrase Handling
 ~~~~~~~~~~~~~~~~~~~
