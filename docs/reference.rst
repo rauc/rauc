@@ -163,19 +163,6 @@ Example configuration:
   on watchdog resets.
   Behavior defaults to ``true`` if the option is not set.
 
-``efi-loader`` (optional)
-  Only valid when ``bootloader`` is set to ``efi``.
-  If set in combination with ``efi-cmdline``, an EFI boot entry for this slot
-  is (re)created with the given loader string via ``efibootmgr``'s ``--loader``
-  option during mark good/bad/active operations, if it is missing.
-
-``efi-cmdline`` (optional)
-  Only valid when ``bootloader`` is set to ``efi``.
-  If set in combination with ``efi-loader``, an EFI boot entry for this slot is
-  (re)created with the given command line string via ``efibootmgr``'s
-  ``--unicode`` option during mark good/bad/active operations, if it is
-  missing.
-
 .. _activate-installed:
 
 ``activate-installed`` (optional)
@@ -670,6 +657,19 @@ separator.
 
   Accepts integer values in bytes.
   Supports optional size suffixes: ``K``, ``M``, ``G``, ``T`` (powers of 1024).
+
+``efi-loader`` (optional)
+  Only valid when ``bootloader`` is set to ``efi``.
+  If set in combination with ``efi-cmdline``, an EFI boot entry for this slot
+  is (re)created with the given loader string via ``efibootmgr``'s ``--loader``
+  option during mark good/bad/active operations, if it is missing.
+
+``efi-cmdline`` (optional)
+  Only valid when ``bootloader`` is set to ``efi``.
+  If set in combination with ``efi-loader``, an EFI boot entry for this slot is
+  (re)created with the given command line string via ``efibootmgr``'s
+  ``--unicode`` option during mark good/bad/active operations, if it is
+  missing.
 
 .. _sec_ref_artifacts:
 
