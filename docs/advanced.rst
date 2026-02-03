@@ -173,7 +173,7 @@ during signing operations.
 For automation purposes the passphrase can be set using the
 environment variable ``RAUC_KEY_PASSPHRASE``.
 
-.. note::
+.. caution::
   Since the environment of other processes is visible on Linux, this
   option should be used with caution.
 
