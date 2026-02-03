@@ -44,6 +44,7 @@ A key design decision of RAUC is that signing a bundle is mandatory.
 For development purpose a self-signed certificate might be sufficient,
 for production the signing process should be integrated with your PKI
 infrastructure.
+Read the :ref:`sec-security` chapter for more details on signing bundles.
 
 .. important:: A RAUC Bundle should always unambiguously describe the
   intended target state of the entire system.

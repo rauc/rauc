@@ -284,6 +284,9 @@ Example configuration:
 
 The ``keyring`` section refers to the trusted keyring used for signature
 verification.
+Read the :ref:`sec-security` chapter for more details on how RAUC handles
+bundle signatures.
+
 Both ``path`` and ``directory`` options can be used together if
 desired, though only one or the other is necessary to verify the bundle
 signature.

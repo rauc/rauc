@@ -50,6 +50,7 @@ The ``--cert`` and ``--key`` argument specify the certificate and private key
 for signing the bundle.
 They can be provided either as PEM files or as :ref:`PKCS#11-URIs
 <pkcs11-support>` (to avoid storing sensitive key material as plain files).
+Read the :ref:`sec-security` chapter for more details on signing bundles.
 
 With the optional ``--signing-keyring=<certfile>`` argument, the signed bundle
 can be verified against the keyring file as part of the bundle creation

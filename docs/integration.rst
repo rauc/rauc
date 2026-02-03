@@ -1482,8 +1482,7 @@ For generating a bundle, at least the following items are required:
 The signing key and cert could be created for this specific project or be
 supplied from somewhere else in your project or company.
 They can be provided as PEM files or as PKCS#11 URIs (e.g. if you use a HSM).
-For evaluation purposes, you can also generate a self-signed key pair.
-Read the :ref:`sec-security` chapter for more details.
+Read the :ref:`sec-security` chapter for more details on signing bundles.
 
 For the bundle content, simply create a new directory:
 
