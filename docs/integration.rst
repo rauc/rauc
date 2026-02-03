@@ -1242,7 +1242,8 @@ To enable EFI bootloader support in RAUC, write in your ``system.conf``:
 
 To set up a system ready for pure EFI-based redundancy boot without any further
 bootloader or initramfs involved, you have to create an appropriate
-partition layout and matching boot EFI entries.
+partition layout and either configure boot entries manually or let RAUC do
+that.
 
 Assuming a simple A/B redundancy, you would need:
 
@@ -1250,7 +1251,29 @@ Assuming a simple A/B redundancy, you would need:
   (e.g. at ``EFI/LINUX/BZIMAGE.EFI``)
 * 2 redundant rootfs partitions
 
-To create boot entries for these, use the efibootmgr tool:
+Let RAUC create missing EFI boot entries when marking slots good, bad or active
+with a ``system.conf`` such as:
+
+.. code-block:: cfg
+  :emphasize-lines: 8, 9, 14, 15
+
+  [system]
+  ...
+  bootloader=efi
+
+  [slot.efi.0]
+  ...
+  bootname=system0
+  efi-loader=\\EFI\\LINUX\\BZIMAGE.EFI
+  efi-cmdline=root=PARTUUID=<partuuid-of-part-1>
+
+  [slot.efi.1]
+  ...
+  bootname=system1
+  efi-loader=\\EFI\\LINUX\\BZIMAGE.EFI
+  efi-cmdline=root=PARTUUID=<partuuid-of-part-2>
+
+Or create boot entries manually beforehand:
 
 .. code-block:: console
   :emphasize-lines: 2, 4, 6, 8
@@ -1268,6 +1291,15 @@ where you replace /dev/sdaX with the name of the disk you use for redundancy
 boot, ``<partuuid-of-part-1>`` with the PARTUUID of the first rootfs
 partition and ``<partuuid-of-part-2>`` with the PARTUUID of the second rootfs
 partition.
+
+.. note:: When booting `UKIs
+   <https://uapi-group.org/specifications/specs/unified_kernel_image/>`_
+   from redundant VFAT partitions, the EFI command line (RAUC's
+   ``efi-cmdline`` or efibootmgr's ``--unicode``) can point to a
+   `UKI profile
+   <https://uapi-group.org/specifications/specs/unified_kernel_image/#multi-profile-ukis>`_
+   (e.g. ``@1``) defining the corresponding ``root=`` and ``rauc.slot=`` kernel
+   command line parameters.
 
 You can inspect and verify your settings by running:
 
