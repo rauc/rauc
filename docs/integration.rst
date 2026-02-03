@@ -1277,10 +1277,10 @@ You can inspect and verify your settings by running:
 
 In your ``system.conf``, you have to list both the EFI partitions (each containing
 one kernel) as well as the rootfs partitions.
-Make the first EFI partition a child of the first rootfs partition and the
-second EFI partition a child of the second rootfs partition to have valid slot
+Make the first rootfs partition a child of the first EFI partition and the
+second rootfs partition a child of the second EFI partition to have valid slot
 groups.
-Set the rootfs slot bootnames to those we have defined with the ``--label``
+Set the EFI slot bootnames to those we have defined with the ``--label``
 argument in the ``efibootmgr`` call above:
 
 .. code-block:: cfg
@@ -1288,22 +1288,22 @@ argument in the ``efibootmgr`` call above:
   [slot.efi.0]
   device=/dev/sdX1
   type=vfat
-  parent=rootfs.0
+  bootname=system0
 
   [slot.efi.1]
   device=/dev/sdX2
   type=vfat
-  parent=rootfs.1
+  bootname=system1
 
   [slot.rootfs.0]
   device=/dev/sdX3
   type=ext4
-  bootname=system0
+  parent=efi.0
 
   [slot.rootfs.1]
   device=/dev/sdX4
   type=ext4
-  bootname=system1
+  parent=efi.1
 
 .. _sec-custom-bootloader-backend:
 
