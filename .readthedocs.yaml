@@ -4,6 +4,10 @@ build:
   os: ubuntu-24.04
   tools:
     python: "3.13"
+  jobs:
+    post_checkout:
+      # fetch enough history so that build-aux/git-version-gen works
+      - git fetch --shallow-exclude=v1.15 && git describe
 
 sphinx:
   configuration: docs/conf.py
