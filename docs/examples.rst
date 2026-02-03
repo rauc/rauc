@@ -371,7 +371,7 @@ Symmetric A/B Setup + Shared (Single-File) Artifacts Repository
 
 Configuring a ``file`` *artifact repository* in addition to the A/B *system
 slots* can be useful for systems which use one or several larger data files
-(e.g.  map data) that should be updated more frequently and/or independently of
+(e.g. map data) that should be updated more frequently and/or independently of
 the main A/B rootfs.
 
 .. code-block:: cfg
