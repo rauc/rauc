@@ -85,17 +85,19 @@ Interfacing with your Bootloader
 --------------------------------
 
 The bootloader is the final instance that controls which partition on your
-rootfs device will be booted. In order to switch partitions after an update,
-you have to have an interface to the bootloader that allows you to set the boot
-order, boot priority and other possible parameters.
+rootfs device will be booted.
+In order to switch partitions after an update, you have to have an interface to
+the bootloader that allows you to set the boot order, boot priority and other
+possible parameters.
 
 Some bootloaders, such as U-Boot, allow access to their environment storage
 where you can freely create and modify variables the bootloader may read.
 Boot logic often can be implemented by a simple boot script.
 
 Some others have distinct redundancy boot interfaces with redundant state
-storage. These often provide more features than simply switching boot
-partitions and are less prone to errors when used.
+storage.
+These often provide more features than simply switching boot partitions and are
+less prone to errors when used.
 The Barebox bootloader with its bootchooser framework is a good example for
 this.
 

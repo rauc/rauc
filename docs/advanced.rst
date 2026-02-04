@@ -710,7 +710,8 @@ To let your system access the separate storage location, it has to be mounted
 into your rootfs.
 Note that if you intend to store configurable system information on your data
 partition, you have to map the default Linux paths (such as ``/etc/passwd``) to
-your data storage. You can do this by using:
+your data storage.
+You can do this by using:
 
  * symbolic links
  * bind mounts
@@ -1063,9 +1064,9 @@ RAUC calls this feature 'image variants'.
   :width: 300
 
 If you want to make use of image variants, you first of all need to say which
-variant your specific board is. You can do this in your ``system.conf`` by
-setting exactly one of the keys ``variant-dtb``, ``variant-file`` or
-``variant-name``.
+variant your specific board is.
+You can do this in your ``system.conf`` by setting exactly one of the keys
+``variant-dtb``, ``variant-file`` or ``variant-name``.
 
 .. code-block:: cfg
 
@@ -1140,8 +1141,9 @@ slot status etc. use:
 
   # rauc write-slot <slotname> <image>
 
-This uses the correct handler to write the image to the slot. It is useful for
-development scenarios as well as initial provisioning of embedded boards.
+This uses the correct handler to write the image to the slot.
+It is useful for development scenarios as well as initial provisioning of
+embedded boards.
 
 .. _sec-advanced-updating-bootloader:
 
@@ -1440,8 +1442,10 @@ rather use an approach like this:
   can be reduced by limiting which old versions are supported by an update.
 * Reboot into the new system.
 * On boot, before starting the application, check that the current slot
-  is 'sane'. Then check if the installed bootloader is older than the
-  version shipped in the (new) rootfs. In that case:
+  is 'sane'.
+  Then check if the installed bootloader is older than the version shipped in
+  the (new) rootfs.
+  In that case:
 
   * Disable the old rootfs slot and update the bootloader.
   * Reboot
@@ -1656,9 +1660,9 @@ Even if RAUC mainly focuses on logging information to stdout or into the
 journal (when using systemd), this might be insufficient for some purposes and
 especially for keeping long-term history of what RAUC changed on the system.
 
-A common problem for example can be journal rotation. Since storage is limited
-and the journal contains a lot of other information, it needs to be rotated at
-some point.
+A common problem for example can be journal rotation.
+Since storage is limited and the journal contains a lot of other information,
+it needs to be rotated at some point.
 However, one might want to preserve the history of what RAUC installed on the
 system or when the system rebooted, went into fallback, etc. for very long or
 even the full life time of the device.

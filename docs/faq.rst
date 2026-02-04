@@ -22,8 +22,10 @@ to resize the installed filesystem to fully utilize the partitions' space.
 Is it possible to use RAUC without D-Bus (Client/Server mode)?
 --------------------------------------------------------------
 
-Yes. If you compile RAUC using the ``-Dservice=false`` configure option, you
-will be able to compile RAUC without service mode and without D-Bus support::
+Yes.
+If you compile RAUC using the ``-Dservice=false`` configure option,
+you will be able to compile RAUC without service mode and without D-Bus
+support::
 
   meson setup -Dservice=false build
 
@@ -33,11 +35,13 @@ being forwarded to the RAUC service process running on your machine.
 Why does RAUC not have an ext2 / ext3 file type?
 ------------------------------------------------
 
-ext4 is the successor of ext3. There is no advantage in using ext3 over ext4.
+ext4 is the successor of ext3.
+There is no advantage in using ext3 over ext4.
 
 Some people still tend to select ext2 when they want a file system without
-journaling. This is not necessary, as one can turn off journaling in ext4,
-either during creation::
+journaling.
+This is not necessary, as one can turn off journaling in ext4, either during
+creation::
 
   mkfs.ext4 -O ^has_journal
 
@@ -309,8 +313,8 @@ If this partition contains manufacturer-specific data (e.g., calibration data
 at the end), that data will be lost unless special precautions are taken.
 
 The recommended solution is to migrate this data to a safe location during the
-first boot of the device. This ensures future bootloader updates can proceed
-safely.
+first boot of the device.
+This ensures future bootloader updates can proceed safely.
 
 If migration is not feasible (for example, on already deployed devices) RAUC
 provides a ``size-limit`` :ref:`slot option <slot.slot-class.idx-section>` for

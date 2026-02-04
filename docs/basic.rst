@@ -168,8 +168,9 @@ Now, multiple slots of different classes can be grouped as a *slot group*.
 Such a group is the base for the slot selection algorithm of RAUC.
 
 Consider, for example, a system with two redundant rootfs slots and two
-redundant application slots. Then you group them together to have a fixed set
-of a rootfs and application slot each that will be used together.
+redundant application slots.
+Then you group them together to have a fixed set of a rootfs and application
+slot each that will be used together.
 
 .. image:: images/rauc-multi-image.svg
    :width: 500
