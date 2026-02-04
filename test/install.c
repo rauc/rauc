@@ -120,7 +120,7 @@ compatible=Test Config\n\
 \n\
 [hooks]\n\
 filename=hook.sh\n\
-hooks=global-post-install\n\
+hooks=post-install\n\
 \n\
 [image.rootfs]\n\
 filename=rootfs.ext4\n\

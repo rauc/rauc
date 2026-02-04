@@ -311,7 +311,7 @@ def test_install_hook_env(rauc_dbus_service_with_system, tmp_path, bundle):
     esac
     """)
     )
-    bundle.manifest["hooks"]["hooks"] = "install-check;global-pre-install;global-post-install"
+    bundle.manifest["hooks"]["hooks"] = "install-check;pre-install;post-install"
     bundle.manifest["image.rootfs"] = {
         "filename": "rootfs.img",
         "hooks": "pre-install;post-install",

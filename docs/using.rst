@@ -408,7 +408,7 @@ the hook executable as the rejection reason message and provide it to the user:
 
   [hooks]
   filename=hook
-  hooks=global-pre-install
+  hooks=pre-install
 
 The global-pre-install hook will be called right before the update procedure
 for all slot installations will be started. This hook is executed after the 
@@ -425,7 +425,7 @@ exit code >= 10.
 
   [hooks]
   filename=hook
-  hooks=global-post-install
+  hooks=post-install
 
 The global-post-install hook will be called right after all slot installations
 have finished successfully. This hook is executed before the system-defined

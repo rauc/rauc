@@ -859,7 +859,7 @@ The hooks section allows to provide a user-defined executable for
   List of hooks enabled for this bundle.
   See :ref:`sec-install-hooks` for more details.
 
-  Valid items are: ``install-check``, ``global-pre-install``, ``global-post-install``
+  Valid items are: ``install-check``, ``pre-install``, ``post-install``
 
 .. _sec-manifest-handler:
 
@@ -1932,7 +1932,7 @@ OUT *info* ``a{sv}``:
 
         *info.hooks.hooks* variant ``as`` <hooks>:
             An array of enabled hooks (i.e. ``install-check``, 
-            ``global-pre-install`` or ``global-post-install``)
+            ``pre-install`` or ``post-install``)
 
     *info.handler* variant ``a{sv}`` <handler-dict>:
         The bundle's ``[handler]`` section content

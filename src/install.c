@@ -1622,7 +1622,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		}
 	}
 
-	if (bundle->manifest->hooks.global_pre_install) {
+	if (bundle->manifest->hooks.pre_install) {
 		run_bundle_hook(bundle->manifest, bundle->mount_point, "global-pre-install", &ierror);
 		if (ierror) {
 			res = FALSE;
@@ -1677,7 +1677,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		goto umount;
 	}
 
-	if (bundle->manifest->hooks.global_post_install) {
+	if (bundle->manifest->hooks.post_install) {
 		run_bundle_hook(bundle->manifest, bundle->mount_point, "global-post-install", &ierror);
 		if (ierror) {
 			res = FALSE;
