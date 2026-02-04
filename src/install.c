@@ -1626,17 +1626,10 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		run_bundle_hook(bundle->manifest, bundle->mount_point, "global-pre-install", &ierror);
 		if (ierror) {
 			res = FALSE;
-			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED)) {
-				g_propagate_prefixed_error(
-						error,
-						ierror,
-						"Bundle rejected: ");
-			} else {
-				g_propagate_prefixed_error(
-						error,
-						ierror,
-						"Global-pre-install hook failed: ");
-			}
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Global-pre-install hook failed: ");
 			goto umount;
 		}
 	}
@@ -1688,17 +1681,10 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		run_bundle_hook(bundle->manifest, bundle->mount_point, "global-post-install", &ierror);
 		if (ierror) {
 			res = FALSE;
-			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED)) {
-				g_propagate_prefixed_error(
-						error,
-						ierror,
-						"Bundle rejected: ");
-			} else {
-				g_propagate_prefixed_error(
-						error,
-						ierror,
-						"Global-post-install hook failed: ");
-			}
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Global-post-install hook failed: ");
 			goto umount;
 		}
 	}
