@@ -72,8 +72,9 @@ the different custom requirements and restrictions an update concept for a
 specific platform must deal with.
 
 When designing the RAUC update tool, all of these requirements were taken into
-consideration. In the following, we provide a short overview of basic concepts,
-principles and solutions RAUC provides for updating an embedded system.
+consideration.
+In the following, we provide a short overview of basic concepts, principles and
+solutions RAUC provides for updating an embedded system.
 
 And What Not?
 -------------

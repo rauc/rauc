@@ -184,9 +184,9 @@ you should name your sections according to this example:
   [slot.rootfs.1]
   device = [...]
 
-RAUC does not have predefined class names. The only requirement is that the
-class names used in the system config match those you later use in the update
-manifests.
+RAUC does not have predefined class names.
+The only requirement is that the class names used in the system config match
+those you later use in the update manifests.
 
 The mandatory settings for each slot are:
 
@@ -419,7 +419,8 @@ target side is GLib (minimum version 2.45.8) as utility library and OpenSSL
    with libmount support (``--enable-libmount``) and at least be 2.49.5.
 
 For network support (enabled with ``--Dnetwork=true``), additionally `libcurl`
-is required. This is only useful for the target service.
+is required.
+This is only useful for the target service.
 
 For JSON-style support (enabled with ``-Djson=enabled``), additionally
 `libjson-glib` is required.
@@ -428,9 +429,9 @@ Kernel Configuration
 --------------------
 
 The kernel used on the target device must support both loop block devices and the
-SquashFS file system to allow installing RAUC bundles. For the recommended
-``verity`` :ref:`bundle format<sec_ref_formats>`, dm-verity must be supported as
-well.
+SquashFS file system to allow installing RAUC bundles.
+For the recommended ``verity`` :ref:`bundle format<sec_ref_formats>`, dm-verity
+must be supported as well.
 
 In kernel Kconfig you have to enable the following options as either built-in
 (``y``) or module (``m``):
@@ -748,8 +749,9 @@ Now, when Barebox is initialized it starts the bootchooser logic to select its
 real boot target.
 
 As a next step, we need to tell bootchooser which boot targets it should
-handle. These boot targets can have descriptive names which must not equal any of
-your existing boot targets, we will have a mapping for this later on.
+handle.
+These boot targets can have descriptive names which must not equal any of your
+existing boot targets, we will have a mapping for this later on.
 
 In this example we call the virtual bootchooser boot targets ``system0`` and
 ``system1``::
@@ -960,7 +962,8 @@ As detecting the currently booted rootfs slot from userspace and matching it to
 one of the slots defined in RAUC's ``system.conf`` is not always trivial and
 error-prone, Barebox provides an explicit information about which slot it
 selected for booting adding a `bootchooser.active` key to the commandline of
-the kernel it boots. This key has the virtual bootchooser boot target assigned.
+the kernel it boots.
+This key has the virtual bootchooser boot target assigned.
 In our case, if the bootchooser logic decided to boot `system0` the kernel
 commandline will contain::
 
@@ -1159,8 +1162,10 @@ For placing the content in partition 2 now, we must calculate the offset as
 ``offset=hex(n sector * 512 bytes/sector)``.
 With ``n=114688`` (start of /dev/mmcblk0p2 according to above partition table)
 we get an offset of ``0x3800000``.
-As size we pick ``0x4000`` (16kB) here. The offset of the redundant copy must
-be the offset of the first copy + size of first copy. This results in:
+As size we pick ``0x4000`` (16kB) here.
+The offset of the redundant copy must be the offset of the first copy + size of
+first copy.
+This results in:
 
 .. code-block:: cfg
 
@@ -1226,8 +1231,8 @@ EFI
 ~~~
 
 For x86 systems that directly boot via EFI/UEFI, RAUC supports interaction with
-EFI boot entries by using the `efibootmgr` tool. To enable EFI bootloader
-support in RAUC, write in your ``system.conf``:
+EFI boot entries by using the `efibootmgr` tool.
+To enable EFI bootloader support in RAUC, write in your ``system.conf``:
 
 .. code-block:: cfg
 
@@ -1380,9 +1385,9 @@ or non-zero if an error occurred.
 
 To get the current running slot, the handler must be called with the argument
 ``get-current``. The handler must output the current running slot's bootname on
-the `stdout`, and return ``0`` on exit, if no error occurred. Implementing this
-is only needed when the /proc/cmdline is not providing information about current
-booted slot.
+the `stdout`, and return ``0`` on exit, if no error occurred.
+Implementing this is only needed when the /proc/cmdline is not providing
+information about current booted slot.
 
 Init System and Service Startup
 -------------------------------
@@ -1414,7 +1419,8 @@ as successfully booted.
 In order to achieve this, a smart solution is to create a systemd service that calls
 ``rauc status mark-good`` and use systemd's dependency handling to assure this
 service will not be executed before all relevant other services came up
-successfully. It could look similar to this:
+successfully.
+It could look similar to this:
 
 .. code-block:: cfg
 
@@ -1577,16 +1583,18 @@ with the following content::
   FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 Write a ``system.conf`` for your board and place it in the folder you mentioned
-in the recipe (`meta-your-bsp/recipes-core/rauc/files`). This file must provide
-a system compatible string to identify your system type, as well as a
-definition of all slots in your system. By default, the system configuration
-will be placed in `/etc/rauc/system.conf` on your target rootfs.
+in the recipe (`meta-your-bsp/recipes-core/rauc/files`).
+This file must provide a system compatible string to identify your system type,
+as well as a definition of all slots in your system.
+By default, the system configuration will be placed in `/etc/rauc/system.conf`
+on your target rootfs.
 
 Also place the appropriate keyring file for your target into the directory
-added to ``FILESEXTRAPATHS`` above. Name it either ``ca.cert.pem`` or
-additionally specify the name of your custom file by setting
-``RAUC_KEYRING_FILE``. If multiple keyring certificates are required on a
-single system, create a keyring directory containing each certificate.
+added to ``FILESEXTRAPATHS`` above.
+Name it either ``ca.cert.pem`` or additionally specify the name of your custom
+file by setting ``RAUC_KEYRING_FILE``.
+If multiple keyring certificates are required on a single system, create a
+keyring directory containing each certificate.
 
 .. note::
   For information on how to create a testing / development
@@ -1613,7 +1621,8 @@ In order to compile RAUC for your host system, simply run:
   $ bitbake rauc-native
 
 This will place a copy of the RAUC binary in ``tmp/deploy/tools`` in your
-current build folder. To test it, try:
+current build folder.
+To test it, try:
 
 .. code-block:: console
 
@@ -1628,8 +1637,9 @@ Bundles can be created either manually by building and using RAUC as a native
 tool, or by using the ``bundle.bbclass`` that handles most of the basic steps,
 automatically.
 
-First, create a bundle recipe in your BSP layer. A possible location for this
-could be ``meta-your-bsp/recipes-core/bundles/update-bundle.bb``.
+First, create a bundle recipe in your BSP layer.
+A possible location for this could be
+``meta-your-bsp/recipes-core/bundles/update-bundle.bb``.
 
 To create your bundle you first have to inherit the bundle class::
 
@@ -1646,9 +1656,10 @@ For using the built-in bundle generation, you need to specify some variables:
   <https://github.com/rauc/meta-rauc/blob/master/classes-recipe/bundle.bbclass>`__.
 
 ``RAUC_BUNDLE_COMPATIBLE``
-  Sets the compatible string for the bundle. This should match the compatible
-  you specified in your ``system.conf`` or, more generally, the compatible of the
-  target platform you intend to install this bundle on.
+  Sets the compatible string for the bundle.
+  This should match the compatible you specified in your ``system.conf`` or,
+  more generally, the compatible of the target platform you intend to install
+  this bundle on.
 
 ``RAUC_BUNDLE_SLOTS``
   Use this to list all slot classes for which the bundle should contain images.
@@ -1666,8 +1677,8 @@ For using the built-in bundle generation, you need to specify some variables:
 
 ``RAUC_SLOT_<slotclass>[type]``
   For each slot class, set this to the *type* of image you intend to place in
-  this slot. Possible types are: ``image`` (default), ``kernel``,
-  ``boot``, or ``file``.
+  this slot.
+  Possible types are: ``image`` (default), ``kernel``, ``boot``, or ``file``.
 
 .. note::
   For a full list of supported variables, refer to `classes-recipe/bundle.bbclass` in
@@ -1689,8 +1700,9 @@ meta-rauc will look as follows::
 
 To be able to build a signed image of this, you also need to configure
 ``RAUC_KEY_FILE`` and ``RAUC_CERT_FILE`` to point to your key and certificate
-files you intend to use for signing. You may set them either from your bundle
-recipe or any global configuration (layer, site.conf, etc.), e.g.::
+files you intend to use for signing.
+You may set them either from your bundle recipe or any global configuration
+(layer, site.conf, etc.), e.g.::
 
   RAUC_KEY_FILE = "${COREBASE}/meta-<layername>/files/development-1.key.pem"
   RAUC_CERT_FILE = "${COREBASE}/meta-<layername>/files/development-1.cert.pem"

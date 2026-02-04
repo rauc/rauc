@@ -94,8 +94,8 @@ Test Framework <https://developer.gnome.org/glib/stable/glib-Testing.html>`_.
 All tests reside in the ``test/`` folder and are named according to the module
 they test (``test/bundle.c`` contains tests for ``src/bundle.c``).
 
-The tests are built by default. To explicitly switch them on or off in meson,
-use ``-Dtest=`` option::
+The tests are built by default.
+To explicitly switch them on or off in meson, use ``-Dtest=`` option::
 
   meson setup -Dtests=true build
 

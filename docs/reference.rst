@@ -66,8 +66,9 @@ Example configuration:
 ``compatible`` (required)
   A user-defined compatible string that describes the target hardware as
   specific enough as required to prevent faulty updating systems with the wrong
-  firmware. It will be matched against the ``compatible`` string defined in the
-  update manifest.
+  firmware.
+  It will be matched against the ``compatible`` string defined in the update
+  manifest.
 
 ``min-bundle-version`` (optional)
   An optional user-defined version string that follows the
@@ -85,19 +86,20 @@ Example configuration:
   the caveat that cases where a rollback (due to a regression for example)
   would be required, could lead to scenarios where the bundle version would
   need to be incremented to pass the version-limit, but the rolled back system
-  version would end up at a number below the limit. E.g. 1.2.9 = good; update
-  to 1.3.0 with limit set to 1.3.0; problems!; update-bundle version:=1.3.1 but
-  with content=1.2.9.
+  version would end up at a number below the limit.
+  E.g. 1.2.9 = good; update to 1.3.0 with limit set to 1.3.0; problems!;
+  update-bundle version:=1.3.1 but with content=1.2.9.
 
   Also note that the implementation in RAUC relaxes the strict Major.Minor.Path
-  version-core format imposed by the semantic versioning scheme. To accommodate
-  versioning schemes that use YEAR.MONTH or similar, version-cores with just
-  Major or Major.Minor are also allowed.
+  version-core format imposed by the semantic versioning scheme.
+  To accommodate versioning schemes that use YEAR.MONTH or similar,
+  version-cores with just Major or Major.Minor are also allowed.
 
 ``bootloader`` (required)
   The bootloader implementation RAUC should use for its slot switching
-  mechanism. Currently supported values (and bootloaders) are ``barebox``,
-  ``grub``, ``uboot``, ``efi``, ``custom``, ``noop``.
+  mechanism.
+  Currently supported values (and bootloaders) are ``barebox``, ``grub``,
+  ``uboot``, ``efi``, ``custom``, ``noop``.
 
 .. _bundle-formats:
 
@@ -111,12 +113,13 @@ Example configuration:
 
   Alternatively, you can use format names prefixed by ``-`` or ``+`` (such as
   ``-plain``) to enable or disable formats relative to the default
-  configuration. This way, formats added in newer releases will be active
-  automatically.
+  configuration.
+  This way, formats added in newer releases will be active automatically.
 
 ``mountprefix`` (optional)
-  Prefix of the path where bundles and slots will be mounted. Can be overwritten
-  by the command line option ``--mount``. Defaults to ``/mnt/rauc/``.
+  Prefix of the path where bundles and slots will be mounted.
+  Can be overwritten by the command line option ``--mount``.
+  Defaults to ``/mnt/rauc/``.
 
 ``grubenv`` (optional)
   Only valid when ``bootloader`` is set to ``grub``.
@@ -124,9 +127,9 @@ Example configuration:
 
 ``barebox-statename`` (optional)
   Only valid when ``bootloader`` is set to ``barebox``.
-  Overwrites the default state ``state`` to a user-defined state name. If this
-  key not exists, the bootchooser framework searches per default for ``/state``
-  or ``/aliases/state``.
+  Overwrites the default state ``state`` to a user-defined state name.
+  If this key not exists, the bootchooser framework searches per default for
+  ``/state`` or ``/aliases/state``.
 
 ``barebox-dtbpath`` (optional)
   Only valid when ``bootloader`` is set to ``barebox``.
@@ -177,10 +180,11 @@ Example configuration:
 
 ``activate-installed`` (optional)
   This boolean value controls if a freshly installed slot is automatically
-  marked active with respect to the used bootloader. Its default value is
-  ``true`` which means that this slot is going to be started the next time the
-  system boots. If the value of this parameter is ``false`` the slot has to be
-  activated manually in order to be booted, see section :ref:`mark-active`.
+  marked active with respect to the used bootloader.
+  Its default value is ``true`` which means that this slot is going to be
+  started the next time the system boots.
+  If the value of this parameter is ``false`` the slot has to be activated
+  manually in order to be booted, see section :ref:`mark-active`.
 
 .. _statusfile:
 
@@ -285,8 +289,8 @@ desired, though only one or the other is necessary to verify the bundle
 signature.
 
 ``path`` (optional)
-  Path to the keyring file in PEM format. Either absolute or relative to the
-  system.conf file.
+  Path to the keyring file in PEM format.
+  Either absolute or relative to the system.conf file.
 
 ``directory`` (optional)
   Path to the keyring directory containing one or more certificates.
@@ -438,8 +442,8 @@ For more information about using the casync support of RAUC, refer to
 
 ``install-args`` (optional)
   Allows to specify additional arguments that will be passed to casync when
-  installing an update. For example it can be used to include additional
-  seeds or stores.
+  installing an update.
+  For example it can be used to include additional seeds or stores.
 
 ``storepath`` (optional)
   Allows to set the path to use as chunk store path for casync to a fixed one.
@@ -451,14 +455,16 @@ For more information about using the casync support of RAUC, refer to
 ``tmppath`` (optional)
   Allows to set the path to use as temporary directory for casync.
   The temporary directory used by casync can be specified using the TMPDIR
-  environment variable. It falls back to /var/tmp if unset.
+  environment variable.
+  It falls back to /var/tmp if unset.
   If ``tmppath`` is set then RAUC runs casync with TMPDIR sets to that path.
   By default, the temporary directory is left unset by RAUC and casync uses its
   internal default value ``/var/tmp``.
 
 ``use-desync=<true/false>`` (optional)
   If this boolean value is set to ``true``, RAUC will use desync instead of
-  casync. Desync support is still experimental, use with caution.
+  casync.
+  Desync support is still experimental, use with caution.
 
 ``[autoinstall]`` Section
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -482,9 +488,9 @@ performed from a dedicated (recovery) slot.
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Handlers allow to customize RAUC by placing scripts in the system that RAUC can
-call for different purposes. All parameters expect pathnames to the script to
-be executed. Pathnames are either absolute or relative to the system.conf file
-location.
+call for different purposes.
+All parameters expect pathnames to the script to be executed.
+Pathnames are either absolute or relative to the system.conf file location.
 
 RAUC passes a set of environment variables to handler scripts.
 See details about using handlers in `Custom Handlers (Interface)`_.
@@ -552,17 +558,19 @@ See details about using handlers in `Custom Handlers (Interface)`_.
 Each slot is identified by a section starting with ``slot.`` followed by
 the slot class name, and a slot number.
 The ``<slot-class>`` name is used in the *update manifest* to target the correct
-set of slots. It must not contain any ``.`` (dots) as these are used as
-hierarchical separator.
+set of slots.
+It must not contain any ``.`` (dots) as these are used as hierarchical
+separator.
 
 ``device=</path/to/dev>`` (required)
   The slot's device path.
 
 ``type=<type>`` (optional, recommended)
-  The type describing the slot. Currently supported ``<type>`` values are ``raw``,
-  ``nand``, ``nor``, ``ubivol``, ``ubifs``, ``ext4``, ``vfat``, ``jffs2`` for normal slots
-  and ``boot-emmc``, ``boot-mbr-switch``, ``boot-gpt-switch``, and ``boot-raw-fallback``
-  for atomically updatable bootloader slots.
+  The type describing the slot.
+  Currently supported ``<type>`` values are ``raw``, ``nand``, ``nor``,
+  ``ubivol``, ``ubifs``, ``ext4``, ``vfat``, ``jffs2`` for normal slots and
+  ``boot-emmc``, ``boot-mbr-switch``, ``boot-gpt-switch``, and
+  ``boot-raw-fallback`` for atomically updatable bootloader slots.
   See table :ref:`sec-slot-type` for a more detailed list of these different types.
   Defaults to ``raw`` if none given.
 
@@ -593,8 +601,9 @@ hierarchical separator.
   Such a slot can be updated only by a custom install hook.
 
 ``readonly=<true/false>`` (optional)
-  Marks the slot as existing but not updatable. May be used for sanity checking
-  or informative purpose. A ``readonly`` slot cannot be a target slot.
+  Marks the slot as existing but not updatable.
+  May be used for sanity checking or informative purpose.
+  A ``readonly`` slot cannot be a target slot.
 
 .. _install-same:
 
@@ -612,8 +621,9 @@ hierarchical separator.
 
 ``resize=<true/false>`` (optional)
   If set to ``true`` this will tell RAUC to resize the filesystem after having
-  written the image to this slot. This only has an effect when writing an ext4
-  file system to an ext4 slot, i.e. if the slot has``type=ext4`` set.
+  written the image to this slot.
+  This only has an effect when writing an ext4 file system to an ext4 slot,
+  i.e. if the slot has``type=ext4`` set.
 
 ``extra-mount-opts=<options>`` (optional)
   Allows to specify custom mount options that will be passed to the slot's
@@ -715,7 +725,8 @@ a look at :ref:`sec-advanced-event-log`.
   configuration error.
 
 ``events`` (optional)
-  Semicolon-separated list of events to log. Currently supported event types are:
+  Semicolon-separated list of events to log.
+  Currently supported event types are:
 
   * ``install`` - Logs start and end of installation
   * ``boot`` - Logs boot information
@@ -723,7 +734,8 @@ a look at :ref:`sec-advanced-event-log`.
   * ``all`` - Log all events (default, cannot be combined with other events)
 
 ``format`` (optional)
-  The output format used for the logger. Supported values are
+  The output format used for the logger.
+  Supported values are
 
   * ``readable``: readable multi-line output (default)
   * ``short``: Single-line readable output
@@ -797,7 +809,8 @@ This section contains some high-level information about the bundle.
 
 ``version`` (optional)
   A free version field that can be used to provide and track version
-  information. No checks will be performed on this version by RAUC itself,
+  information.
+  No checks will be performed on this version by RAUC itself,
   although a handler can use this information to reject updates.
 
 ``description`` (optional)
@@ -806,8 +819,8 @@ This section contains some high-level information about the bundle.
 
 ``build`` (optional)
   A build id that would typically hold the build date or some build
-  information provided by the bundle creation environment. This can help to
-  determine the date and origin of the built bundle.
+  information provided by the bundle creation environment.
+  This can help to determine the date and origin of the built bundle.
 
 ``min-rauc-version`` (optional)
   An optional version limit which causes the manifest to be rejected if the
@@ -966,11 +979,13 @@ The following fields are supported for image sections:
   :ref:`Supported Image Types <sec-ref-supported-image-types>` section.
 
 ``sha256`` (generated)
-  sha256 of image file. RAUC determines this value automatically when creating
+  sha256 of image file.
+  RAUC determines this value automatically when creating
   a bundle, thus it is not required to set this by hand.
 
 ``size`` (generated)
-  size of image file. RAUC determines this value automatically when creating a
+  size of image file.
+  RAUC determines this value automatically when creating a
   bundle, thus it is not required to set this by hand.
 
 ``hooks`` (optional)
@@ -1425,9 +1440,15 @@ section :ref:`Manifest <sec_ref_manifest>`.
 The ``status`` field records the status of each slot.
 It can have the following values:
 
-:ok: The latest update for this slot succeeded. Its content should be valid.
-:failed: The latest update for this slot failed. There is no valid content on it.
-:pending: The slot is currently being updated. There is no valid content on it, yet.
+:ok:
+  The latest update for this slot succeeded.
+  Its content should be valid.
+:failed:
+  The latest update for this slot failed.
+  There is no valid content on it.
+:pending:
+  The slot is currently being updated.
+  There is no valid content on it, yet.
 
 For a description of ``sha256`` and ``size`` keys see :ref:`this
 <image-section>` part of the section :ref:`Manifest
@@ -1457,7 +1478,8 @@ System Status File
 The system status is only available if a central status file is configured for
 RAUC (by setting :ref:`data-directory <data-directory>`).
 The system status is stored in the same file as the :ref:`slot status
-<slot-status>`. It uses a distinct ``[system]`` section.
+<slot-status>`.
+It uses a distinct ``[system]`` section.
 
 .. code-block:: cfg
 
@@ -1540,8 +1562,9 @@ variables.
   A deprecated alias for ``RAUC_BUNDLE_MOUNT_POINT``
 
 ``RAUC_TRANSACTION_ID``
-  A UUID of a particular installation. This is either generated by RAUC or
-  provided explicitly on command line or over the D-Bus :ref:`InstallBundle
+  A UUID of a particular installation.
+  This is either generated by RAUC or provided explicitly on command line or
+  over the D-Bus :ref:`InstallBundle
   <gdbus-method-de-pengutronix-rauc-Installer.InstallBundle>` method.
 
 ``RAUC_MOUNT_PREFIX``
@@ -1552,10 +1575,10 @@ variables.
   This uses the same format as ``rauc info --output-format=shell …``.
 
 ``RAUC_SLOTS``
-  An iterator list to loop over all existing slots. Each item in the list is
-  an integer referencing one of the slots. To get the slot parameters, you have to
-  resolve the per-slot variables (suffixed with <N> placeholder for the
-  respective slot number).
+  An iterator list to loop over all existing slots.
+  Each item in the list is an integer referencing one of the slots.
+  To get the slot parameters, you have to resolve the per-slot variables
+  (suffixed with <N> placeholder for the respective slot number).
 
 ``RAUC_TARGET_SLOTS``
   An iterator list similar to ``RAUC_SLOTS`` but only containing slots that
@@ -2110,7 +2133,8 @@ Refer :ref:`Processing Progress Data <sec_processing_progress>` section.
    :start-at: <property name="Compatible"
    :end-at: <property
 
-Represents the system's compatible. This can be used to check for usable bundles.
+Represents the system's compatible.
+This can be used to check for usable bundles.
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.Variant:
 
@@ -2123,7 +2147,8 @@ Represents the system's compatible. This can be used to check for usable bundles
    :start-at: <property name="Variant"
    :end-at: <property
 
-Represents the system's variant. This can be used to select parts of an bundle.
+Represents the system's variant.
+This can be used to select parts of an bundle.
 
 .. _gdbus-property-de-pengutronix-rauc-Installer.BootSlot:
 
@@ -2136,11 +2161,12 @@ Represents the system's variant. This can be used to select parts of an bundle.
    :start-at: <property name="BootSlot"
    :end-at: <property
 
-Contains the information RAUC uses to identify the booted slot. It is derived
-from the kernel command line.
+Contains the information RAUC uses to identify the booted slot.
+It is derived from the kernel command line.
 This can either be the slot name (e.g. ``rauc.slot=rootfs.0``) or the root device
-path (e.g. ``root=PARTUUID=0815``). If the ``root=`` kernel command line option is
-used, the symlink is resolved to the block device (e.g. ``/dev/mmcblk0p1``).
+path (e.g. ``root=PARTUUID=0815``).
+If the ``root=`` kernel command line option is used,
+the symlink is resolved to the block device (e.g. ``/dev/mmcblk0p1``).
 
 
 RAUC's Basic Update Procedure
@@ -2210,8 +2236,8 @@ bootloader will not select it for booting anymore.
 As shown above this is either the case before an installation to make the
 update atomic from the bootloader's perspective, or optionally after the
 installation and a reboot into the new system, when a service detects that the
-system is in an unusable state. This potentially allows falling back to a
-working system.
+system is in an unusable state.
+This potentially allows falling back to a working system.
 
 The aim of setting a slot 'primary' is to let the bootloader select this slot
 upon next reboot in case of having completed the installation successfully.

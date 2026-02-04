@@ -41,9 +41,9 @@ and modify update files ("bundles") for the device.
 This manual page documents briefly the **rauc** command line utility.
 
 It was written for the Debian GNU/Linux distribution to satisfy the
-packaging requirements. Thus it should only serve as a summary, reading
-the comprehensive online manual (**https://rauc.readthedocs.io/**) is
-recommended.
+packaging requirements.
+Thus it should only serve as a summary, reading the comprehensive online manual
+(**https://rauc.readthedocs.io/**) is recommended.
 
 OPTIONS
 -------
