@@ -30,12 +30,10 @@ To create a simple key pair for testing, we can use ``openssl``::
 
   > openssl req -x509 -newkey rsa:4096 -nodes -keyout demo.key.pem -out demo.cert.pem -subj "/O=rauc Inc./CN=rauc-demo"
 
-For actual usage, setting up a real PKI (with a CA separate from the signing
-keys and a revocation infrastructure) is *strongly* recommended.
-OpenVPN's easy-rsa_ is a good first step.
-See :ref:`sec-security` for more details.
-
-.. _easy-rsa: https://github.com/OpenVPN/easy-rsa
+.. important::
+   For actual usage, it is **strongly recommended** to consider your risks and
+   requirements before setting up your PKI.
+   Read the :ref:`sec-security` chapter for more details on signing bundles.
 
 RAUC Configuration
 ~~~~~~~~~~~~~~~~~~
@@ -371,7 +369,7 @@ Symmetric A/B Setup + Shared (Single-File) Artifacts Repository
 
 Configuring a ``file`` *artifact repository* in addition to the A/B *system
 slots* can be useful for systems which use one or several larger data files
-(e.g.  map data) that should be updated more frequently and/or independently of
+(e.g. map data) that should be updated more frequently and/or independently of
 the main A/B rootfs.
 
 .. code-block:: cfg

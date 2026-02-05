@@ -284,6 +284,15 @@ Example configuration:
 
 The ``keyring`` section refers to the trusted keyring used for signature
 verification.
+
+.. important::
+   The keyring must only contain certificates which are used as trust anchors.
+   If intermediate certificates are needed to complete the chain from trust
+   anchor to bundle signing certificate, they must be :ref:`included when
+   signing the bundle <sec-pki-intermediate-certificates>`.
+   Read the :ref:`sec-security` chapter for more details on how RAUC handles
+   bundle signatures.
+
 Both ``path`` and ``directory`` options can be used together if
 desired, though only one or the other is necessary to verify the bundle
 signature.
