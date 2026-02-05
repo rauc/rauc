@@ -42,8 +42,9 @@ This PKI is intended to exercise many different code paths for testing and is
 most likely **not appropriate** for your use-case!
 
 .. warning::
-   If you are unsure which PKI to create, carefully consider if a simple
-   :ref:`single key setup <sec-pki-single-key>` matches your requirements.
+   If you are unsure which PKI to create, carefully consider if the
+   :ref:`sec-pki-single-key` or :ref:`sec-pki-separate-dev-key` approaches
+   match your requirements.
 
    Avoid using the same PKI for other purposes besides signing RAUC bundles,
    because configuring this is challenging and prone to subtle mistakes.
@@ -134,6 +135,28 @@ While you can use RAUC with these, you can't:
 
 Carefully consider the certificate's validity period in relation to your
 intended update and certificate rollover cycles.
+
+.. _sec-pki-separate-dev-key:
+
+Separate Development and Release Keys
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Compared to the single key approach, this introduces another self-signed key
+which is only used to sign bundles for installation on development devices.
+Release devices would have only the release signing key's certificate in their
+keyring and reject bundles signed with the development key.
+
+By using a dedicated set of development devices, the development signing key
+can be made accessible much more widely, allowing use of RAUC for software
+installation during normal development and testing.
+
+As release bundles are created much less frequently, the overhead caused by
+better protection for the release signing key (e.g. using a HSM) is easier to
+accept.
+This approach reduces the risk of release key compromise without adding the
+complexity of managing an actual CA.
+Keep in mind that the development certificate must never be included in a
+release device's keyring.
 
 Simple CA
 ~~~~~~~~~
