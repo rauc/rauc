@@ -1622,18 +1622,6 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		}
 	}
 
-	if (bundle->manifest->hooks.pre_install) {
-		run_bundle_hook(bundle->manifest, bundle->mount_point, "global-pre-install", &ierror);
-		if (ierror) {
-			res = FALSE;
-			g_propagate_prefixed_error(
-					error,
-					ierror,
-					"Global-pre-install hook failed: ");
-			goto umount;
-		}
-	}
-
 	/* Allow overriding compatible check by hook */
 	if (bundle->manifest->hooks.install_check) {
 		run_bundle_hook(bundle->manifest, bundle->mount_point, "install-check", &ierror);
@@ -1656,6 +1644,18 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		res = FALSE;
 		g_propagate_error(error, ierror);
 		goto umount;
+	}
+
+	if (bundle->manifest->hooks.pre_install) {
+		run_bundle_hook(bundle->manifest, bundle->mount_point, "global-pre-install", &ierror);
+		if (ierror) {
+			res = FALSE;
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Global-pre-install hook failed: ");
+			goto umount;
+		}
 	}
 
 	if (!check_version_limits(args, bundle->manifest, &ierror)) {

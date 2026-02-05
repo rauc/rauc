@@ -412,7 +412,7 @@ the hook executable as the rejection reason message and provide it to the user:
 
 The global-pre-install hook will be called right before the update procedure
 for all slot installations will be started. This hook is executed after the 
-system-defined pre-install handler and before the install-check hook (if defined).
+system-defined pre-install handler and the install-check hook (if defined).
 It allows to perform preparation tasks that should run once before any slot 
 is updated.
 
