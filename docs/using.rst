@@ -441,11 +441,9 @@ return with an exit code >= 10.
   #!/bin/sh
 
   case "$1" in
-         global-post-install)
+          global-post-install)
                   # Log update completion
                   echo "$(date -Iseconds) Updated to ${RAUC_MF_VERSION}" >> /data/update.log
-                  # Schedule reboot to apply update
-                  shutdown -r +1 "Rebooting to complete RAUC update" &
                   ;;
           *)
                   exit 1
