@@ -158,7 +158,7 @@ complexity of managing an actual CA.
 Keep in mind that the development certificate must never be included in a
 release device's keyring.
 
-Simple CA
+Single CA
 ~~~~~~~~~
 
 By using the (self-signed) root CA only for signing other keys, which are used
@@ -168,6 +168,9 @@ for bundle signing, you can:
 * revoke keys and ship the CRL (Certificate Revocation List) with an update
 
 With this setup, you can reduce the impact of a compromised developer key.
+As managing development and release use-cases in a single CA brings an
+additional risk of misconfiguration, using separate CAs is often a better
+choice (see below).
 
 Separate Development and Release CAs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
