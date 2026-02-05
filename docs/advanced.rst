@@ -62,12 +62,12 @@ cms_, verification-options_ and config_) and Stefan H. Holek's pki-tutorial_
 are useful.
 If in doubt, obtain advice from an expert.
 
-.. _ca: https://docs.openssl.org/3.4/man1/openssl-ca/
-.. _req: https://docs.openssl.org/3.4/man1/openssl-req/
-.. _x509: https://docs.openssl.org/3.4/man1/openssl-x509/
-.. _cms: https://docs.openssl.org/3.4/man1/openssl-cms/
-.. _verification-options: https://docs.openssl.org/3.4/man1/openssl-verification-options/
-.. _config: https://docs.openssl.org/3.4/man5/config/
+.. _ca: https://docs.openssl.org/3.6/man1/openssl-ca/
+.. _req: https://docs.openssl.org/3.6/man1/openssl-req/
+.. _x509: https://docs.openssl.org/3.6/man1/openssl-x509/
+.. _cms: https://docs.openssl.org/3.6/man1/openssl-cms/
+.. _verification-options: https://docs.openssl.org/3.6/man1/openssl-verification-options/
+.. _config: https://docs.openssl.org/3.6/man5/config/
 
 .. _pki-tutorial: https://pki-tutorial.readthedocs.io/
 
