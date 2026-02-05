@@ -65,6 +65,16 @@ static gboolean validate_filename_requirements(RaucImage *image, GError **error)
 		}
 	}
 
+	if (image->adaptive && !image->filename) {
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_PARSE_ERROR, "'adaptive' requires 'filename' to be set");
+		return FALSE;
+	}
+
+	if (image->convert && !image->filename) {
+		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_PARSE_ERROR, "'convert' requires 'filename' to be set");
+		return FALSE;
+	}
+
 	return TRUE;
 }
 
