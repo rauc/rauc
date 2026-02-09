@@ -754,19 +754,19 @@ static gboolean extract_start(int argc, char **argv)
 	if (argc < 3) {
 		g_printerr("An input bundle must be provided\n");
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	if (argc < 4) {
 		g_printerr("An output directory must be provided\n");
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	if (argc > 4) {
 		g_printerr("Excess argument: %s\n", argv[4]);
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	g_debug("input bundle: %s", argv[2]);
@@ -779,17 +779,16 @@ static gboolean extract_start(int argc, char **argv)
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
 	if (!extract_bundle(bundle, argv[3], &ierror)) {
 		g_printerr("Failed to extract bundle: %s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
-		goto out;
+		return TRUE;
 	}
 
-out:
 	return TRUE;
 }
 
