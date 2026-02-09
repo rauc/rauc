@@ -769,20 +769,28 @@ static gboolean extract_start(int argc, char **argv)
 		return TRUE;
 	}
 
-	g_debug("input bundle: %s", argv[2]);
-	g_debug("output dir: %s", argv[3]);
+	g_autofree gchar* inbundle = g_strdup(argv[2]);
+	g_autofree gchar* outdir = g_strdup(argv[3]);
+
+	/* strip trailing slash for later path existence check */
+	if (g_str_has_suffix(outdir, "/")) {
+		outdir[strlen(outdir)-1] = '\0';
+	}
+
+	g_debug("input bundle: %s", inbundle);
+	g_debug("output dir: %s", outdir);
 
 	if (trust_environment)
 		check_bundle_params |= CHECK_BUNDLE_TRUST_ENV;
 
-	if (!check_bundle(argv[2], &bundle, check_bundle_params, NULL, &ierror)) {
+	if (!check_bundle(inbundle, &bundle, check_bundle_params, NULL, &ierror)) {
 		g_printerr("%s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
 		return TRUE;
 	}
 
-	if (!extract_bundle(bundle, argv[3], &ierror)) {
+	if (!extract_bundle(bundle, outdir, &ierror)) {
 		g_printerr("Failed to extract bundle: %s\n", ierror->message);
 		g_clear_error(&ierror);
 		r_exit_status = 1;
