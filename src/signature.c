@@ -1819,7 +1819,13 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 
 	/* assert we received envelopedData */
 	if (OBJ_obj2nid(CMS_get0_type(icms)) != NID_pkcs7_enveloped) {
-		g_set_error(error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_INVALID, "Expected CMS of type '%s' but got '%s'", OBJ_nid2sn(NID_pkcs7_enveloped), OBJ_nid2sn(OBJ_obj2nid(CMS_get0_type(icms))));
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_INVALID,
+				"Expected CMS of type '%s' but got '%s'",
+				OBJ_nid2sn(NID_pkcs7_enveloped),
+				OBJ_nid2sn(OBJ_obj2nid(CMS_get0_type(icms))));
 		res = NULL;
 		goto out;
 	}
