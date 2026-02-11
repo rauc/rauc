@@ -2770,7 +2770,7 @@ gboolean extract_bundle(RaucBundle *bundle, const gchar *outputdir, GError **err
 
 	if (g_file_test(outputdir, G_FILE_TEST_EXISTS)) {
 		res = FALSE;
-		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "output directory %s exists already", outputdir);
+		g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_EXIST, "output directory '%s' exists already", outputdir);
 		goto out;
 	}
 
