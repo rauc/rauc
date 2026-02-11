@@ -177,13 +177,6 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 		}
 	}
 
-	/* All requirements to check if a filename is necessary have been collected,
-	 * so we can now check if the current state is valid */
-	if (!validate_filename_requirements(iimage, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
 	g_key_file_remove_key(key_file, group, "version", NULL);
 	g_key_file_remove_key(key_file, group, "description", NULL);
 	g_key_file_remove_key(key_file, group, "build", NULL);
@@ -564,6 +557,17 @@ static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 	if (have_hooks && !mf->hook_name) {
 		g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Hooks used, but no hook 'filename' defined in [hooks] section");
 		return FALSE;
+	}
+
+	for (GList *l = mf->images; l != NULL; l = l->next) {
+		RaucImage *image = l->data;
+		GError *ierror = NULL;
+		/* All requirements to check if a filename is necessary have been collected,
+		 * so we can now check if the current state is valid */
+		if (!validate_filename_requirements(image, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
 	}
 
 	return TRUE;

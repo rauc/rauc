@@ -483,7 +483,7 @@ static void test_manifest_load_types_emptyfs_with_imagename_invalid(void)
 	g_autoptr(RaucManifest) rm = NULL;
 	gchar* manifestpath = NULL;
 	gboolean res;
-	GError *error = NULL;
+	g_autoptr(GError) error = NULL;
 	const gchar *mffile = "\
 [update]\n\
 compatible=FooCorp Super BarBazzer\n\
@@ -507,11 +507,15 @@ filename=appfs.vfat\n\
 	g_free(tmpdir);
 
 	res = load_manifest_file(manifestpath, &rm, &error);
-	g_assert_error(error, R_MANIFEST_ERROR, R_MANIFEST_PARSE_ERROR);
-	g_assert_false(res);
+	g_assert_true(res);
+	g_assert_no_error(error);
 
-	g_clear_error(&error);
 	g_free(manifestpath);
+
+	res = check_manifest_input(rm, &error);
+	g_assert_error(error, R_MANIFEST_ERROR, R_MANIFEST_PARSE_ERROR);
+	g_assert_cmpstr("It is not supported setting 'filename' when 'type=emptyfs' is set", ==, error->message);
+	g_assert_false(res);
 }
 
 static void test_manifest_load_types_emptyfs_valid(void)
