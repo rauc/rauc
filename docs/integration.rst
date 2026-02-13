@@ -1247,11 +1247,32 @@ bootloader or initramfs involved, you have to create an appropriate
 partition layout and either configure boot entries manually or let RAUC do
 that.
 
+.. note::
+
+   In this document we intentionally use the term "redundant VFAT partition"
+   instead of "EFI System Partition (ESP)".
+   Technically, an ESP is just a VFAT partition marked with the EFI system
+   partition GUID.
+
+   Some firmware implementations automatically detect partitions with the ESP
+   type GUID and may implicitly create or update boot entries for them.
+   While this behavior can be convenient, it may interfere with setups where
+   RAUC is expected to manage EFI boot entries explicitly (e.g. for A/B
+   redundancy).
+
+   When manual control over EFI boot entry creation is desired (for example
+   when using efibootmgr or RAUC's ``bootloader=efi`` integration), the
+   ESP type GUID can be omitted so that the partition is treated as a
+   regular VFAT partition.
+   This prevents firmware auto-detection and ensures that boot entries are
+   created and maintained only through the configured tooling.
+
 Assuming a simple A/B redundancy, you would need:
 
-* 2 redundant EFI partitions holding an EFI stub kernel
-  (e.g. at ``EFI/LINUX/BZIMAGE.EFI``)
-* 2 redundant rootfs partitions
+* Two redundant VFAT partitions, each holding an EFI stub kernel (e.g. at
+  ``EFI/LINUX/BZIMAGE.EFI``) or a `UKI
+  <https://uapi-group.org/specifications/specs/unified_kernel_image/>`_.
+* Two redundant rootfs partitions
 
 Let RAUC create missing EFI boot entries when marking slots good, bad or active
 with a ``system.conf`` such as:
@@ -1309,10 +1330,10 @@ You can inspect and verify your settings by running:
 
   # efibootmgr -v
 
-In your ``system.conf``, you have to list both the EFI partitions (each containing
-one kernel) as well as the rootfs partitions.
-Make the first rootfs partition a child of the first EFI partition and the
-second rootfs partition a child of the second EFI partition to have valid slot
+In your ``system.conf``, you have to list both the redundant VFAT partitions
+(each containing one EFI stub kernel or UKI) as well as the rootfs partitions.
+Make the first rootfs partition a child of the first VFAT partition and the
+second rootfs partition a child of the second VFAT partition to have valid slot
 groups.
 Set the EFI slot bootnames to those we have defined with the ``--label``
 argument in the ``efibootmgr`` call above:
