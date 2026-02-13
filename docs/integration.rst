@@ -1230,8 +1230,10 @@ your script's ``load_env`` and ``save_env`` calls, like::
 EFI
 ~~~
 
-For x86 systems that directly boot via EFI/UEFI, RAUC supports interaction with
-EFI boot entries by using the `efibootmgr` tool.
+For x86 systems that boot directly via EFI/UEFI (without an intermediate
+bootloader such as GRUB or systemd-boot), RAUC supports managing EFI boot
+entries using the ``efibootmgr`` tool.
+
 To enable EFI bootloader support in RAUC, write in your ``system.conf``:
 
 .. code-block:: cfg
@@ -1242,32 +1244,85 @@ To enable EFI bootloader support in RAUC, write in your ``system.conf``:
 
 To set up a system ready for pure EFI-based redundancy boot without any further
 bootloader or initramfs involved, you have to create an appropriate
-partition layout and matching boot EFI entries.
+partition layout and either configure boot entries manually or let RAUC do
+that.
+
+.. note::
+
+   In this document we intentionally use the term "redundant VFAT partition"
+   instead of "EFI System Partition (ESP)".
+   Technically, an ESP is just a VFAT partition marked with the EFI system
+   partition GUID.
+
+   Some firmware implementations automatically detect partitions with the ESP
+   type GUID and may implicitly create or update boot entries for them.
+   While this behavior can be convenient, it may interfere with setups where
+   RAUC is expected to manage EFI boot entries explicitly (e.g. for A/B
+   redundancy).
+
+   When manual control over EFI boot entry creation is desired (for example
+   when using efibootmgr or RAUC's ``bootloader=efi`` integration), the
+   ESP type GUID can be omitted so that the partition is treated as a
+   regular VFAT partition.
+   This prevents firmware auto-detection and ensures that boot entries are
+   created and maintained only through the configured tooling.
 
 Assuming a simple A/B redundancy, you would need:
 
-* 2 redundant EFI partitions holding an EFI stub kernel
-  (e.g. at ``EFI/LINUX/BZIMAGE.EFI``)
-* 2 redundant rootfs partitions
+* Two redundant VFAT partitions, each holding an EFI stub kernel (e.g. at
+  ``EFI/LINUX/BZIMAGE.EFI``) or a `UKI
+  <https://uapi-group.org/specifications/specs/unified_kernel_image/>`_.
+* Two redundant rootfs partitions
 
-To create boot entries for these, use the efibootmgr tool:
+Let RAUC create missing EFI boot entries when marking slots good, bad or active
+with a ``system.conf`` such as:
+
+.. code-block:: cfg
+  :emphasize-lines: 8, 9, 14, 15
+
+  [system]
+  ...
+  bootloader=efi
+
+  [slot.efi.0]
+  ...
+  bootname=system0
+  efi-loader=\\EFI\\LINUX\\BZIMAGE.EFI
+  efi-cmdline=root=PARTUUID=<partuuid-of-part-1>
+
+  [slot.efi.1]
+  ...
+  bootname=system1
+  efi-loader=\\EFI\\LINUX\\BZIMAGE.EFI
+  efi-cmdline=root=PARTUUID=<partuuid-of-part-2>
+
+Or create boot entries manually beforehand:
 
 .. code-block:: console
   :emphasize-lines: 2, 4, 6, 8
 
-  # efibootmgr --create --disk /dev/sdaX \
+  # efibootmgr --create --disk /dev/sda \
     --part 1 --label "system0" \
     --loader \\EFI\\LINUX\\BZIMAGE.EFI \
     --unicode "root=PARTUUID=<partuuid-of-part-1>"
-  # efibootmgr --create --disk /dev/sdaX \
+  # efibootmgr --create --disk /dev/sda \
     --part 2 --label "system1" \
     --loader \\EFI\\LINUX\\BZIMAGE.EFI \
     --unicode "root=PARTUUID=<partuuid-of-part-2>"
 
-where you replace /dev/sdaX with the name of the disk you use for redundancy
+where you replace ``/dev/sda`` with the name of the disk you use for redundancy
 boot, ``<partuuid-of-part-1>`` with the PARTUUID of the first rootfs
 partition and ``<partuuid-of-part-2>`` with the PARTUUID of the second rootfs
 partition.
+
+.. note:: When booting `UKIs
+   <https://uapi-group.org/specifications/specs/unified_kernel_image/>`_
+   from redundant VFAT partitions, the EFI command line (RAUC's
+   ``efi-cmdline`` or efibootmgr's ``--unicode``) can point to a
+   `UKI profile
+   <https://uapi-group.org/specifications/specs/unified_kernel_image/#multi-profile-ukis>`_
+   (e.g. ``@1``) defining the corresponding ``root=`` and ``rauc.slot=`` kernel
+   command line parameters.
 
 You can inspect and verify your settings by running:
 
@@ -1275,12 +1330,12 @@ You can inspect and verify your settings by running:
 
   # efibootmgr -v
 
-In your ``system.conf``, you have to list both the EFI partitions (each containing
-one kernel) as well as the rootfs partitions.
-Make the first EFI partition a child of the first rootfs partition and the
-second EFI partition a child of the second rootfs partition to have valid slot
+In your ``system.conf``, you have to list both the redundant VFAT partitions
+(each containing one EFI stub kernel or UKI) as well as the rootfs partitions.
+Make the first rootfs partition a child of the first VFAT partition and the
+second rootfs partition a child of the second VFAT partition to have valid slot
 groups.
-Set the rootfs slot bootnames to those we have defined with the ``--label``
+Set the EFI slot bootnames to those we have defined with the ``--label``
 argument in the ``efibootmgr`` call above:
 
 .. code-block:: cfg
@@ -1288,22 +1343,22 @@ argument in the ``efibootmgr`` call above:
   [slot.efi.0]
   device=/dev/sdX1
   type=vfat
-  parent=rootfs.0
+  bootname=system0
 
   [slot.efi.1]
   device=/dev/sdX2
   type=vfat
-  parent=rootfs.1
+  bootname=system1
 
   [slot.rootfs.0]
   device=/dev/sdX3
   type=ext4
-  bootname=system0
+  parent=efi.0
 
   [slot.rootfs.1]
   device=/dev/sdX4
   type=ext4
-  bootname=system1
+  parent=efi.1
 
 .. _sec-custom-bootloader-backend:
 
