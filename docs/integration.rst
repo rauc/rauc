@@ -532,6 +532,10 @@ tool to interact with it:
 :U-Boot: fw_setenv/fw_getenv (from `u-boot <http://git.denx.de/?p=u-boot.git;a=summary>`_)
 :GRUB: grub-editenv
 :EFI: efibootmgr
+:Raspberry Pi firmware: vcmailbox (from `raspberry utils
+                        <https://github.com/raspberrypi/utils>`_), downstream
+                        vcio kernel module (from `linux-raspberrypi
+                        <https://github.com/raspberrypi/linux/blob/rpi-6.6.y/drivers/char/broadcom/vcio.c>`_)
 
 Note that for running ``rauc info`` on the target (as well as on the host), you
 also need to have the ``unsquashfs`` tool installed.
@@ -1359,6 +1363,197 @@ argument in the ``efibootmgr`` call above:
   device=/dev/sdX4
   type=ext4
   parent=efi.1
+
+Raspberry Pi firmware
+~~~~~~~~~~~~~~~~~~~~~
+
+The Raspberry Pi firmware supports fail-safe OS updates with A/B booting,
+thanks to the optional configuration file `autoboot.txt
+<https://www.raspberrypi.com/documentation/computers/config_txt.html#autoboot-txt>`_
+and the one-shot reboot flag `tryboot
+<https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#fail-safe-os-updates-tryboot>`_.
+
+.. warning:: The Raspberry Pi firmware relies on a set of FAT filesystems to
+   sync its state.
+   Consequently, the ``barebox`` and ``uboot`` backends are more reliable as
+   they write their state in raw instead of in filesystems.
+   Additionally, it is recommended to run the Linux kernel 6.0, or any later
+   version, since the vfat driver supports renameat2() and the flag
+   RENAME_EXCHANGE.
+
+That backend addresses the use case of booting the kernel directly from the
+Raspberry Pi firmware, i.e. without the help of an additional bootloader such
+as Barebox or U-Boot.
+Refer to these backends if using one of those.
+
+.. important:: The bootloader backend for the Raspberry Pi firmware cannot
+   implement a boot attempts counter.
+   The one-shot reboot flag is similar to the EFI variable ``BootNext`` of the
+   EFI bootloader backend.
+   It is a boot attempts counter of 1 after an update; the firmware cannot fall
+   back to the other slot if the primary slot becomes unbootable later.
+
+The Raspberry Pi backend updates the file ``autoboot.txt`` present in the first
+FAT partition.
+It gets the one-shot reboot flag set by the firmware in the device-tree node
+``/chosen/bootloader/partition`` at boot, and it sets it to the firmware for
+the next boot thanks to the utility ``vcmailbox``.
+
+.. important:: The first FAT filesystem is given by the partition type FAT32
+   (``0x0C``) for an MBR Partition Table, or by the GUID partition types EFI
+   System Partition (``c12a7328-f81f-11d2-ba4b-00a0c93ec93b``) or Basic Data
+   Partition (``ebd0a0a2-b9e5-4433-87c0-68b6b72699c7``) for a GPT Partition
+   Table.
+
+To use this backend, select the Raspberry Pi bootloader in RAUC's
+``system.conf``, and eventually select the location for the file
+``autoboot.txt`` if it is not located at ``/boot/autoboot.txt``:
+
+.. code-block:: cfg
+
+  [system]
+  ...
+  bootloader=raspberrypi
+  raspberrypi-autoboot-txt=/autoboot/autoboot.txt # only if not at the default /boot/autoboot.txt location
+
+Setting up the (Fail-Safe) autoboot.txt/tryboot partition scheme
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The system requires the following partitions for a simple A/B redundancy
+system:
+
+* 1 FAT filesystem holding the file ``autoboot.txt`` and the Raspberry Pi
+  bootloader file ``bootcode.bin`` if using a model without an EEPROM
+  bootloader (i.e. a model former than the Raspberry Pi 4 family)
+* 2 redundant FAT filesystems holding the bootloader files: the Raspberry Pi
+  files ``config.txt`` and ``cmdline.txt``, the kernel files (image, fdt), and
+  the VideoCore files if using a model former than the Raspberry Pi 5 family
+* 2 redundant rootfs partitions
+
+The key-value file ``autoboot.txt`` lists the location of the redundant FAT
+filesystems holding the file ``config.txt``.
+The section ``all`` sets the current slot and the section ``tryboot`` sets the
+next slot.
+The property ``boot_partition`` sets the index of the nth partition of type FAT
+filesystem, starting with ``1``.
+
+.. important:: The attribute ``boot_partition`` does not indicate the raw index
+   in the partition table.
+
+In short, ``boot_partition=1`` is the FAT filesystem containing the file
+``autoboot.txt``, ``boot_partition=2`` and ``boot_partition=3`` are typically
+the first and second slots if no extra FAT partitions interleave between these
+three filesystems.
+
+A typical ``autooboot.txt`` file booting the first slot looks like this:
+
+.. code-block:: cfg
+
+  [all]
+  tryboot_a_b=1
+  boot_partition=2
+  [tryboot]
+  boot_partition=3
+
+RAUC's ``system.conf`` lists the two FAT partitions containing the
+``config.txt`` and the two rootfs partitions.
+Those rootfs slots are parented to their FAT filesystem slot.
+
+.. important:: The value set in ``boot_partition`` is the bootloader name, and
+   must match the property ``bootname`` set in the FAT filesystem slots.
+
+A typical ``system.conf`` file using an MBR partition table looks like:
+
+.. code-block:: cfg
+
+  [system]
+  bootloader=raspberrypi
+
+  [slot.firmware.0]
+  device=/dev/mmcblk0p2
+  type=vfat
+  bootname=2
+
+  [slot.firmware.1]
+  device=/dev/mmcblk0p3
+  type=vfat
+  bootname=3
+
+  [slot.rootfs.0]
+  device=/dev/mmcblkp5
+  type=ext4
+  parent=firmware.0
+
+  [slot.rootfs.1]
+  device=/dev/mmcblk0p6
+  type=ext4
+  parent=firmware.1
+
+.. note:: The block device ``/dev/mmcblk0p4`` is the extended partition
+   containing the logical rootfs partitions as an MBR partition table is
+   limited to only four primary partitions.
+
+Setting up Kernel Updates
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The kernel files are split in the root and the firmware filesystems:
+
+* the kernel image and the device-tree blobs (including overlays) are
+  part of the firmware filesystems
+* the kernel modules are part of the root filesystems
+
+Consequently, a kernel change implies an update of both paired partitions.
+
+.. important:: The firmware filesystems contain the kernel command-line in file
+   `cmdline.txt <https://www.raspberrypi.com/documentation/computers/config_txt.html#cmdline>`_.
+   While it's possible to add the kernel parameter ``root=`` there, the slot to
+   which the firmware image is installed is only selected at runtime. Thus,
+   the images in the bundle must be slot agnostic (A vs. B), and must **not**
+   set that parameter.
+
+Ideally, the firmware filesystem should use an initramfs to mount the root
+filesystem selected by the bootloader by using the information added to the
+device-tree.
+The initramfs init script should look like:
+
+.. code-block:: sh
+
+  #!/bin/sh
+  part=$(fdtget /sys/firmware/fdt /chosen/bootloader partition)
+  if [ "$part" -eq 0 ]
+  then
+    exec /bin/sh
+  fi
+
+  mkdir /newroot
+  if [ "$part" -eq 2 ]
+  then
+    mount /dev/mmcblk0p5 /newroot
+  else
+    mount /dev/mmcblk0p6 /newroot
+  fi
+  exec /newroot/sbin/init "$@"
+
+Alternatively, the bundle may use a hook to update the kernel command-line file
+``cmdline.txt`` at installation.
+The post-installation hook script could be similar to:
+
+.. code-block:: sh
+
+  #!/bin/sh
+  if [ "$1" = "slot-post-install" ]
+  then
+    if [ "$RAUC_SLOT_BOOTNAME" = "2" ]
+    then
+      echo "root=/dev/mmcblk0p5 console=tty1 console=serial0" >"$RAUC_SLOT_MOUNT_POINT/cmdline.txt"
+    else
+      echo "root=/dev/mmcblk0p6 console=tty1 console=serial0" >"$RAUC_SLOT_MOUNT_POINT/cmdline.txt"
+    fi
+  fi
+
+.. important:: The Raspberry Pi 5 EEPROM has to be updated to `2024-05-13
+   <https://github.com/raspberrypi/rpi-eeprom/blob/master/firmware-2712/release-notes.md#2024-05-13-add-support-for-nvme-boot-with-pcie-switches-latest>`_.
+   See `issue <https://github.com/raspberrypi/rpi-eeprom/issues/575>`_.
 
 .. _sec-custom-bootloader-backend:
 

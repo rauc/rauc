@@ -17,6 +17,10 @@ mount -t tmpfs none /tmp
 mkdir /dev/shm
 mount -t tmpfs none /dev/shm
 
+# create overlay for /sys/firmware
+mkdir /tmp/sys-firmware-overlay /tmp/sys-firmware-work
+mount -t overlay overlay -o lowerdir=/sys/firmware,upperdir=/tmp/sys-firmware-overlay,workdir=/tmp/sys-firmware-work /sys/firmware
+
 # create overlay for /etc
 mkdir /tmp/etc-overlay /tmp/etc-work
 mount -t overlay overlay -o lowerdir=/etc,upperdir=/tmp/etc-overlay,workdir=/tmp/etc-work /etc
@@ -153,6 +157,11 @@ fi
 
 # remove potential host rauc system config
 rm -rf /etc/rauc
+
+# create raspberrypi bootloader node and its tryboot and partition attributes
+mkdir -p /sys/firmware/devicetree/base/chosen/bootloader
+printf "\000\000\000\000" >/sys/firmware/devicetree/base/chosen/bootloader/tryboot
+printf "\000\000\000\002" >/sys/firmware/devicetree/base/chosen/bootloader/partition
 
 # setup required for interactive system
 if [ -n "$SERVICE" ]; then
