@@ -1,0 +1,25 @@
+name: documentation
+
+on: [push, pull_request]
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/jluebbe/qemu/rauc-ci-qemu:latest
+      # allow mounting and devtmpfs in the container
+      options: --user=root --privileged -v /dev:/dev
+    steps:
+    - name: Inspect environment
+      run: |
+        whoami
+        gcc --version
+        ls -l /dev/kvm || true
+
+    - uses: actions/checkout@v4
+    - name: Build documentation
+      run: |
+        rm -rf build/
+        meson setup -Dtests=false -Dhtmldocs=true build
+        meson configure build
+        meson compile -C build

@@ -1,6 +1,12 @@
 name: tests
 
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
 
 jobs:
   build:
@@ -59,13 +65,6 @@ jobs:
         meson configure build
         meson compile -C build
         meson test -C build --suite rauc:fuzzing
-        
-    - name: Build documentation
-      run: |
-        rm -rf build/
-        meson setup -Dtests=false -Dhtmldocs=true build
-        meson configure build
-        meson compile -C build
 
     - name: Build CGI example
       run: |
