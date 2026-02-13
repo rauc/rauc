@@ -664,6 +664,9 @@ separator.
   is (re)created with the given loader string via ``efibootmgr``'s ``--loader``
   option during mark good/bad/active operations, if it is missing.
 
+  .. note:: Backslashes must be escaped as ``\\``, e.g.:
+     ``efi-loader=\\EFI\\BOOT\\BOOTX64.EFI``.
+
 ``efi-cmdline`` (optional)
   Only valid when ``bootloader`` is set to ``efi``.
   If set in combination with ``efi-loader``, an EFI boot entry for this slot is
