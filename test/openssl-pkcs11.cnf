@@ -1,0 +1,18 @@
+openssl_conf = openssl_init
+
+[openssl_init]
+providers = provider_sect
+
+[provider_sect]
+default = default_sect
+pkcs11 = pkcs11_sect
+
+[default_sect]
+activate = 1
+
+[pkcs11_sect]
+module = /usr/lib/x86_64-linux-gnu/ossl-modules/pkcs11.so
+pkcs11-module-path = /usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so
+pkcs11-module-token-pin = 1111
+pkcs11-module-quirks = no-deinit
+activate = 1
