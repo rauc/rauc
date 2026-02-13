@@ -1230,8 +1230,10 @@ your script's ``load_env`` and ``save_env`` calls, like::
 EFI
 ~~~
 
-For x86 systems that directly boot via EFI/UEFI, RAUC supports interaction with
-EFI boot entries by using the `efibootmgr` tool.
+For x86 systems that boot directly via EFI/UEFI (without an intermediate
+bootloader such as GRUB or systemd-boot), RAUC supports managing EFI boot
+entries using the ``efibootmgr`` tool.
+
 To enable EFI bootloader support in RAUC, write in your ``system.conf``:
 
 .. code-block:: cfg
