@@ -1307,6 +1307,7 @@ static void log_event_installation_done(RaucInstallArgs *args, RaucManifest *man
 		{"BUNDLE_HASH", "", -1},
 		{"BUNDLE_DESCRIPTION", "", -1},
 		{"BUNDLE_VERSION", "", -1},
+		{"BUNDLE_NAME", args->name, -1},
 		{"TRANSACTION_ID", args->transaction, -1},
 	};
 
@@ -1548,6 +1549,10 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 
 	if (!args->transaction)
 		args->transaction = g_uuid_string_random();
+
+	//ToDo: shouldn't the dbus property be updated *here*?
+	//(but here, the r_installer isn't accessible)
+	//r_installer_set_last_transaction(r_installer, args->transaction);
 
 	r_context_begin_step("do_install_bundle", "Installing", 10);
 
