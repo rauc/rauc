@@ -481,6 +481,45 @@ guint64 key_file_consume_binary_suffixed_string(GKeyFile *key_file,
 	return result << scale_shift;
 }
 
+gchar **key_file_consume_string_list(
+		GKeyFile *key_file,
+		const gchar *group_name,
+		const gchar *key,
+		const gchar * const *allowed,
+		GError **error)
+{
+	GError *ierror = NULL;
+	gsize length = 0;
+
+	g_auto(GStrv) result = g_key_file_get_string_list(key_file, group_name, key, &length, &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		/* handle missing key the same as an empty list */
+		g_clear_error(&ierror);
+		return NULL;
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	g_key_file_remove_key(key_file, group_name, key, NULL);
+
+	if (length == 0)
+		return NULL;
+
+	/* check against allow-list */
+	if (allowed) {
+		for (gsize i = 0; i < length; i++) {
+			if (!g_strv_contains(allowed, result[i])) {
+				g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
+						"Unsupported list item '%s' for key '%s' in [%s]", result[i], key, group_name);
+				return NULL;
+			}
+		}
+	}
+
+	return g_steal_pointer(&result);
+}
+
 gchar * r_realpath(const gchar *path)
 {
 	gchar buf[PATH_MAX + 1];

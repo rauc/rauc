@@ -11,6 +11,7 @@
 #include "mount.h"
 #include "slot.h"
 #include "utils.h"
+#include "polling.h"
 
 G_DEFINE_QUARK(r-config-error-quark, r_config_error)
 G_DEFINE_QUARK(r-slot-error-quark, r_slot_error)
@@ -765,6 +766,111 @@ static gboolean parse_streaming_section(GKeyFile *key_file, RaucConfig *c, GErro
 	return TRUE;
 }
 
+static gboolean parse_polling_section(GKeyFile *key_file, RaucConfig *c, GError **error)
+{
+	GError *ierror = NULL;
+
+	if (!g_key_file_has_group(key_file, "polling"))
+		return TRUE;
+
+	if (!ENABLE_STREAMING) {
+		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_POLLING,
+				"Polling not supported, recompile with -Dstreaming=true");
+		return FALSE;
+	}
+
+	c->polling_inhibit_files = key_file_consume_string_list(key_file, "polling", "inhibit-files", NULL, &ierror);
+	if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	c->polling_candidate_criteria = key_file_consume_string_list(
+			key_file, "polling", "candidate-criteria", r_polling_supported_candidate_criteria, &ierror);
+	if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	} else if (!c->polling_candidate_criteria) {
+		c->polling_candidate_criteria = g_strdupv((GStrv)r_polling_default_candidate_criteria);
+	}
+
+	c->polling_install_criteria = key_file_consume_string_list(
+			key_file, "polling", "install-criteria", r_polling_supported_install_criteria, &ierror);
+	if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	c->polling_reboot_criteria = key_file_consume_string_list(
+			key_file, "polling", "reboot-criteria", r_polling_supported_reboot_criteria, &ierror);
+	if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	c->polling_url = key_file_consume_string(key_file, "polling", "url", NULL);
+	if (!c->polling_url) {
+		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_POLLING,
+				"Polling URL must be set if [polling] section exists");
+		return FALSE;
+	} else if (!g_str_has_prefix(c->polling_url, "http")) {
+		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_POLLING,
+				"Polling URL (%s) must be use HTTP(S)",
+				c->polling_url);
+		return FALSE;
+	}
+
+	gint interval_sec = key_file_consume_integer(key_file, "polling", "interval-sec", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		interval_sec = 24*60*60; /* one day */
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	if (interval_sec < 60) {
+		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_POLLING,
+				"Polling interval (%d s) must not be smaller than one minute",
+				interval_sec);
+		return FALSE;
+	}
+	gint max_interval_sec = key_file_consume_integer(key_file, "polling", "max-interval-sec", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		max_interval_sec = interval_sec * 4;
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	if (max_interval_sec <= interval_sec) {
+		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_POLLING,
+				"Maximum polling interval (%d s) must be larger than the normal polling interval (%d s)",
+				max_interval_sec,
+				interval_sec);
+		return FALSE;
+	}
+
+	c->polling_interval_ms = interval_sec * 1000;
+	c->polling_max_interval_ms = max_interval_sec * 1000;
+
+	c->polling_reboot_cmd = key_file_consume_string(key_file, "polling", "reboot-cmd", &ierror);
+	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
+		c->polling_reboot_cmd = g_strdup("reboot");
+		g_clear_error(&ierror);
+	} else if (ierror) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (!check_remaining_keys(key_file, "polling", &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+	g_key_file_remove_group(key_file, "polling", NULL);
+
+	return TRUE;
+}
+
 static gboolean parse_encryption_section(const gchar *filename, GKeyFile *key_file, RaucConfig *c, GError **error)
 {
 	GError *ierror = NULL;
@@ -1266,6 +1372,12 @@ static RaucConfig *parse_config(const gchar *filename, const gchar *data, gsize 
 		return NULL;
 	}
 
+	/* parse [polling] section */
+	if (!parse_polling_section(key_file, c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
 	/* parse [encryption] section */
 	if (!parse_encryption_section(filename, key_file, c, &ierror)) {
 		g_propagate_error(error, ierror);
@@ -1450,6 +1562,12 @@ void free_config(RaucConfig *config)
 	g_free(config->encryption_key);
 	g_free(config->encryption_cert);
 	g_list_free_full(config->loggers, (GDestroyNotify)r_event_log_free_logger);
+	g_free(config->polling_url);
+	g_strfreev(config->polling_inhibit_files);
+	g_strfreev(config->polling_candidate_criteria);
+	g_strfreev(config->polling_install_criteria);
+	g_strfreev(config->polling_reboot_criteria);
+	g_free(config->polling_reboot_cmd);
 	g_clear_pointer(&config->slots, g_hash_table_destroy);
 	g_free(config->custom_bootloader_backend);
 	g_free(config->file_checksum);

@@ -40,7 +40,9 @@ for x in "$@"; do
     export LSAN_OPTIONS=suppressions="$(pwd)/test/asan.supp"
     export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
   elif [ "$x" = "service-backtrace" ]; then
-    SERVICE_BACKTRACE=1
+    export SERVICE_BACKTRACE=1
+  elif [ "$x" = "service-poll" ]; then
+    export SERVICE_POLL=1
   fi
 done
 
@@ -193,6 +195,20 @@ if [ -n "$SERVICE" ]; then
     echo "" >> /etc/rauc/system.conf
   fi
 
+  if [ -n "$SERVICE_POLL" ]; then
+    export RAUC_TEST_POLLING_SPEEDUP=10
+    echo "" >> /etc/rauc/system.conf
+    echo "[handlers]" >> /etc/rauc/system.conf
+    echo "system-info=$(pwd)/test/bin/systeminfo.sh" >> /etc/rauc/system.conf
+    echo "" >> /etc/rauc/system.conf
+    echo "[polling]" >> /etc/rauc/system.conf
+    echo "url=https://127.0.0.2/test/good-adaptive-meta-bundle.raucb" >> /etc/rauc/system.conf
+    echo "inhibit-files=/run/rauc/inhibit-poll" >> /etc/rauc/system.conf
+    echo "interval-sec=600" >> /etc/rauc/system.conf
+    echo "max-interval-sec=6000" >> /etc/rauc/system.conf
+    echo "reboot-cmd=touch /run/rauc-poll-reboot-pending" >> /etc/rauc/system.conf
+  fi
+
   if grep -q "ENABLE_COMPOSEFS 1" $BUILD_DIR/config.h; then
     echo "" >> /etc/rauc/system.conf
     echo "[artifacts.composefs]" >> /etc/rauc/system.conf
@@ -236,6 +252,7 @@ echo "use ctrl-a x to exit and ctrl-a c to access the qemu monitor"
 echo "system ready"
 
 if [ -n "$SERVICE" ]; then
+  sleep 1
   rauc status mark-good
 fi
 
