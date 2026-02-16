@@ -338,6 +338,10 @@ For example, a bundle can be signed with a certificate and key available as
     <input-dir> <output-file>
 
 .. note::
+  PKCS#11 URI support requires either ``pkcs11_engine`` (legacy) or ``pkcs11_providers``
+  feature enabled on the compile time.
+
+.. note::
   Most PKCS#11 implementations require a PIN for signing operations.
   You can either enter the PIN interactively as requested by RAUC or use the
   ``RAUC_PKCS11_PIN`` environment variable to specify the PIN to use.
