@@ -17,6 +17,15 @@ case "$1" in
 		echo "No, I won't install this!" 1>&2
 		exit 10
 		;;
+	global-post-install)
+		test -n "$RAUC_MF_COMPATIBLE" || die_error "missing RAUC_MF_COMPATIBLE"
+		test -n "$RAUC_SYSTEM_COMPATIBLE" || die_error "missing RAUC_SYSTEM_COMPATIBLE"
+		
+		test -d "$RAUC_MOUNT_PREFIX" || die_error "missing RAUC_MOUNT_PREFIX"
+
+		echo "$RAUC_MOUNT_PREFIX/global-post-install-stamp"
+		touch "$RAUC_MOUNT_PREFIX/global-post-install-stamp"
+		;;
 	slot-post-install)
 		test -n "$RAUC_SLOT_NAME" || die_error "missing RAUC_SLOT_NAME"
 		test -n "$RAUC_SLOT_CLASS" || die_error "missing RAUC_SLOT_CLASS"

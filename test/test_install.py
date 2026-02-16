@@ -290,6 +290,12 @@ def test_install_hook_env(rauc_dbus_service_with_system, tmp_path, bundle):
         install-check)
             env | sort > "$RAUC_PYTEST_TMP/install-check-hook-env"
             ;;
+        global-pre-install)
+            env | sort > "$RAUC_PYTEST_TMP/global-pre-install-hook-env"
+            ;;
+        global-post-install)
+            env | sort > "$RAUC_PYTEST_TMP/global-post-install-hook-env"
+            ;;
         slot-pre-install)
             env | sort > "$RAUC_PYTEST_TMP/slot-pre-install-hook-env"
             ;;
@@ -305,7 +311,7 @@ def test_install_hook_env(rauc_dbus_service_with_system, tmp_path, bundle):
     esac
     """)
     )
-    bundle.manifest["hooks"]["hooks"] = "install-check"
+    bundle.manifest["hooks"]["hooks"] = "install-check;pre-install;post-install"
     bundle.manifest["image.rootfs"] = {
         "filename": "rootfs.img",
         "hooks": "pre-install;post-install",
@@ -332,6 +338,14 @@ def test_install_hook_env(rauc_dbus_service_with_system, tmp_path, bundle):
         assert "RAUC_SYSTEM_COMPATIBLE=Test Config\n" in check_lines
         assert "RAUC_SYSTEM_VARIANT=Default Variant\n" in check_lines
         assert "RAUC_META_TEST_FOO=bar\n" in check_lines
+
+    with open(tmp_path / "global-pre-install-hook-env") as f:
+        global_pre_lines = f.readlines()
+        assert check_lines == global_pre_lines
+
+    with open(tmp_path / "global-post-install-hook-env") as f:
+        global_post_lines = f.readlines()
+        assert check_lines == global_post_lines
 
     with open(tmp_path / "slot-pre-install-hook-env") as f:
         pre_lines = f.readlines()

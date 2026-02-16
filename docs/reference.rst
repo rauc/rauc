@@ -884,7 +884,7 @@ The hooks section allows to provide a user-defined executable for
   List of hooks enabled for this bundle.
   See :ref:`sec-install-hooks` for more details.
 
-  Valid items are: ``install-check``
+  Valid items are: ``install-check``, ``pre-install``, ``post-install``
 
 .. _sec-manifest-handler:
 
@@ -1077,7 +1077,8 @@ way to add metadata to the manifest which is not interpreted by RAUC in any
 way.
 They are accessible via ``rauc info``, the :ref:`"InspectBundle" D-Bus API
 <gdbus-method-de-pengutronix-rauc-Installer.InspectBundle>`, pre-/post-install
-:ref:`handlers <sec-handler-interface>` and the ``install-check`` hook.
+:ref:`handlers <sec-handler-interface>`, the ``install-check`` hook and the 
+global-pre-/post-install hooks.
 In future releases, they will be accessible in other hooks, as well.
 
 ``<key>`` (optional)
@@ -1965,7 +1966,8 @@ OUT *info* ``a{sv}``:
             The hook filename
 
         *info.hooks.hooks* variant ``as`` <hooks>:
-            An array of enabled hooks (i.e. ``install-check``)
+            An array of enabled hooks (i.e. ``install-check``, 
+            ``pre-install`` or ``post-install``)
 
     *info.handler* variant ``a{sv}`` <handler-dict>:
         The bundle's ``[handler]`` section content

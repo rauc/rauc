@@ -377,6 +377,10 @@ static gboolean parse_manifest(GKeyFile *key_file, RaucManifest **manifest, GErr
 	for (gsize j = 0; j < hook_entries; j++) {
 		if (g_strcmp0(bundle_hooks[j], "install-check") == 0) {
 			raucm->hooks.install_check = TRUE;
+		} else if (g_strcmp0(bundle_hooks[j], "pre-install") == 0) {
+			raucm->hooks.pre_install = TRUE;
+		} else if (g_strcmp0(bundle_hooks[j], "post-install") == 0) {
+			raucm->hooks.post_install = TRUE;
 		} else {
 			g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE,
 					"install hook type '%s' not supported", bundle_hooks[j]);
@@ -546,6 +550,10 @@ static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 	/* Check for hook file set if hooks are enabled */
 
 	if (mf->hooks.install_check == TRUE)
+		have_hooks = TRUE;
+	if (mf->hooks.pre_install == TRUE)
+		have_hooks = TRUE;
+	if (mf->hooks.post_install == TRUE)
 		have_hooks = TRUE;
 
 	for (GList *l = mf->images; l != NULL; l = l->next) {
@@ -967,6 +975,12 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 	if (mf->hooks.install_check == TRUE) {
 		g_ptr_array_add(hooks, g_strdup("install-check"));
 	}
+	if (mf->hooks.pre_install == TRUE) {
+		g_ptr_array_add(hooks, g_strdup("pre-install"));
+	}
+	if (mf->hooks.post_install == TRUE) {
+		g_ptr_array_add(hooks, g_strdup("post-install"));
+	}
 	g_ptr_array_add(hooks, NULL);
 	if (hooks->pdata && *hooks->pdata) {
 		g_key_file_set_string_list(key_file, "hooks", "hooks",
@@ -1140,6 +1154,10 @@ GVariant* r_manifest_to_dict(const RaucManifest *manifest)
 		g_variant_builder_init(&builder, G_VARIANT_TYPE("as"));
 		if (manifest->hooks.install_check)
 			g_variant_builder_add(&builder, "s", "install-check");
+		if (manifest->hooks.pre_install)
+			g_variant_builder_add(&builder, "s", "pre-install");
+		if (manifest->hooks.post_install)
+			g_variant_builder_add(&builder, "s", "post-install");
 		g_variant_dict_insert(&grp_dict, "hooks", "v", g_variant_builder_end(&builder));
 		g_variant_dict_insert(&root_dict, "hooks", "v", g_variant_dict_end(&grp_dict));
 	}
