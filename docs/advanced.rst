@@ -1127,6 +1127,11 @@ individually.
 If the device has no variant configured, or if the bundle does not contain an
 image matching the device's variant, the default image (if present) is used.
 
+When using streaming installation, the increased bundle size does not
+significantly affect the amount of data transferred, since only the
+images selected for installation (i.e. matching the device variant)
+are streamed to the target.
+
 .. _sec_device-variant:
 
 Specifying the Device Variant
