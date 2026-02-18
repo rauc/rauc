@@ -1256,7 +1256,12 @@ For the above example manifest, this means:
 
   This prevents unintentional partial updates that could render a device
   unusable.
-  
+
+Similar to RAUC's ``compatible`` mechanism, variants do not support grouping
+or hierarchies.
+If multiple variants require the same image while others require different
+ones, the same image file can be referenced from multiple
+variant-specific image sections.
 
 .. _sec-manual-write:
 
