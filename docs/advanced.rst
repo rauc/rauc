@@ -1132,10 +1132,10 @@ image matching the device's variant, the default image (if present) is used.
 Specifying the Device Variant
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To use image variants, the device should specify its variant in RAUC's
-``system.conf``.
-This can be done by setting exactly one of the following keys ``variant-dtb``,
-``variant-file`` or ``variant-name``:
+This can be done by setting exactly one of the following keys:
+``variant-dtb``, ``variant-file`` or ``variant-name``,
+or by providing the variant dynamically via the ``system-info``
+:ref:`handler <sec_ref_handlers>`.
 
 .. rubric:: Using the Device Tree (``variant-dtb``)
 
@@ -1177,6 +1177,14 @@ Typical use cases include:
 This option directly defines the variant in ``system.conf``.
 It is primarily intended for testing, as it is incompatible with using a single generic
 root filesystem image across multiple hardware variants.
+
+.. rubric:: Using the ``system-info`` Handler
+
+The ``system-info`` handler can return the device variant at runtime (by printing
+``RAUC_SYSTEM_VARIANT``), allowing flexible variant detection based on
+platform-specific logic (for example values provided by the bootloader, EEPROM
+data, or other hardware identifiers).
+For more details, see :ref:`sec_ref_handlers`.
 
 Variant Specification and Selection Details
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
