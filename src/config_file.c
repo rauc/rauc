@@ -9,6 +9,7 @@
 #include "install.h"
 #include "manifest.h"
 #include "mount.h"
+#include "emmc.h"
 #include "slot.h"
 #include "utils.h"
 
@@ -912,6 +913,16 @@ static GHashTable *parse_slots(const char *filename, RaucConfig *c, GKeyFile *ke
 				return NULL;
 			}
 
+			if (g_str_equal(slot->type, "emmc-boot-linked")) {
+				if (!(g_str_has_suffix(slot->device, "boot0") || g_str_has_suffix(slot->device, "boot1"))) {
+					g_set_error(error,
+							R_CONFIG_ERROR,
+							R_CONFIG_ERROR_INVALID_DEVICE,
+							"%s: 'device' must refer to the specific eMMC boot partitions, not the base device", groups[i]);
+					return NULL;
+				}
+			}
+
 			value = key_file_consume_string(key_file, groups[i], "extra-mkfs-opts", NULL);
 			if (value != NULL) {
 				if (!g_shell_parse_argv(value, NULL, &(slot->extra_mkfs_opts), &ierror)) {
@@ -1165,6 +1176,72 @@ static GHashTable *parse_artifact_repos(const char *filename, const char *data_d
 	return g_steal_pointer(&repos);
 }
 
+/*
+ * Checks if the emmc-boot-linked slots are configured correctly.
+ * Criteria: - All emmc-boot-linked slots refer to unique boot devices
+ *           - All emmc-boot-linked slots are on the same device
+ *
+ * @param config RaucConfig object
+ * @param error Return location for a GError, or NULL
+ *
+ * @return TRUE if all criteria pass or no emmc-boot-linked exists, FALSE otherwise */
+
+static gboolean check_emmc_linked_slots(RaucConfig *config, GError **error)
+{
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+	g_return_val_if_fail(config != NULL, FALSE);
+
+	GError *ierror = NULL;
+
+	g_autoptr(GList) emmc_slots = r_slot_get_all_of_type(config->slots, "emmc-boot-linked");
+
+	/* Everything is okay if there are no emmc-boot-linked slots */
+	if (g_list_length(emmc_slots) == 0) {
+		return TRUE;
+	}
+
+	if (g_list_length(emmc_slots) != 2) {
+		g_set_error(error, R_CONFIG_ERROR,
+				R_CONFIG_ERROR_INVALID_FORMAT,
+				"Need exactly 2 emmc-boot-linked slots, but found %d", g_list_length(emmc_slots));
+		return FALSE;
+	}
+
+	/* We know now it's exactly two slots, so we don't need to overcomplicate things */
+	RaucSlot *slot1 = g_list_nth_data(emmc_slots, 0);
+	RaucSlot *slot2 = g_list_nth_data(emmc_slots, 1);
+
+	/* Every slot needs to point to a unique boot device */
+	if (g_strcmp0(slot1->device, slot2->device) == 0) {
+		g_set_error(error, R_CONFIG_ERROR,
+				R_CONFIG_ERROR_INVALID_DEVICE,
+				"emmc-boot-linked slots '%s' and '%s' cannot use the same boot device '%s'",
+				slot1->name, slot2->name, slot1->device);
+		return FALSE;
+	}
+
+	/* And all slots need to be on same base device */
+	g_autofree gchar *base_dev1 = NULL;
+	g_autofree gchar *base_dev2 = NULL;
+	if (!r_emmc_extract_base_dev(slot1->device, &base_dev1, &ierror) ||
+	    !r_emmc_extract_base_dev(slot2->device, &base_dev2, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (g_strcmp0(base_dev1, base_dev2) != 0) {
+		g_set_error(
+				error,
+				R_CONFIG_ERROR,
+				R_CONFIG_ERROR_INVALID_DEVICE,
+				"Slots need to be on the same base device: '%s' -> '%s' | '%s' -> '%s'",
+				slot1->device, base_dev1, slot2->device, base_dev2);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 static gboolean check_unique_slotclasses(RaucConfig *config, GError **error)
 {
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -1367,6 +1444,11 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 	}
 
 	if (!check_config_target(c, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (!check_emmc_linked_slots(c, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}

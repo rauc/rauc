@@ -567,6 +567,9 @@ separator.
   ``ubivol``, ``ubifs``, ``ext4``, ``vfat``, ``jffs2`` for normal slots and
   ``boot-emmc``, ``boot-mbr-switch``, ``boot-gpt-switch``, and
   ``boot-raw-fallback`` for atomically updatable bootloader slots.
+  The type ``emmc-boot-linked`` can be used to group two eMMC boot slots
+  on the same device with other partitions, when incompatibilities
+  during updates cannot be resolved differently.
   See table :ref:`sec-slot-type` for a more detailed list of these different types.
   Defaults to ``raw`` if none given.
 

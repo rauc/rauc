@@ -7,6 +7,7 @@
 
 #include "common.h"
 #include "utils.h"
+#include "emmc.h"
 
 typedef struct {
 	gchar *tmpdir;
@@ -729,6 +730,219 @@ type=boot-emmc\n";
 	g_clear_error(&ierror);
 }
 
+static void config_file_emmc_boot_linked_valid(ConfigFileFixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	GError *ierror = NULL;
+	g_autofree gchar* pathname = NULL;
+	gboolean res;
+
+	const gchar *contents = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.bootloader.0]\n\
+device=/dev/mmcblk0boot0\n\
+type=emmc-boot-linked\n\
+bootname=system0\n\
+\n\
+[slot.bootloader.1]\n\
+device=/dev/mmcblk0boot1\n\
+type=emmc-boot-linked\n\
+bootname=system1\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/mmcblk0p1\n\
+parent=bootloader.0\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/mmcblk0p2\n\
+parent=bootloader.1\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "emmc-boot-linked-valid.conf", contents, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_clear_error(&ierror);
+}
+
+static void config_file_emmc_boot_linked_invalid_device(ConfigFileFixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	GError *ierror = NULL;
+	g_autofree gchar* pathname = NULL;
+	gboolean res;
+
+	const gchar *contents = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.bootloader.0]\n\
+device=/dev/mmcblk0\n\
+parent=rootfs.0\n\
+type=emmc-boot-linked\n\
+\n\
+[slot.bootloader.1]\n\
+device=/dev/mmcblk0boot1\n\
+type=emmc-boot-linked\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/mmcblk0p1\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/mmcblk0p2\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "emmc-boot-linked-invalid-device.conf", contents, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_DEVICE);
+	g_assert_false(res);
+	g_clear_error(&ierror);
+}
+
+static void config_file_emmc_boot_linked_not_enough_slots(ConfigFileFixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	GError *ierror = NULL;
+	g_autofree gchar* pathname = NULL;
+	gboolean res;
+
+	const gchar *contents = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.bootloader.0]\n\
+device=/dev/mmcblk0boot0\n\
+parent=rootfs.0\n\
+type=emmc-boot-linked\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/mmcblk0p1\n\
+bootname=system0\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "emmc-boot-linked-not-enough-slots.conf", contents, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT);
+	g_assert_cmpstr(ierror->message, ==, "Need exactly 2 emmc-boot-linked slots, but found 1");
+	g_assert_false(res);
+	g_clear_error(&ierror);
+}
+
+static void config_file_emmc_boot_linked_duplicate_boot_device(ConfigFileFixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	GError *ierror = NULL;
+	g_autofree gchar* pathname = NULL;
+	gboolean res;
+
+	const gchar *contents = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.bootloader.0]\n\
+device=/dev/mmcblk0boot0\n\
+parent=rootfs.0\n\
+type=emmc-boot-linked\n\
+\n\
+[slot.bootloader.1]\n\
+device=/dev/mmcblk0boot0\n\
+type=emmc-boot-linked\n\
+parent=rootfs.1\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/mmcblk0p1\n\
+bootname=system0\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/mmcblk0p2\n\
+bootname=system1\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "emmc-boot-linked-duplicate-boot-device.conf", contents, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_DEVICE);
+	g_assert_cmpstr(ierror->message, ==, "emmc-boot-linked slots 'bootloader.1' and 'bootloader.0' cannot use the same boot device '/dev/mmcblk0boot0'");
+	g_assert_false(res);
+	g_clear_error(&ierror);
+}
+
+static void config_file_emmc_boot_linked_invalid_boot_device_format(ConfigFileFixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	GError *ierror = NULL;
+	g_autofree gchar* pathname = NULL;
+	gboolean res;
+
+	const gchar *contents = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.bootloader.0]\n\
+device=/dev/invalid-device-format\n\
+parent=rootfs.0\n\
+type=emmc-boot-linked\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/mmcblk0p1\n\
+bootname=system0\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/mmcblk0p2\n\
+bootname=system1\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "emmc-boot-linked-invalid-boot-device-format.conf", contents, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_false(res);
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_DEVICE);
+	g_clear_error(&ierror);
+}
+
+static void config_file_emmc_boot_linked_invalid_parent_device_format(ConfigFileFixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(RaucConfig) config = NULL;
+	GError *ierror = NULL;
+	g_autofree gchar* pathname = NULL;
+	gboolean res;
+
+	const gchar *contents = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+\n\
+[slot.bootloader.0]\n\
+device=/dev/mmcblk0boot0\n\
+parent=rootfs.0\n\
+type=emmc-boot-linked\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/invalid-parent-format\n\
+bootname=system0\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/mmcblk0p2\n\
+bootname=system1\n";
+
+	pathname = write_tmp_file(fixture->tmpdir, "emmc-boot-linked-invalid-parent-device-format.conf", contents, NULL);
+	g_assert_nonnull(pathname);
+
+	res = load_config(pathname, &config, &ierror);
+	g_assert_false(res);
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_FORMAT);
+	g_clear_error(&ierror);
+}
 static void config_file_no_max_bundle_download_size(ConfigFileFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1681,6 +1895,24 @@ int main(int argc, char *argv[])
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/boot-emmc-with-bootpart", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_boot_emmc_with_bootpart,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/emmc-boot-linked-valid", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_emmc_boot_linked_valid,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/emmc-boot-linked-invalid-device", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_emmc_boot_linked_invalid_device,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/emmc-boot-linked-not-enough-slots", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_emmc_boot_linked_not_enough_slots,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/emmc-boot-linked-duplicate-boot-device", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_emmc_boot_linked_duplicate_boot_device,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/emmc-boot-linked-invalid-boot-device-format", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_emmc_boot_linked_invalid_boot_device_format,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/emmc-boot-linked-invalid-parent-device-format", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_emmc_boot_linked_invalid_parent_device_format,
 			config_file_fixture_tear_down);
 	g_test_add("/config-file/no-max-bundle-download-size", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_no_max_bundle_download_size,

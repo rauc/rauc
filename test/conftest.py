@@ -614,6 +614,31 @@ class System:
             "type": "composefs",
         }
 
+    def prepare_emmc_boot_linked_config(self):
+        device_emmc = EMMC()
+        self.config["slot.rootfs.0"] = {
+            "device": f"{device_emmc.base_dev}.root0",
+            "type": "ext4",
+        }
+
+        self.config["slot.bootloader.0"] = {
+            "device": device_emmc.boot0,
+            "type": "emmc-boot-linked",
+            "parent": "rootfs.0",
+        }
+
+        self.config["slot.rootfs.1"] = {
+            "device": f"{device_emmc.base_dev}.root1",
+            "type": "ext4",
+        }
+
+        self.config["slot.bootloader.1"] = {
+            "device": device_emmc.boot1,
+            "type": "emmc-boot-linked",
+            "parent": "rootfs.1",
+        }
+        return device_emmc
+
     def write_config(self):
         with open(self.output, "w") as f:
             self.config.write(f, space_around_delimiters=False)
@@ -665,6 +690,13 @@ def system(tmp_path, dbus_session_bus):
     system = System(tmp_path)
 
     yield system
+
+
+class EMMC:
+    def __init__(self):
+        self.base_dev = os.environ["RAUC_TEST_EMMC"]
+        self.boot0 = f"{self.base_dev}boot0"
+        self.boot1 = f"{self.base_dev}boot1"
 
 
 class HTTPServer:

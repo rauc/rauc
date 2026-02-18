@@ -83,6 +83,30 @@ static void get_device_size_test(void)
 		g_close(fd, NULL);
 }
 
+static void get_device_size_from_dev_test(void)
+{
+	GError *error = NULL;
+	const gchar *device = g_getenv("RAUC_TEST_BLOCK_LOOP");
+	goffset size = 0;
+
+	if (!device) {
+		g_test_message("no block device for testing found (define RAUC_TEST_BLOCK_LOOP)");
+		g_test_skip("RAUC_TEST_BLOCK_LOOP undefined");
+		return;
+	}
+
+	/* test valid device */
+	size = get_device_size_from_dev(device, &error);
+	g_assert_no_error(error);
+	g_assert_cmpint(size, ==, 64<<20); /* 64MiB */
+
+	/* test invalid device */
+	size = get_device_size_from_dev("/dev/nonexistent", &error);
+	g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_NOENT);
+	g_assert_cmpint(size, ==, 0);
+	g_clear_error(&error);
+}
+
 static void update_symlink_test(void)
 {
 	g_autofree gchar *tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
@@ -576,6 +600,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/utils/whitespace_removed", whitespace_removed_test);
 	g_test_add_func("/utils/get_sectorsize", get_sectorsize_test);
 	g_test_add_func("/utils/get_device_size", get_device_size_test);
+	g_test_add_func("/utils/get_device_size_from_dev", get_device_size_from_dev_test);
 	g_test_add_func("/utils/update_symlink", update_symlink_test);
 	g_test_add_func("/utils/fakeroot", fakeroot_test);
 	g_test_add_func("/utils/bytes_unref_to_string", test_bytes_unref_to_string);

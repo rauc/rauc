@@ -143,6 +143,7 @@ RaucSlotType supported_slot_types[] = {
 	{"boot-gpt-switch", FALSE},
 	{"vfat", TRUE},
 	{"boot-raw-fallback", FALSE},
+	{"emmc-boot-linked", FALSE},
 	{}
 };
 
@@ -407,6 +408,25 @@ GList* r_slot_get_all_children(GHashTable *slots, RaucSlot *parent)
 			continue;
 
 		retlist = g_list_append(retlist, slot);
+	}
+
+	return retlist;
+}
+
+GList* r_slot_get_all_of_type(GHashTable *slots, const gchar* type)
+{
+	GList *retlist = NULL;
+	GHashTableIter iter;
+	RaucSlot *slot = NULL;
+
+	g_return_val_if_fail(slots, NULL);
+	g_return_val_if_fail(type, NULL);
+
+	g_hash_table_iter_init(&iter, slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+		if (g_strcmp0(slot->type, type) == 0) {
+			retlist = g_list_append(retlist, slot);
+		}
 	}
 
 	return retlist;

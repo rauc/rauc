@@ -351,6 +351,9 @@ G_GNUC_WARN_UNUSED_RESULT;
 goffset get_device_size(gint fd, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
+goffset get_device_size_from_dev(const gchar *device, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
 /**
  * Replaces a string pointer with a newly allocated copy of the source string.
  *
