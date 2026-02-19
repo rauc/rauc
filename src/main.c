@@ -10,6 +10,8 @@
 #include <locale.h>
 #include <stdio.h>
 #include <string.h>
+#define SYSLOG_NAMES
+#include <syslog.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
@@ -2781,6 +2783,67 @@ static gboolean collect_config_values(const gchar *option_name, const gchar *val
 	return TRUE;
 }
 
+static int log_level(GLogLevelFlags level)
+{
+	if (level & G_LOG_FLAG_FATAL)
+		return LOG_EMERG;
+	if (level & G_LOG_FLAG_RECURSION)
+		return LOG_ALERT;
+	if (level & G_LOG_LEVEL_CRITICAL)
+		return LOG_CRIT;
+	if (level & G_LOG_LEVEL_ERROR)
+		return LOG_ERR;
+	if (level & G_LOG_LEVEL_WARNING)
+		return LOG_WARNING;
+	if (level & G_LOG_LEVEL_MESSAGE)
+		return LOG_NOTICE;
+	if (level & G_LOG_LEVEL_INFO)
+		return LOG_INFO;
+	if (level & G_LOG_LEVEL_DEBUG)
+		return LOG_DEBUG;
+
+	return LOG_INFO;       /* Fallback to INFO for unknown levels */
+}
+
+static void syslog_handler(const gchar *domain, GLogLevelFlags level, const gchar *message, gpointer arg)
+{
+	int prio = log_level(level);
+
+	if (g_strcmp0(domain, G_LOG_DOMAIN))
+		syslog(prio, "%s: %s", domain, message);
+	else
+		syslog(prio, "%s", message);
+}
+
+static gboolean syslog_option_cb(const gchar *option_name, const gchar *value,
+		gpointer data, GError **error)
+{
+	int facility = LOG_DAEMON;
+
+	if (value) {
+		gboolean found = FALSE;
+
+		for (const CODE *f = facilitynames; f->c_name != NULL; f++) {
+			if (g_ascii_strcasecmp(value, f->c_name) == 0) {
+				facility = f->c_val;
+				found = TRUE;
+				break;
+			}
+		}
+
+		if (!found) {
+			g_set_error(error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+					"Invalid syslog facility: %s", value);
+			return FALSE;
+		}
+	}
+
+	openlog(G_LOG_DOMAIN, LOG_PID | LOG_NOWAIT, facility);
+	g_log_set_default_handler(syslog_handler, NULL);
+
+	return TRUE;
+}
+
 static void cmdline_handler(int argc, char **argv)
 {
 	gboolean help = FALSE, debug = FALSE, version = FALSE;
@@ -2798,6 +2861,7 @@ static void cmdline_handler(int argc, char **argv)
 		{"intermediate", '\0', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_FILENAME_ARRAY, &intermediate, "intermediate CA file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 		{"mount", '\0', 0, G_OPTION_ARG_FILENAME, &mount, "mount prefix", "PATH"},
 		{"debug", 'd', 0, G_OPTION_ARG_NONE, &debug, "enable debug output", NULL},
+		{"syslog", 's', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK,  syslog_option_cb, "enable syslog output, optional facility, default: daemon", "[facility]"},
 		{"version", '\0', 0, G_OPTION_ARG_NONE, &version, "display version", NULL},
 		{"help", 'h', 0, G_OPTION_ARG_NONE, &help, "display help and exit", NULL},
 		{0}

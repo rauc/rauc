@@ -1518,6 +1518,7 @@ Command Line Tool
     --keyring=PEMFILE                   keyring file
     --mount=PATH                        mount prefix
     -d, --debug                         enable debug output
+    -s, --syslog=[facility]             enable syslog output, optional facility, default: daemon
     --version                           display version
     -h, --help                          display help and exit
 
