@@ -890,6 +890,8 @@ static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const 
 	gboolean res = FALSE;
 	gchar *outline = NULL;
 	g_autofree gchar *hookreturnmsg = NULL;
+	RaucSlot *s = NULL;
+	g_autofree gchar *system_version = NULL;
 
 	g_assert_nonnull(manifest->hook_name);
 
@@ -897,10 +899,20 @@ static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const 
 
 	g_message("Running bundle hook '%s'", hook_cmd);
 
+	/* Pass the version of the currently running slot to the hook script */
+	s = find_config_slot_by_device(r_context()->config, r_context()->bootslot);
+	if (s) {
+		load_slot_status(s);
+		if (s->status)
+			system_version = g_strdup(s->status->bundle_version);
+	}
+	g_message("bootslot=%s, system_version=%s", r_context()->bootslot, system_version ?: "");
+
 	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDERR_PIPE);
 
 	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_COMPATIBLE", r_context()->config->system_compatible, TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_VARIANT", r_context()->config->system_variant ?: "", TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_VERSION", system_version ?: "", TRUE);
 
 	g_subprocess_launcher_setenv(launcher, "RAUC_MF_COMPATIBLE", manifest->update_compatible, TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_MF_VERSION", manifest->update_version ?: "", TRUE);
