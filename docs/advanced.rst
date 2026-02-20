@@ -1092,20 +1092,57 @@ the currently booted slot group.
 Handling Board Variants With a Single Bundle
 --------------------------------------------
 
-If you have hardware variants that require installing different images
-(e.g. for the kernel or for an FPGA bitstream), but have other slots
-that are common (such as the rootfs) between all hardware variants,
-RAUC allows you to put multiple different variants of these images in the
-same bundle.
-RAUC calls this feature 'image variants'.
+For hardware platforms that exist in multiple variants, certain images (e.g.
+the bootloader or an FPGA bitstream) may differ between variants, while other
+images such as the kernel or the root filesystem can be shared across all
+variants.
+
+RAUC supports this use case through *image variants*.
+This allows a single bundle to contain variant-specific images for selected
+slot classes alongside shared default images.
 
 .. image:: images/rauc-image-variants.svg
-  :width: 300
+  :width: 350
+  :align: center
 
-If you want to make use of image variants, you first of all need to say which
-variant your specific board is.
-You can do this in your ``system.conf`` by setting exactly one of the keys
-``variant-dtb``, ``variant-file`` or ``variant-name``.
+.. note:: When using RAUC variants, all hardware platform variants must have the
+   same RAUC ``compatible``.
+
+   If the platforms differ significantly (for example due to different
+   architectures or fundamentally different purposes), consider using
+   separate bundles with distinct compatibles instead.
+
+A variant-specific image is defined in the bundle manifest by appending a
+``.<variant>`` suffix to the standard image section name:
+
+.. code-block:: cfg
+
+  [image.<slot-class>.<variant>]
+  filename=...
+
+During installation, RAUC selects the image that matches the device’s
+:ref:`configured variant <sec_device-variant>` for each slot class
+individually.
+
+If the device has no variant configured, or if the bundle does not contain an
+image matching the device's variant, the default image (if present) is used.
+
+When using streaming installation, the increased bundle size does not
+significantly affect the amount of data transferred, since only the
+images selected for installation (i.e. matching the device variant)
+are streamed to the target.
+
+.. _sec_device-variant:
+
+Specifying the Device Variant
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This can be done by setting exactly one of the following keys:
+``variant-dtb``, ``variant-file`` or ``variant-name``,
+or by providing the variant dynamically via the ``system-info``
+:ref:`handler <sec_ref_handlers>`.
+
+.. rubric:: Using the Device Tree (``variant-dtb``)
 
 .. code-block:: cfg
 
@@ -1113,8 +1150,10 @@ You can do this in your ``system.conf`` by setting exactly one of the keys
   ...
   variant-dtb=true
 
-The ``variant-dtb`` is a Boolean that allows (on device-tree based boards)
-to use the systems compatible string as the board variant.
+When ``variant-dtb`` is enabled, RAUC uses the first ``compatible`` string from
+the device tree as the board variant.
+
+.. rubric:: Using a File (``variant-file``)
 
 .. code-block:: cfg
 
@@ -1122,14 +1161,17 @@ to use the systems compatible string as the board variant.
   ...
   variant-file=/path/to/file
 
-A more generic alternative is the ``variant-file`` key.
-It allows to specify a file that will be read to obtain the variant name.
-Note that the content of the file should be a simple string without any line
-breaks.
-A typical use case would be to generate this file (in ``/run``) during system
-startup from a value you obtained from your bootloader.
-Another use case is to have a RAUC post-install hook that copies this file from
-the old system to the newly updated one.
+The ``variant-file`` option specifies a file whose content defines the
+variant name.
+The content of the file needs to be a simple string without any line breaks.
+Typical use cases include:
+
+- Generating the file at system startup (for example in ``/run``) using
+  information obtained from the bootloader.
+- Preserving the variant across updates via a RAUC post-install hook that
+  copies the file from the old system to the updated one.
+
+.. rubric:: Using a Fixed Name (``variant-name``)
 
 .. code-block:: cfg
 
@@ -1137,36 +1179,89 @@ the old system to the newly updated one.
   ...
   variant-name=myvariant-name
 
-A third variant to specify the systems variant is to give it directly in your
-system.conf.
-This method is primary meant for testing, as this prevents having a generic
-rootfs image for all variants!
+This option directly defines the variant in ``system.conf``.
+It is primarily intended for testing, as it is incompatible with using a single generic
+root filesystem image across multiple hardware variants.
 
+.. rubric:: Using the ``system-info`` Handler
 
-In your manifest, you can specify variants of an image (e.g. the kernel here) as
-follows:
+The ``system-info`` handler can return the device variant at runtime (by printing
+``RAUC_SYSTEM_VARIANT``), allowing flexible variant detection based on
+platform-specific logic (for example values provided by the bootloader, EEPROM
+data, or other hardware identifiers).
+For more details, see :ref:`sec_ref_handlers`.
+
+Variant Specification and Selection Details
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A bundle may contain both variant-specific images and a single default image
+for a slot class, for example:
 
 .. code-block:: cfg
 
-  [image.kernel.variant-1]
-  filename=variant1.img
+  [image.bootloader.var-1]
+  filename=boot-1.img
   ...
 
-  [image.kernel.variant-2]
-  filename=variant1.img
+  [image.bootloader.var-2]
+  filename=boot-2.img
   ...
 
-It is allowed to have both a specific variant as well as a default image in the
-same bundle.
-If a specific variant of the image is available, it will be used on that system.
-On all other systems, the default image will be used instead.
+  [image.bootloader]
+  filename=boot.img
+  ...
 
-If you have a specific image variant for one of your systems,
-it is mandatory to also have a default or specific variant for the same slot
-class for any other system you intend to update.
-RAUC will report an error if for example a bootloader image is only present for
-variant A when you try to install on variant B.
-This should prevent bricking your device by unintentional partial updates.
+When installing a bundle, image selection is performed independently for each
+slot class:
+
+* If a variant-specific image matching the device variant is available, it will
+  be used.
+
+* If no (matching) variant-specific image is available, but a default image,
+  the default image will be used.
+
+* If only variant-specific images are available but none that matches the
+  device variant, RAUC will reject the bundle (see note below).
+
+A device that does not have a variant set will match only images with the
+default image (``[image.<slot-class>]``-like section).
+
+For the above example manifest, this means:
+
++---------------------------+----------------------------------+----------------+
+| Device Variant            | Matching Manifest Section        | Installed Image|
++===========================+==================================+================+
+| ``var-1``                 | ``[image.bootloader.var-1]``     | ``boot-1.img`` |
++---------------------------+----------------------------------+----------------+
+| ``var-2``                 | ``[image.bootloader.var-2]``     | ``boot-2.img`` |
++---------------------------+----------------------------------+----------------+
+| ``var-3`` (no match)      | ``[image.bootloader]``           | ``boot.img``   |
++---------------------------+----------------------------------+----------------+
+| No variant configured     | ``[image.bootloader]``           | ``boot.img``   |
++---------------------------+----------------------------------+----------------+
+
+.. note::
+
+  If a bundle provides a variant-specific image for a given slot class,
+  it is mandatory to also provide either:
+
+  - A default image for that slot class, or
+  - Variant-specific images for all supported variants of that slot class.
+
+  RAUC intentionally rejects the installation of bundles that provide
+  variant-specific images for other variants but not for the current one.
+  For example, if a bootloader image is only provided for variant X and an
+  installation is attempted on a device of variant Y, the installation
+  will fail.
+
+  This prevents unintentional partial updates that could render a device
+  unusable.
+
+Similar to RAUC's ``compatible`` mechanism, variants do not support grouping
+or hierarchies.
+If multiple variants require the same image while others require different
+ones, the same image file can be referenced from multiple
+variant-specific image sections.
 
 .. _sec-manual-write:
 
