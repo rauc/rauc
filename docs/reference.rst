@@ -413,6 +413,96 @@ For more information about using the streaming support of RAUC, refer to
     ``system-info`` handler is not used and the status information is not
     loaded.
 
+.. _polling-section:
+
+``[polling]`` Section
+~~~~~~~~~~~~~~~~~~~~~
+
+``url`` (required if the section exists)
+  The URL from which to fetch the update manifest. This must be an HTTP(S) URL.
+
+``interval-sec`` (optional, default is one day/86400 seconds)
+  The interval, in seconds, between polling attempts. Default is one day (86400 seconds).
+
+``max-interval-sec`` (optional, default is four times ``interval-sec``)
+  The maximum interval, in seconds, between polling attempts.
+  This should be larger than interval-sec.
+
+``inhibit-files`` (optional)
+  A list of files that, if present, inhibit polling.
+
+.. _polling-candidate-criteria:
+
+``candidate-criteria`` (optional, default is ``higher-semver``)
+  Specifies the conditions under which a new bundle is considered a **candidate**
+  for updating.
+  These conditions do **not** automatically trigger the installation of the
+  update.
+
+  Supported values are:
+
+  * ``higher-semver``: The new bundle's version (interpreted as a Semantic
+    Version) is higher than the current system version.
+  * ``different-version``: The new bundle's version string differs from the
+    current system version (regardless of ordering).
+
+    .. or ``version-is-different``
+
+  Multiple conditions can be specified as a ``;``-separated list.
+  A new bundle is considered a candidate if it meets **at least one** of the
+  listed conditions.
+
+  .. note:: The current system version is the ``RAUC_SYSTEM_VERSION`` as
+    reported by the ``system-info`` handler.
+
+``install-criteria`` (optional, default is empty)
+  Specifies the conditions under which a candidate is **automatically
+  installed**.
+  Only bundles already deemed valid candidates (by ``candidate-criteria``) are
+  considered for installation.
+
+  Supported values are:
+
+  * any of the values supported for ``candidate-criteria``
+  * ``always``: Any candidate should be installed automatically.
+
+  .. we could later add ``urgent`` as an option or match on meta-data
+
+  Multiple conditions can be specified as a ``;``-separated list.
+  A candidate is automatically installed if it meets **at least one** of the
+  listed conditions.
+
+  If the installation of a bundle fails, it is not attempted again until the
+  RAUC service is restarted or a new manifest is found.
+
+  .. note::
+     If you do **not** configure ``install-criteria``,
+     or if no conditions are met,
+     a new bundle recognized as a candidate will **not** be installed
+     automatically and will require explicit confirmation.
+     See :ref:`sec-polling-confirmed`.
+
+``reboot-criteria`` (optional, default is empty)
+  Specifies the conditions under which a reboot is triggered **after** an
+  automatic installation.
+  Only applies if ``install-criteria`` have been met and an update was actually
+  installed.
+
+  Supported values are:
+
+  * ``updated-slots``: The bundle contained new images for slots.
+  * ``updated-artifacts``: The bundle contained new or changed artifacts.
+  * ``failed-update``: The update could not be installed due to a runtime error.
+
+  Multiple conditions can be listed; if **any** condition is met, a reboot is
+  triggered by executing the ``reboot-cmd``.
+
+  .. note::  If you do **not** configure ``reboot-criteria``, the default
+    behavior is to never automatically reboot after installation.
+
+``reboot-cmd`` (optional, defaults to ``reboot``)
+  Command to execute for rebooting the system after an update.
+
 ``[encryption]`` Section
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1922,8 +2012,10 @@ IN *args* ``a{sv}``:
     *args.tls-no-verify* variant ``b`` <true/false>:
         Ignore verification errors for the server certificate
 
+.. _gdbus-method-de-pengutronix-rauc-Installer.InspectBundle.info:
+
 OUT *info* ``a{sv}``:
-    Bundle info
+    Information from the bundle's manifest.
 
     *info.manifest-hash* variant ``s`` <hash>:
         A SHA256 hash sum over the manifest content
@@ -2180,6 +2272,107 @@ path (e.g. ``root=PARTUUID=0815``).
 If the ``root=`` kernel command line option is used,
 the symlink is resolved to the block device (e.g. ``/dev/mmcblk0p1``).
 
+.. _gdbus-interface-de-pengutronix-rauc-Poller:
+
+Poller Interface
+~~~~~~~~~~~~~~~~
+
+.. literalinclude:: ../src/de.pengutronix.rauc.Poller.xml
+   :caption: ``src/de.pengutronix.rauc.Poller.xml``
+   :language: xml
+   :lineno-match:
+   :end-at: <interface
+
+.. _gdbus-method-de-pengutronix-rauc-Poller.Poll:
+
+Poll() Method
+^^^^^^^^^^^^^
+
+.. literalinclude:: ../src/de.pengutronix.rauc.Poller.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <method name="Poll"/>
+   :end-at: <method
+
+Schedules a poll of the configured URL to happen soon.
+Afterwards, polling continues in the configured interval.
+
+This method has no parameters and returns nothing.
+
+.. _gdbus-property-de-pengutronix-rauc-Poller.Status:
+
+"NextPoll" Property
+^^^^^^^^^^^^^^^^^^^
+
+.. literalinclude:: ../src/de.pengutronix.rauc.Poller.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <property name="NextPoll"
+   :end-at: <property
+
+The "NextPoll" contains the next time the bundle location will be polled,
+measured in ``CLOCK_BOOTTIME`` microseconds.
+This clock is used to avoid delaying the polling by the time the system spends
+in suspend.
+
+"Status" Property
+^^^^^^^^^^^^^^^^^^^
+
+.. literalinclude:: ../src/de.pengutronix.rauc.Poller.xml
+   :language: xml
+   :lineno-match:
+   :start-at: <property name="Status"
+   :end-at: <property
+
+The "Status" property consists of a ``a{sv}`` dictionary with the following contents:
+
+*attempt-count* variant ``t`` <count>:
+    The number of polling attempts
+
+*recent-error-count* variant ``t`` <count>:
+    The number of failed polling attempts since the last success (or service startup)
+
+*last-attempt-time* variant ``t`` <boottime-us>:
+    The time of the last polling attempt (measured in ``CLOCK_BOOTTIME`` microseconds)
+
+*last-success-time* variant ``t`` <boottime-us>:
+    The time of the last successful polling attempt (measured in ``CLOCK_BOOTTIME`` microseconds)
+
+*last-error-message* variant ``s`` <message>:
+    The failure cause, if the most last attempt failed
+
+*update-available* variant ``b`` <true/false>:
+    True if the bundle is considered a valid update according to the configuration
+
+*summary* variant ``b`` <true/false>:
+    Summary of whether the bundle is a valid update.
+
+*attempted-hash* variant ``s`` <hash>:
+    The manifest hash of the most recent installation attempt
+
+*manifest* variant ``a{sv}`` <manifest-dict>:
+    The contents of the bundle's manifest, :ref:`as documented in the
+    InspectBundle() method
+    <gdbus-method-de-pengutronix-rauc-Installer.InspectBundle.info>`
+
+    Check the ``recent-error-count`` and ``last-success-time`` to know if this
+    may be outdated.
+
+*bundle* variant ``a{sv}`` <bundle-dict>:
+    Details of the polled bundle
+
+    *bundle.size* variant ``t`` <size>:
+        The size of the bundle file in bytes
+
+    *bundle.effective-url* variant ``s`` <URL>:
+        The actual URL used after following any potential redirects
+
+    *bundle.modified-time* variant ``t`` <unix time in seconds>:
+        The modification time of the bundle as reported by the server via the
+        ``Last-Modified`` HTTP header in Unix time
+
+    *bundle.etag* variant ``s`` <URL>:
+        The ``ETag`` HTTP header value as reported by the server
 
 RAUC's Basic Update Procedure
 -----------------------------

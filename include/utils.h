@@ -313,6 +313,27 @@ guint64 key_file_consume_binary_suffixed_string(GKeyFile *key_file,
 		GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
+/**
+ * Get list of string arguments from key and remove key from key_file.
+ *
+ * Optionally filter
+ *
+ * @param key_file a GKeyFile
+ * @param group_name the group name
+ * @param key the key name
+ * @param allowed a list of allowed strings, or NULL
+ * @param error return location for a GError, or NULL
+ *
+ * @return a GStrv or NULL if the key was not found or an error occurred
+ */
+gchar **key_file_consume_string_list(
+		GKeyFile *key_file,
+		const gchar *group_name,
+		const gchar *key,
+		const gchar * const *allowed,
+		GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
 gchar * r_realpath(const gchar *path)
 G_GNUC_WARN_UNUSED_RESULT;
 

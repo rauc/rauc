@@ -73,8 +73,8 @@ def reset_summary(request):
 async def setup_handler(request):
     try:
         data = await request.json()
-        if "file_path" not in data:
-            return web.Response(text="missing file_path", status=400)
+        if "file_path" not in data and "http_code" not in data:
+            return web.Response(text="missing file_path or http_code", status=400)
 
         request.app["rauc"]["config"] = data
         reset_summary(request)
@@ -97,6 +97,10 @@ async def get_handler(request):
         summary["first_request_headers"] = dict(request.headers)
     elif not summary["second_request_headers"]:
         summary["second_request_headers"] = dict(request.headers)
+
+    http_code = config.get("http_code")
+    if http_code:
+        return web.Response(status=http_code)
 
     if request.http_range:
         start = str(request.http_range.start) or ""
