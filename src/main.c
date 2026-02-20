@@ -2586,7 +2586,6 @@ static GOptionEntry entries_install[] = {
 	{"progress", '\0', 0, G_OPTION_ARG_NONE, &install_progressbar, "show progress bar", NULL},
 #else
 	{"handler-args", '\0', 0, G_OPTION_ARG_STRING, &handler_args, "extra arguments for full custom handler", "ARGS"},
-	{"keyring", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keyring, "keyring file", "PEMFILE"},
 	{"override-boot-slot", '\0', 0, G_OPTION_ARG_STRING, &bootslot, "override auto-detection of booted slot", "BOOTNAME"},
 #endif
 	{0}
@@ -2624,24 +2623,18 @@ static GOptionEntry entries_convert[] = {
 };
 
 static GOptionEntry entries_extract_signature[] = {
-	{"key", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keypath, "decryption key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
-	{"keyring", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keyring, "keyring file", "PEMFILE"},
 	{"trust-environment", '\0', 0, G_OPTION_ARG_NONE, &trust_environment, "trust environment and skip bundle access checks", NULL},
 	{0}
 };
 
 static GOptionEntry entries_extract[] = {
-	{"key", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keypath, "decryption key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
-	{"keyring", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keyring, "keyring file", "PEMFILE"},
 	{"trust-environment", '\0', 0, G_OPTION_ARG_NONE, &trust_environment, "trust environment and skip bundle access checks", NULL},
 	{0}
 };
 
 static GOptionEntry entries_info[] = {
-	{"keyring", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keyring, "keyring file", "PEMFILE"},
 	{"no-verify", '\0', 0, G_OPTION_ARG_NONE, &verification_disabled, "disable bundle verification", NULL},
 	{"no-check-time", '\0', 0, G_OPTION_ARG_NONE, &no_check_time, "don't check validity period of certificates against current time", NULL},
-	{"key", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keypath, "decryption key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 	{"output-format", '\0', 0, G_OPTION_ARG_STRING, &output_format, "output format (readable, shell, json, json-pretty, json-2)", "FORMAT"},
 	{"dump-cert", '\0', 0, G_OPTION_ARG_NONE, &info_dumpcert, "dump certificate", NULL},
 	{"dump-recipients", '\0', 0, G_OPTION_ARG_NONE, &info_dumprecipients, "dump recipients", NULL},
@@ -2677,6 +2670,12 @@ static GOptionEntry entries_signing[] = {
 	{0}
 };
 
+static GOptionEntry entries_bundle_open[] = {
+	{"key", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keypath, "decryption key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
+	{"keyring", '\0', G_OPTION_FLAG_NOALIAS, G_OPTION_ARG_FILENAME, &keyring, "keyring file", "PEMFILE"},
+	{0}
+};
+
 static GOptionEntry entries_bundle_access[] = {
 	{"tls-cert", '\0', 0, G_OPTION_ARG_STRING, &access_args.tls_cert, "TLS client certificate file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
 	{"tls-key", '\0', 0, G_OPTION_ARG_STRING, &access_args.tls_key, "TLS client key file or PKCS#11 URL", "PEMFILE|PKCS11-URL"},
@@ -2704,10 +2703,12 @@ static GOptionGroup *info_group;
 static GOptionGroup *status_group;
 static GOptionGroup *write_slot_group;
 static GOptionGroup *service_group;
+static GOptionGroup *mount_group;
 
 static void create_option_groups(void)
 {
 	install_group = g_option_group_new("install", "Install options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(install_group, entries_bundle_open);
 	g_option_group_add_entries(install_group, entries_install);
 	if (ENABLE_STREAMING)
 		g_option_group_add_entries(install_group, entries_bundle_access);
@@ -2732,13 +2733,16 @@ static void create_option_groups(void)
 		g_option_group_add_entries(encrypt_group, entries_encryption);
 
 		extract_signature_group = g_option_group_new("extract", "Extract signature options:", "help dummy", NULL, NULL);
+		g_option_group_add_entries(extract_signature_group, entries_bundle_open);
 		g_option_group_add_entries(extract_signature_group, entries_extract_signature);
 	}
 
 	extract_group = g_option_group_new("extract", "Extract options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(extract_group, entries_bundle_open);
 	g_option_group_add_entries(extract_group, entries_extract);
 
 	info_group = g_option_group_new("info", "Info options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(info_group, entries_bundle_open);
 	g_option_group_add_entries(info_group, entries_info);
 	if (ENABLE_STREAMING)
 		g_option_group_add_entries(info_group, entries_bundle_access);
@@ -2751,6 +2755,11 @@ static void create_option_groups(void)
 
 	service_group = g_option_group_new("service", "Service options:", "help dummy", NULL, NULL);
 	g_option_group_add_entries(service_group, entries_service);
+
+	mount_group = g_option_group_new("install", "Install options:", "help dummy", NULL, NULL);
+	g_option_group_add_entries(mount_group, entries_bundle_open);
+	if (ENABLE_STREAMING)
+		g_option_group_add_entries(mount_group, entries_bundle_access);
 }
 
 // Callback function to handle the repeated -C option
@@ -2856,7 +2865,7 @@ static void cmdline_handler(int argc, char **argv)
 #endif
 		{MOUNT, "mount", "mount <BUNDLENAME>",
 		 "Mount a bundle (for development purposes)",
-		 mount_start, NULL, R_CONTEXT_CONFIG_MODE_REQUIRED, TRUE},
+		 mount_start, mount_group, R_CONTEXT_CONFIG_MODE_REQUIRED, TRUE},
 		{0}
 	};
 	RaucCommand *rc;
@@ -3001,9 +3010,13 @@ static void cmdline_handler(int argc, char **argv)
 		if (certpath)
 			r_context_conf()->certpath = certpath;
 		if (keypath) {
-			/* 'key' means encryption key for 'info', 'extract' or 'extract-signature',
+			/* 'key' means encryption key accessing an existing bundle,
 			 * signing key otherwise */
-			if (rcommand->type == INFO || rcommand->type == EXTRACT || rcommand->type == EXTRACT_SIG)
+			if (rcommand->type == INSTALL ||
+			    rcommand->type == INFO ||
+			    rcommand->type == EXTRACT ||
+			    rcommand->type == EXTRACT_SIG ||
+			    rcommand->type == MOUNT)
 				r_context_conf()->encryption_key = keypath;
 			else
 				r_context_conf()->keypath = keypath;
