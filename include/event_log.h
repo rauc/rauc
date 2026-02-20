@@ -69,7 +69,7 @@ typedef struct _REventLogger {
 	gboolean broken;
 	goffset filesize;
 	GFileOutputStream *logstream;
-	void (*writer)(REventLogger* logger, const GLogField *fields, gsize n_fields);
+	void (*writer)(REventLogger *logger, const GLogField *fields, gsize n_fields);
 } REventLogger;
 
 /**
@@ -79,7 +79,7 @@ typedef struct _REventLogger {
  *
  * @return static string representing the log priority.
  */
-const gchar* r_event_log_level_to_priority(GLogLevelFlags log_level);
+const gchar *r_event_log_level_to_priority(GLogLevelFlags log_level);
 
 /**
  * Tests type string for being a supported event log type.

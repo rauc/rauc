@@ -20,10 +20,10 @@
 /* Local fuzzer runner */
 #include <glib.h>
 
-extern int LLVMFuzzerTestOneInput(const guint8 * data, size_t size);
+extern int LLVMFuzzerTestOneInput(const guint8 *data, size_t size);
 
 static void
-test_file(gchar * filename)
+test_file(gchar *filename)
 {
 	GDir *dir;
 	gchar *path;
@@ -67,7 +67,7 @@ test_file(gchar * filename)
 }
 
 int
-main(int argc, gchar ** argv)
+main(int argc, gchar **argv)
 {
 	gint i;
 

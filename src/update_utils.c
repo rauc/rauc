@@ -11,7 +11,7 @@
 #include "update_utils.h"
 #include "context.h"
 
-static GUnixOutputStream* open_unix_output_stream(const gchar *filename, int flags, int mode, int *fd, GError **error)
+static GUnixOutputStream *open_unix_output_stream(const gchar *filename, int flags, int mode, int *fd, GError **error)
 {
 	GUnixOutputStream *outstream = NULL;
 	int fd_out;
@@ -38,7 +38,7 @@ static GUnixOutputStream* open_unix_output_stream(const gchar *filename, int fla
 }
 
 /* the fd will only live as long as the returned output stream */
-GUnixOutputStream* r_unix_output_stream_open_device(const gchar *filename, int *fd, GError **error)
+GUnixOutputStream *r_unix_output_stream_open_device(const gchar *filename, int *fd, GError **error)
 {
 	g_return_val_if_fail(filename, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
@@ -47,7 +47,7 @@ GUnixOutputStream* r_unix_output_stream_open_device(const gchar *filename, int *
 }
 
 /* the fd will only live as long as the returned output stream */
-GUnixOutputStream* r_unix_output_stream_create_file(const gchar *filename, int *fd, GError **error)
+GUnixOutputStream *r_unix_output_stream_create_file(const gchar *filename, int *fd, GError **error)
 {
 	g_return_val_if_fail(filename, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
@@ -56,7 +56,7 @@ GUnixOutputStream* r_unix_output_stream_create_file(const gchar *filename, int *
 }
 
 /* the fd will only live as long as the returned input stream */
-GUnixInputStream* r_open_unix_input_stream(const gchar *filename, int *fd, GError **error)
+GUnixInputStream *r_open_unix_input_stream(const gchar *filename, int *fd, GError **error)
 {
 	GUnixInputStream *instream = NULL;
 	int fd_out;

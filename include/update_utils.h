@@ -17,7 +17,7 @@
  *
  * @return the new GUnixOutputStream if successful, NULL otherwise
  */
-GUnixOutputStream* r_unix_output_stream_open_device(const gchar *filename, int *fd, GError **error)
+GUnixOutputStream *r_unix_output_stream_open_device(const gchar *filename, int *fd, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
@@ -33,7 +33,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  *
  * @return the new GUnixOutputStream if successful, NULL otherwise
  */
-GUnixOutputStream* r_unix_output_stream_create_file(const gchar *filename, int *fd, GError **error)
+GUnixOutputStream *r_unix_output_stream_create_file(const gchar *filename, int *fd, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
@@ -46,7 +46,7 @@ G_GNUC_WARN_UNUSED_RESULT;
  *
  * @return the new GUnixInputStream if successful, NULL otherwise
  */
-GUnixInputStream* r_open_unix_input_stream(const gchar *filename, int *fd, GError **error)
+GUnixInputStream *r_open_unix_input_stream(const gchar *filename, int *fd, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**

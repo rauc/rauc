@@ -14,7 +14,7 @@ void r_shell_from_manifest_meta(GPtrArray *shell_vars, const RaucManifest *manif
 	g_hash_table_iter_init(&iter, manifest->meta);
 	GHashTable *kvs;
 	const gchar *group;
-	while (g_hash_table_iter_next(&iter, (gpointer*)&group, (gpointer*)&kvs)) {
+	while (g_hash_table_iter_next(&iter, (gpointer *)&group, (gpointer *)&kvs)) {
 		g_autofree gchar *env_group = r_prepare_env_key(group, NULL);
 
 		if (!env_group)
@@ -23,7 +23,7 @@ void r_shell_from_manifest_meta(GPtrArray *shell_vars, const RaucManifest *manif
 		GHashTableIter kvs_iter;
 		g_hash_table_iter_init(&kvs_iter, kvs);
 		const gchar *key, *value;
-		while (g_hash_table_iter_next(&kvs_iter, (gpointer*)&key, (gpointer*)&value)) {
+		while (g_hash_table_iter_next(&kvs_iter, (gpointer *)&key, (gpointer *)&value)) {
 			g_autofree gchar *env_key = r_prepare_env_key(key, NULL);
 
 			if (!env_key)

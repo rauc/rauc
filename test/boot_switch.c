@@ -272,7 +272,7 @@ static void boot_switch_fixture_tear_down(BootSwitchFixture *fixture,
 static void test_boot_switch(BootSwitchFixture *fixture,
 		gconstpointer user_data)
 {
-	BootSwitchData *data = (BootSwitchData*) user_data;
+	BootSwitchData *data = (BootSwitchData *) user_data;
 	g_autofree gchar *slotpath = NULL;
 	g_autofree gchar *imagename = NULL;
 	g_autofree gchar *imagepath = NULL;

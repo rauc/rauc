@@ -59,7 +59,7 @@ static guint readable_sectors(int fd, GBytes *original)
 			sectors++;
 
 			g_assert_cmpint(offset, <=, g_bytes_get_size(original));
-			if (memcmp(buf, (guint8*)(g_bytes_get_data(original, NULL))+offset, 4096) != 0) {
+			if (memcmp(buf, (guint8 *)(g_bytes_get_data(original, NULL))+offset, 4096) != 0) {
 				g_test_message("modified data read via dm-verity at sector %u", sector);
 			} else {
 				g_test_message("correct data read via dm-verity at sector %u", sector);
@@ -264,7 +264,7 @@ static void verity_hash_test(void)
 static void crypt_encrypt_test(DMFixture *fixture,
 		gconstpointer user_data)
 {
-	gboolean *valid_key = (gboolean*)user_data;
+	gboolean *valid_key = (gboolean *)user_data;
 	gboolean ret = FALSE;
 	g_autofree guint8 *key = NULL;
 	g_autofree gchar *encrypted = NULL;
@@ -305,7 +305,7 @@ static void crypt_encrypt_test(DMFixture *fixture,
 static void crypt_decrypt_test(DMFixture *fixture,
 		gconstpointer user_data)
 {
-	gboolean *valid_key = (gboolean*)user_data;
+	gboolean *valid_key = (gboolean *)user_data;
 	gboolean ret = FALSE;
 	g_autofree guint8 *key = NULL;
 	g_autofree gchar *decrypted = NULL;

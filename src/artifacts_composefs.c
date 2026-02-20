@@ -29,7 +29,7 @@ static GPtrArray *get_objects_sorted(GHashTable *objects)
 
 	GHashTableIter iter;
 	g_hash_table_iter_init(&iter, objects);
-	while (g_hash_table_iter_next(&iter, (gpointer*)&object_name, NULL)) {
+	while (g_hash_table_iter_next(&iter, (gpointer *)&object_name, NULL)) {
 		g_ptr_array_add(result, object_name);
 	}
 
@@ -167,12 +167,12 @@ gboolean r_composefs_artifact_repo_prune(RArtifactRepo *repo, GError **error)
 	GHashTableIter iter;
 	GHashTable *inner = NULL;
 	g_hash_table_iter_init(&iter, repo->artifacts);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer*)&inner)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&inner)) {
 		GHashTableIter inner_iter;
 		RArtifact *artifact = NULL;
 
 		g_hash_table_iter_init(&inner_iter, inner);
-		while (g_hash_table_iter_next(&inner_iter, NULL, (gpointer*)&artifact)) {
+		while (g_hash_table_iter_next(&inner_iter, NULL, (gpointer *)&artifact)) {
 			g_autofree const gchar *image_path = g_build_filename(artifact->path, "image.cfs", NULL);
 			if (!composefs_objects_from_image(required_objects, image_path, &ierror)) {
 				g_propagate_error(error, ierror);
@@ -185,7 +185,7 @@ gboolean r_composefs_artifact_repo_prune(RArtifactRepo *repo, GError **error)
 	guint missing = 0;
 	const gchar *object_name = NULL;
 	g_hash_table_iter_init(&iter, required_objects);
-	while (g_hash_table_iter_next(&iter, (gpointer*)&object_name, NULL)) {
+	while (g_hash_table_iter_next(&iter, (gpointer *)&object_name, NULL)) {
 		if (g_hash_table_contains(repo->composefs.local_store_objects, object_name))
 			continue;
 
@@ -202,7 +202,7 @@ gboolean r_composefs_artifact_repo_prune(RArtifactRepo *repo, GError **error)
 	guint removed = 0;
 	g_autofree gchar *object_store_path = g_build_filename(repo->path, ".rauc-cfs-store", NULL);
 	g_hash_table_iter_init(&iter, repo->composefs.local_store_objects);
-	while (g_hash_table_iter_next(&iter, (gpointer*)&object_name, NULL)) {
+	while (g_hash_table_iter_next(&iter, (gpointer *)&object_name, NULL)) {
 		if (g_hash_table_contains(required_objects, object_name))
 			continue;
 

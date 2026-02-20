@@ -51,7 +51,7 @@ static void test_get_update_handler(UpdateHandlerFixture *fixture, gconstpointer
 	g_autoptr(RaucImage) image = NULL;
 	g_autoptr(RaucSlot) targetslot = NULL;
 	img_to_slot_handler handler;
-	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair*) user_data;
+	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair *) user_data;
 	GError *ierror = NULL;
 
 	image = r_new_image();
@@ -112,7 +112,7 @@ static void test_get_custom_update_handler(UpdateHandlerFixture *fixture, gconst
 static void update_handler_fixture_set_up(UpdateHandlerFixture *fixture,
 		gconstpointer user_data)
 {
-	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair*) user_data;
+	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair *) user_data;
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
 
@@ -142,7 +142,7 @@ static void update_handler_fixture_set_up(UpdateHandlerFixture *fixture,
 static void update_handler_fixture_tear_down(UpdateHandlerFixture *fixture,
 		gconstpointer user_data)
 {
-	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair*) user_data;
+	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair *) user_data;
 	if (!fixture->tmpdir)
 		return;
 
@@ -278,11 +278,11 @@ out:
 	return res;
 }
 
-static gchar* test_prepare_dummy_caibx(const gchar *path, const gchar *archname)
+static gchar *test_prepare_dummy_caibx(const gchar *path, const gchar *archname)
 {
 	g_autoptr(GError) ierror = NULL;
 	g_autofree gchar *idxpath = NULL, *storepath = NULL;
-	g_autofree gchar* pathname = NULL;
+	g_autofree gchar *pathname = NULL;
 
 	idxpath = g_build_filename(path, archname, NULL);
 	storepath = g_build_filename(path, "out.castr", NULL);
@@ -298,11 +298,11 @@ static gchar* test_prepare_dummy_caibx(const gchar *path, const gchar *archname)
 	return g_steal_pointer(&storepath);
 }
 
-static gchar* test_prepare_dummy_caidx(const gchar *path, const gchar *archname)
+static gchar *test_prepare_dummy_caidx(const gchar *path, const gchar *archname)
 {
 	g_autoptr(GError) ierror = NULL;
 	g_autofree gchar *idxpath = NULL, *storepath = NULL;
-	g_autofree gchar* contentpath = NULL;
+	g_autofree gchar *contentpath = NULL;
 
 	idxpath = g_build_filename(path, archname, NULL);
 	storepath = g_build_filename(path, "out.castr", NULL);
@@ -326,7 +326,7 @@ static gchar* test_prepare_dummy_caidx(const gchar *path, const gchar *archname)
 static void test_update_handler(UpdateHandlerFixture *fixture,
 		gconstpointer user_data)
 {
-	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair*) user_data;
+	UpdateHandlerTestPair *test_pair = (UpdateHandlerTestPair *) user_data;
 	g_autofree gchar *slotpath = NULL;
 	g_autofree gchar *imagename = NULL;
 	g_autofree gchar *imagepath = NULL;
@@ -431,7 +431,7 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	}
 
 	if (g_strcmp0(test_pair->imagetype, "img") == 0) {
-		g_autofree gchar* pathname = write_random_file(fixture->tmpdir, "image.img", image_size, 0x2abff992);
+		g_autofree gchar *pathname = write_random_file(fixture->tmpdir, "image.img", image_size, 0x2abff992);
 		g_assert_nonnull(pathname);
 	} else if (g_strcmp0(test_pair->imagetype, "ext4") == 0) {
 		g_assert(test_prepare_dummy_file(fixture->tmpdir, "image.ext4", image_size, "/dev/zero") == 0);
@@ -439,13 +439,13 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 	} else if (g_strcmp0(test_pair->imagetype, "tar") == 0) {
 		g_assert_true(test_prepare_dummy_archive(fixture->tmpdir, "image.tar", "testfile.txt"));
 	} else if (g_strcmp0(test_pair->imagetype, "img.caibx") == 0) {
-		gchar* storepath = test_prepare_dummy_caibx(fixture->tmpdir, "image.img.caibx");
+		gchar *storepath = test_prepare_dummy_caibx(fixture->tmpdir, "image.img.caibx");
 		g_assert_nonnull(storepath);
 
 		r_context_conf()->install_info->mounted_bundle = g_new0(RaucBundle, 1);
 		r_context_conf()->install_info->mounted_bundle->storepath = storepath;
 	} else if (g_strcmp0(test_pair->imagetype, "caidx") == 0) {
-		gchar* storepath = test_prepare_dummy_caidx(fixture->tmpdir, "image.caidx");
+		gchar *storepath = test_prepare_dummy_caidx(fixture->tmpdir, "image.caidx");
 		g_assert_nonnull(storepath);
 
 		r_context_conf()->install_info->mounted_bundle = g_new0(RaucBundle, 1);

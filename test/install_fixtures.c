@@ -127,7 +127,7 @@ void fixture_helper_set_up_system(gchar *tmpdir,
 }
 
 void fixture_helper_set_up_bundle(gchar *tmpdir,
-		const gchar* manifest_content,
+		const gchar *manifest_content,
 		const ManifestTestOptions *options)
 {
 	g_autofree gchar *contentdir = NULL;

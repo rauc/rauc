@@ -133,7 +133,7 @@ static void boot_raw_fallback_fixture_tear_down(BootRawFallbackFixture *fixture,
 	g_free(fixture->tmpdir);
 }
 
-static RaucImage* create_source_image(const gchar *dirname,
+static RaucImage *create_source_image(const gchar *dirname,
 		const gchar *imagename,
 		gsize size)
 {
@@ -157,7 +157,7 @@ static RaucImage* create_source_image(const gchar *dirname,
 static void test_boot_raw_fallback(BootRawFallbackFixture *fixture,
 		gconstpointer user_data)
 {
-	BootRawFallbackData *data = (BootRawFallbackData*) user_data;
+	BootRawFallbackData *data = (BootRawFallbackData *) user_data;
 	gchar *slotpath, *mountprefix, *hookpath = NULL;
 	gsize slot_size;
 	RaucImage *image;
