@@ -967,6 +967,30 @@ static void signature_append_inline(SignatureFixture *fixture, gconstpointer use
 	g_assert_null(manifest);
 }
 
+/* assert that the cert has the expected common name */
+static G_GNUC_UNUSED void assert_X509_subject_cn(const X509 *cert, const gchar *expected)
+{
+	g_assert_nonnull(cert);
+
+	X509_NAME *name = X509_get_subject_name(cert);
+	g_assert_nonnull(name);
+
+	int index = X509_NAME_get_index_by_NID(name, NID_commonName, -1);
+	g_assert_cmpint(index, >=, 0);
+
+	const X509_NAME_ENTRY *cn = X509_NAME_get_entry(name, index);
+	g_assert_nonnull(cn);
+
+	const unsigned char* cn_value = ASN1_STRING_get0_data(X509_NAME_ENTRY_get_data(cn));
+	g_assert_nonnull(cn_value);
+
+	/* the should be no more common names */
+	index = X509_NAME_get_index_by_NID(name, NID_commonName, index);
+	g_assert_cmpint(index, ==, -1);
+
+	g_assert_cmpstr(expected, ==, (gchar*)cn_value);
+}
+
 static void signature_append_partial(SignatureFixture *fixture, gconstpointer user_data)
 {
 	gboolean res;
@@ -1033,6 +1057,74 @@ static void signature_append_partial(SignatureFixture *fixture, gconstpointer us
 	g_assert_false(res);
 	g_assert_null(manifest_null);
 	g_clear_error(&fixture->error);
+
+#if ENABLE_OPENSSL_VERIFY_PARTIAL
+	r_context()->config->keyring_allow_single_signature = TRUE;
+
+	/* verify against dev CA */
+	g_autoptr(CMS_ContentInfo) cms2 = NULL;
+	g_autoptr(GBytes) manifest2 = NULL;
+	res = cms_verify_bytes(NULL,
+			sig2,
+			dev_partial_allowed_store,
+			&cms2,
+			&manifest2,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+
+	STACK_OF(CMS_SignerInfo) *sinfos2 = CMS_get0_SignerInfos(cms2);
+	g_assert_cmpint(sk_CMS_SignerInfo_num(sinfos2), ==, 2);
+
+	/* TODO check that only one is valid */
+
+	g_autoptr(R_X509_STACK_POP) verified_chain2 = NULL;
+	res = cms_get_cert_chain(cms2,
+			dev_partial_allowed_store,
+			&verified_chain2,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+	g_assert_nonnull(verified_chain2);
+
+	/* Chain length must be 2 (autobuilder-1 -> dev) */
+	g_assert_cmpint(sk_X509_num(verified_chain2), ==, 2);
+	assert_X509_subject_cn(sk_X509_value(verified_chain2, 0), "Test Org Autobuilder-1");
+	assert_X509_subject_cn(sk_X509_value(verified_chain2, 1), "Test Org Provisioning CA Development");
+
+	/* verify against rel CA */
+	g_autoptr(CMS_ContentInfo) cms3 = NULL;
+	g_autoptr(GBytes) manifest3 = NULL;
+	res = cms_verify_bytes(NULL,
+			sig2,
+			rel_partial_allowed_store,
+			&cms3,
+			&manifest3,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+
+	STACK_OF(CMS_SignerInfo) *sinfos3 = CMS_get0_SignerInfos(cms3);
+	g_assert_cmpint(sk_CMS_SignerInfo_num(sinfos3), ==, 2);
+
+	/* TODO check that only one is valid */
+
+	g_autoptr(R_X509_STACK_POP) verified_chain3 = NULL;
+	res = cms_get_cert_chain(cms3,
+			rel_partial_allowed_store,
+			&verified_chain3,
+			&fixture->error);
+	g_assert_no_error(fixture->error);
+	g_assert_true(res);
+	g_assert_nonnull(verified_chain2);
+
+	/* Chain length must be 2 (release-1 -> rel) */
+	g_assert_cmpint(sk_X509_num(verified_chain3), ==, 2);
+	assert_X509_subject_cn(sk_X509_value(verified_chain3, 0), "Test Org Release-1");
+	assert_X509_subject_cn(sk_X509_value(verified_chain3, 1), "Test Org Provisioning CA Release");
+
+	r_context()->config->keyring_allow_single_signature = FALSE;
+#endif
 }
 
 int main(int argc, char *argv[])

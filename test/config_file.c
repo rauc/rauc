@@ -242,6 +242,30 @@ foo=bar\n\
 	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE);
 	g_assert_cmpstr(ierror->message, ==, "Invalid key 'foo' in group '[system]'");
 	g_clear_error(&ierror);
+
+	g_clear_pointer(&pathname, g_free);
+	g_clear_pointer(&config, free_config);
+
+	const gchar *unsupported_verify_partial_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=barebox\n\
+[keyring]\n\
+allow-single-signature=true\n\
+";
+	pathname = write_tmp_file(fixture->tmpdir, "unsupported_verify_partial.conf", unsupported_verify_partial_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	if (ENABLE_OPENSSL_VERIFY_PARTIAL) {
+		g_assert_true(load_config(pathname, &config, &ierror));
+		g_assert_no_error(ierror);
+		g_assert_true(config->keyring_allow_single_signature);
+	} else {
+		g_assert_false(load_config(pathname, &config, &ierror));
+		g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_INVALID_VALUE);
+		g_assert_cmpstr(ierror->message, ==, "Keyring section option 'allow-single-signature' is not supported because OpenSSL does not define CMS_VERIFY_PARTIAL");
+		g_clear_error(&ierror);
+	}
 }
 
 static void config_file_bootloaders(ConfigFileFixture *fixture,
