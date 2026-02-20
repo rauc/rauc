@@ -56,7 +56,7 @@ void r_dm_free(RaucDM *dm)
 	g_free(dm);
 }
 
-static const gchar* dmtype_to_str(RaucDMType dmtype)
+static const gchar *dmtype_to_str(RaucDMType dmtype)
 {
 	switch (dmtype) {
 		case RAUC_DM_VERITY:

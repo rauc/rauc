@@ -251,7 +251,7 @@ void r_slot_status_load_globally(const gchar *filename, GHashTable *slots)
 
 	/* Set all other slots to the default status */
 	g_hash_table_iter_init(&iter, slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *) &slot)) {
 		if (slot->status)
 			continue;
 
@@ -322,7 +322,7 @@ static gboolean save_slot_status_locally(RaucSlot *dest_slot, GError **error)
  *
  * @return newly-allocated GKeyFile or NULL on error
  */
-static GKeyFile* key_file_init_from_shared_status_file(const gchar *keep_prefix, GError **error)
+static GKeyFile *key_file_init_from_shared_status_file(const gchar *keep_prefix, GError **error)
 {
 	g_autoptr(GKeyFile) key_file = NULL;
 	g_auto(GStrv) groups = NULL;
@@ -385,7 +385,7 @@ static gboolean save_slot_status_globally(GError **error)
 
 	/* Save all slot status information */
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *) &slot)) {
 		g_autofree gchar *group = NULL;
 
 		if (!slot->status) {

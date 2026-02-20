@@ -27,7 +27,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
 	bundlename = g_build_filename(tmpdir, "fuzz-bundle.raucb", NULL);
 	g_assert_nonnull(bundlename);
-	g_file_set_contents(bundlename, (gchar*)data, size, &error);
+	g_file_set_contents(bundlename, (gchar *)data, size, &error);
 
 	(void) check_bundle(bundlename, &bundle, CHECK_BUNDLE_NO_VERIFY, NULL, &error);
 

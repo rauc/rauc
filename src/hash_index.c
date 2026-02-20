@@ -149,7 +149,7 @@ static guint32 *build_lookup(GBytes *hashes)
 		lookup[i] = i;
 	}
 
-	qsort_r(lookup, count, sizeof(guint32), lookup_compare_sort, (void*)g_bytes_get_data(hashes, NULL));
+	qsort_r(lookup, count, sizeof(guint32), lookup_compare_sort, (void *)g_bytes_get_data(hashes, NULL));
 
 	return lookup;
 }

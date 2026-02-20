@@ -21,7 +21,7 @@ typedef struct {
  *        test/install-content/hook.sh will be added to the bundle
  */
 void fixture_helper_set_up_bundle(gchar *tmpdir,
-		const gchar* manifest_content,
+		const gchar *manifest_content,
 		const ManifestTestOptions *options);
 
 /**

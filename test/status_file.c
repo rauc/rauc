@@ -91,7 +91,7 @@ static void status_file_test_global_slot_status(StatusFileFixture *fixture,
 
 	/* Set status for all slots */
 	g_hash_table_iter_init(&iter, slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *) &slot)) {
 		if (slot->status)
 			r_slot_free_status(slot->status);
 
@@ -104,7 +104,7 @@ static void status_file_test_global_slot_status(StatusFileFixture *fixture,
 
 	/* Save status for all slots */
 	g_hash_table_iter_init(&iter, slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *) &slot)) {
 		res = r_slot_status_save(slot, &ierror);
 		g_assert_no_error(ierror);
 		g_assert_true(res);
@@ -112,7 +112,7 @@ static void status_file_test_global_slot_status(StatusFileFixture *fixture,
 
 	/* Clear status for all slots */
 	g_hash_table_iter_init(&iter, slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *) &slot)) {
 		if (slot->status)
 			r_slot_free_status(slot->status);
 
@@ -121,7 +121,7 @@ static void status_file_test_global_slot_status(StatusFileFixture *fixture,
 
 	/* Check status for all slots */
 	g_hash_table_iter_init(&iter, slots);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *) &slot)) {
 		r_slot_status_load(slot);
 		g_assert_nonnull(slot->status);
 		g_assert_cmpstr(slot->status->status, ==, "ok");
@@ -135,7 +135,7 @@ static void status_file_test_global_slot_status(StatusFileFixture *fixture,
 static void status_file_test_load_system_status(StatusFileFixture *fixture,
 		gconstpointer user_data)
 {
-	g_autofree gchar* pathname = NULL;
+	g_autofree gchar *pathname = NULL;
 	GError *ierror = NULL;
 	gboolean res;
 	g_autoptr(RSystemStatus) system_status = NULL;
@@ -163,7 +163,7 @@ boot-id=924ebd2e-c85f-4c48-b92d-cd1b378d9994\n\
 static void status_file_test_load_broken(StatusFileFixture *fixture,
 		gconstpointer user_data)
 {
-	g_autofree gchar* pathname = NULL;
+	g_autofree gchar *pathname = NULL;
 	g_autoptr(GError) ierror = NULL;
 	gboolean res;
 	g_autoptr(RSystemStatus) system_status = NULL;
@@ -190,7 +190,7 @@ boot-id=924ebd2e-c85f-4c48-b92d-cd1b378d9994\n\
 static void status_file_test_save_system_status(StatusFileFixture *fixture,
 		gconstpointer user_data)
 {
-	g_autofree gchar* pathname = NULL;
+	g_autofree gchar *pathname = NULL;
 	g_autoptr(GError) ierror = NULL;
 	gboolean res;
 	g_autoptr(RSystemStatus) system_status = NULL;
@@ -242,7 +242,7 @@ static void status_file_test_save_system_status_per_slot(StatusFileFixture *fixt
 static void status_file_test_save_system_status_existing_slot_status(StatusFileFixture *fixture,
 		gconstpointer user_data)
 {
-	g_autofree gchar* pathname = NULL;
+	g_autofree gchar *pathname = NULL;
 	g_autoptr(GError) ierror = NULL;
 	gboolean res;
 	g_autoptr(GKeyFile) keyfile = NULL;
@@ -282,7 +282,7 @@ sha256=e437ab217356ee47cd338be0ffe33a3cb6dc1ce679475ea59ff8a8f7f6242b27\n\
 static void status_file_test_save_system_status_broken_existing_slot_status(StatusFileFixture *fixture,
 		gconstpointer user_data)
 {
-	g_autofree gchar* pathname = NULL;
+	g_autofree gchar *pathname = NULL;
 	g_autoptr(GError) ierror = NULL;
 	gboolean res;
 	g_autoptr(GKeyFile) keyfile = NULL;
@@ -325,7 +325,7 @@ sha256=e437ab217356ee47cd338be0ffe33a3cb6dc1ce679475ea59ff8a8f7f6242b27\n\
 static void status_file_test_save_slot_status_existing_system_status(StatusFileFixture *fixture,
 		gconstpointer user_data)
 {
-	g_autofree gchar* pathname = NULL;
+	g_autofree gchar *pathname = NULL;
 	RaucSlot *slot = NULL;
 	GError *ierror = NULL;
 	gboolean res;

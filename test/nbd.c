@@ -55,7 +55,7 @@ static void nbd_fixture_tear_down(NBDFixture *fixture, gconstpointer user_data)
 
 static void test_direct_read(NBDFixture *fixture, gconstpointer user_data)
 {
-	NBDData *data = (NBDData*)user_data;
+	NBDData *data = (NBDData *)user_data;
 	g_autoptr(RaucNBDServer) nbd_srv = NULL;
 	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
@@ -82,7 +82,7 @@ static void test_direct_read(NBDFixture *fixture, gconstpointer user_data)
 		return;
 	}
 
-	res = r_nbd_read(nbd_srv->sock, (guint8*)&magic, sizeof(magic), 0, &ierror);
+	res = r_nbd_read(nbd_srv->sock, (guint8 *)&magic, sizeof(magic), 0, &ierror);
 	g_assert_no_error(ierror);
 	g_assert_true(res);
 	g_assert_cmphex(magic, ==, GUINT32_TO_LE(0x73717368));
@@ -199,7 +199,7 @@ static void test_cache_etag(NBDFixture *fixture, gconstpointer user_data)
 
 static void test_nbd_mount(NBDFixture *fixture, gconstpointer user_data)
 {
-	NBDData *data = (NBDData*)user_data;
+	NBDData *data = (NBDData *)user_data;
 	g_autoptr(RaucBundle) bundle = NULL;
 	g_autoptr(GError) ierror = NULL;
 	gboolean res = FALSE;
@@ -243,7 +243,7 @@ static void test_nbd_mount(NBDFixture *fixture, gconstpointer user_data)
 int main(int argc, char *argv[])
 {
 	g_autoptr(GPtrArray) ptrs = g_ptr_array_new_with_free_func(g_free);
-	const char * http_headers[2] = {NULL, NULL};
+	const char *http_headers[2] = {NULL, NULL};
 	NBDData *nbd_data;
 	setlocale(LC_ALL, "C");
 

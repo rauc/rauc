@@ -45,7 +45,7 @@ static void artifacts_fixture_tear_down(ArtifactsFixture *fixture, gconstpointer
 	g_clear_pointer(&fixture->repo, r_artifact_repo_free);
 }
 
-static RArtifact* create_random_artifact(const gchar *tmpdir, const gchar *name, gsize size, const guint32 seed)
+static RArtifact *create_random_artifact(const gchar *tmpdir, const gchar *name, gsize size, const guint32 seed)
 {
 	g_message("creating %s", name);
 

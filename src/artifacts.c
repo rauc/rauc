@@ -25,7 +25,7 @@ static void show_repo(RArtifactRepo *repo)
 	GHashTable *inner = NULL;
 	g_hash_table_iter_init(&iter, repo->artifacts);
 	const gchar *a_name = NULL;
-	while (g_hash_table_iter_next(&iter, (gpointer*)&a_name, (gpointer*)&inner)) {
+	while (g_hash_table_iter_next(&iter, (gpointer *)&a_name, (gpointer *)&inner)) {
 		g_debug("    %s (%p):", a_name, a_name);
 		g_assert(a_name == g_intern_string(a_name));
 
@@ -33,7 +33,7 @@ static void show_repo(RArtifactRepo *repo)
 		g_hash_table_iter_init(&inner_iter, inner);
 		const gchar *a_digest = NULL;
 		RArtifact *artifact = NULL;
-		while (g_hash_table_iter_next(&inner_iter, (gpointer*)&a_digest, (gpointer*)&artifact)) {
+		while (g_hash_table_iter_next(&inner_iter, (gpointer *)&a_digest, (gpointer *)&artifact)) {
 			g_debug("      %s (%p):", a_digest, a_digest);
 
 			g_assert(a_name == artifact->name); /* intern strings */
@@ -50,7 +50,7 @@ static void show_repo(RArtifactRepo *repo)
 
 void r_artifact_free(gpointer value)
 {
-	RArtifact *artifact = (RArtifact*)value;
+	RArtifact *artifact = (RArtifact *)value;
 
 	if (!artifact)
 		return;
@@ -69,7 +69,7 @@ void r_artifact_free(gpointer value)
 
 void r_artifact_repo_free(gpointer value)
 {
-	RArtifactRepo *repo = (RArtifactRepo*)value;
+	RArtifactRepo *repo = (RArtifactRepo *)value;
 
 	if (!repo)
 		return;
@@ -445,12 +445,12 @@ gboolean r_artifact_repo_prune(RArtifactRepo *repo, GError **error)
 	GHashTableIter iter;
 	GHashTable *inner = NULL;
 	g_hash_table_iter_init(&iter, repo->artifacts);
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer*)&inner)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&inner)) {
 		GHashTableIter inner_iter;
 		RArtifact *artifact = NULL;
 
 		g_hash_table_iter_init(&inner_iter, inner);
-		while (g_hash_table_iter_next(&inner_iter, NULL, (gpointer*)&artifact)) {
+		while (g_hash_table_iter_next(&inner_iter, NULL, (gpointer *)&artifact)) {
 			if (artifact->references->len)
 				continue;
 
@@ -511,7 +511,7 @@ gboolean r_artifact_repo_commit(RArtifactRepo *repo, GError **error)
 		g_hash_table_iter_init(&iter, repo->artifacts);
 		GHashTable *inner = NULL;
 		const gchar *a_name = NULL;
-		while (g_hash_table_iter_next(&iter, (gpointer*)&a_name, (gpointer*)&inner)) {
+		while (g_hash_table_iter_next(&iter, (gpointer *)&a_name, (gpointer *)&inner)) {
 			/* build symlink name */
 			g_autofree gchar *symlink = g_build_filename(
 					repo->path,
@@ -525,7 +525,7 @@ gboolean r_artifact_repo_commit(RArtifactRepo *repo, GError **error)
 			g_hash_table_iter_init(&inner_iter, inner);
 			RArtifact *artifact = NULL;
 			g_autofree gchar *target = NULL;
-			while (g_hash_table_iter_next(&inner_iter, NULL, (gpointer*)&artifact)) {
+			while (g_hash_table_iter_next(&inner_iter, NULL, (gpointer *)&artifact)) {
 				g_assert(artifact->references != NULL);
 				g_assert(g_file_test(artifact->path, G_FILE_TEST_EXISTS));
 				g_assert(repo->possible_references->len > 0);
@@ -590,7 +590,7 @@ gboolean r_artifacts_init(GError **error)
 	GHashTableIter iter;
 	g_hash_table_iter_init(&iter, r_context()->config->artifact_repos);
 	RArtifactRepo *repo;
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer*)&repo)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&repo)) {
 		if (!r_artifact_repo_prepare(repo, &ierror)) {
 			g_propagate_error(error, ierror);
 			return FALSE;
@@ -612,7 +612,7 @@ gboolean r_artifacts_prune(GError **error)
 	GHashTableIter iter;
 	g_hash_table_iter_init(&iter, r_context()->config->artifact_repos);
 	RArtifactRepo *repo;
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer*)&repo)) {
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&repo)) {
 		if (!r_artifact_repo_prune(repo, &ierror)) {
 			g_propagate_error(error, ierror);
 			return FALSE;
@@ -661,7 +661,7 @@ GVariant *r_artifacts_to_dict(void)
 	g_hash_table_iter_init(&repo_iter, r_context()->config->artifact_repos);
 	RArtifactRepo *repo;
 	g_auto(GVariantBuilder) repos_builder = G_VARIANT_BUILDER_INIT(G_VARIANT_TYPE("aa{sv}"));
-	while (g_hash_table_iter_next(&repo_iter, NULL, (gpointer*)&repo)) {
+	while (g_hash_table_iter_next(&repo_iter, NULL, (gpointer *)&repo)) {
 		g_variant_builder_open(&repos_builder, G_VARIANT_TYPE("a{sv}"));
 
 		g_variant_builder_add(&repos_builder, "{sv}", "name", g_variant_new_string(repo->name));
@@ -679,7 +679,7 @@ GVariant *r_artifacts_to_dict(void)
 		GHashTable *inner = NULL;
 		g_auto(GVariantBuilder) artifacts_builder = G_VARIANT_BUILDER_INIT(G_VARIANT_TYPE("aa{sv}"));
 		const gchar *a_name = NULL;
-		while (g_hash_table_iter_next(&a_iter_name, (gpointer*)&a_name, (gpointer*)&inner)) {
+		while (g_hash_table_iter_next(&a_iter_name, (gpointer *)&a_name, (gpointer *)&inner)) {
 			g_variant_builder_open(&artifacts_builder, G_VARIANT_TYPE("a{sv}"));
 			g_variant_builder_add(&artifacts_builder, "{sv}", "name", g_variant_new_string(a_name));
 
@@ -687,7 +687,7 @@ GVariant *r_artifacts_to_dict(void)
 			g_hash_table_iter_init(&a_iter_digest, inner);
 			RArtifact *artifact = NULL;
 			g_auto(GVariantBuilder) instances_builder = G_VARIANT_BUILDER_INIT(G_VARIANT_TYPE("aa{sv}"));
-			while (g_hash_table_iter_next(&a_iter_digest, NULL, (gpointer*)&artifact)) {
+			while (g_hash_table_iter_next(&a_iter_digest, NULL, (gpointer *)&artifact)) {
 				g_variant_builder_open(&instances_builder, G_VARIANT_TYPE("a{sv}"));
 
 				g_variant_builder_add(&instances_builder, "{sv}", "checksum", g_variant_new_string(artifact->checksum.digest));
@@ -979,7 +979,7 @@ void r_artifact_activate(const RArtifact *artifact, const gchar *parent)
 	GHashTableIter inner_iter;
 	RArtifact *other_artifact = NULL;
 	g_hash_table_iter_init(&inner_iter, inner);
-	while (g_hash_table_iter_next(&inner_iter, NULL, (gpointer*)&other_artifact)) {
+	while (g_hash_table_iter_next(&inner_iter, NULL, (gpointer *)&other_artifact)) {
 		if (other_artifact == artifact)
 			continue;
 		r_artifact_deactivate(other_artifact, parent);

@@ -16,7 +16,7 @@ typedef struct {
 	gchar *tmpdir;
 } InstallFixture;
 
-guint8* random_bytes(gsize size, guint32 seed)
+guint8 *random_bytes(gsize size, guint32 seed)
 {
 	guint8 *bytes = g_malloc0(size);
 	g_autoptr(GRand) rand = g_rand_new_with_seed(seed);
@@ -26,7 +26,7 @@ guint8* random_bytes(gsize size, guint32 seed)
 	return bytes;
 }
 
-gchar* write_random_file(const gchar *tmpdir, const gchar *filename,
+gchar *write_random_file(const gchar *tmpdir, const gchar *filename,
 		gsize size, const guint32 seed)
 {
 	g_autofree gchar *pathname = NULL;
@@ -46,10 +46,10 @@ gchar* write_random_file(const gchar *tmpdir, const gchar *filename,
 
 /* Helper that writes string to new file in tmpdir/filename, returns entire
  * pathname if successful. */
-gchar* write_tmp_file(
-		const gchar* tmpdir,
-		const gchar* filename,
-		const gchar* content,
+gchar *write_tmp_file(
+		const gchar *tmpdir,
+		const gchar *filename,
+		const gchar *content,
 		GError **error)
 {
 	g_autofree gchar *pathname = NULL;
@@ -422,7 +422,7 @@ gboolean test_copy_file(const gchar *srcprefix, const gchar *srcfile, const gcha
 	return copy_file(srcprefix, srcfile, dstprefix, dstfile, NULL);
 }
 
-gboolean test_make_slot_user_writable(const gchar* path, const gchar* file)
+gboolean test_make_slot_user_writable(const gchar *path, const gchar *file)
 {
 	gboolean res = FALSE;
 	g_autofree gchar *slotpath = NULL;
@@ -516,7 +516,7 @@ void test_show_tree(const gchar *path, gboolean inodes)
 	g_assert_true(res);
 }
 
-gsize get_file_size(gchar* filename, GError **error)
+gsize get_file_size(gchar *filename, GError **error)
 {
 	GError *ierror = NULL;
 	GFile *file = NULL;
@@ -589,7 +589,7 @@ GPtrArray *test_ptr_array_from_strsplit(const gchar *input)
 	return result;
 }
 
-void* dup_test_mem(GPtrArray *ptrs, const void *mem, gsize len)
+void *dup_test_mem(GPtrArray *ptrs, const void *mem, gsize len)
 {
 	void *result = g_memdup(mem, len);
 
@@ -598,7 +598,7 @@ void* dup_test_mem(GPtrArray *ptrs, const void *mem, gsize len)
 	return result;
 }
 
-void* dup_test_printf(GPtrArray *ptrs, const gchar *format, ...)
+void *dup_test_printf(GPtrArray *ptrs, const gchar *format, ...)
 {
 	gchar *result;
 	va_list args;
