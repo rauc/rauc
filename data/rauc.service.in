@@ -9,3 +9,5 @@ BusName=de.pengutronix.rauc
 ExecStart=@bindir@/rauc --mount=/run/rauc/mnt service
 RuntimeDirectory=rauc/mnt
 MountFlags=slave
+Restart=on-failure
+RestartSec=5min
