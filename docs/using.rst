@@ -681,6 +681,39 @@ Obtain bundle information
 
   $ busctl call de.pengutronix.rauc / de.pengutronix.rauc.Installer InspectBundle sa{sv} "<bundle-path>/<bundle-url>" 0
 
+Examples Using Python ``dasbus``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The python `dasbus <https://dasbus.readthedocs.io/en/latest/>`_ library is a
+convenient option to test D-Bus interaction with the RAUC service.
+It is also used in RAUC's pytest-based tests.
+
+Here is a short example for printing the status of all slots (using the
+``GetSlotStatus`` property) and marking the booted slot as good (using the
+``Mark`` Method):
+
+.. code-block:: python
+
+  #!/usr/bin/env python3
+
+  import json
+  from dasbus.connection import SystemMessageBus
+
+  bus = SystemMessageBus()
+  installer = bus.get_proxy(
+      "de.pengutronix.rauc",
+      "/",
+      "de.pengutronix.rauc.Installer",
+  )
+
+  # Get slot status
+  slots = installer.GetSlotStatus()
+  print(json.dumps(dict(slots), indent=2, default=str))
+
+  # Mark booted slot as good
+  slot_name, message = installer.Mark("good", "booted")
+  print(f"Marked '{slot_name}' as good: {message}")
+
 .. _debugging:
 
 Debugging RAUC
