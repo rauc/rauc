@@ -943,12 +943,8 @@ static GHashTable *parse_slots(const char *filename, RaucConfig *c, GKeyFile *ke
 	GError *ierror = NULL;
 	g_auto(GStrv) groups = NULL;
 	gsize group_count;
-	g_autoptr(GHashTable) slots = NULL;
-	g_autoptr(GList) slotlist = NULL;
-	g_autoptr(GHashTable) bootnames = NULL;
-
-	slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
-	bootnames = g_hash_table_new(g_str_hash, g_str_equal);
+	g_autoptr(GHashTable) slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
+	g_autoptr(GHashTable) bootnames = g_hash_table_new(g_str_hash, g_str_equal);
 
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
@@ -1154,25 +1150,21 @@ static GHashTable *parse_slots(const char *filename, RaucConfig *c, GKeyFile *ke
 	}
 
 	/* Add parent pointers */
-	slotlist = g_hash_table_get_keys(slots);
+	g_autoptr(GList) slotlist = g_hash_table_get_keys(slots);
 	for (GList *l = slotlist; l != NULL; l = l->next) {
-		RaucSlot *slot;
-		RaucSlot *parent;
-		RaucSlot *child;
-
-		slot = g_hash_table_lookup(slots, l->data);
+		RaucSlot *slot = g_hash_table_lookup(slots, l->data);
 		if (!slot->parent_name) {
 			continue;
 		}
 
-		parent = g_hash_table_lookup(slots, slot->parent_name);
+		RaucSlot *parent = g_hash_table_lookup(slots, slot->parent_name);
 		if (!parent) {
 			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_PARENT,
 					"Parent slot '%s' not found!", slot->parent_name);
 			return NULL;
 		}
 
-		child = g_hash_table_lookup(slots, l->data);
+		RaucSlot *child = g_hash_table_lookup(slots, l->data);
 		child->parent = parent;
 
 		if (child->bootname) {
