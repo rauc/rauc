@@ -944,7 +944,6 @@ static GHashTable *parse_slots(const char *filename, RaucConfig *c, GKeyFile *ke
 	g_auto(GStrv) groups = NULL;
 	gsize group_count;
 	g_autoptr(GHashTable) slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
-	g_autoptr(GHashTable) bootnames = g_hash_table_new(g_str_hash, g_str_equal);
 
 	groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
@@ -1027,15 +1026,6 @@ static GHashTable *parse_slots(const char *filename, RaucConfig *c, GKeyFile *ke
 							"Invalid bootname for slot %s: ", slot->name);
 					return NULL;
 				}
-
-				/* check if we have seen this bootname on another slot */
-				if (g_hash_table_contains(bootnames, slot->bootname)) {
-					g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_DUPLICATE_BOOTNAME,
-							"Bootname '%s' is set on more than one slot",
-							slot->bootname);
-					return NULL;
-				}
-				g_hash_table_add(bootnames, slot->bootname);
 			}
 
 			/* Collect name of parent here for easing remaining key checking.
@@ -1254,6 +1244,32 @@ static GHashTable *parse_artifact_repos(const char *filename, const char *data_d
 	return g_steal_pointer(&repos);
 }
 
+static gboolean check_duplicate_bootnames(GHashTable *slots, GError **error)
+{
+	g_return_val_if_fail(slots, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	GHashTableIter iter;
+	g_hash_table_iter_init(&iter, slots);
+	gpointer value;
+	g_autoptr(GHashTable) bootnames = g_hash_table_new(g_str_hash, g_str_equal);
+	while (g_hash_table_iter_next(&iter, NULL, &value)) {
+		RaucSlot *slot = value;
+
+		if (!slot->bootname)
+			continue;
+
+		if (g_hash_table_contains(bootnames, slot->bootname)) {
+			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_DUPLICATE_BOOTNAME,
+					"Bootname '%s' is set on more than one slot",
+					slot->bootname);
+			return FALSE;
+		}
+		g_hash_table_add(bootnames, slot->bootname);
+	}
+	return TRUE;
+}
+
 static gboolean check_unique_slotclasses(RaucConfig *config, GError **error)
 {
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -1452,6 +1468,11 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 
 	c = parse_config(filename, data, length, &ierror);
 	if (!c) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (!check_duplicate_bootnames(c->slots, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
