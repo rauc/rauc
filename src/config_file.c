@@ -1163,14 +1163,12 @@ static GHashTable *parse_slots(const char *filename, RaucConfig *c, GKeyFile *ke
 					"Parent slot '%s' not found!", slot->parent_name);
 			return NULL;
 		}
+		slot->parent = parent;
 
-		RaucSlot *child = g_hash_table_lookup(slots, l->data);
-		child->parent = parent;
-
-		if (child->bootname) {
+		if (slot->bootname) {
 			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_CHILD_HAS_BOOTNAME,
 					"Child slot '%s' has bootname set",
-					child->name);
+					slot->name);
 			return NULL;
 		}
 	}
