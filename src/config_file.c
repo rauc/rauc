@@ -1139,35 +1139,6 @@ static GHashTable *parse_slots(const char *filename, RaucConfig *c, GKeyFile *ke
 		}
 	}
 
-	/* Add parent pointers */
-	g_autoptr(GList) slotlist = g_hash_table_get_keys(slots);
-	for (GList *l = slotlist; l != NULL; l = l->next) {
-		RaucSlot *slot = g_hash_table_lookup(slots, l->data);
-		if (!slot->parent_name) {
-			continue;
-		}
-
-		RaucSlot *parent = g_hash_table_lookup(slots, slot->parent_name);
-		if (!parent) {
-			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_PARENT,
-					"Parent slot '%s' not found!", slot->parent_name);
-			return NULL;
-		}
-		slot->parent = parent;
-
-		if (slot->bootname) {
-			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_CHILD_HAS_BOOTNAME,
-					"Child slot '%s' has bootname set",
-					slot->name);
-			return NULL;
-		}
-	}
-
-	if (!fix_grandparent_links(slots, &ierror)) {
-		g_propagate_error(error, ierror);
-		return NULL;
-	}
-
 	return g_steal_pointer(&slots);
 }
 
@@ -1242,6 +1213,44 @@ static GHashTable *parse_artifact_repos(const char *filename, const char *data_d
 	}
 
 	return g_steal_pointer(&repos);
+}
+
+static gboolean resolve_slot_parents(GHashTable *slots, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(slots, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* Add parent pointers */
+	g_autoptr(GList) slotlist = g_hash_table_get_keys(slots);
+	for (GList *l = slotlist; l != NULL; l = l->next) {
+		RaucSlot *slot = g_hash_table_lookup(slots, l->data);
+		if (!slot->parent_name)
+			continue;
+
+		RaucSlot *parent = g_hash_table_lookup(slots, slot->parent_name);
+		if (!parent) {
+			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_PARENT,
+					"Parent slot '%s' not found!", slot->parent_name);
+			return FALSE;
+		}
+		slot->parent = parent;
+
+		if (slot->bootname) {
+			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_CHILD_HAS_BOOTNAME,
+					"Child slot '%s' has bootname set",
+					slot->name);
+			return FALSE;
+		}
+	}
+
+	if (!fix_grandparent_links(slots, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 static gboolean check_duplicate_bootnames(GHashTable *slots, GError **error)
@@ -1403,6 +1412,12 @@ static RaucConfig *parse_config(const gchar *filename, const gchar *data, gsize 
 	/* parse [slot.*.#] sections */
 	c->slots = parse_slots(filename, c, key_file, &ierror);
 	if (!c->slots) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* resolve parent slot pointers and validate parent relationships */
+	if (!resolve_slot_parents(c->slots, &ierror)) {
 		g_propagate_error(error, ierror);
 		return NULL;
 	}
