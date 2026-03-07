@@ -391,13 +391,6 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 				"Value for \"boot-attempts-primary\" must not be negative");
 		return FALSE;
 	}
-	if (c->boot_default_attempts > 0 || c->boot_attempts_primary > 0) {
-		if ((g_strcmp0(c->system_bootloader, "uboot") != 0) && (g_strcmp0(c->system_bootloader, "barebox") != 0)) {
-			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_BOOTLOADER,
-					"Configuring boot attempts is valid for uboot or barebox only (not for %s)", c->system_bootloader);
-			return FALSE;
-		}
-	}
 
 	c->max_bundle_download_size = g_key_file_get_uint64(key_file, "system", "max-bundle-download-size", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
@@ -1507,6 +1500,14 @@ gboolean check_config_target(const RaucConfig *config, GError **error)
 				"Unsupported bootloader '%s' selected in system config",
 				config->system_bootloader);
 		return FALSE;
+	}
+
+	if (config->boot_default_attempts > 0 || config->boot_attempts_primary > 0) {
+		if ((g_strcmp0(config->system_bootloader, "uboot") != 0) && (g_strcmp0(config->system_bootloader, "barebox") != 0)) {
+			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_BOOTLOADER,
+					"Configuring boot attempts is valid for uboot or barebox only (not for %s)", config->system_bootloader);
+			return FALSE;
+		}
 	}
 
 	return TRUE;
