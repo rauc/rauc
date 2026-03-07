@@ -2,7 +2,7 @@ Updating your Embedded Device
 =============================
 
 This chapter does not explicitly tell you anything about RAUC itself, but it
-provides an initial overview of basic requirements and design consideration
+provides an initial overview of basic requirements and design considerations
 that have to be taken into account when designing an update architecture for
 your embedded device.
 
@@ -11,7 +11,7 @@ simply skip this chapter.
 
 Nevertheless, this chapter could also provide some useful hints that can
 already be useful when designing the device you intend to update later on.
-In this you initial phase you can prevent yourself from making wrong decisions.
+In this initial phase you can prevent yourself from making wrong decisions.
 
 
 Redundancy and Atomicity
@@ -47,11 +47,11 @@ system should have two redundant devices or partitions for your root
 file-system.
 This full symmetric setup allows you to run your application while safely
 updating the inactive copy.
-Additionally, if the running system become corrupted for any reason, you may
-fall back to you second rootfs device.
+Additionally, if the running system becomes corrupted for any reason, you may
+fall back to your second rootfs device.
 
 If the available storage is not much larger than the space required by your
-devices rootfs, a full redundant symmetric A/B setup will not be an option.
+device's rootfs, a full redundant symmetric A/B setup will not be an option.
 In this case, you might need to use a rescue system consisting of a minimal kernel
 with an appended initramfs to install your updates.
 
@@ -59,10 +59,10 @@ with an appended initramfs to install your updates.
   If you can choose the storage technology for your system, *DO NOT* choose raw
   NAND flash.
   NAND (especially MLC) is complex to handle correctly and comes with a
-  variety of very specific effects that may cause difficult to debug problem later
+  variety of very specific effects that may cause difficult-to-debug problems later
   (if not all details of the storage stack are configured just right).
   Instead choose eMMC or SSDs, where the engineers who (hopefully) know the quirks
-  of their technology have created layers that hide this complexity to you.
+  of their technology have created layers that hide this complexity from you.
 
 If storage size can be freely chosen, calculate for at least 2x the size of
 your rootfs plus additionally required space, e.g. for bootloader, (redundant)
