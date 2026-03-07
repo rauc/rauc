@@ -1106,7 +1106,7 @@ Enable Accessing U-Boot Environment from Userspace
 To enable reading and writing of the U-Boot environment from Linux userspace,
 you need to have:
 
-* U-Boot target tools ``fw_printenv`` and ``fw_setenv`` available on your devices rootfs.
+* U-Boot target tools ``fw_printenv`` and ``fw_setenv`` available on your device's rootfs.
 * Environment configuration file ``/etc/fw_env.config`` in your target root filesystem.
 
 See the corresponding

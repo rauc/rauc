@@ -20,7 +20,7 @@ order of priority, only the first file found is used:
 ``/etc/rauc/``, ``/run/rauc/``, ``/usr/lib/rauc/``.
 
 It is used to validate storage locations for update images.
-Each board type requires its special configuration.
+Each board type requires its own special configuration.
 
 This file is part of the root file system.
 

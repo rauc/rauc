@@ -117,7 +117,7 @@ By default (or with ``readable``), it will print a human readable representation
 of your system's most important properties.
 Alternatively, with ``shell`` you can obtain a shell-parsable description,
 or with ``json`` or ``json-pretty`` a JSON representation of the system status.
-If more information is needed such as the slots' :ref:`status <slot-status>` add
+If more information is needed such as the slots' :ref:`status <slot-status>`, add
 the command line option ``--detailed``.
 
 .. _sec-run-links:
@@ -160,7 +160,7 @@ which then, for example, resets a boot attempt counter.
 
   # rauc status mark-bad
 
-If the current boot failed in some kind, this command can be used to communicate
+If the current boot failed in some way, this command can be used to communicate
 that to the underlying bootloader implementation.
 In most cases this will disable the currently booted slot or at least switch to
 a different one.

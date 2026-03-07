@@ -12,7 +12,7 @@ Scenarios
 Symmetric Root-FS Slots
 -----------------------
 
-This is the probably the most common setup.
+This is probably the most common setup.
 In this case, two root partitions of the same size are used (often called "A"
 and "B").
 When running from "A", an update is installed into "B" and vice versa.
@@ -101,7 +101,7 @@ be updated independently of the base system.
 This can be combined with either symmetric or asymmetric setups as described
 above.
 
-For example, the main application could be split of from the root file-system.
+For example, the main application could be split off from the root file-system.
 This can be useful if the base system is developed independently from the
 application(s) or by a different team.
 By explicitly distinguishing between the two, different versions of the

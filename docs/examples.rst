@@ -198,7 +198,7 @@ Having copied ``update-2015.04-1.raucb`` onto the target, we only need to run RA
 
   > rauc install /mnt/usb/update-2015.04-1.raucb
 
-After cyptographically verifying the bundle, RAUC will now determine the
+After cryptographically verifying the bundle, RAUC will now determine the
 active slots by looking at the ``rauc.slot`` variable.
 Then, it can select the target slot for the update image from the inactive
 slots.
