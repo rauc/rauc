@@ -136,17 +136,14 @@ out:
 
 static gboolean r_event_log_parse_config_sections(GKeyFile *key_file, RaucConfig *config, GError **error)
 {
-	gsize group_count;
-	g_auto(GStrv) groups = NULL;
-	gint tmp_maxfiles;
-
 	g_return_val_if_fail(key_file, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_assert_null(config->loggers);
 
 	/* parse [log.*] sections */
-	groups = g_key_file_get_groups(key_file, &group_count);
+	gsize group_count;
+	g_auto(GStrv) groups = g_key_file_get_groups(key_file, &group_count);
 	for (gchar **group = groups; *group != NULL; group++) {
 		GError *ierror = NULL;
 		g_autoptr(REventLogger) logger = NULL;
@@ -252,7 +249,7 @@ static gboolean r_event_log_parse_config_sections(GKeyFile *key_file, RaucConfig
 			return FALSE;
 		}
 
-		tmp_maxfiles = key_file_consume_integer(key_file, *group, "max-files", &ierror);
+		gint tmp_maxfiles = key_file_consume_integer(key_file, *group, "max-files", &ierror);
 		if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 			tmp_maxfiles = 10;
 			g_clear_error(&ierror);
@@ -288,10 +285,6 @@ static gboolean r_event_log_parse_config_sections(GKeyFile *key_file, RaucConfig
 static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, RaucConfig *c, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean dtbvariant;
-	g_autofree gchar *variant_data = NULL;
-	g_autofree gchar *version_data = NULL;
-	g_autofree gchar *bundle_formats = NULL;
 
 	g_return_val_if_fail(key_file, FALSE);
 	g_return_val_if_fail(c, FALSE);
@@ -307,7 +300,7 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 	}
 
 	/* check optional 'min-bundle-version' key for validity */
-	version_data = key_file_consume_string(key_file, "system", "min-bundle-version", &ierror);
+	g_autofree gchar *version_data = key_file_consume_string(key_file, "system", "min-bundle-version", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 		g_clear_pointer(&version_data, g_free);
 		g_clear_error(&ierror);
@@ -447,7 +440,7 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 	c->system_variant_type = R_CONFIG_SYS_VARIANT_NONE;
 
 	/* parse 'variant-dtb' key */
-	dtbvariant = g_key_file_get_boolean(key_file, "system", "variant-dtb", &ierror);
+	gboolean dtbvariant = g_key_file_get_boolean(key_file, "system", "variant-dtb", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 		dtbvariant = FALSE;
 		g_clear_error(&ierror);
@@ -470,7 +463,7 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 	g_key_file_remove_key(key_file, "system", "prevent-late-fallback", NULL);
 
 	/* parse 'variant-file' key */
-	variant_data = key_file_consume_string(key_file, "system", "variant-file", &ierror);
+	g_autofree gchar *variant_data = key_file_consume_string(key_file, "system", "variant-file", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 		g_clear_pointer(&variant_data, g_free);
 		g_clear_error(&ierror);
@@ -567,7 +560,7 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 		1 << R_MANIFEST_FORMAT_PLAIN |
 		        1 << R_MANIFEST_FORMAT_VERITY |
 		        1 << R_MANIFEST_FORMAT_CRYPT;
-	bundle_formats = key_file_consume_string(key_file, "system", "bundle-formats", &ierror);
+	g_autofree gchar *bundle_formats = key_file_consume_string(key_file, "system", "bundle-formats", &ierror);
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 		g_clear_error(&ierror);
 	} else if (ierror) {
@@ -941,18 +934,16 @@ static gboolean parse_handlers_section(const gchar *filename, GKeyFile *key_file
 static GHashTable *parse_slots(const char *filename, RaucConfig *c, GKeyFile *key_file, GError **error)
 {
 	GError *ierror = NULL;
-	g_auto(GStrv) groups = NULL;
 	gsize group_count;
 	g_autoptr(GHashTable) slots = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, r_slot_free);
 
-	groups = g_key_file_get_groups(key_file, &group_count);
+	g_auto(GStrv) groups = g_key_file_get_groups(key_file, &group_count);
 	for (gsize i = 0; i < group_count; i++) {
 		g_auto(GStrv) groupsplit = g_strsplit(groups[i], ".", -1);
 
 		/* We treat sections starting with "slot." as slots */
 		if (g_str_equal(groupsplit[0], RAUC_SLOT_PREFIX)) {
 			g_autoptr(RaucSlot) slot = g_new0(RaucSlot, 1);
-			gchar* value;
 
 			/* Assure slot strings consist of 3 parts, delimited by dots */
 			if (g_strv_length(groupsplit) != 3) {
@@ -961,7 +952,7 @@ static GHashTable *parse_slots(const char *filename, RaucConfig *c, GKeyFile *ke
 				return NULL;
 			}
 
-			value = g_strconcat(groupsplit[1], ".", groupsplit[2], NULL);
+			gchar* value = g_strconcat(groupsplit[1], ".", groupsplit[2], NULL);
 			slot->name = g_intern_string(value);
 			g_free(value);
 
@@ -1336,15 +1327,13 @@ static RaucConfig *parse_config(const gchar *filename, const gchar *data, gsize 
 {
 	GError *ierror = NULL;
 	g_autoptr(RaucConfig) c = g_new0(RaucConfig, 1);
-	g_autoptr(GKeyFile) key_file = NULL;
 
 	g_return_val_if_fail(data, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	c->file_checksum = g_compute_checksum_for_data(G_CHECKSUM_SHA256, (guchar*) data, length);
 
-	key_file = g_key_file_new();
-
+	g_autoptr(GKeyFile) key_file = g_key_file_new();
 	if (!g_key_file_load_from_data(key_file, data, length, G_KEY_FILE_NONE, &ierror)) {
 		g_propagate_error(error, ierror);
 		return NULL;
@@ -1462,15 +1451,14 @@ gboolean default_config(RaucConfig **config, GError **error)
 gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 {
 	GError *ierror = NULL;
-	g_autofree gchar *data = NULL;
-	gsize length;
-	g_autoptr(RaucConfig) c = NULL;
 
 	g_return_val_if_fail(filename, FALSE);
 	g_return_val_if_fail(config && *config == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* We store checksum for later comparison */
+	g_autofree gchar *data = NULL;
+	gsize length;
 	if (!g_file_get_contents(filename, &data, &length, &ierror)) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -1481,7 +1469,7 @@ gboolean load_config(const gchar *filename, RaucConfig **config, GError **error)
 		return FALSE;
 	}
 
-	c = parse_config(filename, data, length, &ierror);
+	g_autoptr(RaucConfig) c = parse_config(filename, data, length, &ierror);
 	if (!c) {
 		g_propagate_error(error, ierror);
 		return FALSE;
