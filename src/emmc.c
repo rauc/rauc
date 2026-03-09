@@ -206,3 +206,61 @@ gboolean r_emmc_force_part_rw(const gchar *device, GError **error)
 
 	return ret;
 }
+
+gboolean r_emmc_extract_base_dev(const gchar *device_path, gchar **base_device, GError **error)
+{
+	g_return_val_if_fail(device_path != NULL, FALSE);
+	g_return_val_if_fail(base_device != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* Pattern to find valid MMC/eMMC base device */
+	*base_device = r_regex_match_simple("(/dev/mmcblk[0-9]+)", device_path);
+
+	if (*base_device == NULL) {
+		g_set_error(error, R_EMMC_ERROR, R_EMMC_ERROR_FAILED,
+				"Device path '%s' does not contain valid MMC device pattern", device_path);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+gboolean r_emmc_toggle_active_bootpart(const gchar *device, gint active_partition, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(device != NULL, FALSE);
+	g_return_val_if_fail(active_partition < EMMC_BOOT_PARTITIONS, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* toggle active boot partition in ext_csd register; do this explicitly on
+	 * determined boot partition to force the kernel to switch to the partition;
+	 * for simplicity reasons: in case the user partition is active use
+	 * mmcblkXboot1, in case no partition is active use mmcblkXboot0
+	 */
+	g_debug("Toggling active eMMC boot partition %sboot%d", device, active_partition);
+	if (!r_emmc_write_bootpart(device, INACTIVE_BOOT_PARTITION(active_partition), &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	/* sanity check: read active boot partition from ext_csd
+	 *
+	 * Read explicitly from root device (this forces another kernel
+	 * partition switch and should trigger the ext_csd bug more reliably).
+	 */
+	gint part_active_after;
+	if (!r_emmc_read_bootpart(device, &part_active_after, &ierror)) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	if (active_partition == part_active_after) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Toggling the boot partition failed! Your kernel is most-likely affected by the ioctl ext_csd bug: see https://rauc.readthedocs.io/en/latest/advanced.html#update-bootloader-in-emmc-boot-partitions");
+		return FALSE;
+	}
+
+	g_message("Boot partition %sboot%d is now active", device, part_active_after);
+	return TRUE;
+}
