@@ -1,4 +1,3 @@
-import os
 import shutil
 
 from conftest import have_openssl
@@ -16,7 +15,7 @@ def test_extract_signature(tmp_path):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/bundle.sig")
+    assert (tmp_path / "bundle.sig").exists()
 
     out, err, exitcode = run(f"openssl asn1parse -inform DER -in {tmp_path}/bundle.sig -noout")
     assert exitcode == 0
@@ -32,7 +31,7 @@ def test_extract_signature_crypt(tmp_path):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/bundle.sig")
+    assert (tmp_path / "bundle.sig").exists()
 
     out, err, exitcode = run(f"openssl asn1parse -inform DER -in {tmp_path}/bundle.sig -noout")
     assert exitcode == 0
@@ -49,11 +48,11 @@ def test_extract(tmp_path):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/bundle-extract/appfs.img")
-    assert os.path.exists(f"{tmp_path}/bundle-extract/custom_handler.sh")
-    assert os.path.exists(f"{tmp_path}/bundle-extract/hook.sh")
-    assert os.path.exists(f"{tmp_path}/bundle-extract/manifest.raucm")
-    assert os.path.exists(f"{tmp_path}/bundle-extract/rootfs.img")
+    assert (tmp_path / "bundle-extract/appfs.img").exists()
+    assert (tmp_path / "bundle-extract/custom_handler.sh").exists()
+    assert (tmp_path / "bundle-extract/hook.sh").exists()
+    assert (tmp_path / "bundle-extract/manifest.raucm").exists()
+    assert (tmp_path / "bundle-extract/rootfs.img").exists()
 
 
 @have_openssl
@@ -69,8 +68,8 @@ def test_extract_crypt(tmp_path):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/bundle-extract/appfs.img")
-    assert os.path.exists(f"{tmp_path}/bundle-extract/custom_handler.sh")
-    assert os.path.exists(f"{tmp_path}/bundle-extract/hook.sh")
-    assert os.path.exists(f"{tmp_path}/bundle-extract/manifest.raucm")
-    assert os.path.exists(f"{tmp_path}/bundle-extract/rootfs.img")
+    assert (tmp_path / "bundle-extract/appfs.img").exists()
+    assert (tmp_path / "bundle-extract/custom_handler.sh").exists()
+    assert (tmp_path / "bundle-extract/hook.sh").exists()
+    assert (tmp_path / "bundle-extract/manifest.raucm").exists()
+    assert (tmp_path / "bundle-extract/rootfs.img").exists()
