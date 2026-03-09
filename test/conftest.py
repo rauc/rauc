@@ -31,7 +31,7 @@ shutil._USE_CP_SENDFILE = False
 meson_build = os.environ.get("MESON_BUILD_DIR")
 if not meson_build:
     raise Exception("Please set MESON_BUILD_DIR to point to the meson build directory.")
-if not os.path.isabs(meson_build):
+if not Path(meson_build).is_absolute():
     meson_build = os.path.abspath(meson_build)
 
 
@@ -48,12 +48,12 @@ def env_setup(monkeysession):
     monkeysession.setenv("TZ", "UTC")
     monkeysession.setenv("DBUS_STARTER_BUS_TYPE", "session")
 
-    os.chdir(f"{os.path.dirname(os.path.abspath(__file__))}")
+    os.chdir(Path(__file__).resolve().parent)
 
 
 @cache
 def meson_buildoptions():
-    with open(os.path.join(meson_build, "meson-info/intro-buildoptions.json")) as f:
+    with open(Path(meson_build) / "meson-info/intro-buildoptions.json") as f:
         data = json.loads(f.read())
 
     return {o["name"]: o for o in data}
@@ -61,7 +61,7 @@ def meson_buildoptions():
 
 @cache
 def string_in_config_h(findstring):
-    with open(os.path.join(meson_build, "config.h")) as f:
+    with open(Path(meson_build) / "config.h") as f:
         if findstring in f.read():
             return True
     return False
@@ -326,11 +326,11 @@ def prepare_softhsm2(tmp_path, softhsm2_mod):
 
 @pytest.fixture(scope="session")
 def pkcs11(tmp_path_factory):
-    if os.path.exists("/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"):
+    if Path("/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so").exists():
         softhsm2_mod = "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
     else:
         softhsm2_mod = "/usr/lib/softhsm/libsofthsm2.so"
-    if not os.path.exists(softhsm2_mod):
+    if not Path(softhsm2_mod).exists():
         pytest.skip("libsofthsm2.so not available on system")
 
     prepare_softhsm2(tmp_path_factory.mktemp("blub"), softhsm2_mod)
@@ -374,15 +374,15 @@ def dbus_session_bus(tmp_path_factory):
 
 @pytest.fixture
 def create_system_files(env_setup, tmp_path):
-    os.mkdir(tmp_path / "images")
-    open(tmp_path / "images/rootfs-0", mode="w").close()
-    open(tmp_path / "images/rootfs-1", mode="w").close()
-    open(tmp_path / "images/appfs-0", mode="w").close()
-    open(tmp_path / "images/appfs-1", mode="w").close()
-    os.mkdir(tmp_path / "repos")
-    os.mkdir(tmp_path / "repos/files")
-    os.mkdir(tmp_path / "repos/trees")
-    os.mkdir(tmp_path / "repos/composefs")
+    (tmp_path / "images").mkdir()
+    (tmp_path / "images/rootfs-0").touch()
+    (tmp_path / "images/rootfs-1").touch()
+    (tmp_path / "images/appfs-0").touch()
+    (tmp_path / "images/appfs-1").touch()
+    (tmp_path / "repos").mkdir()
+    (tmp_path / "repos/files").mkdir()
+    (tmp_path / "repos/trees").mkdir()
+    (tmp_path / "repos/composefs").mkdir()
     os.symlink(os.path.abspath("bin"), tmp_path / "bin")
     os.symlink(os.path.abspath("openssl-ca"), tmp_path / "openssl-ca")
     os.symlink(os.path.abspath("openssl-enc"), tmp_path / "openssl-enc")
@@ -604,8 +604,8 @@ class System:
             "parent": "rootfs.2",
         }
         # create target devices for third slot group
-        open(self.tmp_path / "images/rootfs-2", mode="w").close()
-        open(self.tmp_path / "images/appfs-2", mode="w").close()
+        (self.tmp_path / "images/rootfs-2").touch()
+        (self.tmp_path / "images/appfs-2").touch()
         # prepare grub env for 3 slots
         run(
             f'grub-editenv {self.tmp_path}/grubenv.test set ORDER="A B C" A_TRY="0" B_TRY="0" C_TRY="0" A_OK="1" B_OK="1" C_OK="1"'

@@ -3,9 +3,9 @@
 # SPDX-FileCopyrightText: 2021-2022 Bastian Krause <bst@pengutronix.de>, Pengutronix
 
 import logging
-import os
 import shlex
 import subprocess
+from pathlib import Path
 
 
 def logger_from_command(command):
@@ -14,7 +14,7 @@ def logger_from_command(command):
     python module,
     """
     cmd_parts = command.split()
-    base_cmd = os.path.basename(cmd_parts[0])
+    base_cmd = Path(cmd_parts[0]).name
     try:
         if base_cmd.startswith("python") and cmd_parts[1] == "-m":
             base_cmd = command.split()[2]

@@ -1,4 +1,3 @@
-import os
 import shutil
 
 from conftest import have_casync, have_desync
@@ -20,7 +19,7 @@ def test_convert(tmp_path):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/casync.raucb")
+    assert (tmp_path / "casync.raucb").exists()
 
 
 @have_casync
@@ -40,7 +39,7 @@ def test_convert_ignore_image(tmp_path):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/casync.raucb")
+    assert (tmp_path / "casync.raucb").exists()
 
 
 @have_casync
@@ -48,7 +47,7 @@ def test_convert_output_exists(tmp_path):
     # copy to tmp path for safe ownership check
     shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
-    open(f"{tmp_path}/casync.raucb", "a").close()
+    (tmp_path / "casync.raucb").touch()
 
     out, err, exitcode = run(
         "rauc"
@@ -61,7 +60,7 @@ def test_convert_output_exists(tmp_path):
     assert exitcode == 1
     assert "already exists" in err
 
-    assert os.path.exists(f"{tmp_path}/casync.raucb")
+    assert (tmp_path / "casync.raucb").exists()
 
 
 @have_casync
@@ -79,7 +78,7 @@ def test_convert_error(tmp_path):
 
     assert exitcode == 1
 
-    assert not os.path.exists(f"{tmp_path}/casync.raucb")
+    assert not (tmp_path / "casync.raucb").exists()
 
 
 @have_casync
@@ -99,8 +98,8 @@ def test_convert_casync_extra_args(tmp_path):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/casync-extra-args.raucb")
-    assert os.path.isdir(f"{tmp_path}/casync-extra-args.castr")
+    assert (tmp_path / "casync-extra-args.raucb").exists()
+    assert (tmp_path / "casync-extra-args.castr").is_dir()
 
 
 @have_casync
@@ -124,8 +123,8 @@ def test_convert_verity(tmp_path):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/casync-verity.raucb")
-    assert os.path.isdir(f"{tmp_path}/casync-verity.castr")
+    assert (tmp_path / "casync-verity.raucb").exists()
+    assert (tmp_path / "casync-verity.castr").is_dir()
 
 
 @have_desync
@@ -148,8 +147,8 @@ def test_convert_desync(tmp_path, system):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/desync.raucb")
-    assert os.path.isdir(f"{tmp_path}/desync.castr")
+    assert (tmp_path / "desync.raucb").exists()
+    assert (tmp_path / "desync.castr").is_dir()
 
 
 @have_desync
@@ -157,7 +156,7 @@ def test_convert_desync_output_exists(tmp_path, system):
     # copy to tmp path for safe ownership check
     shutil.copyfile("good-bundle.raucb", tmp_path / "good-bundle.raucb")
 
-    open(f"{tmp_path}/desync.raucb", "a").close()
+    (tmp_path / "desync.raucb").touch()
 
     system.config["casync"] = {
         "use-desync": "true",
@@ -175,7 +174,7 @@ def test_convert_desync_output_exists(tmp_path, system):
     assert exitcode == 1
     assert "already exists" in err
 
-    assert os.path.exists(f"{tmp_path}/desync.raucb")
+    assert (tmp_path / "desync.raucb").exists()
 
 
 @have_desync
@@ -198,7 +197,7 @@ def test_convert_desync_error(tmp_path, system):
 
     assert exitcode == 1
 
-    assert not os.path.exists(f"{tmp_path}/desync.raucb")
+    assert not (tmp_path / "desync.raucb").exists()
 
 
 @have_desync
@@ -223,4 +222,4 @@ def test_convert_desync_extra_args(tmp_path, system):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/desync-extra-args.raucb")
+    assert (tmp_path / "desync-extra-args.raucb").exists()

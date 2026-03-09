@@ -17,7 +17,7 @@ def test_bundle(tmp_path):
     assert exitcode == 0
     assert "Creating 'verity' format bundle" in out
 
-    assert os.path.exists(f"{tmp_path}/out.raucb")
+    assert (tmp_path / "out.raucb").exists()
 
     out, err, exitcode = run(f"rauc -c test.conf info {tmp_path}/out.raucb")
     assert exitcode == 0
@@ -39,7 +39,7 @@ def test_bundle_args_compat(tmp_path):
     assert exitcode == 0
     assert "Creating 'verity' format bundle" in out
 
-    assert os.path.exists(f"{tmp_path}/out.raucb")
+    assert (tmp_path / "out.raucb").exists()
 
     out, err, exitcode = run(f"rauc -c test.conf info {tmp_path}/out.raucb")
     assert exitcode == 0
@@ -60,7 +60,7 @@ def test_bundle_mksquashfs_extra_args(tmp_path):
     assert exitcode == 0
     assert "Creating 'verity' format bundle" in out
 
-    assert os.path.exists(f"{tmp_path}/out.raucb")
+    assert (tmp_path / "out.raucb").exists()
 
     out, err, exitcode = run(f"rauc -c test.conf info {tmp_path}/out.raucb")
     assert exitcode == 0
@@ -81,7 +81,7 @@ def test_bundle_pkcs11_key1(tmp_path, pkcs11):
     assert exitcode == 0
     assert "Creating 'verity' format bundle" in out
 
-    assert os.path.exists(f"{tmp_path}/out.raucb")
+    assert (tmp_path / "out.raucb").exists()
 
     out, err, exitcode = run(f"rauc -c test.conf info {tmp_path}/out.raucb")
     assert exitcode == 0
@@ -102,7 +102,7 @@ def test_bundle_pkcs11_key2_revoked(tmp_path, pkcs11):
     assert exitcode == 0
     assert "Creating 'verity' format bundle" in out
 
-    assert os.path.exists(f"{tmp_path}/out.raucb")
+    assert (tmp_path / "out.raucb").exists()
 
     out, err, exitcode = run(f"rauc -c test.conf info {tmp_path}/out.raucb")
     assert exitcode == 1
@@ -125,7 +125,7 @@ def test_bundle_pkcs11_key_mismatch(tmp_path, pkcs11):
     assert "Creating 'verity' format bundle" in out
     assert "key values mismatch" in err
 
-    assert not os.path.exists(f"{tmp_path}/out.raucb")
+    assert not (tmp_path / "out.raucb").exists()
 
 
 def test_bundle_crypt(tmp_path):
@@ -143,7 +143,7 @@ def test_bundle_crypt(tmp_path):
     assert exitcode == 0
     assert "Creating 'crypt' format bundle" in out
 
-    assert os.path.exists(f"{tmp_path}/out.raucb")
+    assert (tmp_path / "out.raucb").exists()
 
     out, err, exitcode = run(f"rauc -c test.conf info {tmp_path}/out.raucb")
     assert exitcode == 0

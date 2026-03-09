@@ -1,5 +1,5 @@
-import os
 import shutil
+from pathlib import Path
 
 from conftest import root
 from helper import run
@@ -15,8 +15,8 @@ def test_mount(tmp_path):
         assert exitcode == 0
         assert "Mounted bundle at /mnt/rauc/bundle" in out
 
-        assert os.path.exists("/mnt/rauc/bundle/manifest.raucm")
-        assert os.path.exists("/mnt/rauc/bundle/rootfs.img")
+        assert Path("/mnt/rauc/bundle/manifest.raucm").exists()
+        assert Path("/mnt/rauc/bundle/rootfs.img").exists()
 
     finally:
         out, err, exitcode = run("umount /mnt/rauc/bundle")

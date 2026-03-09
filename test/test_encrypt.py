@@ -1,5 +1,3 @@
-import os
-
 from helper import run
 
 
@@ -14,7 +12,7 @@ def test_encrypt_multi_single_cert_pem(tmp_path):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/encrypted.raucb")
+    assert (tmp_path / "encrypted.raucb").exists()
 
 
 def test_encrypt_single_multi_cert_pem(tmp_path):
@@ -27,7 +25,7 @@ def test_encrypt_single_multi_cert_pem(tmp_path):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/encrypted.raucb")
+    assert (tmp_path / "encrypted.raucb").exists()
 
 
 def test_encrypt_single_multi_cert_pem_rsa_ecc_mixed(tmp_path):
@@ -41,12 +39,12 @@ def test_encrypt_single_multi_cert_pem_rsa_ecc_mixed(tmp_path):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/encrypted.raucb")
+    assert (tmp_path / "encrypted.raucb").exists()
 
 
 def test_encrypt_broken_multi_cert_pem(tmp_path):
     with open("openssl-enc/keys/rsa-4096/certs.pem") as infile:
-        with open(f"{tmp_path}/certs.pem", "a") as outfile:
+        with (tmp_path / "certs.pem").open("a") as outfile:
             outfile.writelines(infile.readlines()[:-5])
 
     out, err, exitcode = run(
@@ -58,7 +56,7 @@ def test_encrypt_broken_multi_cert_pem(tmp_path):
 
     assert exitcode == 1
 
-    assert not os.path.exists(f"{tmp_path}/encrypted.raucb")
+    assert not (tmp_path / "encrypted.raucb").exists()
 
 
 def test_encrypt_missing_cert_in_file(tmp_path):
@@ -72,7 +70,7 @@ def test_encrypt_missing_cert_in_file(tmp_path):
     assert exitcode == 1
     assert "Expecting: CERTIFICATE" in err
 
-    assert not os.path.exists(f"{tmp_path}/encrypted.raucb")
+    assert not (tmp_path / "encrypted.raucb").exists()
 
 
 def test_encrypt_verity_bundle(tmp_path):
@@ -86,4 +84,4 @@ def test_encrypt_verity_bundle(tmp_path):
     assert exitcode == 1
     assert "Refused to encrypt input bundle" in err
 
-    assert not os.path.exists(f"{tmp_path}/encrypted.raucb")
+    assert not (tmp_path / "encrypted.raucb").exists()

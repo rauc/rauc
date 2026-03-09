@@ -1,5 +1,3 @@
-import os
-
 from conftest import have_faketime
 from helper import run
 
@@ -18,7 +16,7 @@ def test_sign_bundle_expired_cert(tmp_path):
     assert exitcode == 1
     assert "certificate has expired" in err
 
-    assert not os.path.exists(f"{tmp_path}/out.raucb")
+    assert not (tmp_path / "out.raucb").exists()
 
 
 @have_faketime
@@ -35,7 +33,7 @@ def test_sign_bundle_not_yet_valid_cert(tmp_path):
     assert exitcode == 1
     assert "certificate is not yet valid" in err
 
-    assert not os.path.exists(f"{tmp_path}/out.raucb")
+    assert not (tmp_path / "out.raucb").exists()
 
 
 @have_faketime
@@ -51,7 +49,7 @@ def test_sign_bundle_almost_expired_cert(tmp_path):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/out.raucb")
+    assert (tmp_path / "out.raucb").exists()
 
 
 @have_faketime
@@ -67,7 +65,7 @@ def test_sign_bundle_valid_cert(tmp_path):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/out.raucb")
+    assert (tmp_path / "out.raucb").exists()
 
 
 @have_faketime
@@ -84,4 +82,4 @@ def test_sign_bundle_valid_cert_encrypted_key(tmp_path, monkeypatch):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/out.raucb")
+    assert (tmp_path / "out.raucb").exists()

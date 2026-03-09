@@ -1,4 +1,3 @@
-import os
 import shutil
 
 from conftest import have_faketime
@@ -10,7 +9,7 @@ pytestmark = have_faketime
 
 def prepare_signing_time_conf(tmp_path):
     shutil.copyfile("openssl-ca/dev-ca.pem", tmp_path / "test-ca.pem")
-    with open(f"{tmp_path}/use-bundle-signing-time.conf", "a") as f:
+    with (tmp_path / "use-bundle-signing-time.conf").open("a") as f:
         f.write("""
 [system]
 compatible=Test Config
@@ -38,7 +37,7 @@ def test_verify_with_use_bundle_signing_time_valid_signing_invalid_current(tmp_p
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/out.raucb")
+    assert (tmp_path / "out.raucb").exists()
 
     out, err, exitcode = run(
         f'faketime "2022-01-01" rauc --conf {tmp_path}/use-bundle-signing-time.conf info {tmp_path}/out.raucb'
@@ -61,7 +60,7 @@ def test_verify_with_use_bundle_signing_time_invalid_signing_valid_current(tmp_p
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/out.raucb")
+    assert (tmp_path / "out.raucb").exists()
 
     out, err, exitcode = run(
         f'faketime "2018-01-01" rauc --conf {tmp_path}/use-bundle-signing-time.conf info {tmp_path}/out.raucb'
@@ -83,7 +82,7 @@ def test_info_no_check_time(tmp_path):
 
     assert exitcode == 0
 
-    assert os.path.exists(f"{tmp_path}/out.raucb")
+    assert (tmp_path / "out.raucb").exists()
 
     out, err, exitcode = run(f'faketime "2018-01-01" rauc --keyring openssl-ca/rel-ca.pem info {tmp_path}/out.raucb')
 
