@@ -454,7 +454,7 @@ guint64 key_file_consume_binary_suffixed_string(GKeyFile *key_file,
 		return 0;
 	}
 
-	gchar *scale;
+	gchar *scale = NULL;
 	guint64 result = g_ascii_strtoull(string, &scale, 10);
 	if (result == 0)
 		return result;
@@ -522,7 +522,7 @@ gchar **key_file_consume_string_list(
 
 gchar * r_realpath(const gchar *path)
 {
-	gchar buf[PATH_MAX + 1];
+	gchar buf[PATH_MAX + 1] = {0};
 	gchar *rpath = realpath(path, buf);
 
 	return g_strdup(rpath);

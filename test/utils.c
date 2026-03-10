@@ -483,39 +483,29 @@ static void semver_less_equal_test(void)
 
 static void format_duration_test(void)
 {
-	gchar *tmp = NULL;
+	g_autofree gchar *tmp0 = r_format_duration(0);
+	g_assert_cmpstr(tmp0, ==, "0s");
 
-	tmp = r_format_duration(0);
-	g_assert_cmpstr(tmp, ==, "0s");
-	g_free(tmp);
+	g_autofree gchar *tmp1 = r_format_duration(1);
+	g_assert_cmpstr(tmp1, ==, "1s");
 
-	tmp = r_format_duration(1);
-	g_assert_cmpstr(tmp, ==, "1s");
-	g_free(tmp);
+	g_autofree gchar *tmp61 = r_format_duration(61);
+	g_assert_cmpstr(tmp61, ==, "1m 1s");
 
-	tmp = r_format_duration(61);
-	g_assert_cmpstr(tmp, ==, "1m 1s");
-	g_free(tmp);
+	g_autofree gchar *tmp3601 = r_format_duration(3601);
+	g_assert_cmpstr(tmp3601, ==, "1h 1s");
 
-	tmp = r_format_duration(3601);
-	g_assert_cmpstr(tmp, ==, "1h 1s");
-	g_free(tmp);
-
-	tmp = r_format_duration(86400);
-	g_assert_cmpstr(tmp, ==, "1d");
-	g_free(tmp);
+	g_autofree gchar *tmp86400 = r_format_duration(86400);
+	g_assert_cmpstr(tmp86400, ==, "1d");
 }
 
 static void regex_match_test(void)
 {
-	gchar *tmp = NULL;
+	g_autofree gchar *match1 = r_regex_match_simple("rauc\\.slot=(\\S+)", "root=foo quiet rauc.slot=system0 dummy");
+	g_assert_cmpstr(match1, ==, "system0");
 
-	tmp = r_regex_match_simple("rauc\\.slot=(\\S+)", "root=foo quiet rauc.slot=system0 dummy");
-	g_assert_cmpstr(tmp, ==, "system0");
-	g_free(tmp);
-
-	tmp = r_regex_match_simple("rauc\\.slot=(\\S+)", " root=/dev/null ");
-	g_assert_null(tmp);
+	g_autofree gchar *match2 = r_regex_match_simple("rauc\\.slot=(\\S+)", " root=/dev/null ");
+	g_assert_null(match2);
 }
 
 static void tempfile_cleanup_test(void)
