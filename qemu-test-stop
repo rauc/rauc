@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# Helper script to stop a running qemu-test VM via QMP
+#
+# Usage: ./qemu-test-stop
+#
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+QMP_SOCK="$SCRIPT_DIR/.qemu-test-qmp"
+
+if [ ! -S "$QMP_SOCK" ]; then
+  echo "error: QMP socket not found at $QMP_SOCK" >&2
+  echo "Is the VM running?" >&2
+  exit 1
+fi
+
+# QMP requires a capabilities negotiation handshake before sending commands.
+# We send qmp_capabilities first, then quit.
+printf '{"execute": "qmp_capabilities"}\n{"execute": "quit"}\n' | \
+  socat - UNIX-CONNECT:"$QMP_SOCK"
