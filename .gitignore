@@ -4,6 +4,13 @@
 /.qemu_gdb_history
 /qemu-test-ok
 /qemu-test-emmc.img
+/.qemu-test-ssh-key
+/.qemu-test-ssh-key.pub
+/.qemu-test-ssh-host-key
+/.qemu-test-ssh-host-key.pub
+/.qemu-test-qmp
+/.qemu-test-pid
+/qemu-test-log
 app.info
 /bzImage
 .ccls-cache
