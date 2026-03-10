@@ -117,6 +117,7 @@ sources_rauc = files([
   'src/bootloaders/custom.c',
   'src/bootloaders/efi.c',
   'src/bootloaders/grub.c',
+  'src/bootloaders/raspberrypi.c',
   'src/bootloaders/uboot.c',
   'src/bundle.c',
   'src/checksum.c',
