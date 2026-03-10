@@ -17,6 +17,10 @@ mount -t tmpfs none /tmp
 mkdir /dev/shm
 mount -t tmpfs none /dev/shm
 
+# create /dev/pts for ssh
+mkdir /dev/pts
+mount -t devpts none /dev/pts
+
 # create overlay for /etc
 mkdir /tmp/etc-overlay /tmp/etc-work
 mount -t overlay overlay -o lowerdir=/etc,upperdir=/tmp/etc-overlay,workdir=/tmp/etc-work /etc
@@ -43,6 +47,12 @@ for x in "$@"; do
     export SERVICE_BACKTRACE=1
   elif [ "$x" = "service-poll" ]; then
     export SERVICE_POLL=1
+  elif [ "$x" = "ssh" ]; then
+    SSH=1
+  elif [ "$x" = "background" ]; then
+    INTERACTIVE_SHELL=1
+    BACKGROUND=1
+    SSH=1
   fi
 done
 
@@ -63,6 +73,36 @@ rm -f /etc/resolv.conf
 echo "nameserver 10.0.2.3" > /etc/resolv.conf
 
 export HOME="/root"
+
+# setup SSH server if requested
+if [ -n "$SSH" ]; then
+  # clean up motd
+  echo "= RAUC qemu-test VM =" > /etc/motd
+
+  # make shadow readable in the guest and add root entry
+  echo 'root:*:::::::' > /etc/shadow
+
+  # setup login for root
+  mkdir -p /root/.ssh
+  chmod 700 /root/.ssh
+  cp "$(pwd)/.qemu-test-ssh-key.pub" /root/.ssh/authorized_keys
+  chmod 600 /root/.ssh/authorized_keys
+
+  # prepare sshd config
+  cp "$(pwd)/.qemu-test-sshd-config" /etc/ssh/sshd_config
+
+  # generate host key (remove any existing key from the host overlay)
+  rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
+  cp "$(pwd)/.qemu-test-ssh-host-key" /etc/ssh/ssh_host_ed25519_key
+  cp "$(pwd)/.qemu-test-ssh-host-key.pub" /etc/ssh/ssh_host_ed25519_key.pub
+
+  # ensure privilege separation directory exists
+  mkdir -p /run/sshd
+
+  # start sshd
+  /usr/sbin/sshd
+  echo "SSH server started on port 22 (host port 2222)"
+fi
 
 # allow git access to our repo
 git config --system --add safe.directory "$(pwd)"
@@ -258,7 +298,10 @@ fi
 
 echo "alias ll='ls -l'" > /root/.bashrc
 ln -s "$(pwd)/.qemu_bash_history" /root/.bash_history
-if [ -n "$INTERACTIVE_SHELL" ]; then
+if [ -n "$BACKGROUND" ]; then
+  # in background mode, just wait (VM is controlled via SSH/QMP)
+  while true; do sleep 3600; done
+elif [ -n "$INTERACTIVE_SHELL" ]; then
   BASH_CMD="exec bash"
   if type resize; then
     BASH_CMD="eval \$(resize); $BASH_CMD"
