@@ -165,16 +165,14 @@ that to the underlying bootloader implementation.
 In most cases this will disable the currently booted slot or at least switch to
 a different one.
 
-Although not very useful in the field, both commands recognize an optional
-argument to explicitly identify the slot to act on:
+To maintain consistency with ``rauc status mark-active``, both commands accept
+an optional slot argument:
 
 .. code-block:: console
 
   # rauc status mark-{good,bad} [booted | other | <SLOT_NAME>]
 
-This is to maintain consistency with respect to ``rauc status mark-active``
-where that argument is definitively wanted, see :ref:`here
-<optional-slot-identifier-argument>`.
+In practice this is rarely needed.
 
 .. _mark-active:
 
