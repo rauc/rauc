@@ -96,6 +96,7 @@ static gboolean r_on_handle_install_bundle(
 	gboolean res;
 
 	g_print("input bundle: %s\n", source);
+	r_installer_set_last_bundle(interface, source);
 
 	res = !r_context_get_busy();
 	if (!res) {
@@ -107,6 +108,10 @@ static gboolean r_on_handle_install_bundle(
 	args->name = g_strdup(source);
 	args->notify = service_install_notify;
 	args->cleanup = service_install_cleanup;
+
+	if (!args->transaction)
+		args->transaction = g_uuid_string_random();
+	r_installer_set_last_transaction(interface, args->transaction);
 
 	if (g_variant_dict_lookup(&dict, "ignore-compatible", "b", &args->ignore_compatible))
 		g_variant_dict_remove(&dict, "ignore-compatible");
@@ -179,6 +184,7 @@ static gboolean r_on_handle_inspect_bundle(RInstaller *interface,
 	gboolean res = TRUE;
 
 	g_print("bundle: %s\n", arg_bundle);
+	r_installer_set_last_bundle(interface, arg_bundle);
 
 	res = !r_context_get_busy();
 	if (!res) {
@@ -519,6 +525,7 @@ static gboolean auto_install(const gchar *source)
 		return FALSE;
 
 	g_message("input bundle: %s", source);
+	r_installer_set_last_bundle(r_installer, source);
 
 	res = !r_context_get_busy();
 	if (!res)
