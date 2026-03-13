@@ -16,7 +16,8 @@ RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
   libdbus-1-dev \
   libjson-glib-dev \
   libfdisk-dev \
-  libnl-genl-3-dev
+  libnl-genl-3-dev \
+  pkcs11-provider
 
 # Required for building the cgi example
 RUN apt-get install -q -y --no-install-recommends \
