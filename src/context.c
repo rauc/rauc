@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "bootchooser.h"
+#include "bootloaders/barebox.h"
 #include "config_file.h"
 #include "context.h"
 #include "event_log.h"
@@ -404,6 +405,31 @@ static gboolean r_context_configure_target(GError **error)
 
 	if (context->bootslot == NULL) {
 		context->bootslot = get_bootname();
+	}
+
+	/* If prevent_late_fallback=lock-counter, it needs a variable available in barebox-state.
+	 * We can not use r_boot_get_lock_counter here, as it uses r_context() to get the variable
+	 * and would cause a recursion. But we can access context directly here. */
+	if (context->config->prevent_late_fallback == R_CONFIG_FALLBACK_LOCK_COUNTER) {
+		if (g_strcmp0(context->config->system_bootloader, "barebox") == 0) {
+			if (context->config->system_bb_statename || context->config->system_bb_dtbpath) {
+				g_set_error_literal(error, R_BOOTCHOOSER_ERROR,
+						R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+						"Providing custom name, state or path not yet supported for locking");
+				return FALSE;
+			}
+			gboolean locked = FALSE;
+			if (!r_barebox_get_lock_counter(&locked, &ierror)) {
+				/* If we would throw an error here, RAUC would fail and it might not be possible to execute updates anymore. */
+				g_warning("Failed to read barebox lock counter: %s", ierror->message);
+				g_clear_error(&ierror);
+			}
+		} else {
+			g_set_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_NOT_SUPPORTED,
+					"prevent-late-fallback is set to 'lock-counter', but not supported by selected bootloader: %s",
+					context->config->system_bootloader);
+			return FALSE;
+		}
 	}
 
 	g_clear_pointer(&context->boot_id, g_free);
