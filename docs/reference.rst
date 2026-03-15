@@ -2445,7 +2445,7 @@ It provides two base functions:
    and command line tool option ``rauc status mark-active``
 
 The default flow of how they will be called during the installation of a new
-bundle (on Slot 'A') looks as follows:
+bundle looks as follows:
 
 .. image:: images/bootloader-interaction_install.svg
   :width: 400
