@@ -2485,7 +2485,7 @@ A normal reboot of the system will look as follows:
 Some bootloaders do not require explicitly setting state 'good' as they are able
 to differentiate between a POR and a watchdog reset, for example.
 
-.. note: Despite the naming might suggest it, marking a slot bad and good are
+.. note:: Despite the naming might suggest it, marking a slot bad and good are
   not reversible operations, meaning you have no guarantee that a slot first
   set to 'bad' and then set to 'good' again will be in the same state as
   before.
