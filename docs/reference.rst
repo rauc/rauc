@@ -2503,10 +2503,10 @@ to differentiate between a POR and a watchdog reset, for example.
   before.
   Actually reactivating it will only work by marking it primary (active).
 
-What the high-level functions described above actually do mainly depends on the underlying
-bootloader used and the capabilities it provides.
-Below is a short description about behavior of each bootloader interface
-currently implemented:
+The exact behavior of each operation depends on the underlying bootloader and
+its capabilities.
+The following sections describe how each supported bootloader backend
+implements the above-mentioned operations.
 
 U-Boot
 ~~~~~~
