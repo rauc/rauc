@@ -2437,12 +2437,24 @@ Bootloader Interaction
 RAUC comes with a generic interface for interacting with the bootloader.
 It handles *all* slots that have a ``bootname`` property set.
 
-It provides two base functions:
+.. note:: The terminology between the 'mark' methods and the low-level 'boot'
+   methods slightly differs.
 
-1) Setting state 'good' or 'bad', reflected by API routine ``r_boot_set_state()``
-   and command line tool option ``rauc status mark <good/bad>``
-2) Marking a slot 'primary', reflected by API routine ``r_boot_set_primary()``
-   and command line tool option ``rauc status mark-active``
+It provides three base operations:
+
+1) Setting state 'bad' (non-bootable), triggered by the API method ``r_mark_bad()``.
+
+   The bootloader backend API call for this is
+   ``r_boot_set_state(…, FALSE, …)``.
+2) Setting state 'good' (bootable), reflected by the API method ``r_mark_good()``.
+
+   The bootloader backend API call for this is
+   ``r_boot_set_state(…, TRUE, …)``.
+3) Marking a slot 'active' (primary boot target), reflected by API routine
+   ``r_mark_active()``.
+
+   The bootloader backend API call for this is
+   ``r_boot_set_primary()``.
 
 The default flow of how they will be called during the installation of a new
 bundle looks as follows:
