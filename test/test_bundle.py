@@ -15,7 +15,7 @@ def test_bundle(tmp_path):
     )
 
     assert exitcode == 0
-    assert "Creating 'verity' format bundle" in out
+    assert "Creating 'verity' format bundle" in err
 
     assert (tmp_path / "out.raucb").exists()
 
@@ -37,7 +37,7 @@ def test_bundle_args_compat(tmp_path):
     )
 
     assert exitcode == 0
-    assert "Creating 'verity' format bundle" in out
+    assert "Creating 'verity' format bundle" in err
 
     assert (tmp_path / "out.raucb").exists()
 
@@ -58,7 +58,7 @@ def test_bundle_mksquashfs_extra_args(tmp_path):
     )
 
     assert exitcode == 0
-    assert "Creating 'verity' format bundle" in out
+    assert "Creating 'verity' format bundle" in err
 
     assert (tmp_path / "out.raucb").exists()
 
@@ -79,7 +79,7 @@ def test_bundle_pkcs11_key1(tmp_path, pkcs11):
     )
 
     assert exitcode == 0
-    assert "Creating 'verity' format bundle" in out
+    assert "Creating 'verity' format bundle" in err
 
     assert (tmp_path / "out.raucb").exists()
 
@@ -100,7 +100,7 @@ def test_bundle_pkcs11_key2_revoked(tmp_path, pkcs11):
     )
 
     assert exitcode == 0
-    assert "Creating 'verity' format bundle" in out
+    assert "Creating 'verity' format bundle" in err
 
     assert (tmp_path / "out.raucb").exists()
 
@@ -122,7 +122,7 @@ def test_bundle_pkcs11_key_mismatch(tmp_path, pkcs11):
     )
 
     assert exitcode == 1
-    assert "Creating 'verity' format bundle" in out
+    assert "Creating 'verity' format bundle" in err
     assert "key values mismatch" in err
 
     assert not (tmp_path / "out.raucb").exists()
@@ -141,7 +141,7 @@ def test_bundle_crypt(tmp_path):
     )
 
     assert exitcode == 0
-    assert "Creating 'crypt' format bundle" in out
+    assert "Creating 'crypt' format bundle" in err
 
     assert (tmp_path / "out.raucb").exists()
 
@@ -157,7 +157,7 @@ def test_bundle_adaptive(tmp_path, bundle):
     bundle.make_random_image("rootfs", 4097, "random rootfs")
     out, err, exitcode = bundle.build_nocheck()
     assert exitcode == 1
-    assert "Creating 'verity' format bundle" in out
+    assert "Creating 'verity' format bundle" in err
     assert "not a multiple of 4096 bytes" in err
     assert not bundle.output.is_file()
 
@@ -228,14 +228,14 @@ def test_bundle_min_rauc_version(bundle):
     bundle.manifest["update"]["min-rauc-version"] = "1000-rc.1+21000101"
     out, err, exitcode = bundle.build_nocheck()
     assert exitcode == 1
-    assert "Creating 'verity' format bundle" in out
+    assert "Creating 'verity' format bundle" in err
     assert "Minimum RAUC version in manifest (1000-rc.1+21000101) is newer than current version" in err
     assert not bundle.output.is_file()
 
     bundle.manifest["update"]["min-rauc-version"] = "bad_version"
     out, err, exitcode = bundle.build_nocheck()
     assert exitcode == 1
-    assert "Creating 'verity' format bundle" in out
+    assert "Creating 'verity' format bundle" in err
     assert (
         "Failed to parse 'min-rauc-version'. Expected 'Major[.Minor[.Patch]][-pre_release]]', got 'bad_version'" in err
     )
@@ -244,7 +244,7 @@ def test_bundle_min_rauc_version(bundle):
     bundle.manifest["update"]["min-rauc-version"] = "1.13"
     out, err, exitcode = bundle.build_nocheck()
     assert exitcode == 1
-    assert "Creating 'verity' format bundle" in out
+    assert "Creating 'verity' format bundle" in err
     assert "Minimum RAUC version field in manifest is only supported since 1.14 (not '1.13')" in err
     assert not bundle.output.is_file()
 

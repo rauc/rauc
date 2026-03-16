@@ -105,6 +105,36 @@ static void test_get_custom_update_handler(UpdateHandlerFixture *fixture, gconst
 	g_assert_nonnull(handler);
 }
 
+/* Test update_handler/get_handler/hashref:
+ *
+ * Tests that get_update_handler() returns hashref_slot_handler for a
+ * type=hashref image regardless of the target slot type.
+ */
+static void test_get_hashref_update_handler(UpdateHandlerFixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(RaucImage) image = NULL;
+	g_autoptr(RaucSlot) targetslot = NULL;
+	img_to_slot_handler handler;
+	GError *ierror = NULL;
+
+	image = r_new_image();
+	image->slotclass = g_strdup("rootfs");
+	image->filename = NULL;
+	image->type = g_strdup("hashref");
+	image->checksum.type = G_CHECKSUM_SHA256;
+	image->checksum.digest = g_strdup("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
+
+	targetslot = g_new0(RaucSlot, 1);
+	targetslot->name = g_intern_string("rootfs.0");
+	targetslot->sclass = g_intern_string("rootfs");
+	targetslot->device = g_strdup("/dev/null");
+	targetslot->type = g_strdup("ext4");
+
+	handler = get_update_handler(image, targetslot, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_nonnull(handler);
+}
+
 #define SLOT_SIZE (10*1024*1024)
 #define IMAGE_SIZE (10*1024*1024)
 #define FILE_SIZE (10*1024)
@@ -401,6 +431,11 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 		/* For emptyfs, don't set a filename since no file exists */
 		image->filename = NULL;
 		image->type = g_strdup("emptyfs");
+	} else if (g_strcmp0(test_pair->imagetype, "hashref") == 0) {
+		/* For hashref, no image file is included; the sha256 refers to the active slot */
+		image->filename = NULL;
+		image->type = g_strdup("hashref");
+		image->checksum.type = G_CHECKSUM_SHA256;
 	} else {
 		image->filename = g_strdup(imagepath);
 		image->type = g_strdup(derive_image_type_from_filename_pattern(image->filename));
@@ -450,8 +485,9 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 
 		r_context_conf()->install_info->mounted_bundle = g_new0(RaucBundle, 1);
 		r_context_conf()->install_info->mounted_bundle->storepath = storepath;
-	} else if (g_strcmp0(test_pair->imagetype, "emptyfs") != 0) {
-		/* No image file is needed emptyfs, so we just want to avoid dropping out here */
+	} else if (g_strcmp0(test_pair->imagetype, "emptyfs") != 0 &&
+	           g_strcmp0(test_pair->imagetype, "hashref") != 0) {
+		/* No image file is needed for emptyfs/hashref, so we just want to avoid dropping out here */
 		g_assert_not_reached();
 	}
 
@@ -763,6 +799,9 @@ int main(int argc, char *argv[])
 		{"ext4", "emptyfs", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"ext4", "emptyfs", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"ext4", "emptyfs", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+
+		/* hashref test (no image file; copies active slot device to inactive slot) */
+		{"ext4", "hashref", TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
 
 		{0}
 	};
@@ -1272,6 +1311,19 @@ int main(int argc, char *argv[])
 	g_test_add("/update_handler/update_handler/emptyfs_to_ext4/install-hook/fail",
 			UpdateHandlerFixture,
 			&testpair_matrix[77],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	/* hashref tests */
+	g_test_add("/update_handler/get_handler/hashref",
+			UpdateHandlerFixture,
+			NULL,
+			NULL,
+			test_get_hashref_update_handler,
+			NULL);
+	g_test_add("/update_handler/update_handler/hashref/no-active-slot/fail",
+			UpdateHandlerFixture,
+			&testpair_matrix[78],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);

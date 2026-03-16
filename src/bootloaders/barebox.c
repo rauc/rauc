@@ -164,7 +164,7 @@ static gboolean barebox_state_set(GPtrArray *pairs, GError **error)
 	}
 	g_ptr_array_add(args, NULL);
 
-	sub = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sub = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,

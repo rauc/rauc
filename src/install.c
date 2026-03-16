@@ -1033,8 +1033,10 @@ static gboolean pre_install_checks(gchar* bundledir, GPtrArray *install_plans, G
 		const RImageInstallPlan *plan = g_ptr_array_index(install_plans, i);
 
 		if (!plan->image->filename) {
-			/* having no filename is valid for install hook only */
+			/* having no filename is valid for install hook and hashref images */
 			if (plan->image->hooks.install)
+				goto skip_filename_checks;
+			else if (g_strcmp0(plan->image->type, "hashref") == 0)
 				goto skip_filename_checks;
 			else
 				/* Should not be reached as the pre-conditions for optional 'filename' are already

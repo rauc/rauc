@@ -1060,6 +1060,8 @@ The following fields are supported for image sections:
   .. note::
     This field is not required and not supported for images with ``type=emptyfs``,
     which creates an empty filesystems without source data.
+    It is also not required and not supported for images with ``type=hashref``,
+    which references an existing slot's content by hash instead of bundling a new image.
 
   .. important::
     RAUC uses the file name extension and the slot type to decide how to
@@ -1202,6 +1204,32 @@ Supported file system image types are:
   * ``emptyfs``: Creates an empty filesystem.
     This type does not support setting a ``filename`` as no source data is needed.
     Currently only supports slots with `type=ext4`, see :ref:`slot.slot-class.idx-section`
+
+Special image types:
+
+  * ``hashref``: Declares a content dependency on the currently active slot of the same class.
+    Instead of bundling an image file, this type references the expected content of the active
+    slot by its SHA-256 hash.
+    During installation, RAUC locates the currently booted slot of the same class, verifies
+    that its recorded content hash matches the ``sha256`` value in the manifest, and then
+    copies the active slot device directly to the destination slot.
+    This is useful for cloning a known-good slot to its redundant counterpart in a purely
+    slot-state-driven update, without carrying a full image in the bundle.
+
+    Constraints:
+
+    - ``filename`` must **not** be set (no image file is included in the bundle).
+    - ``sha256`` **must** be set to the expected hash of the active slot's content.
+    - The active slot must have a recorded checksum (i.e. it must have been previously
+      installed by RAUC).
+    - This type is slot-type-agnostic: it uses a raw device-to-device copy regardless
+      of the slot's filesystem type.
+
+    Example manifest entry::
+
+      [image.rootfs]
+      type=hashref
+      sha256=b14c1457dc10469418b4154fef29a90e1ffb4dddd308bf0f2456d436963ef5b3
 
 Supported binary image types are:
 

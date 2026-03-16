@@ -506,7 +506,7 @@ class Bundle:
     def build(self):
         out, err, exitcode = self.build_nocheck()
         assert exitcode == 0
-        assert "Creating 'verity' format bundle" in out
+        assert "Creating 'verity' format bundle" in err
         assert self.output.is_file()
 
 

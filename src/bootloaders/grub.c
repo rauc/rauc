@@ -108,7 +108,7 @@ static gboolean grub_env_set(GPtrArray *pairs, GError **error)
 	g_ptr_array_insert(pairs, 2, g_strdup("set"));
 	g_ptr_array_add(pairs, NULL);
 
-	sub = r_subprocess_newv(pairs, G_SUBPROCESS_FLAGS_NONE, &ierror);
+	sub = r_subprocess_newv(pairs, G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,
