@@ -56,7 +56,7 @@ static gboolean efi_bootentry_create(RaucSlot *slot, GError **error)
 	g_strchomp(part_num);
 
 	g_autoptr(GSubprocess) sub = r_subprocess_new(
-			G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
+			G_SUBPROCESS_FLAGS_NONE,
 			&ierror,
 			EFIBOOTMGR_NAME,
 			"--create-only",
@@ -96,7 +96,7 @@ static gboolean efi_bootorder_set(gchar *order, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_autoptr(GSubprocess) sub = r_subprocess_new(
-			G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
+			G_SUBPROCESS_FLAGS_NONE,
 			&ierror,
 			EFIBOOTMGR_NAME,
 			"--bootorder",
@@ -130,7 +130,7 @@ static gboolean efi_set_bootnext(gchar *bootnumber, GError **error)
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	g_autoptr(GSubprocess) sub = r_subprocess_new(
-			G_SUBPROCESS_FLAGS_STDOUT_SILENCE,
+			G_SUBPROCESS_FLAGS_NONE,
 			&ierror,
 			EFIBOOTMGR_NAME,
 			"--bootnext",

@@ -1323,7 +1323,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 		goto out;
 	}
 
-	g_printerr("Creating '%s' format bundle\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
+	g_print("Creating '%s' format bundle\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
 
 	res = check_manifest_input(manifest, &ierror);
 	if (!res) {
@@ -1333,7 +1333,7 @@ gboolean create_bundle(const gchar *bundlename, const gchar *contentdir, GError 
 
 	/* print warnings collected while parsing */
 	for (guint i = 0; i < manifest->warnings->len; i++) {
-		g_printerr("%s\n", (gchar *)g_ptr_array_index(manifest->warnings, i));
+		g_print("%s\n", (gchar *)g_ptr_array_index(manifest->warnings, i));
 	}
 
 	res = check_manifest_create(manifest, &ierror);
@@ -1492,7 +1492,7 @@ gboolean resign_bundle(RaucBundle *bundle, const gchar *outpath, gboolean append
 		manifest = loaded_manifest;
 	}
 
-	g_printerr("Resigning '%s' format bundle\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
+	g_print("Resigning '%s' format bundle\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
 
 	if (!truncate_bundle(bundle->path, outpath, bundle->size, &ierror)) {
 		g_propagate_error(error, ierror);
@@ -2654,7 +2654,7 @@ gboolean replace_signature(RaucBundle *bundle, const gchar *insig, const gchar *
 		manifest = loaded_manifest;
 	}
 
-	g_printerr("Replacing signature for '%s' format bundle\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
+	g_print("Replacing signature for '%s format bundle\n", r_manifest_bundle_format_to_str(manifest->bundle_format));
 
 	sig = read_file(insig, &ierror);
 	if (!sig) {

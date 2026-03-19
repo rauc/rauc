@@ -77,7 +77,7 @@ static gboolean uboot_env_set(const gchar *key, const gchar *value, GError **err
 	g_return_val_if_fail(value, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &ierror, UBOOT_FWSETENV_NAME,
+	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, UBOOT_FWSETENV_NAME,
 			key, value, NULL);
 	if (!sub) {
 		g_propagate_prefixed_error(

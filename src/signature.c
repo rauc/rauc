@@ -681,7 +681,7 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 		g_message("No keyring given, skipping signature verification");
 	}
 out:
-	ERR_print_errors_fp(stderr);
+	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
 	BIO_free_all(outsig);
 	return res;
@@ -777,7 +777,7 @@ GBytes *cms_append_signature(GBytes *input_sig, const gchar *certfile, const gch
 	}
 
 out:
-	ERR_print_errors_fp(stderr);
+	ERR_print_errors_fp(stdout);
 	BIO_free_all(insig);
 	BIO_free_all(outsig);
 	return output_sig;
@@ -1579,7 +1579,7 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 
 	res = TRUE;
 out:
-	ERR_print_errors_fp(stderr);
+	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
 	BIO_free_all(insig);
 	BIO_free_all(outcontent);
@@ -1779,7 +1779,7 @@ GBytes *cms_encrypt(GBytes *content, gchar **recipients, GError **error)
 	g_message("Encrypted for %d recipient%s", sk_X509_num(recipcerts), sk_X509_num(recipcerts) > 1 ? "s" : "");
 
 out:
-	ERR_print_errors_fp(stderr);
+	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
 	BIO_free_all(outsig);
 	return res;
@@ -1862,7 +1862,7 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 		goto out;
 	}
 out:
-	ERR_print_errors_fp(stderr);
+	ERR_print_errors_fp(stdout);
 	BIO_free_all(inenc);
 	BIO_free_all(outdecrypt);
 	return res;
