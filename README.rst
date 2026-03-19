@@ -223,7 +223,7 @@ Running the Test Suite
 
     sudo apt-get install qemu-system-x86 time squashfs-tools e2fsprogs python3-pytest python3-dasbus python3-aiohttp python3-requests python3-pyasn1 python3-pyasn1-modules
     # Optional to run all tests:
-    # sudo apt-get install faketime casync grub-common openssl softhsm2 opensc opensc-pkcs11 libengine-pkcs11-openssl mtd-utils
+    # sudo apt-get install faketime casync grub-common openssl softhsm2 opensc opensc-pkcs11 libengine-pkcs11-openssl mtd-utils nginx-light tree
     ./qemu-test
 
 Creating a Bundle (Host)
