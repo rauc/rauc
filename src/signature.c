@@ -444,10 +444,18 @@ static BIO *bytes_as_bio(GBytes *bytes)
 		g_error("bytes_as_bio: no data");
 	if (size == 0)
 		g_error("bytes_as_bio: size is zero");
+	if (size > INT_MAX)
+		g_error("bytes_as_bio: size is too large for BIO_new_mem_buf");
 
 	bio = BIO_new_mem_buf(data, size);
 	if (!bio)
 		g_error("bytes_as_bio: BIO_new_mem_buf() failed");
+
+	/* ensure that we've passed the data correctly */
+	const BUF_MEM *bio_mem_buf = NULL;
+	BIO_get_mem_ptr(bio, &bio_mem_buf);
+	g_assert(bio_mem_buf->data == data);
+	g_assert(bio_mem_buf->length == size);
 
 	return bio;
 }
