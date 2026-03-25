@@ -11,6 +11,7 @@
 #include "common.h"
 
 typedef struct {
+	gchar *tmpdir;
 	GBytes *content;
 	GBytes *sig;
 	GError *error;
@@ -24,6 +25,8 @@ static void signature_set_up(SignatureFixture *fixture,
 {
 	r_context_conf();
 
+	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(fixture->tmpdir);
 	fixture->content = read_file("test/openssl-ca/manifest", NULL);
 	g_assert_nonnull(fixture->content);
 	fixture->sig = NULL;
@@ -40,6 +43,10 @@ static void signature_set_up(SignatureFixture *fixture,
 static void signature_tear_down(SignatureFixture *fixture,
 		gconstpointer user_data)
 {
+	if (fixture->tmpdir)
+		g_assert_true(rm_tree(fixture->tmpdir, NULL));
+
+	g_free(fixture->tmpdir);
 	g_bytes_unref(fixture->content);
 	g_bytes_unref(fixture->sig);
 	g_clear_error(&fixture->error);
@@ -334,6 +341,44 @@ static void signature_verify_file(SignatureFixture *fixture,
 	g_assert_null(fixture->cms);
 
 	g_clear_error(&fixture->error);
+}
+
+static void signature_too_large(SignatureFixture *fixture,
+		gconstpointer user_data)
+{
+	gboolean res = FALSE;
+
+	g_autofree gchar *payloadname = write_random_file(fixture->tmpdir, "payload", 1024, 1234);
+	g_assert_nonnull(payloadname);
+	fixture->sig = read_file("test/openssl-ca/manifest-r1.sig", NULL);
+	g_assert_nonnull(fixture->sig);
+
+	goffset large_size = (goffset)INT32_MAX+1;
+
+	g_assert_cmpint(truncate(payloadname, large_size), ==, 0);
+	g_autoptr(GBytes) sig = cms_sign_file(payloadname,
+			"test/openssl-ca/rel/release-1.cert.pem",
+			"test/openssl-ca/rel/private/release-1.pem",
+			NULL,
+			&fixture->error);
+	g_assert_null(sig);
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_LOAD_FAILED);
+	g_clear_error(&fixture->error);
+
+	g_assert_cmpint(truncate(payloadname, large_size + 1024), ==, 0);
+	gint fd = g_open(payloadname, O_RDONLY|O_CLOEXEC, 0);
+	g_assert_cmpint(fd, >=, 0);
+	res = cms_verify_fd(fd,
+			fixture->sig,
+			large_size,
+			fixture->store,
+			&fixture->cms,
+			&fixture->error);
+	g_assert_false(res);
+	g_assert_error(fixture->error, R_SIGNATURE_ERROR, R_SIGNATURE_ERROR_LOAD_FAILED);
+	g_assert_null(fixture->cms);
+	g_clear_error(&fixture->error);
+	g_close(fd, NULL);
 }
 
 static void signature_loopback_detached(SignatureFixture *fixture,
@@ -1055,6 +1100,7 @@ int main(int argc, char *argv[])
 	g_test_add("/signature/verify_valid", SignatureFixture, NULL, signature_set_up, signature_verify_valid, signature_tear_down);
 	g_test_add("/signature/verify_invalid", SignatureFixture, NULL, signature_set_up, signature_verify_invalid, signature_tear_down);
 	g_test_add("/signature/verify_file", SignatureFixture, NULL, signature_set_up, signature_verify_file, signature_tear_down);
+	g_test_add("/signature/too_large", SignatureFixture, NULL, signature_set_up, signature_too_large, signature_tear_down);
 	g_test_add("/signature/loopback_detached", SignatureFixture, NULL, signature_set_up, signature_loopback_detached, signature_tear_down);
 	g_test_add("/signature/loopback_inline", SignatureFixture, NULL, signature_set_up, signature_loopback_inline, signature_tear_down);
 	g_test_add("/signature/get_cert_chain", SignatureFixture, NULL, signature_set_up, signature_get_cert_chain, signature_tear_down);
