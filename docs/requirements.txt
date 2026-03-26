@@ -28,7 +28,7 @@ packaging==25.0
     # via sphinx
 pygments==2.19.2
     # via sphinx
-requests==2.32.5
+requests==2.33.0
     # via sphinx
 roman-numerals==4.1.0
     # via sphinx
