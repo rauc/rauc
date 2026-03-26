@@ -93,11 +93,9 @@ static int check_purpose_code_sign(const X509_PURPOSE *xp, const X509 *const_x, 
 
 gboolean signature_init(GError **error)
 {
-	int ret, id;
-
 	g_return_val_if_fail(error == FALSE || *error == NULL, FALSE);
 
-	ret = OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG | OPENSSL_INIT_LOAD_CRYPTO_STRINGS, NULL);
+	int ret = OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG | OPENSSL_INIT_LOAD_CRYPTO_STRINGS, NULL);
 	if (!ret) {
 		g_set_error(
 				error,
@@ -110,7 +108,7 @@ gboolean signature_init(GError **error)
 	/* OpenSSL 3.5 warns that there may be gaps, so we need to search.
 	 * When we have 3.5 as the minimum version, we can use
 	 * X509_PURPOSE_get_unused_id instead. */
-	id = X509_PURPOSE_MAX + 1;
+	int id = X509_PURPOSE_MAX + 1;
 	while (X509_PURPOSE_get_by_id(id) != -1) {
 		id++;
 	}
@@ -235,20 +233,18 @@ out:
 static EVP_PKEY *load_key_pkcs11(const gchar *url, GError **error)
 {
 #if ENABLE_OPENSSL_PKCS11_ENGINE
-	EVP_PKEY *res = NULL;
 	GError *ierror = NULL;
-	ENGINE *e;
 
 	g_return_val_if_fail(url != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	e = get_pkcs11_engine(&ierror);
+	ENGINE *e = get_pkcs11_engine(&ierror);
 	if (e == NULL) {
 		g_propagate_error(error, ierror);
 		return NULL;
 	}
 
-	res = ENGINE_load_private_key(e, url, NULL, NULL);
+	EVP_PKEY *res = ENGINE_load_private_key(e, url, NULL, NULL);
 	if (res == NULL) {
 		g_set_error(
 				error,
@@ -367,25 +363,24 @@ static X509 *load_cert_pkcs11(const gchar *url, GError **error)
 {
 #if ENABLE_OPENSSL_PKCS11_ENGINE
 	GError *ierror = NULL;
-	ENGINE *e;
-
-	/* this is defined in libp11 src/eng_back.c ctx_ctrl_load_cert() */
-	struct {
-		const char *url;
-		X509 *cert;
-	} parms;
 
 	g_return_val_if_fail(url != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	e = get_pkcs11_engine(&ierror);
+	ENGINE *e = get_pkcs11_engine(&ierror);
 	if (e == NULL) {
 		g_propagate_error(error, ierror);
 		return NULL;
 	}
 
-	parms.url = url;
-	parms.cert = NULL;
+	/* this is defined in libp11 src/eng_back.c ctx_ctrl_load_cert() */
+	struct {
+		const char *url;
+		X509 *cert;
+	} parms = {
+		.url = url,
+		.cert = NULL,
+	};
 	if (!ENGINE_ctrl_cmd(e, "LOAD_CERT_CTRL", 0, &parms, NULL, 0) || (parms.cert == NULL)) {
 		g_set_error(
 				error,
@@ -417,25 +412,20 @@ static X509 *load_cert(const gchar *name, GError **error)
 
 static GBytes *bytes_from_bio(BIO *bio)
 {
-	long size;
-	char *data;
-
 	g_return_val_if_fail(bio != NULL, NULL);
 
-	size = BIO_get_mem_data(bio, &data);
+	char *data = NULL;
+	long size = BIO_get_mem_data(bio, &data);
 	return g_bytes_new(data, size);
 }
 
 /* this does not take ownership of the memory, so the GBytes needs to be kept alive */
 static BIO *bytes_as_bio(GBytes *bytes)
 {
-	gsize size = 0;
-	const void *data = NULL;
-	BIO *bio = NULL;
-
 	g_return_val_if_fail(bytes != NULL, NULL);
 
-	data = g_bytes_get_data(bytes, &size);
+	gsize size = 0;
+	const void *data = g_bytes_get_data(bytes, &size);
 	if (!data)
 		g_error("bytes_as_bio: no data");
 	if (size == 0)
@@ -443,7 +433,7 @@ static BIO *bytes_as_bio(GBytes *bytes)
 	if (size > INT_MAX)
 		g_error("bytes_as_bio: size is too large for BIO_new_mem_buf");
 
-	bio = BIO_new_mem_buf(data, size);
+	BIO *bio = BIO_new_mem_buf(data, size);
 	if (!bio)
 		g_error("bytes_as_bio: BIO_new_mem_buf() failed");
 
@@ -458,11 +448,10 @@ static BIO *bytes_as_bio(GBytes *bytes)
 
 static gboolean file_contains_crl(const gchar *capath)
 {
-	g_autofree gchar *contents = NULL;
-
 	if (!g_file_test(capath, G_FILE_TEST_IS_REGULAR))
 		return FALSE;
 
+	g_autofree gchar *contents = NULL;
 	if (!g_file_get_contents(capath, &contents, NULL, NULL))
 		return FALSE;
 
@@ -501,13 +490,13 @@ X509_STORE* setup_x509_store(const gchar *capath, const gchar *cadir, GError **e
 	const gchar *load_capath = r_context()->config->keyring_path;
 	const gchar *load_cadir = r_context()->config->keyring_directory;
 	const gchar *check_purpose = r_context()->config->keyring_check_purpose;
-	g_autoptr(X509_STORE) store = NULL;
 
 	if (capath)
 		load_capath = strlen(capath) ? capath : NULL;
 	if (cadir)
 		load_cadir = strlen(cadir) ? cadir : NULL;
 
+	g_autoptr(X509_STORE) store = NULL;
 	if (!(store = X509_STORE_new())) {
 		g_set_error_literal(
 				error,
@@ -789,30 +778,26 @@ out:
 
 gchar* get_pubkey_hash(X509 *cert)
 {
-	g_autoptr(GString) string = NULL;
-	g_autofree unsigned char *der_buf = NULL;
-	unsigned char *tmp_buf = NULL;
-	unsigned int len = 0;
-	unsigned int n = 0;
-	unsigned char md[SHA256_DIGEST_LENGTH];
-
 	g_return_val_if_fail(cert != NULL, NULL);
 
 	/* As we print colon-separated hex, we need 3 chars per byte */
-	string = g_string_sized_new(SHA256_DIGEST_LENGTH * 3);
+	g_autoptr(GString) string = g_string_sized_new(SHA256_DIGEST_LENGTH * 3);
 
-	len = i2d_X509_PUBKEY(X509_get_X509_PUBKEY(cert), NULL);
+	unsigned int len = i2d_X509_PUBKEY(X509_get_X509_PUBKEY(cert), NULL);
 	if (len <= 0) {
 		g_warning("DER Encoding failed");
 		return NULL;
 	}
 	/* As i2d_X509_PUBKEY() moves pointer after end of data,
 	 * we must use a tmp pointer, here */
-	der_buf = tmp_buf = g_malloc(len);
+	g_autofree unsigned char *der_buf = g_malloc(len);
+	unsigned char *tmp_buf = der_buf;
 	i2d_X509_PUBKEY(X509_get_X509_PUBKEY(cert), &tmp_buf);
 
 	g_assert(((unsigned int)(tmp_buf - der_buf)) == len);
 
+	unsigned char md[SHA256_DIGEST_LENGTH];
+	unsigned int n = 0;
 	if (!EVP_Digest(der_buf, len, md, &n, EVP_sha256(), NULL)) {
 		g_warning("Error in EVP_Digest");
 		return NULL;
@@ -830,10 +815,9 @@ gchar* get_pubkey_hash(X509 *cert)
 
 gchar** get_pubkey_hashes(STACK_OF(X509) *verified_chain)
 {
-	GPtrArray *hashes = g_ptr_array_new_full(4, g_free);
-
 	g_return_val_if_fail(verified_chain != NULL, NULL);
 
+	GPtrArray *hashes = g_ptr_array_new_full(4, g_free);
 	for (int i = 0; i < sk_X509_num(verified_chain); i++) {
 		gchar *hash;
 
@@ -858,13 +842,11 @@ gchar** get_pubkey_hashes(STACK_OF(X509) *verified_chain)
  */
 static gchar* bio_mem_unwrap(BIO *mem)
 {
-	long size;
-	gchar *data, *ret;
-
 	g_return_val_if_fail(mem != NULL, NULL);
 
-	size = BIO_get_mem_data(mem, &data);
-	ret = g_strndup(data, size);
+	gchar *data = NULL;
+	long size = BIO_get_mem_data(mem, &data);
+	gchar *ret = g_strndup(data, size);
 	BIO_free(mem);
 
 	return ret;
@@ -872,11 +854,9 @@ static gchar* bio_mem_unwrap(BIO *mem)
 
 static gchar* dump_cms(STACK_OF(X509) *x509_certs)
 {
-	BIO *mem;
-
 	g_return_val_if_fail(x509_certs != NULL, NULL);
 
-	mem = BIO_new(BIO_s_mem());
+	BIO *mem = BIO_new(BIO_s_mem());
 	X509_print_ex(mem, sk_X509_value(x509_certs, 0), 0, 0);
 
 	return bio_mem_unwrap(mem);
@@ -884,15 +864,12 @@ static gchar* dump_cms(STACK_OF(X509) *x509_certs)
 
 gchar* sigdata_to_string(GBytes *sig, GError **error)
 {
-	g_autoptr(CMS_ContentInfo) cms = NULL;
-	g_autoptr(R_X509_STACK_POP) signers = NULL;
-	gchar *ret;
-	BIO *insig = bytes_as_bio(sig);
-
 	g_return_val_if_fail(sig != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	if (!(cms = d2i_CMS_bio(insig, NULL))) {
+	BIO *insig = bytes_as_bio(sig);
+	g_autoptr(CMS_ContentInfo) cms = d2i_CMS_bio(insig, NULL);
+	if (!cms) {
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
@@ -901,7 +878,7 @@ gchar* sigdata_to_string(GBytes *sig, GError **error)
 		return NULL;
 	}
 
-	signers = CMS_get1_certs(cms);
+	g_autoptr(R_X509_STACK_POP) signers = CMS_get1_certs(cms);
 	if (signers == NULL) {
 		g_set_error_literal(
 				error,
@@ -911,7 +888,7 @@ gchar* sigdata_to_string(GBytes *sig, GError **error)
 		return NULL;
 	}
 
-	ret = dump_cms(signers);
+	gchar *ret = dump_cms(signers);
 
 	BIO_free(insig);
 
@@ -920,8 +897,6 @@ gchar* sigdata_to_string(GBytes *sig, GError **error)
 
 static void bio_print_recipient(BIO *text, guint id, gchar* algorithm, ASN1_OCTET_STRING *keyid, X509_NAME *issuer, ASN1_INTEGER *sno)
 {
-	g_autofree gchar *s = NULL;
-
 	/* OpenSSL documentation says
 	 * "Either the keyidentifier will be set in keyid or both
 	 * issuer name and serial number in issuer and sno."
@@ -941,7 +916,7 @@ static void bio_print_recipient(BIO *text, guint id, gchar* algorithm, ASN1_OCTE
 	X509_NAME_print_ex(text, issuer, 0, XN_FLAG_ONELINE);
 	BIO_puts(text, "\n");
 	BIO_puts(text, "      Serial:    ");
-	s = i2s_ASN1_INTEGER(NULL, sno);
+	g_autofree gchar *s = i2s_ASN1_INTEGER(NULL, sno);
 	BIO_puts(text, s);
 	BIO_puts(text, "\n");
 	if (algorithm)
@@ -950,18 +925,12 @@ static void bio_print_recipient(BIO *text, guint id, gchar* algorithm, ASN1_OCTE
 
 gchar* envelopeddata_to_string(GBytes *sig, GError **error)
 {
-	g_autoptr(CMS_ContentInfo) cms = NULL;
-	BIO *insig = NULL;
-	STACK_OF(CMS_RecipientInfo) *ris;
-	BIO *text;
-	gchar *ret;
-
 	g_return_val_if_fail(sig != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	insig = bytes_as_bio(sig);
-
-	if (!(cms = d2i_CMS_bio(insig, NULL))) {
+	BIO *insig = bytes_as_bio(sig);
+	g_autoptr(CMS_ContentInfo) cms = d2i_CMS_bio(insig, NULL);
+	if (!cms) {
 		BIO_free(insig);
 		g_set_error(
 				error,
@@ -970,58 +939,52 @@ gchar* envelopeddata_to_string(GBytes *sig, GError **error)
 				"Failed to parse signature");
 		return NULL;
 	}
-	ris = CMS_get0_RecipientInfos(cms);
+	STACK_OF(CMS_RecipientInfo) *ris = CMS_get0_RecipientInfos(cms);
 
-	text = BIO_new(BIO_s_mem());
+	BIO *text = BIO_new(BIO_s_mem());
 	BIO_printf(text, "%d Recipients:\n", sk_CMS_RecipientInfo_num(ris));
 
 	for (int i = 0; i < sk_CMS_RecipientInfo_num(ris); i++) {
-		CMS_RecipientInfo *ri;
-
-		ri = sk_CMS_RecipientInfo_value(ris, i);
+		CMS_RecipientInfo *ri = sk_CMS_RecipientInfo_value(ris, i);
 
 		switch (CMS_RecipientInfo_type(ri)) {
 			case CMS_RECIPINFO_TRANS: {
 				ASN1_OCTET_STRING *keyid = NULL;
 				X509_NAME *issuer = NULL;
 				ASN1_INTEGER *sno = NULL;
-				X509_ALGOR *alg = NULL;
-				gchar algo_buf[80];
-
 				if (CMS_RecipientInfo_ktri_get0_signer_id(ri, &keyid, &issuer, &sno) != 1) {
 					g_warning("Unable to obtain recipient information for recipient %d", i);
 				}
 
+				X509_ALGOR *alg = NULL;
 				if (CMS_RecipientInfo_ktri_get0_algs(ri, NULL, NULL, &alg) != 1) {
 					g_warning("Unable to obtain algorithm information for recipient %d", i);
 				}
 
+				gchar algo_buf[80];
 				OBJ_obj2txt(algo_buf, sizeof(algo_buf), alg->algorithm, 0);
 
 				bio_print_recipient(text, i, algo_buf, keyid, issuer, sno);
 			} break;
 			case CMS_RECIPINFO_AGREE: {
-				STACK_OF(CMS_RecipientEncryptedKey) *reks = NULL;
-				X509_ALGOR *alg = NULL;
-				gchar algo_buf[80];
-
-				reks = CMS_RecipientInfo_kari_get0_reks(ri);
+				STACK_OF(CMS_RecipientEncryptedKey) *reks = CMS_RecipientInfo_kari_get0_reks(ri);
 				if (!reks) {
 					g_warning("Unable to obtain recipient information for recipient %d", i);
 				}
 
+				X509_ALGOR *alg = NULL;
 				if (CMS_RecipientInfo_kari_get0_alg(ri, &alg, NULL) != 1) {
 					g_warning("Unable to obtain algorithm information for recipient %d", i);
 				}
 
+				gchar algo_buf[80];
 				OBJ_obj2txt(algo_buf, sizeof(algo_buf), alg->algorithm, 0);
 
 				for (int j = 0; j < sk_CMS_RecipientEncryptedKey_num(reks); j++) {
+					CMS_RecipientEncryptedKey *rek = sk_CMS_RecipientEncryptedKey_value(reks, j);
 					ASN1_OCTET_STRING *keyid = NULL;
 					X509_NAME *issuer = NULL;
 					ASN1_INTEGER *sno = NULL;
-
-					CMS_RecipientEncryptedKey *rek = sk_CMS_RecipientEncryptedKey_value(reks, j);
 					CMS_RecipientEncryptedKey_get0_id(rek, &keyid, NULL, NULL, &issuer, &sno);
 
 					bio_print_recipient(text, i, algo_buf, keyid, issuer, sno);
@@ -1033,7 +996,7 @@ gchar* envelopeddata_to_string(GBytes *sig, GError **error)
 		}
 	}
 
-	ret = bio_mem_unwrap(text);
+	gchar *ret = bio_mem_unwrap(text);
 	if (!ret) {
 		g_set_error_literal(
 				error,
@@ -1048,15 +1011,12 @@ gchar* envelopeddata_to_string(GBytes *sig, GError **error)
 
 static gchar* get_cert_time(const ASN1_TIME *time)
 {
-	BIO *mem;
-	gchar *data, *ret;
-	gsize size;
-
-	mem = BIO_new(BIO_s_mem());
+	BIO *mem = BIO_new(BIO_s_mem());
 	ASN1_TIME_print(mem, time);
 
-	size = BIO_get_mem_data(mem, &data);
-	ret = g_strndup(data, size);
+	gchar *data = NULL;
+	gsize size = BIO_get_mem_data(mem, &data);
+	gchar *ret = g_strndup(data, size);
 
 	g_assert(BIO_set_close(mem, BIO_CLOSE));
 	BIO_free(mem);
@@ -1066,12 +1026,9 @@ static gchar* get_cert_time(const ASN1_TIME *time)
 
 gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
 {
-	BIO *text = NULL;
-	gchar *tmp = NULL;
-
 	g_return_val_if_fail(verified_chain != NULL, NULL);
 
-	text = BIO_new(BIO_s_mem());
+	BIO *text = BIO_new(BIO_s_mem());
 	BIO_printf(text, "Certificate Chain:\n");
 	for (int i = 0; i < sk_X509_num(verified_chain); i++) {
 		BIO_printf(text, "%2d Subject: ", i);
@@ -1082,7 +1039,7 @@ gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
 		X509_NAME_print_ex(text, X509_get_issuer_name(sk_X509_value(verified_chain, i)), 0, XN_FLAG_ONELINE);
 		BIO_printf(text, "\n");
 
-		tmp = get_pubkey_hash(sk_X509_value(verified_chain, i));
+		gchar *tmp = get_pubkey_hash(sk_X509_value(verified_chain, i));
 		BIO_printf(text, "   SPKI sha256: %s\n", tmp);
 		g_free(tmp);
 
@@ -1258,17 +1215,13 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
  * intermediate format. */
 static gboolean asn1_time_to_tm(const ASN1_TIME *intime, struct tm *tm)
 {
-	BIO *mem;
-	long size;
-	gchar *data;
-	g_autofree gchar *ret = NULL;
-
-	mem = BIO_new(BIO_s_mem());
+	BIO *mem = BIO_new(BIO_s_mem());
 
 	ASN1_TIME_print(mem, intime);
 
-	size = BIO_get_mem_data(mem, &data);
-	ret = g_strndup(data, size);
+	gchar *data = NULL;
+	long size = BIO_get_mem_data(mem, &data);
+	g_autofree gchar *ret = g_strndup(data, size);
 
 	g_debug("Obtained signing time: %s", ret);
 
@@ -1283,18 +1236,16 @@ static gboolean asn1_time_to_tm(const ASN1_TIME *intime, struct tm *tm)
 
 static void debug_cms_ci(CMS_ContentInfo *cms)
 {
-	BIO *out;
 	const gchar *domains = g_getenv("G_MESSAGES_DEBUG");
-	gchar *out_str = NULL;
-	long size;
-
 	if (domains == NULL)
 		return;
 	if (!g_str_equal(domains, "all") && strstr(domains, G_LOG_DOMAIN "-signature") == NULL)
 		return;
 
-	out = BIO_new(BIO_s_mem());
+	BIO *out = BIO_new(BIO_s_mem());
 	CMS_ContentInfo_print_ctx(out, cms, 2, NULL);
+	gchar *out_str = NULL;
+	long size = 0;
 	if ((size = BIO_get_mem_data(out, &out_str)) > 0) {
 		/* replace final newline with nul */
 		out_str[size-1] = '\0';
@@ -1305,8 +1256,6 @@ static void debug_cms_ci(CMS_ContentInfo *cms)
 
 gboolean cms_is_detached(GBytes *sig, gboolean *detached, GError **error)
 {
-	g_autoptr(CMS_ContentInfo) cms = NULL;
-	BIO *insig = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(sig != NULL, FALSE);
@@ -1315,8 +1264,9 @@ gboolean cms_is_detached(GBytes *sig, gboolean *detached, GError **error)
 
 	g_assert(g_bytes_get_size(sig) > 0);
 
-	insig = bytes_as_bio(sig);
+	BIO *insig = bytes_as_bio(sig);
 
+	g_autoptr(CMS_ContentInfo) cms = NULL;
 	if (!(cms = d2i_CMS_bio(insig, NULL))) {
 		g_set_error(
 				error,
@@ -1337,14 +1287,13 @@ out:
 
 gboolean cms_is_envelopeddata(GBytes *cms_data)
 {
-	g_autoptr(CMS_ContentInfo) cms = NULL;
-	BIO *insig = NULL;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(cms_data != NULL, FALSE);
 
-	insig = bytes_as_bio(cms_data);
+	BIO *insig = bytes_as_bio(cms_data);
 
+	g_autoptr(CMS_ContentInfo) cms = NULL;
 	if (!(cms = d2i_CMS_bio(insig, NULL)))
 		goto out;
 
@@ -1591,25 +1540,21 @@ out:
 GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
 {
 	GError *ierror = NULL;
-	g_autoptr(GMappedFile) file = NULL;
-	g_autoptr(GBytes) content = NULL;
-	gsize content_size = 0;
-	GBytes *sig = NULL;
 
 	g_return_val_if_fail(filename != NULL, FALSE);
 	g_return_val_if_fail(certfile != NULL, FALSE);
 	g_return_val_if_fail(keyfile != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	file = g_mapped_file_new(filename, FALSE, &ierror);
+	g_autoptr(GMappedFile) file = g_mapped_file_new(filename, FALSE, &ierror);
 	if (file == NULL) {
 		g_propagate_error(error, ierror);
 		return NULL;
 	}
-	content = g_mapped_file_get_bytes(file);
+	g_autoptr(GBytes) content = g_mapped_file_get_bytes(file);
 
 	G_STATIC_ASSERT(INT_MAX >= INT32_MAX);
-	content_size = g_bytes_get_size(content);
+	gsize content_size = g_bytes_get_size(content);
 	if (content_size > INT32_MAX) {
 		g_set_error(
 				error,
@@ -1619,7 +1564,7 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
 		return NULL;
 	}
 
-	sig = cms_sign(content, TRUE, certfile, keyfile, interfiles, &ierror);
+	GBytes *sig = cms_sign(content, TRUE, certfile, keyfile, interfiles, &ierror);
 	if (sig == NULL) {
 		g_propagate_error(error, ierror);
 		return NULL;
@@ -1631,14 +1576,13 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
 GBytes *cms_sign_manifest(RaucManifest *manifest, const gchar *certfile, const gchar *keyfile, gchar **interfiles, GError **error)
 {
 	GError *ierror = NULL;
-	g_autoptr(GBytes) content = NULL;
-	GBytes *sig = NULL;
 
 	g_return_val_if_fail(manifest != NULL, FALSE);
 	g_return_val_if_fail(certfile != NULL, FALSE);
 	g_return_val_if_fail(keyfile != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	g_autoptr(GBytes) content = NULL;
 	if (!save_manifest_mem(&content, manifest)) {
 		g_set_error(
 				error,
@@ -1648,7 +1592,7 @@ GBytes *cms_sign_manifest(RaucManifest *manifest, const gchar *certfile, const g
 		return NULL;
 	}
 
-	sig = cms_sign(content, FALSE, certfile, keyfile, interfiles, &ierror);
+	GBytes *sig = cms_sign(content, FALSE, certfile, keyfile, interfiles, &ierror);
 	if (sig == NULL) {
 		g_propagate_error(error, ierror);
 		return NULL;
@@ -1660,10 +1604,6 @@ GBytes *cms_sign_manifest(RaucManifest *manifest, const gchar *certfile, const g
 gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, CMS_ContentInfo **cms, GError **error)
 {
 	GError *ierror = NULL;
-	g_autoptr(GMappedFile) file = NULL;
-	g_autoptr(GBytes) content = NULL;
-	gsize content_size = 0;
-	gboolean res = FALSE;
 
 	g_return_val_if_fail(fd >= 0, FALSE);
 	g_return_val_if_fail(sig != NULL, FALSE);
@@ -1671,12 +1611,12 @@ gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, C
 	g_return_val_if_fail(cms == NULL || *cms == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	file = g_mapped_file_new_from_fd(fd, FALSE, &ierror);
+	g_autoptr(GMappedFile) file = g_mapped_file_new_from_fd(fd, FALSE, &ierror);
 	if (file == NULL) {
 		g_propagate_error(error, ierror);
 		return FALSE;
 	}
-	content = g_mapped_file_get_bytes(file);
+	g_autoptr(GBytes) content = g_mapped_file_get_bytes(file);
 
 	/* On 32 bit systems, G_MAXSIZE will be only 32 bit (unsigned) while
 	 * 'limit' is 64 bit (signed). Thus we must take care of not passing
@@ -1700,7 +1640,7 @@ gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, C
 	}
 
 	G_STATIC_ASSERT(INT_MAX >= INT32_MAX);
-	content_size = g_bytes_get_size(content);
+	gsize content_size = g_bytes_get_size(content);
 	if (content_size > INT32_MAX) {
 		g_set_error(
 				error,
@@ -1710,7 +1650,7 @@ gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, C
 		return FALSE;
 	}
 
-	res = cms_verify_bytes(content, sig, store, cms, NULL, &ierror);
+	gboolean res = cms_verify_bytes(content, sig, store, cms, NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -1722,14 +1662,13 @@ gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, C
 gboolean cms_verify_sig(GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GBytes **manifest, GError **error)
 {
 	GError *ierror = NULL;
-	gboolean res = FALSE;
 
 	g_return_val_if_fail(sig != NULL, FALSE);
 	g_return_val_if_fail(store != NULL, FALSE);
 	g_return_val_if_fail(cms == NULL || *cms == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	res = cms_verify_bytes(NULL, sig, store, cms, manifest, &ierror);
+	gboolean res = cms_verify_bytes(NULL, sig, store, cms, manifest, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		return FALSE;
