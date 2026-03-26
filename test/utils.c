@@ -50,7 +50,7 @@ static void get_sectorsize_test(void)
 	}
 
 	fd = g_open(device, O_RDONLY|O_CLOEXEC, 0);
-	g_assert_cmphex(fd, >=, 0);
+	g_assert_cmpint(fd, >=, 0);
 
 	size = get_sectorsize(fd);
 	g_assert_cmpint(size, ==, 512);
@@ -73,7 +73,7 @@ static void get_device_size_test(void)
 	}
 
 	fd = g_open(device, O_RDONLY|O_CLOEXEC, 0);
-	g_assert_cmphex(fd, >=, 0);
+	g_assert_cmpint(fd, >=, 0);
 
 	size = get_device_size(fd, &error);
 	g_assert_no_error(error);
@@ -403,9 +403,9 @@ static void semver_parse_test(void)
 	r_replace_strdup(&version_string, "1012.11-a.2.d");
 	g_assert_true(r_semver_parse(version_string, version, &pre_release, &build, &error));
 	g_assert_no_error(error);
-	g_assert_cmpint(version[0], ==, 1012);
-	g_assert_cmpint(version[1], ==, 11);
-	g_assert_cmpint(version[2], ==, 0);
+	g_assert_cmpuint(version[0], ==, 1012);
+	g_assert_cmpuint(version[1], ==, 11);
+	g_assert_cmpuint(version[2], ==, 0);
 	g_assert_cmpstr(pre_release, ==, "a.2.d");
 	g_assert_null(build);
 	g_clear_pointer(&pre_release, g_free);
@@ -413,9 +413,9 @@ static void semver_parse_test(void)
 	r_replace_strdup(&version_string, "1012-abc");
 	g_assert_true(r_semver_parse(version_string, version, &pre_release, &build, &error));
 	g_assert_no_error(error);
-	g_assert_cmpint(version[0], ==, 1012);
-	g_assert_cmpint(version[1], ==, 0);
-	g_assert_cmpint(version[2], ==, 0);
+	g_assert_cmpuint(version[0], ==, 1012);
+	g_assert_cmpuint(version[1], ==, 0);
+	g_assert_cmpuint(version[2], ==, 0);
 	g_assert_cmpstr(pre_release, ==, "abc");
 	g_assert_null(build);
 	g_clear_pointer(&pre_release, g_free);
@@ -423,18 +423,18 @@ static void semver_parse_test(void)
 	r_replace_strdup(&version_string, "1012");
 	g_assert_true(r_semver_parse(version_string, version, &pre_release, &build, &error));
 	g_assert_no_error(error);
-	g_assert_cmpint(version[0], ==, 1012);
-	g_assert_cmpint(version[1], ==, 0);
-	g_assert_cmpint(version[2], ==, 0);
+	g_assert_cmpuint(version[0], ==, 1012);
+	g_assert_cmpuint(version[1], ==, 0);
+	g_assert_cmpuint(version[2], ==, 0);
 	g_assert_null(pre_release);
 	g_assert_null(build);
 
 	r_replace_strdup(&version_string, "0");
 	g_assert_true(r_semver_parse(version_string, version, &pre_release, &build, &error));
 	g_assert_no_error(error);
-	g_assert_cmpint(version[0], ==, 0);
-	g_assert_cmpint(version[1], ==, 0);
-	g_assert_cmpint(version[2], ==, 0);
+	g_assert_cmpuint(version[0], ==, 0);
+	g_assert_cmpuint(version[1], ==, 0);
+	g_assert_cmpuint(version[2], ==, 0);
 	g_assert_null(pre_release);
 	g_assert_null(build);
 }
