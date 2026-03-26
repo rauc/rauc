@@ -234,8 +234,8 @@ out:
 
 static EVP_PKEY *load_key_pkcs11(const gchar *url, GError **error)
 {
-	EVP_PKEY *res = NULL;
 #if ENABLE_OPENSSL_PKCS11_ENGINE
+	EVP_PKEY *res = NULL;
 	GError *ierror = NULL;
 	ENGINE *e;
 
@@ -245,7 +245,7 @@ static EVP_PKEY *load_key_pkcs11(const gchar *url, GError **error)
 	e = get_pkcs11_engine(&ierror);
 	if (e == NULL) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return NULL;
 	}
 
 	res = ENGINE_load_private_key(e, url, NULL, NULL);
@@ -255,18 +255,17 @@ static EVP_PKEY *load_key_pkcs11(const gchar *url, GError **error)
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_LOAD_FAILED,
 				"failed to load PKCS11 private key for '%s': %s", url, get_openssl_err_string());
-		goto out;
+		return NULL;
 	}
+	return res;
 #else
 	g_set_error(
 			error,
 			R_SIGNATURE_ERROR,
 			R_SIGNATURE_ERROR_LOAD_FAILED,
 			"failed to load PKCS11 private key for '%s': OpenSSL engine support disabled", url);
+	return NULL;
 #endif
-
-out:
-	return res;
 }
 
 static EVP_PKEY *load_key(const gchar *name, GError **error)
@@ -366,7 +365,6 @@ out:
 
 static X509 *load_cert_pkcs11(const gchar *url, GError **error)
 {
-	X509 *res = NULL;
 #if ENABLE_OPENSSL_PKCS11_ENGINE
 	GError *ierror = NULL;
 	ENGINE *e;
@@ -383,7 +381,7 @@ static X509 *load_cert_pkcs11(const gchar *url, GError **error)
 	e = get_pkcs11_engine(&ierror);
 	if (e == NULL) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return NULL;
 	}
 
 	parms.url = url;
@@ -394,19 +392,17 @@ static X509 *load_cert_pkcs11(const gchar *url, GError **error)
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE_ERROR,
 				"failed to load PKCS11 certificate for '%s': %s", url, get_openssl_err_string());
-		goto out;
+		return NULL;
 	}
-	res = parms.cert;
+	return parms.cert;
 #else
 	g_set_error(
 			error,
 			R_SIGNATURE_ERROR,
 			R_SIGNATURE_ERROR_PARSE_ERROR,
 			"failed to load PKCS11 certificate for '%s': OpenSSL engine support disabled", url);
+	return NULL;
 #endif
-
-out:
-	return res;
 }
 
 static X509 *load_cert(const gchar *name, GError **error)
@@ -835,7 +831,6 @@ gchar* get_pubkey_hash(X509 *cert)
 gchar** get_pubkey_hashes(STACK_OF(X509) *verified_chain)
 {
 	GPtrArray *hashes = g_ptr_array_new_full(4, g_free);
-	gchar **ret = NULL;
 
 	g_return_val_if_fail(verified_chain != NULL, NULL);
 
@@ -845,15 +840,13 @@ gchar** get_pubkey_hashes(STACK_OF(X509) *verified_chain)
 		hash = get_pubkey_hash(sk_X509_value(verified_chain, i));
 		if (hash == NULL) {
 			g_ptr_array_free(hashes, TRUE);
-			goto out;
+			return NULL;
 		}
 		g_ptr_array_add(hashes, hash);
 	}
 	g_ptr_array_add(hashes, NULL);
 
-	ret = (gchar**) g_ptr_array_free(hashes, FALSE);
-out:
-	return ret;
+	return (gchar**) g_ptr_array_free(hashes, FALSE);
 }
 
 /*
@@ -1611,7 +1604,7 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
 	file = g_mapped_file_new(filename, FALSE, &ierror);
 	if (file == NULL) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return NULL;
 	}
 	content = g_mapped_file_get_bytes(file);
 
@@ -1623,16 +1616,15 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_LOAD_FAILED,
 				"Bundle payload size %"G_GSIZE_FORMAT " exceeds maximum for bundles using plain format (2 GiB)", content_size);
-		goto out;
+		return NULL;
 	}
 
 	sig = cms_sign(content, TRUE, certfile, keyfile, interfiles, &ierror);
 	if (sig == NULL) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return NULL;
 	}
 
-out:
 	return sig;
 }
 
@@ -1653,16 +1645,15 @@ GBytes *cms_sign_manifest(RaucManifest *manifest, const gchar *certfile, const g
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_UNKNOWN,
 				"Failed to serialize manifest!");
-		goto out;
+		return NULL;
 	}
 
 	sig = cms_sign(content, FALSE, certfile, keyfile, interfiles, &ierror);
 	if (sig == NULL) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return NULL;
 	}
 
-out:
 	return sig;
 }
 
@@ -1683,7 +1674,7 @@ gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, C
 	file = g_mapped_file_new_from_fd(fd, FALSE, &ierror);
 	if (file == NULL) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 	content = g_mapped_file_get_bytes(file);
 
@@ -1699,7 +1690,7 @@ gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, C
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE,
 				"Bundle size exceeds maximum size!");
-		goto out;
+		return FALSE;
 	}
 
 	if (limit) {
@@ -1716,17 +1707,16 @@ gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, C
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_LOAD_FAILED,
 				"Bundle payload size %"G_GSIZE_FORMAT " exceeds maximum for bundles using plain format (2 GiB)", content_size);
-		goto out;
+		return FALSE;
 	}
 
 	res = cms_verify_bytes(content, sig, store, cms, NULL, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-out:
-	return res;
+	return TRUE;
 }
 
 gboolean cms_verify_sig(GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GBytes **manifest, GError **error)
@@ -1742,11 +1732,10 @@ gboolean cms_verify_sig(GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, G
 	res = cms_verify_bytes(NULL, sig, store, cms, manifest, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-out:
-	return res;
+	return TRUE;
 }
 
 GBytes *cms_encrypt(GBytes *content, gchar **recipients, GError **error)
