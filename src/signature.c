@@ -444,10 +444,18 @@ static BIO *bytes_as_bio(GBytes *bytes)
 		g_error("bytes_as_bio: no data");
 	if (size == 0)
 		g_error("bytes_as_bio: size is zero");
+	if (size > INT_MAX)
+		g_error("bytes_as_bio: size is too large for BIO_new_mem_buf");
 
 	bio = BIO_new_mem_buf(data, size);
 	if (!bio)
 		g_error("bytes_as_bio: BIO_new_mem_buf() failed");
+
+	/* ensure that we've passed the data correctly */
+	const BUF_MEM *bio_mem_buf = NULL;
+	BIO_get_mem_ptr(bio, &bio_mem_buf);
+	g_assert(bio_mem_buf->data == data);
+	g_assert(bio_mem_buf->length == size);
 
 	return bio;
 }
@@ -1592,6 +1600,7 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
 	GError *ierror = NULL;
 	g_autoptr(GMappedFile) file = NULL;
 	g_autoptr(GBytes) content = NULL;
+	gsize content_size = 0;
 	GBytes *sig = NULL;
 
 	g_return_val_if_fail(filename != NULL, FALSE);
@@ -1605,6 +1614,17 @@ GBytes *cms_sign_file(const gchar *filename, const gchar *certfile, const gchar 
 		goto out;
 	}
 	content = g_mapped_file_get_bytes(file);
+
+	G_STATIC_ASSERT(INT_MAX >= INT32_MAX);
+	content_size = g_bytes_get_size(content);
+	if (content_size > INT32_MAX) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_LOAD_FAILED,
+				"Bundle payload size %"G_GSIZE_FORMAT " exceeds maximum for bundles using plain format (2 GiB)", content_size);
+		goto out;
+	}
 
 	sig = cms_sign(content, TRUE, certfile, keyfile, interfiles, &ierror);
 	if (sig == NULL) {
@@ -1651,6 +1671,7 @@ gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, C
 	GError *ierror = NULL;
 	g_autoptr(GMappedFile) file = NULL;
 	g_autoptr(GBytes) content = NULL;
+	gsize content_size = 0;
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(fd >= 0, FALSE);
@@ -1685,6 +1706,17 @@ gboolean cms_verify_fd(gint fd, GBytes *sig, goffset limit, X509_STORE *store, C
 		GBytes *tmp = g_bytes_new_from_bytes(content, 0, limit);
 		g_bytes_unref(content);
 		content = tmp;
+	}
+
+	G_STATIC_ASSERT(INT_MAX >= INT32_MAX);
+	content_size = g_bytes_get_size(content);
+	if (content_size > INT32_MAX) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_LOAD_FAILED,
+				"Bundle payload size %"G_GSIZE_FORMAT " exceeds maximum for bundles using plain format (2 GiB)", content_size);
+		goto out;
 	}
 
 	res = cms_verify_bytes(content, sig, store, cms, NULL, &ierror);
