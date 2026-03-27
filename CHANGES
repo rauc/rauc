@@ -1,3 +1,17 @@
+Release 1.15.2 (released Mar 27, 2026)
+--------------------------------------
+
+.. rubric:: Security
+
+* Reject bundles using the 'plain' format which exceed a payload size of 2 GiB
+  during signing and verification.
+  This fixes an integer overflow which results in a signature which covers only
+  the first few bytes of the payload (CVE-2026-34155).
+  See the advisory for more details:
+  https://github.com/rauc/rauc/security/advisories/GHSA-6hj7-q844-m2hx
+
+Contributions from: Jan Lübbe (@jluebbe)
+
 Release 1.15.1 (released Jan 5, 2026)
 -------------------------------------
 
