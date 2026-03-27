@@ -1,5 +1,6 @@
 import os
 from subprocess import check_call
+from textwrap import dedent
 
 from helper import run
 from conftest import needs_emmc
@@ -165,3 +166,63 @@ def test_write_boot_emmc_size_limit_too_large(system):
     assert f"Boot partition {device}boot0 is now active" in err
 
     assert "The size-limit (10485760 bytes) exceeds actual device size" in err
+
+
+@needs_emmc
+def test_write_boot_emmc_hook(tmp_path, create_system_files, system, bundle):
+    """
+    Tests that pre/post-install slot hooks work correctly with boot-emmc slots.
+    Regression test for https://github.com/rauc/rauc/issues/1893
+    """
+    device = os.environ["RAUC_TEST_EMMC"]
+
+    # disable boot partition for a fixed setup
+    check_call(["mmc", "bootpart", "enable", "0", "0", device])
+
+    system.prepare_minimal_config()
+    system.config["slot.bootloader.0"] = {
+        "device": device,
+        "type": "boot-emmc",
+    }
+    system.write_config()
+
+    bundle.add_hook_script(
+        dedent("""\
+        #!/bin/bash
+        set -e
+        case "$1" in
+            slot-pre-install)
+                env | sort > "$RAUC_PYTEST_TMP/pre-install-hook-env"
+                ;;
+            slot-post-install)
+                env | sort > "$RAUC_PYTEST_TMP/post-install-hook-env"
+                ;;
+            *)
+                exit 1
+                ;;
+        esac
+        """)
+    )
+    bundle.manifest["image.bootloader"] = {
+        "filename": "bootloader.img",
+        "hooks": "pre-install;post-install",
+    }
+    bundle.make_random_image("bootloader", 4096, "random bootloader")
+    bundle.build()
+
+    with system.running_service("A"):
+        out, err, exitcode = run(f"rauc install {bundle.output}")
+
+    assert exitcode == 0
+
+    with open(tmp_path / "pre-install-hook-env") as f:
+        pre_lines = f.readlines()
+        assert "RAUC_SLOT_NAME=bootloader.0\n" in pre_lines
+        assert "RAUC_SLOT_CLASS=bootloader\n" in pre_lines
+        assert "RAUC_SLOT_TYPE=boot-emmc\n" in pre_lines
+
+    with open(tmp_path / "post-install-hook-env") as f:
+        post_lines = f.readlines()
+        assert "RAUC_SLOT_NAME=bootloader.0\n" in post_lines
+        assert "RAUC_SLOT_CLASS=bootloader\n" in post_lines
+        assert "RAUC_SLOT_TYPE=boot-emmc\n" in post_lines
