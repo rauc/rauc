@@ -38,7 +38,12 @@ option(
   'pkcs11_engine',
   type : 'boolean',
   value : true,
-  description : 'Enable/Disable OpenSSL PKCS11 engine support')
+  description : 'Enable/Disable OpenSSL PKCS11 engine support (legacy)')
+option(
+  'pkcs11_providers',
+  type : 'boolean',
+  value : false,
+  description : 'Enable/Disable OpenSSL PKCS11 providers support')
 
 # other options
 option(
