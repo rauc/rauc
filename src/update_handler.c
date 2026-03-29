@@ -2433,7 +2433,7 @@ static gboolean check_if_area_is_clear(const gchar *device, guint64 start, gsize
 {
 	gboolean res = FALSE;
 	g_autofree guchar *read_buf = NULL;
-	gint read_size = 512;
+	gsize read_size = 512;
 	gint fd;
 
 	g_return_val_if_fail(device, FALSE);
@@ -2462,7 +2462,7 @@ static gboolean check_if_area_is_clear(const gchar *device, guint64 start, gsize
 	while (size && *clear) {
 		gint read_count = 0;
 
-		if (size < (gsize) read_size)
+		if (size < read_size)
 			read_size = size;
 
 		read_count = read(fd, read_buf, read_size);

@@ -107,9 +107,9 @@ gboolean parse_bundle_formats(guint *mask, const gchar *config, GError **error)
 		}
 
 		if (minus)
-			imask &= ~(1 << format);
+			imask &= ~(1U << format);
 		else
-			imask |= 1 << format;
+			imask |= 1U << format;
 	}
 
 	if (set && modify) {
