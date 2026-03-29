@@ -550,7 +550,7 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 	g_autoptr(R_X509_STACK_POP) intercerts = NULL;
 	g_autoptr(CMS_ContentInfo) cms = NULL;
 	GBytes *res = NULL;
-	int flags = CMS_BINARY | CMS_NOSMIMECAP;
+	unsigned int flags = CMS_BINARY | CMS_NOSMIMECAP;
 	const gchar *keyring_path = NULL, *keyring_dir = NULL;
 
 	g_return_val_if_fail(content != NULL, NULL);
@@ -691,7 +691,7 @@ GBytes *cms_append_signature(GBytes *input_sig, const gchar *certfile, const gch
 	g_autoptr(X509) signcert = NULL;
 	g_autoptr(EVP_PKEY) pkey = NULL;
 	GBytes *output_sig = NULL;
-	int flags = CMS_BINARY | CMS_NOSMIMECAP | CMS_REUSE_DIGEST;
+	unsigned int flags = CMS_BINARY | CMS_NOSMIMECAP | CMS_REUSE_DIGEST;
 
 	g_return_val_if_fail(input_sig != NULL, NULL);
 	g_return_val_if_fail(certfile != NULL, NULL);
@@ -895,8 +895,10 @@ gchar* sigdata_to_string(GBytes *sig, GError **error)
 	return ret;
 }
 
-static void bio_print_recipient(BIO *text, guint id, gchar* algorithm, ASN1_OCTET_STRING *keyid, X509_NAME *issuer, ASN1_INTEGER *sno)
+static void bio_print_recipient(BIO *text, int id, gchar* algorithm, ASN1_OCTET_STRING *keyid, X509_NAME *issuer, ASN1_INTEGER *sno)
 {
+	g_return_if_fail(id >= 0);
+
 	/* OpenSSL documentation says
 	 * "Either the keyidentifier will be set in keyid or both
 	 * issuer name and serial number in issuer and sno."
