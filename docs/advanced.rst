@@ -1039,6 +1039,66 @@ A simplified hook shell script code could look as follows:
            [...]
    esac
 
+Migration for Redundant Data Partitions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Data migration between redundant data partitions is highly
+application-specific, as it depends on the data format and whether conversion
+between versions is needed.
+Therefore, RAUC does not provide a built-in mechanism for this, but offers the
+necessary primitives to implement it via slot hooks.
+
+You'll need to describe the partitions as slots with a mountable file system:
+
+.. code-block:: cfg
+
+   [slot.data.0]
+   type=ext4
+   ...
+
+   [slot.data.1]
+   type=ext4
+   ...
+
+The manifest should then specify ``type=empty-fs``,
+which will make RAUC format the target slot depending on its slot type
+(only ext4 is supported for now).
+Conceptually, RAUC behaves just as if the bundle contains an empty tar archive
+for this slot.
+For the actual data copying or migration, a ``post-install`` hook must be used,
+which will be called with the target slot mounted at ``$RAUC_SLOT_MOUNT_POINT``:
+
+.. code-block:: cfg
+
+   [image.data]
+   type=empty-fs
+   hooks=post-install
+
+A simplified hook shell script code could look as follows:
+
+.. code-block:: sh
+
+   case "$1" in
+
+           [...]
+
+           slot-post-install)
+                   # only the data slots should be handled
+                   test "$RAUC_SLOT_CLASS" = "data" || exit 1
+
+                   echo "Migrating data from /data to $RAUC_SLOT_MOUNT_POINT"
+                   rsync -a --delete /data/ "$RAUC_SLOT_MOUNT_POINT/"
+                   ;;
+           [...]
+   esac
+
+.. note::
+
+   This example assumes the currently active data partition is mounted at ``/data``.
+   The ``--delete`` flag ensures the target slot is an exact mirror of the source,
+   removing any stale files left from a previous installation.
+
+
 Managing a ``/dev/data`` Symbolic Link
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
