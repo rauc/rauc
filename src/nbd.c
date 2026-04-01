@@ -97,7 +97,7 @@ static int netlink_connect_cb(struct nl_msg *msg, void *arg)
 {
 	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
 	RaucNBDDevice *nbd_dev = arg;
-	struct nlattr *msg_attr[NBD_ATTR_MAX + 1];
+	struct nlattr *msg_attr[NBD_ATTR_MAX + 1] = {};
 	int ret;
 
 	ret = nla_parse(msg_attr, NBD_ATTR_MAX, genlmsg_attrdata(gnlh, 0), genlmsg_attrlen(gnlh, 0), NULL);

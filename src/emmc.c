@@ -36,7 +36,7 @@ static int r_emmc_read_extcsd(int fd, guint8 extcsd[512])
 
 gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError **error)
 {
-	guint8 extcsd[512];
+	guint8 extcsd[512] = {};
 	g_auto(filedesc) fd = -1;
 	/* count from 1 */
 	gint active_partition = -1;
@@ -88,9 +88,7 @@ gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError
 
 static gint r_emmc_write_extcsd(int fd, guint8 index, guint8 value)
 {
-	struct mmc_ioc_cmd cmd;
-
-	memset(&cmd, 0, sizeof(cmd));
+	struct mmc_ioc_cmd cmd = {};
 
 	cmd.write_flag = 1;
 	cmd.opcode = MMC_SWITCH;
@@ -104,7 +102,7 @@ static gint r_emmc_write_extcsd(int fd, guint8 index, guint8 value)
 gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError **error)
 {
 	g_auto(filedesc) fd = -1;
-	guint8 extcsd[512];
+	guint8 extcsd[512] = {};
 	guint8 value = 0;
 
 	g_return_val_if_fail(bootpart_active == 0 || bootpart_active == 1, FALSE);

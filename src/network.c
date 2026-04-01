@@ -77,7 +77,7 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 {
 	CURL *curl = NULL;
 	CURLcode r;
-	char errbuf[CURL_ERROR_SIZE];
+	char errbuf[CURL_ERROR_SIZE] = {};
 	gboolean res = FALSE;
 
 	g_return_val_if_fail(xfer, FALSE);

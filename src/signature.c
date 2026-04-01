@@ -796,7 +796,7 @@ gchar* get_pubkey_hash(X509 *cert)
 
 	g_assert(((unsigned int)(tmp_buf - der_buf)) == len);
 
-	unsigned char md[SHA256_DIGEST_LENGTH];
+	unsigned char md[SHA256_DIGEST_LENGTH] = {};
 	unsigned int n = 0;
 	if (!EVP_Digest(der_buf, len, md, &n, EVP_sha256(), NULL)) {
 		g_warning("Error in EVP_Digest");
