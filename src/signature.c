@@ -1495,6 +1495,10 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 		}
 		signingtime = timegm(&tm);
 
+		g_autoptr(GDateTime) signingtime_gdate = g_date_time_new_from_unix_utc((gint64)signingtime);
+		g_autofree gchar *siginingtime_str = g_date_time_format(signingtime_gdate, "%b %d %H:%M:%S %Y GMT"); // OpenSSL-style formatting
+		g_message("Using bundle signing time (%s) for certificate verification.", siginingtime_str);
+
 		/* use signing time for verification */
 		X509_VERIFY_PARAM_set_time(param, signingtime);
 	}
