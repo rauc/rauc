@@ -21,14 +21,14 @@ GQuark r_emmc_error_quark(void)
 
 static int r_emmc_read_extcsd(int fd, guint8 extcsd[512])
 {
-	struct mmc_ioc_cmd cmd = {};
-
-	cmd.write_flag = 0;
-	cmd.opcode = MMC_SEND_EXT_CSD;
-	cmd.arg = 0;
-	cmd.flags = MMC_RSP_SPI_R1 | MMC_RSP_R1 | MMC_CMD_ADTC;
-	cmd.blksz = 512;
-	cmd.blocks = 1;
+	struct mmc_ioc_cmd cmd = {
+		.write_flag = 0,
+		.opcode = MMC_SEND_EXT_CSD,
+		.arg = 0,
+		.flags = MMC_RSP_SPI_R1 | MMC_RSP_R1 | MMC_CMD_ADTC,
+		.blksz = 512,
+		.blocks = 1,
+	};
 	mmc_ioc_cmd_set_data(cmd, extcsd);
 
 	return ioctl(fd, MMC_IOC_CMD, &cmd);
@@ -88,13 +88,13 @@ gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError
 
 static gint r_emmc_write_extcsd(int fd, guint8 index, guint8 value)
 {
-	struct mmc_ioc_cmd cmd = {};
-
-	cmd.write_flag = 1;
-	cmd.opcode = MMC_SWITCH;
-	cmd.arg = (MMC_SWITCH_MODE_WRITE_BYTE << 24) | (index << 16) |
-	          (value << 8) | EXT_CSD_CMD_SET_NORMAL;
-	cmd.flags = MMC_RSP_SPI_R1B | MMC_RSP_R1B | MMC_CMD_AC;
+	struct mmc_ioc_cmd cmd = {
+		.write_flag = 1,
+		.opcode = MMC_SWITCH,
+		.arg = (MMC_SWITCH_MODE_WRITE_BYTE << 24) | (index << 16) |
+		       (value << 8) | EXT_CSD_CMD_SET_NORMAL,
+		.flags = MMC_RSP_SPI_R1B | MMC_RSP_R1B | MMC_CMD_AC,
+	};
 
 	return ioctl(fd, MMC_IOC_CMD, &cmd);
 }
