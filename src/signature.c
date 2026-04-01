@@ -1435,12 +1435,54 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 		X509_VERIFY_PARAM *param = X509_STORE_get0_param(store);
 		struct tm tm;
 		time_t signingtime;
+		int signingtime_idx;
 
 		/* Extract signing time from pkcs9 attributes */
 		sinfos = CMS_get0_SignerInfos(icms);
+		if (sinfos == NULL) {
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_INVALID,
+					"Failed to obtain signer infos for bundle signing time");
+			goto out;
+		}
+		if (sk_CMS_SignerInfo_num(sinfos) != 1) {
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_INVALID,
+					"multiple signerInfos are not supported with 'use-bundle-signing-time'");
+			goto out;
+		}
 		si = sk_CMS_SignerInfo_value(sinfos, 0);
+		signingtime_idx = CMS_signed_get_attr_by_NID(si, NID_pkcs9_signingTime, -1);
+		if (signingtime_idx < 0) {
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_INVALID,
+					"Bundle signing time attribute not found in signature");
+			goto out;
+		}
 		xa = CMS_signed_get_attr(si, CMS_signed_get_attr_by_NID(si, NID_pkcs9_signingTime, -1));
+		if (xa == NULL) {
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_INVALID,
+					"Failed to obtain bundle signing time attribute");
+			goto out;
+		}
 		so = X509_ATTRIBUTE_get0_type(xa, 0);
+		if (so == NULL) {
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_INVALID,
+					"Failed to obtain bundle signing time value");
+			goto out;
+		}
 
 		/* convert to time_t to make it usable for setting verify parameter */
 		if (!so->value.utctime || !ASN1_TIME_to_tm(so->value.utctime, &tm)) {
