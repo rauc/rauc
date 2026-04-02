@@ -15,8 +15,8 @@ static void test_basic(void)
 	r_stats_add(stats, 2.0);
 
 	g_assert_cmpuint(stats->count, ==, 2);
-	g_assert_cmpfloat(r_stats_get_avg(stats), ==, 1.5);
-	g_assert_cmpfloat(r_stats_get_recent_avg(stats), ==, 1.5);
+	g_assert_cmpfloat_with_epsilon(r_stats_get_avg(stats), 1.5, 1e-10);
+	g_assert_cmpfloat_with_epsilon(r_stats_get_recent_avg(stats), 1.5, 1e-10);
 
 	for (guint i = 0; i < 128; i++) {
 		r_stats_add(stats, i);
@@ -24,15 +24,11 @@ static void test_basic(void)
 
 	g_assert_cmpuint(stats->count, ==, 130);
 
-	/*
-	 * Don't use an exact compare on non-trivial floating-point
-	 * calculations.
-	 */
 	g_assert_cmpfloat_with_epsilon(r_stats_get_avg(stats), 62.54615384615385, 1e-10);
 	g_assert_cmpfloat_with_epsilon(r_stats_get_recent_avg(stats), 95.5, 1e-10);
 	g_assert_cmpfloat_with_epsilon(stats->sum, 8131.0, 1e-10);
-	g_assert_cmpfloat(stats->min, ==, 0.0);
-	g_assert_cmpfloat(stats->max, ==, 127.0);
+	g_assert_cmpfloat_with_epsilon(stats->min, 0.0, 1e-10);
+	g_assert_cmpfloat_with_epsilon(stats->max, 127.0, 1e-10);
 }
 
 static void test_queue(void)
