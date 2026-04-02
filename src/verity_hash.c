@@ -81,7 +81,7 @@ static int verify_hash_block(
 {
 	/* SHA256, version 1 only */
 	EVP_MD_CTX *mdctx;
-	uint8_t tmp[EVP_MAX_MD_SIZE];
+	uint8_t tmp[EVP_MAX_MD_SIZE] = {};
 	unsigned int tmp_size = 0;
 	int r = 0;
 
@@ -295,8 +295,8 @@ static int verity_create_or_verify_hash(
 	uint8_t calculated_digest[digest_size];
 	FILE *data_file = NULL;
 	FILE *hash_file = NULL, *hash_file_2;
-	uint64_t hash_level_block[VERITY_MAX_LEVELS];
-	uint64_t hash_level_size[VERITY_MAX_LEVELS];
+	uint64_t hash_level_block[VERITY_MAX_LEVELS] = {};
+	uint64_t hash_level_size[VERITY_MAX_LEVELS] = {};
 	uint64_t data_device_size = 0, hash_device_size = 0;
 	int levels, i, r;
 

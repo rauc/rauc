@@ -61,7 +61,7 @@ RaucBundleAccessArgs access_args = {0};
 
 static gchar* make_progress_line(gint percentage)
 {
-	struct winsize w;
+	struct winsize w = {};
 	GString *printbuf = NULL;
 	gint pbar_len = 0;
 

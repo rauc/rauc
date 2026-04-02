@@ -62,7 +62,7 @@ static gboolean get_number_of_sectors(gint fd, guint *sectors,
 
 static void get_hd_geometry(gint fd, guint8 *heads, guint8 *sectors)
 {
-	struct hd_geometry geometry;
+	struct hd_geometry geometry = {};
 
 	g_return_if_fail(heads);
 	g_return_if_fail(sectors);
@@ -265,7 +265,7 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 		GError **error)
 {
 	gboolean res = FALSE;
-	struct mbr mbr;
+	struct mbr mbr = {};
 	GError *ierror = NULL;
 	struct mbr_tbl_entry *boot_part;
 	guint sector_size;
@@ -337,7 +337,7 @@ gboolean r_mbr_switch_set_boot_partition(const gchar *device,
 		GError **error)
 {
 	gboolean res = FALSE;
-	struct mbr mbr;
+	struct mbr mbr = {};
 	struct mbr_tbl_entry *boot_part;
 	GError *ierror = NULL;
 	gint fd;

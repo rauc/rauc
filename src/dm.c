@@ -113,7 +113,7 @@ gboolean r_dm_setup(RaucDM *dm, GError **error)
 	gboolean res = FALSE;
 	int dmfd = -1;
 	int checkfd = -1;
-	char checkbuf[1];
+	char checkbuf[1] = {};
 	struct {
 		struct dm_ioctl header;
 		struct dm_target_spec target_spec;

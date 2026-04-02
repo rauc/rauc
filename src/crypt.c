@@ -44,12 +44,13 @@ static void iv_plain64(guint8 *iv, guint iv_size, guint64 sector)
 static gboolean encrypt_or_decrypt(FILE *fd, FILE *out, const uint8_t *key, gboolean encrypt, goffset maxsize, GError **error)
 {
 	/* Allow enough space in output buffer for additional block */
-	unsigned char inbuf[ENC_SEC_SIZE], outbuf[ENC_SEC_SIZE];
+	unsigned char inbuf[ENC_SEC_SIZE] = {};
+	unsigned char outbuf[ENC_SEC_SIZE] = {};
 	g_autoptr(EVP_CIPHER_CTX) ctx = NULL;
 	int ret;
 	const EVP_CIPHER *cipher = EVP_aes_256_cbc();
 	guint64 sector_count = 0;
-	guint8 iv[16];
+	guint8 iv[16] = {};
 	goffset donesize = 0;
 
 	g_return_val_if_fail(fd != NULL, FALSE);

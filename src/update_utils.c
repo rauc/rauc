@@ -91,7 +91,7 @@ gboolean r_copy_stream_with_progress(GInputStream *in_stream, GOutputStream *out
 	GError *ierror = NULL;
 	gsize out_size = 0;
 	goffset sum_size = 0;
-	gchar buffer[8192];
+	gchar buffer[8192] = {};
 	gssize in_size;
 
 	g_return_val_if_fail(in_stream, FALSE);

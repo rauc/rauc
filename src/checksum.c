@@ -22,7 +22,7 @@ update_from_file(GChecksum *ctx, const gchar *filename, goffset *total, GError *
 	g_auto(filedesc) fd = -1;
 	goffset size = 0;
 	gssize r;
-	guchar buf[4096];
+	guchar buf[4096] = {};
 
 	fd = open(filename, O_RDONLY | O_CLOEXEC);
 	if (fd < 0) {

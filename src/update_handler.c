@@ -2069,7 +2069,7 @@ static gboolean img_to_boot_mbr_switch_handler(RaucImage *image, RaucSlot *dest_
 	gboolean res = FALSE;
 	int inactive_half;
 	GError *ierror = NULL;
-	struct boot_switch_partition dest_partition;
+	struct boot_switch_partition dest_partition = {};
 	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
 	res = r_mbr_switch_get_inactive_partition(dest_slot->device,
@@ -2162,7 +2162,7 @@ static gboolean img_to_boot_gpt_switch_handler(RaucImage *image, RaucSlot *dest_
 	gboolean res = FALSE;
 	int inactive_half;
 	GError *ierror = NULL;
-	struct boot_switch_partition dest_partition;
+	struct boot_switch_partition dest_partition = {};
 	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
 	res = r_gpt_switch_get_inactive_partition(dest_slot->device,
@@ -2496,7 +2496,7 @@ static gboolean img_to_boot_raw_fallback_handler(RaucImage *image, RaucSlot *des
 	struct part_desc {
 		const char *name;
 		struct boot_switch_partition partition;
-	} part_desc[2];
+	} part_desc[2] = {};
 	int first_part_desc_index = 0;
 	g_autoptr(GHashTable) vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 	const gsize header_size = 512;

@@ -21,14 +21,14 @@ GQuark r_emmc_error_quark(void)
 
 static int r_emmc_read_extcsd(int fd, guint8 extcsd[512])
 {
-	struct mmc_ioc_cmd cmd = {};
-
-	cmd.write_flag = 0;
-	cmd.opcode = MMC_SEND_EXT_CSD;
-	cmd.arg = 0;
-	cmd.flags = MMC_RSP_SPI_R1 | MMC_RSP_R1 | MMC_CMD_ADTC;
-	cmd.blksz = 512;
-	cmd.blocks = 1;
+	struct mmc_ioc_cmd cmd = {
+		.write_flag = 0,
+		.opcode = MMC_SEND_EXT_CSD,
+		.arg = 0,
+		.flags = MMC_RSP_SPI_R1 | MMC_RSP_R1 | MMC_CMD_ADTC,
+		.blksz = 512,
+		.blocks = 1,
+	};
 	mmc_ioc_cmd_set_data(cmd, extcsd);
 
 	return ioctl(fd, MMC_IOC_CMD, &cmd);
@@ -36,7 +36,7 @@ static int r_emmc_read_extcsd(int fd, guint8 extcsd[512])
 
 gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError **error)
 {
-	guint8 extcsd[512];
+	guint8 extcsd[512] = {};
 	g_auto(filedesc) fd = -1;
 	/* count from 1 */
 	gint active_partition = -1;
@@ -88,15 +88,13 @@ gboolean r_emmc_read_bootpart(const gchar *device, gint *bootpart_active, GError
 
 static gint r_emmc_write_extcsd(int fd, guint8 index, guint8 value)
 {
-	struct mmc_ioc_cmd cmd;
-
-	memset(&cmd, 0, sizeof(cmd));
-
-	cmd.write_flag = 1;
-	cmd.opcode = MMC_SWITCH;
-	cmd.arg = (MMC_SWITCH_MODE_WRITE_BYTE << 24) | (index << 16) |
-	          (value << 8) | EXT_CSD_CMD_SET_NORMAL;
-	cmd.flags = MMC_RSP_SPI_R1B | MMC_RSP_R1B | MMC_CMD_AC;
+	struct mmc_ioc_cmd cmd = {
+		.write_flag = 1,
+		.opcode = MMC_SWITCH,
+		.arg = (MMC_SWITCH_MODE_WRITE_BYTE << 24) | (index << 16) |
+		       (value << 8) | EXT_CSD_CMD_SET_NORMAL,
+		.flags = MMC_RSP_SPI_R1B | MMC_RSP_R1B | MMC_CMD_AC,
+	};
 
 	return ioctl(fd, MMC_IOC_CMD, &cmd);
 }
@@ -104,7 +102,7 @@ static gint r_emmc_write_extcsd(int fd, guint8 index, guint8 value)
 gboolean r_emmc_write_bootpart(const gchar *device, gint bootpart_active, GError **error)
 {
 	g_auto(filedesc) fd = -1;
-	guint8 extcsd[512];
+	guint8 extcsd[512] = {};
 	guint8 value = 0;
 
 	g_return_val_if_fail(bootpart_active == 0 || bootpart_active == 1, FALSE);

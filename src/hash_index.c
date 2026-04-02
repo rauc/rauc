@@ -27,7 +27,7 @@ GQuark r_hash_index_error_quark(void)
 static void hash_chunk(RaucHashIndexChunk *chunk)
 {
 	EVP_MD_CTX *mdctx;
-	uint8_t tmp[EVP_MAX_MD_SIZE];
+	uint8_t tmp[EVP_MAX_MD_SIZE] = {};
 	unsigned int tmp_size = 0;
 
 	mdctx = EVP_MD_CTX_new();
