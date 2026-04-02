@@ -1514,6 +1514,12 @@ If no shared partition is available, RAUC can store the status file as
 ``/slot.raucs`` on each slot that contains a writable filesystem.
 Slots without a writable filesystem will not have any status data stored in this case.
 
+If the slot status file cannot be loaded for any reason, RAUC will print a
+message and continue with default values.
+This makes RAUC robust against external corruption of the status file.
+If the slot status file is not writable, however, the installation will be aborted
+to ensure the slot status always matches the installation result.
+
 Like the configuration files used by RAUC, the slot status files use a
 key-value syntax, similar to that found in .ini files.
 
