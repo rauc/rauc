@@ -1344,7 +1344,7 @@ gboolean cms_get_unverified_manifest(GBytes *sig, GBytes **manifest, GError **er
 				"missing manifest in inline signature");
 		goto out;
 	}
-	if (!(*content)->data || ((*content)->length <= 0)) {
+	if ((ASN1_STRING_get0_data(*content) == NULL) || (ASN1_STRING_length(*content) <= 0)) {
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
@@ -1353,7 +1353,7 @@ gboolean cms_get_unverified_manifest(GBytes *sig, GBytes **manifest, GError **er
 		goto out;
 	}
 
-	tmp = g_bytes_new((*content)->data, (*content)->length);
+	tmp = g_bytes_new(ASN1_STRING_get0_data(*content), ASN1_STRING_length(*content));
 	if (!tmp) {
 		g_set_error_literal(
 				error,
