@@ -685,6 +685,7 @@ static gchar **add_system_environment(gchar **envp)
 
 	envp = g_environ_setenv(envp, "RAUC_SYSTEM_CONFIG", r_context()->configpath, TRUE);
 	envp = g_environ_setenv(envp, "RAUC_SYSTEM_VARIANT", r_context()->config->system_variant ?: "", TRUE);
+	envp = g_environ_setenv(envp, "RAUC_SYSTEM_VERSION", r_context()->system_version ?: "", TRUE);
 	envp = g_environ_setenv(envp, "RAUC_CURRENT_BOOTNAME", r_context()->bootslot, TRUE);
 	envp = g_environ_setenv(envp, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
 
@@ -906,6 +907,7 @@ static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const 
 
 	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_COMPATIBLE", r_context()->config->system_compatible, TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_VARIANT", r_context()->config->system_variant ?: "", TRUE);
+	g_subprocess_launcher_setenv(launcher, "RAUC_SYSTEM_VERSION", r_context()->system_version ?: "", TRUE);
 
 	g_subprocess_launcher_setenv(launcher, "RAUC_MF_COMPATIBLE", manifest->update_compatible, TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_MF_VERSION", manifest->update_version ?: "", TRUE);
