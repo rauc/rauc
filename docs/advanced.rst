@@ -954,9 +954,9 @@ partition, you have to map the default Linux paths (such as ``/etc/passwd``) to
 your data storage.
 You can do this by using:
 
- * symbolic links
- * bind mounts
- * an overlay file system
+* symbolic links
+* bind mounts
+* an overlay file system
 
 It depends on the amount and type of data you want to handle which option you
 should choose.
