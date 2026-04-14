@@ -257,12 +257,12 @@ if [ -n "$SERVICE" ]; then
 fi
 
 echo "alias ll='ls -l'" > /root/.bashrc
+ln -s "$(pwd)/.qemu_bash_history" /root/.bash_history
 if [ -n "$INTERACTIVE_SHELL" ]; then
   BASH_CMD="exec bash"
   if type resize; then
     BASH_CMD="eval \$(resize); $BASH_CMD"
   fi
-  HISTFILE="$(pwd)/.qemu_bash_history" \
   setsid bash -c "$BASH_CMD" </dev/ttyS0 >/dev/ttyS0 2>&1 || echo exit-code=$?
   if [ -n "$GCOV_PREFIX" ]; then
     save_gcov_data
