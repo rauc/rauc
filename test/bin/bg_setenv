@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+
+import argparse
+import configparser
+import os
+import sys
+
+
+USTATE_MAP = {"OK": "0", "INSTALLED": "1", "FAILED": "3"}
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="bg_setenv mock for RAUC testing (use EFIBOOTGUARD_VAR_FILE for persisting data)"
+    )
+    parser.add_argument("-p", dest="partition", help="Select EFI partition")
+    parser.add_argument("-s", dest="state", help="Set update state (OK, INSTALLED, FAILED)")
+    parser.add_argument("-r", dest="revision", help="Set revision counter")
+    args = parser.parse_args()
+
+    vars_file = os.environ.get("EFIBOOTGUARD_VAR_FILE")
+    if not vars_file:
+        print("Error: EFIBOOTGUARD_VAR_FILE not set", file=sys.stderr)
+        sys.exit(1)
+
+    cfg = configparser.ConfigParser()
+    cfg.optionxform = str  # preserve key case
+    cfg.read(vars_file)
+
+    if not args.partition or not cfg.has_section(args.partition):
+        print(f"Error: partition {args.partition!r} not found", file=sys.stderr)
+        sys.exit(1)
+
+    if args.state is not None:
+        if args.state not in USTATE_MAP:
+            print(f"Error: unknown state {args.state!r}", file=sys.stderr)
+            sys.exit(1)
+        cfg.set(args.partition, "USTATE", USTATE_MAP[args.state])
+
+    if args.revision is not None:
+        cfg.set(args.partition, "REVISION", args.revision)
+
+    with open(vars_file, "w") as f:
+        cfg.write(f)
+
+
+if __name__ == "__main__":
+    main()

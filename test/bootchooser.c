@@ -972,6 +972,147 @@ bootname=system1\n";
 	g_assert_nonnull(bootname);
 }
 
+/* Write initial efibootguard environment for mock tools (bg_printenv/bg_setenv).
+ * Stores per-partition state as an INI file at EFIBOOTGUARD_VAR_FILE.
+ * USTATE values: 0=OK, 1=INSTALLED, 3=FAILED
+ */
+static void test_efibootguard_initialize_state(const BootchooserFixture *fixture,
+		gint part0_ustate, gint part0_revision,
+		gint part1_ustate, gint part1_revision)
+{
+	g_autofree gchar *vars_file = g_build_filename(fixture->tmpdir, "efibootguard-vars.ini", NULL);
+	g_autofree gchar *content = g_strdup_printf(
+			"[part0]\n"
+			"USTATE=%d\n"
+			"REVISION=%d\n"
+			"\n"
+			"[part1]\n"
+			"USTATE=%d\n"
+			"REVISION=%d\n",
+			part0_ustate, part0_revision,
+			part1_ustate, part1_revision);
+	g_assert_true(g_file_set_contents(vars_file, content, -1, NULL));
+	g_assert_true(g_setenv("EFIBOOTGUARD_VAR_FILE", vars_file, TRUE));
+}
+
+/* Read a single integer variable from the efibootguard state INI file. */
+static gint test_efibootguard_get_var(const gchar *partition, const gchar *key)
+{
+	const gchar *vars_file = g_getenv("EFIBOOTGUARD_VAR_FILE");
+	g_autoptr(GKeyFile) kf = g_key_file_new();
+
+	g_assert_nonnull(vars_file);
+	g_assert_true(g_key_file_load_from_file(kf, vars_file, G_KEY_FILE_NONE, NULL));
+
+	return g_key_file_get_integer(kf, partition, key, NULL);
+}
+
+static void bootchooser_efibootguard(BootchooserFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucSlot *rootfs0 = NULL, *rootfs1 = NULL, *primary = NULL;
+	gboolean good;
+	GError *error = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=efibootguard\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[keyring]\n\
+path=/etc/rauc/keyring/\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/rootfs-0\n\
+type=ext4\n\
+bootname=part0\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/rootfs-1\n\
+type=ext4\n\
+bootname=part1\n";
+
+	gchar *pathname = write_tmp_file(fixture->tmpdir, "efibootguard.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_clear_pointer(&r_context_conf()->configpath, g_free);
+	r_context_conf()->configpath = pathname;
+	r_context();
+
+	rootfs0 = find_config_slot_by_name(r_context()->config, "rootfs.0");
+	g_assert_nonnull(rootfs0);
+	rootfs1 = find_config_slot_by_name(r_context()->config, "rootfs.1");
+	g_assert_nonnull(rootfs1);
+
+	/* part0: REVISION=1 (higher), USTATE=0 (OK)
+	 * part1: REVISION=0 (lower),  USTATE=0 (OK) */
+	test_efibootguard_initialize_state(fixture, 0, 1, 0, 0);
+
+	/* check both slots are considered good (USTATE != 3) */
+	g_assert_true(r_boot_get_state(rootfs0, &good, &error));
+	g_assert_no_error(error);
+	g_assert_true(good);
+	g_assert_true(r_boot_get_state(rootfs1, &good, &error));
+	g_assert_no_error(error);
+	g_assert_true(good);
+
+	/* check rootfs.0 is primary (highest revision, not failed) */
+	primary = r_boot_get_primary(&error);
+	g_assert_no_error(error);
+	g_assert_nonnull(primary);
+	g_assert_true(primary == rootfs0);
+
+	/* mark rootfs.0 bad: USTATE should become 3 (FAILED) */
+	g_assert_true(r_boot_set_state(rootfs0, FALSE, &error));
+	g_assert_no_error(error);
+	g_assert_cmpint(test_efibootguard_get_var("part0", "USTATE"), ==, 3);
+
+	/* rootfs.0 should now be bad, rootfs.1 still good */
+	g_assert_true(r_boot_get_state(rootfs0, &good, &error));
+	g_assert_no_error(error);
+	g_assert_false(good);
+	g_assert_true(r_boot_get_state(rootfs1, &good, &error));
+	g_assert_no_error(error);
+	g_assert_true(good);
+
+	/* rootfs.1 is now the only non-failed slot, so it becomes primary */
+	primary = r_boot_get_primary(&error);
+	g_assert_no_error(error);
+	g_assert_nonnull(primary);
+	g_assert_true(primary == rootfs1);
+
+	/* mark rootfs.0 good again: USTATE should become 0 (OK) */
+	g_assert_true(r_boot_set_state(rootfs0, TRUE, &error));
+	g_assert_no_error(error);
+	g_assert_cmpint(test_efibootguard_get_var("part0", "USTATE"), ==, 0);
+
+	/* rootfs.0 has higher revision again, so it is primary */
+	primary = r_boot_get_primary(&error);
+	g_assert_no_error(error);
+	g_assert_nonnull(primary);
+	g_assert_true(primary == rootfs0);
+
+	/* mark rootfs.1 as primary: should get REVISION=2 (max+1), USTATE=1 (INSTALLED) */
+	g_assert_true(r_boot_set_primary(rootfs1, &error));
+	g_assert_no_error(error);
+	g_assert_cmpint(test_efibootguard_get_var("part1", "USTATE"), ==, 1);
+	g_assert_cmpint(test_efibootguard_get_var("part1", "REVISION"), ==, 2);
+
+	/* rootfs.1 now has the highest revision and is not failed */
+	primary = r_boot_get_primary(&error);
+	g_assert_no_error(error);
+	g_assert_nonnull(primary);
+	g_assert_true(primary == rootfs1);
+
+	/* mark both slots failed: get_primary should return an error */
+	test_efibootguard_initialize_state(fixture, 3, 1, 3, 0);
+	primary = r_boot_get_primary(&error);
+	g_assert_null(primary);
+	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_PARSE_FAILED);
+	g_clear_error(&error);
+}
+
 /* Write content to state storage for custom-backend RAUC mock
  * tools. Content should be similar to:
  * "\
@@ -1234,6 +1375,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bootchooser/efi", BootchooserFixture, NULL,
 			bootchooser_fixture_set_up, bootchooser_efi,
+			bootchooser_fixture_tear_down);
+
+	g_test_add("/bootchooser/efibootguard", BootchooserFixture, NULL,
+			bootchooser_fixture_set_up, bootchooser_efibootguard,
 			bootchooser_fixture_tear_down);
 
 	g_test_add("/bootchooser/custom", BootchooserFixture, NULL,

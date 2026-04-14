@@ -532,6 +532,8 @@ tool to interact with it:
 :U-Boot: fw_setenv/fw_getenv (from `u-boot <http://git.denx.de/?p=u-boot.git;a=summary>`_)
 :GRUB: grub-editenv
 :EFI: efibootmgr
+:EFI Boot Guard: bg_printenv/bg_setenv
+                 (from `efibootguard <https://github.com/siemens/efibootguard>`_)
 
 Note that for running ``rauc info`` on the target (as well as on the host), you
 also need to have the ``unsquashfs`` tool installed.
@@ -1359,6 +1361,86 @@ argument in the ``efibootmgr`` call above:
   device=/dev/sdX4
   type=ext4
   parent=efi.1
+
+.. _sec-efibootguard:
+
+EFI Boot Guard
+~~~~~~~~~~~~~~
+
+`EFI Boot Guard <https://github.com/siemens/efibootguard>`_ is an EFI-based
+bootloader from Siemens designed for embedded systems with A/B redundancy.
+It stores a boot environment per EFI partition, containing a *USTATE* (update
+state) and a *REVISION* counter.
+RAUC uses the ``bg_printenv`` and ``bg_setenv`` tools to read and write these
+variables.
+
+The slot selection logic is as follows:
+
+* **Primary slot** 0 the slot with the highest ``REVISION`` value whose
+  ``USTATE`` is not ``FAILED`` (value ``3``).
+  When marking a slot as primary, RAUC sets its state to ``INSTALLED`` and
+  assigns a revision one higher than the current maximum.
+* **Slot state** - a slot is considered *good* when its ``USTATE`` is not
+  ``FAILED``.
+  When marking a slot bad, RAUC sets its state to ``FAILED``; when marking it
+  good, it sets the state to ``OK``.
+
+To enable EFI Boot Guard support in RAUC, write in your ``system.conf``:
+
+.. code-block:: cfg
+
+  [system]
+  ...
+  bootloader=efibootguard
+
+Assuming a simple A/B redundancy with two EFI Boot Guard partitions and two
+rootfs partitions, set up ``system.conf`` as follows.
+The ``bootname`` for each slot must match the partition device path (or index)
+as accepted by the ``-p`` flag of ``bg_printenv`` and ``bg_setenv``:
+
+.. code-block:: cfg
+
+  [slot.efi.0]
+  device=/dev/sda1
+  type=vfat
+  bootname=/dev/sda1
+
+  [slot.efi.1]
+  device=/dev/sda2
+  type=vfat
+  bootname=/dev/sda2
+
+  [slot.rootfs.0]
+  device=/dev/sda3
+  type=ext4
+  parent=efi.0
+
+  [slot.rootfs.1]
+  device=/dev/sda4
+  type=ext4
+  parent=efi.1
+
+.. note::
+
+   EFI Boot Guard does not pass the active slot name via the kernel command
+   line automatically.
+   You must pass ``rauc.slot=<bootname>`` explicitly in the kernel command line
+   of each slot so that RAUC can identify the currently booted slot, e.g.:
+
+   .. code-block:: cfg
+
+     rauc.slot=/dev/sda1
+
+   See :ref:`sec-integration-boot-slot-detection` for the full list of slot
+   detection mechanisms.
+
+Before using RAUC with EFI Boot Guard, ensure each partition's environment has
+been initialised, for example:
+
+.. code-block:: console
+
+  # bg_setenv -p /dev/sda1 -s OK -r 1
+  # bg_setenv -p /dev/sda2 -s OK -r 0
 
 .. _sec-custom-bootloader-backend:
 
