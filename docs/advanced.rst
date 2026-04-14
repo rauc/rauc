@@ -890,10 +890,10 @@ If needed, this could be implemented in a web application or using a reflink-cap
 Data Storage and Migration
 --------------------------
 
-Most systems require a location for storing configuration data such as
-passwords, ssh keys or application data.
-When performing an update, you have to ensure that the updated system takes
-over or can access the data of the old system.
+Most systems require one or multiple locations for storing persistent data such
+as application configuration, user settings or runtime state.
+When performing an update, you have to ensure that the updated system can
+take over or access the data from the previous installation.
 
 Storing Data in The Root File System
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
