@@ -924,19 +924,20 @@ For migrating data from your old rootfs to your updated rootfs,
 simply specify a slot post-install hook.
 Read the :ref:`Hooks <sec-hooks>` chapter on how to create one.
 
-Using Data Partitions
-~~~~~~~~~~~~~~~~~~~~~
-
-Often, there are a couple of reasons why you don't want to or cannot store
+However, there are several reasons why you may not want to or cannot store
 your data inside the root file system:
 
-* You want to keep your rootfs read-only to reduce probability of corrupting it.
-* You have a non-writable rootfs such as SquashFS.
-* You want to keep your data separated from the rootfs to ease setup, reset or
-  recovery.
+* You want to keep your rootfs read-only to reduce the probability of
+  corrupting it.
+* Your rootfs is non-writable by design, for example when using SquashFS or
+  dm-verity.
+* You want to keep your data separated from the rootfs to ease setup, reset
+  or recovery.
 
-In this case you need a separate storage location for your data on a different
-partition, volume or device.
+In these cases, a separate data partition is useful.
+
+Using Data Partitions
+~~~~~~~~~~~~~~~~~~~~~
 
 If the update concept uses full redundant root file systems,
 there are also good reasons for using a redundant data storage, too.
