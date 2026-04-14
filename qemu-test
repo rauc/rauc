@@ -17,6 +17,8 @@
 #   system            Setup qemu dummy system that behaves like a target (without reboot!)
 #   service-backtrace Run service under gdb and show backtrace on error (requires 'system')
 #   asan              Set environment variables to support address sanitizer
+#   ssh               Enable SSH access to the VM (port 2222)
+#   background        Run the VM in the background (implies ssh, use qemu-test-stop to stop)
 #   test=<test>       Run specified test (for use with git bisect)
 #
 # When no argument is given, the default test suite will be executed
@@ -57,11 +59,18 @@ fi
 
 QEMU_ARGS=""
 BOOTNAME="system0"
+SSH=0
+BACKGROUND=0
 for x in "$@"; do
   if [ "$x" = "passthrough" ]; then
     QEMU_ARGS="$QEMU_ARGS -cpu host"
   elif [ "$x" = "system" ]; then
     BOOTNAME="A"
+  elif [ "$x" = "ssh" ]; then
+    SSH=1
+  elif [ "$x" = "background" ]; then
+    BACKGROUND=1
+    SSH=1
   fi
 done
 
@@ -84,16 +93,41 @@ if "$QEMU_BIN" -device help | grep -q 'name "emmc"'; then
   QEMU_ARGS="$QEMU_ARGS -device emmc,id=emmc0,drive=emmc-drive,boot-partition-size=1048576"
 fi
 
+NIC_ARGS="-nic user,model=virtio-net-pci"
+if [ "$SSH" = "1" ]; then
+  # When QEMU v10.2.0 is widely available, we could use -hostfwd=unix: instead.
+  NIC_ARGS="-nic user,model=virtio-net-pci,hostfwd=tcp:127.0.0.1:2222-:22"
+  if [ ! -f .qemu-test-ssh-key ]; then
+    ssh-keygen -t ed25519 -f .qemu-test-ssh-key -N "" -C "qemu-test"
+  fi
+  if [ ! -f .qemu-test-ssh-host-key ]; then
+    ssh-keygen -t ed25519 -f .qemu-test-ssh-host-key -N ""
+  fi
+fi
+
+QEMU_ARGS="$QEMU_ARGS -qmp unix:.qemu-test-qmp,server,nowait"
+
+if [ "$BACKGROUND" = "1" ]; then
+  QEMU_ARGS="$QEMU_ARGS -display none -serial file:qemu-test-log -daemonize -pidfile .qemu-test-pid"
+else
+  QEMU_ARGS="$QEMU_ARGS -nographic -serial mon:stdio"
+fi
+
 $QEMU_BIN \
   $QEMU_ARGS \
   -machine q35 \
   -m 1G \
   -smp 2 \
   -kernel bzImage \
-  -nographic -serial mon:stdio \
   -no-reboot \
   -virtfs local,id=rootfs,path=/,security_model=none,mount_tag=/dev/root,multidevs=remap \
-  -nic user,model=virtio-net-pci \
+  $NIC_ARGS \
   -append "loglevel=6 console=ttyS0 nandsim.id_bytes=0x20,0xa2,0x00,0x15 nandsim.parts=0x100 mtdram.total_size=32768 root=/dev/root rootfstype=9p rootflags=msize=16777216 rw init=$(pwd)/qemu-test-init rauc.slot=$BOOTNAME $*"
 
-test -f qemu-test-ok
+if [ "$BACKGROUND" = "1" ]; then
+  echo "QEMU started in background (PID $(cat .qemu-test-pid))"
+  echo "  Stop VM: ./qemu-test-stop"
+  echo "  Log file: qemu-test-log"
+else
+  test -f qemu-test-ok
+fi
