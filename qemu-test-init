@@ -256,9 +256,9 @@ if [ -n "$SERVICE" ]; then
   rauc status mark-good
 fi
 
+echo "alias ll='ls -l'" > /root/.bashrc
 if [ -n "$INTERACTIVE_SHELL" ]; then
-  echo "alias ll='ls -l'" >> /tmp/bashrc
-  BASH_CMD="exec bash --rcfile /tmp/bashrc"
+  BASH_CMD="exec bash"
   if type resize; then
     BASH_CMD="eval \$(resize); $BASH_CMD"
   fi
