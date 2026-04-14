@@ -966,11 +966,8 @@ should choose.
 (Application) Data Migration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Both a single and a redundant data storage have their advantages and
-disadvantages.
-Note when storing data inside your rootfs you will have a redundant setup by
-design and cannot choose.
-
+When performing an update, if and how data needs to be migrated depends on how it
+is stored and whether the data format changes between versions.
 
 The decision about how to set up a configuration storage and how to handle it
 depends on several aspects:
@@ -978,11 +975,10 @@ depends on several aspects:
 * May configuration formats change over different application versions?
 * Can a new application read (and convert) old data?
 * Does your infrastructure allow working on possibly obsolete data?
-* Enough storage to store data redundantly?
-* ...
+* Is there enough storage to store data redundantly?
 
-The basic advantages and disadvantages a single or a redundant setup implicate
-are listed below:
+The table below compares the basic trade-offs between a single and a redundant
+data storage setup:
 
 +-----------+--------------------------+---------------------------+
 |           | Single Data              | Redundant Data            |
