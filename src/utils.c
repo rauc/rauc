@@ -1162,6 +1162,72 @@ gchar *r_censor_url(const gchar *url)
 	return g_regex_replace(regex, url, -1, 0, "\\1******\\2", 0, NULL);
 }
 
+gchar *r_url_inject_password(const gchar *url, const gchar *user, const gchar *password, GError **error)
+{
+	g_return_val_if_fail(url, NULL);
+	g_return_val_if_fail(password, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	/* Locate the authority section (after "://") */
+	const gchar *authority = strstr(url, "://");
+	if (!authority) {
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
+				"URL has no scheme: %s", url);
+		return NULL;
+	}
+	authority += 3;
+
+	/* Find the end of the authority (first '/' or end of string) */
+	const gchar *path_start = strchr(authority, '/');
+	if (!path_start)
+		path_start = authority + strlen(authority);
+
+	/* Find the last '@' within the authority — indicates existing userinfo */
+	const gchar *at = NULL;
+	for (const gchar *p = authority; p < path_start; p++) {
+		if (*p == '@')
+			at = p;
+	}
+
+	if (at) {
+		/* URL already has userinfo before '@' */
+		for (const gchar *p = authority; p < at; p++) {
+			if (*p == ':') {
+				g_set_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
+						"URL already contains a password");
+				return NULL;
+			}
+		}
+		if (user) {
+			g_autofree gchar *url_user = g_strndup(authority, at - authority);
+			if (!g_str_equal(url_user, user)) {
+				g_set_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
+						"--http-user '%s' conflicts with username '%s' in URL",
+						user, url_user);
+				return NULL;
+			}
+		}
+		/* inject ":password" before the '@' */
+		return g_strdup_printf("%.*s:%s%s",
+				(int)(at - url), url,
+				password,
+				at);
+	} else {
+		/* no userinfo in URL — user must be supplied via --http-user */
+		if (!user) {
+			g_set_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
+					"URL contains no username; use --http-user to provide one");
+			return NULL;
+		}
+		/* inject "user:password@" after "://" */
+		return g_strdup_printf("%.*s%s:%s@%s",
+				(int)(authority - url), url,
+				user,
+				password,
+				authority);
+	}
+}
+
 gint64 r_get_boottime(void)
 {
 	struct timespec ts = {0};

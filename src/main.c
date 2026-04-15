@@ -58,6 +58,8 @@ gchar *require_manifest_hash = NULL;
 gchar *write_slot_image_type = NULL;
 gboolean utf8_supported = FALSE;
 RaucBundleAccessArgs access_args = {0};
+static gchar *http_user = NULL;
+static gboolean ask_password = FALSE;
 
 static gchar* make_progress_line(gint percentage)
 {
@@ -237,6 +239,33 @@ static gboolean on_sigint_noop(gpointer user_data)
 	return G_SOURCE_CONTINUE;
 }
 
+/* Prompts for an HTTP password and rewrites *url with credentials embedded.
+ * Does nothing and returns TRUE if --ask-password was not given.
+ * The original *url is freed and replaced on success. */
+static gboolean apply_http_password(gchar **url, GError **error)
+{
+	g_return_val_if_fail(url && *url, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!ask_password)
+		return TRUE;
+
+	const gchar *password = getpass("HTTP password: ");
+	if (!password) {
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED,
+				"Failed to read password (is a terminal available?)");
+		return FALSE;
+	}
+
+	g_autofree gchar *new_url = r_url_inject_password(*url, http_user, password, error);
+	if (!new_url)
+		return FALSE;
+
+	g_free(*url);
+	*url = g_steal_pointer(&new_url);
+	return TRUE;
+}
+
 static gboolean install_start(int argc, char **argv)
 {
 	GBusType bus_type = (!g_strcmp0(g_getenv("DBUS_STARTER_BUS_TYPE"), "session"))
@@ -272,6 +301,11 @@ static gboolean install_start(int argc, char **argv)
 	bundlelocation = resolve_bundle_path(argv[2]);
 	if (bundlelocation == NULL)
 		goto out;
+	if (!apply_http_password(&bundlelocation, &error)) {
+		g_printerr("%s\n", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
 	{
 		g_autofree gchar *censored = r_censor_url(bundlelocation);
 		g_debug("input bundle: %s", censored);
@@ -1360,6 +1394,11 @@ static gboolean info_start(int argc, char **argv)
 	bundlelocation = resolve_bundle_path(argv[2]);
 	if (bundlelocation == NULL)
 		goto out;
+	if (!apply_http_password(&bundlelocation, &error)) {
+		g_printerr("%s\n", error->message);
+		g_clear_error(&error);
+		goto out;
+	}
 	{
 		g_autofree gchar *censored = r_censor_url(bundlelocation);
 		g_debug("input bundle: %s", censored);
@@ -2692,6 +2731,8 @@ static GOptionEntry entries_bundle_access[] = {
 	{"tls-ca", '\0', 0, G_OPTION_ARG_FILENAME, &access_args.tls_ca, "TLS CA file", "PEMFILE"},
 	{"tls-no-verify", '\0', 0, G_OPTION_ARG_NONE, &access_args.tls_no_verify, "do not verify TLS server certificate", NULL},
 	{"http-header", 'H', 0, G_OPTION_ARG_STRING_ARRAY, &access_args.http_headers, "HTTP request header (multiple uses supported)", "'HEADER: VALUE'"},
+	{"http-user", '\0', 0, G_OPTION_ARG_STRING, &http_user, "HTTP username (for Basic Auth)", "USER"},
+	{"ask-password", '\0', 0, G_OPTION_ARG_NONE, &ask_password, "prompt for HTTP password (for Basic Auth)", NULL},
 	{0}
 };
 

@@ -549,6 +549,32 @@ gchar *r_regex_match_simple(const gchar *pattern, const gchar *string)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Injects HTTP Basic Auth credentials into a URL.
+ *
+ * Produces a URL of the form ``scheme://user:password@host/path`` suitable for
+ * use with libcurl.  Two calling patterns are supported:
+ *
+ * - URL already contains a username (``scheme://user@host/path``): @user must
+ *   be NULL or match the username in the URL; the password is inserted before
+ *   the ``@``.
+ * - URL has no userinfo (``scheme://host/path``): @user must be provided; both
+ *   username and password are inserted after ``://``.
+ *
+ * Returns NULL and sets @error if the URL already contains a password, if
+ * @user conflicts with the username already in the URL, or if no username is
+ * available.
+ *
+ * @param url the base URL
+ * @param user the HTTP username, or NULL if already embedded in @url
+ * @param password the HTTP password to inject
+ * @param error return location for a GError, or NULL
+ *
+ * @return newly-allocated URL string with credentials embedded, or NULL on error
+ */
+gchar *r_url_inject_password(const gchar *url, const gchar *user, const gchar *password, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Returns a copy of a URL with any embedded password replaced by '******'.
  *
  * This is intended for use in log messages to avoid leaking credentials.
