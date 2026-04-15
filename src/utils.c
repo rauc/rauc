@@ -1154,6 +1154,14 @@ gchar *r_regex_match_simple(const gchar *pattern, const gchar *string)
 	return NULL;
 }
 
+gchar *r_censor_url(const gchar *url)
+{
+	g_return_val_if_fail(url, NULL);
+
+	g_autoptr(GRegex) regex = g_regex_new("(https?://[^:@/]+:)[^/]*(@)", 0, 0, NULL);
+	return g_regex_replace(regex, url, -1, 0, "\\1******\\2", 0, NULL);
+}
+
 gint64 r_get_boottime(void)
 {
 	struct timespec ts = {0};

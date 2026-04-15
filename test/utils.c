@@ -555,6 +555,49 @@ static void boottime_test(void)
 	g_assert_cmpint(diff, <=, 110000);
 }
 
+static void censor_url_test(void)
+{
+	/* password is masked */
+	{
+		g_autofree gchar *out = r_censor_url("http://user:secret@example.com/bundle.raucb");
+		g_assert_cmpstr(out, ==, "http://user:******@example.com/bundle.raucb");
+	}
+	{
+		g_autofree gchar *out = r_censor_url("https://user:secret@example.com/bundle.raucb");
+		g_assert_cmpstr(out, ==, "https://user:******@example.com/bundle.raucb");
+	}
+
+	/* password containing '@' is masked up to the last '@' */
+	{
+		g_autofree gchar *out = r_censor_url("https://alice:p@ssw0rd@server.local/update.raucb");
+		g_assert_cmpstr(out, ==, "https://alice:******@server.local/update.raucb");
+	}
+
+	/* percent-encoded '@' in password */
+	{
+		g_autofree gchar *out = r_censor_url("https://alice:p%40ssw0rd@server.local/update.raucb");
+		g_assert_cmpstr(out, ==, "https://alice:******@server.local/update.raucb");
+	}
+
+	/* no credentials — returned unchanged */
+	{
+		g_autofree gchar *out = r_censor_url("https://example.com/bundle.raucb");
+		g_assert_cmpstr(out, ==, "https://example.com/bundle.raucb");
+	}
+
+	/* username only, no password — returned unchanged */
+	{
+		g_autofree gchar *out = r_censor_url("http://user@example.com/bundle.raucb");
+		g_assert_cmpstr(out, ==, "http://user@example.com/bundle.raucb");
+	}
+
+	/* URL embedded in a GVariant dict string (as logged by the nbd server) */
+	{
+		g_autofree gchar *out = r_censor_url("{'url': <'https://admin:topsecret@rauc.example.com/bundle.raucb'>, 'cert': <''>}");
+		g_assert_cmpstr(out, ==, "{'url': <'https://admin:******@rauc.example.com/bundle.raucb'>, 'cert': <''>}");
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -574,6 +617,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/utils/semver_less_equal_test", semver_less_equal_test);
 	g_test_add_func("/utils/format_duration", format_duration_test);
 	g_test_add_func("/utils/regex_match", regex_match_test);
+	g_test_add_func("/utils/censor_url", censor_url_test);
 	g_test_add_func("/utils/tempfile_cleanup", tempfile_cleanup_test);
 	g_test_add_func("/utils/boottime", boottime_test);
 

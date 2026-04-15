@@ -549,6 +549,21 @@ gchar *r_regex_match_simple(const gchar *pattern, const gchar *string)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Returns a copy of a URL with any embedded password replaced by '******'.
+ *
+ * This is intended for use in log messages to avoid leaking credentials.
+ * URLs of the form ``scheme://user:password@host/path`` are handled; URLs
+ * without a password are returned unchanged.
+ *
+ * @param url the URL to censor
+ *
+ * @return newly-allocated string with the password replaced, or a copy of the
+ *         original URL if it contained no embedded password
+ */
+gchar *r_censor_url(const gchar *url)
+G_GNUC_WARN_UNUSED_RESULT;
+
+/**
  * Reads CLOCK_BOOTTIME via clock_gettime().
  *
  * @return the time value in microseconds

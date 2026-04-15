@@ -272,7 +272,10 @@ static gboolean install_start(int argc, char **argv)
 	bundlelocation = resolve_bundle_path(argv[2]);
 	if (bundlelocation == NULL)
 		goto out;
-	g_debug("input bundle: %s", bundlelocation);
+	{
+		g_autofree gchar *censored = r_censor_url(bundlelocation);
+		g_debug("input bundle: %s", censored);
+	}
 
 	args = install_args_new();
 	args->name = g_steal_pointer(&bundlelocation);
@@ -1357,7 +1360,10 @@ static gboolean info_start(int argc, char **argv)
 	bundlelocation = resolve_bundle_path(argv[2]);
 	if (bundlelocation == NULL)
 		goto out;
-	g_debug("input bundle: %s", bundlelocation);
+	{
+		g_autofree gchar *censored = r_censor_url(bundlelocation);
+		g_debug("input bundle: %s", censored);
+	}
 
 	if (verification_disabled)
 		check_bundle_params |= CHECK_BUNDLE_NO_VERIFY;
@@ -2509,7 +2515,10 @@ static gboolean mount_start(int argc, char **argv)
 	bundlelocation = resolve_bundle_path(argv[2]);
 	if (bundlelocation == NULL)
 		goto out; /* an error message was already printed by resolve_bundle_path */
-	g_debug("input bundle: %s", bundlelocation);
+	{
+		g_autofree gchar *censored = r_censor_url(bundlelocation);
+		g_debug("input bundle: %s", censored);
+	}
 
 	res = check_bundle(bundlelocation, &bundle, CHECK_BUNDLE_DEFAULT, NULL, &error);
 	if (!res) {
