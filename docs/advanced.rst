@@ -945,7 +945,7 @@ for your persistent data outside the rootfs image.
 While a single data partition is the simplest setup, using redundant data
 partitions, one per rootfs slot, can be preferable when data migration and
 fallback behaviour are a concern.
-Read below about the possible impact on data migration.
+Read :ref:`below <sec-data-migration>` about the possible impact on data migration.
 
 To let your system access the separate storage location, it has to be mounted
 into your rootfs.
@@ -961,8 +961,10 @@ You can do this by using:
 It depends on the amount and type of data you want to handle which option you
 should choose.
 
-Application Data Migration
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _sec-data-migration:
+
+(Application) Data Migration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Both a single and a redundant data storage have their advantages and
 disadvantages.
