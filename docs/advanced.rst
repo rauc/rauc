@@ -990,6 +990,12 @@ data storage setup:
 | Fallback  | tricky (reconvert data?) | easy (old data!)          |
 +-----------+--------------------------+---------------------------+
 
+While RAUC does not handle data migration directly, it provides hooks that
+can be used to implement it in the bundle (or handlers for a system-defined
+handling).
+Note that in many cases, migration of application data is best handled by
+the application itself on first boot after the update.
+
 Managing a ``/dev/data`` Symbolic Link
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
