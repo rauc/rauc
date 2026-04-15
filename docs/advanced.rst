@@ -939,8 +939,12 @@ In these cases, a separate data partition is useful.
 Using Data Partitions
 ~~~~~~~~~~~~~~~~~~~~~
 
-If the update concept uses full redundant root file systems,
-there are also good reasons for using a redundant data storage, too.
+A separate data partition provides a dedicated, independent storage location
+for your persistent data outside the rootfs image.
+
+While a single data partition is the simplest setup, using redundant data
+partitions, one per rootfs slot, can be preferable when data migration and
+fallback behaviour are a concern.
 Read below about the possible impact on data migration.
 
 To let your system access the separate storage location, it has to be mounted
