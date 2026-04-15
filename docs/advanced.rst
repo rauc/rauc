@@ -911,9 +911,9 @@ as discussed in the following sections.
 Storing Data in The Root File System
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In case of a writable root file system, it often contains additional data,
-for example cryptographic material specific to the machine, or configuration
-files modified by the user.
+In a typical Linux system, configuration data is stored under standard paths
+such as ``/etc``, which are part of the root file system by default.
+If the root file system is writable, it can directly hold persistent data.
 When performing the update, you have to ensure that the files you need to
 preserve are copied to the target slot after having written
 the system data to it.
