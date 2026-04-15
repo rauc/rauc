@@ -918,11 +918,7 @@ When performing the update, you have to ensure that the files you need to
 preserve are copied to the target slot after having written
 the system data to it.
 
-RAUC provides support for executing *hooks* from different slot installation
-stages.
-For migrating data from your old rootfs to your updated rootfs,
-simply specify a slot post-install hook.
-Read the :ref:`Hooks <sec-hooks>` chapter on how to create one.
+See :ref:`sec-data-migration-rootfs` for information migrating data in the rootfs.
 
 However, there are several reasons why you may not want to or cannot store
 your data inside the root file system:
@@ -995,6 +991,53 @@ can be used to implement it in the bundle (or handlers for a system-defined
 handling).
 Note that in many cases, migration of application data is best handled by
 the application itself on first boot after the update.
+
+.. _sec-data-migration-rootfs:
+
+Migrating Root File System Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For migrating data from the current rootfs to the updated rootfs,
+you can use a *post-install* :ref:`slot hook <sec-slot-hooks>` for your rootfs
+slot class.
+
+.. code-block:: cfg
+
+   [image.data]
+   filename=rootfs.img
+   hooks=post-install
+
+.. note:: This requires a rootfs slot type which can be mounted read-write
+   (e.g. ext4).
+
+The hook will run after the new rootfs image has been written to the target
+slot, with the target slot mounted.
+This allows copying relevant files from the currently active rootfs into the
+new slot before the system reboots into it.
+
+A simplified hook shell script code could look as follows:
+
+.. code-block:: sh
+
+   case "$1" in
+
+           [...]
+
+           slot-post-install)
+                   # only the rootfs slots should be handled
+                   test "$RAUC_SLOT_CLASS" = "rootfs" || exit 1
+
+                   mkdir -p "$RAUC_SLOT_MOUNT_POINT/etc/"
+
+                   echo "Preserving /etc/timezone"
+                   cp -a /etc/timezone "$RAUC_SLOT_MOUNT_POINT/etc/"
+                   echo "Preserving /etc/passwd and /etc/shadow"
+                   cp -a /etc/passwd "$RAUC_SLOT_MOUNT_POINT/etc/"
+                   cp -a /etc/shadow "$RAUC_SLOT_MOUNT_POINT/etc/"
+                   ;;
+
+           [...]
+   esac
 
 Managing a ``/dev/data`` Symbolic Link
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
