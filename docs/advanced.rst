@@ -895,6 +895,19 @@ as application configuration, user settings or runtime state.
 When performing an update, you have to ensure that the updated system can
 take over or access the data from the previous installation.
 
+Persistent data can be stored in different ways:
+
+* directly inside the root file system,
+* on separate shared data partitions, or
+* on redundant data partitions.
+
+.. image:: images/data_migration.svg
+  :width: 600
+  :align: center
+
+Each approach has different implications for update and fallback handling,
+as discussed in the following sections.
+
 Storing Data in The Root File System
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -945,10 +958,6 @@ should choose.
 
 Application Data Migration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. image:: images/data_migration.svg
-  :width: 600
-  :align: center
 
 Both a single and a redundant data storage have their advantages and
 disadvantages.
