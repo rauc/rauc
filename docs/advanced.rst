@@ -957,6 +957,35 @@ You can do this by using:
 It depends on the amount and type of data you want to handle which option you
 should choose.
 
+Managing a ``/dev/data`` Symbolic Link
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For redundant data partitions the active rootfs slot has to mount the correct
+data partition dynamically.
+For example with ubifs, a udev rule set can be used for this::
+
+  KERNEL=="ubi[0-9]_[0-9]", PROGRAM="/usr/bin/is-parent-active %k", RESULT=="1", SYMLINK+="data"
+
+This example first determines if ubiX_Y is a data slot with an active parent
+rootfs slot by calling the script below.
+Then, the current ubiX_Y partition is bound to /dev/data if the script
+returned ``1`` as its output.
+
+``/usr/bin/is-parent-active`` is a simple bash script::
+
+  #!/bin/bash
+
+  ROOTFS_DEV=<determine rootfs by using proc cmdline or mount>
+  TEST_DEV=<obtain parent rootfs device for currently processed device (%k)>
+
+  if [[ $ROOTFS_DEV == $TEST_DEV ]]; then
+  	echo 1
+  else
+  	echo 0
+  fi
+
+With this you can always mount ``/dev/data`` and get the correct data slot.
+
 .. _sec-data-migration:
 
 (Application) Data Migration
@@ -1098,35 +1127,6 @@ A simplified hook shell script code could look as follows:
    The ``--delete`` flag ensures the target slot is an exact mirror of the source,
    removing any stale files left from a previous installation.
 
-
-Managing a ``/dev/data`` Symbolic Link
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-For redundant data partitions the active rootfs slot has to mount the correct
-data partition dynamically.
-For example with ubifs, a udev rule set can be used for this::
-
-  KERNEL=="ubi[0-9]_[0-9]", PROGRAM="/usr/bin/is-parent-active %k", RESULT=="1", SYMLINK+="data"
-
-This example first determines if ubiX_Y is a data slot with an active parent
-rootfs slot by calling the script below.
-Then, the current ubiX_Y partition is bound to /dev/data if the script
-returned ``1`` as its output.
-
-``/usr/bin/is-parent-active`` is a simple bash script::
-
-  #!/bin/bash
-
-  ROOTFS_DEV=<determine rootfs by using proc cmdline or mount>
-  TEST_DEV=<obtain parent rootfs device for currently processed device (%k)>
-
-  if [[ $ROOTFS_DEV == $TEST_DEV ]]; then
-  	echo 1
-  else
-  	echo 0
-  fi
-
-With this you can always mount ``/dev/data`` and get the correct data slot.
 
 .. _sec-adaptive-updates:
 
