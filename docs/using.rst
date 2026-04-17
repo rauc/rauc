@@ -139,42 +139,43 @@ points to the correct directory.
 That way, installed artifacts can be found by following
 ``/run/rauc/artifacts/<repository-name>/<artifact-name>``.
 
-React to a Successfully Booted System/Failed Boot
--------------------------------------------------
+Marking a Boot as Successful or Failed
+--------------------------------------
 
-Normally, the full system update chain is not complete before being sure that
-the newly installed system runs without any errors.
-As the definition and detection of a `successful` operation is really
-system-dependent, RAUC provides commands to preserve a slot as being the
-preferred one to boot or to discard a slot from being bootable.
+A system update is only considered complete once the newly installed system has
+been confirmed to be running correctly.
+Since the definition and detection of a successful boot is system-dependent,
+RAUC provides explicit commands and a :ref:`D-Bus Method
+<gdbus-method-de-pengutronix-rauc-Installer.Mark>` to mark the booted slot
+group as either good (confirmed working) or bad (non-working).
 
 .. code-block:: console
 
   # rauc status mark-good
 
-After verifying that the currently booted system is fully operational, one
-wants to signal this information to the underlying bootloader implementation
-which then, for example, resets a boot attempt counter.
+Once the currently booted system is verified as fully operational, run this
+command to signal success to the bootloader.
+Depending on the bootloader backend, this typically resets a boot attempt
+counter and confirms the current slot as the active one.
+
 
 .. code-block:: console
 
   # rauc status mark-bad
 
-If the current boot failed in some way, this command can be used to communicate
-that to the underlying bootloader implementation.
-In most cases this will disable the currently booted slot or at least switch to
-a different one.
+If the current boot has failed, run this command to signal failure to the
+bootloader.
+Depending on the bootloader backend, this will either disable the currently
+booted slot or switch to a different one.
 
-Although not very useful in the field, both commands recognize an optional
-argument to explicitly identify the slot to act on:
+To maintain consistency with ``rauc status mark-active``, both commands accept
+an optional slot argument:
 
 .. code-block:: console
 
   # rauc status mark-{good,bad} [booted | other | <SLOT_NAME>]
 
-This is to maintain consistency with respect to ``rauc status mark-active``
-where that argument is definitively wanted, see :ref:`here
-<optional-slot-identifier-argument>`.
+In practice this is rarely needed.
 
 .. _mark-active:
 

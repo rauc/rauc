@@ -2443,15 +2443,27 @@ Bootloader Interaction
 RAUC comes with a generic interface for interacting with the bootloader.
 It handles *all* slots that have a ``bootname`` property set.
 
-It provides two base functions:
+.. note:: The terminology between the 'mark' methods and the low-level 'boot'
+   methods slightly differs.
 
-1) Setting state 'good' or 'bad', reflected by API routine ``r_boot_set_state()``
-   and command line tool option ``rauc status mark <good/bad>``
-2) Marking a slot 'primary', reflected by API routine ``r_boot_set_primary()``
-   and command line tool option ``rauc status mark-active``
+It provides three base operations:
+
+1) Setting state 'bad' (non-bootable), triggered by the API method ``r_mark_bad()``.
+
+   The bootloader backend API call for this is
+   ``r_boot_set_state(…, FALSE, …)``.
+2) Setting state 'good' (bootable), reflected by the API method ``r_mark_good()``.
+
+   The bootloader backend API call for this is
+   ``r_boot_set_state(…, TRUE, …)``.
+3) Marking a slot 'active' (primary boot target), reflected by API routine
+   ``r_mark_active()``.
+
+   The bootloader backend API call for this is
+   ``r_boot_set_primary()``.
 
 The default flow of how they will be called during the installation of a new
-bundle (on Slot 'A') looks as follows:
+bundle looks as follows:
 
 .. image:: images/bootloader-interaction_install.svg
   :width: 400
@@ -2491,16 +2503,16 @@ A normal reboot of the system will look as follows:
 Some bootloaders do not require explicitly setting state 'good' as they are able
 to differentiate between a POR and a watchdog reset, for example.
 
-.. note: Despite the naming might suggest it, marking a slot bad and good are
+.. note:: Despite the naming might suggest it, marking a slot bad and good are
   not reversible operations, meaning you have no guarantee that a slot first
   set to 'bad' and then set to 'good' again will be in the same state as
   before.
   Actually reactivating it will only work by marking it primary (active).
 
-What the high-level functions described above actually do mainly depends on the underlying
-bootloader used and the capabilities it provides.
-Below is a short description about behavior of each bootloader interface
-currently implemented:
+The exact behavior of each operation depends on the underlying bootloader and
+its capabilities.
+The following sections describe how each supported bootloader backend
+implements the above-mentioned operations.
 
 U-Boot
 ~~~~~~
