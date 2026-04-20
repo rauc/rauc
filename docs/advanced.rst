@@ -957,21 +957,37 @@ You can do this by using:
 It depends on the amount and type of data you want to handle which option you
 should choose.
 
-Managing a ``/dev/data`` Symbolic Link
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Mounting Redundant Data Partitions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For redundant data partitions the active rootfs slot has to mount the correct
+For redundant data partitions, the active rootfs slot has to mount the correct
 data partition dynamically.
-For example with ubifs, a udev rule set can be used for this::
+
+When RAUC starts, it :ref:`automatically creates symlinks <sec-run-links>`
+under ``/run/rauc/slots/active/``, pointing to the devices of all slots in the
+currently active slot group.
+If the system starts RAUC early enough, these symlinks can be used for
+mounting.
+For example, for a slot class named data, the symlink
+``/run/rauc/slots/active/data`` will point to the corresponding device and can
+be used as a mount source.
+
+.. rubric:: Using udev to Manage a ``/dev/data`` Symbolic Link
+
+Alternatively, a udev rule can be used to create a ``/dev/data`` symlink
+pointing to the active data partition.
+
+For example with ubifs, this udev rule set can be used::
 
   KERNEL=="ubi[0-9]_[0-9]", PROGRAM="/usr/bin/is-parent-active %k", RESULT=="1", SYMLINK+="data"
 
-This example first determines if ubiX_Y is a data slot with an active parent
+This example first determines if ``ubiX_Y`` is a data slot with an active parent
 rootfs slot by calling the script below.
-Then, the current ubiX_Y partition is bound to /dev/data if the script
+Then, the current ``ubiX_Y`` partition is bound to ``/dev/data`` if the script
 returned ``1`` as its output.
+``/usr/bin/is-parent-active`` is a simple bash script:
 
-``/usr/bin/is-parent-active`` is a simple bash script::
+.. code-block:: sh
 
   #!/bin/bash
 
