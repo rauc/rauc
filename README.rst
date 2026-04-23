@@ -5,7 +5,7 @@
 RAUC - Robust Auto-Update Controller
 ====================================
 
-|LGPLv2.1| |CI_branch| |Codecov_branch| |Coverity| |codeql| |OSS-Fuzz| |Documentation| |Matrix| |CII Best Practices| |Repology|
+|LGPLv2.1| |CI_branch| |Codecov_branch| |Coverity| |codeql| |OSS-Fuzz| |Documentation| |Matrix| |OpenSSF Best Practices| |OpenSSF Scorecard| |Repology|
 
 .. raw:: html
 
@@ -324,7 +324,9 @@ https://www.gnu.org/licenses/.
    :target: https://github.com/rauc/rauc/actions/workflows/codeql.yml
 .. |OSS-Fuzz| image:: https://oss-fuzz-build-logs.storage.googleapis.com/badges/rauc.svg
    :target: https://oss-fuzz-build-logs.storage.googleapis.com/index.html#rauc
-.. |CII Best Practices| image:: https://www.bestpractices.dev/projects/5075/badge
+.. |OpenSSF Best Practices| image:: https://www.bestpractices.dev/projects/5075/badge
    :target: https://www.bestpractices.dev/projects/5075
+.. |OpenSSF Scorecard| image:: https://api.securityscorecards.dev/projects/github.com/rauc/rauc/badge
+   :target: https://securityscorecards.dev/viewer/?uri=github.com/rauc/rauc
 .. |Repology| image:: https://repology.org/badge/tiny-repos/rauc.svg?header=distribution%20packages
    :target: https://repology.org/project/rauc/versions
