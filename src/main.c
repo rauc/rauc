@@ -1426,6 +1426,7 @@ typedef struct {
 	RaucSlot *primary;
 	gchar *compatible;
 	gchar *variant;
+	gchar *system_version;
 	gchar *bootslot;
 	GHashTable *slots;
 	GVariant *artifacts;
@@ -1438,6 +1439,7 @@ static void free_status_print(RaucStatusPrint *status)
 
 	g_free(status->compatible);
 	g_free(status->variant);
+	g_free(status->system_version);
 	g_free(status->bootslot);
 	if (status->slots)
 		g_hash_table_unref(status->slots);
@@ -1598,9 +1600,10 @@ static gchar* r_status_formatter_readable(RaucStatusPrint *status)
 	bootedfrom = r_slot_get_booted(status->slots);
 
 	g_string_append(text, "=== System Info ===\n");
-	g_string_append_printf(text, "Compatible:  %s\n", status->compatible);
-	g_string_append_printf(text, "Variant:     %s\n", status->variant);
-	g_string_append_printf(text, "Booted from: %s (%s)\n\n", bootedfrom ? bootedfrom->name : NULL, status->bootslot);
+	g_string_append_printf(text, "Compatible:     %s\n", status->compatible);
+	g_string_append_printf(text, "Variant:        %s\n", status->variant);
+	g_string_append_printf(text, "System Version: %s\n", status->system_version);
+	g_string_append_printf(text, "Booted from:    %s (%s)\n\n", bootedfrom ? bootedfrom->name : NULL, status->bootslot);
 
 	g_string_append(text, "=== Bootloader ===\n");
 	if (!status->primary)
@@ -1663,6 +1666,7 @@ static gchar* r_status_formatter_shell(RaucStatusPrint *status)
 
 	r_ptr_array_add_printf(entries, "RAUC_SYSTEM_COMPATIBLE=%s", status->compatible);
 	r_ptr_array_add_printf(entries, "RAUC_SYSTEM_VARIANT=%s", status->variant);
+	r_ptr_array_add_printf(entries, "RAUC_SYSTEM_VERSION=%s", status->system_version);
 	r_ptr_array_add_printf(entries, "RAUC_SYSTEM_BOOTED_BOOTNAME=%s", status->bootslot);
 	r_ptr_array_add_printf(entries, "RAUC_BOOT_PRIMARY=%s", status->primary ? status->primary->name : NULL);
 
@@ -1820,6 +1824,9 @@ static gchar* r_status_formatter_json(RaucStatusPrint *status, gboolean pretty)
 
 	json_builder_set_member_name(builder, "variant");
 	json_builder_add_string_value(builder, status->variant);
+
+	json_builder_set_member_name(builder, "system_version");
+	json_builder_add_string_value(builder, status->system_version);
 
 	json_builder_set_member_name(builder, "booted");
 	json_builder_add_string_value(builder, status->bootslot);
@@ -2135,6 +2142,7 @@ static gboolean retrieve_status_via_dbus(RaucStatusPrint **status_print, GError 
 	}
 
 	istatus->variant = r_installer_dup_variant(proxy);
+	istatus->system_version = r_installer_dup_system_version(proxy);
 	istatus->compatible = r_installer_dup_compatible(proxy);
 	istatus->bootslot = r_installer_dup_boot_slot(proxy);
 
@@ -2242,6 +2250,7 @@ static gboolean status_start(int argc, char **argv)
 
 		status_print->compatible = g_strdup(r_context()->config->system_compatible);
 		status_print->variant = g_strdup(r_context()->config->system_variant);
+		status_print->system_version = g_strdup(r_context()->system_version);
 		status_print->bootslot = g_strdup(r_context()->bootslot);
 		status_print->slots = g_hash_table_ref(r_context()->config->slots);
 		status_print->artifacts = r_artifacts_to_dict();

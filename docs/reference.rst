@@ -1660,6 +1660,9 @@ variables.
   The system's variant as obtained by the variant source
   (refer :ref:`sec-variants`)
 
+``RAUC_SYSTEM_VERSION``
+  The system version obtained from the ``system-info`` handler.
+
 ``RAUC_CURRENT_BOOTNAME``
   Bootname of the slot the system is currently booted from
 
@@ -1738,6 +1741,9 @@ The following environment variables will be passed to the hook executable:
   The system's variant as obtained by the variant source
   (refer :ref:`sec-variants`)
 
+``RAUC_SYSTEM_VERSION``
+  The system version obtained from the ``system-info`` handler.
+
 ``RAUC_MF_COMPATIBLE``
   The compatible value provided by the current bundle,
   e.g. ``"My Other Product"``
@@ -1767,6 +1773,9 @@ The following environment variables will be passed to the hook executable:
 ``RAUC_SYSTEM_VARIANT``
   The system's variant as obtained by the variant source
   (refer :ref:`sec-variants`)
+
+``RAUC_SYSTEM_VERSION``
+  The system version obtained from the ``system-info`` handler.
 
 ``RAUC_SLOT_NAME``
   The name of the currently installed slot, e.g ``"rootfs.1"``.
