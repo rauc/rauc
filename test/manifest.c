@@ -584,6 +584,130 @@ type=emptyfs\n\
 	g_free(manifestpath);
 }
 
+static void test_manifest_load_types_hashref_valid(void)
+{
+	gchar *tmpdir;
+	g_autoptr(RaucManifest) rm = NULL;
+	gchar *manifestpath = NULL;
+	gboolean res;
+	GError *error = NULL;
+	const gchar *mffile = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[image.rootfs]\n\
+type=hashref\n\
+sha256=abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890\n\
+\n\
+[image.appfs]\n\
+type=ext4\n\
+filename=appfs-default.ext4\n\
+";
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
+	g_assert_nonnull(manifestpath);
+
+	g_free(tmpdir);
+
+	res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	g_clear_error(&error);
+
+	res = check_manifest_input(rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	g_free(manifestpath);
+}
+
+static void test_manifest_load_types_hashref_with_filename_invalid(void)
+{
+	gchar *tmpdir;
+	g_autoptr(RaucManifest) rm = NULL;
+	gchar *manifestpath = NULL;
+	gboolean res;
+	g_autoptr(GError) error = NULL;
+	const gchar *mffile = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[image.rootfs]\n\
+type=hashref\n\
+filename=rootfs.ext4\n\
+sha256=abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890\n\
+\n\
+[image.appfs]\n\
+type=ext4\n\
+filename=appfs-default.ext4\n\
+";
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
+	g_assert_nonnull(manifestpath);
+
+	g_free(tmpdir);
+
+	res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_true(res);
+	g_assert_no_error(error);
+
+	g_free(manifestpath);
+
+	res = check_manifest_input(rm, &error);
+	g_assert_error(error, R_MANIFEST_ERROR, R_MANIFEST_PARSE_ERROR);
+	g_assert_cmpstr("It is not supported setting 'filename' when 'type=hashref' is set", ==, error->message);
+	g_assert_false(res);
+}
+
+static void test_manifest_load_types_hashref_missing_sha256_invalid(void)
+{
+	gchar *tmpdir;
+	g_autoptr(RaucManifest) rm = NULL;
+	gchar *manifestpath = NULL;
+	gboolean res;
+	g_autoptr(GError) error = NULL;
+	const gchar *mffile = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[image.rootfs]\n\
+type=hashref\n\
+\n\
+[image.appfs]\n\
+type=ext4\n\
+filename=appfs-default.ext4\n\
+";
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
+	g_assert_nonnull(manifestpath);
+
+	g_free(tmpdir);
+
+	res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_true(res);
+	g_assert_no_error(error);
+
+	g_free(manifestpath);
+
+	res = check_manifest_input(rm, &error);
+	g_assert_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR);
+	g_assert_cmpstr("'type=hashref' requires 'sha256' to be set", ==, error->message);
+	g_assert_false(res);
+}
+
 static void test_manifest_load_adaptive(void)
 {
 	g_autofree gchar *tmpdir = NULL;
@@ -1019,6 +1143,9 @@ int main(int argc, char *argv[])
 	g_test_add_func("/manifest/load_types_emptyfs_valid", test_manifest_load_types_emptyfs_valid);
 	g_test_add_func("/manifest/load_adaptive_missing_filename", test_manifest_load_adaptive_missing_filename);
 	g_test_add_func("/manifest/load_types_emptyfs_with_filename_invalid", test_manifest_load_types_emptyfs_with_imagename_invalid);
+	g_test_add_func("/manifest/load_types_hashref_valid", test_manifest_load_types_hashref_valid);
+	g_test_add_func("/manifest/load_types_hashref_with_filename_invalid", test_manifest_load_types_hashref_with_filename_invalid);
+	g_test_add_func("/manifest/load_types_hashref_missing_sha256_invalid", test_manifest_load_types_hashref_missing_sha256_invalid);
 	g_test_add_func("/manifest/load_adaptive", test_manifest_load_adaptive);
 	g_test_add_func("/manifest/load_meta", test_manifest_load_meta);
 	g_test_add_func("/manifest/load_details", test_manifest_load_details);

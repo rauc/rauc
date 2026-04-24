@@ -55,6 +55,14 @@ static gboolean validate_filename_requirements(RaucImage *image, GError **error)
 					"It is not supported setting 'filename' when 'type=emptyfs' is set");
 			return FALSE;
 		}
+	/* 'type=hashref' declares a dependency on an existing slot content by hash.
+	 * A filename would be contradictory since no image file is included in the bundle. */
+	} else if (g_strcmp0(image->type, "hashref") == 0) {
+		if (has_filename) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_PARSE_ERROR,
+					"It is not supported setting 'filename' when 'type=hashref' is set");
+			return FALSE;
+		}
 	} else {
 		/* All other image types require either a source file
 		 * or custom install hooks. */
@@ -150,7 +158,7 @@ static gboolean parse_image(GKeyFile *key_file, const gchar *group, RaucImage **
 	g_key_file_remove_key(key_file, group, "hooks", NULL);
 
 	iimage->filename = key_file_consume_string(key_file, group, "filename", &ierror);
-	/* A missing 'filename' can be correct, as it is optional for 'install' hooks and 'type=emptyfs'.
+	/* A missing 'filename' can be correct, as it is optional for 'install' hooks, 'type=emptyfs' and 'type=hashref'
 	 * So we collect all requirements first and check their validity afterwards */
 	if (g_error_matches(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_KEY_NOT_FOUND)) {
 		g_clear_error(&ierror);
@@ -578,6 +586,13 @@ static gboolean check_manifest_common(const RaucManifest *mf, GError **error)
 			g_propagate_error(error, ierror);
 			return FALSE;
 		}
+		/* hashref images carry a user-supplied sha256 as the slot content reference;
+		 * validate that the required digest field is actually set. */
+		if (g_strcmp0(image->type, "hashref") == 0 && !image->checksum.digest) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR,
+					"'type=hashref' requires 'sha256' to be set");
+			return FALSE;
+		}
 	}
 
 	return TRUE;
@@ -710,6 +725,10 @@ gboolean check_manifest_input(const RaucManifest *mf, GError **error)
 					"Image filename %s must not contain '/'", image->filename);
 			return FALSE;
 		}
+		/* hashref images carry a user-provided sha256 as a slot content reference;
+		 * skip the checks that only apply to file-backed images. */
+		if (g_strcmp0(image->type, "hashref") == 0)
+			continue;
 		if (image->checksum.digest) {
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR,
 					"Unexpected digest for image %s in input manifest", image->filename);
@@ -1358,6 +1377,9 @@ gboolean sync_manifest_with_contentdir(RaucManifest *manifest, const gchar *dir,
 	/* Check for missing image files */
 	for (GList *elem = manifest->images; elem != NULL; elem = elem->next) {
 		RaucImage *image = elem->data;
+		/* hashref images have no associated file in the bundle content dir */
+		if (!image->filename)
+			continue;
 		g_autofree gchar *filename = g_build_filename(dir, image->filename, NULL);
 		if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_ERROR_CHECKSUM, "image file '%s' for slot '%s' does not exist in bundle content dir (%s)", image->filename, image->slotclass, dir);
