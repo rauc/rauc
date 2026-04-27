@@ -260,14 +260,18 @@ gboolean determine_boot_states(GError **error)
 	/* get boot state */
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+		gboolean boot_good;
 		g_autoptr(GError) ierror = NULL;
 
 		if (!slot->bootname)
 			continue;
 
-		if (!r_boot_get_state(slot, &slot->boot_good, &ierror)) {
+		if (!r_boot_get_state(slot, &boot_good, &ierror)) {
 			g_message("Failed to get boot state of '%s': %s", slot->name, ierror->message);
 			had_errors = TRUE;
+			slot->boot_state = ST_BOOT_UNKNOWN;
+		} else {
+			slot->boot_state = boot_good ? ST_BOOT_GOOD : ST_BOOT_BAD;
 		}
 	}
 
@@ -1195,9 +1199,6 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 			return FALSE;
 		}
 	}
-
-	g_free(slot_state->status);
-	slot_state->status = g_strdup("update");
 
 	r_context_end_step("check_slot", TRUE);
 
