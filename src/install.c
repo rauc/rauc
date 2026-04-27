@@ -1196,9 +1196,6 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 		}
 	}
 
-	g_free(slot_state->status);
-	slot_state->status = g_strdup("update");
-
 	r_context_end_step("check_slot", TRUE);
 
 	install_args_update(args, "Updating slot %s", plan->target_slot->name);

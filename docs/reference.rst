@@ -2158,6 +2158,99 @@ OUT *slot_status_array* ``a(sa{sv})``:
     Array of (slotname, dict) tuples with each dictionary representing the
     status of the corresponding slot
 
+    *class* variant ``s`` <class>:
+        The slot class as defined in ``system.conf``.
+
+    *device* variant ``s`` <device>:
+        The device path associated with this slot.
+
+    *type* variant ``s`` <type>:
+        The configured slot type.
+
+    *bootname* variant ``s`` <bootname>:
+        The bootloader-facing name of this slot (e.g. ``A``, ``B``).
+        Only present for bootable slots.
+
+    *state* variant ``s`` <state>:
+        The current state of the slot. One of:
+
+        * ``booted``: This is the currently booted slot.
+        * ``active``: Slot is active but not directly booted (e.g. an ``appfs``
+          slot associated with the booted rootfs).
+        * ``inactive``: Slot is not currently in use.
+
+    *parent* variant ``s`` <parent>:
+        The slot name of this slot's parent.
+        Only present for slots that have a parent defined.
+
+    *mountpoint* variant ``s`` <mountpoint>:
+        The path where this slot is currently mounted.
+        Only present if the slot is currently mounted.
+
+    *boot-status* variant ``s`` <boot-status>:
+        The bootloader-reported status of this slot. One of:
+
+        * ``good``: Slot is bootable by the bootloader.
+        * ``bad``: Slot will not be selected by the bootloader (unbootable).
+
+        Only present for bootable slots.
+
+  The following fields are only present if the slot has been written to at
+  least once:
+
+    *status* variant ``s`` <status>:
+        The installation status of this slot. One of:
+
+        * ``ok``: The last installation to this slot succeeded.
+        * ``failed``: The last installation to this slot failed.
+        * ``pending``: The slot is currently being updated.
+
+    *sha256* variant ``s`` <sha256>:
+        SHA256 checksum of the last image installed to the slot.
+
+    *size* variant ``t`` <size>:
+        Size in bytes of the last image installed to the slot.
+
+    *installed.timestamp* variant ``s`` <installed.timestamp>:
+        ISO 8601 timestamp of when the last installation to this slot
+        completed (e.g. ``2026-03-15T18:36:08Z``).
+
+    *installed.count* variant ``u`` <installed.count>:
+        The number of images written to this slot.
+
+    *installed.transaction* variant ``s`` <installed.transaction>:
+        The transaction UUID of the installation that last wrote to
+        this slot.
+
+    *activated.timestamp* variant ``s`` <activated.timestamp>:
+        ISO 8601 timestamp of when this slot was last activated.
+        Only present for bootable slots that have been activated at
+        least once.
+
+    *activated.count* variant ``u`` <activated.count>:
+        The number of times this slot has been activated.
+        Only present for bootable slots that have been activated at
+        least once.
+
+    *bundle.compatible* variant ``s`` <bundle.compatible>:
+        The compatible string from the bundle that was last installed
+        to this slot.
+
+    *bundle.version* variant ``s`` <bundle.version>:
+        The version string from the bundle that was last installed
+        to this slot.
+
+    *bundle.description* variant ``s`` <bundle.description>:
+        The description string from the bundle that was last installed
+        to this slot.
+
+    *bundle.build* variant ``s`` <bundle.build>:
+        The build information string from the bundle that was last installed
+        to this slot.
+
+    *bundle.hash* variant ``s`` <bundle.hash>:
+        The manifest hash of the bundle that was last installed to this slot.
+
 .. _gdbus-method-de-pengutronix-rauc-Installer.GetPrimary:
 
 GetPrimary() Method
