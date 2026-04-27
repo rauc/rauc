@@ -716,7 +716,7 @@ static void config_file_boot_emmc_with_bootpart(ConfigFileFixture *fixture, gcon
 compatible=FooCorp Super BarBazzer\n\
 bootloader=barebox\n\
 \n\
-[slot.rootfs.0]\n\
+[slot.bootloader.0]\n\
 device=/dev/mmcblk0boot0\n\
 type=boot-emmc\n";
 
@@ -725,7 +725,7 @@ type=boot-emmc\n";
 
 	g_assert_false(load_config(pathname, &config, &ierror));
 	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_INVALID_DEVICE);
-	g_assert_cmpstr(ierror->message, ==, "slot.rootfs.0: 'device' must refer to the eMMC base device, not the boot partition");
+	g_assert_cmpstr(ierror->message, ==, "slot.bootloader.0: 'device' must refer to the eMMC base device, not the boot partition");
 	g_clear_error(&ierror);
 }
 
