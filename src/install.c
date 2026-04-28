@@ -1646,6 +1646,18 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		goto umount;
 	}
 
+	if (bundle->manifest->hooks.pre_install) {
+		run_bundle_hook(bundle->manifest, bundle->mount_point, "global-pre-install", &ierror);
+		if (ierror) {
+			res = FALSE;
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Global-pre-install hook failed: ");
+			goto umount;
+		}
+	}
+
 	if (!check_version_limits(args, bundle->manifest, &ierror)) {
 		res = FALSE;
 		g_propagate_error(error, ierror);
@@ -1663,6 +1675,18 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	if (!res) {
 		g_propagate_prefixed_error(error, ierror, "Installation error: ");
 		goto umount;
+	}
+
+	if (bundle->manifest->hooks.post_install) {
+		run_bundle_hook(bundle->manifest, bundle->mount_point, "global-post-install", &ierror);
+		if (ierror) {
+			res = FALSE;
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Global-post-install hook failed: ");
+			goto umount;
+		}
 	}
 
 	if (r_context()->config->postinstall_handler) {
