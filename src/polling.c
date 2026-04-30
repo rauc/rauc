@@ -274,10 +274,13 @@ static gboolean polling_install_cleanup(gpointer data)
 	polling_context->installation_running = FALSE;
 
 	g_mutex_lock(&args->status_mutex);
-	if (args->status_result == 0) {
-		g_message("polling: installation of `%s` succeeded", args->name);
-	} else {
-		g_message("polling: installation of `%s` failed: %d", args->name, args->status_result);
+	{
+		g_autofree gchar *censored = r_censor_url(args->name);
+		if (args->status_result == 0) {
+			g_message("polling: installation of `%s` succeeded", censored);
+		} else {
+			g_message("polling: installation of `%s` failed: %d", censored, args->status_result);
+		}
 	}
 	/* TODO expose error via d-bus? */
 	r_installer_emit_completed(r_installer, args->status_result);

@@ -555,6 +555,106 @@ static void boottime_test(void)
 	g_assert_cmpint(diff, <=, 110000);
 }
 
+static void inject_password_test(void)
+{
+	GError *error = NULL;
+
+	/* username in URL, no --http-user */
+	{
+		g_autofree gchar *out = r_url_inject_password("https://alice@server.local/bundle.raucb", NULL, "s3cr3t", &error);
+		g_assert_no_error(error);
+		g_assert_cmpstr(out, ==, "https://alice:s3cr3t@server.local/bundle.raucb");
+	}
+
+	/* no userinfo in URL, username via argument */
+	{
+		g_autofree gchar *out = r_url_inject_password("https://server.local/bundle.raucb", "alice", "s3cr3t", &error);
+		g_assert_no_error(error);
+		g_assert_cmpstr(out, ==, "https://alice:s3cr3t@server.local/bundle.raucb");
+	}
+
+	/* username in URL matches --http-user */
+	{
+		g_autofree gchar *out = r_url_inject_password("https://alice@server.local/bundle.raucb", "alice", "s3cr3t", &error);
+		g_assert_no_error(error);
+		g_assert_cmpstr(out, ==, "https://alice:s3cr3t@server.local/bundle.raucb");
+	}
+
+	/* password with '@' in it */
+	{
+		g_autofree gchar *out = r_url_inject_password("https://alice@server.local/bundle.raucb", NULL, "p@ss", &error);
+		g_assert_no_error(error);
+		g_assert_cmpstr(out, ==, "https://alice:p@ss@server.local/bundle.raucb");
+	}
+
+	/* error: URL already has a password */
+	{
+		g_autofree gchar *out = r_url_inject_password("https://alice:existing@server.local/bundle.raucb", NULL, "s3cr3t", &error);
+		g_assert_null(out);
+		g_assert_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
+		g_clear_error(&error);
+	}
+
+	/* error: no username in URL and no --http-user */
+	{
+		g_autofree gchar *out = r_url_inject_password("https://server.local/bundle.raucb", NULL, "s3cr3t", &error);
+		g_assert_null(out);
+		g_assert_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
+		g_clear_error(&error);
+	}
+
+	/* error: --http-user conflicts with username in URL */
+	{
+		g_autofree gchar *out = r_url_inject_password("https://alice@server.local/bundle.raucb", "bob", "s3cr3t", &error);
+		g_assert_null(out);
+		g_assert_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
+		g_clear_error(&error);
+	}
+}
+
+static void censor_url_test(void)
+{
+	/* password is masked */
+	{
+		g_autofree gchar *out = r_censor_url("http://user:secret@example.com/bundle.raucb");
+		g_assert_cmpstr(out, ==, "http://user:******@example.com/bundle.raucb");
+	}
+	{
+		g_autofree gchar *out = r_censor_url("https://user:secret@example.com/bundle.raucb");
+		g_assert_cmpstr(out, ==, "https://user:******@example.com/bundle.raucb");
+	}
+
+	/* password containing '@' is masked up to the last '@' */
+	{
+		g_autofree gchar *out = r_censor_url("https://alice:p@ssw0rd@server.local/update.raucb");
+		g_assert_cmpstr(out, ==, "https://alice:******@server.local/update.raucb");
+	}
+
+	/* percent-encoded '@' in password */
+	{
+		g_autofree gchar *out = r_censor_url("https://alice:p%40ssw0rd@server.local/update.raucb");
+		g_assert_cmpstr(out, ==, "https://alice:******@server.local/update.raucb");
+	}
+
+	/* no credentials — returned unchanged */
+	{
+		g_autofree gchar *out = r_censor_url("https://example.com/bundle.raucb");
+		g_assert_cmpstr(out, ==, "https://example.com/bundle.raucb");
+	}
+
+	/* username only, no password — returned unchanged */
+	{
+		g_autofree gchar *out = r_censor_url("http://user@example.com/bundle.raucb");
+		g_assert_cmpstr(out, ==, "http://user@example.com/bundle.raucb");
+	}
+
+	/* URL embedded in a GVariant dict string (as logged by the nbd server) */
+	{
+		g_autofree gchar *out = r_censor_url("{'url': <'https://admin:topsecret@rauc.example.com/bundle.raucb'>, 'cert': <''>}");
+		g_assert_cmpstr(out, ==, "{'url': <'https://admin:******@rauc.example.com/bundle.raucb'>, 'cert': <''>}");
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -574,6 +674,8 @@ int main(int argc, char *argv[])
 	g_test_add_func("/utils/semver_less_equal_test", semver_less_equal_test);
 	g_test_add_func("/utils/format_duration", format_duration_test);
 	g_test_add_func("/utils/regex_match", regex_match_test);
+	g_test_add_func("/utils/inject_password", inject_password_test);
+	g_test_add_func("/utils/censor_url", censor_url_test);
 	g_test_add_func("/utils/tempfile_cleanup", tempfile_cleanup_test);
 	g_test_add_func("/utils/boottime", boottime_test);
 
