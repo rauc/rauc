@@ -205,6 +205,9 @@ static gchar *event_log_format_fields_readable(GLogLevelFlags log_level,
 		} else if (g_strcmp0(ifield->key, "BUNDLE_VERSION") == 0) {
 			key = "bundle version";
 			value = ifield->value;
+		} else if (g_strcmp0(ifield->key, "BUNDLE_NAME") == 0) {
+			key = "bundle name";
+			value = ifield->value;
 		} else if (g_strcmp0(ifield->key, "SLOT_NAME") == 0) {
 			key = "slot";
 			value = ifield->value;
