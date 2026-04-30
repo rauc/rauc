@@ -2369,6 +2369,10 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	 * partition as device.
 	 */
 	part_slot = g_new0(RaucSlot, 1);
+	part_slot->name = dest_slot->name;
+	part_slot->sclass = dest_slot->sclass;
+	part_slot->type = g_strdup(dest_slot->type);
+	part_slot->state = dest_slot->state;
 	part_slot->device = g_strdup_printf(
 			"%sboot%d",
 			realdev,
