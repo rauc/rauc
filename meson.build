@@ -38,7 +38,7 @@ c_flags = [
 
 giodep = dependency('gio-2.0', version : '>=2.64')
 giounixdep = dependency('gio-unix-2.0', version : '>=2.64')
-openssldep = dependency('openssl', version : '>=1.1.1')
+openssldep = dependency('openssl', version : '>=3.0')
 jsonglibdep = dependency('json-glib-1.0', required : get_option('json'))
 dbusdep = dependency('dbus-1', required : get_option('service'))
 fdiskdep = dependency('fdisk', version : '>=2.29', required : get_option('gpt'))
