@@ -27,6 +27,7 @@ bootstate.system0.priority=20 \
 bootstate.system0.remaining_attempts=3 \
 bootstate.system1.priority=10 \
 bootstate.system1.remaining_attempts=3 \
+bootstate.attempts_locked=1 \
 "
 
 # deactivate current slot
