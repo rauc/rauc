@@ -169,6 +169,18 @@ if [ -n "$INTERACTIVE_SHELL" ]; then
 fi
 export RAUC_TEST_NBD_SERVER="$BUILD_DIR/rauc"
 
+# shell setup
+cat > /root/.profile <<EOF
+export PATH="$PATH"
+
+if [ -n "\$BASH_VERSION" ]; then
+  . "/root/.bashrc"
+fi
+EOF
+cat > /root/.bashrc <<EOF
+alias ll='ls -l'
+EOF
+
 if type losetup; then
   truncate --size=64M /tmp/rauc-disk.img
   losetup -P /dev/loop0 /tmp/rauc-disk.img
@@ -307,7 +319,6 @@ if [ -n "$SERVICE" ]; then
   rauc status mark-good
 fi
 
-echo "alias ll='ls -l'" > /root/.bashrc
 ln -s "$(pwd)/.qemu_bash_history" /root/.bash_history
 if [ -n "$BACKGROUND" ]; then
   # in background mode, just wait (VM is controlled via SSH/QMP)
