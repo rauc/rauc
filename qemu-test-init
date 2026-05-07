@@ -179,6 +179,10 @@ fi
 EOF
 cat > /root/.bashrc <<EOF
 alias ll='ls -l'
+
+if [ -n "\$HOST_PWD" ]; then
+  cd "\$HOST_PWD"
+fi
 EOF
 
 if type losetup; then
