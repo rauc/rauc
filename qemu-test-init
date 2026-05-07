@@ -282,7 +282,9 @@ if [ -n "$SERVICE" ]; then
     cp -a $BUILD_DIR/data/de.pengutronix.rauc.conf /etc/dbus-1/system.d
     chown root:root /etc/dbus-1/system.d/de.pengutronix.rauc.conf
     chmod 644 /etc/dbus-1/system.d/de.pengutronix.rauc.conf
-    mount -t tmpfs none /var/run
+    if [ "$(readlink /var/run)" != "/run" ]; then
+      mount -t tmpfs none /var/run
+    fi
     mkdir -p /var/run/dbus
     time dbus-daemon --system --fork --nopidfile --nosyslog --print-address
 
