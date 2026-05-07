@@ -1205,33 +1205,6 @@ gboolean cms_get_cert_chain(CMS_ContentInfo *cms, X509_STORE *store, STACK_OF(X5
 	return TRUE;
 }
 
-/* while OpenSSL 1.1.x provides a function for converting ASN1_TIME to tm,
- * OpenSSL 1.0.x does not.
- * Instead of coding an own conversion routine which might introduce bugs
- * unnecessarily, we use the existing conversion capabilities of
- * ASN1_TIME_print() and strptime() by taking the string representation as
- * intermediate format. */
-static gboolean asn1_time_to_tm(const ASN1_TIME *intime, struct tm *tm)
-{
-	BIO *mem = BIO_new(BIO_s_mem());
-
-	ASN1_TIME_print(mem, intime);
-
-	gchar *data = NULL;
-	long size = BIO_get_mem_data(mem, &data);
-	g_autofree gchar *ret = g_strndup(data, size);
-
-	g_debug("Obtained signing time: %s", ret);
-
-	if (!strptime(ret, "%b %d %H:%M:%S %Y GMT", tm))
-		return FALSE;
-
-	g_assert(BIO_set_close(mem, BIO_CLOSE));
-	BIO_free(mem);
-
-	return TRUE;
-}
-
 static void debug_cms_ci(CMS_ContentInfo *cms)
 {
 	const gchar *domains = g_getenv("G_MESSAGES_DEBUG");
@@ -1470,7 +1443,7 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 		so = X509_ATTRIBUTE_get0_type(xa, 0);
 
 		/* convert to time_t to make it usable for setting verify parameter */
-		if (!asn1_time_to_tm(so->value.utctime, &tm)) {
+		if (!so->value.utctime || !ASN1_TIME_to_tm(so->value.utctime, &tm)) {
 			g_set_error(
 					error,
 					R_SIGNATURE_ERROR,
