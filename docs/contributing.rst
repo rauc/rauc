@@ -158,6 +158,13 @@ Additional parameters that you can add to a ``./qemu-test`` call are:
 :asan: sets up environment variables to support the address sanitizer.
   This requires meson was set up with ``-Db_sanitize=address,undefined``.
 
+:ssh: setup SSH access to the VM using port 2222 and the `./qemu-ssh` helper.
+  See below for more details.
+
+:background: run the VM in the background.
+  Use `./qemu-test-stop` to stop the VM.
+  This implies `ssh`.
+
 If you want to collect coverage information (built with ``-Db_coverage=true``),
 you need to copy the generated gcov files from the VM back to the host system
 using the ``save_gcov_data`` helper before using ``ninja coverage-html`` on the
@@ -182,6 +189,43 @@ Notably, rebooting the environment is not supported in this setup, meaning the
 testing is limited to a single boot cycle.
 This is sufficient for testing RAUC’s update mechanism but does not cover
 reboot-based validation.
+
+SSH Access
+^^^^^^^^^^
+
+For more complex cases, where a single console is not enough, the
+``./qemu-test`` script supports login via SSH.
+Use ``./qemu-test system ssh`` or ``./qemu-test background`` depending on your
+needs.
+
+You can then start a login shell:
+
+.. code-block:: console
+
+  $ ./qemu-ssh
+  = RAUC qemu-test VM =
+  root@qemu-test:~#
+
+Alternatively, you can execute commands directly:
+
+.. code-block:: console
+
+  $ ./qemu-ssh rauc status
+  === System Info ===
+  Compatible:  Test Config
+  Variant:
+  Booted from: rootfs.0 (A)
+  …
+  $ ./qemu-ssh -t pytest test/test_cmdline.py
+  =================================== test session starts ====================================
+  platform linux -- Python 3.13.5, pytest-8.3.5, pluggy-1.5.0
+  rootdir: /home/jluebbe/ptx/rauc
+  plugins: timeout-2.3.1, cov-5.0.0, typeguard-4.4.2
+  collected 31 items
+
+  test/test_cmdline.py ...............................                                 [100%]
+
+  ==================================== 31 passed in 3.13s ====================================
 
 .. _sec-dco:
 
