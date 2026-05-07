@@ -37,11 +37,7 @@ static const gchar *get_openssl_err_string(void)
 	const gchar *data = NULL;
 	int errflags = 0;
 
-#if OPENSSL_VERSION_NUMBER < 0x30000000L
-	err = ERR_get_error_line_data(NULL, NULL, &data, &errflags);
-#else
 	err = ERR_get_error_all(NULL, NULL, NULL, &data, &errflags);
-#endif
 
 	return (errflags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL);
 }
