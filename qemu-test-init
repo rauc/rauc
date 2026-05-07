@@ -74,6 +74,15 @@ echo "nameserver 10.0.2.3" > /etc/resolv.conf
 
 export HOME="/root"
 
+# setup PATH
+mkdir /tmp/bin
+export PATH=/tmp/bin:$PATH
+# composefs may be a subproject
+if [ -e "$BUILD_DIR/subprojects/composefs/tools" ]; then
+  export PATH="$BUILD_DIR/subprojects/composefs/tools:$PATH"
+  export LD_LIBRARY_PATH="$BUILD_DIR/subprojects/composefs/libcomposefs:$LD_LIBRARY_PATH"
+fi
+
 # setup SSH server if requested
 if [ -n "$SSH" ]; then
   # clean up motd
@@ -87,6 +96,13 @@ if [ -n "$SSH" ]; then
   chmod 700 /root/.ssh
   cp "$(pwd)/.qemu-test-ssh-key.pub" /root/.ssh/authorized_keys
   chmod 600 /root/.ssh/authorized_keys
+
+  # setup environment
+  {
+    echo "PATH=$PATH"
+    echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+    echo "MESON_BUILD_DIR=$BUILD_DIR"
+  } >> /root/.ssh/environment
 
   # prepare sshd config
   cp "$(pwd)/.qemu-test-sshd-config" /etc/ssh/sshd_config
@@ -117,9 +133,6 @@ if type setfacl; then
   export GCOV_PREFIX=/tmp/cov
 fi
 
-mkdir /tmp/bin
-export PATH=/tmp/bin:$PATH
-
 cp test/bin/barebox-state /tmp/bin/barebox-state
 chmod +x /tmp/bin/barebox-state
 
@@ -149,12 +162,6 @@ EOF
 
 # fake entropy
 $BUILD_DIR/test/fakerand
-
-# composefs may be a subproject
-if [ -e "$BUILD_DIR/subprojects/composefs/tools" ]; then
-  export PATH="$BUILD_DIR/subprojects/composefs/tools:$PATH"
-  export LD_LIBRARY_PATH="$BUILD_DIR/subprojects/composefs/libcomposefs:$LD_LIBRARY_PATH"
-fi
 
 # rauc binary in PATH
 if [ -n "$INTERACTIVE_SHELL" ]; then
@@ -285,6 +292,10 @@ fi
 
 if python3 test/nginx_backend.py -s /tmp/backend.sock -d; then
   export RAUC_TEST_HTTP_BACKEND=1
+fi
+
+if [ -n "$SSH" ]; then
+  env | grep ^RAUC_TEST_ >> /root/.ssh/environment
 fi
 
 echo "use ctrl-a x to exit and ctrl-a c to access the qemu monitor"
