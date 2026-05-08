@@ -86,7 +86,7 @@ gchar *r_ptr_array_env_to_shell(const GPtrArray *ptrarray)
 
 	for (guint i = 0; i < ptrarray->len; i++) {
 		const gchar *element = g_ptr_array_index(ptrarray, i);
-		gchar *eq = strchr(element, '=');
+		const gchar *eq = strchr(element, '=');
 
 		if (!eq) {
 			g_error("missing '=' in '%s'", element);
@@ -113,7 +113,7 @@ gchar **r_environ_setenv_ptr_array(gchar **envp, const GPtrArray *ptrarray, gboo
 
 	for (guint i = 0; i < ptrarray->len; i++) {
 		const gchar *element = g_ptr_array_index(ptrarray, i);
-		gchar *eq = strchr(element, '=');
+		const gchar *eq = strchr(element, '=');
 
 		if (!eq) {
 			g_error("missing '=' in '%s'", element);
@@ -135,7 +135,7 @@ void r_subprocess_launcher_setenv_ptr_array(GSubprocessLauncher *launcher, const
 
 	for (guint i = 0; i < ptrarray->len; i++) {
 		const gchar *element = g_ptr_array_index(ptrarray, i);
-		gchar *eq = strchr(element, '=');
+		const gchar *eq = strchr(element, '=');
 
 		if (!eq) {
 			g_error("missing '=' in '%s'", element);
