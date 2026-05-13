@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@f94c9befffa4412c356fb5463a959ab7821dd57e # v3.31.3
+        uses: github/codeql-action/init@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
         with:
           languages: cpp
           queries: +security-and-quality
@@ -38,7 +38,7 @@ jobs:
           meson compile -C build
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@f94c9befffa4412c356fb5463a959ab7821dd57e # v3.31.3
+        uses: github/codeql-action/analyze@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
         with:
           category: "/language:cpp"
           upload: false
@@ -53,7 +53,7 @@ jobs:
           output: sarif-results/cpp.sarif
 
       - name: Upload CodeQL results to code scanning
-        uses: github/codeql-action/upload-sarif@f94c9befffa4412c356fb5463a959ab7821dd57e # v3.31.3
+        uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
         with:
           sarif_file: sarif-results/cpp.sarif
           category: "/language:cpp"
