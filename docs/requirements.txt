@@ -8,15 +8,15 @@ alabaster==1.0.0
     # via sphinx
 babel==2.18.0
     # via sphinx
-certifi==2026.2.25
+certifi==2026.4.22
     # via requests
-charset-normalizer==3.4.6
+charset-normalizer==3.4.7
     # via requests
 docutils==0.22.4
     # via
     #   sphinx
     #   sphinx-rtd-theme
-idna==3.11
+idna==3.14
     # via requests
 imagesize==2.0.0
     # via sphinx
@@ -24,11 +24,11 @@ jinja2==3.1.6
     # via sphinx
 markupsafe==3.0.3
     # via jinja2
-packaging==26.0
+packaging==26.2
     # via sphinx
 pygments==2.20.0
     # via sphinx
-requests==2.33.1
+requests==2.34.0
     # via sphinx
 roman-numerals==4.1.0
     # via sphinx
@@ -58,5 +58,5 @@ sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
 sphinxext-opengraph==0.13.0
     # via -r requirements.in
-urllib3==2.6.3
+urllib3==2.7.0
     # via requests
