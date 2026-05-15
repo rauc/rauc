@@ -21,8 +21,8 @@ Release 1.16 (development)
     Depending on the feedback, we may need to change behaviour in ways that require
     corresponding changes to your ``system.conf``.
     So, try it out and report back `using GitHub discussions
-    <https://github.com/rauc/rauc/discussions/categories/general>`_ or
-    in the `Matrix/IRC chat channel <https://matrix.to/#/#rauc:matrix.org>`_, but
+    <https://github.com/rauc/rauc/discussions/categories/general>`__ or
+    in the `Matrix/IRC chat channel <https://matrix.to/#/#rauc:matrix.org>`__, but
     don't rely on it for products yet.
     We intend to stabilize this feature as soon as we have confidence that the
     common use cases work well.
@@ -333,8 +333,8 @@ Release 1.13 (released Jan 22, 2025)
     Depending on the feedback, we may need to change behaviour in ways that are
     not backwards compatible.
     So, try it out and report back `using GitHub discussions
-    <https://github.com/rauc/rauc/discussions/categories/artifact-updates>`_ or
-    in the `Matrix/IRC chat channel <https://matrix.to/#/#rauc:matrix.org>`_, but
+    <https://github.com/rauc/rauc/discussions/categories/artifact-updates>`__ or
+    in the `Matrix/IRC chat channel <https://matrix.to/#/#rauc:matrix.org>`__, but
     don't rely on it for products yet.
     We intend to stabilize this feature as soon as we have confidence that the
     common use cases work well.
