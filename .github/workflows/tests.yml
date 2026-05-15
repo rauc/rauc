@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/jluebbe/qemu/rauc-ci-qemu:latest
+      image: ghcr.io/rauc/rauc/rauc-ci:trixie
       # allow mounting and devtmpfs in the container
       options: --user=root --privileged -v /dev:/dev
     steps:
@@ -111,7 +111,7 @@ jobs:
 
     - name: Prepare ${{ matrix.architecture }} container
       run: |
-        podman run --name cross -di --platform linux/${{ matrix.architecture }} --userns=keep-id:uid=1000,gid=1000 -v "$PWD":/home -w /home ghcr.io/rauc/rauc/rauc-ci:latest bash
+        podman run --name cross -di --platform linux/${{ matrix.architecture }} --userns=keep-id:uid=1000,gid=1000 -v "$PWD":/home -w /home ghcr.io/rauc/rauc/rauc-ci:trixie bash
         podman logs cross
         podman exec -i cross uname -a
         podman exec -i cross id
