@@ -288,13 +288,16 @@ gchar * key_file_consume_string(
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
- * Ensure that the input string contains neither whitespace nor tab.
+ * Ensure that the input string contains no whitespace.
+ *
+ * Whitespace is checked using g_ascii_isspace (i.e. space, tab, CR, LF,
+ * VT, FF).
  *
  * @param str string to check.
  *
- * @return TRUE if str contains neither whitespace nor tab, FALSE otherwise
+ * @return TRUE if str contains no whitespace, FALSE otherwise
  */
-gboolean value_check_tab_whitespace(const gchar *str, GError **error)
+gboolean value_check_whitespace(const gchar *str, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**

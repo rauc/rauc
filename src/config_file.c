@@ -1011,8 +1011,8 @@ static GHashTable *parse_slots(const char *filename, RaucConfig *c, GKeyFile *ke
 
 			slot->bootname = value;
 			if (slot->bootname) {
-				/* Ensure that the bootname does not contain whitespace or tab */
-				if (!value_check_tab_whitespace(value, &ierror)) {
+				/* Ensure that the bootname does not contain whitespace */
+				if (!value_check_whitespace(value, &ierror)) {
 					g_propagate_prefixed_error(error, ierror,
 							"Invalid bootname for slot %s: ", slot->name);
 					return NULL;
