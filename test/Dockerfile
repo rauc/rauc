@@ -1,8 +1,4 @@
-FROM debian:bookworm
-
-# Add backports for pkcs11-provider
-RUN echo "deb http://deb.debian.org/debian bookworm-backports main" \
-  > /etc/apt/sources.list.d/backports.list
+FROM debian:trixie
 
 # Required for building
 RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
@@ -30,6 +26,7 @@ RUN apt-get install -q -y --no-install-recommends \
   acl \
   squashfs-tools \
   dosfstools \
+  e2fsprogs \
   lcov \
   slirp \
   python3-pyasn1 \
@@ -48,7 +45,6 @@ RUN apt-get install -q -y --no-install-recommends \
   pkcs11-provider \
   fakeroot \
   faketime \
-  pseudo \
   time \
   tree \
   kmod \
