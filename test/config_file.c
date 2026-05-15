@@ -701,7 +701,7 @@ bootname=the\tslot\n";
 
 	g_assert_false(load_config(pathname, &config, &ierror));
 	g_assert_error(ierror, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE);
-	g_assert_cmpstr(ierror->message, ==, "Invalid bootname for slot rootfs.0: The value 'the\tslot' can not contain tab or whitespace characters");
+	g_assert_cmpstr(ierror->message, ==, "Invalid bootname for slot rootfs.0: The value 'the\tslot' must not contain whitespace characters");
 	g_clear_error(&ierror);
 }
 
