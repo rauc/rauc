@@ -2,6 +2,9 @@ name: style check
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   style:
     runs-on: ubuntu-latest

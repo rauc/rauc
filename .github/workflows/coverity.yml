@@ -5,6 +5,9 @@ on:
   schedule:
   - cron: "30 12 */2 * *"
 
+permissions:
+  contents: read
+
 jobs:
   coverity:
     runs-on: ubuntu-latest

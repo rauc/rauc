@@ -2,6 +2,9 @@ name: sanitizers
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   address:
     runs-on: ubuntu-latest

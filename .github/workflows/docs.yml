@@ -2,6 +2,9 @@ name: documentation
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   docs:
     runs-on: ubuntu-latest
