@@ -11,7 +11,6 @@
 #include "install.h"
 #include "manifest.h"
 #include "mark.h"
-#include "nbd.h"
 #include "rauc-installer-generated.h"
 #include "service.h"
 #include "status_file.h"

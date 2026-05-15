@@ -8,7 +8,6 @@
 #include "event_log.h"
 #include "install.h"
 #include "manifest.h"
-#include "mount.h"
 #include "slot.h"
 #include "utils.h"
 #include "polling.h"
