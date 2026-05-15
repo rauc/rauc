@@ -68,6 +68,7 @@ RUN apt-get install -q -y --no-install-recommends \
   sudo \
   python3-pip \
   git \
+  gpg \
   curl && \
   curl -sLo /usr/bin/codecov https://codecov.io/bash && \
   chmod +x /usr/bin/codecov
