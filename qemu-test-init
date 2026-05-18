@@ -172,17 +172,26 @@ cat /proc/mtd
 
 if [ -c /dev/mtd0 ] && type flashcp; then
   export RAUC_TEST_MTD_NOR=/dev/mtd0
+  if type mtdpart; then
+    mtdpart add /dev/mtd0 boot-primary 0x0 0x100000
+    mtdpart add /dev/mtd0 boot-secondary 0x100000 0x100000
+    MTD_PRI="/dev/$(grep '"boot-primary"' /proc/mtd | awk -F: '{print $1}')"
+    MTD_SEC="/dev/$(grep '"boot-secondary"' /proc/mtd | awk -F: '{print $1}')"
+    export RAUC_TEST_MTD_FALLBACK="$MTD_PRI;$MTD_SEC"
+  fi
 fi
 
-if [ -c /dev/mtd2 ] && type flash_erase; then
-  export RAUC_TEST_MTD_NAND=/dev/mtd2
-fi
-
-if [ -c /dev/mtd3 ] && type ubiattach; then
-  ubiattach -m 3 -d 0
-  ubimkvol /dev/ubi0 -s 12096KiB -N rauc-test
-  export RAUC_TEST_MTD_UBI=/dev/ubi0
-  export RAUC_TEST_MTD_UBIVOL=/dev/ubi0_0
+if [ -c /dev/mtd2 ]; then
+  if type flash_erase; then
+    export RAUC_TEST_MTD_NAND=/dev/mtd2
+    export RAUC_TEST_MTD_NAND_FALLBACK="/dev/mtd2;/dev/mtd3"
+  fi
+  if type ubiattach; then
+    ubiattach -m 4 -d 0
+    ubimkvol /dev/ubi0 -s 12096KiB -N rauc-test
+    export RAUC_TEST_MTD_UBI=/dev/ubi0
+    export RAUC_TEST_MTD_UBIVOL=/dev/ubi0_0
+  fi
 fi
 
 if [ -b /dev/mmcblk0 ] && type mmc; then
