@@ -12,11 +12,13 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   build:
     runs-on: ubuntu-24.04
+    permissions:
+      # needed for container push
+      packages: write
     steps:
     - name: Install QEMU
       run: |
