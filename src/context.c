@@ -70,6 +70,15 @@ static gchar *get_cmdline(void)
 	return contents;
 }
 
+static gchar *get_runtime_directory(void)
+{
+	const gchar *env_runtime_directory = g_getenv("RAUC_TEST_RUNTIME_DIRECTORY");
+	if (env_runtime_directory)
+		return g_strdup(env_runtime_directory);
+
+	return g_strdup("/run/rauc");
+}
+
 static gchar* get_cmdline_bootname_explicit(const gchar *cmdline)
 {
 	if (!cmdline)
@@ -338,6 +347,10 @@ static gboolean r_context_configure_target(GError **error)
 	GError *ierror = NULL;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (context->runtime_directory == NULL) {
+		context->runtime_directory = get_runtime_directory();
+	}
 
 	if (context->config->data_directory) {
 		if (g_mkdir_with_parents(context->config->data_directory, 0700) != 0) {
@@ -914,6 +927,7 @@ void r_context_clean(void)
 		g_clear_pointer(&context->boot_id, g_free);
 		g_clear_pointer(&context->machine_id, g_free);
 		g_clear_pointer(&context->cmdline, g_free);
+		g_clear_pointer(&context->runtime_directory, g_free);
 		g_clear_pointer(&context->system_serial, g_free);
 		g_clear_pointer(&context->system_version, g_free);
 		g_clear_pointer(&context->system_info, g_hash_table_destroy);

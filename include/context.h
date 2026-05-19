@@ -63,6 +63,8 @@ typedef struct {
 	gchar *machine_id;
 	/* kernel commandline (real or testing override) */
 	gchar *cmdline;
+	/* runtime direcrory (/run/rauc or testing override) */
+	gchar *runtime_directory;
 
 	gchar *system_serial;
 	gchar *system_version;
