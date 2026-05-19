@@ -2377,8 +2377,11 @@ static void create_run_links(void)
 	GHashTableIter iter;
 	RaucSlot *slot;
 
-	if (g_mkdir_with_parents("/run/rauc/slots/active", 0755) != 0) {
-		g_warning("Failed to create /run/rauc/slots/active");
+	g_autofree gchar *run_slots_active = g_build_filename(
+			r_context()->runtime_directory, "slots/active", NULL);
+
+	if (g_mkdir_with_parents(run_slots_active, 0755) != 0) {
+		g_warning("Failed to create %s", run_slots_active);
 		return;
 	}
 
@@ -2393,7 +2396,7 @@ static void create_run_links(void)
 		if (slot->state == ST_BOOTED)
 			booted_slot = slot;
 
-		path = g_build_filename("/run/rauc/slots/active", slot->sclass, NULL);
+		path = g_build_filename(run_slots_active, slot->sclass, NULL);
 
 		if (!r_update_symlink(slot->device, path, &ierror)) {
 			g_warning("Failed to create symlink for active slot: %s", ierror->message);
@@ -2403,15 +2406,18 @@ static void create_run_links(void)
 	if (!booted_slot)
 		return;
 
-	if (g_mkdir_with_parents("/run/rauc/artifacts", 0755) != 0) {
-		g_warning("Failed to create /run/rauc/artifacts");
+	g_autofree gchar *run_artifacts = g_build_filename(
+			r_context()->runtime_directory, "artifacts", NULL);
+
+	if (g_mkdir_with_parents(run_artifacts, 0755) != 0) {
+		g_warning("Failed to create %s", run_artifacts);
 		return;
 	}
 
 	g_hash_table_iter_init(&iter, r_context()->config->artifact_repos);
 	RArtifactRepo *repo;
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*)&repo)) {
-		g_autofree gchar* path = g_build_filename("/run/rauc/artifacts", repo->name, NULL);
+		g_autofree gchar* path = g_build_filename(run_artifacts, repo->name, NULL);
 		g_autofree gchar* target = NULL;
 
 		if (!repo->parent_class) {
