@@ -154,15 +154,14 @@ static gchar* get_cmdline_bootname_root(const gchar *cmdline)
 
 static gchar* get_bootname(void)
 {
-	g_autofree gchar *cmdline = get_cmdline();
 	gchar *bootname = NULL;
 	GError *ierror = NULL;
 
-	bootname = get_cmdline_bootname_explicit(cmdline);
+	bootname = get_cmdline_bootname_explicit(context->cmdline);
 	if (bootname)
 		return bootname;
 
-	bootname = r_boot_get_current_bootname(context->config, cmdline, &ierror);
+	bootname = r_boot_get_current_bootname(context->config, context->cmdline, &ierror);
 	if (ierror) {
 		g_message("Failed to get bootname: %s", ierror->message);
 		g_clear_error(&ierror);
@@ -170,7 +169,7 @@ static gchar* get_bootname(void)
 	if (bootname)
 		return bootname;
 
-	bootname = get_cmdline_bootname_root(cmdline);
+	bootname = get_cmdline_bootname_root(context->cmdline);
 
 	return bootname;
 }
@@ -401,6 +400,10 @@ static gboolean r_context_configure_target(GError **error)
 
 	if (r_whitespace_removed(context->config->system_variant))
 		g_warning("Ignoring surrounding whitespace in system variant: %s", context->config->system_variant);
+
+	if (context->cmdline == NULL) {
+		context->cmdline = get_cmdline();
+	}
 
 	if (context->bootslot == NULL) {
 		context->bootslot = get_bootname();
@@ -906,6 +909,7 @@ void r_context_clean(void)
 		g_clear_pointer(&context->bootslot, g_free);
 		g_clear_pointer(&context->boot_id, g_free);
 		g_clear_pointer(&context->machine_id, g_free);
+		g_clear_pointer(&context->cmdline, g_free);
 		g_clear_pointer(&context->system_serial, g_free);
 		g_clear_pointer(&context->system_version, g_free);
 		g_clear_pointer(&context->system_info, g_hash_table_destroy);
