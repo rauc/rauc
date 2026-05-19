@@ -58,6 +58,10 @@ static gchar *get_cmdline(void)
 	if (context->mock.proc_cmdline)
 		return g_strdup(context->mock.proc_cmdline);
 
+	const gchar *env_cmdline = g_getenv("RAUC_TEST_CMDLINE");
+	if (env_cmdline)
+		return g_strdup(env_cmdline);
+
 	if (!g_file_get_contents("/proc/cmdline", &contents, NULL, &ierror)) {
 		g_warning("Failed to get kernel cmdline: %s", ierror->message);
 		return NULL;
