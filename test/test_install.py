@@ -11,12 +11,12 @@ from helper import slot_data_from_json
 pytestmark = root
 
 
-def test_install(rauc_dbus_service_with_system, tmp_path):
+def test_install(rauc_dbus_service_with_system, tmp_path, system):
     assert os.path.exists(tmp_path / "images/rootfs-1")
     assert not os.path.getsize(tmp_path / "images/rootfs-1") > 0
-    assert os.path.isdir("/run/rauc/slots/active")
-    assert os.path.islink("/run/rauc/slots/active/rootfs")
-    assert os.readlink("/run/rauc/slots/active/rootfs")
+    assert os.path.isdir(system.run_dir / "slots/active")
+    assert os.path.islink(system.run_dir / "slots/active/rootfs")
+    assert os.readlink(system.run_dir / "slots/active/rootfs")
 
     out, err, exitcode = run("rauc status --output-format=json-pretty")
     assert exitcode == 0

@@ -522,6 +522,7 @@ class System:
         self.tmp_path = tmp_path
         self.output = tmp_path / "system.conf"
         self.data_dir = tmp_path / "data_dir"
+        self.run_dir = tmp_path / "run_dir"
 
         self.config = ConfigParser()
         self.config["system"] = {
@@ -633,6 +634,7 @@ class System:
 
         env = os.environ.copy()
         env["RAUC_PYTEST_TMP"] = str(self.tmp_path)
+        env["RAUC_TEST_RUNTIME_DIRECTORY"] = str(self.run_dir)
         if polling_speedup:
             env["RAUC_TEST_POLLING_SPEEDUP"] = f"{polling_speedup}"
         if extra_env:

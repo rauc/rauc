@@ -345,7 +345,7 @@ def do_install_composefs(tmp_path, name, repo_name, artifact_name, artifact_cont
     bundle.output.unlink()
 
 
-def test_file_install(rauc_dbus_service_with_system, tmp_path):
+def test_file_install(rauc_dbus_service_with_system, tmp_path, system):
     status = get_status()
     assert set(status.repos.keys()) == {"files", "trees"}
     assert set(status.repos["files"].artifacts) == set()
@@ -364,7 +364,7 @@ def test_file_install(rauc_dbus_service_with_system, tmp_path):
     assert artifact_path.is_symlink()
     with open(artifact_path, "rb") as f:
         assert f.read() == data_a
-    assert artifact_path.samefile(Path("/run/rauc/artifacts/files/artifact-1"))
+    assert artifact_path.samefile(system.run_dir / "artifacts/files/artifact-1")
 
     # update one file artifact and check result
     data_b = b"content-b"
@@ -380,7 +380,7 @@ def test_file_install(rauc_dbus_service_with_system, tmp_path):
     assert artifact_path.is_symlink()
     with open(artifact_path, "rb") as f:
         assert f.read() == data_b
-    assert artifact_path.samefile(Path("/run/rauc/artifacts/files/artifact-1"))
+    assert artifact_path.samefile(system.run_dir / "artifacts/files/artifact-1")
 
     # install a different file artifact and check result
     data_c = b"content-c"
@@ -396,10 +396,10 @@ def test_file_install(rauc_dbus_service_with_system, tmp_path):
     assert artifact_path.is_symlink()
     with open(artifact_path, "rb") as f:
         assert f.read() == data_c
-    assert artifact_path.samefile(Path("/run/rauc/artifacts/files/artifact-2"))
+    assert artifact_path.samefile(system.run_dir / "artifacts/files/artifact-2")
     artifact_path = repo.path / "artifact-1"
     assert not artifact_path.exists()
-    assert not Path("/run/rauc/artifacts/trees/artifact-1").exists()
+    assert not (system.run_dir / "artifacts/trees/artifact-1").exists()
 
     # test status output in shell format
     out, err, exitcode = run("rauc status --output-format=shell")
@@ -420,7 +420,7 @@ def test_file_install(rauc_dbus_service_with_system, tmp_path):
     assert "  type: files" in out
 
 
-def test_tree_install(rauc_dbus_service_with_system, tmp_path):
+def test_tree_install(rauc_dbus_service_with_system, tmp_path, system):
     status = get_status()
     assert set(status.repos.keys()) == {"files", "trees"}
     assert set(status.repos["files"].artifacts) == set()
@@ -438,7 +438,7 @@ def test_tree_install(rauc_dbus_service_with_system, tmp_path):
     assert artifact_path.is_symlink()
     with open(artifact_path / "file-a", "rb") as f:
         assert f.read() == data_a
-    assert artifact_path.samefile(Path("/run/rauc/artifacts/trees/artifact-1"))
+    assert artifact_path.samefile(system.run_dir / "artifacts/trees/artifact-1")
 
     # update one tree artifact and check result
     data_b = b"content-b"
@@ -455,7 +455,7 @@ def test_tree_install(rauc_dbus_service_with_system, tmp_path):
         assert f.read() == data_b
     # old file must be gone
     assert not (artifact_path / "file-a").exists()
-    assert artifact_path.samefile(Path("/run/rauc/artifacts/trees/artifact-1"))
+    assert artifact_path.samefile(system.run_dir / "artifacts/trees/artifact-1")
 
     # install a different tree artifact and check result
     data_c = b"content-c"
@@ -470,13 +470,13 @@ def test_tree_install(rauc_dbus_service_with_system, tmp_path):
     assert artifact_path.is_symlink()
     with open(artifact_path / "file-a", "rb") as f:
         assert f.read() == data_c
-    assert artifact_path.samefile(Path("/run/rauc/artifacts/trees/artifact-2"))
+    assert artifact_path.samefile(system.run_dir / "artifacts/trees/artifact-2")
     artifact_path = repo.path / "artifact-1"
     assert not artifact_path.exists()
-    assert not Path("/run/rauc/artifacts/trees/artifact-1").exists()
+    assert not (system.run_dir / "artifacts/trees/artifact-1").exists()
 
 
-def test_install_keep_other(rauc_dbus_service_with_system, tmp_path):
+def test_install_keep_other(rauc_dbus_service_with_system, tmp_path, system):
     """
     When we install to one repo, artifacts in other repos should not be
     removed.
@@ -499,7 +499,7 @@ def test_install_keep_other(rauc_dbus_service_with_system, tmp_path):
     assert artifact_path.is_symlink()
     with open(artifact_path, "rb") as f:
         assert f.read() == data_a
-    assert artifact_path.samefile(Path("/run/rauc/artifacts/files/artifact-1"))
+    assert artifact_path.samefile(system.run_dir / "artifacts/files/artifact-1")
 
     # install one tree artifact and check result
     data_b = b"content-b"
@@ -513,7 +513,7 @@ def test_install_keep_other(rauc_dbus_service_with_system, tmp_path):
     assert artifact_path.is_symlink()
     with open(artifact_path / "file-a", "rb") as f:
         assert f.read() == data_b
-    assert artifact_path.samefile(Path("/run/rauc/artifacts/trees/artifact-1"))
+    assert artifact_path.samefile(system.run_dir / "artifacts/trees/artifact-1")
 
     # the file artifact should not be removed
     repo = status.repos["files"]
@@ -521,10 +521,10 @@ def test_install_keep_other(rauc_dbus_service_with_system, tmp_path):
 
     artifact_path = repo.path / "artifact-1"
     assert artifact_path.is_symlink()
-    assert artifact_path.samefile(Path("/run/rauc/artifacts/files/artifact-1"))
+    assert artifact_path.samefile(system.run_dir / "artifacts/files/artifact-1")
 
 
-def test_tree_in_use(rauc_dbus_service_with_system, tmp_path):
+def test_tree_in_use(rauc_dbus_service_with_system, tmp_path, system):
     status = get_status()
     assert set(status.repos.keys()) == {"files", "trees"}
     assert set(status.repos["files"].artifacts) == set()
@@ -542,7 +542,7 @@ def test_tree_in_use(rauc_dbus_service_with_system, tmp_path):
     assert artifact_path.is_symlink()
     with open(artifact_path / "file-a", "rb") as f:
         assert f.read() == data_a
-    assert artifact_path.samefile(Path("/run/rauc/artifacts/trees/artifact-1"))
+    assert artifact_path.samefile(system.run_dir / "artifacts/trees/artifact-1")
 
     # open a file from this artifact and remember the full path
     active_file_path = (artifact_path / "file-a").resolve()
@@ -564,7 +564,7 @@ def test_tree_in_use(rauc_dbus_service_with_system, tmp_path):
         assert f.read() == data_b
     # old file must be gone
     assert not (artifact_path / "file-a").exists()
-    assert artifact_path.samefile(Path("/run/rauc/artifacts/trees/artifact-2"))
+    assert artifact_path.samefile(system.run_dir / "artifacts/trees/artifact-2")
 
     active_file.close()
     with open(active_file_path, "rb") as f:
@@ -572,7 +572,7 @@ def test_tree_in_use(rauc_dbus_service_with_system, tmp_path):
 
 
 @needs_composefs
-def test_composefs_install(rauc_dbus_service_with_system_composefs, tmp_path):
+def test_composefs_install(rauc_dbus_service_with_system_composefs, tmp_path, system):
     status = get_status()
     assert "composefs" in status.repos
     assert set(status.repos["composefs"].artifacts) == set()
@@ -592,7 +592,7 @@ def test_composefs_install(rauc_dbus_service_with_system_composefs, tmp_path):
         run_tree(mount_path)
         with open(mount_path / "file-a", "rb") as f:
             assert f.read() == data_a
-    assert artifact_path.samefile(Path("/run/rauc/artifacts/composefs/artifact-1"))
+    assert artifact_path.samefile(system.run_dir / "artifacts/composefs/artifact-1")
 
     # update one composefs artifact and check result
     data_b = b"content-b" * 1024
@@ -611,7 +611,7 @@ def test_composefs_install(rauc_dbus_service_with_system_composefs, tmp_path):
             assert f.read() == data_b
     # old file must be gone
     assert not (artifact_path / "file-a").exists()
-    assert artifact_path.samefile(Path("/run/rauc/artifacts/composefs/artifact-1"))
+    assert artifact_path.samefile(system.run_dir / "artifacts/composefs/artifact-1")
 
     # install a different composefs artifact and check result
     data_c = b"content-c" * 1024
@@ -640,7 +640,7 @@ def test_composefs_install(rauc_dbus_service_with_system_composefs, tmp_path):
         run_tree(mount_path)
         with open(mount_path / "file-a", "rb") as f:
             assert f.read() == data_c
-    assert artifact_path.samefile(Path("/run/rauc/artifacts/composefs/artifact-2"))
+    assert artifact_path.samefile(system.run_dir / "artifacts/composefs/artifact-2")
     artifact_path = repo.path / "artifact-1"
     assert not artifact_path.exists()
-    assert not Path("/run/rauc/artifacts/composefs/artifact-1").exists()
+    assert not (system.run_dir / "artifacts/composefs/artifact-1").exists()
