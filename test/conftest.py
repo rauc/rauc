@@ -535,6 +535,22 @@ class System:
         self.service = None
         self.proxy = None
 
+        self.env_kernel_cmdline = None
+
+    @property
+    def env(self):
+        env = {
+            "RAUC_TEST_RUNTIME_DIRECTORY": str(self.run_dir),
+        }
+
+        if self.env_kernel_cmdline:
+            env["RAUC_TEST_CMDLINE"] = str(self.env_kernel_cmdline)
+
+        return env
+
+    def run(self, command, *, timeout=30):
+        return run(f"{self.prefix} {command}", timeout=timeout, extra_env=self.env)
+
     def prepare_minimal_config(self):
         self.config["system"] = {
             "compatible": "Test Config",
@@ -633,8 +649,8 @@ class System:
         assert self.proxy is None
 
         env = os.environ.copy()
+        env.update(self.env)
         env["RAUC_PYTEST_TMP"] = str(self.tmp_path)
-        env["RAUC_TEST_RUNTIME_DIRECTORY"] = str(self.run_dir)
         if polling_speedup:
             env["RAUC_TEST_POLLING_SPEEDUP"] = f"{polling_speedup}"
         if extra_env:
