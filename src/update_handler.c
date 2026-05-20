@@ -1185,9 +1185,10 @@ static gboolean nor_write_slot(const gchar *image, const gchar *device, GError *
 {
 	GError *ierror = NULL;
 	gboolean res = FALSE;
-	g_autoptr(GPtrArray) args = g_ptr_array_new_full(5, g_free);
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(6, g_free);
 
 	g_ptr_array_add(args, g_strdup("flashcp"));
+	g_ptr_array_add(args, g_strdup("--erase-all"));
 	g_ptr_array_add(args, g_strdup(image));
 	g_ptr_array_add(args, g_strdup(device));
 	g_ptr_array_add(args, NULL);
@@ -1963,13 +1964,6 @@ static gboolean img_to_nor_handler(RaucImage *image, RaucSlot *dest_slot, const 
 			g_propagate_error(error, ierror);
 			return FALSE;
 		}
-	}
-
-	/* erase */
-	g_message("erasing slot device %s", dest_slot->device);
-	if (!flash_format_slot(dest_slot->device, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
 	}
 
 	/* write */
