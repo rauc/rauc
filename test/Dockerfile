@@ -1,18 +1,25 @@
 FROM debian:trixie
 
+# Add backports for curl with https://github.com/curl/curl/commit/17f2a220a99db30bacd66df4df677dfb0a18b405
+RUN echo "deb http://deb.debian.org/debian trixie-backports main" \
+  > /etc/apt/sources.list.d/backports.list
+
 # Required for building
-RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
+RUN apt-get update -q && \
+  apt-get install -q -y --no-install-recommends \
   gcc \
   g++ \
   meson \
   libtool \
   libglib2.0-dev \
-  libcurl3-dev \
   libssl-dev \
   libdbus-1-dev \
   libjson-glib-dev \
   libfdisk-dev \
-  libnl-genl-3-dev
+  libnl-genl-3-dev && \
+  apt-get install -q -y --no-install-recommends -t trixie-backports \
+  curl \
+  libcurl4-openssl-dev
 
 # Required for building the cgi example
 RUN apt-get install -q -y --no-install-recommends \
