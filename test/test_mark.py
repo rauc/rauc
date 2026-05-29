@@ -275,9 +275,9 @@ def create_efi_system_config(system, blk_dev_partitions, *, configure_efi_entry=
 
     if configure_efi_entry:
         system.config["slot.rootfs.0"]["efi-loader"] = r"\\EFI\\BOOT\\BOOTX64.EFI"
-        system.config["slot.rootfs.0"]["efi-cmdline"] = "@1"
+        system.config["slot.rootfs.0"]["efi-cmdline"] = r"@1\s"
         system.config["slot.rootfs.1"]["efi-loader"] = r"\\EFI\\BOOT\\BOOTX64.EFI"
-        system.config["slot.rootfs.1"]["efi-cmdline"] = "@2"
+        system.config["slot.rootfs.1"]["efi-cmdline"] = r"@2\s"
 
     system.write_config()
 
