@@ -1321,8 +1321,8 @@ partition.
    ``efi-cmdline`` or efibootmgr's ``--unicode``) can point to a
    `UKI profile
    <https://uapi-group.org/specifications/specs/unified_kernel_image/#multi-profile-ukis>`_
-   (e.g. ``@1``) defining the corresponding ``root=`` and ``rauc.slot=`` kernel
-   command line parameters.
+   (e.g. ``@1\s`` in RAUC's system configuration) defining the corresponding
+   ``root=`` and ``rauc.slot=`` kernel command line parameters.
 
 You can inspect and verify your settings by running:
 
