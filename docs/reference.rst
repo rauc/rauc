@@ -1656,6 +1656,10 @@ variables.
   Path to the chosen system configuration file (e.g. ``/usr/lib/rauc/system.conf``
   if not overridden by a file in ``/etc`` or ``/run``)
 
+``RAUC_SYSTEM_COMPATIBLE``
+  The compatible value set in the system configuration file,
+  e.g. ``"My First Product"``
+
 ``RAUC_SYSTEM_VARIANT``
   The system's variant as obtained by the variant source
   (refer :ref:`sec-variants`)
