@@ -890,44 +890,58 @@ If needed, this could be implemented in a web application or using a reflink-cap
 Data Storage and Migration
 --------------------------
 
-Most systems require a location for storing configuration data such as
-passwords, ssh keys or application data.
-When performing an update, you have to ensure that the updated system takes
-over or can access the data of the old system.
+Most systems require one or multiple locations for storing persistent data such
+as application configuration, user settings or runtime state.
+When performing an update, you have to ensure that the updated system can
+take over or access the data from the previous installation.
+
+Persistent data can be stored in different ways:
+
+* directly inside the root file system,
+* on separate shared data partitions, or
+* on redundant data partitions.
+
+.. image:: images/data_migration.svg
+  :width: 600
+  :align: center
+
+Each approach has different implications for update and fallback handling,
+as discussed in the following sections.
 
 Storing Data in The Root File System
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In case of a writable root file system, it often contains additional data,
-for example cryptographic material specific to the machine, or configuration
-files modified by the user.
+In a typical Linux system, configuration data is stored under standard paths
+such as ``/etc``, which are part of the root file system by default.
+If the root file system is writable, it can directly hold persistent data.
 When performing the update, you have to ensure that the files you need to
 preserve are copied to the target slot after having written
 the system data to it.
 
-RAUC provides support for executing *hooks* from different slot installation
-stages.
-For migrating data from your old rootfs to your updated rootfs,
-simply specify a slot post-install hook.
-Read the :ref:`Hooks <sec-hooks>` chapter on how to create one.
+See :ref:`sec-data-migration-rootfs` for information migrating data in the rootfs.
+
+However, there are several reasons why you may not want to or cannot store
+your data inside the root file system:
+
+* You want to keep your rootfs read-only to reduce the probability of
+  corrupting it.
+* Your rootfs is non-writable by design, for example when using SquashFS or
+  dm-verity.
+* You want to keep your data separated from the rootfs to ease setup, reset
+  or recovery.
+
+In these cases, a separate data partition is useful.
 
 Using Data Partitions
 ~~~~~~~~~~~~~~~~~~~~~
 
-Often, there are a couple of reasons why you don't want to or cannot store
-your data inside the root file system:
+A separate data partition provides a dedicated, independent storage location
+for your persistent data outside the rootfs image.
 
-* You want to keep your rootfs read-only to reduce probability of corrupting it.
-* You have a non-writable rootfs such as SquashFS.
-* You want to keep your data separated from the rootfs to ease setup, reset or
-  recovery.
-
-In this case you need a separate storage location for your data on a different
-partition, volume or device.
-
-If the update concept uses full redundant root file systems,
-there are also good reasons for using a redundant data storage, too.
-Read below about the possible impact on data migration.
+While a single data partition is the simplest setup, using redundant data
+partitions, one per rootfs slot, can be preferable when data migration and
+fallback behaviour are a concern.
+Read :ref:`below <sec-data-migration>` about the possible impact on data migration.
 
 To let your system access the separate storage location, it has to be mounted
 into your rootfs.
@@ -936,63 +950,44 @@ partition, you have to map the default Linux paths (such as ``/etc/passwd``) to
 your data storage.
 You can do this by using:
 
- * symbolic links
- * bind mounts
- * an overlay file system
+* symbolic links
+* bind mounts
+* an overlay file system
 
 It depends on the amount and type of data you want to handle which option you
 should choose.
 
-Application Data Migration
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Mounting Redundant Data Partitions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. image:: images/data_migration.svg
-  :width: 600
-  :align: center
-
-Both a single and a redundant data storage have their advantages and
-disadvantages.
-Note when storing data inside your rootfs you will have a redundant setup by
-design and cannot choose.
-
-
-The decision about how to set up a configuration storage and how to handle it
-depends on several aspects:
-
-* May configuration formats change over different application versions?
-* Can a new application read (and convert) old data?
-* Does your infrastructure allow working on possibly obsolete data?
-* Enough storage to store data redundantly?
-* ...
-
-The basic advantages and disadvantages a single or a redundant setup implicate
-are listed below:
-
-+-----------+--------------------------+---------------------------+
-|           | Single Data              | Redundant Data            |
-+===========+==========================+===========================+
-| Setup     | easy                     | assure using correct one  |
-+-----------+--------------------------+---------------------------+
-| Migration | no backup by default     | copy on update, migrate   |
-+-----------+--------------------------+---------------------------+
-| Fallback  | tricky (reconvert data?) | easy (old data!)          |
-+-----------+--------------------------+---------------------------+
-
-Managing a ``/dev/data`` Symbolic Link
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-For redundant data partitions the active rootfs slot has to mount the correct
+For redundant data partitions, the active rootfs slot has to mount the correct
 data partition dynamically.
-For example with ubifs, a udev rule set can be used for this::
+
+When RAUC starts, it :ref:`automatically creates symlinks <sec-run-links>`
+under ``/run/rauc/slots/active/``, pointing to the devices of all slots in the
+currently active slot group.
+If the system starts RAUC early enough, these symlinks can be used for
+mounting.
+For example, for a slot class named data, the symlink
+``/run/rauc/slots/active/data`` will point to the corresponding device and can
+be used as a mount source.
+
+.. rubric:: Using udev to Manage a ``/dev/data`` Symbolic Link
+
+Alternatively, a udev rule can be used to create a ``/dev/data`` symlink
+pointing to the active data partition.
+
+For example with ubifs, this udev rule set can be used::
 
   KERNEL=="ubi[0-9]_[0-9]", PROGRAM="/usr/bin/is-parent-active %k", RESULT=="1", SYMLINK+="data"
 
-This example first determines if ubiX_Y is a data slot with an active parent
+This example first determines if ``ubiX_Y`` is a data slot with an active parent
 rootfs slot by calling the script below.
-Then, the current ubiX_Y partition is bound to /dev/data if the script
+Then, the current ``ubiX_Y`` partition is bound to ``/dev/data`` if the script
 returned ``1`` as its output.
+``/usr/bin/is-parent-active`` is a simple bash script:
 
-``/usr/bin/is-parent-active`` is a simple bash script::
+.. code-block:: sh
 
   #!/bin/bash
 
@@ -1006,6 +1001,148 @@ returned ``1`` as its output.
   fi
 
 With this you can always mount ``/dev/data`` and get the correct data slot.
+
+.. _sec-data-migration:
+
+(Application) Data Migration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When performing an update, if and how data needs to be migrated depends on how it
+is stored and whether the data format changes between versions.
+
+The decision about how to set up a configuration storage and how to handle it
+depends on several aspects:
+
+* May configuration formats change over different application versions?
+* Can a new application read (and convert) old data?
+* Does your infrastructure allow working on possibly obsolete data?
+* Is there enough storage to store data redundantly?
+
+The table below compares the basic trade-offs between a single and a redundant
+data storage setup:
+
++-----------+--------------------------+---------------------------+
+|           | Single Data              | Redundant Data            |
++===========+==========================+===========================+
+| Setup     | easy                     | assure using correct one  |
++-----------+--------------------------+---------------------------+
+| Migration | no backup by default     | copy on update, migrate   |
++-----------+--------------------------+---------------------------+
+| Fallback  | tricky (reconvert data?) | easy (old data!)          |
++-----------+--------------------------+---------------------------+
+
+While RAUC does not handle data migration directly, it provides hooks that
+can be used to implement it in the bundle (or handlers for a system-defined
+handling).
+Note that in many cases, migration of application data is best handled by
+the application itself on first boot after the update.
+
+.. _sec-data-migration-rootfs:
+
+Migrating Root File System Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For migrating data from the current rootfs to the updated rootfs,
+you can use a *post-install* :ref:`slot hook <sec-slot-hooks>` for your rootfs
+slot class.
+
+.. code-block:: cfg
+
+   [image.data]
+   filename=rootfs.img
+   hooks=post-install
+
+.. note:: This requires a rootfs slot type which can be mounted read-write
+   (e.g. ext4).
+
+The hook will run after the new rootfs image has been written to the target
+slot, with the target slot mounted.
+This allows copying relevant files from the currently active rootfs into the
+new slot before the system reboots into it.
+
+A simplified hook shell script code could look as follows:
+
+.. code-block:: sh
+
+   case "$1" in
+
+           [...]
+
+           slot-post-install)
+                   # only the rootfs slots should be handled
+                   test "$RAUC_SLOT_CLASS" = "rootfs" || exit 1
+
+                   mkdir -p "$RAUC_SLOT_MOUNT_POINT/etc/"
+
+                   echo "Preserving /etc/timezone"
+                   cp -a /etc/timezone "$RAUC_SLOT_MOUNT_POINT/etc/"
+                   echo "Preserving /etc/passwd and /etc/shadow"
+                   cp -a /etc/passwd "$RAUC_SLOT_MOUNT_POINT/etc/"
+                   cp -a /etc/shadow "$RAUC_SLOT_MOUNT_POINT/etc/"
+                   ;;
+
+           [...]
+   esac
+
+Migration for Redundant Data Partitions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Data migration between redundant data partitions is highly
+application-specific, as it depends on the data format and whether conversion
+between versions is needed.
+Therefore, RAUC does not provide a built-in mechanism for this, but offers the
+necessary primitives to implement it via slot hooks.
+
+You'll need to describe the partitions as slots with a mountable file system:
+
+.. code-block:: cfg
+
+   [slot.data.0]
+   type=ext4
+   ...
+
+   [slot.data.1]
+   type=ext4
+   ...
+
+The manifest should then specify ``type=empty-fs``,
+which will make RAUC format the target slot depending on its slot type
+(only ext4 is supported for now).
+Conceptually, RAUC behaves just as if the bundle contains an empty tar archive
+for this slot.
+For the actual data copying or migration, a ``post-install`` hook must be used,
+which will be called with the target slot mounted at ``$RAUC_SLOT_MOUNT_POINT``:
+
+.. code-block:: cfg
+
+   [image.data]
+   type=empty-fs
+   hooks=post-install
+
+A simplified hook shell script code could look as follows:
+
+.. code-block:: sh
+
+   case "$1" in
+
+           [...]
+
+           slot-post-install)
+                   # only the data slots should be handled
+                   test "$RAUC_SLOT_CLASS" = "data" || exit 1
+
+                   echo "Migrating data from /data to $RAUC_SLOT_MOUNT_POINT"
+                   rsync -a --delete /data/ "$RAUC_SLOT_MOUNT_POINT/"
+                   ;;
+           [...]
+   esac
+
+.. note::
+
+   This example assumes the currently active data partition is mounted at ``/data``.
+   The ``--delete`` flag ensures the target slot is an exact mirror of the source,
+   removing any stale files left from a previous installation.
+
 
 .. _sec-adaptive-updates:
 
