@@ -30,6 +30,14 @@ gboolean r_polling_setup(GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
+ * Clear stale polling request/cache/error state after an accepted config reload.
+ *
+ * This preserves reboot and installation state and reschedules the next poll
+ * using the current polling interval settings.
+ */
+void r_polling_reload(void);
+
+/**
  * Names of supported and default criteria for the configuration.
  */
 extern const gchar * const r_polling_supported_candidate_criteria[];

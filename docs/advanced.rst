@@ -637,6 +637,42 @@ As long as any of the file listed in ``inhibit-files`` exist, no polling or
 installation is started.
 Note that a running poll or installation is not aborted.
 
+.. _sec-polling-runtime-reload:
+
+Runtime Reload with SIGHUP
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When RAUC runs in service mode and polling was enabled when the service
+started, sending ``SIGHUP`` to the service requests a polling-only reload of
+``system.conf``.
+This can be used to update polling policy without restarting the service.
+It is only active for polling-enabled service mode; it does not provide a
+general configuration reload and does not enable polling on a service that
+started without it.
+
+The reloadable ``[polling]`` keys are ``url``, ``interval-sec``,
+``max-interval-sec``, ``inhibit-files``, ``candidate-criteria``,
+``install-criteria``, ``reboot-criteria`` and ``reboot-cmd``.
+Adding or removing the ``[polling]`` section, or adding or removing the
+required ``polling.url``, is rejected.
+Any change outside ``[polling]`` is also rejected fail-closed; this may include
+comment-only edits or section/key reordering outside ``[polling]``.
+
+If RAUC is installing when ``SIGHUP`` is received, the reload is deferred until
+the service is idle.
+An accepted reload clears cached polling bundle/status/error/backoff state and
+schedules a new initial poll with the updated interval settings.
+It does not cancel an installation and does not clear an automatic-install
+reboot that was already pending.
+
+Reload accept/reject decisions are written to the service log.
+Rejected reloads also update the shared
+:ref:`Installer.LastError <gdbus-property-de-pengutronix-rauc-Installer.LastError>`
+D-Bus property with the rejection reason, while accepted reloads clear it.
+Polling attempt errors are reported separately in
+:ref:`Poller.Status <gdbus-property-de-pengutronix-rauc-Poller.Status>` and are
+cleared by an accepted reload.
+
 To support different use-cases, the polling functionality can be used with or
 without automatic installation.
 

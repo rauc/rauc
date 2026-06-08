@@ -503,6 +503,21 @@ For more information about using the streaming support of RAUC, refer to
 ``reboot-cmd`` (optional, defaults to ``reboot``)
   Command to execute for rebooting the system after an update.
 
+Runtime Reload with SIGHUP
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When RAUC runs in service mode and polling was enabled at service startup,
+sending ``SIGHUP`` to the service reloads only the ``[polling]`` section.
+The reloadable keys are ``url``, ``interval-sec``, ``max-interval-sec``,
+``inhibit-files``, ``candidate-criteria``, ``install-criteria``,
+``reboot-criteria`` and ``reboot-cmd``.
+
+This is not a general ``system.conf`` reload: adding or removing polling at
+runtime is rejected, and any change outside the ``[polling]`` section is
+rejected fail-closed. This can include comment-only edits or reordering outside
+``[polling]``.
+See :ref:`sec-polling-runtime-reload` for the full operator contract.
+
 ``[encryption]`` Section
 ~~~~~~~~~~~~~~~~~~~~~~~~
 

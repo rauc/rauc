@@ -23,6 +23,57 @@ GMainLoop *service_loop = NULL;
 RInstaller *r_installer = NULL;
 gboolean r_service_booted_slot_is_good = FALSE;
 guint r_bus_name_id = 0;
+static gboolean polling_reload_pending = FALSE;
+static guint polling_reload_idle_id = 0;
+
+static void service_reload_polling_config(void)
+{
+	g_autoptr(GError) ierror = NULL;
+
+	/* Do not use r_context_configure() for SIGHUP reloads. That path is
+	 * whole-system configuration: it frees/rebuilds slots, keyring,
+	 * bootloader, handlers, PKI, encryption, and target context state.
+	 * Runtime SIGHUP is intentionally scoped to in-place [polling] fields.
+	 */
+	if (!r_config_reload_polling_only(&ierror)) {
+		g_warning("polling configuration reload rejected: %s", ierror->message);
+		/* SIGHUP has no reply channel, so expose the rejection via the
+		 * shared installer LastError property in addition to the log.
+		 */
+		set_last_error(ierror->message);
+		return;
+	}
+
+	r_polling_reload();
+	set_last_error("");
+	g_message("polling configuration reloaded");
+}
+
+static gboolean service_polling_reload_idle(gpointer user_data)
+{
+	polling_reload_idle_id = 0;
+
+	if (!polling_reload_pending)
+		return G_SOURCE_REMOVE;
+
+	if (r_context_get_busy()) {
+		g_debug("polling configuration reload still deferred while service is busy");
+		return G_SOURCE_REMOVE;
+	}
+
+	polling_reload_pending = FALSE;
+	service_reload_polling_config();
+
+	return G_SOURCE_REMOVE;
+}
+
+void r_service_polling_reload_deferred(void)
+{
+	if (!polling_reload_pending || polling_reload_idle_id)
+		return;
+
+	polling_reload_idle_id = g_idle_add(service_polling_reload_idle, NULL);
+}
 
 static gboolean service_install_notify(gpointer data)
 {
@@ -54,6 +105,7 @@ static gboolean service_install_cleanup(gpointer data)
 	g_mutex_unlock(&args->status_mutex);
 
 	install_args_free(args);
+	r_service_polling_reload_deferred();
 
 	return G_SOURCE_REMOVE;
 }
@@ -660,6 +712,20 @@ static gboolean r_on_signal(gpointer user_data)
 	return G_SOURCE_REMOVE;
 }
 
+static gboolean r_on_sighup(gpointer user_data)
+{
+	if (r_context_get_busy()) {
+		g_message("polling configuration reload deferred until service is idle");
+		polling_reload_pending = TRUE;
+		return G_SOURCE_CONTINUE;
+	}
+
+	polling_reload_pending = FALSE;
+	service_reload_polling_config();
+
+	return G_SOURCE_CONTINUE;
+}
+
 gboolean r_service_run(GError **error)
 {
 	GError *ierror = NULL;
@@ -671,6 +737,7 @@ gboolean r_service_run(GError **error)
 
 	service_loop = g_main_loop_new(NULL, FALSE);
 	g_unix_signal_add(SIGTERM, r_on_signal, NULL);
+	g_unix_signal_add(SIGHUP, r_on_sighup, NULL);
 
 	r_installer = r_installer_skeleton_new();
 
