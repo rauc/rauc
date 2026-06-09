@@ -172,7 +172,7 @@ jobs:
     - name: Install test dependencies
       if: ${{ matrix.test }}
       run: |
-        podman exec -e DEBIAN_FRONTEND='noninteractive' -i -u root stable apt-get install -qy python3-pytest python3-dasbus python3-aiohttp python3-requests python3-pyasn1 python3-pyasn1-modules openssl e2fsprogs grub-common faketime
+        podman exec -e DEBIAN_FRONTEND='noninteractive' -i -u root stable apt-get install -qy python3-pytest python3-dasbus python3-aiohttp python3-requests python3-pyasn1 python3-pyasn1-modules openssl e2fsprogs grub-common faketime dbus-daemon
 
     - name: Configure
       run: |
