@@ -2196,6 +2196,7 @@ OUT *slot_status_array* ``a(sa{sv})``:
 
         * ``good``: Slot is bootable by the bootloader.
         * ``bad``: Slot will not be selected by the bootloader (unbootable).
+        * ``unknown``: Slot's boot status could not be determined.
 
         Only present for bootable slots.
 
