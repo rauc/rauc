@@ -122,7 +122,7 @@ $QEMU_BIN \
   -no-reboot \
   -virtfs local,id=rootfs,path=/,security_model=none,mount_tag=/dev/root,multidevs=remap \
   $NIC_ARGS \
-  -append "loglevel=6 console=ttyS0 nandsim.id_bytes=0x20,0xa2,0x00,0x15 nandsim.parts=0x100 mtdram.total_size=32768 root=/dev/root rootfstype=9p rootflags=msize=16777216 rw init=$(pwd)/qemu-test-init rauc.slot=$BOOTNAME $*"
+  -append "loglevel=6 console=ttyS0 nandsim.id_bytes=0x20,0xa2,0x00,0x15 nandsim.parts=0x80,0x80 mtdram.total_size=32768 root=/dev/root rootfstype=9p rootflags=msize=16777216 rw init=$(pwd)/qemu-test-init rauc.slot=$BOOTNAME $*"
 
 if [ "$BACKGROUND" = "1" ]; then
   echo "QEMU started in background (PID $(cat .qemu-test-pid))"
