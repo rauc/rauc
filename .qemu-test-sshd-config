@@ -3,6 +3,7 @@ HostKey /etc/ssh/ssh_host_ed25519_key
 AuthorizedKeysFile /root/.ssh/authorized_keys
 PermitRootLogin prohibit-password
 PermitUserEnvironment yes
+AcceptEnv HOST_PWD PWD TERM
 StrictModes no
 PasswordAuthentication no
 ChallengeResponseAuthentication no

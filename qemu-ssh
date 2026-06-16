@@ -6,12 +6,15 @@
 #
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+HOST_PWD="$PWD"
+export HOST_PWD
 
 exec ssh \
   -o StrictHostKeyChecking=no \
   -o UserKnownHostsFile=/dev/null \
   -o LogLevel=ERROR \
   -o IdentitiesOnly=yes \
+  -o "SendEnv=HOST_PWD PWD TERM" \
   -i "$SCRIPT_DIR/.qemu-test-ssh-key" \
   -p 2222 \
   root@127.0.0.1 \
