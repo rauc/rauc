@@ -302,6 +302,22 @@ signature.
   If this boolean value is set to ``true`` then the bundle signing time
   is used instead of the current system time for certificate validation.
 
+  This means that an expired certificate is still considered valid if the time
+  used for the signature timestamp is set to a point within the certificate's
+  validity period.
+  Accordingly, certificate expiry no longer limits how long a compromised key
+  can be used by an attacker.
+
+  As certificate revocation (using a CRL) is independent of validity times and
+  the current time, it is not affected by this option.
+
+  Only enable this option if you are required to do so and fully understand the
+  consequences.
+
+  .. note:: If you use short validity periods for certificates in the keyring
+    and rotate them often, re-signing old bundles to make them installable again
+    is usually a better approach.
+
 .. _allow-partial-chain:
 
 ``allow-partial-chain=<true/false>`` (optional)
