@@ -793,7 +793,7 @@ static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest,
 		g_clear_pointer(&varname, g_free);
 
 		varname = g_strdup_printf("RAUC_SLOT_BOOTNAME_%i", slotcnt);
-		envp = g_environ_setenv(envp, varname, slot->bootname ? slot->bootname : "", TRUE);
+		envp = g_environ_setenv(envp, varname, slot->bootname ?: "", TRUE);
 		g_clear_pointer(&varname, g_free);
 
 		varname = g_strdup_printf("RAUC_SLOT_PARENT_%i", slotcnt);
@@ -1139,7 +1139,7 @@ static gboolean handle_slot_install_plan(const RaucManifest *manifest, const RIm
 	r_context_begin_step_weighted_formatted("check_slot", 0, 1, "Checking slot %s%s%s%s",
 			plan->target_slot->name,
 			plan->target_slot->bootname ? " (" : "",
-			plan->target_slot->bootname ? plan->target_slot->bootname : "",
+			plan->target_slot->bootname ?: "",
 			plan->target_slot->bootname ? ")" : "");
 
 	r_slot_status_load(plan->target_slot);
