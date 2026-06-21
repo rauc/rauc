@@ -628,7 +628,8 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 		g_assert_nonnull(v);
 		{
 			g_autofree gchar *tmp = g_variant_print(v, TRUE);
-			g_message("nbd server received configuration: %s", tmp);
+			g_autofree gchar *censored = r_censor_url(tmp);
+			g_message("nbd server received configuration: %s", censored);
 		}
 
 		g_variant_dict_init(&dict, v);
@@ -650,7 +651,10 @@ static void start_configure(struct RaucNBDContext *ctx, struct RaucNBDTransfer *
 		}
 	}
 
-	g_message("nbd server configuring for URL: %s", ctx->url);
+	{
+		g_autofree gchar *censored = r_censor_url(ctx->url);
+		g_message("nbd server configuring for URL: %s", censored);
+	}
 
 	prepare_curl(xfer);
 	if (ctx->initial_headers_slist) {
@@ -807,8 +811,11 @@ static gboolean finish_configure(struct RaucNBDContext *ctx, struct RaucNBDTrans
 
 	code = curl_easy_getinfo(xfer->easy, CURLINFO_EFFECTIVE_URL, &effective_url);
 	if (code == CURLE_OK) {
-		if (!g_str_equal(ctx->url, effective_url))
-			g_message("redirected from %s to %s", ctx->url, effective_url);
+		if (!g_str_equal(ctx->url, effective_url)) {
+			g_autofree gchar *censored_from = r_censor_url(ctx->url);
+			g_autofree gchar *censored_to = r_censor_url(effective_url);
+			g_message("redirected from %s to %s", censored_from, censored_to);
+		}
 		g_free(ctx->url);
 		ctx->url = g_strdup(effective_url);
 	}

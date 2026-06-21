@@ -499,7 +499,8 @@ Authentication
 ~~~~~~~~~~~~~~
 
 To use Basic Authentication, you can add the username and password to the bundle
-URL (``rauc install https//user:password@example.com/update.raucb``).
+URL (``rauc install https://user:password@example.com/update.raucb``).
+The password is masked as ``******`` in log output to avoid leaking credentials.
 
 To pass HTTP headers for authentication, use the ``--http-header='HEADER:
 VALUE'`` option of ``rauc install`` or set them via the ``http-headers`` options

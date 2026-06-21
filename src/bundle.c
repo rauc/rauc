@@ -2343,7 +2343,8 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 			ibundle->nbd_srv->tls_ca = g_strdup(r_context()->config->streaming_tls_ca);
 		res = r_nbd_start_server(ibundle->nbd_srv, &ierror);
 		if (!res) {
-			g_propagate_prefixed_error(error, ierror, "Failed to stream bundle %s: ", ibundle->path);
+			g_autofree gchar *censored = r_censor_url(ibundle->path);
+			g_propagate_prefixed_error(error, ierror, "Failed to stream bundle %s: ", censored);
 			goto out;
 		}
 #elif ENABLE_NETWORK
@@ -2360,7 +2361,8 @@ gboolean check_bundle(const gchar *bundlename, RaucBundle **bundle, CheckBundleP
 		g_message("Remote URI detected, downloading bundle to %s...", ibundle->path);
 		res = download_file(ibundle->path, ibundle->origpath, r_context()->config->max_bundle_download_size, &ierror);
 		if (!res) {
-			g_propagate_prefixed_error(error, ierror, "Failed to download bundle %s: ", ibundle->origpath);
+			g_autofree gchar *censored = r_censor_url(ibundle->origpath);
+			g_propagate_prefixed_error(error, ierror, "Failed to download bundle %s: ", censored);
 			goto out;
 		}
 		g_debug("Downloaded temp bundle to %s", ibundle->path);
