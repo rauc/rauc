@@ -362,8 +362,11 @@ GLogWriterOutput r_event_log_writer(GLogLevelFlags log_level, const GLogField *f
 	const gchar *log_domain = NULL;
 	const gchar *event_type = NULL;
 
-	/* Always log to default location, too */
-	g_log_writer_default(log_level, fields, n_fields, user_data);
+	/* Add SYSLOG_IDENTIFIER and pass also to default writer */
+	GLogField extended_fields[n_fields + 1];
+	memcpy(extended_fields, fields, sizeof(GLogField) * n_fields);
+	extended_fields[n_fields] = (GLogField){"SYSLOG_IDENTIFIER", g_get_prgname() ?: "rauc", -1};
+	g_log_writer_default(log_level, extended_fields, n_fields + 1, user_data);
 
 	/* get log domain */
 	for (gsize i = 0; i < n_fields; i++) {
