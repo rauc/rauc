@@ -2897,6 +2897,21 @@ static gboolean read_complete_dm_device(gchar *dev, GError **error)
 	return TRUE;
 }
 
+static gboolean cleanup_dangling_mount(const gchar* mount_point, GError **error)
+{
+	GError *ierror = NULL;
+
+	if (r_is_mount_point(mount_point)) {
+		g_message("Unmount dangling moint point: %s", mount_point);
+		if (!r_umount_bundle(mount_point, &ierror)) {
+			g_warning("Unable to unmount dangling moint point: %s", ierror->message);
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
 /*
  * Sets up dm-verity for reading verity bundles.
  *
@@ -2919,6 +2934,12 @@ static gboolean prepare_verity(RaucBundle *bundle, gchar *loopname, gchar* mount
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	res = check_manifest_external(bundle->manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	res = cleanup_dangling_mount(mount_point, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		return FALSE;
@@ -2986,6 +3007,12 @@ static gboolean prepare_crypt(RaucBundle *bundle, gchar *loopname, gchar* mount_
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	res = check_manifest_external(bundle->manifest, &ierror);
+	if (!res) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	res = cleanup_dangling_mount(mount_point, &ierror);
 	if (!res) {
 		g_propagate_error(error, ierror);
 		return FALSE;
