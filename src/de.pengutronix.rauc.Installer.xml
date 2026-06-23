@@ -104,6 +104,8 @@
     <property name="Compatible" type="s" access="read"/>
     <!-- Variant: Represents the system's variant -->
     <property name="Variant" type="s" access="read"/>
+    <!-- SystemVersion: Represents the system's version -->
+    <property name="SystemVersion" type="s" access="read"/>
     <!-- BootSlot: Represents the slot booted from -->
     <property name="BootSlot" type="s" access="read"/>
     <!--
