@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+
+import argparse
+import configparser
+import os
+import sys
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="bootctl mock for RAUC testing (use BOOTCTL_STATE_FILE for persisting data)"
+    )
+    subparsers = parser.add_subparsers(dest="command")
+
+    status_parser = subparsers.add_parser("status")
+    status_parser.add_argument("--no-pager", action="store_true")
+
+    set_default_parser = subparsers.add_parser("set-default")
+    set_default_parser.add_argument("entry", help="Boot entry id to set as default")
+
+    args = parser.parse_args()
+
+    state_file = os.environ.get("BOOTCTL_STATE_FILE")
+    if not state_file:
+        print("Error: BOOTCTL_STATE_FILE not set", file=sys.stderr)
+        sys.exit(1)
+
+    cfg = configparser.ConfigParser()
+    cfg.optionxform = str  # preserve key case
+    cfg.read(state_file)
+
+    if not cfg.has_section("loader"):
+        cfg.add_section("loader")
+
+    if args.command == "status":
+        default_entry = cfg.get("loader", "default", fallback=None)
+        if default_entry:
+            print("Default Boot Loader Entry:")
+            print(f"          id: {default_entry}")
+        else:
+            print("No default boot loader entry configured.")
+
+    elif args.command == "set-default":
+        cfg.set("loader", "default", args.entry)
+        with open(state_file, "w") as f:
+            cfg.write(f)
+
+    else:
+        parser.print_help()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

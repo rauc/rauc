@@ -99,7 +99,7 @@ Example configuration:
   The bootloader implementation RAUC should use for its slot switching
   mechanism.
   Currently supported values (and bootloaders) are ``barebox``, ``grub``,
-  ``uboot``, ``efi``, ``custom``, ``noop``.
+  ``uboot``, ``efi``, ``systemd-boot``, ``custom``, ``noop``.
 
 .. _bundle-formats:
 

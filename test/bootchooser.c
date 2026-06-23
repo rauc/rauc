@@ -972,6 +972,124 @@ bootname=system1\n";
 	g_assert_nonnull(bootname);
 }
 
+/* Write initial systemd-boot loader state for mock bootctl tool.
+ * Uses an INI file at BOOTCTL_STATE_FILE with a [loader] section.
+ */
+static void test_systemdboot_initialize_state(const BootchooserFixture *fixture, const gchar *default_entry)
+{
+	g_autofree gchar *state_file = g_build_filename(fixture->tmpdir, "bootctl-state.ini", NULL);
+	g_autofree gchar *content = g_strdup_printf("[loader]\ndefault = %s\n", default_entry);
+	g_assert_true(g_file_set_contents(state_file, content, -1, NULL));
+	g_assert_true(g_setenv("BOOTCTL_STATE_FILE", state_file, TRUE));
+}
+
+/* Read the current default entry from the mock bootctl state file. */
+static gchar *test_systemdboot_get_default(const BootchooserFixture *fixture)
+{
+	const gchar *state_file = g_getenv("BOOTCTL_STATE_FILE");
+	g_autoptr(GKeyFile) kf = g_key_file_new();
+
+	g_assert_nonnull(state_file);
+	g_assert_true(g_key_file_load_from_file(kf, state_file, G_KEY_FILE_NONE, NULL));
+
+	return g_key_file_get_string(kf, "loader", "default", NULL);
+}
+
+static void bootchooser_systemdboot(BootchooserFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucSlot *rootfs0 = NULL, *rootfs1 = NULL, *primary = NULL;
+	gboolean good;
+	GError *error = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=systemd-boot\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[keyring]\n\
+path=/etc/rauc/keyring/\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/rootfs-0\n\
+type=ext4\n\
+bootname=entry0.conf\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/rootfs-1\n\
+type=ext4\n\
+bootname=entry1.conf\n";
+
+	gchar *pathname = write_tmp_file(fixture->tmpdir, "systemd-boot.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_clear_pointer(&r_context_conf()->configpath, g_free);
+	r_context_conf()->configpath = pathname;
+	r_context();
+
+	rootfs0 = find_config_slot_by_name(r_context()->config, "rootfs.0");
+	g_assert_nonnull(rootfs0);
+	rootfs1 = find_config_slot_by_name(r_context()->config, "rootfs.1");
+	g_assert_nonnull(rootfs1);
+
+	/* Start with entry0.conf as default */
+	test_systemdboot_initialize_state(fixture, "entry0.conf");
+
+	/* Both slots should always be considered good */
+	g_assert_true(r_boot_get_state(rootfs0, &good, &error));
+	g_assert_no_error(error);
+	g_assert_true(good);
+	g_assert_true(r_boot_get_state(rootfs1, &good, &error));
+	g_assert_no_error(error);
+	g_assert_true(good);
+
+	/* rootfs.0 (entry0.conf) should be primary */
+	primary = r_boot_get_primary(&error);
+	g_assert_no_error(error);
+	g_assert_nonnull(primary);
+	g_assert_true(primary == rootfs0);
+
+	/* Marking a slot bad is not supported */
+	g_assert_false(r_boot_set_state(rootfs0, FALSE, &error));
+	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_NOT_SUPPORTED);
+	g_clear_error(&error);
+
+	/* Mark rootfs.1 as primary: default should switch to entry1.conf */
+	g_assert_true(r_boot_set_primary(rootfs1, &error));
+	g_assert_no_error(error);
+	g_autofree gchar *new_default = test_systemdboot_get_default(fixture);
+	g_assert_cmpstr(new_default, ==, "entry1.conf");
+
+	/* rootfs.1 is now primary */
+	primary = r_boot_get_primary(&error);
+	g_assert_no_error(error);
+	g_assert_nonnull(primary);
+	g_assert_true(primary == rootfs1);
+
+	/* Mark rootfs.1 good: confirms it as the default entry */
+	g_assert_true(r_boot_set_state(rootfs1, TRUE, &error));
+	g_assert_no_error(error);
+	g_autofree gchar *after_good = test_systemdboot_get_default(fixture);
+	g_assert_cmpstr(after_good, ==, "entry1.conf");
+
+	/* Automatic Boot Assessment is incompatible with this backend.
+	 * If a boot-counting suffix is present on the default entry (e.g.
+	 * "entry1+3-2.conf"), get_primary() must refuse with NOT_SUPPORTED. */
+	test_systemdboot_initialize_state(fixture, "entry1+3-2.conf");
+	primary = r_boot_get_primary(&error);
+	g_assert_null(primary);
+	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_NOT_SUPPORTED);
+	g_clear_error(&error);
+
+	/* get_primary with an unknown (but valid) default entry returns an error */
+	test_systemdboot_initialize_state(fixture, "unknown.conf");
+	primary = r_boot_get_primary(&error);
+	g_assert_null(primary);
+	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_PARSE_FAILED);
+	g_clear_error(&error);
+}
+
 /* Write content to state storage for custom-backend RAUC mock
  * tools. Content should be similar to:
  * "\
@@ -1234,6 +1352,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bootchooser/efi", BootchooserFixture, NULL,
 			bootchooser_fixture_set_up, bootchooser_efi,
+			bootchooser_fixture_tear_down);
+
+	g_test_add("/bootchooser/systemd-boot", BootchooserFixture, NULL,
+			bootchooser_fixture_set_up, bootchooser_systemdboot,
 			bootchooser_fixture_tear_down);
 
 	g_test_add("/bootchooser/custom", BootchooserFixture, NULL,
