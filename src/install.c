@@ -1660,6 +1660,18 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		goto umount;
 	}
 
+	if (bundle->manifest->hooks.pre_install) {
+		run_bundle_hook(bundle->manifest, bundle->mount_point, "pre-install", &ierror);
+		if (ierror) {
+			res = FALSE;
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Pre-install hook failed: ");
+			goto umount;
+		}
+	}
+
 	if (bundle->manifest->handler_name) {
 		g_message("Using custom handler: %s", bundle->manifest->handler_name);
 		res = launch_and_wait_custom_handler(args, bundle->mount_point, bundle->manifest, target_group, handler_env, &ierror);
@@ -1671,6 +1683,18 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 	if (!res) {
 		g_propagate_prefixed_error(error, ierror, "Installation error: ");
 		goto umount;
+	}
+
+	if (bundle->manifest->hooks.post_install) {
+		run_bundle_hook(bundle->manifest, bundle->mount_point, "post-install", &ierror);
+		if (ierror) {
+			res = FALSE;
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"Post-install hook failed: ");
+			goto umount;
+		}
 	}
 
 	if (r_context()->config->postinstall_handler) {
