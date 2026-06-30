@@ -1,0 +1,145 @@
+# This is the list of RAUC authors for copyright purposes.
+#
+# This does not necessarily list everyone who has contributed code.
+# To see the full list of contributors, see the revision history in source
+# control.
+
+# Please keep the list sorted.
+
+# Individual Authors:
+# Name <email address>
+Ahmad Fatoum <a.fatoum@pengutronix.de>
+Alexander Dahl <ada@thorsis.com>
+Aly Ammar <aly.ammar@bender.de>
+Andreas Schmidt <mail@schmidt-andreas.de>
+Angelo Compagnucci <angelo.compagnucci@gmail.com>
+Angus Lees <gus@inodes.org>
+Antonin Godard <antonin.godard@bootlin.com>
+Arnaud Rebillout <arnaud.rebillout@collabora.com>
+Arseniy Lartsev <arseniy.lartsev@qodes.se>
+Arti Zirk <arti.zirk@gmail.com>
+b4yuan <bayuan@purdue.edu>
+Bastian Krause <bst@pengutronix.de>
+Beralt Meppelink <beralt.meppelink@demcon.nl>
+Bruno Knittel <bruno.knittel@bruker.com>
+Bruno Thomsen <bruno.thomsen@gmail.com>
+Caglar Kilimci <ckilimci@gmail.com>
+Christian Aurich <christian.aurich@ebee.de>
+Christian Bräuner Sørensen <christian.brauner.sorensen@prevas.dk>
+Christian Hitz <christian.hitz@bbv.ch>
+Christian Hohnstaedt <christian@hohnstaedt.de>
+Christian Meusel <christian.meusel@posteo.de>
+Christopher Obbard <chris.obbard@collabora.com>
+Christoph Steiger <c.steiger@lemonage.de>
+Dan Callaghan <dan.callaghan@opengear.com>
+Daniel Mack <daniel@zonque.org>
+David Hollister <david.hollister@ptxtrimble.com>
+David Robertson <David.Robertson@spectrummfg.net>
+David Runge <dave@sleepmap.de>
+Ellie Reeves <ellierevves@gmail.com>
+Emil Velikov <emil.velikov@collabora.com>
+Emmanuel Ferdman <emmanuelferdman@gmail.com>
+Emmanuel Roullit <emmanuel.roullit@gmail.com>
+Enrico Jörns <ejo@pengutronix.de>
+Evan Edstrom <evan@evanedstrom.com>
+Fabian Büttner <fabian.buettner@rub.de>
+Fabian Knapp <knapp@ambibox.de>
+Fabian Pfitzner <f.pfitzner@pengutronix.de>
+Fabrice Fontaine <fontaine.fabrice@gmail.com>
+Florian Otte <fotte@uos.de>
+Gaël PORTAY <gael.portay@rtone.fr>
+Giacomo Dal Sasso <giacomodalsasso@outlook.com>
+Grégoire Duvauchelle <gregoire.duvauchelle@proton.me>
+Hans Christian Lonstad <hcl@datarespons.no>
+Heiko Thiery <heiko.thiery@gmail.com>
+Holger Assmann <h.assmann@pengutronix.de>
+Ian Abbott <abbotti@mev.co.uk>
+Janek Filus <janek.filus@mt.com>
+Jan Kundrát <jan.kundrat@cesnet.cz>
+Jan Lübbe <jlu@pengutronix.de>
+Jan Remmet <j.remmet@phytec.de>
+Jean-Pierre Geslin <jarsop@outlook.com>
+Jens Kehne <jens.kehne@agilent.com>
+Jialu Zhou <jialu.zhou@viperinnovations.com>
+Jim Brennan <jbrennan@impinj.com>
+Joachim Wiberg <troglobit@gmail.com>
+Jochen Frieling <j.frieling@gmx.de>
+Johannes Schneider <johannes.schneider@leica-geosystems.com>
+Jonas Licht <jonas.licht@gmail.com>
+Kevin Hsieh <jthsieh@gmail.com>
+Ladislav Michl <ladis@linux-mips.org>
+Lars Poeschel <poeschel@lemonage.de>
+Lars Schmidt <l.schmidt@pengutronix.de>
+Leif Middelschulte <leif.middelschulte@klsmartin.com>
+Leon Anavi <leon.anavi@konsulko.com>
+Leonard Göhrs <l.goehrs@pengutronix.de>
+Linus Wallgren <linus.wallgren@netinsight.net>
+Livio Bieri <livioso@users.noreply.github.com>
+Louis des Landes <louis.deslandes@fleet.space>
+Ludovico de Nittis <ludovico.denittis@collabora.com>
+Marcel Hamer <marcel@solidxs.nl>
+Marcel Hellwig <github@cookiesoft.de>
+Marcel Hellwig <mhellwig@mut-group.com>
+Marc Kleine-Budde <mkl@pengutronix.de>
+Marco Felsch <m.felsch@pengutronix.de>
+Marcus Hoffmann <marcus.hoffmann@othermo.de>
+Martin Hundebøll <mnhu@prevas.dk>
+Martin Schwan <m.schwan@phytec.de>
+Matthias Bolte <matthias@tinkerforge.com>
+Matthias Fend <matthias.fend@emfend.at>
+Michael B. Sumulong <msumulong@gmail.com>
+Michael Grzeschik <m.grzeschik@pengutronix.de>
+Michael Heimpold <mhei@heimpold.de>
+Michael Olbrich <m.olbrich@pengutronix.de>
+Michael Riesch <michael.riesch@wolfvision.net>
+Michael Tretter <m.tretter@pengutronix.de>
+Morgan Bengtsson <morgan.bengtsson@kdab.com>
+Nicolas Di Pietro <potens1@gmail.com>
+Oleg Karfich <oleg.karfich@wago.com>
+Omer Akram <omer@thing.com>
+Omri Sarig <omri.sarig@prevas.dk>
+Pascal Huerst <pascal.huerst@gmail.com>
+Pavel Löbl <pavel@loebl.cz>
+Peter Korsgaard <peter@korsgaard.com>
+Philip Downer <phil@pjd.me.uk>
+Philipp Zabel <p.zabel@pengutronix.de>
+Rasmus Villemoes <rasmus.villemoes@prevas.dk>
+René Fischer <sk@securitykernel.io>
+Richard Alpe <richard@bit42.se>
+Richard Forro <riki49@gmail.com>
+Richard Hozák <5235838+richardhozak@users.noreply.github.com>
+Robert Schwebel <r.schwebel@pengutronix.de>
+Roland Hieber <rhi@pengutronix.de>
+Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Samer Kenawy <samer.kenawy@nl.abb.com>
+Sam Ravnborg <srn@skov.dk>
+Sascha Hauer <s.hauer@pengutronix.de>
+Sean Nyekjaer <sean.nyekjaer.ext@siemensgamesa.com>
+Sijmen Huizenga <sijmenhuizenga@gmail.com>
+Stefan Ursella <stefan.ursella@wolfvision.net>
+Stefan Wahren <stefan.wahren@chargebyte.com>
+Stephan Michaelsen <s.michaelsen@peak-system.com>
+Stephan Wurm <stephan.wurm@a-eberle.de>
+Steven Rau <steven.rau@vecima.com>
+Tamara Schmitz <tamara@kernelconcepts.de>
+Taras Zaporozhets <zaporozhets.taras@gmail.com>
+Thomas Haemmerle <thomas.haemmerle@wolfvision.net>
+Thomas Kilian <Big_Papa@gmx.net>
+Thomas Petazzoni <thomas.petazzoni@bootlin.com>
+Thomas Roos <throos@amazon.de>
+Thorsten Scherer <t.scherer@eckelmann.de>
+Timothy Lee <timothy.ty.lee@gmail.com>
+Tim van der Staaij <git@tim.vanderstaaij.email>
+Tobias Junghans <tobydox@veyon.io>
+Trent Piepho <tpiepho@impinj.com>
+Ulrich Ölmann <u.oelmann@pengutronix.de>
+Uwe Kleine-König <ukleinek@debian.org>
+Vitaly Ogoltsov <vitaly.ogoltsov@me.com>
+Vivien Didelot <vdidelot@pbsc.com>
+Vyacheslav Yurkov <uvv.mail@gmail.com>
+Yann E. MORIN <yann.morin.1998@free.fr>
+Zygmunt Krynicki <me@zygoon.pl>
+
+# Organisations:
+# Organization <glob pattern> <fallback email address>
+Pengutronix <*@pengutronix.de> <entwicklung@pengutronix.de>
