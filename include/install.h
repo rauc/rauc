@@ -27,7 +27,7 @@ typedef struct _RaucInstallArgs RaucInstallArgs;
 struct _RaucInstallArgs {
 	gchar *name;
 	GSourceFunc notify;
-	void (*cleanup) (RaucInstallArgs *args);
+	void (*cleanup) (RaucInstallArgs *args); /* called on the main loop */
 	gpointer data; /* private pointer for notify and cleanup callbacks */
 	GMutex status_mutex;
 	GQueue status_messages;
