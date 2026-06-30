@@ -221,6 +221,13 @@ void r_context_set_busy(gboolean busy);
 RaucContext *r_context_conf(void);
 
 /**
+ * Returns config file overrides without changing context pending state.
+ *
+ * @return override list, or NULL
+ */
+GList *r_context_config_overrides(void);
+
+/**
  * Returns read-only (const) reference to context object.
  *
  * Use this to access context information regularly.

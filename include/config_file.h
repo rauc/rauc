@@ -116,6 +116,8 @@ typedef struct {
 	/* flag to ensure slot states were determined */
 	gboolean slot_states_determined;
 	gchar *file_checksum;
+	gchar *non_polling_file_checksum;
+	gboolean polling_enabled_at_startup;
 
 	GHashTable *artifact_repos;
 } RaucConfig;
@@ -219,3 +221,17 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(RaucConfig, free_config);
  * recorded during config parsing.
  */
 void r_config_file_modified_check(void);
+
+/**
+ * Reloads only the [polling] system configuration in-place.
+ *
+ * This rejects all non-polling changes and polling enable/disable changes,
+ * then moves only the parsed polling fields into the live configuration.
+ *
+ * @param error a GError, or NULL
+ *
+ * @return TRUE if polling configuration was reloaded. FALSE if there were
+ * errors or the reload was rejected.
+ */
+gboolean r_config_reload_polling_only(GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
