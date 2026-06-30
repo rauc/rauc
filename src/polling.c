@@ -262,14 +262,13 @@ static gboolean polling_check_reboot_criteria(const RaucInstallArgs *install_arg
 	return FALSE;
 }
 
-static gboolean polling_install_cleanup(gpointer data)
+static void polling_install_cleanup(RaucInstallArgs *args)
 {
-	g_return_val_if_fail(data, G_SOURCE_REMOVE);
+	g_return_if_fail(args);
 
-	RaucInstallArgs *args = data;
 	RPollingContext *polling_context = args->data;
 
-	g_return_val_if_fail(polling_context, G_SOURCE_REMOVE);
+	g_return_if_fail(polling_context);
 
 	polling_context->installation_running = FALSE;
 
@@ -292,8 +291,6 @@ static gboolean polling_install_cleanup(gpointer data)
 
 	polling_reschedule(polling_context, POLLING_DELAY_SHORT);
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_poller));
-
-	return G_SOURCE_REMOVE;
 }
 
 /* This starts an installation in the background. On completion, the
