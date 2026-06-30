@@ -22,10 +22,12 @@ typedef enum {
 	R_INSTALL_ERROR_MOUNTED,
 } RInstallError;
 
-typedef struct {
+typedef struct _RaucInstallArgs RaucInstallArgs;
+
+struct _RaucInstallArgs {
 	gchar *name;
 	GSourceFunc notify;
-	GSourceFunc cleanup;
+	void (*cleanup) (RaucInstallArgs *args);
 	gpointer data; /* private pointer for notify and cleanup callbacks */
 	GMutex status_mutex;
 	GQueue status_messages;
@@ -41,7 +43,7 @@ typedef struct {
 	/* install result flags */
 	gboolean updated_slots;
 	gboolean updated_artifacts;
-} RaucInstallArgs;
+};
 
 /**
  * Update the external mount points of a slot.
