@@ -108,6 +108,7 @@ test the handling of the *codeSigning* *extended key usage* attribute::
   subjectKeyIdentifier=hash
   authorityKeyIdentifier=keyid:always,issuer:always
   basicConstraints = CA:FALSE
+  keyUsage=critical,digitalSignature
   extendedKeyUsage=critical,codeSigning
 
 Before version 3.2, OpenSSL did not provide a built-in purpose check for 'code signing'.
