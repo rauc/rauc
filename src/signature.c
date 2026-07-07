@@ -77,7 +77,7 @@ static int check_purpose_code_sign(const X509_PURPOSE *xp, const X509 *const_x, 
 
 	/* If key usage is present, it must contain digitalSignature. */
 	if ((ex_flags & EXFLAG_KUSAGE) && !(ex_kusage & KU_DIGITAL_SIGNATURE)) {
-		g_message("Signer certificate key usage does not allow digital signatures");
+		g_message("Signer certificate key usage does not allow 'digitalSignature'");
 		return 0;
 	}
 
