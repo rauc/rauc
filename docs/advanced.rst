@@ -110,9 +110,13 @@ test the handling of the *codeSigning* *extended key usage* attribute::
   basicConstraints = CA:FALSE
   extendedKeyUsage=critical,codeSigning
 
-As OpenSSL does not (yet) provide a purpose check for code signing, RAUC
-contains its own implementation, which can be enabled with the
-:ref:`check-purpose=codesign <check-purpose>` configuration option.
+Before version 3.2, OpenSSL did not provide a built-in purpose check for 'code signing'.
+Hence RAUC comes with its own implementation, which can be enabled with the
+:ref:`check-purpose=codesign-rauc <check-purpose>` configuration option.
+
+.. note:: For compatibility reasons, ``check-purpose=codesign`` maps to
+   ``codesign-rauc``.
+
 For the leaf (signer) certificate, the *extendedKeyUsage* attribute must exist
 and contain (at least) the *codeSigning* value.
 Also, if it has the *keyUsage* attribute, it must contain at least *digitalSignature*.
