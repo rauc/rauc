@@ -351,6 +351,7 @@ signature.
   (``codesign-rauc``).
   See ``-purpose`` and ``VERIFY OPERATION`` in the OpenSSL verify_ manual page
   and the :ref:`sec-key-usage` section for more information.
+  If unset, ``smimesign`` will be used as default check purpose by OpenSSL.
 
   .. note:: The older ``codesign`` option currently maps to ``codesign-rauc`` and
      does not allow selecting the OpenSSL ``codesign`` check purpose
