@@ -352,7 +352,7 @@ signature.
   See ``-purpose`` and ``VERIFY OPERATION`` in the OpenSSL verify_ manual page
   and the :ref:`sec-key-usage` section for more information.
 
-.. _verify: https://www.openssl.org/docs/man1.1.1/man1/verify.html
+.. _verify: https://docs.openssl.org/3.6/man1/openssl-verify
 
 .. _streaming-config-section:
 
