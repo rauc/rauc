@@ -117,6 +117,12 @@ Hence RAUC comes with its own implementation, which can be enabled with the
 .. note:: For compatibility reasons, ``check-purpose=codesign`` maps to
    ``codesign-rauc``.
 
+.. note:: The RAUC 'codesign' check purpose implementation described here
+   differs from the one provided by OpenSSL (since 3.2) and from some of the
+   `CA/Browser Forum recommendations listed in "7.1.2.3 Code signing and
+   Timestamp Certificate"
+   <https://cabforum.org/uploads/Baseline-Requirements-for-the-Issuance-and-Management-of-Code-Signing.v3.9.pdf>`_.
+
 For the leaf (signer) certificate, the *extendedKeyUsage* attribute must exist
 and contain (at least) the *codeSigning* value.
 Also, if it has the *keyUsage* attribute, it must contain at least *digitalSignature*.
