@@ -89,7 +89,7 @@ else
   echo EXPECTED
 fi
 openssl cms -verify -in manifest-cs1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem -purpose any || echo FAILED
-# testing for codesign using cms verify doesn't seem to be possible yet
+openssl cms -verify -in manifest-cs1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem -purpose codesign || echo FAILED
 if openssl cms -verify -in manifest-cs1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem -purpose smimesign; then
   echo UNEXPECTED; exit 1
 else
