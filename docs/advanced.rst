@@ -80,14 +80,20 @@ If in doubt, obtain advice from an expert.
 
 .. _sec-key-usage:
 
-Certificate Key Usage Attributes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Certificate (Extended) Key Usage Attributes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-By default (for backwards compatibility reasons), RAUC does not check the
-certificate's key usage attributes.
-When not using a stand-alone PKI for RAUC, it can be useful to enable checking
-via the ``check-purpose`` configuration option to allow only specific
-certificates for bundle installation.
+By default (for backwards compatibility reasons), RAUC uses OpenSSL's default
+CMS verification checks and does not use custom checks for certificate key
+usage attributes like *keyUsage* or *extendedKeyUsage*.
+
+.. note:: OpenSSL's default CMS verification requires the signer
+   certificate to be suitable for the `'smimesign' purpose
+   <https://docs.openssl.org/3.5/man1/openssl-verification-options/#checks-implied-by-specific-predefined-policies>`_.
+
+When not using a stand-alone PKI for RAUC, it can be useful to enable a
+different certificate purpose check via the ``check-purpose`` configuration option to
+allow only specific certificates for bundle installation.
 
 When using OpenSSL to create your certificates, the key usage attributes can be
 configured in the `X.509 V3 extension sections
