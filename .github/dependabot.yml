@@ -6,3 +6,7 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: ".github/workflows"
+    groups:
+      codeql:
+        patterns:
+          - "github/codeql-action*"
