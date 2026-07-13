@@ -314,7 +314,7 @@ COMMANDS
 
    **Options:**
 
-      **--image-type**
+      **-t**, **--image-type=**\ TYPE
          Select explicit image type to use.
 
 ENVIRONMENT

@@ -2666,7 +2666,9 @@ static GOptionEntry entries_status[] = {
 };
 
 static GOptionEntry entries_write_slot[] = {
-	{"image-type", 'l', 0, G_OPTION_ARG_STRING, &write_slot_image_type, "Select explicit image type to use.", NULL},
+	{"image-type", 't', 0, G_OPTION_ARG_STRING, &write_slot_image_type, "Select explicit image type to use.", "TYPE"},
+	/* The 'image-type' shortname was accidentally named 'l' before. This hidden option ensures compatibility with the old shortname */
+	{"image-type-compat", 'l', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_STRING, &write_slot_image_type, "Select explicit image type to use (compat).", NULL},
 	{0}
 };
 
