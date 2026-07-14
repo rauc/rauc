@@ -1346,15 +1346,8 @@ static gboolean cms_get_signingtime(CMS_ContentInfo *cms, time_t *signingtime, G
 	g_return_val_if_fail(signingtime != NULL && *signingtime == 0, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	STACK_OF(CMS_SignerInfo) *sinfos;
-	CMS_SignerInfo *si;
-	X509_ATTRIBUTE *xa;
-	ASN1_TYPE *so;
-	struct tm tm;
-	int signingtime_idx;
-
 	/* Extract signing time from pkcs9 attributes */
-	sinfos = CMS_get0_SignerInfos(cms);
+	STACK_OF(CMS_SignerInfo) *sinfos = CMS_get0_SignerInfos(cms);
 	if (sinfos == NULL) {
 		g_set_error(
 				error,
@@ -1371,8 +1364,9 @@ static gboolean cms_get_signingtime(CMS_ContentInfo *cms, time_t *signingtime, G
 				"multiple signerInfos are not supported with 'use-bundle-signing-time'");
 		return FALSE;
 	}
-	si = sk_CMS_SignerInfo_value(sinfos, 0);
-	signingtime_idx = CMS_signed_get_attr_by_NID(si, NID_pkcs9_signingTime, -1);
+
+	CMS_SignerInfo *si = sk_CMS_SignerInfo_value(sinfos, 0);
+	int signingtime_idx = CMS_signed_get_attr_by_NID(si, NID_pkcs9_signingTime, -1);
 	if (signingtime_idx < 0) {
 		g_set_error(
 				error,
@@ -1381,7 +1375,8 @@ static gboolean cms_get_signingtime(CMS_ContentInfo *cms, time_t *signingtime, G
 				"Bundle signing time attribute not found in signature");
 		return FALSE;
 	}
-	xa = CMS_signed_get_attr(si, CMS_signed_get_attr_by_NID(si, NID_pkcs9_signingTime, -1));
+
+	X509_ATTRIBUTE *xa = CMS_signed_get_attr(si, CMS_signed_get_attr_by_NID(si, NID_pkcs9_signingTime, -1));
 	if (xa == NULL) {
 		g_set_error(
 				error,
@@ -1390,7 +1385,8 @@ static gboolean cms_get_signingtime(CMS_ContentInfo *cms, time_t *signingtime, G
 				"Failed to obtain bundle signing time attribute");
 		return FALSE;
 	}
-	so = X509_ATTRIBUTE_get0_type(xa, 0);
+
+	ASN1_TYPE *so = X509_ATTRIBUTE_get0_type(xa, 0);
 	if (so == NULL) {
 		g_set_error(
 				error,
@@ -1415,6 +1411,7 @@ static gboolean cms_get_signingtime(CMS_ContentInfo *cms, time_t *signingtime, G
 	}
 
 	/* convert to time_t to make it usable for setting verify parameter */
+	struct tm tm = {};
 	if (!so->value.asn1_string || !ASN1_TIME_to_tm(so->value.asn1_string, &tm)) {
 		g_set_error(
 				error,
