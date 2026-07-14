@@ -1340,6 +1340,94 @@ out:
 	return res;
 }
 
+static gboolean cms_get_signingtime(CMS_ContentInfo *cms, time_t *signingtime, GError **error)
+{
+	g_return_val_if_fail(cms != NULL, FALSE);
+	g_return_val_if_fail(signingtime != NULL && *signingtime == 0, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	STACK_OF(CMS_SignerInfo) *sinfos;
+	CMS_SignerInfo *si;
+	X509_ATTRIBUTE *xa;
+	ASN1_TYPE *so;
+	struct tm tm;
+	int signingtime_idx;
+
+	/* Extract signing time from pkcs9 attributes */
+	sinfos = CMS_get0_SignerInfos(cms);
+	if (sinfos == NULL) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_INVALID,
+				"Failed to obtain signer infos for bundle signing time");
+		return FALSE;
+	}
+	if (sk_CMS_SignerInfo_num(sinfos) != 1) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_INVALID,
+				"multiple signerInfos are not supported with 'use-bundle-signing-time'");
+		return FALSE;
+	}
+	si = sk_CMS_SignerInfo_value(sinfos, 0);
+	signingtime_idx = CMS_signed_get_attr_by_NID(si, NID_pkcs9_signingTime, -1);
+	if (signingtime_idx < 0) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_INVALID,
+				"Bundle signing time attribute not found in signature");
+		return FALSE;
+	}
+	xa = CMS_signed_get_attr(si, CMS_signed_get_attr_by_NID(si, NID_pkcs9_signingTime, -1));
+	if (xa == NULL) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_INVALID,
+				"Failed to obtain bundle signing time attribute");
+		return FALSE;
+	}
+	so = X509_ATTRIBUTE_get0_type(xa, 0);
+	if (so == NULL) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_INVALID,
+				"Failed to obtain bundle signing time value");
+		return FALSE;
+	}
+
+	/* The signingTime attribute value is an ASN.1 ANY that is decoded
+	 * before the signature is verified. Only UTCTime and GeneralizedTime
+	 * store an ASN1_STRING in the value union; for other tags (e.g. a
+	 * BOOLEAN) so->value.utctime is not a pointer at all, so dereferencing
+	 * it would be a type confusion. Reject anything that is not a time. */
+	if (so->type != V_ASN1_UTCTIME && so->type != V_ASN1_GENERALIZEDTIME) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_INVALID,
+				"Bundle signing time attribute has unexpected type");
+		return FALSE;
+	}
+
+	/* convert to time_t to make it usable for setting verify parameter */
+	if (!so->value.asn1_string || !ASN1_TIME_to_tm(so->value.asn1_string, &tm)) {
+		g_set_error(
+				error,
+				R_SIGNATURE_ERROR,
+				R_SIGNATURE_ERROR_UNKNOWN,
+				"Failed to convert bundle signing time");
+		return FALSE;
+	}
+	*signingtime = timegm(&tm);
+
+	return TRUE;
+}
+
 gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_ContentInfo **cms, GBytes **manifest, GError **error)
 {
 	GError *ierror = NULL;
@@ -1428,92 +1516,18 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 
 	/* Optionally use certificate signing timestamp for verification */
 	if (r_context()->config->use_bundle_signing_time) {
-		STACK_OF(CMS_SignerInfo) *sinfos;
-		CMS_SignerInfo *si;
-		X509_ATTRIBUTE *xa;
-		ASN1_TYPE *so;
-		X509_VERIFY_PARAM *param = X509_STORE_get0_param(store);
-		struct tm tm;
-		time_t signingtime;
-		int signingtime_idx;
-
-		/* Extract signing time from pkcs9 attributes */
-		sinfos = CMS_get0_SignerInfos(icms);
-		if (sinfos == NULL) {
-			g_set_error(
-					error,
-					R_SIGNATURE_ERROR,
-					R_SIGNATURE_ERROR_INVALID,
-					"Failed to obtain signer infos for bundle signing time");
+		time_t signingtime = 0;
+		if (!cms_get_signingtime(icms, &signingtime, &ierror)) {
+			g_propagate_error(error, ierror);
 			goto out;
 		}
-		if (sk_CMS_SignerInfo_num(sinfos) != 1) {
-			g_set_error(
-					error,
-					R_SIGNATURE_ERROR,
-					R_SIGNATURE_ERROR_INVALID,
-					"multiple signerInfos are not supported with 'use-bundle-signing-time'");
-			goto out;
-		}
-		si = sk_CMS_SignerInfo_value(sinfos, 0);
-		signingtime_idx = CMS_signed_get_attr_by_NID(si, NID_pkcs9_signingTime, -1);
-		if (signingtime_idx < 0) {
-			g_set_error(
-					error,
-					R_SIGNATURE_ERROR,
-					R_SIGNATURE_ERROR_INVALID,
-					"Bundle signing time attribute not found in signature");
-			goto out;
-		}
-		xa = CMS_signed_get_attr(si, CMS_signed_get_attr_by_NID(si, NID_pkcs9_signingTime, -1));
-		if (xa == NULL) {
-			g_set_error(
-					error,
-					R_SIGNATURE_ERROR,
-					R_SIGNATURE_ERROR_INVALID,
-					"Failed to obtain bundle signing time attribute");
-			goto out;
-		}
-		so = X509_ATTRIBUTE_get0_type(xa, 0);
-		if (so == NULL) {
-			g_set_error(
-					error,
-					R_SIGNATURE_ERROR,
-					R_SIGNATURE_ERROR_INVALID,
-					"Failed to obtain bundle signing time value");
-			goto out;
-		}
-
-		/* The signingTime attribute value is an ASN.1 ANY that is decoded
-		 * before the signature is verified. Only UTCTime and GeneralizedTime
-		 * store an ASN1_STRING in the value union; for other tags (e.g. a
-		 * BOOLEAN) so->value.utctime is not a pointer at all, so dereferencing
-		 * it would be a type confusion. Reject anything that is not a time. */
-		if (so->type != V_ASN1_UTCTIME && so->type != V_ASN1_GENERALIZEDTIME) {
-			g_set_error(
-					error,
-					R_SIGNATURE_ERROR,
-					R_SIGNATURE_ERROR_INVALID,
-					"Bundle signing time attribute has unexpected type");
-			goto out;
-		}
-
-		/* convert to time_t to make it usable for setting verify parameter */
-		if (!so->value.asn1_string || !ASN1_TIME_to_tm(so->value.asn1_string, &tm)) {
-			g_set_error(
-					error,
-					R_SIGNATURE_ERROR,
-					R_SIGNATURE_ERROR_UNKNOWN,
-					"Failed to convert bundle signing time");
-			goto out;
-		}
-		signingtime = timegm(&tm);
 
 		g_autoptr(GDateTime) signingtime_gdate = g_date_time_new_from_unix_utc((gint64)signingtime);
 		g_autofree gchar *siginingtime_str = g_date_time_format(signingtime_gdate, "%b %d %H:%M:%S %Y GMT"); // OpenSSL-style formatting
 		g_message("Using bundle signing time (%s) for certificate verification.", siginingtime_str);
 
 		/* use signing time for verification */
+		X509_VERIFY_PARAM *param = X509_STORE_get0_param(store);
 		X509_VERIFY_PARAM_set_time(param, signingtime);
 	}
 
