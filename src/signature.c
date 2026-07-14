@@ -1484,8 +1484,22 @@ gboolean cms_verify_bytes(GBytes *content, GBytes *sig, X509_STORE *store, CMS_C
 			goto out;
 		}
 
+		/* The signingTime attribute value is an ASN.1 ANY that is decoded
+		 * before the signature is verified. Only UTCTime and GeneralizedTime
+		 * store an ASN1_STRING in the value union; for other tags (e.g. a
+		 * BOOLEAN) so->value.utctime is not a pointer at all, so dereferencing
+		 * it would be a type confusion. Reject anything that is not a time. */
+		if (so->type != V_ASN1_UTCTIME && so->type != V_ASN1_GENERALIZEDTIME) {
+			g_set_error(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_INVALID,
+					"Bundle signing time attribute has unexpected type");
+			goto out;
+		}
+
 		/* convert to time_t to make it usable for setting verify parameter */
-		if (!so->value.utctime || !ASN1_TIME_to_tm(so->value.utctime, &tm)) {
+		if (!so->value.asn1_string || !ASN1_TIME_to_tm(so->value.asn1_string, &tm)) {
 			g_set_error(
 					error,
 					R_SIGNATURE_ERROR,
