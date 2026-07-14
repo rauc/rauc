@@ -1416,8 +1416,8 @@ static gboolean cms_get_signingtime(CMS_ContentInfo *cms, time_t *signingtime, G
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
-				R_SIGNATURE_ERROR_UNKNOWN,
-				"Failed to convert bundle signing time");
+				R_SIGNATURE_ERROR_INVALID,
+				"Failed to convert bundle signing time to struct tm");
 		return FALSE;
 	}
 	*signingtime = timegm(&tm);
