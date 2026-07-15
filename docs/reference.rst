@@ -1096,6 +1096,10 @@ The following fields are supported for image sections:
   Detailed information about the supported types is described in the
   :ref:`Supported Image Types <sec-ref-supported-image-types>` section.
 
+  .. note::
+    This key is not yet supported for artifacts and will cause an error if
+    used.
+
 ``sha256`` (generated)
   sha256 of image file.
   RAUC determines this value automatically when creating
