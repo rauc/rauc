@@ -800,7 +800,6 @@ The name must be different from any slot class names.
 
 ``type=<type>`` (required)
   The type of this repository.
-  Currently supported values are ``files`` and ``trees``.
 
   ``files``
     each artifact is a single file
