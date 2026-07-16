@@ -1114,7 +1114,8 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 		} else {
 			g_string_append_printf(text, "    (no image file)\n");
 		}
-		g_string_append_printf(text, "    Type:      %s%s\n", img->type, img->type_from_fileext ? " (detected)" : "");
+		if (!img->artifact) // as long as 'type' is not supported for artifacts, don't display it for artifacts
+			g_string_append_printf(text, "    Type:      %s%s\n", img->type, img->type_from_fileext ? " (detected)" : "");
 		if (img->filename) {
 			g_autofree gchar* formatted_size = g_format_size_full(img->checksum.size, G_FORMAT_SIZE_LONG_FORMAT);
 			g_string_append_printf(text, "    Checksum:  %s\n", img->checksum.digest);
