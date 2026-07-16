@@ -80,14 +80,20 @@ If in doubt, obtain advice from an expert.
 
 .. _sec-key-usage:
 
-Certificate Key Usage Attributes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Certificate (Extended) Key Usage Attributes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-By default (for backwards compatibility reasons), RAUC does not check the
-certificate's key usage attributes.
-When not using a stand-alone PKI for RAUC, it can be useful to enable checking
-via the ``check-purpose`` configuration option to allow only specific
-certificates for bundle installation.
+By default (for backwards compatibility reasons), RAUC uses OpenSSL's default
+CMS verification checks and does not use custom checks for certificate key
+usage attributes like *keyUsage* or *extendedKeyUsage*.
+
+.. note:: OpenSSL's default CMS verification requires the signer
+   certificate to be suitable for the `'smimesign' purpose
+   <https://docs.openssl.org/3.5/man1/openssl-verification-options/#checks-implied-by-specific-predefined-policies>`_.
+
+When not using a stand-alone PKI for RAUC, it can be useful to enable a
+different certificate purpose check via the ``check-purpose`` configuration option to
+allow only specific certificates for bundle installation.
 
 When using OpenSSL to create your certificates, the key usage attributes can be
 configured in the `X.509 V3 extension sections
@@ -102,11 +108,22 @@ test the handling of the *codeSigning* *extended key usage* attribute::
   subjectKeyIdentifier=hash
   authorityKeyIdentifier=keyid:always,issuer:always
   basicConstraints = CA:FALSE
+  keyUsage=critical,digitalSignature
   extendedKeyUsage=critical,codeSigning
 
-As OpenSSL does not (yet) provide a purpose check for code signing, RAUC
-contains its own implementation, which can be enabled with the
-:ref:`check-purpose=codesign <check-purpose>` configuration option.
+Before version 3.2, OpenSSL did not provide a built-in purpose check for 'code signing'.
+Hence RAUC comes with its own implementation, which can be enabled with the
+:ref:`check-purpose=codesign-rauc <check-purpose>` configuration option.
+
+.. note:: For compatibility reasons, ``check-purpose=codesign`` maps to
+   ``codesign-rauc``.
+
+.. note:: The RAUC 'codesign' check purpose implementation described here
+   differs from the one provided by OpenSSL (since 3.2) and from some of the
+   `CA/Browser Forum recommendations listed in "7.1.2.3 Code signing and
+   Timestamp Certificate"
+   <https://cabforum.org/uploads/Baseline-Requirements-for-the-Issuance-and-Management-of-Code-Signing.v3.9.pdf>`_.
+
 For the leaf (signer) certificate, the *extendedKeyUsage* attribute must exist
 and contain (at least) the *codeSigning* value.
 Also, if it has the *keyUsage* attribute, it must contain at least *digitalSignature*.

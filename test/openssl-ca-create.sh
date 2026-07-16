@@ -117,7 +117,14 @@ authorityKeyIdentifier=keyid:always,issuer:always
 basicConstraints = CA:FALSE
 extendedKeyUsage=critical,emailProtection
 
-[ v3_leaf_codesign ]
+[ v3_leaf_codesign_openssl ]
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+basicConstraints = CA:FALSE
+keyUsage=critical,digitalSignature
+extendedKeyUsage=critical,codeSigning
+
+[ v3_leaf_codesign_rauc ]
 subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid:always,issuer:always
 basicConstraints = CA:FALSE
@@ -186,10 +193,15 @@ cd $BASE/dev
 openssl req -newkey rsa -keyout private/xku-emailProtection.pem -out xku-emailProtection.csr.pem -subj "/O=$ORG/CN=$ORG XKU emailProtection"
 openssl ca -batch -extensions v3_leaf_email -in xku-emailProtection.csr.pem -out xku-emailProtection.cert.pem
 
-echo "Signing Key with XKU codeSigning"
+echo "Signing Key with XKU codeSigning (with Key Usage)"
 cd $BASE/dev
-openssl req -newkey rsa -keyout private/xku-codeSigning.pem -out xku-codeSigning.csr.pem -subj "/O=$ORG/CN=$ORG XKU codeSigning"
-openssl ca -batch -extensions v3_leaf_codesign -in xku-codeSigning.csr.pem -out xku-codeSigning.cert.pem
+openssl req -newkey rsa -keyout private/xku-codeSigning-openssl.pem -out xku-codeSigning-openssl.csr.pem -subj "/O=$ORG/CN=$ORG XKU codeSigning KeyUsage"
+openssl ca -batch -extensions v3_leaf_codesign_openssl -in xku-codeSigning-openssl.csr.pem -out xku-codeSigning-openssl.cert.pem
+
+echo "Signing Key with XKU codeSigning (without Key Usage)"
+cd $BASE/dev
+openssl req -newkey rsa -keyout private/xku-codeSigning-rauc.pem -out xku-codeSigning-rauc.csr.pem -subj "/O=$ORG/CN=$ORG XKU codeSigning NoKeyUsage"
+openssl ca -batch -extensions v3_leaf_codesign_rauc -in xku-codeSigning-rauc.csr.pem -out xku-codeSigning-rauc.cert.pem
 
 echo "Web Intermediate CA"
 cd $BASE/web

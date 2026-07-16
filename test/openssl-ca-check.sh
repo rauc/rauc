@@ -82,15 +82,30 @@ else
 fi
 
 echo "Sign and check with XKU codeSigning"
-openssl cms -sign -in manifest -out manifest-cs1.sig -signer dev/xku-codeSigning.cert.pem -inkey dev/private/xku-codeSigning.pem -outform DER -nosmimecap -binary -certfile dev/ca.cert.pem
+openssl cms -sign -in manifest -out manifest-cs1.sig -signer dev/xku-codeSigning-openssl.cert.pem -inkey dev/private/xku-codeSigning-openssl.pem -outform DER -nosmimecap -binary -certfile dev/ca.cert.pem
 if openssl cms -verify -in manifest-cs1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem; then
   echo UNEXPECTED; exit 1
 else
   echo EXPECTED
 fi
 openssl cms -verify -in manifest-cs1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem -purpose any || echo FAILED
-# testing for codesign using cms verify doesn't seem to be possible yet
+openssl cms -verify -in manifest-cs1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem -purpose codesign || echo FAILED
 if openssl cms -verify -in manifest-cs1.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem -purpose smimesign; then
+  echo UNEXPECTED; exit 1
+else
+  echo EXPECTED
+fi
+
+echo "Sign and check with XKU codeSigning (No Key Usage)"
+openssl cms -sign -in manifest -out manifest-cs1-rauc.sig -signer dev/xku-codeSigning-rauc.cert.pem -inkey dev/private/xku-codeSigning-rauc.pem -outform DER -nosmimecap -binary -certfile dev/ca.cert.pem
+if openssl cms -verify -in manifest-cs1-rauc.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem; then
+  echo UNEXPECTED; exit 1
+else
+  echo EXPECTED
+fi
+openssl cms -verify -in manifest-cs1-rauc.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem -purpose any || echo FAILED
+openssl cms -verify -in manifest-cs1-rauc.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem -purpose codesign || echo FAILED
+if openssl cms -verify -in manifest-cs1-rauc.sig -content manifest -inform DER -binary -crl_check -CAfile dev-ca.pem -purpose smimesign; then
   echo UNEXPECTED; exit 1
 else
   echo EXPECTED

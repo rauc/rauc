@@ -364,11 +364,16 @@ signature.
   Certificates in the chain with incompatible purposes are rejected.
   Possible values are provided by OpenSSL (``any``, ``sslclient``,
   ``sslserver``, ``nssslserver``, ``smimesign``, ``smimeencrypt``) and RAUC
-  (``codesign``).
+  (``codesign-rauc``).
   See ``-purpose`` and ``VERIFY OPERATION`` in the OpenSSL verify_ manual page
   and the :ref:`sec-key-usage` section for more information.
+  If unset, ``smimesign`` will be used as default check purpose by OpenSSL.
 
-.. _verify: https://www.openssl.org/docs/man1.1.1/man1/verify.html
+  .. note:: The older ``codesign`` option currently maps to ``codesign-rauc`` and
+     does not allow selecting the OpenSSL ``codesign`` check purpose
+     implementation!
+
+.. _verify: https://docs.openssl.org/3.6/man1/openssl-verify
 
 .. _streaming-config-section:
 

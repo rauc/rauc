@@ -42,7 +42,18 @@ static const gchar *get_openssl_err_string(void)
 	return (errflags & ERR_TXT_STRING) ? data : ERR_error_string(err, NULL);
 }
 
-/* return 0 for error, 1 for success */
+/* RAUC implementation for 'codesign' check purpose.
+ *
+ * This differs from the OpenSSL implementation as follows:
+ *
+ * - Additional restriction:
+ *   - Also for non-leaf certificates, 'codeSigning' must be present if 'Extended Key Usage' is set.
+ * - Less restrictive:
+ *   - The 'Key Usage' option is not required (and does not have to be marked as 'critical').
+ *     However, a warning is shown if the option is missing.
+ *   - The 'Key Usage' bits keyCertSign and cRLSign are not checked.
+ *
+ * returns 0 for error, 1 for success */
 static int check_purpose_code_sign(const X509_PURPOSE *xp, const X509 *const_x, int ca)
 {
 	/* The external OpenSSL API only takes a non-const X509 pointer, but
@@ -66,7 +77,7 @@ static int check_purpose_code_sign(const X509_PURPOSE *xp, const X509 *const_x, 
 
 	/* If key usage is present, it must contain digitalSignature. */
 	if ((ex_flags & EXFLAG_KUSAGE) && !(ex_kusage & KU_DIGITAL_SIGNATURE)) {
-		g_message("Signer certificate key usage does not allow digital signatures");
+		g_message("Signer certificate key usage does not allow 'digitalSignature'");
 		return 0;
 	}
 
