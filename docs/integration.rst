@@ -514,11 +514,11 @@ cannot fully know how you intend to use your system.
   Depending on the build system in use, it may be necessary to include additional dependencies
   to support the compression format being used.
   GNU tar is required when working with the following formats:
-  
+
     * `lzip <http://lzip.nongnu.org/lzip.html>`_: ``*.lz``
     * `lzop <http://www.lzop.org/>`_: ``*.lzo``
     * `zstd <http://www.zstd.net>`_: ``*.zst``, ``*.tzst``
-  
+
 :ext4: mkfs.ext4 (from `e2fsprogs
   <git://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git>`_)
 :vfat: mkfs.vfat (from `dosfstools
@@ -532,6 +532,8 @@ tool to interact with it:
 :U-Boot: fw_setenv/fw_getenv (from `u-boot <http://git.denx.de/?p=u-boot.git;a=summary>`_)
 :GRUB: grub-editenv
 :EFI: efibootmgr
+:systemd-boot: bootctl
+               (from `systemd <https://www.freedesktop.org/wiki/Software/systemd/>`_)
 
 Note that for running ``rauc info`` on the target (as well as on the host), you
 also need to have the ``unsquashfs`` tool installed.
@@ -1359,6 +1361,76 @@ argument in the ``efibootmgr`` call above:
   device=/dev/sdX4
   type=ext4
   parent=efi.1
+
+.. _sec-systemd-boot:
+
+systemd-boot
+~~~~~~~~~~~~
+
+`systemd-boot <https://www.freedesktop.org/wiki/Software/systemd/>`_ is a
+simple UEFI boot manager that reads boot entries from the EFI system partition
+under ``/boot/loader/entries/``.
+RAUC uses the ``bootctl`` tool to read and write the default boot entry.
+
+The slot selection logic is as follows:
+
+* **Primary slot** - the slot whose ``bootname`` matches the current default
+  boot entry as reported by ``bootctl status``.
+  When marking a slot as primary, RAUC calls ``bootctl set-default <bootname>``.
+* **Slot state** - RAUC always considers every configured entry as *good*.
+  Marking a slot good confirms it as the default entry.
+  Marking a slot bad is **not** supported.
+
+.. warning::
+
+   `Automatic Boot Assessment <https://systemd.io/AUTOMATIC_BOOT_ASSESSMENT/>`_
+   is **not compatible** with this backend and must be disabled.
+
+   Boot Assessment encodes the remaining boot-count in the entry filename
+   (e.g. ``entry0+3-1.conf``).  Because the filename changes on every boot
+   attempt, RAUC cannot reliably match it against the configured ``bootname``
+   and will refuse to operate if a boot-counting suffix is detected on the
+   current default entry.
+
+   To disable boot assessment, ensure all boot entry filenames use the plain
+   ``.conf`` form **without** a ``+N`` suffix.
+
+To enable systemd-boot support in RAUC, write in your ``system.conf``:
+
+.. code-block:: cfg
+
+  [system]
+  ...
+  bootloader=systemd-boot
+
+The ``bootname`` for each slot must be the filename of the corresponding boot
+entry (e.g. ``entry0.conf``), as shown by ``bootctl list``:
+
+.. code-block:: cfg
+
+  [slot.rootfs.0]
+  device=/dev/sda2
+  type=ext4
+  bootname=entry0.conf
+
+  [slot.rootfs.1]
+  device=/dev/sda3
+  type=ext4
+  bootname=entry1.conf
+
+.. note::
+
+   systemd-boot does not pass the active boot entry name via the kernel command
+   line automatically.
+   You must pass ``rauc.slot=<bootname>`` explicitly in the kernel command line
+   of each slot so that RAUC can identify the currently booted slot, e.g.:
+
+   .. code-block:: cfg
+
+     rauc.slot=entry0.conf
+
+   See :ref:`sec-integration-boot-slot-detection` for the full list of slot
+   detection mechanisms.
 
 .. _sec-custom-bootloader-backend:
 
