@@ -876,6 +876,43 @@ hooks=install\n\
 	g_assert_true(res);
 }
 
+/* Check that an image filename containing '/' is rejected for a manifest read
+ * from a bundle, as such a filename is used to build a path below the bundle
+ * directory.
+ */
+static void test_manifest_image_filename_with_slash(void)
+{
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *manifestpath = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
+	gboolean res = FALSE;
+	g_autoptr(GError) error = NULL;
+	const gchar *mffile = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[image.rootfs]\n\
+filename=../../../../tmp/rootfs-default.ext4\n\
+sha256=0815\n\
+size=1\n\
+";
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
+	g_assert_nonnull(manifestpath);
+
+	res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	res = check_manifest_internal(rm, &error);
+	g_assert_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR);
+	g_assert_false(res);
+}
+
 /* Test manifest/invalid_data:
  *
  * Tests parsing invalid data: *
@@ -1026,6 +1063,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/manifest/invalid_hook_combination", test_manifest_invalid_hook_combination);
 	g_test_add_func("/manifest/missing_hook_name", test_manifest_missing_hook_name);
 	g_test_add_func("/manifest/missing_image_size", test_manifest_missing_image_size);
+	g_test_add_func("/manifest/image_filename_with_slash", test_manifest_image_filename_with_slash);
 	g_test_add_func("/manifest/invalid_data", test_invalid_data);
 
 	return g_test_run();
