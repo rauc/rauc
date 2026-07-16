@@ -629,6 +629,11 @@ static gboolean check_manifest_bundled(const RaucManifest *mf, GError **error)
 		if (!image->filename)
 			continue;
 
+		if (strchr(image->filename, '/')) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Image filename %s must not contain '/'", image->filename);
+			return FALSE;
+		}
+
 		if (image->checksum.type != G_CHECKSUM_SHA256) {
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Unsupported checksum algorithm for image %s", image->filename);
 			return FALSE;
@@ -663,6 +668,15 @@ static gboolean check_manifest_bundled(const RaucManifest *mf, GError **error)
 			if (expected_len != image->converted->len) {
 				g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Inconsistent number of converted inputs/outputs for image %s", image->filename);
 				return FALSE;
+			}
+
+			for (guint i = 0; i < image->converted->len; i++) {
+				const gchar *converted = g_ptr_array_index(image->converted, i);
+
+				if (strchr(converted, '/')) {
+					g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Converted image filename %s must not contain '/'", converted);
+					return FALSE;
+				}
 			}
 		}
 	}
