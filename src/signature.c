@@ -1124,8 +1124,22 @@ static gboolean cms_check_signer_cns(CMS_ContentInfo *cms, GError **error)
 			continue;
 
 		const X509_NAME_ENTRY *cn = X509_NAME_get_entry(current_signer, index);
+		const ASN1_STRING *cn_asn1 = X509_NAME_ENTRY_get_data(cn);
+		const unsigned char* cn_value = ASN1_STRING_get0_data(cn_asn1);
+		int cn_length = ASN1_STRING_length(cn_asn1);
+		// the ASN.1 string is compared as a NUL-terminated C string below, so a
+		// CN like "allowed\0evil" would be truncated at the NUL and match the
+		// allowed entry "allowed". A NUL byte has no legitimate use in a CN, so
+		// reject the certificate outright instead of comparing a truncated value.
+		if (cn_length < 0 || memchr(cn_value, '\0', cn_length) != NULL) {
+			g_set_error_literal(
+					error,
+					R_SIGNATURE_ERROR,
+					R_SIGNATURE_ERROR_INVALID,
+					"Signer certificate CN contains an embedded NUL byte");
+			return FALSE;
+		}
 		// as soon as one matching entry is found, device is eligible to use this update
-		const unsigned char* cn_value = ASN1_STRING_get0_data(X509_NAME_ENTRY_get_data(cn));
 		if (g_strv_contains((const gchar *const *)allowed_cns, (gchar*)cn_value)) {
 			return TRUE;
 		}
