@@ -1,6 +1,7 @@
 #include <asm-generic/errno-base.h>
 #include <errno.h>
 #include <stdint.h>
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -39,12 +40,44 @@ static GPtrArray *get_objects_sorted(GHashTable *objects)
 }
 
 /*
+ * Check that an object name has the form mkcomposefs --digest-store creates:
+ * the hex sha256 digest of the file contents, with a separator after the first
+ * byte (such as a8/a6f5cb65e83a3404096a90d97be401503380f64440d5ee3fd4c41b7a776ebd).
+ *
+ * The names are taken from the image and used as path components below the
+ * object stores, so anything else must be rejected.
+ */
+static gboolean composefs_object_name_valid(const gchar *name)
+{
+	g_return_val_if_fail(name, FALSE);
+
+	/* the digest as hex, plus the separator */
+	if (strlen(name) != LCFS_DIGEST_SIZE * 2 + 1)
+		return FALSE;
+
+	if (name[2] != '/')
+		return FALSE;
+
+	for (guint i = 0; name[i]; i++) {
+		if (i == 2)
+			continue;
+		if (!g_ascii_isxdigit(name[i]))
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+/*
  * Recursively walk the composefs tree and collect the payload names (hashes).
  */
-static void composefs_collect_objects(GHashTable *objects, struct lcfs_node_s *node)
+static gboolean composefs_collect_objects(GHashTable *objects, struct lcfs_node_s *node, GError **error)
 {
-	g_return_if_fail(objects);
-	g_return_if_fail(node);
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(objects, FALSE);
+	g_return_val_if_fail(node, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	for (size_t i = 0; i < lcfs_node_get_n_children(node); i++) {
 		struct lcfs_node_s *child = lcfs_node_get_child(node, i);
@@ -52,11 +85,22 @@ static void composefs_collect_objects(GHashTable *objects, struct lcfs_node_s *n
 
 		uint32_t type = lcfs_node_get_mode(child) & S_IFMT;
 		const gchar *payload = lcfs_node_get_payload(child);
-		if (type == S_IFREG && payload)
+		if (type == S_IFREG && payload) {
+			if (!composefs_object_name_valid(payload)) {
+				g_set_error(error, R_ARTIFACTS_ERROR, R_ARTIFACTS_ERROR_INSTALL,
+						"Invalid composefs object name '%s' in image", payload);
+				return FALSE;
+			}
 			g_hash_table_add(objects, g_strdup(payload));
+		}
 
-		composefs_collect_objects(objects, child);
+		if (!composefs_collect_objects(objects, child, &ierror)) {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
 	}
+
+	return TRUE;
 }
 
 static gboolean composefs_objects_from_image(GHashTable *objects, const gchar *image_path, GError **error)
@@ -76,10 +120,20 @@ static gboolean composefs_objects_from_image(GHashTable *objects, const gchar *i
 	}
 
 	struct lcfs_node_s *node = lcfs_load_node_from_image((uint8_t *)image_bytes, image_length);
-	composefs_collect_objects(objects, node);
+	if (node == NULL) {
+		int err = errno;
+		g_set_error(error, R_ARTIFACTS_ERROR, R_ARTIFACTS_ERROR_INSTALL,
+				"Failed to load composefs image '%s': %s", image_path, g_strerror(err));
+		return FALSE;
+	}
+
+	gboolean res = composefs_collect_objects(objects, node, &ierror);
+	if (!res)
+		g_propagate_error(error, ierror);
+
 	g_clear_pointer(&node, lcfs_node_unref);
 
-	return TRUE;
+	return res;
 }
 
 gboolean r_composefs_artifact_repo_prepare(RArtifactRepo *repo, GError **error)
