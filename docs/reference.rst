@@ -805,7 +805,6 @@ The name must be different from any slot class names.
 
 ``type=<type>`` (required)
   The type of this repository.
-  Currently supported values are ``files`` and ``trees``.
 
   ``files``
     each artifact is a single file
@@ -1100,6 +1099,10 @@ The following fields are supported for image sections:
 
   Detailed information about the supported types is described in the
   :ref:`Supported Image Types <sec-ref-supported-image-types>` section.
+
+  .. note::
+    This key is not yet supported for artifacts and will cause an error if
+    used.
 
 ``sha256`` (generated)
   sha256 of image file.
