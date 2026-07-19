@@ -4,6 +4,7 @@
 #include <glib/gstdio.h>
 
 #include "update_handler.h"
+#include "update_utils.h"
 #include "manifest.h"
 #include "common.h"
 #include "context.h"
@@ -654,6 +655,24 @@ out:
 	r_slot_free(targetslot);
 }
 
+/* Test update_handler/copy_stream/oversized-input:
+ *
+ * An input stream holding more data than the announced size must be rejected
+ * instead of being written past the size the caller has checked. */
+static void test_copy_stream_oversized_input(void)
+{
+	g_autofree gchar *data = g_malloc0(FILE_SIZE);
+	g_autoptr(GInputStream) in_stream = g_memory_input_stream_new_from_data(data, FILE_SIZE, NULL);
+	g_autoptr(GOutputStream) out_stream = g_memory_output_stream_new_resizable();
+	GError *ierror = NULL;
+
+	g_assert_false(r_copy_stream_with_progress(in_stream, out_stream, FILE_SIZE/2, &ierror));
+	g_assert_error(ierror, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED);
+	g_clear_error(&ierror);
+
+	g_assert_cmpuint(g_memory_output_stream_get_data_size(G_MEMORY_OUTPUT_STREAM(out_stream)), <=, FILE_SIZE/2);
+}
+
 int main(int argc, char *argv[])
 {
 	UpdateHandlerTestPair testpair_matrix[] = {
@@ -1275,6 +1294,9 @@ int main(int argc, char *argv[])
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
+
+	g_test_add_func("/update_handler/copy_stream/oversized-input",
+			test_copy_stream_oversized_input);
 
 	return g_test_run();
 }
