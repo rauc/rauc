@@ -80,6 +80,9 @@ def json_mode(args, vars_file):
 
 def static_mode(args):
     if args.bootorder is not None:
+        if os.environ.get("EFIBOOTMGR_FAIL_BOOTORDER"):
+            print("efibootmgr: error setting boot order", file=sys.stderr)
+            sys.exit(1)
         # Test code must move system1 to primary position. Assert this!
         print(f"--bootorder: {args.bootorder}")
         # if args.bootorder != "0002,0001,0003,0000":
