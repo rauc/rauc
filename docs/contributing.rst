@@ -37,6 +37,37 @@ Documentation
 - Use `semantic linefeeds
   <http://rhodesmill.org/brandon/2012/one-sentence-per-line/>`_ in .rst files.
 
+
+Use of Large Language Models (LLMs) and AI tooling
+--------------------------------------------------
+
+We expect everyone contributing to the project to fully own their contribution,
+be able to reason about it, be able to explain why things were done a
+particular way, and act as the full owner of that code.
+AI tools are treated the same as traditional tooling like ``sed``, ``awk`` or
+``coccinelle``.
+
+Contributors who wish to disclose how they prepared their contribution can do
+so in the commit message (such as by using an ``Assisted-by:
+AGENT_NAME:MODEL_VERSION [TOOL1] [TOOL2]`` tag, as `used by the Linux kernel
+<https://docs.kernel.org/process/coding-assistants.html#attribution>`_).
+
+For the purpose of this project, AI tools CANNOT be treated as author,
+co-author or be credited in any way that would suggest any ownership over the
+contribution.
+
+The contributor should have done all the thinking, planning, and understanding
+of the changes needed to resolve an issue or implement a new feature prior to
+using automated tooling to perform the grunt work.
+
+Unguided use of those tools or the inability to prove understanding of the code
+contributed will result in a loss of trust in that contributor by project
+maintainers, which can then lead to exclusion from any further contribution to
+the project.
+
+As with any other submissions, authors are responsible for doing due diligence
+and ensuring their submissions are compatible with the project's license.
+
 Check Scripts & Test Suite
 --------------------------
 
