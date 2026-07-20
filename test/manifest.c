@@ -750,7 +750,7 @@ version=2015.04-1\n\
 \n\
 [image.rootfs]\n\
 filename=rootfs-default.ext4\n\
-sha256=0815\n\
+sha256=e437f5cf0e26c1c4f81a92a29c92a8fb3e0f4ce8fbc4e2e0a1eff56b09b26cba\n\
 size=1\n\
 hooks=install;pre-install\n\
 ";
@@ -787,7 +787,7 @@ version=2015.04-1\n\
 \n\
 [image.rootfs]\n\
 filename=rootfs-default.ext4\n\
-sha256=0815\n\
+sha256=e437f5cf0e26c1c4f81a92a29c92a8fb3e0f4ce8fbc4e2e0a1eff56b09b26cba\n\
 size=1\n\
 hooks=install\n\
 ";
@@ -829,7 +829,7 @@ filename=demo.hook\n\
 \n\
 [image.rootfs]\n\
 filename=rootfs-default.ext4\n\
-sha256=0815\n\
+sha256=e437f5cf0e26c1c4f81a92a29c92a8fb3e0f4ce8fbc4e2e0a1eff56b09b26cba\n\
 ";
 	const gchar *mffile_valid = "\
 [update]\n\
@@ -841,7 +841,7 @@ filename=demo.hook\n\
 \n\
 [image.rootfs]\n\
 filename=rootfs-default.ext4\n\
-sha256=0815\n\
+sha256=e437f5cf0e26c1c4f81a92a29c92a8fb3e0f4ce8fbc4e2e0a1eff56b09b26cba\n\
 hooks=install\n\
 ";
 
@@ -894,7 +894,44 @@ version=2015.04-1\n\
 \n\
 [image.rootfs]\n\
 filename=../../../../tmp/rootfs-default.ext4\n\
-sha256=0815\n\
+sha256=e437f5cf0e26c1c4f81a92a29c92a8fb3e0f4ce8fbc4e2e0a1eff56b09b26cba\n\
+size=1\n\
+";
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
+	g_assert_nonnull(manifestpath);
+
+	res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	res = check_manifest_internal(rm, &error);
+	g_assert_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR);
+	g_assert_false(res);
+}
+
+/* Check that an image digest which is not a plain hex digest is rejected for a
+ * manifest read from a bundle, as the digest is used to build paths below the
+ * artifact repository and below the slot data directory.
+ */
+static void test_manifest_image_digest_not_hex(void)
+{
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *manifestpath = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
+	gboolean res = FALSE;
+	g_autoptr(GError) error = NULL;
+	const gchar *mffile = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[image.rootfs]\n\
+filename=rootfs-default.ext4\n\
+sha256=../../../../tmp/rootfs-default.ext4-payload-aaaaaaaaaaaaaaaaaaaa\n\
 size=1\n\
 ";
 
@@ -1064,6 +1101,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/manifest/missing_hook_name", test_manifest_missing_hook_name);
 	g_test_add_func("/manifest/missing_image_size", test_manifest_missing_image_size);
 	g_test_add_func("/manifest/image_filename_with_slash", test_manifest_image_filename_with_slash);
+	g_test_add_func("/manifest/image_digest_not_hex", test_manifest_image_digest_not_hex);
 	g_test_add_func("/manifest/invalid_data", test_invalid_data);
 
 	return g_test_run();
