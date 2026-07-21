@@ -4,6 +4,10 @@ set -e
 
 echo "<< debug $*"
 
+# status lines with missing fields must not upset the parser
+echo "<< image"
+echo "<< handler"
+
 echo "<< handler [STARTED]"
 
 function exit_if_empty {
