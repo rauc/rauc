@@ -1,14 +1,13 @@
+import json
 import shutil
 import tarfile
-import json
-from io import BytesIO
-from pprint import pprint
-from pathlib import Path
 from contextlib import contextmanager
+from io import BytesIO
+from pathlib import Path
+from pprint import pprint
 
-from conftest import root, have_json, needs_composefs, Bundle
+from conftest import Bundle, have_json, needs_composefs, root
 from helper import run, run_tree
-
 
 pytestmark = [root, have_json]
 

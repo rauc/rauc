@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import tarfile
-
 from io import BytesIO
 
 # create a tar file with some normal files

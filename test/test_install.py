@@ -4,8 +4,7 @@ import shutil
 from textwrap import dedent
 
 from conftest import have_casync, have_http, have_streaming, no_service, root
-from helper import run
-from helper import slot_data_from_json
+from helper import run, slot_data_from_json
 
 # all tests require root privileges
 pytestmark = root

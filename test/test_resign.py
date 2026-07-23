@@ -1,9 +1,8 @@
 import shutil
 
 from conftest import have_faketime
-from helper import run
 from decode_cms import decode_cms
-
+from helper import run
 
 # each signer cert's issuer + serial
 SIGNERS = {

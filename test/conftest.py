@@ -3,16 +3,16 @@ import os
 import shutil
 import subprocess
 import time
-from functools import cache
 from configparser import ConfigParser
+from contextlib import contextmanager
+from functools import cache
 from pathlib import Path
 from random import Random
-from contextlib import contextmanager
 
 import pytest
+import requests
 from dasbus.connection import SessionMessageBus
 from dasbus.error import DBusError
-import requests
 
 from helper import run
 

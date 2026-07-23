@@ -4,7 +4,7 @@ import inspect
 from datetime import datetime
 
 from pyasn1.codec.der import decoder
-from pyasn1.type import univ, char
+from pyasn1.type import char, univ
 from pyasn1_modules import rfc2315, rfc5280, rfc5480, rfc5652, rfc5751
 
 

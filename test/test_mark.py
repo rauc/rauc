@@ -5,8 +5,7 @@ import os
 import pytest
 
 from conftest import have_grub, have_qemu, no_service
-from helper import run
-from helper import slot_data_from_json
+from helper import run, slot_data_from_json
 
 
 @no_service
