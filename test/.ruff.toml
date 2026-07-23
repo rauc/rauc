@@ -1,1 +1,4 @@
 line-length = 119
+
+[lint]
+ignore = ["RUF059"] # disable until fixed
