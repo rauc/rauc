@@ -43,9 +43,8 @@ def test_encrypt_single_multi_cert_pem_rsa_ecc_mixed(tmp_path):
 
 
 def test_encrypt_broken_multi_cert_pem(tmp_path):
-    with open("openssl-enc/keys/rsa-4096/certs.pem") as infile:
-        with (tmp_path / "certs.pem").open("a") as outfile:
-            outfile.writelines(infile.readlines()[:-5])
+    with open("openssl-enc/keys/rsa-4096/certs.pem") as infile, (tmp_path / "certs.pem").open("a") as outfile:
+        outfile.writelines(infile.readlines()[:-5])
 
     out, err, exitcode = run(
         "rauc encrypt "
