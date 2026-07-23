@@ -255,10 +255,10 @@ static RaucSlot *raspberrypi_get_booted(GError **error)
 	return booted;
 }
 
-/* Write the autoboot.txt using the other bootname as the boot_partition in the
- * [all] section, and the primary bootname as the boot_partition in the
- * [tryboot] section. */
-static gboolean raspberrypi_set_other_persistent(RaucSlot *primary, RaucSlot *other, GError **error)
+/* Write autoboot.txt with
+ * 'persistent_bootname' as the [all] boot_partition and
+ * 'tryboot_bootname' as the [tryboot] boot_partition. */
+static gboolean raspberrypi_write_autoboot(gchar *persistent_bootname, gchar *tryboot_bootname, GError **error)
 {
 	g_auto(filedesc) fd = -1;
 	g_autofree gchar *data = NULL;
@@ -266,7 +266,8 @@ static gboolean raspberrypi_set_other_persistent(RaucSlot *primary, RaucSlot *ot
 	gchar *filename;
 	gsize size;
 
-	g_return_val_if_fail(primary != other, FALSE);
+	g_return_val_if_fail(persistent_bootname, FALSE);
+	g_return_val_if_fail(tryboot_bootname, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	filename = r_context()->config->raspberrypi_autoboottxt_path;
@@ -284,7 +285,7 @@ static gboolean raspberrypi_set_other_persistent(RaucSlot *primary, RaucSlot *ot
 	}
 
 	data = g_strdup_printf("[all]\ntryboot_a_b=1\nboot_partition=%s\n[tryboot]\nboot_partition=%s\n",
-			other->bootname, primary->bootname);
+			persistent_bootname, tryboot_bootname);
 	size = strlen(data);
 	if (write(fd, data, size) != (gssize)size) {
 		int err = errno;
@@ -510,7 +511,7 @@ gboolean r_raspberrypi_set_state(RaucSlot *slot, gboolean good, GError **error)
 
 	/* The slot is not yet the primary slot, update autoboot.txt */
 	if (slot != primary) {
-		if (!raspberrypi_set_other_persistent(primary, slot, &ierror)) {
+		if (!raspberrypi_write_autoboot(slot->bootname, primary->bootname, &ierror)) {
 			g_propagate_prefixed_error(
 					error,
 					ierror,
