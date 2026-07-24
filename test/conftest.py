@@ -30,7 +30,7 @@ shutil._USE_CP_SENDFILE = False
 
 meson_build = os.environ.get("MESON_BUILD_DIR")
 if not meson_build:
-    raise Exception("Please set MESON_BUILD_DIR to point to the meson build directory.")
+    raise pytest.UsageError("Please set MESON_BUILD_DIR to point to the meson build directory.")
 if not Path(meson_build).is_absolute():
     meson_build = os.path.abspath(meson_build)
 
