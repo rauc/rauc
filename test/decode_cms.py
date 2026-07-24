@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import inspect
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pyasn1.codec.der import decoder
 from pyasn1.type import char, univ
@@ -85,7 +85,7 @@ def utctime_to_datetime(utctime):
     minute = int(utctime[8:10])
     second = int(utctime[10:12])
 
-    return datetime(year, month, day, hour, minute, second)
+    return datetime(year, month, day, hour, minute, second, tzinfo=timezone.utc)
 
 
 def attribute_to_string(typ, attr):
