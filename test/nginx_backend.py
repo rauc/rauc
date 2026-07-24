@@ -10,7 +10,7 @@ try:
     from aiohttp import web
 except ModuleNotFoundError:
     print("aiohttp python module not installed, disabling RAUC_TEST_HTTP_BACKEND")
-    exit(1)
+    sys.exit(1)
 
 routes = web.RouteTableDef()
 
