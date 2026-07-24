@@ -202,12 +202,12 @@ def test_info_format_shell(tmp_path):
     # copy to tmp path for safe ownership check
     shutil.copyfile("good-adaptive-meta-bundle.raucb", tmp_path / "good-adaptive-meta-bundle.raucb")
 
-    proc = subprocess.run(
+    subprocess.run(
         "rauc info --keyring openssl-ca/dev-ca.pem "
         f"--output-format=shell {tmp_path}/good-adaptive-meta-bundle.raucb | sh",
         shell=True,
+        check=True,
     )
-    assert proc.returncode == 0
 
 
 @have_json
