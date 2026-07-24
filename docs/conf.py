@@ -39,9 +39,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'RAUC'
-author = u'Jan Luebbe, Enrico Joerns, the RAUC contributors'
-copyright = u'2016-2026, ' + author
+project = 'RAUC'
+author = 'Jan Luebbe, Enrico Joerns, the RAUC contributors'
+copyright = '2016-2026, ' + author
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -82,7 +82,7 @@ html_favicon = 'favicon.ico'
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'rauc.tex', u'RAUC Documentation',
+  ('index', 'rauc.tex', 'RAUC Documentation',
    author, 'manual'),
 ]
 
