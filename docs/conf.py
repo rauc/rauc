@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # rauc documentation build configuration file, created by
 # sphinx-quickstart on Fri Jan 22 16:00:15 2016.
 
