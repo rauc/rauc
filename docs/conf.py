@@ -3,8 +3,6 @@
 # rauc documentation build configuration file, created by
 # sphinx-quickstart on Fri Jan 22 16:00:15 2016.
 
-import sys
-import os
 import subprocess
 
 # If extensions (or modules to document with autodoc) are in another directory,
