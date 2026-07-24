@@ -49,8 +49,7 @@ copyright = '2016-2026, ' + author
 #
 # The short X.Y version.
 version = subprocess.check_output(['../build-aux/git-version-gen', '../.tarball-version']).decode()
-if version.endswith('-dirty'):
-  version = version[:-6]
+version = version.removesuffix('-dirty')
 # The full version, including alpha/beta/rc tags.
 release = version
 
