@@ -31,7 +31,8 @@ def decode_as_string(value_any):
         try:
             decoded, _ = decoder.decode(value_any.asOctets(), asn1Spec=asn1_type())
             return str(decoded)
-        except Exception:
+        except Exception as e:
+            print(f"decoding as string failed: {e}")
             continue
     # fallback: return hex
     return value_any.prettyPrint()
