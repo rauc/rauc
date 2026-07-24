@@ -545,27 +545,25 @@ def test_tree_in_use(rauc_dbus_service_with_system, tmp_path, system):
 
     # open a file from this artifact and remember the full path
     active_file_path = (artifact_path / "file-a").resolve()
-    active_file = open(active_file_path, "rb")
+    with open(active_file_path, "rb"):
+        # install another tree artifact and check result
+        data_b = b"content-b"
+        do_install_tree(tmp_path, "b", "trees", "artifact-2", {"file-b": data_b})
+        status = get_status()
+        assert "trees" in status.repos
+        repo = status.repos["trees"]
+        assert "artifact-1" not in repo.referenced_artifacts
+        assert "artifact-2" in repo.referenced_artifacts
 
-    # install another tree artifact and check result
-    data_b = b"content-b"
-    do_install_tree(tmp_path, "b", "trees", "artifact-2", {"file-b": data_b})
-    status = get_status()
-    assert "trees" in status.repos
-    repo = status.repos["trees"]
-    assert "artifact-1" not in repo.referenced_artifacts
-    assert "artifact-2" in repo.referenced_artifacts
+        artifact_path = repo.path / "artifact-2"
+        run_tree(repo.path)
+        assert artifact_path.is_symlink()
+        with open(artifact_path / "file-b", "rb") as f:
+            assert f.read() == data_b
+        # old file must be gone
+        assert not (artifact_path / "file-a").exists()
+        assert artifact_path.samefile(system.run_dir / "artifacts/trees/artifact-2")
 
-    artifact_path = repo.path / "artifact-2"
-    run_tree(repo.path)
-    assert artifact_path.is_symlink()
-    with open(artifact_path / "file-b", "rb") as f:
-        assert f.read() == data_b
-    # old file must be gone
-    assert not (artifact_path / "file-a").exists()
-    assert artifact_path.samefile(system.run_dir / "artifacts/trees/artifact-2")
-
-    active_file.close()
     with open(active_file_path, "rb") as f:
         assert f.read() == data_a
 
