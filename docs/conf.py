@@ -1,6 +1,7 @@
 # rauc documentation build configuration file, created by
 # sphinx-quickstart on Fri Jan 22 16:00:15 2016.
 
+import importlib.util
 import subprocess
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -20,11 +21,15 @@ extensions = [
 ]
 
 try:
-    import sphinxext.opengraph
+    have_opengraph = importlib.util.find_spec('sphinxext.opengraph') is not None
+except ModuleNotFoundError:
+    have_opengraph = False
+
+if have_opengraph:
     extensions.append('sphinxext.opengraph')
     ogp_site_url = 'https://rauc.readthedocs.io/en/latest/'
     ogp_image = 'https://rauc.readthedocs.io/en/latest/_static/RAUC_Logo_outline.svg'
-except ModuleNotFoundError:
+else:
     print("not using sphinxext.opengraph")
 
 # Add any paths that contain templates here, relative to this directory.
