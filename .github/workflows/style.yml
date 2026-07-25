@@ -30,4 +30,4 @@ jobs:
         python3 -m venv venv
         . venv/bin/activate
         pip install ruff
-        ruff format --check --diff test/ docs/conf.py && ruff check test/ docs/conf.py
+        ruff format --check --diff test/ docs/conf.py && ruff check test/ docs/conf.py --output-format=github
