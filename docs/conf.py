@@ -7,7 +7,7 @@ import subprocess
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('.'))
+# sys.path.insert(0, os.path.abspath('.'))
 
 # -- General configuration ------------------------------------------------
 
@@ -15,44 +15,46 @@ import subprocess
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.extlinks',
-    'sphinx.ext.ifconfig',
-    'sphinx_rtd_theme',
+    "sphinx.ext.extlinks",
+    "sphinx.ext.ifconfig",
+    "sphinx_rtd_theme",
 ]
 
 try:
-    have_opengraph = importlib.util.find_spec('sphinxext.opengraph') is not None
+    have_opengraph = importlib.util.find_spec("sphinxext.opengraph") is not None
 except ModuleNotFoundError:
     have_opengraph = False
 
 if have_opengraph:
-    extensions.append('sphinxext.opengraph')
-    ogp_site_url = 'https://rauc.readthedocs.io/en/latest/'
-    ogp_image = 'https://rauc.readthedocs.io/en/latest/_static/RAUC_Logo_outline.svg'
+    extensions.append("sphinxext.opengraph")
+    ogp_site_url = "https://rauc.readthedocs.io/en/latest/"
+    ogp_image = "https://rauc.readthedocs.io/en/latest/_static/RAUC_Logo_outline.svg"
 else:
     print("not using sphinxext.opengraph")
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = 'RAUC'
-author = 'Jan Luebbe, Enrico Joerns, the RAUC contributors'
-copyright = '2016-2026, ' + author
+project = "RAUC"
+author = "Jan Luebbe, Enrico Joerns, the RAUC contributors"
+copyright = "2016-2026, " + author
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = subprocess.check_output(['../build-aux/git-version-gen', '../.tarball-version']).decode()
-version = version.removesuffix('-dirty')
+version = subprocess.check_output(
+    ["../build-aux/git-version-gen", "../.tarball-version"]
+).decode()
+version = version.removesuffix("-dirty")
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -61,22 +63,22 @@ release = version
 exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = 'RAUC_Logo_outline.svg'
+html_logo = "RAUC_Logo_outline.svg"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = 'favicon.ico'
+html_favicon = "favicon.ico"
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -84,18 +86,17 @@ html_favicon = 'favicon.ico'
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'rauc.tex', 'RAUC Documentation',
-   author, 'manual'),
+    ("index", "rauc.tex", "RAUC Documentation", author, "manual"),
 ]
 
 # -- Options for manual page output ---------------------------------------
 
 man_pages = [
-  ('man', 'rauc', 'safe and secure updating', '', 1),
+    ("man", "rauc", "safe and secure updating", "", 1),
 ]
 
 # -- Options for external links -------------------------------------------
 
 extlinks = {
-  'pr': ('https://github.com/rauc/rauc/pull/%s', '#%s'),
+    "pr": ("https://github.com/rauc/rauc/pull/%s", "#%s"),
 }
