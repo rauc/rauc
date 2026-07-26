@@ -532,6 +532,8 @@ tool to interact with it:
 :U-Boot: fw_setenv/fw_getenv (from `u-boot <http://git.denx.de/?p=u-boot.git;a=summary>`_)
 :GRUB: grub-editenv
 :EFI: efibootmgr
+:EFI Boot Guard: bg_printenv/bg_setenv
+                 (from `efibootguard <https://github.com/siemens/efibootguard>`_)
 
 Note that for running ``rauc info`` on the target (as well as on the host), you
 also need to have the ``unsquashfs`` tool installed.
@@ -1359,6 +1361,147 @@ argument in the ``efibootmgr`` call above:
   device=/dev/sdX4
   type=ext4
   parent=efi.1
+
+.. _sec-efibootguard:
+
+EFI Boot Guard
+~~~~~~~~~~~~~~
+
+`EFI Boot Guard <https://github.com/siemens/efibootguard>`_ is an EFI-based
+bootloader from Siemens designed for embedded systems with A/B redundancy.
+It stores a boot environment per EFI partition. This environment contains a
+``USTATE`` value which records the current state of the slot and a ``REVISION``
+counter which is incremented for each update and is used to prefer the newest
+valid slot when selecting the slot to boot.
+
+
+The ``USTATE`` values are encoded as follows:
+
+.. code-block:: text
+
+  OK        = 0
+  INSTALLED = 1
+  TESTING   = 2
+  FAILED    = 3
+
+EFI Boot Guard will boot the slot with the highest ``REVISION`` whose ``USTATE``
+is not ``FAILED``.
+
+RAUC uses the ``bg_printenv`` and ``bg_setenv`` tools to read and write these
+variables.
+
+The slot selection logic in RAUC is as follows:
+
+* **Primary slot** - the slot with the highest ``REVISION`` value whose
+  ``USTATE`` is not ``FAILED`` is selected as primary. When RAUC marks a slot
+  as primary, it sets the slot state to ``INSTALLED`` and assigns it a
+  ``REVISION`` to one higher than the current maximum across all slots.
+* **Slot state** - a slot is considered *good* when its ``USTATE`` is not
+  ``FAILED``. RAUC marks a slot as bad by setting ``USTATE`` to ``FAILED`` (and
+  resets its ``REVISION`` to ``0`` so it cannot be re-selected as the primary).
+  RAUC marks a slot as good by setting ``USTATE`` to ``OK``.
+
+The full update lifecycle, with the responsibilities split between RAUC and
+EFI Boot Guard, looks like this:
+
+.. code-block:: text
+
+   ┌─────────────────┐          ┌─────────────────┐         ┌─────────────────┐
+   │ initial:        │   RAUC   │ after install:  │  EBG    │ first boot of   │
+   │ USTATE    = OK  ├─────────>│ USTATE = INST.  ├────────>│ new slot:       │
+   │ (highest REV    │ install  │ REVISION = max+1│ reboot  │ USTATE = TESTING│
+   │  is current)    │          │                 │         │                 │
+   └─────────────────┘          └─────────────────┘         └───────┬─────────┘
+                                                                    │
+   ┌─────────────────┐          ┌─────────────────┐                 │
+   │ RAUC mark-good: │          │ application     │     boot ok     │
+   │ USTATE    = OK  │<─────────┤ confirms the    │<────────────────┤
+   │                 │          │ update          │                 │
+   └─────────────────┘          └─────────────────┘                 │
+                                                                    │
+   ┌─────────────────┐          ┌─────────────────┐                 │
+   │ RAUC mark-bad   │          │ EFI Boot Guard: │  boot failure   │
+   │ (optional):     │<─────────┤ USTATE = FAILED ├<────────────────┘
+   │ USTATE = FAILED │          │ (auto, via      │  (watchdog or   │
+   │ REVISION = 0    │          │  watchdog)      │   max retries)  │
+   └─────────────────┘          └─────────────────┘
+
+In words:
+
+#. **Install** - RAUC writes the new image to the inactive slot and calls
+   ``bg_setenv`` to set its ``USTATE`` to ``INSTALLED`` and its ``REVISION``
+   to one higher than the current maximum. The currently-running slot is
+   untouched.
+#. **Reboot** - on the next boot, EFI Boot Guard picks the slot with the
+   highest ``REVISION`` whose ``USTATE`` is not ``FAILED``. As it hands
+   control to that slot, EFI Boot Guard transitions ``USTATE`` from
+   ``INSTALLED`` to ``TESTING``.
+#. **Confirm** - once the application running on the new slot has verified
+   the system is healthy, it calls ``rauc status mark-good``, which sets
+   ``USTATE`` back to ``OK``.
+#. **Failure** - if the new slot fails to boot or hangs, EFI Boot Guard's
+   watchdog / retry logic sets ``USTATE`` to ``FAILED`` automatically and
+   the next boot falls back to the previous slot (which still has
+   ``USTATE = OK`` and the next-highest ``REVISION``). RAUC's
+   ``rauc status mark-bad`` performs the same transition explicitly and
+   additionally resets the slot's ``REVISION`` to ``0``.
+
+To enable EFI Boot Guard support in RAUC, write in your ``system.conf``:
+
+.. code-block:: cfg
+
+  [system]
+  ...
+  bootloader=efibootguard
+
+Assuming a simple A/B redundancy with two EFI Boot Guard partitions and two
+rootfs partitions, set up ``system.conf`` as follows.
+The ``bootname`` for each slot must match the partition index as accepted by
+the ``--part`` flag of ``bg_printenv`` and ``bg_setenv``:
+
+.. code-block:: cfg
+
+  [slot.efi.0]
+  device=/dev/sda1
+  type=vfat
+  bootname=0
+
+  [slot.efi.1]
+  device=/dev/sda2
+  type=vfat
+  bootname=1
+
+  [slot.rootfs.0]
+  device=/dev/sda3
+  type=ext4
+  parent=efi.0
+
+  [slot.rootfs.1]
+  device=/dev/sda4
+  type=ext4
+  parent=efi.1
+
+.. note::
+
+   EFI Boot Guard does not pass the active slot name via the kernel command
+   line automatically.
+   You must pass ``rauc.slot=<bootname>`` explicitly in the kernel command line
+   of each slot so that RAUC can identify the currently booted slot, e.g.:
+
+   .. code-block:: cfg
+
+     rauc.slot=0
+
+   See :ref:`sec-integration-boot-slot-detection` for the full list of slot
+   detection mechanisms.
+
+Before using RAUC with EFI Boot Guard, ensure each partition's environment has
+been initialised. For example, to prefer booting from slot ``0``:
+
+.. code-block:: console
+
+  # bg_setenv -p 0 -s OK -r 1
+  # bg_setenv -p 1 -s OK -r 0
 
 .. _sec-custom-bootloader-backend:
 

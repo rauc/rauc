@@ -2,6 +2,7 @@
 #include "bootloaders/barebox.h"
 #include "bootloaders/custom.h"
 #include "bootloaders/efi.h"
+#include "bootloaders/efibootguard.h"
 #include "bootloaders/grub.h"
 #include "bootloaders/uboot.h"
 #include "config_file.h"
@@ -12,7 +13,7 @@ GQuark r_bootchooser_error_quark(void)
 	return g_quark_from_static_string("r_bootchooser_error_quark");
 }
 
-static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "custom", "noop", NULL};
+static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "efibootguard", "custom", "noop", NULL};
 
 gboolean r_boot_is_supported_bootloader(const gchar *bootloader)
 {
@@ -93,6 +94,8 @@ gboolean r_boot_get_state(RaucSlot *slot, gboolean *good, GError **error)
 		res = r_uboot_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = r_efi_get_state(slot, good, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "efibootguard") == 0) {
+		res = r_efibootguard_get_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
 		res = r_custom_get_state(slot, good, &ierror);
 	} else {
@@ -131,6 +134,8 @@ gboolean r_boot_set_state(RaucSlot *slot, gboolean good, GError **error)
 		res = r_uboot_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = r_efi_set_state(slot, good, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "efibootguard") == 0) {
+		res = r_efibootguard_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
 		res = r_custom_set_state(slot, good, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "noop") == 0) {
@@ -171,6 +176,8 @@ RaucSlot *r_boot_get_primary(GError **error)
 		slot = r_uboot_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		slot = r_efi_get_primary(&ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "efibootguard") == 0) {
+		slot = r_efibootguard_get_primary(&ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
 		slot = r_custom_get_primary(&ierror);
 	} else {
@@ -209,6 +216,8 @@ gboolean r_boot_set_primary(RaucSlot *slot, GError **error)
 		res = r_uboot_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "efi") == 0) {
 		res = r_efi_set_primary(slot, &ierror);
+	} else if (g_strcmp0(r_context()->config->system_bootloader, "efibootguard") == 0) {
+		res = r_efibootguard_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "custom") == 0) {
 		res = r_custom_set_primary(slot, &ierror);
 	} else if (g_strcmp0(r_context()->config->system_bootloader, "noop") == 0) {
