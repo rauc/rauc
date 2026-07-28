@@ -2415,9 +2415,6 @@ static void create_run_links(void)
 		}
 	}
 
-	if (!booted_slot)
-		return;
-
 	g_autofree gchar *run_artifacts = g_build_filename(
 			r_context()->runtime_directory, "artifacts", NULL);
 
@@ -2435,6 +2432,9 @@ static void create_run_links(void)
 		if (!repo->parent_class) {
 			target = g_build_filename(repo->path, NULL);
 		} else {
+			if (!booted_slot)
+				continue;
+
 			target = g_build_filename(repo->path, booted_slot->name, NULL);
 		}
 
