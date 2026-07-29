@@ -2,10 +2,12 @@ import json
 import os
 import shutil
 import subprocess
+import tarfile
 import time
 from configparser import ConfigParser
 from contextlib import contextmanager
 from functools import cache
+from io import BytesIO
 from pathlib import Path
 from random import Random
 
@@ -481,6 +483,15 @@ class Bundle:
     def make_random_image(self, image_name, size, seed):
         path = self.content / self.manifest[f"image.{image_name}"]["filename"]
         self._make_random_file(path, size, seed)
+
+    def make_tar_image(self, image_name, contents):
+        path = self.content / self.manifest[f"image.{image_name}"]["filename"]
+
+        with tarfile.open(name=path, mode="w") as t:
+            for filename, data in contents.items():
+                f = tarfile.TarInfo(name=filename)
+                f.size = len(data)
+                t.addfile(f, BytesIO(data))
 
     def add_hook_script(self, hook_script):
         path = self.content / "hook.sh"
