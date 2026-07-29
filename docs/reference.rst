@@ -256,13 +256,32 @@ Example configuration:
   It has no effect for ``plain`` bundles, as the signature verification already checks the
   whole bundle.
 
-``prevent-late-fallback=<true/false>`` (optional)
-  In some use-cases, fallback to an older version must be prevented after the
+``prevent-late-fallback=<disable/mark-bad/lock-counter>`` (optional)
+  .. note:: The former existing Values *<true/false>* for this option are deprecated.
+     They will be removed in a future release, Please use the new values.
+
+  In order to get the same behaviour set ``prevent-late-fallback=mark-bad``.
+  For some use-cases, fallback to an older version must be prevented after the
   update is completed successfully (``rauc status mark-good`` executed from the
-  new version).
-  If this option is enabled, RAUC will execute the equivalent of ``rauc status
-  mark-bad other`` after marking the currently booted slot as good.
-  This means that the other slot(s) is/are no longer eligible for fallback.
+  new version). This setting is slot independent.
+
+  Supported values are:
+
+  * ``disable`` Default if not set. Do not prevent fallback to older version.
+  * ``mark-bad`` If this option is enabled, RAUC will execute the equivalent of
+    'rauc status mark-bad other' after marking the currently booted slot as good.
+    This means that the other slot(s) is/are no longer eligible for fallback.
+    It behaves exactly like the *deprecated* ``prevent-late-fallback=false``.
+  * ``lock-counter`` This options allows RAUC to maintain awareness of
+    their respective states.
+    The ``slots-locking`` state is stored in a separate variable that must be
+    recognized by the ``bootloader``.
+    Currently, this feature is only supported when ``bootloader``
+    is set to ``barebox``, and the ``&bootstate`` in the devicetree must
+    include a new variable, which is described in the
+    :ref:`integration chapter <integration-barebox-lock-counter>`.
+    In case the variable is not set in the ``bootloader``, a warning is emitted
+    after an update in order to keep the system in an updatable state.
 
 .. _keyring-section:
 
