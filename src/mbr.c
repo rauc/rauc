@@ -65,7 +65,6 @@ static void get_hd_geometry(gint fd, guint8 *heads, guint8 *sectors)
 static gboolean validate_region(gint fd, guint64 start, guint64 size,
 		guint sector_size, GError **error)
 {
-	gboolean res = FALSE;
 	goffset device_size;
 	GError *ierror = NULL;
 
@@ -74,39 +73,36 @@ static gboolean validate_region(gint fd, guint64 start, guint64 size,
 	if (start < sizeof(struct mbr) || size == 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"no valid configuration for region");
-		goto out;
+		return FALSE;
 	}
 
 	if ((start % sector_size) != 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Region start %"G_GINT64_MODIFIER "d is not aligned to the sector-size %d",
 				start, sector_size);
-		goto out;
+		return FALSE;
 	}
 
 	if ((size % (2 * sector_size)) != 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Region size %"G_GINT64_MODIFIER "d is not aligned to the double sector-size %d",
 				size, 2 * sector_size);
-		goto out;
+		return FALSE;
 	}
 
 	device_size = get_device_size(fd, &ierror);
 	if (device_size == 0) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	if ((start + size) >= (guint64)device_size) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Region configuration is bigger than device");
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
-
-out:
-	return res;
+	return TRUE;
 }
 
 static gboolean read_mbr(gint fd, struct mbr *mbr, GError **error)
@@ -209,7 +205,6 @@ static gboolean get_raw_partition_entry(gint fd,
 		struct mbr_tbl_entry *raw_entry,
 		const struct boot_switch_partition *partition, GError **error)
 {
-	gboolean res = FALSE;
 	guint32 start, size;
 	guint sector_size;
 	guint8 heads, sectors;
@@ -224,7 +219,7 @@ static gboolean get_raw_partition_entry(gint fd,
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Partition start address or size is not a multiple"
 				" of sector size %d", sector_size);
-		goto out;
+		return FALSE;
 	}
 
 	start = partition->start / sector_size;
@@ -239,9 +234,7 @@ static gboolean get_raw_partition_entry(gint fd,
 
 	get_chs(&raw_entry->chs_end, start + size - 1, heads, sectors);
 
-	res = TRUE;
-out:
-	return res;
+	return TRUE;
 }
 
 gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
@@ -249,7 +242,6 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 		guint64 region_start, guint64 region_size,
 		GError **error)
 {
-	gboolean res = FALSE;
 	struct mbr mbr = {};
 	GError *ierror = NULL;
 	struct mbr_tbl_entry *boot_part;
@@ -263,27 +255,23 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 
 	sector_size = get_sectorsize(fd);
 
-	res = validate_region(fd, region_start, region_size, sector_size, &ierror);
-	if (!res) {
+	if (!validate_region(fd, region_start, region_size, sector_size, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	res = read_mbr(fd, &mbr, &ierror);
-	if (!res) {
+	if (!read_mbr(fd, &mbr, &ierror)) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to read MBR:");
-		goto out;
+		return FALSE;
 	}
 
 	/* check if region overlaps with any partition */
-	res = is_region_free(region_start, region_size, mbr.partition_table,
-			sector_size, &ierror);
-	if (!res) {
+	if (!is_region_free(region_start, region_size, mbr.partition_table,
+			sector_size, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
-	res = FALSE;
 
 	boot_part = &mbr.partition_table[BOOT_PARTITION_ENTRY];
 
@@ -291,7 +279,7 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"No boot partition found in entry %d",
 				BOOT_PARTITION_ENTRY);
-		goto out;
+		return FALSE;
 	}
 
 	if ((region_start / sector_size) ==
@@ -304,20 +292,17 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Boot partition's start address does not match "
 				"region configuration");
-		goto out;
+		return FALSE;
 	}
 	partition->size = region_size / 2;
 
-	res = TRUE;
-out:
-	return res;
+	return TRUE;
 }
 
 gboolean r_mbr_switch_set_boot_partition(const gchar *device,
 		const struct boot_switch_partition *partition,
 		GError **error)
 {
-	gboolean res = FALSE;
 	struct mbr mbr = {};
 	struct mbr_tbl_entry *boot_part;
 	GError *ierror = NULL;
@@ -331,41 +316,35 @@ gboolean r_mbr_switch_set_boot_partition(const gchar *device,
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Opening device failed: %s",
 				g_strerror(errno));
-		goto out;
+		return FALSE;
 	}
 
-	res = read_mbr(fd, &mbr, &ierror);
-	if (!res) {
+	if (!read_mbr(fd, &mbr, &ierror)) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to read MBR:");
-		goto out;
+		return FALSE;
 	}
 
 	boot_part = &mbr.partition_table[BOOT_PARTITION_ENTRY];
 
-	res = get_raw_partition_entry(fd, boot_part, partition, &ierror);
-	if (!res) {
+	if (!get_raw_partition_entry(fd, boot_part, partition, &ierror)) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to create new partition entry:");
-		goto out;
+		return FALSE;
 	}
 
 	if (lseek(fd, 0, SEEK_SET) != 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Failed to seek to position 0");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	if (write(fd, &mbr, sizeof(mbr)) != sizeof(mbr)) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Could not write new MBR: %s",
 				g_strerror(errno));
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
-out:
-	return res;
+	return TRUE;
 }
