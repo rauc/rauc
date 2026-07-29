@@ -102,7 +102,7 @@ gboolean update_external_mount_points(GError **error)
 	GError *ierror = NULL;
 
 	/* Clear all previously detected external mount points as we will
-	 * re-deterrmine them. */
+	 * re-determine them. */
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		g_clear_pointer(&slot->ext_mount_point, g_free);
