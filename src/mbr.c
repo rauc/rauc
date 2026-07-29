@@ -254,13 +254,12 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 	GError *ierror = NULL;
 	struct mbr_tbl_entry *boot_part;
 	guint sector_size;
-	gint fd;
 
 	g_return_val_if_fail(device, FALSE);
 	g_return_val_if_fail(partition, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	fd = g_open(device, O_RDONLY);
+	g_auto(filedesc) fd = g_open(device, O_RDONLY);
 
 	sector_size = get_sectorsize(fd);
 
@@ -311,9 +310,6 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 
 	res = TRUE;
 out:
-	if (fd >= 0)
-		g_close(fd, NULL);
-
 	return res;
 }
 
@@ -325,13 +321,12 @@ gboolean r_mbr_switch_set_boot_partition(const gchar *device,
 	struct mbr mbr = {};
 	struct mbr_tbl_entry *boot_part;
 	GError *ierror = NULL;
-	gint fd;
 
 	g_return_val_if_fail(device, FALSE);
 	g_return_val_if_fail(partition, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	fd = g_open(device, O_RDWR);
+	g_auto(filedesc) fd = g_open(device, O_RDWR);
 	if (fd == -1) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Opening device failed: %s",
@@ -372,8 +367,5 @@ gboolean r_mbr_switch_set_boot_partition(const gchar *device,
 
 	res = TRUE;
 out:
-	if (fd >= 0)
-		g_close(fd, NULL);
-
 	return res;
 }
