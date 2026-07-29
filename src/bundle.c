@@ -241,22 +241,24 @@ static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath,
 		goto out;
 	}
 
-	/* Inner process call (argument of fakroot sh -c) */
+	/* Inner process call (argument of fakroot sh -c).
+	 * Everything but the fixed words below is joined into a command line
+	 * for sh, so it has to be quoted. */
 	g_ptr_array_add(iargs, g_strdup("tar"));
 	g_ptr_array_add(iargs, g_strdup("xf"));
-	g_ptr_array_add(iargs, g_strdup(contentpath));
+	g_ptr_array_add(iargs, g_shell_quote(contentpath));
 	g_ptr_array_add(iargs, g_strdup("-C"));
-	g_ptr_array_add(iargs, g_strdup(tmpdir));
+	g_ptr_array_add(iargs, g_shell_quote(tmpdir));
 	g_ptr_array_add(iargs, g_strdup("--numeric-owner"));
 	g_ptr_array_add(iargs, g_strdup("&&"));
 	g_ptr_array_add(iargs, g_strdup("casync"));
 	g_ptr_array_add(iargs, g_strdup("make"));
 	g_ptr_array_add(iargs, g_strdup("--with=unix"));
-	g_ptr_array_add(iargs, g_strdup(idxpath));
-	g_ptr_array_add(iargs, g_strdup(tmpdir));
+	g_ptr_array_add(iargs, g_shell_quote(idxpath));
+	g_ptr_array_add(iargs, g_shell_quote(tmpdir));
 	if (store) {
 		g_ptr_array_add(iargs, g_strdup("--store"));
-		g_ptr_array_add(iargs, g_strdup(store));
+		g_ptr_array_add(iargs, g_shell_quote(store));
 	}
 
 	if (r_context()->casync_args != NULL) {
@@ -269,7 +271,8 @@ static gboolean casync_make_arch(const gchar *idxpath, const gchar *contentpath,
 					"Failed to parse casync extra args: ");
 			goto out;
 		}
-		r_ptr_array_addv(iargs, casync_argvp, TRUE);
+		for (gchar **casync_arg = casync_argvp; *casync_arg; casync_arg++)
+			g_ptr_array_add(iargs, g_shell_quote(*casync_arg));
 	}
 	g_ptr_array_add(iargs, NULL);
 
