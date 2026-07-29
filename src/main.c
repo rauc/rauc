@@ -103,11 +103,9 @@ static gboolean install_notify(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean install_cleanup(gpointer data)
+static void install_cleanup(RaucInstallArgs *args)
 {
 	g_main_loop_quit(r_loop);
-
-	return G_SOURCE_REMOVE;
 }
 
 static void on_installer_changed(GDBusProxy *proxy, GVariant *changed,
