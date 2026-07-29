@@ -64,24 +64,20 @@ static void install_args_update(RaucInstallArgs *args, const gchar *msg, ...)
 
 static gchar *resolve_loop_device(const gchar *devicepath, GError **error)
 {
-	g_autoptr(GRegex) regex = NULL;
-	g_autoptr(GMatchInfo) match_info = NULL;
-	g_autofree gchar *devicename = NULL;
-	g_autofree gchar *syspath = NULL;
-	gchar *content = NULL;
 	GError *ierror = NULL;
 
-	regex = g_regex_new("/dev/(loop\\d+)(p\\d+)?", 0, 0, NULL);
+	g_autoptr(GRegex) regex = g_regex_new("/dev/(loop\\d+)(p\\d+)?", 0, 0, NULL);
 	g_assert_nonnull(regex);
 
+	g_autoptr(GMatchInfo) match_info = NULL;
 	g_regex_match(regex, devicepath, 0, &match_info);
 	if (!g_match_info_matches(match_info))
 		return g_strdup(devicepath);
 
-	devicename = g_match_info_fetch(match_info, 1);
-	syspath = g_build_filename("/sys/block", devicename, "loop/backing_file", NULL);
+	g_autofree gchar *devicename = g_match_info_fetch(match_info, 1);
+	g_autofree gchar *syspath = g_build_filename("/sys/block", devicename, "loop/backing_file", NULL);
 
-	content = read_file_str(syspath, &ierror);
+	gchar *content = read_file_str(syspath, &ierror);
 	if (!content) {
 		g_propagate_prefixed_error(
 				error,
@@ -96,31 +92,28 @@ static gchar *resolve_loop_device(const gchar *devicepath, GError **error)
 
 gboolean update_external_mount_points(GError **error)
 {
-	g_autolist(GUnixMountEntry) mountlist = NULL;
-	GHashTableIter iter;
-	RaucSlot *slot;
 	GError *ierror = NULL;
 
 	/* Clear all previously detected external mount points as we will
 	 * re-determine them. */
+	GHashTableIter iter;
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	RaucSlot *slot;
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		g_clear_pointer(&slot->ext_mount_point, g_free);
 	}
 
 	/* Determine active slot mount points */
-	mountlist = g_unix_mounts_get(NULL);
+	g_autolist(GUnixMountEntry) mountlist = g_unix_mounts_get(NULL);
 	for (GList *l = mountlist; l != NULL; l = l->next) {
 		GUnixMountEntry *m = (GUnixMountEntry*)l->data;
-		g_autofree gchar *devicepath = NULL;
-		RaucSlot *s;
-		devicepath = resolve_loop_device(g_unix_mount_get_device_path(m), &ierror);
+		g_autofree gchar *devicepath = resolve_loop_device(g_unix_mount_get_device_path(m), &ierror);
 		if (!devicepath) {
 			g_propagate_error(error, ierror);
 			return FALSE;
 		}
-		s = find_config_slot_by_device(r_context()->config,
-				devicepath);
+
+		RaucSlot *s = find_config_slot_by_device(r_context()->config, devicepath);
 		if (s) {
 			/* We might have multiple mount entries matching the same device and thus the same slot.
 			 * To avoid leaking the string returned by g_unix_mount_get_mount_path() here, we skip all further matches
@@ -154,9 +147,6 @@ gboolean update_external_mount_points(GError **error)
  */
 gboolean determine_slot_states(GError **error)
 {
-	g_autoptr(GList) slotlist = NULL;
-	RaucSlot *booted = NULL;
-
 	g_assert_nonnull(r_context()->config);
 
 	if (r_context()->config->slots == NULL) {
@@ -177,8 +167,8 @@ gboolean determine_slot_states(GError **error)
 		return FALSE;
 	}
 
-	slotlist = g_hash_table_get_keys(r_context()->config->slots);
-
+	g_autoptr(GList) slotlist = g_hash_table_get_keys(r_context()->config->slots);
+	RaucSlot *booted = NULL;
 	for (GList *l = slotlist; l != NULL; l = l->next) {
 		g_autofree gchar *realdev = NULL;
 		RaucSlot *s = g_hash_table_lookup(r_context()->config->slots, l->data);
@@ -253,18 +243,16 @@ gboolean determine_slot_states(GError **error)
 gboolean determine_boot_states(GError **error)
 {
 	GHashTableIter iter;
-	RaucSlot *slot;
-	gboolean had_errors = FALSE;
-
-	/* get boot state */
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	RaucSlot *slot = NULL;
+	gboolean had_errors = FALSE;
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
-		gboolean boot_good;
 		g_autoptr(GError) ierror = NULL;
 
 		if (!slot->bootname)
 			continue;
 
+		gboolean boot_good;
 		if (!r_boot_get_state(slot, &boot_good, &ierror)) {
 			g_message("Failed to get boot state of '%s': %s", slot->name, ierror->message);
 			had_errors = TRUE;
@@ -289,12 +277,9 @@ gboolean determine_boot_states(GError **error)
  * Free with g_free */
 static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest)
 {
-	GPtrArray *slotclasses = NULL;
-
 	g_return_val_if_fail(manifest, NULL);
 
-	slotclasses = g_ptr_array_new();
-
+	GPtrArray *slotclasses = g_ptr_array_new();
 	for (GList *l = manifest->images; l != NULL; l = l->next) {
 		const gchar *key = NULL;
 		RaucImage *iterimage = l->data;
@@ -325,10 +310,6 @@ static gchar** get_all_manifest_slot_classes(const RaucManifest *manifest)
  */
 static RaucSlot *select_inactive_slot_class_member(const gchar *rootclass)
 {
-	RaucSlot *iterslot;
-	RaucSlot *selectslot = NULL;
-	GHashTableIter iter;
-
 	g_return_val_if_fail(rootclass, NULL);
 
 	if (g_strcmp0(r_context()->config->statusfile_path, "per-slot") == 0) {
@@ -337,7 +318,10 @@ static RaucSlot *select_inactive_slot_class_member(const gchar *rootclass)
 		g_debug("Selecting inactive slot for class '%s'. Strategy: 'oldest timestamp first')", rootclass);
 	}
 
+	GHashTableIter iter;
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
+	RaucSlot *iterslot = NULL;
+	RaucSlot *selectslot = NULL;
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &iterslot)) {
 		if (iterslot->state != ST_INACTIVE)
 			continue;
@@ -466,16 +450,14 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(RImageInstallPlan, r_image_install_plan_free);
 GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target_group, GError **error)
 {
 	GError *ierror = NULL;
-	g_autofree gchar **slotclasses = NULL;
-	g_autoptr(GPtrArray) install_plans = g_ptr_array_new_with_free_func(r_image_install_plan_free);
 
 	g_return_val_if_fail(manifest != NULL, NULL);
 	g_return_val_if_fail(target_group != NULL, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
-	slotclasses = get_all_manifest_slot_classes(manifest);
-
 	/* Find exactly 1 image for each slot class listed in manifest */
+	g_autofree gchar **slotclasses = get_all_manifest_slot_classes(manifest);
+	g_autoptr(GPtrArray) install_plans = g_ptr_array_new_with_free_func(r_image_install_plan_free);
 	for (gchar **cls = slotclasses; *cls != NULL; cls++) {
 		RaucImage *matching_img = NULL;
 		g_autoptr(RImageInstallPlan) plan = g_new0(RImageInstallPlan, 1);
@@ -585,10 +567,6 @@ GPtrArray* r_install_make_plans(const RaucManifest *manifest, GHashTable *target
 
 static gchar* parse_handler_output(gchar* line)
 {
-	gchar *message = NULL;
-	g_auto(GStrv) split = NULL;
-	guint fields;
-
 	g_assert_nonnull(line);
 
 	if (!g_str_has_prefix(line, "<< ")) {
@@ -596,12 +574,13 @@ static gchar* parse_handler_output(gchar* line)
 		return NULL;
 	}
 
-	split = g_strsplit(line, " ", 5);
-	fields = g_strv_length(split);
+	g_auto(GStrv) split = g_strsplit(line, " ", 5);
+	guint fields = g_strv_length(split);
 
 	if (fields < 2)
 		return NULL;
 
+	gchar *message = NULL;
 	if (g_strcmp0(split[1], "handler") == 0 && fields >= 3) {
 		message = g_strdup_printf("Handler status: %s", split[2]);
 	} else if (g_strcmp0(split[1], "image") == 0 && fields >= 4) {
