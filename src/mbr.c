@@ -44,22 +44,6 @@ struct mbr {
 G_STATIC_ASSERT(sizeof(struct mbr) == 512);
 #pragma pack(pop)
 
-static gboolean get_number_of_sectors(gint fd, guint *sectors,
-		GError **error)
-{
-	g_return_val_if_fail(sectors, FALSE);
-	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
-
-	if (ioctl(fd, BLKGETSIZE, sectors) != 0) {
-		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
-				"ioctl command 0x%04x failed: %s",
-				BLKGETSIZE, g_strerror(errno));
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
 static void get_hd_geometry(gint fd, guint8 *heads, guint8 *sectors)
 {
 	struct hd_geometry geometry = {};
@@ -82,7 +66,7 @@ static gboolean validate_region(gint fd, guint64 start, guint64 size,
 		guint sector_size, GError **error)
 {
 	gboolean res = FALSE;
-	guint number_of_sectors;
+	goffset device_size;
 	GError *ierror = NULL;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -107,18 +91,19 @@ static gboolean validate_region(gint fd, guint64 start, guint64 size,
 		goto out;
 	}
 
-	res = get_number_of_sectors(fd, &number_of_sectors, &ierror);
-	if (!res) {
+	device_size = get_device_size(fd, &ierror);
+	if (device_size == 0) {
 		g_propagate_error(error, ierror);
 		goto out;
 	}
 
-	if ((start + size) >= (guint64)number_of_sectors * sector_size) {
+	if ((start + size) >= (guint64)device_size) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Region configuration is bigger than device");
-		res = FALSE;
 		goto out;
 	}
+
+	res = TRUE;
 
 out:
 	return res;
