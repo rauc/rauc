@@ -484,7 +484,7 @@ static gboolean efi_modify_persistent_bootorder(RaucSlot *slot, gboolean prepend
 
 	g_autofree gchar *order = g_strjoinv(",", (gchar**)bootorder->pdata);
 
-	if (!efi_bootorder_set(order, NULL)) {
+	if (!efi_bootorder_set(order, &ierror)) {
 		g_propagate_prefixed_error(error, ierror, "Modifying bootorder failed: ");
 		return FALSE;
 	}

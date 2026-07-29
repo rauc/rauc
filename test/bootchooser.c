@@ -972,6 +972,57 @@ bootname=system1\n";
 	g_assert_nonnull(bootname);
 }
 
+/* If the underlying 'efibootmgr --bootorder ...' call fails (e.g. the
+ * firmware refuses the NVRAM write), r_boot_set_state()/r_boot_set_primary()
+ * must fail cleanly with a proper GError set instead of aborting. */
+static void bootchooser_efi_bootorder_failure(BootchooserFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucSlot *slot;
+	GError *error = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=efi\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[keyring]\n\
+path=/etc/rauc/keyring/\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/rootfs-0\n\
+type=ext4\n\
+bootname=system0\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/rootfs-1\n\
+type=ext4\n\
+bootname=system1\n";
+
+	gchar* pathname = write_tmp_file(fixture->tmpdir, "efi-fail.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_clear_pointer(&r_context_conf()->configpath, g_free);
+	r_context_conf()->configpath = pathname;
+	r_context();
+
+	slot = find_config_slot_by_name(r_context()->config, "rootfs.0");
+	g_assert_nonnull(slot);
+
+	g_assert_true(g_setenv("EFIBOOTMGR_FAIL_BOOTORDER", "1", TRUE));
+
+	g_assert_false(r_boot_set_state(slot, FALSE, &error));
+	g_assert_nonnull(error);
+	g_clear_error(&error);
+
+	g_assert_false(r_boot_set_primary(slot, &error));
+	g_assert_nonnull(error);
+	g_clear_error(&error);
+
+	g_unsetenv("EFIBOOTMGR_FAIL_BOOTORDER");
+}
+
 /* Write content to state storage for custom-backend RAUC mock
  * tools. Content should be similar to:
  * "\
@@ -1234,6 +1285,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bootchooser/efi", BootchooserFixture, NULL,
 			bootchooser_fixture_set_up, bootchooser_efi,
+			bootchooser_fixture_tear_down);
+
+	g_test_add("/bootchooser/efi-bootorder-failure", BootchooserFixture, NULL,
+			bootchooser_fixture_set_up, bootchooser_efi_bootorder_failure,
 			bootchooser_fixture_tear_down);
 
 	g_test_add("/bootchooser/custom", BootchooserFixture, NULL,
