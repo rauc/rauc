@@ -30,15 +30,3 @@ typedef struct {
  */
 gboolean compute_checksum(RaucChecksum *checksum, const gchar *filename, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
-
-/**
- * Verifies provided file checksum.
- *
- * The provided checksum if compared the the checksum calculated for the provided file
- *
- * @param checksum file checksum to verify
- * @param filename name of file to verify checksum against
- * @return TRUE on success, FALSE if an error occurred
- */
-gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename, GError **error)
-G_GNUC_WARN_UNUSED_RESULT;

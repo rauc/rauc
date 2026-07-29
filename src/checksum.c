@@ -69,34 +69,3 @@ gboolean compute_checksum(RaucChecksum *checksum, const gchar *filename, GError 
 
 	return TRUE;
 }
-
-gboolean verify_checksum(const RaucChecksum *checksum, const gchar *filename, GError **error)
-{
-	gboolean res = FALSE;
-	RaucChecksum computed = {};
-
-	if (checksum->digest == NULL) {
-		g_set_error(error, R_CHECKSUM_ERROR, R_CHECKSUM_ERROR_FAILED, "No digest provided");
-		goto out;
-	}
-	computed.type = checksum->type;
-
-	if (!compute_checksum(&computed, filename, error))
-		goto out;
-
-	res = checksum->size == computed.size;
-	if (!res) {
-		g_set_error(error, R_CHECKSUM_ERROR, R_CHECKSUM_ERROR_SIZE_MISMATCH, "Sizes do not match");
-		goto out;
-	}
-
-	res = g_str_equal(checksum->digest, computed.digest);
-	if (!res) {
-		g_set_error(error, R_CHECKSUM_ERROR, R_CHECKSUM_ERROR_DIGEST_MISMATCH, "Digests do not match");
-		goto out;
-	}
-
-out:
-	g_free(computed.digest);
-	return res;
-}
