@@ -669,7 +669,7 @@ class System:
             time.sleep(0.1)
             try:
                 self.proxy = bus.get_proxy("de.pengutronix.rauc", "/")
-                self.proxy.Operation  # try to access the service
+                _ = self.proxy.Operation  # try to access the service
                 break
             except DBusError:
                 if time.monotonic() > timeout:
