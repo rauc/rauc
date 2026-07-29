@@ -5,6 +5,3 @@ ignore = [
     "RUF059", # disable until fixed
     "BLE001", # accept catch all for Exception
 ]
-
-[lint.per-file-ignores]
-"conftest.py" = ["B018"]
