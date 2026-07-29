@@ -59,9 +59,21 @@ static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
 		return FALSE;
 	}
 
-	/* offset is composed of key + equal sign, e.g. 'BOOT_ORDER=A B R' */
-	offset = strlen(key) + 1;
+	/* fw_printenv echoes the queried variable as 'KEY=value'; verify that
+	 * prefix before slicing it off, so an unexpected or truncated line cannot
+	 * underflow the unsigned 'size - offset' length passed to
+	 * g_string_new_len(). */
+	g_autofree gchar *key_prefix = g_strdup_printf("%s=", key);
+	offset = strlen(key_prefix);
 	data = g_bytes_get_data(stdout_bytes, &size);
+	if (size < offset || memcmp(data, key_prefix, offset) != 0) {
+		g_set_error(
+				error,
+				R_BOOTCHOOSER_ERROR,
+				R_BOOTCHOOSER_ERROR_PARSE_FAILED,
+				"Unexpected " UBOOT_FWPRINTENV_NAME " output for variable '%s'", key);
+		return FALSE;
+	}
 	*value = g_string_new_len(data + offset, size - offset);
 	g_strchomp((*value)->str);
 
