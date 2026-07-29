@@ -46,11 +46,10 @@ G_STATIC_ASSERT(sizeof(struct mbr) == 512);
 
 static void get_hd_geometry(gint fd, guint8 *heads, guint8 *sectors)
 {
-	struct hd_geometry geometry = {};
-
 	g_return_if_fail(heads);
 	g_return_if_fail(sectors);
 
+	struct hd_geometry geometry = {};
 	if (ioctl(fd, HDIO_GETGEO, &geometry) == 0) {
 		*heads = geometry.heads;
 		*sectors = geometry.sectors;
@@ -65,8 +64,6 @@ static void get_hd_geometry(gint fd, guint8 *heads, guint8 *sectors)
 static gboolean validate_region(gint fd, guint64 start, guint64 size,
 		guint sector_size, GError **error)
 {
-	gboolean res = FALSE;
-	goffset device_size;
 	GError *ierror = NULL;
 
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
@@ -74,39 +71,36 @@ static gboolean validate_region(gint fd, guint64 start, guint64 size,
 	if (start < sizeof(struct mbr) || size == 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"no valid configuration for region");
-		goto out;
+		return FALSE;
 	}
 
 	if ((start % sector_size) != 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Region start %"G_GINT64_MODIFIER "d is not aligned to the sector-size %d",
 				start, sector_size);
-		goto out;
+		return FALSE;
 	}
 
 	if ((size % (2 * sector_size)) != 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Region size %"G_GINT64_MODIFIER "d is not aligned to the double sector-size %d",
 				size, 2 * sector_size);
-		goto out;
+		return FALSE;
 	}
 
-	device_size = get_device_size(fd, &ierror);
+	goffset device_size = get_device_size(fd, &ierror);
 	if (device_size == 0) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
 	if ((start + size) >= (guint64)device_size) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Region configuration is bigger than device");
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
-
-out:
-	return res;
+	return TRUE;
 }
 
 static gboolean read_mbr(gint fd, struct mbr *mbr, GError **error)
@@ -134,12 +128,10 @@ static gboolean is_region_free(guint64 region_start, guint64 region_size,
 		const struct mbr_tbl_entry *partition_tbl, guint sector_size,
 		GError **error)
 {
-	guint64 p_start, p_end;
-	guint i;
-
 	g_return_val_if_fail(partition_tbl, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
+	guint i;
 	for (i = 0; i < MBR_NUMBER_OF_PARTITIONS; i++) {
 		if (i == BOOT_PARTITION_ENTRY)
 			continue;
@@ -148,9 +140,9 @@ static gboolean is_region_free(guint64 region_start, guint64 region_size,
 		if (partition_tbl[i].partition_size_le == 0)
 			continue;
 
-		p_start = (guint64)GUINT32_FROM_LE(partition_tbl[i].partition_start_le) * sector_size;
-		p_end = (guint64)GUINT32_FROM_LE(partition_tbl[i].partition_size_le) * sector_size +
-		        p_start - 1;
+		guint64 p_start = (guint64)GUINT32_FROM_LE(partition_tbl[i].partition_start_le) * sector_size;
+		guint64 p_end = (guint64)GUINT32_FROM_LE(partition_tbl[i].partition_size_le) * sector_size +
+		                p_start - 1;
 
 		if (region_start >= p_start && region_start <= p_end) {
 			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
@@ -209,39 +201,32 @@ static gboolean get_raw_partition_entry(gint fd,
 		struct mbr_tbl_entry *raw_entry,
 		const struct boot_switch_partition *partition, GError **error)
 {
-	gboolean res = FALSE;
-	guint32 start, size;
-	guint sector_size;
-	guint8 heads, sectors;
-
 	g_return_val_if_fail(raw_entry, FALSE);
 	g_return_val_if_fail(partition, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	sector_size = get_sectorsize(fd);
-
+	guint sector_size = get_sectorsize(fd);
 	if (partition->start % sector_size || partition->size % sector_size) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Partition start address or size is not a multiple"
 				" of sector size %d", sector_size);
-		goto out;
+		return FALSE;
 	}
 
-	start = partition->start / sector_size;
-	size = partition->size / sector_size;
+	guint32 start = partition->start / sector_size;
+	guint32 size = partition->size / sector_size;
 
 	raw_entry->partition_start_le = GUINT32_TO_LE(start);
 	raw_entry->partition_size_le = GUINT32_TO_LE(size);
 
+	guint8 heads, sectors;
 	get_hd_geometry(fd, &heads, &sectors);
 
 	get_chs(&raw_entry->chs_start, start, heads, sectors);
 
 	get_chs(&raw_entry->chs_end, start + size - 1, heads, sectors);
 
-	res = TRUE;
-out:
-	return res;
+	return TRUE;
 }
 
 gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
@@ -249,50 +234,40 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 		guint64 region_start, guint64 region_size,
 		GError **error)
 {
-	gboolean res = FALSE;
-	struct mbr mbr = {};
 	GError *ierror = NULL;
-	struct mbr_tbl_entry *boot_part;
-	guint sector_size;
-	gint fd;
 
 	g_return_val_if_fail(device, FALSE);
 	g_return_val_if_fail(partition, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	fd = g_open(device, O_RDONLY);
+	g_auto(filedesc) fd = g_open(device, O_RDONLY);
 
-	sector_size = get_sectorsize(fd);
-
-	res = validate_region(fd, region_start, region_size, sector_size, &ierror);
-	if (!res) {
+	guint sector_size = get_sectorsize(fd);
+	if (!validate_region(fd, region_start, region_size, sector_size, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
 
-	res = read_mbr(fd, &mbr, &ierror);
-	if (!res) {
+	struct mbr mbr = {};
+	if (!read_mbr(fd, &mbr, &ierror)) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to read MBR:");
-		goto out;
+		return FALSE;
 	}
 
 	/* check if region overlaps with any partition */
-	res = is_region_free(region_start, region_size, mbr.partition_table,
-			sector_size, &ierror);
-	if (!res) {
+	if (!is_region_free(region_start, region_size, mbr.partition_table,
+			sector_size, &ierror)) {
 		g_propagate_error(error, ierror);
-		goto out;
+		return FALSE;
 	}
-	res = FALSE;
 
-	boot_part = &mbr.partition_table[BOOT_PARTITION_ENTRY];
-
+	struct mbr_tbl_entry *boot_part = &mbr.partition_table[BOOT_PARTITION_ENTRY];
 	if (GUINT32_FROM_LE(boot_part->partition_start_le) == 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"No boot partition found in entry %d",
 				BOOT_PARTITION_ENTRY);
-		goto out;
+		return FALSE;
 	}
 
 	if ((region_start / sector_size) ==
@@ -305,75 +280,57 @@ gboolean r_mbr_switch_get_inactive_partition(const gchar *device,
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Boot partition's start address does not match "
 				"region configuration");
-		goto out;
+		return FALSE;
 	}
 	partition->size = region_size / 2;
 
-	res = TRUE;
-out:
-	if (fd >= 0)
-		g_close(fd, NULL);
-
-	return res;
+	return TRUE;
 }
 
 gboolean r_mbr_switch_set_boot_partition(const gchar *device,
 		const struct boot_switch_partition *partition,
 		GError **error)
 {
-	gboolean res = FALSE;
-	struct mbr mbr = {};
-	struct mbr_tbl_entry *boot_part;
 	GError *ierror = NULL;
-	gint fd;
 
 	g_return_val_if_fail(device, FALSE);
 	g_return_val_if_fail(partition, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	fd = g_open(device, O_RDWR);
+	g_auto(filedesc) fd = g_open(device, O_RDWR);
 	if (fd == -1) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Opening device failed: %s",
 				g_strerror(errno));
-		goto out;
+		return FALSE;
 	}
 
-	res = read_mbr(fd, &mbr, &ierror);
-	if (!res) {
+	struct mbr mbr = {};
+	if (!read_mbr(fd, &mbr, &ierror)) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to read MBR:");
-		goto out;
+		return FALSE;
 	}
 
-	boot_part = &mbr.partition_table[BOOT_PARTITION_ENTRY];
-
-	res = get_raw_partition_entry(fd, boot_part, partition, &ierror);
-	if (!res) {
+	struct mbr_tbl_entry *boot_part = &mbr.partition_table[BOOT_PARTITION_ENTRY];
+	if (!get_raw_partition_entry(fd, boot_part, partition, &ierror)) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to create new partition entry:");
-		goto out;
+		return FALSE;
 	}
 
 	if (lseek(fd, 0, SEEK_SET) != 0) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Failed to seek to position 0");
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
 	if (write(fd, &mbr, sizeof(mbr)) != sizeof(mbr)) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Could not write new MBR: %s",
 				g_strerror(errno));
-		res = FALSE;
-		goto out;
+		return FALSE;
 	}
 
-	res = TRUE;
-out:
-	if (fd >= 0)
-		g_close(fd, NULL);
-
-	return res;
+	return TRUE;
 }
