@@ -112,6 +112,15 @@ gboolean r_copy_stream_with_progress(GInputStream *in_stream, GOutputStream *out
 			g_propagate_error(error, ierror);
 			return FALSE;
 		}
+
+		/* Callers check the destination against the announced size, so
+		 * never write more than that, even if the input has more data. */
+		if (sum_size + in_size > size) {
+			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+					"Input exceeds expected size of %"G_GOFFSET_FORMAT " bytes", size);
+			return FALSE;
+		}
+
 		ret = g_output_stream_write_all(out_stream, buffer,
 				in_size, &out_size, NULL, &ierror);
 		if (!ret) {
