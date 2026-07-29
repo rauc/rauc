@@ -68,5 +68,5 @@ def slot_data_from_json(status_data, slotname):
     for slot in status_data["slots"]:
         if slotname in slot:
             return slot[slotname]
-    else:
-        raise ValueError(f"Slot '{slotname}' not found")
+
+    raise ValueError(f"Slot '{slotname}' not found")

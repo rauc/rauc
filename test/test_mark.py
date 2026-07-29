@@ -5,8 +5,7 @@ import os
 import pytest
 
 from conftest import have_grub, have_qemu, no_service
-from helper import run
-from helper import slot_data_from_json
+from helper import run, slot_data_from_json
 
 
 @no_service
@@ -71,7 +70,7 @@ def test_status_mark_bad_other(rauc_dbus_service_with_system_abc):
     assert exitcode == 0
     status = json.loads(out)
 
-    for slotname, property in status["slots"][0].items():
+    for property in status["slots"][0].values():
         if property["state"] != "booted" and property["class"] == "rootfs":
             assert property["boot_status"] == "good"
 
@@ -82,7 +81,7 @@ def test_status_mark_bad_other(rauc_dbus_service_with_system_abc):
     assert exitcode == 0
     status = json.loads(out)
 
-    for slotname, property in status["slots"][0].items():
+    for property in status["slots"][0].values():
         if property["state"] != "booted" and property["class"] == "rootfs":
             assert property["boot_status"] == "bad"
 
@@ -97,7 +96,7 @@ def test_status_mark_prevent_late_fallback(tmp_path, create_system_files, system
         assert exitcode == 0
         status = json.loads(out)
 
-        for slotname, property in status["slots"][0].items():
+        for property in status["slots"][0].values():
             if property["state"] != "booted" and property["class"] == "rootfs":
                 assert property["boot_status"] == "good"
 
@@ -108,7 +107,7 @@ def test_status_mark_prevent_late_fallback(tmp_path, create_system_files, system
         assert exitcode == 0
         status = json.loads(out)
 
-        for slotname, property in status["slots"][0].items():
+        for property in status["slots"][0].values():
             if property["state"] != "booted" and property["class"] == "rootfs":
                 assert property["boot_status"] == "bad"
 

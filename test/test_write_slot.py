@@ -1,8 +1,8 @@
 import os
 from subprocess import check_call
 
-from helper import run
 from conftest import needs_emmc
+from helper import run
 
 
 def test_write_slot_invalid_local_paths():

@@ -3,16 +3,16 @@ import os
 import shutil
 import subprocess
 import time
-from functools import cache
 from configparser import ConfigParser
+from contextlib import contextmanager
+from functools import cache
 from pathlib import Path
 from random import Random
-from contextlib import contextmanager
 
 import pytest
+import requests
 from dasbus.connection import SessionMessageBus
 from dasbus.error import DBusError
-import requests
 
 from helper import run
 
@@ -30,7 +30,7 @@ shutil._USE_CP_SENDFILE = False
 
 meson_build = os.environ.get("MESON_BUILD_DIR")
 if not meson_build:
-    raise Exception("Please set MESON_BUILD_DIR to point to the meson build directory.")
+    raise pytest.UsageError("Please set MESON_BUILD_DIR to point to the meson build directory.")
 if not Path(meson_build).is_absolute():
     meson_build = os.path.abspath(meson_build)
 
@@ -171,31 +171,31 @@ needs_nbd = pytest.mark.skipif("RAUC_TEST_NBD_SERVER" not in os.environ, reason=
 
 
 def softhsm2_load_key_pair(cert, privkey, label, id_, softhsm2_mod, tmp_path):
-    proc = subprocess.run(
+    subprocess.run(
         f"pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y cert -w {cert} --label {label} --id {id_}",
         shell=True,
+        check=True,
     )
-    assert proc.returncode == 0
 
     pubkey_file = tmp_path / f"pubkey_{label}.pem"
 
-    proc = subprocess.run(
+    subprocess.run(
         f"openssl rsa -in {privkey} -inform pem -pubout -outform pem -out {pubkey_file}",
         shell=True,
+        check=True,
     )
-    assert proc.returncode == 0
 
-    proc = subprocess.run(
+    subprocess.run(
         f"pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y pubkey -w {pubkey_file} --label {label} --id {id_}",
         shell=True,
+        check=True,
     )
-    assert proc.returncode == 0
 
-    proc = subprocess.run(
+    subprocess.run(
         f"pkcs11-tool --module {softhsm2_mod} -l --pin 1111 -y privkey -w {privkey} --label {label} --id {id_}",
         shell=True,
+        check=True,
     )
-    assert proc.returncode == 0
 
 
 def softhsm2_test_signature(tmp_path, cert, label, ca):

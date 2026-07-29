@@ -206,7 +206,7 @@ def test_bundle_content_checks(tmp_path, bundle):
     test_dir.mkdir()
     out, err, exitcode = bundle.build_nocheck()
     assert exitcode == 1
-    assert "hidden directories are not supported as bundle contents (.hidden_subdir)"
+    assert "hidden directories are not supported as top-level bundle contents (.hidden_subdir)" in err
     assert not bundle.output.is_file()
     test_dir.rmdir()
 
@@ -215,7 +215,7 @@ def test_bundle_content_checks(tmp_path, bundle):
     os.mkfifo(test_fifo)
     out, err, exitcode = bundle.build_nocheck()
     assert exitcode == 1
-    assert "only regular files are supported as bundle contents (fifo)"
+    assert "only regular files are supported as bundle contents (fifo)" in err
     assert not bundle.output.is_file()
     test_fifo.unlink()
 
