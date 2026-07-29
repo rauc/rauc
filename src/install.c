@@ -587,6 +587,7 @@ static gchar* parse_handler_output(gchar* line)
 {
 	gchar *message = NULL;
 	g_auto(GStrv) split = NULL;
+	guint fields;
 
 	g_assert_nonnull(line);
 
@@ -596,15 +597,16 @@ static gchar* parse_handler_output(gchar* line)
 	}
 
 	split = g_strsplit(line, " ", 5);
+	fields = g_strv_length(split);
 
-	if (!split[1])
+	if (fields < 2)
 		return NULL;
 
-	if (g_strcmp0(split[1], "handler") == 0) {
+	if (g_strcmp0(split[1], "handler") == 0 && fields >= 3) {
 		message = g_strdup_printf("Handler status: %s", split[2]);
-	} else if (g_strcmp0(split[1], "image") == 0) {
+	} else if (g_strcmp0(split[1], "image") == 0 && fields >= 4) {
 		message = g_strdup_printf("Image '%s' status: %s", split[2], split[3]);
-	} else if (g_strcmp0(split[1], "bootloader") == 0) {
+	} else if (g_strcmp0(split[1], "bootloader") == 0 && fields >= 3) {
 		message = g_strdup_printf("Bootloader status: %s", split[2]);
 	} else if (g_strcmp0(split[1], "error") == 0) {
 		g_autofree gchar *joined = g_strjoinv(" ", &split[2]);
