@@ -2765,24 +2765,21 @@ static img_to_slot_handler get_handler_from_type(const gchar *image_type, const 
 	return NULL;
 }
 
-static gboolean copy_dev_to_dev(const gchar *src_device, RaucSlot *dest_slot, GError **error)
+static gboolean copy_dev_to_dev(const gchar *src_device, RaucSlot *dest_slot, const RaucChecksum *expected, GError **error)
 {
 	GError *ierror = NULL;
 	g_autoptr(GUnixInputStream) instream = NULL;
 	g_autoptr(GUnixOutputStream) outstream = NULL;
-	goffset size;
+	g_autoptr(GChecksum) ctx = NULL;
+	guchar buffer[8192];
+	goffset remaining = expected->size;
+	gsize count, nread, nwritten;
+	const gchar *digest = NULL;
 
 	g_message("Opening source device %s", src_device);
 	instream = r_open_unix_input_stream(src_device, NULL, &ierror);
 	if (!instream) {
 		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	size = get_device_size(g_unix_input_stream_get_fd(instream), &ierror);
-	if (size == 0) {
-		g_propagate_prefixed_error(error, ierror,
-				"Failed to determine size of source device '%s': ", src_device);
 		return FALSE;
 	}
 
@@ -2793,16 +2790,52 @@ static gboolean copy_dev_to_dev(const gchar *src_device, RaucSlot *dest_slot, GE
 		return FALSE;
 	}
 
-	g_message("Copying %s to %s", src_device, dest_slot->device);
-	if (!r_copy_stream_with_progress(G_INPUT_STREAM(instream), G_OUTPUT_STREAM(outstream), size, &ierror)) {
-		g_propagate_error(error, ierror);
-		return FALSE;
+	g_message("Copying %"G_GOFFSET_FORMAT " bytes from %s to %s",
+			expected->size, src_device, dest_slot->device);
+	ctx = g_checksum_new(expected->type ?: G_CHECKSUM_SHA256);
+
+	while (remaining > 0) {
+		count = MIN((goffset)sizeof(buffer), remaining);
+
+		if (!g_input_stream_read_all(G_INPUT_STREAM(instream), buffer, count, &nread, NULL, &ierror)) {
+			g_propagate_prefixed_error(error, ierror, "Failed to read from %s: ", src_device);
+			return FALSE;
+		}
+		if (nread != count) {
+			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+					"Unexpected end of %s after %"G_GOFFSET_FORMAT " bytes",
+					src_device, expected->size - remaining + nread);
+			return FALSE;
+		}
+
+		g_checksum_update(ctx, buffer, nread);
+
+		if (!g_output_stream_write_all(G_OUTPUT_STREAM(outstream), buffer, nread, &nwritten, NULL, &ierror)) {
+			g_propagate_prefixed_error(error, ierror, "Failed to write to %s: ", dest_slot->device);
+			return FALSE;
+		}
+
+		remaining -= nread;
+
+		/* emit progress info (but only when in progress context) */
+		if (r_context()->progress)
+			r_context_set_step_percentage("copy_image",
+					(expected->size - remaining) * 100 / expected->size);
 	}
 
 	/* flush to block device before closing to assure content is written to disk */
 	if (fsync(g_unix_output_stream_get_fd(outstream)) == -1) {
 		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
 				"Syncing content to slot failed: %s", strerror(errno));
+		return FALSE;
+	}
+
+	digest = g_checksum_get_string(ctx);
+	if (!g_str_equal(digest, expected->digest)) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Content of source device %s does not match the expected hash "
+				"(expected sha256 %s, got %s)",
+				src_device, expected->digest, digest);
 		return FALSE;
 	}
 
@@ -2842,9 +2875,16 @@ static gboolean hashref_slot_handler(RaucImage *image, RaucSlot *dest_slot, cons
 				image->checksum.digest);
 		return FALSE;
 	}
+	if (source_slot->status->checksum.size <= 0) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Active slot '%s' has no recorded image size, cannot determine "
+				"how much data to copy and verify", source_slot->name);
+		return FALSE;
+	}
+	image->checksum.size = source_slot->status->checksum.size;
 
 	g_message("Copying active slot '%s' to '%s'", source_slot->name, dest_slot->name);
-	if (!copy_dev_to_dev(source_slot->device, dest_slot, &ierror)) {
+	if (!copy_dev_to_dev(source_slot->device, dest_slot, &image->checksum, &ierror)) {
 		g_propagate_prefixed_error(error, ierror,
 				"Failed to copy slot '%s' to '%s': ",
 				source_slot->name, dest_slot->name);
