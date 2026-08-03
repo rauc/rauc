@@ -881,6 +881,14 @@ RaucContext *r_context_conf(void)
 	return context;
 }
 
+GList *r_context_config_overrides(void)
+{
+	if (!context)
+		return NULL;
+
+	return context->configoverride;
+}
+
 const RaucContext *r_context(void)
 {
 	GError *ierror = NULL;

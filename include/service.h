@@ -24,6 +24,11 @@ G_GNUC_WARN_UNUSED_RESULT;
 
 void set_last_error(const gchar *message);
 
+/**
+ * Schedule draining of a pending polling-only reload once the service is idle.
+ */
+void r_service_polling_reload_deferred(void);
+
 /* used by poll.c */
 extern RInstaller *r_installer;
 

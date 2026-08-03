@@ -1,3 +1,6 @@
+import os
+import signal
+import subprocess
 import time
 
 import pytest
@@ -16,6 +19,21 @@ def wait_one_poll(system, *, timeout=15.0):
         time.sleep(0.1)
         assert time.monotonic() < (start + timeout)
     return time.monotonic() - start
+
+
+def wait_until(condition, *, timeout=15.0):
+    start = time.monotonic()
+    while True:
+        result = condition()
+        if result:
+            return result
+        time.sleep(0.1)
+        assert time.monotonic() < (start + timeout)
+
+
+def status_without_manifest(system):
+    status = get_native(system.proxy.Status)
+    return status if "manifest" not in status else None
 
 
 def test_no_system_version(create_system_files, system, http_server):
@@ -225,6 +243,263 @@ def test_candidate_criteria(create_system_files, system, http_server, sys_ver, c
     assert status["summary"] == result
 
     assert slots_initial == slots_final
+
+
+def test_sighup_reload_accepted(create_system_files, system, http_server):
+    """Test if SIGHUP accepts polling-only changes and clears stale status."""
+    http_server.setup(
+        file_path="good-verity-bundle.raucb",
+    )
+
+    system.prepare_minimal_config()
+    system.config["handlers"] = {
+        "system-info": "bin/systeminfo.sh",
+    }
+    system.config["streaming"] = {
+        "send-headers": "system-version;transaction-id",
+    }
+    system.config["polling"] = {
+        "url": http_server.url,
+        "interval-sec": "60",
+        "candidate-criteria": "higher-semver",
+    }
+    system.write_config()
+
+    with system.running_service("A", polling_speedup=10):
+        system.proxy.Mark("good", "booted")
+
+        wait_one_poll(system)
+        status_1 = get_native(system.proxy.Status)
+        assert status_1["summary"] == "update candidate found: higher semantic version"
+        assert "manifest" in status_1
+
+        system.config["polling"]["candidate-criteria"] = "different-version"
+        system.write_config()
+        os.kill(system.service.pid, signal.SIGHUP)
+
+        status_2 = wait_until(lambda: status_without_manifest(system))
+        assert "summary" not in status_2
+        assert status_2["recent-error-count"] == 0
+
+        system.proxy.Poll()
+        wait_one_poll(system)
+        status_3 = get_native(system.proxy.Status)
+        last_error = system.proxy.LastError
+
+    assert status_3["summary"] == "update candidate found: different version"
+    assert "manifest" in status_3
+    assert last_error == ""
+
+
+def test_sighup_reload_rejected(create_system_files, system, http_server):
+    """Test if SIGHUP rejects non-polling changes and leaves old polling active."""
+    http_server.setup(
+        file_path="good-verity-bundle.raucb",
+    )
+
+    system.prepare_minimal_config()
+    system.config["handlers"] = {
+        "system-info": "bin/systeminfo.sh",
+    }
+    system.config["streaming"] = {
+        "send-headers": "system-version;transaction-id",
+    }
+    system.config["polling"] = {
+        "url": http_server.url,
+        "interval-sec": "60",
+        "candidate-criteria": "higher-semver",
+    }
+    system.write_config()
+
+    with system.running_service("A", polling_speedup=10):
+        system.proxy.Mark("good", "booted")
+
+        wait_one_poll(system)
+        status_1 = get_native(system.proxy.Status)
+        assert status_1["summary"] == "update candidate found: higher semantic version"
+
+        system.config["system"]["compatible"] = "Changed Config"
+        system.config["polling"]["candidate-criteria"] = "different-version"
+        system.write_config()
+        os.kill(system.service.pid, signal.SIGHUP)
+
+        wait_until(lambda: "non-polling" in system.proxy.LastError)
+        system.proxy.Poll()
+        wait_one_poll(system)
+        status_2 = get_native(system.proxy.Status)
+
+    assert status_2["summary"] == "update candidate found: higher semantic version"
+
+
+def test_sighup_reload_deferred(create_system_files, system, http_server, tmp_path):
+    """Test if SIGHUP during polling installation is deferred until idle."""
+    marker = tmp_path / "preinstall-started"
+    preinstall = tmp_path / "sleep-preinstall.sh"
+    preinstall.write_text(f"#!/bin/sh\ntouch {marker}\nsleep 3\n")
+    preinstall.chmod(0o755)
+
+    http_server.setup(
+        file_path="good-verity-bundle.raucb",
+    )
+
+    system.prepare_minimal_config()
+    system.config["handlers"] = {
+        "system-info": "bin/systeminfo.sh",
+        "pre-install": str(preinstall),
+    }
+    system.config["streaming"] = {
+        "send-headers": "system-version;transaction-id",
+    }
+    system.config["polling"] = {
+        "url": http_server.url,
+        "interval-sec": "60",
+        "candidate-criteria": "higher-semver",
+        "install-criteria": "always",
+    }
+    system.write_config()
+
+    with system.running_service("A", polling_speedup=10):
+        system.proxy.Mark("good", "booted")
+
+        wait_until(marker.exists, timeout=20.0)
+        assert system.proxy.Operation == "installing"
+
+        system.config["polling"] = {
+            "url": http_server.url,
+            "interval-sec": "60",
+            "candidate-criteria": "different-version",
+        }
+        system.write_config()
+        os.kill(system.service.pid, signal.SIGHUP)
+
+        wait_until(lambda: system.proxy.Operation == "idle", timeout=20.0)
+        status_1 = wait_until(lambda: status_without_manifest(system))
+
+        system.proxy.Poll()
+        wait_one_poll(system)
+        status_2 = get_native(system.proxy.Status)
+
+    assert "summary" not in status_1
+    assert status_2["summary"] == "update candidate found: different version"
+
+
+def test_sighup_reload_preserves_pending_reboot(create_system_files, system, http_server, tmp_path):
+    """Test if accepted SIGHUP reloads keep a pending polling reboot."""
+    marker = tmp_path / "preinstall-started"
+    preinstall = tmp_path / "sleep-preinstall.sh"
+    preinstall.write_text(f"#!/bin/sh\ntouch {marker}\nsleep 1\n")
+    preinstall.chmod(0o755)
+    reboot_flag = tmp_path / "reboot-flag"
+
+    http_server.setup(
+        file_path="good-verity-bundle.raucb",
+    )
+
+    system.prepare_minimal_config()
+    system.config["handlers"] = {
+        "system-info": "bin/systeminfo.sh",
+        "pre-install": str(preinstall),
+    }
+    system.config["streaming"] = {
+        "send-headers": "system-version;transaction-id",
+    }
+    system.config["polling"] = {
+        "url": http_server.url,
+        "interval-sec": "60",
+        "install-criteria": "always",
+        "reboot-criteria": "updated-slots",
+        "reboot-cmd": f"touch {reboot_flag}",
+    }
+    system.write_config()
+
+    env = {"RAUC_TEST_SYSTEM_VERSION": "2010.01-1"}
+
+    with system.running_service("A", polling_speedup=5, extra_env=env):
+        system.proxy.Mark("good", "booted")
+
+        wait_until(marker.exists, timeout=20.0)
+        wait_until(lambda: system.proxy.Operation == "idle", timeout=20.0)
+        assert not reboot_flag.exists()
+
+        system.config["polling"]["candidate-criteria"] = "different-version"
+        system.write_config()
+        os.kill(system.service.pid, signal.SIGHUP)
+
+        status_after_reload = wait_until(lambda: status_without_manifest(system), timeout=10.0)
+        wait_until(reboot_flag.exists, timeout=20.0)
+        last_error = system.proxy.LastError
+
+    assert "summary" not in status_after_reload
+    assert last_error == ""
+
+
+def test_sighup_reload_deferred_dbus_install(create_system_files, system, http_server, tmp_path):
+    """Test if SIGHUP during a D-Bus-triggered install is drained when idle."""
+    marker = tmp_path / "preinstall-started"
+    preinstall = tmp_path / "sleep-preinstall.sh"
+    preinstall.write_text(f"#!/bin/sh\ntouch {marker}\nsleep 3\n")
+    preinstall.chmod(0o755)
+
+    http_server.setup(
+        file_path="good-verity-bundle.raucb",
+    )
+
+    system.prepare_minimal_config()
+    system.config["handlers"] = {
+        "system-info": "bin/systeminfo.sh",
+        "pre-install": str(preinstall),
+    }
+    system.config["streaming"] = {
+        "send-headers": "system-version;transaction-id",
+    }
+    system.config["polling"] = {
+        "url": http_server.url,
+        "interval-sec": "60",
+        "candidate-criteria": "higher-semver",
+    }
+    system.write_config()
+
+    install = None
+    with system.running_service("A", polling_speedup=10):
+        system.proxy.Mark("good", "booted")
+
+        system.proxy.Poll()
+        wait_one_poll(system)
+        status_1 = get_native(system.proxy.Status)
+        assert status_1["summary"] == "update candidate found: higher semantic version"
+
+        install_env = os.environ.copy()
+        install_env["RAUC_PYTEST_TMP"] = str(system.tmp_path)
+        install = subprocess.Popen(
+            ["rauc", "-c", str(system.output), "install", os.path.abspath("good-verity-bundle.raucb")],
+            env=install_env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        try:
+            wait_until(marker.exists, timeout=20.0)
+            assert system.proxy.Operation == "installing"
+
+            system.config["polling"]["candidate-criteria"] = "different-version"
+            system.write_config()
+            os.kill(system.service.pid, signal.SIGHUP)
+
+            wait_until(lambda: system.proxy.Operation == "idle", timeout=20.0)
+            out, err = install.communicate(timeout=10.0)
+            assert install.returncode == 0, f"{out}\n{err}"
+            status_2 = wait_until(lambda: status_without_manifest(system), timeout=20.0)
+
+            system.proxy.Poll()
+            wait_one_poll(system)
+            status_3 = get_native(system.proxy.Status)
+        finally:
+            if install.poll() is None:
+                install.terminate()
+                install.wait(timeout=10.0)
+
+    assert "summary" not in status_2
+    assert status_3["summary"] == "update candidate found: different version"
 
 
 @pytest.mark.parametrize(

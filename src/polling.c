@@ -49,7 +49,9 @@ static void polling_context_clear_manifest(RPollingContext *polling_context)
 	g_return_if_fail(polling_context);
 
 	g_clear_pointer(&polling_context->manifest, free_manifest);
+	polling_context->bundle_size = 0;
 	g_clear_pointer(&polling_context->bundle_effective_url, g_free);
+	polling_context->bundle_modified_time = 0;
 	g_clear_pointer(&polling_context->bundle_etag, g_free);
 }
 
@@ -292,6 +294,7 @@ static gboolean polling_install_cleanup(gpointer data)
 
 	polling_reschedule(polling_context, POLLING_DELAY_SHORT);
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_poller));
+	r_service_polling_reload_deferred();
 
 	return G_SOURCE_REMOVE;
 }
@@ -620,6 +623,28 @@ gboolean r_polling_setup(GError **error)
 
 	return TRUE;
 };
+
+void r_polling_reload(void)
+{
+	RPollingContext *polling_context = NULL;
+
+	if (!r_poller)
+		return;
+
+	polling_context = (RPollingContext *)g_object_get_data(G_OBJECT(r_poller), "r-poll");
+	g_return_if_fail(polling_context);
+
+	g_clear_pointer(&polling_context->last_error_message, g_free);
+	g_clear_pointer(&polling_context->summary, g_free);
+	g_clear_pointer(&polling_context->attempted_hash, g_free);
+	polling_context->recent_error_count = 0;
+	polling_context->update_available = FALSE;
+	polling_context_clear_manifest(polling_context);
+
+	polling_update_status(polling_context);
+	polling_reschedule(polling_context, POLLING_DELAY_INITIAL);
+	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_poller));
+}
 
 const gchar * const r_polling_supported_candidate_criteria[] = {
 	"higher-semver",
