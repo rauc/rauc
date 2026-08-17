@@ -38,10 +38,8 @@ static gboolean service_install_notify(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean service_install_cleanup(gpointer data)
+static void service_install_cleanup(RaucInstallArgs *args)
 {
-	RaucInstallArgs *args = data;
-
 	g_mutex_lock(&args->status_mutex);
 	if (args->status_result == 0) {
 		g_message("installing `%s` succeeded", args->name);
@@ -54,8 +52,6 @@ static gboolean service_install_cleanup(gpointer data)
 	g_mutex_unlock(&args->status_mutex);
 
 	install_args_free(args);
-
-	return G_SOURCE_REMOVE;
 }
 
 /*

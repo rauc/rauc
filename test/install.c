@@ -1050,10 +1050,8 @@ static gboolean install_notify(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
-static gboolean install_cleanup(gpointer data)
+static void install_cleanup(RaucInstallArgs *args)
 {
-	RaucInstallArgs *args = data;
-
 	g_assert_nonnull(args);
 	g_assert_cmpint(args->status_result, ==, 0);
 	g_assert_false(g_queue_is_empty(&args->status_messages));
@@ -1066,8 +1064,6 @@ static gboolean install_cleanup(gpointer data)
 
 	if (r_loop)
 		g_main_loop_quit(r_loop);
-
-	return G_SOURCE_REMOVE;
 }
 
 static gint find_str_custom(gconstpointer a, gconstpointer b)
