@@ -70,6 +70,19 @@ RaucSlot *r_slot_find_by_device(GHashTable *slots, const gchar *device)
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		if (g_strcmp0(slot->device, device) == 0) {
 			return slot;
+		} else {
+			/* The device mentioned in the slot definition may be a symlink (e.g. /dev/disk/by-id/...),
+			 * but the mount point is always passed to this function as the real device path.
+			 * So try to resolve the slot's device path and check if this path matches the device.
+			 */
+			char* resolved = realpath(slot->device, NULL);
+			if (resolved) {
+				if (g_strcmp0(resolved, device) == 0) {
+					g_clear_pointer(&resolved, free);
+					return slot;
+				}
+				g_clear_pointer(&resolved, free);
+			}
 		}
 	}
 
