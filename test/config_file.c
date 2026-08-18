@@ -1616,6 +1616,225 @@ bootloader=barebox\n\
 	g_assert_null(config);
 }
 
+#if ENABLE_STREAMING
+static gchar *polling_reload_config_full(const gchar *bootloader,
+		const gchar *system_extra,
+		const gchar *extra_sections,
+		const gchar *polling_section)
+{
+	return g_strdup_printf("\
+[system]\n\
+compatible=Test Config\n\
+bootloader=%s\n\
+%s\
+\n\
+[slot.rootfs.0]\n\
+device=images/rootfs-0\n\
+type=raw\n\
+bootname=A\n\
+\n\
+[slot.rootfs.1]\n\
+device=images/rootfs-1\n\
+type=raw\n\
+bootname=B\n\
+%s\
+%s",
+			bootloader,
+			system_extra ?: "",
+			extra_sections ?: "",
+			polling_section ?: "");
+}
+
+static gchar *polling_reload_config(const gchar *system_extra,
+		const gchar *extra_sections,
+		const gchar *polling_section)
+{
+	return polling_reload_config_full("noop", system_extra, extra_sections, polling_section);
+}
+
+static const gchar *polling_reload_base_section = "\
+\n\
+[polling]\n\
+url=http://example.com/one\n\
+interval-sec=60\n\
+max-interval-sec=120\n\
+reboot-cmd=reboot\n\
+";
+
+static gchar *polling_reload_start_context(ConfigFileFixture *fixture,
+		const gchar *config)
+{
+	g_autoptr(GError) ierror = NULL;
+	g_autofree gchar *pathname = NULL;
+
+	r_context_clean();
+
+	pathname = write_tmp_file(fixture->tmpdir, "polling-reload.conf", config, NULL);
+	g_assert_nonnull(pathname);
+
+	r_context_conf()->configpath = g_strdup(pathname);
+	r_context_conf()->configmode = R_CONTEXT_CONFIG_MODE_REQUIRED;
+	r_context_conf()->mock.proc_cmdline = "quiet rauc.slot=A rootwait";
+	g_assert_true(r_context_configure(&ierror));
+	g_assert_no_error(ierror);
+
+	return g_steal_pointer(&pathname);
+}
+
+static void polling_reload_replace_config(const gchar *pathname,
+		const gchar *config)
+{
+	g_autoptr(GError) ierror = NULL;
+
+	g_assert_true(g_file_set_contents(pathname, config, -1, &ierror));
+	g_assert_no_error(ierror);
+}
+
+static void config_file_polling_reload_accepted(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(GError) ierror = NULL;
+	g_autofree gchar *startup = polling_reload_config(NULL, NULL, polling_reload_base_section);
+	g_autofree gchar *reload_config = polling_reload_config(NULL, NULL, "\
+\n\
+[polling]\n\
+url=http://example.com/two\n\
+interval-sec=120\n\
+max-interval-sec=240\n\
+inhibit-files=/tmp/inhibit-a;/tmp/inhibit-b\n\
+candidate-criteria=different-version\n\
+install-criteria=always\n\
+reboot-criteria=updated-slots\n\
+reboot-cmd=touch /tmp/reboot-requested\n\
+");
+	g_autofree gchar *pathname = polling_reload_start_context(fixture, startup);
+	RaucConfig *config = r_context()->config;
+	GHashTable *slots = config->slots;
+	g_autofree gchar *old_checksum = g_strdup(config->file_checksum);
+	g_autofree gchar *old_non_polling_checksum = g_strdup(config->non_polling_file_checksum);
+
+	polling_reload_replace_config(pathname, reload_config);
+
+	g_assert_true(r_config_reload_polling_only(&ierror));
+	g_assert_no_error(ierror);
+
+	g_assert_true(r_context()->config == config);
+	g_assert_true(config->slots == slots);
+	g_assert_cmpstr(config->polling_url, ==, "http://example.com/two");
+	g_assert_cmpint(config->polling_interval_ms, ==, 120 * 1000);
+	g_assert_cmpint(config->polling_max_interval_ms, ==, 240 * 1000);
+	g_assert_cmpstr(config->polling_inhibit_files[0], ==, "/tmp/inhibit-a");
+	g_assert_cmpstr(config->polling_inhibit_files[1], ==, "/tmp/inhibit-b");
+	g_assert_null(config->polling_inhibit_files[2]);
+	g_assert_cmpstr(config->polling_candidate_criteria[0], ==, "different-version");
+	g_assert_null(config->polling_candidate_criteria[1]);
+	g_assert_cmpstr(config->polling_install_criteria[0], ==, "always");
+	g_assert_null(config->polling_install_criteria[1]);
+	g_assert_cmpstr(config->polling_reboot_criteria[0], ==, "updated-slots");
+	g_assert_null(config->polling_reboot_criteria[1]);
+	g_assert_cmpstr(config->polling_reboot_cmd, ==, "touch /tmp/reboot-requested");
+	g_assert_cmpstr(config->non_polling_file_checksum, ==, old_non_polling_checksum);
+	g_assert_cmpstr(config->file_checksum, !=, old_checksum);
+	g_assert_true(config->polling_enabled_at_startup);
+}
+
+static void assert_polling_reload_rejected(ConfigFileFixture *fixture,
+		const gchar *startup,
+		const gchar *reload_config,
+		const gchar *message_part)
+{
+	g_autoptr(GError) ierror = NULL;
+	g_autofree gchar *pathname = polling_reload_start_context(fixture, startup);
+	RaucConfig *config = r_context()->config;
+	GHashTable *slots = config->slots;
+	g_autofree gchar *old_checksum = g_strdup(config->file_checksum);
+	g_autofree gchar *old_non_polling_checksum = g_strdup(config->non_polling_file_checksum);
+
+	polling_reload_replace_config(pathname, reload_config);
+
+	g_assert_false(r_config_reload_polling_only(&ierror));
+	g_assert_error(ierror, R_CONFIG_ERROR, R_CONFIG_ERROR_POLLING);
+	g_assert_nonnull(strstr(ierror->message, message_part));
+
+	g_assert_true(r_context()->config == config);
+	g_assert_true(config->slots == slots);
+	if (config->polling_enabled_at_startup) {
+		g_assert_cmpstr(config->polling_url, ==, "http://example.com/one");
+		g_assert_cmpint(config->polling_interval_ms, ==, 60 * 1000);
+		g_assert_cmpint(config->polling_max_interval_ms, ==, 120 * 1000);
+		g_assert_cmpstr(config->polling_reboot_cmd, ==, "reboot");
+	} else {
+		g_assert_null(config->polling_url);
+		g_assert_null(config->polling_reboot_cmd);
+	}
+	g_assert_cmpstr(config->file_checksum, ==, old_checksum);
+	g_assert_cmpstr(config->non_polling_file_checksum, ==, old_non_polling_checksum);
+
+	r_context_clean();
+}
+
+static void config_file_polling_reload_rejects_non_polling(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autofree gchar *startup = polling_reload_config(NULL, NULL, polling_reload_base_section);
+	g_autofree gchar *reload_config = polling_reload_config("min-bundle-version=1.0\n", NULL, "\
+\n\
+[polling]\n\
+url=http://example.com/two\n\
+interval-sec=60\n\
+max-interval-sec=120\n\
+");
+
+	assert_polling_reload_rejected(fixture, startup, reload_config, "non-polling");
+}
+
+static void config_file_polling_reload_rejects_sensitive(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	typedef struct {
+		const gchar *name;
+		const gchar *bootloader;
+		const gchar *system_extra;
+		const gchar *extra_sections;
+	} SensitiveCase;
+	const SensitiveCase cases[] = {
+		{"bootloader", "grub", "grubenv=grubenv.test\n", NULL},
+		{"statusfile", NULL, "statusfile=/tmp/central.raucs\n", NULL},
+		{"keyring", NULL, NULL, "\n[keyring]\npath=/tmp/keyring.pem\n"},
+		{"handler", NULL, NULL, "\n[handlers]\npre-install=/bin/true\n"},
+		{"encryption", NULL, NULL, "\n[encryption]\nkey=/tmp/key.pem\ncert=/tmp/cert.pem\n"},
+		{"slot", NULL, NULL, "\n[slot.rescue.0]\ndevice=images/rescue-0\ntype=raw\nbootname=R\n"},
+		{NULL, NULL, NULL, NULL},
+	};
+
+	for (const SensitiveCase *test = cases; test->name; test++) {
+		g_autofree gchar *startup = polling_reload_config(NULL, NULL, polling_reload_base_section);
+		g_autofree gchar *reload_config = polling_reload_config_full(test->bootloader ?: "noop", test->system_extra, test->extra_sections, polling_reload_base_section);
+
+		g_test_message("checking sensitive rejection: %s", test->name);
+		assert_polling_reload_rejected(fixture, startup, reload_config, "non-polling");
+	}
+}
+
+static void config_file_polling_reload_rejects_polling_add_remove(ConfigFileFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autofree gchar *startup_enabled = polling_reload_config(NULL, NULL, polling_reload_base_section);
+	g_autofree gchar *startup_disabled = polling_reload_config(NULL, NULL, NULL);
+	g_autofree gchar *reload_enabled = polling_reload_config(NULL, NULL, "\
+\n\
+[polling]\n\
+url=http://example.com/two\n\
+interval-sec=60\n\
+max-interval-sec=120\n\
+");
+	g_autofree gchar *reload_disabled = polling_reload_config(NULL, NULL, NULL);
+
+	assert_polling_reload_rejected(fixture, startup_disabled, reload_enabled, "not enabled");
+	assert_polling_reload_rejected(fixture, startup_enabled, reload_disabled, "removal");
+}
+#endif
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -1761,5 +1980,19 @@ int main(int argc, char *argv[])
 	g_test_add("/config-file/min-bundle-version/bad", ConfigFileFixture, NULL,
 			config_file_fixture_set_up, config_file_min_bundle_version_bad,
 			config_file_fixture_tear_down);
+#if ENABLE_STREAMING
+	g_test_add("/config-file/polling-reload/accepted", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_polling_reload_accepted,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/polling-reload/rejects-non-polling", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_polling_reload_rejects_non_polling,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/polling-reload/rejects-sensitive", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_polling_reload_rejects_sensitive,
+			config_file_fixture_tear_down);
+	g_test_add("/config-file/polling-reload/rejects-polling-add-remove", ConfigFileFixture, NULL,
+			config_file_fixture_set_up, config_file_polling_reload_rejects_polling_add_remove,
+			config_file_fixture_tear_down);
+#endif
 	return g_test_run();
 }

@@ -1288,6 +1288,36 @@ static gboolean check_unique_slotclasses(RaucConfig *config, GError **error)
 	return TRUE;
 }
 
+static gchar *compute_non_polling_file_checksum(const gchar *data, gsize length, GError **error)
+{
+	GError *ierror = NULL;
+
+	g_return_val_if_fail(data, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	g_autoptr(GKeyFile) key_file = g_key_file_new();
+	if (!g_key_file_load_from_data(key_file, data, length, G_KEY_FILE_KEEP_COMMENTS, &ierror)) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	/* process overrides */
+	for (GList *l = r_context_config_overrides(); l != NULL; l = l->next) {
+		ConfigFileOverride *override = (ConfigFileOverride *)l->data;
+		g_key_file_set_value(key_file, override->section, override->name, override->value);
+	}
+
+	g_key_file_remove_group(key_file, "polling", NULL);
+
+	g_autofree gchar *non_polling_data = g_key_file_to_data(key_file, NULL, &ierror);
+	if (!non_polling_data) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
+
+	return g_compute_checksum_for_string(G_CHECKSUM_SHA256, non_polling_data, -1);
+}
+
 void r_config_file_modified_check(void)
 {
 	g_autoptr(GError) ierror = NULL;
@@ -1331,6 +1361,11 @@ static RaucConfig *parse_config(const gchar *filename, const gchar *data, gsize 
 	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	c->file_checksum = g_compute_checksum_for_data(G_CHECKSUM_SHA256, (guchar*) data, length);
+	c->non_polling_file_checksum = compute_non_polling_file_checksum(data, length, &ierror);
+	if (!c->non_polling_file_checksum) {
+		g_propagate_error(error, ierror);
+		return NULL;
+	}
 
 	g_autoptr(GKeyFile) key_file = g_key_file_new();
 	if (!g_key_file_load_from_data(key_file, data, length, G_KEY_FILE_NONE, &ierror)) {
@@ -1339,7 +1374,7 @@ static RaucConfig *parse_config(const gchar *filename, const gchar *data, gsize 
 	}
 
 	/* process overrides */
-	for (GList *l = r_context_conf()->configoverride; l != NULL; l = l->next) {
+	for (GList *l = r_context_config_overrides(); l != NULL; l = l->next) {
 		ConfigFileOverride *override = (ConfigFileOverride *)l->data;
 		g_key_file_set_value(key_file, override->section, override->name, override->value);
 	}
@@ -1373,6 +1408,7 @@ static RaucConfig *parse_config(const gchar *filename, const gchar *data, gsize 
 		g_propagate_error(error, ierror);
 		return NULL;
 	}
+	c->polling_enabled_at_startup = (c->polling_url != NULL);
 
 	/* parse [encryption] section */
 	if (!parse_encryption_section(filename, key_file, c, &ierror)) {
@@ -1526,6 +1562,80 @@ gboolean check_config_target(const RaucConfig *config, GError **error)
 	return TRUE;
 }
 
+static void clear_config_polling(RaucConfig *config)
+{
+	g_return_if_fail(config);
+
+	g_clear_pointer(&config->polling_url, g_free);
+	g_clear_pointer(&config->polling_inhibit_files, g_strfreev);
+	g_clear_pointer(&config->polling_candidate_criteria, g_strfreev);
+	g_clear_pointer(&config->polling_install_criteria, g_strfreev);
+	g_clear_pointer(&config->polling_reboot_criteria, g_strfreev);
+	g_clear_pointer(&config->polling_reboot_cmd, g_free);
+	config->polling_interval_ms = 0;
+	config->polling_max_interval_ms = 0;
+}
+
+gboolean r_config_reload_polling_only(GError **error)
+{
+	GError *ierror = NULL;
+	RaucConfig *config = r_context()->config;
+	g_autoptr(RaucConfig) reload = NULL;
+	gboolean reload_polling_enabled;
+
+	g_return_val_if_fail(config, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (!r_context()->configpath) {
+		g_set_error_literal(error, R_CONFIG_ERROR, R_CONFIG_ERROR_POLLING,
+				"Cannot reload polling configuration without a system config path");
+		return FALSE;
+	}
+
+	if (!config->polling_enabled_at_startup) {
+		g_set_error_literal(error, R_CONFIG_ERROR, R_CONFIG_ERROR_POLLING,
+				"Rejected polling reload: polling was not enabled at startup");
+		return FALSE;
+	}
+
+	if (!load_config(r_context()->configpath, &reload, &ierror)) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to load system config for polling reload: ");
+		return FALSE;
+	}
+
+	reload_polling_enabled = (reload->polling_url != NULL);
+	if (config->polling_enabled_at_startup != reload_polling_enabled) {
+		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_POLLING,
+				"Rejected polling reload: runtime %s of [polling] or polling.url is not supported",
+				"removal");
+		return FALSE;
+	}
+
+	if (g_strcmp0(config->non_polling_file_checksum, reload->non_polling_file_checksum) != 0) {
+		g_set_error_literal(error, R_CONFIG_ERROR, R_CONFIG_ERROR_POLLING,
+				"Rejected polling reload: non-polling system configuration changed");
+		return FALSE;
+	}
+
+	clear_config_polling(config);
+	/* Move all trusted [polling] keys in-place. This intentionally includes
+	 * reboot-cmd because it is part of root-owned system.conf polling policy.
+	 */
+	config->polling_url = g_steal_pointer(&reload->polling_url);
+	config->polling_inhibit_files = g_steal_pointer(&reload->polling_inhibit_files);
+	config->polling_candidate_criteria = g_steal_pointer(&reload->polling_candidate_criteria);
+	config->polling_install_criteria = g_steal_pointer(&reload->polling_install_criteria);
+	config->polling_reboot_criteria = g_steal_pointer(&reload->polling_reboot_criteria);
+	config->polling_interval_ms = reload->polling_interval_ms;
+	config->polling_max_interval_ms = reload->polling_max_interval_ms;
+	config->polling_reboot_cmd = g_steal_pointer(&reload->polling_reboot_cmd);
+
+	r_replace_strdup(&config->file_checksum, reload->file_checksum);
+
+	return TRUE;
+}
+
 RaucSlot *find_config_slot_by_device(RaucConfig *config, const gchar *device)
 {
 	g_return_val_if_fail(config, NULL);
@@ -1576,15 +1686,11 @@ void free_config(RaucConfig *config)
 	g_free(config->encryption_key);
 	g_free(config->encryption_cert);
 	g_list_free_full(config->loggers, (GDestroyNotify)r_event_log_free_logger);
-	g_free(config->polling_url);
-	g_strfreev(config->polling_inhibit_files);
-	g_strfreev(config->polling_candidate_criteria);
-	g_strfreev(config->polling_install_criteria);
-	g_strfreev(config->polling_reboot_criteria);
-	g_free(config->polling_reboot_cmd);
+	clear_config_polling(config);
 	g_clear_pointer(&config->slots, g_hash_table_destroy);
 	g_free(config->custom_bootloader_backend);
 	g_free(config->file_checksum);
+	g_free(config->non_polling_file_checksum);
 	g_clear_pointer(&config->artifact_repos, g_hash_table_destroy);
 	g_free(config);
 }
