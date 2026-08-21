@@ -630,7 +630,7 @@ gchar *r_efi_get_current_bootname(RaucConfig *config, GError **error)
 	RaucSlot *slot = NULL;
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
 		if (g_strcmp0(slot->bootname, bootcurrent->name) == 0) {
-			return slot->bootname;
+			return g_strdup(slot->bootname);
 		}
 	}
 
