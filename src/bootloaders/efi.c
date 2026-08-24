@@ -184,7 +184,11 @@ static efi_bootentry *get_efi_entry_by_bootnum(GList *entries, const gchar *boot
  * @param all_entries Return location for List (of efi_bootentry element) of
  *        all EFI boot entries
  * @param bootnext Return location for EFI boot slot currently selected as
- *        'BootNext' (if any)
+ *        'BootNext' (if any). Returns NULL if no entry can be matched to the slots
+ *        in the config.
+ * @param bootcurrent Return location for EFI boot slot currently selected 
+ *        as 'BootCurrent' (if any). Returns NULL if no entry can be matched to the slots
+ *        in the config.
  * @param error Return location for a GError
  */
 static gboolean efi_bootorder_get(GList **bootorder_entries, GList **all_entries, efi_bootentry **bootnext, efi_bootentry **bootcurrent, GError **error)
@@ -625,19 +629,43 @@ gchar *r_efi_get_current_bootname(RaucConfig *config, GError **error)
 		return NULL;
 	}
 
-	GHashTableIter iter;
-	g_hash_table_iter_init(&iter, config->slots);
-	RaucSlot *slot = NULL;
-	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
-		if (g_strcmp0(slot->bootname, bootcurrent->name) == 0) {
-			return slot->bootname;
-		}
-	}
+  if (bootcurrent == NULL)
+  {
+    // We don't have a current boot, this is unexpected
+    // In this code path it can only mean that `BootCurrent` is pointing at
+    // a BootXXX entry that does not exist
+    // g_error("The current bootentry is not in the list of boot entries");
 
+    g_set_error(error,
+      R_BOOTCHOOSER_ERROR,
+      R_BOOTCHOOSER_ERROR_FAILED,
+      "Current EFI bootentry is pointing to a non-existing bootentry.");
+
+    return NULL;
+  }
+
+	if (bootcurrent != NULL)
+	{
+    g_debug("Current bootentry ('%s') was found in list of boot entries", bootcurrent->name);
+
+		GHashTableIter iter;
+		g_hash_table_iter_init(&iter, config->slots);
+		RaucSlot *slot = NULL;
+		while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+			if (g_strcmp0(slot->bootname, bootcurrent->name) == 0) {
+			        g_debug("Boot entry '%s' is the current boot entry", bootcurrent->num);
+				return slot->bootname;
+			}
+	  }
+  }
+
+  // `bootcurrent` is valid but we did not find a valid slot
+  // This means that the `BootCurrent` slot's name is not the same as the
+  // one provided in the RAUC config.
 	g_set_error(error,
 			R_BOOTCHOOSER_ERROR,
 			R_BOOTCHOOSER_ERROR_FAILED,
-			"Current EFI bootentry not known to rauc!");
+			"Current EFI bootentry's name is not known to rauc!");
 
 	return NULL;
 }
