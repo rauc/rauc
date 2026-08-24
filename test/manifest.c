@@ -992,6 +992,51 @@ size=1\n\
 	g_assert_false(res);
 }
 
+/* Check that an artifact name containing a '/' is rejected for a manifest read
+ * from a bundle. The artifact name comes from the group header and is used as a
+ * single path component of the .artifact-<name>-<digest> entry in the artifact
+ * repository, so a '/' would turn it into a nested path. Artifacts are only
+ * allowed in verity/crypt bundles, so this uses the external manifest path.
+ */
+static void test_manifest_artifact_name_with_slash(void)
+{
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *manifestpath = NULL;
+	g_autoptr(RaucManifest) rm = NULL;
+	gboolean res = FALSE;
+	g_autoptr(GError) error = NULL;
+	const gchar *mffile = "\
+[update]\n\
+compatible=FooCorp Super BarBazzer\n\
+version=2015.04-1\n\
+\n\
+[bundle]\n\
+format=verity\n\
+verity-hash=e437f5cf0e26c1c4f81a92a29c92a8fb3e0f4ce8fbc4e2e0a1eff56b09b26cba\n\
+verity-salt=e437f5cf0e26c1c4f81a92a29c92a8fb3e0f4ce8fbc4e2e0a1eff56b09b26cba\n\
+verity-size=4096\n\
+\n\
+[image.pkgs/sub/app]\n\
+filename=app.raucb\n\
+sha256=e437f5cf0e26c1c4f81a92a29c92a8fb3e0f4ce8fbc4e2e0a1eff56b09b26cba\n\
+size=1\n\
+";
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+
+	manifestpath = write_tmp_file(tmpdir, "manifest.raucm", mffile, NULL);
+	g_assert_nonnull(manifestpath);
+
+	res = load_manifest_file(manifestpath, &rm, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	res = check_manifest_external(rm, &error);
+	g_assert_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR);
+	g_assert_false(res);
+}
+
 /* Test manifest/invalid_data:
  *
  * Tests parsing invalid data: *
@@ -1145,6 +1190,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/manifest/image_filename_with_slash", test_manifest_image_filename_with_slash);
 	g_test_add_func("/manifest/hook_filename_with_dotdot", test_manifest_hook_filename_with_dotdot);
 	g_test_add_func("/manifest/image_digest_not_hex", test_manifest_image_digest_not_hex);
+	g_test_add_func("/manifest/artifact_name_with_slash", test_manifest_artifact_name_with_slash);
 	g_test_add_func("/manifest/invalid_data", test_invalid_data);
 
 	return g_test_run();

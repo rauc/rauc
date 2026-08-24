@@ -667,6 +667,16 @@ static gboolean check_manifest_bundled(const RaucManifest *mf, GError **error)
 
 		g_assert(image);
 
+		/* The artifact name becomes a single path component of the
+		 * .artifact-<name>-<digest> entry in the artifact repository (used by
+		 * g_mkdir_with_parents(), tar extraction, g_rename(), rm_tree() and the
+		 * per-slot symlink). The repository is scanned back as flat entries, so
+		 * a '/' would turn it into a nested path outside that scheme. */
+		if (image->artifact && strchr(image->artifact, '/')) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR, "Artifact name %s must not contain '/'", image->artifact);
+			return FALSE;
+		}
+
 		/* Having no 'filename' set is valid for 'install' hook only.
 		 * This is already ensured during manifest parsing, thus simply
 		 * skip further checks here */
@@ -772,6 +782,12 @@ gboolean check_manifest_input(const RaucManifest *mf, GError **error)
 		RaucImage *image = l->data;
 
 		g_assert(image);
+
+		if (image->artifact && strchr(image->artifact, '/')) {
+			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR,
+					"Artifact name %s must not contain '/'", image->artifact);
+			return FALSE;
+		}
 
 		if (image->filename && strchr(image->filename, '/')) {
 			g_set_error(error, R_MANIFEST_ERROR, R_MANIFEST_CHECK_ERROR,
