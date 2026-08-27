@@ -74,6 +74,14 @@ static GBytes *hash_file(int data_fd, guint32 count, GError **error)
 		return NULL;
 	}
 
+	/* Split the overall hash index calculation into (R_HASH_INDEX_GEN_PROGRESS_SPAN - 1)
+	 * segments and increment the progress by one for each. For images with fewer
+	 * chunks than segments the integer division would yield 0, so clamp the
+	 * segment size to at least one chunk to avoid a division by zero below. */
+	guint32 progress_segment = count / (R_HASH_INDEX_GEN_PROGRESS_SPAN - 1);
+	if (progress_segment == 0)
+		progress_segment = 1;
+
 	for (guint32 i = 0; i < count; i++) {
 		if (!r_read_exact(data_fd, chunk->data, sizeof(chunk->data), &ierror)) {
 			if (ierror) {
@@ -89,10 +97,8 @@ static GBytes *hash_file(int data_fd, guint32 count, GError **error)
 		hash_chunk(chunk);
 		memcpy(&hashes->data[i*SHA256_LEN], chunk->hash, SHA256_LEN);
 
-		/* Split the overall hash index calculation into (R_HASH_INDEX_GEN_PROGRESS_SPAN - 1)
-		 * segments and increment the progress by one for each. */
 		if (r_context()->progress)
-			if (i % (count / (R_HASH_INDEX_GEN_PROGRESS_SPAN - 1)) == 0)
+			if (i % progress_segment == 0)
 				r_context_inc_step_percentage("copy_image");
 	}
 
