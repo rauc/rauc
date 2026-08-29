@@ -93,6 +93,7 @@ if pytest.found()
     'resign',
     'polling',
     'service',
+    'syslog',
     'sign',
     'status',
     'verify',
