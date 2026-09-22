@@ -497,6 +497,13 @@ static void prepare_curl(struct RaucNBDTransfer *xfer)
 	/* use a shorter timeout instead of the 5 minute default */
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_CONNECTTIMEOUT, 20L);
 
+	/* Abort a transfer which has stalled, so that it is retried on a new
+	 * connection instead of blocking until the kernel NBD request timeout
+	 * (NBD_ATTR_TIMEOUT, 300s) disconnects the device. All 6 attempts have to
+	 * fit into that budget. */
+	code |= curl_easy_setopt(xfer->easy, CURLOPT_LOW_SPEED_LIMIT, 1L);
+	code |= curl_easy_setopt(xfer->easy, CURLOPT_LOW_SPEED_TIME, 20L);
+
 	/* a proxy may be configured using .netrc */
 	tunnel_code = curl_easy_setopt(xfer->easy, CURLOPT_HTTPPROXYTUNNEL, 1L);
 	if (tunnel_code == CURLE_UNKNOWN_OPTION) {
