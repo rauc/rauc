@@ -694,11 +694,12 @@ static gchar **add_system_environment(gchar **envp)
  * @param update_source Path to the current bundle mount point
  * @param manifest Currently used manifest
  * @param transaction Current transaction identifier
+ * @param ignore_compatible Whether the compatible check was disabled
  * @param target_group Determined target group
  *
  * @return A newly allocated List of environment variables
  */
-static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest, gchar *transaction, GHashTable *target_group)
+static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest, gchar *transaction, gboolean ignore_compatible, GHashTable *target_group)
 {
 	GHashTableIter iter;
 	RaucSlot *slot;
@@ -714,6 +715,7 @@ static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest,
 	/* Deprecated, included for backwards compatibility: */
 	envp = g_environ_setenv(envp, "RAUC_UPDATE_SOURCE", update_source, TRUE);
 	envp = g_environ_setenv(envp, "RAUC_TRANSACTION_ID", transaction, TRUE);
+	envp = g_environ_setenv(envp, "RAUC_IGNORE_COMPATIBLE", ignore_compatible ? "1" : "0", TRUE);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
@@ -1604,7 +1606,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		goto umount;
 	}
 
-	handler_env = prepare_environment(bundle->mount_point, bundle->manifest, args->transaction, target_group);
+	handler_env = prepare_environment(bundle->mount_point, bundle->manifest, args->transaction, args->ignore_compatible, target_group);
 
 	if (r_context()->config->preinstall_handler) {
 		g_message("Starting pre install handler: %s", r_context()->config->preinstall_handler);

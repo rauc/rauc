@@ -88,11 +88,27 @@ def test_install_env(rauc_dbus_service_with_system_adaptive, tmp_path):
         assert "RAUC_TARGET_SLOTS=1 2\n" in pre_lines
         assert "RAUC_META_UPDATE_POLL=86400\n" in pre_lines
         assert "RAUC_META_VERSION_CHANNEL=beta\n" in pre_lines
+        assert "RAUC_IGNORE_COMPATIBLE=0\n" in pre_lines
 
     with open(tmp_path / "postinstall-env") as f:
         post_lines = f.readlines()
 
     assert post_lines == pre_lines
+
+
+def test_install_env_ignore_compatible(rauc_dbus_service_with_system_adaptive, tmp_path):
+    bundle_name = "good-adaptive-meta-bundle.raucb"
+
+    # copy to tmp path for safe ownership check
+    shutil.copyfile(bundle_name, tmp_path / bundle_name)
+
+    out, err, exitcode = run(f"rauc install {tmp_path}/{bundle_name} --ignore-compatible")
+
+    assert exitcode == 0
+
+    with open(tmp_path / "preinstall-env") as f:
+        pre_lines = f.readlines()
+        assert "RAUC_IGNORE_COMPATIBLE=1\n" in pre_lines
 
 
 def test_install_hash_index_too_large(tmp_path, create_system_files, system, capfd):

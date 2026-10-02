@@ -1706,6 +1706,12 @@ variables.
   over the D-Bus :ref:`InstallBundle
   <gdbus-method-de-pengutronix-rauc-Installer.InstallBundle>` method.
 
+``RAUC_IGNORE_COMPATIBLE``
+  ``1`` if the installation was started with ``--ignore-compatible``, ``0``
+  otherwise.
+  A handler performing compatibility checks of its own can use this to have
+  them overridden by the same option.
+
 ``RAUC_MOUNT_PREFIX``
   Provides the path prefix that may be used for RAUC mount points
 
