@@ -358,6 +358,7 @@ def test_install_hook_env(rauc_dbus_service_with_system, tmp_path, bundle):
         assert "RAUC_SYSTEM_COMPATIBLE=Test Config\n" in check_lines
         assert "RAUC_SYSTEM_VARIANT=Default Variant\n" in check_lines
         assert "RAUC_META_TEST_FOO=bar\n" in check_lines
+        assert "RAUC_IGNORE_COMPATIBLE=0\n" in check_lines
 
     with open(tmp_path / "slot-pre-install-hook-env") as f:
         pre_lines = f.readlines()
@@ -376,6 +377,49 @@ def test_install_hook_env(rauc_dbus_service_with_system, tmp_path, bundle):
         assert "RAUC_IMAGE_SIZE=4096\n" in install_lines
         assert "RAUC_SLOT_NAME=appfs.1\n" in install_lines
         assert "RAUC_SLOT_STATE=inactive\n" in install_lines
+
+
+def test_install_hook_ignore_compatible(rauc_dbus_service_with_system, tmp_path, bundle):
+    bundle.add_hook_script(
+        dedent("""\
+    #!/bin/bash
+    set -e
+
+    case "$1" in
+        install-check)
+            if [ "$RAUC_IGNORE_COMPATIBLE" = "1" ]; then
+                exit 0
+            fi
+            if [ "$RAUC_MF_COMPATIBLE" != "$RAUC_SYSTEM_COMPATIBLE" ]; then
+                echo "compatible does not match" 1>&2
+                exit 10
+            fi
+            ;;
+        *)
+            exit 1
+            ;;
+    esac
+    """)
+    )
+    bundle.manifest["update"]["compatible"] = "Other Config"
+    bundle.manifest["hooks"]["hooks"] = "install-check"
+    bundle.manifest["image.rootfs"] = {
+        "filename": "rootfs.img",
+    }
+    bundle.make_random_image("rootfs", 4096, "random rootfs")
+    bundle.build()
+
+    assert (tmp_path / "images/rootfs-1").stat().st_size == 0
+
+    out, err, exitcode = run(f"rauc install {bundle.output}")
+
+    assert exitcode == 1
+    assert (tmp_path / "images/rootfs-1").stat().st_size == 0
+
+    out, err, exitcode = run(f"rauc install {bundle.output} --ignore-compatible")
+
+    assert exitcode == 0
+    assert (tmp_path / "images/rootfs-1").stat().st_size > 0
 
 
 @have_streaming

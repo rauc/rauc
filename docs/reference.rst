@@ -1787,6 +1787,12 @@ The following environment variables will be passed to the hook executable:
 ``RAUC_MOUNT_PREFIX``
   The global RAUC mount prefix path, e.g. ``"/run/mount/rauc"``
 
+``RAUC_IGNORE_COMPATIBLE``
+  ``1`` if the installation was started with ``--ignore-compatible``, ``0``
+  otherwise.
+  As the ``install-check`` hook replaces RAUC's own compatible check, a hook
+  performing such a check must evaluate this itself.
+
 .. _sec-slot-hook-interface:
 
 Slot Hooks Interface

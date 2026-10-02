@@ -870,7 +870,7 @@ out:
 	return res;
 }
 
-static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const gchar *hook_cmd, GError **error)
+static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const gchar *hook_cmd, gboolean ignore_compatible, GError **error)
 {
 	g_autofree gchar *hook_name = NULL;
 	g_autoptr(GSubprocessLauncher) launcher = NULL;
@@ -898,6 +898,8 @@ static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const 
 	g_subprocess_launcher_setenv(launcher, "RAUC_MF_VERSION", manifest->update_version ?: "", TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_MF_BUILD", manifest->update_build ?: "", TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
+
+	g_subprocess_launcher_setenv(launcher, "RAUC_IGNORE_COMPATIBLE", ignore_compatible ? "1" : "0", TRUE);
 
 	g_autoptr(GPtrArray) shell_vars = g_ptr_array_new_with_free_func(g_free);
 	r_shell_from_manifest_meta(shell_vars, manifest);
@@ -1615,7 +1617,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 
 	/* Allow overriding compatible check by hook */
 	if (bundle->manifest->hooks.install_check) {
-		run_bundle_hook(bundle->manifest, bundle->mount_point, "install-check", &ierror);
+		run_bundle_hook(bundle->manifest, bundle->mount_point, "install-check", args->ignore_compatible, &ierror);
 		if (ierror) {
 			res = FALSE;
 			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED)) {
