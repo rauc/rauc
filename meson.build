@@ -132,7 +132,6 @@ sources_rauc = files([
   'src/mark.c',
   'src/mbr.c',
   'src/mount.c',
-  'src/polling.c',
   'src/service.c',
   'src/shell.c',
   'src/signature.c',
@@ -158,7 +157,7 @@ if get_option('streaming')
   if not cc.has_header('linux/nbd-netlink.h')
     error('streaming support requested but linux/nbd-netlink.h not found')
   endif
-  sources_rauc += files('src/nbd.c')
+  sources_rauc += files('src/nbd.c', 'src/polling.c')
 endif
 
 conf.set10('ENABLE_EMMC_BOOT_SUPPORT', cc.has_header('linux/mmc/ioctl.h'))
