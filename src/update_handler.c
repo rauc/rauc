@@ -2348,11 +2348,22 @@ static gboolean img_to_boot_emmc_handler(RaucImage *image, RaucSlot *dest_slot, 
 	/* read active boot partition from ext_csd */
 	res = r_emmc_read_bootpart(realdev, &part_active, &ierror);
 	if (!res) {
-		g_propagate_error(error, ierror);
-		return FALSE;
-	}
-
-	if (part_active == -1) {
+		/* An active user partition (UDA) is not a valid boot partition,
+		 * but was historically supported. Preserve that behaviour by
+		 * only warning and continuing instead of aborting. Reserved or
+		 * otherwise invalid values are still rejected below. */
+		if (g_error_matches(ierror, R_EMMC_ERROR, R_EMMC_ERROR_BOOTPART_UDA)) {
+			g_warning("%s Check your setup! Continuing using boot1 for the update.", ierror->message);
+			g_clear_error(&ierror);
+			/* For simplicity: Consider boot0 to be active, so that the
+			 * (inactive) boot1 partition is used as update target, matching
+			 * the behaviour prior to the UDA sanity check being added. */
+			part_active = 0;
+		} else {
+			g_propagate_error(error, ierror);
+			return FALSE;
+		}
+	} else if (part_active == -1) {
 		g_warning("eMMC device was not enabled for booting, yet. Ignoring.");
 		/* For simplicity: Consider boot1 to be active */
 		part_active = 1;
