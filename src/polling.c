@@ -110,6 +110,7 @@ static gboolean polling_fetch(RPollingContext *polling_context, GError **error)
 
 	g_autoptr(RaucBundle) bundle = NULL;
 	if (!check_bundle(r_context()->config->polling_url, &bundle, CHECK_BUNDLE_DEFAULT, &access_args, &ierror)) {
+#if ENABLE_STREAMING
 		if (g_error_matches(ierror, R_NBD_ERROR, R_NBD_ERROR_NO_CONTENT)) {
 			g_clear_error(&ierror);
 			g_message("polling: no bundle available");
@@ -119,10 +120,10 @@ static gboolean polling_fetch(RPollingContext *polling_context, GError **error)
 			g_clear_error(&ierror);
 			g_message("polling: bundle not modified");
 			return TRUE;
-		} else {
-			g_propagate_error(error, ierror);
-			return FALSE;
 		}
+#endif
+		g_propagate_error(error, ierror);
+		return FALSE;
 	}
 
 	if (!bundle->manifest) {
