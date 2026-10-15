@@ -258,29 +258,30 @@ RaucHashIndex *r_hash_index_open(const gchar *label, int data_fd, const gchar *h
 
 	/* load or calculate chunk hashes */
 	if (hashes_filename && g_file_test(hashes_filename, G_FILE_TEST_IS_REGULAR)) {
-		g_autoptr(GMappedFile) mapped_file = g_mapped_file_new(hashes_filename, FALSE, &ierror);
-		gsize mapped_size;
+		gsize hashes_size;
 
-		if (!mapped_file) {
-			g_propagate_error(error, ierror);
+		/* Read the index instead of mapping it, so that an I/O error on the
+		 * underlying storage becomes a normal error instead of a SIGBUS while
+		 * accessing the mapping. */
+		idx->hashes = read_file(hashes_filename, &ierror);
+		if (!idx->hashes) {
+			g_propagate_prefixed_error(error, ierror, "Failed to read hash index for %s: ", label);
 			return NULL;
 		}
 
-		mapped_size = g_mapped_file_get_length(mapped_file);
-		g_assert(mapped_size < (gsize)G_MAXUINT32);
+		hashes_size = g_bytes_get_size(idx->hashes);
+		g_assert(hashes_size < (gsize)G_MAXUINT32);
 
 		g_info("using existing hash index for %s from %s", label, hashes_filename);
 
-		if (mapped_size / SHA256_LEN < idx->count) {
+		if (hashes_size / SHA256_LEN < idx->count) {
 			g_info(
 					"hash index (%"G_GUINT32_FORMAT " chunks) does not cover complete data range (%"G_GUINT32_FORMAT " chunks), ignoring the rest",
-					(guint32)(mapped_size / SHA256_LEN),
+					(guint32)(hashes_size / SHA256_LEN),
 					idx->count
 					);
-			idx->count = mapped_size / SHA256_LEN;
+			idx->count = hashes_size / SHA256_LEN;
 		}
-
-		idx->hashes = g_mapped_file_get_bytes(mapped_file);
 	}
 
 	if (!idx->hashes) {

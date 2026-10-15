@@ -303,6 +303,66 @@ static void test_invalid_size(Fixture *fixture, gconstpointer user_data)
 	g_assert_null(index);
 }
 
+/* Tests loading a previously exported hash index from a file, including the
+ * error reported for an index file which cannot be read */
+static void test_load_exported(Fixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(RaucHashIndex) index = NULL;
+	g_autoptr(RaucHashIndex) loaded = NULL;
+	g_autofree RaucHashIndexChunk *chunk = g_new0(RaucHashIndexChunk, 1);
+	g_autofree gchar *hashes_filename = NULL;
+	g_autofree guint8 *hash = NULL;
+	gboolean res = FALSE;
+	int datafd = -1;
+	guint32 tmp_u32 = 0;
+
+	datafd = g_open("test/dummy.verity", O_RDONLY|O_CLOEXEC, 0);
+	g_assert_cmpint(datafd, >, 0);
+
+	index = r_hash_index_open("test", datafd, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(index);
+
+	hashes_filename = g_build_filename(fixture->tmpdir, "hashes", NULL);
+	res = r_hash_index_export(index, hashes_filename, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	loaded = r_hash_index_open("loaded", datafd, hashes_filename, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(loaded);
+	g_assert_true(g_close(datafd, NULL));
+	datafd = -1;
+
+	g_assert_cmpuint(loaded->count, ==, index->count);
+	g_assert_true(g_bytes_equal(loaded->hashes, index->hashes));
+
+	hash = r_hex_decode("9573e6bd3320b3c85ef09743583ed1af87aa479bff046b32762f935b8ffd5ee8", 32);
+	res = r_hash_index_get_chunk(loaded, hash, chunk, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+	memcpy(&tmp_u32, chunk->data, sizeof(tmp_u32));
+	g_assert_cmphex(4, ==, GUINT32_FROM_BE(tmp_u32));
+	g_clear_pointer(&hash, g_free);
+	g_clear_pointer(&loaded, r_hash_index_free);
+
+	/* a hash index which cannot be read must be reported as an error */
+	datafd = g_open("test/dummy.verity", O_RDONLY|O_CLOEXEC, 0);
+	g_assert_cmpint(datafd, >, 0);
+	g_assert_cmpint(g_chmod(hashes_filename, 0), ==, 0);
+	if (g_access(hashes_filename, R_OK) != 0) {
+		loaded = r_hash_index_open("unreadable", datafd, hashes_filename, &error);
+		g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_ACCES);
+		g_assert_null(loaded);
+		g_clear_error(&error);
+	} else {
+		g_test_message("skipping unreadable index check (running with CAP_DAC_OVERRIDE)");
+	}
+	g_assert_cmpint(g_chmod(hashes_filename, 0644), ==, 0);
+	g_assert_true(g_close(datafd, NULL));
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -315,6 +375,7 @@ int main(int argc, char *argv[])
 	g_test_add("/hash_index/basic", Fixture, NULL, fixture_set_up, test_basic, fixture_tear_down);
 	g_test_add("/hash_index/ranges", Fixture, NULL, fixture_set_up, test_ranges, fixture_tear_down);
 	g_test_add("/hash_index/invalid-size", Fixture, NULL, fixture_set_up, test_invalid_size, fixture_tear_down);
+	g_test_add("/hash_index/load-exported", Fixture, NULL, fixture_set_up, test_load_exported, fixture_tear_down);
 
 	return g_test_run();
 }
