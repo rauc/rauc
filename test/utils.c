@@ -318,7 +318,7 @@ static void environ_test(void)
 static void semver_parse_test(void)
 {
 	g_autofree gchar *version_string = NULL;
-	g_autofree guint64 version[3] = {0};
+	guint64 version[3] = {0};
 	g_autofree gchar *pre_release = NULL;
 	g_autofree gchar *build = NULL;
 	g_autofree GError *error = NULL;
@@ -437,6 +437,27 @@ static void semver_parse_test(void)
 	g_assert_cmpuint(version[2], ==, 0);
 	g_assert_null(pre_release);
 	g_assert_null(build);
+
+	r_replace_strdup(&version_string, "1.1.1-JIRA-2555+9000");
+	g_assert_true(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_no_error(error);
+	g_assert_cmpuint(version[0], ==, 1);
+	g_assert_cmpuint(version[1], ==, 1);
+	g_assert_cmpuint(version[2], ==, 1);
+	g_assert_cmpstr(pre_release, ==, "JIRA-2555");
+	g_assert_cmpstr(build, ==, "9000");
+	g_clear_pointer(&pre_release, g_free);
+	g_clear_pointer(&build, g_free);
+
+	r_replace_strdup(&version_string, "1.0.0+21AF26D3----117B344092BD");
+	g_assert_true(r_semver_parse(version_string, version, &pre_release, &build, &error));
+	g_assert_no_error(error);
+	g_assert_cmpuint(version[0], ==, 1);
+	g_assert_cmpuint(version[1], ==, 0);
+	g_assert_cmpuint(version[2], ==, 0);
+	g_assert_null(pre_release);
+	g_assert_cmpstr(build, ==, "21AF26D3----117B344092BD");
+	g_clear_pointer(&build, g_free);
 }
 
 static void semver_less_equal_test(void)
@@ -476,6 +497,18 @@ static void semver_less_equal_test(void)
 	g_assert_false(r_semver_less_equal("3.2.1-1.abc.3", "3.2.1-1.abc.2", &error));
 	g_assert_false(r_semver_less_equal("3.2.1-1abc.3", "3.2.1-1000.3", &error));
 	g_assert_true(r_semver_less_equal("3.2.1-1999.3", "3.2.1-1abc.3", &error));
+
+	/* larger set of pre-release fields has higher precedence */
+	g_assert_true(r_semver_less_equal("1.0.0-alpha", "1.0.0-alpha.1", &error));
+	g_assert_false(r_semver_less_equal("1.0.0-alpha.1", "1.0.0-alpha", &error));
+
+	/* build metadata is ignored */
+	g_assert_true(r_semver_less_equal("1.0.0+20130313144700", "1.0.0+21AF26D3----117B344092BD", &error));
+	g_assert_true(r_semver_less_equal("1.0.0+21AF26D3----117B344092BD", "1.0.0+20130313144700", &error));
+
+	/* hyphenated pre-release must parse so the core can be compared */
+	g_assert_true(r_semver_less_equal("1.1.0", "1.1.1-JIRA-2555+9000", &error));
+	g_assert_false(r_semver_less_equal("1.1.0", "1.1.0-JIRA-2555+9000", &error));
 
 	/* none of the tests should have raised an error */
 	g_assert_no_error(error);
