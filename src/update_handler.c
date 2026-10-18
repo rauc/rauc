@@ -13,6 +13,7 @@
 #include "context.h"
 #include "mount.h"
 #include "signature.h"
+#include "status_file.h"
 #include "update_handler.h"
 #include "update_utils.h"
 #include "emmc.h"
@@ -2763,9 +2764,142 @@ static img_to_slot_handler get_handler_from_type(const gchar *image_type, const 
 	return NULL;
 }
 
+static gboolean copy_dev_to_dev(const gchar *src_device, RaucSlot *dest_slot, const RaucChecksum *expected, GError **error)
+{
+	GError *ierror = NULL;
+	g_autoptr(GUnixInputStream) instream = NULL;
+	g_autoptr(GUnixOutputStream) outstream = NULL;
+	g_autoptr(GChecksum) ctx = NULL;
+	guchar buffer[8192];
+	goffset remaining = expected->size;
+	gsize count, nread, nwritten;
+	const gchar *digest = NULL;
+
+	g_message("Opening source device %s", src_device);
+	instream = r_open_unix_input_stream(src_device, NULL, &ierror);
+	if (!instream) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	g_message("Opening destination device %s", dest_slot->device);
+	outstream = r_unix_output_stream_open_device(dest_slot->device, NULL, &ierror);
+	if (!outstream) {
+		g_propagate_error(error, ierror);
+		return FALSE;
+	}
+
+	g_message("Copying %"G_GOFFSET_FORMAT " bytes from %s to %s",
+			expected->size, src_device, dest_slot->device);
+	ctx = g_checksum_new(expected->type ?: G_CHECKSUM_SHA256);
+
+	while (remaining > 0) {
+		count = MIN((goffset)sizeof(buffer), remaining);
+
+		if (!g_input_stream_read_all(G_INPUT_STREAM(instream), buffer, count, &nread, NULL, &ierror)) {
+			g_propagate_prefixed_error(error, ierror, "Failed to read from %s: ", src_device);
+			return FALSE;
+		}
+		if (nread != count) {
+			g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+					"Unexpected end of %s after %"G_GOFFSET_FORMAT " bytes",
+					src_device, expected->size - remaining + nread);
+			return FALSE;
+		}
+
+		g_checksum_update(ctx, buffer, nread);
+
+		if (!g_output_stream_write_all(G_OUTPUT_STREAM(outstream), buffer, nread, &nwritten, NULL, &ierror)) {
+			g_propagate_prefixed_error(error, ierror, "Failed to write to %s: ", dest_slot->device);
+			return FALSE;
+		}
+
+		remaining -= nread;
+
+		/* emit progress info (but only when in progress context) */
+		if (r_context()->progress)
+			r_context_set_step_percentage("copy_image",
+					(expected->size - remaining) * 100 / expected->size);
+	}
+
+	/* flush to block device before closing to assure content is written to disk */
+	if (fsync(g_unix_output_stream_get_fd(outstream)) == -1) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Syncing content to slot failed: %s", strerror(errno));
+		return FALSE;
+	}
+
+	digest = g_checksum_get_string(ctx);
+	if (!g_str_equal(digest, expected->digest)) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Content of source device %s does not match the expected hash "
+				"(expected sha256 %s, got %s)",
+				src_device, expected->digest, digest);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static gboolean hashref_slot_handler(RaucImage *image, RaucSlot *dest_slot, const gchar *hook_name, GError **error)
+{
+	GError *ierror = NULL;
+	RaucSlot *source_slot = NULL;
+
+	g_return_val_if_fail(image, FALSE);
+	g_return_val_if_fail(dest_slot, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* Find the active (booted) slot of the same class to copy from */
+	source_slot = get_active_slot_class_member((gchar *)dest_slot->sclass);
+	if (!source_slot) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"No active slot found for class '%s' to copy from", dest_slot->sclass);
+		return FALSE;
+	}
+
+	/* Verify the active slot has the expected content */
+	r_slot_status_load(source_slot);
+	if (!source_slot->status || !source_slot->status->checksum.digest) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Active slot '%s' has no recorded checksum to verify against",
+				source_slot->name);
+		return FALSE;
+	}
+	if (!g_str_equal(source_slot->status->checksum.digest, image->checksum.digest)) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Active slot '%s' content (sha256: %s) does not match expected hash (%s)",
+				source_slot->name,
+				source_slot->status->checksum.digest,
+				image->checksum.digest);
+		return FALSE;
+	}
+	if (source_slot->status->checksum.size <= 0) {
+		g_set_error(error, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED,
+				"Active slot '%s' has no recorded image size, cannot determine "
+				"how much data to copy and verify", source_slot->name);
+		return FALSE;
+	}
+	image->checksum.size = source_slot->status->checksum.size;
+
+	g_message("Copying active slot '%s' to '%s'", source_slot->name, dest_slot->name);
+	if (!copy_dev_to_dev(source_slot->device, dest_slot, &image->checksum, &ierror)) {
+		g_propagate_prefixed_error(error, ierror,
+				"Failed to copy slot '%s' to '%s': ",
+				source_slot->name, dest_slot->name);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 gboolean is_image_type_supported(const gchar *type)
 {
 	g_return_val_if_fail(type, FALSE);
+
+	/* hashref is a special type not in the image_type_map */
+	if (g_strcmp0(type, "hashref") == 0)
+		return TRUE;
 
 	for (RaucImageTypeMap *map = image_type_map; map->type != NULL; map++) {
 		if (g_strcmp0(map->type, type) == 0) {
@@ -2784,6 +2918,11 @@ img_to_slot_handler get_update_handler(RaucImage *mfimage, RaucSlot *dest_slot, 
 	/* If we have a custom install handler, use this instead of selecting an existing one */
 	if (mfimage->hooks.install) {
 		return hook_install_handler;
+	}
+
+	/* hashref is slot-type-agnostic: it always copies the active slot device to the dest */
+	if (g_strcmp0(mfimage->type, "hashref") == 0) {
+		return hashref_slot_handler;
 	}
 
 	g_message("Checking image type for slot type: %s", dest);
