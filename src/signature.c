@@ -871,32 +871,36 @@ static gchar* dump_cms(STACK_OF(X509) *x509_certs)
 
 gchar* sigdata_to_string(GBytes *sig, GError **error)
 {
+	gchar *ret = NULL;
+
 	g_return_val_if_fail(sig != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	BIO *insig = bytes_as_bio(sig);
-	g_autoptr(CMS_ContentInfo) cms = d2i_CMS_bio(insig, NULL);
-	if (!cms) {
+
+	g_autoptr(CMS_ContentInfo) cms = NULL;
+	g_autoptr(R_X509_STACK_POP) signers = NULL;
+	if (!(cms = d2i_CMS_bio(insig, NULL))) {
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE,
 				"failed to parse signature");
-		return NULL;
+		goto out;
 	}
 
-	g_autoptr(R_X509_STACK_POP) signers = CMS_get1_certs(cms);
-	if (signers == NULL) {
+	if (!(signers = CMS_get1_certs(cms))) {
 		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_GET_SIGNER,
 				"Failed to obtain signer info");
-		return NULL;
+		goto out;
 	}
 
-	gchar *ret = dump_cms(signers);
+	ret = dump_cms(signers);
 
+out:
 	BIO_free(insig);
 
 	return ret;
