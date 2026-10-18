@@ -303,6 +303,44 @@ static void test_invalid_size(Fixture *fixture, gconstpointer user_data)
 	g_assert_null(index);
 }
 
+/* Builds a hash index for an image with fewer chunks than the progress span
+ * while a progress step is active. This exercises the progress segment size
+ * calculation in hash_file(), which divides the chunk count by
+ * (R_HASH_INDEX_GEN_PROGRESS_SPAN - 1) and previously divided by zero for such
+ * small images. Runs in a subprocess as the unfixed code aborts with SIGFPE. */
+static void test_small_image_progress(Fixture *fixture, gconstpointer user_data)
+{
+	if (g_test_subprocess()) {
+		g_autoptr(GError) error = NULL;
+		g_autoptr(RaucHashIndex) index = NULL;
+		g_autofree gchar *data_filename = NULL;
+		int datafd = -1;
+
+		/* a single 4096 byte chunk, well below the progress span */
+		data_filename = write_random_file(fixture->tmpdir, "small.img", 4096, 0xf56ce6bf);
+		g_assert_nonnull(data_filename);
+
+		datafd = g_open(data_filename, O_RDONLY|O_CLOEXEC, 0);
+		g_assert_cmpint(datafd, >, 0);
+
+		/* enable progress reporting so the segment size is evaluated */
+		r_context_begin_step("hash_index_test", "small image", 1);
+		r_context_begin_step("copy_image", "hashing", 0);
+
+		index = r_hash_index_open("test", datafd, NULL, &error);
+		g_assert_no_error(error);
+		g_assert_nonnull(index);
+		g_assert_cmpuint(index->count, ==, 1);
+
+		r_context_end_step("copy_image", TRUE);
+		r_context_end_step("hash_index_test", TRUE);
+		return;
+	}
+
+	g_test_trap_subprocess(NULL, 0, 0);
+	g_test_trap_assert_passed();
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -315,6 +353,7 @@ int main(int argc, char *argv[])
 	g_test_add("/hash_index/basic", Fixture, NULL, fixture_set_up, test_basic, fixture_tear_down);
 	g_test_add("/hash_index/ranges", Fixture, NULL, fixture_set_up, test_ranges, fixture_tear_down);
 	g_test_add("/hash_index/invalid-size", Fixture, NULL, fixture_set_up, test_invalid_size, fixture_tear_down);
+	g_test_add("/hash_index/small-image-progress", Fixture, NULL, fixture_set_up, test_small_image_progress, fixture_tear_down);
 
 	return g_test_run();
 }
