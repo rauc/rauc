@@ -1008,6 +1008,9 @@ static GKeyFile *prepare_manifest(const RaucManifest *mf)
 	if (mf->update_version)
 		g_key_file_set_string(key_file, "update", "version", mf->update_version);
 
+	if (mf->update_min_rauc_version)
+		g_key_file_set_string(key_file, "update", "min-rauc-version", mf->update_min_rauc_version);
+
 	if (mf->update_description)
 		g_key_file_set_string(key_file, "update", "description", mf->update_description);
 
