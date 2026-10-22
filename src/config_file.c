@@ -751,18 +751,13 @@ static gboolean parse_streaming_section(GKeyFile *key_file, RaucConfig *c, GErro
 	return TRUE;
 }
 
+#if ENABLE_STREAMING
 static gboolean parse_polling_section(GKeyFile *key_file, RaucConfig *c, GError **error)
 {
 	GError *ierror = NULL;
 
 	if (!g_key_file_has_group(key_file, "polling"))
 		return TRUE;
-
-	if (!ENABLE_STREAMING) {
-		g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_POLLING,
-				"Polling not supported, recompile with -Dstreaming=true");
-		return FALSE;
-	}
 
 	c->polling_inhibit_files = key_file_consume_string_list(key_file, "polling", "inhibit-files", NULL, &ierror);
 	if (ierror) {
@@ -855,6 +850,17 @@ static gboolean parse_polling_section(GKeyFile *key_file, RaucConfig *c, GError 
 
 	return TRUE;
 }
+#else /* ENABLE_STREAMING */
+static gboolean parse_polling_section(GKeyFile *key_file, RaucConfig *c, GError **error)
+{
+	if (!g_key_file_has_group(key_file, "polling"))
+		return TRUE;
+
+	g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_POLLING,
+			"Polling not supported, recompile with -Dstreaming=true");
+	return FALSE;
+}
+#endif /* ENABLE_STREAMING */
 
 static gboolean parse_encryption_section(const gchar *filename, GKeyFile *key_file, RaucConfig *c, GError **error)
 {
