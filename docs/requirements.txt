@@ -8,33 +8,33 @@ alabaster==1.0.0
     # via sphinx
 babel==2.18.0
     # via sphinx
-certifi==2026.5.20
+certifi==2026.10.23
     # via requests
-charset-normalizer==3.4.7
+charset-normalizer==3.5.2
     # via requests
 docutils==0.22.4
     # via
     #   sphinx
     #   sphinx-rtd-theme
-idna==3.16
+idna==3.20
     # via requests
-imagesize==2.0.0
+imagesize==2.0.1
     # via sphinx
 jinja2==3.1.6
     # via sphinx
-markupsafe==3.0.3
+markupsafe==3.0.4
     # via jinja2
-packaging==26.2
+packaging==26.3
     # via sphinx
-pygments==2.20.0
+pygments==2.21.0
     # via sphinx
 requests==2.34.2
     # via sphinx
 roman-numerals==4.1.0
     # via sphinx
-snowballstemmer==3.0.1
+snowballstemmer==3.1.1
     # via sphinx
-sphinx==9.1.0
+sphinx==9.2.0
     # via
     #   -r requirements.in
     #   sphinx-rtd-theme
@@ -50,7 +50,7 @@ sphinxcontrib-htmlhelp==2.1.0
     # via sphinx
 sphinxcontrib-jquery==4.1
     # via sphinx-rtd-theme
-sphinxcontrib-jsmath==1.0.1
+sphinxcontrib-jsmath==2.0.0
     # via sphinx
 sphinxcontrib-qthelp==2.0.0
     # via sphinx
