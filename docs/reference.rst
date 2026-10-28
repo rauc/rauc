@@ -946,7 +946,7 @@ This section contains some high-level information about the bundle.
 
 ``min-rauc-version`` (optional)
   An optional version limit which causes the manifest to be rejected if the
-  running version is older/lower than the requested minimum.
+  running/used RAUC version is older/lower than the requested minimum.
   This was introduced with version 1.14 and will cause an error on older
   versions.
 

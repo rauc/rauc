@@ -91,6 +91,7 @@ static void check_manifest_contents(const RaucManifest *rm)
 	g_assert_nonnull(rm);
 	g_assert_cmpstr(rm->update_compatible, ==, "BarCorp FooBazzer");
 	g_assert_cmpstr(rm->update_version, ==, "2011.03-1");
+	g_assert_cmpstr(rm->update_min_rauc_version, ==, "1.14");
 	g_assert_cmpstr(rm->handler_name, ==, "myhandler.sh");
 	g_assert_cmpstr(rm->handler_args, ==, "--foo");
 	g_assert_cmpstr(rm->hook_name, ==, "hook.sh");
@@ -167,6 +168,7 @@ static void test_save_load_manifest(void)
 
 	rm->update_compatible = g_strdup("BarCorp FooBazzer");
 	rm->update_version = g_strdup("2011.03-1");
+	rm->update_min_rauc_version = g_strdup("1.14");
 	rm->bundle_format_explicit = TRUE;
 	rm->handler_name = g_strdup("myhandler.sh");
 	rm->handler_args = g_strdup("--foo");
