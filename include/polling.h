@@ -5,6 +5,11 @@
 
 #define R_POLLING_ERROR r_polling_error_quark()
 
+static inline GQuark r_polling_error_quark(void)
+{
+	return g_quark_from_static_string("r-polling-error-quark");
+}
+
 typedef enum {
 	R_POLLING_ERROR_DISABLED,
 	R_POLLING_ERROR_INVALID_BUNDLE,
@@ -12,8 +17,6 @@ typedef enum {
 } RPollingError;
 
 #if ENABLE_STREAMING
-
-GQuark r_polling_error_quark(void);
 
 /**
  * Register Poller interface.
@@ -43,11 +46,6 @@ extern const gchar * const r_polling_supported_reboot_criteria[];
 #else /* ENABLE_STREAMING */
 
 /* Polling requires streaming, so provide stubs that report it as disabled. */
-
-static inline GQuark r_polling_error_quark(void)
-{
-	return g_quark_from_static_string("r-polling-error-quark");
-}
 
 static inline void r_polling_on_bus_acquired(GDBusConnection *connection)
 {

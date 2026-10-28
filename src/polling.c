@@ -10,8 +10,6 @@
 #include "service.h"
 #include "utils.h"
 
-G_DEFINE_QUARK(r-polling-error-quark, r_polling_error)
-
 RPoller *r_poller = NULL;
 
 typedef struct {
