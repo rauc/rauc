@@ -487,7 +487,11 @@ static void prepare_curl(struct RaucNBDTransfer *xfer)
 
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_FOLLOWLOCATION, 1L);
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_MAXREDIRS, 8L);
+#if LIBCURL_VERSION_NUM >= 0x075500 /* 7.85.0 */
+	code |= curl_easy_setopt(xfer->easy, CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
+#else
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+#endif
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_UNRESTRICTED_AUTH, 1L); /* send authentication to redirect targets as well */
 
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_NOSIGNAL, 1L); /* avoid signals for threading */
