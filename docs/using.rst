@@ -388,6 +388,11 @@ This hook will be executed instead of the normal compatible check in order to
 allow performing a custom compatibility check based on compatible and/or version
 information.
 
+Because it replaces that check, the ``--ignore-compatible`` command line option
+does not bypass the hook.
+The hook is told about it in ``RAUC_IGNORE_COMPATIBLE`` and must evaluate it
+where overriding the check is desired.
+
 To indicate that a bundle should be rejected, the script must return with an
 exit code >= 10.
 
