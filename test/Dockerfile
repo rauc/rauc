@@ -1,5 +1,9 @@
 FROM debian:trixie
 
+# Add backports for qemu 1.11.2, which allows user creation of eMMCs
+RUN echo "deb http://deb.debian.org/debian trixie-backports main" \
+  > /etc/apt/sources.list.d/backports.list
+
 # Required for building
 RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
   gcc \
@@ -50,14 +54,15 @@ RUN apt-get install -q -y --no-install-recommends \
   kmod \
   uncrustify \
   casync \
-  qemu-system-x86 \
   procps \
   mtd-utils \
   mmc-utils \
   python3-aiohttp \
   python3-requests \
   nginx-light \
-  fdisk
+  fdisk && \
+  apt-get install -q -y --no-install-recommends -t trixie-backports \
+  qemu-system-x86 
 
 # Required for test environment setup
 RUN apt-get install -q -y --no-install-recommends \
