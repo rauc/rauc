@@ -11,7 +11,7 @@ RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
   meson \
   libtool \
   libglib2.0-dev \
-  libcurl3-dev \
+  libcurl4-openssl-dev \
   libssl-dev \
   libdbus-1-dev \
   libjson-glib-dev \
