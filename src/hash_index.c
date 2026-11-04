@@ -244,6 +244,85 @@ static void hash_index_prepare(RaucHashIndex *idx)
 	idx->match_stats = r_stats_new(idx->label);
 }
 
+#define INDEX_BUFFER_SIZE (1024 * 1024)
+
+/**
+ * Reads a hash index file from start to end and writes it to out_fd, if valid.
+ *
+ * A read error is reported here, while it would raise SIGBUS when accessing a
+ * mapping of the file.
+ */
+static gboolean read_index_file(const gchar *filename, int out_fd, GError **error)
+{
+	g_auto(filedesc) fd = -1;
+	g_autofree guint8 *buffer = NULL;
+
+	fd = g_open(filename, O_RDONLY | O_CLOEXEC, 0);
+	if (fd < 0) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to open hash index %s: %s", filename, g_strerror(err));
+		return FALSE;
+	}
+
+	buffer = g_malloc(INDEX_BUFFER_SIZE);
+
+	while (TRUE) {
+		ssize_t count = TEMP_FAILURE_RETRY(read(fd, buffer, INDEX_BUFFER_SIZE));
+		if (count < 0) {
+			int err = errno;
+			g_set_error(error,
+					G_FILE_ERROR,
+					g_file_error_from_errno(err),
+					"Failed to read hash index %s: %s", filename, g_strerror(err));
+			return FALSE;
+		}
+		if (count == 0)
+			return TRUE;
+
+		if (out_fd >= 0 && !r_write_exact(out_fd, buffer, count, error))
+			return FALSE;
+	}
+}
+
+/**
+ * Copies a hash index file, replacing dest only with a complete copy.
+ */
+static gboolean copy_index_file(const gchar *src, const gchar *dest, GError **error)
+{
+	g_autofree gchar *tmp_filename = g_strdup_printf("%s.tmp", dest);
+	g_auto(filedesc) fd = -1;
+
+	fd = g_open(tmp_filename, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+	if (fd < 0) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to create %s: %s", tmp_filename, g_strerror(err));
+		return FALSE;
+	}
+
+	if (!read_index_file(src, fd, error)) {
+		g_unlink(tmp_filename);
+		return FALSE;
+	}
+
+	if (fsync(fd) != 0 || rename(tmp_filename, dest) != 0) {
+		int err = errno;
+		g_set_error(error,
+				G_FILE_ERROR,
+				g_file_error_from_errno(err),
+				"Failed to store hash index as %s: %s", dest, g_strerror(err));
+		g_unlink(tmp_filename);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 RaucHashIndex *r_hash_index_open(const gchar *label, int data_fd, const gchar *hashes_filename, GError **error)
 {
 	GError *ierror = NULL;
@@ -375,15 +454,17 @@ RaucHashIndex *r_hash_index_open_slot(const gchar *label, const RaucSlot *slot, 
 	return g_steal_pointer(&idx);
 }
 
-RaucHashIndex *r_hash_index_open_image(const gchar *label, const RaucImage *image, GError **error)
+RaucHashIndex *r_hash_index_open_image(const gchar *label, const RaucImage *image, const RaucSlot *slot, GError **error)
 {
 	GError *ierror = NULL;
 	g_autoptr(RaucHashIndex) idx = NULL;
 	g_autofree gchar *index_filename = NULL;
+	g_autofree gchar *slot_index_filename = NULL;
 	g_auto(filedesc) data_fd = -1;
 
 	g_return_val_if_fail(label, NULL);
 	g_return_val_if_fail(image, NULL);
+	g_return_val_if_fail(slot, NULL);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	data_fd = g_open(image->filename, O_RDONLY | O_CLOEXEC);
@@ -398,11 +479,29 @@ RaucHashIndex *r_hash_index_open_image(const gchar *label, const RaucImage *imag
 
 	index_filename = g_strdup_printf("%s.block-hash-index", image->filename);
 
-	idx = r_hash_index_open(label, data_fd, index_filename, &ierror);
+	/* Pages reclaimed from a mapping of the bundle would have to be read from
+	 * the bundle again, which can fail or be slow when streaming. */
+	if (g_file_test(index_filename, G_FILE_TEST_IS_REGULAR)) {
+		g_autofree gchar *dir = r_slot_get_checksum_data_directory(slot, &image->checksum, &ierror);
+		if (!dir) {
+			g_propagate_error(error, ierror);
+			return NULL;
+		}
+
+		slot_index_filename = g_build_filename(dir, "block-hash-index", NULL);
+		if (!copy_index_file(index_filename, slot_index_filename, &ierror)) {
+			g_propagate_error(error, ierror);
+			return NULL;
+		}
+	}
+
+	idx = r_hash_index_open(label, data_fd, slot_index_filename ? slot_index_filename : index_filename, &ierror);
 	if (!idx) {
 		g_propagate_error(error, ierror);
 		return NULL;
 	}
+
+	idx->stored_in_slot = (slot_index_filename != NULL);
 
 	g_debug("opened hash index for image %s with index %s", image->filename, index_filename);
 
@@ -427,6 +526,9 @@ gboolean r_hash_index_export_slot(const RaucHashIndex *idx, const RaucSlot *slot
 	g_return_val_if_fail(idx, FALSE);
 	g_return_val_if_fail(slot, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	if (idx->stored_in_slot)
+		return TRUE;
 
 	dir = r_slot_get_checksum_data_directory(slot, checksum, &ierror);
 	if (!dir) {

@@ -335,6 +335,85 @@ static void test_small_image_progress(Fixture *fixture, gconstpointer user_data)
 	r_context_end_step("hash_index_test", TRUE);
 }
 
+/* Tests that the index from the bundle is copied to the slot data directory
+ * and no longer depends on the bundle after opening */
+static void test_open_image(Fixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(GError) error = NULL;
+	g_autoptr(RaucHashIndex) built = NULL;
+	g_autoptr(RaucHashIndex) index = NULL;
+	g_autoptr(RaucImage) image = r_new_image();
+	g_autoptr(RaucSlot) slot = g_new0(RaucSlot, 1);
+	g_autoptr(GBytes) stored = NULL;
+	g_autofree RaucHashIndexChunk *chunk = g_new0(RaucHashIndexChunk, 1);
+	g_autofree gchar *bundle_index = NULL;
+	g_autofree gchar *slot_index = NULL;
+	g_autofree gchar *slot_index_tmp = NULL;
+	g_autofree guint8 *hash = NULL;
+	GStatBuf before = {};
+	GStatBuf after = {};
+	gboolean res = FALSE;
+	int datafd = -1;
+
+	g_assert_true(test_copy_file("test", "dummy.verity", fixture->tmpdir, "image.img"));
+	image->filename = g_build_filename(fixture->tmpdir, "image.img", NULL);
+	image->checksum.digest = g_strdup("0123");
+	slot->data_directory = g_build_filename(fixture->tmpdir, "data", NULL);
+	bundle_index = g_strdup_printf("%s.block-hash-index", image->filename);
+	slot_index = g_build_filename(slot->data_directory, "hash-0123", "block-hash-index", NULL);
+	slot_index_tmp = g_strdup_printf("%s.tmp", slot_index);
+
+	datafd = g_open(image->filename, O_RDONLY|O_CLOEXEC, 0);
+	g_assert_cmpint(datafd, >, 0);
+	built = r_hash_index_open("built", datafd, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(built);
+	g_assert_true(g_close(datafd, NULL));
+	res = r_hash_index_export(built, bundle_index, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	index = r_hash_index_open_image("source", image, slot, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(index);
+
+	stored = read_file(slot_index, &error);
+	g_assert_no_error(error);
+	g_assert_true(g_bytes_equal(stored, built->hashes));
+	g_assert_false(g_file_test(slot_index_tmp, G_FILE_TEST_EXISTS));
+
+	/* accessing a mapping of the truncated file would raise SIGBUS */
+	g_assert_cmpint(truncate(bundle_index, 0), ==, 0);
+	g_assert_true(g_bytes_equal(index->hashes, built->hashes));
+	hash = r_hex_decode("9573e6bd3320b3c85ef09743583ed1af87aa479bff046b32762f935b8ffd5ee8", 32);
+	res = r_hash_index_get_chunk(index, hash, chunk, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+
+	/* the copy is already in place, so exporting must not write it again */
+	g_assert_cmpint(g_stat(slot_index, &before), ==, 0);
+	res = r_hash_index_export_slot(index, slot, &image->checksum, &error);
+	g_assert_no_error(error);
+	g_assert_true(res);
+	g_assert_cmpint(g_stat(slot_index, &after), ==, 0);
+	g_assert_cmpuint(before.st_ino, ==, after.st_ino);
+	g_clear_pointer(&index, r_hash_index_free);
+
+	/* a failed copy must be reported and leave nothing behind */
+	g_assert_cmpint(g_chmod(bundle_index, 0), ==, 0);
+	if (g_access(bundle_index, R_OK) != 0) {
+		g_assert_cmpint(g_unlink(slot_index), ==, 0);
+		index = r_hash_index_open_image("unreadable", image, slot, &error);
+		g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_ACCES);
+		g_assert_null(index);
+		g_clear_error(&error);
+		g_assert_false(g_file_test(slot_index, G_FILE_TEST_EXISTS));
+		g_assert_false(g_file_test(slot_index_tmp, G_FILE_TEST_EXISTS));
+	} else {
+		g_test_message("skipping unreadable index check (running with CAP_DAC_OVERRIDE)");
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -348,6 +427,7 @@ int main(int argc, char *argv[])
 	g_test_add("/hash_index/ranges", Fixture, NULL, fixture_set_up, test_ranges, fixture_tear_down);
 	g_test_add("/hash_index/invalid-size", Fixture, NULL, fixture_set_up, test_invalid_size, fixture_tear_down);
 	g_test_add("/hash_index/small-image-progress", Fixture, NULL, fixture_set_up, test_small_image_progress, fixture_tear_down);
+	g_test_add("/hash_index/open-image", Fixture, NULL, fixture_set_up, test_open_image, fixture_tear_down);
 
 	return g_test_run();
 }
