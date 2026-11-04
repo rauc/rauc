@@ -963,7 +963,7 @@ gboolean r_semver_parse(const gchar *version_string, guint64 version_core[3], gc
 	 * then parse the remaining 'version core'
 	 */
 
-	build_pos = g_strrstr(version_copy, "+");
+	build_pos = strchr(version_copy, '+');
 	if (build_pos != NULL) {
 		if (build != NULL) {
 			*build = g_strdup(build_pos + 1);
@@ -979,7 +979,7 @@ gboolean r_semver_parse(const gchar *version_string, guint64 version_core[3], gc
 		*build_pos = '\0';
 	}
 
-	pre_release_pos = g_strrstr(version_copy, "-");
+	pre_release_pos = strchr(version_copy, '-');
 	if (pre_release_pos != NULL) {
 		if (pre_release != NULL) {
 			*pre_release = g_strdup(pre_release_pos + 1);
