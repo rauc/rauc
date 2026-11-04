@@ -720,16 +720,23 @@ class HTTPServer:
             return
         assert self.server is None
 
+        start = time.monotonic()
         self.server = subprocess.Popen(["python3", "nginx_backend.py"])
-        timeout = time.monotonic() + 5.0
+        timeout = start + 30.0
         while True:
             time.sleep(0.1)
             try:
-                resp = requests.get(f"{self.base}/")
+                resp = requests.get(f"{self.base}/", timeout=5)
                 resp.raise_for_status()
+                print(f"HTTP backend responsive after {time.monotonic() - start:.2f}s")
                 break
-            except requests.exceptions.ConnectionError:
+            except (
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+            ):
                 if time.monotonic() > timeout:
+                    if self.server.poll() is not None:
+                        self.stop()
                     raise
 
     def stop(self):
