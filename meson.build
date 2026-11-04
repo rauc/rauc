@@ -12,6 +12,14 @@ project(
 
 cc = meson.get_compiler('c')
 
+# With the default (non-atomic) profile counter updates, concurrent threads
+# lose updates, which leads to inaccurate (or even negative) coverage counts.
+# This needs to be added globally (before any subproject is configured) to
+# cover subprojects such as composefs as well.
+if get_option('b_coverage') and cc.has_argument('-fprofile-update=atomic')
+  add_global_arguments('-fprofile-update=atomic', language : 'c')
+endif
+
 conf = configuration_data()
 conf.set_quoted('RAUC_MESON_VERSION', meson.project_version())
 conf.set_quoted('PACKAGE_NAME', 'rauc')
