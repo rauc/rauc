@@ -733,9 +733,8 @@ class HTTPServer:
                     raise
 
     def stop(self):
-        if "RAUC_TEST_HTTP_SERVER" in os.environ:
+        if self.server is None:
             return
-        assert self.server is not None
 
         self.server.terminate()
         try:
@@ -743,6 +742,7 @@ class HTTPServer:
         except subprocess.TimeoutExpired:
             self.server.kill()
             self.server.wait()
+        self.server = None
 
     def setup(self, *, file_path=None, http_code=None):
         json = {}
