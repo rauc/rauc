@@ -343,9 +343,15 @@ RaucHashIndex *r_hash_index_open(const gchar *label, int data_fd, const gchar *h
 
 	/* load or calculate chunk hashes */
 	if (hashes_filename && g_file_test(hashes_filename, G_FILE_TEST_IS_REGULAR)) {
-		g_autoptr(GMappedFile) mapped_file = g_mapped_file_new(hashes_filename, FALSE, &ierror);
+		g_autoptr(GMappedFile) mapped_file = NULL;
 		gsize mapped_size;
 
+		if (!read_index_file(hashes_filename, -1, &ierror)) {
+			g_propagate_error(error, ierror);
+			return NULL;
+		}
+
+		mapped_file = g_mapped_file_new(hashes_filename, FALSE, &ierror);
 		if (!mapped_file) {
 			g_propagate_error(error, ierror);
 			return NULL;
