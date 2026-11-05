@@ -9,7 +9,7 @@ jobs:
   address:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/rauc/rauc/rauc-ci:latest
+      image: ghcr.io/rauc/rauc/rauc-ci:trixie
       # allow mounting and devtmpfs in the container
       options: --user=root --privileged -v /dev:/dev
     steps:
