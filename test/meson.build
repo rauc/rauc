@@ -16,6 +16,7 @@ tests = [
   'install',
   'manifest',
   'progress',
+  'runtime_state',
   'service',
   'signature',
   'slot',

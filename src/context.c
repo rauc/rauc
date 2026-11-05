@@ -10,6 +10,7 @@
 #include "status_file.h"
 #include "network.h"
 #include "install.h"
+#include "runtime_state.h"
 #include "signature.h"
 #include "utils.h"
 
@@ -376,6 +377,13 @@ static gboolean r_context_configure_target(GError **error)
 		}
 
 		r_slot_status_load_globally(context->config->statusfile_path, context->config->slots);
+	}
+
+	g_autofree gchar *runtime_state_path = g_build_filename(
+			context->runtime_directory, "runtime-state", NULL);
+	if (!r_runtime_state_init(runtime_state_path, &ierror)) {
+		g_warning("Failed to initialize runtime state: %s", ierror->message);
+		g_clear_error(&ierror);
 	}
 
 	/* set up logging */
@@ -948,6 +956,7 @@ void r_context_clean(void)
 		g_clear_pointer(&context->configoverride, g_list_free);
 
 		g_clear_pointer(&context->system_status, r_system_status_free);
+		r_runtime_state_cleanup();
 
 		g_clear_pointer(&context, g_free);
 	}
