@@ -101,6 +101,11 @@ jobs:
         - "arm/v7"
         - "arm64/v8"
         - "386"
+        include:
+          # disable pointer auth to avoid the performance overhead
+          # https://forum.armbian.com/topic/57887-arm64-performance-regression-in-qemu/
+          - architecture: "arm64/v8"
+            qemu_cpu: "max,pauth=off"
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -111,7 +116,10 @@ jobs:
 
     - name: Prepare ${{ matrix.architecture }} container
       run: |
-        podman run --name cross -di --platform linux/${{ matrix.architecture }} --userns=keep-id:uid=1000,gid=1000 -v "$PWD":/home -w /home ghcr.io/rauc/rauc/rauc-ci:trixie bash
+        podman run --name cross -di \
+          --platform linux/${{ matrix.architecture }} \
+          ${{ matrix.qemu_cpu && format('-e QEMU_CPU={0}', matrix.qemu_cpu) || '' }} \
+          --userns=keep-id:uid=1000,gid=1000 -v "$PWD":/home -w /home ghcr.io/rauc/rauc/rauc-ci:trixie bash
         podman logs cross
         podman exec -i cross uname -a
         podman exec -i cross id
