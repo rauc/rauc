@@ -12,6 +12,20 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile:
+        - service
+        - noservice
+        include:
+        - profile: service
+          meson_args: "-Dservice=true -Dgpt=enabled -Dcomposefs=enabled"
+          codecov_flags: "service=true"
+        - profile: noservice
+          meson_args: "-Dservice=false -Dgpt=disabled -Dcomposefs=disabled"
+          codecov_flags: "service=false"
+          extra: true
     container:
       image: ghcr.io/rauc/rauc/rauc-ci:trixie
       # allow mounting and devtmpfs in the container
@@ -25,41 +39,28 @@ jobs:
 
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-    - name: Test with service, gpt and composefs
+    - name: Build
       run: |
         rm -rf build/
-        meson setup -Dservice=true -Dgpt=enabled -Dcomposefs=enabled -Db_coverage=true -Dwerror=true build
+        meson setup ${{ matrix.meson_args }} -Db_coverage=true -Dwerror=true build
         meson configure build
         meson compile -C build
+
+    - name: Test
+      run: |
         ./qemu-test
-        lcov --directory . --capture --output-file "service.info"
+        lcov --directory . --capture --output-file "${{ matrix.profile }}.info"
         
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
       with:
-        files: service.info
-        flags: "service=true"
-        token: ${{ secrets.CODECOV_TOKEN }}
-        verbose: true
-
-    - name: Test without service, gpt or composefs
-      run: |
-        rm -rf build/
-        meson setup -Dservice=false -Dgpt=disabled -Dcomposefs=disabled -Db_coverage=true -Dwerror=true build
-        meson configure build
-        meson compile -C build
-        ./qemu-test
-        lcov --directory . --capture --output-file "noservice.info"
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-      with:
-        files: noservice.info
-        flags: "service=false"
-        token: ${{ secrets.CODECOV_TOKEN }}
+        files: "${{ matrix.profile }}.info"
+        flags: "${{ matrix.codecov_flags }}"
+        token: "${{ secrets.CODECOV_TOKEN }}"
         verbose: true
 
     - name: Test fuzzers
+      if: ${{ matrix.extra }}
       run: |
         rm -rf build/
         meson setup -Dservice=false -Dwerror=true -Dfuzzing=true -Db_lundef=false -Db_sanitize=address build
@@ -68,6 +69,7 @@ jobs:
         meson test -C build --suite rauc:fuzzing
 
     - name: Build CGI example
+      if: ${{ matrix.extra }}
       run: |
         cd contrib/cgi
         ./autogen.sh
