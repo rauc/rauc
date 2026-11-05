@@ -1453,7 +1453,7 @@ static gboolean run_slot_hook_extra_env(const gchar *hook_name, const gchar *hoo
 		   subprocess environment */
 		g_hash_table_iter_init(&iter, variables);
 		while (g_hash_table_iter_next(&iter, (gpointer*) &key, (gpointer*) &value)) {
-			g_subprocess_launcher_setenv(launcher, g_strdup(key), g_strdup(value), TRUE);
+			g_subprocess_launcher_setenv(launcher, key, value, TRUE);
 		}
 	}
 
