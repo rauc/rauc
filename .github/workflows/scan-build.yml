@@ -15,7 +15,7 @@ jobs:
     - name: Install dependencies
       run: |
         apt-get update
-        DEBIAN_FRONTEND='noninteractive' apt-get install -qy meson libtool libglib2.0-dev libcurl3-dev libssl-dev libdbus-1-dev libjson-glib-dev libfdisk-dev libnl-genl-3-dev dbus-x11 clang-tools git
+        DEBIAN_FRONTEND='noninteractive' apt-get install -qy meson libtool libglib2.0-dev libcurl3-dev libssl-dev libdbus-1-dev libjson-glib-dev libfdisk-dev libnl-genl-3-dev dbus-x11 clang-tools clang-tidy git
 
     - name: Inspect environment
       run: |
@@ -28,6 +28,11 @@ jobs:
     - name: Run meson
       run: |
         meson setup -Dcomposefs=enabled build
+
+    - name: Run clang-tidy
+      run: |
+        meson compile -C build
+        run-clang-tidy -p build "^$(pwd)/src/"
 
     - name: Run scan-build
       run: |
