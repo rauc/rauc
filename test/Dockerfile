@@ -1,7 +1,7 @@
-FROM debian:bookworm
+FROM debian:trixie
 
-# Add backports for pkcs11-provider
-RUN echo "deb http://deb.debian.org/debian bookworm-backports main" \
+# Add backports for qemu 1.11.2, which allows user creation of eMMCs
+RUN echo "deb http://deb.debian.org/debian trixie-backports main" \
   > /etc/apt/sources.list.d/backports.list
 
 # Required for building
@@ -11,7 +11,7 @@ RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
   meson \
   libtool \
   libglib2.0-dev \
-  libcurl3-dev \
+  libcurl4-openssl-dev \
   libssl-dev \
   libdbus-1-dev \
   libjson-glib-dev \
@@ -30,6 +30,7 @@ RUN apt-get install -q -y --no-install-recommends \
   acl \
   squashfs-tools \
   dosfstools \
+  e2fsprogs \
   lcov \
   slirp \
   python3-pyasn1 \
@@ -48,20 +49,20 @@ RUN apt-get install -q -y --no-install-recommends \
   pkcs11-provider \
   fakeroot \
   faketime \
-  pseudo \
   time \
   tree \
   kmod \
   uncrustify \
   casync \
-  qemu-system-x86 \
   procps \
   mtd-utils \
   mmc-utils \
   python3-aiohttp \
   python3-requests \
   nginx-light \
-  fdisk
+  fdisk && \
+  apt-get install -q -y --no-install-recommends -t trixie-backports \
+  qemu-system-x86 
 
 # Required for test environment setup
 RUN apt-get install -q -y --no-install-recommends \
