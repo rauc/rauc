@@ -76,15 +76,6 @@ jobs:
         make -j4
         make -j4 distcheck
 
-    - name: Show system status
-      if: ${{ failure() }}
-      run: |
-        dmesg | tail -n 100
-        mount || true
-        losetup || true
-        dmsetup table || true
-        dmsetup targets || true
-
     - name: Show logs
       if: ${{ failure() }}
       run: |
