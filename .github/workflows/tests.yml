@@ -18,14 +18,18 @@ jobs:
         profile:
         - service
         - noservice
+        - nostreaming
         include:
         - profile: service
           meson_args: "-Dservice=true -Dgpt=enabled -Dcomposefs=enabled"
-          codecov_flags: "service=true"
+          codecov_flags: "service=true streaming=true"
         - profile: noservice
           meson_args: "-Dservice=false -Dgpt=disabled -Dcomposefs=disabled"
-          codecov_flags: "service=false"
+          codecov_flags: "service=false streaming=true"
           extra: true
+        - profile: nostreaming
+          meson_args: "-Dservice=true -Dgpt=disabled -Dcomposefs=disabled -Dstreaming=false"
+          codecov_flags: "service=true streaming=false"
     container:
       image: ghcr.io/rauc/rauc/rauc-ci:trixie
       # allow mounting and devtmpfs in the container
