@@ -33,6 +33,7 @@ Checks: >
   readability-simplify-boolean-expr,
   readability-suspicious-call-argument,
 HeaderFilterRegex: '(^|/)(include|src|src/bootloaders)/[^/]+\.h$'
+WarningsAsErrors: '*'
 CheckOptions:
   # This check reports include cycles in system headers regardless of
   # HeaderFilterRegex, so ignore those within the GLib and libnl headers.
