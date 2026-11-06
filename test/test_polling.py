@@ -3,10 +3,10 @@ import time
 import pytest
 from dasbus.typing import get_native
 
-from conftest import needs_nbd, needs_service
+from conftest import have_streaming, needs_nbd, needs_service
 from helper import run
 
-pytestmark = [needs_nbd, needs_service]
+pytestmark = [needs_nbd, needs_service, have_streaming]
 
 
 def wait_one_poll(system, *, timeout=15.0):
