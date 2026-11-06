@@ -371,7 +371,7 @@ static int verity_create_or_verify_hash(
 					hash_level_block[i],
 					hash_level_size[i - 1], verify,
 					calculated_digest, salt);
-			fclose(hash_file_2);
+			(void)fclose(hash_file_2);
 			if (r)
 				goto out;
 		}
@@ -412,9 +412,12 @@ out:
 	}
 
 	if (data_file)
-		fclose(data_file);
-	if (hash_file)
-		fclose(hash_file);
+		(void)fclose(data_file);
+	/* buffered writes to the hash area may only fail when closing */
+	if (hash_file && fclose(hash_file) != 0 && !verify && !r) {
+		g_message("Input/output error while writing hash area.");
+		r = -EIO;
+	}
 	return r;
 }
 
