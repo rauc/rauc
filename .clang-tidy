@@ -20,7 +20,6 @@ Checks: >
   -cert-err33-c,
   misc-*,
   -misc-include-cleaner,
-  -misc-misplaced-const,
   -misc-no-recursion,
   -misc-unused-parameters,
   performance-*,

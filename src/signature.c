@@ -1118,7 +1118,7 @@ static gboolean cms_check_signer_cns(CMS_ContentInfo *cms, GError **error)
 	g_return_val_if_fail(cms != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	const GStrv allowed_cns = r_context()->config->keyring_allowed_signer_cns;
+	const gchar *const *allowed_cns = (const gchar *const *)r_context()->config->keyring_allowed_signer_cns;
 
 	// config option not used, so the cert is valid for all devices and we can skip everything
 	if (!allowed_cns) {
@@ -1155,7 +1155,7 @@ static gboolean cms_check_signer_cns(CMS_ContentInfo *cms, GError **error)
 			return FALSE;
 		}
 		// as soon as one matching entry is found, device is eligible to use this update
-		if (g_strv_contains((const gchar *const *)allowed_cns, (gchar*)cn_value)) {
+		if (g_strv_contains(allowed_cns, (gchar*)cn_value)) {
 			return TRUE;
 		}
 	}
