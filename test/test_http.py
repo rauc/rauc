@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from dasbus.typing import get_native, get_variant
 
-from conftest import have_json, have_service
+from conftest import have_json, have_service, have_streaming
 from helper import run
 
 
@@ -66,6 +66,7 @@ def is_uptime(value):
 
 @pytest.mark.parametrize("api", ["cli", "dbus"])
 @have_json
+@have_streaming
 def test_info_headers(create_system_files, system, http_server, api):
     """Test if the info command sends custom headers correctly."""
     if api == "dbus" and not have_service():
