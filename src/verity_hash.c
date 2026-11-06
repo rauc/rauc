@@ -230,7 +230,7 @@ static int create_or_verify(FILE *rd, FILE *wr,
 					g_debug("Cannot read digest from hash device.");
 					return -EIO;
 				}
-				if (memcmp(read_digest, calculated_digest, digest_size)) {
+				if (memcmp(read_digest, calculated_digest, digest_size) != 0) {
 					g_message("Verification failed at position %" PRIu64 ".",
 							ftello(rd) - data_block_size);
 					return -EPERM;
