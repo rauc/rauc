@@ -7,9 +7,9 @@
 #include "slot.h"
 
 /* Default maximum downloadable bundle size (8 MiB) */
-#define DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE 8*1024*1024
+#define DEFAULT_MAX_BUNDLE_DOWNLOAD_SIZE (8*1024*1024)
 /* Default maximum signature/CMS size (64 KiB) */
-#define DEFAULT_MAX_BUNDLE_SIGNATURE_SIZE 64*1024
+#define DEFAULT_MAX_BUNDLE_SIGNATURE_SIZE (64*1024)
 
 typedef enum {
 	R_CONFIG_ERROR_INVALID_FORMAT,

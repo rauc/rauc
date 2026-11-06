@@ -14,7 +14,7 @@ typedef enum {
 } REmmcError;
 
 #define EMMC_BOOT_PARTITIONS			2
-#define INACTIVE_BOOT_PARTITION(part_active)	((part_active + 1) % EMMC_BOOT_PARTITIONS)
+#define INACTIVE_BOOT_PARTITION(part_active)	(((part_active) + 1) % EMMC_BOOT_PARTITIONS)
 
 #define EXT_CSD_PART_CONFIG			179
 #define EXT_CSD_CMD_SET_NORMAL			(1 << 0)
