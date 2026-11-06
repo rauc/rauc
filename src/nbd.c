@@ -587,7 +587,7 @@ static void start_read(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xfer)
  * If curl_slist does not exist yet (NULL passed), it will be created.
  * The created list needs to be freed (after usage) by the caller with
  * curl_slist_free_all(). */
-static struct curl_slist *gstrv_add_to_slist(struct curl_slist *initial_list, const GStrv strv)
+static struct curl_slist *gstrv_add_to_slist(struct curl_slist *initial_list, GStrv strv)
 {
 	struct curl_slist *slist = NULL;
 	struct curl_slist *temp = NULL;
@@ -907,7 +907,7 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 	}
 
 	// let us handle broken pipes explicitly
-	signal(SIGPIPE, SIG_IGN);
+	(void)signal(SIGPIPE, SIG_IGN);
 
 	g_message("nbd server running as UID %d, GID %d", getuid(), getgid());
 

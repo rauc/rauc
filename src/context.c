@@ -852,7 +852,7 @@ RaucContext *r_context_conf(void)
 		GError *ierror = NULL;
 
 		// let us handle broken pipes explicitly
-		signal(SIGPIPE, SIG_IGN);
+		(void)signal(SIGPIPE, SIG_IGN);
 
 		if (!network_init(&ierror)) {
 			g_warning("%s", ierror->message);

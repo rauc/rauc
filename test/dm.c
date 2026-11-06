@@ -298,6 +298,27 @@ static void crypt_encrypt_test(DMFixture *fixture,
 	g_close(fd_comp, NULL);
 }
 
+/* Tests that write errors (here: ENOSPC from /dev/full) during
+ * r_crypt_encrypt() are reported instead of producing a truncated output.
+ */
+static void crypt_encrypt_write_error_test(void)
+{
+	g_autofree guint8 *key = NULL;
+	g_autoptr(GError) error = NULL;
+	gboolean ret;
+
+	if (!g_file_test("/dev/full", G_FILE_TEST_EXISTS)) {
+		g_test_skip("/dev/full not available");
+		return;
+	}
+
+	key = r_hex_decode("761305cf2de9a8ff1708eac74676c606630425b22bb8212e5e2314e3e61e8ab5", 32);
+
+	ret = r_crypt_encrypt("test/dummy.unencrypted", "/dev/full", key, &error);
+	g_assert_error(error, G_FILE_ERROR, G_FILE_ERROR_NOSPC);
+	g_assert_false(ret);
+}
+
 /* Tests decrypting the known encrypted payload 'dummy.encrypted' with
  * r_crypt_decrypt() by comparing the result against the known scheme of the
  * source data.
@@ -548,6 +569,7 @@ int main(int argc, char *argv[])
 	g_test_add("/dm/crypt_encrypt/valid_key", DMFixture, &valid_key, dm_fixture_set_up, crypt_encrypt_test, dm_fixture_tear_down);
 	valid_key = FALSE;
 	g_test_add("/dm/crypt_encrypt/invalid_key", DMFixture, &valid_key, dm_fixture_set_up, crypt_encrypt_test, dm_fixture_tear_down);
+	g_test_add_func("/dm/crypt_encrypt/write_error", crypt_encrypt_write_error_test);
 
 	g_test_add("/dm/crypt_create", DMFixture, NULL, dm_fixture_set_up, crypt_create, dm_fixture_tear_down);
 

@@ -173,8 +173,14 @@ static gboolean r_emmc_force_part_write(const gchar *device, gchar value, GError
 	ret = TRUE;
 
 out:
-	if (f)
-		fclose(f);
+	/* the buffered write to sysfs only happens when closing */
+	if (f && fclose(f) != 0 && ret) {
+		int err = errno;
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
+				"Could not write to %s: %s",
+				sysfs_path, g_strerror(err));
+		ret = FALSE;
+	}
 
 	return ret;
 }
