@@ -26,6 +26,7 @@ Checks: >
   performance-*,
   portability-*,
   readability-avoid-unconditional-preprocessor-if,
+  readability-duplicate-include,
   readability-misleading-indentation,
   readability-misplaced-array-index,
   readability-redundant-declaration,
