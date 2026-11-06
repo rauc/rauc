@@ -156,7 +156,7 @@ static gboolean r_crypt_encrypt_or_decrypt(const gchar *inpath, const gchar *out
 	res = TRUE;
 out:
 	if (infile)
-		fclose(infile);
+		(void)fclose(infile);
 	/* buffered write errors are only reported when closing */
 	if (outfile && fclose(outfile) != 0 && res) {
 		int err = errno;

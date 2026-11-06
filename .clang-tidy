@@ -17,7 +17,6 @@ Checks: >
   cert-*,
   -cert-dcl37-c,
   -cert-dcl51-cpp,
-  -cert-err33-c,
   misc-*,
   -misc-include-cleaner,
   -misc-no-recursion,

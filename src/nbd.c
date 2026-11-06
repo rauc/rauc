@@ -907,7 +907,7 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 	}
 
 	// let us handle broken pipes explicitly
-	signal(SIGPIPE, SIG_IGN);
+	(void)signal(SIGPIPE, SIG_IGN);
 
 	g_message("nbd server running as UID %d, GID %d", getuid(), getgid());
 
