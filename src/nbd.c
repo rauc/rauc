@@ -343,6 +343,7 @@ struct RaucNBDTransfer {
 	struct nbd_reply reply;
 	gboolean done;
 	guint errors;
+	gint64 first_attempt; /* monotonic time */
 
 	guint8 *buffer;
 	curl_off_t buffer_size;
@@ -516,7 +517,7 @@ static void prepare_curl(struct RaucNBDTransfer *xfer)
 
 	/* Abort a transfer which has stalled, so that it is retried instead of
 	 * blocking until the kernel NBD request timeout (NBD_ATTR_TIMEOUT, 300s)
-	 * disconnects the device. All 6 attempts have to fit into that budget. */
+	 * disconnects the device. */
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_LOW_SPEED_LIMIT, 1L);
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_LOW_SPEED_TIME, 20L);
 
@@ -584,6 +585,9 @@ static void start_read(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xfer)
 	CURLcode code = 0;
 	CURLMcode mcode = 0;
 	g_autofree gchar *range = NULL;
+
+	if (!xfer->first_attempt)
+		xfer->first_attempt = g_get_monotonic_time();
 
 	xfer->buffer = g_malloc(xfer->request.len);
 	xfer->buffer_size = xfer->request.len;
@@ -909,6 +913,22 @@ static gboolean finish_request(struct RaucNBDContext *ctx, struct RaucNBDTransfe
 	return res;
 }
 
+/* Reads are retried after a transport error until RETRY_DEADLINE after their
+ * first attempt, so that a network outage of a few minutes does not fail the
+ * installation. The last attempt (20s to connect, about 26s to detect a stall,
+ * 1s pause) then still ends before the kernel NBD request timeout
+ * (NBD_ATTR_TIMEOUT, 300s). HTTP error responses and configure requests are
+ * retried 5 times, so a request the server rejects still fails quickly. */
+#define RETRY_DEADLINE (240 * G_USEC_PER_SEC)
+
+static gboolean retry_allowed(const struct RaucNBDTransfer *xfer, CURLcode result)
+{
+	if (xfer->request.type == NBD_CMD_READ && result != CURLE_HTTP_RETURNED_ERROR)
+		return g_get_monotonic_time() - xfer->first_attempt < RETRY_DEADLINE;
+
+	return xfer->errors < 5;
+}
+
 gboolean r_nbd_run_server(gint sock, GError **error)
 {
 	GError *ierror = NULL;
@@ -1015,13 +1035,13 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 				g_message("request failed (not found)");
 				xfer->reply.error = GUINT32_TO_BE(5); /* NBD_EIO */
 				xfer->done = TRUE;
-			} else if (xfer->errors >= 5) {
+			} else if (!retry_allowed(xfer, msg->data.result)) {
 				g_message("request failed (no more retries)");
 				xfer->reply.error = GUINT32_TO_BE(5); /* NBD_EIO */
 				xfer->done = TRUE;
 			} else {
 				xfer->errors++;
-				g_message("request failed: %s (retrying %d/5)", xfer->errbuf, xfer->errors);
+				g_message("request failed: %s (retry %u)", xfer->errbuf, xfer->errors);
 			}
 
 			res = finish_request(&ctx, xfer);
