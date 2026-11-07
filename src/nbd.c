@@ -7,8 +7,11 @@
 #include <errno.h>
 #include <string.h>
 #include <pwd.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/ioctl.h>
 #include <sys/prctl.h>
+#include <sys/socket.h>
 #include <sys/sysmacros.h>
 
 #include <glib.h>
@@ -447,6 +450,20 @@ static size_t header_cb(char *buffer, size_t size, size_t nitems, void *userdata
 	return nitems;
 }
 
+/* Have the kernel close a connection when data sent on it stays
+ * unacknowledged for 30s, as happens when the connection dies without a FIN
+ * or RST. With HTTP/2, curl would otherwise keep queueing requests, including
+ * the retries of stalled ones, on the dead connection. */
+static int sockopt_cb(void *clientp, curl_socket_t fd, curlsocktype purpose)
+{
+	unsigned int timeout = 30000;
+
+	if (setsockopt(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, &timeout, sizeof(timeout)) != 0)
+		g_debug("failed to set TCP_USER_TIMEOUT: %s", g_strerror(errno));
+
+	return CURL_SOCKOPT_OK;
+}
+
 static void prepare_curl(struct RaucNBDTransfer *xfer)
 {
 	CURLcode code = 0;
@@ -502,6 +519,8 @@ static void prepare_curl(struct RaucNBDTransfer *xfer)
 	 * disconnects the device. All 6 attempts have to fit into that budget. */
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_LOW_SPEED_LIMIT, 1L);
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_LOW_SPEED_TIME, 20L);
+
+	code |= curl_easy_setopt(xfer->easy, CURLOPT_SOCKOPTFUNCTION, sockopt_cb);
 
 	/* a proxy may be configured using .netrc */
 	tunnel_code = curl_easy_setopt(xfer->easy, CURLOPT_HTTPPROXYTUNNEL, 1L);
