@@ -1201,8 +1201,9 @@ block in the image and then using this to check whether the data for each block
 is available locally during installation.
 The index in generated when running ``rauc bundle`` and included in the bundle
 together with the full image.
-After installation, RAUC also stores the current index for each slot in the
+RAUC also stores the current index for each slot in the
 :ref:`shared data directory <data-directory>`.
+It copies the index from the bundle there when it starts installing to a slot.
 
 During installation, RAUC accesses both slots (currently active and target) of
 the class to be installed and reads the stored index for each.
