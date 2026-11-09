@@ -556,6 +556,7 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 	g_autoptr(EVP_PKEY) pkey = NULL;
 	g_autoptr(R_X509_STACK_POP) intercerts = NULL;
 	g_autoptr(CMS_ContentInfo) cms = NULL;
+	g_autoptr(GBytes) sig = NULL;
 	GBytes *res = NULL;
 	unsigned int flags = CMS_BINARY | CMS_NOSMIMECAP;
 	const gchar *keyring_path = NULL, *keyring_dir = NULL;
@@ -610,9 +611,9 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 		goto out;
 	}
 
-	res = bytes_from_bio(outsig);
+	sig = bytes_from_bio(outsig);
 
-	if (!res) {
+	if (!sig) {
 		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
@@ -638,27 +639,23 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 
 		if (!(store = setup_x509_store(keyring_path, keyring_dir, &ierror))) {
 			g_propagate_error(error, ierror);
-			g_clear_pointer(&res, g_bytes_unref);
 			goto out;
 		}
 
 		g_message("Keyring given, doing signature verification");
 		if (detached) {
-			if (!cms_verify_bytes(content, res, store, &vcms, NULL, &ierror)) {
+			if (!cms_verify_bytes(content, sig, store, &vcms, NULL, &ierror)) {
 				g_propagate_error(error, ierror);
-				g_clear_pointer(&res, g_bytes_unref);
 				goto out;
 			}
 		} else {
-			if (!cms_verify_bytes(NULL, res, store, &vcms, &manifest, &ierror)) {
+			if (!cms_verify_bytes(NULL, sig, store, &vcms, &manifest, &ierror)) {
 				g_propagate_error(error, ierror);
-				g_clear_pointer(&res, g_bytes_unref);
 				goto out;
 			}
 		}
 		if (!cms_get_cert_chain(vcms, store, &verified_chain, &ierror)) {
 			g_propagate_error(error, ierror);
-			g_clear_pointer(&res, g_bytes_unref);
 			goto out;
 		}
 
@@ -680,6 +677,9 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 	} else {
 		g_message("No keyring given, skipping signature verification");
 	}
+
+	res = g_steal_pointer(&sig);
+
 out:
 	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
