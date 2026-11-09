@@ -12,6 +12,7 @@
 
 typedef struct {
 	gchar *tmpdir;
+	gchar *randomfile;
 	GBytes *content;
 	GBytes *sig;
 	GError *error;
@@ -27,6 +28,8 @@ static void signature_set_up(SignatureFixture *fixture,
 
 	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
 	g_assert_nonnull(fixture->tmpdir);
+	fixture->randomfile = write_random_file(fixture->tmpdir, "random.dat", 256 * 1024, 0x7a3e9c51);
+	g_assert_nonnull(fixture->randomfile);
 	fixture->content = read_file("test/openssl-ca/manifest", NULL);
 	g_assert_nonnull(fixture->content);
 	fixture->sig = NULL;
@@ -47,6 +50,7 @@ static void signature_tear_down(SignatureFixture *fixture,
 		g_assert_true(rm_tree(fixture->tmpdir, NULL));
 
 	g_free(fixture->tmpdir);
+	g_free(fixture->randomfile);
 	g_bytes_unref(fixture->content);
 	g_bytes_unref(fixture->sig);
 	g_clear_error(&fixture->error);
@@ -87,7 +91,7 @@ static void signature_sign_detached(SignatureFixture *fixture,
 	fixture->sig = cms_sign(fixture->content,
 			TRUE,
 			certpath,
-			"test/random.dat",
+			fixture->randomfile,
 			NULL,
 			&fixture->error);
 	g_assert_null(fixture->sig);
@@ -98,7 +102,7 @@ static void signature_sign_detached(SignatureFixture *fixture,
 	// Test signing fails with invalid cert
 	fixture->sig = cms_sign(fixture->content,
 			TRUE,
-			"test/random.dat",
+			fixture->randomfile,
 			keypath,
 			NULL,
 			&fixture->error);
@@ -134,7 +138,7 @@ static void signature_sign_inline(SignatureFixture *fixture,
 	fixture->sig = cms_sign(fixture->content,
 			FALSE,
 			certpath,
-			"test/random.dat",
+			fixture->randomfile,
 			NULL,
 			&fixture->error);
 	g_assert_null(fixture->sig);
@@ -145,7 +149,7 @@ static void signature_sign_inline(SignatureFixture *fixture,
 	// Test signing fails with invalid cert
 	fixture->sig = cms_sign(fixture->content,
 			FALSE,
-			"test/random.dat",
+			fixture->randomfile,
 			keypath,
 			NULL,
 			&fixture->error);
@@ -282,7 +286,7 @@ static void signature_verify_invalid(SignatureFixture *fixture,
 {
 	gboolean detached = TRUE;
 
-	fixture->sig = read_file("test/random.dat", NULL);
+	fixture->sig = read_file(fixture->randomfile, NULL);
 	g_assert_nonnull(fixture->sig);
 
 	// Test against invalid signature
@@ -1085,9 +1089,6 @@ int main(int argc, char *argv[])
 	setlocale(LC_ALL, "C");
 
 	g_assert(g_setenv("GIO_USE_VFS", "local", TRUE));
-
-	g_assert(test_prepare_dummy_file("test/", "random.dat",
-			256 * 1024, "/dev/urandom") == 0);
 
 	g_test_init(&argc, &argv, NULL);
 
