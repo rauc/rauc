@@ -1843,7 +1843,6 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 		decrypt_cert = load_cert(certfile, &ierror);
 		if (decrypt_cert == NULL) {
 			g_propagate_error(error, ierror);
-			res = NULL;
 			goto out;
 		}
 	}
@@ -1851,7 +1850,6 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 	privkey = load_key(keyfile, &ierror);
 	if (privkey == NULL) {
 		g_propagate_error(error, ierror);
-		res = NULL;
 		goto out;
 	}
 
@@ -1863,7 +1861,6 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE,
 				"Failed to parse CMS");
-		res = NULL;
 		goto out;
 	}
 
@@ -1876,12 +1873,10 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 				"Expected CMS of type '%s' but got '%s'",
 				OBJ_nid2sn(NID_pkcs7_enveloped),
 				OBJ_nid2sn(OBJ_obj2nid(CMS_get0_type(icms))));
-		res = NULL;
 		goto out;
 	}
 
 	if (!CMS_decrypt(icms, privkey, decrypt_cert, NULL, outdecrypt, 0)) {
-		res = NULL;
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
