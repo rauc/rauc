@@ -1089,9 +1089,6 @@ int main(int argc, char *argv[])
 	g_assert(test_prepare_dummy_file("test/", "random.dat",
 			256 * 1024, "/dev/urandom") == 0);
 
-	g_assert(test_prepare_dummy_file("test/", "empty.dat",
-			0, "/dev/zero") == 0);
-
 	g_test_init(&argc, &argv, NULL);
 
 	g_test_add("/signature/sign_detached", SignatureFixture, NULL, signature_set_up, signature_sign_detached, signature_tear_down);
