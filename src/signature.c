@@ -1052,17 +1052,14 @@ gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
 		X509_NAME_print_ex(text, X509_get_issuer_name(sk_X509_value(verified_chain, i)), 0, XN_FLAG_ONELINE);
 		BIO_printf(text, "\n");
 
-		gchar *tmp = get_pubkey_hash(sk_X509_value(verified_chain, i));
-		BIO_printf(text, "   SPKI sha256: %s\n", tmp);
-		g_free(tmp);
+		g_autofree gchar *hash = get_pubkey_hash(sk_X509_value(verified_chain, i));
+		BIO_printf(text, "   SPKI sha256: %s\n", hash);
 
-		tmp = get_cert_time(X509_get0_notBefore((const X509*) sk_X509_value(verified_chain, i)));
-		BIO_printf(text, "   Not Before: %s\n", tmp);
-		g_free(tmp);
+		g_autofree gchar *not_before = get_cert_time(X509_get0_notBefore((const X509*) sk_X509_value(verified_chain, i)));
+		BIO_printf(text, "   Not Before: %s\n", not_before);
 
-		tmp = get_cert_time(X509_get0_notAfter((const X509*) sk_X509_value(verified_chain, i)));
-		BIO_printf(text, "   Not After:  %s\n", tmp);
-		g_free(tmp);
+		g_autofree gchar *not_after = get_cert_time(X509_get0_notAfter((const X509*) sk_X509_value(verified_chain, i)));
+		BIO_printf(text, "   Not After:  %s\n", not_after);
 	}
 
 	return bio_mem_unwrap(text);
