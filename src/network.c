@@ -128,10 +128,15 @@ static gboolean transfer(RaucTransfer *xfer, GError **error)
 		}
 		goto out;
 	}
-	res = TRUE;
 
-	if (xfer->dl)
-		fflush(xfer->dl);
+	if (xfer->dl && fflush(xfer->dl) != 0) {
+		int err = errno;
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
+				"Failed to write downloaded data: %s", g_strerror(err));
+		goto out;
+	}
+
+	res = TRUE;
 
 out:
 	g_clear_pointer(&curl, curl_easy_cleanup);

@@ -101,7 +101,12 @@ static gboolean encrypt_or_decrypt(FILE *fd, FILE *out, const uint8_t *key, gboo
 			return FALSE;
 		}
 
-		fwrite(outbuf, 1, outlen, out);
+		if (fwrite(outbuf, 1, outlen, out) != (size_t)outlen) {
+			int err = errno;
+			g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
+					"Failed to write output: %s", g_strerror(err));
+			return FALSE;
+		}
 
 		if (!EVP_CipherFinal_ex(ctx, outbuf, &outlen)) {
 			g_set_error(error, R_CRYPT_ERROR, R_CRYPT_ERROR_FAILED, "EVP_CipherFinal_ex() failed");
@@ -151,9 +156,14 @@ static gboolean r_crypt_encrypt_or_decrypt(const gchar *inpath, const gchar *out
 	res = TRUE;
 out:
 	if (infile)
-		fclose(infile);
-	if (outfile)
-		fclose(outfile);
+		(void)fclose(infile);
+	/* buffered write errors are only reported when closing */
+	if (outfile && fclose(outfile) != 0 && res) {
+		int err = errno;
+		g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(err),
+				"Failed writing %s: %s", outpath, g_strerror(err));
+		res = FALSE;
+	}
 	return res;
 }
 

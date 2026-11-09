@@ -9,7 +9,6 @@
 #include <sys/vfs.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
 
 #include <openssl/rand.h>
 #include <unistd.h>

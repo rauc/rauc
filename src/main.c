@@ -3101,7 +3101,7 @@ int main(int argc, char **argv)
 	g_assert(g_setenv("GIO_USE_VFS", "local", TRUE));
 
 	/* Locale needs to support UTF-8, try and flag if unsupported */
-	setlocale(LC_ALL, "");
+	(void)setlocale(LC_ALL, "");
 	if (g_get_charset(NULL))
 		utf8_supported = TRUE;
 
