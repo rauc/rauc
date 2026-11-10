@@ -1132,7 +1132,7 @@ static gboolean cms_check_signer_cns(CMS_ContentInfo *cms, GError **error)
 	}
 
 	for (int i = 0; i < sk_X509_num(signers); i++) {
-		X509_NAME *current_signer = X509_get_subject_name(sk_X509_value(signers, i));
+		const X509_NAME *current_signer = X509_get_subject_name(sk_X509_value(signers, i));
 		int index = X509_NAME_get_index_by_NID(current_signer, NID_commonName, -1);
 		// no matching CN entry in the current signer found, so check next signer
 		if (index == -1)
@@ -1415,7 +1415,7 @@ static gboolean cms_get_signingtime(CMS_ContentInfo *cms, time_t *signingtime, G
 		return FALSE;
 	}
 
-	ASN1_TYPE *so = X509_ATTRIBUTE_get0_type(xa, 0);
+	const ASN1_TYPE *so = X509_ATTRIBUTE_get0_type(xa, 0);
 	if (so == NULL) {
 		g_set_error(
 				error,
