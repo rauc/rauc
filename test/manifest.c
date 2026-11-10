@@ -162,9 +162,15 @@ static void test_save_load_manifest(void)
 {
 	GError *error = NULL;
 	gboolean res = FALSE;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *manifestpath = NULL;
 	g_autoptr(RaucManifest) rm = g_new0(RaucManifest, 1);
 	RaucImage *new_image;
 	GHashTable *kvs = NULL;
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+	manifestpath = g_build_filename(tmpdir, "savedmanifest.raucm", NULL);
 
 	rm->update_compatible = g_strdup("BarCorp FooBazzer");
 	rm->update_version = g_strdup("2011.03-1");
@@ -222,13 +228,13 @@ static void test_save_load_manifest(void)
 
 	g_assert_cmpuint(g_hash_table_size(rm->meta), ==, 2);
 
-	res = save_manifest_file("test/savedmanifest.raucm", rm, &error);
+	res = save_manifest_file(manifestpath, rm, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
 
 	g_clear_pointer(&rm, free_manifest);
 
-	res = load_manifest_file("test/savedmanifest.raucm", &rm, &error);
+	res = load_manifest_file(manifestpath, &rm, &error);
 	g_assert_no_error(error);
 	g_assert_true(res);
 
@@ -254,6 +260,8 @@ static void test_save_load_manifest(void)
 	g_assert_cmpuint(rm->bundle_format, ==, R_MANIFEST_FORMAT_PLAIN);
 	g_assert_true(rm->bundle_format_explicit);
 	check_manifest_contents(rm);
+
+	g_assert_true(rm_tree(tmpdir, NULL));
 }
 
 /* Test manifest/save/writefail:
