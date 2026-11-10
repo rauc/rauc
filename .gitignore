@@ -32,3 +32,6 @@ app.info
 *.trs
 *.xz
 *.zip
+
+# meson wrap-git/wrap-file subproject checkouts and download cache
+/subprojects/*/
