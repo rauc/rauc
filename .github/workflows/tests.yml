@@ -156,6 +156,11 @@ jobs:
           test: true
         - release: "debian:testing"
           test: true
+        # unstable is only added via include, so that further variants
+        # (with additional flags) become separate jobs instead of being
+        # merged into a single unstable job
+        - release: "debian:unstable"
+          test: true
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
