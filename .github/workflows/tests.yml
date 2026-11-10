@@ -146,7 +146,6 @@ jobs:
         - "ubuntu:24.04"
         - "ubuntu:26.04"
         - "debian:bookworm"
-        - "debian:trixie"
         - "debian:testing"
         include:
         - release: "ubuntu:24.04"
@@ -154,8 +153,6 @@ jobs:
         - release: "ubuntu:26.04"
           test: true
         - release: "debian:bookworm"
-          test: true
-        - release: "debian:trixie"
           test: true
         - release: "debian:testing"
           test: true
