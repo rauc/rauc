@@ -98,6 +98,7 @@ jobs:
         - "arm/v7"
         - "arm64/v8"
         - "386"
+        - "riscv64"
         include:
           # disable pointer auth to avoid the performance overhead
           # https://forum.armbian.com/topic/57887-arm64-performance-regression-in-qemu/
