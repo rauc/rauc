@@ -30,6 +30,7 @@ typedef struct {
 	guint32 invalid_from; /* for new index of target */
 	RaucStats *match_stats; /* how many searches were successful */
 	gboolean skip_hash_check; /* whether to skip the hash check (for bundle payload protected by verity) */
+	gboolean stored_in_slot; /* whether the hashes are already stored in the slot data directory */
 } RaucHashIndex;
 
 /**
@@ -85,15 +86,18 @@ G_GNUC_WARN_UNUSED_RESULT;
 /**
  * Creates a hash index for the given image.
  *
- * Loads a previously stored `<image>.block-hash-index` file from the bundle.
+ * Copies the `<image>.block-hash-index` file from the bundle to the slot's data
+ * directory and loads it from there. Without such a file in the bundle, a new
+ * index is created from the image.
  *
  * @param label label for hash index (used for debugging/identification)
  * @param image image to open the hash index for
+ * @param slot slot the image is installed to, must have a data directory
  * @param error return location for a GError, or NULL
  *
  * @return a newly allocated RaucHashIndex or NULL on error
  */
-RaucHashIndex *r_hash_index_open_image(const gchar *label, const RaucImage *image, GError **error)
+RaucHashIndex *r_hash_index_open_image(const gchar *label, const RaucImage *image, const RaucSlot *slot, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
 /**
