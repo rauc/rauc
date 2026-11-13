@@ -146,7 +146,6 @@ jobs:
         - "ubuntu:24.04"
         - "ubuntu:26.04"
         - "debian:bookworm"
-        - "debian:trixie"
         - "debian:testing"
         include:
         - release: "ubuntu:24.04"
@@ -155,10 +154,16 @@ jobs:
           test: true
         - release: "debian:bookworm"
           test: true
-        - release: "debian:trixie"
-          test: true
         - release: "debian:testing"
           test: true
+        # unstable is only added via include, so that further variants
+        # (with additional flags) become separate jobs instead of being
+        # merged into a single unstable job
+        - release: "debian:unstable"
+          test: true
+        - release: "debian:unstable"
+          test: true
+          experimental: true
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -171,6 +176,14 @@ jobs:
         podman exec -i -u root stable apt-get update
         podman exec -e DEBIAN_FRONTEND='noninteractive' -i -u root stable apt-get install -qy build-essential meson libtool libglib2.0-dev libcurl3-dev libssl-dev libjson-glib-dev libdbus-1-dev libfdisk-dev libnl-genl-3-dev squashfs-tools
 
+    - name: Install OpenSSL from Debian experimental
+      if: ${{ matrix.experimental }}
+      run: |
+        podman exec -i -u root stable sh -c 'echo "deb http://deb.debian.org/debian experimental main" > /etc/apt/sources.list.d/experimental.list'
+        podman exec -i -u root stable apt-get update
+        podman exec -e DEBIAN_FRONTEND='noninteractive' -i -u root stable apt-get install -qy -t experimental openssl libssl-dev
+        podman exec -i stable openssl version
+
     - name: Patch & prepare
       run: |
         podman exec -i stable find .github/workflows/patches/${{ matrix.release }}/ -type f -name "*.patch" -print0 | sort -z | xargs -t -n 1 -r -0 patch -p1 -f -i
@@ -182,7 +195,10 @@ jobs:
 
     - name: Configure
       run: |
-        podman exec -i stable meson setup -Dgpt=disabled -Dwerror=true build
+        # OpenSSL 4.0 (from experimental) has removed the ENGINE API.
+        # libcurl is still linked against OpenSSL 3, which conflicts with
+        # OpenSSL 4 at link time, so also disable network and streaming.
+        podman exec -i stable meson setup -Dgpt=disabled -Dwerror=true ${{ matrix.experimental && '-Dpkcs11_engine=false -Dnetwork=false -Dstreaming=false' || '' }} build
 
     - name: Build
       run: |
