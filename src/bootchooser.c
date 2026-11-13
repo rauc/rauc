@@ -12,7 +12,7 @@ GQuark r_bootchooser_error_quark(void)
 	return g_quark_from_static_string("r_bootchooser_error_quark");
 }
 
-static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "custom", "noop", NULL};
+static const gchar *supported_bootloaders[] = {"barebox", "grub", "uboot", "efi", "fwu", "custom", "noop", NULL};
 
 gboolean r_boot_is_supported_bootloader(const gchar *bootloader)
 {
