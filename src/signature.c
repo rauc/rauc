@@ -556,6 +556,7 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 	g_autoptr(EVP_PKEY) pkey = NULL;
 	g_autoptr(R_X509_STACK_POP) intercerts = NULL;
 	g_autoptr(CMS_ContentInfo) cms = NULL;
+	g_autoptr(GBytes) sig = NULL;
 	GBytes *res = NULL;
 	unsigned int flags = CMS_BINARY | CMS_NOSMIMECAP;
 	const gchar *keyring_path = NULL, *keyring_dir = NULL;
@@ -610,9 +611,9 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 		goto out;
 	}
 
-	res = bytes_from_bio(outsig);
+	sig = bytes_from_bio(outsig);
 
-	if (!res) {
+	if (!sig) {
 		g_set_error_literal(
 				error,
 				R_SIGNATURE_ERROR,
@@ -638,27 +639,23 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 
 		if (!(store = setup_x509_store(keyring_path, keyring_dir, &ierror))) {
 			g_propagate_error(error, ierror);
-			g_clear_pointer(&res, g_bytes_unref);
 			goto out;
 		}
 
 		g_message("Keyring given, doing signature verification");
 		if (detached) {
-			if (!cms_verify_bytes(content, res, store, &vcms, NULL, &ierror)) {
+			if (!cms_verify_bytes(content, sig, store, &vcms, NULL, &ierror)) {
 				g_propagate_error(error, ierror);
-				g_clear_pointer(&res, g_bytes_unref);
 				goto out;
 			}
 		} else {
-			if (!cms_verify_bytes(NULL, res, store, &vcms, &manifest, &ierror)) {
+			if (!cms_verify_bytes(NULL, sig, store, &vcms, &manifest, &ierror)) {
 				g_propagate_error(error, ierror);
-				g_clear_pointer(&res, g_bytes_unref);
 				goto out;
 			}
 		}
 		if (!cms_get_cert_chain(vcms, store, &verified_chain, &ierror)) {
 			g_propagate_error(error, ierror);
-			g_clear_pointer(&res, g_bytes_unref);
 			goto out;
 		}
 
@@ -680,6 +677,9 @@ GBytes *cms_sign(GBytes *content, gboolean detached, const gchar *certfile, cons
 	} else {
 		g_message("No keyring given, skipping signature verification");
 	}
+
+	res = g_steal_pointer(&sig);
+
 out:
 	ERR_print_errors_fp(stdout);
 	BIO_free_all(incontent);
@@ -1052,17 +1052,14 @@ gchar* format_cert_chain(STACK_OF(X509) *verified_chain)
 		X509_NAME_print_ex(text, X509_get_issuer_name(sk_X509_value(verified_chain, i)), 0, XN_FLAG_ONELINE);
 		BIO_printf(text, "\n");
 
-		gchar *tmp = get_pubkey_hash(sk_X509_value(verified_chain, i));
-		BIO_printf(text, "   SPKI sha256: %s\n", tmp);
-		g_free(tmp);
+		g_autofree gchar *hash = get_pubkey_hash(sk_X509_value(verified_chain, i));
+		BIO_printf(text, "   SPKI sha256: %s\n", hash);
 
-		tmp = get_cert_time(X509_get0_notBefore((const X509*) sk_X509_value(verified_chain, i)));
-		BIO_printf(text, "   Not Before: %s\n", tmp);
-		g_free(tmp);
+		g_autofree gchar *not_before = get_cert_time(X509_get0_notBefore((const X509*) sk_X509_value(verified_chain, i)));
+		BIO_printf(text, "   Not Before: %s\n", not_before);
 
-		tmp = get_cert_time(X509_get0_notAfter((const X509*) sk_X509_value(verified_chain, i)));
-		BIO_printf(text, "   Not After:  %s\n", tmp);
-		g_free(tmp);
+		g_autofree gchar *not_after = get_cert_time(X509_get0_notAfter((const X509*) sk_X509_value(verified_chain, i)));
+		BIO_printf(text, "   Not After:  %s\n", not_after);
 	}
 
 	return bio_mem_unwrap(text);
@@ -1846,7 +1843,6 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 		decrypt_cert = load_cert(certfile, &ierror);
 		if (decrypt_cert == NULL) {
 			g_propagate_error(error, ierror);
-			res = NULL;
 			goto out;
 		}
 	}
@@ -1854,7 +1850,6 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 	privkey = load_key(keyfile, &ierror);
 	if (privkey == NULL) {
 		g_propagate_error(error, ierror);
-		res = NULL;
 		goto out;
 	}
 
@@ -1866,7 +1861,6 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 				R_SIGNATURE_ERROR,
 				R_SIGNATURE_ERROR_PARSE,
 				"Failed to parse CMS");
-		res = NULL;
 		goto out;
 	}
 
@@ -1879,12 +1873,10 @@ GBytes *cms_decrypt(GBytes *content, const gchar *certfile, const gchar *keyfile
 				"Expected CMS of type '%s' but got '%s'",
 				OBJ_nid2sn(NID_pkcs7_enveloped),
 				OBJ_nid2sn(OBJ_obj2nid(CMS_get0_type(icms))));
-		res = NULL;
 		goto out;
 	}
 
 	if (!CMS_decrypt(icms, privkey, decrypt_cert, NULL, outdecrypt, 0)) {
-		res = NULL;
 		g_set_error(
 				error,
 				R_SIGNATURE_ERROR,
