@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Use a separate state file for each namespace
+if [ "$1" = "-m" ]; then
+	UBOOT_STATE_PATH="$UBOOT_STATE_PATH.$2"
+	shift 2
+fi
+
 # Read env file into environment
 eval $(cat $UBOOT_STATE_PATH | sed  "s/\(.*\)=\(.*\)/export \1=\"\2\"/g")
 UBOOT_VARS_PRE=$(cat $UBOOT_STATE_PATH | sed  "s/\(.*\)=\(.*\)/\1/g" | tr '\n' ' ')
@@ -18,7 +24,7 @@ function check_var {
 }
 
 # Command line checking
-if [ $# -ne 2 ]; then
+if [ $# -lt 2 ] || [ $(($# % 2)) -ne 0 ]; then
 	echo "Invalid arguments $*"
 	exit 1
 fi
@@ -32,6 +38,12 @@ do
 	shift
 
 	check_var "$var" "$val"
+
+	# FWU metadata v1 has no bank state to mark a bank invalid
+	if [ "$FWU_MDATA_VERSION" = "1" ] && [ "$val" = "invalid" ]; then
+		echo "libuboot_set_env failed: -95"
+		exit 95
+	fi
 
 	# Assign new value
 	echo "setting: $var to $val"
