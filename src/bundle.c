@@ -2882,8 +2882,12 @@ static gboolean read_complete_dm_device(gchar *dev, GError **error)
 
 	buf = g_malloc0(chunk_size);
 
-	for (goffset chunk = 0;; chunk++) {
-		r = pread(fd, buf, chunk_size, chunk*chunk_size);
+	/*
+	 * A corrupt block which is not at the start of the requested range
+	 * results in a short read instead of an error. So continue directly
+	 * after the data read so far, to not skip the rest of the range. */
+	for (goffset offset = 0;; offset += r) {
+		r = pread(fd, buf, chunk_size, offset);
 		if (r == 0)
 			break;
 		else if (r < 0)	{
@@ -2891,7 +2895,7 @@ static gboolean read_complete_dm_device(gchar *dev, GError **error)
 			g_set_error(error,
 					G_FILE_ERROR,
 					g_file_error_from_errno(err),
-					"Check %s device failed between %"G_GOFFSET_FORMAT " and %"G_GOFFSET_FORMAT " bytes with error: %s", dev, chunk*chunk_size, (chunk+1)*chunk_size, g_strerror(err));
+					"Check %s device failed between %"G_GOFFSET_FORMAT " and %"G_GOFFSET_FORMAT " bytes with error: %s", dev, offset, offset + chunk_size, g_strerror(err));
 			return FALSE;
 		}
 	}
