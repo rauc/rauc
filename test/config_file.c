@@ -260,6 +260,11 @@ mountprefix=/mnt/myrauc/\n";
 [system]\n\
 compatible=FooCorp Super BarBazzer\n\
 mountprefix=/mnt/myrauc/\n";
+	const gchar *fwu_namespace_missing_cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=fwu\n\
+mountprefix=/mnt/myrauc/\n";
 
 	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", boot_inval_cfg_file, NULL);
 	g_assert_nonnull(pathname);
@@ -276,6 +281,16 @@ mountprefix=/mnt/myrauc/\n";
 
 	g_assert_false(load_config(pathname, &config, &ierror));
 	g_assert_cmpstr(ierror->message, ==, "No bootloader selected in system config");
+	g_clear_error(&ierror);
+
+	g_free(pathname);
+	g_clear_pointer(&config, free_config);
+
+	pathname = write_tmp_file(fixture->tmpdir, "invalid_bootloader.conf", fwu_namespace_missing_cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_assert_false(load_config(pathname, &config, &ierror));
+	g_assert_cmpstr(ierror->message, ==, "No fwu namespace defined");
 	g_clear_error(&ierror);
 }
 
