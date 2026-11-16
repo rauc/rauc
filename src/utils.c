@@ -733,6 +733,16 @@ goffset get_device_size(gint fd, GError **error)
 	if (ioctl(fd, BLKGETSIZE64, &size) != 0) {
 		int err = errno;
 		if (err == ENOTTY) {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+			/* Allow regular files as fake block devices for
+			 * testing and fuzzing, mirroring the fallbacks in
+			 * get_sectorsize() and get_hd_geometry(). This code
+			 * is compiled only in fuzzing builds and must not
+			 * change production behaviour. */
+			goffset fsize = lseek(fd, 0, SEEK_END);
+			if (fsize >= 0)
+				return fsize;
+#endif
 			g_set_error(error,
 					R_UTILS_ERROR,
 					R_UTILS_ERROR_INAPPROPRIATE_IOCTL,
