@@ -1,0 +1,5 @@
+fuzz/seeds/hashindex/valid4
+fuzz/seeds/hashindex/short4
+fuzz/seeds/hashindex/single1
+fuzz/seeds/hashindex/wide8
+fuzz/seeds/hashindex/max128
