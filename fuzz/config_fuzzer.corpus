@@ -1,0 +1,6 @@
+test/test.conf
+test/test-global.conf
+test/test-dummy-handler.conf
+test/test-custom.conf
+test/test-datadir.conf
+test/test-install-same-false.conf
