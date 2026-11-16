@@ -1,0 +1,7 @@
+test/openssl-ca/manifest-a1.sig
+test/openssl-ca/manifest-a2.sig
+test/openssl-ca/manifest-cs1.sig
+test/openssl-ca/manifest-ep1.sig
+test/openssl-ca/manifest-r1.sig
+test/openssl-ca/manifest-ts1.sig
+test/openssl-ca/manifest.mail
