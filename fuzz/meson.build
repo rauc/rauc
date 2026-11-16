@@ -5,6 +5,7 @@ endif
 fuzzers = [
   'manifest',
   'bundle',
+  'config',
 ]
 
 fuzzer_c_args = [cc.get_supported_arguments('-Wno-missing-prototypes', '-Wno-unused-result')]
