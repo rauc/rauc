@@ -1,0 +1,5 @@
+fuzz/seeds/mbr/success-get-set
+fuzz/seeds/mbr/overlap-region
+fuzz/seeds/mbr/mismatch-bootpart
+fuzz/seeds/mbr/bad-magic
+fuzz/seeds/mbr/no-bootpart
