@@ -425,6 +425,10 @@ This is only useful for the target service.
 For JSON-style support (enabled with ``-Djson=enabled``), additionally
 `libjson-glib` is required.
 
+.. note::
+   The authoritative list of dependencies and minimum versions is defined in
+   RAUC's ``meson.build``.
+
 Kernel Configuration
 --------------------
 
