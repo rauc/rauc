@@ -19,10 +19,14 @@ jobs:
         - service
         - noservice
         - nostreaming
+        - polkit
         include:
         - profile: service
           meson_args: "-Dservice=true -Dgpt=enabled -Dcomposefs=enabled"
           codecov_flags: "service=true streaming=true"
+        - profile: polkit
+          meson_args: "-Dservice=true -Dgpt=enabled -Dcomposefs=enabled -Dpolkit=enabled"
+          codecov_flags: "service=true streaming=true polkit=true"
         - profile: noservice
           meson_args: "-Dservice=false -Dgpt=disabled -Dcomposefs=disabled"
           codecov_flags: "service=false streaming=true"
@@ -42,6 +46,13 @@ jobs:
         ls -l /dev/kvm || true
 
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    - name: Install polkit dependencies
+      if: matrix.profile == 'polkit'
+      # until the CI image built from test/Dockerfile carries them
+      run: |
+        apt-get update
+        DEBIAN_FRONTEND='noninteractive' apt-get install -qy libpolkit-gobject-1-dev python3-dbusmock
 
     - name: Build
       run: |

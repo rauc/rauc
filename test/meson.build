@@ -89,6 +89,7 @@ if pytest.found()
     'install',
     'mark',
     'mount',
+    'polkit',
     'replace_signature',
     'resign',
     'polling',

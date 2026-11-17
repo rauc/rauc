@@ -16,7 +16,8 @@ RUN apt-get update -q && apt-get install -q -y --no-install-recommends \
   libdbus-1-dev \
   libjson-glib-dev \
   libfdisk-dev \
-  libnl-genl-3-dev
+  libnl-genl-3-dev \
+  libpolkit-gobject-1-dev
 
 # Required for building the cgi example
 RUN apt-get install -q -y --no-install-recommends \
@@ -38,6 +39,7 @@ RUN apt-get install -q -y --no-install-recommends \
   python3-pytest \
   python3-pydbus \
   python3-dasbus \
+  python3-dbusmock \
   python3-sphinx \
   python3-sphinx-rtd-theme \
   dbus \
