@@ -8,8 +8,9 @@
 #define UBOOT_DEFAULT_ATTEMPTS  3
 #define UBOOT_ATTEMPTS_PRIMARY  3
 
-static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
+gboolean r_uboot_env_get_opts(const gchar * const *opts, const gchar *key, GString **value, GError **error)
 {
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(4, g_free);
 	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
 	g_autoptr(GBytes) stdout_bytes = NULL;
@@ -22,8 +23,13 @@ static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
 	g_return_val_if_fail(value && *value == NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror,
-			UBOOT_FWPRINTENV_NAME, key, NULL);
+	g_ptr_array_add(args, g_strdup(UBOOT_FWPRINTENV_NAME));
+	for (const gchar * const *opt = opts; opt && *opt; opt++)
+		g_ptr_array_add(args, g_strdup(*opt));
+	g_ptr_array_add(args, g_strdup(key));
+	g_ptr_array_add(args, NULL);
+
+	sub = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_STDOUT_PIPE, &ierror);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,
@@ -80,17 +86,28 @@ static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
 	return TRUE;
 }
 
-static gboolean uboot_env_set(const gchar *key, const gchar *value, GError **error)
+gboolean r_uboot_env_setv_opts(const gchar * const *opts, GPtrArray *pairs, GError **error)
 {
+	g_autoptr(GPtrArray) args = g_ptr_array_new_full(8, g_free);
 	g_autoptr(GSubprocess) sub = NULL;
 	GError *ierror = NULL;
 
-	g_return_val_if_fail(key, FALSE);
-	g_return_val_if_fail(value, FALSE);
+	g_return_val_if_fail(pairs, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-	sub = r_subprocess_new(G_SUBPROCESS_FLAGS_NONE, &ierror, UBOOT_FWSETENV_NAME,
-			key, value, NULL);
+	g_assert_cmpuint(pairs->len, >, 0);
+	g_assert_cmpuint(pairs->len % 2, ==, 0);
+
+	g_ptr_array_add(args, g_strdup(UBOOT_FWSETENV_NAME));
+	for (const gchar * const *opt = opts; opt && *opt; opt++)
+		g_ptr_array_add(args, g_strdup(*opt));
+	for (guint i = 0; i < pairs->len; i++) {
+		g_return_val_if_fail(pairs->pdata[i], FALSE);
+		g_ptr_array_add(args, g_strdup(pairs->pdata[i]));
+	}
+	g_ptr_array_add(args, NULL);
+
+	sub = r_subprocess_newv(args, G_SUBPROCESS_FLAGS_NONE, &ierror);
 	if (!sub) {
 		g_propagate_prefixed_error(
 				error,
@@ -108,6 +125,26 @@ static gboolean uboot_env_set(const gchar *key, const gchar *value, GError **err
 	}
 
 	return TRUE;
+}
+
+gboolean r_uboot_env_set_opts(const gchar * const *opts, const gchar *key, const gchar *value, GError **error)
+{
+	g_autoptr(GPtrArray) pairs = g_ptr_array_new_full(2, g_free);
+
+	g_ptr_array_add(pairs, g_strdup(key));
+	g_ptr_array_add(pairs, g_strdup(value));
+
+	return r_uboot_env_setv_opts(opts, pairs, error);
+}
+
+static gboolean uboot_env_get(const gchar *key, GString **value, GError **error)
+{
+	return r_uboot_env_get_opts(NULL, key, value, error);
+}
+
+static gboolean uboot_env_set(const gchar *key, const gchar *value, GError **error)
+{
+	return r_uboot_env_set_opts(NULL, key, value, error);
 }
 
 /* We assume bootstate to be good if slot is listed in 'BOOT_ORDER' and its

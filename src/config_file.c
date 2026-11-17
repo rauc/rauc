@@ -346,6 +346,13 @@ static gboolean parse_system_section(const gchar *filename, GKeyFile *key_file, 
 			return FALSE;
 		}
 		g_key_file_remove_key(key_file, "system", "efi-use-bootnext", NULL);
+	} else if (g_strcmp0(c->system_bootloader, "fwu") == 0) {
+		c->fwu_namespace = key_file_consume_string(key_file, "system", "fwu-namespace", NULL);
+		if (!c->fwu_namespace) {
+			g_set_error(error, R_CONFIG_ERROR, R_CONFIG_ERROR_BOOTLOADER,
+					"No fwu namespace defined");
+			return FALSE;
+		}
 	} else if (g_strcmp0(c->system_bootloader, "custom") == 0) {
 		c->custom_bootloader_backend = resolve_path_take(filename,
 				key_file_consume_string(key_file, "handlers", "bootloader-custom-backend", NULL));
@@ -1564,6 +1571,7 @@ void free_config(RaucConfig *config)
 	g_free(config->tmp_path);
 	g_free(config->casync_install_args);
 	g_free(config->grubenv_path);
+	g_free(config->fwu_namespace);
 	g_free(config->data_directory);
 	g_free(config->statusfile_path);
 	g_free(config->keyring_path);
