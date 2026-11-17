@@ -1499,6 +1499,27 @@ integrate it into your customapplication.
 In order to allow sending data, make sure the D-Bus config file
 ``de.pengutronix.rauc.conf`` from the ``data/`` dir gets installed properly.
 
+The D-Bus policy decides which users may call RAUC at all.
+To decide what each of them may do, build RAUC with ``-Dpolkit=enabled`` and
+install the polkit actions file ``de.pengutronix.rauc.policy`` from the
+``data/`` dir.
+RAUC then asks polkit before it installs, inspects a bundle, marks a slot or
+polls (see :ref:`sec_ref_polkit`).
+For example, a rule that lets members of the group ``updater`` install
+bundles, but not past the compatible or version checks::
+
+  polkit.addRule(function(action, subject) {
+      if (action.id.indexOf("de.pengutronix.rauc.") != 0 ||
+          !subject.isInGroup("updater"))
+          return polkit.Result.NOT_HANDLED;
+      if (action.id == "de.pengutronix.rauc.install")
+          return polkit.Result.YES;
+      return polkit.Result.NO;
+  });
+
+The D-Bus policy must still let the group send to RAUC, as polkit is only
+asked once a call has reached the service.
+
 To only start RAUC when required, using D-Bus activation is a smart solution.
 In order to enable D-Bus activation, properly install the D-Bus service file
 ``de.pengutronix.rauc.service`` from the ``data/`` dir.

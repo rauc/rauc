@@ -2526,6 +2526,131 @@ The "Status" property consists of a ``a{sv}`` dictionary with the following cont
     *bundle.etag* variant ``s`` <etag>:
         The ``ETag`` HTTP header value as reported by the server
 
+.. _sec_ref_polkit:
+
+polkit Authorization
+~~~~~~~~~~~~~~~~~~~~
+
+When built with ``-Dpolkit=enabled``, the RAUC service asks `polkit
+<https://polkit.pages.freedesktop.org/polkit/>`_ before it runs a D-Bus method
+that changes the system.
+A caller polkit does not authorize gets an
+``org.freedesktop.DBus.Error.AccessDenied`` error, and nothing is done.
+If polkit cannot be reached, the call is refused as well, unless the caller is
+root.
+As polkit identifies the caller by its name on the system bus, the service
+refuses callers other than root when it runs on another bus.
+Methods and properties that only report state are not checked.
+
+The actions are defined in ``de.pengutronix.rauc.policy``.
+By default, only an administrator may perform them; as with any polkit
+action, the root user is always authorized.
+Rules in ``/etc/polkit-1/rules.d`` can grant them to other users or groups.
+The arguments of a call are passed to the rules as details, which a rule reads
+with ``action.lookup()``.
+
+``de.pengutronix.rauc.install``
+  :ref:`InstallBundle() <gdbus-method-de-pengutronix-rauc-Installer.InstallBundle>`
+  and ``Install()``, without any of the arguments that skip a check.
+
+``de.pengutronix.rauc.install-override``
+  :ref:`InstallBundle() <gdbus-method-de-pengutronix-rauc-Installer.InstallBundle>`
+  with ``ignore-compatible``, ``ignore-version-limit``, ``tls-no-verify``,
+  ``tls-cert``, ``tls-key``, ``tls-ca``, ``http-headers`` or ``transaction-id``
+  set.
+  It is a separate action so that a system can allow installing while refusing
+  to skip the checks its configuration sets up.
+  The TLS arguments are part of it because they choose other client
+  credentials than the configured ones, or replace or disable the
+  verification of the server.
+  ``transaction-id`` is part of it because the service sends it as an HTTP
+  header when ``send-headers`` names it, and passes it to handlers as
+  ``RAUC_TRANSACTION_ID``.
+
+``de.pengutronix.rauc.inspect``
+  :ref:`InspectBundle() <gdbus-method-de-pengutronix-rauc-Installer.InspectBundle>`
+  and ``Info()``, without any of the arguments that supply TLS credentials or
+  headers.
+
+``de.pengutronix.rauc.inspect-override``
+  :ref:`InspectBundle() <gdbus-method-de-pengutronix-rauc-Installer.InspectBundle>`
+  with ``tls-no-verify``, ``tls-cert``, ``tls-key``, ``tls-ca`` or
+  ``http-headers`` set.
+  As with ``install-override``, it is a separate action because these arguments
+  choose other client credentials than the configured ones, or replace or
+  disable the verification of the server.
+
+``de.pengutronix.rauc.mark``
+  :ref:`Mark() <gdbus-method-de-pengutronix-rauc-Installer.Mark>`.
+
+``de.pengutronix.rauc.poll``
+  :ref:`Poll() <gdbus-method-de-pengutronix-rauc-Poller.Poll>`.
+
+The details passed with each action:
+
+``source`` (install, install-override, inspect, inspect-override)
+  The bundle path or URL, in full, including any credentials it carries.
+  With the plain actions the caller chooses the server, which receives the
+  configured client credentials and any headers set up by ``send-headers``.
+  A rule that lets less trusted callers install should compare ``source``
+  with the exact URLs it allows, not a prefix (``https://good@evil/`` starts
+  with ``https://good``).
+
+``ignore-compatible``, ``ignore-version-limit`` (install, install-override)
+  ``true`` or ``false``.
+
+``tls-no-verify``, ``tls-cert``, ``tls-key``, ``tls-ca``, ``http-headers`` (install, install-override, inspect, inspect-override)
+  ``true`` or ``false``: whether the argument was given.
+  The values are not passed: a header can hold a credential, and a PKCS#11
+  URI can carry a PIN.
+
+``transaction-id``, ``require-manifest-hash`` (install, install-override)
+  The value given, only if one was given.
+
+``state``, ``slot`` (mark)
+  The *state* and *slot_identifier* arguments as given, such as ``good`` and
+  ``booted``.
+
+The details are the caller's own arguments.
+Rules should compare them with exact values, such as
+``action.lookup("slot") == "booted"``.
+``source`` and ``slot`` are passed as given, not resolved: a path can contain
+``..`` or name a symbolic link, and a slot can be named by its slot name as
+well as by ``booted`` or ``other``, so a rule that refuses
+particular values can be bypassed.
+Allow exact values rather than refusing others.
+Flags are passed as the strings ``true`` and ``false``, so compare them with
+``== "true"``; both strings are true in a JavaScript condition.
+
+Some actions do more than their name suggests, depending on the system
+configuration:
+
+* With polling configured to install automatically, ``Poll()`` can start an
+  installation and a reboot, so granting ``de.pengutronix.rauc.poll`` grants
+  those too.
+* ``Mark()`` with ``good`` and ``booted`` also marks the other slot bad when
+  ``prevent-late-fallback`` is set, although the details only name the booted
+  slot.
+* ``GetSlotStatus()``, which is not checked, mounts slots to read their status
+  when per-slot status files are used.
+
+A root caller is authorized without asking polkit, which would authorize root
+for every action anyway, so RAUC's own tools keep working while polkit is
+unavailable, during boot for instance.
+Every other caller is refused if ``de.pengutronix.rauc.policy`` is not
+installed.
+
+When polkit does not answer within 20 seconds (5 minutes when the caller allows
+interactive authorization), the call is refused.
+The 20 seconds stay below the default D-Bus call timeout of 25 seconds, so the
+caller sees the refusal.
+A caller that allows interactive authorization should raise its own call
+timeout to 5 minutes.
+A check is also cancelled when the caller leaves the bus, so nothing is done
+that no one waits for.
+Building with polkit needs polkit 0.119 or later; older versions authorize a
+caller that disconnects during the check (CVE-2021-3560).
+
 RAUC's Basic Update Procedure
 -----------------------------
 
