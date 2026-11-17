@@ -227,22 +227,27 @@ static gboolean r_on_handle_install(RInstaller *interface,
 	return r_on_handle_install_bundle(interface, invocation, arg_source, NULL);
 }
 
-static gboolean r_on_handle_inspect_bundle(RInstaller *interface,
-		GDBusMethodInvocation  *invocation,
-		const gchar *arg_bundle, GVariant *arg_args)
+typedef struct {
+	gchar *bundle;
+	RaucBundleAccessArgs access_args;
+	gboolean legacy;
+} RInspectCall;
+
+static void inspect_call_free(RInspectCall *call)
 {
-	g_auto(RaucBundleAccessArgs) access_args = {0};
-	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(arg_args);
-	g_autoptr(GVariant) remaining = NULL;
-	GVariantIter iter;
-	gchar *key;
+	g_free(call->bundle);
+	clear_bundle_access_args(&call->access_args);
+	g_free(call);
+}
+
+static void inspect_bundle_authorized(GDBusMethodInvocation *invocation, gpointer data)
+{
+	RInspectCall *call = data;
 	g_autoptr(RaucManifest) manifest = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
 	g_autofree gchar *message = NULL;
 	GError *error = NULL;
 	gboolean res = TRUE;
-
-	g_print("bundle: %s\n", arg_bundle);
 
 	res = !r_context_get_busy();
 	if (!res) {
@@ -250,22 +255,10 @@ static gboolean r_on_handle_inspect_bundle(RInstaller *interface,
 		goto out;
 	}
 
-	convert_dict_to_bundle_access_args(&dict, &access_args);
+	g_assert(call->access_args.http_info_headers == NULL);
+	call->access_args.http_info_headers = assemble_info_headers(NULL);
 
-	/* Check for unhandled keys */
-	remaining = g_variant_dict_end(&dict);
-	g_variant_iter_init(&iter, remaining);
-	while (g_variant_iter_next(&iter, "{sv}", &key, NULL)) {
-		message = g_strdup_printf("Unsupported key: %s", key);
-		g_free(key);
-		res = FALSE;
-		goto out;
-	}
-
-	g_assert(access_args.http_info_headers == NULL);
-	access_args.http_info_headers = assemble_info_headers(NULL);
-
-	res = check_bundle(arg_bundle, &bundle, CHECK_BUNDLE_DEFAULT, &access_args, &error);
+	res = check_bundle(call->bundle, &bundle, CHECK_BUNDLE_DEFAULT, &call->access_args, &error);
 	if (!res) {
 		message = g_strdup(error->message);
 		g_clear_error(&error);
@@ -289,26 +282,63 @@ out:
 				G_IO_ERROR,
 				G_IO_ERROR_FAILED_HANDLED,
 				"%s", message);
-		return TRUE;
-	}
-
-	if (arg_args) {
-		GVariant *info_variant;
-
-		info_variant = r_manifest_to_dict(manifest);
-
-		r_installer_complete_inspect_bundle(
-				interface,
-				invocation,
-				info_variant);
+	} else if (!call->legacy) {
+		r_installer_complete_inspect_bundle(r_installer, invocation,
+				r_manifest_to_dict(manifest));
 	} else {
-		/* arg_args unset means legacy API */
-		r_installer_complete_info(
-				interface,
-				invocation,
+		/* legacy Info() API */
+		r_installer_complete_info(r_installer, invocation,
 				manifest->update_compatible,
 				manifest->update_version ? manifest->update_version : "");
 	}
+	inspect_call_free(call);
+}
+
+static gboolean r_on_handle_inspect_bundle(RInstaller *interface,
+		GDBusMethodInvocation  *invocation,
+		const gchar *arg_bundle, GVariant *arg_args)
+{
+	RInspectCall *call = g_new0(RInspectCall, 1);
+	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(arg_args);
+	g_autoptr(GVariant) remaining = NULL;
+	g_autoptr(GPtrArray) details = g_ptr_array_new();
+	GVariantIter iter;
+	gchar *key;
+
+	g_print("bundle: %s\n", arg_bundle);
+
+	/* checked again once authorized */
+	if (r_context_get_busy()) {
+		return_failed(invocation, "already processing a different method");
+		inspect_call_free(call);
+		return TRUE;
+	}
+
+	call->bundle = g_strdup(arg_bundle);
+	call->legacy = arg_args == NULL;
+	convert_dict_to_bundle_access_args(&dict, &call->access_args);
+
+	/* Check for unhandled keys */
+	remaining = g_variant_dict_end(&dict);
+	g_variant_iter_init(&iter, remaining);
+	while (g_variant_iter_next(&iter, "{sv}", &key, NULL)) {
+		g_autofree gchar *message = g_strdup_printf("Unsupported key: %s", key);
+
+		g_free(key);
+		return_failed(invocation, message);
+		inspect_call_free(call);
+		return TRUE;
+	}
+
+	details_add(details, "source", call->bundle);
+	add_access_args_details(details, &call->access_args);
+	g_ptr_array_add(details, NULL);
+
+	r_authorize(invocation,
+			access_args_overriding(&call->access_args)
+			? "de.pengutronix.rauc.inspect-override" : "de.pengutronix.rauc.inspect",
+			(const gchar *const *) details->pdata, inspect_bundle_authorized, call,
+			(GDestroyNotify) inspect_call_free);
 
 	return TRUE;
 }
