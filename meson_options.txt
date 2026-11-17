@@ -5,6 +5,11 @@ option(
   value : true,
   description : 'Enable/Disable background service')
 option(
+  'polkit',
+  type : 'feature',
+  value : 'disabled',
+  description : 'Ask polkit before running D-Bus methods that change the system')
+option(
   'create',
   type : 'boolean',
   value : true,
@@ -73,6 +78,11 @@ option(
   type : 'string',
   value : '',
   description : 'D-Bus interfaces directory')
+option(
+  'polkitactiondir',
+  type : 'string',
+  value : '',
+  description : 'polkit actions directory')
 
 # build options
 option(
