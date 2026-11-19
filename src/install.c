@@ -694,11 +694,12 @@ static gchar **add_system_environment(gchar **envp)
  * @param update_source Path to the current bundle mount point
  * @param manifest Currently used manifest
  * @param transaction Current transaction identifier
+ * @param ignore_compatible Whether the compatible check was disabled
  * @param target_group Determined target group
  *
  * @return A newly allocated List of environment variables
  */
-static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest, gchar *transaction, GHashTable *target_group)
+static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest, gchar *transaction, gboolean ignore_compatible, GHashTable *target_group)
 {
 	GHashTableIter iter;
 	RaucSlot *slot;
@@ -714,6 +715,7 @@ static gchar **prepare_environment(gchar *update_source, RaucManifest *manifest,
 	/* Deprecated, included for backwards compatibility: */
 	envp = g_environ_setenv(envp, "RAUC_UPDATE_SOURCE", update_source, TRUE);
 	envp = g_environ_setenv(envp, "RAUC_TRANSACTION_ID", transaction, TRUE);
+	envp = g_environ_setenv(envp, "RAUC_IGNORE_COMPATIBLE", ignore_compatible ? "1" : "0", TRUE);
 
 	g_hash_table_iter_init(&iter, r_context()->config->slots);
 	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
@@ -870,7 +872,7 @@ out:
 	return res;
 }
 
-static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const gchar *hook_cmd, GError **error)
+static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const gchar *hook_cmd, gboolean ignore_compatible, GError **error)
 {
 	g_autofree gchar *hook_name = NULL;
 	g_autoptr(GSubprocessLauncher) launcher = NULL;
@@ -898,6 +900,8 @@ static gboolean run_bundle_hook(RaucManifest *manifest, gchar* bundledir, const 
 	g_subprocess_launcher_setenv(launcher, "RAUC_MF_VERSION", manifest->update_version ?: "", TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_MF_BUILD", manifest->update_build ?: "", TRUE);
 	g_subprocess_launcher_setenv(launcher, "RAUC_MOUNT_PREFIX", r_context()->config->mount_prefix, TRUE);
+
+	g_subprocess_launcher_setenv(launcher, "RAUC_IGNORE_COMPATIBLE", ignore_compatible ? "1" : "0", TRUE);
 
 	g_autoptr(GPtrArray) shell_vars = g_ptr_array_new_with_free_func(g_free);
 	r_shell_from_manifest_meta(shell_vars, manifest);
@@ -1602,7 +1606,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 		goto umount;
 	}
 
-	handler_env = prepare_environment(bundle->mount_point, bundle->manifest, args->transaction, target_group);
+	handler_env = prepare_environment(bundle->mount_point, bundle->manifest, args->transaction, args->ignore_compatible, target_group);
 
 	if (r_context()->config->preinstall_handler) {
 		g_message("Starting pre install handler: %s", r_context()->config->preinstall_handler);
@@ -1615,7 +1619,7 @@ gboolean do_install_bundle(RaucInstallArgs *args, GError **error)
 
 	/* Allow overriding compatible check by hook */
 	if (bundle->manifest->hooks.install_check) {
-		run_bundle_hook(bundle->manifest, bundle->mount_point, "install-check", &ierror);
+		run_bundle_hook(bundle->manifest, bundle->mount_point, "install-check", args->ignore_compatible, &ierror);
 		if (ierror) {
 			res = FALSE;
 			if (g_error_matches(ierror, R_INSTALL_ERROR, R_INSTALL_ERROR_REJECTED)) {
