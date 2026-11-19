@@ -5,6 +5,7 @@
 #include "mark.h"
 #include "slot.h"
 #include "status_file.h"
+#include "utils.h"
 
 static GList* get_slots_by_identifier(const gchar *identifier, GError **error)
 {
@@ -128,6 +129,48 @@ static void r_event_log_mark_bad(RaucSlot *slot)
 			"SLOT_BOOTNAME", slot->bootname ?: "",
 			"MESSAGE", "Marked slot %s as bad", slot->name
 			);
+}
+
+void r_mark_activation_checks(const gchar *slot_identifier, RMarkActivationChecks *checks)
+{
+	g_autoptr(GList) slots = NULL;
+	g_autoptr(GList) members = NULL;
+	const gchar *limit = r_context()->config->system_min_bundle_version;
+	RaucSlot *slot;
+
+	g_return_if_fail(slot_identifier != NULL);
+	g_return_if_fail(checks != NULL);
+
+	*checks = (RMarkActivationChecks) {0};
+
+	slots = get_slots_by_identifier(slot_identifier, NULL);
+	if (g_list_length(slots) != 1)
+		return;
+	slot = slots->data;
+
+	r_slot_status_load(slot);
+	if (!slot->status->status)
+		return;
+
+	checks->install_complete = TRUE;
+	checks->meets_version_limit = TRUE;
+
+	members = r_slot_get_all_children(r_context()->config->slots, slot);
+	members = g_list_prepend(members, slot);
+	for (GList *l = members; l != NULL; l = l->next) {
+		RaucSlot *member = l->data;
+		RaucSlotStatus *status;
+
+		r_slot_status_load(member);
+		status = member->status;
+
+		if (g_strcmp0(status->status, "ok") != 0 || !status->bundle_hash ||
+		    g_strcmp0(status->bundle_hash, slot->status->bundle_hash) != 0)
+			checks->install_complete = FALSE;
+		if (limit && (!status->bundle_version ||
+		              !r_semver_less_equal(limit, status->bundle_version, NULL)))
+			checks->meets_version_limit = FALSE;
+	}
 }
 
 gboolean r_mark_active(RaucSlot *slot, GError **error)

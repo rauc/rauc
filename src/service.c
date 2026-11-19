@@ -354,6 +354,8 @@ static gboolean r_on_handle_info(RInstaller *interface,
 typedef struct {
 	gchar *state;
 	gchar *slot_identifier;
+	/* for state "active", what polkit was told */
+	RMarkActivationChecks checks;
 } RMarkCall;
 
 static void mark_call_free(RMarkCall *call)
@@ -374,6 +376,18 @@ static void mark_authorized(GDBusMethodInvocation *invocation, gpointer data)
 	if (!res) {
 		message = g_strdup("already processing a different method");
 		goto out;
+	}
+
+	if (g_strcmp0(call->state, "active") == 0) {
+		RMarkActivationChecks checks;
+
+		r_mark_activation_checks(call->slot_identifier, &checks);
+		if (checks.install_complete != call->checks.install_complete ||
+		    checks.meets_version_limit != call->checks.meets_version_limit) {
+			res = FALSE;
+			message = g_strdup("slot status changed during authorization");
+			goto out;
+		}
 	}
 
 	res = mark_run(call->state, call->slot_identifier, &slot_name, &message);
@@ -405,11 +419,7 @@ static gboolean r_on_handle_mark(RInstaller *interface,
 		const gchar *arg_slot_identifier)
 {
 	RMarkCall *call;
-	const gchar *details[] = {
-		"state", arg_state,
-		"slot", arg_slot_identifier,
-		NULL,
-	};
+	g_autoptr(GPtrArray) details = g_ptr_array_new();
 
 	/* checked again once authorized */
 	if (r_context_get_busy()) {
@@ -418,10 +428,20 @@ static gboolean r_on_handle_mark(RInstaller *interface,
 		return TRUE;
 	}
 
+	details_add(details, "state", arg_state);
+	details_add(details, "slot", arg_slot_identifier);
+
 	call = g_new0(RMarkCall, 1);
 	call->state = g_strdup(arg_state);
 	call->slot_identifier = g_strdup(arg_slot_identifier);
-	r_authorize(invocation, "de.pengutronix.rauc.mark", details,
+	if (g_strcmp0(arg_state, "active") == 0) {
+		r_mark_activation_checks(arg_slot_identifier, &call->checks);
+		details_add_bool(details, "install-complete", call->checks.install_complete);
+		details_add_bool(details, "meets-version-limit", call->checks.meets_version_limit);
+	}
+	g_ptr_array_add(details, NULL);
+
+	r_authorize(invocation, "de.pengutronix.rauc.mark", (const gchar *const *) details->pdata,
 			mark_authorized, call, (GDestroyNotify) mark_call_free);
 
 	return TRUE;

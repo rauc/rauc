@@ -2611,7 +2611,30 @@ The details passed with each action:
   The *state* and *slot_identifier* arguments as given, such as ``good`` and
   ``booted``.
 
-The details are the caller's own arguments.
+``install-complete``, ``meets-version-limit`` (mark, with state ``active`` only)
+  ``true`` or ``false``, worked out by the service from the slot status of
+  the slot named and each of its child slots.
+  ``install-complete`` is ``true`` if every one of them is ``ok`` and was
+  written from the same bundle, so not left ``pending``, without a status, or
+  holding an older image by an install that was cut off.
+  A bundle that leaves out the image for a child slot therefore never gives
+  ``true``.
+  It only covers slots: an install that wrote every slot but failed in a later
+  step, such as an artifact, still gives ``true``.
+  ``meets-version-limit`` is ``true`` if every one of them records a bundle
+  version at or above ``min-bundle-version``, or none is configured.
+  Both are ``false`` for a slot with no status, such as one never installed.
+  An install that was cut off is only recorded with a central status file
+  (``statusfile`` or ``data-directory``), not with per-slot status files.
+  With ``activate-installed=false``, a rule can allow activating a slot just
+  installed, but not switching back to an older slot, which would skip the
+  version limit.
+
+The service works out ``install-complete`` and ``meets-version-limit`` again
+once the caller is authorized, and refuses the call if either changed in the
+meantime.
+
+The other details are the caller's own arguments.
 Rules should compare them with exact values, such as
 ``action.lookup("slot") == "booted"``.
 ``source`` and ``slot`` are passed as given, not resolved: a path can contain
@@ -2631,8 +2654,9 @@ configuration:
 * ``Mark()`` with ``good`` and ``booted`` also marks the other slot bad when
   ``prevent-late-fallback`` is set, although the details only name the booted
   slot.
-* ``GetSlotStatus()``, which is not checked, mounts slots to read their status
-  when per-slot status files are used.
+* ``GetSlotStatus()``, which is not checked, and ``Mark()`` with ``active``,
+  before polkit is asked, mount slots to read their status when per-slot
+  status files are used.
 
 A root caller is authorized without asking polkit, which would authorize root
 for every action anyway, so RAUC's own tools keep working while polkit is
