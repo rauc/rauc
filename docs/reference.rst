@@ -2599,6 +2599,15 @@ The details passed with each action:
 ``ignore-compatible``, ``ignore-version-limit`` (install, install-override)
   ``true`` or ``false``.
 
+``booted-slot-good`` (install, install-override, and mark with state ``active``)
+  ``true`` if the booted slot was marked good, by ``booted`` or by its name,
+  since the service started, and not marked bad since; a failed attempt to mark
+  it bad also clears it.
+  It is ``false`` again after the service restarts.
+  A rule can refuse to install or activate while it is ``false``, as the
+  booted slot may still be on trial and the other slot be the only one to fall
+  back to.
+
 ``tls-no-verify``, ``tls-cert``, ``tls-key``, ``tls-ca``, ``http-headers`` (install, install-override, inspect, inspect-override)
   ``true`` or ``false``: whether the argument was given.
   The values are not passed: a header can hold a credential, and a PKCS#11
@@ -2630,9 +2639,19 @@ The details passed with each action:
   installed, but not switching back to an older slot, which would skip the
   version limit.
 
-The service works out ``install-complete`` and ``meets-version-limit`` again
-once the caller is authorized, and refuses the call if either changed in the
-meantime.
+``activated-since-install`` (mark, with state ``active`` only)
+  ``true`` if the slot named was activated since it was last installed, as
+  installing a slot clears its activation record.
+  With ``activate-installed=true`` that is already the case after the install.
+  A rule can allow one activation per install, so a slot that failed its trial
+  boot is not tried again until it is installed again.
+  Installing the same bundle again counts as a new install.
+  The activation is recorded before the slot is switched to, so one cut off by
+  a power loss still counts.
+
+The service works out ``booted-slot-good``, ``install-complete``,
+``meets-version-limit`` and ``activated-since-install`` again once the caller
+is authorized, and refuses the call if one of them changed in the meantime.
 
 The other details are the caller's own arguments.
 Rules should compare them with exact values, such as

@@ -131,6 +131,16 @@ static void r_event_log_mark_bad(RaucSlot *slot)
 			);
 }
 
+gboolean r_mark_names_booted_slot(const gchar *slot_identifier)
+{
+	RaucSlot *booted = r_slot_get_booted(r_context()->config->slots);
+
+	g_return_val_if_fail(slot_identifier != NULL, FALSE);
+
+	return booted && (g_strcmp0(slot_identifier, "booted") == 0 ||
+	                  g_strcmp0(slot_identifier, booted->name) == 0);
+}
+
 void r_mark_activation_checks(const gchar *slot_identifier, RMarkActivationChecks *checks)
 {
 	g_autoptr(GList) slots = NULL;
@@ -154,6 +164,9 @@ void r_mark_activation_checks(const gchar *slot_identifier, RMarkActivationCheck
 
 	checks->install_complete = TRUE;
 	checks->meets_version_limit = TRUE;
+	/* only the slot named is stamped when activated, and installing it
+	 * clears the stamp */
+	checks->activated_since_install = slot->status->activated_timestamp != NULL;
 
 	members = r_slot_get_all_children(r_context()->config->slots, slot);
 	members = g_list_prepend(members, slot);

@@ -32,6 +32,7 @@ INSTALL_OVERRIDES = [
     *ACCESS_ARGS,
 ]
 
+
 @pytest.fixture(autouse=True)
 def unprivileged_caller(system):
     """Call the service as an unprivileged user, as root is allowed without asking polkit."""
@@ -329,10 +330,68 @@ def test_mark_active_details(
                     "slot": slot,
                     "install-complete": complete,
                     "meets-version-limit": meets,
+                    "activated-since-install": "false",
+                    "booted-slot-good": "false",
                 },
             ),
             ("de.pengutronix.rauc.mark", {"state": "good", "slot": "booted"}),
         ]
+
+
+@pytest.mark.parametrize("activated, expected", [(None, "false"), ("2026-01-01T11:00:00Z", "true")])
+def test_mark_active_details_activated(tmp_path, create_system_files, system, polkit_allow, activated, expected):
+    """Activating a slot passes whether it was activated since its last install."""
+    system.prepare_minimal_config()
+    system.write_config()
+    status = group_status("ok", "1.0.0")
+    status["rootfs.1"]["installed.timestamp"] = "2026-01-01T10:00:00Z"
+    if activated:
+        status["rootfs.1"]["activated.timestamp"] = activated
+    write_central_status(tmp_path, status)
+
+    with system.running_service("A"):
+        polkit_allow()
+        with pytest.raises(DBusError, match="not authorized"):
+            system.proxy.Mark("active", "other")
+
+        ((_, details),) = polkit_allow.calls()
+
+    assert details["activated-since-install"] == expected
+
+
+@pytest.mark.parametrize("name", ["booted", "rootfs.0"])
+def test_booted_slot_good_follows_the_booted_slot(rauc_dbus_service_with_system, polkit_allow, bundle_path, name):
+    """Marking the booted slot good or bad, by any name, is reflected in booted-slot-good."""
+    polkit_allow("de.pengutronix.rauc.mark")
+
+    def booted_slot_good():
+        with pytest.raises(DBusError, match="not authorized"):
+            rauc_dbus_service_with_system.InstallBundle(bundle_path, {})
+        return polkit_allow.calls()[-1][1]["booted-slot-good"]
+
+    assert booted_slot_good() == "false"
+    rauc_dbus_service_with_system.Mark("good", name)
+    assert booted_slot_good() == "true"
+    rauc_dbus_service_with_system.Mark("good", "rootfs.1")
+    assert booted_slot_good() == "true"
+    rauc_dbus_service_with_system.Mark("bad", name)
+    assert booted_slot_good() == "false"
+
+
+@pytest.mark.parametrize("method", ["InstallBundle", "Mark"])
+def test_refused_when_booted_slot_good_changes_during_check(
+    rauc_dbus_service_with_system, polkit_allow, bundle_path, tmp_path, method
+):
+    """A call checked while the booted slot was not yet marked good is refused once it is."""
+    polkit_allow("de.pengutronix.rauc.install", "de.pengutronix.rauc.mark")
+    args = (bundle_path, {}) if method == "InstallBundle" else ("active", "other")
+
+    good, later = call_in_order(polkit_allow, ("Mark", ("good", "booted")), (method, args))
+
+    assert not isinstance(good, DBusError)
+    assert isinstance(later, DBusError)
+    assert "changed during authorization" in str(later)
+    assert not slot_written(tmp_path / "images/rootfs-1")
 
 
 @pytest.mark.parametrize("cut_off", [False, True])
@@ -360,6 +419,29 @@ def test_mark_active_details_after_install(tmp_path, create_system_files, system
 
     assert action == "de.pengutronix.rauc.mark"
     assert details["install-complete"] == ("false" if cut_off else "true")
+
+
+def test_mark_active_details_after_activation(tmp_path, create_system_files, system, polkit_allow, bundle_path):
+    """Once the installed slot was activated, activating it again passes activated-since-install."""
+    system.prepare_minimal_config()
+    system.config["system"]["activate-installed"] = "false"
+    system.write_config()
+
+    with system.running_service("A"):
+        polkit_allow("de.pengutronix.rauc.install", "de.pengutronix.rauc.mark")
+        system.proxy.InstallBundle(bundle_path, {})
+        assert wait_idle(system.proxy) == ""
+        polkit_allow.calls()
+        system.proxy.Mark("active", "other")
+        polkit_allow.proxy.SetAllowed([])
+        with pytest.raises(DBusError, match="not authorized"):
+            system.proxy.Mark("active", "other")
+
+        first, second = polkit_allow.calls()
+
+    assert first[1]["install-complete"] == "true"
+    assert first[1]["activated-since-install"] == "false"
+    assert second[1]["activated-since-install"] == "true"
 
 
 def test_refused_when_polkit_does_not_answer(rauc_dbus_service_with_system, polkit_allow):

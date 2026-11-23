@@ -43,11 +43,23 @@ G_GNUC_WARN_UNUSED_RESULT;
 gboolean r_mark_bad(RaucSlot *slot, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 
+/**
+ * Check whether a slot identifier names the booted slot.
+ *
+ * @param slot_identifier String representation of slot identifier
+ *                        (e.g. "booted" or the slot name)
+ *
+ * @return TRUE if one of the slots it names is the booted one
+ */
+gboolean r_mark_names_booted_slot(const gchar *slot_identifier);
+
 typedef struct {
 	/* all of them are "ok" and from the same bundle */
 	gboolean install_complete;
 	/* all of them are at or above min-bundle-version */
 	gboolean meets_version_limit;
+	/* the slot was activated after it was last installed */
+	gboolean activated_since_install;
 } RMarkActivationChecks;
 
 /**

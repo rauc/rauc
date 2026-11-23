@@ -117,20 +117,35 @@ static gboolean access_args_overriding(const RaucBundleAccessArgs *access_args)
 	       access_args->http_headers;
 }
 
-static void install_args_refused(RaucInstallArgs *args)
+typedef struct {
+	RaucInstallArgs *args;
+	/* booted slot state when polkit was asked */
+	gboolean booted_slot_good;
+} RInstallCall;
+
+static void install_call_free(RInstallCall *call)
 {
-	args->status_result = 1;
-	install_args_free(args);
+	if (call->args) {
+		call->args->status_result = 1;
+		install_args_free(call->args);
+	}
+	g_free(call);
 }
 
 static void install_bundle_authorized(GDBusMethodInvocation *invocation, gpointer data)
 {
-	RaucInstallArgs *args = data;
+	RInstallCall *call = data;
 
 	/* Leaves Operation alone, as it belongs to the method that is running. */
 	if (r_context_get_busy()) {
 		return_failed(invocation, "Already processing a different method");
-		install_args_refused(args);
+		install_call_free(call);
+		return;
+	}
+
+	if (r_service_booted_slot_is_good != call->booted_slot_good) {
+		return_failed(invocation, "Booted slot state changed during authorization");
+		install_call_free(call);
 		return;
 	}
 
@@ -138,7 +153,8 @@ static void install_bundle_authorized(GDBusMethodInvocation *invocation, gpointe
 
 	r_installer_set_operation(r_installer, "installing");
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
-	install_run(args);
+	install_run(g_steal_pointer(&call->args));
+	install_call_free(call);
 	r_installer_complete_install(r_installer, invocation);
 }
 
@@ -148,7 +164,8 @@ static gboolean r_on_handle_install_bundle(
 		const gchar *source,
 		GVariant *arg_args)
 {
-	RaucInstallArgs *args = install_args_new();
+	RInstallCall *call = g_new0(RInstallCall, 1);
+	RaucInstallArgs *args;
 	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(arg_args);
 	g_autoptr(GVariant) dict_rest = NULL;
 	GVariantIter iter;
@@ -158,10 +175,12 @@ static gboolean r_on_handle_install_bundle(
 
 	g_print("input bundle: %s\n", source);
 
+	call->args = args = install_args_new();
+
 	/* checked again once authorized */
 	if (r_context_get_busy()) {
 		return_failed(invocation, "Already processing a different method");
-		install_args_refused(args);
+		install_call_free(call);
 		return TRUE;
 	}
 
@@ -192,7 +211,8 @@ static gboolean r_on_handle_install_bundle(
 		g_free(key);
 		return_failed(invocation, message);
 		args->status_result = 2;
-		install_args_free(args);
+		install_args_free(g_steal_pointer(&call->args));
+		install_call_free(call);
 		r_installer_set_operation(r_installer, "idle");
 		return TRUE;
 	}
@@ -201,9 +221,11 @@ static gboolean r_on_handle_install_bundle(
 	override = args->ignore_compatible || args->ignore_version_limit ||
 	           args->transaction || access_args_overriding(&args->access_args);
 
+	call->booted_slot_good = r_service_booted_slot_is_good;
 	details_add(details, "source", args->name);
 	details_add_bool(details, "ignore-compatible", args->ignore_compatible);
 	details_add_bool(details, "ignore-version-limit", args->ignore_version_limit);
+	details_add_bool(details, "booted-slot-good", call->booted_slot_good);
 	add_access_args_details(details, &args->access_args);
 	if (args->transaction)
 		details_add(details, "transaction-id", args->transaction);
@@ -213,8 +235,8 @@ static gboolean r_on_handle_install_bundle(
 
 	r_authorize(invocation,
 			override ? "de.pengutronix.rauc.install-override" : "de.pengutronix.rauc.install",
-			(const gchar *const *) details->pdata, install_bundle_authorized, args,
-			(GDestroyNotify) install_args_refused);
+			(const gchar *const *) details->pdata, install_bundle_authorized, call,
+			(GDestroyNotify) install_call_free);
 
 	return TRUE;
 }
@@ -356,6 +378,7 @@ typedef struct {
 	gchar *slot_identifier;
 	/* for state "active", what polkit was told */
 	RMarkActivationChecks checks;
+	gboolean booted_slot_good;
 } RMarkCall;
 
 static void mark_call_free(RMarkCall *call)
@@ -383,21 +406,22 @@ static void mark_authorized(GDBusMethodInvocation *invocation, gpointer data)
 
 		r_mark_activation_checks(call->slot_identifier, &checks);
 		if (checks.install_complete != call->checks.install_complete ||
-		    checks.meets_version_limit != call->checks.meets_version_limit) {
+		    checks.meets_version_limit != call->checks.meets_version_limit ||
+		    checks.activated_since_install != call->checks.activated_since_install ||
+		    r_service_booted_slot_is_good != call->booted_slot_good) {
 			res = FALSE;
 			message = g_strdup("slot status changed during authorization");
 			goto out;
 		}
 	}
 
+	/* cleared first, so a failed mark bad does not leave it set */
+	if (g_strcmp0(call->state, "bad") == 0 && r_mark_names_booted_slot(call->slot_identifier))
+		r_service_booted_slot_is_good = FALSE;
+
 	res = mark_run(call->state, call->slot_identifier, &slot_name, &message);
-	if (res && g_strcmp0(call->slot_identifier, "booted") == 0) {
-		if (g_strcmp0(call->state, "good") == 0) {
-			r_service_booted_slot_is_good = TRUE;
-		} else if (g_strcmp0(call->state, "bad") == 0) {
-			r_service_booted_slot_is_good = FALSE;
-		}
-	}
+	if (res && g_strcmp0(call->state, "good") == 0 && r_mark_names_booted_slot(call->slot_identifier))
+		r_service_booted_slot_is_good = TRUE;
 
 out:
 	if (res) {
@@ -436,8 +460,11 @@ static gboolean r_on_handle_mark(RInstaller *interface,
 	call->slot_identifier = g_strdup(arg_slot_identifier);
 	if (g_strcmp0(arg_state, "active") == 0) {
 		r_mark_activation_checks(arg_slot_identifier, &call->checks);
+		call->booted_slot_good = r_service_booted_slot_is_good;
 		details_add_bool(details, "install-complete", call->checks.install_complete);
 		details_add_bool(details, "meets-version-limit", call->checks.meets_version_limit);
+		details_add_bool(details, "activated-since-install", call->checks.activated_since_install);
+		details_add_bool(details, "booted-slot-good", call->booted_slot_good);
 	}
 	g_ptr_array_add(details, NULL);
 
