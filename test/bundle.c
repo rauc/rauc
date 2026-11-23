@@ -98,6 +98,17 @@ static void bundle_fixture_set_up_bundle_corrupt(BundleFixture *fixture,
 	flip_bits_filename(fixture->bundlename, 1024*1024+512, 0xff);
 }
 
+static void bundle_fixture_set_up_bundle_corrupt_mid_chunk(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	replace_strdup(&r_context_conf()->certpath, "test/openssl-ca/dev/autobuilder-1.cert.pem");
+	replace_strdup(&r_context_conf()->keypath, "test/openssl-ca/dev/private/autobuilder-1.pem");
+
+	prepare_bundle(fixture, user_data);
+	/* corrupt a block in the middle of a 64 KiB chunk read by the pre-check */
+	flip_bits_filename(fixture->bundlename, 1024*1024+32*1024+512, 0xff);
+}
+
 static void bundle_fixture_set_up_bundle_autobuilder2(BundleFixture *fixture,
 		gconstpointer user_data)
 {
@@ -517,6 +528,34 @@ static void bundle_test_create_check_mount_with_pre_check_corrupt(BundleFixture 
 	g_assert_error(ierror, G_FILE_ERROR, G_FILE_ERROR_IO);
 	g_assert_false(res);
 	g_assert_nonnull(strstr(ierror->message, "failed between 1048576 and 1114112 bytes with error: Input/output error"));
+}
+
+static void bundle_test_create_check_mount_with_pre_check_corrupt_mid_chunk(BundleFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucBundle) bundle = NULL;
+	g_autoptr(GError) ierror = NULL;
+	gboolean res = FALSE;
+
+	/* mount needs to run as root */
+	if (!test_running_as_root())
+		return;
+
+	r_context()->config->perform_pre_check = TRUE;
+
+	res = check_bundle(fixture->bundlename, &bundle, CHECK_BUNDLE_NO_VERIFY, NULL, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+	g_assert_nonnull(bundle);
+
+	/* The kernel returns the intact data before the corrupt block as a
+	 * short read. Where the failing range starts depends on the page
+	 * size, so only check for the error itself. */
+	res = mount_bundle(bundle, &ierror);
+	g_assert_error(ierror, G_FILE_ERROR, G_FILE_ERROR_IO);
+	g_assert_false(res);
+	g_assert_nonnull(strstr(ierror->message, "bytes with error: Input/output error"));
+	r_context()->config->perform_pre_check = FALSE;
 }
 
 static void bundle_test_extract_signature(BundleFixture *fixture,
@@ -1134,6 +1173,11 @@ int main(int argc, char *argv[])
 			g_test_add(dup_test_printf(ptrs, "/bundle/create_mount_with_pre_check_corrupt/%s", format_name),
 					BundleFixture, bundle_data,
 					bundle_fixture_set_up_bundle_corrupt, bundle_test_create_check_mount_with_pre_check_corrupt,
+					bundle_fixture_tear_down);
+
+			g_test_add(dup_test_printf(ptrs, "/bundle/create_mount_with_pre_check_corrupt_mid_chunk/%s", format_name),
+					BundleFixture, bundle_data,
+					bundle_fixture_set_up_bundle_corrupt_mid_chunk, bundle_test_create_check_mount_with_pre_check_corrupt_mid_chunk,
 					bundle_fixture_tear_down);
 		}
 	}
