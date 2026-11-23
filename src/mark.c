@@ -133,6 +133,7 @@ static void r_event_log_mark_bad(RaucSlot *slot)
 gboolean r_mark_active(RaucSlot *slot, GError **error)
 {
 	RaucSlotStatus *slot_state;
+	g_autoptr(GDateTime) previous = NULL;
 	GError *ierror = NULL;
 
 	g_return_val_if_fail(slot, FALSE);
@@ -141,7 +142,24 @@ gboolean r_mark_active(RaucSlot *slot, GError **error)
 	r_slot_status_load(slot);
 	slot_state = slot->status;
 
+	/* Recorded before switching, so an activation cut off by a power loss
+	 * is not taken for none. */
+	previous = g_steal_pointer(&slot_state->activated_timestamp);
+	slot_state->activated_timestamp = g_date_time_new_now_utc();
+	slot_state->activated_count++;
+	if (!r_slot_status_save(slot, &ierror)) {
+		g_message("Error while writing status file: %s", ierror->message);
+		g_clear_error(&ierror);
+	}
+
 	if (!r_boot_set_primary(slot, &ierror)) {
+		g_autoptr(GError) save_error = NULL;
+
+		g_date_time_unref(slot_state->activated_timestamp);
+		slot_state->activated_timestamp = g_steal_pointer(&previous);
+		slot_state->activated_count--;
+		if (!r_slot_status_save(slot, &save_error))
+			g_message("Error while writing status file: %s", save_error->message);
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
 				"failed to activate slot %s: %s", slot->name, ierror->message);
 		g_error_free(ierror);
@@ -149,16 +167,6 @@ gboolean r_mark_active(RaucSlot *slot, GError **error)
 	}
 
 	r_event_log_mark_active(slot);
-
-	if (slot_state->activated_timestamp)
-		g_date_time_unref(slot_state->activated_timestamp);
-	slot_state->activated_timestamp = g_date_time_new_now_utc();
-	slot_state->activated_count++;
-
-	if (!r_slot_status_save(slot, &ierror)) {
-		g_message("Error while writing status file: %s", ierror->message);
-		g_error_free(ierror);
-	}
 
 	return TRUE;
 }
