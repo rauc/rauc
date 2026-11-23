@@ -958,6 +958,7 @@ static gchar *info_formatter_shell(RaucManifest *manifest)
 	r_ptr_array_add_printf(entries, "RAUC_MF_VERSION=%s", manifest->update_version ?: "");
 	r_ptr_array_add_printf(entries, "RAUC_MF_DESCRIPTION=%s", manifest->update_description ?: "");
 	r_ptr_array_add_printf(entries, "RAUC_MF_BUILD=%s", manifest->update_build ?: "");
+	r_ptr_array_add_printf(entries, "RAUC_MF_MIN_RAUC_VERSION=%s", manifest->update_min_rauc_version ?: "");
 	r_ptr_array_add_printf(entries, "RAUC_MF_HASH=%s", manifest->hash ?: "");
 	r_ptr_array_add_printf(entries, "RAUC_MF_FORMAT=%s", r_manifest_bundle_format_to_str(manifest->bundle_format));
 	r_ptr_array_add_printf(entries, "RAUC_MF_IMAGES=%d", g_list_length(manifest->images));
@@ -1044,6 +1045,8 @@ static gchar *info_formatter_readable(RaucManifest *manifest)
 	g_string_append_printf(text, "Version:        '%s'\n", manifest->update_version);
 	g_string_append_printf(text, "Description:    '%s'\n", manifest->update_description);
 	g_string_append_printf(text, "Build:          '%s'\n", manifest->update_build);
+	if (manifest->update_min_rauc_version)
+		g_string_append_printf(text, "Min. Version:   '%s'\n", manifest->update_min_rauc_version);
 
 	hooks = g_ptr_array_new();
 	if (manifest->hooks.install_check == TRUE) {
@@ -1213,6 +1216,9 @@ static gchar* info_formatter_json_base(RaucManifest *manifest, gboolean pretty)
 
 	json_builder_set_member_name(builder, "build");
 	json_builder_add_string_value(builder, manifest->update_build);
+
+	json_builder_set_member_name(builder, "min-rauc-version");
+	json_builder_add_string_value(builder, manifest->update_min_rauc_version);
 
 	json_builder_set_member_name(builder, "format");
 	json_builder_add_string_value(builder, r_manifest_bundle_format_to_str(manifest->bundle_format));

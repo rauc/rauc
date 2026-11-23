@@ -275,3 +275,16 @@ def test_info_configoverride(tmp_path):
     out, err, exitcode = run("rauc info -C")
     assert exitcode == 1
     assert "Error in parsing override: you must specify it in format SECTION:KEY=VALUE" in err
+
+
+def test_info_min_rauc_version(bundle):
+    bundle.manifest["update"]["min-rauc-version"] = "1.14"
+    bundle.build()
+
+    out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-ca.pem info {bundle.output}")
+    assert exitcode == 0
+    assert "Min. Version:   '1.14'" in out
+
+    out, err, exitcode = run(f"rauc --keyring openssl-ca/dev-ca.pem info --output-format=shell {bundle.output}")
+    assert exitcode == 0
+    assert "RAUC_MF_MIN_RAUC_VERSION='1.14'" in out
