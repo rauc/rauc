@@ -76,6 +76,24 @@ RaucSlot *r_slot_find_by_device(GHashTable *slots, const gchar *device)
 	return NULL;
 }
 
+RaucSlot *r_slot_find_by_bootname(GHashTable *slots, const gchar *bootname)
+{
+	GHashTableIter iter;
+	RaucSlot *slot;
+
+	g_return_val_if_fail(slots, NULL);
+	g_return_val_if_fail(bootname, NULL);
+
+	g_hash_table_iter_init(&iter, slots);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer*) &slot)) {
+		if (g_strcmp0(slot->bootname, bootname) == 0) {
+			return slot;
+		}
+	}
+
+	return NULL;
+}
+
 RaucSlot *r_slot_get_booted(GHashTable *slots)
 {
 	GHashTableIter iter;
