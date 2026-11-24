@@ -54,6 +54,7 @@ typedef struct {
 	gchar *grubenv_path;
 	gchar *custom_bootloader_backend;
 	gboolean efi_use_bootnext;
+	gchar *fwu_namespace;
 	/** prevent fallback after successfully booting into primary slot */
 	gboolean prevent_late_fallback;
 	/* maximum filesize to download in bytes */

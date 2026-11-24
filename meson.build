@@ -124,6 +124,7 @@ sources_rauc = files([
   'src/bootloaders/barebox.c',
   'src/bootloaders/custom.c',
   'src/bootloaders/efi.c',
+  'src/bootloaders/fwu.c',
   'src/bootloaders/grub.c',
   'src/bootloaders/uboot.c',
   'src/bundle.c',

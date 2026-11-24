@@ -4,6 +4,15 @@
 
 #include <slot.h>
 
+gboolean r_uboot_env_get_opts(const gchar * const *opts, const gchar *key, GString **value, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+gboolean r_uboot_env_set_opts(const gchar * const *opts, const gchar *key, const gchar *value, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
+gboolean r_uboot_env_setv_opts(const gchar * const *opts, GPtrArray *pairs, GError **error)
+G_GNUC_WARN_UNUSED_RESULT;
+
 gboolean r_uboot_set_state(RaucSlot *slot, gboolean good, GError **error)
 G_GNUC_WARN_UNUSED_RESULT;
 

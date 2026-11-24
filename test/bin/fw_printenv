@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Use a separate state file for each namespace
+if [ "$1" = "-m" ]; then
+	UBOOT_STATE_PATH="$UBOOT_STATE_PATH.$2"
+	shift 2
+fi
+
 # Read env file into environment
 eval $(cat $UBOOT_STATE_PATH | sed  "s/\(.*\)=\(.*\)/export \1=\"\2\"/g")
 UBOOT_VARS=$(cat $UBOOT_STATE_PATH | sed  "s/\(.*\)=\(.*\)/\1/g" | tr '\n' ' ')

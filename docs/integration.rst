@@ -530,6 +530,7 @@ tool to interact with it:
 :Barebox: barebox-state
           (from `dt-utils <https://git.pengutronix.de/cgit/tools/dt-utils/>`_)
 :U-Boot: fw_setenv/fw_getenv (from `u-boot <http://git.denx.de/?p=u-boot.git;a=summary>`_)
+:FWU metadata: fw_setenv/fw_printenv (from `libubootenv <https://github.com/sbabic/libubootenv>`_)
 :GRUB: grub-editenv
 :EFI: efibootmgr
 
@@ -1359,6 +1360,80 @@ argument in the ``efibootmgr`` call above:
   device=/dev/sdX4
   type=ext4
   parent=efi.1
+
+FWU Metadata
+~~~~~~~~~~~~
+
+The `Arm Firmware Update (FWU) specification
+<https://developer.arm.com/documentation/den0118/latest/>`_ describes a
+multi-bank layout where the FWU metadata selects the bank to boot.
+The boot firmware, for example TF-A or U-Boot, boots the active bank in trial
+state until it is accepted, and falls back to the previous active bank when
+the trial fails.
+
+RAUC accesses the FWU metadata through the ``fw_printenv`` and ``fw_setenv``
+tools of `libubootenv <https://github.com/sbabic/libubootenv>`_, which
+support it as a storage format of a namespace.
+To enable FWU support in RAUC, select it in your system.conf and set the
+namespace of the metadata:
+
+.. code-block:: cfg
+
+  [system]
+  ...
+  bootloader=fwu
+  fwu-namespace=fwu
+
+The bootname of a slot is the index of its bank in the metadata:
+
+.. code-block:: cfg
+
+  [slot.rootfs.0]
+  device=/dev/mmcblk0p10
+  type=ext4
+  bootname=0
+
+  [slot.rootfs.1]
+  device=/dev/mmcblk0p11
+  type=ext4
+  bootname=1
+
+RAUC uses the following variables of the metadata:
+
+``active_index``
+  The bank booted by the boot firmware.
+  Marking a slot as primary sets it to the bank of the slot and saves the
+  previous value in ``previous_active_index``.
+
+``bank<N>_state``
+  The state of bank ``<N>``.
+  A slot marked as primary is set to ``valid``, the trial state, unless it
+  is the booted one.
+  Marking a slot good sets it to ``accepted``, marking it bad to ``invalid``.
+  Both ``valid`` and ``accepted`` banks are reported as good.
+
+The ``invalid`` state is only defined by version 2 of the FWU metadata.
+With version 1, ``fw_setenv`` fails with ``ENOTSUP`` when marking a slot
+bad.
+RAUC then logs a warning and leaves the bank state as is, so a bank being
+installed is not protected from being booted.
+
+The variables are updated with a single ``fw_setenv`` call, so they change
+together.
+The number of boot attempts in trial state is handled by the boot firmware,
+so ``boot-attempts`` and ``boot-attempts-primary`` are not supported.
+
+The namespace is described in ``/etc/fw_env.config``, see the libubootenv
+documentation for the ``fwu-mdata`` format:
+
+.. code-block:: yaml
+
+  fwu:
+    format : fwu-mdata
+    size : 0x118
+    devices:
+      - path : /dev/mmcblk0p3
+      - path : /dev/mmcblk0p4
 
 .. _sec-custom-bootloader-backend:
 

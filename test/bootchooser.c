@@ -911,6 +911,217 @@ BOOT_B_LEFT=3\n\
 "));
 }
 
+/* Write content to the state storage of the "fwu" namespace for the
+ * fw_setenv / fw_printenv RAUC mock tools. Content should be similar to:
+ * "\
+ * active_index=0\n\
+ * previous_active_index=1\n\
+ * bank0_state=accepted\n\
+ * bank1_state=accepted\n\
+ * "
+ */
+static void test_fwu_initialize_state(const BootchooserFixture *fixture, const gchar *vars)
+{
+	g_autofree gchar *state_path = g_build_filename(fixture->tmpdir, "uboot-test-state", NULL);
+	g_autofree gchar *fwu_state_path = g_strconcat(state_path, ".fwu", NULL);
+	g_assert_true(g_setenv("UBOOT_STATE_PATH", state_path, TRUE));
+	g_assert_true(g_file_set_contents(fwu_state_path, vars, -1, NULL));
+}
+
+/* Returns TRUE if the state of the "fwu" namespace equals the desired
+ * content, FALSE otherwise
+ */
+static gboolean test_fwu_post_state(const BootchooserFixture *fixture, const gchar *compare)
+{
+	g_autofree gchar *state_path = g_build_filename(fixture->tmpdir, "uboot-test-state.fwu", NULL);
+	g_autofree gchar *contents = NULL;
+
+	g_assert_true(g_file_get_contents(state_path, &contents, NULL, NULL));
+
+	if (g_strcmp0(contents, compare) != 0) {
+		g_print("Error: '%s' and '%s' differ\n", contents, compare);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static void bootchooser_fwu(BootchooserFixture *fixture,
+		gconstpointer user_data)
+{
+	RaucSlot *rootfs0 = NULL;
+	RaucSlot *rootfs1 = NULL;
+	RaucSlot *primary = NULL;
+	gboolean good;
+	GError *error = NULL;
+
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=fwu\n\
+fwu-namespace=fwu\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[keyring]\n\
+path=/etc/rauc/keyring/\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/rootfs-0\n\
+type=ext4\n\
+bootname=0\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/rootfs-1\n\
+type=ext4\n\
+bootname=1\n";
+
+	gchar* pathname = write_tmp_file(fixture->tmpdir, "fwu.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_clear_pointer(&r_context_conf()->configpath, g_free);
+	r_context_conf()->configpath = pathname;
+	r_context();
+
+	rootfs0 = find_config_slot_by_name(r_context()->config, "rootfs.0");
+	g_assert_nonnull(rootfs0);
+	rootfs1 = find_config_slot_by_name(r_context()->config, "rootfs.1");
+	g_assert_nonnull(rootfs1);
+
+	/* check accepted and valid (trial) banks are considered good, invalid ones bad */
+	test_fwu_initialize_state(fixture, "\
+active_index=1\n\
+previous_active_index=0\n\
+bank0_state=accepted\n\
+bank1_state=valid\n\
+");
+	g_assert_true(r_boot_get_state(rootfs0, &good, NULL));
+	g_assert_true(good);
+	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	g_assert_true(good);
+
+	test_fwu_initialize_state(fixture, "\
+active_index=0\n\
+previous_active_index=1\n\
+bank0_state=accepted\n\
+bank1_state=invalid\n\
+");
+	g_assert_true(r_boot_get_state(rootfs1, &good, NULL));
+	g_assert_false(good);
+
+	/* check an unknown state is rejected */
+	test_fwu_initialize_state(fixture, "\
+active_index=0\n\
+previous_active_index=1\n\
+bank0_state=accepted\n\
+bank1_state=unknown\n\
+");
+	g_assert_false(r_boot_get_state(rootfs1, &good, &error));
+	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_PARSE_FAILED);
+	g_clear_error(&error);
+
+	/* check rootfs.1 is considered primary (active_index set to 1) */
+	test_fwu_initialize_state(fixture, "\
+active_index=1\n\
+previous_active_index=0\n\
+bank0_state=accepted\n\
+bank1_state=accepted\n\
+");
+	primary = r_boot_get_primary(NULL);
+	g_assert(primary == rootfs1);
+
+	/* check none is considered primary (no slot for active bank 2) */
+	test_fwu_initialize_state(fixture, "\
+active_index=2\n\
+previous_active_index=0\n\
+bank0_state=accepted\n\
+bank1_state=accepted\n\
+");
+	primary = r_boot_get_primary(&error);
+	g_assert_null(primary);
+	g_assert_error(error, R_BOOTCHOOSER_ERROR, R_BOOTCHOOSER_ERROR_PARSE_FAILED);
+	g_clear_error(&error);
+
+	/* check rootfs.1 is marked bad (bank1_state set to invalid) */
+	test_fwu_initialize_state(fixture, "\
+active_index=0\n\
+previous_active_index=1\n\
+bank0_state=accepted\n\
+bank1_state=accepted\n\
+");
+	g_assert_true(r_boot_set_state(rootfs1, FALSE, NULL));
+	g_assert_true(test_fwu_post_state(fixture, "\
+active_index=0\n\
+previous_active_index=1\n\
+bank0_state=accepted\n\
+bank1_state=invalid\n\
+"));
+
+	/* check marking bad on FWU metadata v1 leaves the state as is */
+	test_fwu_initialize_state(fixture, "\
+active_index=0\n\
+previous_active_index=1\n\
+bank0_state=accepted\n\
+bank1_state=accepted\n\
+");
+	g_assert_true(g_setenv("FWU_MDATA_VERSION", "1", TRUE));
+	g_test_expect_message(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, "Bank 1 can't be marked invalid, *");
+	g_assert_true(r_boot_set_state(rootfs1, FALSE, NULL));
+	g_test_assert_expected_messages();
+	g_unsetenv("FWU_MDATA_VERSION");
+	g_assert_true(test_fwu_post_state(fixture, "\
+active_index=0\n\
+previous_active_index=1\n\
+bank0_state=accepted\n\
+bank1_state=accepted\n\
+"));
+
+	/* check rootfs.1 is marked primary (active, previous bank 0, in trial) */
+	g_assert_true(r_boot_set_primary(rootfs1, NULL));
+	g_assert_true(test_fwu_post_state(fixture, "\
+active_index=1\n\
+previous_active_index=0\n\
+bank0_state=accepted\n\
+bank1_state=valid\n\
+"));
+
+	/* check rootfs.1 is marked good (bank1_state set to accepted) */
+	g_assert_true(r_boot_set_state(rootfs1, TRUE, NULL));
+	g_assert_true(test_fwu_post_state(fixture, "\
+active_index=1\n\
+previous_active_index=0\n\
+bank0_state=accepted\n\
+bank1_state=accepted\n\
+"));
+
+	/* check marking the active bank primary puts it in trial again, if not booted */
+	g_assert_true(r_boot_set_primary(rootfs1, NULL));
+	g_assert_true(test_fwu_post_state(fixture, "\
+active_index=1\n\
+previous_active_index=0\n\
+bank0_state=accepted\n\
+bank1_state=valid\n\
+"));
+
+	/* check marking the booted bank primary keeps its state */
+	rootfs0->state = ST_BOOTED;
+	g_assert_true(r_boot_set_primary(rootfs0, NULL));
+	g_assert_true(test_fwu_post_state(fixture, "\
+active_index=0\n\
+previous_active_index=1\n\
+bank0_state=accepted\n\
+bank1_state=valid\n\
+"));
+
+	/* check marking the booted bank primary again changes nothing */
+	g_assert_true(r_boot_set_primary(rootfs0, NULL));
+	g_assert_true(test_fwu_post_state(fixture, "\
+active_index=0\n\
+previous_active_index=1\n\
+bank0_state=accepted\n\
+bank1_state=valid\n\
+"));
+}
+
 static void bootchooser_efi(BootchooserFixture *fixture,
 		gconstpointer user_data)
 {
@@ -1281,6 +1492,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bootchooser/uboot-asymmetric", BootchooserFixture, NULL,
 			bootchooser_fixture_set_up, bootchooser_uboot_asymmetric,
+			bootchooser_fixture_tear_down);
+
+	g_test_add("/bootchooser/fwu", BootchooserFixture, NULL,
+			bootchooser_fixture_set_up, bootchooser_fwu,
 			bootchooser_fixture_tear_down);
 
 	g_test_add("/bootchooser/efi", BootchooserFixture, NULL,

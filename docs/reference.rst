@@ -99,7 +99,7 @@ Example configuration:
   The bootloader implementation RAUC should use for its slot switching
   mechanism.
   Currently supported values (and bootloaders) are ``barebox``, ``grub``,
-  ``uboot``, ``efi``, ``custom``, ``noop``.
+  ``uboot``, ``efi``, ``fwu``, ``custom``, ``noop``.
 
 .. _bundle-formats:
 
@@ -162,6 +162,9 @@ Example configuration:
   This is useful for setups where the BIOS already handles the slot switching
   on watchdog resets.
   Behavior defaults to ``true`` if the option is not set.
+
+``fwu-namespace`` (required for ``bootloader=fwu``)
+  Name of the libubootenv namespace that gives access to the FWU metadata.
 
 .. _activate-installed:
 
