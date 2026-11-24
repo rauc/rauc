@@ -55,7 +55,7 @@ foreach test_name : tests
     extra_test_sources, dbus_sources,
     link_with : librauc,
     c_args : '-DTEST_SERVICES="' + meson.build_root() + '"',
-    include_directories : incdir,
+    include_directories : [incdir, include_directories('../src')],
     dependencies : rauc_deps)
 
   test(

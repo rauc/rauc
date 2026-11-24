@@ -3,6 +3,7 @@
 #include <glib.h>
 
 #include <bootchooser.h>
+#include <bootloaders/efi.h>
 #include <context.h>
 #include <utils.h>
 
@@ -1023,6 +1024,83 @@ bootname=system1\n";
 	g_unsetenv("EFIBOOTMGR_FAIL_BOOTORDER");
 }
 
+/* If the 'BootCurrent:' entry in efibootmgr is pointing to an invalid entry
+ * then r_efi_get_current_bootname() should fail cleanly with a GError set rather
+ * than aborting*/
+static void boostchooser_efi_bootcurrent_invalid(BootchooserFixture *fixture,
+		gconstpointer user_data)
+{
+	const gchar *cfg_file = "\
+[system]\n\
+compatible=FooCorp Super BarBazzer\n\
+bootloader=efi\n\
+mountprefix=/mnt/myrauc/\n\
+\n\
+[keyring]\n\
+path=/etc/rauc/keyring/\n\
+\n\
+[slot.rootfs.0]\n\
+device=/dev/rootfs-0\n\
+type=ext4\n\
+bootname=system0\n\
+\n\
+[slot.rootfs.1]\n\
+device=/dev/rootfs-1\n\
+type=ext4\n\
+bootname=system1\n";
+
+	gchar* pathname = write_tmp_file(fixture->tmpdir, "efi-fail.conf", cfg_file, NULL);
+	g_assert_nonnull(pathname);
+
+	g_clear_pointer(&r_context_conf()->configpath, g_free);
+	r_context_conf()->configpath = pathname;
+	r_context();
+
+	const gchar* bad_efi_cfg_file = "\
+{\n\
+  \"boot_current\": \"0002\",\n\
+  \"timeout\": 0,\n\
+  \"boot_order\": [\"0000\",\"0001\"],\n\
+  \"boot_next\": \"0001\",\n\
+  \"boot_entries\": {\n\
+    \"0000\": {\"label\": \"system0\"},\n\
+    \"0001\": {\"label\": \"system1\"}\n\
+  }\n\
+}";
+
+	gchar* bad_efi_pathname = write_tmp_file(fixture->tmpdir, "efi-vars.conf", bad_efi_cfg_file, NULL);
+	g_assert_nonnull(bad_efi_pathname);
+
+	g_assert_true(g_setenv("EFIBOOTMGR_VAR_FILE", bad_efi_pathname, TRUE));
+
+	GError *error = NULL;
+	g_assert_null(r_efi_get_current_bootname(r_context()->config, &error));
+	g_assert_nonnull(error);
+	g_clear_error(&error);
+
+	const gchar* good_efi_cfg_file = "\
+{\n\
+  \"boot_current\": \"0000\",\n\
+  \"timeout\": 0,\n\
+  \"boot_order\": [\"0000\",\"0001\"],\n\
+  \"boot_next\": \"0001\",\n\
+  \"boot_entries\": {\n\
+    \"0000\": {\"label\": \"system0\"},\n\
+    \"0001\": {\"label\": \"system1\"}\n\
+  }\n\
+}";
+
+	gchar* good_efi_pathname = write_tmp_file(fixture->tmpdir, "efi-vars.conf", good_efi_cfg_file, NULL);
+	g_assert_nonnull(good_efi_pathname);
+
+	g_assert_true(g_setenv("EFIBOOTMGR_VAR_FILE", good_efi_pathname, TRUE));
+
+	g_assert_nonnull(r_efi_get_current_bootname(r_context()->config, &error));
+	g_assert_null(error);
+
+	g_unsetenv("EFIBOOTMGR_VAR_FILE");
+}
+
 /* Write content to state storage for custom-backend RAUC mock
  * tools. Content should be similar to:
  * "\
@@ -1289,6 +1367,10 @@ int main(int argc, char *argv[])
 
 	g_test_add("/bootchooser/efi-bootorder-failure", BootchooserFixture, NULL,
 			bootchooser_fixture_set_up, bootchooser_efi_bootorder_failure,
+			bootchooser_fixture_tear_down);
+
+	g_test_add("/bootchooser/efi-bootcurrent_invalid", BootchooserFixture, NULL,
+			bootchooser_fixture_set_up, boostchooser_efi_bootcurrent_invalid,
 			bootchooser_fixture_tear_down);
 
 	g_test_add("/bootchooser/custom", BootchooserFixture, NULL,
