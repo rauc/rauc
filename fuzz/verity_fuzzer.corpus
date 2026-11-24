@@ -1,0 +1,4 @@
+fuzz/seeds/verity/roundtrip2
+fuzz/seeds/verity/roundtrip-corrupt4
+fuzz/seeds/verity/verify-only1
+fuzz/seeds/verity/verify-only64
