@@ -917,7 +917,7 @@ static void bootchooser_efi(BootchooserFixture *fixture,
 	RaucSlot *slot;
 	gboolean good;
 	RaucSlot *primary = NULL;
-	gchar *bootname;
+	g_autofree gchar *bootname;
 	GError *error = NULL;
 
 	const gchar *cfg_file = "\
