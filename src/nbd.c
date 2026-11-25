@@ -7,8 +7,11 @@
 #include <errno.h>
 #include <string.h>
 #include <pwd.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/ioctl.h>
 #include <sys/prctl.h>
+#include <sys/socket.h>
 #include <sys/sysmacros.h>
 
 #include <glib.h>
@@ -340,6 +343,7 @@ struct RaucNBDTransfer {
 	struct nbd_reply reply;
 	gboolean done;
 	guint errors;
+	gint64 first_attempt; /* monotonic time */
 
 	guint8 *buffer;
 	curl_off_t buffer_size;
@@ -447,6 +451,20 @@ static size_t header_cb(char *buffer, size_t size, size_t nitems, void *userdata
 	return nitems;
 }
 
+/* Have the kernel close a connection when data sent on it stays
+ * unacknowledged for 30s, as happens when the connection dies without a FIN
+ * or RST. With HTTP/2, curl would otherwise keep queueing requests, including
+ * the retries of stalled ones, on the dead connection. */
+static int sockopt_cb(void *clientp, curl_socket_t fd, curlsocktype purpose)
+{
+	unsigned int timeout = 30000;
+
+	if (setsockopt(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, &timeout, sizeof(timeout)) != 0)
+		g_debug("failed to set TCP_USER_TIMEOUT: %s", g_strerror(errno));
+
+	return CURL_SOCKOPT_OK;
+}
+
 static void prepare_curl(struct RaucNBDTransfer *xfer)
 {
 	CURLcode code = 0;
@@ -500,6 +518,14 @@ static void prepare_curl(struct RaucNBDTransfer *xfer)
 
 	/* use a shorter timeout instead of the 5 minute default */
 	code |= curl_easy_setopt(xfer->easy, CURLOPT_CONNECTTIMEOUT, 20L);
+
+	/* Abort a transfer which has stalled, so that it is retried instead of
+	 * blocking until the kernel NBD request timeout (NBD_ATTR_TIMEOUT, 300s)
+	 * disconnects the device. */
+	code |= curl_easy_setopt(xfer->easy, CURLOPT_LOW_SPEED_LIMIT, 1L);
+	code |= curl_easy_setopt(xfer->easy, CURLOPT_LOW_SPEED_TIME, 20L);
+
+	code |= curl_easy_setopt(xfer->easy, CURLOPT_SOCKOPTFUNCTION, sockopt_cb);
 
 	/* a proxy may be configured using .netrc */
 	tunnel_code = curl_easy_setopt(xfer->easy, CURLOPT_HTTPPROXYTUNNEL, 1L);
@@ -563,6 +589,9 @@ static void start_read(struct RaucNBDContext *ctx, struct RaucNBDTransfer *xfer)
 	CURLcode code = 0;
 	CURLMcode mcode = 0;
 	g_autofree gchar *range = NULL;
+
+	if (!xfer->first_attempt)
+		xfer->first_attempt = g_get_monotonic_time();
 
 	xfer->buffer = g_malloc(xfer->request.len);
 	xfer->buffer_size = xfer->request.len;
@@ -888,6 +917,22 @@ static gboolean finish_request(struct RaucNBDContext *ctx, struct RaucNBDTransfe
 	return res;
 }
 
+/* Reads are retried after a transport error until RETRY_DEADLINE after their
+ * first attempt, so that a network outage of a few minutes does not fail the
+ * installation. The last attempt (20s to connect, about 26s to detect a stall,
+ * 1s pause) then still ends before the kernel NBD request timeout
+ * (NBD_ATTR_TIMEOUT, 300s). HTTP error responses and configure requests are
+ * retried 5 times, so a request the server rejects still fails quickly. */
+#define RETRY_DEADLINE (240 * G_USEC_PER_SEC)
+
+static gboolean retry_allowed(const struct RaucNBDTransfer *xfer, CURLcode result)
+{
+	if (xfer->request.type == NBD_CMD_READ && result != CURLE_HTTP_RETURNED_ERROR)
+		return g_get_monotonic_time() - xfer->first_attempt < RETRY_DEADLINE;
+
+	return xfer->errors < 5;
+}
+
 gboolean r_nbd_run_server(gint sock, GError **error)
 {
 	GError *ierror = NULL;
@@ -994,13 +1039,13 @@ gboolean r_nbd_run_server(gint sock, GError **error)
 				g_message("request failed (not found)");
 				xfer->reply.error = GUINT32_TO_BE(5); /* NBD_EIO */
 				xfer->done = TRUE;
-			} else if (xfer->errors >= 5) {
+			} else if (!retry_allowed(xfer, msg->data.result)) {
 				g_message("request failed (no more retries)");
 				xfer->reply.error = GUINT32_TO_BE(5); /* NBD_EIO */
 				xfer->done = TRUE;
 			} else {
 				xfer->errors++;
-				g_message("request failed: %s (retrying %d/5)", xfer->errbuf, xfer->errors);
+				g_message("request failed: %s (retry %u)", xfer->errbuf, xfer->errors);
 			}
 
 			res = finish_request(&ctx, xfer);
