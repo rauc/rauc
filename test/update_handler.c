@@ -106,6 +106,36 @@ static void test_get_custom_update_handler(UpdateHandlerFixture *fixture, gconst
 	g_assert_nonnull(handler);
 }
 
+/* Test update_handler/get_handler/hashref:
+ *
+ * Tests that get_update_handler() returns hashref_slot_handler for a
+ * type=hashref image regardless of the target slot type.
+ */
+static void test_get_hashref_update_handler(UpdateHandlerFixture *fixture, gconstpointer user_data)
+{
+	g_autoptr(RaucImage) image = NULL;
+	g_autoptr(RaucSlot) targetslot = NULL;
+	img_to_slot_handler handler;
+	GError *ierror = NULL;
+
+	image = r_new_image();
+	image->slotclass = g_strdup("rootfs");
+	image->filename = NULL;
+	image->type = g_strdup("hashref");
+	image->checksum.type = G_CHECKSUM_SHA256;
+	image->checksum.digest = g_strdup("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
+
+	targetslot = g_new0(RaucSlot, 1);
+	targetslot->name = g_intern_string("rootfs.0");
+	targetslot->sclass = g_intern_string("rootfs");
+	targetslot->device = g_strdup("/dev/null");
+	targetslot->type = g_strdup("ext4");
+
+	handler = get_update_handler(image, targetslot, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_nonnull(handler);
+}
+
 #define SLOT_SIZE (10*1024*1024)
 #define IMAGE_SIZE (10*1024*1024)
 #define FILE_SIZE (10*1024)
@@ -160,6 +190,123 @@ static void update_handler_fixture_tear_down(UpdateHandlerFixture *fixture,
 	if (!g_test_failed()) {
 		g_test_assert_expected_messages();
 	}
+}
+
+static void update_handler_fixture_set_up_empty(UpdateHandlerFixture *fixture,
+		gconstpointer user_data)
+{
+	fixture->tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(fixture->tmpdir);
+}
+
+static void update_handler_fixture_tear_down_empty(UpdateHandlerFixture *fixture,
+		gconstpointer user_data)
+{
+	if (!fixture->tmpdir)
+		return;
+
+	r_context_clean();
+	test_rm_tree(fixture->tmpdir, "");
+	g_clear_pointer(&fixture->tmpdir, g_free);
+}
+
+static void test_hashref_update_handler(UpdateHandlerFixture *fixture,
+		gconstpointer user_data)
+{
+	g_autoptr(RaucImage) image = NULL;
+	g_autofree gchar *srcpath = NULL;
+	g_autofree gchar *dstpath = NULL;
+	g_autofree gchar *configpath = NULL;
+	g_autofree gchar *configcontent = NULL;
+	g_autofree gchar *mountprefix = NULL;
+	g_autofree gchar *src_content = NULL;
+	g_autofree gchar *dst_content = NULL;
+	gsize src_len = 0, dst_len = 0;
+	RaucChecksum known = {.type = G_CHECKSUM_SHA256};
+	RaucSlot *source_slot = NULL;
+	RaucSlot *targetslot = NULL;
+	img_to_slot_handler handler;
+	GError *ierror = NULL;
+	gboolean res;
+
+	srcpath = g_build_filename(fixture->tmpdir, "source-slot", NULL);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "source-slot",
+			FILE_SIZE, "/dev/urandom") == 0);
+	dstpath = g_build_filename(fixture->tmpdir, "dest-slot", NULL);
+	g_assert(test_prepare_dummy_file(fixture->tmpdir, "dest-slot",
+			FILE_SIZE, "/dev/zero") == 0);
+
+	configcontent = g_strdup_printf(
+			"[system]\n"
+			"compatible=Test Config\n"
+			"bootloader=grub\n"
+			"grubenv=%s/grubenv\n"
+			"\n"
+			"[slot.rootfs.0]\n"
+			"device=%s\n"
+			"type=raw\n"
+			"bootname=A\n"
+			"\n"
+			"[slot.rootfs.1]\n"
+			"device=%s\n"
+			"type=raw\n"
+			"bootname=B\n",
+			fixture->tmpdir, srcpath, dstpath);
+	configpath = write_tmp_file(fixture->tmpdir, "system.conf", configcontent, NULL);
+	g_assert_nonnull(configpath);
+
+	mountprefix = g_build_filename(fixture->tmpdir, "testmount", NULL);
+	r_context_conf()->configpath = g_strdup(configpath);
+	r_context_conf()->mountprefix = g_strdup(mountprefix);
+	r_context();
+	g_assert(g_mkdir(mountprefix, 0777) == 0);
+
+	/* rootfs.0 is the booted slot, its status describes the content we wrote */
+	source_slot = g_hash_table_lookup(r_context()->config->slots, "rootfs.0");
+	g_assert_nonnull(source_slot);
+	source_slot->state = ST_BOOTED;
+	g_assert_true(compute_checksum(&known, srcpath, &ierror));
+	g_assert_no_error(ierror);
+	source_slot->status = g_new0(RaucSlotStatus, 1);
+	source_slot->status->checksum = known;
+
+	/* rootfs.1 is the target and must be inactive, otherwise it can be picked
+	 * as the active slot of the class */
+	targetslot = g_hash_table_lookup(r_context()->config->slots, "rootfs.1");
+	g_assert_nonnull(targetslot);
+	targetslot->state = ST_INACTIVE;
+
+	image = r_new_image();
+	image->slotclass = g_strdup("rootfs");
+	image->filename = NULL;
+	image->type = g_strdup("hashref");
+	image->checksum.type = G_CHECKSUM_SHA256;
+	image->checksum.digest = g_strdup(known.digest);
+
+	handler = get_update_handler(image, targetslot, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_nonnull(handler);
+
+	res = handler(image, targetslot, NULL, &ierror);
+	g_assert_no_error(ierror);
+	g_assert_true(res);
+
+	/* the size of the source slot must be adopted, so that it gets recorded
+	 * for the target slot as well */
+	g_assert_cmpint(image->checksum.size, ==, FILE_SIZE);
+
+	g_assert_true(g_file_get_contents(srcpath, &src_content, &src_len, NULL));
+	g_assert_true(g_file_get_contents(dstpath, &dst_content, &dst_len, NULL));
+	g_assert_cmpuint(src_len, ==, dst_len);
+	g_assert_cmpmem(src_content, src_len, dst_content, dst_len);
+
+	/* changing the content of the active slot after its status was recorded
+	 * must be detected while copying */
+	flip_bits_filename(srcpath, FILE_SIZE / 2, 0xff);
+	res = handler(image, targetslot, NULL, &ierror);
+	g_assert_error(ierror, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED);
+	g_assert_false(res);
+	g_clear_error(&ierror);
 }
 
 static gboolean tar_image(const gchar *dest, const gchar *dir, GError **error)
@@ -402,6 +549,11 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 		/* For emptyfs, don't set a filename since no file exists */
 		image->filename = NULL;
 		image->type = g_strdup("emptyfs");
+	} else if (g_strcmp0(test_pair->imagetype, "hashref") == 0) {
+		/* For hashref, no image file is included; the sha256 refers to the active slot */
+		image->filename = NULL;
+		image->type = g_strdup("hashref");
+		image->checksum.type = G_CHECKSUM_SHA256;
 	} else {
 		image->filename = g_strdup(imagepath);
 		image->type = g_strdup(derive_image_type_from_filename_pattern(image->filename));
@@ -451,8 +603,9 @@ static void test_update_handler(UpdateHandlerFixture *fixture,
 
 		r_context_conf()->install_info->mounted_bundle = g_new0(RaucBundle, 1);
 		r_context_conf()->install_info->mounted_bundle->storepath = storepath;
-	} else if (g_strcmp0(test_pair->imagetype, "emptyfs") != 0) {
-		/* No image file is needed emptyfs, so we just want to avoid dropping out here */
+	} else if (g_strcmp0(test_pair->imagetype, "emptyfs") != 0 &&
+	           g_strcmp0(test_pair->imagetype, "hashref") != 0) {
+		/* No image file is needed for emptyfs/hashref, so we just want to avoid dropping out here */
 		g_assert_not_reached();
 	}
 
@@ -782,6 +935,9 @@ int main(int argc, char *argv[])
 		{"ext4", "emptyfs", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_PRE_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"ext4", "emptyfs", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_POST_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
 		{"ext4", "emptyfs", TEST_UPDATE_HANDLER_HOOKS | TEST_UPDATE_HANDLER_INSTALL_HOOK | TEST_UPDATE_HANDLER_HOOK_FAIL | TEST_UPDATE_HANDLER_EXPECT_FAIL, G_SPAWN_EXIT_ERROR, 1},
+
+		/* hashref test (no image file; copies active slot device to inactive slot) */
+		{"ext4", "hashref", TEST_UPDATE_HANDLER_EXPECT_FAIL, R_UPDATE_ERROR, R_UPDATE_ERROR_FAILED},
 
 		{0}
 	};
@@ -1291,6 +1447,25 @@ int main(int argc, char *argv[])
 	g_test_add("/update_handler/update_handler/emptyfs_to_ext4/install-hook/fail",
 			UpdateHandlerFixture,
 			&testpair_matrix[77],
+			update_handler_fixture_set_up,
+			test_update_handler,
+			update_handler_fixture_tear_down);
+	/* hashref tests */
+	g_test_add("/update_handler/update_handler/hashref/copy",
+			UpdateHandlerFixture,
+			NULL,
+			update_handler_fixture_set_up_empty,
+			test_hashref_update_handler,
+			update_handler_fixture_tear_down_empty);
+	g_test_add("/update_handler/get_handler/hashref",
+			UpdateHandlerFixture,
+			NULL,
+			NULL,
+			test_get_hashref_update_handler,
+			NULL);
+	g_test_add("/update_handler/update_handler/hashref/no-active-slot/fail",
+			UpdateHandlerFixture,
+			&testpair_matrix[78],
 			update_handler_fixture_set_up,
 			test_update_handler,
 			update_handler_fixture_tear_down);
