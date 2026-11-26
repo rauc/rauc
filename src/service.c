@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "artifacts.h"
+#include "authorize.h"
 #include "bundle.h"
 #include "bootchooser.h"
 #include "config_file.h"
@@ -76,27 +77,111 @@ static void convert_dict_to_bundle_access_args(
 		g_variant_dict_remove(dict, "http-headers");
 }
 
+static void details_add(GPtrArray *details, const gchar *key, const gchar *value)
+{
+	g_ptr_array_add(details, (gpointer) key);
+	g_ptr_array_add(details, (gpointer) value);
+}
+
+static void details_add_bool(GPtrArray *details, const gchar *key, gboolean value)
+{
+	details_add(details, key, value ? "true" : "false");
+}
+
+/*
+ * Only passes whether each was given, as the values can hold credentials.
+ */
+static void add_access_args_details(GPtrArray *details, const RaucBundleAccessArgs *access_args)
+{
+	details_add_bool(details, "tls-no-verify", access_args->tls_no_verify);
+	details_add_bool(details, "tls-cert", access_args->tls_cert != NULL);
+	details_add_bool(details, "tls-key", access_args->tls_key != NULL);
+	details_add_bool(details, "tls-ca", access_args->tls_ca != NULL);
+	details_add_bool(details, "http-headers", access_args->http_headers != NULL);
+}
+
+static void return_failed(GDBusMethodInvocation *invocation, const gchar *message)
+{
+	g_dbus_method_invocation_return_error(invocation,
+			G_IO_ERROR,
+			G_IO_ERROR_FAILED_HANDLED,
+			"%s", message);
+}
+
+static gboolean access_args_overriding(const RaucBundleAccessArgs *access_args)
+{
+	g_return_val_if_fail(access_args, FALSE);
+
+	return access_args->tls_no_verify || access_args->tls_cert ||
+	       access_args->tls_key || access_args->tls_ca ||
+	       access_args->http_headers;
+}
+
+typedef struct {
+	RaucInstallArgs *args;
+	/* booted slot state when polkit was asked */
+	gboolean booted_slot_good;
+} RInstallCall;
+
+static void install_call_free(RInstallCall *call)
+{
+	if (call->args) {
+		call->args->status_result = 1;
+		install_args_free(call->args);
+	}
+	g_free(call);
+}
+
+static void install_bundle_authorized(GDBusMethodInvocation *invocation, gpointer data)
+{
+	RInstallCall *call = data;
+
+	/* Leaves Operation alone, as it belongs to the method that is running. */
+	if (r_context_get_busy()) {
+		return_failed(invocation, "Already processing a different method");
+		install_call_free(call);
+		return;
+	}
+
+	if (r_service_booted_slot_is_good != call->booted_slot_good) {
+		return_failed(invocation, "Booted slot state changed during authorization");
+		install_call_free(call);
+		return;
+	}
+
+	r_config_file_modified_check();
+
+	r_installer_set_operation(r_installer, "installing");
+	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
+	install_run(g_steal_pointer(&call->args));
+	install_call_free(call);
+	r_installer_complete_install(r_installer, invocation);
+}
+
 static gboolean r_on_handle_install_bundle(
 		RInstaller *interface,
 		GDBusMethodInvocation *invocation,
 		const gchar *source,
 		GVariant *arg_args)
 {
-	RaucInstallArgs *args = install_args_new();
+	RInstallCall *call = g_new0(RInstallCall, 1);
+	RaucInstallArgs *args;
 	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(arg_args);
 	g_autoptr(GVariant) dict_rest = NULL;
 	GVariantIter iter;
 	gchar *key;
-	g_autofree gchar *message = NULL;
-	gboolean res;
+	gboolean override;
+	g_autoptr(GPtrArray) details = g_ptr_array_new();
 
 	g_print("input bundle: %s\n", source);
 
-	res = !r_context_get_busy();
-	if (!res) {
-		message = g_strdup("Already processing a different method");
-		args->status_result = 1;
-		goto out;
+	call->args = args = install_args_new();
+
+	/* checked again once authorized */
+	if (r_context_get_busy()) {
+		return_failed(invocation, "Already processing a different method");
+		install_call_free(call);
+		return TRUE;
 	}
 
 	args->name = g_strdup(source);
@@ -121,31 +206,37 @@ static gboolean r_on_handle_install_bundle(
 	dict_rest = g_variant_dict_end(&dict);
 	g_variant_iter_init(&iter, dict_rest);
 	while (g_variant_iter_next(&iter, "{sv}", &key, NULL)) {
-		message = g_strdup_printf("Unsupported key: %s", key);
+		g_autofree gchar *message = g_strdup_printf("Unsupported key: %s", key);
+
 		g_free(key);
-		res = FALSE;
+		return_failed(invocation, message);
 		args->status_result = 2;
-		goto out;
-	}
-
-	r_config_file_modified_check();
-
-	r_installer_set_operation(r_installer, "installing");
-	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_installer));
-	install_run(args);
-	args = NULL;
-
-out:
-	g_clear_pointer(&args, install_args_free);
-	if (res) {
-		r_installer_complete_install(interface, invocation);
-	} else {
+		install_args_free(g_steal_pointer(&call->args));
+		install_call_free(call);
 		r_installer_set_operation(r_installer, "idle");
-		g_dbus_method_invocation_return_error(invocation,
-				G_IO_ERROR,
-				G_IO_ERROR_FAILED_HANDLED,
-				"%s", message);
+		return TRUE;
 	}
+
+	/* the transaction ID can end up in HTTP headers and handlers */
+	override = args->ignore_compatible || args->ignore_version_limit ||
+	           args->transaction || access_args_overriding(&args->access_args);
+
+	call->booted_slot_good = r_service_booted_slot_is_good;
+	details_add(details, "source", args->name);
+	details_add_bool(details, "ignore-compatible", args->ignore_compatible);
+	details_add_bool(details, "ignore-version-limit", args->ignore_version_limit);
+	details_add_bool(details, "booted-slot-good", call->booted_slot_good);
+	add_access_args_details(details, &args->access_args);
+	if (args->transaction)
+		details_add(details, "transaction-id", args->transaction);
+	if (args->require_manifest_hash)
+		details_add(details, "require-manifest-hash", args->require_manifest_hash);
+	g_ptr_array_add(details, NULL);
+
+	r_authorize(invocation,
+			override ? "de.pengutronix.rauc.install-override" : "de.pengutronix.rauc.install",
+			(const gchar *const *) details->pdata, install_bundle_authorized, call,
+			(GDestroyNotify) install_call_free);
 
 	return TRUE;
 }
@@ -158,22 +249,27 @@ static gboolean r_on_handle_install(RInstaller *interface,
 	return r_on_handle_install_bundle(interface, invocation, arg_source, NULL);
 }
 
-static gboolean r_on_handle_inspect_bundle(RInstaller *interface,
-		GDBusMethodInvocation  *invocation,
-		const gchar *arg_bundle, GVariant *arg_args)
+typedef struct {
+	gchar *bundle;
+	RaucBundleAccessArgs access_args;
+	gboolean legacy;
+} RInspectCall;
+
+static void inspect_call_free(RInspectCall *call)
 {
-	g_auto(RaucBundleAccessArgs) access_args = {0};
-	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(arg_args);
-	g_autoptr(GVariant) remaining = NULL;
-	GVariantIter iter;
-	gchar *key;
+	g_free(call->bundle);
+	clear_bundle_access_args(&call->access_args);
+	g_free(call);
+}
+
+static void inspect_bundle_authorized(GDBusMethodInvocation *invocation, gpointer data)
+{
+	RInspectCall *call = data;
 	g_autoptr(RaucManifest) manifest = NULL;
 	g_autoptr(RaucBundle) bundle = NULL;
 	g_autofree gchar *message = NULL;
 	GError *error = NULL;
 	gboolean res = TRUE;
-
-	g_print("bundle: %s\n", arg_bundle);
 
 	res = !r_context_get_busy();
 	if (!res) {
@@ -181,22 +277,10 @@ static gboolean r_on_handle_inspect_bundle(RInstaller *interface,
 		goto out;
 	}
 
-	convert_dict_to_bundle_access_args(&dict, &access_args);
+	g_assert(call->access_args.http_info_headers == NULL);
+	call->access_args.http_info_headers = assemble_info_headers(NULL);
 
-	/* Check for unhandled keys */
-	remaining = g_variant_dict_end(&dict);
-	g_variant_iter_init(&iter, remaining);
-	while (g_variant_iter_next(&iter, "{sv}", &key, NULL)) {
-		message = g_strdup_printf("Unsupported key: %s", key);
-		g_free(key);
-		res = FALSE;
-		goto out;
-	}
-
-	g_assert(access_args.http_info_headers == NULL);
-	access_args.http_info_headers = assemble_info_headers(NULL);
-
-	res = check_bundle(arg_bundle, &bundle, CHECK_BUNDLE_DEFAULT, &access_args, &error);
+	res = check_bundle(call->bundle, &bundle, CHECK_BUNDLE_DEFAULT, &call->access_args, &error);
 	if (!res) {
 		message = g_strdup(error->message);
 		g_clear_error(&error);
@@ -220,26 +304,63 @@ out:
 				G_IO_ERROR,
 				G_IO_ERROR_FAILED_HANDLED,
 				"%s", message);
-		return TRUE;
-	}
-
-	if (arg_args) {
-		GVariant *info_variant;
-
-		info_variant = r_manifest_to_dict(manifest);
-
-		r_installer_complete_inspect_bundle(
-				interface,
-				invocation,
-				info_variant);
+	} else if (!call->legacy) {
+		r_installer_complete_inspect_bundle(r_installer, invocation,
+				r_manifest_to_dict(manifest));
 	} else {
-		/* arg_args unset means legacy API */
-		r_installer_complete_info(
-				interface,
-				invocation,
+		/* legacy Info() API */
+		r_installer_complete_info(r_installer, invocation,
 				manifest->update_compatible,
 				manifest->update_version ? manifest->update_version : "");
 	}
+	inspect_call_free(call);
+}
+
+static gboolean r_on_handle_inspect_bundle(RInstaller *interface,
+		GDBusMethodInvocation  *invocation,
+		const gchar *arg_bundle, GVariant *arg_args)
+{
+	RInspectCall *call = g_new0(RInspectCall, 1);
+	g_auto(GVariantDict) dict = G_VARIANT_DICT_INIT(arg_args);
+	g_autoptr(GVariant) remaining = NULL;
+	g_autoptr(GPtrArray) details = g_ptr_array_new();
+	GVariantIter iter;
+	gchar *key;
+
+	g_print("bundle: %s\n", arg_bundle);
+
+	/* checked again once authorized */
+	if (r_context_get_busy()) {
+		return_failed(invocation, "already processing a different method");
+		inspect_call_free(call);
+		return TRUE;
+	}
+
+	call->bundle = g_strdup(arg_bundle);
+	call->legacy = arg_args == NULL;
+	convert_dict_to_bundle_access_args(&dict, &call->access_args);
+
+	/* Check for unhandled keys */
+	remaining = g_variant_dict_end(&dict);
+	g_variant_iter_init(&iter, remaining);
+	while (g_variant_iter_next(&iter, "{sv}", &key, NULL)) {
+		g_autofree gchar *message = g_strdup_printf("Unsupported key: %s", key);
+
+		g_free(key);
+		return_failed(invocation, message);
+		inspect_call_free(call);
+		return TRUE;
+	}
+
+	details_add(details, "source", call->bundle);
+	add_access_args_details(details, &call->access_args);
+	g_ptr_array_add(details, NULL);
+
+	r_authorize(invocation,
+			access_args_overriding(&call->access_args)
+			? "de.pengutronix.rauc.inspect-override" : "de.pengutronix.rauc.inspect",
+			(const gchar *const *) details->pdata, inspect_bundle_authorized, call,
+			(GDestroyNotify) inspect_call_free);
 
 	return TRUE;
 }
@@ -252,11 +373,24 @@ static gboolean r_on_handle_info(RInstaller *interface,
 	return r_on_handle_inspect_bundle(interface, invocation, arg_bundle, NULL);
 }
 
-static gboolean r_on_handle_mark(RInstaller *interface,
-		GDBusMethodInvocation  *invocation,
-		const gchar *arg_state,
-		const gchar *arg_slot_identifier)
+typedef struct {
+	gchar *state;
+	gchar *slot_identifier;
+	/* for state "active", what polkit was told */
+	RMarkActivationChecks checks;
+	gboolean booted_slot_good;
+} RMarkCall;
+
+static void mark_call_free(RMarkCall *call)
 {
+	g_free(call->state);
+	g_free(call->slot_identifier);
+	g_free(call);
+}
+
+static void mark_authorized(GDBusMethodInvocation *invocation, gpointer data)
+{
+	RMarkCall *call = data;
 	g_autofree gchar *slot_name = NULL;
 	g_autofree gchar *message = NULL;
 	gboolean res;
@@ -267,18 +401,31 @@ static gboolean r_on_handle_mark(RInstaller *interface,
 		goto out;
 	}
 
-	res = mark_run(arg_state, arg_slot_identifier, &slot_name, &message);
-	if (res && g_strcmp0(arg_slot_identifier, "booted") == 0) {
-		if (g_strcmp0(arg_state, "good") == 0) {
-			r_service_booted_slot_is_good = TRUE;
-		} else if (g_strcmp0(arg_state, "bad") == 0) {
-			r_service_booted_slot_is_good = FALSE;
+	if (g_strcmp0(call->state, "active") == 0) {
+		RMarkActivationChecks checks;
+
+		r_mark_activation_checks(call->slot_identifier, &checks);
+		if (checks.install_complete != call->checks.install_complete ||
+		    checks.meets_version_limit != call->checks.meets_version_limit ||
+		    checks.activated_since_install != call->checks.activated_since_install ||
+		    r_service_booted_slot_is_good != call->booted_slot_good) {
+			res = FALSE;
+			message = g_strdup("slot status changed during authorization");
+			goto out;
 		}
 	}
 
+	/* cleared first, so a failed mark bad does not leave it set */
+	if (g_strcmp0(call->state, "bad") == 0 && r_mark_names_booted_slot(call->slot_identifier))
+		r_service_booted_slot_is_good = FALSE;
+
+	res = mark_run(call->state, call->slot_identifier, &slot_name, &message);
+	if (res && g_strcmp0(call->state, "good") == 0 && r_mark_names_booted_slot(call->slot_identifier))
+		r_service_booted_slot_is_good = TRUE;
+
 out:
 	if (res) {
-		r_installer_complete_mark(interface, invocation, slot_name, message);
+		r_installer_complete_mark(r_installer, invocation, slot_name, message);
 	} else {
 		g_dbus_method_invocation_return_error(invocation,
 				G_IO_ERROR,
@@ -287,6 +434,42 @@ out:
 	}
 	if (message)
 		g_message("rauc mark: %s", message);
+	mark_call_free(call);
+}
+
+static gboolean r_on_handle_mark(RInstaller *interface,
+		GDBusMethodInvocation  *invocation,
+		const gchar *arg_state,
+		const gchar *arg_slot_identifier)
+{
+	RMarkCall *call;
+	g_autoptr(GPtrArray) details = g_ptr_array_new();
+
+	/* checked again once authorized */
+	if (r_context_get_busy()) {
+		return_failed(invocation, "already processing a different method");
+		g_message("rauc mark: already processing a different method");
+		return TRUE;
+	}
+
+	details_add(details, "state", arg_state);
+	details_add(details, "slot", arg_slot_identifier);
+
+	call = g_new0(RMarkCall, 1);
+	call->state = g_strdup(arg_state);
+	call->slot_identifier = g_strdup(arg_slot_identifier);
+	if (g_strcmp0(arg_state, "active") == 0) {
+		r_mark_activation_checks(arg_slot_identifier, &call->checks);
+		call->booted_slot_good = r_service_booted_slot_is_good;
+		details_add_bool(details, "install-complete", call->checks.install_complete);
+		details_add_bool(details, "meets-version-limit", call->checks.meets_version_limit);
+		details_add_bool(details, "activated-since-install", call->checks.activated_since_install);
+		details_add_bool(details, "booted-slot-good", call->booted_slot_good);
+	}
+	g_ptr_array_add(details, NULL);
+
+	r_authorize(invocation, "de.pengutronix.rauc.mark", (const gchar *const *) details->pdata,
+			mark_authorized, call, (GDestroyNotify) mark_call_free);
 
 	return TRUE;
 }

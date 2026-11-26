@@ -19,10 +19,72 @@
 typedef struct {
 	GTestDBus *dbus;
 	gchar *tmpdir;
+	GSubprocess *polkitd;
 } ServiceFixture;
 
 GMainLoop *testloop = NULL;
 RInstaller *installer = NULL;
+
+#if ENABLE_POLKIT
+static GVariant *bus_call(GDBusConnection *bus, const gchar *dest, const gchar *path,
+		const gchar *iface, const gchar *method, GVariant *args, const GVariantType *reply)
+{
+	GError *error = NULL;
+	GVariant *ret;
+
+	ret = g_dbus_connection_call_sync(bus, dest, path, iface, method, args, reply,
+			G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
+	g_assert_no_error(error);
+	return ret;
+}
+
+/*
+ * The service asks polkit on the system bus. Use the test bus as the system
+ * bus too, and run python-dbusmock's polkitd there, allowing every action.
+ */
+static void mock_polkitd_up(ServiceFixture *fixture)
+{
+	const gchar *address = g_test_dbus_get_bus_address(fixture->dbus);
+	g_autoptr(GDBusConnection) bus = NULL;
+	g_autoptr(GSubprocessLauncher) launcher = NULL;
+	GVariantBuilder env;
+	GError *error = NULL;
+	gboolean owned = FALSE;
+
+	bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &error);
+	g_assert_no_error(error);
+
+	/* The service is started by D-Bus activation, with this environment. */
+	g_variant_builder_init(&env, G_VARIANT_TYPE("a{ss}"));
+	g_variant_builder_add(&env, "{ss}", "DBUS_SYSTEM_BUS_ADDRESS", address);
+	g_variant_unref(bus_call(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus",
+			"org.freedesktop.DBus", "UpdateActivationEnvironment",
+			g_variant_new("(a{ss})", &env), NULL));
+
+	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_NONE);
+	g_subprocess_launcher_setenv(launcher, "DBUS_SYSTEM_BUS_ADDRESS", address, TRUE);
+	fixture->polkitd = g_subprocess_launcher_spawn(launcher, &error,
+			"python3", "-m", "dbusmock", "--system", "--template", "polkitd", NULL);
+	g_assert_no_error(error);
+
+	for (gint i = 0; i < 100 && !owned; i++) {
+		g_autoptr(GVariant) ret = bus_call(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus",
+				"org.freedesktop.DBus", "NameHasOwner",
+				g_variant_new("(s)", "org.freedesktop.PolicyKit1"), G_VARIANT_TYPE("(b)"));
+		g_variant_get(ret, "(b)", &owned);
+		if (!owned)
+			g_usleep(G_USEC_PER_SEC / 10);
+	}
+	g_assert_true(owned);
+
+	g_variant_unref(bus_call(bus, "org.freedesktop.PolicyKit1", "/org/freedesktop/PolicyKit1/Authority",
+			"org.freedesktop.DBus.Mock", "SetAllowed",
+			g_variant_new_parsed("(['de.pengutronix.rauc.install', 'de.pengutronix.rauc.install-override', "
+					"'de.pengutronix.rauc.inspect', 'de.pengutronix.rauc.inspect-override', "
+					"'de.pengutronix.rauc.mark', 'de.pengutronix.rauc.poll'],)"),
+			NULL));
+}
+#endif
 
 static void service_fixture_set_up(ServiceFixture *fixture, gconstpointer user_data)
 {
@@ -44,6 +106,9 @@ Exec="TEST_SERVICES "/rauc -c %s/system.conf --mount=%s/mount --override-boot-sl
 	fixture->dbus = g_test_dbus_new(G_TEST_DBUS_NONE);
 	g_test_dbus_add_service_dir(fixture->dbus, fixture->tmpdir);
 	g_test_dbus_up(fixture->dbus);
+#if ENABLE_POLKIT
+	mock_polkitd_up(fixture);
+#endif
 }
 
 static void service_install_fixture_set_up(ServiceFixture *fixture, gconstpointer user_data)
@@ -62,6 +127,12 @@ static void service_fixture_tear_down(ServiceFixture *fixture, gconstpointer use
 {
 	GError *error = NULL;
 	gboolean ret = FALSE;
+
+	if (fixture->polkitd) {
+		g_subprocess_force_exit(fixture->polkitd);
+		g_subprocess_wait(fixture->polkitd, NULL, NULL);
+		g_clear_object(&fixture->polkitd);
+	}
 
 	g_test_dbus_down(fixture->dbus);
 	g_object_unref(fixture->dbus);

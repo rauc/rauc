@@ -5,6 +5,7 @@
 #include "mark.h"
 #include "slot.h"
 #include "status_file.h"
+#include "utils.h"
 
 static GList* get_slots_by_identifier(const gchar *identifier, GError **error)
 {
@@ -130,9 +131,65 @@ static void r_event_log_mark_bad(RaucSlot *slot)
 			);
 }
 
+gboolean r_mark_names_booted_slot(const gchar *slot_identifier)
+{
+	RaucSlot *booted = r_slot_get_booted(r_context()->config->slots);
+
+	g_return_val_if_fail(slot_identifier != NULL, FALSE);
+
+	return booted && (g_strcmp0(slot_identifier, "booted") == 0 ||
+	                  g_strcmp0(slot_identifier, booted->name) == 0);
+}
+
+void r_mark_activation_checks(const gchar *slot_identifier, RMarkActivationChecks *checks)
+{
+	g_autoptr(GList) slots = NULL;
+	g_autoptr(GList) members = NULL;
+	const gchar *limit = r_context()->config->system_min_bundle_version;
+	RaucSlot *slot;
+
+	g_return_if_fail(slot_identifier != NULL);
+	g_return_if_fail(checks != NULL);
+
+	*checks = (RMarkActivationChecks) {0};
+
+	slots = get_slots_by_identifier(slot_identifier, NULL);
+	if (g_list_length(slots) != 1)
+		return;
+	slot = slots->data;
+
+	r_slot_status_load(slot);
+	if (!slot->status->status)
+		return;
+
+	checks->install_complete = TRUE;
+	checks->meets_version_limit = TRUE;
+	/* only the slot named is stamped when activated, and installing it
+	 * clears the stamp */
+	checks->activated_since_install = slot->status->activated_timestamp != NULL;
+
+	members = r_slot_get_all_children(r_context()->config->slots, slot);
+	members = g_list_prepend(members, slot);
+	for (GList *l = members; l != NULL; l = l->next) {
+		RaucSlot *member = l->data;
+		RaucSlotStatus *status;
+
+		r_slot_status_load(member);
+		status = member->status;
+
+		if (g_strcmp0(status->status, "ok") != 0 || !status->bundle_hash ||
+		    g_strcmp0(status->bundle_hash, slot->status->bundle_hash) != 0)
+			checks->install_complete = FALSE;
+		if (limit && (!status->bundle_version ||
+		              !r_semver_less_equal(limit, status->bundle_version, NULL)))
+			checks->meets_version_limit = FALSE;
+	}
+}
+
 gboolean r_mark_active(RaucSlot *slot, GError **error)
 {
 	RaucSlotStatus *slot_state;
+	g_autoptr(GDateTime) previous = NULL;
 	GError *ierror = NULL;
 
 	g_return_val_if_fail(slot, FALSE);
@@ -141,7 +198,24 @@ gboolean r_mark_active(RaucSlot *slot, GError **error)
 	r_slot_status_load(slot);
 	slot_state = slot->status;
 
+	/* Recorded before switching, so an activation cut off by a power loss
+	 * is not taken for none. */
+	previous = g_steal_pointer(&slot_state->activated_timestamp);
+	slot_state->activated_timestamp = g_date_time_new_now_utc();
+	slot_state->activated_count++;
+	if (!r_slot_status_save(slot, &ierror)) {
+		g_message("Error while writing status file: %s", ierror->message);
+		g_clear_error(&ierror);
+	}
+
 	if (!r_boot_set_primary(slot, &ierror)) {
+		g_autoptr(GError) save_error = NULL;
+
+		g_date_time_unref(slot_state->activated_timestamp);
+		slot_state->activated_timestamp = g_steal_pointer(&previous);
+		slot_state->activated_count--;
+		if (!r_slot_status_save(slot, &save_error))
+			g_message("Error while writing status file: %s", save_error->message);
 		g_set_error(error, R_INSTALL_ERROR, R_INSTALL_ERROR_MARK_BOOTABLE,
 				"failed to activate slot %s: %s", slot->name, ierror->message);
 		g_error_free(ierror);
@@ -149,16 +223,6 @@ gboolean r_mark_active(RaucSlot *slot, GError **error)
 	}
 
 	r_event_log_mark_active(slot);
-
-	if (slot_state->activated_timestamp)
-		g_date_time_unref(slot_state->activated_timestamp);
-	slot_state->activated_timestamp = g_date_time_new_now_utc();
-	slot_state->activated_count++;
-
-	if (!r_slot_status_save(slot, &ierror)) {
-		g_message("Error while writing status file: %s", ierror->message);
-		g_error_free(ierror);
-	}
 
 	return TRUE;
 }

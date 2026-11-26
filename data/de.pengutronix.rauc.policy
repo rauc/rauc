@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!--
+  The actions RAUC asks polkit about when built with -Dpolkit=enabled.
+  By default, only an administrator may perform them.
+  Grant more with rules in /etc/polkit-1/rules.d, which can read the arguments
+  of a call with action.lookup(); see the "polkit Authorization" section of
+  the RAUC reference for the details each action carries.
+-->
+<policyconfig>
+  <vendor>RAUC</vendor>
+  <vendor_url>https://rauc.io</vendor_url>
+
+  <action id="de.pengutronix.rauc.install">
+    <description>Install an update bundle</description>
+    <message>Authentication is required to install an update</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="de.pengutronix.rauc.install-override">
+    <description>Install an update bundle without the compatible, version limit or TLS checks</description>
+    <message>Authentication is required to install an update without the usual checks</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+
+  <action id="de.pengutronix.rauc.inspect">
+    <description>Inspect an update bundle</description>
+    <message>Authentication is required to inspect an update bundle</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="de.pengutronix.rauc.inspect-override">
+    <description>Inspect an update bundle with caller-supplied TLS credentials or headers</description>
+    <message>Authentication is required to inspect an update bundle without the usual checks</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+
+  <action id="de.pengutronix.rauc.mark">
+    <description>Change which slot boots, or mark a slot good or bad</description>
+    <message>Authentication is required to change the boot slots</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="de.pengutronix.rauc.poll">
+    <description>Check for an update now</description>
+    <message>Authentication is required to check for an update</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+</policyconfig>

@@ -30,4 +30,12 @@ rauc_dbus_policy = configure_file(
 )
 install_data(rauc_dbus_policy, install_dir : dbuspolicydir)
 
+if polkitdep.found()
+  polkitactiondir = get_option('polkitactiondir')
+  if polkitactiondir == ''
+    polkitactiondir = polkitdep.get_variable(pkgconfig : 'policydir', default_value : datadir / 'polkit-1' / 'actions')
+  endif
+  install_data('de.pengutronix.rauc.policy', install_dir : polkitactiondir)
+endif
+
 install_data('rauc.catalog', install_dir : systemdcatalogdir)

@@ -224,6 +224,8 @@ Running the Test Suite
     sudo apt-get install qemu-system-x86 time squashfs-tools e2fsprogs python3-pytest python3-dasbus python3-aiohttp python3-requests python3-pyasn1 python3-pyasn1-modules
     # Optional to run all tests:
     # sudo apt-get install faketime dbus-daemon casync grub-common openssl softhsm2 opensc opensc-pkcs11 libengine-pkcs11-openssl mtd-utils nginx-light tree
+    # For a build with -Dpolkit=enabled:
+    # sudo apt-get install libpolkit-gobject-1-dev python3-dbusmock
     ./qemu-test
 
 Creating a Bundle (Host)

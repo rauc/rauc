@@ -1,8 +1,10 @@
 import json
 import os
+import re
 import shutil
 import subprocess
 import tarfile
+import tempfile
 import time
 from configparser import ConfigParser
 from contextlib import contextmanager
@@ -13,8 +15,9 @@ from random import Random
 
 import pytest
 import requests
-from dasbus.connection import SessionMessageBus
+from dasbus.connection import AddressedMessageBus, SessionMessageBus
 from dasbus.error import DBusError
+from dasbus.typing import get_native
 
 from helper import run
 
@@ -162,6 +165,12 @@ needs_service = pytest.mark.skipif(not string_in_config_h("ENABLE_SERVICE 1"), r
 def have_service():
     return string_in_config_h("ENABLE_SERVICE 1")
 
+
+def have_polkit():
+    return string_in_config_h("ENABLE_POLKIT 1")
+
+
+needs_polkit = pytest.mark.skipif(not have_polkit(), reason="Missing polkit support")
 
 needs_emmc = pytest.mark.skipif("RAUC_TEST_EMMC" not in os.environ, reason="Missing eMMC")
 
@@ -338,17 +347,76 @@ def pkcs11(tmp_path_factory):
     prepare_softhsm2(tmp_path_factory.mktemp("blub"), softhsm2_mod)
 
 
+UNPRIVILEGED_ID = 65534
+
+# The session bus, also open to the unprivileged user the polkit tests call as.
+DBUS_CONFIG = f"""<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-Bus Bus Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+<busconfig>
+  <include>/usr/share/dbus-1/session.conf</include>
+  <policy context="default">
+    <allow user="root"/>
+    <allow user="{UNPRIVILEGED_ID}"/>
+  </policy>
+</busconfig>
+"""
+
+
+@contextmanager
+def unprivileged():
+    """Act as an unprivileged user, as a service calling RAUC would."""
+    if os.geteuid() != 0:
+        yield
+        return
+    uids, gids, groups = os.getresuid(), os.getresgid(), os.getgroups()
+    try:
+        try:
+            os.setgroups([])
+            os.setresgid(UNPRIVILEGED_ID, UNPRIVILEGED_ID, gids[2])
+            os.setresuid(UNPRIVILEGED_ID, UNPRIVILEGED_ID, uids[2])
+        except OSError as e:
+            pytest.skip(f"cannot act as an unprivileged user: {e}")
+        yield
+    finally:
+        os.setresuid(*uids)
+        os.setresgid(*gids)
+        os.setgroups(groups)
+
+
+def unprivileged_bus():
+    """
+    Open a new connection to the test bus as an unprivileged user.
+
+    This changes the user of every thread, so connect before starting threads.
+    """
+    # GLib ignores the bus address in the environment while privileges are dropped
+    bus = AddressedMessageBus(os.environ["DBUS_SESSION_BUS_ADDRESS"])
+    with unprivileged():
+        _ = bus.connection
+    return bus
+
+
 @pytest.fixture(scope="session")
-def dbus_session_bus(tmp_path_factory):
+def dbus_session_bus():
     addr_r_fd, addr_w_fd = os.pipe()
+    # reachable by the unprivileged user, but not listed
+    socket_dir = Path(tempfile.mkdtemp(prefix="rauc-test-bus-"))
+    socket_dir.chmod(0o711)
+    if os.geteuid() == 0:
+        config = socket_dir / "bus.conf"
+        config.write_text(DBUS_CONFIG)
+        bus_type = f"--config-file={config}"
+    else:
+        # the tests call as this user, so the session bus admits them
+        bus_type = "--session"
 
     try:
         # Start the dbus-daemon
         dbus = subprocess.Popen(
             [
                 "dbus-daemon",
-                "--session",
-                f"--address=unix:path={tmp_path_factory.mktemp('dbus')}/socket",
+                bus_type,
+                f"--address=unix:path={socket_dir}/socket",
                 f"--print-address={addr_w_fd}",
             ],
             pass_fds=(addr_w_fd,),
@@ -372,6 +440,88 @@ def dbus_session_bus(tmp_path_factory):
     except subprocess.TimeoutExpired:
         dbus.kill()
         dbus.wait()
+    shutil.rmtree(socket_dir, ignore_errors=True)
+
+
+POLKIT_ACTIONS = re.findall(
+    r'<action id="([^"]+)"', (Path(__file__).parent / "../data/de.pengutronix.rauc.policy").read_text()
+)
+
+
+class MockPolkitd:
+    """python-dbusmock's polkitd, which records what it is asked."""
+
+    def __init__(self):
+        self.process = subprocess.Popen(["python3", "-m", "dbusmock", "--system", "--template", "polkitd"])
+        self.pid = self.process.pid
+
+        bus = AddressedMessageBus(os.environ["DBUS_SYSTEM_BUS_ADDRESS"])
+        timeout = time.monotonic() + 5.0
+        while True:
+            try:
+                self.proxy = bus.get_proxy(
+                    "org.freedesktop.PolicyKit1",
+                    "/org/freedesktop/PolicyKit1/Authority",
+                    interface_name="org.freedesktop.DBus.Mock",
+                )
+                self.proxy.ClearCalls()
+                break
+            except DBusError:
+                assert time.monotonic() < timeout, "mock polkitd did not appear"
+                time.sleep(0.1)
+
+    def __call__(self, *actions):
+        """Allow only the given actions, and forget the checks so far."""
+        self.proxy.SetAllowed(list(actions))
+        self.proxy.ClearCalls()
+
+    def checks(self):
+        """Return the (subject, action id, details) of every check since the last call."""
+        result = [
+            (args[0], args[1], args[2]) for _, args in get_native(self.proxy.GetMethodCalls("CheckAuthorization"))
+        ]
+        self.proxy.ClearCalls()
+        return result
+
+    def calls(self):
+        """Return the (action id, details) of every check since the last call."""
+        return [(action, details) for _, action, details in self.checks()]
+
+    def stop(self):
+        self.process.terminate()
+        self.process.wait()
+
+
+@pytest.fixture(scope="session")
+def mock_polkitd(request):
+    """
+    Run python-dbusmock's polkitd on the test bus, which the service then also
+    takes for the system bus.
+    """
+    if not have_polkit():
+        yield None
+        return
+
+    request.getfixturevalue("dbus_session_bus")
+    os.environ["DBUS_SYSTEM_BUS_ADDRESS"] = os.environ["DBUS_SESSION_BUS_ADDRESS"].strip()
+    polkitd = MockPolkitd()
+    try:
+        yield polkitd
+    finally:
+        polkitd.stop()
+        os.environ.pop("DBUS_SYSTEM_BUS_ADDRESS", None)
+
+
+@pytest.fixture(autouse=True)
+def polkit_allow(mock_polkitd):
+    """
+    Allow every RAUC action before each test, so tests not about authorization
+    behave as without polkit. Tests about it call the yielded object to allow
+    only some actions.
+    """
+    if mock_polkitd:
+        mock_polkitd(*POLKIT_ACTIONS)
+    yield mock_polkitd
 
 
 @pytest.fixture
@@ -545,6 +695,8 @@ class System:
 
         self.service = None
         self.proxy = None
+        # call the service as an unprivileged user, who polkit is asked about
+        self.unprivileged = False
 
         self.env_kernel_cmdline = None
 
@@ -672,7 +824,7 @@ class System:
             env=env,
         )
 
-        bus = SessionMessageBus()
+        bus = unprivileged_bus() if self.unprivileged else SessionMessageBus()
 
         # Wait for de.pengutronix.rauc to appear on the bus
         timeout = time.monotonic() + 5.0
@@ -688,13 +840,16 @@ class System:
 
         yield
 
-        self.service.terminate()
+        service = self.service
+        self.service = None
+        self.proxy = None
+        service.terminate()
         try:
-            self.service.wait(timeout=10)
-            assert self.service.returncode == 0
+            service.wait(timeout=10)
+            assert service.returncode == 0
         except subprocess.TimeoutExpired:
-            self.service.kill()
-            self.service.wait()
+            service.kill()
+            service.wait()
 
 
 @pytest.fixture

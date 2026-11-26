@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "polling.h"
+#include "authorize.h"
 #include "bundle.h"
 #include "config_file.h"
 #include "context.h"
@@ -441,14 +442,29 @@ static void polling_update_status(RPollingContext *polling_context)
 	r_poller_set_status(r_poller, g_variant_builder_end(&builder));
 }
 
-static gboolean on_handle_poll(RPoller *interface, GDBusMethodInvocation *invocation)
+static void poll_authorized(GDBusMethodInvocation *invocation, gpointer data)
 {
-	RPollingContext *polling_context = (RPollingContext *)g_object_get_data(G_OBJECT(interface), "r-poll");
+	RPollingContext *polling_context;
+
+	/* polling may have stopped while the check was pending */
+	if (!r_poller) {
+		g_dbus_method_invocation_return_error_literal(invocation,
+				G_IO_ERROR, G_IO_ERROR_FAILED_HANDLED,
+				"polling has stopped");
+		return;
+	}
+
+	polling_context = g_object_get_data(G_OBJECT(r_poller), "r-poll");
 	g_assert(polling_context);
 
 	polling_reschedule(polling_context, POLLING_DELAY_SHORT);
 	g_dbus_interface_skeleton_flush(G_DBUS_INTERFACE_SKELETON(r_poller));
-	r_poller_complete_poll(interface, invocation);
+	r_poller_complete_poll(r_poller, invocation);
+}
+
+static gboolean on_handle_poll(RPoller *interface, GDBusMethodInvocation *invocation)
+{
+	r_authorize(invocation, "de.pengutronix.rauc.poll", NULL, poll_authorized, NULL, NULL);
 
 	return TRUE;
 }

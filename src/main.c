@@ -2944,6 +2944,7 @@ static void cmdline_handler(int argc, char **argv)
 				" gpt=" G_STRINGIFY(ENABLE_GPT)
 				" json=" G_STRINGIFY(ENABLE_JSON)
 				" network=" G_STRINGIFY(ENABLE_NETWORK)
+				" polkit=" G_STRINGIFY(ENABLE_POLKIT)
 				" service=" G_STRINGIFY(ENABLE_SERVICE)
 				" streaming=" G_STRINGIFY(ENABLE_STREAMING)
 				);

@@ -21,9 +21,15 @@ jobs:
 
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+    - name: Install polkit dependencies
+      # until the CI image built from test/Dockerfile carries them
+      run: |
+        apt-get update
+        DEBIAN_FRONTEND='noninteractive' apt-get install -qy libpolkit-gobject-1-dev python3-dbusmock
+
     - name: Run meson
       run: |
-        meson setup build -Db_sanitize=address,undefined
+        meson setup build -Db_sanitize=address,undefined -Dpolkit=enabled
         meson configure build
         meson compile -C build
 

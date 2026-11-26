@@ -54,9 +54,18 @@ libcurldep = dependency('libcurl', version : '>=7.81.0', required : get_option('
 libnlgenldep = dependency('libnl-genl-3.0', version : '>=3.1', required : get_option('streaming'))
 threaddep = dependency('threads', required : get_option('streaming'))
 composefsdep = dependency('composefs', fallback : ['composefs', 'libcomposefs_dep'], required : get_option('composefs'))
+if get_option('service')
+  polkitdep = dependency('polkit-gobject-1', version : '>=0.119', required : get_option('polkit'))
+else
+  if get_option('polkit').enabled()
+    error('polkit authorization needs the service')
+  endif
+  polkitdep = dependency('', required : false)
+endif
 systemddep = dependency('systemd', required : false)
 
 conf.set10('ENABLE_SERVICE', get_option('service'))
+conf.set10('ENABLE_POLKIT', polkitdep.found())
 conf.set10('ENABLE_CREATE', get_option('create'))
 conf.set10('ENABLE_JSON', jsonglibdep.found())
 
@@ -120,6 +129,7 @@ incdir = include_directories('include')
 
 sources_rauc = files([
   'src/artifacts.c',
+  'src/authorize.c',
   'src/bootchooser.c',
   'src/bootloaders/barebox.c',
   'src/bootloaders/custom.c',
@@ -210,7 +220,7 @@ versiondep = declare_dependency(sources: version_h)
 
 meson.add_dist_script('version-gen', meson.project_version())
 
-rauc_deps = [threaddep, libcurldep, libnlgenldep, jsonglibdep, dbusdep, glibdep, giodep, giounixdep, openssldep, fdiskdep, composefsdep]
+rauc_deps = [threaddep, libcurldep, libnlgenldep, jsonglibdep, dbusdep, glibdep, giodep, giounixdep, openssldep, fdiskdep, composefsdep, polkitdep]
 
 librauc = static_library('rauc',
   sources_rauc,
