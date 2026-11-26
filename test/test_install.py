@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shutil
 from textwrap import dedent
 
@@ -135,6 +136,19 @@ def test_install_plain_casync_local(rauc_dbus_service_with_system, tmp_path):
 
     assert exitcode == 0
     assert os.path.getsize(tmp_path / "images/rootfs-1") > 0
+
+
+@have_casync
+def test_install_plain_casync_local_missing_chunk(rauc_dbus_service_with_system, tmp_path):
+    # copy to tmp path for safe ownership check
+    shutil.copyfile("good-casync-bundle-1.5.1.raucb", tmp_path / "good-casync-bundle-1.5.1.raucb")
+    shutil.copytree("good-casync-bundle-1.5.1.castr", tmp_path / "good-casync-bundle-1.5.1.castr")
+    min((tmp_path / "good-casync-bundle-1.5.1.castr").glob("*/*.cacnk")).unlink()
+
+    out, err, exitcode = run(f"rauc install {tmp_path}/good-casync-bundle-1.5.1.raucb")
+
+    assert exitcode == 1
+    assert re.search(r"failed to run casync extract: .+: Child process exited with code", out)
 
 
 @have_casync

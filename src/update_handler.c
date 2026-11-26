@@ -472,6 +472,10 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const 
 {
 	g_autoptr(GSubprocessLauncher) launcher = NULL;
 	g_autoptr(GSubprocess) sproc = NULL;
+	g_autoptr(GDataInputStream) datainstream = NULL;
+	g_autofree gchar *lastline = NULL;
+	gchar *outline = NULL;
+	gsize length;
 	g_auto(GStrv) casync_argvp = NULL;
 	GError *ierror = NULL;
 	g_autoptr(GPtrArray) args = g_ptr_array_new_full(5, g_free);
@@ -508,7 +512,7 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const 
 	g_ptr_array_add(args, g_strdup(out_fd >= 0 ? "-" : dest));
 	g_ptr_array_add(args, NULL);
 
-	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_NONE);
+	launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_STDERR_PIPE);
 
 	if (out_fd >= 0) {
 		/* Must be a copy: glib automatically closes stdout_fd, but we close out_fd as well */
@@ -538,11 +542,43 @@ static gboolean casync_extract(RaucImage *image, gchar *dest, int out_fd, const 
 		return FALSE;
 	}
 
+	/* Log the tool's stderr output and keep the last line for the error */
+	datainstream = g_data_input_stream_new(g_subprocess_get_stderr_pipe(sproc));
+	while ((outline = g_data_input_stream_read_line(datainstream, &length, NULL, &ierror))) {
+		gchar *line;
+
+		/* Limit the length, as logging long lines is slow */
+		if (length > 4096)
+			outline[4096] = '\0';
+		/* The error ends up in a D-Bus string */
+		line = g_utf8_make_valid(outline, -1);
+		g_free(outline);
+		g_message("%s", line);
+		if (line[0] != '\0') {
+			g_free(lastline);
+			lastline = line;
+		} else {
+			g_free(line);
+		}
+	}
+	if (ierror) {
+		g_warning("Failed to read casync extract output: %s", ierror->message);
+		g_clear_error(&ierror);
+	}
+	/* A tool still writing then fails instead of blocking on a full pipe */
+	g_input_stream_close(G_INPUT_STREAM(datainstream), NULL, NULL);
+
 	if (!g_subprocess_wait_check(sproc, NULL, &ierror)) {
-		g_propagate_prefixed_error(
-				error,
-				ierror,
-				"failed to run casync extract: ");
+		if (lastline && ierror->domain == G_SPAWN_EXIT_ERROR)
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"failed to run casync extract: %s: ", lastline);
+		else
+			g_propagate_prefixed_error(
+					error,
+					ierror,
+					"failed to run casync extract: ");
 		return FALSE;
 	}
 
