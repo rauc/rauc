@@ -791,7 +791,7 @@ static gboolean copy_block_hash_index_image_to_dev(RaucImage *image, RaucSlot *s
 		r_context_set_step_percentage("copy_image", R_HASH_INDEX_GEN_PROGRESS_SPAN * 2);
 
 	/* Open and append source image. */
-	tmp = r_hash_index_open_image("source_image", image, &ierror);
+	tmp = r_hash_index_open_image("source_image", image, slot, &ierror);
 	if (!tmp) {
 		g_propagate_prefixed_error(error, ierror, "failed to open source image hash index for %s: ", image->filename);
 		res = FALSE;
