@@ -309,11 +309,13 @@ void r_slot_clean_data_directory(const RaucSlot *slot)
 	if (slot->status && g_strcmp0(slot->status->status, "pending") == 0)
 		return;
 
-	if (slot->status) {
+	/* Same rule as r_slot_get_checksum_data_directory(): a slot without a
+	 * digest (never installed by RAUC) uses hash-unknown. The status is
+	 * allocated even when the slot has none, so checking it is not enough. */
+	if (slot->status)
 		hex_digest = slot->status->checksum.digest;
-	} else {
+	if (!hex_digest)
 		hex_digest = "unknown";
-	}
 
 	expected_directory = g_strdup_printf("hash-%s", hex_digest);
 	dir = g_dir_open(slot->data_directory, 0, NULL);
