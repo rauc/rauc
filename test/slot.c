@@ -1,4 +1,5 @@
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <locale.h>
 
 #include <slot.h>
@@ -164,6 +165,43 @@ static void test_slot_get_root_classes(void)
 	g_assert_false(string_array_contains(root_classes, "appfs"));
 }
 
+static void test_slot_clean_data_directory(void)
+{
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *unknown = NULL;
+	g_autofree gchar *other = NULL;
+	g_autofree gchar *current = NULL;
+	g_autoptr(RaucSlot) slot = NULL;
+
+	tmpdir = g_dir_make_tmp("rauc-XXXXXX", NULL);
+	g_assert_nonnull(tmpdir);
+	unknown = g_build_filename(tmpdir, "hash-unknown", NULL);
+	other = g_build_filename(tmpdir, "hash-0123", NULL);
+	current = g_build_filename(tmpdir, "hash-abcd", NULL);
+
+	slot = g_new0(RaucSlot, 1);
+	slot->name = g_intern_string("rootfs.0");
+	slot->data_directory = g_strdup(tmpdir);
+	/* what r_slot_status_load() leaves for a slot that was never installed */
+	slot->status = g_new0(RaucSlotStatus, 1);
+
+	g_assert_cmpint(g_mkdir(unknown, 0700), ==, 0);
+	g_assert_cmpint(g_mkdir(other, 0700), ==, 0);
+	r_slot_clean_data_directory(slot);
+	g_assert_true(g_file_test(unknown, G_FILE_TEST_IS_DIR));
+	g_assert_false(g_file_test(other, G_FILE_TEST_EXISTS));
+
+	/* once the slot has a digest, hash-unknown is stale */
+	slot->status->checksum.digest = g_strdup("abcd");
+	g_assert_cmpint(g_mkdir(current, 0700), ==, 0);
+	r_slot_clean_data_directory(slot);
+	g_assert_true(g_file_test(current, G_FILE_TEST_IS_DIR));
+	g_assert_false(g_file_test(unknown, G_FILE_TEST_EXISTS));
+
+	g_assert_cmpint(g_rmdir(current), ==, 0);
+	g_assert_cmpint(g_rmdir(tmpdir), ==, 0);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
@@ -175,6 +213,7 @@ int main(int argc, char *argv[])
 	g_test_add_func("/slot/get-all-children", test_slot_get_all_children);
 	g_test_add_func("/slot/get-all-of-class", test_slot_get_all_of_class);
 	g_test_add_func("/slot/get-root-classes", test_slot_get_root_classes);
+	g_test_add_func("/slot/clean-data-directory", test_slot_clean_data_directory);
 
 	return g_test_run();
 }
